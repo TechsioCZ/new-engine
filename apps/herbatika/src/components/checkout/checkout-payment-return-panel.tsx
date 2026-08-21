@@ -64,7 +64,6 @@ const navigateToOrderConfirmation = async ({
   window.location.replace(
     buildOrderConfirmationHref({
       market,
-      orderToken: access?.orderToken,
       publicOrderId: access?.publicOrderId ?? orderId,
     })
   )

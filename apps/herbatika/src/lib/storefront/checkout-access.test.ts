@@ -32,10 +32,7 @@ describe("checkout access client", () => {
     const fetcher = vi
       .fn()
       .mockResolvedValue(
-        Response.json(
-          { ot: "Token+/Case", publicOrderId: "order_Case" },
-          { status: 200 }
-        )
+        Response.json({ publicOrderId: "order_Case" }, { status: 200 })
       )
 
     const access = await issueOrderConfirmationAccess(
@@ -44,7 +41,6 @@ describe("checkout access client", () => {
     )
 
     expect(access).toEqual({
-      orderToken: "Token+/Case",
       publicOrderId: "order_Case",
     })
     expect(fetcher).toHaveBeenCalledWith(
@@ -60,10 +56,9 @@ describe("checkout access client", () => {
     expect(
       buildOrderConfirmationHref({
         market: "cz",
-        orderToken: access.orderToken,
         publicOrderId: access.publicOrderId,
       })
-    ).toBe("/pokladna/potvrzeni-objednavky/order_Case?ot=Token%2B%2FCase")
+    ).toBe("/pokladna/potvrzeni-objednavky/order_Case")
   })
 
   it("fails closed without leaking a response token into the error", async () => {

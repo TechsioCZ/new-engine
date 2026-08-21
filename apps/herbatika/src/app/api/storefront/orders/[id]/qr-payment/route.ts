@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { resolveStorefrontApiMessages } from "@/app/api/_messages"
 import {
   fetchPrivateFlow,
   readAuthToken,
@@ -10,6 +11,9 @@ import {
   parseResponseJson,
   requireStorefrontMarketBinding,
 } from "@/app/api/storefront-auth/_lib"
+import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
+import { readOrderConfirmationToken } from "@/lib/routing/private-flows/request-cookies"
+import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import {
   mapStoreOrderPaymentQr,
   ORDER_PAYMENT_QR_FIELDS,
@@ -26,11 +30,8 @@ const PRIVATE_NO_STORE_HEADERS = {
   pragma: "no-cache",
 } as const
 
-const genericFailure = () =>
-  NextResponse.json(
-    { message: "Order payment details unavailable." },
-    { headers: PRIVATE_NO_STORE_HEADERS, status: 404 }
-  )
+const genericFailure = (message: string, status = 404) =>
+  NextResponse.json({ message }, { headers: PRIVATE_NO_STORE_HEADERS, status })
 
 const privateJson = <TBody>(body: TBody) =>
   NextResponse.json(body, { headers: PRIVATE_NO_STORE_HEADERS })
@@ -69,18 +70,47 @@ const readGuestOrderToken = async (
     : null
 }
 
+const resolveGuestOrderToken = async (request: Request) => {
+  const bodyOrderToken = await readGuestOrderToken(request)
+  if (bodyOrderToken === null) {
+    return null
+  }
+
+  const cookieOrderToken = readOrderConfirmationToken(
+    request.headers.get("cookie") ?? undefined
+  )
+  if (
+    bodyOrderToken &&
+    cookieOrderToken &&
+    bodyOrderToken !== cookieOrderToken
+  ) {
+    return null
+  }
+
+  return bodyOrderToken ?? cookieOrderToken ?? undefined
+}
+
 export async function POST(request: Request, context: RouteContext) {
+  let binding: MarketRuntimeBinding
+  try {
+    binding = requireStorefrontMarketBinding(request)
+  } catch {
+    return genericFailure("Unknown storefront host.", 421)
+  }
+  const messages = resolveStorefrontApiMessages(binding.market)
+  const unavailable = () =>
+    genericFailure(messages.orderPaymentDetailsUnavailable)
+
   try {
     const { id } = await context.params
     if (!id || id.length > 256 || id !== id.trim() || id.includes("\0")) {
-      return genericFailure()
+      return unavailable()
     }
 
-    const binding = requireStorefrontMarketBinding(request)
-    const orderToken = await readGuestOrderToken(request)
+    const orderToken = await resolveGuestOrderToken(request)
     const authToken = readAuthToken(request)
     if (orderToken === null || !(orderToken || authToken)) {
-      return genericFailure()
+      return unavailable()
     }
 
     const accessHeaders: Record<string, string> = {}
@@ -98,7 +128,7 @@ export async function POST(request: Request, context: RouteContext) {
       { headers: accessHeaders }
     )
     if (!accessResponse.ok) {
-      return genericFailure()
+      return unavailable()
     }
 
     const accessPayload = await readUpstreamJson(accessResponse)
@@ -109,7 +139,7 @@ export async function POST(request: Request, context: RouteContext) {
       Array.isArray(authorizedOrder) ||
       (authorizedOrder as Record<string, unknown>).id !== id
     ) {
-      return genericFailure()
+      return unavailable()
     }
 
     const medusaUrl = new URL(
@@ -123,7 +153,7 @@ export async function POST(request: Request, context: RouteContext) {
       method: "GET",
     })
     if (!orderResponse.ok) {
-      return genericFailure()
+      return unavailable()
     }
 
     const orderPayload = (await parseResponseJson(
@@ -134,11 +164,16 @@ export async function POST(request: Request, context: RouteContext) {
       orderPayload.order.sales_channel_id !== binding.salesChannelId ||
       orderPayload.order.region_id !== binding.regionId
     ) {
-      return genericFailure()
+      return unavailable()
     }
 
-    return privateJson(await mapStoreOrderPaymentQr(orderPayload))
+    return privateJson(
+      await mapStoreOrderPaymentQr(
+        orderPayload,
+        getHerbatikaMarketContext(binding.market).currencyCode
+      )
+    )
   } catch {
-    return genericFailure()
+    return unavailable()
   }
 }

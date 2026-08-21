@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
+import { ORDER_CONFIRMATION_TOKEN_COOKIE_NAME } from "@/lib/routing/private-flows/request-cookies"
 import { ORDER_PAYMENT_QR_FIELDS } from "@/lib/storefront/order-payment-qr-response"
 
 vi.mock("server-only", () => ({}))
@@ -15,6 +16,66 @@ const CZ_BINDING: MarketRuntimeBinding = {
   regionId: "reg_cz",
   salesChannelId: "sc_cz",
 }
+
+const MARKET_CASES = [
+  {
+    binding: {
+      ...CZ_BINDING,
+      acceptedHosts: ["herbatica.sk"],
+      canonicalOrigin: "https://herbatica.sk",
+      countryCode: "SK",
+      locale: "sk-SK",
+      market: "sk",
+      publishableApiKey: "pk_server_sk",
+      publishableApiKeyId: "pkid_sk",
+      regionId: "reg_sk",
+      salesChannelId: "sc_sk",
+    } satisfies MarketRuntimeBinding,
+    currencyCode: "EUR",
+    failureMessage: "Platobné údaje objednávky nie sú dostupné.",
+    host: "herbatica.sk",
+  },
+  {
+    binding: CZ_BINDING,
+    currencyCode: "CZK",
+    failureMessage: "Platební údaje objednávky nejsou dostupné.",
+    host: "herbatica.cz",
+  },
+  {
+    binding: {
+      ...CZ_BINDING,
+      acceptedHosts: ["herbatica.hu"],
+      canonicalOrigin: "https://herbatica.hu",
+      countryCode: "HU",
+      locale: "hu-HU",
+      market: "hu",
+      publishableApiKey: "pk_server_hu",
+      publishableApiKeyId: "pkid_hu",
+      regionId: "reg_hu",
+      salesChannelId: "sc_hu",
+    } satisfies MarketRuntimeBinding,
+    currencyCode: "HUF",
+    failureMessage: "A rendelés fizetési adatai nem érhetők el.",
+    host: "herbatica.hu",
+  },
+  {
+    binding: {
+      ...CZ_BINDING,
+      acceptedHosts: ["herbatica.ro"],
+      canonicalOrigin: "https://herbatica.ro",
+      countryCode: "RO",
+      locale: "ro-RO",
+      market: "ro",
+      publishableApiKey: "pk_server_ro",
+      publishableApiKeyId: "pkid_ro",
+      regionId: "reg_ro",
+      salesChannelId: "sc_ro",
+    } satisfies MarketRuntimeBinding,
+    currencyCode: "RON",
+    failureMessage: "Detaliile de plată ale comenzii nu sunt disponibile.",
+    host: "herbatica.ro",
+  },
+] as const
 
 const { resolveBinding } = vi.hoisted(() => ({
   resolveBinding: vi.fn(),
@@ -72,7 +133,7 @@ const authorizedOrderResponse = (overrides: Record<string, unknown> = {}) =>
       ],
       region_id: "reg_cz",
       sales_channel_id: "sc_cz",
-      total: 12_345,
+      total: 123.45,
       ...overrides,
     },
   })
@@ -84,8 +145,8 @@ const readFailureProjection = async (response: Response) => ({
   status: response.status,
 })
 
-const GENERIC_FAILURE_PROJECTION = {
-  body: { message: "Order payment details unavailable." },
+const CZ_FAILURE_PROJECTION = {
+  body: { message: "Platební údaje objednávky nejsou dostupné." },
   cacheControl: "private, no-store, max-age=0",
   pragma: "no-cache",
   status: 404,
@@ -176,12 +237,208 @@ describe("order QR payment bridge", () => {
     expect(await response.text()).not.toContain("Customer.JWT")
   })
 
+  it("uses an HttpOnly order-confirmation cookie without a body bearer", async () => {
+    resolveBinding.mockReturnValue(CZ_BINDING)
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
+      .mockResolvedValueOnce(authorizedOrderResponse())
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callQr(
+      {},
+      {
+        cookie: `${ORDER_CONFIRMATION_TOKEN_COOKIE_NAME}=Guest.Cookie.Token`,
+      }
+    )
+
+    expect(response.status).toBe(200)
+    const [, accessInit] = upstreamFetch.mock.calls[0] as [string, RequestInit]
+    expect(JSON.parse(String(accessInit.body))).toEqual({
+      order_token: "Guest.Cookie.Token",
+      public_order_id: "order_Case",
+    })
+    expect(await response.text()).not.toContain("Guest.Cookie.Token")
+  })
+
+  it.each(
+    MARKET_CASES
+  )("returns exact $currencyCode QR data for the $binding.market Host binding", async ({
+    binding,
+    currencyCode,
+    host,
+  }) => {
+    resolveBinding.mockReturnValue(binding)
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
+      .mockResolvedValueOnce(
+        authorizedOrderResponse({
+          currency_code: currencyCode,
+          payment_collections: [
+            {
+              payments: [
+                {
+                  data: {
+                    payment_qr_spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*CC:${currencyCode}*X-VS:42`,
+                  },
+                  provider_id: "pp_qr_manual_default",
+                },
+              ],
+            },
+          ],
+          region_id: binding.regionId,
+          sales_channel_id: binding.salesChannelId,
+        })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callQr(
+      { order_token: "Guest.Token-Exact" },
+      { host }
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      qr_payment: { currency_code: currencyCode },
+      status: "ready",
+    })
+  })
+
+  it.each(
+    MARKET_CASES
+  )("rejects a tampered $currencyCode QR amount for the $binding.market Host binding", async ({
+    binding,
+    currencyCode,
+    host,
+  }) => {
+    resolveBinding.mockReturnValue(binding)
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
+      .mockResolvedValueOnce(
+        authorizedOrderResponse({
+          currency_code: currencyCode,
+          payment_collections: [
+            {
+              payments: [
+                {
+                  data: {
+                    payment_qr_spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.46*CC:${currencyCode}*X-VS:42`,
+                  },
+                  provider_id: "pp_qr_manual_default",
+                },
+              ],
+            },
+          ],
+          region_id: binding.regionId,
+          sales_channel_id: binding.salesChannelId,
+          total: 123.45,
+        })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callQr(
+      { order_token: "Guest.Token-Exact" },
+      { host }
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      qr_payment: null,
+      status: "unavailable",
+    })
+  })
+
+  it.each(
+    MARKET_CASES
+  )("localizes private failures for the $binding.market Host", async ({
+    binding,
+    failureMessage,
+    host,
+  }) => {
+    resolveBinding.mockReturnValue(binding)
+    const upstreamFetch = vi.fn()
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    expect(
+      await readFailureProjection(
+        await callQr({ order_token: " invalid" }, { host })
+      )
+    ).toEqual({
+      ...CZ_FAILURE_PROJECTION,
+      body: { message: failureMessage },
+    })
+    expect(upstreamFetch).not.toHaveBeenCalled()
+  })
+
+  it("returns a generic 421 for an unknown Host", async () => {
+    resolveBinding.mockReturnValue(null)
+    const upstreamFetch = vi.fn()
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    expect(
+      await readFailureProjection(
+        await callQr(
+          { order_token: "Guest.Token-Exact" },
+          { host: "evil.test" }
+        )
+      )
+    ).toEqual({
+      ...CZ_FAILURE_PROJECTION,
+      body: { message: "Unknown storefront host." },
+      status: 421,
+    })
+    expect(upstreamFetch).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["missing order currency", null, "CC:CZK"],
+    ["missing SPAYD currency", "CZK", "MSG:ORDER 42"],
+    ["foreign order currency", "EUR", "CC:CZK"],
+    ["foreign SPAYD currency", "CZK", "CC:EUR"],
+    ["ambiguous SPAYD currency", "CZK", "CC:CZK*CC:CZK"],
+  ] as const)("returns unavailable QR data for %s", async (_name, orderCurrencyCode, spaydCurrencyField) => {
+    resolveBinding.mockReturnValue(CZ_BINDING)
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
+      .mockResolvedValueOnce(
+        authorizedOrderResponse({
+          currency_code: orderCurrencyCode,
+          payment_collections: [
+            {
+              payments: [
+                {
+                  data: {
+                    payment_qr_spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*${spaydCurrencyField}*X-VS:42`,
+                  },
+                  provider_id: "pp_qr_manual_default",
+                },
+              ],
+            },
+          ],
+        })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callQr({ order_token: "Guest.Token-Exact" })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      qr_payment: null,
+      status: "unavailable",
+    })
+  })
+
   it.each([
     ["missing authority", {}, { host: "herbatica.cz" }],
     [
-      "unknown Host",
-      { order_token: "Guest.Token-Exact" },
-      { host: "evil.test" },
+      "competing body and cookie authority",
+      { order_token: "Guest.Body.Token" },
+      {
+        cookie: `${ORDER_CONFIRMATION_TOKEN_COOKIE_NAME}=Guest.Cookie.Token`,
+      },
     ],
     [
       "ambiguous body",
@@ -197,7 +454,7 @@ describe("order QR payment bridge", () => {
     vi.stubGlobal("fetch", upstreamFetch)
 
     expect(await readFailureProjection(await callQr(body, options))).toEqual(
-      GENERIC_FAILURE_PROJECTION
+      CZ_FAILURE_PROJECTION
     )
     expect(upstreamFetch).not.toHaveBeenCalled()
   })
@@ -242,6 +499,6 @@ describe("order QR payment bridge", () => {
       await readFailureProjection(
         await callQr({ order_token: "Guest.Token-Exact" })
       )
-    ).toEqual(GENERIC_FAILURE_PROJECTION)
+    ).toEqual(CZ_FAILURE_PROJECTION)
   })
 })

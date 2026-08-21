@@ -143,6 +143,7 @@
     "review_marketing_consent": "Souhlasím se zasíláním marketingových sdělení",
     "review_heureka_consent": "Souhlasím se zasláním dotazníku spokojenosti Heureka",
     "review_legal_confirmation": "Potvrzuji, že jsem se seznámil s <terms>obchodními podmínkami</terms>, porozuměl jsem jejich obsahu a v plném rozsahu s nimi souhlasím. Seznámil jsem se se <privacy>zásadami ochrany osobních údajů</privacy>.",
+    "review_legal_required": "Před dokončením objednávky musíte výslovně přijmout obchodní podmínky a potvrdit seznámení se zásadami ochrany osobních údajů.",
     "review_missing_required_details": "Některé povinné údaje ještě nejsou uložené.",
     "promo_code_label": "Slevový kód",
     "promo_code_placeholder": "Zadat slevový kód",

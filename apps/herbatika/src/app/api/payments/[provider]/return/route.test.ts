@@ -5,32 +5,39 @@ import { buildPath } from "@/lib/url/public-url"
 import { GET } from "./route"
 
 vi.mock("@/lib/market/market-runtime.server", () => ({
-  resolveConfiguredMarketRuntimeBindingByHost: vi.fn((host: string) =>
-    host === "herbatica.cz"
+  resolveConfiguredMarketRuntimeBindingByHost: vi.fn((host: string) => {
+    const markets = {
+      "herbatica.cz": ["cz", "CZ", "cs-CZ"],
+      "herbatica.hu": ["hu", "HU", "hu-HU"],
+      "herbatica.ro": ["ro", "RO", "ro-RO"],
+      "herbatica.sk": ["sk", "SK", "sk-SK"],
+    } as const
+    const market = markets[host as keyof typeof markets]
+    return market
       ? {
-          acceptedHosts: ["herbatica.cz"],
-          canonicalOrigin: "https://herbatica.cz",
-          countryCode: "CZ",
-          locale: "cs-CZ",
-          market: "cz",
-          publishableApiKey: "pk_cz",
-          publishableApiKeyId: "pak_cz",
-          regionId: "reg_cz",
-          salesChannelId: "sc_cz",
+          acceptedHosts: [host],
+          canonicalOrigin: `https://${host}`,
+          countryCode: market[1],
+          locale: market[2],
+          market: market[0],
+          publishableApiKey: `pk_${market[0]}`,
+          publishableApiKeyId: `pak_${market[0]}`,
+          regionId: `reg_${market[0]}`,
+          salesChannelId: `sc_${market[0]}`,
         }
       : null
-  ),
+  }),
 }))
 
 const STATE = "OpaqueState"
 const RESULT_TOKEN = "r".repeat(43)
-const callbackRequest = (query = "") =>
+const callbackRequest = (query = "", host = "herbatica.cz") =>
   new Request(
-    `https://herbatica.cz/api/payments/gopay/return?state=${STATE}&cart_id=cart_Case&provider_id=pp_paykit_gopay${query}`,
+    `https://${host}/api/payments/gopay/return?state=${STATE}&cart_id=cart_Case&provider_id=pp_paykit_gopay${query}`,
     {
       headers: {
         cookie: `${CART_SESSION_COOKIE_NAME}=SignedCartSession`,
-        host: "herbatica.cz",
+        host,
       },
     }
   )
@@ -112,6 +119,31 @@ describe("GET /api/payments/[provider]/return", () => {
     })
     expect(ambiguousSession.status).toBe(404)
     expect(upstreamFetch).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["herbatica.sk", "Výsledok platby sa nenašiel."],
+    ["herbatica.cz", "Výsledek platby nebyl nalezen."],
+    ["herbatica.hu", "A fizetés eredménye nem található."],
+    ["herbatica.ro", "Rezultatul plății nu a fost găsit."],
+  ] as const)("localizes rejected callbacks for %s", async (host, message) => {
+    const response = await GET(callbackRequest("&unexpected=true", host), {
+      params: Promise.resolve({ provider: "gopay" }),
+    })
+
+    expect(response.status).toBe(404)
+    await expect(response.json()).resolves.toEqual({ message })
+  })
+
+  it("returns a generic 421 for an unknown Host", async () => {
+    const response = await GET(callbackRequest("", "unknown.example"), {
+      params: Promise.resolve({ provider: "gopay" }),
+    })
+
+    expect(response.status).toBe(421)
+    await expect(response.json()).resolves.toEqual({
+      message: "Unknown storefront host.",
+    })
   })
 
   it("preserves upstream unavailability without leaking state", async () => {

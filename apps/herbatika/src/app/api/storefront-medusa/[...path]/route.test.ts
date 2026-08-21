@@ -56,6 +56,33 @@ const MARKET_CASES = [
   ["herbatica.ro", RO_BINDING],
 ] as const
 
+const GATEWAY_ERROR_CASES = [
+  [
+    "herbatica.cz",
+    "Cesta API obchodu není dostupná.",
+    "Požadovaný zdroj obchodu není dostupný.",
+    "Požadavek API obchodu selhal.",
+  ],
+  [
+    "herbatica.sk",
+    "Cesta API obchodu nie je dostupná.",
+    "Požadovaný zdroj obchodu nie je dostupný.",
+    "Požiadavka API obchodu zlyhala.",
+  ],
+  [
+    "herbatica.hu",
+    "Az áruházi API-útvonal nem érhető el.",
+    "A kért áruházi erőforrás nem érhető el.",
+    "Az áruházi API-kérés sikertelen.",
+  ],
+  [
+    "herbatica.ro",
+    "Calea API a magazinului nu este disponibilă.",
+    "Resursa solicitată a magazinului nu este disponibilă.",
+    "Cererea către API-ul magazinului a eșuat.",
+  ],
+] as const
+
 const FOREIGN_MARKET_PAIRS = MARKET_CASES.map(
   (marketCase, index) =>
     [marketCase, MARKET_CASES[(index + 1) % MARKET_CASES.length]] as const
@@ -280,6 +307,354 @@ describe("storefront Medusa gateway", () => {
 
   it.each(
     MARKET_CASES
+  )("binds payment-collection creation to the exact signed cart on %s", async (host, binding) => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const cartId = `cart_${binding.market}`
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ cart_id: cartId }))
+      .mockResolvedValueOnce(
+        Response.json({
+          cart: {
+            customer_id: null,
+            id: cartId,
+            region_id: binding.regionId,
+            sales_channel_id: binding.salesChannelId,
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          payment_collection: { id: `paycol_${binding.market}` },
+        })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway("/store/payment-collections", {
+      body: JSON.stringify({ cart_id: cartId }),
+      headers: {
+        "content-type": "application/json",
+        cookie: `__Host-herbatika-cart-session=Signed.${binding.market}.Cart`,
+      },
+      host,
+      method: "POST",
+    })
+
+    expect(response.status).toBe(200)
+    expect(upstreamFetch).toHaveBeenCalledTimes(3)
+    expect(new URL(String(upstreamFetch.mock.calls[0][0])).pathname).toBe(
+      "/store/cart-session/resolve"
+    )
+    const cartAuthorityUrl = new URL(String(upstreamFetch.mock.calls[1][0]))
+    expect(cartAuthorityUrl.pathname).toBe(`/store/carts/${cartId}`)
+    expect(cartAuthorityUrl.searchParams.get("fields")).toBe(
+      "id,customer_id,region_id,sales_channel_id,payment_collection.id"
+    )
+    expect(
+      new Headers(upstreamFetch.mock.calls[1][1]?.headers).get(
+        "x-publishable-api-key"
+      )
+    ).toBe(binding.publishableApiKey)
+    expect(new URL(String(upstreamFetch.mock.calls[2][0])).pathname).toBe(
+      "/store/payment-collections"
+    )
+  })
+
+  it.each(
+    FOREIGN_MARKET_PAIRS
+  )("rejects a checkout cart bound to a foreign market on %s", async ([
+    host,
+    binding,
+  ], [, foreignBinding]) => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const cartId = `cart_${foreignBinding.market}`
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ cart_id: cartId }))
+      .mockResolvedValueOnce(
+        Response.json({
+          cart: {
+            customer_id: null,
+            id: cartId,
+            region_id: foreignBinding.regionId,
+            sales_channel_id: foreignBinding.salesChannelId,
+          },
+        })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway("/store/payment-collections", {
+      body: JSON.stringify({ cart_id: cartId }),
+      headers: {
+        "content-type": "application/json",
+        cookie: "__Host-herbatika-cart-session=Signed.Cart.Session",
+      },
+      host,
+      method: "POST",
+    })
+
+    expect(response.status).toBe(404)
+    expect(upstreamFetch).toHaveBeenCalledTimes(2)
+    expect(
+      new Headers(upstreamFetch.mock.calls[1][1]?.headers).get(
+        "x-publishable-api-key"
+      )
+    ).toBe(binding.publishableApiKey)
+  })
+
+  it.each(
+    MARKET_CASES
+  )("binds payment sessions to their cart, collection, provider, and market on %s", async (host, binding) => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const cartId = `cart_${binding.market}`
+    const collectionId = `paycol_${binding.market}`
+    const providerId = `pp_${binding.market}`
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ cart_id: cartId }))
+      .mockResolvedValueOnce(
+        Response.json({
+          cart: {
+            customer_id: null,
+            id: cartId,
+            payment_collection: { id: collectionId },
+            region_id: binding.regionId,
+            sales_channel_id: binding.salesChannelId,
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        Response.json({ payment_providers: [{ id: providerId }] })
+      )
+      .mockResolvedValueOnce(
+        Response.json({ payment_collection: { id: collectionId } })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway(
+      `/store/payment-collections/${collectionId}/payment-sessions`,
+      {
+        body: JSON.stringify({
+          data: {
+            cart_id: cartId,
+            metadata: { cart_id: cartId, provider_id: providerId },
+          },
+          provider_id: providerId,
+        }),
+        headers: {
+          "content-type": "application/json",
+          cookie: `__Host-herbatika-cart-session=Signed.${binding.market}.Cart`,
+        },
+        host,
+        method: "POST",
+      }
+    )
+
+    expect(response.status).toBe(200)
+    expect(upstreamFetch).toHaveBeenCalledTimes(4)
+    const providerAuthorityUrl = new URL(String(upstreamFetch.mock.calls[2][0]))
+    expect(providerAuthorityUrl.pathname).toBe("/store/payment-providers")
+    expect(providerAuthorityUrl.searchParams.get("region_id")).toBe(
+      binding.regionId
+    )
+    expect(new URL(String(upstreamFetch.mock.calls[3][0])).pathname).toBe(
+      `/store/payment-collections/${collectionId}/payment-sessions`
+    )
+  })
+
+  it.each(
+    MARKET_CASES
+  )("binds calculated shipping options to the exact signed cart on %s", async (host, binding) => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const cartId = `cart_${binding.market}`
+    const optionId = `so_${binding.market}`
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ cart_id: cartId }))
+      .mockResolvedValueOnce(
+        Response.json({
+          cart: {
+            customer_id: null,
+            id: cartId,
+            region_id: binding.regionId,
+            sales_channel_id: binding.salesChannelId,
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        Response.json({ shipping_options: [{ id: optionId }] })
+      )
+      .mockResolvedValueOnce(
+        Response.json({ shipping_option: { id: optionId } })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway(
+      `/store/shipping-options/${optionId}/calculate`,
+      {
+        body: JSON.stringify({ cart_id: cartId, data: {} }),
+        headers: {
+          "content-type": "application/json",
+          cookie: `__Host-herbatika-cart-session=Signed.${binding.market}.Cart`,
+        },
+        host,
+        method: "POST",
+      }
+    )
+
+    expect(response.status).toBe(200)
+    expect(upstreamFetch).toHaveBeenCalledTimes(4)
+    const shippingAuthorityUrl = new URL(String(upstreamFetch.mock.calls[2][0]))
+    expect(shippingAuthorityUrl.pathname).toBe("/store/shipping-options")
+    expect(shippingAuthorityUrl.searchParams.get("cart_id")).toBe(cartId)
+    expect(new URL(String(upstreamFetch.mock.calls[3][0])).pathname).toBe(
+      `/store/shipping-options/${optionId}/calculate`
+    )
+  })
+
+  it("rejects conflicting checkout resource ids before proxying", async () => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const upstreamFetch = vi.fn()
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const conflictingCart = await callGateway("/store/payment-collections", {
+      body: JSON.stringify({
+        cart_id: "cart_cz",
+        metadata: { cart_id: "cart_sk" },
+      }),
+      headers: {
+        "content-type": "application/json",
+        cookie: "__Host-herbatika-cart-session=Signed.Cart.Session",
+      },
+      method: "POST",
+    })
+    const queryOverride = await callGateway(
+      "/store/payment-collections?cart_id=cart_cz",
+      {
+        body: JSON.stringify({ cart_id: "cart_cz" }),
+        headers: {
+          "content-type": "application/json",
+          cookie: "__Host-herbatika-cart-session=Signed.Cart.Session",
+        },
+        method: "POST",
+      }
+    )
+
+    expect(conflictingCart.status).toBe(404)
+    expect(queryOverride.status).toBe(400)
+    expect(upstreamFetch).not.toHaveBeenCalled()
+  })
+
+  it("rejects a payment collection not attached to the authorized cart", async () => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ cart_id: "cart_cz" }))
+      .mockResolvedValueOnce(
+        Response.json({
+          cart: {
+            customer_id: null,
+            id: "cart_cz",
+            payment_collection: { id: "paycol_other" },
+            region_id: CZ_BINDING.regionId,
+            sales_channel_id: CZ_BINDING.salesChannelId,
+          },
+        })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway(
+      "/store/payment-collections/paycol_cz/payment-sessions",
+      {
+        body: JSON.stringify({
+          data: { cart_id: "cart_cz" },
+          provider_id: "pp_cz",
+        }),
+        headers: {
+          "content-type": "application/json",
+          cookie: "__Host-herbatika-cart-session=Signed.Cart.Session",
+        },
+        method: "POST",
+      }
+    )
+
+    expect(response.status).toBe(404)
+    expect(upstreamFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it("rejects a shipping option unavailable for the authorized cart", async () => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ cart_id: "cart_cz" }))
+      .mockResolvedValueOnce(
+        Response.json({
+          cart: {
+            customer_id: null,
+            id: "cart_cz",
+            region_id: CZ_BINDING.regionId,
+            sales_channel_id: CZ_BINDING.salesChannelId,
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        Response.json({ shipping_options: [{ id: "so_other" }] })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway(
+      "/store/shipping-options/so_cz/calculate",
+      {
+        body: JSON.stringify({ cart_id: "cart_cz", data: {} }),
+        headers: {
+          "content-type": "application/json",
+          cookie: "__Host-herbatika-cart-session=Signed.Cart.Session",
+        },
+        method: "POST",
+      }
+    )
+
+    expect(response.status).toBe(404)
+    expect(upstreamFetch).toHaveBeenCalledTimes(3)
+  })
+
+  it("requires the authenticated owner for a customer cart", async () => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ cart_id: "cart_cz" }))
+      .mockResolvedValueOnce(
+        Response.json({
+          cart: {
+            customer_id: "cus_owner",
+            id: "cart_cz",
+            region_id: CZ_BINDING.regionId,
+            sales_channel_id: CZ_BINDING.salesChannelId,
+          },
+        })
+      )
+      .mockResolvedValueOnce(Response.json({ customer: { id: "cus_other" } }))
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway("/store/payment-collections", {
+      body: JSON.stringify({ cart_id: "cart_cz" }),
+      headers: {
+        "content-type": "application/json",
+        cookie:
+          "__Host-herbatika-cart-session=Signed.Cart.Session; herbatika_auth_session_token=owner-session",
+      },
+      method: "POST",
+    })
+
+    expect(response.status).toBe(404)
+    expect(upstreamFetch).toHaveBeenCalledTimes(3)
+    expect(new URL(String(upstreamFetch.mock.calls[2][0])).pathname).toBe(
+      "/store/customers/me"
+    )
+  })
+
+  it.each(
+    MARKET_CASES
   )("requires trusted auth and exact market authority for order ids on %s", async (host, binding) => {
     resolveBinding.mockImplementation(resolveByHost)
     const orderId = `order_${binding.market}`
@@ -451,6 +826,51 @@ describe("storefront Medusa gateway", () => {
     expect(response.headers.get("cache-control")).toContain("no-store")
     expect(response.headers.get("x-request-id")).toMatch(REQUEST_ID_PATTERN)
     expect(upstreamFetch).not.toHaveBeenCalled()
+  })
+
+  it.each(
+    GATEWAY_ERROR_CASES
+  )("localizes rejected API paths for %s", async (host, message) => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const upstreamFetch = vi.fn()
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway("/store/unknown", { host })
+
+    expect(response.status).toBe(404)
+    await expect(response.json()).resolves.toEqual({ message })
+    expect(upstreamFetch).not.toHaveBeenCalled()
+  })
+
+  it.each(
+    GATEWAY_ERROR_CASES
+  )("localizes unavailable resources for %s", async (host, _pathMessage, message) => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const upstreamFetch = vi.fn()
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway("/store/orders/order_case", { host })
+
+    expect(response.status).toBe(404)
+    await expect(response.json()).resolves.toEqual({ message })
+    expect(upstreamFetch).not.toHaveBeenCalled()
+  })
+
+  it.each(
+    GATEWAY_ERROR_CASES
+  )("localizes upstream failures for %s without leaking internals", async (host, _pathMessage, _resourceMessage, message) => {
+    resolveBinding.mockImplementation(resolveByHost)
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("private backend credential"))
+    )
+
+    const response = await callGateway("/store/products", { host })
+    const payload = await response.json()
+
+    expect(response.status).toBe(502)
+    expect(payload).toEqual({ message })
+    expect(JSON.stringify(payload)).not.toContain("credential")
   })
 
   it("forwards and returns a safe request correlation id", async () => {
@@ -775,7 +1195,7 @@ describe("storefront Medusa gateway", () => {
     expect(response.status).toBe(502)
     expect(cancelSpy).toHaveBeenCalledOnce()
     await expect(response.json()).resolves.toEqual({
-      message: "Storefront API response is too large.",
+      message: "Odpověď API obchodu je příliš velká.",
     })
   })
 

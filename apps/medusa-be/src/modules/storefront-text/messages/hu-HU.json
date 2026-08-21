@@ -143,6 +143,7 @@
     "review_marketing_consent": "Hozzájárulok marketinginformációk küldéséhez",
     "review_heureka_consent": "Hozzájárulok a Heureka elégedettségi kérdőívének elküldéséhez",
     "review_legal_confirmation": "Megerősítem, hogy megismertem és megértettem az <terms>általános szerződési feltételeket</terms>, és teljes mértékben elfogadom azokat. Megismertem az <privacy>adatvédelmi szabályzatot</privacy>.",
+    "review_legal_required": "A rendelés véglegesítése előtt kifejezetten el kell fogadnia az általános szerződési feltételeket, és meg kell erősítenie, hogy megismerte az adatvédelmi szabályzatot.",
     "review_missing_required_details": "Néhány kötelező adat még nincs elmentve.",
     "promo_code_label": "Kedvezménykód",
     "promo_code_placeholder": "Kedvezménykód megadása",

@@ -4,7 +4,10 @@ export type GatewayPathAuthority =
   | Readonly<{ id: string; kind: "cart" }>
   | Readonly<{ id: string; kind: "order" }>
   | Readonly<{ kind: "order-list" }>
+  | Readonly<{ kind: "payment-collection-create" }>
+  | Readonly<{ id: string; kind: "payment-collection" }>
   | Readonly<{ id: string; kind: "region" }>
+  | Readonly<{ id: string; kind: "shipping-option" }>
 
 type RouteRule = Readonly<{
   methods: readonly GatewayMethod[]
@@ -15,7 +18,14 @@ const ID = "[A-Za-z0-9_-]{1,160}"
 const CART_PATH_PATTERN = new RegExp(`^/store/carts/(${ID})(?:/|$)`)
 const ORDER_PATH_PATTERN = new RegExp(`^/store/orders/(${ID})$`)
 const ORDER_LIST_PATH_PATTERN = /^\/store\/orders$/
+const PAYMENT_COLLECTION_CREATE_PATH_PATTERN = /^\/store\/payment-collections$/
+const PAYMENT_COLLECTION_PATH_PATTERN = new RegExp(
+  `^/store/payment-collections/(${ID})/payment-sessions$`
+)
 const REGION_PATH_PATTERN = new RegExp(`^/store/regions/(${ID})$`)
+const SHIPPING_OPTION_PATH_PATTERN = new RegExp(
+  `^/store/shipping-options/(${ID})/calculate$`
+)
 
 const ROUTE_RULES: readonly RouteRule[] = [
   { methods: ["GET"], pattern: /^\/store\/products$/ },
@@ -130,6 +140,20 @@ export const resolveGatewayPathAuthority = (
   const cartId = CART_PATH_PATTERN.exec(path)?.[1]
   if (cartId) {
     return { id: cartId, kind: "cart" }
+  }
+
+  const shippingOptionId = SHIPPING_OPTION_PATH_PATTERN.exec(path)?.[1]
+  if (shippingOptionId) {
+    return { id: shippingOptionId, kind: "shipping-option" }
+  }
+
+  const paymentCollectionId = PAYMENT_COLLECTION_PATH_PATTERN.exec(path)?.[1]
+  if (paymentCollectionId) {
+    return { id: paymentCollectionId, kind: "payment-collection" }
+  }
+
+  if (PAYMENT_COLLECTION_CREATE_PATH_PATTERN.test(path)) {
+    return { kind: "payment-collection-create" }
   }
 
   const orderId = ORDER_PATH_PATTERN.exec(path)?.[1]

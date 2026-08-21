@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { resolveStorefrontApiMessages } from "@/app/api/_messages"
 import {
   fetchPrivateFlow,
   privateJson,
@@ -81,22 +82,23 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ provider: string }> }
 ) {
-  const query = readExactQuery(request)
   const { provider } = await context.params
-  if (
-    !(query && isPaymentProvider(provider)) ||
-    query.provider_id !== PROVIDER_IDS[provider]
-  ) {
-    return privateJson({ message: "Payment return was not found." }, 404)
-  }
-
-  const cartSession = readCartSession(request)
-  if (!cartSession) {
-    return privateJson({ message: "Payment return was not found." }, 404)
-  }
-
   try {
     const binding = requireStorefrontMarketBinding(request)
+    const messages = resolveStorefrontApiMessages(binding.market)
+    const query = readExactQuery(request)
+    if (
+      !(query && isPaymentProvider(provider)) ||
+      query.provider_id !== PROVIDER_IDS[provider]
+    ) {
+      return privateJson({ message: messages.paymentReturnNotFound }, 404)
+    }
+
+    const cartSession = readCartSession(request)
+    if (!cartSession) {
+      return privateJson({ message: messages.paymentReturnNotFound }, 404)
+    }
+
     const upstream = await fetchPrivateFlow(
       request,
       "/store/payment-returns/resolve",
@@ -108,6 +110,7 @@ export async function GET(
     )
     if (!upstream.ok) {
       return proxyFailure(
+        request,
         upstream.status === 404 || upstream.status === 503
           ? upstream.status
           : 502
@@ -129,7 +132,7 @@ export async function GET(
       !RESULT_TOKEN_PATTERN.test(payload.result_token) ||
       (payload.status === "completed") !== hasPublicOrderId
     ) {
-      return proxyFailure(502)
+      return proxyFailure(request, 502)
     }
 
     const resultPath = buildPath(
@@ -153,6 +156,8 @@ export async function GET(
     })
     return response
   } catch (error) {
-    return isTimeoutError(error) ? proxyFailure(503) : proxyCaughtFailure(error)
+    return isTimeoutError(error)
+      ? proxyFailure(request, 503)
+      : proxyCaughtFailure(request, error)
   }
 }

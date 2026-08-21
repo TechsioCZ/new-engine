@@ -14,12 +14,12 @@ const PAYMENT_PROVIDERS = new Set(["comgate", "gopay", "stripe"])
 export async function POST(request: Request) {
   const body = await readExactBodyStrings(request, ["cart_id", "provider_id"])
   if (!body) {
-    return proxyFailure(400)
+    return proxyFailure(request, 400)
   }
 
   const sessionHeaders = requireCartSessionHeaders(request)
   if (!sessionHeaders) {
-    return proxyFailure(404)
+    return proxyFailure(request, 404)
   }
 
   try {
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       { headers: sessionHeaders }
     )
     if (!upstream.ok) {
-      return proxyFailure(upstream.status)
+      return proxyFailure(request, upstream.status)
     }
 
     const payload = await readUpstreamJson(upstream)
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       typeof payload.expires_at !== "string" ||
       !Number.isFinite(Date.parse(payload.expires_at))
     ) {
-      return proxyFailure(502)
+      return proxyFailure(request, 502)
     }
 
     return privateJson({
@@ -58,6 +58,6 @@ export async function POST(request: Request) {
       state: payload.state,
     })
   } catch (error) {
-    return proxyCaughtFailure(error)
+    return proxyCaughtFailure(request, error)
   }
 }

@@ -153,8 +153,10 @@ export function CheckoutStepContent({
             onCompleteOrder={controller.handleCompleteOrder}
             onHeurekaConsentChange={controller.setHeurekaConsent}
             onMarketingConsentChange={controller.setMarketingConsent}
+            onPurchaseAcceptanceChange={controller.setPurchaseAcceptanceGranted}
             paymentLabel={selectedPaymentLabel}
             paymentProviderId={selectedPaymentProviderId ?? undefined}
+            purchaseAcceptanceGranted={controller.purchaseAcceptanceGranted}
             shippingAddressForm={controller.shippingAddressForm}
             shippingLabel={selectedShippingLabel}
             shippingOptionId={selectedShippingOptionId}

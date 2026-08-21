@@ -16,12 +16,12 @@ export async function POST(request: Request) {
     "state",
   ])
   if (!body) {
-    return proxyFailure(400)
+    return proxyFailure(request, 400)
   }
 
   const sessionHeaders = requireCartSessionHeaders(request)
   if (!sessionHeaders) {
-    return proxyFailure(404)
+    return proxyFailure(request, 404)
   }
 
   try {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       { headers: sessionHeaders }
     )
     if (!upstream.ok) {
-      return proxyFailure(upstream.status)
+      return proxyFailure(request, upstream.status)
     }
 
     const payload = await readUpstreamJson(upstream)
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       payload.payment_session_id !== body.payment_session_id ||
       payload.provider_id !== body.provider_id
     ) {
-      return proxyFailure(502)
+      return proxyFailure(request, 502)
     }
 
     return privateJson({
@@ -50,6 +50,6 @@ export async function POST(request: Request) {
       providerId: payload.provider_id,
     })
   } catch (error) {
-    return proxyCaughtFailure(error)
+    return proxyCaughtFailure(request, error)
   }
 }

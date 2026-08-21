@@ -143,6 +143,7 @@
     "review_marketing_consent": "Sunt de acord să primesc comunicări de marketing",
     "review_heureka_consent": "Sunt de acord să primesc chestionarul de satisfacție Heureka",
     "review_legal_confirmation": "Confirm că am citit și am înțeles <terms>termenii și condițiile</terms> și că îi accept în totalitate. Am consultat <privacy>politica de confidențialitate</privacy>.",
+    "review_legal_required": "Înainte de finalizarea comenzii trebuie să acceptați în mod explicit termenii și condițiile și să confirmați că ați consultat politica de confidențialitate.",
     "review_missing_required_details": "Unele date obligatorii nu sunt încă salvate.",
     "promo_code_label": "Cod de reducere",
     "promo_code_placeholder": "Introdu codul de reducere",

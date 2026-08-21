@@ -1,7 +1,10 @@
+import type { HerbatikaCurrencyCode } from "./market-context"
 import {
   type StorefrontOrderPaymentQrStatus as BaseStorefrontOrderPaymentQrStatus,
   ORDER_QR_PAYMENT_PROVIDER_ID as ORDER_QR_PAYMENT_PROVIDER_ID_VALUE,
 } from "./order-payment-qr.constants"
+
+const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/
 
 export const ORDER_QR_PAYMENT_PROVIDER_ID = ORDER_QR_PAYMENT_PROVIDER_ID_VALUE
 export type StorefrontOrderPaymentQrStatus = BaseStorefrontOrderPaymentQrStatus
@@ -46,11 +49,13 @@ type StoreOrderPaymentQrResponse = {
 }
 
 type FetchOrderPaymentQrOptions = {
+  expectedCurrencyCode: HerbatikaCurrencyCode
   orderToken?: string
   orderId: string
 }
 
 export const fetchOrderPaymentQr = async ({
+  expectedCurrencyCode,
   orderToken,
   orderId,
 }: FetchOrderPaymentQrOptions): Promise<StorefrontOrderPaymentQrResult> => {
@@ -69,7 +74,7 @@ export const fetchOrderPaymentQr = async ({
 
   const payload = (await response.json()) as StoreOrderPaymentQrResponse
 
-  return mapOrderPaymentQr(payload)
+  return mapOrderPaymentQr(payload, expectedCurrencyCode)
 }
 
 export const hasOrderPaymentQrAuthority = ({
@@ -87,7 +92,8 @@ export const hasOrderPaymentQrAuthority = ({
     !orderToken.includes("\0"))
 
 function mapOrderPaymentQr(
-  payload: StoreOrderPaymentQrResponse
+  payload: StoreOrderPaymentQrResponse,
+  expectedCurrencyCode: HerbatikaCurrencyCode
 ): StorefrontOrderPaymentQrResult {
   const status = normalizeQrPaymentStatus(payload.status)
   const qrPayment = payload.qr_payment
@@ -107,6 +113,15 @@ function mapOrderPaymentQr(
     return { qrPayment: null, status: "unavailable" }
   }
 
+  const responseCurrencyCode = normalizeCurrencyCode(qrPayment.currency_code)
+  const spaydCurrencyCode = readSpaydCurrencyCode(qrPayment.spayd)
+  if (
+    responseCurrencyCode !== expectedCurrencyCode ||
+    spaydCurrencyCode !== expectedCurrencyCode
+  ) {
+    return { qrPayment: null, status: "unavailable" }
+  }
+
   return {
     qrPayment: {
       amount:
@@ -114,7 +129,7 @@ function mapOrderPaymentQr(
         Number.isFinite(qrPayment.amount)
           ? qrPayment.amount
           : null,
-      currencyCode: qrPayment.currency_code?.trim().toUpperCase() || "EUR",
+      currencyCode: expectedCurrencyCode,
       iban: qrPayment.iban,
       message: qrPayment.message ?? null,
       orderDisplayId: qrPayment.order_display_id ?? qrPayment.order_id,
@@ -126,6 +141,26 @@ function mapOrderPaymentQr(
     },
     status: "ready",
   }
+}
+
+function normalizeCurrencyCode(value: unknown) {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const currencyCode = value.trim().toUpperCase()
+  return CURRENCY_CODE_PATTERN.test(currencyCode) ? currencyCode : null
+}
+
+function readSpaydCurrencyCode(spayd: string) {
+  const currencyFields = spayd
+    .split("*")
+    .filter((field) => field.startsWith("CC:"))
+  if (currencyFields.length !== 1) {
+    return null
+  }
+
+  return normalizeCurrencyCode(currencyFields[0]?.slice(3))
 }
 
 function normalizeQrPaymentStatus(

@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { AUTH_SESSION_COOKIE_NAME } from "@/app/api/storefront-auth/_lib"
+import {
+  ORDER_CONFIRMATION_TOKEN_COOKIE_MAX_AGE_SECONDS,
+  ORDER_CONFIRMATION_TOKEN_COOKIE_NAME,
+} from "@/lib/routing/private-flows/request-cookies"
 import { CART_SESSION_COOKIE_NAME } from "../_lib"
 import { POST } from "./route"
 
@@ -26,7 +30,7 @@ describe("order confirmation bridge", () => {
     vi.unstubAllGlobals()
   })
 
-  it("forwards signed guest authority and returns exact-case one-time access", async () => {
+  it("stores guest authority in an HttpOnly cookie without exposing it", async () => {
     const upstreamFetch = vi
       .fn()
       .mockResolvedValue(
@@ -56,10 +60,21 @@ describe("order confirmation bridge", () => {
     )
 
     expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toEqual({
-      ot: "OrderToken",
+    const responseBody = await response.text()
+    expect(JSON.parse(responseBody)).toEqual({
       publicOrderId: "order_Case",
     })
+    const setCookie = response.headers.get("set-cookie") ?? ""
+    expect(setCookie).toContain(
+      `${ORDER_CONFIRMATION_TOKEN_COOKIE_NAME}=OrderToken`
+    )
+    expect(setCookie).toContain("HttpOnly")
+    expect(setCookie).toContain("Secure")
+    expect(setCookie).toContain("SameSite=lax")
+    expect(setCookie).toContain(
+      `Max-Age=${ORDER_CONFIRMATION_TOKEN_COOKIE_MAX_AGE_SECONDS}`
+    )
+    expect(responseBody).not.toContain("OrderToken")
     const [, init] = upstreamFetch.mock.calls[0] as [string, RequestInit]
     expect(init.headers).toMatchObject({
       "x-cart-session": "SignedCartSession",
@@ -156,6 +171,7 @@ describe("order confirmation bridge", () => {
     )
 
     expect(response.status).toBe(200)
+    expect(response.headers.get("set-cookie")).toBeNull()
     const [, init] = upstreamFetch.mock.calls[0] as [string, RequestInit]
     expect(init.headers).toMatchObject({
       authorization: "Bearer CustomerToken",

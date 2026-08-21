@@ -141,6 +141,7 @@ describe("localized Pages error shells", () => {
       "test-engine-herbatika-cz-zane.web-revolution.cz": "cs-CZ",
       "test-engine-herbatika-hu-zane.web-revolution.cz": "hu-HU",
       "test-engine-herbatika-ro-zane.web-revolution.cz": "ro-RO",
+      "test-engine-herbatika-sk-zane.web-revolution.cz": "sk-SK",
       "test-engine-herbatika-zane.web-revolution.cz": "sk-SK",
     })
 
@@ -149,6 +150,7 @@ describe("localized Pages error shells", () => {
       "test-engine-herbatika-cz-zane.web-revolution.cz": "cs-CZ",
       "test-engine-herbatika-hu-zane.web-revolution.cz": "hu-HU",
       "test-engine-herbatika-ro-zane.web-revolution.cz": "ro-RO",
+      "test-engine-herbatika-sk-zane.web-revolution.cz": "sk-SK",
       "test-engine-herbatika-zane.web-revolution.cz": "sk-SK",
     })) {
       expect(bootstrap).toContain(`"${hostname}":"${locale}"`)

@@ -42,10 +42,16 @@ export function CheckoutCompletedOrderSection({
     enabled: Boolean(completedOrderId) && hasQrPaymentAuthority,
     queryFn: () =>
       fetchOrderPaymentQr({
+        expectedCurrencyCode: marketContext.currencyCode,
         orderToken,
         orderId: completedOrderId,
       }),
-    queryKey: ["checkout-order-payment-qr", completedOrderId],
+    queryKey: [
+      "checkout-order-payment-qr",
+      marketContext.code,
+      marketContext.currencyCode,
+      completedOrderId,
+    ],
     refetchInterval: (query) =>
       query.state.data?.status === "pending" && !hasQrPaymentPendingTimedOut
         ? QR_PAYMENT_PENDING_REFETCH_INTERVAL_MS

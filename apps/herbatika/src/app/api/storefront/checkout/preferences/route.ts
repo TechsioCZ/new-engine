@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { resolveStorefrontApiMessages } from "@/app/api/_messages"
 import { requireStorefrontMarketBinding } from "@/app/api/storefront-auth/_lib"
 import { hasSameOriginCsrfEvidence } from "@/app/api/storefront-medusa/[...path]/_policy"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
@@ -118,14 +119,22 @@ export const handleCheckoutConsentPut = async (
   }
 
   if (!dependencies.hasSameOrigin(request, binding)) {
-    return privateJson({ message: "Same-origin request required." }, 403)
+    return privateJson(
+      {
+        message: resolveStorefrontApiMessages(binding.market)
+          .sameOriginRequired,
+      },
+      403
+    )
   }
+
+  const messages = resolveStorefrontApiMessages(binding.market)
 
   let payload: unknown
   try {
     payload = await request.json()
   } catch {
-    return privateJson({ message: "Invalid consent request." }, 400)
+    return privateJson({ message: messages.invalidConsentRequest }, 400)
   }
 
   const purposes = parseCheckoutConsentRequest(payload)
@@ -138,7 +147,7 @@ export const handleCheckoutConsentPut = async (
     : null
 
   if (!consent) {
-    return privateJson({ message: "Invalid consent request." }, 400)
+    return privateJson({ message: messages.invalidConsentRequest }, 400)
   }
 
   const response = privateJson(consent)

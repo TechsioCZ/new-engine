@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { resolveStorefrontApiMessages } from "@/app/api/_messages"
 import {
   buildMedusaUrl,
   getPublishableHeaders,
@@ -7,6 +8,7 @@ import {
   requireStorefrontMarketBinding,
   StorefrontMarketAuthorityError,
 } from "@/app/api/storefront-auth/_lib"
+import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 
 export const CART_SESSION_COOKIE_NAME = "__Host-herbatika-cart-session"
 const CART_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
@@ -79,16 +81,30 @@ export const fetchPrivateFlow = (
     signal: options.signal,
   })
 
-export const proxyFailure = (status: number) =>
-  privateJson(
-    { message: "Checkout access request failed." },
+const unknownStorefrontHost = () =>
+  privateJson({ message: "Unknown storefront host." }, 421)
+
+export const proxyFailure = (request: Request, status: number) => {
+  let binding: MarketRuntimeBinding
+  try {
+    binding = requireStorefrontMarketBinding(request)
+  } catch {
+    return unknownStorefrontHost()
+  }
+
+  return privateJson(
+    {
+      message: resolveStorefrontApiMessages(binding.market)
+        .checkoutAccessFailed,
+    },
     status > 0 ? status : 502
   )
+}
 
-export const proxyCaughtFailure = (error: unknown) =>
+export const proxyCaughtFailure = (request: Request, error: unknown) =>
   error instanceof StorefrontMarketAuthorityError
-    ? privateJson({ message: "Unknown storefront host." }, 421)
-    : proxyFailure(502)
+    ? unknownStorefrontHost()
+    : proxyFailure(request, 502)
 
 export const readUpstreamJson = parseResponseJson
 

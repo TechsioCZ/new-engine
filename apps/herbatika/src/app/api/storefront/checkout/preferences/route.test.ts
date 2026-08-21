@@ -139,6 +139,58 @@ describe("checkout consent preferences route", () => {
     ).toBe(400)
   })
 
+  it.each([
+    ["sk", "Neplatná požiadavka na súhlas."],
+    ["cz", "Neplatný požadavek na souhlas."],
+    ["hu", "Érvénytelen hozzájárulási kérés."],
+    ["ro", "Cerere de consimțământ invalidă."],
+  ] as const)("localizes invalid %s consent input", async (market, message) => {
+    testContext.market = market
+    const response = await handleCheckoutConsentPut(
+      createRequest("PUT", {
+        body: {},
+        origin: `https://herbatica.${market}`,
+      }),
+      dependencies
+    )
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({ message })
+  })
+
+  it.each([
+    ["sk", "Požiadavka musí pochádzať z rovnakého webu."],
+    ["cz", "Požadavek musí pocházet ze stejného webu."],
+    ["hu", "A kérésnek ugyanarról a webhelyről kell érkeznie."],
+    ["ro", "Cererea trebuie să provină de pe același site."],
+  ] as const)("localizes cross-origin %s rejection", async (market, message) => {
+    testContext.market = market
+    const response = await handleCheckoutConsentPut(
+      createRequest("PUT", {
+        body: body(false, true),
+        origin: "https://attacker.example",
+      }),
+      dependencies
+    )
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({ message })
+  })
+
+  it("keeps an unknown Host response generic", async () => {
+    const response = handleCheckoutConsentGet(createRequest("GET"), {
+      ...dependencies,
+      requireBinding: () => {
+        throw new Error("untrusted Host")
+      },
+    })
+
+    expect(response.status).toBe(421)
+    await expect(response.json()).resolves.toEqual({
+      message: "Unknown storefront host.",
+    })
+  })
+
   it("fails closed on duplicate consent cookies", async () => {
     const first = await handleCheckoutConsentPut(
       createRequest("PUT", {

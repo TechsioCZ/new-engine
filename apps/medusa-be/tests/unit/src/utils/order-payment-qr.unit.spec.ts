@@ -98,18 +98,54 @@ describe("order payment QR", () => {
     ).toContain("*AM:1109.91*")
   })
 
-  it("falls back to CZK when currency code is empty", () => {
+  it.each([
+    "EUR",
+    "CZK",
+    "HUF",
+    "RON",
+  ])("preserves the exact %s order currency", (currencyCode) => {
     expect(
       orderPaymentQr.buildSpayd(
         {
-          currency_code: "  ",
+          currency_code: currencyCode.toLowerCase(),
           display_id: 23,
           id: "order_23",
           total: 578,
         },
         "CZ9608000000005444195083"
       )
-    ).toContain("*CC:CZK*")
+    ).toContain(`*CC:${currencyCode}*`)
+  })
+
+  it.each([
+    undefined,
+    null,
+    "",
+    "  ",
+    "EU",
+    "EURO",
+  ])("fails closed when order currency is missing or invalid: %s", (currencyCode) => {
+    expect(
+      orderPaymentQr.buildSpayd(
+        {
+          currency_code: currencyCode,
+          display_id: 23,
+          id: "order_23",
+          total: 578,
+        },
+        "CZ9608000000005444195083"
+      )
+    ).toBeNull()
+  })
+
+  it("fails closed when payment-session currency is missing", () => {
+    expect(
+      orderPaymentQr.buildPaymentSpayd({
+        amount: 578,
+        iban: "CZ9608000000005444195083",
+        reference: "23",
+      })
+    ).toBeNull()
   })
 
   it("builds PDF drawing commands from a SPAYD string", () => {

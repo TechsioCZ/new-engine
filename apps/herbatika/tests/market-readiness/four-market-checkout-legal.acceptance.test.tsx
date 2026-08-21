@@ -29,7 +29,22 @@ vi.mock("@techsio/ui-kit/atoms/link-button", () => ({
   ),
 }))
 vi.mock("@techsio/ui-kit/molecules/form-checkbox", () => ({
-  FormCheckbox: ({ label }: { label: string }) => <span>{label}</span>,
+  FormCheckbox: ({
+    checked,
+    label,
+    required,
+  }: {
+    checked?: boolean
+    label: React.ReactNode
+    required?: boolean
+  }) => (
+    <span
+      data-checked={String(Boolean(checked))}
+      data-required={String(Boolean(required))}
+    >
+      {label}
+    </span>
+  ),
 }))
 vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => {
@@ -108,6 +123,8 @@ const renderSection = (canCompleteOrder: boolean, currencyCode: string) =>
       onCompleteOrder={vi.fn().mockResolvedValue(undefined)}
       onHeurekaConsentChange={vi.fn()}
       onMarketingConsentChange={vi.fn()}
+      onPurchaseAcceptanceChange={vi.fn()}
+      purchaseAcceptanceGranted={canCompleteOrder}
       shippingAddressForm={shippingAddressForm}
       shippingStepHref="/shipping"
     />
@@ -124,8 +141,11 @@ describe("four-market checkout mandatory legal acceptance", () => {
     expect(blockedMarkup).toContain(`href="${fixture.termsPath}"`)
     expect(blockedMarkup).toContain(`href="${fixture.privacyPath}"`)
     expect(blockedMarkup).toContain('data-disabled="true"')
+    expect(blockedMarkup).toContain('data-checked="false"')
+    expect(blockedMarkup).toContain('data-required="true"')
 
     const allowedMarkup = renderSection(true, fixture.currencyCode)
     expect(allowedMarkup).toContain('data-disabled="false"')
+    expect(allowedMarkup).toContain('data-checked="true"')
   })
 })

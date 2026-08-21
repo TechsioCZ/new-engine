@@ -1,3 +1,4 @@
+import { resolveStorefrontApiMessages } from "@/app/api/_messages"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import { resolveMedusaBackendUrl } from "@/lib/storefront/runtime-env"
 import { readCartSession } from "../../storefront/checkout/_lib"
@@ -7,7 +8,11 @@ import {
   requireStorefrontMarketBinding,
   StorefrontMarketAuthorityError,
 } from "../../storefront-auth/_lib"
-import { GATEWAY_TIMEOUT_MS, verifyResourceMarketAuthority } from "./_authority"
+import {
+  GATEWAY_TIMEOUT_MS,
+  verifyCheckoutResourceAuthority,
+  verifyResourceMarketAuthority,
+} from "./_authority"
 import {
   logGatewayFailure,
   REQUEST_ID_HEADER,
@@ -104,13 +109,14 @@ const readValidatedBody = async (
   method: GatewayMethod,
   binding: MarketRuntimeBinding
 ): Promise<ArrayBuffer | null | Response> => {
+  const messages = resolveStorefrontApiMessages(binding.market)
   if (!BODY_METHODS.has(method)) {
     return null
   }
 
   const declaredLength = Number(request.headers.get("content-length") ?? "0")
   if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
-    return jsonError(413, "Request body is too large.")
+    return jsonError(413, messages.gatewayRequestBodyTooLarge)
   }
 
   const body = await request.arrayBuffer()
@@ -118,23 +124,23 @@ const readValidatedBody = async (
     return null
   }
   if (body.byteLength > MAX_BODY_BYTES) {
-    return jsonError(413, "Request body is too large.")
+    return jsonError(413, messages.gatewayRequestBodyTooLarge)
   }
 
   const contentType = request.headers.get("content-type")?.toLowerCase() ?? ""
   if (!JSON_CONTENT_TYPE_PATTERN.test(contentType)) {
-    return jsonError(415, "Only JSON request bodies are accepted.")
+    return jsonError(415, messages.gatewayJsonOnly)
   }
 
   let parsedBody: unknown
   try {
     parsedBody = JSON.parse(new TextDecoder().decode(body))
   } catch {
-    return jsonError(400, "Request body must contain valid JSON.")
+    return jsonError(400, messages.gatewayValidJsonRequired)
   }
 
   if (!bodyHasValidMarketScope(parsedBody, binding)) {
-    return jsonError(400, "Request market scope is not allowed.")
+    return jsonError(400, messages.gatewayScopeNotAllowed)
   }
 
   return body
@@ -145,38 +151,35 @@ const resolveValidatedGatewayRoute = async (
   context: StorefrontMedusaRouteContext,
   binding: MarketRuntimeBinding
 ): Promise<Response | ValidatedGatewayRoute> => {
+  const messages = resolveStorefrontApiMessages(binding.market)
   const { path: pathSegments } = await context.params
   const gatewayPath = resolveGatewayPath(request, pathSegments)
   if (!gatewayPath) {
-    return jsonError(400, "Invalid storefront API path.")
+    return jsonError(400, messages.gatewayInvalidPath)
   }
 
   const allowedMethods = allowedMethodsForPath(gatewayPath)
   if (allowedMethods.length === 0) {
-    return jsonError(404, "Storefront API path is not available.")
+    return jsonError(404, messages.gatewayStorefrontPathUnavailable)
   }
 
   const method = request.method.toUpperCase() as GatewayMethod
   if (!allowedMethods.includes(method)) {
-    return jsonError(
-      405,
-      "Method is not allowed for this storefront API path.",
-      {
-        allow: allowedMethods.join(", "),
-      }
-    )
+    return jsonError(405, messages.gatewayMethodNotAllowed, {
+      allow: allowedMethods.join(", "),
+    })
   }
 
   if (
     UNSAFE_METHODS.has(method) &&
     !hasSameOriginCsrfEvidence(request, binding)
   ) {
-    return jsonError(403, "Same-origin request required.")
+    return jsonError(403, messages.sameOriginRequired)
   }
 
   const pathAuthority = resolveGatewayPathAuthority(gatewayPath)
   if (!pathHasValidMarketScope(pathAuthority, binding)) {
-    return jsonError(400, "Request market scope is not allowed.")
+    return jsonError(400, messages.gatewayScopeNotAllowed)
   }
 
   const requestUrl = new URL(request.url)
@@ -184,10 +187,34 @@ const resolveValidatedGatewayRoute = async (
     requestUrl.search.length > MAX_QUERY_BYTES ||
     !queryHasValidMarketScope(requestUrl.searchParams, binding, gatewayPath)
   ) {
-    return jsonError(400, "Request market scope is not allowed.")
+    return jsonError(400, messages.gatewayScopeNotAllowed)
   }
 
   return { gatewayPath, method, pathAuthority, requestUrl }
+}
+
+const verifyGatewayResourceAuthority = (
+  headers: Headers,
+  authority: GatewayPathAuthority | null,
+  body: ArrayBuffer | null,
+  binding: MarketRuntimeBinding
+): Promise<Response | null> | null => {
+  if (authority?.kind === "cart" || authority?.kind === "order") {
+    return verifyResourceMarketAuthority(headers, authority, binding)
+  }
+  if (
+    authority?.kind === "payment-collection-create" ||
+    authority?.kind === "payment-collection" ||
+    authority?.kind === "shipping-option"
+  ) {
+    return verifyCheckoutResourceAuthority(
+      headers,
+      authority,
+      body ? JSON.parse(new TextDecoder().decode(body)) : null,
+      binding
+    )
+  }
+  return null
 }
 
 export const handleStorefrontMedusaRequest = async (
@@ -210,6 +237,7 @@ export const handleStorefrontMedusaRequest = async (
       requestId
     )
   }
+  const messages = resolveStorefrontApiMessages(binding.market)
 
   const validatedRoute = await resolveValidatedGatewayRoute(
     request,
@@ -227,15 +255,15 @@ export const handleStorefrontMedusaRequest = async (
     return withRequestId(body, requestId)
   }
 
-  if (pathAuthority?.kind === "cart" || pathAuthority?.kind === "order") {
-    const authorityError = await verifyResourceMarketAuthority(
-      buildUpstreamHeaders(request, binding, requestId),
-      pathAuthority,
-      binding
-    )
-    if (authorityError) {
-      return withRequestId(authorityError, requestId)
-    }
+  const upstreamHeaders = buildUpstreamHeaders(request, binding, requestId)
+  const authorityError = await verifyGatewayResourceAuthority(
+    upstreamHeaders,
+    pathAuthority,
+    body,
+    binding
+  )
+  if (authorityError) {
+    return withRequestId(authorityError, requestId)
   }
 
   const upstreamUrl = new URL(gatewayPath, resolveMedusaBackendUrl())
@@ -246,7 +274,7 @@ export const handleStorefrontMedusaRequest = async (
       body,
       cache: "no-store",
       credentials: "omit",
-      headers: buildUpstreamHeaders(request, binding, requestId),
+      headers: upstreamHeaders,
       method,
       redirect: "manual",
       signal: AbortSignal.timeout(GATEWAY_TIMEOUT_MS),
@@ -273,7 +301,7 @@ export const handleStorefrontMedusaRequest = async (
         requestId,
       })
       return withRequestId(
-        jsonError(504, "Storefront API request timed out."),
+        jsonError(504, messages.gatewayRequestTimedOut),
         requestId
       )
     }
@@ -284,7 +312,7 @@ export const handleStorefrontMedusaRequest = async (
       requestId,
     })
     return withRequestId(
-      jsonError(502, "Storefront API request failed."),
+      jsonError(502, messages.gatewayRequestFailed),
       requestId
     )
   }

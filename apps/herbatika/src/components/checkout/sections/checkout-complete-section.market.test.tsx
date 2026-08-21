@@ -19,7 +19,22 @@ vi.mock("@techsio/ui-kit/atoms/link-button", () => ({
   ),
 }))
 vi.mock("@techsio/ui-kit/molecules/form-checkbox", () => ({
-  FormCheckbox: ({ label }: { label: string }) => <span>{label}</span>,
+  FormCheckbox: ({
+    checked,
+    label,
+    required,
+  }: {
+    checked?: boolean
+    label: React.ReactNode
+    required?: boolean
+  }) => (
+    <span
+      data-checked={String(Boolean(checked))}
+      data-required={String(Boolean(required))}
+    >
+      {label}
+    </span>
+  ),
 }))
 vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => {
@@ -91,6 +106,8 @@ const renderSection = () =>
       onCompleteOrder={vi.fn().mockResolvedValue(undefined)}
       onHeurekaConsentChange={vi.fn()}
       onMarketingConsentChange={vi.fn()}
+      onPurchaseAcceptanceChange={vi.fn()}
+      purchaseAcceptanceGranted={false}
       shippingAddressForm={shippingAddressForm}
       shippingStepHref="/shipping"
     />
@@ -108,6 +125,8 @@ describe("CheckoutCompleteSection external review consent", () => {
     const markup = renderSection()
 
     expect(markup).toContain("checkout.review_marketing_consent")
+    expect(markup).toContain("checkout.review_legal_confirmation")
+    expect(markup).toContain('data-required="true"')
     expect(markup.includes("checkout.review_heureka_consent")).toBe(
       supportsHeureka
     )

@@ -1,3 +1,4 @@
+import { resolveStorefrontApiMessages } from "@/app/api/_messages"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 
 const MAX_RESPONSE_BYTES = 10 * 1024 * 1024
@@ -106,9 +107,10 @@ export const buildGatewayResponse = async (
   upstream: Response,
   binding: MarketRuntimeBinding
 ): Promise<Response> => {
+  const messages = resolveStorefrontApiMessages(binding.market)
   if (upstream.status >= 300 && upstream.status < 400) {
     await upstream.body?.cancel()
-    return jsonError(502, "Storefront API redirect was rejected.")
+    return jsonError(502, messages.gatewayRedirectRejected)
   }
 
   const headers = copyResponseHeaders(
@@ -120,7 +122,7 @@ export const buildGatewayResponse = async (
   if (upstream.status !== 204 && upstream.status !== 304) {
     const responseBody = await readBoundedBody(upstream)
     if (!responseBody) {
-      return jsonError(502, "Storefront API response is too large.")
+      return jsonError(502, messages.gatewayResponseTooLarge)
     }
     body = isTextualResponse(upstream.headers)
       ? redactSecret(

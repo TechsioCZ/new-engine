@@ -21,6 +21,7 @@ export type PaymentQrPaymentData = {
 }
 
 const VARIABLE_SYMBOL_REGEX = /^\d{1,10}$/
+const CURRENCY_CODE_REGEX = /^[A-Z]{3}$/
 const PAYMENT_QR_QUIET_ZONE_MODULES = 4
 const SPAYD_RESERVED_CHARS_REGEX = /[*:]/g
 
@@ -45,12 +46,17 @@ export class OrderPaymentQr {
       return null
     }
 
+    const currencyCode = normalizeSpaydCurrencyCode(order.currency_code)
+    if (!currencyCode) {
+      return null
+    }
+
     const fields = [
       "SPD",
       "1.0",
       `ACC:${iban.replace(/\s+/g, "").toUpperCase()}`,
       `AM:${amount}`,
-      `CC:${getOrderCurrencyCode(order)}`,
+      `CC:${currencyCode}`,
       `MSG:${escapeSpaydValue(getOrderPaymentMessage(order))}`,
     ]
 
@@ -72,12 +78,17 @@ export class OrderPaymentQr {
       return null
     }
 
+    const currencyCode = normalizeSpaydCurrencyCode(payment.currency_code)
+    if (!currencyCode) {
+      return null
+    }
+
     const fields = [
       "SPD",
       "1.0",
       `ACC:${payment.iban.replace(/\s+/g, "").toUpperCase()}`,
       `AM:${amount}`,
-      `CC:${(payment.currency_code || "CZK").toUpperCase()}`,
+      `CC:${currencyCode}`,
       `MSG:${escapeSpaydValue(payment.message ?? payment.reference ?? "OBJEDNAVKA")}`,
     ]
 
@@ -191,10 +202,12 @@ function getOrderPaymentAmount(order: OrderPaymentQrOrder) {
   )
 }
 
-function getOrderCurrencyCode(order: OrderPaymentQrOrder) {
-  const currencyCode = order.currency_code?.trim() || undefined
+function normalizeSpaydCurrencyCode(value: string | null | undefined) {
+  const currencyCode = value?.trim().toUpperCase()
 
-  return (currencyCode ?? "CZK").toUpperCase()
+  return currencyCode && CURRENCY_CODE_REGEX.test(currencyCode)
+    ? currencyCode
+    : null
 }
 
 function getOrderVariableSymbol(order: OrderPaymentQrOrder) {

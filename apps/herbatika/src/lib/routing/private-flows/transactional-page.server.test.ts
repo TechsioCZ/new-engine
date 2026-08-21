@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest"
 import {
   CART_ID_HINT_COOKIE_NAME,
   CART_SESSION_COOKIE_NAME,
+  ORDER_CONFIRMATION_TOKEN_COOKIE_NAME,
   PAYMENT_RESULT_COOKIE_NAME,
   readCartSessionId,
   readCartSessionToken,
   readCustomerToken,
+  readOrderConfirmationToken,
   readPaymentResultToken,
 } from "./request-cookies"
 
@@ -44,6 +46,19 @@ describe("transactional request cookies", () => {
     expect(
       readPaymentResultToken(
         `${PAYMENT_RESULT_COOKIE_NAME}=one; ${PAYMENT_RESULT_COOKIE_NAME}=two`
+      )
+    ).toBeNull()
+  })
+
+  it("reads exactly one opaque order-confirmation cookie", () => {
+    expect(
+      readOrderConfirmationToken(
+        `${ORDER_CONFIRMATION_TOKEN_COOKIE_NAME}=Order.Token`
+      )
+    ).toBe("Order.Token")
+    expect(
+      readOrderConfirmationToken(
+        `${ORDER_CONFIRMATION_TOKEN_COOKIE_NAME}=one; ${ORDER_CONFIRMATION_TOKEN_COOKIE_NAME}=two`
       )
     ).toBeNull()
   })

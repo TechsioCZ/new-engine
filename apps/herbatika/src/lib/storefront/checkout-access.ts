@@ -1,4 +1,4 @@
-import { buildPath, withPublicSearchParams } from "@/lib/url/public-url"
+import { buildPath } from "@/lib/url/public-url"
 import type { Market } from "@/lib/url/types"
 
 const CART_SESSION_ENDPOINT = "/api/storefront/checkout/cart-session"
@@ -19,12 +19,10 @@ type CartSessionResponse = {
 }
 
 type OrderConfirmationResponse = {
-  ot?: unknown
   publicOrderId?: unknown
 }
 
 export type OrderConfirmationAccess = Readonly<{
-  orderToken: string
   publicOrderId: string
 }>
 
@@ -95,16 +93,11 @@ export const issueOrderConfirmationAccess = async (
     fetcher
   )) as OrderConfirmationResponse
 
-  if (
-    payload.publicOrderId !== input.publicOrderId ||
-    typeof payload.ot !== "string" ||
-    payload.ot.length === 0
-  ) {
+  if (payload.publicOrderId !== input.publicOrderId) {
     throw new Error("Checkout access response did not match the order.")
   }
 
   return {
-    orderToken: payload.ot,
     publicOrderId: payload.publicOrderId,
   }
 }
@@ -190,19 +183,12 @@ export const bindPaymentReturnAccess = async (
 
 export const buildOrderConfirmationHref = ({
   market,
-  orderToken,
   publicOrderId,
 }: Readonly<{
   market: Market
-  orderToken?: string
   publicOrderId: string
-}>): string => {
-  const pathname = buildPath(
+}>): string =>
+  buildPath(
     { kind: "checkout", step: "confirmation", value: publicOrderId },
     market
   )
-
-  return orderToken
-    ? withPublicSearchParams(pathname, { ot: orderToken })
-    : pathname
-}

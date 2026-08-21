@@ -1,10 +1,14 @@
 import "server-only"
 
 import QRCode from "qrcode"
+import type { HerbatikaCurrencyCode } from "./market-context"
 import {
   ORDER_PAYMENT_QR_METADATA_KEY,
   ORDER_QR_PAYMENT_PROVIDER_ID,
 } from "./order-payment-qr.constants"
+
+const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/
+const MONETARY_AMOUNT_PATTERN = /^(0|[1-9]\d*)(?:\.(\d{1,2}))?$/
 
 export const ORDER_PAYMENT_QR_FIELDS = [
   "id",
@@ -56,7 +60,10 @@ export function getNotApplicableQrPaymentResponse() {
   return NOT_APPLICABLE_QR_PAYMENT_RESPONSE
 }
 
-export async function mapStoreOrderPaymentQr(payload: StoreOrderResponse) {
+export async function mapStoreOrderPaymentQr(
+  payload: StoreOrderResponse,
+  expectedCurrencyCode: HerbatikaCurrencyCode
+) {
   const order = payload.order
 
   if (!order?.id) {
@@ -75,22 +82,38 @@ export async function mapStoreOrderPaymentQr(payload: StoreOrderResponse) {
     return PENDING_QR_PAYMENT_RESPONSE
   }
 
-  const qrSvg = await createQrSvg(spayd)
-  if (!qrSvg) {
+  const spaydFields = parseSpaydFields(spayd)
+  if (!spaydFields) {
     return UNAVAILABLE_QR_PAYMENT_RESPONSE
   }
-
-  const spaydFields = parseSpaydFields(spayd)
   const iban = readString(spaydFields.ACC)
   if (!iban) {
     return UNAVAILABLE_QR_PAYMENT_RESPONSE
   }
 
-  const amount = readAmount(spaydFields.AM) ?? order.total ?? null
-  const currencyCode =
-    readString(spaydFields.CC)?.toUpperCase() ??
-    readString(order.currency_code)?.toUpperCase() ??
-    "EUR"
+  const spaydCurrencyCode = readCurrencyCode(spaydFields.CC)
+  const orderCurrencyCode = readCurrencyCode(order.currency_code)
+  if (
+    spaydCurrencyCode !== expectedCurrencyCode ||
+    orderCurrencyCode !== expectedCurrencyCode
+  ) {
+    return UNAVAILABLE_QR_PAYMENT_RESPONSE
+  }
+
+  const spaydAmount = readMonetaryAmount(spaydFields.AM)
+  const orderAmount = readMonetaryAmount(order.total)
+  if (
+    !(spaydAmount && orderAmount) ||
+    spaydAmount.minorUnits !== orderAmount.minorUnits
+  ) {
+    return UNAVAILABLE_QR_PAYMENT_RESPONSE
+  }
+
+  const qrSvg = await createQrSvg(spayd)
+  if (!qrSvg) {
+    return UNAVAILABLE_QR_PAYMENT_RESPONSE
+  }
+
   const orderDisplayId =
     readString(order.custom_display_id) ??
     readString(order.display_id) ??
@@ -98,8 +121,8 @@ export async function mapStoreOrderPaymentQr(payload: StoreOrderResponse) {
 
   return {
     qr_payment: {
-      amount,
-      currency_code: currencyCode,
+      amount: spaydAmount.amount,
+      currency_code: expectedCurrencyCode,
       iban,
       message: readString(spaydFields.MSG),
       order_display_id: orderDisplayId,
@@ -146,10 +169,21 @@ function parseSpaydFields(spayd: string) {
       continue
     }
 
-    fields[part.slice(0, separatorIndex)] = part.slice(separatorIndex + 1)
+    const key = part.slice(0, separatorIndex)
+    if (Object.hasOwn(fields, key)) {
+      return null
+    }
+    fields[key] = part.slice(separatorIndex + 1)
   }
 
   return fields
+}
+
+function readCurrencyCode(value: unknown) {
+  const currencyCode = readString(value)?.toUpperCase()
+  return currencyCode && CURRENCY_CODE_PATTERN.test(currencyCode)
+    ? currencyCode
+    : null
 }
 
 function readString(value: unknown) {
@@ -165,12 +199,42 @@ function readString(value: unknown) {
   return normalized.length > 0 ? normalized : null
 }
 
-function readAmount(value: unknown) {
-  const normalized = readString(value)
-  if (!normalized) {
+function readMonetaryAmount(value: unknown) {
+  let normalized: string | null
+  if (typeof value === "number") {
+    if (
+      !Number.isFinite(value) ||
+      value <= 0 ||
+      value > Number.MAX_SAFE_INTEGER / 100
+    ) {
+      return null
+    }
+    normalized = value.toFixed(2)
+    if (Number(normalized) !== value) {
+      return null
+    }
+  } else {
+    normalized = readString(value)
+  }
+
+  const match = normalized ? MONETARY_AMOUNT_PATTERN.exec(normalized) : null
+  if (!match) {
     return null
   }
 
-  const amount = Number.parseFloat(normalized)
-  return Number.isFinite(amount) ? amount : null
+  const wholeUnits = Number(match[1])
+  const fractionalUnits = Number((match[2] ?? "").padEnd(2, "0"))
+  if (
+    !Number.isSafeInteger(wholeUnits) ||
+    wholeUnits > Math.floor(Number.MAX_SAFE_INTEGER / 100)
+  ) {
+    return null
+  }
+
+  const minorUnits = wholeUnits * 100 + fractionalUnits
+  if (!Number.isSafeInteger(minorUnits) || minorUnits <= 0) {
+    return null
+  }
+
+  return { amount: Number(minorUnits) / 100, minorUnits }
 }

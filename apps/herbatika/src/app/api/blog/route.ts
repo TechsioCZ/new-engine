@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { resolveStorefrontApiMessages } from "@/app/api/_messages"
 import { resolveConfiguredMarketRuntimeBindingByHost } from "@/lib/market/market-runtime.server"
 import { loadBlogQueryState } from "@/lib/storefront/blog-query-state.server"
 import { fetchCmsBlogListing } from "@/lib/storefront/cms"
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
       }
     )
   }
+  const messages = resolveStorefrontApiMessages(binding.market)
 
   try {
     const listing = await fetchCmsBlogListing({
@@ -37,8 +39,11 @@ export async function GET(request: Request) {
     console.error("Blog listing request failed", error)
 
     return NextResponse.json(
-      { message: "Blog listing is temporarily unavailable" },
-      { status: 502 }
+      { message: messages.blogListingUnavailable },
+      {
+        headers: { "Cache-Control": "private, no-store" },
+        status: 502,
+      }
     )
   }
 }
