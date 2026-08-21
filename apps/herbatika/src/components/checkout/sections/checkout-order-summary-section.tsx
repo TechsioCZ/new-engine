@@ -91,7 +91,7 @@ export function CheckoutOrderSummarySection({
                     src={itemThumbnail}
                     width={150}
                   />
-                  <div className="flex h-checkout-image min-w-0 flex-col justify-between space-y-100">
+                  <div className="flex h-checkout-image min-w-0 flex-1 flex-col justify-between space-y-100">
                     <p className="line-clamp font-medium text-fg-primary text-md">
                       {itemName}
                     </p>
