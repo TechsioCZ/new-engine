@@ -20,12 +20,12 @@ describe("content autocomplete URL projections", () => {
           },
         ],
         "cz",
-        { article_1: "bylinky" },
-        { page_1: "doprava" }
+        { "1": "bylinky" },
+        { "1": "doprava" }
       )
     ).toEqual([
       {
-        href: "/poradna/bylinky",
+        href: "/blog/bylinky",
         id: "article_1",
         sourceId: "article_1",
         subtitle: "Článok",

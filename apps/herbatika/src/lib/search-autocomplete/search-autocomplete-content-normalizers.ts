@@ -20,9 +20,15 @@ const createContentSuggestion = (
   if (type === "article" || type === "page") {
     entityKind = type
   }
+  // Content search documents use "<type>_<sourceId>" ids; the slug maps are
+  // keyed by the bare source id.
+  const sourceId =
+    entityKind && id.startsWith(`${entityKind}_`)
+      ? id.slice(entityKind.length + 1)
+      : id
   const publicSlug = entityKind
     ? (entityKind === "article" ? publicSlugsByArticleId : publicSlugsByPageId)[
-        id
+        sourceId
       ]
     : undefined
   const href = entityKind
