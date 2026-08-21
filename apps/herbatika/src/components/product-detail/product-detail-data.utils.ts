@@ -111,6 +111,13 @@ export const resolveVariantItems = (
     })
 
 export const resolveShortDescriptionHtml = (product: Product | null) => {
+  // subtitle carries the market-localized short description via the
+  // translation module; metadata.short_description is the Slovak original.
+  const subtitle = asString(product?.subtitle)
+  if (subtitle) {
+    return subtitle
+  }
+
   const metadata = asRecord(product?.metadata)
   return asString(metadata?.short_description) ?? ""
 }
