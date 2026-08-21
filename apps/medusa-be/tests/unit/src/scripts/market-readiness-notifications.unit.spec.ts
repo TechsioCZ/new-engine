@@ -1,14 +1,17 @@
 import {
+  chmod,
   mkdir,
   mkdtemp,
   open,
   readdir,
   readFile,
   realpath,
+  rename,
   rm,
   stat,
   symlink,
   unlink,
+  writeFile,
 } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -22,6 +25,31 @@ import {
   parseNotificationReadinessArtifact,
   writeNotificationReadinessArtifact,
 } from "../../../../src/scripts/market-readiness/notifications"
+
+const publicationFsInterceptors = vi.hoisted(
+  (): {
+    afterLink: ((source: string, destination: string) => Promise<void>) | null
+    afterUnlink: ((path: string) => Promise<void>) | null
+  } => ({
+    afterLink: null,
+    afterUnlink: null,
+  })
+)
+
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>()
+  return {
+    ...actual,
+    link: async (source: string, destination: string) => {
+      await actual.link(source, destination)
+      await publicationFsInterceptors.afterLink?.(source, destination)
+    },
+    unlink: async (path: string) => {
+      await actual.unlink(path)
+      await publicationFsInterceptors.afterUnlink?.(path)
+    },
+  }
+})
 
 const temporaryDirectories: string[] = []
 const SHA256 = /^[a-f0-9]{64}$/u
@@ -61,6 +89,8 @@ const fourMarketInput = () => ({
 })
 
 afterEach(async () => {
+  publicationFsInterceptors.afterLink = null
+  publicationFsInterceptors.afterUnlink = null
   await Promise.all(
     temporaryDirectories
       .splice(0)
@@ -180,6 +210,7 @@ describe("four-market notification readiness collector", () => {
 
     expect(artifact.sha256).toMatch(SHA256)
     expect((await stat(outputPath)).mode % 0o1000).toBe(0o600)
+    expect((await stat(outputPath)).nlink).toBe(1)
     expect(serialized.endsWith("\n")).toBe(true)
     expect(serialized.endsWith("\n\n")).toBe(false)
     expect(serialized).not.toContain("\r")
@@ -270,8 +301,109 @@ describe("four-market notification readiness collector", () => {
         join(symlinkedParent, "notifications.json"),
         report
       )
-    ).rejects.toThrow("output parent must be a non-symlink directory")
+    ).rejects.toThrow(
+      "output parent must be a canonical process-owned private directory"
+    )
     expect(await readdir(physicalParent)).toEqual([])
+  })
+
+  it.each([
+    0o777, 0o770,
+  ])("rejects an output parent with mode %o", async (mode) => {
+    const report = await collectFourMarketNotificationReadiness({
+      ...fourMarketInput(),
+      renderer: {
+        render: vi.fn(async ({ locale, template }) => ({
+          html: "<html><body><p>safe</p></body></html>",
+          subject: `subject:${template}:${locale}`,
+          text: "safe",
+        })),
+      },
+      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+    })
+    const directory = await realpath(
+      await mkdtemp(join(tmpdir(), "notification-readiness-mode-test-"))
+    )
+    temporaryDirectories.push(directory)
+    await chmod(directory, mode)
+
+    await expect(
+      writeNotificationReadinessArtifact(
+        join(directory, "notifications.json"),
+        report
+      )
+    ).rejects.toThrow(
+      "output parent must be a canonical process-owned private directory"
+    )
+    expect(await readdir(directory)).toEqual([])
+  })
+
+  it("rejects a parent identity swap after linking the artifact", async () => {
+    const report = await collectFourMarketNotificationReadiness({
+      ...fourMarketInput(),
+      renderer: {
+        render: vi.fn(async ({ locale, template }) => ({
+          html: "<html><body><p>safe</p></body></html>",
+          subject: `subject:${template}:${locale}`,
+          text: "safe",
+        })),
+      },
+      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+    })
+    const root = await realpath(
+      await mkdtemp(join(tmpdir(), "notification-readiness-parent-swap-"))
+    )
+    temporaryDirectories.push(root)
+    const parent = join(root, "publisher")
+    const movedParent = join(root, "publisher-moved")
+    const outputPath = join(parent, "notifications.json")
+    await mkdir(parent, { mode: 0o700 })
+    publicationFsInterceptors.afterLink = async () => {
+      publicationFsInterceptors.afterLink = null
+      await rename(parent, movedParent)
+      await mkdir(parent, { mode: 0o700 })
+    }
+
+    await expect(
+      writeNotificationReadinessArtifact(outputPath, report)
+    ).rejects.toThrow("output parent changed during artifact publication")
+    await expect(readFile(outputPath, "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    })
+  })
+
+  it("rejects an output inode swap while removing the temporary link", async () => {
+    const report = await collectFourMarketNotificationReadiness({
+      ...fourMarketInput(),
+      renderer: {
+        render: vi.fn(async ({ locale, template }) => ({
+          html: "<html><body><p>safe</p></body></html>",
+          subject: `subject:${template}:${locale}`,
+          text: "safe",
+        })),
+      },
+      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+    })
+    const directory = await realpath(
+      await mkdtemp(join(tmpdir(), "notification-readiness-output-swap-"))
+    )
+    temporaryDirectories.push(directory)
+    const outputPath = join(directory, "notifications.json")
+    publicationFsInterceptors.afterUnlink = async (path) => {
+      if (!path.endsWith(".tmp")) {
+        return
+      }
+      publicationFsInterceptors.afterUnlink = null
+      await rm(outputPath)
+      await writeFile(outputPath, "substituted output", { mode: 0o600 })
+    }
+
+    await expect(
+      writeNotificationReadinessArtifact(outputPath, report)
+    ).rejects.toThrow(
+      "Published notification readiness artifact changed during artifact publication"
+    )
+    expect(await readFile(outputPath, "utf8")).toBe("substituted output")
   })
 
   it("rejects artifacts without exact four-market coverage or with unbounded issue data", async () => {

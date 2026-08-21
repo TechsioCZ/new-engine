@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto"
+import type { Stats } from "node:fs"
 import { link, lstat, open, realpath, unlink } from "node:fs/promises"
 import { basename, dirname, isAbsolute, resolve } from "node:path"
 import { canonicalJsonWithLf, parseCanonicalJsonWithLf } from "../canonical"
@@ -38,20 +39,48 @@ const invalid = (): never => {
   throw new Error("Four-market notification readiness artifact is invalid")
 }
 
+type FileIdentity = Readonly<{
+  dev: number
+  ino: number
+}>
+
+type OutputParentIdentity = FileIdentity &
+  Readonly<{
+    mode: number
+    uid: number
+  }>
+
+const processUid = (): number => {
+  if (typeof process.getuid !== "function") {
+    throw new Error(
+      "Notification readiness artifact publication requires process ownership checks"
+    )
+  }
+  return process.getuid()
+}
+
+const isProcessOwnedPrivateDirectory = (parent: Stats): boolean =>
+  !parent.isSymbolicLink() &&
+  parent.isDirectory() &&
+  parent.uid === processUid() &&
+  // biome-ignore lint/suspicious/noBitwiseOperators: POSIX permissions require an exact group/other mask.
+  (parent.mode & 0o077) === 0
+
 const assertStableOutputParent = async (
   parentPath: string,
-  expected: Readonly<{ dev: number; ino: number }>
+  expected: OutputParentIdentity
 ) => {
   const [parent, physicalParentPath] = await Promise.all([
     lstat(parentPath),
     realpath(parentPath),
   ])
   if (
-    parent.isSymbolicLink() ||
-    !parent.isDirectory() ||
+    !isProcessOwnedPrivateDirectory(parent) ||
     physicalParentPath !== parentPath ||
     parent.dev !== expected.dev ||
-    parent.ino !== expected.ino
+    parent.ino !== expected.ino ||
+    parent.uid !== expected.uid ||
+    parent.mode !== expected.mode
   ) {
     throw new Error(
       "Notification readiness output parent changed during artifact publication"
@@ -60,15 +89,17 @@ const assertStableOutputParent = async (
 }
 
 const assertSameRegularFile = (
-  expected: Readonly<{ dev: number; ino: number }>,
-  actual: Awaited<ReturnType<typeof lstat>>,
-  label: string
+  expected: FileIdentity,
+  actual: Stats,
+  label: string,
+  expectedLinkCount: number
 ) => {
   if (
     actual.isSymbolicLink() ||
     !actual.isFile() ||
     actual.dev !== expected.dev ||
-    actual.ino !== expected.ino
+    actual.ino !== expected.ino ||
+    actual.nlink !== expectedLinkCount
   ) {
     throw new Error(`${label} changed during artifact publication`)
   }
@@ -386,15 +417,19 @@ export const writeNotificationReadinessArtifact = async (
     realpath(parentPath),
   ])
   if (
-    parent.isSymbolicLink() ||
-    !parent.isDirectory() ||
+    !isProcessOwnedPrivateDirectory(parent) ||
     physicalParentPath !== parentPath
   ) {
     throw new Error(
-      "Notification readiness output parent must be a non-symlink directory"
+      "Notification readiness output parent must be a canonical process-owned private directory"
     )
   }
-  const parentIdentity = { dev: parent.dev, ino: parent.ino }
+  const parentIdentity = {
+    dev: parent.dev,
+    ino: parent.ino,
+    mode: parent.mode,
+    uid: parent.uid,
+  }
   const temporaryPath = `${parentPath}/.${basename(outputPath)}.${process.pid}.${randomUUID()}.tmp`
   let handle: Awaited<ReturnType<typeof open>> | undefined
   try {
@@ -407,18 +442,26 @@ export const writeNotificationReadinessArtifact = async (
     assertSameRegularFile(
       temporaryIdentity,
       await lstat(temporaryPath),
-      "Temporary notification readiness artifact"
+      "Temporary notification readiness artifact",
+      1
     )
     await assertStableOutputParent(parentPath, parentIdentity)
     await link(temporaryPath, outputPath)
+    await assertStableOutputParent(parentPath, parentIdentity)
     assertSameRegularFile(
       temporaryIdentity,
       await lstat(outputPath),
-      "Published notification readiness artifact"
+      "Published notification readiness artifact",
+      2
     )
-    await unlink(temporaryPath).catch(() => {
-      // Publication is committed; stale temporary cleanup is best-effort.
-    })
+    await unlink(temporaryPath)
+    await assertStableOutputParent(parentPath, parentIdentity)
+    assertSameRegularFile(
+      temporaryIdentity,
+      await lstat(outputPath),
+      "Published notification readiness artifact",
+      1
+    )
   } catch (error) {
     await handle?.close().catch(() => {
       // Preserve the original publication failure.
