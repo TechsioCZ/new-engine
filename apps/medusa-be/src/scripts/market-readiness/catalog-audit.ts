@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto"
 
+const MECHANICAL_TRANSLATION_PATTERN =
+  /\b(?:localized|translated|translation pending|mechanical fallback|todo)\b/i
+const PLACEHOLDER_TOKEN_PATTERN = /\{\{[^}]+\}\}/
+const PRODUS_HERBATICA_PATTERN = /\bprodus\s+herbatica(?:\s+\d+)?\b/i
+
 export const FOUR_MARKET_CATALOG_BINDINGS = [
   {
     countryCode: "sk",
@@ -750,7 +755,11 @@ function buildFourMarketCatalogAuditReport(
               const value = boundTranslation?.translations[field]
               return typeof value === "string" && value.trim().length > 0
             })
-          if (translationMatches.length !== 1 || !fieldsAreComplete) {
+          if (
+            !boundTranslation ||
+            translationMatches.length !== 1 ||
+            !fieldsAreComplete
+          ) {
             addIssue(issues, {
               code: "TRANSLATION_CONTRACT_INVALID",
               entityId: publication.entityId,
@@ -786,11 +795,9 @@ function buildFourMarketCatalogAuditReport(
               return (
                 typeof value === "string" &&
                 (value.trim() === skValue?.toString().trim() ||
-                  /\bprodus\s+herbatica(?:\s+\d+)?\b/i.test(value) ||
-                  /\b(?:localized|translated|translation pending|mechanical fallback|todo)\b/i.test(
-                    value
-                  ) ||
-                  /\{\{[^}]+\}\}/.test(value))
+                  PRODUS_HERBATICA_PATTERN.test(value) ||
+                  MECHANICAL_TRANSLATION_PATTERN.test(value) ||
+                  PLACEHOLDER_TOKEN_PATTERN.test(value))
               )
             })
             if (contaminated) {
