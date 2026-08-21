@@ -150,7 +150,7 @@ export const runFourMarketConvergenceCli = async (
   }
   const segmentRegistryByMarket = await (
     dependencies.loadSegmentRegistryRefs ?? loadSegmentRegistryRefsByMarket
-  )(segmentRegistryDirectory)
+  )(artifactRoot)
   const reader = (
     dependencies.createReader ?? createFourMarketConvergenceReader
   )({

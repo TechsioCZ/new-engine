@@ -1,8 +1,11 @@
 import {
+  chmod,
+  link,
   mkdir,
   mkdtemp,
   readFile,
   realpath,
+  rename,
   rm,
   stat,
   symlink,
@@ -12,8 +15,10 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import {
+  assertPrivateReadinessDirectoryUnchanged,
   FOUR_MARKET_STATIC_TAXONOMY_ARTIFACT_PATH,
   FOUR_MARKET_URLR_ARTIFACT_PATH,
+  openPrivateReadinessDirectory,
   writeFourMarketConvergenceArtifacts,
 } from "./convergence-artifacts"
 import { collectFourMarketConvergenceArtifacts } from "./convergence-collector"
@@ -116,5 +121,54 @@ describe("four-market convergence artifact writer", () => {
     await expect(
       writeFourMarketConvergenceArtifacts(root, artifactsFixture())
     ).rejects.toThrow("artifact directory is unsafe")
+  })
+
+  it("rejects non-private roots and pre-existing output directories", async () => {
+    const root = await canonicalRoot()
+    await chmod(root, 0o750)
+    await expect(
+      writeFourMarketConvergenceArtifacts(root, artifactsFixture())
+    ).rejects.toThrow("artifact directory is unsafe")
+
+    await chmod(root, 0o700)
+    const operations = join(root, "operations")
+    await mkdir(operations, { mode: 0o700 })
+    await chmod(operations, 0o755)
+    await expect(
+      writeFourMarketConvergenceArtifacts(root, artifactsFixture())
+    ).rejects.toThrow("artifact directory is unsafe")
+  })
+
+  it("detects a pathname swapped to a different directory inode", async () => {
+    const root = await canonicalRoot()
+    const guardedPath = join(root, "operations")
+    const movedPath = join(root, "operations-original")
+    await mkdir(guardedPath, { mode: 0o700 })
+    const guarded = await openPrivateReadinessDirectory(guardedPath)
+    try {
+      await rename(guardedPath, movedPath)
+      await mkdir(guardedPath, { mode: 0o700 })
+      await expect(
+        assertPrivateReadinessDirectoryUnchanged(guarded)
+      ).rejects.toThrow("artifact directory changed")
+    } finally {
+      await guarded.handle.close()
+    }
+  })
+
+  it("does not clobber an existing hard-linked output", async () => {
+    const root = await canonicalRoot()
+    const operations = join(root, "operations")
+    const protectedPath = join(root, "protected.json")
+    const outputPath = join(root, FOUR_MARKET_URLR_ARTIFACT_PATH)
+    await mkdir(operations, { mode: 0o700 })
+    await writeFile(protectedPath, "preserve-me", { flag: "wx", mode: 0o600 })
+    await link(protectedPath, outputPath)
+
+    await expect(
+      writeFourMarketConvergenceArtifacts(root, artifactsFixture())
+    ).rejects.toMatchObject({ code: "EEXIST" })
+    expect(await readFile(protectedPath, "utf8")).toBe("preserve-me")
+    expect(await readFile(outputPath, "utf8")).toBe("preserve-me")
   })
 })

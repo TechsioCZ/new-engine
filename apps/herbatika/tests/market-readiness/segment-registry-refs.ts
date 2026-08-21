@@ -1,7 +1,12 @@
-import { lstat, readFile, realpath } from "node:fs/promises"
+import { constants } from "node:fs"
+import { lstat, open } from "node:fs/promises"
 import { isAbsolute, join, resolve } from "node:path"
 import { parseSegmentRegistryPublicationArtifact } from "../../src/lib/url/segment-registry-publication"
 import { POPULATION_MARKETS } from "../../src/lib/url-registry/population/manifest-contracts"
+import {
+  assertPrivateReadinessDirectoryUnchanged,
+  openPrivateReadinessDirectory,
+} from "./convergence-artifacts"
 import type {
   SegmentRegistryArtifactRef,
   StaticTaxonomyMarketConvergence,
@@ -12,59 +17,107 @@ export type SegmentRegistryRefsByMarket = Readonly<
   Record<ReadinessMarket, SegmentRegistryArtifactRef>
 >
 
-const canonicalDirectory = async (value: string): Promise<string> => {
+const canonicalRoot = (value: string) => {
   if (!isAbsolute(value) || resolve(value) !== value) {
     throw new Error(
-      "four-market-readiness: segment registry directory must be absolute and normalized"
+      "four-market-readiness: artifact root must be absolute and normalized"
     )
   }
-  const metadata = await lstat(value)
-  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
-    throw new Error(
-      "four-market-readiness: segment registry directory is unsafe"
-    )
-  }
-  if ((await realpath(value)) !== value) {
-    throw new Error(
-      "four-market-readiness: segment registry directory must be canonical"
-    )
-  }
-  return value
+  return openPrivateReadinessDirectory(value)
 }
 
 export const loadSegmentRegistryRefsByMarket = async (
-  directoryValue: string
+  artifactRootValue: string
 ): Promise<SegmentRegistryRefsByMarket> => {
-  const directory = await canonicalDirectory(directoryValue)
-  const entries = await Promise.all(
-    POPULATION_MARKETS.map(async (market) => {
-      const path = join(directory, `${market}.json`)
-      const metadata = await lstat(path)
-      if (!metadata.isFile() || metadata.isSymbolicLink()) {
-        throw new Error(
-          `four-market-readiness: segment registry artifact is unsafe for ${market}`
+  const root = await canonicalRoot(artifactRootValue)
+  const directoryPath = join(root.path, "segment-registry-g1")
+  let directory:
+    | Awaited<ReturnType<typeof openPrivateReadinessDirectory>>
+    | undefined
+  try {
+    const openedDirectory = await openPrivateReadinessDirectory(directoryPath)
+    directory = openedDirectory
+    await assertPrivateReadinessDirectoryUnchanged(root)
+    const entryResults = await Promise.allSettled(
+      POPULATION_MARKETS.map(async (market) => {
+        const path = join(openedDirectory.path, `${market}.json`)
+        await assertPrivateReadinessDirectoryUnchanged(openedDirectory)
+        const handle = await open(
+          path,
+          // biome-ignore lint/suspicious/noBitwiseOperators: POSIX open flags are a bitmask.
+          constants.O_RDONLY | constants.O_NOFOLLOW
         )
-      }
-      const parsed = parseSegmentRegistryPublicationArtifact(
-        await readFile(path, "utf8"),
-        path
-      )
-      if (parsed.artifact.market !== market) {
-        throw new Error(
-          `four-market-readiness: segment registry market mismatch for ${market}`
-        )
-      }
-      return [
-        market,
-        {
-          ref: `segment-registry-g1/${market}.json`,
-          sha256: parsed.sha256,
-        },
-      ] as const
-    })
-  )
-  return Object.fromEntries(entries) as Record<
-    ReadinessMarket,
-    StaticTaxonomyMarketConvergence["segmentRegistry"]
-  >
+        try {
+          const initialMetadata = await handle.stat()
+          const pathnameMetadata = await lstat(path)
+          if (
+            !initialMetadata.isFile() ||
+            initialMetadata.nlink !== 1 ||
+            initialMetadata.dev !== pathnameMetadata.dev ||
+            initialMetadata.ino !== pathnameMetadata.ino
+          ) {
+            throw new Error(
+              `four-market-readiness: segment registry artifact is unsafe for ${market}`
+            )
+          }
+          const parsed = parseSegmentRegistryPublicationArtifact(
+            await handle.readFile("utf8"),
+            path
+          )
+          const finalMetadata = await handle.stat()
+          const finalPathMetadata = await lstat(path)
+          if (
+            initialMetadata.dev !== finalMetadata.dev ||
+            initialMetadata.ino !== finalMetadata.ino ||
+            initialMetadata.size !== finalMetadata.size ||
+            initialMetadata.mtimeMs !== finalMetadata.mtimeMs ||
+            initialMetadata.ctimeMs !== finalMetadata.ctimeMs ||
+            finalMetadata.dev !== finalPathMetadata.dev ||
+            finalMetadata.ino !== finalPathMetadata.ino
+          ) {
+            throw new Error(
+              `four-market-readiness: segment registry artifact changed for ${market}`
+            )
+          }
+          await assertPrivateReadinessDirectoryUnchanged(openedDirectory)
+          if (parsed.artifact.market !== market) {
+            throw new Error(
+              `four-market-readiness: segment registry market mismatch for ${market}`
+            )
+          }
+          return [
+            market,
+            {
+              ref: `segment-registry-g1/${market}.json`,
+              sha256: parsed.sha256,
+            },
+          ] as const
+        } finally {
+          await handle.close()
+        }
+      })
+    )
+    const entryError = entryResults.find(
+      (result) => result.status === "rejected"
+    )
+    if (entryError?.status === "rejected") {
+      throw entryError.reason
+    }
+    const entries = entryResults.flatMap((result) =>
+      result.status === "fulfilled" ? [result.value] : []
+    )
+    await Promise.all([
+      assertPrivateReadinessDirectoryUnchanged(root),
+      assertPrivateReadinessDirectoryUnchanged(openedDirectory),
+    ])
+    return Object.fromEntries(entries) as Record<
+      ReadinessMarket,
+      StaticTaxonomyMarketConvergence["segmentRegistry"]
+    >
+  } finally {
+    await Promise.allSettled([
+      root.handle.close(),
+      ...(directory ? [directory.handle.close()] : []),
+    ])
+  }
 }

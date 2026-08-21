@@ -110,8 +110,8 @@ describe("four-market convergence CLI", () => {
           },
           loadText: () =>
             Promise.resolve(JSON.stringify(fourMarketManifestFixture())),
-          loadSegmentRegistryRefs: (directory) => {
-            expect(directory).toBe("/evidence/segment-registry-g1")
+          loadSegmentRegistryRefs: (root) => {
+            expect(root).toBe("/evidence")
             return Promise.resolve(segmentRegistryRefsFixture())
           },
           write: (root, value) => {
