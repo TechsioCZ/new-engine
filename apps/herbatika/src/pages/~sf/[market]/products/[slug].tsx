@@ -24,7 +24,7 @@ import { buildProductSeo, serializeProductJsonLd } from "@/lib/seo/product"
 import type { ProductPageContext } from "@/lib/storefront/product-page-context"
 import type { ProductRouteMedusaProduct } from "@/lib/storefront/product-route-source"
 import {
-  readProductIdentityFromMedusa,
+  readProductAlternateSourceFromMedusa,
   readProductPageContextFromMedusa,
   readProductRouteSourceFromMedusa,
 } from "@/lib/storefront/product-route-source.server"
@@ -87,10 +87,12 @@ const readProductAlternates = async (
   }
   return loadEntityAlternates(
     current.value,
-    ({ market: targetMarket, sourceId }) =>
-      readProductIdentityFromMedusa({
+    ({ market: targetMarket, publicSlug, sourceId, sourceVersion }) =>
+      readProductAlternateSourceFromMedusa({
         market: targetMarket,
         productId: sourceId,
+        publicSlug,
+        sourceVersion,
       })
   )
 }

@@ -40,7 +40,8 @@ describe("Pages Router storefront runtime contract", () => {
 
     expect(productSource).toContain("findActiveEntityRoute")
     expect(productSource).toContain("loadEntityAlternates")
-    expect(productSource).toContain("readProductIdentityFromMedusa")
+    expect(productSource).toContain("readProductAlternateSourceFromMedusa")
+    expect(productSource).toContain("sourceVersion")
     expect(productSource).toContain("page.value.alternates")
     expect(productSource).toContain('rel="alternate"')
   })

@@ -4,6 +4,7 @@ import { PRODUCT_DETAIL_FIELDS } from "./product-query-config"
 import {
   type ProductRouteSourceDependencies,
   type ProductRouteSourceMarketBinding,
+  readProductAlternateSource,
   readProductIdentitySource,
   readProductRouteSource,
 } from "./product-route-source"
@@ -400,5 +401,62 @@ describe("readProductIdentitySource", () => {
       kind: "invalid-response",
       causeCode: "INVALID_MEDUSA_PRODUCT_RESPONSE",
     })
+  })
+})
+
+describe("readProductAlternateSource", () => {
+  const alternateRequest = {
+    ...request,
+    sourceVersion: "2026-08-19T00:00:00.000Z",
+  } as const
+
+  it("requires product identity and the exact market, slug, source version, and locale proof", async () => {
+    await expect(
+      readProductAlternateSource(
+        alternateRequest,
+        dependencies(vi.fn().mockResolvedValue({ product: { id: "prod_1" } }))
+      )
+    ).resolves.toEqual({ kind: "found", value: { id: "prod_1" } })
+  })
+
+  it.each([
+    [
+      "source version drift",
+      { sourceVersion: "2026-08-20T00:00:00.000Z" },
+      "PRODUCT_PUBLICATION_SOURCE_VERSION_MISMATCH",
+    ],
+    [
+      "wrong locale",
+      {
+        translation: {
+          localeCode: "cs-CZ",
+          reference: "product",
+          translationId: "trans_1",
+        },
+      },
+      "INVALID_PRODUCT_TRANSLATION_PROOF",
+    ],
+    ["wrong market", { marketCode: "cz" }, "INVALID_PRODUCT_TRANSLATION_PROOF"],
+  ])("rejects %s before publishing an alternate", async (_label, override, causeCode) => {
+    const deps = {
+      ...dependencies(vi.fn().mockResolvedValue({ product: { id: "prod_1" } })),
+      retrievePublicationSource: vi.fn().mockResolvedValue({
+        entityId: "prod_1",
+        marketCode: "sk",
+        publicSlug: "vitamin-c",
+        salesChannelId: "sc_sk",
+        sourceVersion: "2026-08-19T00:00:00.000Z",
+        translation: {
+          localeCode: "sk-SK",
+          reference: "product",
+          translationId: "trans_1",
+        },
+        ...override,
+      }),
+    }
+
+    await expect(
+      readProductAlternateSource(alternateRequest, deps)
+    ).resolves.toEqual({ causeCode, kind: "invalid-response" })
   })
 })

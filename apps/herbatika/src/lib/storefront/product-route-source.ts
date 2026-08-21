@@ -47,6 +47,9 @@ export type ProductIdentitySourceRequest = Omit<
   "publicSlug"
 >
 
+export type ProductAlternateSourceRequest = ProductRouteSourceRequest &
+  Readonly<{ sourceVersion: string }>
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
@@ -178,12 +181,14 @@ const readPublicationSourceProof = ({
   binding,
   expectedProductId,
   expectedPublicSlug,
+  expectedSourceVersion,
   market,
   payload,
 }: Readonly<{
   binding: ProductRouteSourceMarketBinding
   expectedProductId: string
   expectedPublicSlug: string
+  expectedSourceVersion?: string
   market: MarketCode
   payload: unknown
 }>): SourceReadResult<true> => {
@@ -209,6 +214,15 @@ const readPublicationSourceProof = ({
     payload.salesChannelId !== binding.salesChannelId
   ) {
     return { kind: "missing" }
+  }
+  if (
+    expectedSourceVersion !== undefined &&
+    payload.sourceVersion !== expectedSourceVersion
+  ) {
+    return {
+      causeCode: "PRODUCT_PUBLICATION_SOURCE_VERSION_MISMATCH",
+      kind: "invalid-response",
+    }
   }
   return { kind: "found", value: true }
 }
@@ -321,6 +335,69 @@ export const readProductIdentitySource = async (
       }
     }
     return { kind: "found", value: payload.product }
+  } catch (error) {
+    return mapReadError(error)
+  }
+}
+
+export const readProductAlternateSource = async (
+  {
+    market,
+    productId,
+    publicSlug,
+    sourceVersion,
+  }: ProductAlternateSourceRequest,
+  dependencies: ProductRouteSourceDependencies
+): Promise<SourceReadResult<unknown>> => {
+  if (!isIdentifier(sourceVersion)) {
+    return {
+      causeCode: "INVALID_PRODUCT_ALTERNATE_SOURCE_VERSION",
+      kind: "invalid-response",
+    }
+  }
+  const bindingResult = resolveSourceBinding(market, dependencies)
+  if (bindingResult.kind !== "found") {
+    return bindingResult
+  }
+  const binding = bindingResult.value
+  try {
+    const [productPayload, publicationPayload] = await Promise.all([
+      dependencies.retrieveProduct({
+        binding,
+        productId,
+        query: {
+          country_code: binding.countryCode.toLowerCase(),
+          fields: "id",
+          locale: binding.locale,
+          region_id: binding.regionId,
+        },
+      }),
+      dependencies.retrievePublicationSource({ binding, market, productId }),
+    ])
+    const proof = readPublicationSourceProof({
+      binding,
+      expectedProductId: productId,
+      expectedPublicSlug: publicSlug,
+      expectedSourceVersion: sourceVersion,
+      market,
+      payload: publicationPayload,
+    })
+    if (proof.kind !== "found") {
+      return proof
+    }
+    if (
+      !(
+        isRecord(productPayload) &&
+        isRecord(productPayload.product) &&
+        productPayload.product.id === productId
+      )
+    ) {
+      return {
+        causeCode: "INVALID_MEDUSA_PRODUCT_RESPONSE",
+        kind: "invalid-response",
+      }
+    }
+    return { kind: "found", value: productPayload.product }
   } catch (error) {
     return mapReadError(error)
   }

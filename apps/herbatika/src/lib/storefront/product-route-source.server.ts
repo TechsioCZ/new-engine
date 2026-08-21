@@ -12,9 +12,11 @@ import {
   readProductPageContext,
 } from "./product-page-context"
 import {
+  type ProductAlternateSourceRequest,
   type ProductIdentitySourceRequest,
   type ProductRouteSourceMarketBinding,
   type ProductRouteSourceRequest,
+  readProductAlternateSource,
   readProductIdentitySource,
   readProductRouteSource,
 } from "./product-route-source"
@@ -85,6 +87,30 @@ export const readProductIdentityFromMedusa = (
     retrievePublicationSource: () =>
       Promise.reject(
         new Error("Publication proof is not used for identity reads")
+      ),
+  })
+
+export const readProductAlternateSourceFromMedusa = (
+  input: ProductAlternateSourceRequest
+) =>
+  readProductAlternateSource(input, {
+    resolveMarket: (market) =>
+      getMarketRuntime(getConfiguredMarketRuntime(), market),
+    retrieveProduct: ({ binding, productId, query }) =>
+      getMarketSdk(binding).client.fetch<HttpTypes.StoreProductResponse>(
+        `/store/products/${encodeURIComponent(productId)}`,
+        {
+          query,
+          signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
+        }
+      ),
+    retrievePublicationSource: ({ binding, market, productId }) =>
+      getMarketSdk(binding).client.fetch(
+        `/store/url-registry/products/${encodeURIComponent(productId)}/source`,
+        {
+          query: { market },
+          signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
+        }
       ),
   })
 

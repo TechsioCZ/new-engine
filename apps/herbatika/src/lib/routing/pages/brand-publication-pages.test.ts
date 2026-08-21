@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   fetchStorefrontBrands: vi.fn(),
   prefetchBrandPageStorefrontData: vi.fn(),
   readCompletePublicEntitySlugs: vi.fn(),
+  readCatalogPublicationProofFromMedusa: vi.fn(),
   readRequiredPublicEntitySlugs: vi.fn(),
   resolveEntityPublicPage: vi.fn(),
   resolveRegistryRoute: vi.fn(),
@@ -20,6 +21,10 @@ vi.mock("@/components/brands/brand-listing", () => ({
 }))
 vi.mock("@/lib/storefront/brands.server", () => ({
   fetchStorefrontBrands: mocks.fetchStorefrontBrands,
+}))
+vi.mock("@/lib/storefront/catalog-publication-proof.server", () => ({
+  readCatalogPublicationProofFromMedusa:
+    mocks.readCatalogPublicationProofFromMedusa,
 }))
 vi.mock("@/lib/routing/public-page", () => ({
   foundSource: (value: unknown) => ({ kind: "found", value }),
@@ -106,6 +111,10 @@ describe("Romanian Brand publication pages", () => {
       kind: "found",
       value: {},
     })
+    mocks.readCatalogPublicationProofFromMedusa.mockResolvedValue({
+      kind: "found",
+      value: {},
+    })
     mocks.prefetchBrandPageStorefrontData.mockResolvedValue({
       dehydratedState: {},
       region: {},
@@ -126,13 +135,17 @@ describe("Romanian Brand publication pages", () => {
         input: {
           loadSource: (identity: {
             market: string
+            publicSlug: string
             sourceId: string
+            sourceVersion: string
           }) => Promise<{ kind: string }>
         }
       ) => {
         const source = await input.loadSource({
           market: "ro",
+          publicSlug: "brand-exclus",
           sourceId: excludedRomanianBrands[0]?.id ?? "brand_excluded",
+          sourceVersion: "7",
         })
         return source.kind === "missing"
           ? { notFound: true }

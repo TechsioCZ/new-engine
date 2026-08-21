@@ -29,6 +29,7 @@ import { parseMarket } from "@/lib/url/segments"
 import { validatePublishedSlug } from "@/lib/url/slug"
 import type { Market } from "@/lib/url/types"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
+import { readCurrentEntitySourceVersions } from "@/lib/url-registry/current-entity-source-versions"
 import type {
   ActiveEntityRouteTarget,
   EntityUrlKind,
@@ -62,6 +63,13 @@ export type PublicPageProps<Value> = StorefrontShellProps &
   }>
 
 export type PublicSourceResult<Value> = SourceReadResult<Value>
+
+export type PublicEntitySourceInput = Readonly<{
+  market: Market
+  publicSlug: string
+  sourceId: string
+  sourceVersion: string
+}>
 
 const NO_STORE = "private, no-store, max-age=0, must-revalidate"
 const HREF_LANG = {
@@ -232,10 +240,9 @@ const currentAbsoluteUrl = (
 
 export const loadEntityAlternates = async <Value>(
   current: ActiveEntityRouteTarget,
-  loadSource: (input: {
-    market: Market
-    sourceId: string
-  }) => Promise<PublicSourceResult<Value>>,
+  loadSource: (
+    input: PublicEntitySourceInput
+  ) => Promise<PublicSourceResult<Value>>,
   isIndexable?: (value: Value) => boolean
 ): Promise<Readonly<Record<string, string>>> => {
   if (
@@ -306,12 +313,33 @@ export const loadEntityAlternates = async <Value>(
       candidatesByMarket.set(candidate.route.market, candidate)
     }
 
+    const candidates = [...candidatesByMarket.values()]
+    const sourceVersions = await readCurrentEntitySourceVersions(
+      candidates,
+      runtime.registry
+    )
+    if (sourceVersions.kind !== "found") {
+      return Object.fromEntries([self])
+    }
+    const sourceVersionByRouteId = new Map(
+      sourceVersions.value.map(({ routeId, sourceVersion }) => [
+        routeId,
+        sourceVersion,
+      ])
+    )
+
     const entries = await Promise.all(
-      [...candidatesByMarket.values()].map(async (candidate) => {
+      candidates.map(async (candidate) => {
         try {
+          const sourceVersion = sourceVersionByRouteId.get(candidate.route.id)
+          if (!sourceVersion) {
+            return null
+          }
           const source = await loadSource({
             market: candidate.route.market,
+            publicSlug: candidate.currentSlug.normalizedSlug,
             sourceId: candidate.route.sourceId,
+            sourceVersion,
           })
           if (
             source.kind !== "found" ||
@@ -387,10 +415,9 @@ export const resolveEntityPublicPage = async <Value>(
     expectedRouteKey: string
     description?: (value: Value) => string | undefined
     kind: EntityUrlKind
-    loadSource: (input: {
-      market: Market
-      sourceId: string
-    }) => Promise<PublicSourceResult<Value>>
+    loadSource: (
+      input: PublicEntitySourceInput
+    ) => Promise<PublicSourceResult<Value>>
     isIndexable?: (value: Value) => boolean
     lastPage?: (value: Value) => number | undefined
     queryKind: QueryRouteKind
@@ -442,9 +469,33 @@ export const resolveEntityPublicPage = async <Value>(
       resolution.value.disposition === "superseded"
         ? resolution.value.successorRoute
         : resolution.value.route
+    const sourceProjection: ActiveEntityRouteTarget = {
+      currentSlug: resolution.value.currentSlug,
+      projectionType: "entity",
+      route: sourceRoute,
+    }
+    if (!hasValidActiveProjection(sourceProjection, market, input.kind)) {
+      return errorResult(context, market, 503)
+    }
+    const sourceVersions = await readCurrentEntitySourceVersions(
+      [sourceProjection],
+      runtime.registry
+    )
+    if (sourceVersions.kind === "unavailable") {
+      return errorResult(context, market, 503, sourceVersions.retryAfterSeconds)
+    }
+    if (sourceVersions.kind !== "found") {
+      return errorResult(context, market, 503)
+    }
+    const sourceVersion = sourceVersions.value[0]?.sourceVersion
+    if (!sourceVersion) {
+      return errorResult(context, market, 503)
+    }
     const source = await input.loadSource({
       market,
+      publicSlug: resolution.value.currentSlug.normalizedSlug,
       sourceId: sourceRoute.sourceId,
+      sourceVersion,
     })
     if (source.kind === "missing") {
       return notFoundResult(context)
@@ -482,11 +533,7 @@ export const resolveEntityPublicPage = async <Value>(
       return notFoundResult(context)
     }
 
-    const current: ActiveEntityRouteTarget = {
-      projectionType: "entity",
-      route: resolution.value.route,
-      currentSlug: resolution.value.currentSlug,
-    }
+    const current = sourceProjection
     const querySeo = classifySeo({
       canonicalRawQuery: boundedQuery.canonicalRawQuery,
       routeKind: input.queryKind,

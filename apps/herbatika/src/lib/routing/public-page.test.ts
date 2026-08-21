@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
   getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk-SK" })),
   getRegionServerContext: vi.fn(async () => ({ region: null })),
   getUrlRegistryRuntime: vi.fn(),
+  listAuditRecords: vi.fn(),
   readRequiredPublicEntitySlugs: vi.fn(async () => ({
     kind: "found" as const,
     value: {},
@@ -119,6 +120,46 @@ const currentResolution = (): UrlRegistryResolution => {
     currentSlug,
   }
 }
+
+const audit = (targetRoute: EntityUrlRoute) => ({
+  resultVersion: targetRoute.version,
+  routeId: targetRoute.id,
+  source: {
+    sourceId: targetRoute.sourceId,
+    sourceSystem: targetRoute.sourceSystem,
+    sourceType: targetRoute.sourceType,
+    sourceVersion:
+      targetRoute.kind === "product" ? "2026-08-21T10:00:00.000Z" : "7",
+  },
+})
+
+const auditedRoutes = () => [
+  route("category-current"),
+  route("category-successor"),
+  route("category-cz", { market: "cz" }),
+  route("product-sk", {
+    equivalenceKey: "product:shared",
+    kind: "product",
+    sourceType: "product",
+  }),
+  route("product-cz", {
+    equivalenceKey: "product:shared",
+    kind: "product",
+    market: "cz",
+    sourceType: "product",
+  }),
+  route("collection-sk", {
+    equivalenceKey: "collection:shared",
+    kind: "collection",
+    sourceType: "collection",
+  }),
+  route("collection-cz", {
+    equivalenceKey: "collection:shared",
+    kind: "collection",
+    market: "cz",
+    sourceType: "collection",
+  }),
+]
 
 const aliasResolution = (): UrlRegistryResolution => {
   const currentRoute = route("category-current")
@@ -228,8 +269,13 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
       enabled: true,
       registry: {
         findActiveEquivalents: mocks.findActiveEquivalents,
+        listAuditRecords: mocks.listAuditRecords,
         resolve: mocks.resolveRegistryRoute,
       },
+    })
+    mocks.listAuditRecords.mockResolvedValue({
+      kind: "found",
+      value: { items: auditedRoutes().map(audit), nextCursor: null },
     })
     mocks.findActiveEquivalents.mockResolvedValue({
       kind: "found",
@@ -255,7 +301,12 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
     expect(result).toEqual({ notFound: true })
     expect(loadSource).toHaveBeenCalledWith({
       market: "sk",
+      publicSlug:
+        expectedSourceId === "category-successor"
+          ? "successor-category"
+          : "current-category",
       sourceId: expectedSourceId,
+      sourceVersion: "7",
     })
   })
 
@@ -319,8 +370,34 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
     })
     expect(loadSource).toHaveBeenCalledWith({
       market: "sk",
+      publicSlug: "successor-category",
       sourceId: "category-successor",
+      sourceVersion: "7",
     })
+  })
+
+  it("returns 503 before canonical or hreflang when the current URLR audit proof is missing", async () => {
+    mocks.resolveRegistryRoute.mockResolvedValue({
+      kind: "found",
+      value: currentResolution(),
+    })
+    mocks.listAuditRecords.mockResolvedValue({
+      kind: "found",
+      value: { items: [], nextCursor: null },
+    })
+    const loadSource = vi.fn()
+    const requestContext = context()
+
+    const result = await resolve(requestContext, loadSource)
+
+    expect(result).toMatchObject({
+      props: {
+        page: { kind: "error", status: 503 },
+        seo: { robots: "noindex, nofollow" },
+      },
+    })
+    expect(loadSource).not.toHaveBeenCalled()
+    expect(requestContext.res.statusCode).toBe(503)
   })
 
   it("omits a missing equivalent-market source from alternates", async () => {
@@ -476,8 +553,56 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
     expect(loadSource).toHaveBeenCalledOnce()
     expect(loadSource).toHaveBeenCalledWith({
       market: "cz",
+      publicSlug: "cesky-produkt",
       sourceId: "product-cz",
+      sourceVersion: "2026-08-21T10:00:00.000Z",
     })
+  })
+
+  it("omits a product alternate whose current sourceVersion has no exact URLR audit", async () => {
+    const skRoute = route("product-sk", {
+      equivalenceKey: "product:shared",
+      kind: "product",
+      sourceType: "product",
+    })
+    const czRoute = route("product-cz", {
+      equivalenceKey: "product:shared",
+      kind: "product",
+      market: "cz",
+      sourceType: "product",
+    })
+    mocks.findActiveEquivalents.mockResolvedValue({
+      kind: "found",
+      value: [
+        {
+          projectionType: "entity",
+          route: czRoute,
+          currentSlug: slug("cesky-produkt", czRoute),
+        },
+      ],
+    })
+    mocks.listAuditRecords.mockResolvedValue({
+      kind: "found",
+      value: {
+        items: [{ ...audit(czRoute), resultVersion: 0 }],
+        nextCursor: null,
+      },
+    })
+    const loadSource = vi.fn()
+
+    await expect(
+      loadEntityAlternates(
+        {
+          projectionType: "entity",
+          route: skRoute,
+          currentSlug: slug("slovensky-produkt", skRoute),
+        },
+        loadSource
+      )
+    ).resolves.toEqual({
+      "sk-SK": "https://herbatica.sk/produkty/slovensky-produkt",
+    })
+    expect(loadSource).not.toHaveBeenCalled()
   })
 
   it.each([

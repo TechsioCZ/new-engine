@@ -9,6 +9,7 @@ import {
 } from "@/lib/routing/public-page"
 import type { StorefrontBrand } from "@/lib/storefront/brands"
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"
+import { readCatalogPublicationProofFromMedusa } from "@/lib/storefront/catalog-publication-proof.server"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state"
 import { prefetchBrandPageStorefrontData } from "@/lib/storefront/ssr"
 import {
@@ -31,7 +32,17 @@ export const getServerSideProps = ((context) => {
   return resolveEntityPublicPage<BrandValue>(context, {
     expectedRouteKey: "brand.detail",
     kind: "brand",
-    loadSource: async ({ market, sourceId }) => {
+    loadSource: async ({ market, publicSlug, sourceId, sourceVersion }) => {
+      const publication = await readCatalogPublicationProofFromMedusa({
+        entityId: sourceId,
+        entityKind: "brand",
+        market,
+        publicSlug,
+        sourceVersion,
+      })
+      if (publication.kind !== "found") {
+        return publication
+      }
       const brands = await fetchStorefrontBrands(market)
       const brand = brands.find((item) => item.id === sourceId)
       if (!brand) {

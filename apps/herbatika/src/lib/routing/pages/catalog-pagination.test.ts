@@ -5,11 +5,14 @@ const mocks = vi.hoisted(() => ({
   fetchServerCategories: vi.fn(),
   fetchStorefrontBrands: vi.fn(),
   getRegionServerContext: vi.fn(),
+  findActiveEquivalents: vi.fn(),
+  listAuditRecords: vi.fn(),
   prefetchBrandPageStorefrontData: vi.fn(),
   prefetchCategoryPageStorefrontData: vi.fn(),
   prefetchProductIndexStorefrontData: vi.fn(),
   readAvailablePublicEntitySlugs: vi.fn(),
   readCompletePublicEntitySlugs: vi.fn(),
+  readCatalogPublicationProofFromMedusa: vi.fn(),
   readRequiredPublicEntitySlugs: vi.fn(),
   resolveRegistryRoute: vi.fn(),
 }))
@@ -26,6 +29,10 @@ vi.mock("@/components/products/product-index-page", () => ({
 }))
 vi.mock("@/lib/storefront/brands.server", () => ({
   fetchStorefrontBrands: mocks.fetchStorefrontBrands,
+}))
+vi.mock("@/lib/storefront/catalog-publication-proof.server", () => ({
+  readCatalogPublicationProofFromMedusa:
+    mocks.readCatalogPublicationProofFromMedusa,
 }))
 vi.mock("@/lib/storefront/cms-footer-navigation", () => ({
   fetchCmsFooterNavigation: vi.fn(async () => ({ columns: [] })),
@@ -58,9 +65,15 @@ vi.mock("@/lib/storefront/storefront-texts.server", () => ({
 vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
   getUrlRegistryRuntime: vi.fn(async () => ({
     enabled: true,
-    registry: { resolve: mocks.resolveRegistryRoute },
+    registry: {
+      findActiveEquivalents: mocks.findActiveEquivalents,
+      listAuditRecords: mocks.listAuditRecords,
+      resolve: mocks.resolveRegistryRoute,
+    },
   })),
 }))
+
+const timestamp = "2026-08-21T10:00:00.000Z"
 
 const context = (
   routeKey: string,
@@ -130,18 +143,82 @@ describe("catalog page pagination boundaries", () => {
       kind: "found",
       value: { cat_1: "herbs" },
     })
+    mocks.readCatalogPublicationProofFromMedusa.mockResolvedValue({
+      kind: "found",
+      value: {},
+    })
+    mocks.findActiveEquivalents.mockResolvedValue({
+      kind: "found",
+      value: [],
+    })
+    mocks.listAuditRecords.mockResolvedValue({
+      kind: "found",
+      value: {
+        items: [
+          {
+            resultVersion: 1,
+            routeId: "route-brand",
+            source: {
+              sourceId: "brand_1",
+              sourceSystem: "medusa",
+              sourceType: "brand",
+              sourceVersion: "7",
+            },
+          },
+          {
+            resultVersion: 1,
+            routeId: "route-category",
+            source: {
+              sourceId: "cat_1",
+              sourceSystem: "medusa",
+              sourceType: "category",
+              sourceVersion: "7",
+            },
+          },
+        ],
+        nextCursor: null,
+      },
+    })
     mocks.resolveRegistryRoute.mockImplementation(
-      ({ kind }: { kind: "brand" | "category" }) =>
-        Promise.resolve({
+      ({ kind }: { kind: "brand" | "category" }) => {
+        const normalizedSlug = kind === "brand" ? "brand" : "herbs"
+        const route = {
+          createdAt: timestamp,
+          equivalenceKey: `${kind}:${kind === "brand" ? "brand_1" : "cat_1"}`,
+          id: `route-${kind}`,
+          indexPolicy: "indexable",
+          kind,
+          market: "sk",
+          sourceId: kind === "brand" ? "brand_1" : "cat_1",
+          sourceSystem: "medusa",
+          sourceType: kind,
+          staticRouteKey: null,
+          status: "active",
+          successorRouteId: null,
+          targetType: "entity",
+          updatedAt: timestamp,
+          version: 1,
+        } as const
+        const currentSlug = {
+          createdAt: timestamp,
+          disposition: "current",
+          id: `slug-${kind}`,
+          kind,
+          market: "sk",
+          normalizationVersion: 1,
+          normalizedSlug,
+          routeId: route.id,
+        } as const
+        return Promise.resolve({
           kind: "found",
           value: {
-            currentSlug: {
-              normalizedSlug: kind === "brand" ? "brand" : "herbs",
-            },
+            currentSlug,
             disposition: "current",
-            route: { sourceId: kind === "brand" ? "brand_1" : "cat_1" },
+            matchedSlug: currentSlug,
+            route,
           },
         })
+      }
     )
   })
 
