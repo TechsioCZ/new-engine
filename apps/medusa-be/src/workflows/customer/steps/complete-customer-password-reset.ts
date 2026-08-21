@@ -15,7 +15,7 @@ export type CompleteCustomerPasswordResetInput = {
 
 type PasswordResetTokenRecord = {
   entity_id: string
-  expires_at: Date | string
+  expires_at?: Date | null | string
   provider_identity?: {
     entity_id?: string
     provider?: string
@@ -72,12 +72,16 @@ export const completeCustomerPasswordResetStep = createStep(
         pagination: { take: 1 },
       })
       const resetToken = (data as PasswordResetTokenRecord[])[0]
+      const expiresAtTimestamp = resetToken?.expires_at
+        ? new Date(resetToken.expires_at).getTime()
+        : Number.NaN
       if (
         !resetToken ||
         resetToken.entity_id !== input.entity_id ||
         resetToken.provider_identity?.entity_id !== input.entity_id ||
         resetToken.provider_identity.provider !== "emailpass" ||
-        new Date(resetToken.expires_at).getTime() <= Date.now()
+        !Number.isFinite(expiresAtTimestamp) ||
+        expiresAtTimestamp <= Date.now()
       ) {
         return privateFlowNotFound()
       }
