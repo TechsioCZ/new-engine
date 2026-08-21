@@ -1473,7 +1473,10 @@ const indexContentCollection = async (options: {
 
   while (true) {
     const result = await loadPublishedContentPage({
-      locale: options.profile.locale,
+      // Payload locales are bare language codes ("hu"), while profile locales
+      // are BCP-47 ("hu-HU"); passing the raw profile locale makes Payload
+      // fall back to its default locale and index the wrong language.
+      locale: normalizeLocale(options.profile.locale),
       page,
       payload: options.payload,
       sourceType: options.sourceType,
