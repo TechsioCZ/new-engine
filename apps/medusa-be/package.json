@@ -13,6 +13,7 @@
     "medusa"
   ],
   "scripts": {
+    "prebuild": "pnpm --filter @techsio/storefront-i18n build",
     "build": "node ./scripts/run-medusa.mjs build",
     "build:admin-smoke-output": "bash -euo pipefail -c 'MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD=1 pnpm build && node ./scripts/run-medusa.mjs build --admin-only && rm -rf .medusa/server/public/admin && mkdir -p .medusa/server/public && cp -R .medusa/admin .medusa/server/public/admin'",
     "start": "medusa start",
