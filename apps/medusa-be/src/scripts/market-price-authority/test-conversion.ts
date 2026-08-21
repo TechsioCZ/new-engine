@@ -11,6 +11,7 @@ import type {
 
 const RELEASE_SHA = /^[a-f0-9]{40}$/
 const SHA_256 = /^[a-f0-9]{64}$/
+const ENVIRONMENT_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 
 export const TEST_PRICE_CONVERSION_FX_AUTHORITY = {
   baseCurrencyCode: "eur",
@@ -50,7 +51,9 @@ export type TestPriceConversionBinding = Readonly<{
   backendDeploymentSlot: "blue" | "green"
   backendReleaseSha: string
   databaseInstanceFingerprint: string
-  environmentId: "test-engine"
+  environmentId: string
+  expectedEnvironmentId: string
+  fxAuthoritySha256: string
   inventoryFingerprintSha256: string
   marketSalesChannels: readonly [
     Readonly<{ marketCode: "cz"; salesChannelId: string }>,
@@ -268,8 +271,16 @@ export const serializeTestPriceConversionPlanArtifact = (
 ) => canonicalJsonLine(artifact)
 
 const validateBinding = (binding: TestPriceConversionBinding) => {
-  if (binding.environmentId !== "test-engine") {
-    throw new Error("price conversion is restricted to test-engine")
+  if (!ENVIRONMENT_ID.test(binding.environmentId)) {
+    throw new Error("price conversion environment ID is invalid")
+  }
+  if (
+    !ENVIRONMENT_ID.test(binding.expectedEnvironmentId) ||
+    binding.expectedEnvironmentId !== binding.environmentId
+  ) {
+    throw new Error(
+      "price conversion environment does not match its expected artifact binding"
+    )
   }
   if (!RELEASE_SHA.test(binding.backendReleaseSha)) {
     throw new Error("backend release SHA must be a lowercase 40-character SHA")
@@ -287,11 +298,17 @@ const validateBinding = (binding: TestPriceConversionBinding) => {
   }
   for (const [label, value] of [
     ["database instance fingerprint", binding.databaseInstanceFingerprint],
+    ["FX authority fingerprint", binding.fxAuthoritySha256],
     ["inventory fingerprint", binding.inventoryFingerprintSha256],
   ] as const) {
     if (!SHA_256.test(value)) {
       throw new Error(`${label} must be a lowercase SHA-256`)
     }
+  }
+  if (binding.fxAuthoritySha256 !== hashTestPriceConversionFxAuthority()) {
+    throw new Error(
+      "bound FX authority fingerprint does not match the frozen ECB snapshot"
+    )
   }
   const expectedMarkets = ["cz", "hu", "ro", "sk"] as const
   const channelIds = binding.marketSalesChannels.map(
@@ -395,7 +412,7 @@ export const buildTestPriceConversionPlan = (
     binding,
     databaseSnapshotSha256: hashMarketPriceDatabaseSnapshot(snapshot),
     fxAuthority: TEST_PRICE_CONVERSION_FX_AUTHORITY,
-    fxAuthoritySha256: hashTestPriceConversionFxAuthority(),
+    fxAuthoritySha256: binding.fxAuthoritySha256,
     kind: "test-market-price-conversion-plan",
     mutations,
     schemaVersion: 1,

@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from "vitest"
-import { buildTestPriceConversionPlan } from "../../../../../src/scripts/market-price-authority/test-conversion"
+import {
+  buildTestPriceConversionPlan,
+  hashTestPriceConversionFxAuthority,
+} from "../../../../../src/scripts/market-price-authority/test-conversion"
 import {
   addTestPriceConversionPrices,
   assertTestPriceConversionApplied,
+  buildTestPriceConversionBinding,
   buildTestPriceConversionDatabaseInstanceFingerprint,
   buildTestPriceConversionPriceAdds,
   parseTestPriceConversionCliOptions,
@@ -17,7 +21,9 @@ const binding = {
   backendDeploymentSlot: "green" as const,
   backendReleaseSha: "6827bfd450a163e7dd350a396ca1f9363e06235e",
   databaseInstanceFingerprint: "a".repeat(64),
-  environmentId: "test-engine" as const,
+  environmentId: "test-engine",
+  expectedEnvironmentId: "test-engine",
+  fxAuthoritySha256: hashTestPriceConversionFxAuthority(),
   inventoryFingerprintSha256: "b".repeat(64),
   marketSalesChannels: [
     { marketCode: "cz" as const, salesChannelId: "sc_cz" },
@@ -98,7 +104,7 @@ describe("test-only price conversion runtime", () => {
     ).resolves.toBe("done")
     expect(execute).toHaveBeenCalledWith(
       "select pg_advisory_xact_lock(hashtextextended(?, 0))",
-      ["test-price-conversion:test-engine"]
+      ["market-price-conversion:apply:v1"]
     )
     expect(events).toEqual(["lock", "task"])
   })
@@ -212,20 +218,99 @@ describe("test-only price conversion runtime", () => {
   it("fingerprints database identity without including credentials", () => {
     const primary = buildTestPriceConversionDatabaseInstanceFingerprint({
       DATABASE_URL: "postgresql://first:secret@DB.internal/medusa",
-      TEST_PRICE_CONVERSION_DATABASE_INSTANCE_ID: "test-primary",
+      MARKET_PRICE_CONVERSION_DATABASE_INSTANCE_ID: "test-primary",
     })
     expect(
       buildTestPriceConversionDatabaseInstanceFingerprint({
         DATABASE_URL: "postgresql://second:different@db.internal:5432/medusa",
-        TEST_PRICE_CONVERSION_DATABASE_INSTANCE_ID: "test-primary",
+        MARKET_PRICE_CONVERSION_DATABASE_INSTANCE_ID: "test-primary",
       })
     ).toBe(primary)
     expect(
       buildTestPriceConversionDatabaseInstanceFingerprint({
         DATABASE_URL: "postgresql://first:secret@clone.internal/medusa",
-        TEST_PRICE_CONVERSION_DATABASE_INSTANCE_ID: "test-clone",
+        MARKET_PRICE_CONVERSION_DATABASE_INSTANCE_ID: "test-clone",
       })
     ).not.toBe(primary)
+  })
+
+  it("requires an explicit expected binding before a production identifier is allowed", () => {
+    const environment = {
+      BACKEND_BUILD_HASH: "build_1",
+      DATABASE_URL: "postgresql://operator:secret@db.internal/medusa",
+      MARKET_PRICE_CONVERSION_DATABASE_INSTANCE_ID: "production-primary",
+      MARKET_PRICE_CONVERSION_ENVIRONMENT_ID: "production-eu-1",
+      MARKET_PRICE_CONVERSION_EXPECTED_FX_AUTHORITY_SHA256:
+        hashTestPriceConversionFxAuthority(),
+      MARKET_SALES_CHANNEL_ID_CZ: "sc_cz",
+      MARKET_SALES_CHANNEL_ID_HU: "sc_hu",
+      MARKET_SALES_CHANNEL_ID_RO: "sc_ro",
+      MARKET_SALES_CHANNEL_ID_SK: "sc_sk",
+      RELEASE_SHA: "6827bfd450a163e7dd350a396ca1f9363e06235e",
+      ZANE_DEPLOYMENT_ID: "dpl_1",
+      ZANE_DEPLOYMENT_SLOT: "green",
+    }
+    const inventorySnapshot = { levels: [], variantLinks: [] }
+    expect(() =>
+      buildTestPriceConversionBinding(environment, inventorySnapshot)
+    ).toThrow("mandatory outside test-engine")
+    expect(() =>
+      buildTestPriceConversionBinding(
+        {
+          ...environment,
+          MARKET_PRICE_CONVERSION_EXPECTED_ENVIRONMENT_ID: "production-eu-2",
+        },
+        inventorySnapshot
+      )
+    ).toThrow("does not match its explicit expected binding")
+    expect(
+      buildTestPriceConversionBinding(
+        {
+          ...environment,
+          MARKET_PRICE_CONVERSION_EXPECTED_ENVIRONMENT_ID: "production-eu-1",
+        },
+        inventorySnapshot
+      )
+    ).toMatchObject({
+      environmentId: "production-eu-1",
+      expectedEnvironmentId: "production-eu-1",
+      fxAuthoritySha256: hashTestPriceConversionFxAuthority(),
+    })
+  })
+
+  it("keeps the legacy test-engine contract isolated and FX-hash bound", () => {
+    const environment = {
+      BACKEND_BUILD_HASH: "build_test",
+      DATABASE_URL: "postgresql://tester:secret@test-db.internal/medusa",
+      MARKET_PRICE_CONVERSION_EXPECTED_FX_AUTHORITY_SHA256:
+        hashTestPriceConversionFxAuthority(),
+      MARKET_SALES_CHANNEL_ID_CZ: "sc_cz",
+      MARKET_SALES_CHANNEL_ID_HU: "sc_hu",
+      MARKET_SALES_CHANNEL_ID_RO: "sc_ro",
+      MARKET_SALES_CHANNEL_ID_SK: "sc_sk",
+      RELEASE_SHA: "6827bfd450a163e7dd350a396ca1f9363e06235e",
+      TEST_PRICE_CONVERSION_DATABASE_INSTANCE_ID: "test-primary",
+      TEST_PRICE_CONVERSION_ENVIRONMENT_ID: "test-engine",
+      ZANE_DEPLOYMENT_ID: "dpl_test",
+      ZANE_DEPLOYMENT_SLOT: "blue",
+    }
+    const inventorySnapshot = { levels: [], variantLinks: [] }
+    expect(
+      buildTestPriceConversionBinding(environment, inventorySnapshot)
+    ).toMatchObject({
+      environmentId: "test-engine",
+      expectedEnvironmentId: "test-engine",
+      fxAuthoritySha256: hashTestPriceConversionFxAuthority(),
+    })
+    expect(() =>
+      buildTestPriceConversionBinding(
+        {
+          ...environment,
+          MARKET_PRICE_CONVERSION_EXPECTED_FX_AUTHORITY_SHA256: "c".repeat(64),
+        },
+        inventorySnapshot
+      )
+    ).toThrow("frozen ECB snapshot")
   })
 
   it("never needs order or payment module dependencies", () => {

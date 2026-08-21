@@ -15,6 +15,7 @@ import { hashMarketPriceDatabaseSnapshot } from "./planner"
 import {
   buildTestPriceConversionPlan,
   buildTestPriceConversionPlanArtifact,
+  hashTestPriceConversionFxAuthority,
   hashTestPriceConversionPlan,
   serializeTestPriceConversionPlan,
   serializeTestPriceConversionPlanArtifact,
@@ -95,8 +96,9 @@ const PAGE_SIZE = 500
 const RELEASE_SHA = /^[a-f0-9]{40}$/
 const SHA_256 = /^[a-f0-9]{64}$/
 const DATABASE_INSTANCE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+const ENVIRONMENT_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 const CANONICAL_DECIMAL = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/
-const APPLY_LOCK_KEY = "test-price-conversion:test-engine"
+const APPLY_LOCK_KEY = "market-price-conversion:apply:v1"
 
 const text = (value: unknown, label: string) => {
   if (
@@ -244,11 +246,12 @@ export const buildTestPriceConversionDatabaseInstanceFingerprint = (
   environment: NodeJS.ProcessEnv
 ) => {
   const instanceId = text(
-    environment.TEST_PRICE_CONVERSION_DATABASE_INSTANCE_ID,
-    "TEST_PRICE_CONVERSION_DATABASE_INSTANCE_ID"
+    environment.MARKET_PRICE_CONVERSION_DATABASE_INSTANCE_ID ??
+      environment.TEST_PRICE_CONVERSION_DATABASE_INSTANCE_ID,
+    "MARKET_PRICE_CONVERSION_DATABASE_INSTANCE_ID"
   )
   if (!DATABASE_INSTANCE_ID.test(instanceId)) {
-    throw new Error("TEST_PRICE_CONVERSION_DATABASE_INSTANCE_ID is invalid")
+    throw new Error("MARKET_PRICE_CONVERSION_DATABASE_INSTANCE_ID is invalid")
   }
   let databaseUrl: URL
   try {
@@ -283,9 +286,44 @@ export const buildTestPriceConversionBinding = (
   environment: NodeJS.ProcessEnv,
   inventorySnapshot: TestPriceConversionInventorySnapshot
 ): TestPriceConversionBinding => {
-  if (environment.TEST_PRICE_CONVERSION_ENVIRONMENT_ID !== "test-engine") {
+  const environmentId = text(
+    environment.MARKET_PRICE_CONVERSION_ENVIRONMENT_ID ??
+      environment.TEST_PRICE_CONVERSION_ENVIRONMENT_ID,
+    "MARKET_PRICE_CONVERSION_ENVIRONMENT_ID"
+  )
+  if (!ENVIRONMENT_ID.test(environmentId)) {
+    throw new Error("MARKET_PRICE_CONVERSION_ENVIRONMENT_ID is invalid")
+  }
+  const explicitlyExpectedEnvironmentId =
+    environment.MARKET_PRICE_CONVERSION_EXPECTED_ENVIRONMENT_ID
+  const expectedEnvironmentId =
+    explicitlyExpectedEnvironmentId ??
+    (environmentId === "test-engine" ? "test-engine" : undefined)
+  if (expectedEnvironmentId === undefined) {
     throw new Error(
-      "TEST_PRICE_CONVERSION_ENVIRONMENT_ID must be exactly test-engine"
+      "MARKET_PRICE_CONVERSION_EXPECTED_ENVIRONMENT_ID is mandatory outside test-engine"
+    )
+  }
+  if (
+    text(expectedEnvironmentId, "expected price conversion environment ID") !==
+    environmentId
+  ) {
+    throw new Error(
+      "price conversion environment does not match its explicit expected binding"
+    )
+  }
+  const fxAuthoritySha256 = text(
+    environment.MARKET_PRICE_CONVERSION_EXPECTED_FX_AUTHORITY_SHA256,
+    "MARKET_PRICE_CONVERSION_EXPECTED_FX_AUTHORITY_SHA256"
+  )
+  if (!SHA_256.test(fxAuthoritySha256)) {
+    throw new Error(
+      "MARKET_PRICE_CONVERSION_EXPECTED_FX_AUTHORITY_SHA256 must be a lowercase SHA-256"
+    )
+  }
+  if (fxAuthoritySha256 !== hashTestPriceConversionFxAuthority()) {
+    throw new Error(
+      "MARKET_PRICE_CONVERSION_EXPECTED_FX_AUTHORITY_SHA256 does not match the frozen ECB snapshot"
     )
   }
   const backendReleaseSha = text(environment.RELEASE_SHA, "RELEASE_SHA")
@@ -314,7 +352,9 @@ export const buildTestPriceConversionBinding = (
     backendReleaseSha,
     databaseInstanceFingerprint:
       buildTestPriceConversionDatabaseInstanceFingerprint(environment),
-    environmentId: "test-engine",
+    environmentId,
+    expectedEnvironmentId,
+    fxAuthoritySha256,
     inventoryFingerprintSha256:
       hashTestPriceConversionInventorySnapshot(inventorySnapshot),
     marketSalesChannels: [
@@ -799,7 +839,7 @@ export default async function testPriceConversion({
   if (result.mode === "dry-run") {
     logger.info("Dry-run complete; no database data was changed")
   } else {
-    logger.info("Test-only price conversion applied with backup and receipt")
+    logger.info("Price conversion applied with backup and receipt")
   }
   return result
 }

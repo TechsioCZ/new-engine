@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   buildTestPriceConversionPlan,
   convertEurAmountUp,
+  hashTestPriceConversionFxAuthority,
   hashTestPriceConversionPlan,
 } from "../../../../../src/scripts/market-price-authority/test-conversion"
 import type { MarketPriceDatabaseSnapshot } from "../../../../../src/scripts/market-price-authority/types"
@@ -15,7 +16,9 @@ const binding = {
   backendDeploymentSlot: "green" as const,
   backendReleaseSha: "6827bfd450a163e7dd350a396ca1f9363e06235e",
   databaseInstanceFingerprint: "a".repeat(64),
-  environmentId: "test-engine" as const,
+  environmentId: "test-engine",
+  expectedEnvironmentId: "test-engine",
+  fxAuthoritySha256: hashTestPriceConversionFxAuthority(),
   inventoryFingerprintSha256: "b".repeat(64),
   marketSalesChannels: [
     { marketCode: "cz" as const, salesChannelId: "sc_cz" },
@@ -154,13 +157,36 @@ describe("test-only ECB price conversion planner", () => {
     ])
   })
 
-  it("cannot be planned for a non-test environment", () => {
+  it("accepts a production environment only when its frozen FX authority is bound", () => {
+    expect(
+      buildTestPriceConversionPlan(snapshot(), {
+        ...binding,
+        environmentId: "production-eu-1",
+        expectedEnvironmentId: "production-eu-1",
+      }).binding.environmentId
+    ).toBe("production-eu-1")
     expect(() =>
       buildTestPriceConversionPlan(snapshot(), {
         ...binding,
-        environmentId: "production" as "test-engine",
+        environmentId: "production eu 1",
+        expectedEnvironmentId: "production eu 1",
       })
-    ).toThrow("restricted to test-engine")
+    ).toThrow("environment ID is invalid")
+    expect(() =>
+      buildTestPriceConversionPlan(snapshot(), {
+        ...binding,
+        environmentId: "production-eu-1",
+        expectedEnvironmentId: "production-eu-2",
+      })
+    ).toThrow("expected artifact binding")
+    expect(() =>
+      buildTestPriceConversionPlan(snapshot(), {
+        ...binding,
+        environmentId: "production-eu-1",
+        expectedEnvironmentId: "production-eu-1",
+        fxAuthoritySha256: "c".repeat(64),
+      })
+    ).toThrow("frozen ECB snapshot")
   })
 
   it("scopes only published products assigned to the exact four market channels", () => {
