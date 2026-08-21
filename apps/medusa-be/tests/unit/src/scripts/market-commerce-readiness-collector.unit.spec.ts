@@ -9,7 +9,9 @@ import {
   sha256CommerceArtifactBytes,
 } from "../../../../src/scripts/market-commerce-readiness"
 import {
+  parseCheckoutCanaryArtifact,
   parseFourMarketCommerceCollectionAuthority,
+  parseMarketApprovedPricesArtifact,
   readFourMarketReviewedArtifacts,
 } from "../../../../src/scripts/market-commerce-readiness/authority"
 import {
@@ -33,6 +35,12 @@ import { writeCommerceCollectionEvidence } from "../../../../src/scripts/market-
 const SHA = "a".repeat(64)
 const SHA_256 = /^[a-f0-9]{64}$/
 const MARKET_CODES = ["sk", "cz", "hu", "ro"] as const
+const PRICE_AMOUNTS = {
+  cz: 1299,
+  hu: 4999,
+  ro: 52.52,
+  sk: 12.99,
+} as const
 const temporaryDirectories: string[] = []
 
 afterEach(async () => {
@@ -84,10 +92,22 @@ const liveState = (): CommerceLiveState => ({
           ean: "8580000000001",
           id: "variant_1",
           prices: MARKET_CODES.map((market) => ({
-            amount: 1299,
+            amount: String(PRICE_AMOUNTS[market]),
             currencyCode: COMMERCE_MARKET_CONTRACTS[market].currencyCode,
           })),
           sku: "shared-1",
+        },
+      ],
+    },
+    {
+      id: "prod_ro_unavailable",
+      salesChannelIds: ["sc_ro"],
+      variants: [
+        {
+          ean: null,
+          id: "variant_ro_unavailable",
+          prices: [],
+          sku: "ro-unavailable-1",
         },
       ],
     },
@@ -120,8 +140,9 @@ const liveState = (): CommerceLiveState => ({
 
 const artifactFixture = () => {
   const state = liveState()
+  const releaseIdentity = observeCommerceReleaseIdentity(environment())
   const sharedCatalog = {
-    productIds: ["prod_1"],
+    productIds: ["prod_1", "prod_ro_unavailable"],
     reviewedSha256: SHA,
     variants: [
       {
@@ -129,6 +150,12 @@ const artifactFixture = () => {
         id: "variant_1",
         productId: "prod_1",
         sku: "shared-1",
+      },
+      {
+        ean: null,
+        id: "variant_ro_unavailable",
+        productId: "prod_ro_unavailable",
+        sku: "ro-unavailable-1",
       },
     ],
   }
@@ -154,12 +181,21 @@ const artifactFixture = () => {
       currencyCode: contract.currencyCode,
       kind: "market-approved-variant-prices",
       market,
-      prices: [{ amount: 1299, variantId: "variant_1" }],
-      schemaVersion: 1,
+      prices: [{ amount: PRICE_AMOUNTS[market], variantId: "variant_1" }],
+      schemaVersion: 2,
+      unavailableVariants:
+        market === "ro"
+          ? [
+              {
+                reason: "not_offered_in_market",
+                variantId: "variant_ro_unavailable",
+              },
+            ]
+          : [],
     })
     const canaryBytes = serializeCanonicalCommerceArtifact({
       artifactKind: "checkout-readiness-canary",
-      checkedAt: "2026-08-21T10:00:00.000Z",
+      checkedAt: "2026-08-21T10:55:00.000Z",
       countryCode: contract.countryCode,
       currencyCode: contract.currencyCode,
       enabledPaymentAvailable: true,
@@ -167,9 +203,10 @@ const artifactFixture = () => {
       orderId: null,
       paymentCollectionId: null,
       paymentSessionId: null,
+      releaseIdentity,
       regionId: `reg_${market}`,
       salesChannelId: `sc_${market}`,
-      schemaVersion: 1,
+      schemaVersion: 2,
       shippingAvailable: true,
       taxAvailable: true,
       variantId: "variant_1",
@@ -191,7 +228,7 @@ const artifactFixture = () => {
   const authority: FourMarketCommerceCollectionAuthority = {
     kind: "four-market-commerce-collection-authority",
     markets,
-    releaseIdentity: observeCommerceReleaseIdentity(environment()),
+    releaseIdentity,
     schemaVersion: 1,
     sharedBaseline: ref("/review/shared.json", baselineBytes),
   }
@@ -206,6 +243,78 @@ const ref = (path: string, bytes: string): CommerceArtifactRef => ({
 })
 
 describe("four-market commerce live collector", () => {
+  it.each([
+    ["sk", "12.99"],
+    ["cz", "1299"],
+    ["hu", "4999"],
+    ["ro", "52.52"],
+  ] as const)("parses the %s approved major-unit amount as exact canonical decimal %s", (market, expectedAmount) => {
+    const bytes = serializeCanonicalCommerceArtifact({
+      currencyCode: COMMERCE_MARKET_CONTRACTS[market].currencyCode,
+      kind: "market-approved-variant-prices",
+      market,
+      prices: [{ amount: PRICE_AMOUNTS[market], variantId: "variant_1" }],
+      schemaVersion: 2,
+      unavailableVariants: [],
+    })
+
+    expect(
+      parseMarketApprovedPricesArtifact(bytes, market).prices[0]?.amount
+    ).toBe(expectedAmount)
+  })
+
+  it("rejects approved amounts beyond the exact two-decimal contract", () => {
+    const bytes = serializeCanonicalCommerceArtifact({
+      currencyCode: "ron",
+      kind: "market-approved-variant-prices",
+      market: "ro",
+      prices: [{ amount: 52.521, variantId: "variant_1" }],
+      schemaVersion: 2,
+      unavailableVariants: [],
+    })
+
+    expect(() => parseMarketApprovedPricesArtifact(bytes, "ro")).toThrow(
+      "at most two decimal places"
+    )
+  })
+
+  it("parses an explicit unavailable partition and rejects price overlap", () => {
+    const artifact = {
+      currencyCode: "ron",
+      kind: "market-approved-variant-prices",
+      market: "ro",
+      prices: [{ amount: 52.52, variantId: "variant_1" }],
+      schemaVersion: 2,
+      unavailableVariants: [
+        {
+          reason: "not_offered_in_market",
+          variantId: "variant_2",
+        },
+      ],
+    } as const
+
+    expect(
+      parseMarketApprovedPricesArtifact(
+        serializeCanonicalCommerceArtifact(artifact),
+        "ro"
+      ).unavailableVariants
+    ).toEqual(artifact.unavailableVariants)
+    expect(() =>
+      parseMarketApprovedPricesArtifact(
+        serializeCanonicalCommerceArtifact({
+          ...artifact,
+          unavailableVariants: [
+            {
+              reason: "not_offered_in_market",
+              variantId: "variant_1",
+            },
+          ],
+        }),
+        "ro"
+      )
+    ).toThrow("must be sorted, unique and disjoint from prices")
+  })
+
   it("parses repeated medusa exec argument tokens without an apply surface", () => {
     expect(
       parseCommerceCollectionCliOptions([
@@ -277,6 +386,17 @@ describe("four-market commerce live collector", () => {
     expect(result.collection.bundle.ready).toBe(true)
     expect(result.receipt.ready).toBe(true)
     expect(Object.keys(result.collection.proofs)).toEqual(MARKET_CODES)
+    expect(result.collection.proofs.ro).toMatchObject({
+      publishedVariantCount: 2,
+      sellableVariantCount: 1,
+      unavailableVariantCount: 1,
+      unavailableVariants: [
+        {
+          reason: "not_offered_in_market",
+          variantId: "variant_ro_unavailable",
+        },
+      ],
+    })
     expect(collectLiveState).toHaveBeenCalledOnce()
     expect(writeEvidence).toHaveBeenCalledOnce()
   })
@@ -324,6 +444,35 @@ describe("four-market commerce live collector", () => {
         return bytes
       })
     ).rejects.toThrow("cz price authority bytes do not match")
+  })
+
+  it("rejects a checkout canary bound to a different release database", () => {
+    const fixture = artifactFixture()
+    const authority = fixture.authority.markets[0]
+    if (!authority) {
+      throw new Error("SK authority fixture is missing")
+    }
+    const bytes = fixture.files.get(authority.checkoutCanary.path)
+    if (!bytes) {
+      throw new Error("SK canary fixture is missing")
+    }
+    const canary = JSON.parse(bytes) as Record<string, unknown>
+    const releaseIdentity = canary.releaseIdentity as Record<string, unknown>
+    const mismatched = serializeCanonicalCommerceArtifact({
+      ...canary,
+      releaseIdentity: {
+        ...releaseIdentity,
+        databaseInstanceFingerprint: "b".repeat(64),
+      },
+    })
+
+    expect(() =>
+      parseCheckoutCanaryArtifact(
+        mismatched,
+        authority,
+        fixture.authority.releaseIdentity
+      )
+    ).toThrow("releaseIdentity differs at databaseInstanceFingerprint")
   })
 
   it("rejects a non-array market authority before reading market entries", () => {
@@ -382,6 +531,57 @@ describe("four-market commerce live collector", () => {
     ).toThrow(expected)
   })
 
+  it("does not enable a reviewed tax rate linked to another tax region", async () => {
+    const fixture = artifactFixture()
+    const artifacts = await readFourMarketReviewedArtifacts(
+      fixture.authority,
+      async (path) => fixture.files.get(path) ?? Promise.reject(new Error(path))
+    )
+    const state = {
+      ...fixture.state,
+      taxRates: fixture.state.taxRates.map((rate) =>
+        rate.id === "tax_ro" ? { ...rate, taxRegionId: "taxreg_sk" } : rate
+      ),
+    }
+
+    const collection = buildCollectedCommerceReadiness(
+      fixture.authority,
+      artifacts,
+      state,
+      "2026-08-21T11:00:00.000Z"
+    )
+
+    expect(collection.bundle.ready).toBe(false)
+    expect(collection.bundle.issues).toContain("ro:tax_unavailable")
+    expect(collection.proofs.ro.taxRateIds).toEqual([])
+  })
+
+  it("fails closed when a checkout canary is older than fifteen minutes", async () => {
+    const fixture = artifactFixture()
+    const artifacts = await readFourMarketReviewedArtifacts(
+      fixture.authority,
+      async (path) => fixture.files.get(path) ?? Promise.reject(new Error(path))
+    )
+    const collection = buildCollectedCommerceReadiness(
+      fixture.authority,
+      {
+        ...artifacts,
+        canaries: {
+          ...artifacts.canaries,
+          ro: {
+            ...artifacts.canaries.ro,
+            checkedAt: "2026-08-21T10:44:59.999Z",
+          },
+        },
+      },
+      fixture.state,
+      "2026-08-21T11:00:00.000Z"
+    )
+
+    expect(collection.bundle.ready).toBe(false)
+    expect(collection.bundle.issues).toContain("ro:checkout_canary_invalid")
+  })
+
   it("queries only the read-only commerce entities and no cart/order/payment collection", async () => {
     const entities: string[] = []
     const container = {
@@ -412,6 +612,42 @@ describe("four-market commerce live collector", () => {
     expect(entities).not.toEqual(
       expect.arrayContaining(["cart", "order", "payment_collection"])
     )
+  })
+
+  it("collects Medusa integer and decimal major-unit prices canonically", async () => {
+    const container = {
+      resolve: () => ({
+        graph: async ({ entity }: { entity: string }) => ({
+          data:
+            entity === "product"
+              ? [
+                  {
+                    id: "prod_1",
+                    sales_channels: [],
+                    variants: [
+                      {
+                        id: "variant_1",
+                        prices: MARKET_CODES.map((market) => ({
+                          amount: PRICE_AMOUNTS[market],
+                          currency_code:
+                            COMMERCE_MARKET_CONTRACTS[market].currencyCode,
+                        })),
+                      },
+                    ],
+                  },
+                ]
+              : [],
+        }),
+      }),
+    }
+
+    const state = await collectMedusaCommerceLiveState(container as never)
+    expect(state.products[0]?.variants[0]?.prices).toEqual([
+      { amount: "12.99", currencyCode: "eur" },
+      { amount: "1299", currencyCode: "czk" },
+      { amount: "4999", currencyCode: "huf" },
+      { amount: "52.52", currencyCode: "ron" },
+    ])
   })
 
   it("writes mode-0600 canonical evidence and refuses to clobber it", async () => {

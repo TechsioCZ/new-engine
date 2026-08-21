@@ -17,6 +17,15 @@ import type {
 const SHA_A = "a".repeat(64)
 const SHA_B = "b".repeat(64)
 const SHA_256 = /^[a-f0-9]{64}$/
+const RELEASE_IDENTITY = {
+  backendBuildHash: "build-1",
+  backendDeploymentId: "deployment-1",
+  backendReleaseSha: "abcdef1234567890",
+  backendSlot: "blue" as const,
+  databaseInstanceFingerprint: SHA_A,
+  environmentId: "production",
+  releaseId: "release-1",
+}
 
 const MARKET_CONTRACTS = {
   cz: { countryCode: "cz", currencyCode: "czk", locale: "cs-CZ" },
@@ -32,11 +41,17 @@ const marketInput = (
   const regionId = `reg_${market}`
   const salesChannelId = `sc_${market}`
   const variantId = "variant_shared"
+  const amount = {
+    cz: "1299",
+    hu: "4999",
+    ro: "52.52",
+    sk: "12.99",
+  }[market]
 
   return {
     approvedVariantPrices: [
       {
-        amount: 1299,
+        amount,
         authoritySha256: SHA_A,
         currencyCode: contract.currencyCode,
         variantId,
@@ -44,16 +59,17 @@ const marketInput = (
     ],
     checkoutCanary: {
       artifactKind: "checkout-readiness-canary",
-      checkedAt: "2026-08-21T10:00:00.000Z",
+      checkedAt: "2026-08-21T09:55:00.000Z",
       countryCode: contract.countryCode,
       currencyCode: contract.currencyCode,
       mutationPolicy: "no-order-no-payment-mutation",
       orderId: null,
       paymentCollectionId: null,
       paymentSessionId: null,
+      releaseIdentity: RELEASE_IDENTITY,
       regionId,
       salesChannelId,
-      schemaVersion: 1,
+      schemaVersion: 2,
       shippingAvailable: true,
       taxAvailable: true,
       enabledPaymentAvailable: true,
@@ -62,7 +78,7 @@ const marketInput = (
     locale: contract.locale,
     market,
     observedVariantPrices: [
-      { amount: 1299, currencyCode: contract.currencyCode, variantId },
+      { amount, currencyCode: contract.currencyCode, variantId },
     ],
     paymentProviders: [
       { enabled: true, id: `pp_${market}`, regionIds: [regionId] },
@@ -88,6 +104,7 @@ const marketInput = (
       id: `taxreg_${market}`,
       rates: [{ enabled: true, id: `tax_${market}`, rate: 20 }],
     },
+    unavailableVariants: [],
   }
 }
 
@@ -166,6 +183,95 @@ describe("four-market commerce readiness", () => {
     expect(serialized.endsWith("\n")).toBe(true)
     expect(serialized.endsWith("\n\n")).toBe(false)
     expect(hashMarketCommerceReadinessProof(proof)).toMatch(SHA_256)
+  })
+
+  it("proves the Romanian 2,031 published variants as 2,002 sellable and 29 unavailable", () => {
+    const base = marketInput("ro")
+    const publishedVariantIds = Array.from(
+      { length: 2031 },
+      (_, index) => `variant_ro_${String(index).padStart(4, "0")}`
+    )
+    const sellableVariantIds = publishedVariantIds.slice(0, 2002)
+    const unavailableVariants = publishedVariantIds
+      .slice(2002)
+      .map((variantId) => ({ reason: "not_offered_in_market", variantId }))
+    const sharedCatalog = {
+      productIds: ["prod_ro"],
+      reviewedSha256: SHA_A,
+      variants: publishedVariantIds.map((variantId) => ({
+        ean: null,
+        id: variantId,
+        productId: "prod_ro",
+        sku: variantId,
+      })),
+    }
+    const sharedInventory = {
+      levels: [],
+      links: [],
+      reviewedSha256: SHA_B,
+    }
+    const market: MarketCommerceReadinessInput = {
+      ...base,
+      approvedVariantPrices: sellableVariantIds.map((variantId) => ({
+        amount: "52.52",
+        authoritySha256: SHA_A,
+        currencyCode: "ron",
+        variantId,
+      })),
+      checkoutCanary: {
+        ...base.checkoutCanary,
+        variantId: sellableVariantIds[0] ?? "",
+      },
+      observedVariantPrices: sellableVariantIds.map((variantId) => ({
+        amount: "52.52",
+        currencyCode: "ron",
+        variantId,
+      })),
+      publishedVariantIds,
+      unavailableVariants,
+    }
+
+    const proof = buildMarketCommerceReadinessProof(market, {
+      capturedAt: "2026-08-21T10:00:00.000Z",
+      sharedCatalog: {
+        ...sharedCatalog,
+        reviewedSha256: computeSharedCatalogSha256(sharedCatalog),
+      },
+      sharedInventory: {
+        ...sharedInventory,
+        reviewedSha256: computeSharedInventorySha256(sharedInventory),
+      },
+    })
+
+    expect(proof.ready).toBe(true)
+    expect(proof.publishedVariantCount).toBe(2031)
+    expect(proof.sellableVariantCount).toBe(2002)
+    expect(proof.unavailableVariantCount).toBe(29)
+    expect(proof.sellableVariantIds).toEqual(sellableVariantIds)
+    expect(proof.unavailableVariants).toEqual(unavailableVariants)
+    expect(
+      parseMarketCommerceReadinessProof(
+        serializeMarketCommerceReadinessProof(proof)
+      )
+    ).toEqual(proof)
+  })
+
+  it("rejects overlap or a positive observed price in the unavailable partition", () => {
+    const valid = validInput()
+    const overlap = mutateMarket(valid, "ro", (market) => ({
+      ...market,
+      unavailableVariants: [
+        { reason: "not_offered_in_market", variantId: "variant_shared" },
+      ],
+    }))
+    const overlapProof = buildFourMarketCommerceReadiness(overlap)
+
+    expect(overlapProof.issues).toContain(
+      "ro:variant_availability_partition_invalid"
+    )
+    expect(overlapProof.issues).toContain(
+      "ro:unavailable_variant_has_sellable_price:variant_shared"
+    )
   })
 
   it.each([
@@ -261,7 +367,7 @@ describe("four-market commerce readiness", () => {
           ...market,
           observedVariantPrices: market.observedVariantPrices.map((price) => ({
             ...price,
-            amount: price.amount + 1,
+            amount: "1300",
           })),
         })),
     },
@@ -357,6 +463,7 @@ describe("four-market commerce readiness", () => {
     }
 
     const proof = buildMarketCommerceReadinessProof(market, {
+      capturedAt: valid.capturedAt,
       sharedCatalog: valid.sharedCatalog,
       sharedInventory: valid.sharedInventory,
     })
@@ -365,6 +472,15 @@ describe("four-market commerce readiness", () => {
     expect(proof.ready).toBe(true)
     expect(parseMarketCommerceReadinessProof(bytes)).toEqual(proof)
     expect(hashMarketCommerceReadinessProof(proof)).toMatch(SHA_256)
+
+    expect(() =>
+      parseMarketCommerceReadinessProof(
+        serializeMarketCommerceReadinessProof({
+          ...proof,
+          unavailableVariantCount: proof.unavailableVariantCount + 1,
+        })
+      )
+    ).toThrow("variant partition contradicts its evidence")
 
     expect(() =>
       parseMarketCommerceReadinessProof(

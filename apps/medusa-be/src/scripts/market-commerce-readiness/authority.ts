@@ -6,18 +6,19 @@ import {
 } from "."
 import type {
   CommerceArtifactRef,
-  CommerceReleaseIdentity,
   FourMarketCommerceCollectionAuthority,
   FourMarketReviewedArtifacts,
   MarketApprovedPricesArtifact,
   MarketCommerceCollectionAuthority,
   SharedCommerceBaselineArtifact,
 } from "./collector-types"
+import { canonicalPriceAmount } from "./price-amount"
 import {
   type CheckoutCanaryArtifact,
   COMMERCE_MARKET_CONTRACTS,
   COMMERCE_READINESS_MARKETS,
   type CommerceReadinessMarket,
+  type CommerceReleaseIdentity,
 } from "./types"
 
 const SHA_256 = /^[a-f0-9]{64}$/
@@ -257,27 +258,35 @@ export const parseMarketApprovedPricesArtifact = (
   const parsed = record(parseCanonical(bytes, label), label)
   exactKeys(
     parsed,
-    ["currencyCode", "kind", "market", "prices", "schemaVersion"],
+    [
+      "currencyCode",
+      "kind",
+      "market",
+      "prices",
+      "schemaVersion",
+      "unavailableVariants",
+    ],
     label
   )
   const contract = COMMERCE_MARKET_CONTRACTS[market]
   if (
     parsed.kind !== "market-approved-variant-prices" ||
-    parsed.schemaVersion !== 1 ||
+    parsed.schemaVersion !== 2 ||
     parsed.market !== market ||
     parsed.currencyCode !== contract.currencyCode ||
-    !Array.isArray(parsed.prices)
+    !Array.isArray(parsed.prices) ||
+    !Array.isArray(parsed.unavailableVariants)
   ) {
     throw new Error(`${label} contract is invalid`)
   }
   const prices = parsed.prices.map((value, index) => {
     const price = record(value, `${label}.prices[${index}]`)
     exactKeys(price, ["amount", "variantId"], `${label}.prices[${index}]`)
-    if (!Number.isSafeInteger(price.amount) || (price.amount as number) <= 0) {
-      throw new Error(`${label}.prices[${index}].amount is invalid`)
-    }
     return {
-      amount: price.amount as number,
+      amount: canonicalPriceAmount(
+        price.amount,
+        `${label}.prices[${index}].amount`
+      ),
       variantId: identifier(
         price.variantId,
         `${label}.prices[${index}].variantId`
@@ -294,12 +303,47 @@ export const parseMarketApprovedPricesArtifact = (
   ) {
     throw new Error(`${label}.prices must be non-empty, sorted and unique`)
   }
+  const unavailableVariants = parsed.unavailableVariants.map((value, index) => {
+    const unavailable = record(value, `${label}.unavailableVariants[${index}]`)
+    exactKeys(
+      unavailable,
+      ["reason", "variantId"],
+      `${label}.unavailableVariants[${index}]`
+    )
+    return {
+      reason: identifier(
+        unavailable.reason,
+        `${label}.unavailableVariants[${index}].reason`
+      ),
+      variantId: identifier(
+        unavailable.variantId,
+        `${label}.unavailableVariants[${index}].variantId`
+      ),
+    }
+  })
+  if (
+    [...unavailableVariants]
+      .sort((left, right) => left.variantId.localeCompare(right.variantId))
+      .map(({ variantId }) => variantId)
+      .join("\0") !==
+      unavailableVariants.map(({ variantId }) => variantId).join("\0") ||
+    new Set(unavailableVariants.map(({ variantId }) => variantId)).size !==
+      unavailableVariants.length ||
+    unavailableVariants.some(({ variantId }) =>
+      prices.some((price) => price.variantId === variantId)
+    )
+  ) {
+    throw new Error(
+      `${label}.unavailableVariants must be sorted, unique and disjoint from prices`
+    )
+  }
   return {
     currencyCode: contract.currencyCode,
     kind: "market-approved-variant-prices",
     market,
     prices,
-    schemaVersion: 1,
+    schemaVersion: 2,
+    unavailableVariants,
   }
 }
 
@@ -335,7 +379,8 @@ export const parseSharedCommerceBaselineArtifact = (
 
 export const parseCheckoutCanaryArtifact = (
   bytes: string,
-  authority: MarketCommerceCollectionAuthority
+  authority: MarketCommerceCollectionAuthority,
+  expectedReleaseIdentity: CommerceReleaseIdentity
 ): CheckoutCanaryArtifact => {
   const label = `${authority.market} checkout canary`
   const parsed = record(parseCanonical(bytes, label), label)
@@ -351,6 +396,7 @@ export const parseCheckoutCanaryArtifact = (
       "orderId",
       "paymentCollectionId",
       "paymentSessionId",
+      "releaseIdentity",
       "regionId",
       "salesChannelId",
       "schemaVersion",
@@ -363,7 +409,7 @@ export const parseCheckoutCanaryArtifact = (
   const contract = COMMERCE_MARKET_CONTRACTS[authority.market]
   if (
     parsed.artifactKind !== "checkout-readiness-canary" ||
-    parsed.schemaVersion !== 1 ||
+    parsed.schemaVersion !== 2 ||
     parsed.mutationPolicy !== "no-order-no-payment-mutation" ||
     parsed.orderId !== null ||
     parsed.paymentCollectionId !== null ||
@@ -382,7 +428,19 @@ export const parseCheckoutCanaryArtifact = (
   if (new Date(checkedAt).toISOString() !== checkedAt) {
     throw new Error(`${label}.checkedAt is invalid`)
   }
-  return parsed as unknown as CheckoutCanaryArtifact
+  const canaryReleaseIdentity = releaseIdentity(parsed.releaseIdentity)
+  for (const key of Object.keys(
+    expectedReleaseIdentity
+  ) as (keyof CommerceReleaseIdentity)[]) {
+    if (canaryReleaseIdentity[key] !== expectedReleaseIdentity[key]) {
+      throw new Error(`${label}.releaseIdentity differs at ${key}`)
+    }
+  }
+  return {
+    ...parsed,
+    checkedAt,
+    releaseIdentity: canaryReleaseIdentity,
+  } as unknown as CheckoutCanaryArtifact
 }
 
 type ReadTextFile = (path: string) => Promise<string>
@@ -427,7 +485,8 @@ export const readFourMarketReviewedArtifacts = async (
       ])
       canaries[reviewedMarket.market] = parseCheckoutCanaryArtifact(
         canaryBytes,
-        reviewedMarket
+        reviewedMarket,
+        authority.releaseIdentity
       )
       prices[reviewedMarket.market] = parseMarketApprovedPricesArtifact(
         priceBytes,

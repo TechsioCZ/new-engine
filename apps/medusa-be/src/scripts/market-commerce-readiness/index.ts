@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { isPositiveCanonicalPriceAmount } from "./price-amount"
 import {
   COMMERCE_MARKET_CONTRACTS,
   COMMERCE_READINESS_MARKETS,
@@ -13,6 +14,7 @@ import {
 } from "./types"
 
 const SHA_256 = /^[a-f0-9]{64}$/
+export const CHECKOUT_CANARY_MAX_AGE_MS = 15 * 60 * 1000
 
 const canonicalJson = (value: unknown): string => {
   if (Array.isArray(value)) {
@@ -53,10 +55,16 @@ const validTimestamp = (value: string) => {
   return Number.isFinite(parsed) && new Date(parsed).toISOString() === value
 }
 
+const isCheckoutCanaryFresh = (checkedAt: string, capturedAt: string) => {
+  const age = Date.parse(capturedAt) - Date.parse(checkedAt)
+  return age >= 0 && age <= CHECKOUT_CANARY_MAX_AGE_MS
+}
+
 const MARKET_PROOF_KEYS = [
   "approvedPriceAuthoritySha256",
   "approvedVariantPriceCount",
   "checkoutCanary",
+  "capturedAt",
   "countryCode",
   "currencyCode",
   "issues",
@@ -65,15 +73,20 @@ const MARKET_PROOF_KEYS = [
   "market",
   "paymentProviderIds",
   "publishedVariantCount",
+  "publishedVariantIds",
   "ready",
   "regionId",
   "salesChannelId",
   "schemaVersion",
+  "sellableVariantCount",
+  "sellableVariantIds",
   "sharedCatalog",
   "sharedInventory",
   "shippingOptionIds",
   "taxRateIds",
   "taxRegionId",
+  "unavailableVariantCount",
+  "unavailableVariants",
 ] as const
 
 const CHECKOUT_CANARY_KEYS = [
@@ -86,12 +99,23 @@ const CHECKOUT_CANARY_KEYS = [
   "orderId",
   "paymentCollectionId",
   "paymentSessionId",
+  "releaseIdentity",
   "regionId",
   "salesChannelId",
   "schemaVersion",
   "shippingAvailable",
   "taxAvailable",
   "variantId",
+] as const
+
+const RELEASE_IDENTITY_KEYS = [
+  "backendBuildHash",
+  "backendDeploymentId",
+  "backendReleaseSha",
+  "backendSlot",
+  "databaseInstanceFingerprint",
+  "environmentId",
+  "releaseId",
 ] as const
 
 const asRecord = (value: unknown, label: string): Record<string, unknown> => {
@@ -154,12 +178,72 @@ const assertStringArray = (value: unknown, label: string): string[] => {
   return value
 }
 
+const assertUnavailableVariants = (value: unknown, label: string) => {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} must be an array`)
+  }
+  const unavailable = value.map((item, index) => {
+    const parsed = asRecord(item, `${label}[${index}]`)
+    assertExactKeys(parsed, ["reason", "variantId"], `${label}[${index}]`)
+    const reason = assertString(parsed.reason, `${label}[${index}].reason`)
+    const variantId = assertString(
+      parsed.variantId,
+      `${label}[${index}].variantId`
+    )
+    if (!(validIdentifier(reason) && validIdentifier(variantId))) {
+      throw new Error(`${label} must contain non-empty identifiers`)
+    }
+    return { reason, variantId }
+  })
+  const variantIds = unavailable.map(({ variantId }) => variantId)
+  if (
+    hasDuplicates(variantIds) ||
+    variantIds.join("\u0000") !== sortedUnique(variantIds).join("\u0000")
+  ) {
+    throw new Error(`${label} must be sorted and unique by variantId`)
+  }
+  return unavailable
+}
+
 const assertSha256 = (value: unknown, label: string): string => {
   const parsed = assertString(value, label)
   if (!SHA_256.test(parsed)) {
     throw new Error(`${label} must be a lowercase SHA-256`)
   }
   return parsed
+}
+
+const validateReleaseIdentity = (value: unknown, label: string) => {
+  const identity = asRecord(value, label)
+  assertExactKeys(identity, RELEASE_IDENTITY_KEYS, label)
+  for (const key of [
+    "backendBuildHash",
+    "backendDeploymentId",
+    "backendReleaseSha",
+    "environmentId",
+    "releaseId",
+  ] as const) {
+    if (!validIdentifier(assertString(identity[key], `${label}.${key}`))) {
+      throw new Error(`${label}.${key} must be a non-empty identifier`)
+    }
+  }
+  if (identity.backendSlot !== "blue" && identity.backendSlot !== "green") {
+    throw new Error(`${label}.backendSlot must be blue or green`)
+  }
+  assertSha256(
+    identity.databaseInstanceFingerprint,
+    `${label}.databaseInstanceFingerprint`
+  )
+  return identity
+}
+
+const hasValidReleaseIdentity = (value: unknown) => {
+  try {
+    validateReleaseIdentity(value, "releaseIdentity")
+    return true
+  } catch {
+    return false
+  }
 }
 
 const validateSharedProof = (
@@ -200,7 +284,7 @@ const validateCheckoutCanary = (
   assertExactKeys(canary, CHECKOUT_CANARY_KEYS, "checkoutCanary")
   if (
     canary.artifactKind !== "checkout-readiness-canary" ||
-    canary.schemaVersion !== 1 ||
+    canary.schemaVersion !== 2 ||
     canary.mutationPolicy !== "no-order-no-payment-mutation"
   ) {
     throw new Error("checkoutCanary contract is invalid")
@@ -216,6 +300,10 @@ const validateCheckoutCanary = (
   if (!validTimestamp(checkedAt)) {
     throw new Error("checkoutCanary.checkedAt must be an ISO timestamp")
   }
+  validateReleaseIdentity(
+    canary.releaseIdentity,
+    "checkoutCanary.releaseIdentity"
+  )
   if (
     canary.countryCode !== contract.countryCode ||
     canary.currencyCode !== contract.currencyCode ||
@@ -238,10 +326,18 @@ const validateCheckoutCanary = (
   return canary
 }
 
+const validateMarketProofIdentifiers = (proof: Record<string, unknown>) => {
+  for (const key of ["regionId", "salesChannelId", "taxRegionId"] as const) {
+    if (!validIdentifier(assertString(proof[key], key))) {
+      throw new Error(`${key} must be a non-empty identifier`)
+    }
+  }
+}
+
 const validateMarketProof = (value: unknown): MarketCommerceReadinessProof => {
   const proof = asRecord(value, "market commerce readiness proof")
   assertExactKeys(proof, MARKET_PROOF_KEYS, "market commerce readiness proof")
-  if (proof.kind !== "market-commerce-readiness" || proof.schemaVersion !== 1) {
+  if (proof.kind !== "market-commerce-readiness" || proof.schemaVersion !== 2) {
     throw new Error("market commerce readiness proof contract is invalid")
   }
   const market = assertString(proof.market, "market")
@@ -257,13 +353,42 @@ const validateMarketProof = (value: unknown): MarketCommerceReadinessProof => {
   ) {
     throw new Error("market commerce contract tuple is invalid")
   }
-  for (const key of ["regionId", "salesChannelId", "taxRegionId"] as const) {
-    if (!validIdentifier(assertString(proof[key], key))) {
-      throw new Error(`${key} must be a non-empty identifier`)
-    }
+  const capturedAt = assertString(proof.capturedAt, "capturedAt")
+  if (!validTimestamp(capturedAt)) {
+    throw new Error("capturedAt must be an ISO timestamp")
   }
-  assertCount(proof.approvedVariantPriceCount, "approvedVariantPriceCount")
-  assertCount(proof.publishedVariantCount, "publishedVariantCount")
+  validateMarketProofIdentifiers(proof)
+  const approvedVariantPriceCount = assertCount(
+    proof.approvedVariantPriceCount,
+    "approvedVariantPriceCount"
+  )
+  const publishedVariantCount = assertCount(
+    proof.publishedVariantCount,
+    "publishedVariantCount"
+  )
+  const sellableVariantCount = assertCount(
+    proof.sellableVariantCount,
+    "sellableVariantCount"
+  )
+  const unavailableVariantCount = assertCount(
+    proof.unavailableVariantCount,
+    "unavailableVariantCount"
+  )
+  const publishedVariantIds = assertStringArray(
+    proof.publishedVariantIds,
+    "publishedVariantIds"
+  )
+  const sellableVariantIds = assertStringArray(
+    proof.sellableVariantIds,
+    "sellableVariantIds"
+  )
+  const unavailableVariants = assertUnavailableVariants(
+    proof.unavailableVariants,
+    "unavailableVariants"
+  )
+  const unavailableVariantIds = unavailableVariants.map(
+    ({ variantId }) => variantId
+  )
   const issues = assertStringArray(proof.issues, "issues")
   const paymentProviderIds = assertStringArray(
     proof.paymentProviderIds,
@@ -287,14 +412,29 @@ const validateMarketProof = (value: unknown): MarketCommerceReadinessProof => {
   if (ready !== (issues.length === 0)) {
     throw new Error("market proof ready contradicts issues")
   }
+  if (
+    approvedVariantPriceCount !== sellableVariantCount ||
+    publishedVariantCount !== publishedVariantIds.length ||
+    sellableVariantCount !== sellableVariantIds.length ||
+    unavailableVariantCount !== unavailableVariants.length ||
+    publishedVariantCount !== sellableVariantCount + unavailableVariantCount ||
+    sellableVariantIds.some((variantId) =>
+      unavailableVariantIds.includes(variantId)
+    ) ||
+    sortedUnique([...sellableVariantIds, ...unavailableVariantIds]).join(
+      "\u0000"
+    ) !== publishedVariantIds.join("\u0000")
+  ) {
+    throw new Error("market proof variant partition contradicts its evidence")
+  }
   if (ready) {
     assertSha256(
       proof.approvedPriceAuthoritySha256,
       "approvedPriceAuthoritySha256"
     )
     if (
-      proof.approvedVariantPriceCount !== proof.publishedVariantCount ||
-      proof.publishedVariantCount === 0 ||
+      publishedVariantCount === 0 ||
+      sellableVariantCount === 0 ||
       paymentProviderIds.length === 0 ||
       shippingOptionIds.length === 0 ||
       taxRateIds.length === 0 ||
@@ -302,7 +442,12 @@ const validateMarketProof = (value: unknown): MarketCommerceReadinessProof => {
       sharedInventory.preserved !== true ||
       canary.shippingAvailable !== true ||
       canary.taxAvailable !== true ||
-      canary.enabledPaymentAvailable !== true
+      canary.enabledPaymentAvailable !== true ||
+      !sellableVariantIds.includes(String(canary.variantId)) ||
+      !isCheckoutCanaryFresh(
+        assertString(canary.checkedAt, "checkedAt"),
+        capturedAt
+      )
     ) {
       throw new Error("ready market proof lacks required commerce evidence")
     }
@@ -383,6 +528,20 @@ const collectPriceEvidence = (
       (price) => [price.variantId, price] as const
     )
   )
+  const unavailableByVariant = new Map(
+    input.unavailableVariants.map(
+      (unavailable) => [unavailable.variantId, unavailable] as const
+    )
+  )
+  const sellableVariantIds = sortedUnique(
+    input.approvedVariantPrices.map(({ variantId }) => variantId)
+  )
+  const unavailableVariants = [...input.unavailableVariants].sort(
+    (left, right) => left.variantId.localeCompare(right.variantId)
+  )
+  const unavailableVariantIds = unavailableVariants.map(
+    ({ variantId }) => variantId
+  )
   addIssue(
     issues,
     approvedByVariant.size === input.approvedVariantPrices.length,
@@ -395,17 +554,41 @@ const collectPriceEvidence = (
   )
   addIssue(
     issues,
+    unavailableByVariant.size === input.unavailableVariants.length &&
+      input.unavailableVariants.every(
+        ({ reason, variantId }) =>
+          validIdentifier(reason) && validIdentifier(variantId)
+      ),
+    "unavailable_variant_scope_invalid"
+  )
+  addIssue(
+    issues,
     approvalAuthorities.length === 1 &&
       SHA_256.test(approvalAuthorities[0] ?? ""),
     "price_authority_invalid"
   )
   addIssue(
     issues,
-    input.approvedVariantPrices.length === publishedVariantIds.length &&
-      input.observedVariantPrices.length === publishedVariantIds.length,
+    input.observedVariantPrices.length === sellableVariantIds.length,
     "variant_price_scope_mismatch"
   )
-  for (const variantId of publishedVariantIds) {
+  addIssue(
+    issues,
+    sellableVariantIds.every((variantId) =>
+      publishedVariantIds.includes(variantId)
+    ) &&
+      unavailableVariantIds.every((variantId) =>
+        publishedVariantIds.includes(variantId)
+      ) &&
+      sellableVariantIds.every(
+        (variantId) => !unavailableByVariant.has(variantId)
+      ) &&
+      sortedUnique([...sellableVariantIds, ...unavailableVariantIds]).join(
+        "\u0000"
+      ) === publishedVariantIds.join("\u0000"),
+    "variant_availability_partition_invalid"
+  )
+  for (const variantId of sellableVariantIds) {
     const approved = approvedByVariant.get(variantId)
     const observed = observedByVariant.get(variantId)
     addIssue(
@@ -415,22 +598,34 @@ const collectPriceEvidence = (
           observed &&
           approved.currencyCode === currencyCode &&
           observed.currencyCode === currencyCode &&
-          Number.isSafeInteger(approved.amount) &&
-          approved.amount > 0 &&
+          isPositiveCanonicalPriceAmount(approved.amount) &&
+          isPositiveCanonicalPriceAmount(observed.amount) &&
           approved.amount === observed.amount
       ),
       `variant_price_not_approved:${variantId}`
     )
   }
-  return approvalAuthorities
+  for (const { variantId } of unavailableVariants) {
+    addIssue(
+      issues,
+      !(approvedByVariant.has(variantId) || observedByVariant.has(variantId)),
+      `unavailable_variant_has_sellable_price:${variantId}`
+    )
+  }
+  return { approvalAuthorities, sellableVariantIds, unavailableVariants }
 }
 
 const buildMarketProof = (
   input: MarketCommerceReadinessInput,
-  sharedCatalog: SharedCommerceReadinessProof,
-  sharedInventory: SharedCommerceReadinessProof,
-  sharedVariantIds: ReadonlySet<string>
+  context: Readonly<{
+    capturedAt: string
+    sharedCatalog: SharedCommerceReadinessProof
+    sharedInventory: SharedCommerceReadinessProof
+    sharedVariantIds: ReadonlySet<string>
+  }>
 ): MarketCommerceReadinessProof => {
+  const { capturedAt, sharedCatalog, sharedInventory, sharedVariantIds } =
+    context
   const contract = COMMERCE_MARKET_CONTRACTS[input.market]
   const issues: string[] = []
   const publishedVariantIds = sortedUnique(input.publishedVariantIds)
@@ -499,7 +694,7 @@ const buildMarketProof = (
   )
   addIssue(issues, paymentProviders.length > 0, "enabled_payment_unavailable")
 
-  const approvalAuthorities = collectPriceEvidence(
+  const priceEvidence = collectPriceEvidence(
     input,
     publishedVariantIds,
     contract.currencyCode,
@@ -510,17 +705,20 @@ const buildMarketProof = (
   addIssue(
     issues,
     canary.artifactKind === "checkout-readiness-canary" &&
-      canary.schemaVersion === 1 &&
+      canary.schemaVersion === 2 &&
       canary.mutationPolicy === "no-order-no-payment-mutation" &&
       canary.orderId === null &&
       canary.paymentCollectionId === null &&
       canary.paymentSessionId === null &&
       validTimestamp(canary.checkedAt) &&
+      validTimestamp(capturedAt) &&
+      isCheckoutCanaryFresh(canary.checkedAt, capturedAt) &&
+      hasValidReleaseIdentity(canary.releaseIdentity) &&
       canary.countryCode === contract.countryCode &&
       canary.currencyCode === contract.currencyCode &&
       canary.regionId === input.region.id &&
       canary.salesChannelId === input.salesChannelId &&
-      publishedVariantIds.includes(canary.variantId) &&
+      priceEvidence.sellableVariantIds.includes(canary.variantId) &&
       canary.shippingAvailable &&
       canary.taxAvailable &&
       canary.enabledPaymentAvailable,
@@ -531,9 +729,10 @@ const buildMarketProof = (
 
   const uniqueIssues = sortedUnique(issues)
   return {
-    approvedPriceAuthoritySha256: approvalAuthorities[0] ?? null,
+    approvedPriceAuthoritySha256: priceEvidence.approvalAuthorities[0] ?? null,
     approvedVariantPriceCount: input.approvedVariantPrices.length,
     checkoutCanary: canary,
+    capturedAt,
     countryCode: contract.countryCode,
     currencyCode: contract.currencyCode,
     issues: uniqueIssues,
@@ -542,15 +741,20 @@ const buildMarketProof = (
     market: input.market,
     paymentProviderIds: sortedUnique(paymentProviders.map(({ id }) => id)),
     publishedVariantCount: publishedVariantIds.length,
+    publishedVariantIds,
     ready: uniqueIssues.length === 0,
     regionId: input.region.id,
     salesChannelId: input.salesChannelId,
-    schemaVersion: 1,
+    schemaVersion: 2,
+    sellableVariantCount: priceEvidence.sellableVariantIds.length,
+    sellableVariantIds: priceEvidence.sellableVariantIds,
     sharedCatalog,
     sharedInventory,
     shippingOptionIds: sortedUnique(shippingOptions.map(({ id }) => id)),
     taxRateIds: sortedUnique(taxRates.map(({ id }) => id)),
     taxRegionId: input.tax.id,
+    unavailableVariantCount: priceEvidence.unavailableVariants.length,
+    unavailableVariants: priceEvidence.unavailableVariants,
   }
 }
 
@@ -566,12 +770,14 @@ export const buildMarketCommerceReadinessProof = (
     context.sharedInventory.reviewedSha256,
     computeSharedInventorySha256(context.sharedInventory)
   )
-  return buildMarketProof(
-    input,
-    catalogProof,
-    inventoryProof,
-    new Set(context.sharedCatalog.variants.map(({ id }) => id))
-  )
+  return buildMarketProof(input, {
+    capturedAt: context.capturedAt,
+    sharedCatalog: catalogProof,
+    sharedInventory: inventoryProof,
+    sharedVariantIds: new Set(
+      context.sharedCatalog.variants.map(({ id }) => id)
+    ),
+  })
 }
 
 export const buildFourMarketCommerceReadiness = (
@@ -665,12 +871,12 @@ export const buildFourMarketCommerceReadiness = (
     const marketInput = marketsByCode.get(market)
     return marketInput
       ? [
-          buildMarketProof(
-            marketInput,
-            catalogProof,
-            inventoryProof,
-            sharedVariantIds
-          ),
+          buildMarketProof(marketInput, {
+            capturedAt: input.capturedAt,
+            sharedCatalog: catalogProof,
+            sharedInventory: inventoryProof,
+            sharedVariantIds,
+          }),
         ]
       : []
   })
@@ -689,7 +895,7 @@ export const buildFourMarketCommerceReadiness = (
     ready:
       uniqueIssues.length === 0 &&
       markets.length === COMMERCE_READINESS_MARKETS.length,
-    schemaVersion: 1,
+    schemaVersion: 2,
     sharedCatalog: {
       ...catalogProof,
       productCount: input.sharedCatalog.productIds.length,
@@ -759,7 +965,7 @@ export const parseFourMarketCommerceReadinessProof = (
   )
   if (
     proof.kind !== "four-market-commerce-readiness" ||
-    proof.schemaVersion !== 1
+    proof.schemaVersion !== 2
   ) {
     throw new Error("four-market commerce readiness proof contract is invalid")
   }
@@ -804,6 +1010,9 @@ export const parseFourMarketCommerceReadinessProof = (
       marketInventory.preserved !== sharedInventory.preserved
     ) {
       throw new Error("market shared-state proof differs from bundle")
+    }
+    if (market.capturedAt !== capturedAt) {
+      throw new Error("market capturedAt differs from bundle")
     }
   }
   const issues = assertStringArray(proof.issues, "issues")

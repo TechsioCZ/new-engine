@@ -293,11 +293,12 @@ const marketInput = (
       countryCode: taxRegion.countryCode,
       id: taxRegion.id,
       rates: taxRates.map((rate) => ({
-        enabled: rate.enabled,
+        enabled: rate.enabled && rate.taxRegionId === authority.taxRegionId,
         id: rate.id,
         rate: rate.rate,
       })),
     },
+    unavailableVariants: priceArtifact.unavailableVariants,
   }
 }
 
@@ -337,6 +338,7 @@ export const buildCollectedCommerceReadiness = (
     marketInputs.map((inputMarket) => [
       inputMarket.market,
       buildMarketCommerceReadinessProof(inputMarket, {
+        capturedAt,
         sharedCatalog,
         sharedInventory,
       }),

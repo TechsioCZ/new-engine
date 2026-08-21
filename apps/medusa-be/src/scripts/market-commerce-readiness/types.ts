@@ -1,3 +1,5 @@
+import type { CanonicalPriceAmount } from "./price-amount"
+
 export const COMMERCE_READINESS_MARKETS = ["sk", "cz", "hu", "ro"] as const
 
 export type CommerceReadinessMarket =
@@ -23,17 +25,33 @@ export type CheckoutCanaryArtifact = Readonly<{
   orderId: null
   paymentCollectionId: null
   paymentSessionId: null
+  releaseIdentity: CommerceReleaseIdentity
   regionId: string
   salesChannelId: string
-  schemaVersion: 1
+  schemaVersion: 2
   shippingAvailable: boolean
   taxAvailable: boolean
   variantId: string
 }>
 
+export type CommerceReleaseIdentity = Readonly<{
+  backendBuildHash: string
+  backendDeploymentId: string
+  backendReleaseSha: string
+  backendSlot: "blue" | "green"
+  databaseInstanceFingerprint: string
+  environmentId: string
+  releaseId: string
+}>
+
+export type UnavailableMarketVariant = Readonly<{
+  reason: string
+  variantId: string
+}>
+
 export type MarketCommerceReadinessInput = Readonly<{
   approvedVariantPrices: readonly Readonly<{
-    amount: number
+    amount: CanonicalPriceAmount
     authoritySha256: string
     currencyCode: string
     variantId: string
@@ -42,7 +60,7 @@ export type MarketCommerceReadinessInput = Readonly<{
   locale: string
   market: CommerceReadinessMarket
   observedVariantPrices: readonly Readonly<{
-    amount: number
+    amount: CanonicalPriceAmount
     currencyCode: string
     variantId: string
   }>[]
@@ -74,6 +92,7 @@ export type MarketCommerceReadinessInput = Readonly<{
       rate: number
     }>[]
   }>
+  unavailableVariants: readonly UnavailableMarketVariant[]
 }>
 
 export type SharedCatalogInput = Readonly<{
@@ -111,6 +130,7 @@ export type FourMarketCommerceReadinessInput = Readonly<{
 }>
 
 export type MarketCommerceReadinessContext = Readonly<{
+  capturedAt: string
   sharedCatalog: SharedCatalogInput
   sharedInventory: SharedInventoryInput
 }>
@@ -125,6 +145,7 @@ export type MarketCommerceReadinessProof = Readonly<{
   approvedPriceAuthoritySha256: null | string
   approvedVariantPriceCount: number
   checkoutCanary: CheckoutCanaryArtifact
+  capturedAt: string
   countryCode: string
   currencyCode: string
   issues: readonly string[]
@@ -133,15 +154,20 @@ export type MarketCommerceReadinessProof = Readonly<{
   market: CommerceReadinessMarket
   paymentProviderIds: readonly string[]
   publishedVariantCount: number
+  publishedVariantIds: readonly string[]
   ready: boolean
   regionId: string
   salesChannelId: string
-  schemaVersion: 1
+  schemaVersion: 2
+  sellableVariantCount: number
+  sellableVariantIds: readonly string[]
   sharedCatalog: SharedCommerceReadinessProof
   sharedInventory: SharedCommerceReadinessProof
   shippingOptionIds: readonly string[]
   taxRateIds: readonly string[]
   taxRegionId: string
+  unavailableVariantCount: number
+  unavailableVariants: readonly UnavailableMarketVariant[]
 }>
 
 export type FourMarketCommerceReadinessProof = Readonly<{
@@ -150,7 +176,7 @@ export type FourMarketCommerceReadinessProof = Readonly<{
   kind: "four-market-commerce-readiness"
   markets: readonly MarketCommerceReadinessProof[]
   ready: boolean
-  schemaVersion: 1
+  schemaVersion: 2
   sharedCatalog: SharedCommerceReadinessProof &
     Readonly<{ productCount: number; variantCount: number }>
   sharedInventory: SharedCommerceReadinessProof &

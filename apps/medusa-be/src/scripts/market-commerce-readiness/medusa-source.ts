@@ -1,6 +1,7 @@
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { CommerceLiveState } from "./collector-types"
+import { canonicalPriceAmount } from "./price-amount"
 
 type QueryService = Readonly<{
   graph: <Value>(
@@ -261,10 +262,9 @@ export const collectMedusaCommerceLiveState = async (
           `product ${productIndex}.variants[${variantIndex}].id`
         ),
         prices: (variant.prices ?? []).map((price, priceIndex) => ({
-          amount: integerValue(
+          amount: canonicalPriceAmount(
             price.amount,
-            `product ${productIndex}.variants[${variantIndex}].prices[${priceIndex}].amount`,
-            1
+            `product ${productIndex}.variants[${variantIndex}].prices[${priceIndex}].amount`
           ),
           currencyCode: stringValue(
             price.currency_code,

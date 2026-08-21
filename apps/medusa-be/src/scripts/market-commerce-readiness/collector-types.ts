@@ -1,23 +1,16 @@
+import type { CanonicalPriceAmount } from "./price-amount"
 import type {
   CheckoutCanaryArtifact,
   CommerceReadinessMarket,
+  CommerceReleaseIdentity,
   FourMarketCommerceReadinessProof,
   MarketCommerceReadinessProof,
+  UnavailableMarketVariant,
 } from "./types"
 
 export type CommerceArtifactRef = Readonly<{
   path: string
   sha256: string
-}>
-
-export type CommerceReleaseIdentity = Readonly<{
-  backendBuildHash: string
-  backendDeploymentId: string
-  backendReleaseSha: string
-  backendSlot: "blue" | "green"
-  databaseInstanceFingerprint: string
-  environmentId: string
-  releaseId: string
 }>
 
 export type MarketCommerceCollectionAuthority = Readonly<{
@@ -45,10 +38,11 @@ export type MarketApprovedPricesArtifact = Readonly<{
   kind: "market-approved-variant-prices"
   market: CommerceReadinessMarket
   prices: readonly Readonly<{
-    amount: number
+    amount: CanonicalPriceAmount
     variantId: string
   }>[]
-  schemaVersion: 1
+  schemaVersion: 2
+  unavailableVariants: readonly UnavailableMarketVariant[]
 }>
 
 export type SharedCommerceBaselineArtifact = Readonly<{
@@ -87,7 +81,7 @@ export type CommerceLiveState = Readonly<{
       ean: null | string
       id: string
       prices: readonly Readonly<{
-        amount: number
+        amount: CanonicalPriceAmount
         currencyCode: string
       }>[]
       sku: null | string
@@ -118,6 +112,8 @@ export type CommerceLiveState = Readonly<{
     id: string
   }>[]
 }>
+
+export type { CommerceReleaseIdentity } from "./types"
 
 export type MarketCommerceCollectionReceipt = Readonly<{
   authority: CommerceArtifactRef
