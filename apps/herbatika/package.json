@@ -10,6 +10,7 @@
     "migrate:url-registry": "node scripts/url-registry/migrate.mjs",
     "populate:url-registry": "tsx scripts/url-registry/populate.ts",
     "test": "vitest run",
+    "test:e2e:four-market": "playwright test --config tests/four-market-e2e/playwright.config.ts",
     "test:m00:wire": "node tests/wire/m00/run-compose.mjs",
     "test:m00:wire:target": "node --test tests/wire/m00-pages-status.mjs",
     "test:url-architecture:matrix": "node --test tests/url-architecture/matrix.node-test.mjs tests/url-architecture/helpers.node-test.mjs",
