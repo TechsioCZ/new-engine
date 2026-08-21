@@ -1,18 +1,27 @@
 import { describe, expect, it, vi } from "vitest"
+import { parsePublicPath } from "@/lib/url/public-route-api"
 import type { HeroBannerItem } from "./homepage.data.types"
 import {
+  CZ_HERO_BANNERS,
   HERO_BANNERS,
+  HU_HERO_BANNERS,
   RO_HERO_BANNERS,
   resolveHomepageHeroBanners,
   resolveHomepageHeroSource,
 } from "./homepage.hero.data"
 
 const SLOVAK_CANARY =
-  /rýchle|doručenie|dodanie|otvárame|prevádzku|domácnosť|čistejšie|akčné|vypredania|vyberte|darčeky|pripravené|vašich|novinky|pravidelne|dopĺňame|kozmetika/iu
+  /rýchle|doručenie|dodanie|otvárame|prevádzku|čistejšie|akčné|vypredania|vašich|novinky|pravidelne|dopĺňame|kozmetika/iu
+const UNSAFE_MARKETING_CLAIM_CANARY =
+  /24\s*(?:h|hod|óra|ore)|sănătos|zdraví|egészség/iu
 
 describe("resolveHomepageHeroBanners", () => {
-  it("uses the complete Romanian demo fallback when Romanian CMS is empty", () => {
-    const result = resolveHomepageHeroBanners([], "ro")
+  it.each([
+    ["cz", CZ_HERO_BANNERS, "Objevte sortiment Herbatica"],
+    ["hu", HU_HERO_BANNERS, "Fedezze fel a Herbatica kínálatát"],
+    ["ro", RO_HERO_BANNERS, "Descoperă gama Herbatica"],
+  ] as const)("uses a complete safe %s fallback when CMS is empty", (market, expected, headline) => {
+    const result = resolveHomepageHeroBanners([], market)
     const copy = result
       .flatMap(({ badge, imageAlt, subtitle, title }) => [
         badge,
@@ -23,24 +32,35 @@ describe("resolveHomepageHeroBanners", () => {
       .filter(Boolean)
       .join(" ")
 
-    expect(result).toBe(RO_HERO_BANNERS)
+    expect(result).toBe(expected)
     expect(result).toHaveLength(8)
-    expect(result.every(({ imageAlt, title }) => imageAlt && title)).toBe(true)
-    expect(copy).toContain("Livrare rapidă în 24 de ore!")
-    expect(copy).toContain("Livrare în România")
+    expect(
+      result.every(
+        ({ ctaLabel, ctaTarget, imageAlt, title }) =>
+          ctaLabel && ctaTarget && imageAlt && title
+      )
+    ).toBe(true)
+    expect(copy).toContain(headline)
     expect(copy).not.toMatch(SLOVAK_CANARY)
-    expect(result.map(({ id }) => id)).not.toContain("black-friday")
-    expect(result.map(({ id }) => id)).not.toContain("nova-prevadzka")
+    expect(copy).not.toMatch(UNSAFE_MARKETING_CLAIM_CANARY)
+    for (const banner of result) {
+      expect(banner.ctaTarget?.kind).toBe("static")
+      if (banner.ctaTarget?.kind !== "static") {
+        throw new Error("Expected a route-registry CTA")
+      }
+      expect(
+        parsePublicPath({
+          market,
+          pathname: banner.ctaTarget.href,
+          rawQuery: "",
+        }).kind
+      ).toBe("found")
+    }
   })
 
   it("preserves the existing Slovak fallback", () => {
     expect(resolveHomepageHeroBanners(undefined, "sk")).toBe(HERO_BANNERS)
     expect(HERO_BANNERS[0]?.title).toBe("Rýchle doručenie 24h!")
-  })
-
-  it("does not silently reuse Slovak copy for markets without a fallback", () => {
-    expect(resolveHomepageHeroBanners([], "cz")).toEqual([])
-    expect(resolveHomepageHeroBanners(undefined, "hu")).toEqual([])
   })
 
   it("prefers non-empty locale-scoped CMS banners", () => {
@@ -60,6 +80,7 @@ describe("resolveHomepageHeroSource", () => {
   it.each([
     "cz",
     "hu",
+    "ro",
   ] as const)("fails closed for %s without CMS or a reviewed manifest", (market) => {
     expect(resolveHomepageHeroSource([], market)).toEqual({
       kind: "unavailable",
@@ -98,18 +119,20 @@ describe("resolveHomepageHeroSource", () => {
     expect(readReviewed).not.toHaveBeenCalled()
   })
 
-  it("never treats the Romanian demo fallback as publication-ready", () => {
+  it("never treats localized marketing fallbacks as publication-ready", () => {
     const readReviewed = vi.fn(
       function missingReviewedRomanianSource(): undefined {
         return
       }
     )
 
-    expect(resolveHomepageHeroBanners([], "ro")).toBe(RO_HERO_BANNERS)
-    expect(resolveHomepageHeroSource([], "ro", readReviewed)).toEqual({
-      kind: "unavailable",
-    })
-    expect(readReviewed).toHaveBeenCalledTimes(1)
+    for (const market of ["cz", "hu", "ro"] as const) {
+      expect(resolveHomepageHeroBanners([], market)).toHaveLength(8)
+      expect(resolveHomepageHeroSource([], market, readReviewed)).toEqual({
+        kind: "unavailable",
+      })
+    }
+    expect(readReviewed).toHaveBeenCalledTimes(3)
   })
 
   it.each([
