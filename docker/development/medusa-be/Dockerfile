@@ -37,6 +37,7 @@ COPY patches ./patches
 RUN corepack install
 
 COPY tsconfig.base.json eslint.config.ts ./
+COPY libs/storefront-i18n ./libs/storefront-i18n
 COPY apps/medusa-be ./apps/medusa-be
 COPY apps/medusa-symmy-plugin ./apps/medusa-symmy-plugin
 COPY apps/medusa-order-dashboard-plugin ./apps/medusa-order-dashboard-plugin
