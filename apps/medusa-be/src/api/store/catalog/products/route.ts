@@ -1,8 +1,13 @@
 import type { Query } from "@medusajs/framework"
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type { Logger } from "@medusajs/framework/types"
+import type {
+  ITranslationModuleService,
+  Logger,
+  MedusaContainer,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
+  Modules,
   ProductStatus,
   QueryContext,
 } from "@medusajs/framework/utils"
@@ -43,6 +48,10 @@ import {
   selectRankedProductIds,
 } from "../../../../modules/meilisearch/search-results"
 import { isPlainRecord } from "../../../../utils/guards"
+import {
+  CATEGORY_CONTENT_SOURCE_LOCALE,
+  CATEGORY_TRANSLATION_REFERENCE,
+} from "../../../../utils/localized-category-content"
 import {
   decorateProductsWithLocalizedContent,
   requestsLocalizedProductContent,
@@ -92,6 +101,7 @@ type BrandRecord = {
 
 type CategoryRecord = {
   handle?: string
+  id?: string
   name?: string
 }
 
@@ -277,7 +287,52 @@ const resolveBrandFacetLabels = async (
   return labelsById
 }
 
+const resolveTranslatedCategoryNames = async (
+  container: Pick<MedusaContainer, "resolve">,
+  categoryIds: string[],
+  locale?: string
+): Promise<Map<string, string>> => {
+  const namesByCategoryId = new Map<string, string>()
+  if (
+    !locale ||
+    locale === CATEGORY_CONTENT_SOURCE_LOCALE ||
+    categoryIds.length === 0
+  ) {
+    return namesByCategoryId
+  }
+
+  try {
+    const translationService = container.resolve<ITranslationModuleService>(
+      Modules.TRANSLATION
+    )
+    const translations = await translationService.listTranslations(
+      {
+        locale_code: locale,
+        reference: CATEGORY_TRANSLATION_REFERENCE,
+        reference_id: categoryIds,
+      },
+      { take: categoryIds.length }
+    )
+
+    for (const translation of translations) {
+      const translatedFields: unknown = translation.translations
+      if (!isPlainRecord(translatedFields)) {
+        continue
+      }
+      const name: unknown = translatedFields.name
+      if (typeof name === "string" && name.trim()) {
+        namesByCategoryId.set(translation.reference_id, name.trim())
+      }
+    }
+  } catch {
+    // Facet labels fall back to source-locale category names.
+  }
+
+  return namesByCategoryId
+}
+
 const resolveIngredientFacetLabels = async (
+  container: Pick<MedusaContainer, "resolve">,
   queryService: Query,
   facetIds: string[],
   locale?: string
@@ -298,7 +353,7 @@ const resolveIngredientFacetLabels = async (
   const { data: categories } = await queryService.graph(
     {
       entity: "product_category",
-      fields: ["handle", "name"],
+      fields: ["id", "handle", "name"],
       filters: {
         handle: {
           $in: handles,
@@ -308,12 +363,24 @@ const resolveIngredientFacetLabels = async (
     { locale }
   )
 
+  const translatedNameByCategoryId = await resolveTranslatedCategoryNames(
+    container,
+    (categories as CategoryRecord[])
+      .map((category) => category.id)
+      .filter((id): id is string => Boolean(id)),
+    locale
+  )
+
   const categoryNameByHandle = new Map<string, string>()
   for (const category of categories as CategoryRecord[]) {
     if (!(category.handle && category.name)) {
       continue
     }
-    categoryNameByHandle.set(category.handle, category.name)
+    categoryNameByHandle.set(
+      category.handle,
+      (category.id && translatedNameByCategoryId.get(category.id)) ??
+        category.name
+    )
   }
 
   for (const facetId of facetIds) {
@@ -1142,6 +1209,7 @@ export async function GET(
       graphLocale
     ),
     resolveIngredientFacetLabels(
+      req.scope,
       queryService,
       Array.from(ingredientFacetCounts.keys()),
       graphLocale

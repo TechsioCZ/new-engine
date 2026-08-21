@@ -515,6 +515,20 @@
         "also_bought": "Alții au cumpărat și",
         "products": "Produse similare",
         "found": "Găsite: {count}"
+      },
+      "option_titles": {
+        "color": "Culoare",
+        "dimensions": "Dimensiuni",
+        "flavor": "Aromă",
+        "packaging": "Ambalaj",
+        "size": "Mărime",
+        "variant": "Variantă",
+        "volume": "Volum",
+        "weight": "Greutate"
+      },
+      "option_values": {
+        "capsules": "capsule",
+        "tablets": "tablete"
       }
     },
     "reviews": {
@@ -597,6 +611,7 @@
       "label": "Mărci",
       "all_title": "Toate mărcile de la A la Z",
       "list_aria": "Lista mărcilor în ordine alfabetică",
+      "empty": "Lista mărcilor va fi disponibilă în curând.",
       "metadata": {
         "index_title": "Toate mărcile de la A la Z | Herbatica",
         "index_description": "Prezentarea tuturor mărcilor disponibile în magazinul online Herbatica, în ordine alfabetică.",
@@ -718,7 +733,8 @@
     "blog": {
       "listing": {
         "title": "Blog despre sănătate și frumusețe",
-        "description": "Articole despre sănătate, frumusețe, nutriție și wellness de la specialiștii noștri."
+        "description": "Articole despre sănătate, frumusețe, nutriție și wellness de la specialiștii noștri.",
+        "filter_all": "Toate"
       },
       "card": {
         "open_article": "Citește articolul"

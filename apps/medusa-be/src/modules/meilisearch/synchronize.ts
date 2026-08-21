@@ -10,6 +10,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { listActiveSalePriceListProductSelection } from "../../utils/product-sale-adapters"
 import { MARKET_VARIANT_AUTHORITY_MODULE } from "../market-variant-authority"
 import {
   type MarketVariantAuthorityRecord,
@@ -1121,6 +1122,29 @@ const deleteStaleDocuments = async (
   return staleIds.length
 }
 
+// Sale membership comes from active sale price lists, not product metadata
+// flags, so the "action" status facet must be stamped per profile currency.
+const applySaleActionStatusFacet = (
+  document: Record<string, unknown>,
+  saleProductIds: Set<string>
+) => {
+  if (saleProductIds.size === 0) {
+    return
+  }
+  const productId = document.search_product_id
+  if (typeof productId !== "string" || !saleProductIds.has(productId)) {
+    return
+  }
+  const statusIds = Array.isArray(document.facet_status)
+    ? document.facet_status.filter(
+        (value): value is string => typeof value === "string"
+      )
+    : []
+  if (!statusIds.includes("action")) {
+    document.facet_status = [...statusIds, "action"]
+  }
+}
+
 const indexProductDocuments = async (options: {
   assignmentService?: StorefrontUrlAssignmentModuleService
   client: MeilisearchAdminClient
@@ -1138,6 +1162,16 @@ const indexProductDocuments = async (options: {
 }> => {
   const { client, index, popularityByProductId, profile, query } = options
   const ids = new Set<string>()
+  const saleProductIds = options.commerceScope
+    ? new Set(
+        (
+          await listActiveSalePriceListProductSelection({
+            currencyCode: options.commerceScope.currencyCode,
+            query,
+          })
+        ).productIds
+      )
+    : new Set<string>()
 
   const references: ProfileReferenceIds = {
     brandIds: new Set<string>(),
@@ -1208,6 +1242,7 @@ const indexProductDocuments = async (options: {
         ids.add(id)
       }
 
+      applySaleActionStatusFacet(document, saleProductIds)
       collectProductReferences(document, references)
     }
 

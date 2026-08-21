@@ -475,4 +475,44 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     "catalog.reviews.token.product_label",
     "Label hodnoceného produktu na stránce recenze."
   ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_titles.color",
+    "Lokalizovaný název varianty produktu: barva."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_titles.dimensions",
+    "Lokalizovaný název varianty produktu: rozměr."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_titles.flavor",
+    "Lokalizovaný název varianty produktu: příchuť."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_titles.packaging",
+    "Lokalizovaný název varianty produktu: balení."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_titles.size",
+    "Lokalizovaný název varianty produktu: velikost."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_titles.variant",
+    "Lokalizovaný název varianty produktu: varianta."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_titles.volume",
+    "Lokalizovaný název varianty produktu: objem."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_titles.weight",
+    "Lokalizovaný název varianty produktu: hmotnost."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_values.capsules",
+    "Lokalizovaná jednotka hodnoty varianty: kapsle (např. „30 kapslí“)."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.option_values.tablets",
+    "Lokalizovaná jednotka hodnoty varianty: tablety (např. „20 tablet“)."
+  ),
 ] as const satisfies readonly StorefrontTextDefinition[]

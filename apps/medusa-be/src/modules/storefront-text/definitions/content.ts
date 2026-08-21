@@ -120,6 +120,11 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
     namespace: "content",
   },
   {
+    description: "Label filtru všech kategorií v přehledu blogu.",
+    key: "content.blog.listing.filter_all",
+    namespace: "content",
+  },
+  {
     description: "Odkaz pro načtení další stránky blogových článků.",
     key: "content.blog.pagination.load_more",
     namespace: "content",
