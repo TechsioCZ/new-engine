@@ -258,8 +258,8 @@ function evaluateBetween(
   value: unknown,
   to: unknown
 ): boolean {
-  const lo = Number(value)
-  const hi = Number(to)
+  let lo = Number(value)
+  let hi = Number(to)
   const hasLo = !(isBlank(value) || Number.isNaN(lo))
   const hasHi = !(isBlank(to) || Number.isNaN(hi))
   if (!(hasLo || hasHi)) {
@@ -267,6 +267,11 @@ function evaluateBetween(
   }
   if (cellHasNoNumber) {
     return false
+  }
+  // Same order-independence as matchBetween (data-table.fields.tsx): both
+  // bounds typed but From > To would otherwise reject every value.
+  if (hasLo && hasHi && lo > hi) {
+    ;[lo, hi] = [hi, lo]
   }
   if (hasLo && num < lo) {
     return false

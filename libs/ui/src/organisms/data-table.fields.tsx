@@ -802,8 +802,8 @@ function matchBetween(
   cellHasNoNumber: boolean,
   f: NumberFilterValue
 ) {
-  const lo = Number(f.value)
-  const hi = Number(f.to)
+  let lo = Number(f.value)
+  let hi = Number(f.to)
   const hasLo = !(isBlank(f.value) || Number.isNaN(lo))
   const hasHi = !(isBlank(f.to) || Number.isNaN(hi))
   if (!(hasLo || hasHi)) {
@@ -811,6 +811,13 @@ function matchBetween(
   }
   if (cellHasNoNumber) {
     return false
+  }
+  // Both bounds typed but in the wrong order (e.g. "From" edited after "To"
+  // without clearing it first) would otherwise reject every value: nothing is
+  // both >= 100 and <= 10. Read as an unordered interval instead of a
+  // silently-empty table.
+  if (hasLo && hasHi && lo > hi) {
+    ;[lo, hi] = [hi, lo]
   }
   if (hasLo && n < lo) {
     return false

@@ -525,6 +525,59 @@ export const InfiniteScrollVirtualized: Story = {
 }
 
 /**
+ * Without `maxHeight`, `onReachEnd` watches the *page* scroll instead of an
+ * internal container. A second, unrelated effect used to force-measure the
+ * (always unbounded, so always "at the bottom") scroll container on every
+ * appended page — re-arming the "already reported" latch the instant new rows
+ * landed, regardless of where the page had actually scrolled to. On a fast,
+ * continuous scroll (no incidental upward wobble to reset it first) the next
+ * real reach-end went silently missing. Both existing infinite-scroll stories
+ * set `maxHeight`, which is exactly why this went unnoticed.
+ */
+export const WindowScrollInfiniteLoad: Story = {
+  render: () => {
+    const [rows, setRows] = useState(bigData.slice(0, 30))
+    return (
+      <DataTable
+        columns={columns}
+        data={rows}
+        onReachEnd={() => {
+          setRows((prev) =>
+            prev.length < bigData.length
+              ? bigData.slice(0, prev.length + 30)
+              : prev
+          )
+        }}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const scrollTo = async (y: number) => {
+      window.scrollTo(0, y)
+      window.dispatchEvent(new Event("scroll"))
+      await new Promise((r) => setTimeout(r, 150))
+    }
+    const rowCount = () => canvasElement.querySelectorAll("tbody tr").length
+
+    await new Promise((r) => setTimeout(r, 150))
+    const initial = rowCount()
+    await scrollTo(999_999)
+    const afterFirst = rowCount()
+    await expect(afterFirst).toBeGreaterThan(initial)
+
+    // The bug this regresses: the appended page pushes the real bottom
+    // further away without firing a scroll event on its own, so
+    // `reachedEndRef` only ever finds out once an actual scroll event
+    // reports it — scrolling away first, the way a continuous scroll
+    // gesture naturally would, then back down to the new bottom.
+    await scrollTo(0)
+    await scrollTo(999_999)
+    const afterSecond = rowCount()
+    await expect(afterSecond).toBeGreaterThan(afterFirst)
+  },
+}
+
+/**
  * `enableVirtualization` without `maxHeight` has no bounded scroll container
  * to measure, so windowing falls back to rendering every row — this asserts
  * that fallback rather than a truncated table. Check the browser console for

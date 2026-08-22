@@ -223,7 +223,13 @@ const dataTableVariants = tv({
  * work; `label` is a convenience alias for `children`.
  */
 export type DataTableToolbarAction = Omit<ButtonProps, "size"> & {
-  /** Stable React key; falls back to the array index. */
+  /**
+   * Stable React key; falls back to the array index. The fallback is fine for
+   * a fixed list, but a `toolbarActions` array that adds, removes or
+   * reorders entries based on state (e.g. permission changes) needs a real
+   * `id` — an index-keyed action can otherwise inherit a sibling's DOM node,
+   * along with its transient disabled/hover/focus state, across a re-render.
+   */
   id?: string
   /** Button text. Omit for icon-only actions, but keep an `aria-label`. */
   label?: ReactNode
@@ -1804,9 +1810,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   // Re-arm after new rows land: if the freshly appended page is shorter than
   // the threshold no further scroll event fires, and loading would stall.
+  // Internal-scroll only (`maxHeight` set) — without it `scrollRef`'s element
+  // is the unbounded div `onWindowScroll` deliberately ignores, so its
+  // `scrollHeight`/`clientHeight` are meaningless and always read as "at the
+  // bottom". Running this unconditionally forced `reachedEndRef.current` to
+  // `true` on every appended page in window-scroll mode too, re-arming the
+  // "already reported" latch the instant new rows landed — a user mid
+  // continuous-scroll (no incidental upward wobble to reset it first) would
+  // have the next real reach-end silently swallowed.
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-checks whenever the row count changes
   useEffect(() => {
-    if (!onReachEnd || loadingMore) {
+    if (!onReachEnd || loadingMore || !maxHeight) {
       return
     }
     const el = scrollRef.current
@@ -2010,11 +2024,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           {dnd && (
             <HeaderDragHandle
               attributes={dnd.attributes}
-              label={
-                typeof column.columnDef.header === "string"
-                  ? column.columnDef.header
-                  : column.id
-              }
+              label={columnLabel(column)}
               listeners={dnd.listeners}
               setActivatorNodeRef={dnd.setActivatorNodeRef}
               styles={styles}
@@ -2869,10 +2879,7 @@ DataTable.ColumnVisibility = function DataTableColumnVisibility() {
   const items: MenuItem[] = hideableColumns.map((column) => ({
     type: "checkbox",
     value: column.id,
-    label:
-      typeof column.columnDef.header === "string"
-        ? column.columnDef.header
-        : column.id,
+    label: columnLabel(column),
     checked: column.getIsVisible(),
   }))
 
