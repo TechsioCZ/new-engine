@@ -1,6 +1,6 @@
 import { Pool } from "pg"
 import type { SqlClient, SqlPool } from "../../src/lib/url-registry/postgres"
-import { URL_REGISTRY_MIGRATION_MANIFEST_V8 } from "../../src/lib/url-registry/runtime/manifest"
+import { URL_REGISTRY_MIGRATION_MANIFEST_V7 } from "../../src/lib/url-registry/runtime/manifest"
 import { assertAppliedMigrationManifest } from "../../src/lib/url-registry/runtime/migration-verifier"
 import { sha256MarketReadinessValue } from "./urlr-convergence"
 
@@ -283,7 +283,7 @@ const urlrSnapshot = async (
         ),
       ])
     assertAppliedMigrationManifest(ledger)
-    if (ledger.length !== URL_REGISTRY_MIGRATION_MANIFEST_V8.length) {
+    if (ledger.length !== URL_REGISTRY_MIGRATION_MANIFEST_V7.length) {
       throw new Error(
         "four-market-readiness: migration ledger does not exactly match this build"
       )

@@ -7,7 +7,7 @@ export type UrlRegistryMigrationManifestEntry = Readonly<{
 export type UrlRegistryMigrationManifest =
   readonly UrlRegistryMigrationManifestEntry[]
 
-export const URL_REGISTRY_MIGRATION_MANIFEST_VERSION = 8 as const
+export const URL_REGISTRY_MIGRATION_MANIFEST_VERSION = 7 as const
 
 export const URL_REGISTRY_MIGRATION_MANIFEST_V1 = Object.freeze([
   Object.freeze({
@@ -75,15 +75,5 @@ export const URL_REGISTRY_MIGRATION_MANIFEST_V7 = Object.freeze([
       "sha256:577882389d27b2e71fd3b63af4fe5b5810e7865d0a74e8a0898c722a0368da93",
     name: "0007_align_entity_slug_grammar.sql",
     version: 7,
-  }),
-]) satisfies UrlRegistryMigrationManifest
-
-export const URL_REGISTRY_MIGRATION_MANIFEST_V8 = Object.freeze([
-  ...URL_REGISTRY_MIGRATION_MANIFEST_V7,
-  Object.freeze({
-    checksum:
-      "sha256:9a73963668b1ec265436ed81ffb890247347f51fd3ea648c6b61f2c2fcfa3a4f",
-    name: "0008_align_static_route_segment_grammar.sql",
-    version: 8,
   }),
 ]) satisfies UrlRegistryMigrationManifest
