@@ -215,7 +215,6 @@ export function FieldSelect({
   return (
     <div style={{ minWidth: selectMinWidthCh(items, placeholder) }}>
       <Select
-        aria-label={ariaLabel}
         disabled={disabled}
         items={items}
         onValueChange={(d) => onChange(d.value[0] ?? "")}
@@ -224,7 +223,15 @@ export function FieldSelect({
         value={value === undefined ? undefined : [value]}
       >
         <Select.Control>
-          <Select.Trigger>
+          {/*
+           * The name goes on the trigger, not on `Select`: the root
+           * destructures a closed prop list with no rest spread, so an
+           * `aria-label` there is silently dropped (hyphenated JSX
+           * attributes skip TS excess-property checks, so nothing flags
+           * it). `Select.Trigger` spreads rest props onto the focusable
+           * button, which is what assistive tech actually reads.
+           */}
+          <Select.Trigger aria-label={ariaLabel}>
             <Select.ValueText placeholder={placeholder} />
           </Select.Trigger>
         </Select.Control>
@@ -633,16 +640,33 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     error,
     errorId,
   }) => (
+    /*
+     * `NumericInput` is a compound component whose root renders only its
+     * children — self-closing it produces an empty div with no field to type
+     * into. The label/validation wiring belongs on `.Input` (which spreads
+     * rest props onto the real `<input>`); `describedBy` and `invalid` are
+     * the root's own props and reach the input through context.
+     */
     <NumericInput
-      aria-describedby={error ? errorId : undefined}
-      aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${columnLabel(column)}`}
+      describedBy={error ? errorId : undefined}
       disabled={disabled}
+      invalid={!!error}
       onChange={setValue}
       size={size}
       value={typeof value === "number" ? value : undefined}
-      {...editorKeyHandlers(commit, cancel)}
-    />
+    >
+      <NumericInput.Control>
+        <NumericInput.Input
+          aria-invalid={error ? true : undefined}
+          aria-label={`Edit ${columnLabel(column)}`}
+          {...editorKeyHandlers(commit, cancel)}
+        />
+        <NumericInput.TriggerContainer>
+          <NumericInput.IncrementTrigger />
+          <NumericInput.DecrementTrigger />
+        </NumericInput.TriggerContainer>
+      </NumericInput.Control>
+    </NumericInput>
   ),
 
   /*
@@ -659,10 +683,15 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
    *
    * Committing these cells therefore goes through the row's Save action.
    */
-  boolean: ({ column, value, setValue, disabled, error, errorId }) => (
+  boolean: ({ column, value, setValue, disabled, error }) => (
+    // No `aria-describedby`/`aria-invalid` here: `Switch`'s prop surface is
+    // closed, so those attributes never reach the DOM and only read as
+    // though the error were wired up. `validateStatus` is the supported
+    // channel and does drive the underlying invalid state. Associating the
+    // error text itself needs `Switch`/`Combobox` to accept `describedBy`
+    // (as `NumericInput` already does) — a change to those components,
+    // versioned separately from this organism.
     <Switch
-      aria-describedby={error ? errorId : undefined}
-      aria-invalid={error ? true : undefined}
       checked={Boolean(value)}
       disabled={disabled}
       onCheckedChange={setValue}

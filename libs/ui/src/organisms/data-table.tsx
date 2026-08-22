@@ -666,6 +666,17 @@ export type DataTableProps<T extends RowData> = {
     value: unknown
     row: T
   }) => void
+  /**
+   * Called once on mount with the table instance, for imperative access
+   * (`table.setPageIndex(…)`, `table.getSelectedRowModel()`, …).
+   *
+   * Methods stay live — they close over the core instance — but read
+   * `table.state` / `table.options` off this object with care: `useTable`
+   * returns a spread copy rather than the live instance, so the two fields
+   * captured here are a mount-time snapshot and never update. For live
+   * state use `renderToolbar`, which re-runs on render, or the instance's
+   * own `Subscribe`.
+   */
   onReady?: (table: TanstackTable<T>) => void
 
   /* ── Inline row editing ────────────────────────────────────────────────
@@ -2005,11 +2016,21 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const paddingBottom = lastVirtual
     ? rowVirtualizer.getTotalSize() - lastVirtual.end
     : 0
-  const renderRows: Row<T>[] = virtualizationUsable
-    ? virtualItems
-        .map((vi) => rows[vi.index])
-        .filter((r): r is Row<T> => r !== undefined)
-    : rows
+  /*
+   * Each rendered row is carried together with its index into `rows`, rather
+   * than re-derived positionally from `virtualItems` further down. A windowed
+   * index can miss transiently — `rows.length` shrinks on a filter or page
+   * change before the virtualizer's `count` catches up — and dropping those
+   * entries while indexing the window by position would shift every later row
+   * onto its predecessor's index, silently offsetting `aria-rowindex`, the
+   * `striped` parity and the `rowIndex` handed to `getCellSpan`.
+   */
+  const renderRows: { row: Row<T>; index: number }[] = virtualizationUsable
+    ? virtualItems.flatMap((vi) => {
+        const row = rows[vi.index]
+        return row ? [{ row, index: vi.index }] : []
+      })
+    : rows.map((row, index) => ({ row, index }))
 
   /* dnd sensors */
   const sensors = useSensors(
@@ -2529,7 +2550,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           action.hidden?.(row) ? null : (
             <Button
               aria-label={action.label}
-              disabled={action.disabled?.(row) || isEditing}
+              // `locked`, not `isEditing`: with
+              // `lockInteractionsWhileEditing={false}` the caller has opted
+              // out of edit-time locking, so row actions stay live like every
+              // other guarded interaction.
+              disabled={action.disabled?.(row) || locked}
               icon={action.icon}
               key={action.id}
               onClick={(e) => {
@@ -2697,10 +2722,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     columnFilters.length === 0 &&
     !globalFilter
 
-  const bodyRows = renderRows.map((row, i) => {
-    // Under virtualization `renderRows` is a window; map back to the true index
-    // in `rows` so getCellSpan inspects the correct neighbouring records.
-    const rowIndex = virtualizationUsable ? (virtualItems[i]?.index ?? i) : i
+  const bodyRows = renderRows.map(({ row, index: rowIndex }) => {
     // Only top-level rows are reorderable — sub-rows aren't in the top-level
     // `data` array, so dragging them could not be applied to it.
     return rowReorderActive && row.depth === 0 ? (

@@ -204,6 +204,51 @@ export function resolveColumnType(meta?: {
  * a comparator. `applyColumnDefaults` puts this on every column that does not
  * name its own `filterFn`.
  */
+/**
+ * `autoRemove` for DataTable's own filter functions: true when a stored
+ * filter value carries no actual constraint, so TanStack drops it from
+ * `columnFilters` instead of leaving a phantom entry behind.
+ *
+ * Every built-in filterFn defines this; without it TanStack only removes
+ * bare empty strings (see `shouldAutoRemoveFilter` in table-core). Our
+ * controls always store an *object* (`{ operator, value }` and friends), so
+ * clearing a filter left the entry in place — which reads as "a filter is
+ * active" to anything counting `columnFilters.length`, notably the
+ * row-reorder guard, which then stays disabled for the rest of the session.
+ */
+function filterValueIsEmpty(value: unknown): boolean {
+  if (value == null) {
+    return true
+  }
+  if (Array.isArray(value)) {
+    return value.length === 0
+  }
+  if (typeof value !== "object") {
+    return isBlank(value)
+  }
+  const v = value as {
+    operator?: string
+    value?: unknown
+    to?: unknown
+    from?: unknown
+    values?: unknown[]
+  }
+  // These two constrain the cell rather than compare against a typed value,
+  // so they are real filters despite carrying nothing to compare.
+  if (v.operator === "empty" || v.operator === "notEmpty") {
+    return false
+  }
+  if (Array.isArray(v.values)) {
+    return v.values.length === 0
+  }
+  // `false` is a genuine boolean constraint, so only `undefined` counts as
+  // "nothing selected" for the boolean filter's `{ value }` shape.
+  if (typeof v.value === "boolean") {
+    return false
+  }
+  return isBlank(v.value) && isBlank(v.to) && isBlank(v.from)
+}
+
 export const typedFilterFn: AnyFilterFn = (row, columnId, filterValue) => {
   // `table.getColumn` is a memoised id lookup. Reading the type off the row's
   // cells instead would rescan every leaf column for every row of every
@@ -211,6 +256,7 @@ export const typedFilterFn: AnyFilterFn = (row, columnId, filterValue) => {
   const type = resolveColumnType(row.table.getColumn(columnId)?.columnDef.meta)
   return typedFilterMatch(type, row.getValue(columnId), filterValue)
 }
+typedFilterFn.autoRemove = filterValueIsEmpty
 
 /* ── Conditional (operator-based) filtering ──────────────────────────────── */
 
@@ -389,6 +435,7 @@ export const conditionalFilterFn: AnyFilterFn = (
     type === "number" || type === "int"
   )
 }
+conditionalFilterFn.autoRemove = filterValueIsEmpty
 
 /* ── Column widths ────────────────────────────────────────────────────────
  * TanStack tracks a numeric `size` used by the resizing feature. Columns that
