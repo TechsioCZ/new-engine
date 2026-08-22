@@ -902,8 +902,21 @@ function matchNumber(cell: unknown, f: NumberFilterValue) {
 // up to a day; there's no runtime signal to distinguish the two, so this is
 // a documented convention rather than something validated.
 const END_OF_DAY_MS = 24 * 60 * 60 * 1000 - 1
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Parse to a timestamp, reading a bare `YYYY-MM-DD` as *local* midnight.
+ *
+ * ECMAScript parses a date-only string as UTC but a zoneless date-time
+ * (`2024-01-01T20:00:00`) as local, so comparing the two directly mixes
+ * frames of reference. West of UTC that silently excluded rows from the day
+ * they belong to: in UTC-5, a cell at 20:00 on Jan 1 resolves to Jan 2
+ * 01:00Z and falls outside a "Jan 1" filter's UTC window. Appending a time
+ * puts both sides on the same local clock.
+ */
 const time = (v: unknown) => {
-  const t = new Date(String(v)).getTime()
+  const raw = String(v)
+  const t = new Date(DATE_ONLY_RE.test(raw) ? `${raw}T00:00:00` : raw).getTime()
   return Number.isNaN(t) ? undefined : t
 }
 
@@ -939,24 +952,27 @@ function matchDateRange(cell: unknown, f: DateRangeFilterValue) {
   if (typeof cell === "object" && ("from" in cell || "to" in cell)) {
     return matchRangeOverlap(cell as { from?: unknown; to?: unknown }, f)
   }
-  const t = new Date(String(cell)).getTime()
-  if (Number.isNaN(t)) {
+  // Via `time`, so a date-only bound is read as local midnight and lands in
+  // the same frame of reference as a zoneless cell timestamp.
+  const t = time(cell)
+  if (t === undefined) {
     return false
   }
-  if (f.from) {
-    const from = new Date(f.from).getTime()
-    if (!Number.isNaN(from) && t < from) {
-      return false
-    }
+  return withinDateBounds(t, f)
+}
+
+/**
+ * Inclusive `[from, to]` test for a single timestamp. `to` extends to the end
+ * of its day so a single-day range matches that whole day.
+ */
+function withinDateBounds(t: number, f: DateRangeFilterValue): boolean {
+  const from = f.from ? time(f.from) : undefined
+  if (from !== undefined && t < from) {
+    return false
   }
-  if (f.to) {
-    // Inclusive end-of-day so a single-day range matches that whole day.
-    const to = new Date(f.to).getTime() + 24 * 60 * 60 * 1000 - 1
-    if (!Number.isNaN(to) && t > to) {
-      return false
-    }
-  }
-  return true
+  const toStart = f.to ? time(f.to) : undefined
+  const to = toStart === undefined ? undefined : toStart + END_OF_DAY_MS
+  return !(to !== undefined && t > to)
 }
 
 /** Minutes since midnight from "HH:mm", an ISO datetime, or a Date. */

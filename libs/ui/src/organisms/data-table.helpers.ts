@@ -266,8 +266,15 @@ function filterValueIsEmpty(value: unknown, column?: unknown): boolean {
     column as { columnDef?: { meta?: Parameters<typeof resolveColumnType>[0] } }
   )?.columnDef?.meta
   const type = resolveColumnType(meta)
+  // Mirrors which matcher `typedFilterMatch` routes each type to: `number`,
+  // `int` and `custom` all land on `matchNumber` (default `"equals"`),
+  // everything else on `matchText` (default `"contains"`). Getting `custom`
+  // wrong here left `{ operator: "equals" }` un-removed on those columns —
+  // the exact phantom-filter case this function exists to prevent.
   const defaultOperator =
-    type === "number" || type === "int" ? "equals" : "contains"
+    type === "number" || type === "int" || type === "custom"
+      ? "equals"
+      : "contains"
   return v.operator === defaultOperator
 }
 

@@ -1459,6 +1459,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const instanceId = idProp ?? generatedId
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const reachedEndRef = useRef(false)
+  // Row count at the last `onReachEnd` fired by the re-arm effect, so a
+  // request that brings back nothing doesn't immediately ask again.
+  const lastReachEndCountRef = useRef(-1)
   const headerRowRefs = useRef<(HTMLTableRowElement | null)[]>([])
   /**
    * Cumulative sticky offset for each header label row, plus the total in the
@@ -2087,15 +2090,30 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     if (!el) {
       return
     }
+    // Only re-fire once the row count has actually grown since the last
+    // request. `loadingMore` is a dependency, so at end-of-data the flip
+    // back to false would otherwise re-run this with the container still at
+    // the bottom and request the next page again — and again — forever,
+    // with no new rows to move the scroll position. A consumer whose fetch
+    // returns nothing is precisely how "no more data" is signalled.
+    if (data.length === lastReachEndCountRef.current) {
+      return
+    }
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight
     reachedEndRef.current = distance <= reachEndThreshold
     if (reachedEndRef.current && el.scrollHeight > el.clientHeight) {
+      lastReachEndCountRef.current = data.length
       onReachEnd()
     }
   }, [data.length, loadingMore, reachEndThreshold])
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
-    if (!onReachEnd) {
+    // Mirrors the window-scroll effect's guard. Without `maxHeight` this div
+    // has no bounded height, so `scrollHeight - scrollTop - clientHeight` is
+    // permanently 0 — a single *horizontal* scroll on a wide table would
+    // then read as "at the bottom" and fire `onReachEnd`. The page-scroll
+    // listener owns the unbounded case.
+    if (!(onReachEnd && maxHeight)) {
       return
     }
     const el = event.currentTarget
@@ -2678,12 +2696,21 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       data-dragging={dnd?.isDragging || undefined}
       id={opts.rowElementId ?? restRowProps.id}
       onClick={buildRowClickHandler(row, rowOnClick, onRowClick, blocked)}
-      onKeyDown={opts.rowKeyDown}
+      // Composed, not overwritten: like `onClick`, a consumer's
+      // `slotProps.row.onKeyDown` is a raw DOM passthrough they attached
+      // themselves and fires regardless of whether DataTable has its own
+      // row activation. Assigning `opts.rowKeyDown` straight across dropped
+      // it entirely — and dropped it to `undefined` on tables with no
+      // `onRowClick`, where `rowKeyDown` is not set at all.
+      onKeyDown={(event) => {
+        restRowProps.onKeyDown?.(event)
+        opts.rowKeyDown?.(event)
+      }}
       ref={composeRowRef(dnd, rowRef)}
       // Sortable ref wins while reordering; otherwise keep the consumer's ref.
       selected={enableRowSelection ? row.getIsSelected() : undefined}
       style={{ ...rowStyle, ...dnd?.style }}
-      tabIndex={opts.rowIsClickable ? 0 : undefined}
+      tabIndex={opts.rowIsClickable ? 0 : restRowProps.tabIndex}
     >
       {renderRowCells(row, row.getVisibleCells(), rowIndex, dnd)}
       {hasActionsColumn ? renderActionsCell(row) : null}
@@ -3243,6 +3270,15 @@ DataTable.Pagination = function DataTablePagination() {
       <div className={styles.paginationControls()}>
         <Pagination
           getPageUrl={() => "#"}
+          // `Pagination` renders its items as links, and a real `href="#"`
+          // navigates: the viewport jumps to the top of the document and a
+          // `#` entry is pushed onto history on every page change. Paging
+          // here is driven entirely by `onPageChange`, so the default is
+          // pure side effect. Zag's `mergeProps` composes handlers, so
+          // suppressing it does not stop the page from changing.
+          linkProps={{
+            onClick: (event: React.MouseEvent) => event.preventDefault(),
+          }}
           size={size}
           {...paginationProps}
           count={total}
