@@ -465,17 +465,13 @@ describe("decideProductLifecycle", () => {
     steps: readonly (readonly [
       ProductPublicationAssignmentV1 | null,
       SourceReadResult<unknown>,
-    ])[]
+    ])[],
+    decide: typeof decideProductLifecycle = decideProductLifecycle
   ): ProductLifecycleDecision[] => {
     let route: SourceReadResult<EntityRouteSnapshot> = routeCases.missing
     const decisions: ProductLifecycleDecision[] = []
     for (const [assignment, source] of steps) {
-      const decision = decideProductLifecycle(
-        "reconcile",
-        assignment,
-        source,
-        route
-      )
+      const decision = decide("reconcile", assignment, source, route)
       decisions.push(decision)
       route = routeAfter(route, decision)
     }
@@ -512,7 +508,7 @@ describe("decideProductLifecycle", () => {
     })
   })
 
-  it("retires an active route for a translation invalidation", () => {
+  it("does not retire an active route for a translation invalidation", () => {
     expect(
       decideTranslationInvalidatedProductLifecycle(
         "reconcile",
@@ -520,11 +516,7 @@ describe("decideProductLifecycle", () => {
         missingSource,
         routeCases.active
       )
-    ).toEqual({
-      action: "unpublished",
-      kind: "retire",
-      route: routeCases.active.value,
-    })
+    ).toEqual({ action: "unpublished", kind: "apply" })
   })
 
   it("does not retire a catalog route for a stale queued published slug", () => {
@@ -536,5 +528,77 @@ describe("decideProductLifecycle", () => {
         routeCases.active
       )
     ).toEqual({ action: "noop-source-missing", kind: "apply" })
+  })
+
+  it("republishes a product after a translation invalidation unpublished it", () => {
+    const decisions = replayReconcile(
+      [
+        [publishedAssignment, foundSource],
+        [null, missingSource],
+        [publishedAssignment, foundSource],
+      ],
+      decideTranslationInvalidatedProductLifecycle
+    )
+
+    expect(decisions).toEqual([
+      { kind: "publish", action: "published", publicSlug: "product-01" },
+      { kind: "apply", action: "unpublished" },
+      { kind: "apply", action: "noop-source-present" },
+    ])
+    expect(decisions.at(-1)).not.toMatchObject({ kind: "conflict" })
+  })
+
+  it("changes the slug when a product republished after translation invalidation carries a new slug", () => {
+    const decisions = replayReconcile(
+      [
+        [publishedAssignment, foundSource],
+        [null, missingSource],
+        [{ ...publishedAssignment, publicSlug: "product-02" }, foundSource],
+      ],
+      decideTranslationInvalidatedProductLifecycle
+    )
+
+    expect(decisions.at(-1)).toEqual({
+      kind: "change-slug",
+      action: "slug-changed",
+      publicSlug: "product-02",
+      route: routeCases.active.value,
+    })
+  })
+
+  it("republishes a catalog entity after it was unpublished", () => {
+    const decisions = replayReconcile(
+      [
+        [publishedAssignment, foundSource],
+        [null, missingSource],
+        [publishedAssignment, foundSource],
+      ],
+      decideCatalogLifecycle
+    )
+
+    expect(decisions).toEqual([
+      { kind: "publish", action: "published", publicSlug: "product-01" },
+      { kind: "apply", action: "unpublished" },
+      { kind: "apply", action: "noop-source-present" },
+    ])
+    expect(decisions.at(-1)).not.toMatchObject({ kind: "conflict" })
+  })
+
+  it("changes the slug when a catalog entity republished after unpublish carries a new slug", () => {
+    const decisions = replayReconcile(
+      [
+        [publishedAssignment, foundSource],
+        [null, missingSource],
+        [{ ...publishedAssignment, publicSlug: "product-02" }, foundSource],
+      ],
+      decideCatalogLifecycle
+    )
+
+    expect(decisions.at(-1)).toEqual({
+      kind: "change-slug",
+      action: "slug-changed",
+      publicSlug: "product-02",
+      route: routeCases.active.value,
+    })
   })
 })

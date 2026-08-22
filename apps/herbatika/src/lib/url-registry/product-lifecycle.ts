@@ -226,7 +226,13 @@ export const decideTranslationInvalidatedProductLifecycle = (
   decideLifecycle({
     assignment,
     changeType,
-    retireActiveRouteWhenUnpublished: true,
+    // Same terminal-retirement hazard as decideProductLifecycle: a translation
+    // invalidation is an ordinary unpublish, not a delete, so retiring the
+    // active route here would permanently block the next republish once the
+    // Translation is restored (retired routes cannot return to active).
+    // Leave the route to the storefront's publication proof; only an
+    // explicit delete may retire a product route.
+    retireActiveRouteWhenUnpublished: false,
     route,
     source,
   })
@@ -252,7 +258,12 @@ export const decideCatalogLifecycle = (
   return decideLifecycle({
     assignment,
     changeType,
-    retireActiveRouteWhenUnpublished: true,
+    // Same terminal-retirement hazard as decideProductLifecycle: catalog
+    // deliveries never carry a delete changeType (assignment-upsert with a
+    // null assignment is the only unpublish signal), so retiring the active
+    // route here would permanently block the next republish. Leave the route
+    // to the storefront's publication proof.
+    retireActiveRouteWhenUnpublished: false,
     route,
     source,
   })
