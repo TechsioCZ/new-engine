@@ -1916,7 +1916,23 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     () => rows.filter((r) => r.depth === 0).map((r) => r.id),
     [rows]
   )
-  const leafColumns = table.getVisibleLeafColumns()
+  /*
+   * Leaf columns in *render* order.
+   *
+   * `getVisibleLeafColumns()` is only `getAllLeafColumns().filter(isVisible)`
+   * — it does not apply pinning. `getHeaderGroups()` and `row.getVisibleCells()`
+   * both reorder to `[...start, ...center, ...end]`, so reading the plain leaf
+   * list put anything derived from it out of step with the header and body the
+   * moment a column was pinned: the filter row rendered its controls under the
+   * wrong headers, the tree indent attached to a column that was no longer
+   * leftmost, and the loading skeleton's columns did not line up with the table
+   * it stands in for. The last header group is the leaf row, so its headers are
+   * exactly what the header renders.
+   */
+  const headerGroups = table.getHeaderGroups()
+  const leafColumns =
+    headerGroups.at(-1)?.headers.map((h) => h.column as Column<T, unknown>) ??
+    table.getVisibleLeafColumns()
   const columnCount = leafColumns.length
 
   /* Virtualization (windowing that preserves native table column alignment).
