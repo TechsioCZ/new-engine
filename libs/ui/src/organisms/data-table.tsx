@@ -111,6 +111,18 @@ import {
 } from "./data-table.helpers"
 import { Table } from "./table"
 
+// Re-exported so DataTable's own documented filterRenderers/editorRenderers/
+// renderHeaderFilter/renderEditor props are typeable without reaching into
+// the internal data-table.fields module.
+export type {
+  DataTableColumnType,
+  DataTableControlSize,
+  DataTableEditorContext,
+  DataTableEditorRenderer,
+  DataTableFilterContext,
+  DataTableFilterRenderer,
+  DataTableOption,
+} from "./data-table.fields"
 export type {
   Cell,
   CellContext,
@@ -1845,6 +1857,30 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         "`hidden: true` follower row stays rendered, leaving a gap."
     )
   }, [virtualizationUsable, getCellSpan])
+  // Row reorder's `SortableContext` is seeded with every root row id
+  // (`rootRowIds`), but only the virtualized window's rows actually mount a
+  // `useSortable` node — dnd-kit's collision detection can't resolve ids
+  // with no registered DOM node, so dragging toward an off-screen target
+  // can misfire. Same "documented, not fixable without a deeper rework"
+  // treatment as the getCellSpan incompatibility above.
+  const hasWarnedAboutVirtualizedRowReorder = useRef(false)
+  useEffect(() => {
+    if (
+      !(virtualizationUsable && enableRowReorder) ||
+      hasWarnedAboutVirtualizedRowReorder.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutVirtualizedRowReorder.current = true
+    console.warn(
+      "DataTable: enableRowReorder and enableVirtualization are both set. " +
+        "Dragging a row toward a target outside the currently rendered " +
+        "window is unreliable — dnd-kit only tracks rows that are actually " +
+        "mounted, not the full row list."
+    )
+  }, [virtualizationUsable, enableRowReorder])
   useEffect(() => {
     if (!enableVirtualization || maxHeight) {
       // Reset the latch whenever the config is valid (or virtualization is

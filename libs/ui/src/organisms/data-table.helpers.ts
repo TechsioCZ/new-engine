@@ -82,7 +82,7 @@ import type {
   DataTableFilterContext,
   DataTableOption,
 } from "./data-table.fields"
-import { isBlank, typedFilterMatch } from "./data-table.fields"
+import { isBlank, matchBetween, typedFilterMatch } from "./data-table.fields"
 
 /**
  * Signature for the filter functions DataTable registers on its own feature
@@ -243,14 +243,9 @@ export type DataTableConditionalFilterValue = {
  * offering operators the typed matcher silently mishandled. */
 
 /**
- * The `between` arm of `evaluateCondition`, split out to keep either half
- * legible.
- *
- * `num` is NaN for a blank or non-numeric cell, and every comparison against
- * NaN is false — so without the explicit guard both bounds checks pass and such
- * a cell sails through a numeric range. The `gt`/`lt` family excludes them for
- * free, and `matchNumber` in `data-table.fields.tsx` does the same; this is the
- * one arm where the NaN falls the wrong way.
+ * The `between` arm of `evaluateCondition`, delegating to `matchBetween`
+ * (data-table.fields.tsx) so the typed and conditional filters can't
+ * silently diverge on the same numeric column's between behavior.
  */
 function evaluateBetween(
   num: number,
@@ -258,25 +253,10 @@ function evaluateBetween(
   value: unknown,
   to: unknown
 ): boolean {
-  let lo = Number(value)
-  let hi = Number(to)
-  const hasLo = !(isBlank(value) || Number.isNaN(lo))
-  const hasHi = !(isBlank(to) || Number.isNaN(hi))
-  if (!(hasLo || hasHi)) {
-    return true
-  }
-  if (cellHasNoNumber) {
-    return false
-  }
-  // Same order-independence as matchBetween (data-table.fields.tsx): both
-  // bounds typed but From > To would otherwise reject every value.
-  if (hasLo && hasHi && lo > hi) {
-    ;[lo, hi] = [hi, lo]
-  }
-  if (hasLo && num < lo) {
-    return false
-  }
-  return !(hasHi && num > hi)
+  return matchBetween(num, cellHasNoNumber, {
+    value: value as string | undefined,
+    to: to as string | undefined,
+  })
 }
 
 /**
@@ -382,6 +362,13 @@ function evaluateCondition(
  * TanStack `filterFn` implementing operator-based ("with conditions") column
  * filtering. Register on a column via `filterFn: conditionalFilterFn` and store
  * `{ operator, value, to? }` as the filter value.
+ *
+ * Built for `"string"`/`"number"`/`"int"` columns — its operator set
+ * (contains/equals/startsWith/gt/between/…) has no meaningful semantics for
+ * `"enum"`/`"multiEnum"`/`"date"`/`"dateRange"` columns, which fall back to a
+ * case-insensitive string comparison against the raw cell value (e.g. an
+ * array cell stringifies via `Array.prototype.toString`). Use the column's
+ * default `typed` filter (or a custom `filterFn`) for those types instead.
  */
 export const conditionalFilterFn: AnyFilterFn = (
   row,

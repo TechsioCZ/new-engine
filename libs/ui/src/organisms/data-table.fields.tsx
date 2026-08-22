@@ -289,7 +289,7 @@ function FilterConditionMenu({
         checked: o.value === value,
       }))}
       onSelect={(d) => onChange(d.value)}
-      size="sm"
+      size={size}
     />
   )
 }
@@ -797,7 +797,13 @@ function matchText(cell: unknown, f: TextFilterValue) {
 }
 
 /** The `between` arm of `matchNumber`, split out to keep either half legible. */
-function matchBetween(
+/**
+ * Exported so `evaluateCondition` (data-table.helpers.ts) can share this
+ * exact bounds logic for its own `between` operator instead of keeping a
+ * second hand-copied implementation that could silently diverge from this
+ * one on an edge case (e.g. inclusive/exclusive bounds).
+ */
+export function matchBetween(
   n: number,
   cellHasNoNumber: boolean,
   f: NumberFilterValue

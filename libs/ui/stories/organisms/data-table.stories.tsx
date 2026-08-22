@@ -5,15 +5,13 @@ import { ActionIcon } from "../../src/atoms/action-icon"
 import { Badge } from "../../src/atoms/badge"
 import { Input } from "../../src/atoms/input"
 import { Select } from "../../src/molecules/select"
-import type {
-  DataTableFilterContext,
-  DataTableOption,
-} from "../../src/organisms/data-table.fields"
 import {
   type CellContext,
   type ColumnDef,
   DataTable,
+  type DataTableFilterContext,
   type DataTableGetCellSpan,
+  type DataTableOption,
   type DataTableProps,
 } from "../../src/organisms/data-table"
 
