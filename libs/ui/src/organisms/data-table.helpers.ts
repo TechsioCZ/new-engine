@@ -252,7 +252,12 @@ export type DataTableConditionalFilterValue = {
  * free, and `matchNumber` in `data-table.fields.tsx` does the same; this is the
  * one arm where the NaN falls the wrong way.
  */
-function evaluateBetween(num: number, value: unknown, to: unknown): boolean {
+function evaluateBetween(
+  num: number,
+  cellHasNoNumber: boolean,
+  value: unknown,
+  to: unknown
+): boolean {
   const lo = Number(value)
   const hi = Number(to)
   const hasLo = !(isBlank(value) || Number.isNaN(lo))
@@ -260,7 +265,7 @@ function evaluateBetween(num: number, value: unknown, to: unknown): boolean {
   if (!(hasLo || hasHi)) {
     return true
   }
-  if (Number.isNaN(num)) {
+  if (cellHasNoNumber) {
     return false
   }
   if (hasLo && num < lo) {
@@ -288,6 +293,11 @@ function evaluateCondition(
   const query = String(value ?? "").toLowerCase()
   const num = Number(cellValue)
   const target = Number(value)
+  // `Number(null)` and `Number("")` are both 0, not NaN, so a blank cell
+  // would otherwise satisfy `lt 5`, `gte 0` and the like — the same hole
+  // `matchNumber` (data-table.fields.tsx) already guards against for the
+  // typed filter, mirrored here for the conditional one.
+  const cellHasNoNumber = isBlank(cellValue) || Number.isNaN(num)
 
   // A half-typed number ("-", "1e", ".") parses to NaN, and every comparison
   // against NaN is false — which would empty the table mid-keystroke. Treat it
@@ -299,6 +309,9 @@ function evaluateCondition(
     operator === "lte"
   if (numericOperator && Number.isNaN(target)) {
     return true
+  }
+  if (numericOperator && cellHasNoNumber) {
+    return false
   }
 
   switch (operator) {
@@ -323,7 +336,7 @@ function evaluateCondition(
     case "lte":
       return num <= target
     case "between":
-      return evaluateBetween(num, value, to)
+      return evaluateBetween(num, cellHasNoNumber, value, to)
     default:
       return true
   }

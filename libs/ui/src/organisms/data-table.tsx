@@ -90,6 +90,7 @@ import {
   DEFAULT_EDITOR_RENDERERS,
   DEFAULT_FILTER_RENDERERS,
   FieldSelect,
+  isBlank,
 } from "./data-table.fields"
 import {
   applyColumnDefaults,
@@ -773,6 +774,10 @@ const SELECTION_COLUMN_ID = "__select"
 const EMPTY_COLUMN_PINNING: ColumnPinningState = { start: [], end: [] }
 
 const DRAG_COLUMN_ID = "__drag"
+const BUILTIN_COLUMN_IDS = new Set<string>([
+  SELECTION_COLUMN_ID,
+  DRAG_COLUMN_ID,
+])
 
 type DataTableStyles = ReturnType<typeof dataTableVariants>
 
@@ -1025,10 +1030,7 @@ function validateDraft<T extends RowData>(
       continue
     }
     const value = draft[column.id]
-    const empty =
-      value == null ||
-      value === "" ||
-      (Array.isArray(value) && value.length === 0)
+    const empty = isBlank(value) || (Array.isArray(value) && value.length === 0)
     if (meta.required && empty) {
       errors[column.id] = "Required"
       continue
@@ -1066,14 +1068,14 @@ function renderExpandedDetailRow<T extends RowData>({
       className={tintNestedRows ? "data-table-row-nested-tint" : undefined}
       data-depth={row.depth + 1}
     >
-      <td colSpan={colSpan}>
+      <Table.Cell colSpan={colSpan}>
         <div
           className={styles.detailBox()}
           id={`${instanceId}-detail-${row.id}`}
         >
           {renderExpandedRow(row)}
         </div>
-      </td>
+      </Table.Cell>
     </tr>
   )
 }
@@ -1160,16 +1162,28 @@ function activateRowByKeyboard(
 }
 
 /** Row ref: the sortable node ref, plus a handle on the row being edited. */
+/** Stable id for the currently-edited row's `<tr>`, used to find it by DOM
+ * id rather than a ref — see the focus-management effect for why. */
+function editedRowElementId(instanceId: string, rowId: string): string {
+  return `${instanceId}-editing-${rowId}`
+}
+
+/** `undefined` unless `rowId` is the one currently being edited. */
+function editingRowElementId(
+  editingRowId: string | null,
+  instanceId: string,
+  rowId: string
+): string | undefined {
+  return editingRowId === rowId
+    ? editedRowElementId(instanceId, rowId)
+    : undefined
+}
+
 function composeRowRef(
-  isEditedRow: boolean,
-  editRowRef: { current: HTMLTableRowElement | null },
   dnd: { setNodeRef: (node: HTMLElement | null) => void } | undefined,
   consumerRef: Ref<HTMLTableRowElement> | undefined
 ) {
   return ((node: HTMLTableRowElement | null) => {
-    if (isEditedRow) {
-      editRowRef.current = node
-    }
     dnd?.setNodeRef(node)
     if (typeof consumerRef === "function") {
       consumerRef(node)
@@ -1402,23 +1416,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   /* Inject built-in leading columns (drag handle, selection, expander). */
   const editTriggerIdRef = useRef<string | null>(null)
-  const editRowRef = useRef<HTMLTableRowElement | null>(null)
-  const [editingRowIdState, setEditingRowIdState] = useState<string | null>(
-    null
+  const [editingRowId, setEditingRowId] = useControllable<string | null>(
+    editingRowIdProp,
+    null,
+    onEditingRowIdChange
   )
-  const editingRowId =
-    editingRowIdProp === undefined ? editingRowIdState : editingRowIdProp
   const [draft, setDraft] = useState<Record<string, unknown>>({})
   const [editErrors, setEditErrors] = useState<Record<string, string>>({})
   const [dirty, setDirty] = useState(false)
 
   const isEditing = editingRowId != null
   const locked = isEditing && lockInteractionsWhileEditing
-
-  const setEditingRowId = (next: string | null) => {
-    setEditingRowIdState(next)
-    onEditingRowIdChange?.(next)
-  }
 
   /**
    * Guard for interactions that are locked during an inline edit. Reports the
@@ -1557,9 +1565,22 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   useEffect(() => {
     if (editingRowId) {
+      // Looked up by id — set on the row's own element above — rather than
+      // held in a ref written from each row's ref callback: when
+      // `editingRowId` jumps directly from one row to an earlier one (a
+      // controlled `editingRowId` change, not the internal `startEdit` guard
+      // that always requires the previous edit to close first), React
+      // detaches the old row's ref *after* attaching the new one, since
+      // detach/attach run in DOM order across siblings — the old row's
+      // detach would null out a ref the new row had just set. A DOM id
+      // resolved fresh, after the whole commit lands, isn't exposed to that
+      // ordering at all.
       // Scope to the editor wrappers so the (disabled) selection checkbox and
       // other row controls are never picked, and include button-based editors.
-      const candidates = editRowRef.current?.querySelectorAll<HTMLElement>(
+      const row = document.getElementById(
+        editedRowElementId(instanceId, editingRowId)
+      )
+      const candidates = row?.querySelectorAll<HTMLElement>(
         "[data-editor-control] input, [data-editor-control] select, [data-editor-control] textarea, [data-editor-control] button"
       )
       const first = Array.from(candidates ?? []).find(
@@ -1575,7 +1596,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       : null
     trigger?.focus()
     editTriggerIdRef.current = null
-  }, [editingRowId])
+  }, [editingRowId, instanceId])
 
   // Draft state is cleared when the edit actually ends, so a controlled
   // `editingRowId` held open across an async save keeps its values.
@@ -1683,6 +1704,13 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   }
 
   const rows = table.getRowModel().rows
+  // Memoized for the same reason as `reorderableLeafIds`: a fresh array
+  // identity on every render defeats `SortableContext`'s own change
+  // detection regardless of whether the row order actually changed.
+  const rootRowIds = useMemo(
+    () => rows.filter((r) => r.depth === 0).map((r) => r.id),
+    [rows]
+  )
   const leafColumns = table.getVisibleLeafColumns()
   const columnCount = leafColumns.length
 
@@ -1835,15 +1863,16 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
     // Map the dragged/target display rows back to their positions in the
     // original `data` array — display order may be sorted/filtered/paginated,
-    // so row-model indices must not be applied to `data` directly.
-    const activeRow = rows.find((r) => r.id === active.id)
-    const overRow = rows.find((r) => r.id === over.id)
-    if (!(activeRow && overRow)) {
-      return
-    }
-    const from = data.indexOf(activeRow.original)
-    const to = data.indexOf(overRow.original)
-    if (from === -1 || to === -1) {
+    // so row-model indices must not be applied to `data` directly. The core
+    // (unsorted, unfiltered) row model's `.index` already *is* that position,
+    // keyed by id in O(1) via `rowsById` — unlike `data.indexOf(row.original)`,
+    // this doesn't depend on `row.original` being reference-identical to an
+    // entry in `data`, so it doesn't silently no-op when `data` holds
+    // duplicate or content-equal objects.
+    const coreRowsById = table.getCoreRowModel().rowsById
+    const from = coreRowsById[active.id as string]?.index
+    const to = coreRowsById[over.id as string]?.index
+    if (from === undefined || to === undefined) {
       return
     }
     const next = arrayMove([...data], from, to)
@@ -1854,11 +1883,26 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     .getAllLeafColumns()
     .some((c) => c.columnDef.footer != null)
 
-  const builtinIds = new Set<string>([DRAG_COLUMN_ID, SELECTION_COLUMN_ID])
-  const indentColumnId = leafColumns.find((c) => !builtinIds.has(c.id))?.id
-  const reorderableLeafIds = leafColumns
-    .filter((c) => !builtinIds.has(c.id))
-    .map((c) => c.id)
+  const indentColumnId = leafColumns.find(
+    (c) => !BUILTIN_COLUMN_IDS.has(c.id)
+  )?.id
+  // Must match `renderHeaderCell`'s own `reorderable` check exactly: dnd-kit's
+  // `SortableContext` computes drag index/offset math from this `items`
+  // array assuming every id in it has a registered `useSortable` node, and
+  // pinned columns are the one leaf column `renderHeaderCell` deliberately
+  // never wraps in `SortableHeaderContent`.
+  //
+  // Memoized: `SortableContext` treats a new `items` identity as "the list
+  // changed" regardless of content, forcing dnd-kit to rebuild its id index —
+  // this recomputes only when the actual leaf columns change, not on every
+  // unrelated render (a filter keystroke, a hover state elsewhere).
+  const reorderableLeafIds = useMemo(
+    () =>
+      leafColumns
+        .filter((c) => !(BUILTIN_COLUMN_IDS.has(c.id) || c.getIsPinned()))
+        .map((c) => c.id),
+    [leafColumns]
+  )
 
   /**
    * The expand toggle lives in the trailing actions cell (so it cannot collide
@@ -2020,7 +2064,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               !locked &&
               header.subHeaders.length === 0 &&
               !header.column.getIsPinned() &&
-              !builtinIds.has(header.column.id)
+              !BUILTIN_COLUMN_IDS.has(header.column.id)
             return reorderable ? (
               <SortableHeaderContent
                 columnId={header.column.id}
@@ -2205,6 +2249,16 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     return custom === undefined ? defaultRowActions(row) : custom
   }
 
+  /**
+   * Only a `renderExpandedRow` table renders `${instanceId}-detail-${row.id}`
+   * (see `renderExpandedDetailRow`); tree/`getSubRows` expansion reveals
+   * sibling `<tr>` rows from the row model instead, with no single container
+   * id to point at, so `aria-controls` naming a non-existent element would be
+   * worse than omitting it.
+   */
+  const expandAriaControls = (rowId: string) =>
+    renderExpandedRow ? `${instanceId}-detail-${rowId}` : undefined
+
   const renderActionsCell = (row: Row<T>) => (
     <Table.Cell
       className={stickyActions ? "sticky end-0 bg-table-bg" : undefined}
@@ -2220,7 +2274,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       <div className={styles.actionsCell()}>
         {enableExpanding && row.getCanExpand() ? (
           <Button
-            aria-controls={`${instanceId}-detail-${row.id}`}
+            aria-controls={expandAriaControls(row.id)}
             aria-expanded={row.getIsExpanded()}
             aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
             icon={
@@ -2275,8 +2329,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     cells: Cell<T, unknown>[],
     rowIndex: number,
     dnd?: { dragHandleProps: Record<string, unknown> }
-  ) =>
-    cells.map((cell) => {
+  ) => {
+    const rowLabel = getRowLabel?.(row) ?? `row ${row.id}`
+    return cells.map((cell) => {
       const span = getCellSpan?.(cell, { row, rows, rowIndex })
       if (span?.hidden) {
         return null
@@ -2299,12 +2354,13 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           indentColumnId={indentColumnId}
           key={cell.id}
           row={row}
-          rowLabel={getRowLabel?.(row) ?? `row ${row.id}`}
+          rowLabel={rowLabel}
           span={span}
           styles={styles}
         />
       )
     })
+  }
 
   /**
    * `aria-rowindex` is 1-based across the whole table including header rows,
@@ -2332,6 +2388,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     const cells = row.getVisibleCells()
     const rowIsClickable = !!onRowClick && !locked
     const actionsColumn = hasActionsColumn ? 1 : 0
+    const rowElementId = editingRowElementId(editingRowId, instanceId, row.id)
     const rowKeyDown = rowIsClickable
       ? (event: React.KeyboardEvent<HTMLTableRowElement>) =>
           activateRowByKeyboard(event, () => {
@@ -2356,6 +2413,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         )}
         data-depth={row.depth || undefined}
         data-dragging={dnd?.isDragging || undefined}
+        id={rowElementId}
         onClick={(event) => {
           // `slotProps.row.onClick` is a raw DOM passthrough the consumer
           // attached themselves, so it fires regardless — the edit lock governs
@@ -2371,7 +2429,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           }
         }}
         onKeyDown={rowKeyDown}
-        ref={composeRowRef(editingRowId === row.id, editRowRef, dnd, rowRef)}
+        ref={composeRowRef(dnd, rowRef)}
         // Sortable ref wins while reordering; otherwise keep the consumer's ref.
         selected={enableRowSelection ? row.getIsSelected() : undefined}
         style={{ ...rowStyle, ...dnd?.style }}
@@ -2466,7 +2524,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   const emptyRow = (
     <tr>
-      <td colSpan={columnCount + (hasActionsColumn ? 1 : 0)}>{emptyState}</td>
+      <Table.Cell colSpan={columnCount + (hasActionsColumn ? 1 : 0)}>
+        {emptyState}
+      </Table.Cell>
     </tr>
   )
 
@@ -2573,7 +2633,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         sensors={sensors}
       >
         <SortableContext
-          items={rows.filter((r) => r.depth === 0).map((r) => r.id)}
+          items={rootRowIds}
           strategy={verticalListSortingStrategy}
         >
           {scrollBody}
