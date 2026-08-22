@@ -559,6 +559,40 @@ const editorKeyHandlers = (commit: () => void, cancel: () => void) => ({
   },
 })
 
+/**
+ * The `date`, `datetime` and `time` editors are the same native-`Input`
+ * control differing only in its `type`, so they share one factory — a fix to
+ * the keyboard handling or ARIA wiring lands on all three instead of two of
+ * them plus whichever was forgotten.
+ */
+function dateLikeEditor(
+  inputType: "date" | "datetime-local" | "time"
+): DataTableEditorRenderer {
+  return ({
+    column,
+    value,
+    setValue,
+    disabled,
+    error,
+    commit,
+    cancel,
+    size,
+    errorId,
+  }) => (
+    <Input
+      aria-describedby={error ? errorId : undefined}
+      aria-invalid={error ? true : undefined}
+      aria-label={`Edit ${columnLabel(column)}`}
+      disabled={disabled}
+      onChange={(e) => setValue(e.target.value)}
+      size={size}
+      type={inputType}
+      value={(value as string) ?? ""}
+      {...editorKeyHandlers(commit, cancel)}
+    />
+  )
+}
+
 export const DEFAULT_EDITOR_RENDERERS: Record<
   DataTableColumnType,
   DataTableEditorRenderer
@@ -611,6 +645,20 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     />
   ),
 
+  /*
+   * The three editors below deliberately omit `editorKeyHandlers`, unlike
+   * every Input/NumericInput-based one:
+   *
+   * - `Switch`, `FieldSelect` and `Combobox` all expose closed prop surfaces
+   *   (no `onKeyDown`, no rest spread), so the handlers cannot be forwarded
+   *   without widening those components' public props.
+   * - For the two dropdowns, Enter and Escape already belong to the Zag
+   *   select/combobox machines — Enter picks the highlighted option, Escape
+   *   closes the popup. Intercepting them here would break option selection
+   *   rather than add a commit shortcut.
+   *
+   * Committing these cells therefore goes through the row's Save action.
+   */
   boolean: ({ column, value, setValue, disabled, error, errorId }) => (
     <Switch
       aria-describedby={error ? errorId : undefined}
@@ -649,77 +697,11 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     />
   ),
 
-  date: ({
-    column,
-    value,
-    setValue,
-    disabled,
-    error,
-    commit,
-    cancel,
-    size,
-    errorId,
-  }) => (
-    <Input
-      aria-describedby={error ? errorId : undefined}
-      aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${columnLabel(column)}`}
-      disabled={disabled}
-      onChange={(e) => setValue(e.target.value)}
-      size={size}
-      type="date"
-      value={(value as string) ?? ""}
-      {...editorKeyHandlers(commit, cancel)}
-    />
-  ),
+  date: dateLikeEditor("date"),
 
-  datetime: ({
-    column,
-    value,
-    setValue,
-    disabled,
-    error,
-    commit,
-    cancel,
-    size,
-    errorId,
-  }) => (
-    <Input
-      aria-describedby={error ? errorId : undefined}
-      aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${columnLabel(column)}`}
-      disabled={disabled}
-      onChange={(e) => setValue(e.target.value)}
-      size={size}
-      type="datetime-local"
-      value={(value as string) ?? ""}
-      {...editorKeyHandlers(commit, cancel)}
-    />
-  ),
+  datetime: dateLikeEditor("datetime-local"),
 
-  time: ({
-    column,
-    value,
-    setValue,
-    disabled,
-    error,
-    commit,
-    cancel,
-    size,
-    errorId,
-  }) => (
-    <Input
-      aria-describedby={error ? errorId : undefined}
-      aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${columnLabel(column)}`}
-      disabled={disabled}
-      onChange={(e) => setValue(e.target.value)}
-      size={size}
-      type="time"
-      value={(value as string) ?? ""}
-      {...editorKeyHandlers(commit, cancel)}
-    />
-  ),
+  time: dateLikeEditor("time"),
 
   dateRange: ({
     column,

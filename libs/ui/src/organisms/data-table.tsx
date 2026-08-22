@@ -64,6 +64,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -1221,6 +1222,37 @@ function checkReachEnd(
   }
 }
 
+/**
+ * `useLayoutEffect` on the client, `useEffect` on the server — React warns
+ * about the former during SSR, and this library is consumed by server-
+ * rendered apps. Used where a measurement has to land before paint.
+ */
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect
+
+/**
+ * Trim a selection down to `max`, keeping rows that were already selected
+ * before rows newly added by the same change.
+ *
+ * Shared by both places the cap is enforced — the `setRowSelection` updater
+ * (a selection *action* overshooting) and the effect that reacts to
+ * `maxSelectedRows` itself shrinking — so the two can't drift on which rows
+ * survive. Note the priority pass is what makes this meaningful: for default
+ * index-based row ids, `Object.keys` yields ascending numeric order rather
+ * than selection order, so slicing the raw list would keep whichever rows
+ * happen to sort lowest instead of the ones already held.
+ */
+function clampSelection(
+  selectedIds: string[],
+  previous: RowSelectionState,
+  max: number
+): string[] {
+  return [
+    ...selectedIds.filter((id) => previous[id]),
+    ...selectedIds.filter((id) => !previous[id]),
+  ].slice(0, max)
+}
+
 /** Row-level Enter/Space activation, gated by the edit lock. */
 function buildRowKeyDownHandler<T extends RowData>(
   row: Row<T>,
@@ -1476,11 +1508,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         }
         return next
       }
-      // Keep rows that were already selected, then fill up to the cap.
-      const kept = [
-        ...selectedIds.filter((id) => old[id]),
-        ...selectedIds.filter((id) => !old[id]),
-      ].slice(0, maxSelectedRows)
+      const kept = clampSelection(selectedIds, old, maxSelectedRows)
       limitReached = { limit: maxSelectedRows, selectedCount: kept.length }
       return Object.fromEntries(kept.map((id) => [id, true]))
     })
@@ -1495,6 +1523,14 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   // it can't see `maxSelectedRows` itself shrinking below the current
   // selection (e.g. a permission change re-renders with a lower cap). Trim
   // the resolved state directly whenever that happens.
+  //
+  // Which rows survive is arbitrary but deterministic here: unlike the
+  // updater path there is no "before" selection to prioritise against —
+  // every selected row is equally pre-existing — and `RowSelectionState` is
+  // a plain record that carries no selection order (for default index-based
+  // ids `Object.keys` yields ascending numeric order, not recency). A
+  // caller that needs a specific survivor set should control `rowSelection`
+  // and trim it themselves alongside lowering the cap.
   // biome-ignore lint/correctness/useExhaustiveDependencies: only re-checks when the cap or the selection itself changes; setRowSelectionState/onSelectionLimitReached are stable
   useEffect(() => {
     if (maxSelectedRows == null) {
@@ -1688,10 +1724,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     },
   })
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: fire only when the (stable) table instance changes, not on every render or onReady identity change
+  // `useTable`'s returned wrapper is `useMemo(..., [table, tableOptions, state])`
+  // (@tanstack/react-table's useTable.js), and `tableOptions` is the options
+  // object literal built above — a fresh reference every render — so the
+  // wrapper's identity changes every render even though the underlying
+  // `constructTable` instance (created once via `useState`) never does.
+  // Firing on mount only, rather than keying off `table`, is what "ready"
+  // actually means here.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally mount-only — see comment above
   useEffect(() => {
     onReady?.(table)
-  }, [table])
+  }, [])
 
   useEffect(() => {
     if (editingRowId) {
@@ -1747,8 +1790,14 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   const headerGroupCount = table.getHeaderGroups().length
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the header gains or loses a row, which is what the group count tracks
-  useEffect(() => {
+  // Measured before paint: `headerOffsets` starts at `[0]`, so a post-paint
+  // `useEffect` would render every sticky header row at `top: 0` for one
+  // frame on mount (and whenever the group count changes), flashing the
+  // grouped rows stacked on top of each other before they settle.
+  //
+  // Deps are `stickyHeader` + `headerGroupCount` on purpose: re-measure when
+  // the header gains or loses a row, which is what the group count tracks.
+  useIsomorphicLayoutEffect(() => {
     if (!stickyHeader) {
       return
     }
