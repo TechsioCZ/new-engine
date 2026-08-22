@@ -189,6 +189,21 @@ const mergeButtonTargetUpdate = (
   return mergedValue
 }
 
+// Payload's own group-field default-value logic (fields/hooks/beforeValidate
+// and beforeChange) only re-initializes a missing group to `{}` when the
+// incoming value is `undefined`; it checks `typeof value !== "object"`,
+// which is true for `undefined` but NOT for `null` (typeof null ===
+// "object"). An explicit top-level `null` therefore survives that check and
+// is handed down as the group's own sibling data, and the first child field
+// (`targetType`) crashes reading `null.targetType`. This must be neutralized
+// before Payload's core field processing runs, i.e. in `beforeOperation`
+// (the earliest collection hook), not in `beforeValidate`.
+const sanitizeNullButtonTargetGroup = (data: Record<string, unknown>): void => {
+  if (data.buttonTarget === null) {
+    data.buttonTarget = {}
+  }
+}
+
 const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
   if (typeof value === "string") {
     return cleanString(value)
@@ -350,6 +365,17 @@ export const HeroCarousels: CollectionConfig = {
     },
   ],
   hooks: {
+    beforeOperation: [
+      ({ args, operation }) => {
+        if (
+          (operation === "create" || operation === "update") &&
+          isRecord(args.data)
+        ) {
+          sanitizeNullButtonTargetGroup(args.data)
+        }
+        return args
+      },
+    ],
     beforeValidate: [
       ({ data, operation, originalDoc, req }) => {
         if (!data) {
@@ -363,7 +389,13 @@ export const HeroCarousels: CollectionConfig = {
           const nextTarget = isRecord(data.buttonTarget)
             ? mergeButtonTargetUpdate(data.buttonTarget, originalTarget)
             : data.buttonTarget
-          data.buttonTarget = normalizeHeroButtonTarget(nextTarget)
+          // Never write a bare top-level `null` back onto a group field:
+          // Payload's beforeChange group-field init has the same
+          // typeof-null-is-"object" gap as beforeValidate (see
+          // sanitizeNullButtonTargetGroup above) and would crash on it
+          // later in the same request. An empty object is the safe,
+          // schema-correct "no target" representation.
+          data.buttonTarget = normalizeHeroButtonTarget(nextTarget) ?? {}
         }
 
         if (operation === "update" && data.internalTitle === undefined) {

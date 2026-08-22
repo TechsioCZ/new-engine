@@ -1,4 +1,7 @@
-import type { CollectionBeforeValidateHook } from "payload"
+import type {
+  CollectionBeforeOperationHook,
+  CollectionBeforeValidateHook,
+} from "payload"
 import { describe, expect, it } from "vitest"
 import {
   HeroCarousels,
@@ -7,6 +10,8 @@ import {
 
 const beforeValidate = HeroCarousels.hooks
   ?.beforeValidate?.[0] as CollectionBeforeValidateHook
+const beforeOperation = HeroCarousels.hooks
+  ?.beforeOperation?.[0] as CollectionBeforeOperationHook
 
 type BeforeValidateArgs = Parameters<CollectionBeforeValidateHook>[0]
 type TestBeforeValidateArgs = Omit<Partial<BeforeValidateArgs>, "req"> & {
@@ -15,6 +20,15 @@ type TestBeforeValidateArgs = Omit<Partial<BeforeValidateArgs>, "req"> & {
 
 const runBeforeValidate = async (args: TestBeforeValidateArgs) =>
   beforeValidate(args as unknown as BeforeValidateArgs)
+
+type BeforeOperationArgs = Parameters<CollectionBeforeOperationHook>[0]
+type TestBeforeOperationArgs = {
+  args: { data: Record<string, unknown> }
+  operation: BeforeOperationArgs["operation"]
+}
+
+const runBeforeOperation = async (args: TestBeforeOperationArgs) =>
+  beforeOperation(args as unknown as BeforeOperationArgs)
 
 describe("hero carousel internal title", () => {
   it("derives an internal title when creating a document without one", async () => {
@@ -229,6 +243,114 @@ describe("hero carousel stable button target", () => {
         create: expect.any(Function),
         update: expect.any(Function),
       },
+    })
+  })
+})
+
+describe("hero carousel create without a call-to-action", () => {
+  // Regression coverage: Payload's own group-field default-value logic
+  // (fields/hooks/beforeValidate and beforeChange) resets a missing group
+  // to `{}` only when the incoming value is `undefined` — it checks
+  // `typeof value !== "object"`, which is true for `undefined` but false
+  // for `null` (typeof null === "object" in JS). A create request whose
+  // buttonTarget group is explicitly `null` therefore used to reach
+  // Payload's core field traversal with a null sibling value and crash
+  // reading `null.targetType` on the first child field, before our own
+  // beforeValidate hook ever ran.
+
+  it("beforeOperation replaces an explicit null buttonTarget with an empty object on create", async () => {
+    const args = { data: { internalTitle: "x", buttonTarget: null } }
+
+    const result = await runBeforeOperation({
+      args,
+      operation: "create",
+    })
+
+    expect(
+      (result as unknown as { data: Record<string, unknown> }).data
+    ).toMatchObject({ buttonTarget: {} })
+  })
+
+  it("beforeOperation leaves an absent buttonTarget untouched on create", async () => {
+    const args = { data: { internalTitle: "x" } }
+
+    const result = await runBeforeOperation({
+      args,
+      operation: "create",
+    })
+
+    expect(
+      (result as unknown as { data: Record<string, unknown> }).data
+    ).not.toHaveProperty("buttonTarget")
+  })
+
+  it("beforeOperation ignores read operations", async () => {
+    const args = { data: { internalTitle: "x", buttonTarget: null } }
+
+    const result = await runBeforeOperation({
+      args,
+      operation: "read",
+    })
+
+    expect(
+      (result as unknown as { data: { buttonTarget: unknown } }).data
+        .buttonTarget
+    ).toBeNull()
+  })
+
+  it("creates cleanly when buttonTarget is undefined", async () => {
+    const result = await runBeforeValidate({
+      data: { internalTitle: "x" },
+      operation: "create",
+      req: { locale: "en" },
+    })
+
+    expect(result).not.toHaveProperty("buttonTarget")
+  })
+
+  it("creates cleanly when buttonTarget is null", async () => {
+    // Simulates the full request pipeline: beforeOperation sanitizes the
+    // explicit null before Payload's core field traversal, then
+    // beforeValidate runs against the sanitized data.
+    const args = { data: { internalTitle: "x", buttonTarget: null } }
+    const sanitized = (await runBeforeOperation({
+      args,
+      operation: "create",
+    })) as unknown as { data: Record<string, unknown> }
+
+    const result = await runBeforeValidate({
+      data: sanitized.data,
+      operation: "create",
+      req: { locale: "en" },
+    })
+
+    expect(result?.buttonTarget).toEqual({})
+  })
+
+  it("creates cleanly with a valid static buttonTarget", async () => {
+    const args = {
+      data: {
+        internalTitle: "x",
+        buttonTarget: { targetType: "static", staticRouteKey: "root:about" },
+      },
+    }
+    const sanitized = (await runBeforeOperation({
+      args,
+      operation: "create",
+    })) as unknown as { data: Record<string, unknown> }
+
+    const result = await runBeforeValidate({
+      data: sanitized.data,
+      operation: "create",
+      req: { locale: "en" },
+    })
+
+    expect(result?.buttonTarget).toEqual({
+      targetType: "static",
+      sourceSystem: null,
+      sourceType: null,
+      sourceId: null,
+      staticRouteKey: "root:about",
     })
   })
 })
