@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,11 +30,18 @@ const tableVariants = tv({
       "data-[selected=true]:bg-table-row-bg-selected",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
+    /* `numeric` states that a value *is* a number; `data-align` is a pure
+     * presentation choice. Set one or the other — combining `numeric` with a
+     * conflicting `data-align` leaves the winner up to stylesheet order. */
     columnHeader: [
       "text-start data-[numeric=true]:text-end",
+      "data-[align=center]:text-center data-[align=start]:text-start data-[align=end]:text-end",
       "font-table-header",
     ],
-    cell: ["text-start data-[numeric=true]:text-end"],
+    cell: [
+      "text-start data-[numeric=true]:text-end",
+      "data-[align=center]:text-center data-[align=start]:text-start data-[align=end]:text-end",
+    ],
   },
   variants: {
     variant: {
@@ -113,7 +120,7 @@ const tableVariants = tv({
 })
 
 // Context for sharing state between sub-components
-interface TableContextValue {
+type TableContextValue = {
   variant?: "line" | "outline" | "striped"
   size?: "sm" | "md" | "lg"
   interactive?: boolean
@@ -291,10 +298,20 @@ Table.Row = function TableRow({
   )
 }
 
+/**
+ * Horizontal alignment of a header or body cell. Typed so a misspelling like
+ * `"centre"` fails the build instead of silently rendering unaligned — passing
+ * `data-align` through the prop spread still works for existing call sites.
+ */
+export type TableAlign = "start" | "center" | "end"
+
 // ColumnHeader component
-interface TableColumnHeaderProps extends ComponentPropsWithoutRef<"th"> {
+// `align` is a deprecated HTML attribute typed as a bare string on th/td;
+// omitting it lets the typed prop above take the name.
+type TableColumnHeaderProps = Omit<ComponentPropsWithoutRef<"th">, "align"> & {
   ref?: RefObject<HTMLTableCellElement>
   numeric?: boolean
+  align?: TableAlign
 }
 
 Table.ColumnHeader = function TableColumnHeader({
@@ -302,6 +319,7 @@ Table.ColumnHeader = function TableColumnHeader({
   ref,
   className,
   numeric,
+  align,
   ...props
 }: TableColumnHeaderProps) {
   const { styles } = useTableContext()
@@ -309,6 +327,7 @@ Table.ColumnHeader = function TableColumnHeader({
   return (
     <th
       className={styles.columnHeader({ className })}
+      data-align={align}
       data-numeric={numeric}
       ref={ref}
       scope="col"
@@ -320,9 +339,10 @@ Table.ColumnHeader = function TableColumnHeader({
 }
 
 // Cell component
-interface TableCellProps extends ComponentPropsWithoutRef<"td"> {
+type TableCellProps = Omit<ComponentPropsWithoutRef<"td">, "align"> & {
   ref?: RefObject<HTMLTableCellElement>
   numeric?: boolean
+  align?: TableAlign
 }
 
 Table.Cell = function TableCell({
@@ -330,6 +350,7 @@ Table.Cell = function TableCell({
   ref,
   className,
   numeric,
+  align,
   ...props
 }: TableCellProps) {
   const { styles, stickyFirstColumn } = useTableContext()
@@ -337,6 +358,7 @@ Table.Cell = function TableCell({
   return (
     <td
       className={styles.cell({ className, stickyFirstColumn })}
+      data-align={align}
       data-numeric={numeric}
       ref={ref}
       {...props}

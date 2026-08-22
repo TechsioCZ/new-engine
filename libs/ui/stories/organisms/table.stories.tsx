@@ -743,3 +743,40 @@ export const WithSelectionAndActions: Story = {
     )
   },
 }
+
+/**
+ * Per-cell horizontal alignment via `data-align` (`start | center | end`).
+ * Unlike `numeric` — which says "this value is a number" — `data-align` is a
+ * pure presentation choice, so an icon or boolean column can be centred without
+ * claiming to be numeric.
+ */
+export const Alignment: Story = {
+  args: {
+    variant: 'outline',
+    size: 'md',
+  },
+  render: (args) => (
+    <Table {...args}>
+      <Table.Header>
+        <Table.Row>
+          <Table.ColumnHeader data-align="start">Product</Table.ColumnHeader>
+          <Table.ColumnHeader data-align="center">In stock</Table.ColumnHeader>
+          <Table.ColumnHeader data-align="end">Price</Table.ColumnHeader>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {sampleProducts.map((product) => (
+          <Table.Row key={product.id}>
+            <Table.Cell data-align="start">{product.name}</Table.Cell>
+            <Table.Cell data-align="center">
+              {product.stock > 0 ? 'Yes' : 'No'}
+            </Table.Cell>
+            <Table.Cell data-align="end">
+              ${product.price.toFixed(2)}
+            </Table.Cell>
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table>
+  ),
+}
