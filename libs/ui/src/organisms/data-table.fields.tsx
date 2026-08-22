@@ -651,9 +651,15 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
       describedBy={error ? errorId : undefined}
       disabled={disabled}
       invalid={!!error}
-      onChange={setValue}
+      // Clearing the field emits `valueAsNumber: NaN`. Storing that would
+      // render the literal text "NaN" in the input, and slip past `required`
+      // (NaN is neither null nor ""), handing the consumer NaN on commit.
+      // An empty numeric field means "no value".
+      onChange={(next) => setValue(Number.isNaN(next) ? undefined : next)}
       size={size}
-      value={typeof value === "number" ? value : undefined}
+      value={
+        typeof value === "number" && !Number.isNaN(value) ? value : undefined
+      }
     >
       <NumericInput.Control>
         <NumericInput.Input

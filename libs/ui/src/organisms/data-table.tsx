@@ -1068,7 +1068,13 @@ function validateDraft<T extends RowData>(
       continue
     }
     const value = draft[column.id]
-    const empty = isBlank(value) || (Array.isArray(value) && value.length === 0)
+    // `NaN` is what a cleared numeric input parses to, and it is neither
+    // null nor "" — so it has to be spelled out or a required number column
+    // would validate as filled.
+    const empty =
+      isBlank(value) ||
+      (typeof value === "number" && Number.isNaN(value)) ||
+      (Array.isArray(value) && value.length === 0)
     if (meta.required && empty) {
       errors[column.id] = requiredLabel
       continue
@@ -2033,6 +2039,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     : rows.map((row, index) => ({ row, index }))
 
   /* dnd sensors */
+  // Which axis the in-flight drag is constrained to; set on drag start so the
+  // shared DndContext can apply the right modifier for rows vs columns.
+  const [activeDragAxis, setActiveDragAxis] = useState<"row" | "column" | null>(
+    null
+  )
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -2852,45 +2863,83 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       style={{ tableLayout, ...slotProps?.root?.style }}
     >
       {caption && <Table.Caption>{caption}</Table.Caption>}
-      {headerContent}
-      {bodyContent}
-      {footerContent}
-    </Table>
-  )
-
-  /* Wrap with dnd context when reorder is on. */
-  let scrollBody: ReactNode = tableEl
-  if (enableColumnReorder) {
-    scrollBody = (
-      <DndContext
-        collisionDetection={closestCenter}
-        modifiers={[restrictToHorizontalAxis]}
-        onDragEnd={handleColumnDragEnd}
-        sensors={sensors}
-      >
+      {/*
+       * Each SortableContext is scoped to the region whose items it lists.
+       * `useSortable` resolves to the *nearest* one, so wrapping the whole
+       * table in both (column inside row, as the DndContext nesting below
+       * implies) made body rows resolve against `reorderableLeafIds` — index
+       * -1, horizontal-axis modifier, and the row id handed to the column
+       * drag handler, which bails. Row reorder silently did nothing whenever
+       * `enableColumnReorder` was also on. SortableContext renders no DOM, so
+       * scoping it this way is safe inside `<table>` (a DndContext is not —
+       * its accessibility markup would render as a div child of the table).
+       */}
+      {enableColumnReorder ? (
         <SortableContext
           items={reorderableLeafIds}
           strategy={horizontalListSortingStrategy}
         >
-          {scrollBody}
+          {headerContent}
         </SortableContext>
-      </DndContext>
-    )
-  }
-  if (rowReorderActive) {
-    scrollBody = (
-      <DndContext
-        collisionDetection={closestCenter}
-        modifiers={[restrictToVerticalAxis]}
-        onDragEnd={handleRowDragEnd}
-        sensors={sensors}
-      >
+      ) : (
+        headerContent
+      )}
+      {rowReorderActive ? (
         <SortableContext
           items={rootRowIds}
           strategy={verticalListSortingStrategy}
         >
-          {scrollBody}
+          {bodyContent}
         </SortableContext>
+      ) : (
+        bodyContent
+      )}
+      {footerContent}
+    </Table>
+  )
+
+  /*
+   * One DndContext for both axes. Nesting two of them meant the inner one
+   * captured every drag — `useDraggable` resolves to the nearest context
+   * just as `useSortable` does — so with both reorder flags on, row drags
+   * were routed to the column handler. Dispatch on what is actually being
+   * dragged instead, and pick the axis modifier to match.
+   */
+  const isColumnDragId = (id: string) => reorderableLeafIds.includes(id)
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (enableColumnReorder && isColumnDragId(String(event.active.id))) {
+      handleColumnDragEnd(event)
+      return
+    }
+    if (rowReorderActive) {
+      handleRowDragEnd(event)
+    }
+  }
+
+  let scrollBody: ReactNode = tableEl
+  if (enableColumnReorder || rowReorderActive) {
+    scrollBody = (
+      <DndContext
+        collisionDetection={closestCenter}
+        modifiers={[
+          activeDragAxis === "column"
+            ? restrictToHorizontalAxis
+            : restrictToVerticalAxis,
+        ]}
+        onDragEnd={(event) => {
+          handleDragEnd(event)
+          setActiveDragAxis(null)
+        }}
+        onDragStart={(event) =>
+          setActiveDragAxis(
+            enableColumnReorder && isColumnDragId(String(event.active.id))
+              ? "column"
+              : "row"
+          )
+        }
+        sensors={sensors}
+      >
+        {scrollBody}
       </DndContext>
     )
   }

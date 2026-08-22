@@ -215,8 +215,15 @@ export function resolveColumnType(meta?: {
  * clearing a filter left the entry in place — which reads as "a filter is
  * active" to anything counting `columnFilters.length`, notably the
  * row-reorder guard, which then stays disabled for the rest of the session.
+ *
+ * A *deliberately chosen* operator is itself state worth keeping, though:
+ * picking "Starts with" (or "Between") before typing anything stores
+ * `{ operator }` with no value, and dropping that would snap the condition
+ * menu back to the type's default — so "Between" would never get the chance
+ * to reveal its second input. Only a value-less filter still sitting on its
+ * default operator counts as empty.
  */
-function filterValueIsEmpty(value: unknown): boolean {
+function filterValueIsEmpty(value: unknown, column?: unknown): boolean {
   if (value == null) {
     return true
   }
@@ -246,7 +253,22 @@ function filterValueIsEmpty(value: unknown): boolean {
   if (typeof v.value === "boolean") {
     return false
   }
-  return isBlank(v.value) && isBlank(v.to) && isBlank(v.from)
+  if (!(isBlank(v.value) && isBlank(v.to) && isBlank(v.from))) {
+    return false
+  }
+  if (v.operator === undefined) {
+    return true
+  }
+  // Value-less: keep it only when the operator is a non-default pick the
+  // user made on purpose. The defaults mirror the two filter renderers'
+  // own fallbacks in data-table.fields.tsx.
+  const meta = (
+    column as { columnDef?: { meta?: Parameters<typeof resolveColumnType>[0] } }
+  )?.columnDef?.meta
+  const type = resolveColumnType(meta)
+  const defaultOperator =
+    type === "number" || type === "int" ? "equals" : "contains"
+  return v.operator === defaultOperator
 }
 
 export const typedFilterFn: AnyFilterFn = (row, columnId, filterValue) => {
