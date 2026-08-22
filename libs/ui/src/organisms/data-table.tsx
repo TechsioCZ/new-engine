@@ -2216,6 +2216,35 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     (enableExpanding &&
       (!!renderExpandedRow || !!getSubRows || !!getRowCanExpand))
 
+  // An end-pinned column and the sticky actions cell both freeze at the
+  // trailing edge, and the actions column is not in TanStack's column model
+  // so `getAfter("end")` cannot reserve room for it — they overlap. The
+  // actions cell now wins the stacking deterministically, but the pinned
+  // column is still hidden underneath, so say so rather than let it look
+  // like a rendering glitch.
+  const hasWarnedAboutPinnedActionsOverlap = useRef(false)
+  useEffect(() => {
+    const endPinned =
+      enableColumnPinning &&
+      table.getAllLeafColumns().some((c) => c.getIsPinned() === "end")
+    if (
+      !(endPinned && stickyActions && hasActionsColumn) ||
+      hasWarnedAboutPinnedActionsOverlap.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutPinnedActionsOverlap.current = true
+    console.warn(
+      "DataTable: a column pinned to 'end' and the sticky actions cell both " +
+        "freeze at the trailing edge, so they overlap — the actions column " +
+        "is not part of the column model, so end-pinned offsets cannot " +
+        "account for its width. Use stickyActions={false}, or pin to " +
+        "'start' instead."
+    )
+  }, [enableColumnPinning, stickyActions, hasActionsColumn, table])
+
   /**
    * Resolve a column's header filter: per-column `meta.renderFilter`, then the
    * table-wide `renderHeaderFilter` slot, then the type-driven default.
@@ -2379,7 +2408,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               style={{
                 ...OPAQUE_HEADER_BG,
                 ...(stickyActions
-                  ? { zIndex: DATA_TABLE_Z.pinnedHeaderCell }
+                  ? { zIndex: DATA_TABLE_Z.stickyActionsHeaderCell }
                   : undefined),
               }}
             >
@@ -2428,7 +2457,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   ? {
                       position: "sticky",
                       top: headerHeight,
-                      zIndex: DATA_TABLE_Z.pinnedHeaderCell,
+                      zIndex: DATA_TABLE_Z.stickyActionsHeaderCell,
                     }
                   : undefined),
               }}
@@ -2562,11 +2591,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       className={stickyActions ? "sticky end-0 bg-table-bg" : undefined}
       numeric
       style={
-        // Pinned body cells carry `pinnedCell` from `getPinningStyles`; without
-        // the same stacking level here a frozen column scrolls straight over
-        // the sticky actions cell. The header and filter actions cells already
-        // set their own level for exactly this reason.
-        stickyActions ? { zIndex: DATA_TABLE_Z.pinnedCell } : undefined
+        // Pinned body cells carry `pinnedCell` from `getPinningStyles`;
+        // without a level here a frozen column scrolls straight over the
+        // sticky actions cell. One *above* them, so an end-pinned column —
+        // which freezes at the same trailing edge — loses the tie
+        // deterministically instead of by DOM order.
+        stickyActions ? { zIndex: DATA_TABLE_Z.stickyActionsCell } : undefined
       }
     >
       <div className={styles.actionsCell()}>

@@ -580,7 +580,19 @@ export function getColumnSizeStyles<T extends RowData>(
  */
 export const DATA_TABLE_Z = {
   pinnedCell: 1,
+  /**
+   * The sticky actions cell sits one level above pinned body cells. Both
+   * freeze at the trailing edge (`getAfter("end")` is 0 for the last
+   * end-pinned column, and the actions cell is `end-0`), and the actions
+   * column is not part of TanStack's column model so `getAfter` cannot
+   * account for its width. At equal z-index the winner came down to DOM
+   * order; this at least makes the actions cell deterministically on top.
+   * The overlap itself is a known limitation — see the dev warning in
+   * DataTable for the `enableColumnPinning` + `stickyActions` combination.
+   */
+  stickyActionsCell: 2,
   pinnedHeaderCell: 20,
+  stickyActionsHeaderCell: 21,
 } as const
 
 export function getPinningStyles<T extends RowData>(
