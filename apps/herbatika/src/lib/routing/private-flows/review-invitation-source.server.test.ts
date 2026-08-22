@@ -9,16 +9,24 @@ vi.mock("@/lib/routing/private-flows/transactional-page.server", () => ({
 
 import { loadReviewInvitationSource } from "./review-invitation-source.server"
 
-describe("review invitation page market isolation", () => {
+describe("review invitation page market binding", () => {
   beforeEach(() => {
     readReviewInvitation.mockReset()
   })
 
-  it("hides the review form on RO without reading an invitation", async () => {
+  it("reads the RO invitation through the RO market binding", async () => {
+    readReviewInvitation.mockResolvedValue({
+      kind: "found",
+      value: { productId: "prod_1" },
+    })
+
     await expect(
       loadReviewInvitationSource({ market: "ro", token: "review-token" })
-    ).resolves.toEqual({ kind: "missing" })
-    expect(readReviewInvitation).not.toHaveBeenCalled()
+    ).resolves.toEqual({
+      kind: "found",
+      value: { productId: "prod_1", token: "review-token" },
+    })
+    expect(readReviewInvitation).toHaveBeenCalledWith("ro", "review-token")
   })
 
   it("preserves an exact SK invitation", async () => {

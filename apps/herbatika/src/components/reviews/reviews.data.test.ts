@@ -43,8 +43,9 @@ describe("review trust sources", () => {
     expect(sources).toEqual([])
   })
 
-  it("exposes unscoped product UGC only in the Slovak market", () => {
-    expect(isProductReviewMarketSupported("sk")).toBe(true)
-    expect(isProductReviewMarketSupported("ro")).toBe(false)
+  it("offers the product review section on every market", () => {
+    expect(
+      (["sk", "cz", "hu", "ro"] as const).map(isProductReviewMarketSupported)
+    ).toEqual([true, true, true, true])
   })
 })

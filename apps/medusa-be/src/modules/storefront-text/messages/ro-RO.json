@@ -470,8 +470,21 @@
         "composition": "Compoziție",
         "warning": "Avertisment",
         "other": "Alte informații",
+        "parameters": "Compoziție și parametri",
+        "brand": "Marcă",
         "warranty": "Garanție",
         "content": "Conținut"
+      },
+      "brand": {
+        "visit_all_products": "Vezi toate produsele mărcii"
+      },
+      "parameters": {
+        "category": "Categorie",
+        "code": "Cod produs",
+        "ean": "EAN",
+        "inci": "Compoziție (INCI)",
+        "storage": "Depozitare",
+        "volume": "Volum"
       },
       "variant_label": "Variantă",
       "variant_placeholder": "Selectează varianta",

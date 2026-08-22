@@ -9,3 +9,15 @@ export const PRODUCT_DETAIL_SECTION_ORDER = [
   "warning",
   "other",
 ] as const
+
+// Display order of the product information sections. It is derived from
+// product-level data only, so every market renders the same section set.
+export const PRODUCT_DETAIL_INFORMATION_ORDER = [
+  "description",
+  "usage",
+  "composition",
+  "parameters",
+  "warning",
+  "brand",
+  "other",
+] as const

@@ -519,8 +519,21 @@
         "composition": "Összetétel",
         "warning": "Figyelmeztetés",
         "other": "Egyéb információk",
+        "parameters": "Összetétel és paraméterek",
+        "brand": "Márka",
         "warranty": "Garancia",
         "content": "Tartalom"
+      },
+      "brand": {
+        "visit_all_products": "A márka összes termékének megtekintése"
+      },
+      "parameters": {
+        "category": "Kategória",
+        "code": "Termékkód",
+        "ean": "EAN",
+        "inci": "Összetétel (INCI)",
+        "storage": "Tárolás",
+        "volume": "Térfogat"
       },
       "variant_label": "Változat",
       "variant_placeholder": "Válassz változatot",

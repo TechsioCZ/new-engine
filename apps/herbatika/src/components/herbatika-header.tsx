@@ -25,6 +25,7 @@ import { HerbatikaCartPopover } from "./header/herbatika-cart-popover"
 import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu"
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./header/herbatika-header.submenu-data"
 import { HerbatikaMobileMenuDialog } from "./header/herbatika-mobile-menu-dialog"
+import { HerbatikaPrimaryNav } from "./header/herbatika-primary-nav"
 import { useHerbatikaHeaderSubmenu } from "./header/use-herbatika-header-submenu"
 import { HerbatikaLogo } from "./herbatika-logo"
 import { SearchAutocomplete } from "./search/search-autocomplete"
@@ -40,6 +41,7 @@ export function HerbatikaHeader({
 }) {
   const t = useTranslations("navigation")
   const tAuth = useTranslations("auth")
+  const tCatalog = useTranslations("catalog")
   const operatorContact = useOperatorContact()
   const region = useRegionContext()
   const marketContext = useMarketContext()
@@ -207,38 +209,14 @@ export function HerbatikaHeader({
         onMouseLeave={() => setActiveRootHandle(null)}
       >
         <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between px-header-lg 2xl:px-header-2xl">
-          <Header.Nav
-            aria-label={t("primary_aria")}
-            className="flex-wrap"
-            size="sm"
-          >
-            {primaryNavItems.map((item) => {
-              const rootHandle = item.rootHandle
-              const hasSubmenu = Boolean(
-                rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle)
-              )
-
-              return (
-                <StorefrontLink
-                  aria-expanded={
-                    hasSubmenu ? activeRootHandle === rootHandle : undefined
-                  }
-                  aria-haspopup={hasSubmenu ? "dialog" : undefined}
-                  className="shrink-0 self-stretch"
-                  href={item.href}
-                  key={item.href}
-                  onFocus={() => handleActivateDesktopItem(rootHandle)}
-                >
-                  <Header.NavItem
-                    className="flex h-full items-center whitespace-nowrap leading-none lg:max-header-tablet:p-header-item-desktop-lg lg:max-header-tablet:text-header-item-desktop-lg"
-                    onMouseEnter={() => handleActivateDesktopItem(rootHandle)}
-                  >
-                    {item.label}
-                  </Header.NavItem>
-                </StorefrontLink>
-              )
-            })}
-          </Header.Nav>
+          <HerbatikaPrimaryNav
+            activeRootHandle={activeRootHandle}
+            ariaLabel={t("primary_aria")}
+            items={primaryNavItems}
+            onActivateItem={handleActivateDesktopItem}
+            overflowLabel={tCatalog("filters.show_more")}
+            submenuRootHandles={SUBMENU_ROOT_HANDLES}
+          />
 
           <Header.Actions className="gap-x-250" size="sm">
             {actionItems.map((action) => (

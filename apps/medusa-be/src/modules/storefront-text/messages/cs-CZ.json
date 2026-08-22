@@ -470,8 +470,21 @@
         "composition": "Složení",
         "warning": "Upozornění",
         "other": "Ostatní informace",
+        "parameters": "Složení a parametry",
+        "brand": "Značka",
         "warranty": "Záruka",
         "content": "Obsah"
+      },
+      "brand": {
+        "visit_all_products": "Zobrazit všechny produkty značky"
+      },
+      "parameters": {
+        "category": "Kategorie",
+        "code": "Kód produktu",
+        "ean": "EAN",
+        "inci": "Složení (INCI)",
+        "storage": "Skladování",
+        "volume": "Objem"
       },
       "variant_label": "Varianta",
       "variant_placeholder": "Vyberte variantu",

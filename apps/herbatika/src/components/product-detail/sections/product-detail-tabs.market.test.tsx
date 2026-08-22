@@ -59,16 +59,29 @@ const renderTabs = () =>
     />
   )
 
-describe("ProductDetailTabs review market isolation", () => {
-  it("keeps the reviews tab for SK", () => {
-    testContext.market = { code: "sk" }
+describe("ProductDetailTabs section structure", () => {
+  it.each([
+    "sk",
+    "cz",
+    "hu",
+    "ro",
+  ])("renders the reviews tab for %s", (market) => {
+    testContext.market = { code: market }
 
     expect(renderTabs()).toContain("reviews.tab_label")
   })
 
-  it("removes the unscoped reviews tab for RO", () => {
-    testContext.market = { code: "ro" }
+  it("drops the reviews tab when the product id is unknown", () => {
+    testContext.market = { code: "sk" }
 
-    expect(renderTabs()).not.toContain("reviews.tab_label")
+    expect(
+      renderToStaticMarkup(
+        <ProductDetailTabs
+          defaultSectionValue="description"
+          onSectionValueChange={vi.fn()}
+          sections={[{ html: "", key: "description", title: "Description" }]}
+        />
+      )
+    ).not.toContain("reviews.tab_label")
   })
 })

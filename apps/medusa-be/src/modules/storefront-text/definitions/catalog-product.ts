@@ -80,6 +80,42 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     "Název sekce ostatních informací produktu."
   ),
   defineCatalogProductText(
+    "catalog.product_detail.sections.parameters",
+    "Název sekce složení a parametrů produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.sections.brand",
+    "Název sekce značky produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.brand.visit_all_products",
+    "Odkaz na všechny produkty značky ze sekce značky."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.parameters.category",
+    "Label kategorie v tabulce parametrů produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.parameters.code",
+    "Label kódu produktu v sekci ostatních informací."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.parameters.ean",
+    "Label EAN v tabulce parametrů produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.parameters.inci",
+    "Label složení podle INCI v tabulce parametrů produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.parameters.storage",
+    "Label skladování v tabulce parametrů produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.parameters.volume",
+    "Label objemu v tabulce parametrů produktu."
+  ),
+  defineCatalogProductText(
     "catalog.product_detail.sections.warranty",
     "Lokalizovaný label záruky produktu."
   ),

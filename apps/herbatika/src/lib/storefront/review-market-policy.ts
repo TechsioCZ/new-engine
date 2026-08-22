@@ -14,5 +14,10 @@ export const isReviewTrustProviderSupported = (
   provider: ReviewTrustProvider
 ) => REVIEW_TRUST_PROVIDER_MARKETS[provider].includes(market)
 
+// The product information section set is product-derived, so the reviews
+// section is offered on every market. Third-party trust providers stay
+// market-scoped above because their feeds are SK-only.
+const PRODUCT_REVIEW_MARKETS: readonly MarketCode[] = ["sk", "cz", "hu", "ro"]
+
 export const isProductReviewMarketSupported = (market: MarketCode) =>
-  market === "sk"
+  PRODUCT_REVIEW_MARKETS.includes(market)

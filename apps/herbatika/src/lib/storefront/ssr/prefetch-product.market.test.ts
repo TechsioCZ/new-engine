@@ -16,7 +16,7 @@ vi.mock("./context", () => mocks)
 import { PRODUCT_REVIEWS_PAGE_SIZE } from "../review-query-config"
 import { prefetchProductDetailPageStorefrontData } from "./prefetch-product"
 
-describe("product review SSR market isolation", () => {
+describe("product review SSR market locales", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.prefetchProductDetail.mockResolvedValue({
@@ -25,7 +25,7 @@ describe("product review SSR market isolation", () => {
     })
   })
 
-  it("does not prefetch unscoped product UGC for RO", async () => {
+  it("prefetches RO reviews with the exact Romanian locale", async () => {
     mocks.getRegionServerContext.mockResolvedValue({
       locale: "ro-RO",
       market: "ro",
@@ -35,7 +35,16 @@ describe("product review SSR market isolation", () => {
 
     await prefetchProductDetailPageStorefrontData("produs", { market: "ro" })
 
-    expect(mocks.prefetchProductReviews).not.toHaveBeenCalled()
+    expect(mocks.prefetchProductReviews).toHaveBeenCalledWith(
+      "ro",
+      {},
+      {
+        productId: "prod_1",
+        locale: "ro-RO",
+        limit: PRODUCT_REVIEWS_PAGE_SIZE,
+        offset: 0,
+      }
+    )
   })
 
   it("prefetches SK reviews with the exact Slovak locale", async () => {
