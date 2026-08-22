@@ -1,6 +1,6 @@
 import type { SqlClient, SqlPool } from "../postgres"
 import {
-  URL_REGISTRY_MIGRATION_MANIFEST_V7,
+  URL_REGISTRY_MIGRATION_MANIFEST_V8,
   type UrlRegistryMigrationManifest,
 } from "./manifest"
 
@@ -59,7 +59,7 @@ const assertExpectedManifest = (manifest: UrlRegistryMigrationManifest) => {
 
 export const assertAppliedMigrationManifest = (
   rows: readonly unknown[],
-  manifest: UrlRegistryMigrationManifest = URL_REGISTRY_MIGRATION_MANIFEST_V7
+  manifest: UrlRegistryMigrationManifest = URL_REGISTRY_MIGRATION_MANIFEST_V8
 ): void => {
   assertExpectedManifest(manifest)
   const applied = rows.map(parseAppliedMigration)
@@ -108,7 +108,7 @@ const releaseQuietly = (client: SqlClient) => {
 
 export const verifyUrlRegistryMigrations = async (
   pool: SqlPool,
-  manifest: UrlRegistryMigrationManifest = URL_REGISTRY_MIGRATION_MANIFEST_V7
+  manifest: UrlRegistryMigrationManifest = URL_REGISTRY_MIGRATION_MANIFEST_V8
 ): Promise<void> => {
   const client = await pool.connect()
   let transactionOpen = false

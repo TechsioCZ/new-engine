@@ -25,8 +25,8 @@ const publicSlugSchema = z
   .string()
   .trim()
   .min(1)
-  .max(80)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+  .max(255)
+  .regex(/^(?=.*[a-z0-9])[a-z0-9-]+$/)
 const CANONICAL_NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9][0-9]*)$/
 
 export const AdminUpsertCollectionUrlAssignmentSchema = z

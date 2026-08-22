@@ -206,7 +206,13 @@ export const decideProductLifecycle = (
   decideLifecycle({
     assignment,
     changeType,
-    retireActiveRouteWhenUnpublished: true,
+    // Retirement is terminal: the route row is unique per source identity and
+    // no supported transition returns it to active, so retiring on an ordinary
+    // unpublish would make the next republish an unresolvable terminal-route
+    // conflict that also stalls the source-event cursor. Ordinary unpublishing
+    // records a commandless receipt and leaves the route to the storefront's
+    // publication proof; only an explicit delete may retire a product route.
+    retireActiveRouteWhenUnpublished: false,
     route,
     source,
   })

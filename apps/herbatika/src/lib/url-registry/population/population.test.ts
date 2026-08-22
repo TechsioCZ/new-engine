@@ -157,6 +157,33 @@ describe("initial URLR population manifest", () => {
     ])
   })
 
+  it("accepts a customer-authoritative publicSlug with consecutive hyphens", () => {
+    const input = inputManifest()
+    const catalog = input.entities[0]
+    if (!catalog) {
+      throw new Error("Fixture has no catalog entity")
+    }
+    catalog.publicSlug = "zeleny--caj"
+    const manifest = parsePopulationManifest(input)
+    expect(manifest.entities[0]?.publicSlug).toBe("zeleny--caj")
+  })
+
+  it("accepts a publicSlug up to 255 characters and rejects one over the limit", () => {
+    const input = inputManifest()
+    const catalog = input.entities[0]
+    if (!catalog) {
+      throw new Error("Fixture has no catalog entity")
+    }
+    catalog.publicSlug = `a${"-a".repeat(127)}`
+    expect(catalog.publicSlug).toHaveLength(255)
+    expect(() => parsePopulationManifest(input)).not.toThrow()
+
+    catalog.publicSlug = `${catalog.publicSlug}a`
+    expect(() => parsePopulationManifest(input)).toThrow(
+      "entities[0].publicSlug is invalid"
+    )
+  })
+
   it("keeps only reviewed informational roots indexable on non-RO markets", () => {
     for (const market of ["sk", "cz", "hu"] as const) {
       const roots = buildPopulationStaticTaxonomy().filter(

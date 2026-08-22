@@ -462,6 +462,57 @@ describe("system sitemap source wiring", () => {
     )
   })
 
+  it.each([
+    "about",
+    "faq",
+  ] as const)("validates the %s static root page against its live CMS-rendered source, not code-owned data", async (staticRouteKey) => {
+    const page = {
+      content: `Reviewed ${staticRouteKey} content`,
+      id: 91,
+      publishedDate: "2026-08-21T10:00:00.000Z",
+      title: staticRouteKey,
+    }
+    mocks.readStaticPage.mockResolvedValue({ kind: "found", value: page })
+
+    await expect(
+      systemSitemapDependencies.validateStaticSources({
+        market: "cz",
+        sources: [{ routeId: `route_${staticRouteKey}`, staticRouteKey }],
+      })
+    ).resolves.toEqual({
+      kind: "found",
+      value: [
+        {
+          routeId: `route_${staticRouteKey}`,
+          updatedAt: "2026-08-21T10:00:00.000Z",
+        },
+      ],
+    })
+    expect(mocks.readStaticPage).toHaveBeenCalledWith(staticRouteKey, "cs-CZ")
+    expect(mocks.assertReviewedStaticSource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        market: "cz",
+        pageKey: staticRouteKey,
+        renderedSource: page,
+      })
+    )
+  })
+
+  it.each([
+    "about",
+    "faq",
+  ] as const)("excludes %s from the sitemap when the live CMS source is unavailable, even if code-owned fallback data exists", async (staticRouteKey) => {
+    mocks.readStaticPage.mockResolvedValue({ kind: "missing" })
+
+    await expect(
+      systemSitemapDependencies.validateStaticSources({
+        market: "cz",
+        sources: [{ routeId: `route_${staticRouteKey}`, staticRouteKey }],
+      })
+    ).resolves.toEqual({ kind: "found", value: [] })
+    expect(mocks.assertReviewedStaticSource).not.toHaveBeenCalled()
+  })
+
   it("normalizes only production root static taxonomy keys", async () => {
     const page = {
       content: "Reviewed privacy content",

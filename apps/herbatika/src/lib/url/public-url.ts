@@ -57,14 +57,14 @@ const encodeOpaqueSegment = (value: string, name: string) => {
   return encodeURIComponent(value)
 }
 
-const STATIC_SNAPSHOT_SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const STATIC_SNAPSHOT_SEGMENT = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 
 const staticSnapshotPath = (segments: readonly string[]) => {
   if (segments.length === 0 || segments.length > 16) {
     throw new Error("A static snapshot path requires 1 to 16 segments")
   }
   for (const segment of segments) {
-    if (segment.length > 80 || !STATIC_SNAPSHOT_SEGMENT.test(segment)) {
+    if (segment.length > 255 || !STATIC_SNAPSHOT_SEGMENT.test(segment)) {
       throw new Error("Static snapshot paths require normalized ASCII segments")
     }
   }

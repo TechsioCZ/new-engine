@@ -121,7 +121,7 @@ const parseEntityBase = (
   }
   if (
     typeof input.publicSlug !== "string" ||
-    input.publicSlug.length > 80 ||
+    input.publicSlug.length > 255 ||
     !POPULATION_SLUG.test(input.publicSlug)
   ) {
     throw new PopulationManifestError(`${label}.publicSlug is invalid`)

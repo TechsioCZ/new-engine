@@ -13,7 +13,7 @@ export const POPULATION_ENTITY_KINDS = [
   ...POPULATION_CATALOG_KINDS,
   ...POPULATION_CONTENT_KINDS,
 ] as const
-export const POPULATION_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+export const POPULATION_SLUG = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 export const POPULATION_SHA256 = /^sha256:[0-9a-f]{64}$/
 export const POPULATION_VISIBLE_TEXT = /^[\x21-\x7e]{1,255}$/
 

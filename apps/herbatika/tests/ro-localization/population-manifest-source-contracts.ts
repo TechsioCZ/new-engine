@@ -85,7 +85,7 @@ const positiveInteger = (value: unknown, label: string): number => {
 const publicSlugText = (value: unknown, label: string): string => {
   if (
     typeof value !== "string" ||
-    value.length > 80 ||
+    value.length > 255 ||
     !POPULATION_SLUG.test(value)
   ) {
     throw new PopulationSourceExportError(`${label} is invalid`)

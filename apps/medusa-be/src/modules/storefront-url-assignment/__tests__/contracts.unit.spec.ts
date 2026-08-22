@@ -56,7 +56,6 @@ describe("collection URL assignment contract", () => {
   it.each([
     "Zimna-kolekcia",
     "zimná-kolekcia",
-    "zimna--kolekcia",
     "",
   ])("rejects a non-canonical slug: %s", (publicSlug) => {
     expect(
@@ -67,6 +66,17 @@ describe("collection URL assignment contract", () => {
         publicationStatus: "draft",
       }).success
     ).toBe(false)
+  })
+
+  it("accepts a customer-authoritative slug with consecutive hyphens", () => {
+    expect(
+      AdminUpsertCollectionUrlAssignmentSchema.safeParse({
+        marketCode: "sk",
+        salesChannelId: "sc_sk",
+        publicSlug: "zimna--kolekcia",
+        publicationStatus: "draft",
+      }).success
+    ).toBe(true)
   })
 
   it("serializes the stable wire vocabulary and opaque source version", () => {

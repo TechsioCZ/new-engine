@@ -69,6 +69,15 @@ describe("public URL API", () => {
     ).toThrow("normalized ASCII")
   })
 
+  it("accepts a customer-authoritative static snapshot segment with consecutive hyphens", () => {
+    expect(
+      buildPath(
+        { kind: "staticSnapshot", segments: ["dropshipping--velkoobchod"] },
+        "sk"
+      )
+    ).toBe("/dropshipping--velkoobchod")
+  })
+
   it("requires document navigation for every public HTML target", () => {
     expect(resolveNavigationMode({ kind: "home" })).toBe("document")
     expect(

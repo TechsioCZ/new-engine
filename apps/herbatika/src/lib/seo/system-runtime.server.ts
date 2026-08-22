@@ -1,5 +1,3 @@
-import { getAboutPageData } from "@/components/about/about-page.data"
-import { getFaqPageData } from "@/components/faq/faq-page.data"
 import { resolveHomepageHeroSource } from "@/components/homepage/homepage.hero.data"
 import {
   type MarketRuntimeBinding,
@@ -17,7 +15,10 @@ import {
 import { hydrateCmsHeroBannerTargets } from "@/lib/storefront/cms-hero-targets.server"
 import { hasCompleteHomepageSectionSources } from "@/lib/storefront/homepage-catalog-config"
 import { readReviewedHomepageHeroBanners } from "@/lib/storefront/homepage-hero-source-manifest.server"
-import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
+import {
+  getHerbatikaMarketContext,
+  type HerbatikaLocale,
+} from "@/lib/storefront/market-context"
 import { getMarketStorefrontSdk } from "@/lib/storefront/market-sdk.server"
 import { PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/product-query-config"
 import { isRoDemoStaticPage } from "@/lib/storefront/ro-demo-static-pages"
@@ -76,38 +77,9 @@ const staticSourceUpdatedAt = (value: unknown): string | undefined =>
     ? value.publishedDate
     : undefined
 
-const isRenderableCodeOwnedStaticSource = (
-  pageKey: "about" | "faq",
-  value: unknown
-): boolean => {
-  if (!(value && typeof value === "object")) {
-    return false
-  }
-  if (pageKey === "about") {
-    return (
-      "hero" in value &&
-      Boolean(
-        value.hero &&
-          typeof value.hero === "object" &&
-          "title" in value.hero &&
-          typeof value.hero.title === "string" &&
-          value.hero.title.trim()
-      )
-    )
-  }
-  return (
-    "title" in value &&
-    typeof value.title === "string" &&
-    Boolean(value.title.trim()) &&
-    "intro" in value &&
-    typeof value.intro === "string" &&
-    Boolean(value.intro.trim())
-  )
-}
-
 const readReviewedStaticSitemapSource = async (
   market: Market,
-  locale: Parameters<typeof getAboutPageData>[0],
+  locale: HerbatikaLocale,
   source: SitemapStaticSourceCandidate
 ): Promise<SitemapSourceValidation | null> => {
   const pageKey = resolveStaticRootPageKey(source.staticRouteKey)
@@ -122,25 +94,15 @@ const readReviewedStaticSitemapSource = async (
     return null
   }
 
-  let value: unknown
-  if (pageKey === "about") {
-    value = getAboutPageData(locale)
-  } else if (pageKey === "faq") {
-    value = getFaqPageData(locale)
-  } else {
-    const result = await readCmsStaticPage(pageKey, locale)
-    if (result.kind !== "found" || isRoDemoStaticPage(result.value)) {
-      return null
-    }
-    value = result.value
-  }
-  if (
-    !value ||
-    ((pageKey === "about" || pageKey === "faq") &&
-      !isRenderableCodeOwnedStaticSource(pageKey, value))
-  ) {
+  // Every static root page (including "about" and "faq") is now served from
+  // Payload CMS by the live route (see [pageKey].tsx / readCmsStaticPage).
+  // The sitemap must validate that exact same CMS-backed source so it can
+  // never advertise a route whose live render would 503/noindex.
+  const result = await readCmsStaticPage(pageKey, locale)
+  if (result.kind !== "found" || isRoDemoStaticPage(result.value)) {
     return null
   }
+  const value = result.value
   await assertReviewedStaticRouteSource({
     market,
     pageKey,
