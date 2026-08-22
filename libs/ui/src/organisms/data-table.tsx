@@ -515,8 +515,12 @@ export type DataTableProps<T extends RowData> = {
   /* Presentation (passed through to the Table organism) */
   variant?: "line" | "outline" | "striped"
   /**
-   * Zebra-stripe body rows. Independent of `variant`, so striping composes with
-   * `variant="outline"` (the `variant="striped"` value cannot).
+   * Zebra-stripe body rows. Independent of `variant`, so striping composes
+   * with `variant="outline"`. Equivalent to `variant="striped"` — DataTable
+   * routes both through this prop's own row-index-based coloring rather than
+   * `Table`'s `odd:`/`even:` implementation, which drifts under
+   * `enableVirtualization` (a row's DOM sibling position, not its logical
+   * index, changes as the windowed slice scrolls).
    */
   striped?: boolean
   /**
@@ -1070,7 +1074,7 @@ function renderExpandedDetailRow<T extends RowData>({
   tintNestedRows: boolean
 }) {
   return (
-    <tr
+    <Table.Row
       className={tintNestedRows ? "data-table-row-nested-tint" : undefined}
       data-depth={row.depth + 1}
     >
@@ -1082,7 +1086,7 @@ function renderExpandedDetailRow<T extends RowData>({
           {renderExpandedRow(row)}
         </div>
       </Table.Cell>
-    </tr>
+    </Table.Row>
   )
 }
 
@@ -1379,6 +1383,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   const translations = { ...DEFAULT_TRANSLATIONS, ...translationsProp }
   const outlined = variant === "outline"
+  // `variant="striped"` forwards to the `Table` organism, which stripes via
+  // `odd:`/`even:` DOM-sibling pseudo-classes — the same drift bug fixed
+  // above for the `striped` boolean's rowIndex-based coloring. Route both
+  // spellings through the one correct implementation instead of letting a
+  // consumer pick the broken one.
+  const effectiveStriped = striped || variant === "striped"
   const styles = dataTableVariants({ outlined })
   const generatedId = useId()
   const instanceId = idProp ?? generatedId
@@ -2268,7 +2278,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       setValue: (next) => setDraftValue(row.id, column.id, next),
       disabled: false,
       size,
-      options: meta.options ?? [],
+      // `meta.filterOptions` is deprecated in favour of `meta.options`, but a
+      // column not yet migrated still needs its enum/multiEnum editor
+      // populated — the header filter (above) already falls back the same way.
+      options: meta.options ?? meta.filterOptions ?? [],
       error: editErrors[column.id] || undefined,
       errorId: `${instanceId}-err-${row.id}-${column.id}`,
       commit: commitEdit,
@@ -2505,7 +2518,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       aria-rowindex={headerRowCount + pageRowOffset + rowIndex + 1}
       className={rowDragClass(dnd, {
         className: restRowProps.className,
-        striped,
+        striped: effectiveStriped,
         tintNestedRows,
         rowIndex,
       })}
@@ -2694,7 +2707,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       showColumnBorder={showColumnBorder}
       size={size}
       stickyHeader={stickyHeader}
-      variant={outlined ? "line" : variant}
+      // Never forward "striped" to Table — its own odd:/even: implementation
+      // is the broken one `effectiveStriped` is routing around.
+      variant={outlined || variant === "striped" ? "line" : variant}
       {...slotProps?.root}
       style={{ tableLayout, ...slotProps?.root?.style }}
     >

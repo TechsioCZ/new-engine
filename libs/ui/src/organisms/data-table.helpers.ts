@@ -392,10 +392,14 @@ export const conditionalFilterFn: AnyFilterFn = (
     return true
   }
   const type = resolveColumnType(row.table.getColumn(columnId)?.columnDef.meta)
+  // "int" is numeric everywhere else (`typedFilterMatch` routes both "number"
+  // and "int" to `matchNumber`) — matching only "number" here would give an
+  // int column string-compared "="/"≠" while every other operator on it
+  // (and every operator on a "number" column) compares numerically.
   return evaluateCondition(
     row.getValue(columnId),
     filterValue,
-    type === "number"
+    type === "number" || type === "int"
   )
 }
 

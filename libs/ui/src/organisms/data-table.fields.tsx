@@ -872,6 +872,12 @@ function matchNumber(cell: unknown, f: NumberFilterValue) {
   }
 }
 
+// `to` bounds (both the cell's and the filter's) are treated as date-only —
+// adding this makes an inclusive "to" mean the whole of that day, matching
+// how a date picker's end date is understood. A `to` holding a full
+// timestamp instead of a date-only value would shift the effective bound by
+// up to a day; there's no runtime signal to distinguish the two, so this is
+// a documented convention rather than something validated.
 const END_OF_DAY_MS = 24 * 60 * 60 * 1000 - 1
 const time = (v: unknown) => {
   const t = new Date(String(v)).getTime()
