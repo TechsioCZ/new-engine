@@ -1251,13 +1251,15 @@ const useIsomorphicLayoutEffect =
  * Trim a selection down to `max`, keeping rows that were already selected
  * before rows newly added by the same change.
  *
- * Shared by both places the cap is enforced — the `setRowSelection` updater
- * (a selection *action* overshooting) and the effect that reacts to
- * `maxSelectedRows` itself shrinking — so the two can't drift on which rows
- * survive. Note the priority pass is what makes this meaningful: for default
- * index-based row ids, `Object.keys` yields ascending numeric order rather
- * than selection order, so slicing the raw list would keep whichever rows
- * happen to sort lowest instead of the ones already held.
+ * Used by the `setRowSelection` updater, where a selection *action*
+ * overshoots the cap and there is a meaningful "before" set to prioritise:
+ * for default index-based row ids `Object.keys` yields ascending numeric
+ * order rather than selection order, so slicing the raw list would keep
+ * whichever rows sort lowest instead of the ones already held.
+ *
+ * The effect that reacts to `maxSelectedRows` itself shrinking deliberately
+ * does *not* use this — every selected row there is equally pre-existing, so
+ * there is nothing to prioritise against. See its own comment.
  */
 function clampSelection(
   selectedIds: string[],
@@ -2138,7 +2140,19 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
     const next = arrayMove(current, from, to)
     setColumnOrder(next)
-    onColumnReorder?.({ from, to, columnId: active.id as string, order: next })
+    // Reported in the consumer's own frame of reference. `current` carries
+    // the injected `__drag`/`__select` columns, which the consumer never
+    // declared — indices into it are offset by one or two from their
+    // `columns` array, so `arrayMove(myColumns, from, to)` would move the
+    // wrong column. Strip the built-ins from both the order and the indices.
+    const publicBefore = current.filter((id) => !BUILTIN_COLUMN_IDS.has(id))
+    const publicOrder = next.filter((id) => !BUILTIN_COLUMN_IDS.has(id))
+    onColumnReorder?.({
+      from: publicBefore.indexOf(active.id as string),
+      to: publicOrder.indexOf(active.id as string),
+      columnId: active.id as string,
+      order: publicOrder,
+    })
   }
 
   const handleRowDragEnd = (event: DragEndEvent) => {

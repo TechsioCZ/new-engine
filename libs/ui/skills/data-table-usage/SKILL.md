@@ -280,7 +280,16 @@ exposes a plain callback: `onRowClick`, `onSortingChange`, `onColumnFiltersChang
 `onGlobalFilterChange`, `onRowSelectionChange`, `onColumnVisibilityChange`,
 `onColumnOrderChange`, `onColumnPinningChange`, `onExpandedChange`,
 `onPaginationChange`, `onColumnReorder`, `onRowReorder`, `onCellEditCommit`, and
-`onReady(table)` (the raw TanStack instance for deep access).
+`onReady(table)`.
+
+`onColumnReorder`'s `from`/`to`/`order` are relative to your own `columns`
+array — the injected selection and drag-handle columns are stripped out — so
+`arrayMove(myColumns, from, to)` reproduces the new order directly.
+
+`onReady` fires once on mount. Its methods stay live, but read `table.state`
+and `table.options` off it with care: `useTable` hands back a spread copy, so
+those two fields are a mount-time snapshot. Use `renderToolbar` for live
+state.
 
 ## Slots (open DOM paths)
 

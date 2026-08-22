@@ -660,12 +660,20 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
       value={
         typeof value === "number" && !Number.isNaN(value) ? value : undefined
       }
+      /*
+       * Commit/cancel keys live on the root, not on `.Input`. `.Input`
+       * renders `<Input {...api.getInputProps()} {...props} />` — props
+       * last — so an `onKeyDown` there replaces Zag's outright, silently
+       * killing ArrowUp/ArrowDown stepping and Home/End. The root has no
+       * keydown of its own, and keydown bubbles, so Zag's input handler
+       * runs first and Enter/Escape still reach this one.
+       */
+      {...editorKeyHandlers(commit, cancel)}
     >
       <NumericInput.Control>
         <NumericInput.Input
           aria-invalid={error ? true : undefined}
           aria-label={`Edit ${columnLabel(column)}`}
-          {...editorKeyHandlers(commit, cancel)}
         />
         <NumericInput.TriggerContainer>
           <NumericInput.IncrementTrigger />
