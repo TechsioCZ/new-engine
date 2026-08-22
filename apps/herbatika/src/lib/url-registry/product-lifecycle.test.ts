@@ -83,6 +83,16 @@ describe("parseProductLifecycleDeliveryV1", () => {
     expect(productLifecycleSourceEventId(parsed)).not.toBe(parsed.eventId)
   })
 
+  it("preserves exact long customer slugs with leading, repeated, and trailing hyphens", () => {
+    const input = delivery()
+    const publicSlug = `-${"long-customer-slug-".repeat(8)}end--`
+    input.payload.assignment.publicSlug = publicSlug
+
+    expect(
+      parseProductLifecycleDeliveryV1(input).payload.assignment?.publicSlug
+    ).toBe(publicSlug)
+  })
+
   it.each([
     ["created", "reconcile"],
     ["updated", "reconcile"],
@@ -364,12 +374,16 @@ describe("decideProductLifecycle", () => {
       },
     ],
     [
-      "unpublishes an active route when the assignment is removed",
+      "retires an active route when the assignment is removed",
       "reconcile",
       null,
       foundSource,
       routeCases.active,
-      { kind: "apply", action: "unpublished" },
+      {
+        kind: "retire",
+        action: "unpublished",
+        route: routeCases.active.value,
+      },
     ],
     [
       "records an unpublished product without creating a route",

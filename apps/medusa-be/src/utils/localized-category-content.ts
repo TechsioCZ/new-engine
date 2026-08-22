@@ -83,7 +83,8 @@ const readTranslatedContent = (
   const content = {} as Record<CategoryLocalizedContentField, string | null>
   for (const field of CATEGORY_LOCALIZED_CONTENT_FIELDS) {
     if (!Object.hasOwn(translation.translations, field)) {
-      return null
+      content[field] = null
+      continue
     }
     const value = translation.translations[field]
     if (!(value === null || typeof value === "string")) {

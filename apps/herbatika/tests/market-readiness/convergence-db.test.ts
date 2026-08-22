@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { SqlClient, SqlPool } from "../../src/lib/url-registry/postgres"
-import { URL_REGISTRY_MIGRATION_MANIFEST_V5 } from "../../src/lib/url-registry/runtime/manifest"
+import { URL_REGISTRY_MIGRATION_MANIFEST_V7 } from "../../src/lib/url-registry/runtime/manifest"
 import { createFourMarketConvergenceReader } from "./convergence-db"
 
 type QueryLog = { sql: string; values?: readonly unknown[] }
@@ -15,7 +15,7 @@ const fakePool = (
     checksum: string
     name: string
     version: number
-  }>[] = URL_REGISTRY_MIGRATION_MANIFEST_V5
+  }>[] = URL_REGISTRY_MIGRATION_MANIFEST_V7
 ): SqlPool & Readonly<{ end: () => Promise<void> }> => {
   const query = (sql: string, values?: readonly unknown[]) => {
     log.push({ sql, values })
@@ -95,15 +95,15 @@ describe("four-market convergence DB reader", () => {
   })
 
   it.each([
-    ["behind", URL_REGISTRY_MIGRATION_MANIFEST_V5.slice(0, -1)],
+    ["behind", URL_REGISTRY_MIGRATION_MANIFEST_V7.slice(0, -1)],
     [
       "ahead",
       [
-        ...URL_REGISTRY_MIGRATION_MANIFEST_V5,
+        ...URL_REGISTRY_MIGRATION_MANIFEST_V7,
         {
           checksum: `sha256:${"f".repeat(64)}`,
-          name: "0006_future.sql",
-          version: 6,
+          name: "0008_future.sql",
+          version: 8,
         },
       ],
     ],

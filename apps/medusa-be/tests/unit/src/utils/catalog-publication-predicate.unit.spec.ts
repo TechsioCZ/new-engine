@@ -33,15 +33,24 @@ const authority = (description: string) =>
   )
 
 describe("catalog publication predicate", () => {
-  it("rejects a category missing one runtime rich-content key", () => {
+  it("accepts category translations without unsupported rich-content keys", () => {
     expect(
       isCompleteCategoryPublicationTranslation({
         translations: {
-          bottom_description_html: null,
           description: "Descriere",
-          meta_description: "Meta",
           name: "Categorie",
-          top_description_html: "<p>Sus</p>",
+        },
+      })
+    ).toBe(true)
+  })
+
+  it("rejects invalid present category rich-content values", () => {
+    expect(
+      isCompleteCategoryPublicationTranslation({
+        translations: {
+          description: "Descriere",
+          meta_description: 42,
+          name: "Categorie",
         },
       })
     ).toBe(false)
@@ -60,6 +69,23 @@ describe("catalog publication predicate", () => {
         }
       )
     ).toBe(false)
+  })
+
+  it("accepts Medusa-normalized empty content when source content is empty", () => {
+    expect(
+      isCompleteProductContentPublicationTranslation({
+        productContent: {
+          composition: "",
+          id: "pcont_1",
+          other: "",
+          product_id: "prod_1",
+          usage: "",
+          warning: "",
+        },
+        productTranslation: { translations: { description: "Popis" } },
+        translation: { translations: {} },
+      })
+    ).toBe(true)
   })
 
   it("accepts exact empty demo content only with a bound valid signature", () => {

@@ -8,10 +8,10 @@ import {
 const ROOT_ROUTE_PREFIX = /^root:/
 
 export const APPROVED_STATIC_TAXONOMY_HASH =
-  "sha256:82b02610cfd4346b1251c261e2a0cdfbd91ea0701d8e617f75b20dc61724a0d9"
+  "sha256:b6508faaf515778f7843583d3661fbc721c8257e625b72af7b2e29c2edb6db15"
 
 export const APPROVED_STATIC_CUTOVER_PLAN_HASH =
-  "sha256:8a9d5879cf8c0b1931a69a5459484a12334332d7febb0515736364904ede4529"
+  "sha256:3e6334341e6622ea2f682686757c968ecf603ae3a56bf2fb803707a1d8c9c11e"
 
 export const RO_DEMO_STATIC_APPROVAL = Object.freeze({
   editorialApproval: "demo-generated-unreviewed:ro-static-pages:v1",
@@ -34,16 +34,16 @@ export const RO_DEMO_STATIC_ROOTS = Object.freeze([
 
 const APPROVED_MARKET_PROJECTIONS = Object.freeze({
   cz: [
-    36,
-    "sha256:5d4056d09c0bfb03e59e5c4d666ebcfdce40db409aaa77a5ffa5d82ec19ed086",
+    39,
+    "sha256:e51ab82ae7091790dceaad517cdaf809c68a7c8d465dac1e17556ae8e5c24a40",
   ],
   hu: [
     36,
     "sha256:a312e8716adad9d30b6979cd3e191496fe49b98a95d626cc95db12e3a8608564",
   ],
   sk: [
-    36,
-    "sha256:0158ec934add6f522e02e77ceb4ae792e2c80524632a61d23c97af6234d0e0e8",
+    39,
+    "sha256:577248c4ce543ddd25b934dca149b59efb3563ccef85fea2c20b81a8528a022a",
   ],
 } as const)
 

@@ -101,20 +101,19 @@ describe("createPublishedSlug", () => {
 })
 
 describe("validatePublishedSlug", () => {
-  it("accepts the exact grammar up to 80 characters", () => {
+  it("accepts safe persisted customer slugs up to the registry limit", () => {
     const maximumLengthSlug = "a".repeat(MAX_PUBLISHED_SLUG_LENGTH)
 
     expect(validatePublishedSlug("caj-123")).toBe("caj-123")
+    expect(validatePublishedSlug("customer--slug-")).toBe("customer--slug-")
+    expect(validatePublishedSlug("-customer-slug")).toBe("-customer-slug")
     expect(validatePublishedSlug(maximumLengthSlug)).toBe(maximumLengthSlug)
   })
 
   it.each([
     "Upper-Case",
     "under_score",
-    "two--hyphens",
-    "-edge",
-    "edge-",
-  ])("rejects the noncanonical value %s", (value) => {
+  ])("rejects the unsafe value %s", (value) => {
     expect(() => validatePublishedSlug(value)).toThrowError(
       expect.objectContaining<Partial<PublishedSlugError>>({
         reason: "invalid-characters",

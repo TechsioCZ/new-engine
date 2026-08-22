@@ -562,7 +562,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
     })
   })
 
-  it("publishes, changes the public slug atomically, then unpublishes without retiring history", async () => {
+  it("publishes, changes the public slug atomically, then retires the public route on unpublish", async () => {
     const sourceId = context.nextNamespace("lifecycle-publication")
     const source = readSource({ kind: "found", value: { id: sourceId } })
     const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
@@ -605,7 +605,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
       kind: "found",
       value: {
         currentSlug: { normalizedSlug: "renamed-product-01" },
-        route: { status: "active", version: 2 },
+        route: { status: "retired", version: 3 },
       },
     })
     expect(source).toHaveBeenCalledTimes(2)
@@ -1068,6 +1068,38 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
         )
       )
     ).resolves.toMatchObject({ snapshot: { route: { status: "active" } } })
+  })
+
+  it("allows lifecycle publication after an explicit unpublish once the source is live", async () => {
+    const sourceId = context.nextNamespace("lifecycle-republished")
+    const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
+      readProduct: readSource({ kind: "found", value: { id: sourceId } }),
+    })
+    const unpublished = delivery(sourceId, 1, {
+      payload: { ...delivery(sourceId, 1).payload, assignment: null },
+    })
+
+    await expect(consumer.consume(unpublished)).resolves.toMatchObject({
+      action: "noop-unpublished",
+      kind: "acknowledged",
+    })
+    await expect(
+      consumer.consume(delivery(sourceId, 2))
+    ).resolves.toMatchObject({
+      action: "published",
+      kind: "acknowledged",
+    })
+    await expect(
+      context.registry.findEntityRoute({
+        market: "sk",
+        sourceSystem: "medusa",
+        sourceType: "product",
+        sourceId,
+      })
+    ).resolves.toMatchObject({
+      kind: "found",
+      value: { route: { status: "active" } },
+    })
   })
 
   it("blocks manual route creation after an explicit unpublish", async () => {

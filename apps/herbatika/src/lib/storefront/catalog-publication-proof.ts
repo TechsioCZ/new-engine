@@ -37,7 +37,7 @@ export type CatalogPublicationProofDependencies = Readonly<{
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504])
 const SOURCE_VERSION = /^[1-9]\d*$/
 const VISIBLE_IDENTIFIER = /^[\x21-\x7e]{1,255}$/
-const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PUBLIC_SLUG = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 const TRANSLATION_REFERENCE = {
   brand: "brand",
   category: "product_category",

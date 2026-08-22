@@ -115,6 +115,9 @@ const syncContainer = (
       if (request.entity === "region") {
         return Promise.resolve({ data: regionRecords })
       }
+      if (request.entity === "price") {
+        return Promise.resolve({ data: [] })
+      }
       return query.graph(request as never)
     },
   } as unknown as Query

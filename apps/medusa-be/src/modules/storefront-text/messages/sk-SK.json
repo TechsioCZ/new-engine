@@ -56,7 +56,7 @@
     "shipping_not_selected": "Doprava nie je vybraná",
     "summary": "Súhrn",
     "total_excl_tax": "bez DPH",
-    "shipping_payment": "Doprava a platba",
+    "shipping_payment": "Doprava a platby",
     "cart_empty": "Košík je prázdny. Pridajte najprv produkty.",
     "cart_not_ready": "Košík nie je pripravený.",
     "complete_failed": "Dokončenie objednávky zlyhalo.",
@@ -832,7 +832,7 @@
         },
         "important": {
           "title": "Dôležité informácie",
-          "shipping_payment": "Doprava a platba",
+          "shipping_payment": "Doprava a platby",
           "claims_returns": "Reklamácia a vrátenie",
           "terms": "Obchodné podmienky",
           "privacy": "Ochrana osobných údajov",

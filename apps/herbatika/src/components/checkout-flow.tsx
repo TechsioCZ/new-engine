@@ -58,7 +58,11 @@ export function CheckoutFlow({
   })
 
   const isStepGateLoading =
-    controller.cartQuery.isLoading || controller.cartQuery.isFetching
+    controller.cartQuery.isLoading ||
+    controller.cartQuery.isFetching ||
+    controller.checkoutShippingQuery.isLoading ||
+    controller.checkoutShippingQuery.isFetching ||
+    !controller.isPaymentSelectionHydrated
   const hasResolvedCart = typeof controller.cartQuery.cart !== "undefined"
   const shouldRedirectStep =
     hasResolvedCart &&

@@ -7,7 +7,7 @@ export type UrlRegistryMigrationManifestEntry = Readonly<{
 export type UrlRegistryMigrationManifest =
   readonly UrlRegistryMigrationManifestEntry[]
 
-export const URL_REGISTRY_MIGRATION_MANIFEST_VERSION = 5 as const
+export const URL_REGISTRY_MIGRATION_MANIFEST_VERSION = 7 as const
 
 export const URL_REGISTRY_MIGRATION_MANIFEST_V1 = Object.freeze([
   Object.freeze({
@@ -55,5 +55,25 @@ export const URL_REGISTRY_MIGRATION_MANIFEST_V5 = Object.freeze([
       "sha256:2007ae50b9cecb18b5b539a8cd99da1a3eb8b7a83afa33058e7fa2ad52fa460a",
     name: "0005_allow_catalog_unpublish_retirement.sql",
     version: 5,
+  }),
+]) satisfies UrlRegistryMigrationManifest
+
+export const URL_REGISTRY_MIGRATION_MANIFEST_V6 = Object.freeze([
+  ...URL_REGISTRY_MIGRATION_MANIFEST_V5,
+  Object.freeze({
+    checksum:
+      "sha256:68d60e23da47cd8eee53b064bd55a7216af15768e169ae55ef166e1ca82b433d",
+    name: "0006_expand_entity_slug_length.sql",
+    version: 6,
+  }),
+]) satisfies UrlRegistryMigrationManifest
+
+export const URL_REGISTRY_MIGRATION_MANIFEST_V7 = Object.freeze([
+  ...URL_REGISTRY_MIGRATION_MANIFEST_V6,
+  Object.freeze({
+    checksum:
+      "sha256:577882389d27b2e71fd3b63af4fe5b5810e7865d0a74e8a0898c722a0368da93",
+    name: "0007_align_entity_slug_grammar.sql",
+    version: 7,
   }),
 ]) satisfies UrlRegistryMigrationManifest

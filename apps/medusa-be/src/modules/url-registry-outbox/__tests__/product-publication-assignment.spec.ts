@@ -55,6 +55,24 @@ describe("product URL publication assignment", () => {
     })
   })
 
+  it("preserves exact customer slugs with leading, repeated, or trailing hyphens", () => {
+    const publicSlug = `-${"long-customer-slug-".repeat(8)}end--`
+    const snapshot = parseProductPublicationSnapshot(
+      product({
+        schemaVersion: 1,
+        markets: {
+          sk: {
+            publicationStatus: "published",
+            publicSlug,
+            salesChannelId: "sc_sk",
+          },
+        },
+      })
+    )
+
+    expect(snapshot.assignments.sk?.publicSlug).toBe(publicSlug)
+  })
+
   it("treats missing metadata as explicitly unpublished in every market", () => {
     expect(parseProductPublicationSnapshot(product()).assignments).toEqual({
       sk: null,

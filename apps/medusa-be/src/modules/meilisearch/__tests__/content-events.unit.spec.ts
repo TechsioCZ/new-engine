@@ -35,6 +35,10 @@ const profile = {
   indexes: { content: "content-herbatika-cz" },
   locale: "cs-CZ",
 }
+const skProfile = {
+  indexes: { content: "content-herbatika-sk" },
+  locale: "sk-SK",
+}
 const logger = { warn: vi.fn() } as unknown as Logger
 const container = {} as MedusaContainer
 
@@ -160,5 +164,29 @@ describe("CMS event URL registry projection", () => {
     expect(mocks.deleteDocuments).toHaveBeenCalledWith("content-herbatika-cz", [
       "page_7",
     ])
+  })
+
+  it("deletes a locale-less document from every content profile", async () => {
+    mocks.loadSearchProfiles.mockResolvedValue([profile, skProfile])
+
+    await reconcileContentSearchChange(
+      {
+        collection: "articles",
+        doc: { id: "42", status: "published", title: "Bylinky" },
+        operation: "delete",
+      },
+      logger,
+      container
+    )
+
+    expect(mocks.deleteDocuments).toHaveBeenCalledTimes(2)
+    expect(mocks.deleteDocuments).toHaveBeenCalledWith("content-herbatika-cz", [
+      "article_42",
+    ])
+    expect(mocks.deleteDocuments).toHaveBeenCalledWith("content-herbatika-sk", [
+      "article_42",
+    ])
+    expect(mocks.resolveContentProjectionHrefs).not.toHaveBeenCalled()
+    expect(mocks.addDocuments).not.toHaveBeenCalled()
   })
 })

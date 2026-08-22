@@ -1,9 +1,5 @@
 import type { GetServerSideProps } from "next"
-import { AboutPage } from "@/components/about/about-page"
-import { getAboutPageData } from "@/components/about/about-page.data"
 import { CmsPageSurface } from "@/components/cms/cms-page-surface"
-import { FaqPage } from "@/components/faq/faq-page"
-import { getFaqPageData } from "@/components/faq/faq-page.data"
 import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   type PublicPageProps,
@@ -13,10 +9,7 @@ import {
   type CmsPage,
   readCmsStaticPageWithDemoFallback,
 } from "@/lib/storefront/cms"
-import {
-  getHerbatikaMarketContext,
-  type HerbatikaLocale,
-} from "@/lib/storefront/market-context"
+import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { isRoDemoStaticPage } from "@/lib/storefront/ro-demo-static-pages"
 import type { StaticRoutePublicationDecision } from "@/lib/url/segment-registry-publication"
 import { assertReviewedStaticRouteSource } from "@/lib/url/segment-registry-publication/reviewed-source.server"
@@ -24,19 +17,11 @@ import { loadStaticRoutePublicationDecision } from "@/lib/url/segment-registry-p
 import { STATIC_ROOT_PAGE_KEYS } from "@/lib/url/segments"
 import type { Market, StaticRootPageKey } from "@/lib/url/types"
 
-type StaticValue =
-  | Readonly<{
-      kind: "about"
-      locale: HerbatikaLocale
-      publicationApproved: boolean
-      title: string
-    }>
-  | Readonly<{ kind: "faq"; publicationApproved: boolean; title: string }>
-  | Readonly<{
-      kind: "cms"
-      page: CmsPage
-      publicationApproved: boolean
-    }>
+type StaticValue = Readonly<{
+  kind: "cms"
+  page: CmsPage
+  publicationApproved: boolean
+}>
 
 type Props = PublicPageProps<StaticValue>
 
@@ -67,51 +52,6 @@ const isReviewedSource = async (
   } catch {
     return false
   }
-}
-
-const loadAboutSource = async (
-  market: Market,
-  publication: StaticRoutePublicationDecision
-) => {
-  const locale = getHerbatikaMarketContext(market).locale
-  const pageData = getAboutPageData(locale)
-  if (!(pageData?.hero.title.trim() && pageData.closingStatement.trim())) {
-    return invalidStaticSource("UNSUPPORTED_ABOUT_PAGE_LOCALE")
-  }
-  if (!(await isReviewedSource(market, "about", publication, pageData))) {
-    return invalidStaticSource("STATIC_CONTENT_REVIEW_BINDING_FAILED")
-  }
-  return {
-    kind: "found",
-    value: {
-      kind: "about",
-      locale,
-      publicationApproved: publication.kind === "approved",
-      title: pageData.hero.title,
-    },
-  } as const
-}
-
-const loadFaqSource = async (
-  market: Market,
-  publication: StaticRoutePublicationDecision
-) => {
-  const locale = getHerbatikaMarketContext(market).locale
-  const pageData = getFaqPageData(locale)
-  if (!(pageData?.title.trim() && pageData.intro.trim())) {
-    return invalidStaticSource("UNSUPPORTED_FAQ_PAGE_LOCALE")
-  }
-  if (!(await isReviewedSource(market, "faq", publication, pageData))) {
-    return invalidStaticSource("STATIC_CONTENT_REVIEW_BINDING_FAILED")
-  }
-  return {
-    kind: "found",
-    value: {
-      kind: "faq",
-      publicationApproved: publication.kind === "approved",
-      title: pageData.title,
-    },
-  } as const
 }
 
 const loadCmsSource = async (
@@ -150,12 +90,6 @@ const loadStaticSource = async (market: Market, pageKey: StaticRootPageKey) => {
     market,
     routeKey: pageKey,
   })
-  if (pageKey === "about") {
-    return loadAboutSource(market, publication)
-  }
-  if (pageKey === "faq") {
-    return loadFaqSource(market, publication)
-  }
   if (publication.kind === "rejected") {
     return { kind: "unavailable", retryAfterSeconds: 30 } as const
   }
@@ -173,30 +107,15 @@ export const getServerSideProps = ((context) => {
     path: { kind: "static", page: pageKey },
     queryKind: "static-page",
     isIndexable: (value) =>
-      value.publicationApproved &&
-      (value.kind !== "cms" || !isRoDemoStaticPage(value.page)),
-    title: (value) =>
-      value.kind === "cms"
-        ? (value.page.meta?.title ?? value.page.title ?? undefined)
-        : value.title,
+      value.publicationApproved && !isRoDemoStaticPage(value.page),
+    title: (value) => value.page.meta?.title ?? value.page.title ?? undefined,
     useLinkFreeShellWhenNoindex: true,
   })
 }) satisfies GetServerSideProps<Props>
 
-export default function StaticPage({ page, reviewTrustSources }: Props) {
+export default function StaticPage({ page }: Props) {
   if (page.kind === "error") {
     return <LocalizedPageError status={page.status} surface="content" />
-  }
-  if (page.value.kind === "about") {
-    return (
-      <AboutPage
-        locale={page.value.locale}
-        reviewTrustSources={reviewTrustSources}
-      />
-    )
-  }
-  if (page.value.kind === "faq") {
-    return <FaqPage />
   }
   return <CmsPageSurface page={page.value.page} />
 }

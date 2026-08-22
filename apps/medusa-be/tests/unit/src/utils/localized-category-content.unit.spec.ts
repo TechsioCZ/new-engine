@@ -97,21 +97,19 @@ describe("localized category content", () => {
 
   it.each([
     ["missing translation", []],
+    ["duplicate translation", [translation(), translation({ id: "trans_2" })]],
     [
-      "missing rich field",
+      "invalid present rich field",
       [
         translation({
           translations: {
-            name: "Suplimente",
             description: "Descriere categorie",
-            top_description_html: "<p>Sus</p>",
-            bottom_description_html: null,
-            meta_title: "Titlu",
+            meta_description: 42,
+            name: "Suplimente",
           },
         }),
       ],
     ],
-    ["duplicate translation", [translation(), translation({ id: "trans_2" })]],
   ])("fails closed for Romanian %s", async (_label, translations) => {
     const category = {
       id: "pcat_1",
@@ -129,30 +127,42 @@ describe("localized category content", () => {
     expect(category.metadata.top_description_html).toBe("<p>Slovenský text</p>")
   })
 
-  it("allows explicit nulls without falling back to Slovak", async () => {
+  it.each([
+    [
+      "absent unsupported fields",
+      { description: "Descriere categorie", name: "Suplimente" },
+    ],
+    [
+      "explicit nulls",
+      {
+        bottom_description_html: null,
+        description: null,
+        meta_description: null,
+        meta_title: null,
+        name: "Suplimente",
+        top_description_html: null,
+      },
+    ],
+  ])("maps Romanian %s to null without Slovak fallback", async (_label, translations) => {
     const category: LocalizedCategoryContentDecoratable = {
+      description: "Slovenský popis",
       id: "pcat_1",
       metadata: { top_description_html: "<p>Slovenský text</p>" },
     }
     const result = await decorateCategoriesWithLocalizedContent(
-      containerFor([
-        translation({
-          translations: {
-            name: "Suplimente",
-            description: null,
-            top_description_html: null,
-            bottom_description_html: null,
-            meta_title: null,
-            meta_description: null,
-          },
-        }),
-      ]),
+      containerFor([translation({ translations })]),
       [category],
       "ro-RO"
     )
 
     expect(result).toEqual({ kind: "decorated" })
-    expect(category.localized_content?.top_description_html).toBeNull()
+    expect(category.localized_content).toMatchObject({
+      bottom_description_html: null,
+      meta_description: null,
+      meta_title: null,
+      top_description_html: null,
+    })
+    expect(category.description).not.toBe("Slovenský popis")
     expect(category.metadata).toEqual({})
   })
 

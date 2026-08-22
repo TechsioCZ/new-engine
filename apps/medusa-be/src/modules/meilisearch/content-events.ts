@@ -95,14 +95,16 @@ export const reconcileContentSearchChange = async (
     typeof change.doc?.locale === "string"
       ? normalizeLocale(change.doc.locale)
       : undefined
-  if (!locale) {
+  const isLocaleLessDelete = change.operation === "delete" && !locale
+  if (!(locale || isLocaleLessDelete)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `Quarantining ${change.collection} search projection because its locale is missing`
     )
   }
   const profiles = (await loadSearchProfiles(container)).filter(
-    (profile) => normalizeLocale(profile.locale) === locale
+    (profile) =>
+      isLocaleLessDelete || normalizeLocale(profile.locale) === locale
   )
   const client = new MeilisearchAdminClient()
   const documentId = `${type}_${String(rawId)}`

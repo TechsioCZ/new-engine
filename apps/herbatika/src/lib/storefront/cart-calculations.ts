@@ -210,5 +210,22 @@ export const resolveCartTotalWithoutTaxAmount = (
   return resolveCartItemsSubtotalAmount(cart) + shippingSubtotal
 }
 
+export const CART_ITEM_LOCALIZED_TITLE_METADATA_KEY = "localized_title"
+
+const resolveCartItemLocalizedTitle = (item: HttpTypes.StoreCartLineItem) => {
+  if (!(item.metadata && typeof item.metadata === "object")) {
+    return null
+  }
+
+  const value = (item.metadata as Record<string, unknown>)[
+    CART_ITEM_LOCALIZED_TITLE_METADATA_KEY
+  ]
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
 export const resolveCartItemName = (item: HttpTypes.StoreCartLineItem) =>
-  item.title ?? item.product_title ?? item.variant_title ?? item.id
+  resolveCartItemLocalizedTitle(item) ??
+  item.title ??
+  item.product_title ??
+  item.variant_title ??
+  item.id

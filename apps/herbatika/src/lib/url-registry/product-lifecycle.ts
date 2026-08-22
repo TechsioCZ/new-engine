@@ -206,7 +206,7 @@ export const decideProductLifecycle = (
   decideLifecycle({
     assignment,
     changeType,
-    retireActiveRouteWhenUnpublished: false,
+    retireActiveRouteWhenUnpublished: true,
     route,
     source,
   })

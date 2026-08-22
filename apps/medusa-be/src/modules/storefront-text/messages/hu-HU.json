@@ -873,18 +873,18 @@
         "information": {
           "title": "Információk Önnek",
           "blog": "Blog",
-          "about": "Rólunk",
+          "about": "Minden a csapatunkról",
           "faq": "Gyakori kérdések",
           "gift_voucher": "Ajándékutalvány",
           "brands": "Gyártók és márkák",
-          "reviews": "Vélemények"
+          "reviews": "A mi vevőink elégedettek"
         },
         "important": {
           "title": "Fontos információk",
           "shipping_payment": "Szállítás és fizetés",
           "claims_returns": "Reklamáció és visszaküldés",
-          "terms": "Általános szerződési feltételek",
-          "privacy": "Adatvédelem",
+          "terms": "Üzleti feltételek",
+          "privacy": "Az Ön személyes adatai nálunk biztonságban vannak",
           "cookies": "Cookie-k"
         },
         "partners": {

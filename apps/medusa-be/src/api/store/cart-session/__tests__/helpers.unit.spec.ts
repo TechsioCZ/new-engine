@@ -11,6 +11,7 @@ const completeAddress = {
   country_code: "cz",
   first_name: "Ada",
   last_name: "Lovelace",
+  phone: "+420777123456",
   postal_code: "11000",
 }
 
@@ -19,9 +20,21 @@ describe("checkout step projection", () => {
     expect(
       projectCheckoutStepState({ id: "cart_1", items: [{ id: "item_1" }] })
     ).toEqual({
+      default_step: "shipping",
+      invalid_provider_state: false,
+      reachable_steps: ["shipping"],
+    })
+
+    expect(
+      projectCheckoutStepState({
+        id: "cart_1",
+        items: [{ id: "item_1" }],
+        shipping_methods: [{ id: "sm_1" }],
+      })
+    ).toEqual({
       default_step: "contact",
       invalid_provider_state: false,
-      reachable_steps: ["contact"],
+      reachable_steps: ["shipping", "payment", "contact"],
     })
 
     expect(
@@ -33,15 +46,46 @@ describe("checkout step projection", () => {
         shipping_methods: [{ id: "sm_1" }],
       })
     ).toEqual({
-      default_step: "payment",
+      default_step: "contact",
       invalid_provider_state: false,
-      reachable_steps: ["contact", "shipping", "payment"],
+      reachable_steps: ["shipping", "payment", "contact"],
+    })
+
+    expect(
+      projectCheckoutStepState({
+        billing_address: completeAddress,
+        email: "ada@example.com",
+        id: "cart_1",
+        items: [{ id: "item_1" }],
+        shipping_address: { ...completeAddress, phone: null },
+        shipping_methods: [{ id: "sm_1" }],
+      })
+    ).toEqual({
+      default_step: "contact",
+      invalid_provider_state: false,
+      reachable_steps: ["shipping", "payment", "contact"],
+    })
+
+    expect(
+      projectCheckoutStepState({
+        billing_address: completeAddress,
+        email: "ada@example.com",
+        id: "cart_1",
+        items: [{ id: "item_1" }],
+        shipping_address: completeAddress,
+        shipping_methods: [{ id: "sm_1" }],
+      })
+    ).toEqual({
+      default_step: "review",
+      invalid_provider_state: false,
+      reachable_steps: ["shipping", "payment", "contact", "review"],
     })
   })
 
-  it("reaches review only with one usable payment provider session", () => {
+  it("accepts deferred payment and rejects incoherent provider state", () => {
     expect(
       projectCheckoutStepState({
+        billing_address: completeAddress,
         email: "ada@example.com",
         id: "cart_1",
         items: [{ id: "item_1" }],
@@ -56,11 +100,12 @@ describe("checkout step projection", () => {
     ).toEqual({
       default_step: "review",
       invalid_provider_state: false,
-      reachable_steps: ["contact", "shipping", "payment", "review"],
+      reachable_steps: ["shipping", "payment", "contact", "review"],
     })
 
     expect(
       projectCheckoutStepState({
+        billing_address: completeAddress,
         email: "ada@example.com",
         id: "cart_1",
         items: [{ id: "item_1" }],

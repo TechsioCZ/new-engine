@@ -186,7 +186,7 @@ export const publishProductLifecycleRoute = async (
     await runner.runInTransaction(executor, {
       command,
       expectedType: "create-entity-route",
-      mutate: (client) => createEntityRoute(client, command, randomUUID),
+      mutate: (client) => createEntityRoute(client, command, randomUUID, true),
     })
   )
   if (result.commit.outcome !== "applied") {

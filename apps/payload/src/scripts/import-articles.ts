@@ -47,16 +47,19 @@ const HEADER_WHITESPACE_PATTERN = /\s+/g
 const NEWLINE_PATTERN = /\r?\n/
 const TAG_SEPARATOR_PATTERN = /[,;]/
 const IS_DEBUG_IMPORT = process.env.DEBUG_IMPORT_ARTICLES === "1"
-const TITLE_MAX_LENGTH = 100
+const TITLE_MAX_LENGTH = 200
+const IMPORTED_SLUG_PATTERN = /^(?=.*[a-z0-9])[a-z0-9-]+$/
+const IMPORTED_SLUG_MAX_LENGTH = 255
 const EXCEL_EPOCH_DAYS = 25_569
 const MS_PER_DAY = 86_400_000
 const DEFAULT_LOCALES = ["cs", "sk", "hu", "ro"]
+const RICH_TEXT_FILE_PREFIX = "payload-richtext-file:"
 const RICH_TEXT_GZIP_PREFIX = "payload-richtext+gzip-base64:"
 const MEDIA_URL_PREFIX = "payload-media-url:"
 const DATA_IMAGE_PATTERN =
   /^data:(image\/(?:avif|gif|jpeg|png|webp));base64,(.+)$/i
 const MEDIA_FETCH_TIMEOUT_MS = 15_000
-const MAX_MEDIA_BYTES = 10 * 1024 * 1024
+const MAX_MEDIA_BYTES = 16 * 1024 * 1024
 const MAX_MEDIA_REDIRECTS = 5
 const MEDIA_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 const BLOCKED_MEDIA_ADDRESSES = new BlockList()
@@ -116,6 +119,7 @@ const usage = `Usage:
 
 Expected columns:
   title, content, excerpt, slug, category, category_slug, tags, status, publishedDate, featured_image_path, author_email
+  lookup_slug and lookup_title may pin localized rows to one stable article.
 
 Aliases:
   title: post_url, post_title
@@ -333,6 +337,17 @@ const slugify = (value: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
+
+const normalizeImportedSlug = (value: string) => {
+  const normalized = value.trim().toLowerCase()
+  if (
+    normalized.length <= IMPORTED_SLUG_MAX_LENGTH &&
+    IMPORTED_SLUG_PATTERN.test(normalized)
+  ) {
+    return normalized
+  }
+  return slugify(value)
+}
 
 const throwIfAborted = (signal?: AbortSignal) => {
   if (signal?.aborted) {
@@ -1102,6 +1117,25 @@ const findExistingBySlug = async (
   return result.docs[0]
 }
 
+const findExistingArticle = async (
+  payload: Payload,
+  slug: string,
+  title: string
+) => {
+  const result = await payload.find({
+    collection: "articles",
+    locale: "all",
+    where: {
+      and: [{ slug: { equals: slug } }, { title: { equals: title } }],
+    },
+    limit: 1,
+    pagination: false,
+    overrideAccess: true,
+  })
+
+  return result.docs[0]
+}
+
 type EnsureCategoryParams = {
   payload: Payload
   title: string
@@ -1214,12 +1248,23 @@ const ensureFallbackMedia = async (payload: Payload, dryRun: boolean) => {
   return media.id as PayloadId
 }
 
-const ensureFeaturedImage = (imagePath: string, fallbackMediaId: PayloadId) => {
+const ensureFeaturedImage = (
+  imagePath: string,
+  fallbackMediaId: PayloadId,
+  mediaUrlMap: Map<string, PayloadId>
+) => {
   if (!imagePath) {
     return fallbackMediaId
   }
 
-  console.warn("Image import from XLSX is disabled, using fallback media.")
+  const mediaId = mediaUrlMap.get(imagePath)
+  if (mediaId !== undefined) {
+    return mediaId
+  }
+
+  console.warn(
+    `Featured image was not prepared from media manifest: ${imagePath}`
+  )
   return fallbackMediaId
 }
 
@@ -1241,6 +1286,41 @@ const findAuthor = async (payload: Payload, email: string) => {
   })
 
   return result.docs[0]?.id as PayloadId | undefined
+}
+
+const resolveWorkbookSidecarPath = (
+  workbookPath: string,
+  relativePath: string
+) => {
+  const baseDirectory = path.dirname(workbookPath)
+  const resolved = path.resolve(baseDirectory, relativePath)
+  const relative = path.relative(baseDirectory, resolved)
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(`Sidecar path escapes workbook directory: ${relativePath}`)
+  }
+  return resolved
+}
+
+const resolveRichTextSidecars = async (rows: Row[], workbookPath: string) => {
+  for (const row of rows) {
+    for (const [header, value] of Object.entries(row)) {
+      if (
+        typeof value !== "string" ||
+        !value.startsWith(RICH_TEXT_FILE_PREFIX)
+      ) {
+        continue
+      }
+      const relativePath = value.slice(RICH_TEXT_FILE_PREFIX.length).trim()
+      if (!relativePath) {
+        throw new Error(`Rich text sidecar path is empty in column ${header}`)
+      }
+      row[header] = await readFile(
+        resolveWorkbookSidecarPath(workbookPath, relativePath),
+        "utf8"
+      )
+    }
+  }
+  return rows
 }
 
 const readRows = async (filePath: string, sheetName?: string) => {
@@ -1278,7 +1358,7 @@ const readRows = async (filePath: string, sheetName?: string) => {
 
   return {
     selectedSheetName,
-    rows: rows.map(normalizeRow),
+    rows: await resolveRichTextSidecars(rows.map(normalizeRow), filePath),
   }
 }
 
@@ -1389,7 +1469,8 @@ const processArticleRow = async (
       "post_img_src",
       "post_img",
     ]),
-    fallbackMediaId
+    fallbackMediaId,
+    context.mediaUrlMap
   )
 
   const author = await findAuthor(
@@ -1413,7 +1494,13 @@ const processArticleRow = async (
     ? extractedExcerpt
     : excerptFromContent(content)
   const rawSlug = getText(row, ["slug", "url_slug", "url", "post_url_href"])
-  const slug = rawSlug ? slugify(rawSlug) : slugify(title)
+  const slug = rawSlug ? normalizeImportedSlug(rawSlug) : slugify(title)
+  const lookupSlug = normalizeImportedSlug(
+    getText(row, ["lookup_slug", "article_lookup_slug"]) || slug
+  )
+  const lookupTitle = normalizeText(
+    getText(row, ["lookup_title", "article_lookup_title"]) || title
+  )
 
   const data: ArticlePayloadData = {
     title,
@@ -1440,7 +1527,11 @@ const processArticleRow = async (
     translationSync: translate,
   }
 
-  const existingArticle = await findExistingBySlug(payload, "articles", slug)
+  const existingArticle = await findExistingArticle(
+    payload,
+    lookupSlug,
+    lookupTitle
+  )
 
   return upsertArticle({
     payload,

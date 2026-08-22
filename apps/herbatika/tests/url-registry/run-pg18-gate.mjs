@@ -153,14 +153,14 @@ const main = async () => {
     const legacySourceId = await seedLegacyCatalogUnpublishedReceipt(
       database.migrationUrl
     )
-    const v5MigrationResult = await migrateUrlRegistry(database.migrationUrl)
+    const v7MigrationResult = await migrateUrlRegistry(database.migrationUrl)
     await assertLegacyCatalogUnpublishedReceipt(
       database.migrationUrl,
       legacySourceId
     )
     await grantRuntimeAccess(database)
     process.stdout.write(
-      `PostgreSQL 18.1 ready; V4 applied=${v4MigrationResult.applied.length}, V5 applied=${v5MigrationResult.applied.length}, skipped=${v5MigrationResult.skipped.length}; legacy catalog receipt preserved\n`
+      `PostgreSQL 18.1 ready; V4 applied=${v4MigrationResult.applied.length}, V7 applied=${v7MigrationResult.applied.length}, skipped=${v7MigrationResult.skipped.length}; legacy catalog receipt preserved\n`
     )
     await runProcess(
       process.execPath,

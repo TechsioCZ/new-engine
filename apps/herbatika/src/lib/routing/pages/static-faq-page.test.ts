@@ -1,13 +1,10 @@
 import type { GetServerSidePropsContext } from "next"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   fetchCmsFooterNavigation: vi.fn(async () => ({ columns: [] })),
   fetchExternalReviewTrustSources: vi.fn(async () => []),
   fetchStorefrontTextMessages: vi.fn(async () => ({})),
-  getFaqPageData: vi.fn(
-    (): { intro: string; items: never[]; title: string } | null => null
-  ),
   getHerbatikaMarketContext: vi.fn((market: "cz" | "hu" | "ro" | "sk") => {
     const localeByMarket = {
       cz: "cs-CZ",
@@ -24,13 +21,8 @@ const mocks = vi.hoisted(() => ({
   })),
 }))
 
-vi.mock("@/components/about/about-page", () => ({ AboutPage: vi.fn() }))
 vi.mock("@/components/cms/cms-page-surface", () => ({
   CmsPageSurface: vi.fn(),
-}))
-vi.mock("@/components/faq/faq-page", () => ({ FaqPage: vi.fn() }))
-vi.mock("@/components/faq/faq-page.data", () => ({
-  getFaqPageData: mocks.getFaqPageData,
 }))
 vi.mock("@/lib/market/market-runtime.server", () => ({
   getConfiguredMarketRoutingRuntime: vi.fn(() => ({
@@ -133,12 +125,26 @@ const requestContext = (pageKey = "faq", market = "cz") => {
 }
 
 describe("localized FAQ route", () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
   it("returns a noindex 503 instead of an empty indexable page", async () => {
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValueOnce({
+      causeCode: "EMPTY_STATIC_PAGE_CONTENT",
+      kind: "invalid-response",
+    })
     const request = requestContext()
 
     const result = await getServerSideProps(request.context)
 
-    expect(mocks.getFaqPageData).toHaveBeenCalledWith("cs-CZ")
+    expect(readCmsStaticPageWithDemoFallback).toHaveBeenCalledWith(
+      "faq",
+      "cs-CZ"
+    )
     expect(result).toMatchObject({
       props: {
         page: { kind: "error", status: 503 },
@@ -158,15 +164,13 @@ describe("localized FAQ route", () => {
       [market, "about"],
       [market, "faq"],
     ])
-  )("renders %s %s as noindex when G1 evidence is absent", async (market, pageKey) => {
+  )("returns a noindex 503 for %s %s when G1 evidence is absent", async (market, pageKey) => {
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
     const { loadStaticRoutePublicationDecision } = await import(
       "@/lib/url/segment-registry-publication.server"
     )
-    mocks.getFaqPageData.mockReturnValueOnce({
-      intro: "Întrebări și răspunsuri generale.",
-      items: [],
-      title: "Întrebări frecvente",
-    })
     vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
       kind: "rejected",
       reason: "artifact-unavailable",
@@ -177,19 +181,20 @@ describe("localized FAQ route", () => {
 
     expect(result).toMatchObject({
       props: {
-        page: {
-          kind: "found",
-          value: { kind: pageKey, publicationApproved: false },
-        },
-        seo: { alternates: {}, robots: "noindex, follow" },
+        page: { kind: "error", status: 503 },
+        seo: { robots: "noindex, nofollow" },
       },
     })
     expect(
       (result as { props: { seo: { canonical?: string } } }).props.seo.canonical
     ).toBeUndefined()
-    expect(request.context.res.statusCode).toBe(200)
-    expect(request.headers.get("x-robots-tag")).toBe("noindex, follow")
-    expect(request.headers.get("retry-after")).toBeUndefined()
+    expect(request.context.res.statusCode).toBe(503)
+    expect(request.headers.get("x-robots-tag")).toBe("noindex, nofollow")
+    expect(request.headers.get("retry-after")).toBe("30")
+    expect(request.headers.get("cache-control")).toBe(
+      "private, no-store, max-age=0, must-revalidate"
+    )
+    expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
     expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalled()
   })
 

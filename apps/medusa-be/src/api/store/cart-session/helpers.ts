@@ -18,6 +18,7 @@ type CartAddress = {
   country_code?: null | string
   first_name?: null | string
   last_name?: null | string
+  phone?: null | string
   postal_code?: null | string
 }
 
@@ -28,6 +29,7 @@ type PaymentSession = {
 }
 
 export type PrivateFlowCart = {
+  billing_address?: CartAddress | null
   completed_at?: Date | null | string
   email?: null | string
   id: string
@@ -43,12 +45,9 @@ export type PrivateFlowCart = {
 const hasText = (value: unknown): value is string =>
   typeof value === "string" && Boolean(value.trim())
 
-const hasContact = (cart: PrivateFlowCart) => {
-  const address = cart.shipping_address
-
-  return Boolean(
-    hasText(cart.email) &&
-      address &&
+const hasCompleteAddress = (address?: CartAddress | null) =>
+  Boolean(
+    address &&
       hasText(address.first_name) &&
       hasText(address.last_name) &&
       hasText(address.address_1) &&
@@ -56,7 +55,14 @@ const hasContact = (cart: PrivateFlowCart) => {
       hasText(address.postal_code) &&
       hasText(address.country_code)
   )
-}
+
+const hasContact = (cart: PrivateFlowCart) =>
+  Boolean(
+    hasText(cart.email) &&
+      hasText(cart.shipping_address?.phone) &&
+      hasCompleteAddress(cart.shipping_address) &&
+      hasCompleteAddress(cart.billing_address)
+  )
 
 const unusablePaymentStatuses = new Set(["canceled", "cancelled", "error"])
 
@@ -72,27 +78,17 @@ export const projectCheckoutStepState = (cart: PrivateFlowCart) => {
   )
   const invalidProviderState =
     sessions.length > 0 && usableSessions.length !== 1
-  const paymentComplete = usableSessions.length === 1
 
-  let defaultStep: CheckoutStep = "contact"
-  let reachableSteps: CheckoutStep[] = ["contact"]
+  let defaultStep: CheckoutStep = "shipping"
+  let reachableSteps: CheckoutStep[] = ["shipping"]
 
-  if (contactComplete) {
-    defaultStep = "shipping"
-    reachableSteps = ["contact", "shipping"]
+  if (shippingComplete && !invalidProviderState) {
+    defaultStep = "contact"
+    reachableSteps = ["shipping", "payment", "contact"]
   }
-  if (contactComplete && shippingComplete) {
-    defaultStep = "payment"
-    reachableSteps = ["contact", "shipping", "payment"]
-  }
-  if (
-    contactComplete &&
-    shippingComplete &&
-    paymentComplete &&
-    !invalidProviderState
-  ) {
+  if (shippingComplete && contactComplete && !invalidProviderState) {
     defaultStep = "review"
-    reachableSteps = ["contact", "shipping", "payment", "review"]
+    reachableSteps = ["shipping", "payment", "contact", "review"]
   }
 
   return {
@@ -144,6 +140,13 @@ export const retrieveMarketCart = async (
       "shipping_address.city",
       "shipping_address.postal_code",
       "shipping_address.country_code",
+      "shipping_address.phone",
+      "billing_address.first_name",
+      "billing_address.last_name",
+      "billing_address.address_1",
+      "billing_address.city",
+      "billing_address.postal_code",
+      "billing_address.country_code",
       "shipping_methods.id",
       "payment_collection.payment_sessions.id",
       "payment_collection.payment_sessions.provider_id",

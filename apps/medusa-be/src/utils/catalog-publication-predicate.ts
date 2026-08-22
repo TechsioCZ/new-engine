@@ -46,8 +46,9 @@ export const isCompleteCategoryPublicationTranslation = (
     (value.description === null || typeof value.description === "string") &&
     CATEGORY_FIELDS.every(
       (field) =>
-        Object.hasOwn(value, field) &&
-        (value[field] === null || typeof value[field] === "string")
+        !Object.hasOwn(value, field) ||
+        value[field] === null ||
+        typeof value[field] === "string"
     )
   )
 }
@@ -84,16 +85,7 @@ export const isCompleteProductContentPublicationTranslation = (input: {
   translation: Pick<TranslationDTO, "translations">
 }) => {
   const localized = input.translation.translations
-  if (
-    !(
-      isRecord(localized) &&
-      PRODUCT_CONTENT_TRANSLATABLE_FIELDS.every(
-        (field) =>
-          Object.hasOwn(localized, field) &&
-          typeof localized[field] === "string"
-      )
-    )
-  ) {
+  if (!isRecord(localized)) {
     return false
   }
   const requiredSourceFieldsAreTranslated =
@@ -106,7 +98,7 @@ export const isCompleteProductContentPublicationTranslation = (input: {
   if (
     !(
       PRODUCT_CONTENT_TRANSLATABLE_FIELDS.every(
-        (field) => localized[field] === ""
+        (field) => !Object.hasOwn(localized, field) || localized[field] === ""
       ) &&
       isRecord(input.productTranslation.translations) &&
       hasRenderableVisibleContent(

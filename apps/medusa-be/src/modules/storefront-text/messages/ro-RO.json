@@ -823,8 +823,8 @@
       "columns": {
         "information": {
           "title": "Informații pentru dumneavoastră",
-          "blog": "Blog",
-          "about": "Despre noi",
+          "blog": "Vizitați blogul nostru",
+          "about": "Totul despre echipa noastră",
           "faq": "Întrebări frecvente",
           "gift_voucher": "Voucher cadou",
           "brands": "Producători și mărci",
@@ -832,10 +832,10 @@
         },
         "important": {
           "title": "Informații importante",
-          "shipping_payment": "Livrare și plată",
+          "shipping_payment": "Transportul și plata",
           "claims_returns": "Reclamații și retururi",
           "terms": "Termeni și condiții",
-          "privacy": "Protecția datelor cu caracter personal",
+          "privacy": "Protejăm datele dvs. cu caracter personal",
           "cookies": "Cookie-uri"
         },
         "partners": {

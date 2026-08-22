@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest"
 import type { SqlClient, SqlPool, SqlQueryResult } from "../postgres"
 import type { UrlRegistryMigrationManifest } from "./manifest"
 import {
-  URL_REGISTRY_MIGRATION_MANIFEST_V4,
-  URL_REGISTRY_MIGRATION_MANIFEST_V5,
+  URL_REGISTRY_MIGRATION_MANIFEST_V6,
+  URL_REGISTRY_MIGRATION_MANIFEST_V7,
 } from "./manifest"
 import {
   assertAppliedMigrationManifest,
@@ -55,22 +55,22 @@ describe("assertAppliedMigrationManifest", () => {
   })
 
   it("accepts a checksum-exact known prefix for a compatibility build", () => {
-    const v5Rows = URL_REGISTRY_MIGRATION_MANIFEST_V5.map(
+    const v7Rows = URL_REGISTRY_MIGRATION_MANIFEST_V7.map(
       ({ checksum, name }) => ({ checksum, name })
     )
 
     expect(() =>
-      assertAppliedMigrationManifest(v5Rows, URL_REGISTRY_MIGRATION_MANIFEST_V4)
+      assertAppliedMigrationManifest(v7Rows, URL_REGISTRY_MIGRATION_MANIFEST_V6)
     ).not.toThrow()
   })
 
   it("rejects a candidate whose database is still on the older manifest", () => {
-    const v4Rows = URL_REGISTRY_MIGRATION_MANIFEST_V4.map(
+    const v6Rows = URL_REGISTRY_MIGRATION_MANIFEST_V6.map(
       ({ checksum, name }) => ({ checksum, name })
     )
 
     expect(() =>
-      assertAppliedMigrationManifest(v4Rows, URL_REGISTRY_MIGRATION_MANIFEST_V5)
+      assertAppliedMigrationManifest(v6Rows, URL_REGISTRY_MIGRATION_MANIFEST_V7)
     ).toThrow("behind the manifest")
   })
 

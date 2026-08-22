@@ -7,7 +7,7 @@ const PUBLICATION_ASSIGNMENT_KEYS = new Set([
   "publicSlug",
   "salesChannelId",
 ])
-const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PUBLIC_SLUG = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 const VISIBLE_ASCII = /^[\x21-\x7e]+$/
 
 export type ProductPublicationAssignment = Readonly<{
@@ -48,7 +48,7 @@ const parsePublicationAssignment = (
     (value.publicationStatus !== "draft" &&
       value.publicationStatus !== "published") ||
     typeof value.publicSlug !== "string" ||
-    value.publicSlug.length > 200 ||
+    value.publicSlug.length > 255 ||
     !PUBLIC_SLUG.test(value.publicSlug) ||
     !isIdentifier(value.salesChannelId)
   ) {

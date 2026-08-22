@@ -36,13 +36,8 @@ function assertFoundCmsStaticSource(
   }
 }
 
-vi.mock("@/components/about/about-page", () => ({ AboutPage: vi.fn() }))
 vi.mock("@/components/cms/cms-page-surface", () => ({
   CmsPageSurface: vi.fn(),
-}))
-vi.mock("@/components/faq/faq-page", () => ({ FaqPage: vi.fn() }))
-vi.mock("@/components/faq/faq-page.data", () => ({
-  getFaqPageData: vi.fn(),
 }))
 vi.mock("@/lib/routing/public-page", () => ({
   resolveStaticPublicPage: vi.fn(
@@ -106,27 +101,32 @@ describe("root-static CMS page source", () => {
   })
 
   it("fails closed when the market has no localized FAQ source", async () => {
-    const { getFaqPageData } = await import("@/components/faq/faq-page.data")
-    vi.mocked(getFaqPageData).mockReturnValue(null)
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValue({
+      kind: "missing",
+    })
     const { getServerSideProps } = await import(
       "@/pages/~sf/[market]/static/[pageKey]"
     )
 
     await expect(
       getServerSideProps({ params: { pageKey: "faq" } } as never)
-    ).resolves.toEqual({
-      causeCode: "UNSUPPORTED_FAQ_PAGE_LOCALE",
-      kind: "invalid-response",
-    })
-    expect(getFaqPageData).toHaveBeenCalledWith("cs-CZ")
+    ).resolves.toEqual({ kind: "missing" })
+    expect(readCmsStaticPageWithDemoFallback).toHaveBeenCalledWith(
+      "faq",
+      "cs-CZ"
+    )
   })
 
-  it("publishes the FAQ source only when localized data exists", async () => {
-    const { getFaqPageData } = await import("@/components/faq/faq-page.data")
-    vi.mocked(getFaqPageData).mockReturnValue({
-      intro: "Localized intro",
-      items: [],
-      title: "Localized FAQ",
+  it("publishes exact localized FAQ CMS content", async () => {
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValue({
+      kind: "found",
+      value: { content: "Localized FAQ", id: 12, title: "FAQ" },
     })
     const { getServerSideProps } = await import(
       "@/pages/~sf/[market]/static/[pageKey]"
@@ -136,9 +136,12 @@ describe("root-static CMS page source", () => {
       getServerSideProps({ params: { pageKey: "faq" } } as never)
     ).resolves.toEqual({
       kind: "found",
-      value: { kind: "faq", publicationApproved: true, title: "Localized FAQ" },
+      value: {
+        kind: "cms",
+        page: { content: "Localized FAQ", id: 12, title: "FAQ" },
+        publicationApproved: true,
+      },
     })
-    expect(getFaqPageData).toHaveBeenCalledWith("cs-CZ")
   })
 
   it("fails closed before reading an indexable source without G1 approval", async () => {
@@ -165,16 +168,13 @@ describe("root-static CMS page source", () => {
   it.each([
     "about",
     "faq",
-  ] as const)("keeps safe code-owned %s content available but unapproved without G1", async (pageKey) => {
-    const { getFaqPageData } = await import("@/components/faq/faq-page.data")
+  ] as const)("fails closed before reading %s CMS content without G1 approval", async (pageKey) => {
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
     const { loadStaticRoutePublicationDecision } = await import(
       "@/lib/url/segment-registry-publication.server"
     )
-    vi.mocked(getFaqPageData).mockReturnValue({
-      intro: "Localized intro",
-      items: [],
-      title: "Localized FAQ",
-    })
     vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
       kind: "rejected",
       reason: "artifact-unavailable",
@@ -185,10 +185,8 @@ describe("root-static CMS page source", () => {
 
     await expect(
       getServerSideProps({ params: { pageKey } } as never)
-    ).resolves.toMatchObject({
-      kind: "found",
-      value: { kind: pageKey, publicationApproved: false },
-    })
+    ).resolves.toEqual({ kind: "unavailable", retryAfterSeconds: 30 })
+    expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
   })
 
   it("keeps a real CMS source noindex when taxonomy does not require G1", async () => {

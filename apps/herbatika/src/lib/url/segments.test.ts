@@ -56,6 +56,9 @@ const EXPECTED_SEGMENTS = {
       terms: "obchodne-podmienky",
       privacy: "ochrana-osobnych-udajov",
       cookies: "cookies",
+      dropshipping: "dropshipping",
+      privateLabel: "private-label",
+      wholesale: "velkoobchod",
     },
     children: {
       checkout: {
@@ -108,6 +111,9 @@ const EXPECTED_SEGMENTS = {
       terms: "obchodni-podminky",
       privacy: "ochrana-osobnich-udaju",
       cookies: "cookies",
+      dropshipping: "dropshipping",
+      privateLabel: "private-label",
+      wholesale: "velkoobchod",
     },
     children: {
       checkout: {

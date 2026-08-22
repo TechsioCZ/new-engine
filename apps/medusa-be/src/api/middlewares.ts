@@ -97,6 +97,14 @@ export default defineMiddlewares({
       matcher: "/webhooks/*",
       bodyParser: { preserveRawBody: true },
     },
+    {
+      methods: ["POST"],
+      matcher: "/hooks/cms/invalidate",
+      bodyParser: {
+        preserveRawBody: true,
+        sizeLimit: "512kb",
+      },
+    },
     ...customerEmailpassUpdateGuardMiddlewares,
     ...adminMiddlewares,
     ...adminOrderExpeditionRoutesMiddlewares,

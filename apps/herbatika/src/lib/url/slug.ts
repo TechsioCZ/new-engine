@@ -43,7 +43,7 @@ const SUPPORTED_LOCALE_SET: ReadonlySet<string> = new Set(
 const RESERVED_SEGMENT_SET: ReadonlySet<string> = new Set(
   RESERVED_PUBLIC_PATH_SEGMENTS
 )
-const CANONICAL_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const CANONICAL_SLUG_PATTERN = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 const NON_ASCII_ALPHANUMERIC_PATTERN = /[^a-z0-9]+/g
 const REPEATED_HYPHEN_PATTERN = /-+/g
 const EDGE_HYPHEN_PATTERN = /^-+|-+$/g

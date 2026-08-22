@@ -197,6 +197,17 @@ export function useCheckoutController({
   const storedPaymentProviderId = useStoredPaymentProviderSelection(
     cartQuery.cart?.id
   )
+  const [paymentSelectionHydratedCartId, setPaymentSelectionHydratedCartId] =
+    useState<string | null>(null)
+
+  useEffect(() => {
+    if (cartQuery.cart?.id) {
+      setPaymentSelectionHydratedCartId(cartQuery.cart.id)
+    }
+  }, [cartQuery.cart?.id])
+
+  const isPaymentSelectionHydrated =
+    !cartQuery.cart?.id || paymentSelectionHydratedCartId === cartQuery.cart.id
   const selectedPaymentProviderId =
     storedPaymentProviderId ?? cartSelectedPaymentProviderId
   const compatiblePaymentProviders = filterPaymentProvidersForShipping({
@@ -684,6 +695,7 @@ export function useCheckoutController({
     isAuthenticated: authQuery.isAuthenticated,
     isBusy,
     isCompanyPurchase: checkoutDetailsForm.values.isCompanyPurchase,
+    isPaymentSelectionHydrated,
     marketingConsent: checkoutConsent.marketingConsent,
     purchaseAcceptanceGranted,
     selectedPaymentProviderId: effectiveSelectedPaymentProviderId,

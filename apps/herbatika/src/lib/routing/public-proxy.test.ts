@@ -166,11 +166,46 @@ describe("full public URL proxy", () => {
   it.each([
     "/program-afiliere",
     "/vanzare-en-gros",
-    "/dropshipping",
     "/marca-proprie",
     "/voucher-cadou",
   ])("does not publish the RO-only static route %s on SK", (pathname) => {
     expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
+  })
+
+  // `dropshipping` is a customer-authoritative segment on CZ/RO/SK whose slug
+  // happens to be identical across those markets, so the shared spelling must
+  // still resolve into the requesting market's own namespace and stay 404 on
+  // the markets that never registered the page.
+  it.each([
+    ["herbatica.cz", "cz"],
+    ["herbatica.ro", "ro"],
+    ["herbatica.sk", "sk"],
+  ] as const)("binds the shared /dropshipping segment to %s", (host, market) => {
+    expect(resolve("/dropshipping", { host })).toMatchObject({
+      kind: "rewrite",
+      market,
+      pathname: `/~sf/${market}/static/dropshipping`,
+      routeKey: "static.dropshipping",
+    })
+  })
+
+  it("does not publish /dropshipping on HU", () => {
+    expect(resolve("/dropshipping", { host: "herbatica.hu" })).toEqual({
+      kind: "respond",
+      status: 404,
+    })
+  })
+
+  it.each([
+    ["/private-label", "privateLabel"],
+    ["/velkoobchod", "wholesale"],
+  ])("rewrites the SK partner static route %s", (pathname, pageKey) => {
+    expect(resolve(pathname)).toMatchObject({
+      kind: "rewrite",
+      market: "sk",
+      pathname: `/~sf/sk/static/${pageKey}`,
+      routeKey: `static.${pageKey}`,
+    })
   })
 
   it("uses the first configured deployment host as canonical", () => {

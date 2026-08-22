@@ -56,7 +56,7 @@
     "shipping_not_selected": "Doprava není vybrána",
     "summary": "Souhrn",
     "total_excl_tax": "bez DPH",
-    "shipping_payment": "Doprava a platba",
+    "shipping_payment": "Doprava a platby",
     "cart_empty": "Košík je prázdný. Nejprve přidejte produkty.",
     "cart_not_ready": "Košík ještě není připraven.",
     "complete_failed": "Dokončení objednávky selhalo.",
@@ -832,7 +832,7 @@
         },
         "important": {
           "title": "Důležité informace",
-          "shipping_payment": "Doprava a platba",
+          "shipping_payment": "Doprava a platby",
           "claims_returns": "Reklamace a vrácení",
           "terms": "Obchodní podmínky",
           "privacy": "Ochrana osobních údajů",
@@ -840,7 +840,7 @@
         },
         "partners": {
           "title": "Pro partnery",
-          "affiliate": "Partnerský program",
+          "affiliate": "Affiliate program",
           "wholesale": "Velkoobchod",
           "dropshipping": "Dropshipping",
           "private_label": "Privátní značka"

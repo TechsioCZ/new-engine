@@ -43,7 +43,7 @@ const ASSIGNMENT_KEYS = [
 ] as const
 const VISIBLE_ASCII = /^[\x21-\x7e]{1,255}$/
 const SHA256 = /^sha256:[0-9a-f]{64}$/
-const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PUBLIC_SLUG = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 
 export type CatalogLifecycleEntityKind =
   (typeof CATALOG_LIFECYCLE_ENTITY_KINDS)[number]
@@ -138,7 +138,7 @@ const parseAssignment = (
     (record.publicationStatus !== "draft" &&
       record.publicationStatus !== "published") ||
     typeof record.publicSlug !== "string" ||
-    record.publicSlug.length > 200 ||
+    record.publicSlug.length > 255 ||
     !PUBLIC_SLUG.test(record.publicSlug)
   ) {
     throw new CatalogLifecycleDeliveryValidationError(

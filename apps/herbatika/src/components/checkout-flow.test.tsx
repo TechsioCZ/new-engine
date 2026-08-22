@@ -35,18 +35,24 @@ vi.mock("@/components/checkout/sections/checkout-steps-section", () => ({
 
 import { CheckoutFlow } from "./checkout-flow"
 
-const controller = (cartQuery: {
-  cart: null | undefined
-  isFetching: boolean
-  isLoading: boolean
-}) => ({
+const controller = (
+  cartQuery: {
+    cart: null | undefined
+    isFetching: boolean
+    isLoading: boolean
+  },
+  overrides: Record<string, unknown> = {}
+) => ({
   cartQuery: { ...cartQuery, error: null },
   checkoutError: null,
+  checkoutShippingQuery: { isFetching: false, isLoading: false },
   completedOrderId: null,
   hasItems: false,
   hasPayment: false,
   hasShipping: false,
   hasStoredAddress: false,
+  isPaymentSelectionHydrated: true,
+  ...overrides,
 })
 
 describe("CheckoutFlow cart authority", () => {
@@ -80,5 +86,38 @@ describe("CheckoutFlow cart authority", () => {
       authorizedCartId: undefined,
     })
     expect(html).toContain("empty-cart")
+  })
+
+  it("waits for client checkout state before gating customer details", () => {
+    mocks.useCheckoutController.mockReturnValue(
+      controller(
+        { cart: null, isFetching: false, isLoading: false },
+        {
+          checkoutShippingQuery: { isFetching: true, isLoading: false },
+          hasItems: true,
+          hasShipping: true,
+        }
+      )
+    )
+    const shippingLoadingHtml = renderToStaticMarkup(
+      <CheckoutFlow activeStep="udaje" />
+    )
+
+    mocks.useCheckoutController.mockReturnValue(
+      controller(
+        { cart: null, isFetching: false, isLoading: false },
+        {
+          hasItems: true,
+          hasShipping: true,
+          isPaymentSelectionHydrated: false,
+        }
+      )
+    )
+    const paymentSelectionLoadingHtml = renderToStaticMarkup(
+      <CheckoutFlow activeStep="udaje" />
+    )
+
+    expect(shippingLoadingHtml).toContain("step-content")
+    expect(paymentSelectionLoadingHtml).toContain("step-content")
   })
 })

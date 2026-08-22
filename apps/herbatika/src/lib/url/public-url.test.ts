@@ -31,6 +31,17 @@ describe("public URL API", () => {
     )
   })
 
+  it.each([
+    ["sk", "dropshipping", "/dropshipping"],
+    ["sk", "privateLabel", "/private-label"],
+    ["sk", "wholesale", "/velkoobchod"],
+    ["cz", "dropshipping", "/dropshipping"],
+    ["cz", "privateLabel", "/private-label"],
+    ["cz", "wholesale", "/velkoobchod"],
+  ] as const)("builds the customer-authoritative %s %s static path", (market, page, expected) => {
+    expect(buildPath({ kind: "static", page }, market)).toBe(expected)
+  })
+
   it("preserves opaque checkout confirmation identifiers", () => {
     expect(
       buildPath(

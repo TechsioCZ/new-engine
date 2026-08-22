@@ -7,6 +7,8 @@ import {
   URL_REGISTRY_MIGRATION_MANIFEST_V3,
   URL_REGISTRY_MIGRATION_MANIFEST_V4,
   URL_REGISTRY_MIGRATION_MANIFEST_V5,
+  URL_REGISTRY_MIGRATION_MANIFEST_V6,
+  URL_REGISTRY_MIGRATION_MANIFEST_V7,
   URL_REGISTRY_MIGRATION_MANIFEST_VERSION,
 } from "./manifest"
 
@@ -28,11 +30,19 @@ const migrationUrls = [
     "../migrations/0005_allow_catalog_unpublish_retirement.sql",
     import.meta.url
   ),
+  new URL(
+    "../migrations/0006_expand_entity_slug_length.sql",
+    import.meta.url
+  ),
+  new URL(
+    "../migrations/0007_align_entity_slug_grammar.sql",
+    import.meta.url
+  ),
 ] as const
 
 describe("URL registry migration manifest", () => {
   it("is an immutable, versioned, contiguous manifest", () => {
-    expect(URL_REGISTRY_MIGRATION_MANIFEST_VERSION).toBe(5)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_VERSION).toBe(7)
     expect(URL_REGISTRY_MIGRATION_MANIFEST_V1).toEqual([
       {
         checksum:
@@ -91,6 +101,30 @@ describe("URL registry migration manifest", () => {
     })
     expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V5)).toBe(true)
     expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V5[4])).toBe(true)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V6).toHaveLength(6)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V6.slice(0, 5)).toEqual(
+      URL_REGISTRY_MIGRATION_MANIFEST_V5
+    )
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V6[5]).toEqual({
+      checksum:
+        "sha256:68d60e23da47cd8eee53b064bd55a7216af15768e169ae55ef166e1ca82b433d",
+      name: "0006_expand_entity_slug_length.sql",
+      version: 6,
+    })
+    expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V6)).toBe(true)
+    expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V6[5])).toBe(true)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V7).toHaveLength(7)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V7.slice(0, 6)).toEqual(
+      URL_REGISTRY_MIGRATION_MANIFEST_V6
+    )
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V7[6]).toEqual({
+      checksum:
+        "sha256:577882389d27b2e71fd3b63af4fe5b5810e7865d0a74e8a0898c722a0368da93",
+      name: "0007_align_entity_slug_grammar.sql",
+      version: 7,
+    })
+    expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V7)).toBe(true)
+    expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V7[6])).toBe(true)
   })
 
   it("matches the normalized-LF SHA256 of the real migration", async () => {
@@ -105,7 +139,7 @@ describe("URL registry migration manifest", () => {
     )
 
     expect(checksums).toEqual(
-      URL_REGISTRY_MIGRATION_MANIFEST_V5.map(({ checksum }) => checksum)
+      URL_REGISTRY_MIGRATION_MANIFEST_V7.map(({ checksum }) => checksum)
     )
   })
 })
