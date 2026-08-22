@@ -495,6 +495,8 @@ export type DataTableTranslations = {
   operatorLabels?: Partial<Record<string, string>>
   editingLabel?: string
   rangeLabel?: (info: { start: number; end: number; total: number }) => string
+  /** Inline-edit validation error for a blank `meta.required` field. */
+  requiredLabel?: string
 }
 
 const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
@@ -513,6 +515,7 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   operatorLabels: {},
   editingLabel: "Editing a row — other table controls are locked",
   rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
+  requiredLabel: "Required",
 }
 
 export type DataTableProps<T extends RowData> = {
@@ -1043,7 +1046,8 @@ function DataTableBodyCell<T extends RowData>({
 /** Run `required` + `meta.validate` over a row draft, returning field errors. */
 function validateDraft<T extends RowData>(
   columns: Column<T, unknown>[],
-  draft: Record<string, unknown>
+  draft: Record<string, unknown>,
+  requiredLabel: string
 ): Record<string, string> {
   const errors: Record<string, string> = {}
   for (const column of columns) {
@@ -1054,7 +1058,7 @@ function validateDraft<T extends RowData>(
     const value = draft[column.id]
     const empty = isBlank(value) || (Array.isArray(value) && value.length === 0)
     if (meta.required && empty) {
-      errors[column.id] = "Required"
+      errors[column.id] = requiredLabel
       continue
     }
     const message = meta.validate?.(value, draft)
@@ -1487,6 +1491,29 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
   }
 
+  // `setRowSelection`'s clamp only runs when a selection *action* happens —
+  // it can't see `maxSelectedRows` itself shrinking below the current
+  // selection (e.g. a permission change re-renders with a lower cap). Trim
+  // the resolved state directly whenever that happens.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-checks when the cap or the selection itself changes; setRowSelectionState/onSelectionLimitReached are stable
+  useEffect(() => {
+    if (maxSelectedRows == null) {
+      return
+    }
+    const selectedIds = Object.keys(rowSelection).filter(
+      (id) => rowSelection[id]
+    )
+    if (selectedIds.length <= maxSelectedRows) {
+      return
+    }
+    const kept = selectedIds.slice(0, maxSelectedRows)
+    setRowSelectionState(Object.fromEntries(kept.map((id) => [id, true])))
+    onSelectionLimitReached?.({
+      limit: maxSelectedRows,
+      selectedCount: kept.length,
+    })
+  }, [maxSelectedRows, rowSelection])
+
   const [columnVisibility, setColumnVisibility] =
     useControllable<ColumnVisibilityState>(
       columnVisibilityProp,
@@ -1794,7 +1821,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       cancelEdit()
       return
     }
-    const errors = validateDraft(table.getAllLeafColumns(), draft)
+    const errors = validateDraft(
+      table.getAllLeafColumns(),
+      draft,
+      translations.requiredLabel
+    )
 
     if (Object.keys(errors).length > 0) {
       setEditErrors(errors)
@@ -2978,12 +3009,23 @@ DataTable.ToolbarActions = function DataTableToolbarActions() {
   const styles = dataTableVariants()
   const count = toolbarActions?.length ?? 0
 
+  const hasWarnedAboutToolbarOverflow = useRef(false)
   useEffect(() => {
-    if (count > DATA_TABLE_MAX_TOOLBAR_ACTIONS) {
-      console.warn(
-        `[DataTable] toolbarActions has ${count} actions; at most ${DATA_TABLE_MAX_TOOLBAR_ACTIONS} is recommended. They still render, but the toolbar gets crowded — consider moving the extras into a menu.`
-      )
+    if (count <= DATA_TABLE_MAX_TOOLBAR_ACTIONS) {
+      hasWarnedAboutToolbarOverflow.current = false
+      return
     }
+    if (
+      hasWarnedAboutToolbarOverflow.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutToolbarOverflow.current = true
+    console.warn(
+      `[DataTable] toolbarActions has ${count} actions; at most ${DATA_TABLE_MAX_TOOLBAR_ACTIONS} is recommended. They still render, but the toolbar gets crowded — consider moving the extras into a menu.`
+    )
   }, [count])
 
   if (!count) {
