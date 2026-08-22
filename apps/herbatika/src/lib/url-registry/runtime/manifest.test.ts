@@ -9,6 +9,7 @@ import {
   URL_REGISTRY_MIGRATION_MANIFEST_V5,
   URL_REGISTRY_MIGRATION_MANIFEST_V6,
   URL_REGISTRY_MIGRATION_MANIFEST_V7,
+  URL_REGISTRY_MIGRATION_MANIFEST_V8,
   URL_REGISTRY_MIGRATION_MANIFEST_VERSION,
 } from "./manifest"
 
@@ -30,19 +31,17 @@ const migrationUrls = [
     "../migrations/0005_allow_catalog_unpublish_retirement.sql",
     import.meta.url
   ),
+  new URL("../migrations/0006_expand_entity_slug_length.sql", import.meta.url),
+  new URL("../migrations/0007_align_entity_slug_grammar.sql", import.meta.url),
   new URL(
-    "../migrations/0006_expand_entity_slug_length.sql",
-    import.meta.url
-  ),
-  new URL(
-    "../migrations/0007_align_entity_slug_grammar.sql",
+    "../migrations/0008_align_static_route_segment_grammar.sql",
     import.meta.url
   ),
 ] as const
 
 describe("URL registry migration manifest", () => {
   it("is an immutable, versioned, contiguous manifest", () => {
-    expect(URL_REGISTRY_MIGRATION_MANIFEST_VERSION).toBe(7)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_VERSION).toBe(8)
     expect(URL_REGISTRY_MIGRATION_MANIFEST_V1).toEqual([
       {
         checksum:
@@ -125,6 +124,18 @@ describe("URL registry migration manifest", () => {
     })
     expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V7)).toBe(true)
     expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V7[6])).toBe(true)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V8).toHaveLength(8)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V8.slice(0, 7)).toEqual(
+      URL_REGISTRY_MIGRATION_MANIFEST_V7
+    )
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V8[7]).toEqual({
+      checksum:
+        "sha256:9a73963668b1ec265436ed81ffb890247347f51fd3ea648c6b61f2c2fcfa3a4f",
+      name: "0008_align_static_route_segment_grammar.sql",
+      version: 8,
+    })
+    expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V8)).toBe(true)
+    expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V8[7])).toBe(true)
   })
 
   it("matches the normalized-LF SHA256 of the real migration", async () => {
@@ -139,7 +150,7 @@ describe("URL registry migration manifest", () => {
     )
 
     expect(checksums).toEqual(
-      URL_REGISTRY_MIGRATION_MANIFEST_V7.map(({ checksum }) => checksum)
+      URL_REGISTRY_MIGRATION_MANIFEST_V8.map(({ checksum }) => checksum)
     )
   })
 })
