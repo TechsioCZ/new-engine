@@ -1089,10 +1089,14 @@ function renderExpandedDetailRow<T extends RowData>({
 /** Row classes conveying drag state: lifted while dragging, edge while hovered. */
 function rowDragClass(
   dnd: { isDragging?: boolean; dropSide?: "top" | "bottom" } | undefined,
-  className?: string,
-  striped?: boolean,
-  tintNestedRows?: boolean
+  opts: {
+    className?: string
+    striped?: boolean
+    tintNestedRows?: boolean
+    rowIndex?: number
+  }
 ) {
+  const { className, striped, tintNestedRows, rowIndex } = opts
   return [
     "group/row",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-primary",
@@ -1102,8 +1106,14 @@ function rowDragClass(
     // conflict against Table's base `border-b-(length:--border-table-width)`
     // through the same className-merge-order mechanism that made `relative`
     // cancel `sticky` on the header cells.
+    //
+    // Colored from the row's logical index rather than `odd:`/`even:`
+    // structural pseudo-classes: under `enableVirtualization` only a windowed
+    // slice of rows is mounted as siblings, so a row's DOM sibling position
+    // (what `odd:`/`even:` key off) shifts as the window scrolls even though
+    // its logical index — and therefore its stripe color — must not.
     striped
-      ? "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary border-b-0"
+      ? `${(rowIndex ?? 0) % 2 === 0 ? "bg-table-row-striped-primary" : "bg-table-row-striped-secondary"} border-b-0`
       : "",
     // `data-depth` is only ever set for `row.depth > 0` (see below).
     // `data-table-row-nested-tint` (defined in
@@ -1165,6 +1175,71 @@ function activateRowByKeyboard(
   }
   event.preventDefault()
   activate()
+}
+
+/**
+ * Shared "reach end" latch used by both the window-scroll listener and the
+ * internal container's onScroll handler: fire `onReachEnd` once when the
+ * scroll distance crosses the threshold, then hold off until the user
+ * scrolls back away from the edge. Kept as one function so the two call
+ * sites (window vs. bounded container) can't drift the way the reach-end
+ * math already has twice in this component's history.
+ */
+function checkReachEnd(
+  distance: number,
+  reachEndThreshold: number,
+  reachedEndRef: { current: boolean },
+  onReachEnd: () => void
+): void {
+  if (distance <= reachEndThreshold) {
+    if (!reachedEndRef.current) {
+      reachedEndRef.current = true
+      onReachEnd()
+    }
+  } else {
+    reachedEndRef.current = false
+  }
+}
+
+/** Row-level Enter/Space activation, gated by the edit lock. */
+function buildRowKeyDownHandler<T extends RowData>(
+  row: Row<T>,
+  onRowClick: DataTableProps<T>["onRowClick"],
+  blocked: (action: DataTableBlockedAction) => boolean
+) {
+  return (event: React.KeyboardEvent<HTMLTableRowElement>) =>
+    activateRowByKeyboard(event, () => {
+      if (!blocked("rowClick")) {
+        onRowClick?.(
+          row,
+          event as unknown as React.MouseEvent<HTMLTableRowElement>
+        )
+      }
+    })
+}
+
+/**
+ * Row `onClick`: the consumer's raw `slotProps.row.onClick` always fires
+ * (it's a DOM passthrough they attached themselves) — DataTable's own edit
+ * lock governs only its own `onRowClick` dispatch, gated on `onRowClick`
+ * being set rather than on `rowIsClickable` so a table with no `onRowClick`
+ * never reports `onInteractionBlocked({ action: "rowClick" })` for stray
+ * clicks during an edit.
+ */
+function buildRowClickHandler<T extends RowData>(
+  row: Row<T>,
+  rowOnClick:
+    | ((event: React.MouseEvent<HTMLTableRowElement>) => void)
+    | undefined,
+  onRowClick: DataTableProps<T>["onRowClick"],
+  blocked: (action: DataTableBlockedAction) => boolean
+) {
+  return (event: React.MouseEvent<HTMLTableRowElement>) => {
+    rowOnClick?.(event)
+    if (onRowClick && !blocked("rowClick")) {
+      onRowClick(row, event)
+    }
+  }
 }
 
 /** Row ref: the sortable node ref, plus a handle on the row being edited. */
@@ -1732,10 +1807,44 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    */
   const virtualizationUsable = enableVirtualization && !!maxHeight
   const hasWarnedAboutUnboundedVirtualization = useRef(false)
+  // `getCellSpan`'s rowSpan relies on the owning `<tr>` and its merged-away
+  // followers being actual, adjacent DOM siblings — an HTML rowSpan can't
+  // reach past rows that were never rendered. Once virtualization windows
+  // the body, the owner can scroll out while a `hidden: true` follower is
+  // still mounted, leaving a visible gap. There's no general fix short of
+  // recomputing spans per rendered window (which breaks the moment the owner
+  // itself is offscreen in the other direction), so this is a documented
+  // incompatibility, surfaced once via a dev warning rather than silently
+  // producing gaps.
+  const hasWarnedAboutVirtualizedCellSpan = useRef(false)
   useEffect(() => {
     if (
-      !enableVirtualization ||
-      maxHeight ||
+      !(virtualizationUsable && getCellSpan) ||
+      hasWarnedAboutVirtualizedCellSpan.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutVirtualizedCellSpan.current = true
+    console.warn(
+      "DataTable: getCellSpan and enableVirtualization are both set. " +
+        "rowSpan/colSpan require the merged rows to be adjacent DOM " +
+        "siblings, which virtualization's windowing does not guarantee — " +
+        "a spanning cell's owner row can scroll out of view while a " +
+        "`hidden: true` follower row stays rendered, leaving a gap."
+    )
+  }, [virtualizationUsable, getCellSpan])
+  useEffect(() => {
+    if (!enableVirtualization || maxHeight) {
+      // Reset the latch whenever the config is valid (or virtualization is
+      // off), so a *later* transition back to invalid — e.g. maxHeight gets
+      // cleared again after being fixed — re-warns instead of staying silent
+      // because some earlier, unrelated invalid render already tripped it.
+      hasWarnedAboutUnboundedVirtualization.current = false
+      return
+    }
+    if (
       hasWarnedAboutUnboundedVirtualization.current ||
       typeof process === "undefined" ||
       process.env?.NODE_ENV === "production"
@@ -1750,9 +1859,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         "Pass maxHeight to enable virtualization."
     )
     // A warning that repeats on every keystroke is noise rather than a signal,
-    // so the ref fires it at most once per instance. The prop deps re-check
-    // configs that become invalid only after mount (e.g. a parent flips
-    // enableVirtualization on while maxHeight stays unset).
+    // so the ref fires it at most once per invalid stretch. The prop deps
+    // re-check configs that become invalid only after mount (e.g. a parent
+    // flips enableVirtualization on while maxHeight stays unset).
   }, [enableVirtualization, maxHeight])
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
@@ -1795,14 +1904,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         document.documentElement.scrollHeight -
         window.scrollY -
         window.innerHeight
-      if (distance <= reachEndThreshold) {
-        if (!reachedEndRef.current) {
-          reachedEndRef.current = true
-          onReachEnd()
-        }
-      } else {
-        reachedEndRef.current = false
-      }
+      checkReachEnd(distance, reachEndThreshold, reachedEndRef, onReachEnd)
     }
     window.addEventListener("scroll", onWindowScroll, { passive: true })
     return () => window.removeEventListener("scroll", onWindowScroll)
@@ -1840,14 +1942,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
     const el = event.currentTarget
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight
-    if (distance <= reachEndThreshold) {
-      if (!reachedEndRef.current) {
-        reachedEndRef.current = true
-        onReachEnd()
-      }
-    } else {
-      reachedEndRef.current = false
-    }
+    checkReachEnd(distance, reachEndThreshold, reachedEndRef, onReachEnd)
   }
 
   const handleColumnDragEnd = (event: DragEndEvent) => {
@@ -2164,7 +2259,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     if (!(enableInlineEdit && meta?.editable) || editingRowId !== row.id) {
       return
     }
-    const type: DataTableColumnType = meta.type ?? "string"
+    const type: DataTableColumnType = resolveColumnType(meta)
     const ctx: DataTableEditorContext<T> = {
       row,
       column,
@@ -2383,72 +2478,67 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     ? pagination.pageIndex * pagination.pageSize
     : 0
 
-  /* ── Body row renderer ──────────────────────────────────────────────── */
-  const renderBodyRow = (
+  type RowDnd = {
+    setNodeRef: (node: HTMLElement | null) => void
+    style: CSSProperties
+    dragHandleProps: Record<string, unknown>
+    isDragging?: boolean
+    dropSide?: "top" | "bottom"
+  }
+
+  /** The visible `<tr>` for one row — split out so its own attribute
+   * ternaries don't count against `renderBodyRow`'s complexity budget. */
+  const buildMainRow = (
     row: Row<T>,
     rowIndex: number,
-    dnd?: {
-      setNodeRef: (node: HTMLElement | null) => void
-      style: CSSProperties
-      dragHandleProps: Record<string, unknown>
-      isDragging?: boolean
-      dropSide?: "top" | "bottom"
+    dnd: RowDnd | undefined,
+    opts: {
+      rowIsClickable: boolean
+      rowElementId: string | undefined
+      rowKeyDown:
+        | ((event: React.KeyboardEvent<HTMLTableRowElement>) => void)
+        | undefined
     }
-  ) => {
-    const cells = row.getVisibleCells()
+  ) => (
+    <Table.Row
+      {...restRowProps}
+      aria-rowindex={headerRowCount + pageRowOffset + rowIndex + 1}
+      className={rowDragClass(dnd, {
+        className: restRowProps.className,
+        striped,
+        tintNestedRows,
+        rowIndex,
+      })}
+      data-depth={row.depth || undefined}
+      data-dragging={dnd?.isDragging || undefined}
+      id={opts.rowElementId ?? restRowProps.id}
+      onClick={buildRowClickHandler(row, rowOnClick, onRowClick, blocked)}
+      onKeyDown={opts.rowKeyDown}
+      ref={composeRowRef(dnd, rowRef)}
+      // Sortable ref wins while reordering; otherwise keep the consumer's ref.
+      selected={enableRowSelection ? row.getIsSelected() : undefined}
+      style={{ ...rowStyle, ...dnd?.style }}
+      tabIndex={opts.rowIsClickable ? 0 : undefined}
+    >
+      {renderRowCells(row, row.getVisibleCells(), rowIndex, dnd)}
+      {hasActionsColumn ? renderActionsCell(row) : null}
+    </Table.Row>
+  )
+
+  /* ── Body row renderer ──────────────────────────────────────────────── */
+  const renderBodyRow = (row: Row<T>, rowIndex: number, dnd?: RowDnd) => {
     const rowIsClickable = !!onRowClick && !locked
     const actionsColumn = hasActionsColumn ? 1 : 0
     const rowElementId = editingRowElementId(editingRowId, instanceId, row.id)
     const rowKeyDown = rowIsClickable
-      ? (event: React.KeyboardEvent<HTMLTableRowElement>) =>
-          activateRowByKeyboard(event, () => {
-            if (!blocked("rowClick")) {
-              onRowClick?.(
-                row,
-                event as unknown as React.MouseEvent<HTMLTableRowElement>
-              )
-            }
-          })
+      ? buildRowKeyDownHandler(row, onRowClick, blocked)
       : undefined
 
-    const mainRow = (
-      <Table.Row
-        {...restRowProps}
-        aria-rowindex={headerRowCount + pageRowOffset + rowIndex + 1}
-        className={rowDragClass(
-          dnd,
-          restRowProps.className,
-          striped,
-          tintNestedRows
-        )}
-        data-depth={row.depth || undefined}
-        data-dragging={dnd?.isDragging || undefined}
-        id={rowElementId}
-        onClick={(event) => {
-          // `slotProps.row.onClick` is a raw DOM passthrough the consumer
-          // attached themselves, so it fires regardless — the edit lock governs
-          // DataTable's own row activation, not every handler on the element.
-          rowOnClick?.(event)
-          // Only report the block for a row that is actually clickable:
-          // `rowKeyDown` and `tabIndex` already gate on `rowIsClickable`, and
-          // without the same gate here a table with no `onRowClick` fired
-          // `onInteractionBlocked({ action: "rowClick" })` for every stray
-          // click during an edit.
-          if (onRowClick && !blocked("rowClick")) {
-            onRowClick(row, event)
-          }
-        }}
-        onKeyDown={rowKeyDown}
-        ref={composeRowRef(dnd, rowRef)}
-        // Sortable ref wins while reordering; otherwise keep the consumer's ref.
-        selected={enableRowSelection ? row.getIsSelected() : undefined}
-        style={{ ...rowStyle, ...dnd?.style }}
-        tabIndex={rowIsClickable ? 0 : undefined}
-      >
-        {renderRowCells(row, cells, rowIndex, dnd)}
-        {hasActionsColumn && renderActionsCell(row)}
-      </Table.Row>
-    )
+    const mainRow = buildMainRow(row, rowIndex, dnd, {
+      rowIsClickable,
+      rowElementId,
+      rowKeyDown,
+    })
 
     const expandedRow =
       renderExpandedRow && row.getIsExpanded()

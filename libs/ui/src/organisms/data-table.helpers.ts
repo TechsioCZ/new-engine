@@ -279,9 +279,42 @@ function evaluateBetween(
   return !(hasHi && num > hi)
 }
 
+/**
+ * Guard shared by every numeric operator (`gt`/`gte`/`lt`/`lte`, plus
+ * `equals`/`notEquals` on a numeric column): a half-typed value ("-", "1e",
+ * ".") parses to NaN and would otherwise empty the table mid-keystroke, so
+ * treat it as "no constraint yet" — matching how `between` already guards
+ * its bounds. A blank/non-numeric cell never satisfies a numeric constraint.
+ * Returns the verdict to short-circuit on, or `undefined` to keep evaluating.
+ */
+function guardNumericOperator(
+  operator: DataTableFilterOperator,
+  isNumericColumn: boolean,
+  target: number,
+  cellHasNoNumber: boolean
+): boolean | undefined {
+  const numericOperator =
+    operator === "gt" ||
+    operator === "gte" ||
+    operator === "lt" ||
+    operator === "lte" ||
+    (isNumericColumn && (operator === "equals" || operator === "notEquals"))
+  if (!numericOperator) {
+    return
+  }
+  if (Number.isNaN(target)) {
+    return true
+  }
+  if (cellHasNoNumber) {
+    return false
+  }
+  return
+}
+
 function evaluateCondition(
   cellValue: unknown,
-  { operator, value, to }: DataTableConditionalFilterValue
+  { operator, value, to }: DataTableConditionalFilterValue,
+  isNumericColumn: boolean
 ): boolean {
   if (operator === "empty") {
     return isBlank(cellValue)
@@ -304,19 +337,14 @@ function evaluateCondition(
   // typed filter, mirrored here for the conditional one.
   const cellHasNoNumber = isBlank(cellValue) || Number.isNaN(num)
 
-  // A half-typed number ("-", "1e", ".") parses to NaN, and every comparison
-  // against NaN is false — which would empty the table mid-keystroke. Treat it
-  // as "no constraint yet", matching how `between` already guards its bounds.
-  const numericOperator =
-    operator === "gt" ||
-    operator === "gte" ||
-    operator === "lt" ||
-    operator === "lte"
-  if (numericOperator && Number.isNaN(target)) {
-    return true
-  }
-  if (numericOperator && cellHasNoNumber) {
-    return false
+  const numericGuard = guardNumericOperator(
+    operator,
+    isNumericColumn,
+    target,
+    cellHasNoNumber
+  )
+  if (numericGuard !== undefined) {
+    return numericGuard
   }
 
   switch (operator) {
@@ -325,9 +353,12 @@ function evaluateCondition(
     case "notContains":
       return !text.includes(query)
     case "equals":
-      return text === query
+      // NUMBER_FILTER_OPERATORS offers "=" on numeric columns; comparing as
+      // strings there would fail "07" vs 7 even though gt/gte/lt/lte on the
+      // same column already compare numerically.
+      return isNumericColumn ? num === target : text === query
     case "notEquals":
-      return text !== query
+      return isNumericColumn ? num !== target : text !== query
     case "startsWith":
       return text.startsWith(query)
     case "endsWith":
@@ -360,7 +391,12 @@ export const conditionalFilterFn: AnyFilterFn = (
   if (!filterValue?.operator) {
     return true
   }
-  return evaluateCondition(row.getValue(columnId), filterValue)
+  const type = resolveColumnType(row.table.getColumn(columnId)?.columnDef.meta)
+  return evaluateCondition(
+    row.getValue(columnId),
+    filterValue,
+    type === "number"
+  )
 }
 
 /* ── Column widths ────────────────────────────────────────────────────────
