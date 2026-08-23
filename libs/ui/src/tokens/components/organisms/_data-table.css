@@ -13,3 +13,29 @@
 @utility data-table-row-nested-tint {
   box-shadow: inset 0 0 0 9999px var(--color-table-row-bg-hover);
 }
+
+/*
+ * DataTable — frozen (pinned / sticky-actions) cell surface.
+ *
+ * A frozen cell must be opaque, or the horizontally-scrolled content passes
+ * straight under it. It must *also* show the row's own colour, or striping and
+ * selection stop dead at the frozen column.
+ *
+ * `background: inherit` gives the second without the first: every row-level
+ * tint in this system is an alpha overlay meant to composite over a surface
+ * (`--color-table-row-striped-secondary` is literally `oklch(0 0 0 / 0)`), so
+ * inheriting it yields a see-through cell.
+ *
+ * Compositing solves both at once — the same trick `OPAQUE_HEADER_BG` uses for
+ * the header. The opaque table surface is the background-*color*; the row tint
+ * is painted over it as a gradient image, read from a custom property the row
+ * sets. Custom properties inherit, so the row can drive its cells' tint
+ * without either knowing about the other.
+ */
+@utility data-table-frozen-cell {
+  background-color: var(--color-table-bg);
+  background-image: linear-gradient(
+    var(--dt-row-tint, transparent),
+    var(--dt-row-tint, transparent)
+  );
+}

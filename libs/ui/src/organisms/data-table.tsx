@@ -845,7 +845,11 @@ function pinClass<T extends RowData>(
     // lives on the `<tr>`, and an opaque `<td>` background hid all three in
     // every frozen column. `inherit` is still fully opaque — the row now
     // carries a concrete base — so scrolled content cannot show through.
-    kind === "header" ? "bg-table-header-bg" : "bg-inherit",
+    // Body cells composite the row's tint over an opaque surface. Plain
+    // `bg-inherit` was see-through: the row tints are alpha overlays and the
+    // even stripe is fully transparent, so scrolled content bled through the
+    // frozen column. See `data-table-frozen-cell`.
+    kind === "header" ? "bg-table-header-bg" : "data-table-frozen-cell",
     isLastStartPinned(column)
       ? "border-e-(length:--border-table-width) border-table-border"
       : "",
@@ -1156,13 +1160,17 @@ function rowDragClass(
   return [
     "group/row",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-primary",
-    /* A concrete base surface on the row, so pinned and sticky-actions cells
-     * can take `bg-inherit` and pick up whatever colour the row actually is
-     * — striped, selected or hovered — instead of hard-coding an opaque
-     * surface that paints over all three. Listed first: the striped classes
-     * below must win the tailwind-merge conflict, and the `data-selected`
-     * and `hover` rules outrank a bare class on specificity anyway. */
-    "bg-table-bg",
+    /* Publish the row's current tint as a custom property. Frozen cells
+     * composite it over an opaque surface (`data-table-frozen-cell`), which
+     * is the only way to be both opaque and row-coloured: these tints are
+     * alpha overlays — `--color-table-row-striped-secondary` is fully
+     * transparent — so a frozen cell that merely inherited the row's
+     * background let the scrolled content show straight through it.
+     * Listed before the striped classes so specificity, not source order,
+     * decides: selection and hover outrank a bare class and so win. */
+    "data-[selected=true]:[--dt-row-tint:var(--color-table-row-bg-selected)]",
+    "group-hover/row:[--dt-row-tint:var(--color-table-row-bg-hover)]",
+    "hover:[--dt-row-tint:var(--color-table-row-bg-hover)]",
     // `Table.Row`'s own row-divider border and the zebra background are two
     // ways of doing the same job — separating one row from the next — and
     // showing both at once double-marks every boundary. `border-b-0` wins the
@@ -1176,7 +1184,11 @@ function rowDragClass(
     // (what `odd:`/`even:` key off) shifts as the window scrolls even though
     // its logical index — and therefore its stripe color — must not.
     striped
-      ? `${(rowIndex ?? 0) % 2 === 0 ? "bg-table-row-striped-primary" : "bg-table-row-striped-secondary"} border-b-0`
+      ? `${
+          (rowIndex ?? 0) % 2 === 0
+            ? "bg-table-row-striped-primary [--dt-row-tint:var(--color-table-row-striped-primary)]"
+            : "bg-table-row-striped-secondary [--dt-row-tint:var(--color-table-row-striped-secondary)]"
+        } border-b-0`
       : "",
     // `data-depth` is only ever set for `row.depth > 0` (see below).
     // `data-table-row-nested-tint` (defined in
@@ -2844,10 +2856,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   const renderActionsCell = (row: Row<T>) => (
     <Table.Cell
-      // `bg-inherit`, not the flat table surface: same reason as pinned body
-      // cells — the row's striped/selected/hover colour must show through the
-      // frozen actions column too.
-      className={stickyActions ? "sticky end-0 bg-inherit" : undefined}
+      // Composites the row tint over an opaque surface, like pinned cells —
+      // `bg-inherit` alone was transparent on striped/selected rows.
+      className={
+        stickyActions ? "data-table-frozen-cell sticky end-0" : undefined
+      }
       numeric
       style={
         // Pinned body cells carry `pinnedCell` from `getPinningStyles`;
@@ -3088,7 +3101,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             // Same sticky treatment as the real actions cell, or the frozen
             // column visibly breaks apart while the table is loading.
             <Table.Cell
-              className={stickyActions ? "sticky end-0 bg-inherit" : undefined}
+              className={
+                stickyActions
+                  ? "data-table-frozen-cell sticky end-0"
+                  : undefined
+              }
               numeric
               style={
                 stickyActions
