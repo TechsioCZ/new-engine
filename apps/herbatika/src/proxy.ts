@@ -94,6 +94,17 @@ export const proxy = (request: NextRequest) => {
     return statusResponse(action.status, action.allow)
   }
 
+  if (action.kind === "redirect") {
+    // Keep the redirect on the requesting public host and preserve the query.
+    // The target path then runs the normal canonicalization pass.
+    const location = new URL(request.url)
+    location.pathname = action.location
+    return NextResponse.redirect(location, {
+      status: action.status,
+      headers: { "Cache-Control": "public, max-age=0, must-revalidate" },
+    })
+  }
+
   // Keep the adapter-provided origin. The pinned Next runtime canonicalizes
   // loopback addresses to `localhost`; the rewrite must stay on that internal
   // server origin rather than using the public market Host header.

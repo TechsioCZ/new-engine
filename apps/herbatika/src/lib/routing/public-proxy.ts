@@ -14,6 +14,7 @@ import type {
   MarketRouteSegments,
   RootSegmentMatch,
 } from "@/lib/url/types"
+import { resolveLegacyOfficialCategoryRedirect } from "./legacy-official-redirects"
 import { isPrivatePagesPath } from "./private-pages-path"
 
 export type PublicProxyAction =
@@ -22,6 +23,11 @@ export type PublicProxyAction =
       allow?: "GET, HEAD"
       kind: "respond"
       status: 204 | 400 | 404 | 405 | 421
+    }>
+  | Readonly<{
+      kind: "redirect"
+      location: string
+      status: 308
     }>
   | Readonly<{
       canonicalOrigin: string
@@ -323,6 +329,17 @@ const flowRoute = (
   return null
 }
 
+const methodGuard = (method: string): PublicProxyAction | null => {
+  const normalizedMethod = method.toUpperCase()
+  if (normalizedMethod === "OPTIONS") {
+    return { allow: "GET, HEAD", kind: "respond", status: 204 }
+  }
+  if (normalizedMethod !== "GET" && normalizedMethod !== "HEAD") {
+    return { allow: "GET, HEAD", kind: "respond", status: 405 }
+  }
+  return null
+}
+
 export const resolvePublicProxyAction = ({
   enabled,
   environment = process.env,
@@ -347,6 +364,21 @@ export const resolvePublicProxyAction = ({
   }
   if (isSystemRoute(parsed.segments)) {
     return { kind: "next" }
+  }
+  // Legacy official slugs violate the registry slug grammar, so they can never
+  // be registry aliases. They are redirected before any registry lookup.
+  const legacyLocation = resolveLegacyOfficialCategoryRedirect(
+    hostMarket.market,
+    parsed.segments
+  )
+  if (legacyLocation) {
+    return (
+      methodGuard(method) ?? {
+        kind: "redirect",
+        location: legacyLocation,
+        status: 308,
+      }
+    )
   }
   let route: Readonly<{ pathname: string; routeKey: string }> | null = null
   if (parsed.segments.length === 0) {
@@ -384,12 +416,9 @@ export const resolvePublicProxyAction = ({
     }
   }
 
-  const normalizedMethod = method.toUpperCase()
-  if (normalizedMethod === "OPTIONS") {
-    return { allow: "GET, HEAD", kind: "respond", status: 204 }
-  }
-  if (normalizedMethod !== "GET" && normalizedMethod !== "HEAD") {
-    return { allow: "GET, HEAD", kind: "respond", status: 405 }
+  const methodAction = methodGuard(method)
+  if (methodAction) {
+    return methodAction
   }
 
   const canonicalHost = new URL(hostMarket.canonicalOrigin).hostname
