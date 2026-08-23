@@ -884,6 +884,15 @@ function matchNumber(cell: unknown, f: NumberFilterValue) {
   if (Number.isNaN(target)) {
     return true
   }
+  // A cell with no number in it satisfies no *positive* numeric comparison,
+  // but it does satisfy a negative one: a blank cell is trivially "not 5", and
+  // dropping it made `≠` hide rows that plainly do not equal the target. The
+  // text matcher already reads this way — `notContains` keeps blank cells — so
+  // excluding them here made the same filter behave oppositely on a string and
+  // a number column.
+  if (operator === "notEquals") {
+    return cellHasNoNumber || n !== target
+  }
   if (cellHasNoNumber) {
     return false
   }

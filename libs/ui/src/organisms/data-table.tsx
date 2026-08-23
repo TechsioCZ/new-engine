@@ -1596,6 +1596,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       (id) => rowSelection[id]
     )
     if (selectedIds.length <= maxSelectedRows) {
+      // Back within the cap: clear the latch so a later over-cap selection is
+      // trimmed and reported again. Leaving it set meant a controlled parent
+      // that re-applied a previously-seen over-cap selection (select 3 with a
+      // cap of 2, clear, select the same 3 again) matched the stale signature,
+      // returned early, and rendered an over-cap selection with no callback.
+      reportedSelectionLimitRef.current = null
       return
     }
     // In controlled mode `useControllable` does not hold state of its own, so
@@ -1936,8 +1942,14 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       cancelEdit()
       return
     }
+    // Visible columns only. Validating hidden ones too meant a `required`
+    // column the user had hidden (or that was never visible) could fail
+    // validation for a field with no rendered editor: the error was stored
+    // where nothing displays it and `commitEdit` returned early, so Save
+    // appeared to do nothing at all with no way to recover but cancelling.
+    // A field the user cannot see is a field they cannot fix.
     const errors = validateDraft(
-      table.getAllLeafColumns(),
+      table.getVisibleLeafColumns(),
       draft,
       translations.requiredLabel
     )
@@ -2360,6 +2372,38 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         "'start' instead."
     )
   }, [enableColumnPinning, stickyActions, hasActionsColumn, table])
+
+  // Frozen offsets (`getStart`/`getAfter`) are sums of `getSize()`, and only a
+  // *numeric* `meta.width` is mirrored into `size` — a CSS string cannot be
+  // resolved without measuring. So a pinned column sized `"20%"` or
+  // `"var(--dimension-120)"` is laid out at its real width but offset as if it
+  // were the 150px default, and the frozen columns overlap.
+  const hasWarnedAboutPinnedStringWidth = useRef(false)
+  useEffect(() => {
+    const offender =
+      enableColumnPinning &&
+      table
+        .getAllLeafColumns()
+        .find(
+          (c) => c.getIsPinned() && typeof c.columnDef.meta?.width === "string"
+        )
+    if (
+      !offender ||
+      hasWarnedAboutPinnedStringWidth.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutPinnedStringWidth.current = true
+    console.warn(
+      `DataTable: pinned column "${offender.id}" declares a string ` +
+        "meta.width, which cannot be mirrored into TanStack's numeric " +
+        "`size`. Frozen offsets are computed from `size`, so this column " +
+        "will be positioned as if it were the default width and overlap its " +
+        "neighbours. Give pinned columns a numeric meta.width."
+    )
+  }, [enableColumnPinning, table])
 
   /**
    * Resolve a column's header filter: per-column `meta.renderFilter`, then the

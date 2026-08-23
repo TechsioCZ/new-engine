@@ -361,7 +361,10 @@ function guardNumericOperator(
     return true
   }
   if (cellHasNoNumber) {
-    return false
+    // Mirrors `matchNumber`: a blank cell fails every positive comparison but
+    // satisfies a negative one — it is trivially "not 5" — so `≠` must keep
+    // it, exactly as the text matcher's `notContains` does.
+    return operator === "notEquals"
   }
   return
 }
