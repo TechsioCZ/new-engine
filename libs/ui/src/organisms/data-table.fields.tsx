@@ -897,8 +897,6 @@ function matchNumber(cell: unknown, f: NumberFilterValue) {
     return false
   }
   switch (operator) {
-    case "notEquals":
-      return n !== target
     case "gt":
       return n > target
     case "gte":
@@ -1037,14 +1035,46 @@ function matchTime(cell: unknown, f: DateRangeFilterValue) {
  * Reached through `filterFn: "typed"`, which `applyColumnDefaults` puts on
  * every column that does not name its own.
  */
+/**
+ * Coerce a bare filter value into the object shape the matchers expect.
+ *
+ * DataTable's own controls always write objects, but `filterFn: "typed"` is
+ * applied to every column that does not name one — so a consumer using the
+ * plain TanStack API (`column.setFilterValue("Ada")`, or a controlled
+ * `columnFilters={[{ id, value: "Ada" }]}`) reached a matcher that read
+ * `.operator`/`.value` off a string, found `undefined`, and returned `true`
+ * for every row. The filter was stored and looked active while matching
+ * everything — a silent no-op rather than an error.
+ *
+ * Only the unambiguous shapes are coerced. A bare value for a date column
+ * could mean `from`, `to` or both, so those are left to fall through rather
+ * than guessing.
+ */
+function normalizeFilterValue(
+  type: DataTableColumnType,
+  filterValue: DataTableFilterValue
+): DataTableFilterValue {
+  if (typeof filterValue === "object") {
+    return filterValue
+  }
+  if (type === "enum" || type === "multiEnum") {
+    return { values: [String(filterValue)] }
+  }
+  if (type === "boolean") {
+    return { value: Boolean(filterValue) }
+  }
+  return { value: String(filterValue) }
+}
+
 export function typedFilterMatch(
   type: DataTableColumnType,
   cell: unknown,
-  filterValue: DataTableFilterValue
+  rawFilterValue: DataTableFilterValue
 ): boolean {
-  if (filterValue == null) {
+  if (rawFilterValue == null) {
     return true
   }
+  const filterValue = normalizeFilterValue(type, rawFilterValue)
   switch (type) {
     case "boolean": {
       const f = filterValue as BooleanFilterValue

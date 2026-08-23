@@ -84,6 +84,13 @@ header filter row and the inline row editor, at the table's `size`:
 | `dateRange` | from/to date Inputs | from/to date Inputs |
 | `custom` | nothing — supply `meta.renderFilter` | supply `meta.renderEditor` |
 
+Filter values are objects — `{ operator, value, to? }` for text/number,
+`{ values: [...] }` for the enum types, `{ value }` for boolean, `{ from, to }`
+for date/time ranges. A bare value from the plain TanStack API
+(`column.setFilterValue("Ada")`, or a controlled `columnFilters` entry) is
+coerced to the right shape for every type except the date/time ones, where a
+single value is ambiguous — pass `{ from, to }` explicitly there.
+
 Give `enum`/`multiEnum` their choices via `meta.options`. Register
 `filterFn: "typed"` on the column so filtering matches the declared type
 (`time` compares minutes-since-midnight; a `dateRange` cell compares interval
@@ -248,7 +255,7 @@ text; `translations.pageSizeLabel` is the page-size select's accessible name
 
 - `enableSorting` (default `true`) — click header to sort; `meta.align: "end"` right-aligns numeric columns.
 - `enableGlobalFilter` — renders the toolbar search (`DataTable.GlobalSearch`).
-- `enableColumnFilters` — renders a per-column filter row. Pick the control with `meta.type` (`"string" | "number" | "boolean" | "enum" | "multiEnum" | "date" | "dateRange" | "time" | "custom"`), plus `meta.options` for the enum types. Columns get `filterFn: "typed"` by default, which dispatches on that same `meta.type`; set `filterFn: "conditional"` for the operator-based ("with conditions") comparator instead, or override the whole UI with `meta.renderFilter` / `renderHeaderFilter`. `meta.filterVariant` and `meta.filterOptions` are deprecated aliases kept for older columns — `filterVariant` no longer selects a control.
+- `enableColumnFilters` — renders a per-column filter row. Pick the control with `meta.type` (`"string" | "int" | "number" | "boolean" | "enum" | "multiEnum" | "date" | "datetime" | "dateRange" | "time" | "custom"`), plus `meta.options` for the enum types. Columns get `filterFn: "typed"` by default, which dispatches on that same `meta.type`; set `filterFn: "conditional"` for the operator-based ("with conditions") comparator instead, or override the whole UI with `meta.renderFilter` / `renderHeaderFilter`. `meta.filterVariant` and `meta.filterOptions` are deprecated aliases kept for older columns: both still work — `filterVariant` is resolved to a `meta.type` (`text`→`string`, `number`/`range`→`number`, `select`→`enum`) and selects that type's control and matcher, and `filterOptions` is used when `options` is absent. Prefer `meta.type` / `meta.options` in new code.
 - `enableRowSelection` — injects a leading checkbox column; header checkbox toggles all.
   Constrain it with `selectionMode: "single" | "multiple"` (single replaces the
   selection), `maxSelectedRows: N` (a hard cap — unselected rows disable once it

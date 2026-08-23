@@ -493,7 +493,10 @@ export const HiddenHeader: Story = {
     // names; `hideHeader` only hides them visually.
     const headers = canvas.getAllByRole("columnheader")
     await expect(headers.length).toBeGreaterThan(0)
-    await expect(headers[0]?.closest("tr")?.parentElement).toHaveClass("sr-only")
+    // `hideHeader` puts `sr-only` on the header `<tr>` itself (not on
+    // `<thead>`, which must keep the filter row visible), so `closest("tr")`
+    // is already the element carrying it.
+    await expect(headers[0]?.closest("tr")).toHaveClass("sr-only")
     await expect(canvas.getByText("Lovelace")).toBeInTheDocument()
   },
 }
@@ -1186,7 +1189,6 @@ export const CustomFilterTemplate: EmployeeStory = {
             size,
           }: DataTableFilterContext<Employee>) => (
             <Select
-              aria-label="Salary band"
               disabled={disabled}
               items={SALARY_BANDS}
               onValueChange={(d) => {
@@ -1200,7 +1202,10 @@ export const CustomFilterTemplate: EmployeeStory = {
               size={size}
             >
               <Select.Control>
-                <Select.Trigger>
+                {/* The name belongs on the trigger: `Select`'s root
+                    destructures a closed prop list with no rest spread, so an
+                    `aria-label` there never reaches the DOM. */}
+                <Select.Trigger aria-label="Salary band">
                   <Select.ValueText placeholder="Any band" />
                 </Select.Trigger>
               </Select.Control>
