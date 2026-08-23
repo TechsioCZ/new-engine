@@ -10,6 +10,16 @@
  * new one added ahead of the Figma sync this component's other colors are
  * still waiting on (see the "PROTOTYPE styling" note in data-table.tsx).
  */
+/*
+ * Verified: box-shadow on a `<tr>` *does* paint under `border-collapse` in
+ * Blink (Chromium 149) — a differential screenshot of a plain vs tinted row in
+ * a collapsed table measures 255,255,255 vs 178,178,178. This has been
+ * reported several times as a no-op; it is not one in Chrome. Not verified in
+ * WebKit/Safari, so if the tint is ever confirmed missing there, the fix is a
+ * `background-image` gradient layer (as `data-table-frozen-cell` uses), which
+ * composes with `striped` without the Tailwind-merge conflict a `background`
+ * would cause.
+ */
 @utility data-table-row-nested-tint {
   box-shadow: inset 0 0 0 9999px var(--color-table-row-bg-hover);
 }

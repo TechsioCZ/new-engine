@@ -453,6 +453,7 @@ export type DataTableBlockedAction =
   | "paginate"
   | "columnVisibility"
   | "rowClick"
+  | "expand"
 
 /* ── Context for composable sub-components ────────────────────────────────── */
 
@@ -2041,9 +2042,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       }
       return Boolean(meta.renderEditor || editorRenderers?.custom)
     })
+    // `draftRef.current`, not the render-scoped `draft`. `setDraftValue`
+    // maintains the ref precisely so a same-tick `setValue(v); commit()` —
+    // the natural "pick an option, save" shape for the enum and boolean
+    // editors, which have no key handlers, and what Zag's INPUT.ENTER does on
+    // the numeric editor — sees the value that was just written. Reading the
+    // closure here dropped it: the new value never reached `onEditCommit`,
+    // and a `required` field the user had just filled in failed as blank.
+    const committed = draftRef.current
     const errors = validateDraft(
       editableColumns,
-      draft,
+      committed,
       translations.requiredLabel
     )
 
@@ -2053,7 +2062,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return
     }
 
-    onEditCommit?.({ rowId, draft, row: row.original })
+    onEditCommit?.({ rowId, draft: committed, row: row.original })
     setEditingRowId(null)
   }
 
@@ -2315,9 +2324,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     if (data.length === lastReachEndCountRef.current) {
       return
     }
+    // No `scrollHeight > clientHeight` requirement here. Demanding that the
+    // content already overflow dead-ended the common case: a first page too
+    // short to fill `maxHeight` never scrolls, so no scroll event fires, and
+    // requiring overflow meant this effect refused to fire either — the list
+    // stuck on page one forever. Underflow is precisely when another page is
+    // needed. Runaway is prevented by the row-count guard above, not by
+    // overflow; the horizontal-scroll false positive it was guarding against
+    // belongs to the scroll handler, which still checks it.
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight
     reachedEndRef.current = distance <= reachEndThreshold
-    if (reachedEndRef.current && el.scrollHeight > el.clientHeight) {
+    if (reachedEndRef.current) {
       fireReachEnd()
     }
   }, [data.length, loadingMore, reachEndThreshold])
@@ -2332,12 +2349,18 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return
     }
     const el = event.currentTarget
-    // The container can be bounded and still not scroll vertically, when the
-    // rows do not fill `maxHeight`. `distance` is then permanently 0, so a
-    // *horizontal* scroll on a wide table reads as "at the bottom" and
-    // refetches — the same trap as the unbounded case above. The re-arm
-    // effect already guards on this; mirror it here.
+    // A bounded container that does not scroll vertically (rows shorter than
+    // `maxHeight`) reports `distance === 0` forever, so a *horizontal* scroll
+    // on a wide table would read as "at the bottom" and refetch. That case is
+    // handled by the re-arm effect above, which fires on underflow directly
+    // rather than waiting for a scroll that will never come.
     if (el.scrollHeight <= el.clientHeight) {
+      return
+    }
+    // Same end-of-data guard the re-arm effects apply: once a fetch has come
+    // back with no new rows, scrolling up past the threshold and back down
+    // would otherwise re-issue the identical request.
+    if (data.length === lastReachEndCountRef.current) {
       return
     }
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight
@@ -2877,6 +2900,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             aria-controls={expandAriaControls(row.id)}
             aria-expanded={row.getIsExpanded()}
             aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
+            disabled={locked}
+            // Gated like every other affordance: expanding a row *above* the
+            // one being edited inserts a detail row and shifts the edited row
+            // out from under the user, which is exactly what
+            // `lockInteractionsWhileEditing` promises not to allow.
             icon={
               row.getIsExpanded()
                 ? "token-icon-chevron-down"
@@ -2884,6 +2912,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             }
             onClick={(e) => {
               e.stopPropagation()
+              if (blocked("expand")) {
+                return
+              }
               row.getToggleExpandedHandler()()
             }}
             size="sm"
