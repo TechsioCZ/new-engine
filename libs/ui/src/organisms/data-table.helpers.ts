@@ -80,6 +80,7 @@ import type {
   DataTableColumnType,
   DataTableEditorContext,
   DataTableFilterContext,
+  DataTableFilterValue,
   DataTableOption,
 } from "./data-table.fields"
 import { isBlank, matchBetween, typedFilterMatch } from "./data-table.fields"
@@ -441,22 +442,34 @@ function evaluateCondition(
  * filtering. Register on a column via `filterFn: conditionalFilterFn` and store
  * `{ operator, value, to? }` as the filter value.
  *
- * Built for `"string"`/`"number"`/`"int"` columns — its operator set
- * (contains/equals/startsWith/gt/between/…) has no meaningful semantics for
- * `"enum"`/`"multiEnum"`/`"date"`/`"dateRange"` columns, which fall back to a
- * case-insensitive string comparison against the raw cell value (e.g. an
- * array cell stringifies via `Array.prototype.toString`). Use the column's
- * default `typed` filter (or a custom `filterFn`) for those types instead.
+ * The operator set (contains/equals/startsWith/gt/between/…) only has
+ * meaning for `"string"`/`"number"`/`"int"` columns. The `enum`, `multiEnum`,
+ * `boolean` and date/time controls never write an `operator` at all — they
+ * store `{ values }`, `{ value }` or `{ from, to }` — so an operator-less
+ * value is handed to the typed matcher rather than treated as "no filter".
+ * Returning `true` for those (as this used to) made any such column opting
+ * into `"conditional"` match every row while `autoRemove` kept the entry, so
+ * the UI and `onColumnFiltersChange` both reported an active filter that did
+ * nothing.
  */
 export const conditionalFilterFn: AnyFilterFn = (
   row,
   columnId,
   filterValue: DataTableConditionalFilterValue
 ) => {
-  if (!filterValue?.operator) {
+  if (filterValue == null) {
     return true
   }
   const type = resolveColumnType(row.table.getColumn(columnId)?.columnDef.meta)
+  if (!filterValue.operator) {
+    // Operator-less: this is one of the non-operator shapes (`{ values }`,
+    // `{ value }`, `{ from, to }`) that the enum/boolean/date controls write.
+    return typedFilterMatch(
+      type,
+      row.getValue(columnId),
+      filterValue as DataTableFilterValue
+    )
+  }
   // "int" is numeric everywhere else (`typedFilterMatch` routes both "number"
   // and "int" to `matchNumber`) — matching only "number" here would give an
   // int column string-compared "="/"≠" while every other operator on it
@@ -594,6 +607,15 @@ export const DATA_TABLE_Z = {
    * DataTable for the `enableColumnPinning` + `stickyActions` combination.
    */
   stickyActionsCell: 2,
+  /**
+   * Any sticky header-area cell that is not pinned — notably the filter row,
+   * whose `<td>`s are raw elements and so never pick up the `sticky top-0
+   * z-10` the `Table` organism puts on real header cells. Without a level of
+   * their own they sat at `z-index: auto` while pinned *body* cells carry
+   * `pinnedCell`, so scrolling painted a frozen column straight over the
+   * sticky filter row. Above every body level, below the pinned header ones.
+   */
+  stickyHeaderCell: 10,
   pinnedHeaderCell: 20,
   stickyActionsHeaderCell: 21,
 } as const

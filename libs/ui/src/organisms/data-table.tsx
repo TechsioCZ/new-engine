@@ -2592,7 +2592,16 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                 ...OPAQUE_HEADER_BG,
                 ...getPinningStyles(column, "header"),
                 ...(stickyHeader
-                  ? { position: "sticky", top: headerHeight }
+                  ? {
+                      position: "sticky",
+                      top: headerHeight,
+                      // A base level for every sticky filter cell, pinned or
+                      // not: these `<td>`s are raw elements, so unlike real
+                      // header cells they never get Table's `z-10`, and at
+                      // `auto` a pinned body cell (`pinnedCell`) scrolled
+                      // straight over the filter row.
+                      zIndex: DATA_TABLE_Z.stickyHeaderCell,
+                    }
                   : undefined),
                 ...(column.getIsPinned() && stickyHeader
                   ? { zIndex: DATA_TABLE_Z.pinnedHeaderCell }

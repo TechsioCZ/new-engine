@@ -1054,6 +1054,14 @@ function normalizeFilterValue(
   type: DataTableColumnType,
   filterValue: DataTableFilterValue
 ): DataTableFilterValue {
+  // Arrays first: `typeof [] === "object"`, so bailing out on that check
+  // let `setFilterValue(["react"])` through untouched, the matcher read
+  // `values` as undefined, and every row matched — reproducing the exact
+  // silent no-op this function exists to prevent. An array is an
+  // unambiguous `values` list for the enum types.
+  if (Array.isArray(filterValue)) {
+    return { values: filterValue.map(String) }
+  }
   if (typeof filterValue === "object") {
     return filterValue
   }

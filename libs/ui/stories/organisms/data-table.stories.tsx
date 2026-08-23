@@ -90,7 +90,9 @@ const columns: ColumnDef<Person>[] = [
   {
     accessorKey: "role",
     header: "Role",
-    filterFn: "conditional",
+    // No `filterFn: "conditional"`: a select has no operators to pick, so the
+    // default `"typed"` filter (which matches the enum's `{ values }` shape)
+    // is the right pairing and the clearer example.
     meta: { filterVariant: "select", filterOptions: ROLE_OPTIONS },
   },
   {
