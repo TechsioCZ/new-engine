@@ -4,6 +4,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework"
 import type { MiddlewareRoute } from "@medusajs/medusa"
+import { bindCartLocaleFromRequest } from "./cart-locale"
 import { retrieveCartTransformQueryConfig } from "./query-config"
 import {
   GetCartLineItemsBulkParams,
@@ -12,6 +13,16 @@ import {
 } from "./validators"
 
 export const storeCartsMiddlewares: MiddlewareRoute[] = [
+  {
+    method: ["POST"],
+    matcher: "/store/carts",
+    middlewares: [bindCartLocaleFromRequest],
+  },
+  {
+    method: ["POST"],
+    matcher: "/store/carts/:id",
+    middlewares: [bindCartLocaleFromRequest],
+  },
   {
     method: ["POST"],
     matcher: "/store/carts/:id/line-items/bulk",

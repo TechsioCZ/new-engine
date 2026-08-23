@@ -79,6 +79,43 @@ const campaignProjection = (
   }
 }
 
+const catalogProjection = (
+  kind: "brand" | "category",
+  sourceId: string,
+  slug: string,
+  market: "cz" | "sk" = "cz"
+): ActiveEntityRouteTarget => {
+  const target = projection(sourceId, slug, "indexable", market)
+  return {
+    ...target,
+    currentSlug: { ...target.currentSlug, kind },
+    route: {
+      ...target.route,
+      equivalenceKey: `${kind}:${sourceId}`,
+      kind,
+      sourceType: kind === "category" ? "product_category" : "brand",
+    },
+  }
+}
+
+const pageProjection = (
+  sourceId: string,
+  slug: string
+): ActiveEntityRouteTarget => {
+  const target = projection(sourceId, slug)
+  return {
+    ...target,
+    currentSlug: { ...target.currentSlug, kind: "page" },
+    route: {
+      ...target.route,
+      equivalenceKey: `page:${sourceId}`,
+      kind: "page",
+      sourceSystem: "payload",
+      sourceType: "page",
+    },
+  }
+}
+
 const dependencies = (
   entities: readonly ActiveEntityRouteTarget[]
 ): SitemapDataDependencies => ({
@@ -174,7 +211,90 @@ describe("system sitemaps", () => {
     })
   })
 
-  it("builds product URLs only from URLR slugs and verifies stable source IDs", async () => {
+  it("emits category and brand URLs straight from registry current slugs", async () => {
+    const deps = dependencies([
+      catalogProjection("category", "pcat_1", "prirodni-kosmetika"),
+    ])
+    const brandDeps = dependencies([
+      catalogProjection("brand", "brand_1", "bioherba"),
+    ])
+
+    await expect(
+      listSitemapEntries(binding, "category", deps)
+    ).resolves.toEqual({
+      kind: "found",
+      value: [
+        {
+          alternates: {
+            "cs-CZ": "https://herbatica.cz/kategorie/prirodni-kosmetika",
+          },
+          lastModified: "2026-08-18T10:00:00.000Z",
+          location: "https://herbatica.cz/kategorie/prirodni-kosmetika",
+        },
+      ],
+    })
+    await expect(
+      listSitemapEntries(binding, "brand", brandDeps)
+    ).resolves.toEqual({
+      kind: "found",
+      value: [
+        {
+          alternates: { "cs-CZ": "https://herbatica.cz/znacky/bioherba" },
+          lastModified: "2026-08-18T10:00:00.000Z",
+          location: "https://herbatica.cz/znacky/bioherba",
+        },
+      ],
+    })
+    expect(deps.validateEntitySources).not.toHaveBeenCalled()
+    expect(deps.readEntitySourceVersions).not.toHaveBeenCalled()
+    expect(brandDeps.validateEntitySources).not.toHaveBeenCalled()
+  })
+
+  it("builds reciprocal category alternates from active registry equivalents", async () => {
+    const current = catalogProjection(
+      "category",
+      "pcat_1",
+      "prirodni-kosmetika"
+    )
+    const skEquivalent = {
+      ...catalogProjection("category", "pcat_1_sk", "prirodna-kozmetika", "sk"),
+      route: {
+        ...catalogProjection(
+          "category",
+          "pcat_1_sk",
+          "prirodna-kozmetika",
+          "sk"
+        ).route,
+        equivalenceKey: "category:pcat_1",
+      },
+    } satisfies ActiveEntityRouteTarget
+    const deps = {
+      ...dependencies([current]),
+      findEntityEquivalents: vi
+        .fn()
+        .mockResolvedValue({ kind: "found", value: [skEquivalent] }),
+    } satisfies SitemapDataDependencies
+
+    const result = await listSitemapEntries(binding, "category", deps)
+
+    expect(result.kind === "found" && result.value[0]?.alternates).toEqual({
+      "cs-CZ": "https://herbatica.cz/kategorie/prirodni-kosmetika",
+      "sk-SK": "https://herbatica.sk/kategorie/prirodna-kozmetika",
+    })
+    expect(deps.validateEntitySources).not.toHaveBeenCalled()
+  })
+
+  it("fails the category shard closed when the registry read fails", async () => {
+    const deps = dependencies([
+      catalogProjection("category", "pcat_1", "prirodni-kosmetika"),
+    ])
+    vi.mocked(deps.listEntities).mockResolvedValue({ kind: "unavailable" })
+    await expect(
+      listSitemapEntries(binding, "category", deps)
+    ).resolves.toEqual({ kind: "unavailable" })
+  })
+
+  it("emits product URLs straight from registry current slugs", async () => {
     const deps = dependencies([
       projection("prod_1", "public-slug"),
       projection("prod_hidden", "hidden", "noindex"),
@@ -187,40 +307,81 @@ describe("system sitemaps", () => {
           alternates: {
             "cs-CZ": "https://herbatica.cz/produkty/public-slug",
           },
-          lastModified: "2026-08-19T11:00:00.000Z",
+          lastModified: "2026-08-18T10:00:00.000Z",
           location: "https://herbatica.cz/produkty/public-slug",
         },
       ],
     })
+    expect(deps.validateEntitySources).not.toHaveBeenCalled()
+    expect(deps.readEntitySourceVersions).not.toHaveBeenCalled()
+  })
+
+  it("emits information pages from CMS validation without the audit gate", async () => {
+    const deps = dependencies([pageProjection("page_1", "vernostni-program")])
+    const result = await listSitemapEntries(binding, "page", deps)
+    expect(result).toEqual({
+      kind: "found",
+      value: [
+        {
+          alternates: {
+            "cs-CZ": "https://herbatica.cz/informace/vernostni-program",
+          },
+          lastModified: "2026-08-19T11:00:00.000Z",
+          location: "https://herbatica.cz/informace/vernostni-program",
+        },
+      ],
+    })
+    expect(deps.readEntitySourceVersions).not.toHaveBeenCalled()
     expect(deps.validateEntitySources).toHaveBeenCalledWith({
-      kind: "product",
+      kind: "page",
       market: "cz",
       sources: [
         {
-          publicSlug: "public-slug",
-          routeId: "route_prod_1",
-          sourceId: "prod_1",
-          sourceVersion: "source-route_prod_1",
+          publicSlug: "vernostni-program",
+          routeId: "route_page_1",
+          sourceId: "page_1",
+          sourceVersion: "1",
         },
       ],
     })
   })
 
-  it("fails the whole product shard when an active source is missing", async () => {
-    const deps = dependencies([projection("prod_missing", "missing")])
+  it("drops information pages whose CMS source is missing", async () => {
+    const deps = dependencies([pageProjection("page_1", "vernostni-program")])
     vi.mocked(deps.validateEntitySources).mockResolvedValue({
-      causeCode: "ACTIVE_PRODUCT_SOURCE_MISSING",
-      kind: "invalid-response",
+      kind: "found",
+      value: [],
     })
+    await expect(listSitemapEntries(binding, "page", deps)).resolves.toEqual({
+      kind: "found",
+      value: [],
+    })
+    expect(deps.readEntitySourceVersions).not.toHaveBeenCalled()
+  })
+
+  it("fails the product shard closed when the registry read fails", async () => {
+    const deps = dependencies([projection("prod_1", "public-slug")])
+    vi.mocked(deps.listEntities).mockResolvedValue({ kind: "unavailable" })
     await expect(listSitemapEntries(binding, "product", deps)).resolves.toEqual(
-      {
-        causeCode: "ACTIVE_PRODUCT_SOURCE_MISSING",
-        kind: "invalid-response",
-      }
+      { kind: "unavailable" }
     )
   })
 
-  it("emits source-validated reciprocal entity alternates", async () => {
+  it("fails the whole campaign shard when an active source is missing", async () => {
+    const deps = dependencies([campaignProjection("campaign_missing", "akce")])
+    vi.mocked(deps.validateEntitySources).mockResolvedValue({
+      causeCode: "ACTIVE_CAMPAIGN_SOURCE_MISSING",
+      kind: "invalid-response",
+    })
+    await expect(
+      listSitemapEntries(binding, "campaign", deps)
+    ).resolves.toEqual({
+      causeCode: "ACTIVE_CAMPAIGN_SOURCE_MISSING",
+      kind: "invalid-response",
+    })
+  })
+
+  it("builds reciprocal product alternates from active registry equivalents", async () => {
     const current = projection("prod_1", "cesky-produkt")
     const skProjection = projection(
       "prod_1_sk",
@@ -245,21 +406,11 @@ describe("system sitemaps", () => {
       "cs-CZ": "https://herbatica.cz/produkty/cesky-produkt",
       "sk-SK": "https://herbatica.sk/produkty/slovensky-produkt",
     })
-    expect(deps.validateEntitySources).toHaveBeenCalledWith({
-      kind: "product",
-      market: "sk",
-      sources: [
-        {
-          publicSlug: "slovensky-produkt",
-          routeId: "route_prod_1_sk",
-          sourceId: "prod_1_sk",
-          sourceVersion: "source-route_prod_1_sk",
-        },
-      ],
-    })
+    expect(deps.validateEntitySources).not.toHaveBeenCalled()
+    expect(deps.readEntitySourceVersions).not.toHaveBeenCalled()
   })
 
-  it("loads and validates only the requested bounded product shard", async () => {
+  it("loads only the requested bounded product shard", async () => {
     const deps = dependencies(
       Array.from({ length: 205 }, (_, index) =>
         projection(`prod_${index}`, `product-${index}`)
@@ -283,24 +434,21 @@ describe("system sitemaps", () => {
       market: "cz",
       offset: 100,
     })
-    expect(deps.validateEntitySources).toHaveBeenCalledTimes(1)
-    expect(
-      vi.mocked(deps.validateEntitySources).mock.calls[0]?.[0].sources
-    ).toHaveLength(100)
+    expect(deps.validateEntitySources).not.toHaveBeenCalled()
   })
 
   it("serves an advertised shard as an empty urlset when every source is filtered", async () => {
-    const deps = dependencies([projection("prod_stale", "stale-slug")])
+    const deps = dependencies([campaignProjection("campaign_stale", "stale")])
     vi.mocked(deps.validateEntitySources).mockResolvedValue({
       kind: "found",
       value: [],
     })
 
     await expect(
-      listSitemapShardEntries(binding, "product", 1, deps)
+      listSitemapShardEntries(binding, "campaign", 1, deps)
     ).resolves.toEqual({ kind: "found", value: [] })
     await expect(
-      listSitemapShardEntries(binding, "product", 2, deps)
+      listSitemapShardEntries(binding, "campaign", 2, deps)
     ).resolves.toEqual({ kind: "missing" })
   })
 

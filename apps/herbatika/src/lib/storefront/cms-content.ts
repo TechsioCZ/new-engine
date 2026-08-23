@@ -13,6 +13,27 @@ const resolveCmsMediaPath = (
   return media?.url ?? null
 }
 
+// Imported CMS content can carry Payload media URLs as absolute origins baked in
+// at import time (e.g. a build-time or another environment's host). Re-base any
+// Payload media URL (`/api/media/...`) onto the configured public base so it is
+// always reachable by the browser; leave foreign hosts (product CDN, etc.) alone.
+const rebaseCmsMediaUrl = (rawUrl: string): string | null => {
+  try {
+    const parsed = CMS_MEDIA_BASE_URL
+      ? new URL(rawUrl, CMS_MEDIA_BASE_URL)
+      : new URL(rawUrl)
+    if (CMS_MEDIA_BASE_URL && parsed.pathname.startsWith("/api/media/")) {
+      return new URL(
+        `${parsed.pathname}${parsed.search}`,
+        CMS_MEDIA_BASE_URL
+      ).toString()
+    }
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
 export const resolveCmsMediaUrl = (
   media: CmsMedia | string | null | undefined
 ): string | null => {
@@ -21,13 +42,7 @@ export const resolveCmsMediaUrl = (
     return null
   }
 
-  try {
-    return CMS_MEDIA_BASE_URL
-      ? new URL(mediaPath, CMS_MEDIA_BASE_URL).toString()
-      : new URL(mediaPath).toString()
-  } catch {
-    return null
-  }
+  return rebaseCmsMediaUrl(mediaPath)
 }
 
 export const rewriteCmsHtmlMediaUrls = (html: string) => {
@@ -39,10 +54,14 @@ export const rewriteCmsHtmlMediaUrls = (html: string) => {
     return html
   }
 
+  // Matches both relative (`/api/media/file/...`) and absolute
+  // (`https://any-host/api/media/file/...`) Payload media references.
   return html.replace(
-    /\b(src|href)=["'](\/api\/media\/file\/[^"']+)["']/g,
-    (_match, attribute: string, url: string) =>
-      `${attribute}="${new URL(url, CMS_MEDIA_BASE_URL).toString()}"`
+    /\b(src|href)=["']((?:https?:\/\/[^"']+)?\/api\/media\/file\/[^"']+)["']/g,
+    (match, attribute: string, url: string) => {
+      const rebased = rebaseCmsMediaUrl(url)
+      return rebased ? `${attribute}="${rebased}"` : match
+    }
   )
 }
 

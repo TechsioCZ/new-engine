@@ -62,15 +62,17 @@ describe("RO static taxonomy population plan", () => {
     expect(plan.planHash).toBe(APPROVED_STATIC_CUTOVER_PLAN_HASH)
   })
 
-  it("keeps the non-demo Romanian roots indexable and isolates other markets", () => {
+  it("keeps every Romanian root noindex and isolates other markets", () => {
     const routes = buildPopulationStaticTaxonomy()
+    // Owner decision: the G1 gate is retired, so about/faq are Payload-operated
+    // noindex roots like every other root static.
     for (const pageKey of ["about", "faq"]) {
       expect(
         routes.find(
           (route) =>
             route.market === "ro" && route.routeKey === `root:${pageKey}`
         )?.indexPolicy
-      ).toBe("indexable")
+      ).toBe("noindex")
     }
     const plan = buildStaticTaxonomyCutoverPlan(routes)
     expect(plan.isolation.roOnlyRootKeys).toHaveLength(5)
@@ -118,11 +120,11 @@ describe("RO static taxonomy population plan", () => {
   it("fails closed on RO about/faq or preserved-market drift", () => {
     const roDrift = buildPopulationStaticTaxonomy().map((route) =>
       route.market === "ro" && route.routeKey === "root:about"
-        ? { ...route, indexPolicy: "noindex" as const }
+        ? { ...route, indexPolicy: "indexable" as const }
         : route
     )
     expect(() => buildStaticTaxonomyCutoverPlan(roDrift)).toThrow(
-      "RO about root must remain indexable"
+      "RO about root must stay a noindex root"
     )
 
     const skDrift = buildPopulationStaticTaxonomy().map((route) =>

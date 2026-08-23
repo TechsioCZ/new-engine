@@ -229,3 +229,22 @@ export const resolveCartItemName = (item: HttpTypes.StoreCartLineItem) =>
   item.product_title ??
   item.variant_title ??
   item.id
+
+// Medusa stores an English placeholder title on single-option variants. It is
+// never a customer-facing option value, so it must not reach any market.
+const PLACEHOLDER_VARIANT_TITLES = new Set([
+  "Default",
+  "Default option value",
+  "Default variant",
+])
+
+export const resolveCartItemVariantTitle = (
+  item: Pick<HttpTypes.StoreCartLineItem, "variant_title">
+): string | null => {
+  const variantTitle = item.variant_title?.trim()
+  if (!variantTitle || PLACEHOLDER_VARIANT_TITLES.has(variantTitle)) {
+    return null
+  }
+
+  return variantTitle
+}

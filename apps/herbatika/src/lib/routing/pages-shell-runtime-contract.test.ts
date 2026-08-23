@@ -21,6 +21,23 @@ describe("Pages Router storefront runtime contract", () => {
     expect(providersSource).toContain('router === "pages"')
   })
 
+  it("hydrates the page query cache above the shell so SSR markup uses prefetched data", () => {
+    const appSource = source("pages/_app.tsx")
+
+    expect(appSource).toContain(
+      "pageProps.dehydratedState ?? pageProps.page?.value?.dehydratedState"
+    )
+    expect(appSource).toContain(
+      "<HydrationBoundary state={resolveShellDehydratedState(pageProps)}>"
+    )
+    // React Query only hydrates an already-created query from an effect, and
+    // effects never run during SSR. The shell must therefore hydrate before it
+    // renders AppShell, whose header creates the shared category query.
+    expect(appSource.indexOf("<HydrationBoundary")).toBeLessThan(
+      appSource.indexOf("<AppShell")
+    )
+  })
+
   it("keeps market metadata and storefront fonts on the Pages document", () => {
     const appSource = source("pages/_app.tsx")
     const documentSource = source("pages/_document.tsx")

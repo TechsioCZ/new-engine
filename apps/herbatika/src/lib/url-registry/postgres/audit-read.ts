@@ -123,11 +123,14 @@ export const listAudits = async (
   const request = decodePageRequest(input, "audit")
   return await executePrimaryRead(pool, async (executor) => {
     await assertCursorExists(executor, "url_registry_audit", request.cursor)
+    // ORDER BY must reference the bigint column: the bare name would bind to
+    // the text output alias (`id::text AS id`), sort lexicographically, and
+    // silently skip most records during cursor pagination.
     const result = await executor.query(
       `SELECT id::text AS id, event_payload, created_at
          FROM url_registry.url_registry_audit
         WHERE id > $1::bigint
-        ORDER BY id
+        ORDER BY url_registry_audit.id
         LIMIT $2`,
       [request.cursor?.id ?? "0", request.limit + 1]
     )
@@ -154,7 +157,7 @@ export const listPendingOutbox = async (
         FROM url_registry.url_registry_invalidation_outbox
         WHERE status = 'pending'
           AND id > $1::bigint
-        ORDER BY id
+        ORDER BY url_registry_invalidation_outbox.id
         LIMIT $2`,
       [request.cursor?.id ?? "0", request.limit + 1]
     )

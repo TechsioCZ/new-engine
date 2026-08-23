@@ -180,6 +180,18 @@ describe("public proxy adapter", () => {
     ).toBe(canonicalOrigin)
   })
 
+  it("permanently redirects a legacy official category path and keeps the query", () => {
+    const response = proxy(
+      request("/kategorie/vlasy_vypadavanie_lupiny?page=2", "herbatica.sk")
+    )
+
+    expect(response.status).toBe(308)
+    expect(response.headers.get("location")).toBe(
+      "https://herbatica.sk/kategorie/podpora-a-rast-vlasov?page=2"
+    )
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull()
+  })
+
   it("keeps the normalized adapter origin for an internal rewrite", () => {
     const standaloneRequest = new NextRequest(
       "http://127.0.0.1:32145/produkty/zeleny-caj",

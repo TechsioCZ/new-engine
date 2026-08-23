@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
 import { createUrlRegistryCommand } from "../../src/lib/url-registry/command-fingerprint"
 import type { PopulationManifest } from "../../src/lib/url-registry/population/manifest-contracts"
-import { RO_DEMO_STATIC_ROOTS } from "./static-taxonomy-approval"
+import {
+  APPROVED_STATIC_TAXONOMY_HASH,
+  RO_DEMO_STATIC_ROOTS,
+} from "./static-taxonomy-approval"
 import { assertRoDemoPopulationScope } from "./static-taxonomy-population-manifest"
 import type { StaticTaxonomyPreflightRow } from "./static-taxonomy-preflight-contract"
 import { buildStaticTaxonomyPreflightSql } from "./static-taxonomy-preflight-sql"
@@ -9,8 +12,7 @@ import { buildStaticTaxonomyTransitionPlan } from "./static-taxonomy-transition-
 
 const MUTATION_SQL_PATTERN = /\b(?:delete|insert|update|truncate)\b/i
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/
-const TAXONOMY_HASH =
-  "sha256:b6508faaf515778f7843583d3661fbc721c8257e625b72af7b2e29c2edb6db15"
+const TAXONOMY_HASH = APPROVED_STATIC_TAXONOMY_HASH
 
 const rows = (
   state: "absent" | "indexable" | "noindex" = "indexable"

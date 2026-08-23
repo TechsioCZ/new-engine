@@ -16,6 +16,80 @@ import {
 } from "./sitemap-contract"
 import type { SitemapUrl } from "./xml"
 
+// Brand, category, and product detail routes render straight from URL
+// Registry active current slugs; routing never consults Medusa publication
+// proofs or registry audit source versions for them. Demanding those proofs
+// here made the sitemap stricter than the live site (audit/source-version
+// drift produced 503 shards while every advertised page rendered 200). These
+// kinds therefore emit from the same registry projections the router uses.
+// Registry reads still fail closed: any non-found read drops the whole shard
+// instead of guessing URLs. Article and campaign keep their proof chains.
+const REGISTRY_AUTHORITATIVE_SITEMAP_KINDS: ReadonlySet<EntityUrlKind> =
+  new Set(["brand", "category", "product"])
+
+// Information pages have no registry audit trail (their routes were populated
+// without audit records), so the audit-derived source-version gate can never
+// pass for them. The live route only requires the CMS page to exist, so the
+// sitemap keeps exactly that check (validateEntitySources -> CMS read) and
+// substitutes the registry route version for the audit source version, which
+// the CMS validator does not consult.
+const AUDIT_SOURCE_VERSION_EXEMPT_KINDS: ReadonlySet<EntityUrlKind> = new Set([
+  "page",
+])
+
+const buildRegistryAuthoritativeAlternates = (
+  projection: ActiveEntityRouteTarget,
+  dependencies: SitemapDataDependencies
+) => {
+  if (!dependencies.findEntityEquivalents) {
+    return Promise.resolve({
+      kind: "found" as const,
+      value: {
+        [ROUTES[projection.route.market].locale]: buildAbsoluteUrl(
+          {
+            kind: projection.route.kind,
+            slug: projection.currentSlug.normalizedSlug,
+          },
+          projection.route.market
+        ).href,
+      },
+    })
+  }
+  return buildAlternates({
+    findActiveEquivalents: dependencies.findEntityEquivalents,
+    loadSource: (target) =>
+      Promise.resolve({ kind: "found" as const, value: target }),
+    target: projection,
+  })
+}
+
+const listRegistryAuthoritativeEntries = async (
+  binding: MarketRuntimeBinding,
+  kind: EntityUrlKind,
+  projections: readonly ActiveEntityRouteTarget[],
+  dependencies: SitemapDataDependencies
+): Promise<SitemapEntryLoadResult> => {
+  const entries: SitemapUrl[] = []
+  for (const projection of projections) {
+    const alternates = await buildRegistryAuthoritativeAlternates(
+      projection,
+      dependencies
+    )
+    if (alternates.kind !== "found") {
+      return alternates
+    }
+    entries.push({
+      alternates: alternates.value,
+      lastModified: latestSitemapTimestamp(projection.route.updatedAt),
+      location: buildAbsoluteUrl(
+        { kind, slug: projection.currentSlug.normalizedSlug },
+        binding.market
+      ).href,
+    })
+  }
+  return { kind: "found", value: entries }
+}
+
 const indexValidatedSources = (
   projections: readonly ActiveEntityRouteTarget[],
   validations: readonly SitemapSourceValidation[]
@@ -40,9 +114,23 @@ const indexValidatedSources = (
 }
 
 const buildSourceCandidates = async (
+  kind: EntityUrlKind,
   projections: readonly ActiveEntityRouteTarget[],
   dependencies: SitemapDataDependencies
 ) => {
+  if (AUDIT_SOURCE_VERSION_EXEMPT_KINDS.has(kind)) {
+    return {
+      kind: "found" as const,
+      value: projections.map(
+        (projection): SitemapEntitySourceCandidate => ({
+          publicSlug: projection.currentSlug.normalizedSlug,
+          routeId: projection.route.id,
+          sourceId: projection.route.sourceId,
+          sourceVersion: String(projection.route.version),
+        })
+      ),
+    }
+  }
   const result = await dependencies.readEntitySourceVersions(projections)
   if (result.kind !== "found") {
     return result
@@ -88,7 +176,11 @@ const loadValidatedEntitySource = async (
   target: ActiveEntityRouteTarget,
   dependencies: SitemapDataDependencies
 ) => {
-  const candidates = await buildSourceCandidates([target], dependencies)
+  const candidates = await buildSourceCandidates(
+    target.route.kind,
+    [target],
+    dependencies
+  )
   if (candidates.kind !== "found") {
     return candidates
   }
@@ -161,7 +253,20 @@ export const listEntitySitemapEntries = async (
     }
   }
 
-  const candidates = await buildSourceCandidates(projections, dependencies)
+  if (REGISTRY_AUTHORITATIVE_SITEMAP_KINDS.has(kind)) {
+    return listRegistryAuthoritativeEntries(
+      binding,
+      kind,
+      projections,
+      dependencies
+    )
+  }
+
+  const candidates = await buildSourceCandidates(
+    kind,
+    projections,
+    dependencies
+  )
   if (candidates.kind !== "found") {
     return candidates
   }

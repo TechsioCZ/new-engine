@@ -23,6 +23,18 @@ const resolveLocaleFromCurrency = (currencyCode: string) => {
   return localeByCurrency[currencyCode] ?? "sk-SK"
 }
 
+// Only used when Intl rejects the currency code; keeps the fallback string in
+// the same market vocabulary the Intl path renders.
+const FALLBACK_CURRENCY_SYMBOLS: Record<string, string> = {
+  CZK: "Kč",
+  EUR: "€",
+  HUF: "Ft",
+  RON: "lei",
+}
+
+const resolveFallbackCurrencySymbol = (currencyCode: string) =>
+  FALLBACK_CURRENCY_SYMBOLS[currencyCode] ?? currencyCode
+
 type FormatCurrencyAmountOptions = {
   minimumFractionDigits?: number
   maximumFractionDigits?: number
@@ -53,11 +65,15 @@ export const formatCurrencyAmount = (
     return new Intl.NumberFormat(resolveLocaleFromCurrency(safeCurrencyCode), {
       style: "currency",
       currency: safeCurrencyCode,
+      // `symbol` (the Intl default) renders RON as the ISO code "RON" in
+      // ro-RO, while Romanian shops render "lei". `narrowSymbol` yields "lei"
+      // and leaves €, Kč and Ft unchanged for sk-SK/cs-CZ/hu-HU.
+      currencyDisplay: "narrowSymbol",
       minimumFractionDigits,
       maximumFractionDigits,
     }).format(safeAmount)
   } catch {
-    return `${safeAmount.toFixed(fallbackPrecision)} ${safeCurrencyCode}`
+    return `${safeAmount.toFixed(fallbackPrecision)} ${resolveFallbackCurrencySymbol(safeCurrencyCode)}`
   }
 }
 

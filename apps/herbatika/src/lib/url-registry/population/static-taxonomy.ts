@@ -44,14 +44,20 @@ const PREFIX_CHECKOUT_CHILDREN = new Set<CheckoutChildKey>([
   "checkoutResult",
 ])
 const PREFIX_REVIEW_CHILDREN = new Set<ReviewChildKey>(["product"])
-// Static-root CMS pages ship demo content that has not passed the G1
-// editorial/legal publication gate on any market, so they stay noindex
-// (and therefore renderable) until reviewed artifacts exist.
+// Owner decision (demo delivery): the manual G1 editorial/legal publication
+// gate is retired for root-static pages. Static content is operator-editable
+// through Payload CMS, so every root static ships noindex and renderable and
+// no route requires a G1 approval artifact. "about" and "faq" were the last
+// two indexable root routes; they are listed here deliberately, not by
+// oversight. Re-introducing indexability for any root static is a deliberate
+// future decision that must restore the corresponding approval artifacts.
 const DEMO_NOINDEX_STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
+  "about",
   "affiliate",
   "contact",
   "cookies",
   "dropshipping",
+  "faq",
   "giftVoucher",
   "privacy",
   "privateLabel",

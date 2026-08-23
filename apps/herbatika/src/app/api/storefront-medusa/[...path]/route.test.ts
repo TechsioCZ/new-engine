@@ -348,7 +348,7 @@ describe("storefront Medusa gateway", () => {
     const cartAuthorityUrl = new URL(String(upstreamFetch.mock.calls[1][0]))
     expect(cartAuthorityUrl.pathname).toBe(`/store/carts/${cartId}`)
     expect(cartAuthorityUrl.searchParams.get("fields")).toBe(
-      "id,customer_id,region_id,sales_channel_id,payment_collection.id"
+      "id,customer_id,region_id,sales_channel_id,payment_collection.id,customer.id,customer.has_account"
     )
     expect(
       new Headers(upstreamFetch.mock.calls[1][1]?.headers).get(
@@ -618,7 +618,7 @@ describe("storefront Medusa gateway", () => {
     expect(upstreamFetch).toHaveBeenCalledTimes(3)
   })
 
-  it("requires the authenticated owner for a customer cart", async () => {
+  it("requires the authenticated owner for a registered customer cart", async () => {
     resolveBinding.mockImplementation(resolveByHost)
     const upstreamFetch = vi
       .fn()
@@ -626,6 +626,7 @@ describe("storefront Medusa gateway", () => {
       .mockResolvedValueOnce(
         Response.json({
           cart: {
+            customer: { has_account: true, id: "cus_owner" },
             customer_id: "cus_owner",
             id: "cart_cz",
             region_id: CZ_BINDING.regionId,
@@ -651,6 +652,96 @@ describe("storefront Medusa gateway", () => {
     expect(new URL(String(upstreamFetch.mock.calls[2][0])).pathname).toBe(
       "/store/customers/me"
     )
+  })
+
+  it.each(
+    MARKET_CASES
+  )("allows an anonymous guest cart Medusa attached a guest customer to on %s", async (host, binding) => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const cartId = `cart_${binding.market}`
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ cart_id: cartId }))
+      .mockResolvedValueOnce(
+        Response.json({
+          cart: {
+            customer: { has_account: false, id: "cus_guest" },
+            customer_id: "cus_guest",
+            id: cartId,
+            region_id: binding.regionId,
+            sales_channel_id: binding.salesChannelId,
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          payment_collection: { id: `paycol_${binding.market}` },
+        })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway("/store/payment-collections", {
+      body: JSON.stringify({ cart_id: cartId }),
+      headers: {
+        "content-type": "application/json",
+        cookie: `__Host-herbatika-cart-session=Signed.${binding.market}.Cart`,
+      },
+      host,
+      method: "POST",
+    })
+
+    expect(response.status).toBe(200)
+    expect(upstreamFetch).toHaveBeenCalledTimes(3)
+    // A guest cart must never trigger an authenticated-customer lookup.
+    for (const call of upstreamFetch.mock.calls) {
+      expect(new URL(String(call[0])).pathname).not.toBe("/store/customers/me")
+    }
+    expect(new URL(String(upstreamFetch.mock.calls[2][0])).pathname).toBe(
+      "/store/payment-collections"
+    )
+  })
+
+  it.each([
+    ["the customer relation is missing", undefined],
+    ["the account flag is absent", { id: "cus_owner" }],
+    [
+      "the account flag is not a boolean",
+      { has_account: "false", id: "cus_owner" },
+    ],
+    [
+      "the expanded customer is a different customer",
+      { has_account: false, id: "cus_someone_else" },
+    ],
+  ])("fails closed for an unauthenticated caller when %s", async (_label, customer) => {
+    resolveBinding.mockImplementation(resolveByHost)
+    const upstreamFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ cart_id: "cart_cz" }))
+      .mockResolvedValueOnce(
+        Response.json({
+          cart: {
+            customer,
+            customer_id: "cus_owner",
+            id: "cart_cz",
+            region_id: CZ_BINDING.regionId,
+            sales_channel_id: CZ_BINDING.salesChannelId,
+          },
+        })
+      )
+    vi.stubGlobal("fetch", upstreamFetch)
+
+    const response = await callGateway("/store/payment-collections", {
+      body: JSON.stringify({ cart_id: "cart_cz" }),
+      headers: {
+        "content-type": "application/json",
+        cookie: "__Host-herbatika-cart-session=Signed.Cart.Session",
+      },
+      method: "POST",
+    })
+
+    // No authorization header, so the owner check rejects before any lookup.
+    expect(response.status).toBe(404)
+    expect(upstreamFetch).toHaveBeenCalledTimes(2)
   })
 
   it.each(

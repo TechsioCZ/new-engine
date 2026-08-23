@@ -14,6 +14,9 @@ import type {
   MarketRouteSegments,
   RootSegmentMatch,
 } from "@/lib/url/types"
+import { resolveLegacyOfficialCategoryRedirect } from "./legacy-official-redirects"
+import { resolveOfficialContentSectionRedirect } from "./official-content-section-redirects"
+import { resolveOfficialStaticRedirect } from "./official-static-redirects"
 import { isPrivatePagesPath } from "./private-pages-path"
 
 export type PublicProxyAction =
@@ -22,6 +25,11 @@ export type PublicProxyAction =
       allow?: "GET, HEAD"
       kind: "respond"
       status: 204 | 400 | 404 | 405 | 421
+    }>
+  | Readonly<{
+      kind: "redirect"
+      location: string
+      status: 308
     }>
   | Readonly<{
       canonicalOrigin: string
@@ -323,6 +331,17 @@ const flowRoute = (
   return null
 }
 
+const methodGuard = (method: string): PublicProxyAction | null => {
+  const normalizedMethod = method.toUpperCase()
+  if (normalizedMethod === "OPTIONS") {
+    return { allow: "GET, HEAD", kind: "respond", status: 204 }
+  }
+  if (normalizedMethod !== "GET" && normalizedMethod !== "HEAD") {
+    return { allow: "GET, HEAD", kind: "respond", status: 405 }
+  }
+  return null
+}
+
 export const resolvePublicProxyAction = ({
   enabled,
   environment = process.env,
@@ -347,6 +366,55 @@ export const resolvePublicProxyAction = ({
   }
   if (isSystemRoute(parsed.segments)) {
     return { kind: "next" }
+  }
+  // Legacy official slugs violate the registry slug grammar, so they can never
+  // be registry aliases. They are redirected before any registry lookup.
+  const legacyLocation = resolveLegacyOfficialCategoryRedirect(
+    hostMarket.market,
+    parsed.segments
+  )
+  if (legacyLocation) {
+    return (
+      methodGuard(method) ?? {
+        kind: "redirect",
+        location: legacyLocation,
+        status: 308,
+      }
+    )
+  }
+  // Official root-level static/legal slugs already have equivalent
+  // operator-editable Payload pages at a different path depth. They are
+  // redirected before any registry lookup, the same way legacy category
+  // slugs are. See official-static-redirects.ts for the authorization.
+  const officialStaticLocation = resolveOfficialStaticRedirect(
+    hostMarket.market,
+    parsed.segments
+  )
+  if (officialStaticLocation) {
+    return (
+      methodGuard(method) ?? {
+        kind: "redirect",
+        location: officialStaticLocation,
+        status: 308,
+      }
+    )
+  }
+  // Official `magazin` / `slovnik-pojmov` content-section URLs whose articles
+  // were imported as local Payload blog articles under the identical slug.
+  // See official-content-section-redirects.ts for the allow-list and the
+  // authorization for this scoped extension of the issue-#545 rule.
+  const officialContentSectionLocation = resolveOfficialContentSectionRedirect(
+    hostMarket.market,
+    parsed.segments
+  )
+  if (officialContentSectionLocation) {
+    return (
+      methodGuard(method) ?? {
+        kind: "redirect",
+        location: officialContentSectionLocation,
+        status: 308,
+      }
+    )
   }
   let route: Readonly<{ pathname: string; routeKey: string }> | null = null
   if (parsed.segments.length === 0) {
@@ -384,12 +452,9 @@ export const resolvePublicProxyAction = ({
     }
   }
 
-  const normalizedMethod = method.toUpperCase()
-  if (normalizedMethod === "OPTIONS") {
-    return { allow: "GET, HEAD", kind: "respond", status: 204 }
-  }
-  if (normalizedMethod !== "GET" && normalizedMethod !== "HEAD") {
-    return { allow: "GET, HEAD", kind: "respond", status: 405 }
+  const methodAction = methodGuard(method)
+  if (methodAction) {
+    return methodAction
   }
 
   const canonicalHost = new URL(hostMarket.canonicalOrigin).hostname

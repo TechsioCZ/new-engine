@@ -12,7 +12,7 @@ import {
 } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   canonicalStaticContentJson,
   hashStaticContentBytes,
@@ -30,6 +30,30 @@ import {
   publicationFixtureSha as sha,
 } from "./segment-registry-publication.fixture"
 import { loadStaticRoutePublicationDecision } from "./segment-registry-publication.server"
+
+// The owner retired the manual G1 editorial/legal gate for root statics, so the
+// live taxonomy marks every root static noindex and no route requires a
+// publication artifact. The G1 build/parse/decision/loader code is kept intact
+// for a deliberate future re-introduction, so these tests drive it against a
+// taxonomy where "about" and "faq" are indexable again. The final test asserts
+// the real, retired taxonomy requires nothing.
+vi.mock("@/lib/url-registry/population/static-taxonomy", async (original) => {
+  const actual =
+    await original<
+      typeof import("@/lib/url-registry/population/static-taxonomy")
+    >()
+  return {
+    ...actual,
+    buildPopulationStaticTaxonomy: () =>
+      actual
+        .buildPopulationStaticTaxonomy()
+        .map((route) =>
+          route.routeKey === "root:about" || route.routeKey === "root:faq"
+            ? { ...route, indexPolicy: "indexable" as const }
+            : route
+        ),
+  }
+})
 
 const directories: string[] = []
 
@@ -415,5 +439,21 @@ describe("segment-registry G1 publication", () => {
     await expect(
       assertReviewedStaticRouteSource(sourceInput, environment)
     ).rejects.toThrow()
+  })
+
+  it("requires no G1 publication route once the editorial gate is retired", async () => {
+    const actual = await vi.importActual<
+      typeof import("@/lib/url-registry/population/static-taxonomy")
+    >("@/lib/url-registry/population/static-taxonomy")
+
+    expect(
+      actual
+        .buildPopulationStaticTaxonomy()
+        .filter(
+          (route) =>
+            route.routeKey.startsWith("root:") &&
+            route.indexPolicy === "indexable"
+        )
+    ).toEqual([])
   })
 })

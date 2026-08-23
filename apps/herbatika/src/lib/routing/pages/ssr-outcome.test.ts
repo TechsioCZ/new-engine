@@ -111,4 +111,25 @@ describe("applySsrOutcome", () => {
 
     expect(headers.get("retry-after")).toBe(expected)
   })
+
+  // Markets share one origin and one set of public paths; only Host selects the
+  // market. A cache keyed on the URL alone would serve one market's page to
+  // another, so every response that reaches a cache must vary on Host.
+  it.each([
+    [{ kind: "found", value: { entityId: "prod_123" } }],
+    [{ kind: "redirect", destination: "/x", statusCode: 308 }],
+    [{ kind: "not-found" }],
+    [{ kind: "bad-request" }],
+    [{ kind: "gone" }],
+    [{ kind: "unavailable" }],
+  ] as const)("keys the %o response on Host for any shared cache", (outcome) => {
+    const { headers, response } = createResponse()
+
+    applySsrOutcome(response, outcome)
+
+    expect(headers.get("vary")).toBe("Host")
+    expect(headers.get("cache-control")).toBe(
+      "private, no-store, max-age=0, must-revalidate"
+    )
+  })
 })
