@@ -200,7 +200,11 @@ const dataTableVariants = tv({
     ],
     filterControl: ["flex flex-wrap items-center gap-100"],
     editorControl: ["flex flex-col gap-50"],
-    editorError: ["text-danger text-table-sm"],
+    // `-fg`, not the bare semantic: `--color-danger` is the fill/surface red,
+    // while AGENTS.md pins status *text* to `--color-<semantic>-fg`, which is
+    // the contrast-checked foreground. The bare token rendered the validation
+    // message at surface red on the table background.
+    editorError: ["text-danger-fg text-table-sm"],
     actionsCell: ["flex items-center justify-end gap-100"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
@@ -1777,6 +1781,29 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     ]
   )
 
+  /*
+   * Built-in columns are re-inserted at the front of a supplied
+   * `columnOrder`.
+   *
+   * `onColumnReorder` reports its `order` over the consumer's own columns
+   * (the injected `__drag`/`__select` ids stripped), which is what makes the
+   * indices usable — but TanStack appends any column *missing* from
+   * `columnOrder` to the end. So feeding that order straight back, or simply
+   * authoring `columnOrder` from your own ids, moved the checkbox and drag
+   * handle from the leading edge to the trailing edge. Verified against a
+   * real table: `columnOrder: ["age","name"]` rendered
+   * `age, name, __select`.
+   */
+  const effectiveColumnOrder = useMemo(() => {
+    if (columnOrder.length === 0) {
+      return columnOrder
+    }
+    const builtIns = [DRAG_COLUMN_ID, SELECTION_COLUMN_ID].filter(
+      (id) => !columnOrder.includes(id)
+    )
+    return builtIns.length > 0 ? [...builtIns, ...columnOrder] : columnOrder
+  }, [columnOrder])
+
   const table = useTable({
     features: dataTableFeatures,
     data,
@@ -1788,7 +1815,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       globalFilter,
       rowSelection,
       columnVisibility,
-      columnOrder,
+      columnOrder: effectiveColumnOrder,
       columnPinning,
       expanded,
       pagination,
@@ -1936,7 +1963,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     if (!stickyHeader) {
       return
     }
-    const nodes = headerRowRefs.current.filter((n) => n !== null)
+    // `!= null`, not `!== null`: this array is written by index, so an
+    // unwritten slot is `undefined` — which passes a `!== null` filter and
+    // then throws on `getBoundingClientRect`, taking the layout effect (and
+    // the render) down with it.
+    const nodes = headerRowRefs.current.filter((n) => n != null)
     if (nodes.length === 0) {
       return
     }
@@ -2256,6 +2287,13 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return
     }
     const onWindowScroll = () => {
+      // Same end-of-data guard as the scroll handler and both re-arm effects.
+      // `checkReachEnd`'s latch clears the moment the user scrolls up past the
+      // threshold, so without this an exhausted list re-issued the identical
+      // request every time they scrolled back down.
+      if (dataLengthRef.current === lastReachEndCountRef.current) {
+        return
+      }
       const distance =
         document.documentElement.scrollHeight -
         window.scrollY -
@@ -2862,7 +2900,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       startEdit: () => startEdit(row),
       commitEdit,
       cancelEdit,
-      disabled: isEditing && editingRowId !== row.id,
+      // `locked`, matching the declarative `rowActions` path: with
+      // `lockInteractionsWhileEditing={false}` the caller has opted out of
+      // edit-time locking, so a consumer's own actions must stay live too.
+      // Keyed on `isEditing` these two disagreed, and every other row's
+      // custom actions rendered disabled despite the opt-out.
+      disabled: locked && editingRowId !== row.id,
     })
     return custom === undefined ? defaultRowActions(row) : custom
   }
