@@ -12,6 +12,8 @@ const noStore = (response: Parameters<GetServerSideProps>[0]["res"]) => {
   response.setHeader("Cache-Control", "private, no-store, max-age=0")
   response.setHeader("Pragma", "no-cache")
   response.setHeader("X-Robots-Tag", "noindex, nofollow")
+  // Markets share these paths and differ only by Host; keep any cache keyed on it.
+  response.setHeader("Vary", "Host")
 }
 
 const unavailable = (response: Parameters<GetServerSideProps>[0]["res"]) => {
