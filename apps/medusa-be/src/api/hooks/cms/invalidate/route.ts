@@ -55,7 +55,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   } catch (error) {
     const normalizedError = normalizeError(error)
     logger.error(
-      `CMS cache invalidation failed (collection="${body.collection}", slug="${body.doc?.slug ?? "n/a"}", locale="${body.doc?.locale ?? "n/a"}"): ${normalizedError.message}`,
+      `CMS cache invalidation failed (collection="${body.collection}", slug="${body.doc?.slug ?? "n/a"}", locale="${body.doc?.locale ?? "n/a"}")`,
       normalizedError
     )
     return res.status(500).json({
