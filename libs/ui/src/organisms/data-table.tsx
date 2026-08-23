@@ -832,7 +832,12 @@ function pinClass<T extends RowData>(
     return
   }
   return [
-    kind === "header" ? "bg-table-header-bg" : "bg-table-bg",
+    // Body cells inherit the row's own background rather than stamping the
+    // table surface on top of it: row colour (striped / selected / hover)
+    // lives on the `<tr>`, and an opaque `<td>` background hid all three in
+    // every frozen column. `inherit` is still fully opaque — the row now
+    // carries a concrete base — so scrolled content cannot show through.
+    kind === "header" ? "bg-table-header-bg" : "bg-inherit",
     isLastStartPinned(column)
       ? "border-e-(length:--border-table-width) border-table-border"
       : "",
@@ -1143,6 +1148,13 @@ function rowDragClass(
   return [
     "group/row",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-primary",
+    /* A concrete base surface on the row, so pinned and sticky-actions cells
+     * can take `bg-inherit` and pick up whatever colour the row actually is
+     * — striped, selected or hovered — instead of hard-coding an opaque
+     * surface that paints over all three. Listed first: the striped classes
+     * below must win the tailwind-merge conflict, and the `data-selected`
+     * and `hover` rules outrank a bare class on specificity anyway. */
+    "bg-table-bg",
     // `Table.Row`'s own row-divider border and the zebra background are two
     // ways of doing the same job — separating one row from the next — and
     // showing both at once double-marks every boundary. `border-b-0` wins the
@@ -1473,6 +1485,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   // and the following effect run happily issued one redundant duplicate
   // request before the count was finally stored.
   const lastReachEndCountRef = useRef(-1)
+  // Last over-cap selection reported via `onSelectionLimitReached`, so the
+  // shrink effect below reports each distinct one once.
+  const reportedSelectionLimitRef = useRef<string | null>(null)
   // Current row count, readable from the scroll listeners without putting
   // `data.length` in their dependency arrays (which would re-subscribe the
   // window listener on every append).
@@ -1583,6 +1598,16 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     if (selectedIds.length <= maxSelectedRows) {
       return
     }
+    // In controlled mode `useControllable` does not hold state of its own, so
+    // if the parent ignores the trimmed selection this effect keeps seeing an
+    // over-cap value. Without this guard a parent that also rebuilds
+    // `rowSelection` each render would get `onSelectionLimitReached` fired on
+    // every render instead of once per distinct over-cap selection.
+    const signature = `${maxSelectedRows}:${selectedIds.join(",")}`
+    if (reportedSelectionLimitRef.current === signature) {
+      return
+    }
+    reportedSelectionLimitRef.current = signature
     const kept = selectedIds.slice(0, maxSelectedRows)
     setRowSelectionState(Object.fromEntries(kept.map((id) => [id, true])))
     onSelectionLimitReached?.({
@@ -1954,11 +1979,21 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   // fresh array every render, which silently defeated the `useMemo` on
   // `reorderableLeafIds` below — the identity `SortableContext` reads as
   // "the list changed".
+  // `table` is deliberately NOT a dependency: `useTable` returns
+  // `useMemo(() => ({...table, options, state}), [table, tableOptions, state])`
+  // and `tableOptions` is the object literal built above — a fresh identity
+  // every render (the same reason `onReady` fires mount-only). Including it
+  // made this memo recompute every render, which is exactly the churn it
+  // exists to prevent. `headerGroups` is memoized by TanStack on
+  // columns/order/grouping/pinning/visibility, and the fallback below reads
+  // the same underlying state, so keying on it alone is both stable and
+  // correct.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above — `table`'s identity churns every render by design
   const leafColumns = useMemo(
     () =>
       headerGroups.at(-1)?.headers.map((h) => h.column as Column<T, unknown>) ??
       table.getVisibleLeafColumns(),
-    [headerGroups, table]
+    [headerGroups]
   )
   const columnCount = leafColumns.length
 
@@ -2192,6 +2227,14 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return
     }
     const el = event.currentTarget
+    // The container can be bounded and still not scroll vertically, when the
+    // rows do not fill `maxHeight`. `distance` is then permanently 0, so a
+    // *horizontal* scroll on a wide table reads as "at the bottom" and
+    // refetches — the same trap as the unbounded case above. The re-arm
+    // effect already guards on this; mirror it here.
+    if (el.scrollHeight <= el.clientHeight) {
+      return
+    }
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight
     checkReachEnd(distance, reachEndThreshold, reachedEndRef, fireReachEnd)
   }
@@ -2667,7 +2710,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   const renderActionsCell = (row: Row<T>) => (
     <Table.Cell
-      className={stickyActions ? "sticky end-0 bg-table-bg" : undefined}
+      // `bg-inherit`, not the flat table surface: same reason as pinned body
+      // cells — the row's striped/selected/hover colour must show through the
+      // frozen actions column too.
+      className={stickyActions ? "sticky end-0 bg-inherit" : undefined}
       numeric
       style={
         // Pinned body cells carry `pinnedCell` from `getPinningStyles`;
