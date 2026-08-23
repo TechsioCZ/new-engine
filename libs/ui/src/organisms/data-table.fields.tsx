@@ -935,19 +935,36 @@ const time = (v: unknown) => {
   return Number.isNaN(t) ? undefined : t
 }
 
+/**
+ * An inclusive upper bound as a timestamp.
+ *
+ * A date-*only* bound ("2024-06-01") means the whole of that day, so it runs
+ * to 23:59:59.999. A bound that carries a time ("2024-06-01T20:00") means
+ * that instant and must not be widened — extending it unconditionally turned
+ * a `datetime` filter into a rolling ~24-hour window.
+ */
+const endOfBound = (v: unknown): number | undefined => {
+  const t = time(v)
+  if (t === undefined) {
+    return
+  }
+  return DATE_ONLY_RE.test(String(v)) ? t + END_OF_DAY_MS : t
+}
+
 /** True when the cell's own {from,to} interval overlaps the filter interval. */
 function matchRangeOverlap(
   cell: { from?: unknown; to?: unknown },
   f: DateRangeFilterValue
 ) {
   const cellFrom = time(cell.from) ?? Number.NEGATIVE_INFINITY
-  const cellTo =
-    (time(cell.to) ?? Number.POSITIVE_INFINITY) + (cell.to ? END_OF_DAY_MS : 0)
+  const cellTo = cell.to
+    ? (endOfBound(cell.to) ?? Number.POSITIVE_INFINITY)
+    : Number.POSITIVE_INFINITY
   const filterFrom = f.from
     ? (time(f.from) ?? Number.NEGATIVE_INFINITY)
     : Number.NEGATIVE_INFINITY
   const filterTo = f.to
-    ? (time(f.to) ?? Number.POSITIVE_INFINITY) + END_OF_DAY_MS
+    ? (endOfBound(f.to) ?? Number.POSITIVE_INFINITY)
     : Number.POSITIVE_INFINITY
   return cellFrom <= filterTo && cellTo >= filterFrom
 }
@@ -985,8 +1002,7 @@ function withinDateBounds(t: number, f: DateRangeFilterValue): boolean {
   if (from !== undefined && t < from) {
     return false
   }
-  const toStart = f.to ? time(f.to) : undefined
-  const to = toStart === undefined ? undefined : toStart + END_OF_DAY_MS
+  const to = f.to ? endOfBound(f.to) : undefined
   return !(to !== undefined && t > to)
 }
 

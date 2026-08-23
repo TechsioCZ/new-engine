@@ -1654,6 +1654,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   /* Inject built-in leading columns (drag handle, selection, expander). */
   const editTriggerIdRef = useRef<string | null>(null)
+  // Row the current `draft` was seeded from, so a controlled `editingRowId`
+  // that changes without going through `startEdit` can be detected.
+  const draftRowIdRef = useRef<string | null>(null)
   const [editingRowId, setEditingRowId] = useControllable<string | null>(
     editingRowIdProp,
     null,
@@ -1845,11 +1848,29 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   // Draft state is cleared when the edit actually ends, so a controlled
   // `editingRowId` held open across an async save keeps its values.
+  //
+  // A non-null id the draft was not seeded for means the edit was opened
+  // *without* going through `startEdit` — a parent setting `editingRowId`
+  // directly, or switching row A → B without passing through `null`. Both
+  // used to leave the draft as-is: the first opened every editor empty and
+  // committed `{}` over the row's real values, the second showed row A's
+  // values under row B and wrote A's data to B's id. Seed from the row the
+  // id actually names.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: seeds on id changes only; `table` is rebuilt every render by design
   useEffect(() => {
     if (!editingRowId) {
+      draftRowIdRef.current = null
       setDraft({})
       setEditErrors({})
       setDirty(false)
+      return
+    }
+    if (draftRowIdRef.current === editingRowId) {
+      return
+    }
+    const row = table.getCoreRowModel().rowsById[editingRowId]
+    if (row) {
+      seedDraft(row)
     }
   }, [editingRowId])
 
@@ -1894,20 +1915,30 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     return () => observer.disconnect()
   }, [stickyHeader, headerGroupCount])
 
-  const startEdit = (row: Row<T>) => {
-    if (isEditing || (canEditRow && !canEditRow(row))) {
-      return
-    }
-    editTriggerIdRef.current = `${instanceId}-edit-${row.id}`
+  /**
+   * Load a row's editable values into the draft. The single seeding path, so
+   * the pencil button and a controlled `editingRowId` cannot disagree about
+   * what "start editing this row" means.
+   */
+  const seedDraft = (row: Row<T>) => {
     const initial: Record<string, unknown> = {}
     for (const column of table.getAllLeafColumns()) {
       if (column.columnDef.meta?.editable) {
         initial[column.id] = row.getValue(column.id)
       }
     }
+    draftRowIdRef.current = row.id
     setDraft(initial)
     setEditErrors({})
     setDirty(false)
+  }
+
+  const startEdit = (row: Row<T>) => {
+    if (isEditing || (canEditRow && !canEditRow(row))) {
+      return
+    }
+    editTriggerIdRef.current = `${instanceId}-edit-${row.id}`
+    seedDraft(row)
     setEditingRowId(row.id)
     onEditStart?.({ rowId: row.id, row: row.original })
   }
@@ -1942,14 +1973,27 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       cancelEdit()
       return
     }
-    // Visible columns only. Validating hidden ones too meant a `required`
-    // column the user had hidden (or that was never visible) could fail
-    // validation for a field with no rendered editor: the error was stored
-    // where nothing displays it and `commitEdit` returned early, so Save
-    // appeared to do nothing at all with no way to recover but cancelling.
-    // A field the user cannot see is a field they cannot fix.
+    // Only columns that actually render an editor for the user.
+    //
+    // Two ways a `meta.editable` column ends up without one: it is hidden via
+    // `columnVisibility`, or it is `type: "custom"` with no `renderEditor`
+    // (the default custom editor renders nothing, so the cell stays
+    // read-only). Validating either produced an error for a field with no
+    // input on screen — stored where nothing displays it, while `commitEdit`
+    // returned early — so Save silently did nothing with no way out but
+    // cancelling. A field the user cannot see is a field they cannot fix.
+    const editableColumns = table.getVisibleLeafColumns().filter((column) => {
+      const meta = column.columnDef.meta
+      if (!meta?.editable) {
+        return false
+      }
+      if (resolveColumnType(meta) !== "custom") {
+        return true
+      }
+      return Boolean(meta.renderEditor || editorRenderers?.custom)
+    })
     const errors = validateDraft(
-      table.getVisibleLeafColumns(),
+      editableColumns,
       draft,
       translations.requiredLabel
     )
