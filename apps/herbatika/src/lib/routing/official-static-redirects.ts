@@ -47,8 +47,10 @@ export const OFFICIAL_STATIC_PATH_REDIRECTS: Readonly<
     faq: "caste-otazky",
     // Official https://www.herbatica.cz/obaly-v-herbatica/
     "obaly-v-herbatica": "obaly-v-herbatica",
-    // Official https://www.herbatica.cz/poou/
-    poou: "prohlaseni-o-ochrane-osobnich-udaju",
+    // Official https://www.herbatica.cz/poou/ ("Podmínky ochrany osobních
+    // údajů" — the long GDPR processing-conditions document, distinct from
+    // `prohlaseni-o-ochrane-osobnich-udaju` below).
+    poou: "podminky-ochrany-osobnich-udaju",
     // Official https://www.herbatica.cz/prohlaseni-o-ochrane-osobnich-udaju/
     "prohlaseni-o-ochrane-osobnich-udaju":
       "prohlaseni-o-ochrane-osobnich-udaju",
@@ -57,10 +59,11 @@ export const OFFICIAL_STATIC_PATH_REDIRECTS: Readonly<
   }),
   hu: Object.freeze({
     // Official https://www.herbatica.hu/a-szemelyes-adatok-vedelmenek-feltetelei/
-    // Local page content is titled the same as this official page, and
-    // covers the same personal-data-protection subject as
-    // `adatvedelmi-nyilatkozat` below.
-    "a-szemelyes-adatok-vedelmenek-feltetelei": "adatvedelmi-nyilatkozat",
+    // ("A személyes adatok védelmének feltételei" — the long GDPR
+    // processing-conditions document, distinct from
+    // `adatvedelmi-nyilatkozat` below).
+    "a-szemelyes-adatok-vedelmenek-feltetelei":
+      "a-szemelyes-adatok-vedelmenek-feltetelei",
     // Official https://www.herbatica.hu/adatvedelmi-nyilatkozat/
     "adatvedelmi-nyilatkozat": "adatvedelmi-nyilatkozat",
     // Official https://www.herbatica.hu/csapatunkrol/
