@@ -1466,9 +1466,23 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const instanceId = idProp ?? generatedId
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const reachedEndRef = useRef(false)
-  // Row count at the last `onReachEnd` fired by the re-arm effect, so a
-  // request that brings back nothing doesn't immediately ask again.
+  // Row count at the last `onReachEnd`, so a request that brings back
+  // nothing doesn't immediately ask again. Written by every path that fires
+  // — the scroll handlers as well as the re-arm effects: when only the
+  // effects recorded it, a scroll-driven fire left this at its initial value
+  // and the following effect run happily issued one redundant duplicate
+  // request before the count was finally stored.
   const lastReachEndCountRef = useRef(-1)
+  // Current row count, readable from the scroll listeners without putting
+  // `data.length` in their dependency arrays (which would re-subscribe the
+  // window listener on every append).
+  const dataLengthRef = useRef(data.length)
+  dataLengthRef.current = data.length
+  /** `onReachEnd`, recording the row count it fired at. */
+  const fireReachEnd = () => {
+    lastReachEndCountRef.current = dataLengthRef.current
+    onReachEnd?.()
+  }
   const headerRowRefs = useRef<(HTMLTableRowElement | null)[]>([])
   /**
    * Cumulative sticky offset for each header label row, plus the total in the
@@ -1935,9 +1949,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    * exactly what the header renders.
    */
   const headerGroups = table.getHeaderGroups()
-  const leafColumns =
-    headerGroups.at(-1)?.headers.map((h) => h.column as Column<T, unknown>) ??
-    table.getVisibleLeafColumns()
+  // Memoized on `headerGroups`, which TanStack itself memoizes on columns /
+  // order / grouping / pinning / visibility. Mapping it inline produced a
+  // fresh array every render, which silently defeated the `useMemo` on
+  // `reorderableLeafIds` below — the identity `SortableContext` reads as
+  // "the list changed".
+  const leafColumns = useMemo(
+    () =>
+      headerGroups.at(-1)?.headers.map((h) => h.column as Column<T, unknown>) ??
+      table.getVisibleLeafColumns(),
+    [headerGroups, table]
+  )
   const columnCount = leafColumns.length
 
   /* Virtualization (windowing that preserves native table column alignment).
@@ -2079,6 +2101,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   // Without `maxHeight` the table does not scroll itself, so infinite scroll has
   // to observe the page instead of the container.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `fireReachEnd` is rebuilt every render but only closes over refs plus `onReachEnd`, which is already a dep — listing it would re-subscribe the window listener on every render
   useEffect(() => {
     if (!onReachEnd || maxHeight) {
       return
@@ -2088,7 +2111,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         document.documentElement.scrollHeight -
         window.scrollY -
         window.innerHeight
-      checkReachEnd(distance, reachEndThreshold, reachedEndRef, onReachEnd)
+      checkReachEnd(distance, reachEndThreshold, reachedEndRef, fireReachEnd)
     }
     window.addEventListener("scroll", onWindowScroll, { passive: true })
     return () => window.removeEventListener("scroll", onWindowScroll)
@@ -2120,8 +2143,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       window.innerHeight
     reachedEndRef.current = distance <= reachEndThreshold
     if (reachedEndRef.current) {
-      lastReachEndCountRef.current = data.length
-      onReachEnd()
+      fireReachEnd()
     }
   }, [data.length, loadingMore, reachEndThreshold, maxHeight])
 
@@ -2156,8 +2178,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight
     reachedEndRef.current = distance <= reachEndThreshold
     if (reachedEndRef.current && el.scrollHeight > el.clientHeight) {
-      lastReachEndCountRef.current = data.length
-      onReachEnd()
+      fireReachEnd()
     }
   }, [data.length, loadingMore, reachEndThreshold])
 
@@ -2172,7 +2193,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
     const el = event.currentTarget
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight
-    checkReachEnd(distance, reachEndThreshold, reachedEndRef, onReachEnd)
+    checkReachEnd(distance, reachEndThreshold, reachedEndRef, fireReachEnd)
   }
 
   const handleColumnDragEnd = (event: DragEndEvent) => {
@@ -2506,11 +2527,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               style={{
                 ...OPAQUE_HEADER_BG,
                 ...(stickyHeader
-                  ? {
-                      position: "sticky",
-                      top: headerHeight,
-                      zIndex: DATA_TABLE_Z.stickyActionsHeaderCell,
-                    }
+                  ? { position: "sticky", top: headerHeight }
+                  : undefined),
+                // Gated on `stickyActions` (which is what applies the
+                // `sticky end-0` class), not on `stickyHeader`. Pinned filter
+                // cells take `zIndex: pinnedHeaderCell` from
+                // `getPinningStyles` unconditionally, so when the header was
+                // not sticky this cell had no level at all and an end-pinned
+                // column's filter control painted straight over it — the
+                // inversion the header and body actions cells both avoid.
+                ...(stickyActions
+                  ? { zIndex: DATA_TABLE_Z.stickyActionsHeaderCell }
                   : undefined),
               }}
             />
@@ -3348,7 +3375,24 @@ DataTable.Pagination = function DataTablePagination() {
     paginationProps,
   } = useDataTableContext()
   const state = table.state.pagination
-  const total = table.getRowCount()
+  /*
+   * `Pagination` builds its page list from `count`/`pageSize` and has no
+   * `pageCount` prop, while `getRowCount()` is
+   * `options.rowCount ?? prePaginatedRowModel.rows.length`. So a consumer
+   * following the documented server-side contract with `manualPagination` +
+   * `pageCount` (but no `rowCount`) handed us a single page of rows, the
+   * pager rendered exactly one page, and every other page was unreachable.
+   *
+   * Fall back to the span `pageCount` implies. Exact whenever `rowCount` is
+   * given; otherwise an upper bound on the last page, which is the most
+   * `pageCount` alone can express.
+   */
+  const declaredPageCount = table.options.pageCount
+  const total =
+    table.options.rowCount ??
+    (declaredPageCount != null && declaredPageCount >= 0
+      ? declaredPageCount * state.pageSize
+      : table.getRowCount())
   const start = total === 0 ? 0 : state.pageIndex * state.pageSize + 1
   const end = Math.min((state.pageIndex + 1) * state.pageSize, total)
   const styles = dataTableVariants()

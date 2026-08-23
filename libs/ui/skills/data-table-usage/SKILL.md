@@ -271,7 +271,7 @@ text; `translations.pageSizeLabel` is the page-size select's accessible name
 - `hideHeader` — render without the column header row(s).
 - `onReachEnd` + `maxHeight` — infinite scroll; called once when scrolled near the bottom.
 
-Server-driven data: set `manualSorting` / `manualFiltering` / `manualPagination` and supply `rowCount` (or `pageCount`) so pagination totals stay correct.
+Server-driven data: set `manualSorting` / `manualFiltering` / `manualPagination` and supply `rowCount` (or `pageCount`) so pagination totals stay correct. Prefer `rowCount` — it makes the "start–end of total" label exact. With only `pageCount`, the total is derived as `pageCount * pageSize`, so every page is reachable but the figure is an upper bound on the last page.
 
 ## Callbacks (for interaction tests + app wiring)
 
