@@ -114,14 +114,48 @@ describe("official content-section redirects", () => {
     )
   })
 
-  it("does not redirect a deliberately-unimported slovnik-pojmov slug (slug collision)", () => {
-    // "zelezo" collides with a pre-existing, different local article and was
-    // intentionally excluded from the import — must fall through, never
-    // redirect to the wrong article.
+  it("redirects a suffixed slovnik-pojmov collision slug to its -pojem article", () => {
+    // "zelezo" collided with a pre-existing, different local article, so it
+    // was imported as a new article under "zelezo-pojem" instead of being
+    // dropped — the official term must still resolve, to the right article.
     expect(
       resolveOfficialContentSectionRedirect("sk", ["slovnik-pojmov", "zelezo"])
+    ).toBe("/blog/zelezo-pojem")
+    expect(resolve("/slovnik-pojmov/zelezo")).toEqual({
+      kind: "redirect",
+      location: "/blog/zelezo-pojem",
+      status: 308,
+    })
+  })
+
+  it("redirects another suffixed slovnik-pojmov collision slug to its -pojem article", () => {
+    expect(
+      resolveOfficialContentSectionRedirect("sk", ["slovnik-pojmov", "kolagen"])
+    ).toBe("/blog/kolagen-pojem")
+  })
+
+  it("redirects the karotenoidy slovnik-pojmov term as a plain identity match", () => {
+    // Unlike the 14 -pojem exceptions, karotenoidy needed no re-import: the
+    // official term already exactly matches a pre-existing local article
+    // (same title, same slug).
+    expect(
+      resolveOfficialContentSectionRedirect("sk", [
+        "slovnik-pojmov",
+        "karotenoidy",
+      ])
+    ).toBe("/blog/karotenoidy")
+  })
+
+  it("does not redirect a genuinely unlisted slovnik-pojmov slug", () => {
+    expect(
+      resolveOfficialContentSectionRedirect("sk", [
+        "slovnik-pojmov",
+        "totally-unknown-glossary-slug-xyz",
+      ])
     ).toBeNull()
-    expect(resolve("/slovnik-pojmov/zelezo")).not.toMatchObject({
+    expect(
+      resolve("/slovnik-pojmov/totally-unknown-glossary-slug-xyz")
+    ).not.toMatchObject({
       kind: "redirect",
     })
   })
@@ -210,10 +244,10 @@ describe("official content-section redirects", () => {
     }
   })
 
-  it("has the exact expected table sizes: sk magazin 75, cz magazin 64, sk slovnik-pojmov 119", () => {
+  it("has the exact expected table sizes: sk magazin 75, cz magazin 64, sk slovnik-pojmov 120 identity + 14 suffixed", () => {
     expect(OFFICIAL_CONTENT_SECTIONS.sk.magazin?.size).toBe(75)
     expect(OFFICIAL_CONTENT_SECTIONS.cz.magazin?.size).toBe(64)
-    expect(OFFICIAL_CONTENT_SECTIONS.sk["slovnik-pojmov"]?.size).toBe(119)
+    expect(OFFICIAL_CONTENT_SECTIONS.sk["slovnik-pojmov"]?.size).toBe(120)
   })
 
   it("declares no sections at all for hu and ro", () => {
@@ -237,8 +271,8 @@ describe("official content-section redirects", () => {
     }
   })
 
-  it("deliberately excludes all 15 known slug-collision candidates from slovnik-pojmov", () => {
-    const excluded = [
+  it("redirects all 14 slug-collision candidates to their -pojem article, kept out of the identity set", () => {
+    const suffixed = [
       "brusnica-obycajna",
       "cakankova-kava",
       "elektrolyty",
@@ -253,15 +287,20 @@ describe("official content-section redirects", () => {
       "taurin",
       "vitamin-a",
       "zelezo",
-      "karotenoidy",
     ]
-    for (const slug of excluded) {
+    for (const slug of suffixed) {
       expect(OFFICIAL_CONTENT_SECTIONS.sk["slovnik-pojmov"]?.has(slug)).toBe(
         false
       )
       expect(
         resolveOfficialContentSectionRedirect("sk", ["slovnik-pojmov", slug])
-      ).toBeNull()
+      ).toBe(`/blog/${slug}-pojem`)
     }
+  })
+
+  it("keeps karotenoidy as an identity entry, not a suffixed exception", () => {
+    expect(
+      OFFICIAL_CONTENT_SECTIONS.sk["slovnik-pojmov"]?.has("karotenoidy")
+    ).toBe(true)
   })
 })

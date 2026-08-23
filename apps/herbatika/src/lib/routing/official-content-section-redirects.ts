@@ -9,7 +9,8 @@ import type { Market } from "@/lib/url/types"
  * `typePrefixes.advice` value, currently `blog` for every market):
  *
  *  - herbatica.sk `/magazin/<slug>`         (75 articles)
- *  - herbatica.sk `/slovnik-pojmov/<slug>`  (119 glossary terms)
+ *  - herbatica.sk `/slovnik-pojmov/<slug>`  (134 glossary terms: 120 with an
+ *    identical local slug, 14 that redirect to a `<slug>-pojem` local slug)
  *  - herbatica.cz `/magazin/<slug>`         (64 articles)
  *
  * Authorized by project-owner decision (2026-08-23): "model magazin +
@@ -29,26 +30,32 @@ import type { Market } from "@/lib/url/types"
  * prefix (`magazin` / `slovnik-pojmov` -> the market's blog prefix).
  *
  * CRITICAL: this is an explicit slug allow-list, not a wildcard redirect of
- * the whole section prefix. 15 official `slovnik-pojmov` slugs were
- * deliberately NOT imported because they collide with pre-existing, DIFFERENT
- * local articles that already own those same slugs under `/blog/<slug>`:
- * brusnica-obycajna, cakankova-kava, elektrolyty, ginkgo-biloba,
- * kapucinka-vacsia, koenzym-q10, kolagen, kreatin, kyselina-listova,
- * praslicka-rolna, psyllium, taurin, vitamin-a, zelezo. (A 15th candidate,
- * karotenoidy, was checked against the verified import map and is NOT
- * present there either, so it is excluded too — see
- * `redirect-map.json` verification in the authorizing task.) Redirecting
- * any of these would silently send a visitor looking for the official
- * glossary entry to an unrelated local article. Any slug not in the table
- * below — including all 15 of the above — MUST fall through to normal
- * route resolution (which currently 404s), never redirect.
+ * the whole section prefix. 14 official `slovnik-pojmov` slugs originally
+ * collided with pre-existing, DIFFERENT local articles that already owned
+ * those same slugs under `/blog/<slug>`: brusnica-obycajna, cakankova-kava,
+ * elektrolyty, ginkgo-biloba, kapucinka-vacsia, koenzym-q10, kolagen,
+ * kreatin, kyselina-listova, praslicka-rolna, psyllium, taurin, vitamin-a,
+ * zelezo. Owner decision (2026-08-23, "Create slovník with -pojem suffix")
+ * authorized importing these 14 terms as NEW Payload articles under a
+ * suffixed local slug (`<slug>-pojem`) instead of skipping them, so the
+ * official term still resolves to real, verified glossary content rather
+ * than 404ing or overwriting the unrelated pre-existing article. These 14
+ * are NOT in `SK_SLOVNIK_POJMOV_SLUGS` (their local slug is not identical to
+ * the official slug); they live in `SK_SLOVNIK_POJMOV_SUFFIXED_SLUGS`
+ * instead, an official-slug -> local-slug exception map consulted before the
+ * identity set. A 15th candidate, karotenoidy, needed no import: its
+ * official term already exactly matches a pre-existing local article (same
+ * title, same slug), so it is a normal identity entry in
+ * `SK_SLOVNIK_POJMOV_SLUGS`. Any slug in neither structure MUST fall through
+ * to normal route resolution (which currently 404s), never redirect.
  *
  * Slug lists were generated from a verified 258-entry import map
  * (`{market, officialPath, localPath}`) where every `localPath` was
  * programmatically confirmed to equal `/blog/<same-slug-as-officialPath>`
- * before this table was written. Operators extend this table only after the
- * same verification (official 200, local Payload article 200, identical
- * slug) for newly imported articles/terms.
+ * (or, for the 14 suffixed exceptions, `/blog/<slug>-pojem`) before this
+ * table was written. Operators extend this table only after the same
+ * verification (official 200, local Payload article 200, matching slug) for
+ * newly imported articles/terms.
  */
 
 const SK_MAGAZIN_SLUGS: ReadonlySet<string> = new Set([
@@ -246,6 +253,7 @@ const SK_SLOVNIK_POJMOV_SLUGS: ReadonlySet<string> = new Set([
   "ivan-caj",
   "jod",
   "kaktusova-voda",
+  "karotenoidy",
   "katabolizmus",
   "kondicia",
   "kozie-mlieko",
@@ -318,6 +326,31 @@ const SK_SLOVNIK_POJMOV_SLUGS: ReadonlySet<string> = new Set([
   "zihlava-dvojdoma",
 ])
 
+/**
+ * Official `slovnik-pojmov` slugs whose local blog article is deliberately
+ * NOT the same slug: each collided with a pre-existing, different article
+ * that already owned the identical slug under `/blog/<slug>`, so the term
+ * was imported as a new article under `<slug>-pojem` instead (see CRITICAL
+ * note above). Consulted before `SK_SLOVNIK_POJMOV_SLUGS`; every value here
+ * was verified to serve 200 at `/blog/<value>` before being added.
+ */
+const SK_SLOVNIK_POJMOV_SUFFIXED_SLUGS: ReadonlyMap<string, string> = new Map([
+  ["brusnica-obycajna", "brusnica-obycajna-pojem"],
+  ["cakankova-kava", "cakankova-kava-pojem"],
+  ["elektrolyty", "elektrolyty-pojem"],
+  ["ginkgo-biloba", "ginkgo-biloba-pojem"],
+  ["kapucinka-vacsia", "kapucinka-vacsia-pojem"],
+  ["koenzym-q10", "koenzym-q10-pojem"],
+  ["kolagen", "kolagen-pojem"],
+  ["kreatin", "kreatin-pojem"],
+  ["kyselina-listova", "kyselina-listova-pojem"],
+  ["praslicka-rolna", "praslicka-rolna-pojem"],
+  ["psyllium", "psyllium-pojem"],
+  ["taurin", "taurin-pojem"],
+  ["vitamin-a", "vitamin-a-pojem"],
+  ["zelezo", "zelezo-pojem"],
+])
+
 type ContentSectionKey = "magazin" | "slovnik-pojmov"
 
 /**
@@ -341,6 +374,25 @@ export const OFFICIAL_CONTENT_SECTIONS: Readonly<
   sk: Object.freeze({
     magazin: SK_MAGAZIN_SLUGS,
     "slovnik-pojmov": SK_SLOVNIK_POJMOV_SLUGS,
+  }),
+})
+
+/**
+ * Per market/section exception maps of official slug -> local slug, for
+ * slugs whose local blog article is not identically slugged. Consulted
+ * before `OFFICIAL_CONTENT_SECTIONS`'s identity sets. Only
+ * `sk`/`slovnik-pojmov` has entries today (the 14 `-pojem` collisions).
+ */
+const OFFICIAL_CONTENT_SECTION_SLUG_EXCEPTIONS: Readonly<
+  Partial<
+    Record<
+      Market,
+      Readonly<Partial<Record<ContentSectionKey, ReadonlyMap<string, string>>>>
+    >
+  >
+> = Object.freeze({
+  sk: Object.freeze({
+    "slovnik-pojmov": SK_SLOVNIK_POJMOV_SUFFIXED_SLUGS,
   }),
 })
 
@@ -380,5 +432,10 @@ export const resolveOfficialContentSectionRedirect = (
     return `/${blogPrefix}`
   }
   const slug = (segments[1] ?? "").toLowerCase()
+  const exceptionSlug =
+    OFFICIAL_CONTENT_SECTION_SLUG_EXCEPTIONS[market]?.[sectionPrefix]?.get(slug)
+  if (exceptionSlug) {
+    return `/${blogPrefix}/${exceptionSlug}`
+  }
   return slugs.has(slug) ? `/${blogPrefix}/${slug}` : null
 }
