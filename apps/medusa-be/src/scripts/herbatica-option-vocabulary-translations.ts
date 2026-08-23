@@ -41,16 +41,23 @@ export const OPTION_VOCABULARY_LOCALES = [
 export type OptionVocabularyLocale = (typeof OPTION_VOCABULARY_LOCALES)[number]
 
 /**
- * sk-SK is the source language of the catalog: Medusa falls back to the stored
- * value when no row exists, so writing sk-SK rows would be a no-op at best and
- * an unreviewed rewrite of the Slovak storefront at worst. Only the derived
- * markets get rows.
+ * sk-SK is the source language of the product catalog: Medusa falls back to the
+ * stored value when no row exists, so a sk-SK variant row would be a no-op at
+ * best and an unreviewed rewrite of the Slovak storefront at worst.
  */
-export const OPTION_VOCABULARY_TARGET_LOCALES = [
+export const VARIANT_TARGET_LOCALES = [
   "cs-CZ",
   "hu-HU",
   "ro-RO",
 ] as const satisfies readonly OptionVocabularyLocale[]
+
+/**
+ * Shipping options are the exception: their stored names are English Medusa
+ * seed labels ("Standard Shipping"), not Slovak source copy, so the Slovak
+ * checkout needs its own rows just like the derived markets.
+ */
+export const SHIPPING_OPTION_TARGET_LOCALES =
+  OPTION_VOCABULARY_LOCALES satisfies readonly OptionVocabularyLocale[]
 
 const PRODUCT_VARIANT_REFERENCE = "product_variant"
 const SHIPPING_OPTION_REFERENCE = "shipping_option"
@@ -449,6 +456,7 @@ type PlanVocabularyInput = {
   readonly existingRows: readonly ExistingVocabularyRow[]
   readonly reference: string
   readonly rows: readonly TranslatableRow[]
+  readonly targetLocales: readonly OptionVocabularyLocale[]
   readonly translate: (
     source: string,
     locale: OptionVocabularyLocale
@@ -465,15 +473,16 @@ type DesiredTranslation = {
 const collectDesiredTranslations = ({
   availableLocaleCodes,
   rows,
+  targetLocales,
   translate,
 }: Pick<
   PlanVocabularyInput,
-  "availableLocaleCodes" | "rows" | "translate"
+  "availableLocaleCodes" | "rows" | "targetLocales" | "translate"
 >): DesiredTranslation[] => {
   const available = new Set(availableLocaleCodes)
 
   return rows.flatMap((row) =>
-    OPTION_VOCABULARY_TARGET_LOCALES.flatMap((locale) => {
+    targetLocales.flatMap((locale) => {
       if (!available.has(locale)) {
         return []
       }
@@ -498,6 +507,7 @@ export function planVocabularyTranslations({
   existingRows,
   reference,
   rows,
+  targetLocales,
   translate,
   field,
 }: PlanVocabularyInput): VocabularyPlan {
@@ -510,6 +520,7 @@ export function planVocabularyTranslations({
   for (const desired of collectDesiredTranslations({
     availableLocaleCodes,
     rows,
+    targetLocales,
     translate,
   })) {
     const existing = existingByKey.get(
@@ -581,11 +592,11 @@ export default async function herbaticaOptionVocabularyTranslations({
   )
 
   const locales = await translationService.listLocales(
-    { code: [...OPTION_VOCABULARY_TARGET_LOCALES] },
-    { select: ["code"], take: OPTION_VOCABULARY_TARGET_LOCALES.length }
+    { code: [...OPTION_VOCABULARY_LOCALES] },
+    { select: ["code"], take: OPTION_VOCABULARY_LOCALES.length }
   )
   const availableLocaleCodes = locales.map((locale) => locale.code)
-  const missingLocales = OPTION_VOCABULARY_TARGET_LOCALES.filter(
+  const missingLocales = OPTION_VOCABULARY_LOCALES.filter(
     (locale) => !availableLocaleCodes.includes(locale)
   )
   if (missingLocales.length) {
@@ -602,7 +613,7 @@ export default async function herbaticaOptionVocabularyTranslations({
   const translatableVariants = (variants as TranslatableRow[]).filter(
     (variant) =>
       typeof variant.title === "string" &&
-      OPTION_VOCABULARY_TARGET_LOCALES.some(
+      VARIANT_TARGET_LOCALES.some(
         (locale) => translateVariantTitle(variant.title, locale) !== null
       )
   )
@@ -617,7 +628,7 @@ export default async function herbaticaOptionVocabularyTranslations({
   )
     .map((option) => ({ id: option.id, title: option.name }))
     .filter((option) =>
-      OPTION_VOCABULARY_TARGET_LOCALES.some(
+      SHIPPING_OPTION_TARGET_LOCALES.some(
         (locale) => translateShippingOptionName(option.title, locale) !== null
       )
     )
@@ -641,6 +652,7 @@ export default async function herbaticaOptionVocabularyTranslations({
     field: "title",
     reference: PRODUCT_VARIANT_REFERENCE,
     rows: translatableVariants,
+    targetLocales: VARIANT_TARGET_LOCALES,
     translate: translateVariantTitle,
   })
 
@@ -655,6 +667,7 @@ export default async function herbaticaOptionVocabularyTranslations({
     field: "name",
     reference: SHIPPING_OPTION_REFERENCE,
     rows: translatableShippingOptions,
+    targetLocales: SHIPPING_OPTION_TARGET_LOCALES,
     translate: translateShippingOptionName,
   })
 

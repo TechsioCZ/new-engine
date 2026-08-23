@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
   planVocabularyTranslations,
+  SHIPPING_OPTION_TARGET_LOCALES,
   translateShippingOptionName,
   translateVariantTitle,
+  VARIANT_TARGET_LOCALES,
 } from "../../../../src/scripts/herbatica-option-vocabulary-translations"
 
 describe("translateVariantTitle", () => {
@@ -89,6 +91,7 @@ describe("planVocabularyTranslations", () => {
       field: "title",
       reference: "product_variant",
       rows: [{ id: "variant_1", title: "20 tabliet" }],
+      targetLocales: VARIANT_TARGET_LOCALES,
       translate: translateVariantTitle,
     })
 
@@ -126,6 +129,7 @@ describe("planVocabularyTranslations", () => {
       field: "name",
       reference: "shipping_option",
       rows: [{ id: "so_1", title: "Herbatika Express Shipping" }],
+      targetLocales: SHIPPING_OPTION_TARGET_LOCALES,
       translate: translateShippingOptionName,
     })
 
@@ -142,6 +146,7 @@ describe("planVocabularyTranslations", () => {
       field: "title",
       reference: "product_variant",
       rows: [{ id: "variant_1", title: "Čierna" }],
+      targetLocales: VARIANT_TARGET_LOCALES,
       translate: translateVariantTitle,
     })
 
@@ -159,6 +164,7 @@ describe("planVocabularyTranslations", () => {
       field: "name",
       reference: "shipping_option",
       rows: [{ id: "so_1", title: "Herbatika Express Shipping" }],
+      targetLocales: SHIPPING_OPTION_TARGET_LOCALES,
       translate: translateShippingOptionName,
     })
 
@@ -180,27 +186,78 @@ describe("planVocabularyTranslations", () => {
         field: "title",
         reference: "product_variant",
         rows: [{ id: "variant_2", title: "100 ml" }],
+        targetLocales: VARIANT_TARGET_LOCALES,
         translate: translateVariantTitle,
       })
     ).toEqual({ toCreate: [], toUpdate: [] })
   })
 })
 
+const CZ_SK_SHIPPING_OPTIONS = [
+  "Standard Shipping",
+  "Express Shipping",
+  "Kuriér na adresu",
+  "Herbatika Standard Shipping",
+  "Herbatika Express Shipping",
+]
+
 describe("shipping option labels stay distinguishable per market", () => {
-  it.each([
-    "cs-CZ",
-    "hu-HU",
-    "ro-RO",
-  ] as const)("renders no duplicate label across the CZ/SK shipping options in %s", (locale) => {
-    const labels = [
-      "Standard Shipping",
-      "Express Shipping",
-      "Kuriér na adresu",
-      "Herbatika Standard Shipping",
-      "Herbatika Express Shipping",
-    ].map((name) => translateShippingOptionName(name, locale))
+  it.each(
+    SHIPPING_OPTION_TARGET_LOCALES
+  )("renders no duplicate and no English label across the CZ/SK shipping options in %s", (locale) => {
+    const labels = CZ_SK_SHIPPING_OPTIONS.map((name) =>
+      translateShippingOptionName(name, locale)
+    )
 
     expect(labels.every((label) => label !== null)).toBe(true)
+    expect(labels.some((label) => label?.includes("Shipping"))).toBe(false)
     expect(new Set(labels).size).toBe(labels.length)
+  })
+
+  it("localizes the Slovak checkout too, because the stored names are English seed labels", () => {
+    expect(
+      CZ_SK_SHIPPING_OPTIONS.map((name) =>
+        translateShippingOptionName(name, "sk-SK")
+      )
+    ).toEqual([
+      "Štandardná doprava (európsky sklad)",
+      "Expresná doprava (európsky sklad)",
+      "Kuriér na adresu (európsky sklad)",
+      "Kuriér na adresu",
+      "Expresné doručenie",
+    ])
+  })
+
+  it("plans a Slovak row for every shipping option", () => {
+    const plan = planVocabularyTranslations({
+      availableLocaleCodes: [...SHIPPING_OPTION_TARGET_LOCALES],
+      existingRows: [],
+      field: "name",
+      reference: "shipping_option",
+      rows: [{ id: "so_1", title: "Herbatika Standard Shipping" }],
+      targetLocales: SHIPPING_OPTION_TARGET_LOCALES,
+      translate: translateShippingOptionName,
+    })
+
+    expect(plan.toCreate).toContainEqual({
+      locale_code: "sk-SK",
+      reference: "shipping_option",
+      reference_id: "so_1",
+      translations: { name: "Kuriér na adresu" },
+    })
+  })
+
+  it("plans no Slovak row for a product variant", () => {
+    const plan = planVocabularyTranslations({
+      availableLocaleCodes: [...SHIPPING_OPTION_TARGET_LOCALES],
+      existingRows: [],
+      field: "title",
+      reference: "product_variant",
+      rows: [{ id: "variant_1", title: "20 tabliet" }],
+      targetLocales: VARIANT_TARGET_LOCALES,
+      translate: translateVariantTitle,
+    })
+
+    expect(plan.toCreate.some((row) => row.locale_code === "sk-SK")).toBe(false)
   })
 })
