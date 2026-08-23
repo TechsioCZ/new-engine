@@ -28,8 +28,31 @@ import config from "../payload.config"
  * apps/herbatika/src/lib/url/segment-registry-data.ts
  * (ROUTE_SEGMENT_REGISTRY.ro.staticRootPages.faq).
  *
+ * The "Cum deveniți membru al clubului?" answer contains a
+ * `{kind:"account", section:"register"}` link (source: FaqLink.target in
+ * apps/herbatika/src/components/faq/faq-page.data.ts). Its href is built
+ * from the same canonical account/register route every market resolves
+ * through `buildPath`/`PUBLIC_FLOW_ROUTE_SEGMENTS`
+ * (libs/storefront-i18n/src/core/public-flow-routes.ts):
+ * `/${flowRoots.account}/${children.account.register}`. For ro that is
+ * `/cont/inregistrare` (flowRoots.account="cont",
+ * children.account.register="inregistrare") — verified live (200) via
+ * `curl -H 'Host: ro.localhost' http://127.0.0.1:3001/cont/inregistrare`.
+ * See RO_ACCOUNT_PATHS below and resolveLinkHref for how it is applied.
+ * Inspecting the sk/cs Payload
+ * page 12 content directly (inspect-faq-page.ts) showed their existing
+ * register links point at bare legacy paths (`/registracia/`,
+ * `/registrace/`) that predate this engine's `/ucet/...` route prefix and
+ * 404 on it; hu's page 12 content has no register link at all. Those
+ * stale hrefs are therefore not mirrored — ro instead gets the canonical,
+ * working route, consistent with the no-public-legacy-routes rule for
+ * markets without an explicit legacy carve-out
+ * (apps/herbatika/src/lib/routing/legacy-official-redirects.ts).
+ *
  * Run (dry-run, default): payload run src/scripts/localize-faq-ro.ts
  * Run (apply):      FAQ_RO_APPLY=1 payload run src/scripts/localize-faq-ro.ts
+ * Run (force re-apply even if a ro localization already exists):
+ *                    FAQ_RO_APPLY=1 FAQ_RO_FORCE=1 payload run src/scripts/localize-faq-ro.ts
  */
 
 const PAGE_ID = 12
@@ -309,6 +332,19 @@ const RO_STATIC_PAGE_PATHS: Record<"returns" | "terms", string> = {
   terms: "/termeni-si-conditii",
 }
 
+// Canonical account/register path for ro, reproduced from
+// PUBLIC_FLOW_ROUTE_SEGMENTS.ro in
+// libs/storefront-i18n/src/core/public-flow-routes.ts:
+// flowRoots.account="cont", children.account.register="inregistrare" ->
+// `/${flowRoots.account}/${children.account.register}`. Verified live
+// (HTTP 200) against the running dev storefront:
+//   curl -H 'Host: ro.localhost' http://127.0.0.1:3001/cont/inregistrare
+// This is the only `{kind:"account", section:...}` target this FAQ
+// content links to, so only "register" is reproduced here.
+const RO_ACCOUNT_PATHS: Record<"register", string> = {
+  register: "/cont/inregistrare",
+}
+
 const textNode = (text: string) => ({
   detail: 0,
   format: 0,
@@ -358,9 +394,9 @@ const resolveLinkHref = (link: FaqLink): string | null => {
   if (link.target?.kind === "static") {
     return RO_STATIC_PAGE_PATHS[link.target.page]
   }
-  // {kind:"account", section:"register"} has no known-good static path to
-  // reproduce here without importing the herbatika app's route package;
-  // render as plain (non-hyperlinked) text rather than fabricate a URL.
+  if (link.target?.kind === "account" && link.target.section === "register") {
+    return RO_ACCOUNT_PATHS.register
+  }
   return null
 }
 
@@ -415,6 +451,13 @@ const hasRealRoLocalization = (doc: {
 
 const run = async () => {
   const apply = process.env.FAQ_RO_APPLY === "1"
+  // The script normally exits early once a ro localization exists, so a
+  // corrected register href (or any other content fix) never re-lands
+  // without this. FAQ_RO_FORCE=1 skips the existing-localization guard and
+  // rewrites pages id=12 locale=ro unconditionally (still gated by
+  // FAQ_RO_APPLY=1 for the actual write). Only the `ro` locale is ever
+  // touched — sk/cs/hu are never read for write purposes.
+  const force = process.env.FAQ_RO_FORCE === "1"
   const payload = await getPayload({ config })
 
   try {
@@ -427,9 +470,9 @@ const run = async () => {
       overrideAccess: true,
     })
 
-    if (hasRealRoLocalization(existing)) {
+    if (hasRealRoLocalization(existing) && !force) {
       payload.logger.info(
-        `pages id=${PAGE_ID} already has a ro localization (title="${existing.title}", slug="${existing.slug}") — skipping`
+        `pages id=${PAGE_ID} already has a ro localization (title="${existing.title}", slug="${existing.slug}") — skipping (set FAQ_RO_FORCE=1 to re-apply)`
       )
       return
     }
