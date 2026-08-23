@@ -43,9 +43,14 @@ export const mapCmsHeroCarouselToHeroBanner = (
   }
 
   const ctaLabel = cleanString(item.button)
-  const imageAlt = cleanString(
+  const mediaAlt = cleanString(
     typeof item.image === "object" && item.image ? item.image.alt : null
   )
+  // Media.alt is not a localized field in Payload, so it can only ever hold
+  // one language regardless of the requested market. The heading is
+  // localized per market, so prefer it for the image's accessible name and
+  // only fall back to the shared media alt when there is no localized title.
+  const imageAlt = title || mediaAlt
   const subtitle = cleanString(item.subheading)
   const buttonTarget = normalizeButtonTarget(item.buttonTarget)
 
