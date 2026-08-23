@@ -483,7 +483,7 @@ const roFaqItems = [
         items: [
           "o listă de prețuri preferențiale individuală, cu avantaje pentru membrii VIP",
           "noutăți și informații regulate din universul Herbatica prin newsletter, inclusiv cupoane atunci când sunt disponibile",
-          "pragul pentru transport gratuit este afișat în RON în coș, conform ofertei în vigoare",
+          "pragul pentru transport gratuit este afișat în lei (RON) în coș, conform ofertei în vigoare",
           "aveți la dispoziție 14 zile pentru returnarea produselor, în condițiile prevăzute de politica de retur",
           "cupoanele de reducere primite pot fi folosite conform condițiilor afișate pentru fiecare campanie",
           "comenzile din cont rămân în istoricul dumneavoastră și pot ajuta la identificarea unei achiziții",
