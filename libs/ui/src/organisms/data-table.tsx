@@ -753,11 +753,16 @@ export type DataTableProps<T extends RowData> = {
 
   /**
    * Everything configurable on the `Pagination` molecule, surfaced at table
-   * level. `count`/`page`/`pageSize` stay owned by the table's pagination state.
+   * level. `count`/`page`/`pageSize` stay owned by the table's pagination
+   * state, and `getPageUrl` by the table too — paging runs through the
+   * table's own state, so `Pagination` is rendered with a placeholder href
+   * whose navigation is suppressed. Requiring it here would force every
+   * consumer who only wants (say) `siblingCount` to invent a `getPageUrl`
+   * that is then overridden.
    */
   paginationProps?: Omit<
     PaginationProps,
-    "count" | "page" | "pageSize" | "onPageChange" | "onChange"
+    "count" | "page" | "pageSize" | "onPageChange" | "onChange" | "getPageUrl"
   >
 
   /* Slots */
@@ -2089,6 +2094,37 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     return () => window.removeEventListener("scroll", onWindowScroll)
   }, [onReachEnd, maxHeight, reachEndThreshold])
 
+  // Window-mode counterpart of the bounded re-arm effect below.
+  //
+  // `checkReachEnd`'s latch only clears on a scroll event reporting
+  // `distance > threshold`. If an appended page is shorter than the
+  // threshold the document still ends inside it, so every subsequent scroll
+  // reads "at the bottom", the latch is never released and loading stalls
+  // for good — unless the user happens to scroll back up past the
+  // threshold. Measures the *document*: `scrollRef`'s element is unbounded
+  // in this mode and always reads as at the bottom, which is exactly why the
+  // effect below excludes the no-`maxHeight` case rather than sharing it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-checks whenever the row count changes
+  useEffect(() => {
+    if (!onReachEnd || loadingMore || maxHeight) {
+      return
+    }
+    // Same end-of-data guard as the bounded path: a fetch that brings back
+    // nothing must not re-trigger itself forever.
+    if (data.length === lastReachEndCountRef.current) {
+      return
+    }
+    const distance =
+      document.documentElement.scrollHeight -
+      window.scrollY -
+      window.innerHeight
+    reachedEndRef.current = distance <= reachEndThreshold
+    if (reachedEndRef.current) {
+      lastReachEndCountRef.current = data.length
+      onReachEnd()
+    }
+  }, [data.length, loadingMore, reachEndThreshold, maxHeight])
+
   // Re-arm after new rows land: if the freshly appended page is shorter than
   // the threshold no further scroll event fires, and loading would stall.
   // Internal-scroll only (`maxHeight` set) — without it `scrollRef`'s element
@@ -3329,6 +3365,9 @@ DataTable.Pagination = function DataTablePagination() {
       </span>
       <div className={styles.paginationControls()}>
         <Pagination
+          size={size}
+          {...paginationProps}
+          count={total}
           getPageUrl={() => "#"}
           // `Pagination` renders its items as links, and a real `href="#"`
           // navigates: the viewport jumps to the top of the document and a
@@ -3336,12 +3375,17 @@ DataTable.Pagination = function DataTablePagination() {
           // here is driven entirely by `onPageChange`, so the default is
           // pure side effect. Zag's `mergeProps` composes handlers, so
           // suppressing it does not stop the page from changing.
+          //
+          // Declared *after* the `paginationProps` spread and composed with
+          // whatever the consumer passed, so supplying `linkProps` (say, to
+          // add a `data-testid`) cannot silently drop the guard.
           linkProps={{
-            onClick: (event: React.MouseEvent) => event.preventDefault(),
+            ...paginationProps?.linkProps,
+            onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+              paginationProps?.linkProps?.onClick?.(event)
+              event.preventDefault()
+            },
           }}
-          size={size}
-          {...paginationProps}
-          count={total}
           onPageChange={(page) => {
             if (!blocked("paginate")) {
               table.setPageIndex(page - 1)
