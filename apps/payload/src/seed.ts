@@ -512,8 +512,11 @@ const createPageSeed = async (payload: SeedPayload) => {
     content: paragraph(
       "This starter page confirms Payload pages are available."
     ),
-    visibility: "public",
-    status: "published",
+    // Dev-starter content only: keep non-public so it is never served or
+    // indexed on the storefront (issue: about-herbatica was leaking as a
+    // public page/sitemap entry). Re-seeding must not resurrect it as public.
+    visibility: "customers-only",
+    status: "draft",
     publishedDate: SEED_PUBLISHED_DATE,
     translationSync: false,
   })
