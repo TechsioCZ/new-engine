@@ -1046,9 +1046,14 @@ function matchTime(cell: unknown, f: DateRangeFilterValue) {
  * for every row. The filter was stored and looked active while matching
  * everything — a silent no-op rather than an error.
  *
- * Only the unambiguous shapes are coerced. A bare value for a date column
- * could mean `from`, `to` or both, so those are left to fall through rather
- * than guessing.
+ * Every type is coerced — an earlier version exempted the date/time types on
+ * the grounds that a single value is ambiguous, but "leave it alone" is not
+ * an escape from the problem: `matchDateRange`/`matchTime` read only
+ * `from`/`to`, so an untouched string still reads as "no bounds" and matches
+ * every row. A lone value is therefore read as a closed range on itself,
+ * which those matchers already handle exactly right: for a date that is the
+ * whole of that day (the `to` bound extends to end-of-day), and for a time
+ * that single minute.
  */
 function normalizeFilterValue(
   type: DataTableColumnType,
@@ -1069,7 +1074,21 @@ function normalizeFilterValue(
     return { values: [String(filterValue)] }
   }
   if (type === "boolean") {
-    return { value: Boolean(filterValue) }
+    // Parsed, not coerced: every non-empty string is truthy, so `Boolean()`
+    // turned `setFilterValue("false")` — the natural shape from a <select>,
+    // a URL query param or restored state — into a filter for `true`,
+    // showing exactly the rows the user asked to exclude.
+    return { value: filterValue === true || filterValue === "true" }
+  }
+  if (
+    type === "date" ||
+    type === "datetime" ||
+    type === "dateRange" ||
+    type === "time"
+  ) {
+    // A closed range on the single value — see the note above.
+    const bound = String(filterValue)
+    return { from: bound, to: bound }
   }
   return { value: String(filterValue) }
 }

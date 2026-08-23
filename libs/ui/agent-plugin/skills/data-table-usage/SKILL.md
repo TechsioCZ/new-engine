@@ -88,8 +88,10 @@ Filter values are objects — `{ operator, value, to? }` for text/number,
 `{ values: [...] }` for the enum types, `{ value }` for boolean, `{ from, to }`
 for date/time ranges. A bare value from the plain TanStack API
 (`column.setFilterValue("Ada")`, or a controlled `columnFilters` entry) is
-coerced to the right shape for every type except the date/time ones, where a
-single value is ambiguous — pass `{ from, to }` explicitly there.
+coerced to the right shape for every type: an array becomes `{ values }`, a
+lone date/time becomes a closed range on itself (a whole day for `date`, that
+exact minute for `time`), and `"true"` / `"false"` strings are parsed rather
+than coerced.
 
 Give `enum`/`multiEnum` their choices via `meta.options`. Register
 `filterFn: "typed"` on the column so filtering matches the declared type
