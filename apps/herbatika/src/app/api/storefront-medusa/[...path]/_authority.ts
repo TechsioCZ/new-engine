@@ -21,6 +21,8 @@ type CheckoutAuthority = Extract<
 
 type CheckoutCartAuthority = Readonly<{
   customerId: string | null
+  // null means the account flag could not be read; treated as registered.
+  customerHasAccount: boolean | null
   id: string
   paymentCollectionId: string | null
 }>
@@ -346,13 +348,20 @@ const parseCheckoutCartAuthority = (
     typeof cart.customer_id === "string" && cart.customer_id
       ? cart.customer_id
       : null
+  // Only trust the flag when the expanded relation is the cart's own customer.
+  const customerHasAccount =
+    isRecord(cart.customer) &&
+    cart.customer.id === customerId &&
+    typeof cart.customer.has_account === "boolean"
+      ? cart.customer.has_account
+      : null
   const paymentCollectionId =
     isRecord(cart.payment_collection) &&
     typeof cart.payment_collection.id === "string" &&
     cart.payment_collection.id
       ? cart.payment_collection.id
       : null
-  return { customerId, id: cartId, paymentCollectionId }
+  return { customerHasAccount, customerId, id: cartId, paymentCollectionId }
 }
 
 const verifyCheckoutCartCustomer = async (
@@ -361,6 +370,14 @@ const verifyCheckoutCartCustomer = async (
   binding: MarketRuntimeBinding
 ): Promise<Response | null> => {
   if (!cart.customerId) {
+    return null
+  }
+  // Medusa attaches a guest customer (has_account false) as soon as checkout
+  // sets an email. Such a cart is not owned by any account, so possession of
+  // the signed cart session already verified upstream is the only authority
+  // that can exist for it. Anything else -- a registered owner, or a flag we
+  // could not read -- still requires the authenticated owner.
+  if (cart.customerHasAccount === false) {
     return null
   }
   const authenticatedCustomerId = await readAuthenticatedCustomerId(
@@ -390,7 +407,7 @@ const readCheckoutCartAuthority = async (
   )
   cartUrl.searchParams.set(
     "fields",
-    "id,customer_id,region_id,sales_channel_id,payment_collection.id"
+    "id,customer_id,region_id,sales_channel_id,payment_collection.id,customer.id,customer.has_account"
   )
   const result = await fetchAuthorityPayload(cartUrl, headers, binding)
   if (result.kind === "rejected") {
