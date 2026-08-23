@@ -32,17 +32,19 @@ export const getServerSideProps = (async (context) =>
       const publicSlugs = await readCompletePublicEntitySlugs({
         kind: "brand",
         market,
-        rejectUnexpectedSourceIds: true,
-        requiredSourceIds: brands.map((brand) => brand.id),
       })
       if (publicSlugs.kind !== "found") {
         return publicSlugs
       }
+      // The registry is the publication authority for this market: a catalog
+      // brand without an active market route is simply not published here, so
+      // the index omits it instead of taking the whole listing down. Detail
+      // routes stay fail-closed because they resolve through the registry.
       return foundSource({
-        brands: brands.map((brand) => ({
-          ...brand,
-          publicSlug: publicSlugs.value[brand.id],
-        })),
+        brands: brands.flatMap((brand) => {
+          const publicSlug = publicSlugs.value[brand.id]
+          return publicSlug ? [{ ...brand, publicSlug }] : []
+        }),
         title: BRAND_INDEX_TITLE[market],
       })
     },

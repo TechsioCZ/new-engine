@@ -94,14 +94,12 @@ describe("Romanian Brand publication pages", () => {
     mocks.fetchStorefrontBrands.mockImplementation(async (market: string) =>
       market === "ro" ? publishedRomanianBrands : allBrands
     )
-    mocks.readCompletePublicEntitySlugs.mockImplementation(
-      async ({ requiredSourceIds }: { requiredSourceIds: string[] }) => ({
-        kind: "found",
-        value: Object.fromEntries(
-          requiredSourceIds.map((id) => [id, `public-${id}`])
-        ),
-      })
-    )
+    mocks.readCompletePublicEntitySlugs.mockResolvedValue({
+      kind: "found",
+      value: Object.fromEntries(
+        publishedRomanianBrands.map(({ id }) => [id, `public-${id}`])
+      ),
+    })
     mocks.readRequiredPublicEntitySlugs.mockResolvedValue({
       kind: "found",
       value: {},
@@ -178,12 +176,29 @@ describe("Romanian Brand publication pages", () => {
     expect(mocks.readCompletePublicEntitySlugs).toHaveBeenCalledWith({
       kind: "brand",
       market: "ro",
-      rejectUnexpectedSourceIds: true,
-      requiredSourceIds: publishedRomanianBrands.map(({ id }) => id),
     })
     expect(excludedRomanianBrands).toHaveLength(25)
     const excludedIds = new Set(excludedRomanianBrands.map(({ id }) => id))
     expect(page.value.brands.some(({ id }) => excludedIds.has(id))).toBe(false)
+  })
+
+  it("omits catalog Brands without a market route instead of failing the index closed", async () => {
+    mocks.fetchStorefrontBrands.mockResolvedValue(allBrands)
+    const { getServerSideProps } = await import("@/pages/~sf/[market]/brands")
+
+    const result = await getServerSideProps(
+      context({ path: "/marci", routeKey: "brand.index" })
+    )
+
+    if (!("props" in result && result.props)) {
+      throw new Error("Expected Romanian Brand index props")
+    }
+    const page = (await result.props).page
+    if (page.kind !== "found") {
+      throw new Error("Expected Romanian Brand index source")
+    }
+    expect(page.value.brands).toHaveLength(103)
+    expect(page.value.brands.every(({ publicSlug }) => publicSlug)).toBe(true)
   })
 
   it("returns 404 before product prefetch when an RO URL resolves to one of the 25 excluded Brands", async () => {
