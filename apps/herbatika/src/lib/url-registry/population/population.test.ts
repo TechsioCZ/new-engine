@@ -128,7 +128,10 @@ describe("initial URLR population manifest", () => {
     )
   })
 
-  it("keeps only approved RO informational roots indexable", () => {
+  // Owner decision (demo delivery): the manual G1 editorial/legal gate is
+  // retired for root statics, so every root static — "about" and "faq"
+  // included — is a Payload-operated noindex route on every market.
+  it("keeps every RO root static noindex", () => {
     const roRoots = buildPopulationStaticTaxonomy().filter(
       ({ market, routeKey }) => market === "ro" && routeKey.startsWith("root:")
     )
@@ -137,15 +140,17 @@ describe("initial URLR population manifest", () => {
       roRoots
         .filter(({ indexPolicy }) => indexPolicy === "indexable")
         .map(({ routeKey }) => routeKey)
-    ).toEqual(["root:about", "root:faq"])
+    ).toEqual([])
     expect(
       roRoots
         .filter(({ indexPolicy }) => indexPolicy === "noindex")
         .map(({ routeKey }) => routeKey)
     ).toEqual([
+      "root:about",
       "root:affiliate",
       "root:contact",
       "root:dropshipping",
+      "root:faq",
       "root:giftVoucher",
       "root:privateLabel",
       "root:shipping",
@@ -184,24 +189,17 @@ describe("initial URLR population manifest", () => {
     )
   })
 
-  it("keeps only reviewed informational roots indexable on non-RO markets", () => {
+  it("keeps every root static noindex on non-RO markets", () => {
     for (const market of ["sk", "cz", "hu"] as const) {
       const roots = buildPopulationStaticTaxonomy().filter(
         (route) => route.market === market && route.routeKey.startsWith("root:")
       )
+      expect(roots.length).toBeGreaterThan(0)
       expect(
         roots
           .filter(({ indexPolicy }) => indexPolicy === "indexable")
           .map(({ routeKey }) => routeKey)
-      ).toEqual(["root:about", "root:faq"])
-      expect(
-        roots.every(
-          ({ indexPolicy, routeKey }) =>
-            indexPolicy === "noindex" ||
-            routeKey === "root:about" ||
-            routeKey === "root:faq"
-        )
-      ).toBe(true)
+      ).toEqual([])
     }
   })
 })

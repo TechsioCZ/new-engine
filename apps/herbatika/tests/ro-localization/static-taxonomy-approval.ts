@@ -8,10 +8,10 @@ import {
 const ROOT_ROUTE_PREFIX = /^root:/
 
 export const APPROVED_STATIC_TAXONOMY_HASH =
-  "sha256:b6508faaf515778f7843583d3661fbc721c8257e625b72af7b2e29c2edb6db15"
+  "sha256:96b9c609e9f4fe26f36cc7009709e5c1c68a5f528f8a38facb50db053fbe8bd6"
 
 export const APPROVED_STATIC_CUTOVER_PLAN_HASH =
-  "sha256:3e6334341e6622ea2f682686757c968ecf603ae3a56bf2fb803707a1d8c9c11e"
+  "sha256:d88b64b92373b94ac6b44ea879a73cc10bcd04300fd5b81c284ad65379713d07"
 
 export const RO_DEMO_STATIC_APPROVAL = Object.freeze({
   editorialApproval: "demo-generated-unreviewed:ro-static-pages:v1",
@@ -35,15 +35,15 @@ export const RO_DEMO_STATIC_ROOTS = Object.freeze([
 const APPROVED_MARKET_PROJECTIONS = Object.freeze({
   cz: [
     39,
-    "sha256:e51ab82ae7091790dceaad517cdaf809c68a7c8d465dac1e17556ae8e5c24a40",
+    "sha256:cc6eaf9ce5e7deb813d18c3071cfb380d8ab5519c74a9672dee01d1f3172527b",
   ],
   hu: [
     36,
-    "sha256:a312e8716adad9d30b6979cd3e191496fe49b98a95d626cc95db12e3a8608564",
+    "sha256:dbfb8dbb9a9cc26ed492c2e2379459a923c4112948bb1de3de2063380320b564",
   ],
   sk: [
     39,
-    "sha256:577248c4ce543ddd25b934dca149b59efb3563ccef85fea2c20b81a8528a022a",
+    "sha256:0a5ee8433dbe9c9f7ec5af5b07ac840395d59d9d74c691e450f07f998daf79c0",
   ],
 } as const)
 
@@ -101,6 +101,9 @@ export const projectStaticTaxonomy = (
       routeKey: route.routeKey,
     }))
 
+// Owner decision (demo delivery): the manual G1 editorial/legal gate is retired
+// for root statics, so RO about/faq are Payload-operated noindex roots like the
+// rest. Their public paths stay frozen; only the index policy was released.
 const assertRoEditorialRoots = (routes: readonly PopulationStaticRoute[]) => {
   for (const [pageKey, expectedPath] of [
     ["about", "/despre-noi"],
@@ -112,13 +115,13 @@ const assertRoEditorialRoots = (routes: readonly PopulationStaticRoute[]) => {
     )
     if (
       !route ||
-      route.indexPolicy !== "indexable" ||
+      route.indexPolicy !== "noindex" ||
       route.matchMode !== "exact" ||
       route.parentRouteKey !== null ||
       staticRoutePath(route, routes) !== expectedPath
     ) {
       throw new Error(
-        `RO ${pageKey} root must remain indexable at ${expectedPath}`
+        `RO ${pageKey} root must stay a noindex root at ${expectedPath}`
       )
     }
   }
