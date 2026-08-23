@@ -16,15 +16,26 @@ import {
 } from "./sitemap-contract"
 import type { SitemapUrl } from "./xml"
 
-// Brand and category detail routes render straight from URL Registry active
-// current slugs; routing never consults Medusa publication proofs or registry
-// audit source versions for them. Demanding those proofs here made the sitemap
-// stricter than the live site (audit/source-version drift produced 503 shards
-// while every advertised page rendered 200). These kinds therefore emit from
-// the same registry projections the router uses. Registry reads still fail
-// closed: any non-found read drops the whole shard instead of guessing URLs.
+// Brand, category, and product detail routes render straight from URL
+// Registry active current slugs; routing never consults Medusa publication
+// proofs or registry audit source versions for them. Demanding those proofs
+// here made the sitemap stricter than the live site (audit/source-version
+// drift produced 503 shards while every advertised page rendered 200). These
+// kinds therefore emit from the same registry projections the router uses.
+// Registry reads still fail closed: any non-found read drops the whole shard
+// instead of guessing URLs. Article and campaign keep their proof chains.
 const REGISTRY_AUTHORITATIVE_SITEMAP_KINDS: ReadonlySet<EntityUrlKind> =
-  new Set(["brand", "category"])
+  new Set(["brand", "category", "product"])
+
+// Information pages have no registry audit trail (their routes were populated
+// without audit records), so the audit-derived source-version gate can never
+// pass for them. The live route only requires the CMS page to exist, so the
+// sitemap keeps exactly that check (validateEntitySources -> CMS read) and
+// substitutes the registry route version for the audit source version, which
+// the CMS validator does not consult.
+const AUDIT_SOURCE_VERSION_EXEMPT_KINDS: ReadonlySet<EntityUrlKind> = new Set([
+  "page",
+])
 
 const buildRegistryAuthoritativeAlternates = (
   projection: ActiveEntityRouteTarget,
@@ -103,9 +114,23 @@ const indexValidatedSources = (
 }
 
 const buildSourceCandidates = async (
+  kind: EntityUrlKind,
   projections: readonly ActiveEntityRouteTarget[],
   dependencies: SitemapDataDependencies
 ) => {
+  if (AUDIT_SOURCE_VERSION_EXEMPT_KINDS.has(kind)) {
+    return {
+      kind: "found" as const,
+      value: projections.map(
+        (projection): SitemapEntitySourceCandidate => ({
+          publicSlug: projection.currentSlug.normalizedSlug,
+          routeId: projection.route.id,
+          sourceId: projection.route.sourceId,
+          sourceVersion: String(projection.route.version),
+        })
+      ),
+    }
+  }
   const result = await dependencies.readEntitySourceVersions(projections)
   if (result.kind !== "found") {
     return result
@@ -151,7 +176,11 @@ const loadValidatedEntitySource = async (
   target: ActiveEntityRouteTarget,
   dependencies: SitemapDataDependencies
 ) => {
-  const candidates = await buildSourceCandidates([target], dependencies)
+  const candidates = await buildSourceCandidates(
+    target.route.kind,
+    [target],
+    dependencies
+  )
   if (candidates.kind !== "found") {
     return candidates
   }
@@ -233,7 +262,11 @@ export const listEntitySitemapEntries = async (
     )
   }
 
-  const candidates = await buildSourceCandidates(projections, dependencies)
+  const candidates = await buildSourceCandidates(
+    kind,
+    projections,
+    dependencies
+  )
   if (candidates.kind !== "found") {
     return candidates
   }
