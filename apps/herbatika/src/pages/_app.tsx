@@ -20,6 +20,7 @@ import "@/app/globals.css"
 
 type StorefrontPageProps = Readonly<{
   dehydratedState?: DehydratedState
+  page?: Readonly<{ value?: Readonly<{ dehydratedState?: DehydratedState }> }>
   categoryPublicSlugsById?: PublicEntitySlugMap
   footerNavigation?: CmsFooterNavigation
   initialRegion?: RegionInfo | null
@@ -76,6 +77,17 @@ function PublicSeoHead({
   )
 }
 
+// React Query hydrates a query that already exists in the cache from an effect,
+// and effects never run while streaming SSR HTML. The shell (header submenu,
+// region bootstrap) reads the very same queries a public page prefetches, so a
+// page-nested HydrationBoundary is always too late: the shell has already
+// created the empty query. Hydrating the page's state here, above AppShell,
+// keeps server markup consistent with the prefetched data.
+export const resolveShellDehydratedState = (
+  pageProps: StorefrontPageProps
+): DehydratedState | undefined =>
+  pageProps.dehydratedState ?? pageProps.page?.value?.dehydratedState
+
 export default function HerbatikaPagesApp({
   Component,
   pageProps,
@@ -103,7 +115,7 @@ export default function HerbatikaPagesApp({
         initialRegion={pageProps.initialRegion}
         router="pages"
       >
-        <HydrationBoundary state={pageProps.dehydratedState}>
+        <HydrationBoundary state={resolveShellDehydratedState(pageProps)}>
           {pageProps.seo ? (
             <PublicSeoHead
               marketContext={pageProps.marketContext}
