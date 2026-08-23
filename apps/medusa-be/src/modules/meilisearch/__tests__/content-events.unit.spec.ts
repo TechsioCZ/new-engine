@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   deleteDocuments: vi.fn(),
   ensureIndex: vi.fn(),
   loadSearchProfiles: vi.fn(),
+  readUrlRegistryContentProjectionConfig: vi.fn(),
   resolveContentProjectionHrefs: vi.fn(),
   updateSettings: vi.fn(),
 }))
@@ -24,6 +25,8 @@ vi.mock("../profiles", () => ({
 vi.mock("../url-registry-content-projection", () => ({
   contentProjectionKey: (type: string, sourceId: string) =>
     `${type}\u0000${sourceId}`,
+  readUrlRegistryContentProjectionConfig:
+    mocks.readUrlRegistryContentProjectionConfig,
   resolveContentProjectionHrefs: mocks.resolveContentProjectionHrefs,
 }))
 
@@ -45,6 +48,10 @@ const container = {} as MedusaContainer
 describe("CMS event URL registry projection", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.readUrlRegistryContentProjectionConfig.mockReturnValue({
+      token: "x".repeat(48),
+      url: new URL("http://storefront.internal/api/content-projections"),
+    })
     mocks.loadSearchProfiles.mockResolvedValue([profile])
     mocks.ensureIndex.mockResolvedValue(undefined)
     mocks.updateSettings.mockResolvedValue(undefined)
@@ -117,6 +124,90 @@ describe("CMS event URL registry projection", () => {
     expect(mocks.deleteDocuments).not.toHaveBeenCalled()
     expect(mocks.ensureIndex).not.toHaveBeenCalled()
     expect(mocks.updateSettings).not.toHaveBeenCalled()
+  })
+
+  it("skips the search projection when the feature flag is disabled", async () => {
+    mocks.readUrlRegistryContentProjectionConfig.mockReturnValue(null)
+
+    await reconcileContentSearchChange(
+      {
+        collection: "pages",
+        doc: {
+          id: "7",
+          locale: "cs-CZ",
+          status: "published",
+          title: "Doprava",
+          visibility: "public",
+        },
+        operation: "update",
+      },
+      logger,
+      container
+    )
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("URL_REGISTRY_CONTENT_PROJECTION_ENABLED")
+    )
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("full content resync")
+    )
+    expect(mocks.resolveContentProjectionHrefs).not.toHaveBeenCalled()
+    expect(mocks.addDocuments).not.toHaveBeenCalled()
+    expect(mocks.deleteDocuments).not.toHaveBeenCalled()
+  })
+
+  it("still deletes unpublished documents while the projection is disabled", async () => {
+    mocks.readUrlRegistryContentProjectionConfig.mockReturnValue(null)
+
+    await reconcileContentSearchChange(
+      {
+        collection: "pages",
+        doc: {
+          id: "7",
+          locale: "cs-CZ",
+          status: "draft",
+          title: "Doprava",
+          visibility: "public",
+        },
+        operation: "update",
+      },
+      logger,
+      container
+    )
+
+    expect(mocks.deleteDocuments).toHaveBeenCalledWith("content-herbatika-cz", [
+      "page_7",
+    ])
+  })
+
+  it("keeps failing loudly when the projection is enabled but misconfigured", async () => {
+    mocks.readUrlRegistryContentProjectionConfig.mockImplementation(() => {
+      throw new Error(
+        "URL registry content projection is enabled but misconfigured"
+      )
+    })
+    mocks.resolveContentProjectionHrefs.mockResolvedValue(new Map())
+
+    await expect(
+      reconcileContentSearchChange(
+        {
+          collection: "pages",
+          doc: {
+            id: "7",
+            locale: "cs-CZ",
+            status: "published",
+            title: "Doprava",
+            visibility: "public",
+          },
+          operation: "update",
+        },
+        logger,
+        container
+      )
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("canonical public href is unavailable"),
+      type: MedusaError.Types.UNEXPECTED_STATE,
+    })
   })
 
   it("quarantines a missing-locale event instead of broadcasting it", async () => {

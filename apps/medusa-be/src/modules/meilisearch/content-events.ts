@@ -7,6 +7,7 @@ import { loadSearchProfiles } from "./profiles"
 import { CONTENT_INDEX_SETTINGS } from "./settings"
 import {
   contentProjectionKey,
+  readUrlRegistryContentProjectionConfig,
   resolveContentProjectionHrefs,
 } from "./url-registry-content-projection"
 
@@ -58,6 +59,67 @@ const requirePublishedContentDocument = ({
     MedusaError.Types.UNEXPECTED_STATE,
     `Cannot reconcile ${change.collection} search projection because its canonical public href is unavailable`
   )
+}
+
+// A misconfigured-but-enabled projection must keep failing loudly, so only an
+// explicitly disabled feature flag is treated as "projection unavailable".
+const isContentProjectionDisabled = (): boolean => {
+  try {
+    return readUrlRegistryContentProjectionConfig() === null
+  } catch {
+    return false
+  }
+}
+
+const prepareContentIndex = async (
+  client: MeilisearchAdminClient,
+  index: string
+): Promise<void> => {
+  await client.ensureIndex(index)
+  await client.updateSettings(
+    index,
+    CONTENT_INDEX_SETTINGS as Record<string, unknown>
+  )
+}
+
+const indexPublishedContent = async ({
+  change,
+  client,
+  index,
+  locale,
+  logger,
+  sourceId,
+  type,
+}: {
+  change: CmsSearchChange
+  client: MeilisearchAdminClient
+  index: string
+  locale: string
+  logger: Logger
+  sourceId: string
+  type: "article" | "page"
+}): Promise<void> => {
+  if (isContentProjectionDisabled()) {
+    logger.warn(
+      `Skipping ${change.collection} search projection for ${index} because URL_REGISTRY_CONTENT_PROJECTION_ENABLED is not "1"; published documents stay out of the search index until the projection is enabled and a full content resync runs`
+    )
+
+    return
+  }
+
+  const projections = await resolveContentProjectionHrefs(
+    [{ sourceId, sourceType: type }],
+    locale,
+    logger
+  )
+  const document = requirePublishedContentDocument({
+    change,
+    locale,
+    publicHref: projections.get(contentProjectionKey(type, sourceId)),
+    type,
+  })
+  await prepareContentIndex(client, index)
+  await client.addDocuments(index, [document])
 }
 
 export const reconcileContentSearchChange = async (
@@ -113,30 +175,17 @@ export const reconcileContentSearchChange = async (
     const index = profile.indexes.content
 
     if (isPublished(change, type)) {
-      const sourceId = String(rawId).trim()
-      const projections = await resolveContentProjectionHrefs(
-        [{ sourceId, sourceType: type }],
-        profile.locale,
-        logger
-      )
-      const document = requirePublishedContentDocument({
+      await indexPublishedContent({
         change,
+        client,
+        index,
         locale: profile.locale,
-        publicHref: projections.get(contentProjectionKey(type, sourceId)),
+        logger,
+        sourceId: String(rawId).trim(),
         type,
       })
-      await client.ensureIndex(index)
-      await client.updateSettings(
-        index,
-        CONTENT_INDEX_SETTINGS as Record<string, unknown>
-      )
-      await client.addDocuments(index, [document])
     } else {
-      await client.ensureIndex(index)
-      await client.updateSettings(
-        index,
-        CONTENT_INDEX_SETTINGS as Record<string, unknown>
-      )
+      await prepareContentIndex(client, index)
       await client.deleteDocuments(index, [documentId])
     }
   }

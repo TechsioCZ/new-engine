@@ -25,8 +25,64 @@ describe("normalizeError", () => {
     const throwable = { code: "ERR_001", details: "some details" }
     const result = normalizeError(throwable) as ErrorWithOriginalThrowable
     expect(result).toBeInstanceOf(Error)
-    expect(result.message).toBe("[object Object]")
+    expect(result.message).not.toBe("[object Object]")
+    expect(result.message).toContain("ERR_001")
     expect(result.originalThrowable).toBe(throwable)
+  })
+
+  it("extracts message, type and code from a serialized MedusaError", () => {
+    const throwable = {
+      __isMedusaError: true,
+      code: "UNEXPECTED_STATE",
+      date: "2026-08-21T00:00:00.000Z",
+      message:
+        "Cannot reconcile articles search projection because its canonical public href is unavailable",
+      type: "unexpected_state",
+    }
+
+    const result = normalizeError(throwable)
+
+    expect(result.message).toBe(
+      "Cannot reconcile articles search projection because its canonical public href is unavailable (unexpected_state/UNEXPECTED_STATE)"
+    )
+  })
+
+  it("falls back to enumerable props when a serialized MedusaError lost its message", () => {
+    const throwable = {
+      __isMedusaError: true,
+      code: "UNEXPECTED_STATE",
+      type: "unexpected_state",
+    }
+
+    const result = normalizeError(throwable)
+
+    expect(result.message).not.toContain("[object Object]")
+    expect(result.message).toContain("unexpected_state/UNEXPECTED_STATE")
+    expect(result.message).toContain("__isMedusaError")
+  })
+
+  it("caps very long serialized payloads", () => {
+    const result = normalizeError({ details: "x".repeat(5000) })
+
+    expect(result.message.length).toBeLessThanOrEqual(2001)
+    expect(result.message.endsWith("…")).toBe(true)
+  })
+
+  it("describes a circular object without throwing", () => {
+    const throwable: Record<string, unknown> = {}
+    throwable.self = throwable
+
+    const result = normalizeError(throwable)
+
+    expect(result.message).toContain("Non-serializable")
+    expect(result.message).not.toBe("[object Object]")
+  })
+
+  it("describes an empty object without producing [object Object]", () => {
+    const result = normalizeError({})
+
+    expect(result.message).not.toBe("[object Object]")
+    expect(result.message).toContain("Non-serializable")
   })
 
   it("converts null to an Error with originalThrowable", () => {
