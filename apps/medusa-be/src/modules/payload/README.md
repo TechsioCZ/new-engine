@@ -60,7 +60,7 @@ Available methods:
 - `listPageCategoriesWithPages({ locale?, categorySlug? })`
 - `listArticleCategoriesWithArticles({ locale?, categorySlug? })`
 - `listHeroCarousels({ limit?, page?, sort?, locale? })`
-- `invalidateCache(collection, slug?, locale?)`
+- `invalidateCache(collection, slug?, locale?, id?)` — `id` also clears the `cms:<collection>:id:<id>:<locale>` by-ID entry on locale-scoped invalidations
 
 Notes:
 

@@ -16,16 +16,16 @@ type WorkflowStep = Readonly<{
   next?: WorkflowStep
 }>
 
-const workflowActions = (step: WorkflowStep | undefined) => {
-  const actions: string[] = []
-  let current = step
-  while (current) {
-    if (current.action) {
-      actions.push(current.action)
-    }
-    current = current.next
+// Recursive (not a `while` loop reassigning a self-referential union type) to
+// avoid a Biome internal type-inference blowup ("unusually large amount of
+// types") triggered by narrowing a mutable binding of a recursive type across
+// loop iterations against the real (very large) workflow SDK flow_ type.
+const workflowActions = (step: WorkflowStep | undefined): string[] => {
+  if (!step) {
+    return []
   }
-  return actions
+  const rest = workflowActions(step.next)
+  return step.action ? [step.action, ...rest] : rest
 }
 
 const lifecycleContext = (salesChannels: readonly { id: string }[]) => {

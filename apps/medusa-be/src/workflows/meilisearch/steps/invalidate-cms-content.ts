@@ -10,6 +10,7 @@ import type PayloadModuleService from "../../../modules/payload/service"
 
 export type InvalidateCmsContentStepInput = CmsSearchChange & {
   doc?: Record<string, unknown> & {
+    id?: string | number
     locale?: string
     slug?: string
   }
@@ -24,7 +25,8 @@ export const invalidateCmsContentStep = createStep(
     await cmsService.invalidateCache(
       input.collection,
       input.doc?.slug,
-      input.doc?.locale
+      input.doc?.locale,
+      input.doc?.id
     )
     await reconcileContentSearchChange(input, logger, container)
 

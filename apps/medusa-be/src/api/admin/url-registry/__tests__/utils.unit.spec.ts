@@ -79,10 +79,12 @@ const request = (
   dependencies: RequestDependencies = {}
 ) => {
   if (!("lockCatalogEntityAssignments" in assignmentService)) {
-    assignmentService.lockCatalogEntityAssignments = vi.fn(async () => {})
+    assignmentService.lockCatalogEntityAssignments = vi.fn(() =>
+      Promise.resolve()
+    )
   }
   const outboxService = dependencies.outboxService ?? {
-    enqueueCatalogLifecycleEvent: vi.fn(async () => {}),
+    enqueueCatalogLifecycleEvent: vi.fn(() => Promise.resolve()),
   }
   const salesChannels = dependencies.salesChannels ?? defaultSalesChannels
   const translationService = dependencies.translationService ?? {
@@ -312,11 +314,11 @@ describe("admin storefront assignment upsert", () => {
     const assignmentService = {
       listStorefrontUrlAssignments: vi.fn(async () => []),
       createStorefrontUrlAssignments: vi.fn(async () => created),
-      lockCatalogEntityAssignments: vi.fn(async () => {}),
+      lockCatalogEntityAssignments: vi.fn(() => Promise.resolve()),
       runInTransaction: vi.fn(async (task) => task(context)),
     }
     const outboxService = {
-      enqueueCatalogLifecycleEvent: vi.fn(async () => {}),
+      enqueueCatalogLifecycleEvent: vi.fn(() => Promise.resolve()),
     }
     const translationService = {
       listTranslations: vi.fn(async () => [
@@ -477,7 +479,7 @@ describe("admin storefront assignment upsert", () => {
     const assignmentService = {
       createStorefrontUrlAssignments: vi.fn(),
       listStorefrontUrlAssignments: vi.fn(),
-      lockCatalogEntityAssignments: vi.fn(async () => {}),
+      lockCatalogEntityAssignments: vi.fn(() => Promise.resolve()),
       runInTransaction: vi.fn(async (task) =>
         task({ transactionManager: "delete-race-tx" })
       ),

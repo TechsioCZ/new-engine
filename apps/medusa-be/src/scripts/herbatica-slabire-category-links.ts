@@ -65,9 +65,7 @@ export default async function herbaticaSlabireCategoryLinks({
   }
 
   const updates = products.flatMap((product) => {
-    const currentIds = (product.categories ?? []).map(
-      (category) => category.id
-    )
+    const currentIds = (product.categories ?? []).map((category) => category.id)
     if (currentIds.includes(CATEGORY_ID)) {
       return []
     }

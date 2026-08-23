@@ -167,37 +167,52 @@ describe("RO demo commerce disposable clone safety", () => {
     const manifestPath = join(directory, "manifest.json")
     await writeFile(manifestPath, "{}\n")
 
+    const handleDryRunPgDump = async (
+      request: Parameters<CloneHarnessProcessRunner>[0]
+    ) => {
+      expect(request.args).toEqual(
+        expect.arrayContaining(["--clean", "--create", "--if-exists"])
+      )
+      const outputIndex = request.args.indexOf("--file") + 1
+      const outputPath = request.args[outputIndex]
+      if (!outputPath) {
+        throw new Error("missing fake dump output")
+      }
+      await writeFile(
+        outputPath,
+        `\\restrict ${randomBytes(8).toString("hex")}\n${state.value}\n\\unrestrict ${randomBytes(8).toString("hex")}\n`
+      )
+      return { stderr: "", stdout: "" }
+    }
+    const handleMarkerPsqlCommand = (
+      request: Parameters<CloneHarnessProcessRunner>[0]
+    ) => {
+      if (
+        request.args.some((argument) => argument.includes("SELECT rolsuper"))
+      ) {
+        return { stderr: "", stdout: "t\n" }
+      }
+      return {
+        stderr: "",
+        stdout: `ro_demo_disposable_test\t${DISPOSABLE_DATABASE_MARKER_VERSION}:${MARKER}\n`,
+      }
+    }
+    const handleRestorePsqlFile = (
+      request: Parameters<CloneHarnessProcessRunner>[0]
+    ) => {
+      expect(request.args).not.toContain("--single-transaction")
+      state.value = "baseline"
+      return { stderr: "", stdout: "" }
+    }
     const processRunner: CloneHarnessProcessRunner = async (request) => {
       if (request.command === "pg_dump") {
-        expect(request.args).toEqual(
-          expect.arrayContaining(["--clean", "--create", "--if-exists"])
-        )
-        const outputIndex = request.args.indexOf("--file") + 1
-        const outputPath = request.args[outputIndex]
-        if (!outputPath) {
-          throw new Error("missing fake dump output")
-        }
-        await writeFile(
-          outputPath,
-          `\\restrict ${randomBytes(8).toString("hex")}\n${state.value}\n\\unrestrict ${randomBytes(8).toString("hex")}\n`
-        )
-        return { stderr: "", stdout: "" }
+        return await handleDryRunPgDump(request)
       }
       if (request.command === "psql" && request.args.includes("--command")) {
-        if (
-          request.args.some((argument) => argument.includes("SELECT rolsuper"))
-        ) {
-          return { stderr: "", stdout: "t\n" }
-        }
-        return {
-          stderr: "",
-          stdout: `ro_demo_disposable_test\t${DISPOSABLE_DATABASE_MARKER_VERSION}:${MARKER}\n`,
-        }
+        return handleMarkerPsqlCommand(request)
       }
       if (request.command === "psql" && request.args.includes("--file")) {
-        expect(request.args).not.toContain("--single-transaction")
-        state.value = "baseline"
-        return { stderr: "", stdout: "" }
+        return handleRestorePsqlFile(request)
       }
       throw new Error(`unexpected command ${request.command}`)
     }
@@ -259,34 +274,40 @@ describe("RO demo commerce disposable clone safety", () => {
     process.env.PGHOSTADDR = "203.0.113.10"
     process.env.PGPASSFILE = "/tmp/live-pgpass-must-not-reach-child"
     process.env.PGSERVICE = "live-service-must-not-reach-child"
-    const processRunner: CloneHarnessProcessRunner = async (request) => {
-      if (request.command === "pg_dump") {
-        const outputPath = request.args[request.args.indexOf("--file") + 1]
-        if (!outputPath) {
-          throw new Error("missing fake dump output")
-        }
-        await writeFile(outputPath, `${state.value}\n`)
-        return { stderr: "", stdout: "" }
+    const handleScrubbedFakeDump = async (
+      request: Parameters<CloneHarnessProcessRunner>[0]
+    ) => {
+      const outputPath = request.args[request.args.indexOf("--file") + 1]
+      if (!outputPath) {
+        throw new Error("missing fake dump output")
       }
-      if (request.command === "psql" && request.args.includes("--command")) {
-        expect(request.env.PGSERVICE).toBeUndefined()
-        expect(request.env.PGHOSTADDR).toBeUndefined()
-        expect(request.env.PGPASSFILE).toBeUndefined()
-        expect(request.env.NODE_OPTIONS).toBeUndefined()
-        if (
-          request.args.some((argument) => argument.includes("SELECT rolsuper"))
-        ) {
-          return { stderr: "", stdout: "t\n" }
-        }
-        return {
-          stderr: "",
-          stdout: `ro_demo_disposable_test\t${DISPOSABLE_DATABASE_MARKER_VERSION}:${MARKER}\n`,
-        }
+      await writeFile(outputPath, `${state.value}\n`)
+      return { stderr: "", stdout: "" }
+    }
+    const handleScrubbedMarkerCommand = (
+      request: Parameters<CloneHarnessProcessRunner>[0]
+    ) => {
+      expect(request.env.PGSERVICE).toBeUndefined()
+      expect(request.env.PGHOSTADDR).toBeUndefined()
+      expect(request.env.PGPASSFILE).toBeUndefined()
+      expect(request.env.NODE_OPTIONS).toBeUndefined()
+      if (
+        request.args.some((argument) => argument.includes("SELECT rolsuper"))
+      ) {
+        return { stderr: "", stdout: "t\n" }
       }
-      if (request.command === "psql") {
-        state.value = "baseline"
-        return { stderr: "", stdout: "" }
+      return {
+        stderr: "",
+        stdout: `ro_demo_disposable_test\t${DISPOSABLE_DATABASE_MARKER_VERSION}:${MARKER}\n`,
       }
+    }
+    const handleScrubbedRestorePsql = () => {
+      state.value = "baseline"
+      return { stderr: "", stdout: "" }
+    }
+    const assertScrubbedRuntimeInvocation = (
+      request: Parameters<CloneHarnessProcessRunner>[0]
+    ) => {
       expect(request.command).toMatch(PNPM_COMMAND_PATTERN)
       expect(request.args.slice(0, 3)).toEqual(["exec", "medusa", "exec"])
       expect(request.args[3]).toBe(
@@ -302,17 +323,40 @@ describe("RO demo commerce disposable clone safety", () => {
       )
       expect(request.env.MEILISEARCH_ENABLED).toBe("0")
       expect(request.env.EVENT_BUS_PROVIDER).toBe("local")
+    }
+    const handleCaptureFingerprintInvocation = async (
+      runtimeArgs: readonly string[]
+    ) => {
+      const capture = parseRoDemoFingerprintCliOptions(runtimeArgs)
+      expect(capture).toMatchObject({
+        ...RUNTIME_AUTHORITY,
+        expectedPriceAuthoritySha256: PRICE_AUTHORITY_SHA256,
+      })
+      await writeFile(
+        capture.fingerprintOutputPath,
+        `${JSON.stringify(fakeDeploymentFingerprint(RUNTIME_AUTHORITY))}\n`
+      )
+    }
+    const handleApplyInvocation = async (
+      parsed: ReturnType<typeof parseRoDemoCliOptions>
+    ) => {
+      expect(parsed.confirmPlanHash).toBe(await hashFile(parsed.planOutputPath))
+      if (!(parsed.receiptOutputPath && parsed.restoreOutputPath)) {
+        throw new Error("real CLI parser omitted apply artifact outputs")
+      }
+      await Promise.all([
+        writeFile(parsed.receiptOutputPath, '{"kind":"receipt"}\n'),
+        writeFile(parsed.restoreOutputPath, '{"kind":"restore"}\n'),
+      ])
+      state.value = "applied"
+    }
+    const handleScrubbedRuntimeInvocation = async (
+      request: Parameters<CloneHarnessProcessRunner>[0]
+    ) => {
+      assertScrubbedRuntimeInvocation(request)
       const runtimeArgs = request.args.slice(4)
       if (runtimeArgs.includes("--capture-deployment-fingerprint")) {
-        const capture = parseRoDemoFingerprintCliOptions(runtimeArgs)
-        expect(capture).toMatchObject({
-          ...RUNTIME_AUTHORITY,
-          expectedPriceAuthoritySha256: PRICE_AUTHORITY_SHA256,
-        })
-        await writeFile(
-          capture.fingerprintOutputPath,
-          `${JSON.stringify(fakeDeploymentFingerprint(RUNTIME_AUTHORITY))}\n`
-        )
+        await handleCaptureFingerprintInvocation(runtimeArgs)
         return { stderr: "", stdout: "" }
       }
       const parsed = parseRoDemoCliOptions(runtimeArgs)
@@ -325,17 +369,7 @@ describe("RO demo commerce disposable clone safety", () => {
         SK_COMMERCE_BASELINE_SHA256
       )
       if (parsed.apply) {
-        expect(parsed.confirmPlanHash).toBe(
-          await hashFile(parsed.planOutputPath)
-        )
-        if (!(parsed.receiptOutputPath && parsed.restoreOutputPath)) {
-          throw new Error("real CLI parser omitted apply artifact outputs")
-        }
-        await Promise.all([
-          writeFile(parsed.receiptOutputPath, '{"kind":"receipt"}\n'),
-          writeFile(parsed.restoreOutputPath, '{"kind":"restore"}\n'),
-        ])
-        state.value = "applied"
+        await handleApplyInvocation(parsed)
       } else {
         await writeFile(
           parsed.planOutputPath,
@@ -343,6 +377,18 @@ describe("RO demo commerce disposable clone safety", () => {
         )
       }
       return { stderr: "", stdout: "" }
+    }
+    const processRunner: CloneHarnessProcessRunner = async (request) => {
+      if (request.command === "pg_dump") {
+        return await handleScrubbedFakeDump(request)
+      }
+      if (request.command === "psql" && request.args.includes("--command")) {
+        return handleScrubbedMarkerCommand(request)
+      }
+      if (request.command === "psql") {
+        return handleScrubbedRestorePsql()
+      }
+      return await handleScrubbedRuntimeInvocation(request)
     }
     try {
       await expect(
@@ -465,33 +511,46 @@ describe("RO demo commerce disposable clone safety", () => {
     let dumpCount = 0
     let restores = 0
     const planOutputPath = join(directory, "plan.json")
-    const processRunner: CloneHarnessProcessRunner = async (request) => {
-      if (request.command === "pg_dump") {
-        dumpCount += 1
-        const outputPath = request.args[request.args.indexOf("--file") + 1]
-        if (!outputPath) {
-          throw new Error("missing fake dump output")
-        }
-        await writeFile(outputPath, "baseline\n")
-        if (dumpCount === 2) {
-          state.value = "eur-sk-mutated-after-fingerprint"
-        }
-        return { stderr: "", stdout: "" }
+    const handleDriftDump = async (
+      request: Parameters<CloneHarnessProcessRunner>[0]
+    ) => {
+      dumpCount += 1
+      const outputPath = request.args[request.args.indexOf("--file") + 1]
+      if (!outputPath) {
+        throw new Error("missing fake dump output")
       }
-      if (request.args.includes("--command")) {
-        if (
-          request.args.some((argument) => argument.includes("SELECT rolsuper"))
-        ) {
-          return { stderr: "", stdout: "t\n" }
-        }
-        return {
-          stderr: "",
-          stdout: `ro_demo_disposable_test\t${DISPOSABLE_DATABASE_MARKER_VERSION}:${MARKER}\n`,
-        }
+      await writeFile(outputPath, "baseline\n")
+      if (dumpCount === 2) {
+        state.value = "eur-sk-mutated-after-fingerprint"
       }
+      return { stderr: "", stdout: "" }
+    }
+    const handleDriftMarkerCommand = (
+      request: Parameters<CloneHarnessProcessRunner>[0]
+    ) => {
+      if (
+        request.args.some((argument) => argument.includes("SELECT rolsuper"))
+      ) {
+        return { stderr: "", stdout: "t\n" }
+      }
+      return {
+        stderr: "",
+        stdout: `ro_demo_disposable_test\t${DISPOSABLE_DATABASE_MARKER_VERSION}:${MARKER}\n`,
+      }
+    }
+    const handleDriftRestore = () => {
       restores += 1
       state.value = "baseline"
       return { stderr: "", stdout: "" }
+    }
+    const processRunner: CloneHarnessProcessRunner = async (request) => {
+      if (request.command === "pg_dump") {
+        return await handleDriftDump(request)
+      }
+      if (request.args.includes("--command")) {
+        return handleDriftMarkerCommand(request)
+      }
+      return handleDriftRestore()
     }
     const runCommerce: CloneHarnessCommerceRunner = async (invocation) => {
       if (invocation.mode === "capture-fingerprint") {

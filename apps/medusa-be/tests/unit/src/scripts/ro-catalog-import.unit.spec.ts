@@ -47,6 +47,9 @@ import type {
 import { parseRoCatalogScopePlanArtifact } from "../../../../src/scripts/ro-catalog-readiness-contract"
 import { buildRoDemoDatabaseInstanceFingerprint } from "../../../../src/scripts/ro-demo-commerce/runtime"
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/
+const HMAC_SHA256_HEX_PATTERN = /^hmac-sha256:[a-f0-9]{64}$/
+
 const readiness = {
   currencyCode: "ron",
   paymentProviderIds: ["pp_ro"],
@@ -937,7 +940,7 @@ describe("RO catalog import plan", () => {
       brandIds: ["brand_1"],
       collectionIds: [],
     })
-    expect(plan.scopeSha256).toMatch(/^[a-f0-9]{64}$/)
+    expect(plan.scopeSha256).toMatch(SHA256_HEX_PATTERN)
   })
 
   it("partitions non-publishable brands into decision-backed RO drafts", () => {
@@ -1192,14 +1195,14 @@ describe("RO catalog import plan", () => {
         schemaVersion: 1,
       })
       expect(plan.omissionLedger?.entries[0].roDescriptionSha256).toMatch(
-        /^[a-f0-9]{64}$/
+        SHA256_HEX_PATTERN
       )
-      expect(plan.omissionLedgerSha256).toMatch(/^[a-f0-9]{64}$/)
+      expect(plan.omissionLedgerSha256).toMatch(SHA256_HEX_PATTERN)
       expect(
         plan.items[0].content.translation.translations.__demo_omission_authority
       ).toMatchObject({
         ledgerSha256: plan.omissionLedgerSha256,
-        signature: expect.stringMatching(/^hmac-sha256:[a-f0-9]{64}$/),
+        signature: expect.stringMatching(HMAC_SHA256_HEX_PATTERN),
       })
     } finally {
       if (previousSecret === undefined) {
@@ -1297,7 +1300,7 @@ describe("RO catalog import plan", () => {
     const plan = buildRoCatalogImportPlan(manifest, snapshot(), {
       salesChannelId: "sc_ro",
     })
-    expect(hashRoCatalogImportPlan(plan)).toMatch(/^[a-f0-9]{64}$/)
+    expect(hashRoCatalogImportPlan(plan)).toMatch(SHA256_HEX_PATTERN)
     expect(hashRoCatalogImportPlan(plan)).toBe(hashRoCatalogImportPlan(plan))
 
     const changedManifest: RoCatalogManifest = {

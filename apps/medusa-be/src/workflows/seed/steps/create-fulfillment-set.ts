@@ -14,6 +14,8 @@ import {
   selectExactOwnedSeedResource,
 } from "./seed-resource-identity"
 
+const ISO2_COUNTRY_CODE_PATTERN = /^[a-z]{2}$/
+
 export type CreateFulfillmentSetStepInput = {
   name: string
   type: string
@@ -53,7 +55,9 @@ function normalizeCountryCodes(
   )
   if (
     countries.length === 0 ||
-    countries.some((countryCode) => !/^[a-z]{2}$/.test(countryCode)) ||
+    countries.some(
+      (countryCode) => !ISO2_COUNTRY_CODE_PATTERN.test(countryCode)
+    ) ||
     new Set(countries).size !== countries.length
   ) {
     throw new Error(

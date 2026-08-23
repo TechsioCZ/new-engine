@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { normalizeError } from "../../../../utils/errors"
 import {
   getHeaderValue,
   isValidWebhookSignature,
@@ -52,9 +53,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       input: body as PayloadWebhookBody & { collection: string },
     })
   } catch (error) {
+    const normalizedError = normalizeError(error)
     logger.error(
       `CMS cache invalidation failed (collection="${body.collection}", slug="${body.doc?.slug ?? "n/a"}", locale="${body.doc?.locale ?? "n/a"}")`,
-      error instanceof Error ? error : new Error(String(error))
+      normalizedError
     )
     return res.status(500).json({
       error: "Failed to invalidate cache",

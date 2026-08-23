@@ -28,8 +28,31 @@ import config from "../payload.config"
  * apps/herbatika/src/lib/url/segment-registry-data.ts
  * (ROUTE_SEGMENT_REGISTRY.ro.staticRootPages.faq).
  *
+ * The "Cum deveniți membru al clubului?" answer contains a
+ * `{kind:"account", section:"register"}` link (source: FaqLink.target in
+ * apps/herbatika/src/components/faq/faq-page.data.ts). Its href is built
+ * from the same canonical account/register route every market resolves
+ * through `buildPath`/`PUBLIC_FLOW_ROUTE_SEGMENTS`
+ * (libs/storefront-i18n/src/core/public-flow-routes.ts):
+ * `/${flowRoots.account}/${children.account.register}`. For ro that is
+ * `/cont/inregistrare` (flowRoots.account="cont",
+ * children.account.register="inregistrare") — verified live (200) via
+ * `curl -H 'Host: ro.localhost' http://127.0.0.1:3001/cont/inregistrare`.
+ * See RO_ACCOUNT_PATHS below and resolveLinkHref for how it is applied.
+ * Inspecting the sk/cs Payload
+ * page 12 content directly (inspect-faq-page.ts) showed their existing
+ * register links point at bare legacy paths (`/registracia/`,
+ * `/registrace/`) that predate this engine's `/ucet/...` route prefix and
+ * 404 on it; hu's page 12 content has no register link at all. Those
+ * stale hrefs are therefore not mirrored — ro instead gets the canonical,
+ * working route, consistent with the no-public-legacy-routes rule for
+ * markets without an explicit legacy carve-out
+ * (apps/herbatika/src/lib/routing/legacy-official-redirects.ts).
+ *
  * Run (dry-run, default): payload run src/scripts/localize-faq-ro.ts
  * Run (apply):      FAQ_RO_APPLY=1 payload run src/scripts/localize-faq-ro.ts
+ * Run (force re-apply even if a ro localization already exists):
+ *                    FAQ_RO_APPLY=1 FAQ_RO_FORCE=1 payload run src/scripts/localize-faq-ro.ts
  */
 
 const PAGE_ID = 12
@@ -40,7 +63,9 @@ const TITLE = "Întrebări frecvente"
 type FaqLink = {
   href?: string
   label: string
-  target?: { kind: "account"; section: "register" } | { kind: "static"; page: "returns" | "terms" }
+  target?:
+    | { kind: "account"; section: "register" }
+    | { kind: "static"; page: "returns" | "terms" }
 }
 
 type FaqAnswerBlock =
@@ -79,7 +104,10 @@ const roFaqItems: FaqItem[] = [
           "Veți vedea un tabel clar cu stadiul comenzii dumneavoastră.",
         ],
       },
-      { type: "links", items: [{ label: "Urmăriți comanda din contul de client" }] },
+      {
+        type: "links",
+        items: [{ label: "Urmăriți comanda din contul de client" }],
+      },
     ],
   },
   {
@@ -104,9 +132,15 @@ const roFaqItems: FaqItem[] = [
         text: "Apăsați „Anunțați-mă când revine în stoc”, introduceți adresa de e-mail, iar noi vă vom trimite automat un mesaj după reaprovizionare.",
       },
       { type: "heading", text: "Primul pas" },
-      { type: "links", items: [{ label: "Deschideți alerta de stoc pe pagina produsului" }] },
+      {
+        type: "links",
+        items: [{ label: "Deschideți alerta de stoc pe pagina produsului" }],
+      },
       { type: "heading", text: "Al doilea pas" },
-      { type: "links", items: [{ label: "Introduceți adresa de e-mail și confirmați alerta" }] },
+      {
+        type: "links",
+        items: [{ label: "Introduceți adresa de e-mail și confirmați alerta" }],
+      },
     ],
   },
   {
@@ -128,7 +162,9 @@ const roFaqItems: FaqItem[] = [
       },
       {
         type: "links",
-        items: [{ href: "mailto:salut@herbatica.ro", label: "salut@herbatica.ro" }],
+        items: [
+          { href: "mailto:salut@herbatica.ro", label: "salut@herbatica.ro" },
+        ],
       },
     ],
   },
@@ -141,8 +177,14 @@ const roFaqItems: FaqItem[] = [
         type: "paragraph",
         text: "Dacă aveți o propunere comercială, o idee de îmbunătățire sau sunteți interesat de o colaborare ori de achiziții angro, scrieți-ne la salut@herbatica.ro.",
       },
-      { type: "paragraph", text: "Ne puteți contacta și telefonic la +40 (31) 2295431." },
-      { type: "paragraph", text: "Așteptăm cu interes mesajul sau apelul dumneavoastră." },
+      {
+        type: "paragraph",
+        text: "Ne puteți contacta și telefonic la +40 (31) 2295431.",
+      },
+      {
+        type: "paragraph",
+        text: "Așteptăm cu interes mesajul sau apelul dumneavoastră.",
+      },
       {
         type: "links",
         items: [
@@ -154,7 +196,8 @@ const roFaqItems: FaqItem[] = [
   },
   {
     id: "byt-v-obraze",
-    question: "Cum puteți fi la curent cu noutățile, schimbările și promoțiile Herbatica?",
+    question:
+      "Cum puteți fi la curent cu noutățile, schimbările și promoțiile Herbatica?",
     answer: [
       { type: "paragraph", text: "15.8.2019" },
       {
@@ -176,15 +219,24 @@ const roFaqItems: FaqItem[] = [
       { type: "heading", text: "Cum deveniți membru al clubului?" },
       {
         type: "list",
-        items: ["creați-vă un cont", "abonați-vă la newsletter pentru a primi noutățile"],
+        items: [
+          "creați-vă un cont",
+          "abonați-vă la newsletter pentru a primi noutățile",
+        ],
       },
       {
         type: "links",
         items: [
-          { label: "Înregistrare", target: { kind: "account", section: "register" } },
+          {
+            label: "Înregistrare",
+            target: { kind: "account", section: "register" },
+          },
           { label: "Newsletter" },
           { href: "https://www.instagram.com/herbatica/", label: "Instagram" },
-          { href: "https://www.facebook.com/vasaherbatica/", label: "Facebook" },
+          {
+            href: "https://www.facebook.com/vasaherbatica/",
+            label: "Facebook",
+          },
         ],
       },
     ],
@@ -224,7 +276,10 @@ const roFaqItems: FaqItem[] = [
         type: "paragraph",
         text: "Colaborăm cu parteneri afiliați prin platforma Dognet. Vă puteți înregistra pe platformă și ne puteți contacta prin această rețea.",
       },
-      { type: "paragraph", text: "Pentru un alt tip de colaborare, scrieți-ne la salut@herbatica.ro." },
+      {
+        type: "paragraph",
+        text: "Pentru un alt tip de colaborare, scrieți-ne la salut@herbatica.ro.",
+      },
       {
         type: "links",
         items: [
@@ -236,7 +291,8 @@ const roFaqItems: FaqItem[] = [
   },
   {
     id: "eurobio-lab",
-    question: "Cum se interpretează marcajul termenului de valabilitate pentru produsele EUROBIO LAB?",
+    question:
+      "Cum se interpretează marcajul termenului de valabilitate pentru produsele EUROBIO LAB?",
     answer: [
       { type: "paragraph", text: "8.3.2021" },
       {
@@ -256,7 +312,8 @@ const roFaqItems: FaqItem[] = [
   },
   {
     id: "vratenie-reklamacia",
-    question: "Cum procedați pentru returnarea sau reclamarea unui produs și unde găsiți formularele?",
+    question:
+      "Cum procedați pentru returnarea sau reclamarea unui produs și unde găsiți formularele?",
     answer: [
       { type: "paragraph", text: "12.3.2021" },
       {
@@ -280,7 +337,8 @@ const roFaqItems: FaqItem[] = [
   },
   {
     id: "odstupenie-od-zmluvy",
-    question: "Cum vă puteți retrage din contractul de vânzare și unde găsiți formularele?",
+    question:
+      "Cum vă puteți retrage din contractul de vânzare și unde găsiți formularele?",
     answer: [
       { type: "paragraph", text: "12.3.2021" },
       {
@@ -309,6 +367,24 @@ const RO_STATIC_PAGE_PATHS: Record<"returns" | "terms", string> = {
   terms: "/termeni-si-conditii",
 }
 
+// Canonical account/register path for ro, reproduced from
+// PUBLIC_FLOW_ROUTE_SEGMENTS.ro in
+// libs/storefront-i18n/src/core/public-flow-routes.ts:
+// flowRoots.account="cont", children.account.register="inregistrare" ->
+// `/${flowRoots.account}/${children.account.register}`. Verified live
+// (HTTP 200) against the running dev storefront:
+//   curl -H 'Host: ro.localhost' http://127.0.0.1:3001/cont/inregistrare
+// This is the only `{kind:"account", section:...}` target this FAQ
+// content links to, so only "register" is reproduced here.
+const RO_ACCOUNT_PATHS: Record<"register", string> = {
+  register: "/cont/inregistrare",
+}
+
+// Shape Payload's pages.content richText field expects for lexical nodes;
+// keeps buildFaqContent assignable to payload.update's data.content without
+// an unchecked cast.
+type LexicalNode = Record<string, unknown> & { type: string; version: number }
+
 const textNode = (text: string) => ({
   detail: 0,
   format: 0,
@@ -329,7 +405,7 @@ const heading = (text: string) => ({
   version: 1,
 })
 
-const paragraph = (children: unknown[]) => ({
+const paragraph = (children: LexicalNode[]) => ({
   children,
   direction: null,
   format: "",
@@ -358,15 +434,17 @@ const resolveLinkHref = (link: FaqLink): string | null => {
   if (link.target?.kind === "static") {
     return RO_STATIC_PAGE_PATHS[link.target.page]
   }
-  // {kind:"account", section:"register"} has no known-good static path to
-  // reproduce here without importing the herbatika app's route package;
-  // render as plain (non-hyperlinked) text rather than fabricate a URL.
+  if (link.target?.kind === "account" && link.target.section === "register") {
+    return RO_ACCOUNT_PATHS.register
+  }
   return null
 }
 
-const isExternalHttpUrl = (url: string) => /^https?:\/\//i.test(url)
+const EXTERNAL_HTTP_URL_PATTERN = /^https?:\/\//i
 
-const answerBlockToNodes = (block: FaqAnswerBlock): unknown[] => {
+const isExternalHttpUrl = (url: string) => EXTERNAL_HTTP_URL_PATTERN.test(url)
+
+const answerBlockToNodes = (block: FaqAnswerBlock): LexicalNode[] => {
   if (block.type === "heading") {
     return [heading(block.text)]
   }
@@ -375,7 +453,9 @@ const answerBlockToNodes = (block: FaqAnswerBlock): unknown[] => {
   }
   if (block.type === "list") {
     return block.items.map((item, index) =>
-      paragraph([textNode(block.ordered ? `${index + 1}. ${item}` : `– ${item}`)])
+      paragraph([
+        textNode(block.ordered ? `${index + 1}. ${item}` : `– ${item}`),
+      ])
     )
   }
   // block.type === "links": each link becomes its own paragraph, mirroring
@@ -397,7 +477,7 @@ const buildFaqContent = (items: readonly FaqItem[]) => ({
       ...item.answer.flatMap(answerBlockToNodes),
     ]),
     direction: null,
-    format: "",
+    format: "" as const,
     indent: 0,
     type: "root" as const,
     version: 1,
@@ -415,6 +495,13 @@ const hasRealRoLocalization = (doc: {
 
 const run = async () => {
   const apply = process.env.FAQ_RO_APPLY === "1"
+  // The script normally exits early once a ro localization exists, so a
+  // corrected register href (or any other content fix) never re-lands
+  // without this. FAQ_RO_FORCE=1 skips the existing-localization guard and
+  // rewrites pages id=12 locale=ro unconditionally (still gated by
+  // FAQ_RO_APPLY=1 for the actual write). Only the `ro` locale is ever
+  // touched — sk/cs/hu are never read for write purposes.
+  const force = process.env.FAQ_RO_FORCE === "1"
   const payload = await getPayload({ config })
 
   try {
@@ -427,9 +514,9 @@ const run = async () => {
       overrideAccess: true,
     })
 
-    if (hasRealRoLocalization(existing)) {
+    if (hasRealRoLocalization(existing) && !force) {
       payload.logger.info(
-        `pages id=${PAGE_ID} already has a ro localization (title="${existing.title}", slug="${existing.slug}") — skipping`
+        `pages id=${PAGE_ID} already has a ro localization (title="${existing.title}", slug="${existing.slug}") — skipping (set FAQ_RO_FORCE=1 to re-apply)`
       )
       return
     }

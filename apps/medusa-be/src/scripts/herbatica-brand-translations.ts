@@ -1,4 +1,7 @@
-import type { ExecArgs, ITranslationModuleService } from "@medusajs/framework/types"
+import type {
+  ExecArgs,
+  ITranslationModuleService,
+} from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import type { Logger } from "@medusajs/medusa"
 import { BRAND_MODULE } from "../modules/brand"
@@ -16,8 +19,7 @@ export default async function herbaticaBrandTranslations({
 }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const apply =
-    args.includes("--apply") ||
-    process.env.HERBATICA_BRAND_FILL_APPLY === "1"
+    args.includes("--apply") || process.env.HERBATICA_BRAND_FILL_APPLY === "1"
   const brandService = container.resolve<BrandModuleService>(BRAND_MODULE)
   const translationService = container.resolve<ITranslationModuleService>(
     Modules.TRANSLATION
@@ -41,14 +43,14 @@ export default async function herbaticaBrandTranslations({
   )
 
   const toCreate = brands.flatMap((brand) =>
-    LOCALES.filter(
-      (locale) => !existingKeys.has(`${brand.id} ${locale}`)
-    ).map((locale) => ({
-      locale_code: locale,
-      reference: "brand",
-      reference_id: brand.id,
-      translations: { title: brand.title },
-    }))
+    LOCALES.filter((locale) => !existingKeys.has(`${brand.id} ${locale}`)).map(
+      (locale) => ({
+        locale_code: locale,
+        reference: "brand",
+        reference_id: brand.id,
+        translations: { title: brand.title },
+      })
+    )
   )
 
   logger.info(

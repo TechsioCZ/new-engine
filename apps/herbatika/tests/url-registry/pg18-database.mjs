@@ -181,7 +181,9 @@ export const seedLegacyCatalogUnpublishedReceipt = async (migrationUrl) => {
     await client.query("COMMIT")
     return sourceId
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => {})
+    await client.query("ROLLBACK").catch(() => {
+      /* best-effort rollback: original error already captured above */
+    })
     throw error
   } finally {
     client.release()

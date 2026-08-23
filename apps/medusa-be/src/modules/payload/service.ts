@@ -374,6 +374,17 @@ export default class PayloadModuleService extends MedusaService({}) {
   }
 
   /**
+   * Normalize a Payload document id for cache-key use.
+   */
+  private normalizeDocumentId(id?: string | number): string | undefined {
+    if (typeof id === "number") {
+      return Number.isFinite(id) ? String(id) : undefined
+    }
+    const trimmed = id?.trim()
+    return trimmed || undefined
+  }
+
+  /**
    * Normalize locale query values that might be stringified null/undefined.
    */
   private normalizeLocale(locale?: string): string | undefined {
@@ -830,7 +841,8 @@ export default class PayloadModuleService extends MedusaService({}) {
   async invalidateCache(
     collection: string,
     slug?: string,
-    locale?: string
+    locale?: string,
+    id?: string | number
   ): Promise<void> {
     if (!this.cacheService_) {
       return
@@ -843,6 +855,19 @@ export default class PayloadModuleService extends MedusaService({}) {
         collection === ARTICLES
           ? this.buildArticleCacheKey(slug, normalizedLocale)
           : `${CMS}:${collection}:${slug}:${normalizedLocale ?? DEFAULT_LOCALE}`
+      this.logger_.info(`CMS: Clearing cache key ${key}`)
+      await this.cacheService_.clear({ key })
+    }
+
+    // By-ID reads carry only the locale-less PAGES/ARTICLES tags, so a
+    // locale-scoped invalidation never reaches them through tags.
+    const documentId = this.normalizeDocumentId(id)
+    if (
+      documentId &&
+      !clearAllLocales &&
+      (collection === PAGES || collection === ARTICLES)
+    ) {
+      const key = `${CMS}:${collection}:id:${documentId}:${normalizedLocale}`
       this.logger_.info(`CMS: Clearing cache key ${key}`)
       await this.cacheService_.clear({ key })
     }

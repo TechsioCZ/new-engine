@@ -1060,5 +1060,69 @@ describe("PayloadModuleService", () => {
         tags: ["cms:footer-navigation", "cms:pages", "cms:page-categories"],
       })
     })
+
+    it("clears the by-ID page entry on a locale-scoped invalidation", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("pages", "doprava", "cs", "7")
+
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        key: "cms:pages:id:7:cs",
+      })
+    })
+
+    it("clears the by-ID article entry for a numeric document id", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("articles", "bylinky", "cs", 42)
+
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        key: "cms:articles:id:42:cs",
+      })
+    })
+
+    it("clears the by-ID entry even when the slug is missing", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("articles", undefined, "cs", "42")
+
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        key: "cms:articles:id:42:cs",
+      })
+    })
+
+    it("skips the by-ID key when the invalidation is not locale-scoped", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("pages", "doprava", undefined, "7")
+
+      expect(cacheService.clear).not.toHaveBeenCalledWith({
+        key: "cms:pages:id:7:cs",
+      })
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        tags: ["cms:footer-navigation", "cms:pages", "cms:page-categories"],
+      })
+    })
+
+    it("skips the by-ID key for collections without by-ID reads", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("article-categories", undefined, "sk", "9")
+
+      expect(cacheService.clear).toHaveBeenCalledTimes(1)
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        tags: ["cms:article-categories:locale:sk"],
+      })
+    })
   })
 })
