@@ -63,7 +63,9 @@ const TITLE = "Întrebări frecvente"
 type FaqLink = {
   href?: string
   label: string
-  target?: { kind: "account"; section: "register" } | { kind: "static"; page: "returns" | "terms" }
+  target?:
+    | { kind: "account"; section: "register" }
+    | { kind: "static"; page: "returns" | "terms" }
 }
 
 type FaqAnswerBlock =
@@ -102,7 +104,10 @@ const roFaqItems: FaqItem[] = [
           "Veți vedea un tabel clar cu stadiul comenzii dumneavoastră.",
         ],
       },
-      { type: "links", items: [{ label: "Urmăriți comanda din contul de client" }] },
+      {
+        type: "links",
+        items: [{ label: "Urmăriți comanda din contul de client" }],
+      },
     ],
   },
   {
@@ -127,9 +132,15 @@ const roFaqItems: FaqItem[] = [
         text: "Apăsați „Anunțați-mă când revine în stoc”, introduceți adresa de e-mail, iar noi vă vom trimite automat un mesaj după reaprovizionare.",
       },
       { type: "heading", text: "Primul pas" },
-      { type: "links", items: [{ label: "Deschideți alerta de stoc pe pagina produsului" }] },
+      {
+        type: "links",
+        items: [{ label: "Deschideți alerta de stoc pe pagina produsului" }],
+      },
       { type: "heading", text: "Al doilea pas" },
-      { type: "links", items: [{ label: "Introduceți adresa de e-mail și confirmați alerta" }] },
+      {
+        type: "links",
+        items: [{ label: "Introduceți adresa de e-mail și confirmați alerta" }],
+      },
     ],
   },
   {
@@ -151,7 +162,9 @@ const roFaqItems: FaqItem[] = [
       },
       {
         type: "links",
-        items: [{ href: "mailto:salut@herbatica.ro", label: "salut@herbatica.ro" }],
+        items: [
+          { href: "mailto:salut@herbatica.ro", label: "salut@herbatica.ro" },
+        ],
       },
     ],
   },
@@ -164,8 +177,14 @@ const roFaqItems: FaqItem[] = [
         type: "paragraph",
         text: "Dacă aveți o propunere comercială, o idee de îmbunătățire sau sunteți interesat de o colaborare ori de achiziții angro, scrieți-ne la salut@herbatica.ro.",
       },
-      { type: "paragraph", text: "Ne puteți contacta și telefonic la +40 (31) 2295431." },
-      { type: "paragraph", text: "Așteptăm cu interes mesajul sau apelul dumneavoastră." },
+      {
+        type: "paragraph",
+        text: "Ne puteți contacta și telefonic la +40 (31) 2295431.",
+      },
+      {
+        type: "paragraph",
+        text: "Așteptăm cu interes mesajul sau apelul dumneavoastră.",
+      },
       {
         type: "links",
         items: [
@@ -177,7 +196,8 @@ const roFaqItems: FaqItem[] = [
   },
   {
     id: "byt-v-obraze",
-    question: "Cum puteți fi la curent cu noutățile, schimbările și promoțiile Herbatica?",
+    question:
+      "Cum puteți fi la curent cu noutățile, schimbările și promoțiile Herbatica?",
     answer: [
       { type: "paragraph", text: "15.8.2019" },
       {
@@ -199,15 +219,24 @@ const roFaqItems: FaqItem[] = [
       { type: "heading", text: "Cum deveniți membru al clubului?" },
       {
         type: "list",
-        items: ["creați-vă un cont", "abonați-vă la newsletter pentru a primi noutățile"],
+        items: [
+          "creați-vă un cont",
+          "abonați-vă la newsletter pentru a primi noutățile",
+        ],
       },
       {
         type: "links",
         items: [
-          { label: "Înregistrare", target: { kind: "account", section: "register" } },
+          {
+            label: "Înregistrare",
+            target: { kind: "account", section: "register" },
+          },
           { label: "Newsletter" },
           { href: "https://www.instagram.com/herbatica/", label: "Instagram" },
-          { href: "https://www.facebook.com/vasaherbatica/", label: "Facebook" },
+          {
+            href: "https://www.facebook.com/vasaherbatica/",
+            label: "Facebook",
+          },
         ],
       },
     ],
@@ -247,7 +276,10 @@ const roFaqItems: FaqItem[] = [
         type: "paragraph",
         text: "Colaborăm cu parteneri afiliați prin platforma Dognet. Vă puteți înregistra pe platformă și ne puteți contacta prin această rețea.",
       },
-      { type: "paragraph", text: "Pentru un alt tip de colaborare, scrieți-ne la salut@herbatica.ro." },
+      {
+        type: "paragraph",
+        text: "Pentru un alt tip de colaborare, scrieți-ne la salut@herbatica.ro.",
+      },
       {
         type: "links",
         items: [
@@ -259,7 +291,8 @@ const roFaqItems: FaqItem[] = [
   },
   {
     id: "eurobio-lab",
-    question: "Cum se interpretează marcajul termenului de valabilitate pentru produsele EUROBIO LAB?",
+    question:
+      "Cum se interpretează marcajul termenului de valabilitate pentru produsele EUROBIO LAB?",
     answer: [
       { type: "paragraph", text: "8.3.2021" },
       {
@@ -279,7 +312,8 @@ const roFaqItems: FaqItem[] = [
   },
   {
     id: "vratenie-reklamacia",
-    question: "Cum procedați pentru returnarea sau reclamarea unui produs și unde găsiți formularele?",
+    question:
+      "Cum procedați pentru returnarea sau reclamarea unui produs și unde găsiți formularele?",
     answer: [
       { type: "paragraph", text: "12.3.2021" },
       {
@@ -303,7 +337,8 @@ const roFaqItems: FaqItem[] = [
   },
   {
     id: "odstupenie-od-zmluvy",
-    question: "Cum vă puteți retrage din contractul de vânzare și unde găsiți formularele?",
+    question:
+      "Cum vă puteți retrage din contractul de vânzare și unde găsiți formularele?",
     answer: [
       { type: "paragraph", text: "12.3.2021" },
       {
@@ -345,6 +380,11 @@ const RO_ACCOUNT_PATHS: Record<"register", string> = {
   register: "/cont/inregistrare",
 }
 
+// Shape Payload's pages.content richText field expects for lexical nodes;
+// keeps buildFaqContent assignable to payload.update's data.content without
+// an unchecked cast.
+type LexicalNode = Record<string, unknown> & { type: string; version: number }
+
 const textNode = (text: string) => ({
   detail: 0,
   format: 0,
@@ -365,7 +405,7 @@ const heading = (text: string) => ({
   version: 1,
 })
 
-const paragraph = (children: unknown[]) => ({
+const paragraph = (children: LexicalNode[]) => ({
   children,
   direction: null,
   format: "",
@@ -400,9 +440,11 @@ const resolveLinkHref = (link: FaqLink): string | null => {
   return null
 }
 
-const isExternalHttpUrl = (url: string) => /^https?:\/\//i.test(url)
+const EXTERNAL_HTTP_URL_PATTERN = /^https?:\/\//i
 
-const answerBlockToNodes = (block: FaqAnswerBlock): unknown[] => {
+const isExternalHttpUrl = (url: string) => EXTERNAL_HTTP_URL_PATTERN.test(url)
+
+const answerBlockToNodes = (block: FaqAnswerBlock): LexicalNode[] => {
   if (block.type === "heading") {
     return [heading(block.text)]
   }
@@ -411,7 +453,9 @@ const answerBlockToNodes = (block: FaqAnswerBlock): unknown[] => {
   }
   if (block.type === "list") {
     return block.items.map((item, index) =>
-      paragraph([textNode(block.ordered ? `${index + 1}. ${item}` : `– ${item}`)])
+      paragraph([
+        textNode(block.ordered ? `${index + 1}. ${item}` : `– ${item}`),
+      ])
     )
   }
   // block.type === "links": each link becomes its own paragraph, mirroring
@@ -433,7 +477,7 @@ const buildFaqContent = (items: readonly FaqItem[]) => ({
       ...item.answer.flatMap(answerBlockToNodes),
     ]),
     direction: null,
-    format: "",
+    format: "" as const,
     indent: 0,
     type: "root" as const,
     version: 1,
