@@ -33,7 +33,10 @@ export const prioritizeDiscountedVariant = (
   const searchResult = { ...(productWithSearchResult.search_result ?? {}) }
 
   if (searchResult.variant_id !== discountedVariant.id) {
-    delete searchResult.variant_title
+    // Equivalent to `delete`: all consumers read via optional chaining
+    // (`?.variant_title`) and JSON.stringify drops undefined-valued keys
+    // the same as absent keys, so this preserves identical behavior.
+    searchResult.variant_title = undefined
   }
   searchResult.variant_id = discountedVariant.id
 

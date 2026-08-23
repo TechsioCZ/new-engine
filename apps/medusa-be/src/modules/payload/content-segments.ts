@@ -173,6 +173,71 @@ const toProductReference = (
   }
 }
 
+const markersMatchBlocks = (
+  markerTypes: unknown[],
+  blockTypes: unknown[]
+): boolean =>
+  markerTypes.length === blockTypes.length &&
+  markerTypes.every((type, index) => type === blockTypes[index])
+
+const buildFallbackSegments = (
+  html: string,
+  tableOfContents: CmsArticleTableOfContentsItem[]
+): CmsArticleContentSegment[] => {
+  const markerFreeHtml = html.replace(CMS_BLOCK_MARKER_PATTERN, "")
+  const fallbackSegments: CmsArticleContentSegment[] = markerFreeHtml.trim()
+    ? [{ type: "html", html: markerFreeHtml }]
+    : []
+  return addHeadingAnchors(fallbackSegments, tableOfContents)
+}
+
+const appendProductCarouselSegment = (
+  segments: CmsArticleContentSegment[],
+  block: CmsBlockFields
+): boolean => {
+  const products = (block.products ?? [])
+    .map(toProductReference)
+    .filter((product): product is CmsProductReferenceDTO => !!product)
+  if (products.length === 0) {
+    return false
+  }
+  segments.push({ type: "productCarousel", products })
+  return true
+}
+
+const buildSegmentsFromMarkers = (
+  html: string,
+  markers: RegExpMatchArray[],
+  blocks: CmsBlockFields[]
+): CmsArticleContentSegment[] => {
+  const segments: CmsArticleContentSegment[] = []
+  let blockIndex = 0
+  let htmlOffset = 0
+
+  for (const marker of markers) {
+    const markerIndex = marker.index
+    if (markerIndex === undefined) {
+      continue
+    }
+
+    appendHtmlSegment(segments, html.slice(htmlOffset, markerIndex))
+
+    const blockType = marker[1]
+    const block = blocks[blockIndex]
+    if (block && block.blockType === blockType) {
+      if (blockType === "productCarousel") {
+        appendProductCarouselSegment(segments, block)
+      }
+      blockIndex += 1
+    }
+
+    htmlOffset = markerIndex + marker[0].length
+  }
+
+  appendHtmlSegment(segments, html.slice(htmlOffset))
+  return segments
+}
+
 export const buildCmsArticleContentSegments = (
   content: CmsLexicalContentDTO | undefined,
   contentHTML: string | null | undefined
@@ -189,53 +254,11 @@ export const buildCmsArticleContentSegments = (
   const markers = [...html.matchAll(CMS_BLOCK_MARKER_PATTERN)]
   const markerTypes = markers.map((marker) => marker[1])
   const blockTypes = blocks.map((block) => block.blockType)
-  if (
-    markerTypes.length !== blockTypes.length ||
-    markerTypes.some((type, index) => type !== blockTypes[index])
-  ) {
-    const markerFreeHtml = html.replace(CMS_BLOCK_MARKER_PATTERN, "")
-    const fallbackSegments: CmsArticleContentSegment[] = markerFreeHtml.trim()
-      ? [{ type: "html", html: markerFreeHtml }]
-      : []
-    return addHeadingAnchors(fallbackSegments, tableOfContents)
+
+  if (!markersMatchBlocks(markerTypes, blockTypes)) {
+    return buildFallbackSegments(html, tableOfContents)
   }
 
-  const segments: CmsArticleContentSegment[] = []
-  let blockIndex = 0
-  let htmlOffset = 0
-
-  for (const marker of markers) {
-    const markerIndex = marker.index
-    if (markerIndex === undefined) {
-      continue
-    }
-
-    appendHtmlSegment(segments, html.slice(htmlOffset, markerIndex))
-
-    const blockType = marker[1]
-    const block = blocks[blockIndex]
-    if (block && block.blockType === blockType) {
-      if (blockType === "productCarousel" && block.products) {
-        const products = block.products
-          .map(toProductReference)
-          .filter((product): product is CmsProductReferenceDTO => !!product)
-        if (products.length === 0) {
-          blockIndex += 1
-          htmlOffset = markerIndex + marker[0].length
-          continue
-        }
-        segments.push({
-          type: "productCarousel",
-          products,
-        })
-      }
-      blockIndex += 1
-    }
-
-    htmlOffset = markerIndex + marker[0].length
-  }
-
-  appendHtmlSegment(segments, html.slice(htmlOffset))
-
+  const segments = buildSegmentsFromMarkers(html, markers, blocks)
   return addHeadingAnchors(segments, tableOfContents)
 }

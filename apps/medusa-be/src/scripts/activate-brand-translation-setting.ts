@@ -23,12 +23,18 @@ export default async function activateBrandTranslationSetting({
   const apply =
     args.includes("--apply") || process.env.HERBATICA_BRAND_FILL_APPLY === "1"
   const translationService = container.resolve<{
-    listTranslationSettings: (
-      filters: Record<string, unknown>
-    ) => Promise<Array<{ id: string; entity_type: string; is_active: boolean; fields: string[] }>>
-    updateTranslationSettings: (
-      data: { id: string; is_active: boolean }
-    ) => Promise<unknown>
+    listTranslationSettings: (filters: Record<string, unknown>) => Promise<
+      Array<{
+        id: string
+        entity_type: string
+        is_active: boolean
+        fields: string[]
+      }>
+    >
+    updateTranslationSettings: (data: {
+      id: string
+      is_active: boolean
+    }) => Promise<unknown>
     listTranslations: (
       filters: Record<string, unknown>,
       config: Record<string, unknown>
@@ -69,7 +75,16 @@ export default async function activateBrandTranslationSetting({
   // Verify a brand translation now reads back its title.
   const sample = await translationService.listTranslations(
     { reference: "brand", locale_code: "cs-CZ" },
-    { select: ["id", "reference", "reference_id", "locale_code", "translations"], take: 1 }
+    {
+      select: [
+        "id",
+        "reference",
+        "reference_id",
+        "locale_code",
+        "translations",
+      ],
+      take: 1,
+    }
   )
   logger.info(
     `sample brand cs-CZ translation after activation: ${JSON.stringify(sample[0]?.translations)}`

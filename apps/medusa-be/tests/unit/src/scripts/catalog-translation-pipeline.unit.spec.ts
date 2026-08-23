@@ -34,6 +34,7 @@ import type {
   ExistingCatalogTranslation,
 } from "../../../../src/scripts/catalog-translation-pipeline/types"
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/
 const SHA = "a".repeat(64)
 const PROTECTED_DATABASE_SHA = hashCatalogTranslationValue(
   Array.from({ length: 7 }, () => [])
@@ -447,7 +448,7 @@ describe("catalog translation test pipeline", () => {
       productIds: ["prod_1"],
       targetLocales: ["cs-CZ"],
     })
-    expect(hashCatalogTranslationPlan(plan)).toMatch(/^[a-f0-9]{64}$/)
+    expect(hashCatalogTranslationPlan(plan)).toMatch(SHA256_HEX_PATTERN)
   })
 
   it("binds a copied nonblank target as the exact rollback preimage", () => {
@@ -521,7 +522,7 @@ describe("catalog translation test pipeline", () => {
             (!filters.reference_id ||
               (filters.reference_id as unknown[]).includes(record.reference_id))
         ),
-      updateTranslations: async () => {},
+      updateTranslations: () => Promise.resolve(),
     }
     const manager = {
       transactional: async (

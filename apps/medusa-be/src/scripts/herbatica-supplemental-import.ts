@@ -643,11 +643,20 @@ const publishProducts = async (
   }
 }
 
+type VerifyAppliedStateServices = {
+  query: Query
+  productService: IProductModuleService
+  productContentService: ProductContentModuleService
+  translationService: ITranslationModuleService
+}
+
 const verifyAppliedState = async (
-  query: Query,
-  productService: IProductModuleService,
-  productContentService: ProductContentModuleService,
-  translationService: ITranslationModuleService,
+  {
+    query,
+    productService,
+    productContentService,
+    translationService,
+  }: VerifyAppliedStateServices,
   manifest: HerbaticaSupplementalManifest,
   salesChannelIds: Readonly<Record<HerbaticaMarket, string>>
 ) => {
@@ -904,10 +913,7 @@ export default async function herbaticaSupplementalImport({
     salesChannelIds
   )
   await verifyAppliedState(
-    query,
-    productService,
-    productContentService,
-    translationService,
+    { productContentService, productService, query, translationService },
     manifest,
     salesChannelIds
   )

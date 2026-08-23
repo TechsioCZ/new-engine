@@ -28,12 +28,12 @@ describe("catalog assignment deletion lifecycle", () => {
       updated_at: new Date("2026-08-20T11:00:00.000Z"),
     }))
     const assignmentService = {
-      lockCatalogEntityAssignments: vi.fn(async () => {}),
+      lockCatalogEntityAssignments: vi.fn(() => Promise.resolve()),
       listStorefrontUrlAssignments: vi.fn(async () => records),
       runInTransaction: vi.fn(async (task) => task(sharedContext)),
       updateStorefrontUrlAssignments,
     } as unknown as StorefrontUrlAssignmentModuleService
-    const enqueueCatalogLifecycleEvent = vi.fn(async () => {})
+    const enqueueCatalogLifecycleEvent = vi.fn(() => Promise.resolve())
     const outboxService = {
       enqueueCatalogLifecycleEvent,
     } as unknown as UrlRegistryOutboxModuleService
@@ -101,7 +101,7 @@ describe("catalog assignment deletion lifecycle", () => {
 
   it("is a no-op when every assignment is already draft", async () => {
     const assignmentService = {
-      lockCatalogEntityAssignments: vi.fn(async () => {}),
+      lockCatalogEntityAssignments: vi.fn(() => Promise.resolve()),
       listStorefrontUrlAssignments: vi.fn(async () => [
         assignment("sk", "draft"),
         assignment("ro", "draft"),
@@ -134,7 +134,7 @@ describe("catalog assignment deletion lifecycle", () => {
     const records = [assignment("ro")]
     const assignmentService = {
       listStorefrontUrlAssignments: vi.fn(async () => records),
-      lockCatalogEntityAssignments: vi.fn(async () => {}),
+      lockCatalogEntityAssignments: vi.fn(() => Promise.resolve()),
       runInTransaction: vi.fn(async (task) => task(sharedContext)),
       updateStorefrontUrlAssignments: vi.fn(async (input) => ({
         ...records[0],
@@ -142,7 +142,7 @@ describe("catalog assignment deletion lifecycle", () => {
       })),
     } as unknown as StorefrontUrlAssignmentModuleService
     const outboxService = {
-      enqueueCatalogLifecycleEvent: vi.fn(async () => {}),
+      enqueueCatalogLifecycleEvent: vi.fn(() => Promise.resolve()),
     } as unknown as UrlRegistryOutboxModuleService
 
     await unpublishCatalogEntityAssignments({

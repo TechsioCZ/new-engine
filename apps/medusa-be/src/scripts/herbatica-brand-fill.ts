@@ -8,8 +8,8 @@ import type { Logger } from "@medusajs/medusa"
 import { ProductBrandLink } from "../links/product-brand"
 import { BRAND_MODULE } from "../modules/brand"
 import type BrandModuleService from "../modules/brand/service"
-import { enqueueCatalogAssignmentLifecycle } from "../modules/storefront-url-assignment/catalog-lifecycle"
 import { STOREFRONT_URL_ASSIGNMENT_MODULE } from "../modules/storefront-url-assignment"
+import { enqueueCatalogAssignmentLifecycle } from "../modules/storefront-url-assignment/catalog-lifecycle"
 import type { StorefrontUrlAssignmentRecord } from "../modules/storefront-url-assignment/models/storefront-url-assignment"
 import type StorefrontUrlAssignmentModuleService from "../modules/storefront-url-assignment/service"
 import { URL_REGISTRY_OUTBOX_MODULE } from "../modules/url-registry-outbox"
@@ -431,7 +431,10 @@ const upsertAssignment = async (
   })
 }
 
-export default async function herbaticaBrandFill({ args, container }: ExecArgs) {
+export default async function herbaticaBrandFill({
+  args,
+  container,
+}: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const brandService = container.resolve<BrandModuleService>(BRAND_MODULE)
@@ -598,7 +601,10 @@ export default async function herbaticaBrandFill({ args, container }: ExecArgs) 
       },
     })
   }
-  const refreshedHandleToId = await resolveLiveBrands(brandService, lookupHandles)
+  const refreshedHandleToId = await resolveLiveBrands(
+    brandService,
+    lookupHandles
+  )
   for (const plan of plans) {
     plan.existingBrandId = refreshedHandleToId.get(plan.targetHandle) ?? null
   }

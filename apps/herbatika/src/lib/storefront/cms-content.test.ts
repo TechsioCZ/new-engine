@@ -7,7 +7,7 @@ const loadModule = async () => {
   vi.doMock("./runtime-env", () => ({
     resolvePublicPayloadBaseUrl: () => BASE,
   }))
-  return import("./cms-content")
+  return await import("./cms-content")
 }
 
 describe("cms-content media url rebasing", () => {
