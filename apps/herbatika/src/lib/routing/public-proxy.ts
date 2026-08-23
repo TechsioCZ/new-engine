@@ -15,6 +15,7 @@ import type {
   RootSegmentMatch,
 } from "@/lib/url/types"
 import { resolveLegacyOfficialCategoryRedirect } from "./legacy-official-redirects"
+import { resolveOfficialContentSectionRedirect } from "./official-content-section-redirects"
 import { resolveOfficialStaticRedirect } from "./official-static-redirects"
 import { isPrivatePagesPath } from "./private-pages-path"
 
@@ -394,6 +395,23 @@ export const resolvePublicProxyAction = ({
       methodGuard(method) ?? {
         kind: "redirect",
         location: officialStaticLocation,
+        status: 308,
+      }
+    )
+  }
+  // Official `magazin` / `slovnik-pojmov` content-section URLs whose articles
+  // were imported as local Payload blog articles under the identical slug.
+  // See official-content-section-redirects.ts for the allow-list and the
+  // authorization for this scoped extension of the issue-#545 rule.
+  const officialContentSectionLocation = resolveOfficialContentSectionRedirect(
+    hostMarket.market,
+    parsed.segments
+  )
+  if (officialContentSectionLocation) {
+    return (
+      methodGuard(method) ?? {
+        kind: "redirect",
+        location: officialContentSectionLocation,
         status: 308,
       }
     )
