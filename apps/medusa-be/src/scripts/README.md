@@ -109,3 +109,36 @@ four Sales Channel IDs into `MARKET_SALES_CHANNEL_{SK,CZ,HU,RO}` and the four
 API-key IDs into `MARKET_PUBLISHABLE_KEY_ID_{SK,CZ,HU,RO}`. Public key values
 remain separately managed runtime credentials in
 `MARKET_PUBLISHABLE_KEY_{SK,CZ,HU,RO}`.
+
+## Herbatica category market parity
+
+`herbatica-category-market-parity.ts` keeps every active, non-internal category
+that has linked products projected on all four markets.
+
+A product detail page fails closed when any category linked to the product has
+no active URL Registry projection in the requested market
+(`readRequiredPublicEntitySlugs({ kind: "category", ... })` in
+`apps/herbatika/src/pages/~sf/[market]/products/[slug].tsx`). A category
+published for only some markets therefore returns `503` on every PDP that links
+it on the remaining markets.
+
+The script reports and repairs two gaps per market: a missing published
+storefront URL assignment and a missing locale translation (`sk-SK` is the
+catalog base language and is not required). It never invents a public slug —
+per-market names and slugs must be declared in the reviewed `MARKET_CONTENT`
+table, otherwise the category is logged as `BLOCKED` operator work and skipped.
+An assignment row that an operator moved off `published` is treated as
+deliberate unpublication and is left untouched.
+
+Default is a dry run. Writes are guarded by
+`HERBATICA_CATEGORY_MARKET_PARITY_APPLY=1`:
+
+```bash
+npx medusa exec ./src/scripts/herbatica-category-market-parity.ts
+HERBATICA_CATEGORY_MARKET_PARITY_APPLY=1 \
+  npx medusa exec ./src/scripts/herbatica-category-market-parity.ts
+```
+
+Re-running after a successful apply is a no-op. Assignment writes go through
+the storefront URL assignment module, enqueue the catalog lifecycle outbox
+event, and end with one URL Registry outbox dispatch.
