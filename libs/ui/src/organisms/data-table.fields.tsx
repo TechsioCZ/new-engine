@@ -439,7 +439,12 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     return (
       <Combobox
         disabled={disabled}
-        items={options.map((o) => ({ label: o.label, value: o.value }))}
+        // `options` passed straight through, not re-mapped: `Combobox`
+        // mirrors `items` into state and resets it on identity change, so a
+        // fresh array each render snapped the dropdown back to the unfiltered
+        // list on any unrelated re-render while the user was mid-typing.
+        // `DataTableOption` already satisfies `ComboboxItem`.
+        items={options}
         multiple
         onChange={(next) => {
           const arr = Array.isArray(next) ? next : [next].filter(Boolean)
@@ -730,7 +735,9 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
   multiEnum: ({ column, value, setValue, disabled, options, error, size }) => (
     <Combobox
       disabled={disabled}
-      items={options.map((o) => ({ label: o.label, value: o.value }))}
+      // See the multiEnum filter above: re-mapping breaks `Combobox`'s
+      // filtered-list state on every unrelated re-render.
+      items={options}
       multiple
       onChange={(next) => setValue(Array.isArray(next) ? next : [next])}
       placeholder={`Edit ${columnLabel(column)}`}

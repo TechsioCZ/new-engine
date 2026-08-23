@@ -330,7 +330,11 @@ function SortableHeaderContent({
     attributes: Record<string, unknown>
   }) => ReactNode
 }) {
-  const sortable = useSortable({ id: columnId })
+  // `data.type` tags what is being dragged. Routing by "is this id in the
+  // column list?" misfired whenever a row id collided with a column id — with
+  // `getRowId={(r) => r.slug}`, dragging the row keyed "name" reordered the
+  // columns and never fired `onRowReorder`.
+  const sortable = useSortable({ id: columnId, data: { type: "column" } })
   const style: CSSProperties = {
     transform: CSS.Translate.toString(sortable.transform),
     transition: sortable.transition,
@@ -377,7 +381,11 @@ function SortableRow<T extends RowData>({
     dropSide?: "top" | "bottom"
   }) => ReactNode
 }) {
-  const sortable = useSortable({ id: row.id, disabled: !enabled })
+  const sortable = useSortable({
+    id: row.id,
+    disabled: !enabled,
+    data: { type: "row" },
+  })
   const style: CSSProperties = {
     transform: CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
@@ -1465,7 +1473,23 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     onSelectionLimitReached,
   } = props
 
-  const translations = { ...DEFAULT_TRANSLATIONS, ...translationsProp }
+  /*
+   * Undefined entries are dropped rather than spread over the defaults.
+   * `translations={{ emptyTitle: t?.tableEmpty }}` is the ordinary call
+   * shape, and a missed i18n lookup passes `undefined` explicitly — which a
+   * plain spread writes straight over the default. Strings then rendered as
+   * literal "undefined", and `rangeLabel` is worse: `DataTable.Pagination`
+   * calls it unconditionally, so an undefined one threw "not a function" and
+   * took the whole table down the moment `enablePagination` was set.
+   */
+  const translations = { ...DEFAULT_TRANSLATIONS }
+  if (translationsProp) {
+    for (const [key, value] of Object.entries(translationsProp)) {
+      if (value !== undefined) {
+        ;(translations as Record<string, unknown>)[key] = value
+      }
+    }
+  }
   const outlined = variant === "outline"
   // `variant="striped"` forwards to the `Table` organism, which stripes via
   // `odd:`/`even:` DOM-sibling pseudo-classes — the same drift bug fixed
@@ -1663,6 +1687,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     onEditingRowIdChange
   )
   const [draft, setDraft] = useState<Record<string, unknown>>({})
+  // Mirrors `draft` so same-tick writes chain off each other rather than all
+  // resolving against one render's snapshot. Re-synced every render, so any
+  // other `setDraft` caller (seeding, reset) stays consistent with it.
+  const draftRef = useRef(draft)
+  draftRef.current = draft
   const [editErrors, setEditErrors] = useState<Record<string, string>>({})
   const [dirty, setDirty] = useState(false)
 
@@ -1944,7 +1973,15 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   }
 
   const setDraftValue = (rowId: string, columnId: string, value: unknown) => {
-    const next = { ...draft, [columnId]: value }
+    // Built from a ref, not the render-scoped `draft`: two fields committing
+    // in the same tick — the `dateRange` editor's two inputs, or a blur and a
+    // change batched together — otherwise both resolve against the same stale
+    // object and the first write is silently dropped. A functional updater
+    // would fix the stored state but not `onEditChange`'s payload, since
+    // React may run the updater after this call returns; the ref advances
+    // synchronously so both agree.
+    const next = { ...draftRef.current, [columnId]: value }
+    draftRef.current = next
     setDraft(next)
     onEditChange?.({ rowId, columnId, value, draft: next })
     setDirty(true)
@@ -3048,7 +3085,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             </Table.Cell>
           ))}
           {hasActionsColumn && (
-            <Table.Cell numeric>
+            // Same sticky treatment as the real actions cell, or the frozen
+            // column visibly breaks apart while the table is loading.
+            <Table.Cell
+              className={stickyActions ? "sticky end-0 bg-inherit" : undefined}
+              numeric
+              style={
+                stickyActions
+                  ? { zIndex: DATA_TABLE_Z.stickyActionsCell }
+                  : undefined
+              }
+            >
               <Skeleton.Text noOfLines={1} size={size} />
             </Table.Cell>
           )}
@@ -3089,7 +3136,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   if (loading) {
     bodyState = "loading"
   } else if (rows.length === 0) {
-    bodyState = "empty"
+    // `loadingMore` with nothing rendered yet is still loading, not empty.
+    // The append skeleton lives in the "rows" branch, so an infinite-scroll
+    // table fetching its first page — or one whose filter emptied the view
+    // while a page was in flight — showed "No records" during the fetch,
+    // with `aria-busy` set but nothing visible saying so.
+    bodyState = loadingMore ? "loading" : "empty"
   }
 
   const bodyContent = (
@@ -3135,7 +3187,20 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   )}
             </Table.Cell>
           ))}
-          {hasActionsColumn && <Table.Cell numeric />}
+          {hasActionsColumn && (
+            // Footer actions cell freezes with the rest of the column.
+            <Table.Cell
+              className={
+                stickyActions ? "sticky end-0 bg-table-footer-bg" : undefined
+              }
+              numeric
+              style={
+                stickyActions
+                  ? { zIndex: DATA_TABLE_Z.stickyActionsCell }
+                  : undefined
+              }
+            />
+          )}
         </Table.Row>
       ))}
     </Table.Footer>
@@ -3198,9 +3263,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    * were routed to the column handler. Dispatch on what is actually being
    * dragged instead, and pick the axis modifier to match.
    */
-  const isColumnDragId = (id: string) => reorderableLeafIds.includes(id)
+  const isColumnDrag = (event: {
+    active: { id: string | number; data: { current?: { type?: string } } }
+  }) => event.active.data.current?.type === "column"
   const handleDragEnd = (event: DragEndEvent) => {
-    if (enableColumnReorder && isColumnDragId(String(event.active.id))) {
+    if (enableColumnReorder && isColumnDrag(event)) {
       handleColumnDragEnd(event)
       return
     }
@@ -3225,9 +3292,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         }}
         onDragStart={(event) =>
           setActiveDragAxis(
-            enableColumnReorder && isColumnDragId(String(event.active.id))
-              ? "column"
-              : "row"
+            enableColumnReorder && isColumnDrag(event) ? "column" : "row"
           )
         }
         sensors={sensors}
