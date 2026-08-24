@@ -4,22 +4,11 @@
  * Kept here:
  *   - `--color-select-danger` — helper-text color seed (Figma has only
  *     border validation colors).
- *   - `--padding-select-item` composite bridge (Figma splits x/y).
- *   - `--spacing-content` — consumed as a raw var() inside calc() in the
- *     TSX; aliases Figma's --spacing-select-content.
- *   - `--z-content` layering (code-side).
  */
 
 @theme static {
   --color-select-danger: var(--color-danger);
-
-  --padding-select-item: var(--padding-select-item-y) var(--padding-select-item-x);
-
-  --spacing-content: var(--spacing-select-content);
-
-  --z-content: 50;
 }
-
 
 /* === ICONS === */
 @utility token-icon-select-indicator {

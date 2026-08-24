@@ -47,6 +47,9 @@ const CHANGELOG = `
 ### ColorSelect v1.0.0
 - Opted into per-component versioning; paired 1:1 with the color-select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Combobox v1.1.0
+- Panel, item hover/selected colour, radius, shadow and z-index now come from the shared popup-surface tokens (also used by Select and Menu), so all three read as one system. Selected items get a real trailing check indicator (previously missing) in a reserved gutter that keeps the label from reflowing.
+
 ### Combobox v1.0.0
 - Opted into per-component versioning; paired 1:1 with the combobox-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
@@ -92,6 +95,9 @@ const CHANGELOG = `
 ### LinkButton v1.0.0
 - Opted into per-component versioning; paired 1:1 with the link-button-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Menu v1.1.0
+- Panel and item styling now come from the shared popup-surface tokens (see Select, Combobox). Added an \`xs\` size so parents whose own scale starts at \`xs\` (DataTable's column-settings menu) can forward \`size\` without it silently collapsing to \`md\`. Checkable rows reserve a trailing indicator gutter instead of shifting the label on toggle.
+
 ### Menu v1.0.0
 - Opted into per-component versioning; paired 1:1 with the menu-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
@@ -122,6 +128,9 @@ const CHANGELOG = `
 ### SearchForm v1.0.0
 - Opted into per-component versioning; paired 1:1 with the search-form-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Select v1.1.0
+- Panel and item styling now come from the shared popup-surface tokens (see Combobox, Menu): consistent radius, shadow, hover/selected colour and z-index across all three. The panel height now caps at the measured available space instead of a fixed height, and the selected-item indicator sits in a reserved gutter so the label no longer reflows on selection.
+
 ### Select v1.0.0
 - Opted into per-component versioning; paired 1:1 with the select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
@@ -139,6 +148,9 @@ const CHANGELOG = `
 
 ### Switch v1.0.0
 - Opted into per-component versioning; paired 1:1 with the switch-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Table v1.2.0
+- Selected rows use a filled brand background (previously a light tint) with \`color-table-row-fg-selected\` so row text and \`currentColor\` glyphs invert correctly against it.
 
 ### Table v1.1.0
 - Cells and column headers style horizontal alignment from \`data-align\` (\`start | center | end\`). Unlike \`numeric\`, which asserts the value *is* a number, \`data-align\` is a pure presentation choice, so icon/boolean columns can be centred. Set one or the other, not both.

@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -71,54 +71,69 @@ export type MenuItem =
 const menuVariants = tv({
   slots: {
     trigger: "",
-    positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
+    // Zag sets `min-width: max-content` inline, so this resolves to
+    // max(trigger width, content width) — the panel is never narrower than
+    // the control that opened it.
+    positioner: ["isolate w-(--reference-width)"],
     content: [
-      "border border-menu-content-border bg-menu-content-bg",
-      "rounded-menu shadow-menu-content",
-      "p-menu-content",
-      "overflow-auto",
-      "focus-visible:outline-none",
-      "data-[state=open]:animate-in",
-      "data-[state=closed]:animate-out",
-      "motion-reduce:animate-none",
+      "popup-surface-base",
+      "w-full",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
+      "transition-discrete",
+      "starting:scale-98 starting:opacity-0",
+      "data-[state=open]:starting:scale-98 data-[state=open]:starting:opacity-0",
+      "data-[state=open]:scale-100 data-[state=open]:opacity-100",
+      "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
     item: [
-      "flex items-center gap-menu-item",
-      "cursor-pointer",
-      "px-menu-item-x py-menu-item-y",
-      "text-menu-item-fg",
-      "rounded-menu-item",
-      "hover:bg-menu-item-bg-hover",
-      "focus:bg-menu-item-bg-hover focus-visible:outline-none",
-      "data-[disabled]:cursor-not-allowed data-[disabled]:text-menu-fg-disabled",
-      "data-[highlighted]:bg-menu-item-bg-hover",
+      "popup-item-base",
+      "hover:bg-popup-item-bg-hover",
+      "focus:bg-popup-item-bg-hover",
+      "data-[highlighted]:bg-popup-item-bg-hover",
+      "data-[disabled]:cursor-not-allowed data-[disabled]:text-popup-item-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    optionItem: ["data-[state=checked]:font-semibold"],
+    // Checkbox/radio rows signal selection the same way Select and Combobox
+    // do — accent foreground plus the indicator glyph, never a weight change
+    // (which would reflow the label on every toggle).
+    // Selection reads as accent foreground + the trailing check — never a
+    // weight change (which reflows the label on every toggle). Unlike Select,
+    // checkable menu rows get no background tint: selection here is not
+    // exclusive, so tinting most of the list would drown the highlight state.
+    optionItem: ["data-[state=checked]:text-popup-item-fg-selected"],
     separator: [
       "my-menu-separator-margin",
       "h-menu-separator",
       "bg-menu-separator-bg",
     ],
-    itemText: ["flex-grow"],
-    itemIcon: ["text-menu-item-icon-fg text-menu-item-icon"],
+    itemText: ["min-w-0 flex-grow truncate"],
+    // Trailing, always rendered (empty when unchecked) so toggling a row
+    // never reflows its label.
+    itemIndicator: [
+      "-translate-y-1/2 absolute end-(--popup-item-x) top-1/2",
+      "flex items-center justify-center",
+      "size-(--size-popup-indicator) text-popup-item-fg-selected",
+    ],
+    itemIcon: ["shrink-0 text-menu-item-icon text-popup-item-fg-muted"],
     submenuIndicator: [
       "ms-menu-submenu-indicator text-menu-submenu-indicator-fg",
     ],
   },
   variants: {
     size: {
+      /* `xs` exists so parents whose own scale starts at xs (DataTable) can
+       * forward `size` without it silently collapsing to `md`. */
+      xs: {
+        content: "popup-size-xs text-xs",
+      },
       sm: {
-        content: "text-sm",
-        item: "text-sm",
+        content: "popup-size-sm text-sm",
       },
       md: {
-        content: "text-md",
-        item: "text-md",
+        content: "popup-size-md text-md",
       },
       lg: {
-        content: "text-lg",
-        item: "text-lg",
+        content: "popup-size-lg text-lg",
       },
     },
   },
@@ -132,7 +147,7 @@ interface SubmenuItemProps {
   item: SubmenuMenuItem
   parentApi: menu.Api
   parentService: menu.Service
-  size?: "sm" | "md" | "lg"
+  size?: "xs" | "sm" | "md" | "lg"
   onCheckedChange?: (item: MenuItem, checked: boolean) => void
   onSelect?: (details: { value: string }) => void
   closeOnSelect?: boolean
@@ -170,6 +185,7 @@ function SubmenuItem({
     item: itemSlot,
     itemIcon,
     itemText,
+    itemIndicator,
     submenuIndicator,
   } = menuVariants({ size })
 
@@ -210,10 +226,12 @@ function SubmenuItem({
             },
           }) as any)}
         >
-          {menuItem.checked && (
-            <Icon className={itemIcon()} icon="token-icon-check" />
-          )}
           <span className={itemText()}>{menuItem.label}</span>
+          <span className={itemIndicator()}>
+            {menuItem.checked && (
+              <Icon icon="token-icon-check" size="current" />
+            )}
+          </span>
         </li>
       )
     }
@@ -367,6 +385,7 @@ export function Menu({
     item: itemSlot,
     itemIcon,
     itemText,
+    itemIndicator,
   } = menuVariants({ size })
 
   const renderMenuItem = (item: MenuItem) => {
@@ -406,11 +425,10 @@ export function Menu({
             },
           }) as any)}
         >
-          {/* Icon for checked state */}
-          {item.checked && (
-            <Icon className={itemIcon()} icon="token-icon-check" />
-          )}
           <span className={itemText()}>{item.label}</span>
+          <span className={itemIndicator()}>
+            {item.checked && <Icon icon="token-icon-check" size="current" />}
+          </span>
         </li>
       )
     }

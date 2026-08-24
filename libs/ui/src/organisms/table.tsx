@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,7 +27,10 @@ const tableVariants = tv({
     footer: ["bg-table-footer-bg", "font-table-footer text-table-footer-fg"],
     row: [
       "border-b-(length:--border-table-width) border-table-border",
+      /* Selection is a filled brand colour, so the row's text and any
+       * currentColor glyphs inside it invert with it. */
       "data-[selected=true]:bg-table-row-bg-selected",
+      "data-[selected=true]:text-table-row-fg-selected",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     /* `numeric` states that a value *is* a number; `data-align` is a pure

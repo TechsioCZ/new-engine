@@ -117,16 +117,36 @@
   --color-button-bg-danger-light-hover: var(--color-bg-light-danger-hover);
   --color-button-bg-disabled: var(--color-bg-disabled);
   --color-button-bg-outlined: var(--color-bg-transparent);
-  --color-button-bg-outlined-danger-active: var(--color-bg-outlined-danger-active);
-  --color-button-bg-outlined-danger-hover: var(--color-bg-outlined-danger-hover);
-  --color-button-bg-outlined-primary-active: var(--color-bg-outlined-primary-active);
-  --color-button-bg-outlined-primary-hover: var(--color-bg-outlined-primary-hover);
-  --color-button-bg-outlined-secondary-active: var(--color-bg-outlined-secondary-active);
-  --color-button-bg-outlined-secondary-hover: var(--color-bg-outlined-secondary-hover);
-  --color-button-bg-outlined-tertiary-active: var(--color-bg-outlined-tertiary-active);
-  --color-button-bg-outlined-tertiary-hover: var(--color-bg-outlined-tertiary-hover);
-  --color-button-bg-outlined-warning-active: var(--color-bg-outlined-warning-active);
-  --color-button-bg-outlined-warning-hover: var(--color-bg-outlined-warning-hover);
+  --color-button-bg-outlined-danger-active: var(
+    --color-bg-outlined-danger-active
+  );
+  --color-button-bg-outlined-danger-hover: var(
+    --color-bg-outlined-danger-hover
+  );
+  --color-button-bg-outlined-primary-active: var(
+    --color-bg-outlined-primary-active
+  );
+  --color-button-bg-outlined-primary-hover: var(
+    --color-bg-outlined-primary-hover
+  );
+  --color-button-bg-outlined-secondary-active: var(
+    --color-bg-outlined-secondary-active
+  );
+  --color-button-bg-outlined-secondary-hover: var(
+    --color-bg-outlined-secondary-hover
+  );
+  --color-button-bg-outlined-tertiary-active: var(
+    --color-bg-outlined-tertiary-active
+  );
+  --color-button-bg-outlined-tertiary-hover: var(
+    --color-bg-outlined-tertiary-hover
+  );
+  --color-button-bg-outlined-warning-active: var(
+    --color-bg-outlined-warning-active
+  );
+  --color-button-bg-outlined-warning-hover: var(
+    --color-bg-outlined-warning-hover
+  );
   --color-button-bg-primary-active: var(--color-bg-primary-active);
   --color-button-bg-primary-base: var(--color-bg-primary-base);
   --color-button-bg-primary-hover: var(--color-bg-primary-hover);
@@ -136,13 +156,19 @@
   --color-button-bg-secondary-active: var(--color-bg-secondary-active);
   --color-button-bg-secondary-base: var(--color-bg-secondary-base);
   --color-button-bg-secondary-hover: var(--color-bg-secondary-hover);
-  --color-button-bg-secondary-light-active: var(--color-bg-light-secondary-active);
+  --color-button-bg-secondary-light-active: var(
+    --color-bg-light-secondary-active
+  );
   --color-button-bg-secondary-light-base: var(--color-bg-light-secondary-base);
-  --color-button-bg-secondary-light-hover: var(--color-bg-light-secondary-hover);
+  --color-button-bg-secondary-light-hover: var(
+    --color-bg-light-secondary-hover
+  );
   --color-button-bg-tertiary-active: var(--color-bg-tertiary-active);
   --color-button-bg-tertiary-base: var(--color-bg-tertiary-base);
   --color-button-bg-tertiary-hover: var(--color-bg-tertiary-hover);
-  --color-button-bg-tertiary-light-active: var(--color-bg-light-tertiary-active);
+  --color-button-bg-tertiary-light-active: var(
+    --color-bg-light-tertiary-active
+  );
   --color-button-bg-tertiary-light-base: var(--color-bg-light-tertiary-base);
   --color-button-bg-tertiary-light-hover: var(--color-bg-light-tertiary-hover);
   --color-button-bg-warning-active: var(--color-bg-warning-active);
@@ -220,7 +246,7 @@
   --color-combobox-border-hover: var(--color-form-control-border-hover);
   --color-combobox-border-success: var(--color-fg-accent-success);
   --color-combobox-border-warning: var(--color-bg-warning-base);
-  --color-combobox-content-bg: var(--color-fill-surface);
+  --color-combobox-content-bg: var(--color-popup-bg);
   --color-combobox-danger-fg: var(--color-fg-accent-danger);
   --color-combobox-fg: var(--color-fg-primary);
   --color-combobox-fg-disabled: var(--color-fg-disabled);
@@ -228,9 +254,9 @@
   --color-combobox-input-bg-base: var(--color-transparent);
   --color-combobox-input-bg-focus: var(--color-transparent);
   --color-combobox-input-bg-hover: var(--color-transparent);
-  --color-combobox-item-bg-hover: var(--color-fill-hover);
-  --color-combobox-item-bg-selected: var(--color-bg-light-primary-base);
-  --color-combobox-item-fg: var(--color-fg-primary);
+  --color-combobox-item-bg-hover: var(--color-popup-item-bg-hover);
+  --color-combobox-item-bg-selected: var(--color-popup-item-bg-selected);
+  --color-combobox-item-fg: var(--color-popup-item-fg);
   --color-combobox-ring: var(--color-form-control-ring);
   --color-combobox-success-fg: var(--color-fg-accent-success);
   --color-combobox-trigger-bg-active: var(--color-transparent);
@@ -289,9 +315,9 @@
   --color-fill-base: var(--color-white-5);
   --color-fill-disabled: var(--color-bg-disabled);
   --color-fill-highlight: var(--color-neutral-700);
-  --color-fill-hover: var(--color-white-10);
+  --color-fill-hover: var(--color-primary-900);
   --color-fill-overlay: var(--color-neutral-800);
-  --color-fill-selected: var(--color-primary-alpha-10);
+  --color-fill-selected: var(--color-primary-700);
   --color-fill-surface: var(--color-neutral-800);
   --color-float: var(--color-fill-highlight);
   --color-footer-bg: var(--color-fill-surface);
@@ -379,12 +405,12 @@
   --color-link-fg-visited: var(--color-link-visited);
   --color-link-hover: var(--color-primary-700);
   --color-link-visited: var(--color-primary-600);
-  --color-menu-content-bg: var(--color-fill-overlay);
-  --color-menu-content-border: var(--color-fill-highlight);
+  --color-menu-content-bg: var(--color-popup-bg);
+  --color-menu-content-border: var(--color-popup-border);
   --color-menu-fg-disabled: var(--color-fg-disabled);
-  --color-menu-item-bg-hover: var(--color-fill-hover);
-  --color-menu-item-fg: var(--color-fg-primary);
-  --color-menu-item-icon-fg: var(--color-fg-secondary);
+  --color-menu-item-bg-hover: var(--color-popup-item-bg-hover);
+  --color-menu-item-fg: var(--color-popup-item-fg);
+  --color-menu-item-icon-fg: var(--color-popup-item-fg-muted);
   --color-menu-separator-bg: var(--color-border-primary);
   --color-menu-submenu-indicator-fg: var(--color-fg-secondary);
   --color-neutral-020617: oklch(0.129 0.041 264.695);
@@ -449,7 +475,9 @@
   --color-phone-input-bg-focus: var(--color-form-control-bg-focus);
   --color-phone-input-bg-hover: var(--color-form-control-bg-hover);
   --color-phone-input-border-danger: var(--color-bg-danger-base);
-  --color-phone-input-border-disabled: var(--color-form-control-border-disabled);
+  --color-phone-input-border-disabled: var(
+    --color-form-control-border-disabled
+  );
   --color-phone-input-border-focus: var(--color-form-control-border-focus);
   --color-phone-input-border-hover: var(--color-form-control-border-hover);
   --color-phone-input-border-success: var(--color-bg-success);
@@ -485,6 +513,7 @@
   --color-primary-accent-fg: var(--color-fg-accent-primary);
   --color-primary-active: var(--color-bg-primary-active);
   --color-primary-alpha-10: oklch(0.807 0.101 250.446 / 0.1);
+  --color-primary-alpha-5: oklch(0.807 0.101 250.446 / 0.05);
   --color-primary-disabled: var(--color-bg-disabled);
   --color-primary-hover: var(--color-bg-primary-hover);
   --color-primary-light: var(--color-bg-light-primary-base);
@@ -511,7 +540,9 @@
   --color-radio-card-addon-border: var(--color-border-primary);
   --color-radio-card-addon-border-disabled: var(--color-border-disabled);
   --color-radio-card-addon-border-solid-checked: var(--color-bg-primary-hover);
-  --color-radio-card-addon-border-subtle-checked: var(--color-bg-light-primary-hover);
+  --color-radio-card-addon-border-subtle-checked: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-card-addon-fg: var(--color-fg-secondary);
   --color-radio-card-addon-fg-disabled: var(--color-fg-disabled);
   --color-radio-card-addon-fg-solid-checked: var(--color-fg-light);
@@ -523,17 +554,27 @@
   --color-radio-card-item-bg-solid-checked: var(--color-bg-primary-base);
   --color-radio-card-item-bg-solid-checked-hover: var(--color-bg-primary-hover);
   --color-radio-card-item-bg-subtle-checked: var(--color-bg-light-primary-base);
-  --color-radio-card-item-bg-subtle-checked-hover: var(--color-bg-light-primary-hover);
+  --color-radio-card-item-bg-subtle-checked-hover: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-card-item-border: var(--color-border-primary);
   --color-radio-card-item-border-disabled: var(--color-border-disabled);
   --color-radio-card-item-border-error: var(--color-bg-danger-base);
   --color-radio-card-item-border-hover: var(--color-form-control-border-hover);
   --color-radio-card-item-border-outline-checked: var(--color-bg-primary-base);
-  --color-radio-card-item-border-outline-checked-hover: var(--color-primary-hover);
+  --color-radio-card-item-border-outline-checked-hover: var(
+    --color-primary-hover
+  );
   --color-radio-card-item-border-solid-checked: var(--color-bg-primary-base);
-  --color-radio-card-item-border-solid-checked-hover: var(--color-bg-primary-hover);
-  --color-radio-card-item-border-subtle-checked: var(--color-bg-light-primary-base);
-  --color-radio-card-item-border-subtle-checked-hover: var(--color-bg-light-primary-hover);
+  --color-radio-card-item-border-solid-checked-hover: var(
+    --color-bg-primary-hover
+  );
+  --color-radio-card-item-border-subtle-checked: var(
+    --color-bg-light-primary-base
+  );
+  --color-radio-card-item-border-subtle-checked-hover: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-card-item-description-fg: var(--color-fg-secondary);
   --color-radio-card-item-description-fg-disabled: var(--color-fg-disabled);
   --color-radio-card-item-description-fg-solid-checked: var(--color-fg-light);
@@ -546,15 +587,29 @@
   --color-radio-card-item-indicator-bg-disabled: var(--color-transparent);
   --color-radio-card-item-indicator-bg-solid-checked: var(--color-fg-light);
   --color-radio-card-item-indicator-border: var(--color-border-primary);
-  --color-radio-card-item-indicator-border-disabled: var(--color-border-disabled);
-  --color-radio-card-item-indicator-border-outline-checked: var(--color-bg-primary-base);
+  --color-radio-card-item-indicator-border-disabled: var(
+    --color-border-disabled
+  );
+  --color-radio-card-item-indicator-border-outline-checked: var(
+    --color-bg-primary-base
+  );
   --color-radio-card-item-indicator-border-solid-checked: var(--color-fg-light);
-  --color-radio-card-item-indicator-border-subtle-checked: var(--color-fg-light);
+  --color-radio-card-item-indicator-border-subtle-checked: var(
+    --color-fg-light
+  );
   --color-radio-card-item-indicator-content-fg: var(--color-fg-accent-primary);
-  --color-radio-card-item-indicator-content-fg-disabled: var(--color-fg-disabled);
-  --color-radio-card-item-indicator-content-fg-outline-checked: var(--color-bg-primary-base);
-  --color-radio-card-item-indicator-content-fg-solid-checked: var(--color-bg-primary-base);
-  --color-radio-card-item-indicator-content-fg-subtle-checked: var(--color-fg-light);
+  --color-radio-card-item-indicator-content-fg-disabled: var(
+    --color-fg-disabled
+  );
+  --color-radio-card-item-indicator-content-fg-outline-checked: var(
+    --color-bg-primary-base
+  );
+  --color-radio-card-item-indicator-content-fg-solid-checked: var(
+    --color-bg-primary-base
+  );
+  --color-radio-card-item-indicator-content-fg-subtle-checked: var(
+    --color-fg-light
+  );
   --color-radio-card-ring: var(--color-ring-default);
   --color-radio-group-item-bg: var(--color-fill-base);
   --color-radio-group-item-bg-disabled: var(--color-bg-disabled);
@@ -562,20 +617,36 @@
   --color-radio-group-item-bg-outline-checked: var(--color-fill-base);
   --color-radio-group-item-bg-outline-checked-hover: var(--color-fill-hover);
   --color-radio-group-item-bg-solid-checked: var(--color-bg-primary-base);
-  --color-radio-group-item-bg-solid-checked-hover: var(--color-bg-primary-hover);
-  --color-radio-group-item-bg-subtle-checked: var(--color-bg-light-primary-base);
-  --color-radio-group-item-bg-subtle-checked-hover: var(--color-bg-light-primary-hover);
+  --color-radio-group-item-bg-solid-checked-hover: var(
+    --color-bg-primary-hover
+  );
+  --color-radio-group-item-bg-subtle-checked: var(
+    --color-bg-light-primary-base
+  );
+  --color-radio-group-item-bg-subtle-checked-hover: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-group-item-border-base: var(--color-border-primary);
   --color-radio-group-item-border-checked: var(--color-bg-primary-base);
   --color-radio-group-item-border-disabled: var(--color-border-disabled);
   --color-radio-group-item-border-error: var(--color-bg-danger-base);
   --color-radio-group-item-border-hover: var(--color-form-control-border-hover);
-  --color-radio-group-item-border-outline-checked: var(--color-fg-accent-primary);
-  --color-radio-group-item-border-outline-checked-hover: var(--color-primary-hover);
+  --color-radio-group-item-border-outline-checked: var(
+    --color-fg-accent-primary
+  );
+  --color-radio-group-item-border-outline-checked-hover: var(
+    --color-primary-hover
+  );
   --color-radio-group-item-border-solid-checked: var(--color-bg-primary-base);
-  --color-radio-group-item-border-solid-checked-hover: var(--color-bg-primary-hover);
-  --color-radio-group-item-border-subtle-checked: var(--color-bg-light-primary-base);
-  --color-radio-group-item-border-subtle-checked-hover: var(--color-bg-light-primary-hover);
+  --color-radio-group-item-border-solid-checked-hover: var(
+    --color-bg-primary-hover
+  );
+  --color-radio-group-item-border-subtle-checked: var(
+    --color-bg-light-primary-base
+  );
+  --color-radio-group-item-border-subtle-checked-hover: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-group-item-description: var(--color-fg-secondary);
   --color-radio-group-item-description-disabled: var(--color-fg-disabled);
   --color-radio-group-item-fg: var(--color-fg-primary);
@@ -626,15 +697,15 @@
   --color-select-border-warning: var(--color-bg-warning-base);
   --color-select-clear-trigger-bg: var(--color-fill-base);
   --color-select-clear-trigger-fg: var(--color-fg-primary);
-  --color-select-content-bg: var(--color-fill-surface);
-  --color-select-content-border: var(--color-border-primary);
+  --color-select-content-bg: var(--color-popup-bg);
+  --color-select-content-border: var(--color-popup-border);
   --color-select-fg-disabled: var(--color-fg-disabled);
-  --color-select-indicator: var(--color-fg-accent-primary);
+  --color-select-indicator: var(--color-popup-item-fg-selected);
   --color-select-item-bg-base: var(--color-fill-base);
-  --color-select-item-bg-hover: var(--color-form-control-bg-hover);
-  --color-select-item-bg-selected: var(--color-form-control-bg);
-  --color-select-item-fg-base: var(--color-fg-primary);
-  --color-select-item-fg-selected: var(--color-fg-accent-primary);
+  --color-select-item-bg-hover: var(--color-popup-item-bg-hover);
+  --color-select-item-bg-selected: var(--color-popup-item-bg-selected);
+  --color-select-item-fg-base: var(--color-popup-item-fg);
+  --color-select-item-fg-selected: var(--color-popup-item-fg-selected);
   --color-select-placeholder: var(--color-form-control-fg-placeholder);
   --color-select-ring: var(--color-form-control-ring);
   --color-select-trigger-bg-hover: var(--color-form-control-bg-hover);
@@ -750,6 +821,7 @@
   --color-table-row-bg: var(--color-bg-transparent);
   --color-table-row-bg-hover: var(--color-fill-hover);
   --color-table-row-bg-selected: var(--color-fill-selected);
+  --color-table-row-fg-selected: var(--color-white);
   --color-table-row-striped-primary: var(--color-fill-base);
   --color-table-row-striped-secondary: var(--color-bg-transparent);
   --color-tabs-bg: var(--color-fill-surface);
@@ -795,9 +867,13 @@
   --color-textarea-border-focus: var(--color-form-control-border-focus);
   --color-textarea-border-hover: var(--color-form-control-border-hover);
   --color-textarea-border-success-base: var(--color-input-border-success-base);
-  --color-textarea-border-success-hover: var(--color-input-border-success-hover);
+  --color-textarea-border-success-hover: var(
+    --color-input-border-success-hover
+  );
   --color-textarea-border-warning-base: var(--color-input-border-warning-base);
-  --color-textarea-border-warning-hover: var(--color-input-border-warning-hover);
+  --color-textarea-border-warning-hover: var(
+    --color-input-border-warning-hover
+  );
   --color-textarea-fg: var(--color-input-fg);
   --color-textarea-fg-disabled: var(--color-fg-disabled);
   --color-textarea-fg-placeholder: var(--color-form-control-fg-placeholder);
@@ -1183,9 +1259,9 @@
   --padding-input-with-button: var(--dimension-120);
   --padding-input-with-button-left: var(--dimension-120);
   --padding-input-with-button-right: var(--dimension-120);
-  --padding-menu-content: var(--dimension-16);
-  --padding-menu-item-x: var(--dimension-20);
-  --padding-menu-item-y: var(--dimension-16);
+  --padding-menu-content: var(--padding-popup-viewport);
+  --padding-menu-item-x: var(--padding-popup-item-x-md);
+  --padding-menu-item-y: var(--padding-popup-item-y-md);
   --padding-numeric-input-input-lg: var(--spacing-200);
   --padding-numeric-input-input-md: var(--spacing-150);
   --padding-numeric-input-input-sm: var(--spacing-100);
@@ -1202,8 +1278,8 @@
   --padding-radio-card-item-control-md: var(--dimension-16);
   --padding-radio-card-item-control-sm: var(--dimension-10);
   --padding-select-clear-trigger: var(--dimension-6);
-  --padding-select-item-x: var(--dimension-20);
-  --padding-select-item-y: var(--dimension-10);
+  --padding-select-item-x: var(--padding-popup-item-x-md);
+  --padding-select-item-y: var(--padding-popup-item-y-md);
   --padding-select-trigger-md: var(--spacing-150);
   --padding-select-trigger-sm: var(--spacing-100);
   --padding-select-trigger-x-md: var(--dimension-10);
@@ -1275,8 +1351,8 @@
   --radius-input-sm: var(--radius-form-control-sm);
   --radius-lg: 0.75rem;
   --radius-md: 0.5rem;
-  --radius-menu: var(--radius-sm);
-  --radius-menu-item: var(--radius-xs);
+  --radius-menu: var(--radius-popup-md);
+  --radius-menu-item: var(--radius-popup-item);
   --radius-none: 0rem;
   --radius-numeric-input: var(--radius-form-control);
   --radius-numeric-input-lg: var(--radius-form-control-lg);
@@ -1334,11 +1410,13 @@
   --shadow-gallery-trigger: var(--shadow-sm);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-menu-content: var(--shadow-lg);
+  --shadow-menu-content: var(--shadow-popup);
   --shadow-popover: var(--shadow-primary);
-  --shadow-primary: var(--offset-shadow-1) var(--color-shadow-1), var(--offset-shadow-2) var(--color-shadow-2), var(--offset-shadow-3) var(--color-shadow-3);
+  --shadow-primary:
+    var(--offset-shadow-1) var(--color-shadow-1), var(--offset-shadow-2)
+    var(--color-shadow-2), var(--offset-shadow-3) var(--color-shadow-3);
   --shadow-radio-card-item: var(--shadow-sm);
-  --shadow-select-content: var(--shadow-md);
+  --shadow-select-content: var(--shadow-popup);
   --shadow-slider-thumb: var(--shadow-sm);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-table-outline: var(--shadow-sm);
@@ -1450,10 +1528,10 @@
   --spacing-carousel-trigger-right: var(--dimension-6);
   --spacing-carousel-trigger-top: var(--dimension-6);
   --spacing-combobox-clear-right: var(--dimension-18);
-  --spacing-combobox-item-padding-x: var(--dimension-20);
-  --spacing-combobox-item-padding-y-lg: var(--dimension-4);
-  --spacing-combobox-item-padding-y-md: var(--dimension-10);
-  --spacing-combobox-item-padding-y-sm: var(--dimension-10);
+  --spacing-combobox-item-padding-x: var(--padding-popup-item-x-md);
+  --spacing-combobox-item-padding-y-lg: var(--padding-popup-item-y-lg);
+  --spacing-combobox-item-padding-y-md: var(--padding-popup-item-y-md);
+  --spacing-combobox-item-padding-y-sm: var(--padding-popup-item-y-sm);
   --spacing-combobox-lg: var(--dimension-16);
   --spacing-combobox-md: var(--dimension-10);
   --spacing-combobox-sm: var(--dimension-6);
@@ -1486,7 +1564,7 @@
   --spacing-header-nav-md: var(--dimension-24);
   --spacing-header-nav-sm: var(--dimension-16);
   --spacing-label: var(--size-4);
-  --spacing-menu-item: var(--dimension-16);
+  --spacing-menu-item: var(--spacing-popup-item-md);
   --spacing-menu-separator-margin: var(--dimension-16);
   --spacing-menu-submenu-indicator: var(--dimension-20);
   --spacing-numeric-input: var(--size-1);
@@ -1789,4 +1867,34 @@
   --width-numeric-input-sm: var(--size-36);
   --width-product-card-image-max: var(--size-192);
   --width-product-card-image-min: var(--size-128);
+  --border-width-popup: var(--border-sm);
+  --color-popup-bg: var(--color-fill-surface);
+  --color-popup-border: var(--color-border-primary);
+  --color-popup-item-bg-hover: var(--color-fill-hover);
+  --color-popup-item-bg-selected: var(--color-fill-selected);
+  --color-popup-item-fg: var(--color-fg-primary);
+  --color-popup-item-fg-disabled: var(--color-fg-disabled);
+  --color-popup-item-fg-muted: var(--color-fg-secondary);
+  --color-popup-item-fg-selected: var(--color-white);
+  --padding-popup-item-x-lg: var(--dimension-16);
+  --padding-popup-item-x-md: var(--dimension-10);
+  --padding-popup-item-x-sm: var(--dimension-8);
+  --padding-popup-item-x-xs: var(--dimension-6);
+  --padding-popup-item-y-lg: var(--spacing-200);
+  --padding-popup-item-y-md: var(--spacing-100);
+  --padding-popup-item-y-sm: var(--spacing-50);
+  --padding-popup-item-y-xs: var(--spacing-50);
+  --padding-popup-viewport: var(--dimension-4);
+  --radius-popup: var(--radius-md);
+  --radius-popup-item: var(--radius-sm);
+  --radius-popup-lg: var(--radius-lg);
+  --radius-popup-md: var(--radius-md);
+  --radius-popup-sm: var(--radius-sm);
+  --radius-popup-xs: var(--radius-sm);
+  --shadow-popup: var(--shadow-md);
+  --size-popup-indicator: var(--dimension-20);
+  --spacing-popup-item-lg: var(--dimension-10);
+  --spacing-popup-item-md: var(--dimension-8);
+  --spacing-popup-item-sm: var(--dimension-6);
+  --spacing-popup-item-xs: var(--dimension-4);
 }

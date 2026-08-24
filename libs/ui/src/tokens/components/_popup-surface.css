@@ -1,0 +1,129 @@
+/*
+ * Shared popup-surface foundation.
+ *
+ * Every floating list surface (Select, Combobox, Menu, and everything that
+ * composes them — PhoneInput's country picker, DataTable's column settings)
+ * draws its panel and its options from one set of tokens, so hover, radius,
+ * colour and keyboard/focus behaviour are identical across all of them.
+ *
+ * SOURCE OF TRUTH: the `popup-surface` collection in Figma. Its tokens
+ * (--color-popup-*, --radius-popup-*, --padding-popup-*, --spacing-popup-*,
+ * --shadow-popup, --size-popup-indicator, --border-width-popup) arrive via
+ * tokens/figma/variables.css and are NOT redeclared here. The component
+ * collections (select, menu, combobox) alias the same popup variables in
+ * Figma, so the two layers cannot drift.
+ *
+ * This file holds only what Figma has no concept of:
+ *   - the @utility blocks that compose those tokens,
+ *   - `--z-popup` layering (code-side, same precedent as `--z-content`),
+ *   - the `--popup-item-*` runtime scale, set per size by popup-size-*.
+ */
+@theme static {
+  /*
+   * Single layer for every popup. Nesting bumps --layer-index rather than
+   * hard-coding a bigger number, so a Select inside a Popover always wins.
+   */
+  --z-popup: 50;
+}
+
+/*
+ * Panel foundation. Surface only — placement animation stays in the
+ * component's tv() slots because it differs per Zag machine.
+ *
+ * Height is capped at the space the positioner actually measured
+ * (--available-height, set by Zag/Floating UI) rather than a fixed height or
+ * a magic pixel value, so a 2-option list is short and a 50-option list
+ * scrolls instead of running off-screen.
+ */
+@utility popup-surface-base {
+  background-color: var(--color-popup-bg);
+  border-width: var(--border-width-popup);
+  border-style: solid;
+  border-color: var(--color-popup-border);
+  border-radius: var(--radius-popup);
+  box-shadow: var(--shadow-popup);
+  padding: var(--padding-popup-viewport);
+  max-height: var(--available-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: calc(var(--z-popup) + var(--layer-index, 0));
+
+  /* The panel takes DOM focus for keyboard navigation, but that focus is
+   * never the thing the user should see — the highlighted option is. */
+  outline: none;
+
+  /* Scale from the trigger, whichever side the panel flipped to. */
+  transform-origin: var(--transform-origin);
+}
+
+/*
+ * Per-size scale. Applied to the panel so every option inside inherits it —
+ * this is what ties the open dropdown's proportions to the size of the
+ * control that opened it. Each size also matches the panel's corner radius to
+ * the trigger's radius at the same size.
+ */
+@utility popup-size-xs {
+  --popup-item-x: var(--padding-popup-item-x-xs);
+  --popup-item-y: var(--padding-popup-item-y-xs);
+  --popup-item-gap: var(--spacing-popup-item-xs);
+  border-radius: var(--radius-popup-xs);
+}
+
+@utility popup-size-sm {
+  --popup-item-x: var(--padding-popup-item-x-sm);
+  --popup-item-y: var(--padding-popup-item-y-sm);
+  --popup-item-gap: var(--spacing-popup-item-sm);
+  border-radius: var(--radius-popup-sm);
+}
+
+@utility popup-size-md {
+  --popup-item-x: var(--padding-popup-item-x-md);
+  --popup-item-y: var(--padding-popup-item-y-md);
+  --popup-item-gap: var(--spacing-popup-item-md);
+  border-radius: var(--radius-popup-md);
+}
+
+@utility popup-size-lg {
+  --popup-item-x: var(--padding-popup-item-x-lg);
+  --popup-item-y: var(--padding-popup-item-y-lg);
+  --popup-item-gap: var(--spacing-popup-item-lg);
+  border-radius: var(--radius-popup-lg);
+}
+
+/*
+ * Option foundation.
+ *
+ * Two independent states, never conflated:
+ *   - highlighted (pointer hover OR keyboard cursor) → background tint
+ *   - checked (current selection)                    → indicator + accent fg
+ * They can co-occur, and the indicator means selection is never signalled by
+ * colour alone.
+ */
+@utility popup-item-base {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: var(--radius-popup-item);
+  color: var(--color-popup-item-fg);
+
+  /* --popup-item-x/y/gap are set per size by the panel's popup-size-*;
+   * md is the fallback for a panel that declares no size. */
+  padding: var(--popup-item-y, var(--padding-popup-item-y-md))
+    var(--popup-item-x, var(--padding-popup-item-x-md));
+  gap: var(--popup-item-gap, var(--spacing-popup-item-md));
+
+  /* Permanent gutter for the selection indicator. */
+  padding-inline-end: calc(
+    var(--popup-item-x, var(--padding-popup-item-x-md)) +
+    var(--size-popup-indicator)
+  );
+
+  /* An option is not a link. */
+  cursor: default;
+  user-select: none;
+
+  /* Highlight is the focus affordance; a second ring on top of it reads as
+   * two selected rows. */
+  outline: none;
+}

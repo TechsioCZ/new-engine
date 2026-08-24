@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -49,7 +49,10 @@ const selectVariants = tv({
   slots: {
     root: ["relative", "flex flex-col gap-select", "w-full"],
     control: ["relative flex items-center justify-between", "w-full"],
-    positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
+    // Zag sets `min-width: max-content` inline, so this resolves to
+    // max(trigger width, content width) — the panel is never narrower than
+    // the control that opened it.
+    positioner: ["isolate w-(--reference-width)"],
     trigger: [
       "form-control-base w-full",
       "border-select-trigger-border",
@@ -85,33 +88,37 @@ const selectVariants = tv({
     // its own size, glyph and neutral hover pill.
     clearTrigger: ["-translate-y-1/2 absolute top-1/2 right-select-right"],
     content: [
-      "border border-select-content-border bg-select-content-bg",
-      "max-h-fit rounded-select shadow-select-content",
-      "h-[calc(var(--available-height)-var(--spacing-content))]",
-      "z-(--z-content) overflow-auto",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
+      "popup-surface-base",
+      "w-full",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
-      "starting:-translate-y-2 starting:opacity-0",
-      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
-      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
-      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
+      "starting:scale-98 starting:opacity-0",
+      "data-[state=open]:starting:scale-98 data-[state=open]:starting:opacity-0",
+      "data-[state=open]:scale-100 data-[state=open]:opacity-100",
+      "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
     item: [
-      "flex items-center justify-between",
-      "cursor-pointer bg-select-item-bg-base",
-      "p-select-item",
-      "text-select-item-fg-base",
-      "hover:bg-select-item-bg-hover",
-      "data-[highlighted]:bg-select-item-bg-hover",
-      "data-[state=checked]:bg-select-item-bg-selected",
-      "data-[state=checked]:text-select-item-fg-selected",
-      "data-[disabled]:cursor-not-allowed data-[disabled]:text-select-fg-disabled",
+      "popup-item-base",
+      "hover:bg-popup-item-bg-hover",
+      "data-[highlighted]:bg-popup-item-bg-hover",
+      "data-[state=checked]:bg-popup-item-bg-selected",
+      "data-[state=checked]:text-popup-item-fg-selected",
+      "data-[disabled]:cursor-not-allowed data-[disabled]:text-popup-item-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    itemIndicator: ["text-select-indicator"],
-    itemText: ["flex-grow"],
+    // Absolutely positioned inside the reserved end gutter so the label never
+    // shifts when the selection changes.
+    itemIndicator: [
+      "-translate-y-1/2 absolute end-(--popup-item-x) top-1/2",
+      "flex items-center justify-center",
+      "size-(--size-popup-indicator) text-popup-item-fg-selected",
+    ],
+    itemText: ["min-w-0 flex-grow truncate"],
     itemGroup: [""],
-    itemGroupLabel: ["px-select-item-x", "font-medium text-select-fg-disabled"],
+    itemGroupLabel: [
+      "px-(--popup-item-x) py-(--popup-item-y)",
+      "font-medium text-popup-item-fg-muted",
+    ],
     valueText: [
       "flex-grow truncate font-normal",
       "data-[placeholder]:font-normal data-[placeholder]:text-select-placeholder",
@@ -121,27 +128,27 @@ const selectVariants = tv({
     size: {
       xs: {
         trigger: "p-select-trigger-sm text-select-trigger-xs",
-        item: "text-select-item-xs",
+        content: "popup-size-xs text-select-item-xs",
         valueText: "text-select-value-xs",
         itemGroupLabel: "text-select-item-group-label-xs",
       },
       sm: {
         trigger:
           "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-sm",
-        item: "text-select-item-sm",
+        content: "popup-size-sm text-select-item-sm",
         valueText: "text-select-value-sm",
         itemGroupLabel: "text-select-item-group-label-sm",
       },
       md: {
         trigger:
           "h-form-control-md rounded-select-md p-select-trigger-md text-select-trigger-md",
-        item: "text-select-item-md",
+        content: "popup-size-md text-select-item-md",
         valueText: "text-select-value-md",
         itemGroupLabel: "text-select-item-group-label-md",
       },
       lg: {
         trigger: "p-select-trigger-md text-select-trigger-lg",
-        item: "text-select-item-lg",
+        content: "popup-size-lg text-select-item-lg",
         valueText: "text-select-value-lg",
         itemGroupLabel: "text-select-item-group-label-lg",
       },
