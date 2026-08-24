@@ -39,6 +39,7 @@
 @import "./molecules/_tree-view.css";
 
 @import "./organisms/_table.css";
+@import "./organisms/_data-table.css";
 @import "./organisms/_footer.css";
 @import "./organisms/_header.css";
 @import "./organisms/_gallery.css";

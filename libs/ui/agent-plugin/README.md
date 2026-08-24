@@ -18,7 +18,7 @@ no spec-driven workflow.
 | Type | Count | Purpose |
 | --- | --- | --- |
 | Workflow skills | 8 | `$ui-*` entry points: scaffold, tokens, stories, theming, Figma sync, validation, release, usage routing |
-| Bundled deep skills | 58 | Synced 1:1 from `libs/ui/skills/`: per-component `*-usage` guides, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
+| Bundled deep skills | 60 | Synced 1:1 from `libs/ui/skills/`: per-component `*-usage` guides, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
 | Subagents (Codex TOML) | 6 | design-system expert, component-dev orchestrator, token/story/figma specialists, QA gate |
 | Hooks | 2 | Real git `pre-push` gate (auto-installed in the ui-kit source repo only) + a `--no-verify` guard |
 | MCP servers | 3 | context7 (docs), figma (design context + Code Connect), chrome-devtools (browser) |
@@ -171,7 +171,7 @@ techsio-ui-kit-ai/
 ├── AGENTS.md                    # routing table
 ├── .mcp.json                    # context7, figma, chrome-devtools
 ├── agents/*.toml                # 6 Codex subagents
-├── skills/                      # 8 authored workflow skills + 58 bundled deep skills
+├── skills/                      # 8 authored workflow skills + 60 bundled deep skills
 ├── hooks/
 │   ├── hooks.json               # SessionStart installer + --no-verify guard
 │   └── pre-push                 # the real gate (git hands it the exact refs/SHAs)
