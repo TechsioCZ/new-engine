@@ -1,0 +1,98 @@
+/*
+ * Chart — PROTOTYPE tokens (not yet exported from Figma; once the MVP look is
+ * signed off, mirror these into Figma via the figma-token-binding skill).
+ *
+ * Series palette: six fixed-order categorical hues for data identity. The
+ * exact primitive steps were chosen so the SAME values pass the dataviz
+ * six-checks validator (lightness band, chroma floor, adjacent-pair CVD
+ * separation, normal-vision floor, >=3:1 surface contrast) on BOTH the light
+ * (white) and dark (gray-950) chart surfaces — hence no light-dark() split.
+ *
+ * `--color-primary` (blue-300/sky-300) is deliberately NOT series-1: it sits
+ * outside the chart lightness band in light mode. Brand themes that want
+ * branded charts should override `--color-chart-series-*` with steps that
+ * re-pass the validator, not alias the brand accent directly.
+ */
+
+@theme static {
+  /* Reference layer — series identity, assigned in fixed order. The palette is
+   * six entries and TanStack indexes it modulo its length (scales.js), so a 7th
+   * distinct series wraps back onto series-1 rather than erroring. Keep charts
+   * to <=6 series; Chart warns in dev when a dataset exceeds that.
+   *
+   * Note: `--color-blue-500` is re-declared by figma/variables.css, which is
+   * imported after this file — series-1 therefore resolves to the Figma step
+   * (chroma 0.188), not Tailwind's default (chroma 0.214). Series 2-6 have no
+   * Figma counterpart and resolve to Tailwind defaults. Re-run the dataviz
+   * validator against these *resolved* values before treating the set as
+   * signed off. */
+  --color-chart-series-1: var(--color-blue-500);
+  --color-chart-series-2: var(--color-orange-600);
+  --color-chart-series-3: var(--color-emerald-600);
+  --color-chart-series-4: var(--color-violet-500);
+  --color-chart-series-5: var(--color-rose-500);
+  --color-chart-series-6: var(--color-cyan-600);
+
+  /* Derived layer — chart chrome and tooltip surface. Axis/tick/legend text
+   * renders at small sizes inside the SVG, so it wears primary ink rather than
+   * the secondary tone.
+   *
+   * Caveat on the contrast math: TanStack composites this color before it
+   * paints — tick/legend labels at fillOpacity 0.68, axis lines at
+   * strokeOpacity 0.28 (scene.js). So the *rendered* label is fg-primary at 68%
+   * over the surface, not fg-primary itself, and it does not reach the repo's
+   * 90 Lc gold gate on its own. Fixing that properly means compensating for the
+   * library opacity (or overriding it), not swapping this token — tracked in
+   * https://github.com/TechsioCZ/new-engine/issues/608 rather than silently
+   * claimed as passing. */
+  --color-chart-fg: var(--color-fg-primary);
+  --color-chart-tooltip-bg: var(--color-tooltip-bg);
+  --color-chart-tooltip-fg: var(--color-tooltip-fg);
+  --color-chart-tooltip-border: var(--color-tooltip-border-outline);
+  --radius-chart-tooltip: var(--radius-tooltip);
+  --text-chart-tooltip: var(--text-tooltip-md);
+  --padding-chart-tooltip: var(--padding-tooltip-md);
+  --border-width-chart-tooltip: var(--border-width-tooltip);
+  --font-chart-tooltip: var(--font-body);
+  --font-weight-chart-tooltip: var(--font-weight-medium);
+}
+
+/*
+ * Bridge our series tokens into TanStack Charts' categorical palette
+ * variables (`--ts-chart-1..6`). Axis text, muted labels and grid lines
+ * inherit `currentColor`, so the host also carries `text-chart-fg`.
+ */
+@utility chart-base {
+  --ts-chart-1: var(--color-chart-series-1);
+  --ts-chart-2: var(--color-chart-series-2);
+  --ts-chart-3: var(--color-chart-series-3);
+  --ts-chart-4: var(--color-chart-series-4);
+  --ts-chart-5: var(--color-chart-series-5);
+  --ts-chart-6: var(--color-chart-series-6);
+}
+
+/*
+ * Surface styling for the library's native HTML tooltip element.
+ *
+ * `!important` is load-bearing, not defensive: TanStack's `createTooltip()`
+ * writes background/color/border/border-radius/padding and a `font` shorthand
+ * directly onto `element.style`, then only *appends* this class. Inline styles
+ * beat class rules, so without `!important` every declaration below is dead and
+ * the tooltip renders in the system `Canvas`/`CanvasText` colors — visible as an
+ * unthemed tooltip under the neo/cyber brands and in dark mode. The `font`
+ * shorthand also resets font-size, so that too must win.
+ */
+@utility chart-tooltip {
+  background: var(--color-chart-tooltip-bg) !important;
+  color: var(--color-chart-tooltip-fg) !important;
+  border: var(--border-width-chart-tooltip) solid
+    var(--color-chart-tooltip-border) !important;
+  border-radius: var(--radius-chart-tooltip) !important;
+  padding: var(--padding-chart-tooltip) !important;
+  /* The inline `font` shorthand sets family, weight, size and line-height in
+   * one go, so countering only the size would leave the chart tooltip in
+   * system-ui while every other tooltip in the library uses --font-body. */
+  font-family: var(--font-chart-tooltip) !important;
+  font-size: var(--text-chart-tooltip) !important;
+  font-weight: var(--font-weight-chart-tooltip) !important;
+}
