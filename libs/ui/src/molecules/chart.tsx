@@ -17,13 +17,25 @@
  * `--ts-chart-*` palette variables by the `chart-base` utility), axis and
  * grid chrome inherit `--color-chart-fg` via `currentColor`, and the native
  * tooltip surface is styled by the `chart-tooltip` utility.
+ *
+ * @stability TanStack Charts (`@tanstack/charts`, `@tanstack/charts-scales`,
+ * `@tanstack/react-charts`) is pre-alpha upstream (its own README/MARKETING.md
+ * disclaim production readiness pending https://github.com/TanStack/charts
+ * PLAN.md gates). This molecule is a deliberate, explicit exception to
+ * `@techsio/ui-kit`'s otherwise-stable public API while that upstream library
+ * matures — expect breaking changes here to track upstream, independent of
+ * this package's semantic-release versioning for its other exports.
  */
 import {
   areaY,
   barX,
   barY,
+  type ChartAxisOptions,
+  type ChartColorOptions,
   type ChartDefinition,
+  type ChartMark,
   type ChartPoint,
+  type ChartTooltipInput,
   colorLegend,
   d3Curve,
   defineChart,
@@ -159,18 +171,18 @@ function toAccessor<TDatum, TValue>(
  * the mark constructors (lineY, barY, …) fully typed and only relaxes the
  * final spec assembly.
  */
-type ChartSpecInput = {
-  marks: readonly unknown[]
-  x?: unknown
-  y?: unknown
-  color?: unknown
+type ChartSpecInput<TDatum> = {
+  marks: readonly ChartMark<unknown, any, any>[]
+  x?: ChartAxisOptions<any> | null
+  y?: ChartAxisOptions<any> | null
+  color?: ChartColorOptions
   animate?: boolean
-  tooltip?: unknown
+  tooltip?: false | ChartTooltipInput<TDatum, any, any>
   maxFocusDistance?: number
 }
 
 const defineChartSpec = defineChart as unknown as <TDatum>(
-  spec: ChartSpecInput
+  spec: ChartSpecInput<TDatum>
 ) => ChartDefinition<TDatum>
 
 type BuildConfig<TDatum> = {
@@ -205,18 +217,21 @@ type ResolvedBuild<TDatum> = {
   xLabel?: string
   yLabel?: string
   valueTicks?: { format: (value: number) => string }
-  valueAxis: unknown
-  xAxis: Record<string, unknown>
-  bandAxis: unknown
+  valueAxis: ChartAxisOptions<any>
+  xAxis: ChartAxisOptions<any>
+  bandAxis: ChartAxisOptions<any>
   /**
    * Tooltip config for a cartesian chart, told which channel carries the value
    * so `formatValue` lands on the same number the axis ticks format.
    */
-  tooltipFor: (valueChannel: "x" | "y") => unknown
+  tooltipFor: (
+    valueChannel: "x" | "y",
+    swapped?: boolean
+  ) => false | ChartTooltipInput<TDatum, any, any>
   /** Tooltip config for pie/donut, which read the value off the source row. */
-  polarTooltip: () => unknown
+  polarTooltip: () => false | ChartTooltipInput<TDatum, any, any>
   shared: {
-    color?: unknown
+    color?: ChartColorOptions
     animate: boolean
   }
 }
@@ -247,7 +262,7 @@ function resolveXAxis<TDatum>(
   data: readonly TDatum[],
   getX: (datum: TDatum) => string | number | Date,
   xLabel?: string
-): Record<string, unknown> {
+): ChartAxisOptions<any> {
   const values = data.map(getX)
   if (values.length > 0 && values.every((value) => value instanceof Date)) {
     return { scale: () => scaleUtc(), nice: true, axis: { label: xLabel } }
@@ -301,23 +316,30 @@ function resolveBuild<TDatum>(
     return String(value ?? "")
   }
 
-  const tooltipFor = (valueChannel: "x" | "y") => {
+  // `swapped` covers horizontal bars: barX passes { x: getY, y: getX }, so the
+  // spatial x/y channels carry the opposite data than every other chart form.
+  // Labels have to follow the data channel (xName/yName), not the spatial one
+  // — resolve which data channel actually holds the value before naming rows.
+  const tooltipFor = (valueChannel: "x" | "y", swapped = false) => {
     if (!config.showTooltip) {
       return false as const
     }
+    const dataValueChannel: "x" | "y" = swapped ? "y" : valueChannel
+    const valueName = dataValueChannel === "x" ? xName : yName
+    const categoryName = dataValueChannel === "x" ? yName : xName
     const valueItem = {
       channel: valueChannel,
-      label: valueChannel === "x" ? xName : yName,
+      label: valueName,
       // Only override the text when there is a formatter; otherwise leave it
       // undefined so the library formats the value itself.
       text: formatValue
         ? (point: TooltipPoint) => formatChannel(point, valueChannel)
         : undefined,
     }
-    const categoryChannel = valueChannel === "x" ? "y" : "x"
+    const categoryChannel: "x" | "y" = valueChannel === "x" ? "y" : "x"
     const categoryItem = {
       channel: categoryChannel,
-      label: categoryChannel === "x" ? xName : yName,
+      label: categoryName,
     }
     return {
       ...tooltipBase,
@@ -518,7 +540,7 @@ function buildBars<TDatum>(
       },
       y: build.bandAxis,
       ...build.shared,
-      tooltip: build.tooltipFor("x"),
+      tooltip: build.tooltipFor("x", true),
     })
   }
   return defineChartSpec<TDatum>({

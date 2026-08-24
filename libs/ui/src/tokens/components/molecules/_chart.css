@@ -42,8 +42,9 @@
    * strokeOpacity 0.28 (scene.js). So the *rendered* label is fg-primary at 68%
    * over the surface, not fg-primary itself, and it does not reach the repo's
    * 90 Lc gold gate on its own. Fixing that properly means compensating for the
-   * library opacity (or overriding it), not swapping this token — tracked
-   * rather than silently claimed as passing. */
+   * library opacity (or overriding it), not swapping this token — tracked in
+   * https://github.com/TechsioCZ/new-engine/issues/608 rather than silently
+   * claimed as passing. */
   --color-chart-fg: var(--color-fg-primary);
   --color-chart-tooltip-bg: var(--color-tooltip-bg);
   --color-chart-tooltip-fg: var(--color-tooltip-fg);

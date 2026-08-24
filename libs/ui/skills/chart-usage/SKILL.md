@@ -18,7 +18,7 @@ sources:
   - "libs/ui/src/molecules/chart.tsx"
   - "libs/ui/src/tokens/components/molecules/_chart.css"
   - "libs/ui/stories/molecules/chart.stories.tsx"
-  - "https://tanstack.com/charts/latest/docs/overview"
+  - "https://tanstack.com/charts/v0/docs/overview" # supported upstream: 0.6.x
 ---
 
 # @techsio/ui-kit Chart Usage
@@ -32,22 +32,36 @@ tooltip and legend, and paints every series from the
 ## Setup
 
 ```tsx
+import { useState } from "react"
 import { Chart } from "@techsio/ui-kit/molecules/chart"
 
 type RevenuePoint = { month: string; revenue: number; channel: string }
 
-<Chart
-  type="line"
-  data={revenue}
-  x="month"
-  y="revenue"
-  series="channel"
-  legendLabel="Channel"
-  yLabel="Revenue"
-  formatValue={(value) => `${value / 1000}k €`}
-  ariaLabel="Monthly revenue by sales channel"
-  onSelect={(point) => setSelected(point)}
-/>
+const revenue: RevenuePoint[] = [
+  { month: "Jan", revenue: 81000, channel: "Retail" },
+  { month: "Feb", revenue: 95000, channel: "Retail" },
+  { month: "Jan", revenue: 42000, channel: "Online" },
+  { month: "Feb", revenue: 58000, channel: "Online" },
+]
+
+function RevenueChart() {
+  const [selected, setSelected] = useState<RevenuePoint | null>(null)
+
+  return (
+    <Chart
+      type="line"
+      data={revenue}
+      x="month"
+      y="revenue"
+      series="channel"
+      legendLabel="Channel"
+      yLabel="Revenue"
+      formatValue={(value) => `${value / 1000}k €`}
+      ariaLabel="Monthly revenue by sales channel"
+      onSelect={(point) => setSelected(point)}
+    />
+  )
+}
 ```
 
 `x`, `y` and `series` accept a field name or an accessor function
@@ -85,8 +99,8 @@ Never combine two value scales in one chart — render two charts instead.
 
 ## Tokens
 
-- Series palette: `--color-chart-series-1..6`, assigned to series in fixed
-  order, bridged to TanStack's `--ts-chart-*` variables by the `chart-base`
+- Series palette: `--color-chart-series-1` through `--color-chart-series-6`,
+  assigned to series in fixed order, bridged to TanStack's `--ts-chart-*` variables by the `chart-base`
   utility. The six default steps were picked to pass CVD-separation and
   contrast validation on both light and dark surfaces; note that series-1
   resolves through a Figma override of `--color-blue-500`, so re-validate
