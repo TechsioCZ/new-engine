@@ -81,9 +81,9 @@ yet the same scale — see the still-open part of issue 1.
 1. **Audit the `md` step.** Decide whether `--text-md` stays at 18–20px. Capture
    a side-by-side of Input / Button / Select / Combobox / Menu / Popover at each
    size before changing anything. — still open.
-2. ~~**Give `Menu` and `Popover` component tokens.**~~ — done for `Menu`
-   (`--text-menu-{xs,sm,md,lg}`, popup-surface-unification PR). `Popover`
-   still bypasses its component tokens.
+2. ~~**Give `Menu` component tokens.**~~ — done: routed through
+   `--text-menu-{xs,sm,md,lg}` (popup-surface-unification PR).
+2b. **Give `Popover` component tokens.** — still open; not touched by that PR.
 3. ~~**Unify item spacing.**~~ — done for Select/Combobox/Menu via the shared
    `--padding-popup-item-*` / `--spacing-popup-item-*` axis in
    `_popup-surface.css`. Form controls (`Input` etc.) were not moved onto it.
