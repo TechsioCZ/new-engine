@@ -24,27 +24,12 @@
   --color-primary-100: oklch(0.936 0.032 17.738);
   --color-primary-200: oklch(0.883 0.062 18.386);
   --color-primary-300: oklch(0.805 0.111 19.782);
-  --color-primary-400: light-dark(
-    oklch(0.702 0.189 22.228),
-    oklch(0.745 0.155 20.548)
-  );
-  --color-primary-500: light-dark(
-    oklch(0.638 0.237 25.436),
-    oklch(0.702 0.189 22.228)
-  );
+  --color-primary-400: light-dark(oklch(0.702 0.189 22.228), oklch(0.745 0.155 20.548));
+  --color-primary-500: light-dark(oklch(0.638 0.237 25.436), oklch(0.702 0.189 22.228));
   --color-primary-600: oklch(0.581 0.238 29.234);
-  --color-primary-700: light-dark(
-    oklch(0.509 0.209 28.513),
-    oklch(0.583 0.239 28.476)
-  );
-  --color-primary-800: light-dark(
-    oklch(0.445 0.177 26.787),
-    oklch(0.509 0.209 28.513)
-  );
-  --color-primary-900: light-dark(
-    oklch(0.397 0.141 25.714),
-    oklch(0.445 0.177 26.787)
-  );
+  --color-primary-700: light-dark(oklch(0.509 0.209 28.513), oklch(0.583 0.239 28.476));
+  --color-primary-800: light-dark(oklch(0.445 0.177 26.787), oklch(0.509 0.209 28.513));
+  --color-primary-900: light-dark(oklch(0.397 0.141 25.714), oklch(0.445 0.177 26.787));
   --color-primary-alpha-10: oklch(0.581 0.238 29.234 / 0.1);
   --color-primary-alpha-5: oklch(0.581 0.238 29.234 / 0.05);
   --color-product-card-button-cart-fg: var(--color-fg-reverse);

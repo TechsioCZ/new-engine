@@ -1261,9 +1261,6 @@
   --padding-input-with-button: var(--dimension-120);
   --padding-input-with-button-left: var(--dimension-120);
   --padding-input-with-button-right: var(--dimension-120);
-  --padding-menu-content: var(--padding-popup-viewport);
-  --padding-menu-item-x: var(--padding-popup-item-x-md);
-  --padding-menu-item-y: var(--padding-popup-item-y-md);
   --padding-numeric-input-input-lg: var(--spacing-200);
   --padding-numeric-input-input-md: var(--spacing-150);
   --padding-numeric-input-input-sm: var(--spacing-100);

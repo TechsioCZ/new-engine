@@ -66,6 +66,7 @@
   --popup-item-x: var(--padding-popup-item-x-xs);
   --popup-item-y: var(--padding-popup-item-y-xs);
   --popup-item-gap: var(--spacing-popup-item-xs);
+
   border-radius: var(--radius-popup-xs);
 }
 
@@ -73,6 +74,7 @@
   --popup-item-x: var(--padding-popup-item-x-sm);
   --popup-item-y: var(--padding-popup-item-y-sm);
   --popup-item-gap: var(--spacing-popup-item-sm);
+
   border-radius: var(--radius-popup-sm);
 }
 
@@ -80,6 +82,7 @@
   --popup-item-x: var(--padding-popup-item-x-md);
   --popup-item-y: var(--padding-popup-item-y-md);
   --popup-item-gap: var(--spacing-popup-item-md);
+
   border-radius: var(--radius-popup-md);
 }
 
@@ -87,6 +90,7 @@
   --popup-item-x: var(--padding-popup-item-x-lg);
   --popup-item-y: var(--padding-popup-item-y-lg);
   --popup-item-gap: var(--spacing-popup-item-lg);
+
   border-radius: var(--radius-popup-lg);
 }
 

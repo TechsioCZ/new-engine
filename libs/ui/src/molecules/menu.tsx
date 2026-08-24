@@ -124,16 +124,16 @@ const menuVariants = tv({
       /* `xs` exists so parents whose own scale starts at xs (DataTable) can
        * forward `size` without it silently collapsing to `md`. */
       xs: {
-        content: "popup-size-xs text-xs",
+        content: "popup-size-xs text-menu-xs",
       },
       sm: {
-        content: "popup-size-sm text-sm",
+        content: "popup-size-sm text-menu-sm",
       },
       md: {
-        content: "popup-size-md text-md",
+        content: "popup-size-md text-menu-md",
       },
       lg: {
-        content: "popup-size-lg text-lg",
+        content: "popup-size-lg text-menu-lg",
       },
     },
   },

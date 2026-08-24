@@ -4,6 +4,13 @@ Findings from building `DataTable`, where form controls, a Menu and a Select sit
 side by side in one dense filter strip and the size mismatch became obvious.
 This is a plan, not something the DataTable branch changes.
 
+> **Update:** the popup-surface-unification PR closed issues 2 and 3 below for
+> Select, Combobox and Menu (tasks 2–4 in "Proposed tasks"), via a shared
+> `libs/ui/src/tokens/components/_popup-surface.css` token layer. Issue 1
+> (whether `md` itself should shrink) and issue 4 (a width scale) are still
+> open. The rest of this document is kept as the historical record of the
+> findings; see that PR's diff for what actually shipped.
+
 ## What was measured
 
 | Token | Resolves to |
@@ -28,47 +35,61 @@ Worth deciding as a system: either `md` stays the comfortable default and dense
 surfaces opt into `sm` explicitly, or the scale shifts down and today's `md`
 becomes `lg`. The second is a breaking visual change across every consumer.
 
-## Issue 2 — overlay components bypass component tokens
+## Issue 2 — overlay components bypass component tokens (resolved for Menu)
 
 | Component | Generic `text-sm/md/lg` usages |
 |---|---|
 | `select.tsx` | 0 |
 | `combobox.tsx` | 0 |
-| `menu.tsx` | 6 |
+| `menu.tsx` | 6 (now 0 — see below) |
 | `popover.tsx` | 2 |
 
-`Menu` and `Popover` style themselves with the global typography scale instead
-of `--text-menu-*` / `--text-popover-*` component tokens. The rendered value is
-identical today, so nothing looks wrong — but those two components cannot be
-re-themed or re-scaled independently, and they are invisible to the
+`Menu` and `Popover` styled themselves with the global typography scale
+instead of `--text-menu-*` / `--text-popover-*` component tokens. The rendered
+value was identical, so nothing looked wrong — but neither component could be
+re-themed or re-scaled independently, and both were invisible to the
 component-token validation the rest of the library passes.
 
-## Issue 3 — two spacing scales for the same kind of control
+`Menu` now routes every size through `--text-menu-{xs,sm,md,lg}`
+(`_menu.css`; `xs` was added as a code-side bridge since Figma exports only
+sm/md/lg for this component). `Popover` still bypasses its component tokens —
+not touched by this pass.
 
-| Token | Value |
+## Issue 3 — two spacing scales for the same kind of control (resolved for Select/Combobox/Menu)
+
+| Token (pre-unification) | Value |
 |---|---|
 | `--padding-menu-item-x` | `var(--dimension-20)` |
 | `--padding-menu-item-y` | `var(--dimension-16)` |
 | `--padding-input-md` | `var(--spacing-150)` |
 
-Menu items are spaced off the `--dimension-*` scale while form controls use
-`--spacing-*`. Combined with 18–20px text this is what makes menu items look
+Menu items were spaced off the `--dimension-*` scale while form controls used
+`--spacing-*`. Combined with 18–20px text this is what made menu items look
 chunky next to an Input of the "same" size. A menu item and a select option
 represent the same thing to a user — a pickable row — and should share a scale.
+
+Select, Combobox and Menu now share one item-padding axis via
+`--padding-popup-item-{x,y}-{xs,sm,md,lg}` (`_popup-surface.css`): x rides
+`--dimension-*`, y rides `--spacing-*` — at `md` that's
+`--padding-popup-item-x-md: var(--dimension-10)` and
+`--padding-popup-item-y-md: var(--spacing-100)`. Form controls (`Input`, etc.)
+still size off `--spacing-*` directly; the two are closer than before but not
+yet the same scale — see the still-open part of issue 1.
 
 ## Proposed tasks
 
 1. **Audit the `md` step.** Decide whether `--text-md` stays at 18–20px. Capture
    a side-by-side of Input / Button / Select / Combobox / Menu / Popover at each
-   size before changing anything.
-2. **Give `Menu` and `Popover` component tokens.** Replace the 8 generic
-   `text-*` usages with `--text-menu-*` / `--text-popover-*` aliases, so both
-   join the two-layer token contract and the validation scripts see them.
-3. **Unify item spacing.** Move `--padding-menu-item-*` onto `--spacing-*` and
-   align a menu item's height with a form control of the same size, so
-   `size="md"` means one height everywhere.
-4. **Align option rows across pickers.** A Select option, a Combobox option and
-   a Menu item should be interchangeable in height, padding and text size.
+   size before changing anything. — still open.
+2. ~~**Give `Menu` and `Popover` component tokens.**~~ — done for `Menu`
+   (`--text-menu-{xs,sm,md,lg}`, popup-surface-unification PR). `Popover`
+   still bypasses its component tokens.
+3. ~~**Unify item spacing.**~~ — done for Select/Combobox/Menu via the shared
+   `--padding-popup-item-*` / `--spacing-popup-item-*` axis in
+   `_popup-surface.css`. Form controls (`Input` etc.) were not moved onto it.
+4. ~~**Align option rows across pickers.**~~ — done: Select, Combobox and
+   Menu items now share height, padding, radius, hover/selected colour and
+   text size through `popup-item-base` + `popup-size-*`.
 5. **Add a size matrix story.** One Storybook page rendering every control at
    `sm`/`md`/`lg` in a row, so drift like this is visible in review instead of
    being discovered inside a feature.
