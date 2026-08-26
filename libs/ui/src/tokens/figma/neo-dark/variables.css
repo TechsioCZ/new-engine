@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-06-16T10:13:13.216Z
+ * Exported at: 2026-08-26T07:57:06.138Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -220,7 +220,7 @@
   --color-combobox-border-hover: var(--color-form-control-border-hover);
   --color-combobox-border-success: var(--color-fg-accent-success);
   --color-combobox-border-warning: var(--color-bg-warning-base);
-  --color-combobox-content-bg: var(--color-fill-surface);
+  --color-combobox-content-bg: var(--color-popup-bg);
   --color-combobox-danger-fg: var(--color-fg-accent-danger);
   --color-combobox-fg: var(--color-fg-primary);
   --color-combobox-fg-disabled: var(--color-fg-disabled);
@@ -228,9 +228,9 @@
   --color-combobox-input-bg-base: var(--color-transparent);
   --color-combobox-input-bg-focus: var(--color-transparent);
   --color-combobox-input-bg-hover: var(--color-transparent);
-  --color-combobox-item-bg-hover: var(--color-fill-hover);
-  --color-combobox-item-bg-selected: var(--color-bg-light-primary-base);
-  --color-combobox-item-fg: var(--color-fg-primary);
+  --color-combobox-item-bg-hover: var(--color-popup-item-bg-hover);
+  --color-combobox-item-bg-selected: var(--color-popup-item-bg-selected);
+  --color-combobox-item-fg: var(--color-popup-item-fg);
   --color-combobox-ring: var(--color-form-control-ring);
   --color-combobox-success-fg: var(--color-fg-accent-success);
   --color-combobox-trigger-bg-active: var(--color-transparent);
@@ -289,9 +289,9 @@
   --color-fill-base: var(--color-white-5);
   --color-fill-disabled: var(--color-bg-disabled);
   --color-fill-highlight: var(--color-neutral-700);
-  --color-fill-hover: var(--color-white-10);
+  --color-fill-hover: var(--color-primary-900);
   --color-fill-overlay: var(--color-neutral-800);
-  --color-fill-selected: var(--color-primary-alpha-10);
+  --color-fill-selected: var(--color-primary-600);
   --color-fill-surface: var(--color-neutral-800);
   --color-float: var(--color-fill-highlight);
   --color-footer-bg: var(--color-fill-surface);
@@ -335,6 +335,14 @@
   --color-header-nav-item-bg: var(--color-bg-transparent);
   --color-header-nav-item-bg-hover: var(--color-bg-transparent);
   --color-highlight: var(--color-fill-highlight);
+  --color-icon-control-bg-active: var(--color-fill-active);
+  --color-icon-control-bg-danger-active: var(--color-bg-light-danger-active);
+  --color-icon-control-bg-danger-hover: var(--color-bg-light-danger-base);
+  --color-icon-control-bg-hover: var(--color-fill-hover);
+  --color-icon-control-fg: var(--color-fg-primary);
+  --color-icon-control-fg-danger-hover: var(--color-danger);
+  --color-icon-control-fg-disabled: var(--color-fg-disabled);
+  --color-icon-control-ring: var(--color-ring-default);
   --color-icon-fg: var(--color-fg-primary);
   --color-icon-fg-danger: var(--color-danger);
   --color-icon-fg-primary: var(--color-primary);
@@ -379,12 +387,12 @@
   --color-link-fg-visited: var(--color-link-visited);
   --color-link-hover: var(--color-primary-700);
   --color-link-visited: var(--color-primary-600);
-  --color-menu-content-bg: var(--color-fill-overlay);
-  --color-menu-content-border: var(--color-fill-highlight);
+  --color-menu-content-bg: var(--color-popup-bg);
+  --color-menu-content-border: var(--color-popup-border);
   --color-menu-fg-disabled: var(--color-fg-disabled);
-  --color-menu-item-bg-hover: var(--color-fill-hover);
-  --color-menu-item-fg: var(--color-fg-primary);
-  --color-menu-item-icon-fg: var(--color-fg-secondary);
+  --color-menu-item-bg-hover: var(--color-popup-item-bg-hover);
+  --color-menu-item-fg: var(--color-popup-item-fg);
+  --color-menu-item-icon-fg: var(--color-popup-item-fg-muted);
   --color-menu-separator-bg: var(--color-border-primary);
   --color-menu-submenu-indicator-fg: var(--color-fg-secondary);
   --color-neutral-020617: oklch(0.129 0.041 264.695);
@@ -472,6 +480,14 @@
   --color-popover-close-trigger-fg: var(--color-fg-primary);
   --color-popover-description-fg: var(--color-fg-secondary);
   --color-popover-fg: var(--color-fg-primary);
+  --color-popup-bg: var(--color-fill-surface);
+  --color-popup-border: var(--color-border-primary);
+  --color-popup-item-bg-hover: var(--color-fill-hover);
+  --color-popup-item-bg-selected: var(--color-fill-selected);
+  --color-popup-item-fg: var(--color-fg-primary);
+  --color-popup-item-fg-disabled: var(--color-fg-disabled);
+  --color-popup-item-fg-muted: var(--color-fg-secondary);
+  --color-popup-item-fg-selected: var(--color-white);
   --color-primary: var(--color-primary-300);
   --color-primary-100: oklch(0.936 0.032 17.738);
   --color-primary-200: oklch(0.883 0.062 18.386);
@@ -485,6 +501,7 @@
   --color-primary-accent-fg: var(--color-fg-accent-primary);
   --color-primary-active: var(--color-bg-primary-active);
   --color-primary-alpha-10: oklch(0.581 0.238 29.234 / 0.1);
+  --color-primary-alpha-5: oklch(0.581 0.238 29.234 / 0.05);
   --color-primary-disabled: var(--color-bg-disabled);
   --color-primary-hover: var(--color-bg-primary-hover);
   --color-primary-light: var(--color-bg-light-primary-base);
@@ -602,15 +619,15 @@
   --color-search-form-fg-placeholder: var(--color-input-fg-placeholder);
   --color-search-form-ring: var(--color-input-ring);
   --color-secondary: var(--color-secondary-500);
-  --color-secondary-100: #fef3c7;
-  --color-secondary-200: #fde68a;
-  --color-secondary-300: #fcd34d;
-  --color-secondary-400: #fbbf24;
-  --color-secondary-500: #f59e0b;
-  --color-secondary-600: #d97706;
-  --color-secondary-700: #b45309;
-  --color-secondary-800: #92400e;
-  --color-secondary-900: #78350f;
+  --color-secondary-100: oklch(0.962 0.058 95.617);
+  --color-secondary-200: oklch(0.924 0.115 95.746);
+  --color-secondary-300: oklch(0.879 0.153 91.605);
+  --color-secondary-400: oklch(0.837 0.164 84.429);
+  --color-secondary-500: oklch(0.769 0.165 70.08);
+  --color-secondary-600: oklch(0.666 0.157 58.318);
+  --color-secondary-700: oklch(0.555 0.146 48.998);
+  --color-secondary-800: oklch(0.473 0.125 46.201);
+  --color-secondary-900: oklch(0.414 0.105 45.904);
   --color-secondary-accent-fg: var(--color-fg-accent-secondary);
   --color-secondary-active: var(--color-bg-secondary-active);
   --color-secondary-disabled: var(--color-bg-disabled);
@@ -626,15 +643,15 @@
   --color-select-border-warning: var(--color-bg-warning-base);
   --color-select-clear-trigger-bg: var(--color-fill-base);
   --color-select-clear-trigger-fg: var(--color-fg-primary);
-  --color-select-content-bg: var(--color-fill-surface);
-  --color-select-content-border: var(--color-border-primary);
+  --color-select-content-bg: var(--color-popup-bg);
+  --color-select-content-border: var(--color-popup-border);
   --color-select-fg-disabled: var(--color-fg-disabled);
-  --color-select-indicator: var(--color-fg-accent-primary);
+  --color-select-indicator: var(--color-popup-item-fg-selected);
   --color-select-item-bg-base: var(--color-fill-base);
-  --color-select-item-bg-hover: var(--color-form-control-bg-hover);
-  --color-select-item-bg-selected: var(--color-form-control-bg);
-  --color-select-item-fg-base: var(--color-fg-primary);
-  --color-select-item-fg-selected: var(--color-fg-accent-primary);
+  --color-select-item-bg-hover: var(--color-popup-item-bg-hover);
+  --color-select-item-bg-selected: var(--color-popup-item-bg-selected);
+  --color-select-item-fg-base: var(--color-popup-item-fg);
+  --color-select-item-fg-selected: var(--color-popup-item-fg-selected);
   --color-select-placeholder: var(--color-form-control-fg-placeholder);
   --color-select-ring: var(--color-form-control-ring);
   --color-select-trigger-bg-hover: var(--color-form-control-bg-hover);
@@ -750,6 +767,7 @@
   --color-table-row-bg: var(--color-bg-transparent);
   --color-table-row-bg-hover: var(--color-fill-hover);
   --color-table-row-bg-selected: var(--color-fill-selected);
+  --color-table-row-fg-selected: var(--color-white);
   --color-table-row-striped-primary: var(--color-fill-base);
   --color-table-row-striped-secondary: var(--color-bg-transparent);
   --color-tabs-bg: var(--color-fill-surface);
@@ -937,6 +955,7 @@
   --border-width-input-validation: var(--border-lg);
   --border-width-numeric-input: var(--border-width-input);
   --border-width-pagination: var(--border-sm);
+  --border-width-popup: var(--border-sm);
   --border-width-product-card: var(--border-sm);
   --border-width-radio-card: var(--border-sm);
   --border-width-radio-card-addon: var(--border-sm);
@@ -1183,9 +1202,9 @@
   --padding-input-with-button: var(--dimension-120);
   --padding-input-with-button-left: var(--dimension-120);
   --padding-input-with-button-right: var(--dimension-120);
-  --padding-menu-content: var(--dimension-16);
-  --padding-menu-item-x: var(--dimension-20);
-  --padding-menu-item-y: var(--dimension-16);
+  --padding-menu-content: var(--padding-popup-viewport);
+  --padding-menu-item-x: var(--padding-popup-item-x-md);
+  --padding-menu-item-y: var(--padding-popup-item-y-md);
   --padding-numeric-input-input-lg: var(--spacing-200);
   --padding-numeric-input-input-md: var(--spacing-150);
   --padding-numeric-input-input-sm: var(--spacing-100);
@@ -1195,6 +1214,15 @@
   --padding-popover-lg: var(--dimension-30);
   --padding-popover-md: var(--dimension-20);
   --padding-popover-sm: var(--dimension-16);
+  --padding-popup-item-x-lg: var(--dimension-16);
+  --padding-popup-item-x-md: var(--dimension-10);
+  --padding-popup-item-x-sm: var(--dimension-8);
+  --padding-popup-item-x-xs: var(--dimension-6);
+  --padding-popup-item-y-lg: var(--spacing-200);
+  --padding-popup-item-y-md: var(--spacing-100);
+  --padding-popup-item-y-sm: var(--spacing-50);
+  --padding-popup-item-y-xs: var(--spacing-50);
+  --padding-popup-viewport: var(--dimension-4);
   --padding-radio-card-addon-lg: var(--dimension-16);
   --padding-radio-card-addon-md: var(--dimension-10);
   --padding-radio-card-addon-sm: var(--dimension-8);
@@ -1202,8 +1230,8 @@
   --padding-radio-card-item-control-md: var(--dimension-16);
   --padding-radio-card-item-control-sm: var(--dimension-10);
   --padding-select-clear-trigger: var(--dimension-6);
-  --padding-select-item-x: var(--dimension-20);
-  --padding-select-item-y: var(--dimension-10);
+  --padding-select-item-x: var(--padding-popup-item-x-md);
+  --padding-select-item-y: var(--padding-popup-item-y-md);
   --padding-select-trigger-md: var(--spacing-150);
   --padding-select-trigger-sm: var(--spacing-100);
   --padding-select-trigger-x-md: var(--dimension-10);
@@ -1269,14 +1297,15 @@
   --radius-form-control-sm: var(--radius-sm);
   --radius-full: 624.94rem;
   --radius-gallery-trigger: var(--radius-sm);
+  --radius-icon-control: var(--radius-sm);
   --radius-input: var(--radius-form-control);
   --radius-input-lg: var(--radius-form-control-lg);
   --radius-input-md: var(--radius-form-control-md);
   --radius-input-sm: var(--radius-form-control-sm);
   --radius-lg: 0.75rem;
   --radius-md: 0.5rem;
-  --radius-menu: var(--radius-sm);
-  --radius-menu-item: var(--radius-xs);
+  --radius-menu: var(--radius-popup-md);
+  --radius-menu-item: var(--radius-popup-item);
   --radius-none: 0rem;
   --radius-numeric-input: var(--radius-form-control);
   --radius-numeric-input-lg: var(--radius-form-control-lg);
@@ -1288,6 +1317,12 @@
   --radius-phone-input-md: var(--radius-form-control-md);
   --radius-phone-input-sm: var(--radius-form-control-sm);
   --radius-popover: var(--radius-sm);
+  --radius-popup: var(--radius-md);
+  --radius-popup-item: var(--radius-sm);
+  --radius-popup-lg: var(--radius-lg);
+  --radius-popup-md: var(--radius-md);
+  --radius-popup-sm: var(--radius-sm);
+  --radius-popup-xs: var(--radius-sm);
   --radius-product-card: var(--radius-md);
   --radius-product-card-image: var(--radius-md);
   --radius-radio-card-indicator: var(--radius-full);
@@ -1334,11 +1369,12 @@
   --shadow-gallery-trigger: var(--shadow-sm);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-menu-content: var(--shadow-lg);
+  --shadow-menu-content: var(--shadow-popup);
   --shadow-popover: var(--shadow-primary);
+  --shadow-popup: var(--shadow-md);
   --shadow-primary: var(--offset-shadow-1) var(--color-shadow-1), var(--offset-shadow-2) var(--color-shadow-2), var(--offset-shadow-3) var(--color-shadow-3);
   --shadow-radio-card-item: var(--shadow-sm);
-  --shadow-select-content: var(--shadow-md);
+  --shadow-select-content: var(--shadow-popup);
   --shadow-slider-thumb: var(--shadow-sm);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-table-outline: var(--shadow-sm);
@@ -1387,10 +1423,14 @@
   --size-form-control-lg: var(--dimension-70);
   --size-form-control-md: var(--size-44);
   --size-form-control-sm: var(--dimension-32);
+  --size-icon-control-lg: var(--dimension-40);
+  --size-icon-control-md: var(--dimension-32);
+  --size-icon-control-sm: var(--dimension-24);
   --size-image-lg: var(--size-240);
   --size-image-md: var(--size-160);
   --size-image-sm: var(--dimension-80);
   --size-menu-separator-height: var(--border-sm);
+  --size-popup-indicator: var(--dimension-20);
   --size-radio-card-indicator-lg: var(--dimension-20);
   --size-radio-card-indicator-mark-lg: var(--dimension-10);
   --size-radio-card-indicator-mark-md: var(--size-8);
@@ -1450,10 +1490,10 @@
   --spacing-carousel-trigger-right: var(--dimension-6);
   --spacing-carousel-trigger-top: var(--dimension-6);
   --spacing-combobox-clear-right: var(--dimension-18);
-  --spacing-combobox-item-padding-x: var(--dimension-20);
-  --spacing-combobox-item-padding-y-lg: var(--dimension-4);
-  --spacing-combobox-item-padding-y-md: var(--dimension-10);
-  --spacing-combobox-item-padding-y-sm: var(--dimension-10);
+  --spacing-combobox-item-padding-x: var(--padding-popup-item-x-md);
+  --spacing-combobox-item-padding-y-lg: var(--padding-popup-item-y-lg);
+  --spacing-combobox-item-padding-y-md: var(--padding-popup-item-y-md);
+  --spacing-combobox-item-padding-y-sm: var(--padding-popup-item-y-sm);
   --spacing-combobox-lg: var(--dimension-16);
   --spacing-combobox-md: var(--dimension-10);
   --spacing-combobox-sm: var(--dimension-6);
@@ -1486,7 +1526,7 @@
   --spacing-header-nav-md: var(--dimension-24);
   --spacing-header-nav-sm: var(--dimension-16);
   --spacing-label: var(--size-4);
-  --spacing-menu-item: var(--dimension-16);
+  --spacing-menu-item: var(--spacing-popup-item-md);
   --spacing-menu-separator-margin: var(--dimension-16);
   --spacing-menu-submenu-indicator: var(--dimension-20);
   --spacing-numeric-input: var(--size-1);
@@ -1499,6 +1539,10 @@
   --spacing-phone-input-item: var(--dimension-10);
   --spacing-popover-arrow-size: var(--dimension-10);
   --spacing-popover-title: var(--dimension-10);
+  --spacing-popup-item-lg: var(--dimension-10);
+  --spacing-popup-item-md: var(--dimension-8);
+  --spacing-popup-item-sm: var(--dimension-6);
+  --spacing-popup-item-xs: var(--dimension-4);
   --spacing-product-card-actions: var(--dimension-10);
   --spacing-product-card-badges: var(--dimension-10);
   --spacing-product-card-col-layout: var(--dimension-6);
@@ -1532,6 +1576,7 @@
   --spacing-rating-md: var(--dimension-10);
   --spacing-rating-sm: var(--dimension-6);
   --spacing-search-form-clear-button: var(--dimension-16);
+  --spacing-search-form-gapped: 0.5rem;
   --spacing-search-form-lg: var(--dimension-20);
   --spacing-search-form-md: var(--dimension-16);
   --spacing-search-form-sm: var(--dimension-10);
@@ -1646,6 +1691,9 @@
   --text-header-md: var(--text-md);
   --text-header-sm: var(--text-sm);
   --text-icon-2xl: var(--text-2xl);
+  --text-icon-control-lg: var(--text-icon-lg);
+  --text-icon-control-md: var(--text-icon-md);
+  --text-icon-control-sm: var(--dimension-16);
   --text-icon-lg: var(--text-lg);
   --text-icon-md: var(--text-md);
   --text-icon-sm: var(--text-sm);
