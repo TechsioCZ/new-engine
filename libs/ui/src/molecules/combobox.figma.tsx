@@ -3,7 +3,7 @@ import { Combobox } from "./combobox"
 
 figma.connect(
   Combobox,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1189-153",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1189-153",
   {
     imports: ['import { Combobox } from "@techsio/ui-kit/molecules/combobox"'],
     props: {

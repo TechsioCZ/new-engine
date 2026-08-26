@@ -4,7 +4,7 @@ import { Tooltip } from "./tooltip"
 
 figma.connect(
   Tooltip,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=340-436",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=340-436",
   {
     imports: [
       'import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"',

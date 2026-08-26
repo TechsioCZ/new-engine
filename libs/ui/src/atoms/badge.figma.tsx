@@ -3,7 +3,7 @@ import { Badge } from "./badge"
 
 figma.connect(
   Badge,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1-7735",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1-7735",
   {
     imports: ['import { Badge } from "@techsio/ui-kit/atoms/badge"'],
     props: {

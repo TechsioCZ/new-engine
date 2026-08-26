@@ -4,7 +4,7 @@ import { FormNumericInput } from "./form-numeric-input"
 
 figma.connect(
   FormNumericInput,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=603-143",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=603-143",
   {
     imports: [
       'import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"',

@@ -3,7 +3,7 @@ import { RadioCard } from "./radio-card"
 
 figma.connect(
   RadioCard,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1151-66",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1151-66",
   {
     imports: ['import { RadioCard } from "@libs/ui/molecules/radio-card"'],
     props: {

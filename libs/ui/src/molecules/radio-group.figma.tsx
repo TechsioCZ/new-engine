@@ -3,7 +3,7 @@ import { RadioGroup } from "./radio-group"
 
 figma.connect(
   RadioGroup,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1149-66",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1149-66",
   {
     imports: ['import { RadioGroup } from "@libs/ui/molecules/radio-group"'],
     props: {
