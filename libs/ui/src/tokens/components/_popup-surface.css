@@ -123,8 +123,8 @@
     var(--size-popup-indicator)
   );
 
-  /* An option is not a link. */
-  cursor: default;
+  /* Every popup option is clickable — signal it like any other control. */
+  cursor: pointer;
   user-select: none;
 
   /* Highlight is the focus affordance; a second ring on top of it reads as

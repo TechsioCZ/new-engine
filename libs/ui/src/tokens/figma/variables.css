@@ -1529,7 +1529,7 @@
   --spacing-header-nav-sm: var(--dimension-16);
   --spacing-label: var(--size-4);
   --spacing-menu-item: var(--spacing-popup-item-md);
-  --spacing-menu-separator-margin: var(--dimension-16);
+  --spacing-menu-separator-margin: var(--dimension-8);
   --spacing-menu-submenu-indicator: var(--dimension-20);
   --spacing-numeric-input: var(--size-1);
   --spacing-numeric-input-lg: var(--dimension-0);
