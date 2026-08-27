@@ -9,17 +9,41 @@
  */
 
 [data-theme="neo"] {
-  --color-badge-fg-primary: var(--color-fg-reverse);
+  --color-bg-danger-active: light-dark(oklch(0.584 0.191 22.13), oklch(0.881 0.063 18.416));
+  --color-bg-danger-hover: light-dark(oklch(0.624 0.19 22.474), oklch(0.855 0.079 18.827));
+  --color-bg-light-danger-active: light-dark(oklch(0.685 0.114 22.469), oklch(0.962 0.019 25.602));
+  --color-bg-light-danger-base: oklch(0.9 0.048 18.09);
+  --color-bg-light-danger-hover: light-dark(oklch(0.725 0.114 22.247), oklch(0.953 0.023 24.126));
   --color-bg-light-primary-active: var(--color-primary-300);
   --color-bg-light-primary-base: var(--color-primary-100);
   --color-bg-light-primary-hover: var(--color-primary-200);
+  --color-bg-light-secondary-active: light-dark(oklch(0.685 0.128 47.292), oklch(0.97 0.107 105.368));
+  --color-bg-light-secondary-base: oklch(0.893 0.063 56.696);
+  --color-bg-light-secondary-hover: light-dark(oklch(0.726 0.128 47.749), oklch(0.97 0.107 105.368));
+  --color-bg-light-tertiary-active: light-dark(oklch(0.802 0.073 346.374), oklch(0.884 0.064 6.283));
+  --color-bg-light-tertiary-base: oklch(0.941 0.034 344.058);
+  --color-bg-light-tertiary-hover: light-dark(oklch(0.842 0.072 346.249), oklch(0.857 0.079 9.107));
+  --color-bg-light-warning-active: light-dark(oklch(0.775 0.11 86.269), oklch(0.975 0.117 107.339));
+  --color-bg-light-warning-base: oklch(0.928 0.073 92.942);
+  --color-bg-light-warning-hover: light-dark(oklch(0.816 0.11 86.477), oklch(0.975 0.117 107.339));
   --color-bg-outlined-primary-active: var(--color-primary-200);
   --color-bg-outlined-primary-hover: var(--color-primary-100);
   --color-bg-primary-active: var(--color-primary-800);
   --color-bg-primary-base: var(--color-primary-600);
   --color-bg-primary-hover: var(--color-primary-700);
-  --color-button-fg-primary: var(--color-fg-reverse);
+  --color-bg-tertiary-active: light-dark(oklch(0.704 0.119 346.312), oklch(0.769 0.142 7.776));
+  --color-bg-tertiary-hover: light-dark(oklch(0.743 0.12 345.839), oklch(0.747 0.158 9.988));
+  --color-bg-warning-active: light-dark(oklch(0.678 0.142 76.945), oklch(0.937 0.199 105.01));
+  --color-bg-warning-hover: light-dark(oklch(0.718 0.149 79.256), oklch(0.909 0.189 99.865));
+  --color-fg-accent-danger: oklch(0.452 0.066 4.881);
   --color-fg-accent-primary: var(--color-primary-600);
+  --color-fg-accent-secondary: oklch(0.447 0.076 49.767);
+  --color-fg-accent-success: light-dark(var(--color-success-500), var(--color-success-300));
+  --color-fg-accent-tertiary: oklch(0.511 0.054 323.997);
+  --color-fg-accent-warning: oklch(0.492 0.079 93.623);
+  --color-fg-on-primary-indicator: var(--color-fg-reverse);
+  --color-fg-on-primary-solid: var(--color-fg-reverse);
+  --color-fg-on-primary-solid-neo: var(--color-fg-reverse);
   --color-fill-selected: var(--color-primary-600);
   --color-primary-100: oklch(0.936 0.032 17.738);
   --color-primary-200: oklch(0.883 0.062 18.386);
@@ -31,12 +55,6 @@
   --color-primary-800: light-dark(oklch(0.445 0.177 26.787), oklch(0.509 0.209 28.513));
   --color-primary-900: light-dark(oklch(0.397 0.141 25.714), oklch(0.445 0.177 26.787));
   --color-primary-alpha-10: oklch(0.581 0.238 29.234 / 0.1);
-  --color-primary-alpha-5: oklch(0.581 0.238 29.234 / 0.05);
-  --color-product-card-button-cart-fg: var(--color-fg-reverse);
-  --color-radio-card-addon-fg-solid-checked: var(--color-fg-reverse);
-  --color-radio-card-item-description-fg-solid-checked: var(--color-fg-reverse);
-  --color-radio-card-item-indicator-bg-solid-checked: var(--color-fg-reverse);
-  --color-radio-card-item-indicator-border-solid-checked: var(--color-fg-reverse);
   --color-secondary-100: oklch(0.962 0.058 95.617);
   --color-secondary-200: oklch(0.924 0.115 95.746);
   --color-secondary-300: oklch(0.879 0.153 91.605);
@@ -46,6 +64,4 @@
   --color-secondary-700: oklch(0.555 0.146 48.998);
   --color-secondary-800: oklch(0.473 0.125 46.201);
   --color-secondary-900: oklch(0.414 0.105 45.904);
-  --color-steps-indicator-fg-solid: var(--color-fg-reverse);
-  --color-tabs-trigger-fg-solid-selected: var(--color-fg-reverse);
 }
