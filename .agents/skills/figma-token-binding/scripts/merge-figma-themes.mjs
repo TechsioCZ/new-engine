@@ -47,7 +47,13 @@ const OVERRIDES_OUT = join(FIGMA_DIR, "brand-overrides.css")
  * folders and appending an entry here. A light-only brand can reuse its light
  * folder for `dark` (its dark control is hidden by the theme config anyway).
  */
-const BRANDS = [{ attr: "neo", light: "neo", dark: "neo-dark" }]
+const BRANDS = [
+  { attr: "neo", light: "neo", dark: "neo-dark" },
+  // Light-only brand: reuses its light export for both halves, so the
+  // merge never emits light-dark() for it. Its dark control is hidden by
+  // theme-config (modes: ["light"]).
+  { attr: "business", light: "business", dark: "business" },
+]
 
 const DECL_RE = /^\s*(--[a-z0-9-]+):\s*([^;]+);/gm
 
