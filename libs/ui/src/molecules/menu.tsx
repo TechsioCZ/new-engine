@@ -98,11 +98,12 @@ const menuVariants = tv({
     // checkable menu rows get no background tint: selection here is not
     // exclusive, so tinting most of the list would drown the highlight state.
     //
-    // Because there is no filled background, this uses -fg-accent, NOT the
+    // Because there is no filled background, this uses -fg-checked, NOT the
     // -fg-selected white that Select/Combobox use on their solid selected
-    // fill. White here landed on the panel/hover tint at ~1.4:1 and made
-    // checked rows unreadable.
-    optionItem: ["data-[state=checked]:text-popup-item-fg-accent"],
+    // fill. In light mode that white landed on the panel/hover tint at
+    // ~1.4:1 and made checked rows unreadable; -fg-checked keeps the dark
+    // half white, where it was already correct.
+    optionItem: ["data-[state=checked]:text-popup-item-fg-checked"],
     separator: [
       "my-menu-separator-margin",
       "h-menu-separator",
@@ -112,11 +113,11 @@ const menuVariants = tv({
     // Trailing, always rendered (empty when unchecked) so toggling a row
     // never reflows its label.
     // Same reasoning as optionItem: the glyph sits on the bare panel, not on
-    // a filled selected row, so it needs the accent rather than white.
+    // a filled selected row, so it follows the checked foreground.
     itemIndicator: [
       "-translate-y-1/2 absolute end-(--popup-item-x) top-1/2",
       "flex items-center justify-center",
-      "size-(--size-popup-indicator) text-popup-item-fg-accent",
+      "size-(--size-popup-indicator) text-popup-item-fg-checked",
     ],
     itemIcon: ["shrink-0 text-menu-item-icon text-popup-item-fg-muted"],
     submenuIndicator: [

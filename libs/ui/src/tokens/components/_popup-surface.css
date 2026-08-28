@@ -26,24 +26,33 @@
   --z-popup: 50;
 
   /*
-   * Accent foreground for a row that is checked but painted on NO filled
-   * background — Menu's checkbox/radio rows. Distinct from
+   * Foreground for a row that is checked but painted on NO filled background
+   * — Menu's checkbox/radio rows. Distinct from
    * --color-popup-item-fg-selected, which is white because Select/Combobox
-   * paint a solid --color-popup-item-bg-selected behind it; reusing that
-   * white here put white text on the panel/hover tint (~1.4:1).
+   * paint a solid --color-popup-item-bg-selected behind it.
    *
-   * Must clear 4.5:1 on BOTH the panel surface and the hover tint, in every
-   * brand. Measured worst case 5.73:1 (neo light hover, neo-dark hover);
-   * best 11.02:1. primary-700 was rejected — it fails neo light hover at
-   * 4.41:1.
+   * Only the LIGHT half is a fix. On a light panel that white landed on the
+   * hover tint at 1.42:1 (base) / 1.46:1 (neo) — invisible. primary-800
+   * clears it at 6.21:1 / 5.73:1; primary-700 was rejected because it fails
+   * neo at 4.41:1.
    *
-   * TEMPORARY BRIDGE: Figma has no popup-surface accent token yet, which is
-   * why this declaration survives (figma/variables.css is imported after
-   * this file and would otherwise win). Delete once Figma exports it.
+   * The DARK half stays white deliberately. There the same white was already
+   * correct — 9.46:1 (base) / 8.34:1 (neo) against the dark hover tint — so
+   * changing it would alter a mode that was never broken. An earlier version
+   * of this fix used primary-200 for dark, which still passed but needlessly
+   * dropped contrast to 7.10 / 5.73.
+   *
+   * Named for the state it serves, not the colour: it is an accent in light
+   * and plain white in dark, so an appearance-based name would lie in one of
+   * the two modes.
+   *
+   * TEMPORARY BRIDGE: Figma has no popup-surface token for this yet, which is
+   * why this declaration survives (figma/variables.css is imported after this
+   * file and would otherwise win). Delete once Figma exports it.
    */
-  --color-popup-item-fg-accent: light-dark(
+  --color-popup-item-fg-checked: light-dark(
     var(--color-primary-800),
-    var(--color-primary-200)
+    var(--color-white)
   );
 }
 
