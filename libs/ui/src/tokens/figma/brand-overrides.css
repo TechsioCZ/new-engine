@@ -54,7 +54,6 @@
   --color-primary-700: light-dark(oklch(0.509 0.209 28.513), oklch(0.583 0.239 28.476));
   --color-primary-800: light-dark(oklch(0.445 0.177 26.787), oklch(0.509 0.209 28.513));
   --color-primary-900: light-dark(oklch(0.397 0.141 25.714), oklch(0.445 0.177 26.787));
-  --color-primary-alpha-10: oklch(0.581 0.238 29.234 / 0.1);
   --color-secondary-100: oklch(0.962 0.058 95.617);
   --color-secondary-200: oklch(0.924 0.115 95.746);
   --color-secondary-300: oklch(0.879 0.153 91.605);

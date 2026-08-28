@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-08-27T09:18:55.893Z
+ * Exported at: 2026-08-28T05:39:29.071Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -51,9 +51,9 @@
   --color-bg-secondary-base: var(--color-secondary-500);
   --color-bg-secondary-hover: oklch(0.628 0.201 39.026);
   --color-bg-success: var(--color-success-500);
-  --color-bg-switch-checked-hover: var(--color-success-0d945c);
-  --color-bg-switch-hover: var(--color-neutral-dbdbdb);
-  --color-bg-switch-invalid: var(--color-danger-f77070);
+  --color-bg-switch-checked-hover: var(--color-success-600);
+  --color-bg-switch-hover: var(--color-neutral-300);
+  --color-bg-switch-invalid: var(--color-danger-400);
   --color-bg-tertiary-active: oklch(0.704 0.119 346.312);
   --color-bg-tertiary-base: var(--color-tertiary-300);
   --color-bg-tertiary-hover: oklch(0.743 0.12 345.839);
@@ -62,18 +62,18 @@
   --color-bg-warning-base: var(--color-warning-500);
   --color-bg-warning-hover: oklch(0.718 0.149 79.256);
   --color-black: oklch(0 0 0);
+  --color-black-15: oklch(0.129 0.041 264.695 / 0.15);
+  --color-black-5: oklch(0.129 0.041 264.695 / 0.05);
   --color-blue-500: oklch(0.623 0.188 259.815);
-  --color-blue-7dd3fc: oklch(0.828 0.101 230.318);
-  --color-blue-93c5fd: oklch(0.809 0.096 251.813);
-  --color-border-danger-focus: var(--color-danger-f87171);
-  --color-border-danger-hover: var(--color-danger-ef4444);
+  --color-border-danger-focus: var(--color-danger-400);
+  --color-border-danger-hover: var(--color-danger-500);
   --color-border-disabled: var(--color-neutral-300);
-  --color-border-primary: var(--color-neutral-020617-15);
+  --color-border-primary: var(--color-black-15);
   --color-border-secondary: var(--color-border-primary);
-  --color-border-success-focus: var(--color-success-10b981);
-  --color-border-success-hover: var(--color-success-059669);
-  --color-border-warning-focus: var(--color-warning-eab308);
-  --color-border-warning-hover: var(--color-warning-ca8a04);
+  --color-border-success-focus: var(--color-success-500);
+  --color-border-success-hover: var(--color-success-600);
+  --color-border-warning-focus: var(--color-warning-500);
+  --color-border-warning-hover: var(--color-warning-600);
   --color-danger: var(--color-danger-400);
   --color-danger-100: oklch(0.936 0.031 17.717);
   --color-danger-200: oklch(0.885 0.059 18.334);
@@ -85,14 +85,8 @@
   --color-danger-700: oklch(0.505 0.19 27.518);
   --color-danger-800: oklch(0.444 0.161 26.899);
   --color-danger-900: oklch(0.396 0.133 25.723);
-  --color-danger-accent-fg: var(--color-fg-accent-danger);
   --color-danger-active: var(--color-bg-danger-active);
   --color-danger-disabled: var(--color-bg-disabled);
-  --color-danger-ef4444: oklch(0.637 0.208 25.331);
-  --color-danger-f77070: oklch(0.708 0.166 22.25);
-  --color-danger-f87171: oklch(0.711 0.166 22.216);
-  --color-danger-fc9191: oklch(0.77 0.13 20.486);
-  --color-danger-fca5a5: oklch(0.808 0.103 19.571);
   --color-danger-hover: var(--color-bg-danger-hover);
   --color-danger-light: var(--color-bg-light-danger-base);
   --color-danger-light-active: var(--color-bg-light-danger-active);
@@ -113,15 +107,15 @@
   --color-fg-on-primary-indicator: var(--color-fg-reverse);
   --color-fg-on-primary-solid: var(--color-fg-reverse);
   --color-fg-on-primary-solid-neo: var(--color-fg-reverse);
-  --color-fg-placeholder: var(--color-neutral-64748b);
+  --color-fg-placeholder: var(--color-neutral-500);
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
   --color-fg-secondary: oklch(0.494 0.037 261.595);
-  --color-fg-status-error: var(--color-danger-f87171);
-  --color-fg-status-success: var(--color-success-10b981);
-  --color-fg-status-warning: var(--color-warning-eab308);
-  --color-fill-active: var(--color-neutral-020617-15);
-  --color-fill-base: var(--color-neutral-020617-5);
+  --color-fg-status-error: var(--color-danger-400);
+  --color-fg-status-success: var(--color-success-500);
+  --color-fg-status-warning: var(--color-warning-500);
+  --color-fill-active: var(--color-black-15);
+  --color-fill-base: var(--color-black-5);
   --color-fill-borderless-active: var(--color-fill-active);
   --color-fill-borderless-base: var(--color-fill-base);
   --color-fill-borderless-hover: var(--color-fill-hover);
@@ -137,30 +131,17 @@
   --color-info: var(--color-bg-info);
   --color-info-disabled: var(--color-bg-disabled);
   --color-link: var(--color-blue-500);
-  --color-neutral-020617: oklch(0.129 0.041 264.695);
-  --color-neutral-020617-10: oklch(0.129 0.041 264.695 / 0.1);
-  --color-neutral-020617-15: oklch(0.129 0.041 264.695 / 0.15);
-  --color-neutral-020617-5: oklch(0.129 0.041 264.695 / 0.05);
   --color-neutral-100: oklch(0.967 0.003 264.542);
-  --color-neutral-1f2937: oklch(0.278 0.03 256.848);
   --color-neutral-200: oklch(0.928 0.006 264.531);
   --color-neutral-300: oklch(0.872 0.011 261.787);
-  --color-neutral-374151: oklch(0.373 0.031 259.733);
-  --color-neutral-383838: oklch(0.341 0 0);
   --color-neutral-400: oklch(0.707 0.022 261.749);
   --color-neutral-50: oklch(0.985 0.002 247.839);
   --color-neutral-500: oklch(0.551 0.023 264.364);
   --color-neutral-600: oklch(0.446 0.026 256.802);
-  --color-neutral-64748b: oklch(0.554 0.041 257.417);
-  --color-neutral-6b7280: oklch(0.551 0.023 264.364);
   --color-neutral-700: oklch(0.374 0.028 262.946);
   --color-neutral-800: oklch(0.278 0.03 256.848);
   --color-neutral-900: oklch(0.21 0.032 264.665);
-  --color-neutral-94a3b8: oklch(0.711 0.035 256.788);
   --color-neutral-950: oklch(0.13 0.027 261.692);
-  --color-neutral-9ca3af: oklch(0.714 0.019 261.325);
-  --color-neutral-d1d5db: oklch(0.872 0.009 258.338);
-  --color-neutral-dbdbdb: oklch(0.891 0 0);
   --color-primary: var(--color-primary-300);
   --color-primary-100: oklch(0.936 0.032 17.738);
   --color-primary-200: oklch(0.883 0.062 18.386);
@@ -173,7 +154,6 @@
   --color-primary-900: oklch(0.397 0.141 25.714);
   --color-primary-accent-fg: var(--color-fg-accent-primary);
   --color-primary-active: var(--color-bg-primary-active);
-  --color-primary-alpha-10: oklch(0.581 0.238 29.234 / 0.1);
   --color-primary-disabled: var(--color-bg-disabled);
   --color-primary-hover: var(--color-bg-primary-hover);
   --color-primary-light: var(--color-bg-light-primary-base);
@@ -206,22 +186,9 @@
   --color-sky-300: oklch(0.828 0.101 230.318);
   --color-slate-950: oklch(0.208 0.04 265.755);
   --color-success: var(--color-success-500);
-  --color-success-059669: oklch(0.596 0.127 163.225);
-  --color-success-0d945c: oklch(0.588 0.136 157.638);
-  --color-success-100: oklch(0.962 0.043 156.743);
-  --color-success-10b981: oklch(0.696 0.149 162.48);
-  --color-success-200: oklch(0.925 0.081 155.995);
   --color-success-300: oklch(0.871 0.136 154.449);
-  --color-success-34d399: oklch(0.773 0.153 163.223);
-  --color-success-400: oklch(0.8 0.182 151.711);
   --color-success-500: oklch(0.723 0.192 149.579);
   --color-success-600: oklch(0.627 0.17 149.214);
-  --color-success-6ee7b7: oklch(0.845 0.13 164.978);
-  --color-success-700: oklch(0.527 0.137 150.069);
-  --color-success-800: oklch(0.448 0.108 151.328);
-  --color-success-8cebc7: oklch(0.871 0.105 167.65);
-  --color-success-900: oklch(0.393 0.09 152.535);
-  --color-success-accent-fg: var(--color-fg-accent-success);
   --color-success-disabled: var(--color-bg-disabled);
   --color-tertiary: var(--color-bg-tertiary-base);
   --color-tertiary-100: oklch(0.963 0.021 301.149);
@@ -252,19 +219,14 @@
   --color-warning-700: oklch(0.555 0.146 48.998);
   --color-warning-800: oklch(0.473 0.125 46.201);
   --color-warning-900: oklch(0.414 0.105 45.904);
-  --color-warning-accent-fg: var(--color-fg-accent-warning);
   --color-warning-active: var(--color-bg-warning-active);
-  --color-warning-ca8a04: oklch(0.681 0.142 75.834);
   --color-warning-disabled: var(--color-bg-disabled);
-  --color-warning-eab308: oklch(0.795 0.162 86.047);
-  --color-warning-facc15: oklch(0.861 0.173 91.936);
   --color-warning-hover: var(--color-bg-warning-hover);
   --color-warning-light: var(--color-bg-light-warning-base);
   --color-warning-light-active: var(--color-bg-light-warning-active);
   --color-warning-light-disabled: var(--color-bg-disabled);
   --color-warning-light-hover: var(--color-bg-light-warning-hover);
   --color-white: oklch(1 0 0);
-  --color-white-10: oklch(1 0 0 / 0.1);
   --color-white-15: oklch(1 0 0 / 0.15);
   --color-white-5: oklch(1 0 0 / 0.05);
   --default-ring-color: oklch(0 0 0);
@@ -445,7 +407,6 @@
   --size-4: 0.25rem;
   --size-40: 2.5rem;
   --size-44: 2.75rem;
-  --size-56: 3.5rem;
   --size-6: 0.38rem;
   --size-8: 0.5rem;
   --size-800: 50rem;
