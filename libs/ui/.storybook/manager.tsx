@@ -44,15 +44,15 @@ function ModeToolbar() {
 
   // A brand with a single mode has nothing to choose — render the toolbar as
   // a disabled indicator rather than a dropdown that cannot change anything.
-  const locked = allowed.length <= 1
+  const onlyMode = allowed.length === 1 ? allowed[0] : undefined
 
-  if (locked) {
+  if (onlyMode) {
     return (
       <IconButton
         disabled
-        title={`${MODE_LABELS[allowed[0]]} — this brand ships no dark variant`}
+        title={`${MODE_LABELS[onlyMode]} — this brand ships no dark variant`}
       >
-        {MODE_LABELS[allowed[0]]}
+        {MODE_LABELS[onlyMode]}
       </IconButton>
     )
   }
