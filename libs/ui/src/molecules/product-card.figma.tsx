@@ -3,7 +3,7 @@ import { ProductCard } from "./product-card"
 
 figma.connect(
   ProductCard,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1182-51",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1182-51",
   {
     imports: ['import { ProductCard } from "@libs/ui/molecules/product-card"'],
     props: {

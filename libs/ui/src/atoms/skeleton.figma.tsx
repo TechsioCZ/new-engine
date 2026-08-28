@@ -8,7 +8,7 @@ const placeholderBgClassByVariant = {
 
 figma.connect(
   Skeleton.Rectangle,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=565-101",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=565-101",
   {
     imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
     props: {
@@ -36,7 +36,7 @@ figma.connect(
 
 figma.connect(
   Skeleton.Circle,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=565-198",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=565-198",
   {
     imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
     props: {
@@ -70,7 +70,7 @@ figma.connect(
 
 figma.connect(
   Skeleton.Text,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=565-2143",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=565-2143",
   {
     imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
     props: {

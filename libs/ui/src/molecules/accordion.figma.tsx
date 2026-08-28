@@ -3,7 +3,7 @@ import { Accordion } from "./accordion"
 
 figma.connect(
   Accordion,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=993-936",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=993-936",
   {
     imports: ['import { Accordion } from "@libs/ui/molecules/accordion"'],
     props: {

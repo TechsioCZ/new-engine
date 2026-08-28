@@ -3,7 +3,7 @@ import { Slider } from "./slider"
 
 figma.connect(
   Slider,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1141-48",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1141-48",
   {
     imports: ['import { Slider } from "@techsio/ui-kit/molecules/slider"'],
     props: {

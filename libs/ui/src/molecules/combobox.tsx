@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -60,31 +60,43 @@ const comboboxVariants = tv({
       "font-normal",
       "p-combobox-trigger",
     ],
-    positioner: [
-      "z-(--z-index) w-full *:max-h-(--available-height) *:overflow-y-auto",
-    ],
+    // Zag sets `min-width: max-content` inline, so this resolves to
+    // max(trigger width, content width) — the panel is never narrower than
+    // the control that opened it.
+    positioner: ["isolate w-(--reference-width)"],
     content: [
-      "flex flex-col overflow-clip",
-      "rounded-combobox shadow-md",
-      "bg-combobox-content-bg",
-      "z-(--z-combobox-content) border border-combobox-border-base",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
+      "popup-surface-base",
+      "w-full",
+      "flex flex-col",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
-      "starting:-translate-y-2 starting:opacity-0",
-      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
-      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
-      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
+      "starting:scale-98 starting:opacity-0",
+      "data-[state=open]:starting:scale-98 data-[state=open]:starting:opacity-0",
+      "data-[state=open]:scale-100 data-[state=open]:opacity-100",
+      "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
     list: ["m-0 flex list-none flex-col"],
+    itemText: ["min-w-0 flex-grow truncate"],
     item: [
-      "flex items-center",
-      "text-combobox-item-fg",
-      "cursor-pointer",
-      "data-highlighted:bg-combobox-item-bg-hover",
-      "data-[state=checked]:bg-combobox-item-bg-selected",
-      "data-disabled:cursor-not-allowed data-disabled:text-combobox-fg-disabled",
+      "popup-item-base",
+      "hover:bg-popup-item-bg-hover",
+      "data-highlighted:bg-popup-item-bg-hover",
+      "data-[state=checked]:bg-popup-item-bg-selected",
+      "data-[state=checked]:text-popup-item-fg-selected",
+      "data-disabled:cursor-not-allowed data-disabled:text-popup-item-fg-disabled",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    emptyState: ["text-combobox-fg-placeholder"],
+    // Matches Select: absolutely positioned in the reserved end gutter, so a
+    // checked option never shifts its label.
+    itemIndicator: [
+      "-translate-y-1/2 absolute end-(--popup-item-x) top-1/2",
+      "flex items-center justify-center",
+      "size-(--size-popup-indicator) text-popup-item-fg-selected",
+    ],
+    emptyState: [
+      "px-(--popup-item-x) py-(--popup-item-y)",
+      "text-popup-item-fg-muted",
+    ],
     triggerIndicator: [
       "text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover",
       "motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none",
@@ -116,28 +128,22 @@ const comboboxVariants = tv({
       sm: {
         root: "gap-combobox-sm",
         control: "h-form-control-sm rounded-combobox-sm text-input-sm",
-        item: "p-combobox-item-sm text-combobox-item-sm",
-        emptyState: "p-combobox-item-sm text-combobox-item-sm",
         input: "p-combobox-input-sm",
-        content: "text-combobox-sm",
+        content: "popup-size-sm text-combobox-item-sm",
         triggerIndicator: "text-icon-control-sm",
       },
       md: {
         root: "gap-combobox-md",
         control: "h-form-control-md rounded-combobox-md text-input-md",
-        item: "p-combobox-item-md text-combobox-item-md",
-        emptyState: "p-combobox-item-md text-combobox-item-md",
         input: "p-combobox-input-md",
-        content: "text-combobox-md",
+        content: "popup-size-md text-combobox-item-md",
         triggerIndicator: "text-icon-control-md",
       },
       lg: {
         root: "gap-combobox-lg",
         control: "rounded-combobox text-input-lg",
-        item: "p-combobox-item-lg text-combobox-item-lg",
-        emptyState: "p-combobox-item-lg text-combobox-item-lg",
         input: "p-combobox-input-lg",
-        content: "text-combobox-lg",
+        content: "popup-size-lg text-combobox-item-lg",
         triggerIndicator: "text-icon-control-lg",
       },
     },
@@ -286,6 +292,8 @@ export function Combobox<T = unknown>({
     content,
     list,
     item: itemSlot,
+    itemText,
+    itemIndicator,
     emptyState,
     triggerIndicator,
   } = comboboxVariants({ size })
@@ -353,7 +361,13 @@ export function Combobox<T = unknown>({
                     {...api.getItemProps({ item })}
                     className={itemSlot()}
                   >
-                    <span className="flex-1">{item.label}</span>
+                    <span className={itemText()}>{item.label}</span>
+                    <span
+                      {...api.getItemIndicatorProps({ item })}
+                      className={itemIndicator()}
+                    >
+                      <Icon icon="token-icon-check" size="current" />
+                    </span>
                   </li>
                 ))}
               </ul>

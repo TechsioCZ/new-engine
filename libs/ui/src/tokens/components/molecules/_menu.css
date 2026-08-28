@@ -3,12 +3,16 @@
  *
  * Kept here:
  *   - semantic glyph @utility aliases.
+ *   - `--text-menu-xs` — Figma exports sm/md/lg for this component; xs was
+ *     added code-side alongside DataTable's xs-sized column-settings menu.
  */
 
 @theme static {
   /* Tailwind's h- utility doesn't read the --size-* namespace; alias the
    * Figma token into --height-* so `h-menu-separator` keeps working. */
   --height-menu-separator: var(--size-menu-separator-height);
+
+  --text-menu-xs: var(--text-xs);
 }
 
 /* Semantic tokens for menu icons */

@@ -3,7 +3,7 @@ import { Steps } from "./steps"
 
 figma.connect(
   Steps,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1153-66",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1153-66",
   {
     imports: ['import { Steps } from "@libs/ui/molecules/steps"'],
     props: {

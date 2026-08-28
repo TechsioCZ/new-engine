@@ -3,7 +3,7 @@ import { Image } from "./image"
 
 figma.connect(
   Image,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=484-19",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=484-19",
   {
     imports: ['import { Image } from "@techsio/ui-kit/atoms/image"'],
     props: {

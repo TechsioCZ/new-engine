@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,8 +26,12 @@ const tableVariants = tv({
     body: "",
     footer: ["bg-table-footer-bg", "font-table-footer text-table-footer-fg"],
     row: [
+      "group",
       "border-b-(length:--border-table-width) border-table-border",
+      /* Selection is a filled brand colour, so the row's text and any
+       * currentColor glyphs inside it invert with it. */
       "data-[selected=true]:bg-table-row-bg-selected",
+      "data-[selected=true]:text-table-row-fg-selected",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     /* `numeric` states that a value *is* a number; `data-align` is a pure
@@ -89,7 +93,14 @@ const tableVariants = tv({
           "first:sticky first:start-0 first:z-20",
           "bg-table-header-bg",
         ],
-        cell: ["first:sticky first:start-0 first:z-10", "bg-table-bg"],
+        cell: [
+          "first:sticky first:start-0 first:z-10",
+          /* The sticky cell paints its own background to stay opaque over
+           * scrolled content, which would otherwise hide the row's selected
+           * fill behind it — mirror that state here via the row's `group`. */
+          "bg-table-bg group-data-[selected=true]:bg-table-row-bg-selected",
+          "group-data-[selected=true]:text-table-row-fg-selected",
+        ],
       },
     },
     showColumnBorder: {
