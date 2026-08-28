@@ -40,7 +40,16 @@ function ModeToolbar() {
   const brand: BrandKey =
     rawBrand && isBrandKey(rawBrand) ? rawBrand : DEFAULT_BRAND
   const allowed = availableModeSettings(brand)
-  const active = (globals.mode as ModeSetting) ?? "light"
+
+  // globals.mode comes from the URL / Manager API, i.e. untrusted input —
+  // narrow it against ALL_MODES rather than trusting the cast. An
+  // unrecognized value (including "__proto__", which would make
+  // MODE_LABELS[active] return Object.prototype and crash the render) falls
+  // back to "light".
+  const rawMode = globals.mode as string | undefined
+  const active: ModeSetting = ALL_MODES.includes(rawMode as ModeSetting)
+    ? (rawMode as ModeSetting)
+    : "light"
 
   // A brand with a single mode has nothing to choose — render the toolbar as
   // a disabled indicator rather than a dropdown that cannot change anything.
