@@ -41,9 +41,9 @@
   --color-fg-accent-success: light-dark(var(--color-success-500), var(--color-success-300));
   --color-fg-accent-tertiary: oklch(0.511 0.054 323.997);
   --color-fg-accent-warning: oklch(0.492 0.079 93.623);
-  --color-fg-on-primary-indicator: var(--color-fg-reverse);
-  --color-fg-on-primary-solid: var(--color-fg-reverse);
-  --color-fg-on-primary-solid-neo: var(--color-fg-reverse);
+  --color-fg-on-primary-indicator: light-dark(var(--color-fg-reverse), var(--color-white));
+  --color-fg-on-primary-solid: light-dark(var(--color-fg-reverse), var(--color-white));
+  --color-fg-on-primary-solid-neo: light-dark(var(--color-fg-reverse), var(--color-white));
   --color-fill-selected: var(--color-primary-600);
   --color-primary-100: oklch(0.936 0.032 17.738);
   --color-primary-200: oklch(0.883 0.062 18.386);
