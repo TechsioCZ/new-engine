@@ -47,7 +47,7 @@ becomes `lg`. The second is a breaking visual change across every consumer.
 `Menu` and `Popover` styled themselves with the global typography scale
 instead of `--text-menu-*` / `--text-popover-*` component tokens. The rendered
 value was identical, so nothing looked wrong — but neither component could be
-re-themed or re-scaled independently, and both were invisible to the
+re-themed or re-scaled independently, nor was either visible to the
 component-token validation the rest of the library passes.
 
 `Menu` now routes every size through `--text-menu-{xs,sm,md,lg}`
@@ -88,8 +88,13 @@ yet the same scale — see the still-open part of issue 1.
    `--padding-popup-item-*` / `--spacing-popup-item-*` axis in
    `_popup-surface.css`. Form controls (`Input` etc.) were not moved onto it.
 4. ~~**Align option rows across pickers.**~~ — done: Select, Combobox and
-   Menu items now share height, padding, radius, hover/selected colour and
-   text size through `popup-item-base` + `popup-size-*`.
+   Menu items now share height, padding, radius, hover colour and text size
+   through `popup-item-base` + `popup-size-*`. Checked state differs by
+   design: Select and Combobox paint a filled `--color-popup-item-bg-selected`
+   with a white foreground, while Menu paints no background — selection there
+   is not exclusive, so tinting most of the list would drown the highlight
+   state — and instead uses `--color-popup-item-fg-checked` plus the
+   indicator glyph.
 5. **Add a size matrix story.** One Storybook page rendering every control at
    `sm`/`md`/`lg` in a row, so drift like this is visible in review instead of
    being discovered inside a feature.
