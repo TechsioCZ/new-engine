@@ -23,6 +23,7 @@
 @import "./molecules/_color-select.css";
 @import "./molecules/_combobox.css";
 @import "./molecules/_dialog.css";
+@import "./molecules/_drawer.css";
 @import "./molecules/_pagination.css";
 @import "./molecules/_popover.css";
 @import "./molecules/_radio-card.css";
@@ -44,3 +45,4 @@
 @import "./organisms/_footer.css";
 @import "./organisms/_header.css";
 @import "./organisms/_gallery.css";
+@import "./organisms/_sidebar.css";
