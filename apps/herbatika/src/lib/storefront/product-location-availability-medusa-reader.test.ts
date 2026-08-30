@@ -58,7 +58,7 @@ describe("createProductLocationAvailabilityMedusaReader", () => {
       "/store/products/prod_cz_1/location-availability",
       {
         cache: "no-store",
-        query: { sales_channel_id: "sc_cz" },
+        query: { locale: "cs-CZ", sales_channel_id: "sc_cz" },
         signal: expect.any(AbortSignal),
       }
     )

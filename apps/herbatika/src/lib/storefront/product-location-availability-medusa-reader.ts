@@ -7,7 +7,7 @@ import type {
 type MedusaRequestOptions = Readonly<{
   cache: "no-store"
   headers?: Readonly<Record<string, string>>
-  query: Readonly<{ sales_channel_id: string }>
+  query: Readonly<{ locale: string; sales_channel_id: string }>
   signal: AbortSignal
 }>
 
@@ -80,7 +80,10 @@ export const createProductLocationAvailabilityMedusaReader = ({
         `/store/products/${encodeURIComponent(input.productId)}/location-availability`,
         {
           cache: "no-store",
-          query: { sales_channel_id: input.binding.salesChannelId },
+          query: {
+            locale: input.binding.locale,
+            sales_channel_id: input.binding.salesChannelId,
+          },
           signal: AbortSignal.any([input.signal, createTimeoutSignal()]),
         }
       )

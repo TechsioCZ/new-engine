@@ -341,10 +341,7 @@ export const getServerSideProps = (async ({ params, req, res }) => {
   const pageProps = await result.props
   const shell =
     pageOutcome.kind === "found"
-      ? await loadPublicShell(
-          headerMarket,
-          pageOutcome.value.categoryPublicSlugsById
-        )
+      ? await loadPublicShell(headerMarket)
       : await loadPublicErrorShell(headerMarket)
   return { props: { ...pageProps, ...shell } }
 }) satisfies GetServerSideProps<ProductPageProps>

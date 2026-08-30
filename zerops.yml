@@ -112,3 +112,389 @@ zerops:
         NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${medusa_zeropsSubdomain}
         NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${medusa_CHANNEL_PUBLISHABLE_KEY}
         CI: true
+
+  # ===================================================================
+  # Herbatica customer demo (project "herbatica-demo").
+  #
+  # These setups are additive. The `medusa` and `demo` setups above
+  # belong to the older wr-medusa development project and are left
+  # untouched on purpose -- the demo uses its own setups so the two
+  # deployments can never break each other.
+  #
+  # Imported by zerops-herbatica-demo-import.yml, pushed with:
+  #   zcli push util    --setup herbatica-util    -P <projectId>
+  #   zcli push medusa  --setup herbatica-medusa  -P <projectId>
+  #   zcli push payload --setup herbatica-payload -P <projectId>
+  #   zcli push sf      --setup herbatica-sf      -P <projectId>
+  # ===================================================================
+
+  # -------------------------------------------------------------------
+  # util: one-shot data import worker (pg_restore + sanitize + rewrite).
+  # No public port. Stop or delete it once the import is verified.
+  # -------------------------------------------------------------------
+  - setup: herbatica-util
+    build:
+      base: nodejs@22
+      buildCommands:
+        - echo "no build step; deploying import scripts only"
+      deployFiles:
+        - scripts/zerops/~util
+        - scripts/seed-handover/sanitize.sql
+    run:
+      base: nodejs@22
+      os: ubuntu
+      prepareCommands:
+        # The dump was produced by PostgreSQL 18.1, whose custom-format header
+        # cannot be read by pg_restore 16 (Ubuntu 24.04's default). Add PGDG and
+        # install the matching major version.
+        - sudo apt-get update
+        - sudo apt-get install -y --no-install-recommends curl ca-certificates gnupg
+        - sudo install -d /usr/share/postgresql-common/pgdg
+        - sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        - |
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+        - sudo apt-get update
+        - sudo apt-get install -y --no-install-recommends postgresql-client-18
+        # Static single-binary S3 client for the private seed bucket.
+        - sudo curl -fsSL -o /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc
+        - sudo chmod +x /usr/local/bin/mc
+      envVariables:
+        # Private staging bucket that holds medusa-full.dump.
+        SEED_S3_ENDPOINT: ${seed_apiUrl}
+        SEED_S3_BUCKET: ${seed_bucketName}
+        SEED_S3_ACCESS_KEY_ID: ${seed_accessKeyId}
+        SEED_S3_SECRET_ACCESS_KEY: ${seed_secretAccessKey}
+        SEED_OBJECT_KEY: medusa-full.dump
+        SEED_DUMP_SHA256: f6eaf148e4a1ef089e818f9a0f8cde5f4e81e24d18d99182d8d5c102421aa346
+        # Superuser-equivalent DSN: the restore recreates all three schemas.
+        SEED_TARGET_DSN: postgresql://${db_user}:${db_password}@${db_hostname}:5432/${db_hostname}?sslmode=disable
+        # Public media base URL that replaces the exported deployment's URL.
+        MEDIA_PUBLIC_BASE_URL: ${storage_apiUrl}/${storage_bucketName}
+      initCommands:
+        # Bump the version suffix to force a re-run of a step.
+        - zsc execOnce herbatica_restore_v1 -- bash /var/www/util/restore-seed.sh
+        - zsc execOnce herbatica_sanitize_v1 -- bash /var/www/util/sanitize-seed.sh
+      ports:
+        - port: 8080
+          httpSupport: true
+      start: node /var/www/util/keepalive.mjs
+      healthCheck:
+        httpGet:
+          port: 8080
+          path: /
+
+  # -------------------------------------------------------------------
+  # medusa: Medusa v2 backend + admin panel (port 9000).
+  # -------------------------------------------------------------------
+  - setup: herbatica-medusa
+    build:
+      base: nodejs@24
+      envVariables:
+        NX_DAEMON: false
+        # Feature flags are read at BUILD time by medusa-config.ts, so they must
+        # match the runtime values below or modules are compiled out.
+        FEATURE_PAYLOAD_ENABLED: "1"
+        FEATURE_PPL_ENABLED: "0"
+        FEATURE_PACKETA_ENABLED: "0"
+        FEATURE_GLS_ENABLED: "0"
+      buildCommands:
+        # scripts/build-medusa.sh prunes sibling apps/libs with `rm -rf`. That is
+        # safe here (the build container holds a throwaway copy of the push) and
+        # keeps the demo byte-identical to the local Docker build.
+        - bash ./scripts/build-medusa.sh
+        - mv medusa-be-prod/node_modules apps/medusa-be/
+      deployFiles:
+        - apps/medusa-be/.medusa/server/~
+        - apps/medusa-be/~node_modules
+        - apps/medusa-be/src/scripts/seed-files
+        - apps/medusa-be/src/scripts
+        - apps/medusa-be/tsconfig.json
+      cache:
+        - node_modules
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 9000
+          path: /health
+    run:
+      base: nodejs@24
+      envVariables:
+        NODE_ENV: production
+        DATABASE_TYPE: postgres
+        MEDUSA_BACKEND_URL: ${MEDUSA_PUBLIC_ORIGIN}
+        STORE_CORS: ${HERBATICA_CORS_ALLOWLIST}
+        ADMIN_CORS: ${HERBATICA_CORS_ALLOWLIST}
+        AUTH_CORS: ${HERBATICA_CORS_ALLOWLIST}
+
+        # One database, three schemas -- identical to docker-compose.
+        # %3D is "=" and %2C is "," (search_path=medusa,pg_catalog).
+        MEDUSA_DATABASE_SCHEMA: medusa
+        DATABASE_SCHEMA: medusa
+        DATABASE_URL: postgresql://${db_user}:${db_password}@${db_hostname}:5432/${db_hostname}?sslmode=disable&options=-csearch_path%3Dmedusa%2Cpg_catalog
+
+        REDIS_URL: redis://${redis_hostname}:6379
+        REDIS_SESSIONS_ENABLED: "1"
+        CACHE_PROVIDER: redis
+        EVENT_BUS_PROVIDER: redis
+        WORKFLOW_ENGINE_PROVIDER: redis
+        LOCKING_PROVIDER: redis
+
+        MEILISEARCH_ENABLED: "1"
+        MEILISEARCH_HOST: http://${search_hostname}:${search_port}
+        MEILISEARCH_API_KEY: ${search_masterKey}
+
+        FILE_PROVIDER: s3
+        FILE_LOCAL_UPLOAD_DIR: /tmp/medusa-be-files
+        MINIO_ENDPOINT: ${storage_apiUrl}
+        MINIO_BUCKET: ${storage_bucketName}
+        MINIO_ACCESS_KEY: ${storage_accessKeyId}
+        MINIO_SECRET_KEY: ${storage_secretAccessKey}
+        MINIO_FILE_URL: ${storage_apiUrl}/${storage_bucketName}
+        MINIO_REGION: us-east-1
+
+        FEATURE_PAYLOAD_ENABLED: "1"
+        FEATURE_PPL_ENABLED: "0"
+        FEATURE_PACKETA_ENABLED: "0"
+        FEATURE_GLS_ENABLED: "0"
+        FEATURE_PAYMENT_QR_ENABLED: "0"
+        FEATURE_PAYKIT_ENABLED: "0"
+
+        IS_IFRAME_PAYLOAD: "true"
+        PAYLOAD_BASE_URL: http://payload:8083
+        PAYLOAD_IFRAME_URL: ${PAYLOAD_PUBLIC_ORIGIN}
+        PAYLOAD_API_KEY: ${SHARED_PAYLOAD_API_KEY}
+        PAYLOAD_WEBHOOK_SECRET: ${SHARED_PAYLOAD_WEBHOOK_SECRET}
+        CMS_CACHE_TTL: "3600"
+        CMS_LIST_CACHE_TTL: "600"
+
+        # URL registry producer. The projection token is shared with `sf`; both
+        # sides read the same project variable so they can never drift.
+        URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED: "1"
+        URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN: ${SHARED_URLR_PRODUCT_LIFECYCLE_TOKEN}
+        URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN: http://sf:3000
+        URL_REGISTRY_CONTENT_PROJECTION_ENABLED: "1"
+        URL_REGISTRY_CONTENT_PROJECTION_URL: http://sf:3000/api/internal/url-registry/content-projections
+        URL_REGISTRY_CONTENT_PROJECTION_TOKEN: ${SHARED_URLR_CONTENT_PROJECTION_TOKEN}
+
+        MEDUSA_TELEMETRY_DISABLED: "1"
+        INITIAL_PUBLISHABLE_KEY_NAME: Storefront Publishable Key
+      initCommands:
+        # Runs after `util` has restored the dump. Medusa's own admin-auth tables
+        # were excluded from the export on purpose, so the superadmin is created
+        # here rather than restored.
+        - zsc execOnce ${appVersionId}_migration -- npm run migrateProd
+        - zsc execOnce herbatica_createSuperadmin_v1 -- npm run createInitialSuperadmin
+        # Meilisearch holds a derived index, not a source of truth, so it is
+        # rebuilt from the restored data rather than exported. Keyed to
+        # appVersionId so it re-runs on every push: the first push happens
+        # before `sf` exists (content projections unavailable), so push medusa
+        # once more after the storefront is live to get a complete index.
+        # Fail-soft on purpose -- a partial index must not abort the deploy.
+        - |
+          zsc execOnce ${appVersionId}_searchIndex -- bash -c \
+            'npm run rebuildSearchDocuments || echo "[medusa] search index rebuild failed; re-push medusa once sf is live"'
+      ports:
+        - port: 9000
+          httpSupport: true
+      start: npm start
+      healthCheck:
+        httpGet:
+          port: 9000
+          path: /health
+
+  # -------------------------------------------------------------------
+  # payload: Payload 3 CMS on Next standalone (port 8083).
+  # -------------------------------------------------------------------
+  - setup: herbatica-payload
+    build:
+      base: nodejs@24
+      os: ubuntu
+      envVariables:
+        NX_DAEMON: false
+        CI: "true"
+        NEXT_TELEMETRY_DISABLED: "1"
+        NODE_OPTIONS: --no-deprecation --max-old-space-size=8000
+        # Payload reads the DB and S3 config while generating its import map and
+        # building routes, so the real values must be present at build time.
+        DATABASE_URL: postgresql://${db_user}:${db_password}@${db_hostname}:5432/${db_hostname}?sslmode=disable&options=-csearch_path%3Dpayload%2Cpg_catalog
+        PAYLOAD_SCHEMA_NAME: payload
+        PAYLOAD_LOCALES: cs,sk,hu,ro
+        FEATURE_PAYLOAD_ARTICLES_ENABLED: "1"
+        FEATURE_PAYLOAD_PAGES_ENABLED: "1"
+        FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED: "1"
+        S3_ENDPOINT: ${storage_apiUrl}
+        S3_REGION: us-east-1
+        S3_BUCKET: ${storage_bucketName}
+        S3_ACCESS_KEY_ID: ${storage_accessKeyId}
+        S3_SECRET_ACCESS_KEY: ${storage_secretAccessKey}
+      buildCommands:
+        - |
+          shopt -s extglob
+          rm -rf apps/!(payload)
+        - corepack enable && corepack install
+        - pnpm install --frozen-lockfile --prefer-offline --filter=@nmit/payload...
+        - mkdir -p apps/payload/public
+        - pnpm --filter @nmit/payload run generate:importmap
+        - pnpm --filter @nmit/payload run build
+        # Mirror docker/development/payload/Dockerfile's `prod` stage layout so
+        # the standalone bundle is self-contained.
+        - test -f apps/payload/.next/standalone/apps/payload/server.js
+        - cp -R apps/payload/public apps/payload/.next/standalone/apps/payload/public
+        - mkdir -p apps/payload/.next/standalone/apps/payload/.next
+        - cp -R apps/payload/.next/static apps/payload/.next/standalone/apps/payload/.next/static
+      deployFiles:
+        - apps/payload/.next/standalone/~
+      cache:
+        - node_modules
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 8083
+          path: /api/health
+    run:
+      base: nodejs@24
+      envVariables:
+        NODE_ENV: production
+        NODE_OPTIONS: --no-deprecation
+        PORT: "8083"
+        HOSTNAME: 0.0.0.0
+        DATABASE_URL: postgresql://${db_user}:${db_password}@${db_hostname}:5432/${db_hostname}?sslmode=disable&options=-csearch_path%3Dpayload%2Cpg_catalog
+        PAYLOAD_SCHEMA_NAME: payload
+        PAYLOAD_BASE_URL: ${PAYLOAD_PUBLIC_ORIGIN}
+        PAYLOAD_LOCALES: cs,sk,hu,ro
+        MEDUSA_BACKEND_URL: http://medusa:9000
+        PAYLOAD_API_KEY: ${SHARED_PAYLOAD_API_KEY}
+        PAYLOAD_WEBHOOK_SECRET: ${SHARED_PAYLOAD_WEBHOOK_SECRET}
+        FEATURE_PAYLOAD_ARTICLES_ENABLED: "1"
+        FEATURE_PAYLOAD_PAGES_ENABLED: "1"
+        FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED: "1"
+        # The demo restores real content; never let a seeder overwrite it.
+        PAYLOAD_SEED_ON_STARTUP: "0"
+        PAYLOAD_SEED_STARTER_CONTENT_ENABLED: "0"
+        PAYLOAD_SEED_HERBATICA_PRODUCTS_ENABLED: "0"
+        S3_ENDPOINT: ${storage_apiUrl}
+        S3_REGION: us-east-1
+        S3_BUCKET: ${storage_bucketName}
+        S3_ACCESS_KEY_ID: ${storage_accessKeyId}
+        S3_SECRET_ACCESS_KEY: ${storage_secretAccessKey}
+      start: node apps/payload/server.js
+      ports:
+        - port: 8083
+          httpSupport: true
+      healthCheck:
+        httpGet:
+          port: 8083
+          path: /api/health
+
+  # -------------------------------------------------------------------
+  # sf: Herbatika storefront. ONE service, FOUR public hostnames.
+  #
+  # Zerops issues a separate *.zerops.app subdomain per HTTP port, so ports
+  # 3000-3003 give the four distinct Host values that host-based market
+  # selection needs. MARKET_ACCEPTED_HOSTS_* are baked at BUILD time because
+  # Next evaluates host routing during the build.
+  # -------------------------------------------------------------------
+  - setup: herbatica-sf
+    build:
+      base: nodejs@24
+      os: ubuntu
+      envVariables:
+        NX_DAEMON: false
+        CI: "true"
+        NEXT_TELEMETRY_DISABLED: "1"
+        ALLOWED_MARKETS: sk,cz,hu,ro
+        MARKET_ACCEPTED_HOSTS_SK: ${SF_PUBLIC_HOST_SK}
+        MARKET_ACCEPTED_HOSTS_CZ: ${SF_PUBLIC_HOST_CZ}
+        MARKET_ACCEPTED_HOSTS_HU: ${SF_PUBLIC_HOST_HU}
+        MARKET_ACCEPTED_HOSTS_RO: ${SF_PUBLIC_HOST_RO}
+        # next.config.ts turns these into image remotePatterns at build time.
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${MEDUSA_PUBLIC_ORIGIN}
+        NEXT_PUBLIC_PAYLOAD_BASE_URL: ${PAYLOAD_PUBLIC_ORIGIN}
+        NEXT_PUBLIC_MINIO_FILE_URL: ${storage_apiUrl}/${storage_bucketName}
+        NEXT_PUBLIC_STOREFRONT_AUTH_MODE: session_proxy
+        NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED: "0"
+      buildCommands:
+        - |
+          shopt -s extglob
+          rm -rf apps/!(herbatika)
+        - corepack enable && corepack install
+        - pnpm install --frozen-lockfile --prefer-offline --filter=herbatika...
+        - pnpm --filter=@techsio/storefront-i18n build
+        - pnpm --filter=@techsio/storefront-data build
+        - pnpm --filter=@techsio/ui-kit build
+        - pnpm --filter=herbatika run build
+        # Mirror docker/development/herbatika/Dockerfile's `prod` stage layout.
+        - |
+          set -eu
+          STANDALONE=apps/herbatika/.next/standalone
+          test -f "$STANDALONE/apps/herbatika/server.js"
+          test -f "$STANDALONE/apps/herbatika/scripts/url-registry/migrate.mjs"
+          test -f "$STANDALONE/apps/herbatika/scripts/url-registry/populate.mjs"
+          cp -R apps/herbatika/public "$STANDALONE/apps/herbatika/public"
+          mkdir -p "$STANDALONE/apps/herbatika/.next"
+          cp -R apps/herbatika/.next/static "$STANDALONE/apps/herbatika/.next/static"
+          mkdir -p "$STANDALONE/apps/herbatika/scripts/zerops"
+          cp apps/herbatika/scripts/zerops/sf-multiport.mjs \
+             "$STANDALONE/apps/herbatika/scripts/zerops/sf-multiport.mjs"
+      deployFiles:
+        - apps/herbatika/.next/standalone/~
+      cache:
+        - node_modules
+    deploy:
+      readinessCheck:
+        exec:
+          # The storefront fails closed on an unrecognised Host, so the probe has
+          # to present a real market hostname. A plain httpGet would send the
+          # container address and always fail.
+          command: node -e "require('node:http').get({host:'127.0.0.1',port:3000,path:'/api/healthz',headers:{host:process.env.SF_PUBLIC_HOST_SK}},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+    run:
+      base: nodejs@24
+      envVariables:
+        NODE_ENV: production
+        ALLOWED_MARKETS: sk,cz,hu,ro
+        MARKET_ACCEPTED_HOSTS_SK: ${SF_PUBLIC_HOST_SK}
+        MARKET_ACCEPTED_HOSTS_CZ: ${SF_PUBLIC_HOST_CZ}
+        MARKET_ACCEPTED_HOSTS_HU: ${SF_PUBLIC_HOST_HU}
+        MARKET_ACCEPTED_HOSTS_RO: ${SF_PUBLIC_HOST_RO}
+
+        MEDUSA_BACKEND_URL_INTERNAL: http://medusa:9000
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${MEDUSA_PUBLIC_ORIGIN}
+        NEXT_PUBLIC_PAYLOAD_BASE_URL: ${PAYLOAD_PUBLIC_ORIGIN}
+        NEXT_PUBLIC_MINIO_FILE_URL: ${storage_apiUrl}/${storage_bucketName}
+        NEXT_PUBLIC_STOREFRONT_AUTH_MODE: session_proxy
+        NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED: "0"
+        PAYLOAD_BASE_URL_INTERNAL: http://payload:8083
+
+        # URL architecture: the public routing contract is all-or-nothing.
+        URL_ARCHITECTURE_ENABLED: "1"
+        URL_REGISTRY_ENABLED: "1"
+        URL_REGISTRY_COMMANDS_ENABLED: "1"
+        URL_REGISTRY_ADMIN_TOKEN: ${SHARED_URLR_ADMIN_TOKEN}
+        URL_REGISTRY_INVALIDATION_ENABLED: "1"
+        URL_REGISTRY_INVALIDATION_TOKEN: ${SHARED_URLR_INVALIDATION_TOKEN}
+        URL_REGISTRY_INVALIDATION_DISPATCH_ENABLED: "1"
+        URL_REGISTRY_INVALIDATION_DISPATCH_ORIGIN: ${SF_PUBLIC_ORIGIN_SK}
+        URL_REGISTRY_CONTENT_PROJECTION_ENABLED: "1"
+        URL_REGISTRY_CONTENT_PROJECTION_TOKEN: ${SHARED_URLR_CONTENT_PROJECTION_TOKEN}
+        URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED: "1"
+        URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN: ${SHARED_URLR_PRODUCT_LIFECYCLE_TOKEN}
+        # The restored url_registry schema is owned by the postgres app role, so
+        # the storefront connects with that role rather than a narrower one.
+        URL_REGISTRY_DATABASE_URL: postgresql://${db_user}:${db_password}@${db_hostname}:5432/${db_hostname}?sslmode=disable
+
+        SF_PRIMARY_PORT: "3000"
+        SF_FORWARD_PORTS: 3001,3002,3003
+      start: node apps/herbatika/scripts/zerops/sf-multiport.mjs
+      ports:
+        - port: 3000
+          httpSupport: true
+        - port: 3001
+          httpSupport: true
+        - port: 3002
+          httpSupport: true
+        - port: 3003
+          httpSupport: true
+      healthCheck:
+        exec:
+          command: node -e "require('node:http').get({host:'127.0.0.1',port:3000,path:'/api/healthz',headers:{host:process.env.SF_PUBLIC_HOST_SK}},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
