@@ -214,7 +214,7 @@ const MARKET_ASSIGNMENT_KEYS = new Set([
   "marketCode",
   "sourceVersion",
 ])
-const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PUBLIC_SLUG = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 
 const publicationAssignment = (
   value: unknown,
@@ -230,7 +230,7 @@ const publicationAssignment = (
     (record.publicationStatus !== "draft" &&
       record.publicationStatus !== "published") ||
     typeof record.publicSlug !== "string" ||
-    record.publicSlug.length > 200 ||
+    record.publicSlug.length > 255 ||
     !PUBLIC_SLUG.test(record.publicSlug)
   ) {
     throw new UrlRegistryOutboxInputError(`${label} is invalid`)

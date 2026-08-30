@@ -82,10 +82,13 @@ export const createStatusField = (): SelectField => ({
 })
 
 /** Build a published date field with a date-only picker. */
-export const createPublishedDateField = (): DateField => ({
+export const createPublishedDateField = (
+  options: { localized?: boolean } = {}
+): DateField => ({
   name: "publishedDate",
   type: "date",
   required: true,
+  localized: options.localized ?? false,
   defaultValue: () => new Date(),
   label: fieldLabels.publishDate,
   admin: {

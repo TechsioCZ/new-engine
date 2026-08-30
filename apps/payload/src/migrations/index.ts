@@ -7,6 +7,7 @@ import * as migration_20260813_065411_add_article_sidebar from './20260813_06541
 import * as migration_20260817_132825_add_footer_navigation from './20260817_132825_add_footer_navigation';
 import * as migration_20260819_004950_cms_outbox from './20260819_004950_cms_outbox';
 import * as migration_20260819_012135 from './20260819_012135';
+import * as migration_20260822_012530 from './20260822_012530';
 
 export const migrations = [
   {
@@ -53,5 +54,10 @@ export const migrations = [
     up: migration_20260819_012135.up,
     down: migration_20260819_012135.down,
     name: '20260819_012135',
+  },
+  {
+    up: migration_20260822_012530.up,
+    down: migration_20260822_012530.down,
+    name: '20260822_012530',
   },
 ];

@@ -581,39 +581,15 @@ const sanitizeLexicalRoot = (
   return sanitizeLexicalNode(record.root, context)
 }
 
-const normalizeLexicalLinkUrl = (value: string) => {
-  const trimmed = value.trim()
-  if (!trimmed) {
-    return
-  }
-  if (!/\s/.test(trimmed)) {
-    return trimmed
-  }
-
-  try {
-    if (trimmed.startsWith("/")) {
-      const parsed = new URL(trimmed, DEFAULT_MEDIA_BASE_URL)
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`
-    }
-    return new URL(trimmed).toString()
-  } catch {
-    return
-  }
-}
-
-const unwrapInvalidLexicalLink = (
+const unwrapEmptyLexicalLink = (
   record: Record<string, unknown>,
   context: SanitizeLexicalContext
 ): unknown[] | null => {
   if (record.type !== "link") {
     return null
   }
-
-  const fields = record.fields as Record<string, unknown> | undefined
-  const url = typeof fields?.url === "string" ? fields.url : ""
-  const normalizedUrl = normalizeLexicalLinkUrl(url)
-  if (normalizedUrl) {
-    record.fields = { ...fields, url: normalizedUrl }
+  const url = (record.fields as { url?: unknown } | undefined)?.url
+  if (typeof url === "string" && url.trim()) {
     return null
   }
   if (!Array.isArray(record.children)) {
@@ -643,7 +619,7 @@ const sanitizeLexicalNode = (
     return carouselBlockNode
   }
 
-  const unwrappedLink = unwrapInvalidLexicalLink(record, context)
+  const unwrappedLink = unwrapEmptyLexicalLink(record, context)
   if (unwrappedLink !== null) {
     return unwrappedLink
   }

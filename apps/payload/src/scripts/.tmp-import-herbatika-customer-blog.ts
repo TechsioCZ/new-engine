@@ -59,7 +59,7 @@ const MEDIA_URL_PREFIX = "payload-media-url:"
 const DATA_IMAGE_PATTERN =
   /^data:(image\/(?:avif|gif|jpeg|png|webp));base64,(.+)$/i
 const MEDIA_FETCH_TIMEOUT_MS = 15_000
-const MAX_MEDIA_BYTES = 16 * 1024 * 1024
+const MAX_MEDIA_BYTES = 10 * 1024 * 1024
 const MAX_MEDIA_REDIRECTS = 5
 const MEDIA_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 const BLOCKED_MEDIA_ADDRESSES = new BlockList()
@@ -1053,7 +1053,6 @@ const upsertArticle = async ({
   } catch (error) {
     console.error(`Failed import row ${index + 2} (${data.slug})`)
     console.error(error)
-    console.error(JSON.stringify((error as { data?: unknown }).data, null, 2))
     return "skipped"
   }
 

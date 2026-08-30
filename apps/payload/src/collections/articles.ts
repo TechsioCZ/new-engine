@@ -5,7 +5,7 @@ import type {
   Where,
 } from "payload"
 import { ValidationError } from "payload"
-import { publishedOrAuth, requireAuth } from "../lib/access/require-auth"
+import { requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import {
   createContentField,
@@ -21,9 +21,9 @@ import {
 } from "../lib/constants/labels"
 import { createLexicalEditor } from "../lib/editors/lexical"
 import { createMedusaProductReferenceField } from "../lib/fields/medusa-product-reference"
-import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { normalizeArticleCategories } from "../lib/hooks/article-categories"
 import { storefrontHTMLConverters } from "../lib/hooks/lexical-html"
+import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { generateSlugFromTitle } from "../lib/hooks/slug"
 import { estimateReadingTime } from "../lib/utils/reading-time"
 import { shouldReturnHtmlForRequest } from "../lib/utils/request"
@@ -72,7 +72,7 @@ export const Articles: CollectionConfig = {
     group: adminGroups.content,
   },
   access: {
-    read: publishedOrAuth,
+    read: requireAuth,
     create: requireAuth,
     update: requireAuth,
     delete: requireAuth,
@@ -80,7 +80,7 @@ export const Articles: CollectionConfig = {
   fields: [
     createTitleField({
       label: fieldLabels.articleTitle,
-      maxLength: 160,
+      maxLength: 200,
     }),
     createSlugField({
       label: fieldLabels.urlSlug,
@@ -116,6 +116,7 @@ export const Articles: CollectionConfig = {
       type: "upload",
       relationTo: "media",
       required: true,
+      localized: true,
       admin: {
         description: fieldDescriptions.featuredImageArticle,
       },
@@ -211,12 +212,13 @@ export const Articles: CollectionConfig = {
       type: "relationship",
       relationTo: "article-authors",
     },
-    createPublishedDateField(),
+    createPublishedDateField({ localized: true }),
     createStatusField(),
     {
       name: "readingTime",
       label: fieldLabels.readingTime,
       type: "number",
+      localized: true,
       admin: {
         description: fieldDescriptions.readingTime,
       },
@@ -263,7 +265,10 @@ export const Articles: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeValidate: [normalizeArticleCategories, validatePublishedArticleAuthor],
+    beforeValidate: [
+      normalizeArticleCategories,
+      validatePublishedArticleAuthor,
+    ],
     beforeChange: [
       ({ data, req }: any) => {
         // Auto-generate slug from title if not provided
