@@ -3,7 +3,7 @@ import { Checkbox } from "./checkbox"
 
 figma.connect(
   Checkbox,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=428-9",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=428-9",
   {
     imports: ['import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"'],
     props: {

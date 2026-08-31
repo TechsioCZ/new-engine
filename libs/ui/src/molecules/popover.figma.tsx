@@ -3,7 +3,7 @@ import { Popover } from "./popover"
 
 figma.connect(
   Popover,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1076-666",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1076-666",
   {
     imports: ['import { Popover } from "@libs/ui/molecules/popover"'],
     props: {

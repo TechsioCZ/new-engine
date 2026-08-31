@@ -3,7 +3,7 @@ import { SearchForm } from "./search-form"
 
 figma.connect(
   SearchForm,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=2620-122",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=2620-122",
   {
     imports: ['import { SearchForm } from "@libs/ui/molecules/search-form"'],
     props: {

@@ -4,7 +4,7 @@ import type { IconType } from "./icon"
 
 figma.connect(
   Button,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1-5627",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1-5627",
   {
     imports: ['import { Button } from "@techsio/ui-kit/atoms/button"'],
     props: {

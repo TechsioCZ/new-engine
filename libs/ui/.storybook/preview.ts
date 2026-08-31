@@ -15,12 +15,6 @@ const brandItems = brandKeys().map((key) => ({
   title: getBrand(key).label,
 }))
 
-const modeItems: { value: ModeSetting; title: string }[] = [
-  { value: "light", title: "Light" },
-  { value: "dark", title: "Dark" },
-  { value: "system", title: "System" },
-]
-
 /*
  * Applies the two theme axes to <html>, mirroring the app:
  *   - mode  → `.light` / `.dark` class (drives color-scheme; "system" = no class)
@@ -94,14 +88,13 @@ const preview: Preview = {
         dynamicTitle: true,
       },
     },
+    /*
+     * Declared without a `toolbar` on purpose. Its control lives in
+     * .storybook/manager.tsx, because a static toolbar cannot disable Dark
+     * for light-only brands — see the comment there.
+     */
     mode: {
       description: "Color mode",
-      toolbar: {
-        title: "Mode",
-        icon: "circlehollow",
-        items: modeItems,
-        dynamicTitle: true,
-      },
     },
   },
   initialGlobals: {

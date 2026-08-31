@@ -3,7 +3,7 @@ import { Dialog } from "./dialog"
 
 figma.connect(
   Dialog,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1034-67",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1034-67",
   {
     imports: ['import { Dialog } from "@techsio/ui-kit/molecules/dialog"'],
     props: {

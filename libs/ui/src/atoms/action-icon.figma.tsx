@@ -3,7 +3,7 @@ import { ActionIcon } from "./action-icon"
 
 figma.connect(
   ActionIcon,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=2668-36",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=2668-36",
   {
     imports: ['import { ActionIcon } from "@techsio/ui-kit/atoms/action-icon"'],
     props: {

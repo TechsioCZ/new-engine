@@ -3,7 +3,7 @@ import { Label } from "./label"
 
 figma.connect(
   Label,
-  "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1-7840",
+  "https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System-vol.-2?node-id=1-7840",
   {
     imports: ['import { Label } from "@techsio/ui-kit/atoms/label"'],
     props: {
