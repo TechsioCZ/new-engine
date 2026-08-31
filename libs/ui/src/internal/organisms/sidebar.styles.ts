@@ -11,7 +11,7 @@ export const sidebarVariants = tv({
     desktopPanel: [
       "group/sidebar-panel sticky top-sidebar-offset hidden h-sidebar-viewport shrink-0 flex-col overflow-hidden",
       "sidebar-desktop:flex bg-sidebar-panel-bg text-sidebar-panel-fg",
-      "border-sidebar-panel-border transition-all duration-sidebar motion-reduce:transition-none",
+      "border-sidebar-panel-border transition-all duration-(--duration-sidebar) motion-reduce:transition-none",
       "focus-visible:sidebar-focus-ring",
       "data-[side=start]:border-e-(length:--border-width-sidebar)",
       "data-[side=end]:border-s-(length:--border-width-sidebar)",
@@ -21,7 +21,7 @@ export const sidebarVariants = tv({
       "data-[swipe-direction=left]:rounded-none data-[swipe-direction=right]:rounded-none",
     ],
     mobileAside:
-      "focus-visible:sidebar-focus-ring flex h-full min-h-0 w-full flex-col overflow-hidden",
+      "focus-visible:sidebar-focus-ring flex size-full min-h-0 flex-col overflow-hidden",
     trigger: [
       "bg-sidebar-trigger-bg text-sidebar-trigger-fg",
       "hover:bg-sidebar-trigger-bg-hover active:bg-sidebar-trigger-bg-active",
@@ -65,7 +65,7 @@ export const sidebarVariants = tv({
     paneGroup: "flex min-h-0 min-w-0 flex-1 overflow-hidden",
     pane: "group/sidebar-pane flex min-h-0 min-w-0 flex-col",
     rail: [
-      "sidebar-rail-layer absolute top-0 bottom-0 hidden w-sidebar-rail cursor-col-resize items-center justify-center",
+      "sidebar-rail-layer absolute inset-y-sidebar-rail hidden w-sidebar-rail cursor-col-resize items-center justify-center",
       "sidebar-desktop:flex text-sidebar-rail-fg hover:bg-sidebar-rail-bg-hover",
       "focus-visible:sidebar-focus-ring",
       "data-[side=end]:start-0 data-[side=start]:end-0",

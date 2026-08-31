@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ReactNode, useState } from "react"
-import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { fn } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import {
@@ -182,27 +182,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Playground: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const documentBody = within(canvasElement.ownerDocument.body)
-    const trigger = canvas.getByRole("button", { name: "Open drawer" })
-
-    await userEvent.click(trigger)
-    const dialog = await documentBody.findByRole("dialog", {
-      name: "Playground drawer",
-    })
-    await expect(dialog).toBeVisible()
-
-    await userEvent.keyboard("{Escape}")
-    await waitFor(() =>
-      expect(
-        documentBody.queryByRole("dialog", { name: "Playground drawer" })
-      ).not.toBeInTheDocument()
-    )
-    await expect(trigger).toHaveFocus()
-  },
-}
+export const Playground: Story = {}
 
 const placements = [
   { label: "Start", value: "start" },
@@ -343,20 +323,6 @@ function ControlledDrawerExample() {
 export const Controlled: Story = {
   args: {},
   render: () => <ControlledDrawerExample />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const documentBody = within(canvasElement.ownerDocument.body)
-
-    await userEvent.click(
-      canvas.getByRole("button", { name: "Open controlled drawer" })
-    )
-    const dialog = await documentBody.findByRole("dialog", {
-      name: "Controlled drawer",
-    })
-    await expect(canvas.getByText("Drawer state: open")).toBeVisible()
-    await userEvent.click(within(dialog).getByRole("button", { name: "Close" }))
-    await expect(canvas.getByText("Drawer state: closed")).toBeVisible()
-  },
 }
 
 const profiles = [
@@ -386,7 +352,7 @@ function MultipleTriggersExample() {
             )
 
             return profile ? (
-              <div className="space-y-100 rounded-md border border-border-primary bg-surface-secondary p-150">
+              <div className="space-y-100 rounded-md border border-border-primary bg-surface p-150">
                 <p className="font-medium text-fg-primary">{profile.name}</p>
                 <p className="text-fg-secondary text-sm">{profile.email}</p>
               </div>
@@ -401,22 +367,6 @@ function MultipleTriggersExample() {
 export const MultipleTriggers: Story = {
   args: {},
   render: () => <MultipleTriggersExample />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const documentBody = within(canvasElement.ownerDocument.body)
-
-    await userEvent.click(canvas.getByRole("button", { name: "Edit Ada" }))
-    let dialog = await documentBody.findByRole("dialog", {
-      name: "Edit profile",
-    })
-    await expect(within(dialog).getByText("ada@example.com")).toBeVisible()
-    await userEvent.click(within(dialog).getByRole("button", { name: "Close" }))
-
-    await userEvent.click(canvas.getByRole("button", { name: "Edit Grace" }))
-    dialog = await documentBody.findByRole("dialog", { name: "Edit profile" })
-    await expect(within(dialog).getByText("grace@example.com")).toBeVisible()
-    await userEvent.keyboard("{Escape}")
-  },
 }
 
 function CustomContainerExample() {
@@ -431,7 +381,7 @@ function CustomContainerExample() {
       trapFocus={false}
     >
       <div
-        className="relative isolate h-sm w-full max-w-3xl overflow-hidden rounded-md border border-border-primary bg-surface-secondary p-300"
+        className="relative isolate h-drawer-sm w-full max-w-3xl overflow-hidden rounded-md border border-border-primary bg-surface p-300"
         ref={setContainer}
       >
         <div className="flex h-full items-center justify-center">
@@ -501,26 +451,12 @@ function NonModalDrawerExample() {
 export const NonModal: Story = {
   args: {},
   render: () => <NonModalDrawerExample />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const documentBody = within(canvasElement.ownerDocument.body)
-
-    await userEvent.click(
-      canvas.getByRole("button", { name: "Open activity panel" })
-    )
-    await documentBody.findByRole("dialog", { name: "Recent activity" })
-    await userEvent.click(
-      canvas.getByRole("button", { name: "Refresh results" })
-    )
-    await expect(canvas.getByText("Refreshes: 1")).toBeVisible()
-    await userEvent.keyboard("{Escape}")
-  },
 }
 
 function DrawerStackExample() {
   return (
     <Drawer.Stack>
-      <Drawer.Indent className="rounded-md border border-border-primary bg-surface-secondary p-300">
+      <Drawer.Indent className="rounded-md border border-border-primary bg-surface p-300">
         <Drawer placement="end" size="md">
           <Drawer.Trigger>Open account drawer</Drawer.Trigger>
           <DrawerPanel

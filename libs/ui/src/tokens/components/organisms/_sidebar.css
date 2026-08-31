@@ -53,6 +53,7 @@
   --gap-sidebar-group: var(--dimension-8);
   --gap-sidebar-group-content: var(--dimension-4);
   --gap-sidebar-menu: var(--dimension-4);
+  --spacing-sidebar-rail: 0rem;
 
   /* TYPOGRAPHY */
   --text-sidebar-group-label: var(--text-xs);

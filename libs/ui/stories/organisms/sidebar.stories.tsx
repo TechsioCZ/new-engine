@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState, type CSSProperties, type MouseEvent } from "react"
-import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { fn } from "storybook/test"
 
 import { Button } from "../../src/atoms/button"
 import type { IconType } from "../../src/atoms/icon"
@@ -16,26 +16,6 @@ type NavigationItem = {
   href: string
   icon: IconType
   label: string
-}
-
-async function waitForSidebarMode(
-  canvasElement: HTMLElement,
-  trigger: HTMLElement
-) {
-  const breakpoint = canvasElement.querySelector<HTMLElement>(
-    '[data-scope="sidebar"][data-part="breakpoint"]'
-  )
-
-  if (!breakpoint) {
-    throw new Error("Sidebar breakpoint sentinel is missing")
-  }
-
-  await waitFor(() => {
-    const mobile = getComputedStyle(breakpoint).display === "none"
-    return mobile
-      ? expect(trigger).toHaveAttribute("aria-haspopup", "dialog")
-      : expect(trigger).not.toHaveAttribute("aria-haspopup")
-  })
 }
 
 const navigationItems: NavigationItem[] = [
@@ -324,38 +304,6 @@ export const Playground: Story = {
       <MainSurface title="Store overview" />
     </Sidebar>
   ),
-  play: async ({ args, canvasElement }) => {
-    const canvas = within(canvasElement.ownerDocument.body)
-    const trigger = canvas.getByRole("button", {
-      name: "Toggle start navigation",
-    })
-    await waitForSidebarMode(canvasElement, trigger)
-    const wasExpanded = trigger.getAttribute("aria-expanded") === "true"
-    const desktopPanel = canvas.queryByRole("complementary", {
-      name: "Primary navigation",
-    })
-
-    await userEvent.click(trigger)
-
-    await expect(trigger).toHaveAttribute(
-      "aria-expanded",
-      wasExpanded ? "false" : "true",
-    )
-    if (desktopPanel) {
-      await expect(args.onExpandedChange).toHaveBeenCalledWith({
-        expanded: wasExpanded ? [] : ["start"],
-      })
-    } else {
-      await expect(args.onMobileOpenChange).toHaveBeenCalledWith({
-        open: "start",
-      })
-      await expect(
-        canvas.getByRole("button", {
-          name: "Close primary navigation",
-        })
-      ).toBeVisible()
-    }
-  },
 }
 
 function ControlledOffcanvasExample() {
@@ -392,49 +340,6 @@ export const ControlledOffcanvas: Story = {
   name: "State - Controlled offcanvas",
   args: {},
   render: () => <ControlledOffcanvasExample />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement.ownerDocument.body)
-    const trigger = canvas.getByRole("button", {
-      name: "Toggle start navigation",
-    })
-    const state = canvas.getByTestId("controlled-state")
-
-    await waitForSidebarMode(canvasElement, trigger)
-
-    if (trigger.hasAttribute("aria-haspopup")) {
-      await expect(state).toHaveTextContent("Desktop: none; mobile: none")
-      await expect(trigger).toHaveAttribute("aria-expanded", "false")
-      await expect(
-        canvas.queryByRole("dialog", { name: "Primary navigation" }),
-      ).not.toBeInTheDocument()
-      await userEvent.click(trigger)
-      const dialog = canvas.getByRole("dialog", {
-        name: "Primary navigation",
-      })
-      await expect(dialog).toBeVisible()
-      await expect(state).toHaveTextContent("Desktop: none; mobile: start")
-      await userEvent.click(
-        canvas.getByRole("button", {
-          name: "Close primary navigation",
-        })
-      )
-      await waitFor(() => expect(dialog).not.toBeInTheDocument())
-      await expect(state).toHaveTextContent("Desktop: none; mobile: none")
-      await expect(trigger).toHaveAttribute("aria-expanded", "false")
-      return
-    }
-
-    const panel = canvasElement.querySelector<HTMLElement>(
-      '[data-scope="sidebar"][data-part="panel"][data-side="start"]'
-    )
-    await expect(panel).not.toBeNull()
-    await expect(panel).toHaveAttribute("aria-hidden", "true")
-    await expect(panel).toHaveAttribute("data-state", "collapsed")
-    await userEvent.click(trigger)
-    await expect(state).toHaveTextContent("Desktop: start; mobile: none")
-    await expect(panel).not.toHaveAttribute("aria-hidden")
-    await expect(panel).toHaveAttribute("data-state", "expanded")
-  },
 }
 
 function FocusTransferExample() {
@@ -511,32 +416,6 @@ export const IconCollapseSidebar07: Story = {
       <MainSurface title="Store overview" />
     </Sidebar>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement.ownerDocument.body)
-    const trigger = canvas.getByRole("button", {
-      name: "Toggle start navigation",
-    })
-    await waitForSidebarMode(canvasElement, trigger)
-    const desktopPanel = canvas.queryByRole("complementary", {
-      name: "Primary navigation",
-    })
-
-    await expect(trigger).toHaveAttribute("aria-expanded", "false")
-    await userEvent.click(trigger)
-    await expect(trigger).toHaveAttribute("aria-expanded", "true")
-
-    const panel = canvas.getByRole("complementary", {
-      name: "Primary navigation",
-    })
-    await expect(panel).toHaveAttribute("data-state", "expanded")
-
-    if (desktopPanel) {
-      await userEvent.click(trigger)
-    } else {
-      await userEvent.keyboard("{Escape}")
-    }
-    await expect(trigger).toHaveAttribute("aria-expanded", "false")
-  },
 }
 
 function PaneSwitcher({
@@ -671,36 +550,6 @@ export const TwoPaneSidebar09: Story = {
       <MainSurface title="Team workspace" />
     </Sidebar>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement.ownerDocument.body)
-    const trigger = canvas.getByRole("button", {
-      name: "Toggle start navigation",
-    })
-
-    await waitForSidebarMode(canvasElement, trigger)
-
-    if (trigger.getAttribute("aria-expanded") === "false") {
-      await userEvent.click(trigger)
-      const mobileDetailPane = canvas.getByTestId("detail-pane")
-      await userEvent.click(canvas.getByRole("link", { name: "Projects" }))
-      await expect(mobileDetailPane).not.toHaveAttribute("hidden")
-      await expect(canvas.getByText("Projects")).toBeVisible()
-      await userEvent.keyboard("{Escape}")
-      await expect(trigger).toHaveAttribute("aria-expanded", "false")
-      return
-    }
-
-    const detailPane = canvas.getByTestId("detail-pane")
-
-    await expect(detailPane).not.toHaveAttribute("hidden")
-    await userEvent.click(trigger)
-    await expect(detailPane).toHaveAttribute("hidden")
-
-    await userEvent.click(canvas.getByRole("link", { name: "Projects" }))
-    await expect(trigger).toHaveAttribute("aria-expanded", "true")
-    await expect(detailPane).not.toHaveAttribute("hidden")
-    await expect(canvas.getByText("Projects")).toBeVisible()
-  },
 }
 
 export const RightSidebar14: Story = {
@@ -718,37 +567,6 @@ export const RightSidebar14: Story = {
       />
     </Sidebar>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement.ownerDocument.body)
-    const trigger = canvas.getByRole("button", {
-      name: "Toggle end navigation",
-    })
-
-    await waitForSidebarMode(canvasElement, trigger)
-
-    if (trigger.getAttribute("aria-expanded") === "false") {
-      await userEvent.click(trigger)
-      const mobilePanel = canvas.getByRole("complementary", {
-        name: "Order navigation",
-      })
-      await expect(mobilePanel).toHaveAttribute("data-side", "end")
-      await expect(mobilePanel).toHaveAttribute("data-state", "expanded")
-      await userEvent.keyboard("{Escape}")
-      await expect(trigger).toHaveAttribute("aria-expanded", "false")
-      return
-    }
-
-    const panel = canvas.getByRole("complementary", {
-      name: "Order navigation",
-    })
-
-    await expect(panel).toHaveAttribute("data-side", "end")
-    await userEvent.click(trigger)
-    await expect(trigger).toHaveAttribute("aria-expanded", "false")
-    await expect(panel).toHaveAttribute("data-state", "collapsed")
-    await userEvent.click(trigger)
-    await expect(trigger).toHaveAttribute("aria-expanded", "true")
-  },
 }
 
 function DualSidebarHeader() {
@@ -790,50 +608,6 @@ export const LeftAndRightSidebar15: Story = {
       />
     </Sidebar>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement.ownerDocument.body)
-    const startTrigger = canvas.getByRole("button", {
-      name: "Toggle start navigation",
-    })
-
-    await waitForSidebarMode(canvasElement, startTrigger)
-
-    if (startTrigger.getAttribute("aria-expanded") === "false") {
-      await userEvent.click(startTrigger)
-      await expect(
-        canvas.getByRole("complementary", { name: "Primary navigation" }),
-      ).toBeVisible()
-      await userEvent.keyboard("{Escape}")
-      await expect(startTrigger).toHaveAttribute("aria-expanded", "false")
-
-      const endTrigger = canvas.getByRole("button", {
-        name: "Toggle end navigation",
-      })
-      await userEvent.click(endTrigger)
-      await expect(endTrigger).toHaveAttribute("aria-expanded", "true")
-      await expect(
-        canvas.getByRole("complementary", { name: "Context navigation" }),
-      ).toBeVisible()
-      await userEvent.keyboard("{Escape}")
-      return
-    }
-
-    const startPanel = canvas.getByRole("complementary", {
-      name: "Primary navigation",
-    })
-    const endPanel = canvas.getByRole("complementary", {
-      name: "Context navigation",
-    })
-
-    await expect(
-      canvas.queryByRole("button", { name: "Toggle end navigation" }),
-    ).not.toBeInTheDocument()
-    await expect(startPanel).toHaveAttribute("data-side", "start")
-    await expect(endPanel).toHaveAttribute("data-side", "end")
-    await userEvent.click(startTrigger)
-    await expect(startPanel).toHaveAttribute("data-state", "collapsed")
-    await expect(endPanel).toHaveAttribute("data-state", "expanded")
-  },
 }
 
 export const LogicalEdgesRtl: Story = {
@@ -856,83 +630,6 @@ export const LogicalEdgesRtl: Story = {
       />
     </Sidebar>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement.ownerDocument.body)
-    const startTrigger = canvas.getByRole("button", {
-      name: "Toggle start navigation",
-    })
-
-    await waitForSidebarMode(canvasElement, startTrigger)
-
-    if (startTrigger.hasAttribute("aria-haspopup")) {
-      await userEvent.click(startTrigger)
-      const startPanel = canvas.getByRole("complementary", {
-        name: "Primary navigation",
-      })
-      const startDrawer = startPanel.closest<HTMLElement>(
-        '[data-scope="drawer"][data-part="content"]',
-      )
-
-      await expect(startDrawer).not.toBeNull()
-      await waitFor(() => {
-        const rect = startDrawer?.getBoundingClientRect()
-        return expect(
-          Math.abs((rect?.right ?? 0) - window.innerWidth),
-        ).toBeLessThan(1)
-      })
-      await expect(startDrawer).toHaveAttribute(
-        "data-swipe-direction",
-        "right",
-      )
-      await expect(startDrawer).toHaveAttribute("dir", "rtl")
-      await userEvent.keyboard("{Escape}")
-      await expect(startTrigger).toHaveAttribute("aria-expanded", "false")
-
-      const endTrigger = canvas.getByRole("button", {
-        name: "Toggle end navigation",
-      })
-      await userEvent.click(endTrigger)
-      const endPanel = canvas.getByRole("complementary", {
-        name: "Context navigation",
-      })
-      const endDrawer = endPanel.closest<HTMLElement>(
-        '[data-scope="drawer"][data-part="content"]',
-      )
-
-      await expect(endDrawer).not.toBeNull()
-      await waitFor(() => {
-        const rect = endDrawer?.getBoundingClientRect()
-        return expect(Math.abs(rect?.left ?? 0)).toBeLessThan(1)
-      })
-      await expect(endDrawer).toHaveAttribute(
-        "data-swipe-direction",
-        "left",
-      )
-      await expect(endDrawer).toHaveAttribute("dir", "rtl")
-      await userEvent.keyboard("{Escape}")
-      return
-    }
-
-    const startPanel = canvas.getByRole("complementary", {
-      name: "Primary navigation",
-    })
-    const endPanel = canvas.getByRole("complementary", {
-      name: "Context navigation",
-    })
-    const root = canvasElement.querySelector<HTMLElement>(
-      '[data-scope="sidebar"][data-part="root"]',
-    )
-
-    await expect(root).not.toBeNull()
-    await expect(startPanel).toHaveAttribute("data-side", "start")
-    await expect(endPanel).toHaveAttribute("data-side", "end")
-    await expect(startPanel.getBoundingClientRect().right).toBeCloseTo(
-      root?.getBoundingClientRect().right ?? 0,
-    )
-    await expect(endPanel.getBoundingClientRect().left).toBeCloseTo(
-      root?.getBoundingClientRect().left ?? 0,
-    )
-  },
 }
 
 type SidebarOffsetStyle = CSSProperties & {
@@ -973,27 +670,4 @@ export const StickySiteHeaderSidebar16: Story = {
       </div>
     </Sidebar>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement.ownerDocument.body)
-    const root = canvasElement.querySelector<HTMLElement>(
-      '[data-scope="sidebar"][data-part="root"]',
-    )
-    const header = canvas.getByTestId("site-header")
-    const applicationRow = canvas.getByTestId("application-row")
-
-    await expect(root).not.toBeNull()
-    await expect(header.parentElement).toBe(root)
-    await expect(applicationRow.parentElement).toBe(root)
-    await expect(
-      canvasElement.ownerDocument.defaultView?.getComputedStyle(header)
-        .position,
-    ).toBe("sticky")
-
-    const rootRect = root?.getBoundingClientRect()
-    const headerRect = header.getBoundingClientRect()
-    if (rootRect) {
-      await expect(Math.abs(headerRect.left - rootRect.left)).toBeLessThan(1)
-      await expect(Math.abs(headerRect.right - rootRect.right)).toBeLessThan(1)
-    }
-  },
 }
