@@ -11,6 +11,7 @@
  * same `availableModeSettings()` the app and the preview decorator use. The
  * registry stays the single source of truth.
  */
+import React from "react"
 import {
   IconButton,
   TooltipLinkList,
@@ -102,6 +103,8 @@ addons.register("techsio/mode-toolbar", () => {
     // Storybook renders TOOLs on every view; restrict to story/docs canvases.
     match: ({ tabId, viewMode }) =>
       !tabId && (viewMode === "story" || viewMode === "docs"),
-    render: () => <ModeToolbar />,
+    // Storybook compiles custom manager entries with the classic JSX runtime.
+    // Keep an explicit React use so the binding survives linting/tree-shaking.
+    render: () => React.createElement(ModeToolbar),
   })
 })
