@@ -100,6 +100,10 @@
 
 /* Zag Presence 1.43.x completes lifecycle callbacks on animationend. */
 @keyframes drawer-enter-presence {
+  from,
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes drawer-backdrop-out {
@@ -138,7 +142,8 @@
 @utility drawer-backdrop-motion {
   opacity: calc(1 - var(--drawer-swipe-progress, 0));
   transition-duration: calc(
-    var(--duration-drawer-backdrop-enter) * var(--drawer-swipe-strength, 1)
+    var(--duration-drawer-backdrop-enter) *
+    var(--drawer-swipe-strength, 1)
   );
   transition-property: opacity;
   transition-timing-function: ease-out;
@@ -147,7 +152,7 @@
     animation: drawer-enter-presence
       calc(
         var(--duration-drawer-backdrop-enter) *
-          var(--drawer-swipe-strength, 1)
+        var(--drawer-swipe-strength, 1)
       )
       linear;
   }
@@ -156,7 +161,7 @@
     animation: drawer-backdrop-out
       calc(
         var(--duration-drawer-backdrop-exit) *
-          var(--drawer-swipe-strength, 1)
+        var(--drawer-swipe-strength, 1)
       )
       ease-in both;
   }
@@ -180,7 +185,8 @@
 @utility drawer-content-motion {
   translate: 0 0;
   transition-duration: calc(
-    var(--duration-drawer-enter) * var(--drawer-swipe-strength, 1)
+    var(--duration-drawer-enter) *
+    var(--drawer-swipe-strength, 1)
   );
   transition-property: transform, translate;
   transition-timing-function: ease-out;
@@ -240,9 +246,7 @@
 }
 
 @utility drawer-backdrop-layer {
-  z-index: calc(
-    var(--z-drawer-layer) + var(--layer-index, 0) - 1
-  );
+  z-index: calc(var(--z-drawer-layer) + var(--layer-index, 0) - 1);
 }
 
 @utility drawer-positioner-layer {
@@ -313,30 +317,25 @@
 }
 
 @utility drawer-indent {
-  --drawer-indent-progress: clamp(
-    0,
-    var(--drawer-swipe-progress, 0),
-    1
-  );
+  --drawer-indent-progress: clamp(0, var(--drawer-swipe-progress, 0), 1);
 
   position: relative;
   transform-origin: center top;
-  transition: transform var(--duration-drawer-stack) ease-out,
+  transition:
+    transform var(--duration-drawer-stack) ease-out,
     border-radius var(--duration-drawer-stack) ease-out;
   will-change: transform;
 
   &[data-active] {
     border-radius: calc(
       var(--radius-drawer-content) *
-        (1 - var(--drawer-indent-progress))
+      (1 - var(--drawer-indent-progress))
     );
-    transform: scale(
-        calc(0.97 + 0.03 * var(--drawer-indent-progress))
-      )
+    transform: scale(calc(0.97 + 0.03 * var(--drawer-indent-progress)))
       translateY(
         calc(
           var(--spacing-drawer-indent-offset) *
-            (1 - var(--drawer-indent-progress))
+          (1 - var(--drawer-indent-progress))
         )
       );
   }

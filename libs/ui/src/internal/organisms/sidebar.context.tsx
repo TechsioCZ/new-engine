@@ -10,10 +10,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react"
-import {
-  type DrawerApi,
-  useDrawer,
-} from "../../molecules/drawer"
+import { type DrawerApi, useDrawer } from "../../molecules/drawer"
 
 export type SidebarSide = "start" | "end"
 export type SidebarMode = "desktop" | "mobile"
@@ -88,10 +85,7 @@ export type SidebarFocusRegistry = {
     side: SidebarSide
   }) => void
   capture: (details: SidebarFocusCapture) => void
-  claim: (
-    side: SidebarSide,
-    fromMode: SidebarMode
-  ) => SidebarFocusOrigin | null
+  claim: (side: SidebarSide, fromMode: SidebarMode) => SidebarFocusOrigin | null
   clear: (side: SidebarSide, revision?: number) => void
   getRevision: (side: SidebarSide) => number
   peek: (side: SidebarSide) => SidebarFocusOrigin | null
@@ -114,9 +108,7 @@ type SidebarPanelContextValue = {
 }
 
 const SidebarContext = createContext<SidebarContextValue | null>(null)
-const SidebarPanelContext = createContext<SidebarPanelContextValue | null>(
-  null
-)
+const SidebarPanelContext = createContext<SidebarPanelContextValue | null>(null)
 
 const SIDES: readonly SidebarSide[] = ["start", "end"]
 
@@ -143,11 +135,7 @@ function createSidebarFocusRegistry(): SidebarFocusRegistry {
       const document = node.ownerDocument
       const clearBlurredOrigin = () => {
         const origin = origins[side]
-        if (
-          !origin ||
-          origin.mode !== mode ||
-          origin.node !== node
-        ) {
+        if (!origin || origin.mode !== mode || origin.node !== node) {
           return
         }
 
@@ -297,12 +285,9 @@ export function useSidebarState({
   const [uncontrolledExpanded, setUncontrolledExpanded] = useState(() =>
     normalizeExpanded(defaultExpanded)
   )
-  const [uncontrolledMobileOpen, setUncontrolledMobileOpen] = useState(
-    defaultMobileOpen
-  )
-  const expanded = normalizeExpanded(
-    controlledExpanded ?? uncontrolledExpanded
-  )
+  const [uncontrolledMobileOpen, setUncontrolledMobileOpen] =
+    useState(defaultMobileOpen)
+  const expanded = normalizeExpanded(controlledExpanded ?? uncontrolledExpanded)
   const effectiveExpanded = normalizeExpanded([
     ...expanded,
     ...SIDES.filter((side) => collapsible[side] === "none"),
@@ -350,7 +335,8 @@ export function useSidebarState({
     wasDesktop.current = isDesktop
   }, [controlledMobileOpen, isDesktop, mobileOpen, onMobileOpenChange])
 
-  const createOpenChangeHandler = (side: SidebarSide) =>
+  const createOpenChangeHandler =
+    (side: SidebarSide) =>
     ({ open }: { open: boolean }) => {
       if (open) {
         changeMobileOpen(side)
@@ -408,9 +394,7 @@ export function SidebarProvider({
   value: SidebarContextValue
 }) {
   return (
-    <SidebarContext.Provider value={value}>
-      {children}
-    </SidebarContext.Provider>
+    <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>
   )
 }
 
@@ -439,9 +423,7 @@ export function useSidebarContext() {
 export function useSidebarPanelContext() {
   const context = useContext(SidebarPanelContext)
   if (!context) {
-    throw new Error(
-      "Sidebar panel parts must be used within Sidebar.Panel"
-    )
+    throw new Error("Sidebar panel parts must be used within Sidebar.Panel")
   }
   return context
 }

@@ -10,26 +10,21 @@
 
 import type * as drawer from "@zag-js/drawer"
 import { mergeProps, Portal, type PortalProps } from "@zag-js/react"
-import type {
-  ComponentPropsWithoutRef,
-  ReactNode,
-  Ref,
-} from "react"
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
 import {
-  DrawerProvider,
+  type DrawerApi,
   type DrawerPresenceProps,
+  DrawerProvider,
   DrawerStackProvider,
   type DrawerStackProviderProps,
   getDrawerPresenceProps,
-  type DrawerApi,
-  type DrawerStackApi,
   type UseDrawerProps,
   useComposedRefs,
-  useDrawer,
   useDrawerContext,
+  useDrawer as useDrawerMachine,
   useDrawerPresence,
   useDrawerStackContext,
 } from "../internal/molecules/drawer.context"
@@ -37,6 +32,16 @@ import {
   type DrawerSize,
   drawerVariants,
 } from "../internal/molecules/drawer.styles"
+
+export type {
+  DrawerApi,
+  DrawerPresenceProps,
+  DrawerStackApi,
+  UseDrawerProps,
+} from "../internal/molecules/drawer.context"
+export type { DrawerSize } from "../internal/molecules/drawer.styles"
+
+export const useDrawer = useDrawerMachine
 
 export type DrawerPlacement = "bottom" | "end" | "start" | "top"
 
@@ -331,10 +336,7 @@ Drawer.Description = function DrawerDescription({
   )
 }
 
-type DrawerIconCloseTriggerProps = Omit<
-  ActionIconProps,
-  "icon"
-> & {
+type DrawerIconCloseTriggerProps = Omit<ActionIconProps, "icon"> & {
   children?: undefined
   icon?: IconType
 }
@@ -358,13 +360,13 @@ Drawer.CloseTrigger = function DrawerCloseTrigger(
   if (props.children == null) {
     const {
       children: _children,
-      className,
-      icon = "token-icon-drawer-close",
-      onClick,
-      ref,
-      size = "md",
+      className: iconClassName,
+      icon: iconName = "token-icon-drawer-close",
+      onClick: onIconClick,
+      ref: iconRef,
+      size: iconSize = "md",
       tone = "neutral",
-      type = "button",
+      type: iconType = "button",
       ...iconProps
     } = props
     const mergedProps = mergeProps(iconProps, machineProps)
@@ -373,18 +375,18 @@ Drawer.CloseTrigger = function DrawerCloseTrigger(
       <ActionIcon
         {...mergedProps}
         aria-label={mergedProps["aria-label"] ?? "Close drawer"}
-        className={styles.closeTrigger({ className })}
-        icon={icon}
+        className={styles.closeTrigger({ className: iconClassName })}
+        icon={iconName}
         onClick={(event) => {
-          onClick?.(event)
+          onIconClick?.(event)
           if (!event.defaultPrevented) {
             onMachineClick?.(event)
           }
         }}
-        ref={ref}
-        size={size}
+        ref={iconRef}
+        size={iconSize}
         tone={tone}
-        type={type}
+        type={iconType}
       />
     )
   }
@@ -544,16 +546,6 @@ Drawer.IndentBackground = function DrawerIndentBackground({
 }
 
 Drawer.displayName = "Drawer"
-
-export { useDrawer }
-
-export type {
-  DrawerApi,
-  DrawerPresenceProps,
-  DrawerSize,
-  DrawerStackApi,
-  UseDrawerProps,
-}
 
 export type DrawerElementIds = drawer.ElementIds
 export type DrawerFocusOutsideEvent = drawer.FocusOutsideEvent

@@ -34,10 +34,8 @@ export const drawerVariants = tv({
       "flex shrink-0 items-center justify-end gap-drawer-footer p-drawer-footer",
       "border-t-(length:--border-width-drawer) border-drawer-content-border",
     ],
-    title:
-      "drawer-title-typography font-drawer-title text-drawer-title-fg",
-    description:
-      "drawer-description-typography text-drawer-description-fg",
+    title: "drawer-title-typography font-drawer-title text-drawer-title-fg",
+    description: "drawer-description-typography text-drawer-description-fg",
     trigger: "",
     closeTrigger: "",
     grabber: [
@@ -68,37 +66,37 @@ export const drawerVariants = tv({
     size: {
       xs: {
         content: [
-          "data-[swipe-direction=up]:h-drawer-xs data-[swipe-direction=down]:h-drawer-xs",
+          "data-[swipe-direction=down]:h-drawer-xs data-[swipe-direction=up]:h-drawer-xs",
           "data-[swipe-direction=left]:w-drawer-xs data-[swipe-direction=right]:w-drawer-xs",
         ],
       },
       sm: {
         content: [
-          "data-[swipe-direction=up]:h-drawer-sm data-[swipe-direction=down]:h-drawer-sm",
+          "data-[swipe-direction=down]:h-drawer-sm data-[swipe-direction=up]:h-drawer-sm",
           "data-[swipe-direction=left]:w-drawer-sm data-[swipe-direction=right]:w-drawer-sm",
         ],
       },
       md: {
         content: [
-          "data-[swipe-direction=up]:h-drawer-md data-[swipe-direction=down]:h-drawer-md",
+          "data-[swipe-direction=down]:h-drawer-md data-[swipe-direction=up]:h-drawer-md",
           "data-[swipe-direction=left]:w-drawer-md data-[swipe-direction=right]:w-drawer-md",
         ],
       },
       lg: {
         content: [
-          "data-[swipe-direction=up]:h-drawer-lg data-[swipe-direction=down]:h-drawer-lg",
+          "data-[swipe-direction=down]:h-drawer-lg data-[swipe-direction=up]:h-drawer-lg",
           "data-[swipe-direction=left]:w-drawer-lg data-[swipe-direction=right]:w-drawer-lg",
         ],
       },
       xl: {
         content: [
-          "data-[swipe-direction=up]:h-drawer-xl data-[swipe-direction=down]:h-drawer-xl",
+          "data-[swipe-direction=down]:h-drawer-xl data-[swipe-direction=up]:h-drawer-xl",
           "data-[swipe-direction=left]:w-drawer-xl data-[swipe-direction=right]:w-drawer-xl",
         ],
       },
       full: {
         content: [
-          "data-[swipe-direction=up]:h-full data-[swipe-direction=down]:h-full",
+          "data-[swipe-direction=down]:h-full data-[swipe-direction=up]:h-full",
           "data-[swipe-direction=left]:w-full data-[swipe-direction=right]:w-full",
         ],
       },

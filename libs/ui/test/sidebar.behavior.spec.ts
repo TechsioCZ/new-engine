@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, type Page, test } from "@playwright/test"
 
 const desktopViewport = { height: 800, width: 1280 }
 const mobileViewport = { height: 800, width: 768 }
@@ -33,10 +33,7 @@ test.describe("Sidebar responsive behavior", () => {
     )
 
     await page.setViewportSize(desktopViewport)
-    await openStory(
-      page,
-      "organisms-sidebar--breakpoint-focus-transfer"
-    )
+    await openStory(page, "organisms-sidebar--breakpoint-focus-transfer")
     await waitForMode(page, "desktop")
 
     const primaryTrigger = page.getByRole("button", {
@@ -146,9 +143,7 @@ test.describe("Sidebar responsive behavior", () => {
       name: "Primary navigation",
     })
     await expect(dialog).toBeVisible()
-    await page
-      .getByRole("button", { name: "Close primary navigation" })
-      .click()
+    await page.getByRole("button", { name: "Close primary navigation" }).click()
     await expect(dialog).toHaveCount(0)
   })
 })

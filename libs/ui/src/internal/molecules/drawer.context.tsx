@@ -2,7 +2,7 @@
 
 import * as drawer from "@zag-js/drawer"
 import * as presence from "@zag-js/presence"
-import { type PropTypes, normalizeProps, useMachine } from "@zag-js/react"
+import { normalizeProps, type PropTypes, useMachine } from "@zag-js/react"
 import {
   createContext,
   type ReactNode,
@@ -94,9 +94,7 @@ export function useDrawerContext(): DrawerContextValue {
 export function useDrawerStackContext(): DrawerStackApi {
   const context = useContext(DrawerStackContext)
   if (!context) {
-    throw new Error(
-      "Drawer stack components must be used within Drawer.Stack"
-    )
+    throw new Error("Drawer stack components must be used within Drawer.Stack")
   }
   return context
 }
@@ -137,7 +135,7 @@ export function useDrawerPresence({
   }
 
   const unmounted =
-    (!api.present && !wasEverPresent.current && lazyMount) ||
+    (!(api.present || wasEverPresent.current) && lazyMount) ||
     (!api.present && wasEverPresent.current && unmountOnExit)
 
   return {
@@ -197,13 +195,14 @@ export function getDrawerPresenceProps(
   open: boolean,
   presenceState: DrawerPresenceState
 ) {
+  let dataState: "closed" | "open" | null = null
+
+  if (!(presenceState.api.skip && presenceState.skipAnimationOnMount)) {
+    dataState = open ? "open" : "closed"
+  }
+
   return {
-    "data-state":
-      presenceState.api.skip && presenceState.skipAnimationOnMount
-        ? null
-        : open
-          ? "open"
-          : "closed",
+    "data-state": dataState,
     hidden: !presenceState.api.present,
   } as const
 }
@@ -217,9 +216,7 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
     for (const ref of refs) {
       if (typeof ref === "function") {
         const cleanup = ref(node)
-        cleanups.push(
-          typeof cleanup === "function" ? cleanup : () => ref(null)
-        )
+        cleanups.push(typeof cleanup === "function" ? cleanup : () => ref(null))
       } else if (ref) {
         ref.current = node
         cleanups.push(() => {
@@ -240,10 +237,7 @@ export function useComposedRefs<T>(
   firstRef: PossibleRef<T>,
   secondRef: PossibleRef<T>
 ): RefCallback<T> {
-  return useMemo(
-    () => composeRefs(firstRef, secondRef),
-    [firstRef, secondRef]
-  )
+  return useMemo(() => composeRefs(firstRef, secondRef), [firstRef, secondRef])
 }
 
 export type DrawerStackProviderProps = {

@@ -19,13 +19,8 @@ import { useId } from "react"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
 import type { IconType } from "../atoms/icon"
 import { Tooltip } from "../atoms/tooltip"
-import { Drawer } from "../molecules/drawer"
 import {
   type SidebarApi,
-  type SidebarCollapsible,
-  type SidebarCollapsiblePolicy,
-  type SidebarExpandedChangeDetails,
-  type SidebarMobileOpenChangeDetails,
   SidebarPanelProvider,
   SidebarProvider,
   type SidebarSide,
@@ -36,6 +31,16 @@ import {
 } from "../internal/organisms/sidebar.context"
 import { useSidebarPanelFocusTransfer } from "../internal/organisms/sidebar.focus"
 import { sidebarVariants } from "../internal/organisms/sidebar.styles"
+import { Drawer } from "../molecules/drawer"
+
+export type {
+  SidebarApi,
+  SidebarCollapsible,
+  SidebarCollapsiblePolicy,
+  SidebarExpandedChangeDetails,
+  SidebarMobileOpenChangeDetails,
+  SidebarSide,
+} from "../internal/organisms/sidebar.context"
 
 export type SidebarRootProps = Omit<
   ComponentPropsWithoutRef<"div">,
@@ -78,8 +83,8 @@ export function Sidebar({
       <div
         {...props}
         className={root({ className })}
-        data-scope="sidebar"
         data-part="root"
+        data-scope="sidebar"
         dir={state.dir}
         id={state.rootId}
         ref={ref}
@@ -132,8 +137,7 @@ Sidebar.Panel = function SidebarPanel({
 }: SidebarPanelProps) {
   const context = useSidebarContext()
   const collapsible = context.getCollapsible(side)
-  const expanded =
-    collapsible === "none" || context.isExpanded(side)
+  const expanded = collapsible === "none" || context.isExpanded(side)
   const state = expanded ? "expanded" : "collapsed"
   const panelId = context.getPanelId(side)
   const styles = sidebarVariants({ collapsible, expanded })
@@ -164,6 +168,7 @@ Sidebar.Panel = function SidebarPanel({
           data-side={side}
           data-state={state}
           id={panelId}
+          inert={inaccessible || undefined}
           onBlurCapture={(event) => {
             focusTransfer.onBlurCapture(event)
             onBlurCapture?.(event)
@@ -172,7 +177,6 @@ Sidebar.Panel = function SidebarPanel({
             focusTransfer.onFocusCapture(event)
             onFocusCapture?.(event)
           }}
-          inert={inaccessible || undefined}
           ref={ref}
           tabIndex={tabIndex}
         >
@@ -194,9 +198,7 @@ Sidebar.Panel = function SidebarPanel({
             onBlurCapture={focusTransfer.onBlurCapture}
             onFocusCapture={focusTransfer.onFocusCapture}
           >
-            <SidebarPanelProvider
-              value={{ collapsible, expanded: true, side }}
-            >
+            <SidebarPanelProvider value={{ collapsible, expanded: true, side }}>
               <aside
                 {...props}
                 aria-label={ariaLabel}
@@ -275,9 +277,9 @@ Sidebar.Trigger = function SidebarTrigger({
       {...desktopStateProps}
       aria-label={ariaLabel}
       className={trigger({ className })}
+      data-side={side}
       data-sidebar-trigger=""
       data-sidebar-trigger-value={triggerValue}
-      data-side={side}
       icon={icon}
       onBlurCapture={(event) => {
         context.focus.blur({
@@ -715,27 +717,13 @@ export type SidebarContextProps = {
   children: (api: SidebarApi) => ReactNode
 }
 
-Sidebar.Context = function SidebarContext({
-  children,
-}: SidebarContextProps) {
+Sidebar.Context = function SidebarContext({ children }: SidebarContextProps) {
   const context = useSidebarContext()
   return children(context)
 }
 
-function getTooltipPlacement(
-  side: SidebarSide,
-  dir: "ltr" | "rtl"
-) {
+function getTooltipPlacement(side: SidebarSide, dir: "ltr" | "rtl") {
   const startIsLeft = dir !== "rtl"
   const isLeft = side === "start" ? startIsLeft : !startIsLeft
   return isLeft ? "right" : "left"
-}
-
-export type {
-  SidebarApi,
-  SidebarCollapsible,
-  SidebarCollapsiblePolicy,
-  SidebarExpandedChangeDetails,
-  SidebarMobileOpenChangeDetails,
-  SidebarSide,
 }

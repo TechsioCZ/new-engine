@@ -8,10 +8,7 @@ test("fixed-side policy is reflected in the first server render", () => {
       <Sidebar.Panel aria-label="Fixed navigation" side="end">
         <Sidebar.Content>Navigation</Sidebar.Content>
       </Sidebar.Panel>
-      <Sidebar.Trigger
-        aria-label="Toggle fixed navigation"
-        side="end"
-      />
+      <Sidebar.Trigger aria-label="Toggle fixed navigation" side="end" />
     </Sidebar>
   )
 

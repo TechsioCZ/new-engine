@@ -3,6 +3,7 @@
 import type { FocusEvent } from "react"
 import { useLayoutEffect, useRef } from "react"
 import type {
+  SidebarFocusOrigin,
   SidebarFocusRegistry,
   SidebarMode,
   SidebarSide,
@@ -19,9 +20,8 @@ function getPanelFocusRegion(
   }
 
   return (
-    panel.closest<HTMLElement>(
-      '[data-scope="drawer"][data-part="content"]'
-    ) ?? panel
+    panel.closest<HTMLElement>('[data-scope="drawer"][data-part="content"]') ??
+    panel
   )
 }
 
@@ -41,29 +41,25 @@ function getPanelFocusTarget({
   const root = document.getElementById(rootId)
   const triggers = root
     ? Array.from(
-        root.querySelectorAll<HTMLButtonElement>(
-          "button[data-sidebar-trigger]"
-        )
+        root.querySelectorAll<HTMLButtonElement>("button[data-sidebar-trigger]")
       ).filter(
-        (trigger) =>
-          trigger.closest(
-            '[data-scope="sidebar"][data-part="root"]'
-          ) === root &&
-          trigger.dataset.side === side &&
-          !trigger.disabled &&
-          trigger.getClientRects().length > 0
+        (candidate) =>
+          candidate.closest('[data-scope="sidebar"][data-part="root"]') ===
+            root &&
+          candidate.dataset.side === side &&
+          !candidate.disabled &&
+          candidate.getClientRects().length > 0
       )
     : []
   const exactTrigger = triggerValue
     ? triggers.find(
-        (trigger) =>
-          trigger.dataset.sidebarTriggerValue === triggerValue
+        (candidate) => candidate.dataset.sidebarTriggerValue === triggerValue
       )
     : undefined
-  const trigger = exactTrigger ?? triggers[0]
+  const target = exactTrigger ?? triggers[0]
 
-  if (trigger) {
-    return trigger
+  if (target) {
+    return target
   }
 
   const panel = document.getElementById(panelId)
@@ -82,10 +78,7 @@ function hasMeaningfulFocus(document: Document) {
   )
 }
 
-function queueDocumentMicrotask(
-  document: Document,
-  callback: VoidFunction
-) {
+function queueDocumentMicrotask(document: Document, callback: VoidFunction) {
   const view = document.defaultView
   if (view) {
     view.queueMicrotask(callback)
@@ -93,6 +86,160 @@ function queueDocumentMicrotask(
   }
 
   globalThis.queueMicrotask(callback)
+}
+
+type CaptureActiveFocusProps = {
+  activeElement: Element | null
+  focus: SidebarFocusRegistry
+  focusRegion: HTMLElement | null
+  mode: SidebarMode
+  origin: SidebarFocusOrigin
+  side: SidebarSide
+  triggerValue: string | null
+}
+
+function captureActiveFocus({
+  activeElement,
+  focus,
+  focusRegion,
+  mode,
+  origin,
+  side,
+  triggerValue,
+}: CaptureActiveFocusProps) {
+  if (activeElement && focusRegion?.contains(activeElement)) {
+    focus.capture({ mode, node: focusRegion, side, triggerValue })
+    return true
+  }
+
+  if (activeElement && origin.node.contains(activeElement)) {
+    focus.capture({
+      mode,
+      node: origin.node,
+      side,
+      triggerValue: origin.triggerValue,
+    })
+    return true
+  }
+
+  return false
+}
+
+type CaptureTransferredTargetProps = {
+  document: Document
+  focus: SidebarFocusRegistry
+  mode: SidebarMode
+  origin: SidebarFocusOrigin
+  side: SidebarSide
+  target: HTMLElement | null
+  triggerValue: string | null
+}
+
+function captureTransferredTarget({
+  document,
+  focus,
+  mode,
+  origin,
+  side,
+  target,
+  triggerValue,
+}: CaptureTransferredTargetProps) {
+  if (!target || document.activeElement !== target) {
+    return
+  }
+
+  const capturedOrigin = focus.peek(side)
+  if (capturedOrigin?.mode === mode && capturedOrigin.node === target) {
+    return
+  }
+
+  focus.capture({
+    mode,
+    node: target,
+    side,
+    triggerValue:
+      target.dataset.sidebarTriggerValue ?? origin.triggerValue ?? triggerValue,
+  })
+}
+
+type RunQueuedFocusTransferProps = {
+  document: Document
+  focus: SidebarFocusRegistry
+  isCurrent: () => boolean
+  isDesktop: boolean
+  mode: SidebarMode
+  origin: SidebarFocusOrigin
+  panelId: string
+  rootId: string
+  side: SidebarSide
+  triggerValue: string | null
+}
+
+function runQueuedFocusTransfer({
+  document,
+  focus,
+  isCurrent,
+  isDesktop,
+  mode,
+  origin,
+  panelId,
+  rootId,
+  side,
+  triggerValue,
+}: RunQueuedFocusTransferProps) {
+  const stale =
+    !isCurrent() ||
+    focus.getRevision(side) !== origin.revision ||
+    !document.hasFocus()
+  if (stale) {
+    return
+  }
+
+  const focusRegion = getPanelFocusRegion(document, panelId, isDesktop)
+  const activeElement = document.activeElement
+  if (activeElement && focusRegion?.contains(activeElement)) {
+    return
+  }
+
+  if (hasMeaningfulFocus(document)) {
+    return
+  }
+
+  const target = getPanelFocusTarget({
+    document,
+    panelId,
+    rootId,
+    side,
+    triggerValue,
+  })
+  target?.focus({ preventScroll: true })
+  captureTransferredTarget({
+    document,
+    focus,
+    mode,
+    origin,
+    side,
+    target,
+    triggerValue,
+  })
+}
+
+function cancelFocusTransfer(
+  transition: { current: number },
+  transitionId: number
+) {
+  if (transition.current === transitionId) {
+    transition.current += 1
+  }
+}
+
+function getPendingFocusOrigin(
+  focus: SidebarFocusRegistry,
+  side: SidebarSide,
+  fromMode: SidebarMode
+) {
+  const origin = focus.peek(side)
+  return origin?.mode === fromMode ? origin : null
 }
 
 type UseSidebarPanelFocusTransferProps = {
@@ -129,37 +276,28 @@ export function useSidebarPanelFocusTransfer({
     transition.current = transitionId
     const mode: SidebarMode = isDesktop ? "desktop" : "mobile"
     const fromMode: SidebarMode = isDesktop ? "mobile" : "desktop"
-    const pendingOrigin = focus.peek(side)
-    if (!pendingOrigin || pendingOrigin.mode !== fromMode) {
+    const pendingOrigin = getPendingFocusOrigin(focus, side, fromMode)
+    if (!pendingOrigin) {
       return
     }
 
     const { document } = pendingOrigin
-    const focusRegion = getPanelFocusRegion(
-      document,
-      panelId,
-      isDesktop
-    )
+    const focusRegion = getPanelFocusRegion(document, panelId, isDesktop)
     const activeElement = document.activeElement
+    const nextTriggerValue =
+      pendingOrigin.triggerValue ?? latestTriggerValue.current
 
-    if (activeElement && focusRegion?.contains(activeElement)) {
-      focus.capture({
+    if (
+      captureActiveFocus({
+        activeElement,
+        focus,
+        focusRegion,
         mode,
-        node: focusRegion,
+        origin: pendingOrigin,
         side,
-        triggerValue:
-          pendingOrigin.triggerValue ?? latestTriggerValue.current,
+        triggerValue: nextTriggerValue,
       })
-      return
-    }
-
-    if (activeElement && pendingOrigin.node.contains(activeElement)) {
-      focus.capture({
-        mode,
-        node: pendingOrigin.node,
-        side,
-        triggerValue: pendingOrigin.triggerValue,
-      })
+    ) {
       return
     }
 
@@ -174,63 +312,21 @@ export function useSidebarPanelFocusTransfer({
     }
 
     queueDocumentMicrotask(document, () => {
-      if (
-        transition.current !== transitionId ||
-        focus.getRevision(side) !== origin.revision ||
-        !document.hasFocus()
-      ) {
-        return
-      }
-
-      const nextFocusRegion = getPanelFocusRegion(
+      runQueuedFocusTransfer({
         document,
-        panelId,
-        isDesktop
-      )
-      const nextActiveElement = document.activeElement
-      if (
-        nextActiveElement &&
-        nextFocusRegion?.contains(nextActiveElement)
-      ) {
-        return
-      }
-
-      if (hasMeaningfulFocus(document)) {
-        return
-      }
-
-      const target = getPanelFocusTarget({
-        document,
+        focus,
+        isCurrent: () => transition.current === transitionId,
+        isDesktop,
+        mode,
+        origin,
         panelId,
         rootId,
         side,
-        triggerValue:
-          origin.triggerValue ?? latestTriggerValue.current,
+        triggerValue: origin.triggerValue ?? latestTriggerValue.current,
       })
-      target?.focus({ preventScroll: true })
-      const capturedOrigin = focus.peek(side)
-      if (
-        target &&
-        document.activeElement === target &&
-        (capturedOrigin?.mode !== mode || capturedOrigin.node !== target)
-      ) {
-        focus.capture({
-          mode,
-          node: target,
-          side,
-          triggerValue:
-            target.dataset.sidebarTriggerValue ??
-            origin.triggerValue ??
-            latestTriggerValue.current,
-        })
-      }
     })
 
-    return () => {
-      if (transition.current === transitionId) {
-        transition.current += 1
-      }
-    }
+    return () => cancelFocusTransfer(transition, transitionId)
   }, [focus, isDesktop, panelId, rootId, side])
 
   const onFocusCapture = (event: FocusEvent<HTMLElement>) => {
