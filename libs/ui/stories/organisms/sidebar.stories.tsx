@@ -349,32 +349,49 @@ function FocusTransferExample() {
     <Sidebar defaultExpanded={["start"]}>
       <Sidebar.Panel aria-label="Focus test navigation" side="start">
         <Sidebar.Header>
-          <Sidebar.CloseTrigger aria-label="Close focus test navigation" />
+          <div className="flex items-center gap-100">
+            <LinkButton
+              aria-label="Focus workspace"
+              block
+              className="min-w-0 flex-1"
+              href="#focus-workspace"
+              icon="icon-[mdi--target]"
+              onClick={preventNavigation}
+              size="sm"
+              theme="unstyled"
+              variant="secondary"
+            >
+              <Sidebar.Label>Focus workspace</Sidebar.Label>
+            </LinkButton>
+            <Sidebar.CloseTrigger aria-label="Close focus test navigation" />
+          </div>
         </Sidebar.Header>
-        <Sidebar.Content className="gap-100">
-          <Button data-testid="panel-focus-control" size="sm">
-            Panel focus control
-          </Button>
-          <Button
-            data-testid="arm-replacement-autofocus"
-            onClick={() => setAutoFocusDesktop(true)}
-            size="sm"
-            theme="outlined"
-          >
-            Arm replacement autofocus
-          </Button>
-          <Sidebar.Context>
-            {(api) => (
-              <Button
-                autoFocus={autoFocusDesktop && api.isDesktop}
-                data-testid="replacement-autofocus"
-                size="sm"
-                theme="light"
-              >
-                Replacement focus target
-              </Button>
-            )}
-          </Sidebar.Context>
+        <Sidebar.Content>
+          <Sidebar.Expanded className="grid gap-100">
+            <Button data-testid="panel-focus-control" size="sm">
+              Navigation item
+            </Button>
+            <Button
+              data-testid="arm-replacement-autofocus"
+              onClick={() => setAutoFocusDesktop(true)}
+              size="sm"
+              theme="outlined"
+            >
+              Set fallback focus
+            </Button>
+            <Sidebar.Context>
+              {(api) => (
+                <Button
+                  autoFocus={autoFocusDesktop && api.isDesktop}
+                  data-testid="replacement-autofocus"
+                  size="sm"
+                  theme="light"
+                >
+                  Fallback focus target
+                </Button>
+              )}
+            </Sidebar.Context>
+          </Sidebar.Expanded>
         </Sidebar.Content>
       </Sidebar.Panel>
       <Sidebar.Inset>
@@ -383,14 +400,20 @@ function FocusTransferExample() {
             <Sidebar.Trigger
               aria-label="Toggle focus navigation primary"
               side="start"
+              tooltip="Toggle navigation from the main control"
               value="focus-primary"
             />
+            <strong className="min-w-0 truncate text-fg-primary">
+              Focus transfer
+            </strong>
             <Sidebar.Trigger
               aria-label="Toggle focus navigation secondary"
+              className="ms-auto"
+              icon="icon-[mdi--folder-outline]"
               side="start"
+              tooltip="Toggle navigation from the alternate control"
               value="focus-secondary"
             />
-            <strong className="text-fg-primary">Focus transfer</strong>
           </div>
         </Header>
         <DashboardContent title="Focus transfer" />
@@ -402,6 +425,14 @@ function FocusTransferExample() {
 export const BreakpointFocusTransfer: Story = {
   name: "State - Breakpoint focus transfer",
   args: {},
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Two distinct launchers verify that focus returns to the launcher that opened the navigation when the layout moves between desktop and mobile.",
+      },
+    },
+  },
   render: () => <FocusTransferExample />,
 }
 
@@ -467,7 +498,7 @@ function TwoPanePanel() {
           role="navigation"
           size="rail"
         >
-          <Sidebar.Header>
+          <Sidebar.Header className="min-h-700 justify-center">
             <LinkButton
               aria-label="Commerce workspace"
               href="#workspace"
@@ -479,7 +510,7 @@ function TwoPanePanel() {
             />
           </Sidebar.Header>
           <Sidebar.Content>
-            <Sidebar.Menu>
+            <Sidebar.Menu className="mt-(--dimension-4)">
               {paneItems.map((item) => (
                 <Sidebar.Item key={item.href}>
                   <PaneSwitcher
@@ -511,7 +542,7 @@ function TwoPanePanel() {
           size="content"
           visibility="expanded"
         >
-          <Sidebar.Header>
+          <Sidebar.Header className="min-h-700 justify-center">
             <strong className="text-fg-primary">{activeItem.label}</strong>
           </Sidebar.Header>
           <Sidebar.Content>
