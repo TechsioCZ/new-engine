@@ -29,7 +29,7 @@ A11Y_REPORT_FAIL_ON_VIOLATIONS="${FAIL_ON_VIOLATIONS}" \
 A11Y_REPORT_WRITE_JUNIT="true" \
 A11Y_REPORT_WAIT_MS="${WAIT_MS}" \
 pnpm -C "${ROOT_DIR}" exec test-storybook \
-  --url "http://127.0.0.1:${PORT}/?globals=theme:light" \
+  --url "http://127.0.0.1:${PORT}/?globals=mode:light" \
   --config-dir .storybook \
   --maxWorkers "${WORKERS}" \
   --testTimeout "${TEST_TIMEOUT}"
@@ -40,7 +40,7 @@ A11Y_REPORT_FAIL_ON_VIOLATIONS="${FAIL_ON_VIOLATIONS}" \
 A11Y_REPORT_WRITE_JUNIT="true" \
 A11Y_REPORT_WAIT_MS="${WAIT_MS}" \
 pnpm -C "${ROOT_DIR}" exec test-storybook \
-  --url "http://127.0.0.1:${PORT}/?globals=theme:dark" \
+  --url "http://127.0.0.1:${PORT}/?globals=mode:dark" \
   --config-dir .storybook \
   --maxWorkers "${WORKERS}" \
   --testTimeout "${TEST_TIMEOUT}"
