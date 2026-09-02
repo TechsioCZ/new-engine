@@ -29,7 +29,7 @@ code. This skill is the checklist and file map.
 | `libs/ui/src/<level>/<name>.tsx` | Component. `tv()` from `../utils`, component token classes only, `ref?: Ref<T>` prop (no forwardRef), `type` not `interface`, named export. |
 | `libs/ui/src/tokens/components/<level>/_<name>.css` | Two-layer tokens in `@theme static` (reference → derived `-bg/-fg/-border`). Register the import in `src/tokens/components/components.css`. |
 | `libs/ui/stories/<level>/<name>.stories.tsx` | CSF3 story — delegate to `$ui-story` / ui-storybook-writer. |
-| `libs/ui/src/<level>/<name>.figma.tsx` | Code Connect mapping — may be deferred; say so explicitly. |
+| `libs/ui/src/<level>/<name>.figma.ts` | Code Connect mapping — may be deferred; say so explicitly. |
 
 Subpath exports (`./atoms/*`, `./molecules/*`, …) are wildcard — no package.json change needed
 unless you introduce a new level.

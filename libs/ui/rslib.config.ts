@@ -5,7 +5,10 @@ import { pluginPublint } from "rsbuild-plugin-publint"
 export default defineConfig({
   source: {
     entry: {
-      index: "./src/**/*.{ts,tsx}",
+      // *.figma.ts are Code Connect templates: they are uploaded to Figma and
+      // executed there against a virtual "figma" module, so they are neither
+      // buildable nor part of the published surface.
+      index: ["./src/**/*.{ts,tsx}", "!./src/**/*.figma.ts"],
     },
   },
   lib: [

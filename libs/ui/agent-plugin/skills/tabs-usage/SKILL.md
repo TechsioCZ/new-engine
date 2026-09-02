@@ -17,7 +17,7 @@ sources:
   - "libs/ui/src/molecules/tabs.tsx"
   - "libs/ui/src/tokens/components/molecules/_tabs.css"
   - "libs/ui/stories/molecules/tabs.stories.tsx"
-  - "libs/ui/src/molecules/figma/tabs.figma.tsx"
+  - "libs/ui/src/molecules/tabs.figma.ts"
   - "https://zagjs.com/components/react/tabs"
 ---
 

@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/form-numeric-input.tsx"
   - "libs/ui/src/atoms/numeric-input.tsx"
   - "libs/ui/stories/molecules/form-numeric-input.stories.tsx"
-  - "libs/ui/src/molecules/figma/form-numeric-input.figma.tsx"
+  - "libs/ui/src/molecules/form-numeric-input.figma.ts"
   - "https://zagjs.com/components/react/number-input"
 ---
 

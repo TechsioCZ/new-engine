@@ -13,7 +13,7 @@ requires:
 sources:
   - "libs/ui/src/atoms/label.tsx"
   - "libs/ui/src/tokens/components/atoms/_label.css"
-  - "libs/ui/src/atoms/figma/label.figma.tsx"
+  - "libs/ui/src/atoms/label.figma.ts"
 ---
 
 # @techsio/ui-kit Label Usage

@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/pagination.tsx"
   - "libs/ui/src/tokens/components/molecules/_pagination.css"
   - "libs/ui/stories/molecules/pagination.stories.tsx"
-  - "libs/ui/src/molecules/figma/pagination.figma.tsx"
+  - "libs/ui/src/molecules/pagination.figma.ts"
   - "https://zagjs.com/components/react/pagination"
 ---
 

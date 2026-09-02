@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/molecules/form-checkbox.tsx"
   - "libs/ui/src/tokens/components/atoms/_checkbox.css"
   - "libs/ui/stories/molecules/form-checkbox.stories.tsx"
-  - "libs/ui/src/molecules/figma/form-checkbox.figma.tsx"
+  - "libs/ui/src/molecules/form-checkbox.figma.ts"
   - "https://zagjs.com/components/react/checkbox"
 ---
 

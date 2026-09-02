@@ -17,7 +17,7 @@ sources:
   - "libs/ui/src/atoms/link.tsx"
   - "libs/ui/src/atoms/button.tsx"
   - "libs/ui/src/tokens/components/atoms/_button.css"
-  - "libs/ui/src/atoms/figma/link-button.figma.tsx"
+  - "libs/ui/src/atoms/link-button.figma.ts"
 ---
 
 # @techsio/ui-kit LinkButton Usage
