@@ -24,7 +24,7 @@ const children = childrenLayer ? childrenLayer.textContent : undefined
 
 export default {
   id: "StatusText",
-  imports: ['import { StatusText } from "@libs/ui/atoms/status-text"'],
+  imports: ['import { StatusText } from "@techsio/ui-kit/atoms/status-text"'],
   example: figma.tsx`<StatusText${figma.helpers.react.renderProp(
     "size",
     size

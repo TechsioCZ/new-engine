@@ -12,7 +12,7 @@ const size = figma.selectedInstance.getEnum("size", {
 
 export default {
   id: "Header",
-  imports: ['import { Header } from "@libs/ui/organisms/header"'],
+  imports: ['import { Header } from "@techsio/ui-kit/organisms/header"'],
   example: figma.tsx`<Header${figma.helpers.react.renderProp("size", size)}>
         <Header.Desktop>
           <Header.Container position="start">Logo</Header.Container>

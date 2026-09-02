@@ -8,6 +8,10 @@ const variant = figma.selectedInstance.getEnum("variant", {
   primary: "primary",
   secondary: "secondary",
 })
+const placeholderBgClass = figma.selectedInstance.getEnum("variant", {
+  primary: "bg-skeleton-bg-primary",
+  secondary: "bg-skeleton-bg-secondary",
+})
 const speed = figma.selectedInstance.getEnum("speed", {
   slow: "slow",
   normal: "normal",
@@ -33,26 +37,23 @@ const lastLineWidth = figma.selectedInstance.getEnum("lastLineWidth", {
 export default {
   id: "Skeleton.Text",
   imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
-  example: figma.tsx`function Example() {
-    const placeholderBgClass = placeholderBgClassByVariant[variant];
-    return (<Skeleton.Text${figma.helpers.react.renderProp(
-      "lastLineWidth",
-      lastLineWidth,
-    )}${figma.helpers.react.renderProp(
+  example: figma.tsx`<Skeleton.Text${figma.helpers.react.renderProp(
+    "lastLineWidth",
+    lastLineWidth
+  )}${figma.helpers.react.renderProp(
     "noOfLines",
-    noOfLines,
+    noOfLines
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp(
     "speed",
-    speed,
+    speed
   )}${figma.helpers.react.renderProp("variant", variant)}>
           <div className="w-xs space-y-150">
-            <div className={\`h-4 w-full rounded-sm ${placeholderBgClass}\`}/>
-            <div className={\`h-4 w-4/5 rounded-sm ${placeholderBgClass}\`}/>
+            <div className="h-4 w-full rounded-sm ${placeholderBgClass}"/>
+            <div className="h-4 w-4/5 rounded-sm ${placeholderBgClass}"/>
           </div>
-        </Skeleton.Text>);
-}`,
+        </Skeleton.Text>`,
   metadata: { nestable: false },
 }

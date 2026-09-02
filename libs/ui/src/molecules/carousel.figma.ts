@@ -16,7 +16,7 @@ const align = figma.selectedInstance.getEnum("Alignment", {
 
 export default {
   id: "Carousel",
-  imports: ['import { Carousel } from "@libs/ui/molecules/carousel"'],
+  imports: ['import { Carousel } from "@techsio/ui-kit/molecules/carousel"'],
   example: figma.tsx`<Carousel${figma.helpers.react.renderProp(
     "align",
     align

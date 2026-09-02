@@ -31,7 +31,7 @@ const children = figma.selectedInstance.getString("children")
 
 export default {
   id: "Popover",
-  imports: ['import { Popover } from "@libs/ui/molecules/popover"'],
+  imports: ['import { Popover } from "@techsio/ui-kit/molecules/popover"'],
   example: figma.tsx`<Popover${figma.helpers.react.renderProp(
     "border",
     border

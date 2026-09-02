@@ -13,7 +13,7 @@ const gapped = figma.selectedInstance.getBoolean("gapped")
 
 export default {
   id: "SearchForm",
-  imports: ['import { SearchForm } from "@libs/ui/molecules/search-form"'],
+  imports: ['import { SearchForm } from "@techsio/ui-kit/molecules/search-form"'],
   example: figma.tsx`<SearchForm${figma.helpers.react.renderProp(
     "gapped",
     gapped,

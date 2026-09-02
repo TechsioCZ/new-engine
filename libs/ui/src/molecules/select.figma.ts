@@ -26,6 +26,14 @@ const disabled = figma.selectedInstance.getEnum("state", {
   disabled: true,
   readonly: false,
 })
+const readOnly = figma.selectedInstance.getEnum("state", {
+  default: false,
+  error: false,
+  success: false,
+  warning: false,
+  disabled: false,
+  readonly: true,
+})
 const required = figma.selectedInstance.getBoolean("required")
 
 export default {
@@ -33,13 +41,16 @@ export default {
   imports: ['import { Select } from "@techsio/ui-kit/molecules/select"'],
   example: figma.tsx`<Select${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )} items={[]}${figma.helpers.react.renderProp(
+    "readOnly",
+    readOnly
+  )}${figma.helpers.react.renderProp(
     "required",
-    required,
+    required
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}>
         <Select.Label>Label</Select.Label>
         <Select.Trigger />

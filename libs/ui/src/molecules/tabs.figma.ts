@@ -17,7 +17,7 @@ const orientation = figma.selectedInstance.getEnum("orientation", {
 
 export default {
   id: "Tabs",
-  imports: ['import { Tabs } from "@libs/ui/molecules/tabs"'],
+  imports: ['import { Tabs } from "@techsio/ui-kit/molecules/tabs"'],
   example: figma.tsx`<Tabs defaultValue="tab-1"${figma.helpers.react.renderProp(
     "orientation",
     orientation

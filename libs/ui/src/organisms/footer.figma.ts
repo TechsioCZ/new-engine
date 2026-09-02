@@ -12,7 +12,7 @@ const size = figma.selectedInstance.getEnum("size", {
 
 export default {
   id: "Footer",
-  imports: ['import { Footer } from "@libs/ui/organisms/footer"'],
+  imports: ['import { Footer } from "@techsio/ui-kit/organisms/footer"'],
   example: figma.tsx`<Footer${figma.helpers.react.renderProp("size", size)}>
         <Footer.Container>
           <Footer.Section>

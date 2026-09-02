@@ -16,7 +16,7 @@ const variant = figma.selectedInstance.getEnum("variant", {
 
 export default {
   id: "Steps",
-  imports: ['import { Steps } from "@libs/ui/molecules/steps"'],
+  imports: ['import { Steps } from "@techsio/ui-kit/molecules/steps"'],
   example: figma.tsx`<Steps count={3} defaultStep={0}${figma.helpers.react.renderProp(
     "size",
     size

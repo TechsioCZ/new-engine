@@ -12,7 +12,7 @@ const size = figma.selectedInstance.getEnum("size", {
 
 export default {
   id: "Breadcrumb",
-  imports: ['import { Breadcrumb } from "@libs/ui/molecules/breadcrumb"'],
+  imports: ['import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"'],
   example: figma.tsx`<Breadcrumb${figma.helpers.react.renderProp(
     "size",
     size,

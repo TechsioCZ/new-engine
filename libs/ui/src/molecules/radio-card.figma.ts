@@ -18,7 +18,7 @@ const disabled = figma.selectedInstance.getEnum("state", {
 
 export default {
   id: "RadioCard",
-  imports: ['import { RadioCard } from "@libs/ui/molecules/radio-card"'],
+  imports: ['import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"'],
   example: figma.tsx`<RadioCard${figma.helpers.react.renderProp(
     "disabled",
     disabled

@@ -22,12 +22,21 @@ const color = figma.selectedInstance.getEnum("color", {
   warning: "warning",
 })
 
+// `icon` takes an IconType token string, not JSX. The swapped glyph instance is
+// named "Token Icon/token-icon-plus", so the token is the last path segment.
+const iconSwap = figma.selectedInstance.getInstanceSwap("icon")
+const iconName =
+  iconSwap && typeof iconSwap.name === "string" ? iconSwap.name : ""
+const icon = iconName ? iconName.split("/").pop() : "token-icon-plus"
+
 export default {
   id: "Icon",
   imports: ['import { Icon } from "@techsio/ui-kit/atoms/icon"'],
   example: figma.tsx`<Icon${figma.helpers.react.renderProp(
     "color",
     color
-  )} icon="token-icon-plus"${figma.helpers.react.renderProp("size", size)} />`,
-  metadata: { nestable: true },
+  )} icon="${icon}"${figma.helpers.react.renderProp("size", size)} />`,
+  // expose the token so parents (Button, ActionIcon) can render `icon="…"`
+  // instead of embedding this component's JSX into a string prop
+  metadata: { nestable: true, props: { icon } },
 }
