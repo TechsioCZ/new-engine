@@ -29,7 +29,7 @@ const children =
 export default {
   id: "Badge",
   imports: ['import { Badge } from "@techsio/ui-kit/atoms/badge"'],
-  example: figma.tsx`<Badge${figma.helpers.react.renderProp(
+  example: figma.code`<Badge${figma.helpers.react.renderProp(
     "size",
     size
   )}${figma.helpers.react.renderProp("variant", variant)}>

@@ -30,7 +30,7 @@ export default {
     'import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"',
     'import { Button } from "@techsio/ui-kit/atoms/button"',
   ],
-  example: figma.tsx`<Tooltip content="Tooltip content" open={true}${figma.helpers.react.renderProp(
+  example: figma.code`<Tooltip content="Tooltip content" open={true}${figma.helpers.react.renderProp(
     "placement",
     placement
   )}${figma.helpers.react.renderProp(

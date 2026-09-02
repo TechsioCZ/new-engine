@@ -30,7 +30,7 @@ const readonly = figma.selectedInstance.getEnum("state", {
 export default {
   id: "Textarea",
   imports: ['import { Textarea } from "@techsio/ui-kit/atoms/textarea"'],
-  example: figma.tsx`<Textarea${figma.helpers.react.renderProp(
+  example: figma.code`<Textarea${figma.helpers.react.renderProp(
     "disabled",
     disabled,
   )}${figma.helpers.react.renderProp(

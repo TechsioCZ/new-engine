@@ -20,7 +20,7 @@ const children =
 export default {
   id: "Label",
   imports: ['import { Label } from "@techsio/ui-kit/atoms/label"'],
-  example: figma.tsx`<Label${figma.helpers.react.renderProp(
+  example: figma.code`<Label${figma.helpers.react.renderProp(
     "disabled",
     disabled
   )}${figma.helpers.react.renderProp(

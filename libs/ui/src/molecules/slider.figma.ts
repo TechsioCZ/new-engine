@@ -23,7 +23,7 @@ const validateStatus = figma.selectedInstance.getEnum("state", {
 export default {
   id: "Slider",
   imports: ['import { Slider } from "@techsio/ui-kit/molecules/slider"'],
-  example: figma.tsx`<Slider defaultValue={[50]}${figma.helpers.react.renderProp(
+  example: figma.code`<Slider defaultValue={[50]}${figma.helpers.react.renderProp(
     "disabled",
     disabled
   )} max={100} min={0}${figma.helpers.react.renderProp(

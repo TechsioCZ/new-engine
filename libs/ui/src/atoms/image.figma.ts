@@ -14,7 +14,7 @@ const size = figma.selectedInstance.getEnum("size", {
 export default {
   id: "Image",
   imports: ['import { Image } from "@techsio/ui-kit/atoms/image"'],
-  example: figma.tsx`<Image alt="Description"${figma.helpers.react.renderProp(
+  example: figma.code`<Image alt="Description"${figma.helpers.react.renderProp(
     "size",
     size,
   )} src="/image.jpg"/>`,

@@ -21,7 +21,7 @@ const speed = figma.selectedInstance.getEnum("speed", {
 export default {
   id: "Skeleton.Rectangle",
   imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
-  example: figma.tsx`<Skeleton.Rectangle${figma.helpers.react.renderProp(
+  example: figma.code`<Skeleton.Rectangle${figma.helpers.react.renderProp(
     "speed",
     speed
   )}${figma.helpers.react.renderProp("variant", variant)}>

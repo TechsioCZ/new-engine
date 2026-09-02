@@ -18,7 +18,7 @@ const size = figma.selectedInstance.getEnum("size", {
 export default {
   id: "Table",
   imports: ['import { Table } from "@techsio/ui-kit/organisms/table"'],
-  example: figma.tsx`<Table${figma.helpers.react.renderProp(
+  example: figma.code`<Table${figma.helpers.react.renderProp(
     "size",
     size,
   )}${figma.helpers.react.renderProp("variant", variant)}>

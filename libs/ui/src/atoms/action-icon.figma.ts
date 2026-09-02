@@ -17,7 +17,7 @@ const tone = figma.selectedInstance.getEnum("tone", {
 export default {
   id: "ActionIcon",
   imports: ['import { ActionIcon } from "@techsio/ui-kit/atoms/action-icon"'],
-  example: figma.tsx`<ActionIcon aria-label="Clear" icon="token-icon-close"${figma.helpers.react.renderProp(
+  example: figma.code`<ActionIcon aria-label="Clear" icon="token-icon-close"${figma.helpers.react.renderProp(
     "size",
     size,
   )}${figma.helpers.react.renderProp("tone", tone)}/>`,

@@ -13,7 +13,7 @@ const size = figma.selectedInstance.getEnum("size", {
 export default {
   id: "Menu",
   imports: ['import { Menu } from "@techsio/ui-kit/molecules/menu"'],
-  example: figma.tsx`<Menu items={[{ type: "action", value: "item-1", label: "Item 1" }]}${figma.helpers.react.renderProp(
+  example: figma.code`<Menu items={[{ type: "action", value: "item-1", label: "Item 1" }]}${figma.helpers.react.renderProp(
     "size",
     size,
   )} triggerText="Open"/>`,

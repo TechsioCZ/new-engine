@@ -12,7 +12,7 @@ const children =
 export default {
   id: "Link",
   imports: ['import { Link } from "@techsio/ui-kit/atoms/link"'],
-  example: figma.tsx`<Link href="#">${figma.helpers.react.renderChildren(
+  example: figma.code`<Link href="#">${figma.helpers.react.renderChildren(
     children
   )}</Link>`,
   metadata: { nestable: true },

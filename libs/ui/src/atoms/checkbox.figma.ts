@@ -27,7 +27,7 @@ const invalid = figma.selectedInstance.getEnum("state", {
 export default {
   id: "Checkbox",
   imports: ['import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"'],
-  example: figma.tsx`<Checkbox${figma.helpers.react.renderProp(
+  example: figma.code`<Checkbox${figma.helpers.react.renderProp(
     "checked",
     checked,
   )}${figma.helpers.react.renderProp(

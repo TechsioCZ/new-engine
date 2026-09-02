@@ -39,7 +39,7 @@ const required = figma.selectedInstance.getBoolean("required")
 export default {
   id: "Select",
   imports: ['import { Select } from "@techsio/ui-kit/molecules/select"'],
-  example: figma.tsx`<Select${figma.helpers.react.renderProp(
+  example: figma.code`<Select${figma.helpers.react.renderProp(
     "disabled",
     disabled
   )} items={[]}${figma.helpers.react.renderProp(

@@ -37,7 +37,7 @@ export default {
   imports: [
     'import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"',
   ],
-  example: figma.tsx`<FormCheckbox${figma.helpers.react.renderProp(
+  example: figma.code`<FormCheckbox${figma.helpers.react.renderProp(
     "checked",
     checked
   )}${figma.helpers.react.renderProp(

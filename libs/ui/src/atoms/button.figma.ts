@@ -28,7 +28,7 @@ const loadingText = figma.selectedInstance.getString("loadingText")
 // template exposes as metadata rather than embedding its rendered JSX.
 function iconToken(propName) {
   const swap = figma.selectedInstance.getInstanceSwap(propName)
-  if (!swap?.hasCodeConnect()) {
+  if (!swap || swap.type !== "INSTANCE") {
     return
   }
   const props = swap.executeTemplate().metadata?.props
@@ -72,7 +72,7 @@ const { icon, iconPosition } = activeIcon()
 export default {
   id: "Button",
   imports: ['import { Button } from "@techsio/ui-kit/atoms/button"'],
-  example: figma.tsx`<Button${figma.helpers.react.renderProp(
+  example: figma.code`<Button${figma.helpers.react.renderProp(
     "disabled",
     disabled
   )}${figma.helpers.react.renderProp(

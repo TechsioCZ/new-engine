@@ -35,7 +35,7 @@ const disabled = figma.selectedInstance.getEnum("state", {
 export default {
   id: "LinkButton",
   imports: ['import { LinkButton } from "@techsio/ui-kit/atoms/link-button"'],
-  example: figma.tsx`<LinkButton${figma.helpers.react.renderProp(
+  example: figma.code`<LinkButton${figma.helpers.react.renderProp(
     "disabled",
     disabled
   )} href="#"${figma.helpers.react.renderProp(

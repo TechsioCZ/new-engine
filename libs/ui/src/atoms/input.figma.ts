@@ -27,7 +27,7 @@ const disabled = figma.selectedInstance.getEnum("state", {
 export default {
   id: "Input",
   imports: ['import { Input } from "@techsio/ui-kit/atoms/input"'],
-  example: figma.tsx`<Input${figma.helpers.react.renderProp(
+  example: figma.code`<Input${figma.helpers.react.renderProp(
     "disabled",
     disabled,
   )}${figma.helpers.react.renderProp(

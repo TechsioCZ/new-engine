@@ -30,7 +30,7 @@ export default {
   imports: [
     'import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"',
   ],
-  example: figma.tsx`<FormTextarea${figma.helpers.react.renderProp(
+  example: figma.code`<FormTextarea${figma.helpers.react.renderProp(
     "disabled",
     disabled,
   )} id="field" label="Label"${figma.helpers.react.renderProp(

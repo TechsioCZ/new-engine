@@ -13,7 +13,7 @@ const size = figma.selectedInstance.getEnum("size", {
 export default {
   id: "TreeView",
   imports: ['import { TreeView } from "@techsio/ui-kit/molecules/tree-view"'],
-  example: figma.tsx`<TreeView data={[
+  example: figma.code`<TreeView data={[
         {
             id: "1",
             name: "Root",

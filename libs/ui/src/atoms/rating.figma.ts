@@ -28,7 +28,7 @@ const labelText =
 export default {
   id: "Rating",
   imports: ['import { Rating } from "@techsio/ui-kit/atoms/rating"'],
-  example: figma.tsx`<Rating${figma.helpers.react.renderProp(
+  example: figma.code`<Rating${figma.helpers.react.renderProp(
     "allowHalf",
     allowHalf
   )} count={${count}} defaultValue={${value}}${figma.helpers.react.renderProp(

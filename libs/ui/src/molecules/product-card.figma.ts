@@ -12,7 +12,7 @@ const layout = figma.selectedInstance.getEnum("layout", {
 export default {
   id: "ProductCard",
   imports: ['import { ProductCard } from "@techsio/ui-kit/molecules/product-card"'],
-  example: figma.tsx`<ProductCard${figma.helpers.react.renderProp(
+  example: figma.code`<ProductCard${figma.helpers.react.renderProp(
     "layout",
     layout,
   )}>

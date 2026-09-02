@@ -12,7 +12,7 @@ const orientation = figma.selectedInstance.getEnum("orientation", {
 export default {
   id: "Gallery",
   imports: ['import { Gallery } from "@techsio/ui-kit/organisms/gallery"'],
-  example: figma.tsx`<Gallery items={[
+  example: figma.code`<Gallery items={[
         { id: "1", src: "/product-1.jpg", alt: "Product front" },
         { id: "2", src: "/product-2.jpg", alt: "Product side" },
         { id: "3", src: "/product-3.jpg", alt: "Product detail" },

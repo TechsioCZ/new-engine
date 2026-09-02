@@ -40,7 +40,7 @@ export default {
   imports: [
     'import { PhoneInput } from "@techsio/ui-kit/molecules/phone-input"',
   ],
-  example: figma.tsx`<PhoneInput defaultCountry="SK"${figma.helpers.react.renderProp(
+  example: figma.code`<PhoneInput defaultCountry="SK"${figma.helpers.react.renderProp(
     "disabled",
     disabled,
   )}${figma.helpers.react.renderProp(

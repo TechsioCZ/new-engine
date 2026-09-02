@@ -9,7 +9,7 @@ import figma from "figma"
 export default {
   id: "Dialog",
   imports: ['import { Dialog } from "@techsio/ui-kit/molecules/dialog"'],
-  example: figma.tsx`<Dialog description="Description" title="Title" triggerText="Open">
+  example: figma.code`<Dialog description="Description" title="Title" triggerText="Open">
         Content
       </Dialog>`,
   metadata: { nestable: true },

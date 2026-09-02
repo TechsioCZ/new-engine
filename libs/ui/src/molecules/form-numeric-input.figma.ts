@@ -44,7 +44,7 @@ export default {
     'import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"',
     'import { FormNumericInput } from "@techsio/ui-kit/molecules/form-numeric-input"',
   ],
-  example: figma.tsx`<FormNumericInput defaultValue={42}${figma.helpers.react.renderProp(
+  example: figma.code`<FormNumericInput defaultValue={42}${figma.helpers.react.renderProp(
     "disabled",
     disabled,
   )} helpText="Enter value between 0-100" id="quantity" label="Quantity"${figma.helpers.react.renderProp(

@@ -33,7 +33,7 @@ export default {
   imports: [
     'import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"',
   ],
-  example: figma.tsx`<NumericInput defaultValue={42}${figma.helpers.react.renderProp(
+  example: figma.code`<NumericInput defaultValue={42}${figma.helpers.react.renderProp(
     "disabled",
     disabled,
   )} id="quantity"${figma.helpers.react.renderProp(

@@ -19,7 +19,7 @@ const disabled = figma.selectedInstance.getEnum("state", {
 export default {
   id: "RadioGroup",
   imports: ['import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"'],
-  example: figma.tsx`<RadioGroup${figma.helpers.react.renderProp(
+  example: figma.code`<RadioGroup${figma.helpers.react.renderProp(
     "disabled",
     disabled
   )}${figma.helpers.react.renderProp("size", size)}>

@@ -37,7 +37,7 @@ const lastLineWidth = figma.selectedInstance.getEnum("lastLineWidth", {
 export default {
   id: "Skeleton.Text",
   imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
-  example: figma.tsx`<Skeleton.Text${figma.helpers.react.renderProp(
+  example: figma.code`<Skeleton.Text${figma.helpers.react.renderProp(
     "lastLineWidth",
     lastLineWidth
   )}${figma.helpers.react.renderProp(

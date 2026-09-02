@@ -23,7 +23,7 @@ const shadow = figma.selectedInstance.getEnum("shadow", {
 export default {
   id: "Accordion",
   imports: ['import { Accordion } from "@techsio/ui-kit/molecules/accordion"'],
-  example: figma.tsx`<Accordion${figma.helpers.react.renderProp(
+  example: figma.code`<Accordion${figma.helpers.react.renderProp(
     "shadow",
     shadow,
   )}${figma.helpers.react.renderProp(

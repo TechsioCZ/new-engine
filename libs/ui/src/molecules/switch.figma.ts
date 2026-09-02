@@ -32,7 +32,7 @@ const validateStatus = figma.selectedInstance.getEnum("state", {
 export default {
   id: "Switch",
   imports: ['import { Switch } from "@techsio/ui-kit/molecules/switch"'],
-  example: figma.tsx`<Switch${figma.helpers.react.renderProp(
+  example: figma.code`<Switch${figma.helpers.react.renderProp(
     "checked",
     checked
   )}${figma.helpers.react.renderProp(

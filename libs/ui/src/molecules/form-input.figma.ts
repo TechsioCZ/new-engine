@@ -28,7 +28,7 @@ const required = figma.selectedInstance.getBoolean("required")
 export default {
   id: "FormInput",
   imports: ['import { FormInput } from "@techsio/ui-kit/molecules/form-input"'],
-  example: figma.tsx`<FormInput${figma.helpers.react.renderProp(
+  example: figma.code`<FormInput${figma.helpers.react.renderProp(
     "disabled",
     disabled,
   )} id="field" label="Label"${figma.helpers.react.renderProp(

@@ -28,7 +28,7 @@ const required = figma.selectedInstance.getBoolean("required")
 export default {
   id: "Combobox",
   imports: ['import { Combobox } from "@techsio/ui-kit/molecules/combobox"'],
-  example: figma.tsx`<Combobox${figma.helpers.react.renderProp(
+  example: figma.code`<Combobox${figma.helpers.react.renderProp(
     "disabled",
     disabled,
   )} items={[]} label="Label"${figma.helpers.react.renderProp(

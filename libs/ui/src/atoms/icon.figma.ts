@@ -32,7 +32,7 @@ const icon = iconName ? iconName.split("/").pop() : "token-icon-plus"
 export default {
   id: "Icon",
   imports: ['import { Icon } from "@techsio/ui-kit/atoms/icon"'],
-  example: figma.tsx`<Icon${figma.helpers.react.renderProp(
+  example: figma.code`<Icon${figma.helpers.react.renderProp(
     "color",
     color
   )} icon="${icon}"${figma.helpers.react.renderProp("size", size)} />`,

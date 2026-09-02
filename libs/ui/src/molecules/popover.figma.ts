@@ -32,7 +32,7 @@ const children = figma.selectedInstance.getString("children")
 export default {
   id: "Popover",
   imports: ['import { Popover } from "@techsio/ui-kit/molecules/popover"'],
-  example: figma.tsx`<Popover${figma.helpers.react.renderProp(
+  example: figma.code`<Popover${figma.helpers.react.renderProp(
     "border",
     border
   )} defaultOpen id="popover"${figma.helpers.react.renderProp(
@@ -47,7 +47,7 @@ export default {
         )}</Popover.Trigger>
         <Popover.Positioner>
           <Popover.Content>
-            ${showArrow ? figma.tsx`<Popover.Arrow />` : ""}
+            ${showArrow ? figma.code`<Popover.Arrow />` : ""}
             <Popover.Title>${figma.helpers.react.renderChildren(
               title
             )}</Popover.Title>

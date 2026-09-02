@@ -27,7 +27,7 @@ const size = figma.selectedInstance.getEnum("size", {
 export default {
   id: "Skeleton.Circle",
   imports: ['import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"'],
-  example: figma.tsx`<Skeleton.Circle${figma.helpers.react.renderProp(
+  example: figma.code`<Skeleton.Circle${figma.helpers.react.renderProp(
     "size",
     size
   )}${figma.helpers.react.renderProp(
