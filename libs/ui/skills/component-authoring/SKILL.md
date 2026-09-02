@@ -79,7 +79,7 @@ src/atoms/action.tsx
 src/tokens/components/atoms/_action.css
 src/tokens/components/components.css import
 stories/atoms/action.stories.tsx
-src/atoms/figma/action.figma.tsx follow-up reminder when public
+src/atoms/action-icon.figma.ts follow-up reminder when public
 ```
 
 Do not add a TSX component without token CSS and Storybook coverage.

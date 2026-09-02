@@ -87,7 +87,8 @@ const staged = git(["diff", "--cached", "--name-only", "--diff-filter=ACMRD"])
   .filter(Boolean)
 const stagedSet = new Set(staged)
 
-const isComponentPath = (f) => COMPONENT_RE.test(f) && !f.endsWith(".figma.tsx")
+// Code Connect templates are *.figma.ts, which COMPONENT_RE already rejects.
+const isComponentPath = (f) => COMPONENT_RE.test(f)
 
 // Every opted-in component in the tree, so a commit that touches only a skill or the changelog
 // still resolves back to the components it affects instead of silently passing.
@@ -101,7 +102,7 @@ const optedInComponents = () => {
       continue
     }
     for (const entry of entries) {
-      if (!entry.endsWith(".tsx") || entry.endsWith(".figma.tsx")) continue
+      if (!entry.endsWith(".tsx")) continue
       const file = `${dir}/${entry}`
       const src = readStaged(file)
       if (VERSION_RE.test(src) && SKILL_TAG_RE.test(src)) out.push(file)

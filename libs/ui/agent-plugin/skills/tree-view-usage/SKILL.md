@@ -17,7 +17,7 @@ sources:
   - "libs/ui/src/molecules/tree-view.tsx"
   - "libs/ui/src/tokens/components/molecules/_tree-view.css"
   - "libs/ui/stories/molecules/tree-view.stories.tsx"
-  - "libs/ui/src/molecules/figma/tree-view.figma.tsx"
+  - "libs/ui/src/molecules/tree-view.figma.ts"
   - "https://zagjs.com/components/react/tree-view"
 ---
 

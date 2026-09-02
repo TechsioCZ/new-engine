@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/atoms/button.tsx"
   - "libs/ui/src/tokens/components/atoms/_button.css"
   - "libs/ui/stories/atoms/button.stories.tsx"
-  - "libs/ui/src/atoms/figma/button.figma.tsx"
+  - "libs/ui/src/atoms/button.figma.ts"
 ---
 
 # @techsio/ui-kit Button Usage

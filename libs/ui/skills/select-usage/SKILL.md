@@ -17,7 +17,7 @@ sources:
   - "libs/ui/src/molecules/select.tsx"
   - "libs/ui/src/tokens/components/molecules/_select.css"
   - "libs/ui/stories/molecules/select.stories.tsx"
-  - "libs/ui/src/molecules/figma/select.figma.tsx"
+  - "libs/ui/src/molecules/select.figma.ts"
   - "https://zagjs.com/components/react/select"
 ---
 

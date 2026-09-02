@@ -28,7 +28,7 @@ Canonical rules: `libs/ui/AGENTS.md`. Deep dives: the bundled skills `component-
 - Compound components: `Component.Sub = function ComponentSub() {}` — no object exports, no
   barrels, named exports only, flat kebab-case files, one component per file.
 - Stories live in `libs/ui/stories/<level>/`, never colocated. Every public component has a
-  token CSS file and (eventually) a `*.figma.tsx` mapping.
+  token CSS file and (eventually) a `*.figma.ts` mapping.
 
 ## Token architecture (the flow, end to end)
 
