@@ -21,14 +21,17 @@ const size = figma.selectedInstance.getEnum("size", {
   lg: "lg",
   xl: "xl",
 })
-const children = figma.selectedInstance.getString("children")
+// Badge exposes no `children` text property — the label is a plain text layer
+const childrenLayer = figma.selectedInstance.findText("Label")
+const children =
+  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
 
 export default {
   id: "Badge",
   imports: ['import { Badge } from "@techsio/ui-kit/atoms/badge"'],
   example: figma.tsx`<Badge${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("variant", variant)}>
         ${figma.helpers.react.renderChildren(children)}
       </Badge>`,

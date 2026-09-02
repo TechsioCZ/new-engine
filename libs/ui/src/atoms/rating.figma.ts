@@ -18,31 +18,28 @@ const dir = figma.selectedInstance.getEnum("dir", {
   rtl: "rtl",
 })
 const allowHalf = figma.selectedInstance.getBoolean("allowHalf")
-const labelText = (function () {
-  const nestedLayer0 = figma.selectedInstance.findInstance("Label")
-  return {
-    text:
-      nestedLayer0.type !== "ERROR"
-        ? nestedLayer0.getString("text")
-        : undefined,
-  }
-})()
+const value = figma.selectedInstance.getString("value")
+const count = figma.selectedInstance.getString("count")
+// "Label" is a plain text layer on Rating, not a nested instance
+const labelLayer = figma.selectedInstance.findText("Label")
+const labelText =
+  labelLayer.type !== "ERROR" ? labelLayer.textContent : undefined
 
 export default {
   id: "Rating",
   imports: ['import { Rating } from "@techsio/ui-kit/atoms/rating"'],
   example: figma.tsx`<Rating${figma.helpers.react.renderProp(
     "allowHalf",
-    allowHalf,
-  )} count={Number(count)} defaultValue={Number(value)}${figma.helpers.react.renderProp(
+    allowHalf
+  )} count={${count}} defaultValue={${value}}${figma.helpers.react.renderProp(
     "dir",
-    dir,
+    dir
   )}${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "labelText",
-    labelText.text,
+    labelText
   )}${figma.helpers.react.renderProp("size", size)}/>`,
   metadata: { nestable: true },
 }

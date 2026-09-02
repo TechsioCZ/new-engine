@@ -18,14 +18,10 @@ const placement = figma.selectedInstance.getEnum("placement", {
   "top-start": "top-start",
   "top-end": "top-end",
   right: "right",
-  "right-start": "right-start",
-  "right-end": "right-end",
   bottom: "bottom",
   "bottom-start": "bottom-start",
   "bottom-end": "bottom-end",
   left: "left",
-  "left-start": "left-start",
-  "left-end": "left-end",
 })
 
 export default {
@@ -36,10 +32,10 @@ export default {
   ],
   example: figma.tsx`<Tooltip content="Tooltip content" open={true}${figma.helpers.react.renderProp(
     "placement",
-    placement,
+    placement
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("variant", variant)}>
         <Button size="sm" variant="secondary">
           Hover me

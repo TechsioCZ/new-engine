@@ -9,18 +9,18 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const orientation = figma.selectedInstance.getEnum("orientation", {
-  horizontal: "horizontal",
-  vertical: "vertical",
+const variant = figma.selectedInstance.getEnum("variant", {
+  subtle: "subtle",
+  solid: "solid",
 })
 
 export default {
   id: "Steps",
   imports: ['import { Steps } from "@libs/ui/molecules/steps"'],
   example: figma.tsx`<Steps count={3} defaultStep={0}${figma.helpers.react.renderProp(
-    "orientation",
-    orientation,
-  )}${figma.helpers.react.renderProp("size", size)}>
+    "size",
+    size
+  )}${figma.helpers.react.renderProp("variant", variant)}>
         <Steps.List>
           <Steps.Item index={0}>
             <Steps.Trigger>Step 1</Steps.Trigger>

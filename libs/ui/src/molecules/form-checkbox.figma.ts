@@ -10,24 +10,27 @@ const size = figma.selectedInstance.getEnum("size", {
   lg: "lg",
 })
 const checked = figma.selectedInstance.getEnum("state", {
-  unchecked: false,
+  default: false,
   checked: true,
   indeterminate: false,
   disabled: false,
 })
 const indeterminate = figma.selectedInstance.getEnum("state", {
-  unchecked: false,
+  default: false,
   checked: false,
   indeterminate: true,
   disabled: false,
 })
 const disabled = figma.selectedInstance.getEnum("state", {
-  unchecked: false,
+  default: false,
   checked: false,
   indeterminate: false,
   disabled: true,
 })
-const children = figma.selectedInstance.getString("label")
+// no text component property — the label is a plain text layer
+const childrenLayer = figma.selectedInstance.findText("Label")
+const children =
+  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
 
 export default {
   id: "FormCheckbox",
@@ -36,13 +39,13 @@ export default {
   ],
   example: figma.tsx`<FormCheckbox${figma.helpers.react.renderProp(
     "checked",
-    checked,
+    checked
   )}${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "indeterminate",
-    indeterminate,
+    indeterminate
   )}${figma.helpers.react.renderProp("size", size)}>
         ${figma.helpers.react.renderChildren(children)}
       </FormCheckbox>`,

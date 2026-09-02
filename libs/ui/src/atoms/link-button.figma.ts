@@ -22,7 +22,10 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const children = figma.selectedInstance.getString("children")
+// no text component property — the label is a plain text layer
+const childrenLayer = figma.selectedInstance.findText("Label")
+const children =
+  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
 const disabled = figma.selectedInstance.getEnum("state", {
   default: false,
   hover: false,
@@ -34,13 +37,13 @@ export default {
   imports: ['import { LinkButton } from "@techsio/ui-kit/atoms/link-button"'],
   example: figma.tsx`<LinkButton${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )} href="#"${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp(
     "theme",
-    theme,
+    theme
   )}${figma.helpers.react.renderProp("variant", variant)}>
         ${figma.helpers.react.renderChildren(children)}
       </LinkButton>`,

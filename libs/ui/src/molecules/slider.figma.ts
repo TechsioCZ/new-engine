@@ -9,10 +9,15 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const disabled = figma.selectedInstance.getBoolean("disabled")
-const validateStatus = figma.selectedInstance.getEnum("validateStatus", {
+const disabled = figma.selectedInstance.getEnum("state", {
+  default: false,
+  disabled: true,
+  invalid: false,
+})
+const validateStatus = figma.selectedInstance.getEnum("state", {
   default: "default",
-  error: "error",
+  disabled: "default",
+  invalid: "error",
 })
 
 export default {
@@ -20,10 +25,10 @@ export default {
   imports: ['import { Slider } from "@techsio/ui-kit/molecules/slider"'],
   example: figma.tsx`<Slider defaultValue={[50]}${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )} max={100} min={0}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}/>`,
   metadata: { nestable: true },
 }

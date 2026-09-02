@@ -4,13 +4,16 @@
 
 import figma from "figma"
 
-const children = figma.selectedInstance.getString("children")
+// no text component property — the label is a plain text layer
+const childrenLayer = figma.selectedInstance.findText("Link text")
+const children =
+  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
 
 export default {
   id: "Link",
   imports: ['import { Link } from "@techsio/ui-kit/atoms/link"'],
   example: figma.tsx`<Link href="#">${figma.helpers.react.renderChildren(
-    children,
+    children
   )}</Link>`,
   metadata: { nestable: true },
 }

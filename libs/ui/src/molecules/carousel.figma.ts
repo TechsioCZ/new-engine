@@ -9,17 +9,17 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const orientation = figma.selectedInstance.getEnum("orientation", {
-  horizontal: "horizontal",
-  vertical: "vertical",
+const align = figma.selectedInstance.getEnum("Alignment", {
+  Left: "start",
+  Center: "center",
 })
 
 export default {
   id: "Carousel",
   imports: ['import { Carousel } from "@libs/ui/molecules/carousel"'],
   example: figma.tsx`<Carousel${figma.helpers.react.renderProp(
-    "orientation",
-    orientation,
+    "align",
+    align
   )}${figma.helpers.react.renderProp("size", size)} slideCount={2}>
         <Carousel.Slide index={0}>Slide 1</Carousel.Slide>
         <Carousel.Slide index={1}>Slide 2</Carousel.Slide>

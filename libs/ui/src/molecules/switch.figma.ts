@@ -5,34 +5,41 @@
 import figma from "figma"
 
 const checked = figma.selectedInstance.getEnum("state", {
-  unchecked: false,
+  default: false,
   checked: true,
   disabled: false,
+  "disabled-checked": true,
+  invalid: false,
+  focus: false,
 })
 const disabled = figma.selectedInstance.getEnum("state", {
-  unchecked: false,
+  default: false,
   checked: false,
   disabled: true,
+  "disabled-checked": true,
+  invalid: false,
+  focus: false,
 })
-const validateStatus = figma.selectedInstance.getEnum("validateStatus", {
+const validateStatus = figma.selectedInstance.getEnum("state", {
   default: "default",
-  error: "error",
-  success: "success",
-  warning: "warning",
+  checked: "default",
+  disabled: "default",
+  "disabled-checked": "default",
+  invalid: "error",
+  focus: "default",
 })
-const children = figma.selectedInstance.getString("label")
 
 export default {
   id: "Switch",
   imports: ['import { Switch } from "@techsio/ui-kit/molecules/switch"'],
   example: figma.tsx`<Switch${figma.helpers.react.renderProp(
     "checked",
-    checked,
+    checked
   )}${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}>
-        ${figma.helpers.react.renderChildren(children)}
+        Label
       </Switch>`,
   metadata: { nestable: true },
 }

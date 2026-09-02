@@ -4,10 +4,11 @@
 
 import figma from "figma"
 
-const size = figma.selectedInstance.getEnum("size", {
-  sm: "sm",
-  md: "md",
-  lg: "lg",
+const variant = figma.selectedInstance.getEnum("variant", {
+  default: "default",
+  line: "line",
+  solid: "solid",
+  outline: "outline",
 })
 const orientation = figma.selectedInstance.getEnum("orientation", {
   horizontal: "horizontal",
@@ -19,8 +20,8 @@ export default {
   imports: ['import { Tabs } from "@libs/ui/molecules/tabs"'],
   example: figma.tsx`<Tabs defaultValue="tab-1"${figma.helpers.react.renderProp(
     "orientation",
-    orientation,
-  )}${figma.helpers.react.renderProp("size", size)}>
+    orientation
+  )}${figma.helpers.react.renderProp("variant", variant)}>
         <Tabs.List>
           <Tabs.Trigger value="tab-1">Tab 1</Tabs.Trigger>
           <Tabs.Trigger value="tab-2">Tab 2</Tabs.Trigger>

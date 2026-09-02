@@ -12,17 +12,20 @@ const size = figma.selectedInstance.getEnum("size", {
 })
 const disabled = figma.selectedInstance.getBoolean("disabled")
 const required = figma.selectedInstance.getBoolean("required")
-const children = figma.selectedInstance.getString("children")
+// no text component property — the label is a plain text layer
+const childrenLayer = figma.selectedInstance.findText("Label")
+const children =
+  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
 
 export default {
   id: "Label",
   imports: ['import { Label } from "@techsio/ui-kit/atoms/label"'],
   example: figma.tsx`<Label${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "required",
-    required,
+    required
   )}${figma.helpers.react.renderProp("size", size)}>
         ${figma.helpers.react.renderChildren(children)}
       </Label>`,

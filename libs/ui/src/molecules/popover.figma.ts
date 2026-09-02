@@ -4,29 +4,57 @@
 
 import figma from "figma"
 
-const placement = figma.selectedInstance.getEnum("placement", {
-  top: "top",
-  right: "right",
-  bottom: "bottom",
-  left: "left",
-  "top-start": "top-start",
-  "top-end": "top-end",
-  "bottom-start": "bottom-start",
-  "bottom-end": "bottom-end",
+// Popover carries no `placement` property — placement lives on the separate
+// "Popover/Placement" set, so it is not derivable from this instance.
+const size = figma.selectedInstance.getEnum("size", {
+  sm: "sm",
+  md: "md",
+  lg: "lg",
 })
+const border = figma.selectedInstance.getEnum("border", {
+  true: true,
+  false: false,
+})
+const shadow = figma.selectedInstance.getEnum("shadow", {
+  true: true,
+  false: false,
+})
+const showArrow = figma.selectedInstance.getEnum("showArrow", {
+  true: true,
+  false: false,
+})
+const modal = figma.selectedInstance.getBoolean("modal")
+const trigger = figma.selectedInstance.getString("trigger")
+const title = figma.selectedInstance.getString("title")
+const description = figma.selectedInstance.getString("description")
+const children = figma.selectedInstance.getString("children")
 
 export default {
   id: "Popover",
   imports: ['import { Popover } from "@libs/ui/molecules/popover"'],
-  example: figma.tsx`<Popover defaultOpen id="popover"${figma.helpers.react.renderProp(
-    "placement",
-    placement,
-  )}>
-        <Popover.Trigger>Open</Popover.Trigger>
+  example: figma.tsx`<Popover${figma.helpers.react.renderProp(
+    "border",
+    border
+  )} defaultOpen id="popover"${figma.helpers.react.renderProp(
+    "modal",
+    modal
+  )}${figma.helpers.react.renderProp(
+    "shadow",
+    shadow
+  )}${figma.helpers.react.renderProp("size", size)}>
+        <Popover.Trigger>${figma.helpers.react.renderChildren(
+          trigger
+        )}</Popover.Trigger>
         <Popover.Positioner>
           <Popover.Content>
-            <Popover.Arrow />
-            Popover content
+            ${showArrow ? figma.tsx`<Popover.Arrow />` : ""}
+            <Popover.Title>${figma.helpers.react.renderChildren(
+              title
+            )}</Popover.Title>
+            <Popover.Description>${figma.helpers.react.renderChildren(
+              description
+            )}</Popover.Description>
+            ${figma.helpers.react.renderChildren(children)}
           </Popover.Content>
         </Popover.Positioner>
       </Popover>`,
