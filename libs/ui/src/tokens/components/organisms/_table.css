@@ -14,4 +14,21 @@
     var(--padding-table-cell-md-x);
   --padding-table-cell-lg: var(--padding-table-cell-lg-y)
     var(--padding-table-cell-lg-x);
+
+  /*
+   * Foreground for a selected row. Figma exports
+   * --color-table-row-bg-selected but has no `fg` counterpart, so
+   * `text-table-row-fg-selected` in table.tsx generated no utility at all and
+   * selected rows silently kept their normal text colour on the filled brand
+   * background. Reported by review; this restores the intended pairing.
+   *
+   * White clears AA against every selected background the row can have:
+   * base light #155dfc 5.24:1, base dark #0069a8 5.86:1, neo #e60101 4.81:1
+   * in both modes. Mode-invariant, because the selected fill stays a solid
+   * brand colour in light and dark alike.
+   *
+   * TEMPORARY BRIDGE: delete once Figma exports color/table/row/fg/selected —
+   * figma/variables.css is imported after this file and would win.
+   */
+  --color-table-row-fg-selected: var(--color-white);
 }
