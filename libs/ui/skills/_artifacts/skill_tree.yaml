@@ -676,6 +676,25 @@ skills:
       - src/molecules/figma/dialog.figma.tsx
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/dialog
+  - name: file-upload-usage
+    slug: file-upload-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/file-upload-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app should use FileUpload from
+      @techsio/ui-kit/molecules/file-upload. Covers the compound API, Zag-managed local File state,
+      accepted and rejected collections, native form behavior, token-first styling, and the
+      explicit boundary against transport, progress, and retry APIs.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/file-upload.tsx
+      - src/tokens/components/molecules/_file-upload.css
+      - stories/molecules/file-upload.stories.tsx
+      - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/file-upload
   - name: form-checkbox-usage
     slug: form-checkbox-usage
     type: sub-skill

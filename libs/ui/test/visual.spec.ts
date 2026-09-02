@@ -160,6 +160,20 @@ test.describe.parallel('storybook visual', () => {
             },
             { timeout: 30_000 },
           )
+          await page.waitForFunction(
+            () => {
+              const preview = (
+                globalThis as typeof globalThis & {
+                  __STORYBOOK_PREVIEW__?: {
+                    currentRender?: { phase?: string }
+                  }
+                }
+              ).__STORYBOOK_PREVIEW__
+
+              return preview?.currentRender?.phase === 'finished'
+            },
+            { timeout: 30_000 },
+          )
           await page.evaluate(async () => {
             if (!('fonts' in document)) {
               return

@@ -1,0 +1,124 @@
+/*
+ * FileUpload — supplementary runtime tokens until a File Upload collection is
+ * available in Figma. The visual contract intentionally has one default style
+ * with no public size or variant axis.
+ */
+
+@theme static {
+  /* Reference layer */
+  --color-file-upload-surface: var(--color-fill-surface);
+  --color-file-upload-item-surface: var(--color-base);
+  --color-file-upload-surface-hover: var(--color-fill-hover);
+  --color-file-upload-accent: var(--color-primary);
+  --color-file-upload-accent-subtle: var(--color-primary-light);
+  --color-file-upload-content: var(--color-fg-primary);
+  --color-file-upload-outline: var(--color-border-primary);
+  --color-file-upload-danger: var(--color-danger);
+  --color-file-upload-disabled-surface: var(--color-bg-disabled);
+  --color-file-upload-disabled-content: var(--color-fg-disabled);
+  --color-file-upload-disabled-outline: var(--color-border-disabled);
+  --color-file-upload-focus: var(--color-ring-default);
+
+  --spacing-file-upload-comfortable: var(--spacing-250);
+  --spacing-file-upload-content-gap: var(--spacing-150);
+  --spacing-file-upload-item-preview-base: var(--spacing-450);
+  --spacing-file-upload-dropzone-base: var(--container-2xs);
+
+  /* Derived color layer */
+  --color-file-upload-dropzone-bg: var(--color-file-upload-surface);
+  --color-file-upload-dropzone-hover-bg: var(--color-file-upload-surface-hover);
+  --color-file-upload-dropzone-dragging-bg: var(
+    --color-file-upload-accent-subtle
+  );
+  --color-file-upload-dropzone-disabled-bg: var(
+    --color-file-upload-disabled-surface
+  );
+  --color-file-upload-dropzone-border: var(--color-file-upload-outline);
+  --color-file-upload-dropzone-dragging-border: var(--color-file-upload-accent);
+  --color-file-upload-dropzone-invalid-border: var(--color-file-upload-danger);
+  --color-file-upload-dropzone-disabled-border: var(
+    --color-file-upload-disabled-outline
+  );
+  --color-file-upload-label-fg: var(--color-file-upload-content);
+  --color-file-upload-label-disabled-fg: var(
+    --color-file-upload-disabled-content
+  );
+  --color-file-upload-item-bg: var(--color-file-upload-item-surface);
+  --color-file-upload-item-rejected-bg: var(--color-file-upload-item-surface);
+  --color-file-upload-item-border: var(--color-file-upload-outline);
+  --color-file-upload-item-rejected-border: var(--color-file-upload-danger);
+  --color-file-upload-item-name-fg: var(--color-file-upload-content);
+  --color-file-upload-item-size-fg: var(--color-file-upload-content);
+  --color-file-upload-item-preview-fg: var(--color-file-upload-content);
+  --color-file-upload-item-disabled-fg: var(
+    --color-file-upload-disabled-content
+  );
+  --color-file-upload-focus-border: var(--color-file-upload-focus);
+
+  /* Derived layout and typography layer */
+  --gap-file-upload-root: var(--spacing-file-upload-comfortable);
+  --gap-file-upload-dropzone: var(--spacing-file-upload-comfortable);
+  --gap-file-upload-item-group: var(--spacing-file-upload-content-gap);
+  --gap-file-upload-item: var(--spacing-file-upload-content-gap);
+  --padding-file-upload-dropzone: var(--spacing-file-upload-content-gap)
+    var(--spacing-file-upload-comfortable);
+  --padding-file-upload-item: var(--spacing-file-upload-content-gap);
+  --spacing-file-upload-dropzone-min-height: var(
+    --spacing-file-upload-dropzone-base
+  );
+  --spacing-file-upload-item-preview: var(
+    --spacing-file-upload-item-preview-base
+  );
+  --spacing-file-upload-focus-offset: var(--default-ring-offset);
+
+  --text-file-upload-label: var(--text-sm);
+  --text-file-upload-item: var(--text-md);
+  --text-file-upload-item-size: var(--text-md);
+  --font-weight-file-upload-label: var(--font-weight-medium);
+  --font-weight-file-upload-item-name: var(--font-weight-medium);
+
+  --radius-file-upload-dropzone: var(--radius-md);
+  --radius-file-upload-item: var(--radius-md);
+  --radius-file-upload-item-preview: var(--radius-sm);
+  --border-width-file-upload-dropzone: var(--border-width-md);
+  --border-width-file-upload-item: var(--border-width-sm);
+  --border-width-file-upload-focus: var(--default-ring-width);
+}
+
+@utility file-upload-focus {
+  outline: var(--border-width-file-upload-focus) var(--default-ring-style)
+    var(--color-file-upload-focus-border);
+  outline-offset: var(--spacing-file-upload-focus-offset);
+}
+
+@utility file-upload-dropzone-border-width {
+  border-width: var(--border-width-file-upload-dropzone);
+}
+
+@utility file-upload-item-border-width {
+  border-width: var(--border-width-file-upload-item);
+}
+
+@utility file-upload-dropzone-border-dashed {
+  border-style: dashed;
+}
+
+@utility file-upload-dropzone-border-solid {
+  border-style: solid;
+}
+
+@utility token-icon-file-upload-trigger {
+  @apply icon-[mdi--upload];
+}
+
+@utility token-icon-file-upload-preview {
+  @apply token-icon-file-document;
+}
+
+@utility token-icon-file-upload-delete {
+  @apply token-icon-trash;
+}
+
+@utility token-icon-file-upload-clear {
+  @apply token-icon-close;
+}

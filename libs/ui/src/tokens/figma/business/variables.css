@@ -111,8 +111,8 @@
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
   --color-fg-secondary: oklch(0.494 0.037 261.595);
-  --color-fg-status-error: var(--color-danger-400);
-  --color-fg-status-success: var(--color-success-500);
+  --color-fg-status-error: var(--color-danger-600);
+  --color-fg-status-success: var(--color-success-700);
   --color-fg-status-warning: var(--color-warning-500);
   --color-fill-active: var(--color-black-15);
   --color-fill-base: var(--color-black-5);
@@ -189,6 +189,7 @@
   --color-success-300: oklch(0.871 0.136 154.449);
   --color-success-500: oklch(0.723 0.192 149.579);
   --color-success-600: oklch(0.627 0.17 149.214);
+  --color-success-700: oklch(0.527 0.137 150.069);
   --color-success-disabled: var(--color-bg-disabled);
   --color-tertiary: var(--color-bg-tertiary-base);
   --color-tertiary-100: oklch(0.963 0.021 301.149);

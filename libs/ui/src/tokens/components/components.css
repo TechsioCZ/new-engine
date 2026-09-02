@@ -23,6 +23,7 @@
 @import "./molecules/_color-select.css";
 @import "./molecules/_combobox.css";
 @import "./molecules/_dialog.css";
+@import "./molecules/_file-upload.css";
 @import "./molecules/_pagination.css";
 @import "./molecules/_popover.css";
 @import "./molecules/_radio-card.css";
