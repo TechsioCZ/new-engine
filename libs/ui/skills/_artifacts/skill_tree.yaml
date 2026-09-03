@@ -144,8 +144,8 @@ skills:
     sources:
       - AGENTS.md
       - figma.config.json
-      - src/atoms/figma/button.figma.tsx
-      - src/molecules/figma/dialog.figma.tsx
+      - src/atoms/button.figma.ts
+      - src/molecules/dialog.figma.ts
       - .agents/skills/component-to-figma/SKILL.md
   - name: ui-kit-publish-readiness
     slug: ui-kit-publish-readiness
@@ -294,7 +294,7 @@ skills:
       - src/atoms/badge.tsx
       - src/tokens/components/atoms/_badge.css
       - stories/atoms/badge.stories.tsx
-      - src/atoms/figma/badge.figma.tsx
+      - src/atoms/badge.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: button-usage
     slug: button-usage
@@ -312,7 +312,7 @@ skills:
       - src/atoms/button.tsx
       - src/tokens/components/atoms/_button.css
       - stories/atoms/button.stories.tsx
-      - src/atoms/figma/button.figma.tsx
+      - src/atoms/button.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: checkbox-usage
     slug: checkbox-usage
@@ -330,7 +330,7 @@ skills:
       - src/atoms/checkbox.tsx
       - src/tokens/components/atoms/_checkbox.css
       - stories/atoms/checkbox.stories.tsx
-      - src/atoms/figma/checkbox.figma.tsx
+      - src/atoms/checkbox.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: icon-usage
     slug: icon-usage
@@ -348,7 +348,7 @@ skills:
       - src/atoms/icon.tsx
       - src/tokens/components/atoms/_icon.css
       - stories/atoms/icon.stories.tsx
-      - src/atoms/figma/icon.figma.tsx
+      - src/atoms/icon.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: image-usage
     slug: image-usage
@@ -368,7 +368,7 @@ skills:
       - src/atoms/image.tsx
       - src/tokens/components/atoms/_image.css
       - stories/atoms/image.stories.tsx
-      - src/atoms/figma/image.figma.tsx
+      - src/atoms/image.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: input-usage
     slug: input-usage
@@ -387,7 +387,7 @@ skills:
       - src/tokens/components/atoms/_input.css
       - src/tokens/components/_form-control.css
       - stories/atoms/input.stories.tsx
-      - src/atoms/figma/input.figma.tsx
+      - src/atoms/input.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: label-usage
     slug: label-usage
@@ -404,7 +404,7 @@ skills:
     sources:
       - src/atoms/label.tsx
       - src/tokens/components/atoms/_label.css
-      - src/atoms/figma/label.figma.tsx
+      - src/atoms/label.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: link-button-usage
     slug: link-button-usage
@@ -423,7 +423,7 @@ skills:
     sources:
       - src/atoms/link-button.tsx
       - src/tokens/components/atoms/_button.css
-      - src/atoms/figma/link-button.figma.tsx
+      - src/atoms/link-button.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: link-usage
     slug: link-usage
@@ -441,7 +441,7 @@ skills:
       - app-token-overrides
     sources:
       - src/atoms/link.tsx
-      - src/atoms/figma/link.figma.tsx
+      - src/atoms/link.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: numeric-input-usage
     slug: numeric-input-usage
@@ -461,7 +461,7 @@ skills:
       - src/tokens/components/atoms/_numeric-input.css
       - src/tokens/components/_form-control.css
       - stories/atoms/numeric-input.stories.tsx
-      - src/atoms/figma/numeric-input.figma.tsx
+      - src/atoms/numeric-input.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/number-input
   - name: rating-usage
@@ -481,7 +481,7 @@ skills:
       - src/atoms/rating.tsx
       - src/tokens/components/atoms/_rating.css
       - stories/atoms/rating.stories.tsx
-      - src/atoms/figma/rating.figma.tsx
+      - src/atoms/rating.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/rating-group
   - name: skeleton-usage
@@ -500,7 +500,7 @@ skills:
       - src/atoms/skeleton.tsx
       - src/tokens/components/atoms/_skeleton.css
       - stories/atoms/skeleton.stories.tsx
-      - src/atoms/figma/skeleton.figma.tsx
+      - src/atoms/skeleton-rectangle.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: status-text-usage
     slug: status-text-usage
@@ -518,7 +518,7 @@ skills:
       - src/atoms/status-text.tsx
       - src/tokens/components/atoms/_status-text.css
       - stories/atoms/status-text.stories.tsx
-      - src/atoms/figma/status-text.figma.tsx
+      - src/atoms/status-text.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: textarea-usage
     slug: textarea-usage
@@ -537,7 +537,7 @@ skills:
       - src/tokens/components/atoms/_textarea.css
       - src/tokens/components/_form-control.css
       - stories/atoms/textarea.stories.tsx
-      - src/atoms/figma/textarea.figma.tsx
+      - src/atoms/textarea.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: tooltip-usage
     slug: tooltip-usage
@@ -556,7 +556,7 @@ skills:
       - src/atoms/tooltip.tsx
       - src/tokens/components/atoms/_tooltip.css
       - stories/atoms/tooltip.stories.tsx
-      - src/atoms/figma/tooltip.figma.tsx
+      - src/atoms/tooltip.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/tooltip
   - name: accordion-usage
@@ -576,7 +576,7 @@ skills:
       - src/molecules/accordion.tsx
       - src/tokens/components/molecules/_accordion.css
       - stories/molecules/accordion.stories.tsx
-      - src/molecules/figma/accordion.figma.tsx
+      - src/molecules/accordion.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/accordion
   - name: breadcrumb-usage
@@ -597,7 +597,7 @@ skills:
       - src/molecules/breadcrumb.tsx
       - src/tokens/components/molecules/_breadcrumb.css
       - stories/molecules/breadcrumb.stories.tsx
-      - src/molecules/figma/breadcrumb.figma.tsx
+      - src/molecules/breadcrumb.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: carousel-usage
     slug: carousel-usage
@@ -616,7 +616,7 @@ skills:
       - src/molecules/carousel.tsx
       - src/tokens/components/molecules/_carousel.css
       - stories/molecules/carousel.stories.tsx
-      - src/molecules/figma/carousel.figma.tsx
+      - src/molecules/carousel.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/carousel
   - name: color-select-usage
@@ -653,7 +653,7 @@ skills:
       - src/molecules/combobox.tsx
       - src/tokens/components/molecules/_combobox.css
       - stories/molecules/combobox.stories.tsx
-      - src/molecules/figma/combobox.figma.tsx
+      - src/molecules/combobox.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/combobox
   - name: dialog-usage
@@ -673,7 +673,7 @@ skills:
       - src/molecules/dialog.tsx
       - src/tokens/components/molecules/_dialog.css
       - stories/molecules/dialog.stories.tsx
-      - src/molecules/figma/dialog.figma.tsx
+      - src/molecules/dialog.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/dialog
   - name: file-upload-usage
@@ -711,7 +711,7 @@ skills:
     sources:
       - src/molecules/form-checkbox.tsx
       - stories/molecules/form-checkbox.stories.tsx
-      - src/molecules/figma/form-checkbox.figma.tsx
+      - src/molecules/form-checkbox.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/checkbox
   - name: form-input-usage
@@ -730,7 +730,7 @@ skills:
       - src/molecules/form-input.tsx
       - src/tokens/components/_form-control.css
       - stories/molecules/form-input.stories.tsx
-      - src/molecules/figma/form-input.figma.tsx
+      - src/molecules/form-input.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: form-numeric-input-usage
     slug: form-numeric-input-usage
@@ -748,7 +748,7 @@ skills:
       - src/molecules/form-numeric-input.tsx
       - src/tokens/components/_form-control.css
       - stories/molecules/form-numeric-input.stories.tsx
-      - src/molecules/figma/form-numeric-input.figma.tsx
+      - src/molecules/form-numeric-input.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: form-textarea-usage
     slug: form-textarea-usage
@@ -766,7 +766,7 @@ skills:
       - src/molecules/form-textarea.tsx
       - src/tokens/components/_form-control.css
       - stories/molecules/form-textarea.stories.tsx
-      - src/molecules/figma/form-textarea.figma.tsx
+      - src/molecules/form-textarea.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: menu-usage
     slug: menu-usage
@@ -785,7 +785,7 @@ skills:
       - src/molecules/menu.tsx
       - src/tokens/components/molecules/_menu.css
       - stories/molecules/menu.stories.tsx
-      - src/molecules/figma/menu.figma.tsx
+      - src/molecules/menu.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/menu
   - name: pagination-usage
@@ -807,7 +807,7 @@ skills:
       - src/molecules/pagination.tsx
       - src/tokens/components/molecules/_pagination.css
       - stories/molecules/pagination.stories.tsx
-      - src/molecules/figma/pagination.figma.tsx
+      - src/molecules/pagination.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/pagination
   - name: phone-input-usage
@@ -844,7 +844,7 @@ skills:
       - src/molecules/popover.tsx
       - src/tokens/components/molecules/_popover.css
       - stories/molecules/popover.stories.tsx
-      - src/molecules/figma/popover.figma.tsx
+      - src/molecules/popover.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/popover
   - name: product-card-usage
@@ -865,7 +865,7 @@ skills:
       - src/molecules/product-card.tsx
       - src/tokens/components/molecules/_product-card.css
       - stories/molecules/product-card.stories.tsx
-      - src/molecules/figma/product-card.figma.tsx
+      - src/molecules/product-card.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: radio-card-usage
     slug: radio-card-usage
@@ -884,7 +884,7 @@ skills:
       - src/molecules/radio-card.tsx
       - src/tokens/components/molecules/_radio-card.css
       - stories/molecules/radio-card.stories.tsx
-      - src/molecules/figma/radio-card.figma.tsx
+      - src/molecules/radio-card.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/radio-group
   - name: radio-group-usage
@@ -904,7 +904,7 @@ skills:
       - src/molecules/radio-group.tsx
       - src/tokens/components/molecules/_radio-group.css
       - stories/molecules/radio-group.stories.tsx
-      - src/molecules/figma/radio-group.figma.tsx
+      - src/molecules/radio-group.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/radio-group
   - name: search-form-usage
@@ -923,7 +923,7 @@ skills:
       - src/molecules/search-form.tsx
       - src/tokens/components/molecules/_search-form.css
       - stories/molecules/search-form.stories.tsx
-      - src/molecules/figma/search-form.figma.tsx
+      - src/molecules/search-form.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: select-usage
     slug: select-usage
@@ -942,7 +942,7 @@ skills:
       - src/molecules/select.tsx
       - src/tokens/components/molecules/_select.css
       - stories/molecules/select.stories.tsx
-      - src/molecules/figma/select.figma.tsx
+      - src/molecules/select.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/select
   - name: slider-usage
@@ -962,7 +962,7 @@ skills:
       - src/molecules/slider.tsx
       - src/tokens/components/molecules/_slider.css
       - stories/molecules/slider.stories.tsx
-      - src/molecules/figma/slider.figma.tsx
+      - src/molecules/slider.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/slider
   - name: steps-usage
@@ -982,7 +982,7 @@ skills:
       - src/molecules/steps.tsx
       - src/tokens/components/molecules/_steps.css
       - stories/molecules/steps.stories.tsx
-      - src/molecules/figma/steps.figma.tsx
+      - src/molecules/steps.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/steps
   - name: switch-usage
@@ -1002,7 +1002,7 @@ skills:
       - src/molecules/switch.tsx
       - src/tokens/components/molecules/_switch.css
       - stories/molecules/switch.stories.tsx
-      - src/molecules/figma/switch.figma.tsx
+      - src/molecules/switch.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/switch
   - name: tabs-usage
@@ -1022,7 +1022,7 @@ skills:
       - src/molecules/tabs.tsx
       - src/tokens/components/molecules/_tabs.css
       - stories/molecules/tabs.stories.tsx
-      - src/molecules/figma/tabs.figma.tsx
+      - src/molecules/tabs.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/tabs
   - name: toast-usage
@@ -1042,7 +1042,7 @@ skills:
       - src/molecules/toast.tsx
       - src/tokens/components/molecules/_toast.css
       - stories/molecules/toast.stories.tsx
-      - src/molecules/figma/toast.figma.tsx
+      - src/molecules/toast.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/toast
   - name: tree-view-usage
@@ -1062,7 +1062,7 @@ skills:
       - src/molecules/tree-view.tsx
       - src/tokens/components/molecules/_tree-view.css
       - stories/molecules/tree-view.stories.tsx
-      - src/molecules/figma/tree-view.figma.tsx
+      - src/molecules/tree-view.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/tree-view
   - name: footer-usage

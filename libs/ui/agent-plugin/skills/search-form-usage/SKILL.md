@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/search-form.tsx"
   - "libs/ui/src/tokens/components/molecules/_search-form.css"
   - "libs/ui/stories/molecules/search-form.stories.tsx"
-  - "libs/ui/src/molecules/figma/search-form.figma.tsx"
+  - "libs/ui/src/molecules/search-form.figma.ts"
 ---
 
 # @techsio/ui-kit SearchForm Usage

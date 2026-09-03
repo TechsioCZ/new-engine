@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/form-checkbox.tsx"
   - "libs/ui/src/tokens/components/atoms/_checkbox.css"
   - "libs/ui/stories/atoms/checkbox.stories.tsx"
-  - "libs/ui/src/atoms/figma/checkbox.figma.tsx"
+  - "libs/ui/src/atoms/checkbox.figma.ts"
 ---
 
 # @techsio/ui-kit Checkbox Usage

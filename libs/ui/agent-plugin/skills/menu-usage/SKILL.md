@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/molecules/menu.tsx"
   - "libs/ui/src/tokens/components/molecules/_menu.css"
   - "libs/ui/stories/molecules/menu.stories.tsx"
-  - "libs/ui/src/molecules/figma/menu.figma.tsx"
+  - "libs/ui/src/molecules/menu.figma.ts"
   - "https://zagjs.com/components/react/menu"
 ---
 

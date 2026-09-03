@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/toast.tsx"
   - "libs/ui/src/tokens/components/molecules/_toast.css"
   - "libs/ui/stories/molecules/toast.stories.tsx"
-  - "libs/ui/src/molecules/figma/toast.figma.tsx"
+  - "libs/ui/src/molecules/toast.figma.ts"
   - "https://zagjs.com/components/react/toast"
 ---
 

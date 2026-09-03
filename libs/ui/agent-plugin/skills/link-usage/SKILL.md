@@ -14,7 +14,7 @@ requires:
 sources:
   - "libs/ui/src/atoms/link.tsx"
   - "libs/ui/src/atoms/link-button.tsx"
-  - "libs/ui/src/atoms/figma/link.figma.tsx"
+  - "libs/ui/src/atoms/link.figma.ts"
 ---
 
 # @techsio/ui-kit Link Usage
