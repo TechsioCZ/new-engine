@@ -1,8 +1,8 @@
 {
   "name": "@techsio/storefront-data",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Medusa-first storefront data layer built on TanStack Query.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
