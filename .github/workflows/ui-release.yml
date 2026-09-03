@@ -100,8 +100,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --filter=@techsio/ui-kit...
 
-      - name: Build UI package
-        run: pnpm -C libs/ui build
+      - name: Check UI package output
+        run: pnpm -C libs/ui check:package
 
       - name: Fetch semantic-release notes
         env:

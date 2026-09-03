@@ -65,7 +65,7 @@ Fix: release is restricted by `release.config.mjs` to GitHub Actions.
 
 ```sh
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+pnpm --dir libs/ui check:package
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y
 pnpm --dir libs/ui test:components
@@ -124,10 +124,11 @@ Change package.json exports and skip build.
 Correct:
 
 ```sh
-bunx nx run ui:build
+pnpm --dir libs/ui check:package
 ```
 
-RSLib and publint checks catch package structure and export mistakes.
+Rslib, publint, and AreTheTypesWrong catch package structure, export, and
+cross-module-resolution declaration mistakes.
 
 Source: libs/ui/rslib.config.ts
 
@@ -136,6 +137,6 @@ Source: libs/ui/rslib.config.ts
 - [ ] Subpath imports verified
 - [ ] Token entrypoints verified
 - [ ] `validate:tokens` run
-- [ ] `ui:build` run
+- [ ] `check:package` run
 - [ ] Storybook/a11y checked when visuals changed
 - [ ] Code Connect parse checked when Figma mappings changed
