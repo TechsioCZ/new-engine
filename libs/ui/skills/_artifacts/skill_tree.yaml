@@ -656,6 +656,28 @@ skills:
       - src/molecules/figma/combobox.figma.tsx
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/combobox
+  - name: date-picker-usage
+    slug: date-picker-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/date-picker-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs DatePicker from
+      @techsio/ui-kit/molecules/date-picker for locale-aware segmented date entry,
+      calendar selection, transactional time entry, scalar typed values, and canonical
+      form serialization.
+    requires:
+      - component-usage-ux
+      - zag-compound-components
+      - app-token-overrides
+    sources:
+      - src/molecules/date-picker.tsx
+      - src/tokens/components/molecules/_date-picker.css
+      - stories/molecules/date-picker.stories.tsx
+      - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/date-input
+      - https://zagjs.com/components/react/date-picker
+      - https://react-aria.adobe.com/internationalized/date/
   - name: dialog-usage
     slug: dialog-usage
     type: sub-skill

@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DatePicker v1.1.0
+- Added date and date-time ranges to the existing compound DatePicker: complete typed tuples, indexed start/end segments and form values, coordinated two-month presentation, continuous range states, and one shared timed Cancel/Confirm transaction. Updated the paired date-picker-usage skill and component metadata.
+
 ### Button v0.3.2
 - Introduced per-component versioning: the component now carries \`@componentVersion\` + \`@skill\`,
   paired 1:1 with the \`button-usage\` skill's \`component_version\` and this changelog entry,
