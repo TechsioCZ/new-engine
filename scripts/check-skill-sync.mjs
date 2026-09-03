@@ -33,6 +33,7 @@ const SKILL_TAG_RE = /@skill\s+([a-z0-9-]+)/
 const COMPONENT_TAG_RE = /@component\s+([A-Za-z0-9]+)/
 const SKILL_VERSION_RE =
   /^component_version:\s*["']?v?(\d+\.\d+\.\d+)["']?\s*$/m
+const META_TAG_RE = /@componentVersion|@skill\b|@component\b/
 
 const git = (args) => {
   try {
@@ -55,19 +56,26 @@ const baselineRef = () => {
   const candidates = ["origin/master", "master", "origin/main", "main"]
   // Also honour the remote's actual default branch, so a repo whose default is neither master nor
   // main doesn't silently skip the bump check below (baselineRef() returning "" disables it).
-  const remoteHead = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"])
-  if (remoteHead) candidates.push(remoteHead)
+  const remoteHead = git([
+    "symbolic-ref",
+    "--short",
+    "refs/remotes/origin/HEAD",
+  ])
+  if (remoteHead) {
+    candidates.push(remoteHead)
+  }
   for (const base of candidates) {
     const mb = git(["merge-base", "HEAD", base])
-    if (mb) return mb
+    if (mb) {
+      return mb
+    }
   }
   return ""
 }
 
 const pascalFromFile = (file) =>
-  file
-    .replace(/^.*\//, "")
-    .replace(/\.tsx$/, "")
+  posix
+    .basename(file, ".tsx")
     .split("-")
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
     .join("")
@@ -76,7 +84,7 @@ const pascalFromFile = (file) =>
 const stripMeta = (src) =>
   src
     .split("\n")
-    .filter((l) => !/@componentVersion|@skill\b|@component\b/.test(l))
+    .filter((l) => !META_TAG_RE.test(l))
     .join("\n")
 
 // Include deletions (D): removing a component's SKILL.md, its generated bundle copy, or the
@@ -102,10 +110,14 @@ const optedInComponents = () => {
       continue
     }
     for (const entry of entries) {
-      if (!entry.endsWith(".tsx")) continue
+      if (!entry.endsWith(".tsx")) {
+        continue
+      }
       const file = `${dir}/${entry}`
       const src = readStaged(file)
-      if (VERSION_RE.test(src) && SKILL_TAG_RE.test(src)) out.push(file)
+      if (VERSION_RE.test(src) && SKILL_TAG_RE.test(src)) {
+        out.push(file)
+      }
     }
   }
   return out
@@ -117,11 +129,15 @@ const toCheck = new Set(staged.filter(isComponentPath))
 const changelogStaged = stagedSet.has(CHANGELOG)
 for (const file of optedInComponents()) {
   const skillName = readStaged(file).match(SKILL_TAG_RE)?.[1]
-  if (!skillName) continue
+  if (!skillName) {
+    continue
+  }
   const skillTouched =
     stagedSet.has(posix.join(SKILLS_DIR, skillName, "SKILL.md")) ||
     stagedSet.has(posix.join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md"))
-  if (skillTouched || changelogStaged) toCheck.add(file)
+  if (skillTouched || changelogStaged) {
+    toCheck.add(file)
+  }
 }
 
 const errors = []
@@ -132,7 +148,9 @@ for (const file of toCheck) {
   const vMatch = src.match(VERSION_RE)
   const sMatch = src.match(SKILL_TAG_RE)
 
-  if (!(vMatch || sMatch)) continue // not opted in yet — skip
+  if (!(vMatch || sMatch)) {
+    continue // not opted in yet — skip
+  }
 
   const label = file.replace(/^libs\/ui\/src\//, "")
   if (!(vMatch && sMatch)) {
@@ -212,7 +230,9 @@ for (const file of toCheck) {
 
 if (errors.length) {
   process.stderr.write("\n✖ skill-sync: component ↔ skill version mismatch\n\n")
-  for (const e of errors) process.stderr.write(`  • ${e}\n`)
+  for (const e of errors) {
+    process.stderr.write(`  • ${e}\n`)
+  }
   process.stderr.write(
     "\nUpdate the component, its libs/ui/skills/<name>/SKILL.md, and the changelog story together, then re-stage.\n\n"
   )
