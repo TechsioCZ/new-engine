@@ -1,5 +1,7 @@
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
+  - '@rslib/core'
+  - 'rsbuild-plugin-dts'
   - '@techsio/storybook-better-a11y'
   - '@techsio/storybook-a11y-reporter'
   - '@medusajs/*'
