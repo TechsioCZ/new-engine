@@ -17,7 +17,7 @@ sources:
   - "libs/ui/src/atoms/numeric-input.tsx"
   - "libs/ui/src/tokens/components/atoms/_numeric-input.css"
   - "libs/ui/stories/atoms/numeric-input.stories.tsx"
-  - "libs/ui/src/atoms/figma/numeric-input.figma.tsx"
+  - "libs/ui/src/atoms/numeric-input.figma.ts"
   - "https://zagjs.com/components/react/number-input"
 ---
 

@@ -211,7 +211,7 @@ importers:
         version: 2.18.0
       '@medusajs/types':
         specifier: ^2.18.0
-        version: 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
+        version: 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
       '@tanstack/react-form':
         specifier: ^1.27.4
         version: 1.27.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -220,7 +220,7 @@ importers:
         version: 5.90.10(react@19.2.3)
       '@techsio/storefront-data':
         specifier: workspace:*
-        version: file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@techsio/storefront-i18n':
         specifier: workspace:*
         version: file:libs/storefront-i18n(@medusajs/js-sdk@2.18.0)(next-intl@4.13.4(@swc/helpers@0.5.23)(next@16.3.0-preview.5(@babel/core@7.29.7(supports-color@8.1.1))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.0)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(react@19.2.3)(typescript@5.9.3))
@@ -359,7 +359,7 @@ importers:
         version: 2.18.0
       '@medusajs/medusa':
         specifier: ^2.18.0
-        version: 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+        version: 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/ui':
         specifier: ^4.2.0
         version: 4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
@@ -443,7 +443,7 @@ importers:
         version: 3.6.0
       drizzle-orm:
         specifier: ^0.45.2
-        version: 0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.22.0)
+        version: 0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.22.0)
       escape-html:
         specifier: ^1.0.3
         version: 1.0.3
@@ -513,7 +513,7 @@ importers:
     devDependencies:
       '@medusajs/medusa-oas-cli':
         specifier: ^2.18.0
-        version: 2.18.0(eba74a54e57d941e51e9650c0f97fc4b)
+        version: 2.18.0(bbf6064d62da1a7267c643cbf91691d5)
       '@medusajs/test-utils':
         specifier: ^2.18.0
         version: 2.18.0(4fc20f7692e271715c16fc3027a5bef6)
@@ -799,7 +799,7 @@ importers:
     dependencies:
       '@payloadcms/db-postgres':
         specifier: 3.86.0
-        version: 3.86.0(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1))(mysql2@3.15.3)(payload@3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3))(supports-color@8.1.1)
+        version: 3.86.0(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1))(mysql2@3.15.3)(payload@3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3))(supports-color@8.1.1)
       '@payloadcms/next':
         specifier: 3.86.0
         version: 3.86.0(@types/react@19.2.3)(graphql@16.12.0)(monaco-editor@0.55.1)(next@16.3.0-preview.5(@babel/core@7.29.7(supports-color@8.1.1))(@opentelemetry/api@1.9.1)(@playwright/test@1.56.1)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(payload@3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(typescript@5.7.3)
@@ -1157,8 +1157,8 @@ importers:
         specifier: ^9.39.1
         version: 9.39.1
       '@figma/code-connect':
-        specifier: ^1.4.3
-        version: 1.4.3(supports-color@8.1.1)
+        specifier: ^2.0.0
+        version: 2.0.0(supports-color@8.1.1)
       '@iconify/json':
         specifier: ^2.2.409
         version: 2.2.409
@@ -3535,8 +3535,8 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
-  '@figma/code-connect@1.4.3':
-    resolution: {integrity: sha512-Tj3QMhx3pfBB0I0tgvT82FTVbJb+DnSEE8hTJ0K+d1/8XXgrBzG62I5K8OLG9Vj+OkVmdOnnbC4MDl4DgP5wLA==}
+  '@figma/code-connect@2.0.0':
+    resolution: {integrity: sha512-FNpemwBciNCpskBZ8TK0iRa+oZR5H6+NP8XVDawww8Vz1bFoIrPu0y3NvPR0xnjtrOhAu+3DXqZmSR4cb0V+2w==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -10626,9 +10626,6 @@ packages:
   brace-expansion@1.1.16:
     resolution: {integrity: sha512-IDw48K2/2kRkg9LdJxurvq3lV3aBgq0REY89duEqFRthjlPdXHKMj7EnQOXVckxzgisinf3nHfrcE2FufFLXMw==}
 
-  brace-expansion@2.0.1:
-    resolution: {integrity: sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==}
-
   brace-expansion@2.1.2:
     resolution: {integrity: sha512-w5JZcKgdhDOgOwm8H+KgbosopHMuGcl6qbulwjtz3SM7I7P3yW1eAjzMPLrIE+NQ9vjgANKHWeMHnrT0OXW1oA==}
 
@@ -12042,6 +12039,11 @@ packages:
     resolution: {integrity: sha512-H2/S7Pm8a9CL1uhp9OvjwrBh5Pvx0H8qVOxNu8Wed9Y7qv56MPtq+GGM8RJpq6glYJn9Wspr8uw7l55uyinNeg==}
     peerDependencies:
       esbuild: '>=0.12 <1'
+
+  esbuild-wasm@0.27.3:
+    resolution: {integrity: sha512-AUXuOxZ145/5Az+lIqk6TdJbxKTyDGkXMJpTExmBdbnHR6n6qAFx+F4oG9ORpVYJ9dQYeQAqzv51TO4DFKsbXw==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   esbuild@0.18.20:
     resolution: {integrity: sha512-ceqxoedUrcayh7Y7ZX6NdbbDzGROiyVBgC4PriJThBKSVPWnnFHZAkfI1lJT8QFkOwH4qOS2SJkS4wvpGl8BpA==}
@@ -14944,10 +14946,6 @@ packages:
 
   minimatch@3.1.5:
     resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
-
-  minimatch@5.1.6:
-    resolution: {integrity: sha512-lKwV/1brpG6mBUFHtb7NUmtABCb2WZZmm2wNiOA5hAb8VdCS4B3dtMWyvcoViccwAW/COERjXLt0zP1zXUN26g==}
-    engines: {node: '>=10'}
 
   minimatch@5.1.9:
     resolution: {integrity: sha512-7o1wEA2RyMP7Iu7GNba9vc0RWWGACJOCZBJX2GJWip0ikV+wcOsgVuY9uE8CPiyQhkGFSlhuSkZPavN7u1c2Fw==}
@@ -18149,6 +18147,11 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   ufo@1.6.1:
     resolution: {integrity: sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA==}
 
@@ -18198,10 +18201,6 @@ packages:
 
   undici@7.16.0:
     resolution: {integrity: sha512-QEg3HPMll0o3t2ourKwOeUAZ159Kn9mx5pnzHRQO8+Wixmh88YdZRiIwat0iNzNNXn0yoEtXJqFpyW7eM8BV7g==}
-    engines: {node: '>=20.18.1'}
-
-  undici@7.24.6:
-    resolution: {integrity: sha512-Xi4agocCbRzt0yYMZGMA6ApD7gvtUFaxm4ZmeacWI4cZxaF6C+8I8QfofC20NAePiB/IcvZmzkJ7XPa471AEtA==}
     engines: {node: '>=20.18.1'}
 
   undici@7.28.0:
@@ -21605,7 +21604,7 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
-  '@figma/code-connect@1.4.3(supports-color@8.1.1)':
+  '@figma/code-connect@2.0.0(supports-color@8.1.1)':
     dependencies:
       boxen: 5.1.1
       chalk: 4.1.2
@@ -21613,20 +21612,21 @@ snapshots:
       compare-versions: 6.1.1
       cross-spawn: 7.0.6
       dotenv: 16.6.1
+      esbuild-wasm: 0.27.3
       fast-fuzzy: 1.12.0
       find-up: 5.0.0
       glob: 11.1.0
       jsdom: 24.1.3(supports-color@8.1.1)
-      lodash: 4.17.23
-      minimatch: 9.0.5
+      lodash: 4.18.1
+      minimatch: 9.0.9
       ora: 5.4.1
       parse5: 7.3.0
       prettier: 2.8.8
       prompts: 2.4.2
       strip-ansi: 6.0.1
       ts-morph: 27.0.2
-      typescript: 5.9.3
-      undici: 7.24.6
+      typescript: 6.0.3
+      undici: 7.28.0
       zod: 3.25.58
       zod-validation-error: 3.5.1(zod@3.25.58)
     transitivePeerDependencies:
@@ -23829,9 +23829,9 @@ snapshots:
     dependencies:
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
 
-  '@medusajs/medusa-oas-cli@2.18.0(eba74a54e57d941e51e9650c0f97fc4b)':
+  '@medusajs/medusa-oas-cli@2.18.0(bbf6064d62da1a7267c643cbf91691d5)':
     dependencies:
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/utils': 2.18.0(@types/node@24.12.4)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)
       '@readme/json-schema-ref-parser': 1.2.0
       '@readme/openapi-parser': 2.7.0(openapi-types@12.1.3)
@@ -23892,7 +23892,7 @@ snapshots:
       - yalc
       - yaml
 
-  '@medusajs/medusa@2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)':
+  '@medusajs/medusa@2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)':
     dependencies:
       '@inquirer/checkbox': 2.5.0
       '@inquirer/confirm': 2.0.17
@@ -24273,7 +24273,7 @@ snapshots:
       ulid: 2.4.0
     optionalDependencies:
       '@medusajs/core-flows': 2.18.0(@medusajs/framework@2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3))(@types/node@24.12.4)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(9b5b8ee4980e51f6b385884c42dc2c45)
     transitivePeerDependencies:
       - debug
       - supports-color
@@ -24302,7 +24302,7 @@ snapshots:
       - supports-color
       - tedious
 
-  '@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
       '@medusajs/deps': 2.18.0(@types/node@24.12.4)(mysql2@3.15.3)(supports-color@8.1.1)
       bignumber.js: 9.3.1
@@ -25748,13 +25748,13 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@payloadcms/db-postgres@3.86.0(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1))(mysql2@3.15.3)(payload@3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3))(supports-color@8.1.1)':
+  '@payloadcms/db-postgres@3.86.0(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1))(mysql2@3.15.3)(payload@3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3))(supports-color@8.1.1)':
     dependencies:
-      '@payloadcms/drizzle': 3.86.0(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1))(mysql2@3.15.3)(payload@3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3))(pg@8.20.0)
+      '@payloadcms/drizzle': 3.86.0(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1))(mysql2@3.15.3)(payload@3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3))(pg@8.20.0)
       '@types/pg': 8.20.0
       console-table-printer: 2.12.1
       drizzle-kit: 0.31.7(supports-color@8.1.1)
-      drizzle-orm: 0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.20.0)
+      drizzle-orm: 0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.20.0)
       payload: 3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3)
       pg: 8.20.0
       prompts: 2.4.2
@@ -25791,11 +25791,11 @@ snapshots:
       - sqlite3
       - supports-color
 
-  '@payloadcms/drizzle@3.86.0(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1))(mysql2@3.15.3)(payload@3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3))(pg@8.20.0)':
+  '@payloadcms/drizzle@3.86.0(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1))(mysql2@3.15.3)(payload@3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3))(pg@8.20.0)':
     dependencies:
       console-table-printer: 2.12.1
       dequal: 2.0.3
-      drizzle-orm: 0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.20.0)
+      drizzle-orm: 0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.20.0)
       payload: 3.86.0(graphql@16.12.0)(supports-color@8.1.1)(typescript@5.7.3)
       prompts: 2.4.2
       to-snake-case: 1.0.0
@@ -27552,7 +27552,7 @@ snapshots:
       '@medusajs/admin-sdk': 2.18.0
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
       '@medusajs/js-sdk': 2.18.0
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/ui': 4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
       '@medusajs/utils': 2.18.0(@types/node@24.12.4)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)
       '@medusajs/workflows-sdk': 2.18.0(@types/node@24.12.4)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)
@@ -28595,10 +28595,10 @@ snapshots:
 
   '@tanstack/virtual-core@3.17.6': {}
 
-  '@techsio/storefront-data@file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@techsio/storefront-data@file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@medusajs/js-sdk': 2.18.0
-      '@medusajs/types': 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@medusajs/types': 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
       '@tanstack/react-query': 5.90.10(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
@@ -29293,7 +29293,7 @@ snapshots:
       '@typescript-eslint/types': 8.53.0
       '@typescript-eslint/visitor-keys': 8.53.0
       debug: 4.4.3(supports-color@8.1.1)
-      minimatch: 9.0.5
+      minimatch: 9.0.9
       semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.4.0(typescript@5.9.3)
@@ -29577,7 +29577,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.5)(happy-dom@20.10.6)(jsdom@27.4.0(supports-color@8.1.1))(msw@2.12.10(@types/node@24.12.4)(typescript@5.9.3))(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
+      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.5)(happy-dom@20.10.6)(jsdom@27.4.0(supports-color@8.1.1))(msw@2.12.10(@types/node@24.12.4)(typescript@5.9.3))(vite@8.1.3(@types/node@24.12.4)(esbuild@0.27.3)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.7.1))
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -30694,10 +30694,6 @@ snapshots:
     dependencies:
       balanced-match: 1.0.2
       concat-map: 0.0.1
-
-  brace-expansion@2.0.1:
-    dependencies:
-      balanced-match: 1.0.2
 
   brace-expansion@2.1.2:
     dependencies:
@@ -31834,7 +31830,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.22.0):
+  drizzle-orm@0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.20.0):
     optionalDependencies:
       '@neondatabase/serverless': 1.0.2
       '@opentelemetry/api': 1.9.1
@@ -31842,9 +31838,9 @@ snapshots:
       bun-types: 1.3.3
       knex: 3.2.10(mysql2@3.15.3)(pg@8.20.0)(supports-color@8.1.1)
       mysql2: 3.15.3
-      pg: 8.22.0
+      pg: 8.20.0
 
-  drizzle-orm@0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.20.0):
+  drizzle-orm@0.45.2(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(bun-types@1.3.3)(knex@3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1))(mysql2@3.15.3)(pg@8.22.0):
     optionalDependencies:
       '@neondatabase/serverless': 1.0.2
       '@opentelemetry/api': 1.9.1
@@ -31852,7 +31848,7 @@ snapshots:
       bun-types: 1.3.3
       knex: 3.2.10(mysql2@3.15.3)(pg@8.22.0)(supports-color@8.1.1)
       mysql2: 3.15.3
-      pg: 8.20.0
+      pg: 8.22.0
 
   dunder-proto@1.0.1:
     dependencies:
@@ -32168,6 +32164,8 @@ snapshots:
       - supports-color
     optional: true
 
+  esbuild-wasm@0.27.3: {}
+
   esbuild@0.18.20:
     optionalDependencies:
       '@esbuild/android-arm': 0.18.20
@@ -32389,7 +32387,7 @@ snapshots:
       hasown: 2.0.3
       is-core-module: 2.16.2
       is-glob: 4.0.3
-      minimatch: 3.1.2
+      minimatch: 3.1.5
       object.fromentries: 2.0.8
       object.groupby: 1.0.3
       object.values: 1.2.1
@@ -32417,7 +32415,7 @@ snapshots:
       hasown: 2.0.3
       jsx-ast-utils: 3.3.5
       language-tags: 1.0.9
-      minimatch: 3.1.2
+      minimatch: 3.1.5
       object.fromentries: 2.0.8
       safe-regex-test: 1.1.0
       string.prototype.includes: 2.0.1
@@ -32445,7 +32443,7 @@ snapshots:
       estraverse: 5.3.0
       hasown: 2.0.3
       jsx-ast-utils: 3.3.5
-      minimatch: 3.1.2
+      minimatch: 3.1.5
       object.entries: 1.1.9
       object.fromentries: 2.0.8
       object.values: 1.2.1
@@ -33247,15 +33245,15 @@ snapshots:
       foreground-child: 3.3.1
       jackspeak: 4.1.1
       minimatch: 10.2.5
-      minipass: 7.1.2
+      minipass: 7.1.3
       package-json-from-dist: 1.0.1
-      path-scurry: 2.0.1
+      path-scurry: 2.0.2
 
   glob@12.0.0:
     dependencies:
       foreground-child: 3.3.1
       jackspeak: 4.1.1
-      minimatch: 10.1.1
+      minimatch: 10.2.5
       minipass: 7.1.2
       package-json-from-dist: 1.0.1
       path-scurry: 2.0.1
@@ -34585,7 +34583,7 @@ snapshots:
       cssstyle: 4.6.0
       data-urls: 5.0.0
       decimal.js: 10.6.0
-      form-data: 4.0.5
+      form-data: 4.0.6
       html-encoding-sniffer: 4.0.0
       http-proxy-agent: 7.0.2(supports-color@8.1.1)
       https-proxy-agent: 7.0.6(supports-color@8.1.1)
@@ -34601,7 +34599,7 @@ snapshots:
       whatwg-encoding: 3.1.1
       whatwg-mimetype: 4.0.0
       whatwg-url: 14.2.0
-      ws: 8.21.0
+      ws: 8.21.1
       xml-name-validator: 5.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -35531,7 +35529,7 @@ snapshots:
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
       '@medusajs/icons': 2.18.0(react@19.2.3)
       '@medusajs/js-sdk': 2.18.0
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/ui': 4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
       '@tanstack/react-query': 5.64.2(react@19.2.3)
       react: 19.2.3
@@ -35544,7 +35542,7 @@ snapshots:
       '@mdxeditor/editor': 4.2.0(@codemirror/language@6.12.3)(@lezer/highlight@1.2.3)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(typescript@5.9.3)(yjs@13.6.30)
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
       '@medusajs/js-sdk': 2.18.0
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@shikijs/rehype': 4.3.1
       multer: 2.2.0
       rehype-sanitize: 6.0.0
@@ -35573,7 +35571,7 @@ snapshots:
       '@medusajs/cli': 2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
       '@medusajs/icons': 2.18.0(react@19.2.3)
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/ui': 4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
       jose: 6.2.3
       react: 19.2.3
@@ -35950,17 +35948,13 @@ snapshots:
     dependencies:
       brace-expansion: 1.1.16
 
-  minimatch@5.1.6:
-    dependencies:
-      brace-expansion: 2.1.2
-
   minimatch@5.1.9:
     dependencies:
       brace-expansion: 2.1.2
 
   minimatch@9.0.5:
     dependencies:
-      brace-expansion: 2.0.1
+      brace-expansion: 2.1.2
 
   minimatch@9.0.9:
     dependencies:
@@ -37946,7 +37940,7 @@ snapshots:
 
   readdir-glob@1.1.3:
     dependencies:
-      minimatch: 5.1.6
+      minimatch: 5.1.9
 
   readdirp@3.6.0:
     dependencies:
@@ -39343,7 +39337,7 @@ snapshots:
     dependencies:
       '@istanbuljs/schema': 0.1.3
       glob: 7.2.3
-      minimatch: 3.1.2
+      minimatch: 3.1.5
 
   text-hex@1.0.0: {}
 
@@ -39703,6 +39697,8 @@ snapshots:
 
   typescript@5.9.3: {}
 
+  typescript@6.0.3: {}
+
   ufo@1.6.1: {}
 
   uglify-js@3.19.3:
@@ -39761,8 +39757,6 @@ snapshots:
   undici@6.27.0: {}
 
   undici@7.16.0: {}
-
-  undici@7.24.6: {}
 
   undici@7.28.0: {}
 

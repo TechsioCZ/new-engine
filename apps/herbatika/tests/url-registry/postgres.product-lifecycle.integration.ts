@@ -415,7 +415,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
     "category",
     "brand",
     "collection",
-  ] as const)("retires an active %s route when its assignment becomes draft", async (entityKind) => {
+  ] as const)("keeps an active %s route when its assignment becomes draft", async (entityKind) => {
     const sourceId = context.nextNamespace(`catalog-draft-${entityKind}`)
     const source = vi.fn(async () => ({
       kind: "found" as const,
@@ -467,7 +467,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
       kind: "found",
       value: {
         currentSlug: { normalizedSlug: publicSlug },
-        route: { status: "retired", version: 2 },
+        route: { status: "active", version: 1 },
       },
     })
     expect(source).toHaveBeenCalledTimes(1)
@@ -533,7 +533,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
       })
     ).resolves.toMatchObject({
       kind: "found",
-      value: { route: { status: "retired" } },
+      value: { route: { status: "active" } },
     })
   })
 
@@ -562,7 +562,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
     })
   })
 
-  it("publishes, changes the public slug atomically, then retires the public route on unpublish", async () => {
+  it("publishes, changes the public slug atomically, then keeps the route active on unpublish", async () => {
     const sourceId = context.nextNamespace("lifecycle-publication")
     const source = readSource({ kind: "found", value: { id: sourceId } })
     const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
@@ -605,7 +605,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
       kind: "found",
       value: {
         currentSlug: { normalizedSlug: "renamed-product-01" },
-        route: { status: "retired", version: 3 },
+        route: { status: "active", version: 2 },
       },
     })
     expect(source).toHaveBeenCalledTimes(2)
@@ -615,7 +615,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
     })
   })
 
-  it("retires only the RO product route when its exact Translation is invalidated", async () => {
+  it("keeps both product routes active when the exact RO Translation is invalidated", async () => {
     const sourceId = context.nextNamespace("translation-invalid-product")
     const source = readSource({ kind: "found", value: { id: sourceId } })
     const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
@@ -663,7 +663,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
       })
     ).resolves.toMatchObject({
       kind: "found",
-      value: { route: { status: "retired" } },
+      value: { route: { status: "active" } },
     })
     await expect(
       context.registry.findEntityRoute({

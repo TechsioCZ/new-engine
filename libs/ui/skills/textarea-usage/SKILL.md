@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/atoms/textarea.tsx"
   - "libs/ui/src/tokens/components/atoms/_textarea.css"
   - "libs/ui/stories/atoms/textarea.stories.tsx"
-  - "libs/ui/src/atoms/figma/textarea.figma.tsx"
+  - "libs/ui/src/atoms/textarea.figma.ts"
 ---
 
 # @techsio/ui-kit Textarea Usage

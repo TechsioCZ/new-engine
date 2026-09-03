@@ -2,6 +2,7 @@
   "name": "herbatika",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "next dev --turbopack -p 3001",
     "start:ci-dev": "next dev --turbopack --hostname 0.0.0.0 --port 3000",

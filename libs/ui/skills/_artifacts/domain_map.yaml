@@ -201,7 +201,7 @@ skills:
       - id: "variant-drift-between-code-and-docs"
         wrong_pattern: "Story documents a variant, theme, or size not present in component tv() variants."
         correct_pattern: "Keep props, tv() variants, story argTypes, visual matrices, and Figma mapping in one inventory."
-        evidence: "Button story and button.figma.tsx both map variant/theme/size/state."
+        evidence: "Button story and button.figma.ts both map variant/theme/size/state."
       - id: "token-validation-ignored"
         wrong_pattern: "Skip pnpm validate:tokens after adding token classes."
         correct_pattern: "Run token usage and definition validators and resolve missing or redundant tokens."
@@ -324,7 +324,7 @@ skills:
     boundaries:
       includes:
         - "detecting new or changed public components"
-        - "checking src/**/figma/*.figma.tsx coverage"
+        - "checking src/**/*.figma.ts coverage"
         - "summarizing Figma follow-up"
       excludes:
         - "automatic Figma MCP actions"
@@ -340,9 +340,9 @@ skills:
         correct_pattern: "Mirror code token hierarchy: primitive/core -> semantic aliases -> component aliases."
         evidence: "AGENTS.md Figma Sync Rules."
       - id: "code-connect-drift"
-        wrong_pattern: "Add a Button prop but leave button.figma.tsx props unchanged."
+        wrong_pattern: "Add a Button prop but leave button.figma.ts props unchanged."
         correct_pattern: "Flag Code Connect mapping review when public component props change."
-        evidence: "figma.config.json includes src/**/figma/*.figma.tsx and Button has Code Connect mapping."
+        evidence: "figma.config.json includes src/**/*.figma.ts and Button has Code Connect mapping."
 
   - name: "ui-kit-publish-readiness"
     type: "lifecycle"

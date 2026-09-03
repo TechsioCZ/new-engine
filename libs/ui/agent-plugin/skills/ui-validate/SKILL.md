@@ -28,7 +28,7 @@ Then review the change against the bundled `component-consistency-validation` sk
 - Two-layer tokens registered in `components/components.css`
 - Data-attribute state styling (`data-disabled:`, `data-[state=…]:`, `data-[validation=…]:`)
 - Story exists and follows the Playground/Variants/Sizes/States order
-- `*.figma.tsx` present or explicitly deferred in the summary
+- `*.figma.ts` present or explicitly deferred in the summary
 
 Visual snapshot diffs are findings — update with
 `pnpm --dir libs/ui test:components:update` only when the visual change is intended, and say

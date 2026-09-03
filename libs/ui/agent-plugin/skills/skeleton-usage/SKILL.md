@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/atoms/skeleton.tsx"
   - "libs/ui/src/tokens/components/atoms/_skeleton.css"
   - "libs/ui/stories/atoms/skeleton.stories.tsx"
-  - "libs/ui/src/atoms/figma/skeleton.figma.tsx"
+  - "libs/ui/src/atoms/skeleton-rectangle.figma.ts"
 ---
 
 # @techsio/ui-kit Skeleton Usage

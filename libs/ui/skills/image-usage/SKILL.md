@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/atoms/image.tsx"
   - "libs/ui/src/tokens/components/atoms/_image.css"
   - "libs/ui/stories/atoms/image.stories.tsx"
-  - "libs/ui/src/atoms/figma/image.figma.tsx"
+  - "libs/ui/src/atoms/image.figma.ts"
 ---
 
 # @techsio/ui-kit Image Usage

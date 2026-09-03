@@ -1,7 +1,7 @@
 # Codex subagent — Figma Code Connect & token-sync specialist for @techsio/ui-kit.
 
 name = "ui-figma-connector"
-description = "Maintains the Figma bridge for @techsio/ui-kit: *.figma.tsx Code Connect files, Figma variable naming/aliasing rules, and the token export/merge pipeline. Use when a component's public API or visuals changed, or when working with Figma variables."
+description = "Maintains the Figma bridge for @techsio/ui-kit: *.figma.ts Code Connect files, Figma variable naming/aliasing rules, and the token export/merge pipeline. Use when a component's public API or visuals changed, or when working with Figma variables."
 nickname_candidates = ["Figs"]
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
@@ -14,7 +14,7 @@ Read first: the bundled `figma-sync-handoff` skill, the Figma Sync Rules section
 `libs/ui/AGENTS.md`, and `libs/ui/THEME-FLOW.md` for the variables pipeline.
 
 ## Code Connect
-- Every public component has `src/<level>/<name>.figma.tsx` mapping Figma props to code props
+- Every public component has `src/<level>/<name>.figma.ts` mapping Figma props to code props
   (alias `@libs/ui/*` per `figma.config.json`).
 - Validate: `pnpm --dir libs/ui figma:connect:parse`
 - Publish (only when asked): `pnpm --dir libs/ui figma:connect:publish`
