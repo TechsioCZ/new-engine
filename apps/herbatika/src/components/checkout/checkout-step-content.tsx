@@ -47,7 +47,8 @@ export function CheckoutStepContent({
     selectedPaymentProviderId.length > 0
   ) {
     const displayTextKeys = resolvePaymentDisplayTextKeys(
-      selectedPaymentProviderId
+      selectedPaymentProviderId,
+      selectedShippingOption
     )
     selectedPaymentLabel =
       displayTextKeys.providerName ??
@@ -152,8 +153,10 @@ export function CheckoutStepContent({
             onCompleteOrder={controller.handleCompleteOrder}
             onHeurekaConsentChange={controller.setHeurekaConsent}
             onMarketingConsentChange={controller.setMarketingConsent}
+            onPurchaseAcceptanceChange={controller.setPurchaseAcceptanceGranted}
             paymentLabel={selectedPaymentLabel}
             paymentProviderId={selectedPaymentProviderId ?? undefined}
+            purchaseAcceptanceGranted={controller.purchaseAcceptanceGranted}
             shippingAddressForm={controller.shippingAddressForm}
             shippingLabel={selectedShippingLabel}
             shippingOptionId={selectedShippingOptionId}

@@ -59,12 +59,6 @@ const shouldDisableImageOptimization = imageRemotePatterns.some(
 )
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: [
-    "herbatica.sk",
-    "herbatica.cz",
-    "herbatica.hu",
-    "herbatica.ro",
-  ],
   reactStrictMode: true,
   output: "standalone",
   transpilePackages: [
@@ -104,6 +98,9 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
+    // Zane's shared build worker cannot sustain Turbopack's default parallelism.
+    // Keep production builds within the worker resource envelope.
+    cpus: 1,
     typedEnv: true,
   },
 }

@@ -18,11 +18,11 @@
       },
       "currentProduct": "/produkty/fixture-produkt",
       "currentCategory": "/kategorie/fixture-kategoria",
-      "currentCms": "/poradna/fixture-clanok",
+      "currentCms": "/blog/fixture-clanok",
       "unassignedProduct": "/produkty/fixture-nepriradeny",
       "missingProduct": "/produkty/neexistuje",
       "missingCategory": "/kategorie/neexistuje",
-      "missingCms": "/poradna/neexistuje",
+      "missingCms": "/blog/neexistuje",
       "statusProbe": {
         "current": "/__url-m00/current",
         "alias": "/__url-m00/alias",
@@ -80,7 +80,7 @@
       "outages": {
         "urlRegistry": "/produkty/urlr-unavailable",
         "medusa": "/produkty/medusa-unavailable",
-        "cms": "/poradna/cms-unavailable"
+        "cms": "/blog/cms-unavailable"
       },
       "crawlRoots": ["/", "/produkty", "/kategorie", "/znacky", "/kolekcie"],
       "crawlPrefixes": [
@@ -88,7 +88,7 @@
         "/kategorie",
         "/znacky",
         "/kolekcie",
-        "/poradna",
+        "/blog",
         "/informacie"
       ]
     },
@@ -105,11 +105,11 @@
       },
       "currentProduct": "/produkty/fixture-produkt",
       "currentCategory": "/kategorie/fixture-kategorie",
-      "currentCms": "/poradna/fixture-clanek",
+      "currentCms": "/blog/fixture-clanek",
       "unassignedProduct": "/produkty/fixture-neprirazeny",
       "missingProduct": "/produkty/neexistuje",
       "missingCategory": "/kategorie/neexistuje",
-      "missingCms": "/poradna/neexistuje",
+      "missingCms": "/blog/neexistuje",
       "alias": {
         "path": "/produkty/stary-fixture-produkt?utm_source=acceptance",
         "location": "https://herbatica.cz/produkty/fixture-produkt?utm_source=acceptance"
@@ -157,7 +157,7 @@
       "outages": {
         "urlRegistry": "/produkty/urlr-unavailable",
         "medusa": "/produkty/medusa-unavailable",
-        "cms": "/poradna/cms-unavailable"
+        "cms": "/blog/cms-unavailable"
       },
       "crawlRoots": ["/", "/produkty", "/kategorie", "/znacky", "/kolekce"],
       "crawlPrefixes": [
@@ -165,7 +165,7 @@
         "/kategorie",
         "/znacky",
         "/kolekce",
-        "/poradna",
+        "/blog",
         "/informace"
       ]
     },
@@ -182,11 +182,11 @@
       },
       "currentProduct": "/termekek/fixture-termek",
       "currentCategory": "/kategoriak/fixture-kategoria",
-      "currentCms": "/tanacsok/fixture-cikk",
+      "currentCms": "/blog/fixture-cikk",
       "unassignedProduct": "/termekek/fixture-nincs-hozzarendelve",
       "missingProduct": "/termekek/nem-letezik",
       "missingCategory": "/kategoriak/nem-letezik",
-      "missingCms": "/tanacsok/nem-letezik",
+      "missingCms": "/blog/nem-letezik",
       "alias": {
         "path": "/termekek/regi-fixture-termek?utm_source=acceptance",
         "location": "https://herbatica.hu/termekek/fixture-termek?utm_source=acceptance"
@@ -234,7 +234,7 @@
       "outages": {
         "urlRegistry": "/termekek/urlr-unavailable",
         "medusa": "/termekek/medusa-unavailable",
-        "cms": "/tanacsok/cms-unavailable"
+        "cms": "/blog/cms-unavailable"
       },
       "crawlRoots": [
         "/",
@@ -248,7 +248,7 @@
         "/kategoriak",
         "/markak",
         "/gyujtemenyek",
-        "/tanacsok",
+        "/blog",
         "/informaciok"
       ]
     },
@@ -265,11 +265,11 @@
       },
       "currentProduct": "/produse/produs-fixture",
       "currentCategory": "/categorii/categorie-fixture",
-      "currentCms": "/sfaturi/articol-fixture",
+      "currentCms": "/blog/articol-fixture",
       "unassignedProduct": "/produse/produs-fixture-neatribuit",
       "missingProduct": "/produse/inexistent",
       "missingCategory": "/categorii/inexistent",
-      "missingCms": "/sfaturi/inexistent",
+      "missingCms": "/blog/inexistent",
       "alias": {
         "path": "/produse/produs-fixture-vechi?utm_source=acceptance",
         "location": "https://herbatica.ro/produse/produs-fixture?utm_source=acceptance"
@@ -317,7 +317,7 @@
       "outages": {
         "urlRegistry": "/produse/urlr-unavailable",
         "medusa": "/produse/medusa-unavailable",
-        "cms": "/sfaturi/cms-unavailable"
+        "cms": "/blog/cms-unavailable"
       },
       "crawlRoots": ["/", "/produse", "/categorii", "/marci", "/colectii"],
       "crawlPrefixes": [
@@ -325,7 +325,7 @@
         "/categorii",
         "/marci",
         "/colectii",
-        "/sfaturi",
+        "/blog",
         "/informatii"
       ]
     }

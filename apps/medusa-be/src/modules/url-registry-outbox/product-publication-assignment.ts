@@ -24,9 +24,9 @@ export type ProductPublicationSnapshotOptions = Readonly<{
 
 const PUBLICATION_STATUSES = new Set(["draft", "published"])
 const VISIBLE_ASCII = /^[\x21-\x7e]+$/
-const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PUBLIC_SLUG = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 const MAX_IDENTIFIER_LENGTH = 255
-const MAX_SLUG_LENGTH = 200
+const MAX_SLUG_LENGTH = 255
 
 const asRecord = (value: unknown, label: string): Record<string, unknown> => {
   if (!(value && typeof value === "object" && !Array.isArray(value))) {

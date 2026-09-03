@@ -74,6 +74,7 @@ export function CheckoutCartItemRow({
   product,
 }: CheckoutCartItemRowProps) {
   const tCart = useTranslations("cart")
+  const tCatalog = useTranslations("catalog")
   const marketContext = useMarketContext()
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
@@ -85,7 +86,15 @@ export function CheckoutCartItemRow({
   )
   const currentLineAmount = resolveLineItemTotalAmount(item)
   const originalLineAmount = resolveOriginalLineItemTotalAmount(item, product)
-  const availabilityText = resolveAvailabilityText(item, product)
+  const availabilityText = resolveAvailabilityText(
+    item,
+    {
+      allowSourceLabels: marketContext.code === "sk",
+      inStock: tCatalog("product_detail.stock.in_stock"),
+      outOfStock: tCatalog("product_detail.stock.out_of_stock"),
+    },
+    product
+  )
 
   return (
     <article className="flex w-full flex-col gap-250 sm:flex-row sm:items-start md:grid md:grid-cols-[auto_1fr] md:gap-300">

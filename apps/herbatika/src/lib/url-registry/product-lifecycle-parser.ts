@@ -4,6 +4,7 @@ const REASONS = [
   "updated",
   "channel-linked",
   "channel-unlinked",
+  "translation-invalidated",
   "deleted",
 ] as const
 const CHANGE_TYPES = ["delete", "reconcile"] as const
@@ -38,7 +39,7 @@ const TRACE_KEYS = [
 ] as const
 const VISIBLE_ASCII = /^[\x21-\x7e]{1,255}$/
 const SHA256 = /^sha256:[0-9a-f]{64}$/
-const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PUBLIC_SLUG = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 const ASSIGNMENT_KEYS = [
   "publicationStatus",
   "publicSlug",
@@ -173,7 +174,7 @@ const assignment = (value: unknown): ProductPublicationAssignmentV1 | null => {
   }
   if (
     typeof record.publicSlug !== "string" ||
-    record.publicSlug.length > 200 ||
+    record.publicSlug.length > 255 ||
     !PUBLIC_SLUG.test(record.publicSlug)
   ) {
     throw new ProductLifecycleDeliveryValidationError(

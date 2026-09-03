@@ -10,6 +10,7 @@ import {
   filterReviewRecords,
   normalizePublicReview,
 } from "../../../../review-normalizers"
+import { hasExactSlovakReviewScope } from "../../../review-market-scope"
 import type { StoreGetProductReviewsSchemaType } from "./validators"
 
 type ReviewRatingRecord = {
@@ -67,7 +68,7 @@ export async function GET(
   req: MedusaRequest<unknown, StoreGetProductReviewsSchemaType>,
   res: MedusaResponse
 ) {
-  const { limit, offset } = req.validatedQuery
+  const { limit, locale, offset } = req.validatedQuery
   const productId =
     typeof req.params.id === "string" ? req.params.id : undefined
 
@@ -76,6 +77,23 @@ export async function GET(
       MedusaError.Types.INVALID_DATA,
       "Product id is required"
     )
+  }
+
+  if (
+    locale !== "sk-SK" ||
+    !(await hasExactSlovakReviewScope(req, productId))
+  ) {
+    res.json({
+      count: 0,
+      limit,
+      offset,
+      reviews: [],
+      summary: {
+        average_rating: 0,
+        count: 0,
+      },
+    })
+    return
   }
   const service = req.scope.resolve<ProductReviewModuleService>(
     PRODUCT_REVIEW_MODULE

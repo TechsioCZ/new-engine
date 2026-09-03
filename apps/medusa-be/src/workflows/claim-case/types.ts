@@ -6,6 +6,7 @@ export type ClaimResolution = "discount" | "refund" | "repair" | "replacement"
 export type RequestClaimAccessInput = {
   email: string
   order_number: string
+  sales_channel_id: string
 }
 
 export type RequestClaimAccessResult = {
@@ -16,6 +17,7 @@ export type RequestClaimAccessResult = {
 export type VerifyClaimAccessInput = {
   challenge_id: string
   code: string
+  sales_channel_id: string
 }
 
 export type VerifiedOrderItem = {
@@ -51,6 +53,7 @@ export type CreateClaimInput = {
   purchase_details?: string
   reason?: string
   requested_resolution?: ClaimResolution
+  sales_channel_id: string
   type: ClaimType
 }
 

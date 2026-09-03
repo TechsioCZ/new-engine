@@ -2,15 +2,16 @@ import type { HttpTypes } from "@medusajs/types"
 import type { GetServerSideProps } from "next"
 import { AccountOrderDetailItems } from "@/components/account/orders/account-order-detail-items"
 import { AccountOrderDetailSummary } from "@/components/account/orders/account-order-detail-summary"
-import {
-  exactOpaqueSegment,
-  exactOptionalQueryValue,
-} from "@/lib/routing/private-flows/opaque-values"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
+import { exactOpaqueSegment } from "@/lib/routing/private-flows/opaque-values"
 import {
   readExactPrivateQuery,
   resolvePrivateFlowPublicPage,
 } from "@/lib/routing/private-flows/private-query"
-import { readCustomerToken } from "@/lib/routing/private-flows/request-cookies"
+import {
+  readCustomerToken,
+  readOrderConfirmationToken,
+} from "@/lib/routing/private-flows/request-cookies"
 import { transactionalFlowReader } from "@/lib/routing/private-flows/transactional-page.server"
 import { notFoundResult, type PublicPageProps } from "@/lib/routing/public-page"
 
@@ -18,22 +19,23 @@ type Props = PublicPageProps<Readonly<{ order: HttpTypes.StoreOrder }>>
 
 export const getServerSideProps = (async (context) => {
   const orderId = exactOpaqueSegment(context.params?.publicOrderId, 256)
-  const privateQuery = readExactPrivateQuery(context.req.url, ["ot"])
-  const orderToken = exactOptionalQueryValue(
-    privateQuery?.get("ot") ?? undefined
-  )
-  if (!(orderId && privateQuery) || orderToken === null) {
+  const privateQuery = readExactPrivateQuery(context.req.url, [])
+  if (!(orderId && privateQuery)) {
     return notFoundResult(context)
   }
+  const cookieHeader =
+    typeof context.req.headers.cookie === "string"
+      ? context.req.headers.cookie
+      : undefined
+  const customerToken = readCustomerToken(cookieHeader)
+  const orderToken = customerToken
+    ? undefined
+    : readOrderConfirmationToken(cookieHeader)
   const result = await resolvePrivateFlowPublicPage(context, {
     expectedRouteKey: "checkout.confirmation",
     loadSource: (market) =>
       transactionalFlowReader.readOrderConfirmation(market, {
-        customerToken: readCustomerToken(
-          typeof context.req.headers.cookie === "string"
-            ? context.req.headers.cookie
-            : undefined
-        ),
+        customerToken,
         orderId,
         ...(orderToken ? { orderToken } : {}),
       }),
@@ -44,7 +46,7 @@ export const getServerSideProps = (async (context) => {
 
 export default function OrderConfirmationPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Order unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="order" />
   }
   return (
     <main className="mx-auto w-full max-w-max-w px-400 py-600 lg:px-550 xl:px-700">

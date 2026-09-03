@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  buildPublicOpenGraphLocales,
   buildPublicSeoJsonLd,
   classifySeo,
   serializePublicSeoJsonLd,
@@ -79,18 +80,33 @@ describe("public SEO classification", () => {
   it("emits matching canonical JSON-LD only for a public SEO identity", () => {
     expect(
       buildPublicSeoJsonLd({
-        canonical: "https://herbatica.sk/poradna/spanok",
+        canonical: "https://herbatica.sk/blog/spanok",
+        inLanguage: "sk-SK",
         schemaType: "Article",
         title: "Spánok < zdravie",
       })
     ).toMatchObject({
-      "@id": "https://herbatica.sk/poradna/spanok",
+      "@id": "https://herbatica.sk/blog/spanok",
       "@type": "Article",
-      url: "https://herbatica.sk/poradna/spanok",
+      inLanguage: "sk-SK",
+      url: "https://herbatica.sk/blog/spanok",
     })
     expect(buildPublicSeoJsonLd({ title: "Noindex" })).toBeNull()
     expect(
       serializePublicSeoJsonLd({ name: "Spánok < zdravie" })
     ).not.toContain("<")
+  })
+
+  it("maps only published Herbatika alternates to Open Graph locales", () => {
+    expect(
+      buildPublicOpenGraphLocales({
+        alternates: {
+          "cs-CZ": "https://herbatica.cz/blog/spanek",
+          "ro-RO": "https://herbatica.ro/blog/somn",
+          "sk-SK": "https://herbatica.sk/blog/spanok",
+        },
+        locale: "sk-SK",
+      })
+    ).toEqual({ alternateLocales: ["cs_CZ", "ro_RO"], locale: "sk_SK" })
   })
 })

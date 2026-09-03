@@ -197,9 +197,6 @@ const readProductBatch = async (
   for (const projection of batch) {
     const result = readProductRoutePayload({
       expectedProductId: projection.route.sourceId,
-      expectedPublicSlug: projection.currentSlug.normalizedSlug,
-      expectedSalesChannelId: binding.salesChannelId,
-      market: binding.market,
       payload: { product: productById.get(projection.route.sourceId) },
     })
     if (result.kind !== "found") {

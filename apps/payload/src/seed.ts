@@ -67,6 +67,8 @@ const DEFAULT_HERBATICA_PRODUCTS_XML_PATH = fileURLToPath(
   )
 )
 const HERBATICA_PRODUCTS_XML_ENV = "HERBATICA_XML_PATH"
+const PAYLOAD_SEED_STARTER_CONTENT_ENABLED_ENV =
+  "PAYLOAD_SEED_STARTER_CONTENT_ENABLED"
 const PAYLOAD_SEED_HERBATICA_PRODUCTS_ENABLED_ENV =
   "PAYLOAD_SEED_HERBATICA_PRODUCTS_ENABLED"
 const PAYLOAD_SEED_HERBATICA_PRODUCTS_LIMIT_ENV =
@@ -510,8 +512,11 @@ const createPageSeed = async (payload: SeedPayload) => {
     content: paragraph(
       "This starter page confirms Payload pages are available."
     ),
-    visibility: "public",
-    status: "published",
+    // Dev-starter content only: keep non-public so it is never served or
+    // indexed on the storefront (issue: about-herbatica was leaking as a
+    // public page/sitemap entry). Re-seeding must not resurrect it as public.
+    visibility: "customers-only",
+    status: "draft",
     publishedDate: SEED_PUBLISHED_DATE,
     translationSync: false,
   })
@@ -834,9 +839,17 @@ const seed = async () => {
     const media = await createSeedMedia(payload)
     const articleAuthorId = await upsertSeedArticleAuthor(payload)
 
-    await createArticleSeed(payload, user.id, articleAuthorId, media.id)
-    await createPageSeed(payload)
-    await createHeroCarouselSeed(payload, media.id)
+    if (
+      isExplicitlyEnabled(process.env[PAYLOAD_SEED_STARTER_CONTENT_ENABLED_ENV])
+    ) {
+      await createArticleSeed(payload, user.id, articleAuthorId, media.id)
+      await createPageSeed(payload)
+      await createHeroCarouselSeed(payload, media.id)
+    } else {
+      payload.logger.info(
+        `Payload starter content seed disabled; set ${PAYLOAD_SEED_STARTER_CONTENT_ENABLED_ENV}=1 to enable`
+      )
+    }
     await createHerbaticaProductArticleSeed(
       payload,
       user.id,

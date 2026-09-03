@@ -33,7 +33,7 @@ const validBody = (overrides: Record<string, unknown> = {}) => ({
   market: "cz",
   projections: [
     {
-      href: "/poradna/bylinky",
+      href: "/blog/bylinky",
       routeVersion: 3,
       sourceId: "42",
       sourceType: "article",
@@ -125,7 +125,7 @@ describe("URL registry CMS content projection client", () => {
     ])
 
     expect(result).toEqual(
-      new Map([[contentProjectionKey("article", "42"), "/poradna/bylinky"]])
+      new Map([[contentProjectionKey("article", "42"), "/blog/bylinky"]])
     )
     const [requestedUrl, actualInit] = fetchMock.mock.calls[0] ?? []
     expect(String(requestedUrl)).toBe(URL)
@@ -162,7 +162,7 @@ describe("URL registry CMS content projection client", () => {
     await expect(
       client.resolve("cz", [{ sourceId: "42", sourceType: "article" }])
     ).resolves.toEqual(
-      new Map([[contentProjectionKey("article", "42"), "/poradna/bylinky"]])
+      new Map([[contentProjectionKey("article", "42"), "/blog/bylinky"]])
     )
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
@@ -178,7 +178,7 @@ describe("URL registry CMS content projection client", () => {
       validBody({
         projections: [
           {
-            href: "/poradna/bylinky",
+            href: "/blog/bylinky",
             routeVersion: 0,
             sourceId: "42",
             sourceType: "article",
@@ -191,7 +191,7 @@ describe("URL registry CMS content projection client", () => {
       validBody({
         projections: [
           {
-            href: "/poradna/bylinky",
+            href: "/blog/bylinky",
             routeVersion: 3,
             sourceId: "99",
             sourceType: "article",
@@ -204,13 +204,13 @@ describe("URL registry CMS content projection client", () => {
       validBody({
         projections: [
           {
-            href: "/poradna/bylinky",
+            href: "/blog/bylinky",
             routeVersion: 3,
             sourceId: "42",
             sourceType: "article",
           },
           {
-            href: "/poradna/bylinky",
+            href: "/blog/bylinky",
             routeVersion: 3,
             sourceId: "42",
             sourceType: "article",
@@ -223,7 +223,7 @@ describe("URL registry CMS content projection client", () => {
       validBody({
         projections: [
           {
-            href: "/~sf/cz/poradna/bylinky",
+            href: "/~sf/cz/blog/bylinky",
             routeVersion: 3,
             sourceId: "42",
             sourceType: "article",
@@ -270,7 +270,7 @@ describe("URL registry CMS content projection client", () => {
       return jsonResponse({
         market: request.market,
         projections: request.entries.map((entry) => ({
-          href: `/poradna/article-${entry.sourceId}`,
+          href: `/blog/article-${entry.sourceId}`,
           routeVersion: 1,
           ...entry,
         })),

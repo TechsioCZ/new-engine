@@ -83,6 +83,7 @@ const DEFAULT_TTLS = {
 } as const
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 const ARTICLE_STORE_CACHE_VERSION = "v6"
+const RO_HERO_CAROUSEL_CACHE_VERSION = "exact-locale-v1"
 const ARTICLE_STORE_SELECT = {
   id: true,
   slug: true,
@@ -370,6 +371,17 @@ export default class PayloadModuleService extends MedusaService({}) {
    */
   private buildLocaleTag(tag: string, locale?: string): string {
     return `${tag}:locale:${locale ?? DEFAULT_LOCALE}`
+  }
+
+  /**
+   * Normalize a Payload document id for cache-key use.
+   */
+  private normalizeDocumentId(id?: string | number): string | undefined {
+    if (typeof id === "number") {
+      return Number.isFinite(id) ? String(id) : undefined
+    }
+    const trimmed = id?.trim()
+    return trimmed || undefined
   }
 
   /**
@@ -723,19 +735,35 @@ export default class PayloadModuleService extends MedusaService({}) {
   async listHeroCarousels(
     options?: CmsListOptions
   ): Promise<CmsHeroCarouselDTO[]> {
-    const cacheKey = this.buildListCacheKey(CACHE_TAGS.HERO_CAROUSELS, options)
-    const localeTag = this.buildLocaleTag(
+    const locale = this.normalizeLocale(options?.locale)
+    const baseCacheKey = this.buildListCacheKey(
       CACHE_TAGS.HERO_CAROUSELS,
-      options?.locale
+      options
     )
-    return this.getCached(
+    const cacheKey =
+      locale === "ro"
+        ? `${baseCacheKey}:${RO_HERO_CAROUSEL_CACHE_VERSION}`
+        : baseCacheKey
+    const localeTag = this.buildLocaleTag(CACHE_TAGS.HERO_CAROUSELS, locale)
+    const carousels = await this.getCached(
       cacheKey,
       async () => {
         const queryString = this.buildQuery({
+          ...(locale === "ro"
+            ? {
+                where: {
+                  and: [
+                    { heading: { exists: true } },
+                    { subheading: { exists: true } },
+                  ],
+                },
+              }
+            : {}),
           limit: options?.limit,
           page: options?.page,
           sort: options?.sort,
-          locale: options?.locale,
+          locale,
+          ...(locale ? { "fallback-locale": "false" as const } : {}),
         })
         const result = await this.makeRequest<
           PayloadBulkResult<CmsHeroCarouselDTO>
@@ -746,6 +774,16 @@ export default class PayloadModuleService extends MedusaService({}) {
       },
       this.listCacheTtl_,
       [CACHE_TAGS.ALL, CACHE_TAGS.HERO_CAROUSELS, localeTag]
+    )
+
+    if (locale !== "ro") {
+      return carousels
+    }
+
+    return carousels.filter(({ heading, subheading }) =>
+      [heading, subheading].every(
+        (value) => typeof value === "string" && value.trim().length > 0
+      )
     )
   }
 
@@ -785,7 +823,7 @@ export default class PayloadModuleService extends MedusaService({}) {
           { schema: CmsFooterNavigationGlobalSchema }
         )
 
-        return toCmsStoreFooterNavigation(result)
+        return toCmsStoreFooterNavigation(result, normalizedLocale)
       },
       this.listCacheTtl_,
       [
@@ -803,7 +841,8 @@ export default class PayloadModuleService extends MedusaService({}) {
   async invalidateCache(
     collection: string,
     slug?: string,
-    locale?: string
+    locale?: string,
+    id?: string | number
   ): Promise<void> {
     if (!this.cacheService_) {
       return
@@ -816,6 +855,19 @@ export default class PayloadModuleService extends MedusaService({}) {
         collection === ARTICLES
           ? this.buildArticleCacheKey(slug, normalizedLocale)
           : `${CMS}:${collection}:${slug}:${normalizedLocale ?? DEFAULT_LOCALE}`
+      this.logger_.info(`CMS: Clearing cache key ${key}`)
+      await this.cacheService_.clear({ key })
+    }
+
+    // By-ID reads carry only the locale-less PAGES/ARTICLES tags, so a
+    // locale-scoped invalidation never reaches them through tags.
+    const documentId = this.normalizeDocumentId(id)
+    if (
+      documentId &&
+      !clearAllLocales &&
+      (collection === PAGES || collection === ARTICLES)
+    ) {
+      const key = `${CMS}:${collection}:id:${documentId}:${normalizedLocale}`
       this.logger_.info(`CMS: Clearing cache key ${key}`)
       await this.cacheService_.clear({ key })
     }

@@ -17,7 +17,7 @@ sources:
   - "libs/ui/src/molecules/carousel.tsx"
   - "libs/ui/src/tokens/components/molecules/_carousel.css"
   - "libs/ui/stories/molecules/carousel.stories.tsx"
-  - "libs/ui/src/molecules/figma/carousel.figma.tsx"
+  - "libs/ui/src/molecules/carousel.figma.ts"
   - "https://zagjs.com/components/react/carousel"
 ---
 

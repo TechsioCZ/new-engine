@@ -5,12 +5,21 @@ services:
       dockerfile: docker/development/herbatika/Dockerfile
       target: prod
       args:
+        ALLOWED_MARKETS: sk,cz,hu,ro
+        MARKET_ACCEPTED_HOSTS_CZ: herbatica.cz,www.herbatica.cz,test-engine-herbatika-cz-zane.web-revolution.cz
+        MARKET_ACCEPTED_HOSTS_HU: herbatica.hu,www.herbatica.hu,test-engine-herbatika-hu-zane.web-revolution.cz
+        MARKET_ACCEPTED_HOSTS_RO: herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz
+        MARKET_ACCEPTED_HOSTS_SK: herbatica.sk,www.herbatica.sk,test-engine-herbatika-sk-zane.web-revolution.cz,test-engine-herbatika-zane.web-revolution.cz
         NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED: "0"
         NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://m00-upstream.invalid
         NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_m00_wire
         NEXT_PUBLIC_PAYLOAD_BASE_URL: http://m00-upstream.invalid
-        NEXT_PUBLIC_STOREFRONT_AUTH_MODE: session_proxy
     environment:
+      ALLOWED_MARKETS: sk,cz,hu,ro
+      MARKET_ACCEPTED_HOSTS_CZ: herbatica.cz,www.herbatica.cz,test-engine-herbatika-cz-zane.web-revolution.cz
+      MARKET_ACCEPTED_HOSTS_HU: herbatica.hu,www.herbatica.hu,test-engine-herbatika-hu-zane.web-revolution.cz
+      MARKET_ACCEPTED_HOSTS_RO: herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz
+      MARKET_ACCEPTED_HOSTS_SK: herbatica.sk,www.herbatica.sk,test-engine-herbatika-sk-zane.web-revolution.cz,test-engine-herbatika-zane.web-revolution.cz
       URL_ARCHITECTURE_M00_ENABLED: "1"
     expose:
       - "3000"
@@ -19,7 +28,7 @@ services:
         - CMD-SHELL
         - >-
           curl --fail --silent --show-error
-          --header 'Host: herbatica.sk'
+          --header "Host: herbatica.sk"
           http://127.0.0.1:3000/__url-m00/current >/dev/null
       start_period: 10s
       interval: 2s

@@ -8,6 +8,10 @@ import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
 import { isCashOnDeliveryPaymentProviderId } from "../../modules/payment-cash-on-delivery/constants"
 import { checkSpendingLimit } from "../../utils/check-spending-limit"
+import {
+  checkoutPurchaseAcceptancesMatch,
+  resolveCheckoutPurchaseAcceptance,
+} from "../../utils/checkout-purchase-acceptance"
 import { getCartApprovalStatus } from "../../utils/get-cart-approval-status"
 import {
   type CheckoutShippingMethod,
@@ -87,6 +91,13 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
     fields: [
       "approvals.*",
       "customer_id",
+      "currency_code",
+      "metadata",
+      "region.countries.iso_2",
+      "region.currency_code",
+      "region.metadata",
+      "sales_channel_id",
+      "shipping_address.country_code",
       "total",
       "shipping_methods.data",
       "shipping_methods.shipping_option.data",
@@ -103,6 +114,32 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Cart "${cart.id}" was not found`
+    )
+  }
+
+  const acceptanceAuthority = {
+    cartId: cart.id,
+    regionMetadata: queryCart.region?.metadata,
+    salesChannelId: queryCart.sales_channel_id,
+  }
+  // Medusa copies metadata from this workflow cart snapshot to the new order.
+  // Matching it against the fresh read prevents validating data that the order
+  // would not preserve if a concurrent cart update raced completion.
+  const workflowAcceptance = resolveCheckoutPurchaseAcceptance({
+    ...acceptanceAuthority,
+    cartMetadata: (cart as { metadata?: unknown }).metadata,
+  })
+  const currentAcceptance = resolveCheckoutPurchaseAcceptance({
+    ...acceptanceAuthority,
+    cartMetadata: queryCart.metadata,
+  })
+
+  if (
+    !checkoutPurchaseAcceptancesMatch(workflowAcceptance, currentAcceptance)
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Current terms and privacy acceptance is required to complete this cart"
     )
   }
 
@@ -130,6 +167,7 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
 
   if (
     !isOnSitePaymentCompatibleWithShipping({
+      cart: queryCart,
       paymentProviderId: selectedPaymentProviderId,
       shippingMethods,
     })

@@ -1,5 +1,7 @@
 import {
+  createStep,
   createWorkflow,
+  StepResponse,
   transform,
   WorkflowResponse,
   when,
@@ -24,13 +26,49 @@ export type SeedDatabaseWorkflowInput = {
   defaultShippingProfile: Steps.CreateDefaultShippingProfileStepInput
   fulfillmentSets: Steps.CreateFulfillmentSetStepInput
   shippingOptions: Steps.CreateShippingOptionsStepSeedInput
-  publishableKey: Steps.CreatePublishableKeyStepInput
+  legacySharedPublishableKey?: Steps.CreatePublishableKeyStepInput
+  publishableKeys?: Steps.CreatePublishableKeysStepInput
   productCategories: Steps.CreateProductCategoriesStepInput
   products: Steps.CreateProductsStepInput
   legacyBrandAttributeNames?: string[]
   priceLists?: Steps.SyncPriceListsStepInput["priceLists"]
   priceListSync?: Steps.SyncPriceListsStepInput["config"]
 }
+
+type SeedPublishableKeysInput = Pick<
+  SeedDatabaseWorkflowInput,
+  "legacySharedPublishableKey" | "publishableKeys" | "salesChannels"
+>
+
+export function resolveSeedPublishableKeysInput({
+  legacySharedPublishableKey,
+  publishableKeys,
+  salesChannels,
+}: SeedPublishableKeysInput): Steps.CreatePublishableKeysStepInput {
+  if (legacySharedPublishableKey && publishableKeys) {
+    throw new Error(
+      "Seed input must define legacySharedPublishableKey or publishableKeys, not both"
+    )
+  }
+  return (
+    publishableKeys ??
+    (legacySharedPublishableKey
+      ? [
+          {
+            ...legacySharedPublishableKey,
+            associationMode: "legacy-shared" as const,
+            salesChannelNames: salesChannels.map(({ name }) => name),
+          },
+        ]
+      : [])
+  )
+}
+
+const resolveSeedPublishableKeysStep = createStep(
+  "resolve-seed-publishable-keys",
+  async (input: SeedPublishableKeysInput) =>
+    new StepResponse(resolveSeedPublishableKeysInput(input))
+)
 
 function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
   const salesChannelsResult = Steps.createSalesChannelsStep(input.salesChannels)
@@ -49,7 +87,21 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     updateStoreCurrenciesStepInput
   )
 
-  const createRegionsResult = Steps.createRegionsStep(input.regions)
+  const resolveRegionSalesChannelBindingsInput: Steps.ResolveRegionSalesChannelBindingsStepInput =
+    transform(
+      {
+        input,
+        salesChannelsResult,
+      },
+      (data) => ({
+        regions: data.input.regions,
+        salesChannels: data.salesChannelsResult.result,
+      })
+    )
+  const resolvedRegions = Steps.resolveRegionSalesChannelBindingsStep(
+    resolveRegionSalesChannelBindingsInput
+  )
+  const createRegionsResult = Steps.createRegionsStep(resolvedRegions)
 
   const ensurePricePreferencesStepInput: Steps.EnsurePricePreferencesStepInput =
     transform(
@@ -136,6 +188,7 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       (data) =>
         data.input.shippingOptions.map((option) => ({
           name: option.name,
+          seedIdentity: option.seedIdentity,
           providerId:
             option.providerId ??
             data.input.workflowDefaults.fulfillmentProviderId,
@@ -181,26 +234,23 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       linkSalesChannelsToStockLocationInput
     )
 
-  const createPublishableKeyResult = Steps.createPublishableKeyStep(
-    input.publishableKey
-  )
-
-  const linkSalesChannelsApiKeyStepInput: Steps.LinkSalesChannelsApiKeyStepInput =
+  const publishableKeysInput = resolveSeedPublishableKeysStep(input)
+  const createPublishableKeysResult =
+    Steps.createPublishableKeysStep(publishableKeysInput)
+  const linkSalesChannelsApiKeysStepInput: Steps.LinkSalesChannelsApiKeysStepInput =
     transform(
       {
-        createPublishableKeyResult,
-        input,
+        createPublishableKeysResult,
         salesChannelsResult,
       },
       (data) => ({
         salesChannels: data.salesChannelsResult.result,
-        publishableApiKey: data.createPublishableKeyResult.publishableApiKey,
-        salesChannelNames: data.input.publishableKey.salesChannelNames,
+        publishableKeys: data.createPublishableKeysResult.result,
       })
     )
-
-  const linkSalesChannelsApiKeyStepInputResult =
-    Steps.linkSalesChannelsApiKeyStep(linkSalesChannelsApiKeyStepInput)
+  const linkSalesChannelsApiKeysResult = Steps.linkSalesChannelsApiKeysStep(
+    linkSalesChannelsApiKeysStepInput
+  )
 
   const createProductCategoriesResult = Steps.createProductCategoriesStep(
     input.productCategories
@@ -315,8 +365,8 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     linkStockLocationsFulfillmentSetResult,
     createShippingOptionsResult,
     linkSalesChannelsToStockLocationResult,
-    createPublishableKeyResult,
-    linkSalesChannelsApiKeyStepInputResult,
+    createPublishableKeysResult,
+    linkSalesChannelsApiKeysResult,
     createProductCategoriesResult,
     reconcileProductVariantEansResult,
     createProductsResult,

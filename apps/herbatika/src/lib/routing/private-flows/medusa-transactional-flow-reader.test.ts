@@ -112,7 +112,10 @@ describe("Medusa transactional-flow reader", () => {
     const [url, init] = fetch.mock.calls[0] as [URL, RequestInit]
     expect(url.href).not.toContain("Reset.Token")
     expect(init.headers).toEqual(
-      expect.objectContaining({ authorization: "Bearer Reset.Token" })
+      expect.objectContaining({
+        authorization: "Bearer Reset.Token",
+        "x-publishable-api-key": "pk_sk",
+      })
     )
   })
 

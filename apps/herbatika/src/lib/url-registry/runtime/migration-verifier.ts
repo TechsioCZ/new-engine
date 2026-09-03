@@ -1,6 +1,6 @@
 import type { SqlClient, SqlPool } from "../postgres"
 import {
-  URL_REGISTRY_MIGRATION_MANIFEST_V4,
+  URL_REGISTRY_MIGRATION_MANIFEST_V8,
   type UrlRegistryMigrationManifest,
 } from "./manifest"
 
@@ -59,13 +59,24 @@ const assertExpectedManifest = (manifest: UrlRegistryMigrationManifest) => {
 
 export const assertAppliedMigrationManifest = (
   rows: readonly unknown[],
-  manifest: UrlRegistryMigrationManifest = URL_REGISTRY_MIGRATION_MANIFEST_V4
+  manifest: UrlRegistryMigrationManifest = URL_REGISTRY_MIGRATION_MANIFEST_V8
 ): void => {
   assertExpectedManifest(manifest)
   const applied = rows.map(parseAppliedMigration)
-  if (applied.length !== manifest.length) {
-    throw new Error("URL registry migration ledger is not the exact manifest")
+  for (const [index, migration] of applied.entries()) {
+    const expectedVersion = index + 1
+    const match = MIGRATION_NAME_PATTERN.exec(migration.name)
+    if (Number(match?.[1]) !== expectedVersion) {
+      throw new Error("URL registry migration ledger is not contiguous")
+    }
   }
+  if (applied.length < manifest.length) {
+    throw new Error("URL registry migration ledger is behind the manifest")
+  }
+  // A compatibility build using this verifier may know only an older immutable
+  // manifest. Accepting its checksum-exact prefix lets that build start against
+  // a forward-migrated database while still rejecting every known drift. This
+  // cannot retrofit prefix support into an already-built exact-length binary.
   for (const [index, expected] of manifest.entries()) {
     const actual = applied[index]
     if (
@@ -97,7 +108,7 @@ const releaseQuietly = (client: SqlClient) => {
 
 export const verifyUrlRegistryMigrations = async (
   pool: SqlPool,
-  manifest: UrlRegistryMigrationManifest = URL_REGISTRY_MIGRATION_MANIFEST_V4
+  manifest: UrlRegistryMigrationManifest = URL_REGISTRY_MIGRATION_MANIFEST_V8
 ): Promise<void> => {
   const client = await pool.connect()
   let transactionOpen = false

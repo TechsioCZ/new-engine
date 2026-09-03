@@ -29,6 +29,7 @@
     "update_failed": "Úprava košíka zlyhala."
   },
   "checkout": {
+    "page_unavailable": "Pokladňa momentálne nie je dostupná.",
     "back_to_cart": "Späť na košík",
     "back_to_shipping_payment": "Späť na dopravu a platbu",
     "complete_order": "Dokončiť objednávku",
@@ -55,7 +56,7 @@
     "shipping_not_selected": "Doprava nie je vybraná",
     "summary": "Súhrn",
     "total_excl_tax": "bez DPH",
-    "shipping_payment": "Doprava a platba",
+    "shipping_payment": "Doprava a platby",
     "cart_empty": "Košík je prázdny. Pridajte najprv produkty.",
     "cart_not_ready": "Košík nie je pripravený.",
     "complete_failed": "Dokončenie objednávky zlyhalo.",
@@ -142,6 +143,7 @@
     "review_marketing_consent": "Súhlasím so zasielaním marketingových informácií",
     "review_heureka_consent": "Súhlasím so zaslaním dotazníka spokojnosti Heureka",
     "review_legal_confirmation": "Potvrdzujem, že som sa oboznámil s <terms>obchodnými podmienkami</terms>, porozumel som ich obsahu a v celom rozsahu s nimi súhlasím. Oboznámil som sa so <privacy>zásadami ochrany osobných údajov</privacy>.",
+    "review_legal_required": "Pred dokončením objednávky musíte výslovne prijať obchodné podmienky a potvrdiť oboznámenie sa so zásadami ochrany osobných údajov.",
     "review_missing_required_details": "Niektoré povinné údaje ešte nie sú uložené.",
     "promo_code_label": "Zľavový kód",
     "promo_code_placeholder": "Zadať zľavový kód",
@@ -180,6 +182,32 @@
         "email_read_only": "{label} (nemožno upraviť)",
         "company_optional": "{label} (voliteľné)",
         "update_failed": "Údaje účtu sa nepodarilo uložiť. Skúste to znova."
+      },
+      "addresses": {
+        "title": "Uložené adresy",
+        "description": "Spravujte doručovacie a fakturačné adresy pre rýchlejšie dokončenie objednávky.",
+        "add": "Pridať adresu",
+        "empty_title": "Nemáte uložené žiadne adresy",
+        "empty_description": "Pridajte adresu, ktorú budete môcť použiť pri ďalšej objednávke.",
+        "new_title": "Nová adresa",
+        "edit_title": "Upraviť adresu",
+        "optional_label": "{label} (voliteľné)",
+        "default_shipping": "Predvolená doručovacia adresa",
+        "default_billing": "Predvolená fakturačná adresa",
+        "edit": "Upraviť",
+        "delete": "Odstrániť",
+        "cancel": "Zrušiť",
+        "save": "Uložiť adresu",
+        "retry": "Skúsiť znova",
+        "created": "Adresa bola uložená.",
+        "updated": "Adresa bola aktualizovaná.",
+        "deleted": "Adresa bola odstránená.",
+        "load_failed": "Adresy sa nepodarilo načítať. Skúste to znova.",
+        "create_failed": "Adresu sa nepodarilo uložiť. Skúste to znova.",
+        "update_failed": "Adresu sa nepodarilo aktualizovať. Skúste to znova.",
+        "delete_failed": "Adresu sa nepodarilo odstrániť. Skúste to znova.",
+        "delete_title": "Odstrániť adresu?",
+        "delete_description": "Naozaj chcete odstrániť túto uloženú adresu? Túto akciu nemožno vrátiť späť."
       },
       "orders": {
         "retry": "Skúsiť znova",
@@ -293,6 +321,43 @@
       "email_exists": "Účet s týmto e-mailom už existuje. Prihláste sa alebo použite obnovu hesla.",
       "failed": "Registrácia sa nepodarila. Skúste to prosím znovu."
     },
+    "deactivation": {
+      "page": {
+        "account_unavailable": "Účet momentálne nie je dostupný.",
+        "confirmation_unavailable": "Potvrdenie zrušenia účtu momentálne nie je dostupné."
+      },
+      "request": {
+        "title": "Zrušenie účtu",
+        "description": "Pošleme vám e-mail s odkazom na potvrdenie. Účet zostane aktívny, kým odkaz nepoužijete. Existujúce objednávky sa nevymažú.",
+        "failed": "Potvrdzovací e-mail sa nepodarilo odoslať.",
+        "toast_title": "Potvrdzovací e-mail bol odoslaný",
+        "toast_description": "Účet zostáva aktívny, kým jeho zrušenie nepotvrdíte v e-maile.",
+        "sent_status": "Skontrolujte si e-mail. Potvrdzovací odkaz je platný 30 minút.",
+        "action": "Požiadať o zrušenie účtu",
+        "resend_action": "Znovu odoslať e-mail"
+      },
+      "dialog": {
+        "title": "Odoslať potvrdenie zrušenia účtu?",
+        "intro": "Účet sa týmto krokom ešte nezruší.",
+        "email_notice": "Na váš e-mail pošleme odkaz platný 30 minút.",
+        "confirmation_notice": "Účet zrušíme až po otvorení odkazu a potvrdení.",
+        "orders_notice": "Existujúce objednávky sa nevymažú.",
+        "keep_account": "Ponechať účet",
+        "send": "Odoslať potvrdzovací e-mail",
+        "sending": "Odosiela sa e-mail"
+      },
+      "confirmation": {
+        "title": "Potvrdenie zrušenia účtu",
+        "description": "Po potvrdení sa už nebudete môcť prihlásiť. Vaše existujúce objednávky zostanú bezpečne uložené.",
+        "missing_token": "Potvrdzovací odkaz neobsahuje platný token.",
+        "invalid_token": "Potvrdzovací odkaz je neplatný alebo jeho platnosť vypršala.",
+        "failed": "Účet sa nepodarilo zrušiť.",
+        "success": "Účet bol zrušený. Pri opätovnej registrácii s rovnakým e-mailom sa obnoví pôvodný účet aj história objednávok.",
+        "continue": "Pokračovať do obchodu",
+        "confirm": "Potvrdiť zrušenie účtu",
+        "confirming": "Ruší sa účet"
+      }
+    },
     "account_label": "Účet",
     "sign_in": "Prihlásiť sa",
     "password": "Heslo",
@@ -391,7 +456,9 @@
     "product_detail": {
       "errors": {
         "load_failed": "Produkt sa nepodarilo načítať.",
-        "not_found": "Produkt sa nepodarilo nájsť."
+        "not_found": "Produkt sa nepodarilo nájsť.",
+        "page_unavailable": "Produkt momentálne nie je dostupný",
+        "page_status": "Stav: {status}"
       },
       "retry": "Skúsiť znova",
       "back_home": "Späť na domovskú stránku",
@@ -403,14 +470,32 @@
         "composition": "Zloženie",
         "warning": "Upozornenie",
         "other": "Ostatné informácie",
+        "parameters": "Zloženie a Parametre",
+        "brand": "Značka",
+        "warranty": "Záruka",
         "content": "Obsah"
+      },
+      "brand": {
+        "visit_all_products": "Zobraziť všetky produkty značky"
+      },
+      "parameters": {
+        "category": "Kategória",
+        "code": "Kód produktu",
+        "ean": "EAN",
+        "inci": "Zloženie (INCI)",
+        "storage": "Skladovanie",
+        "volume": "Objem"
       },
       "variant_label": "Varianta",
       "variant_placeholder": "Vyberte variantu",
       "stock": {
         "in_stock": "Skladom",
         "out_of_stock": "Momentálne nie je skladom",
-        "physical_store_only_notice": "Sortiment dostupný v kamenných predajniach nie je možné objednať v e-shope."
+        "physical_store_only_notice": "Sortiment dostupný v kamenných predajniach nie je možné objednať v e-shope.",
+        "loading_aria": "Načítavam dostupnosť podľa skladov",
+        "load_failed": "Dostupnosť podľa skladov sa nepodarilo načítať.",
+        "quantity": "{count, plural, one {# ks} few {# ks} other {# ks}}",
+        "more_than_quantity": "Skladom (>{count} ks)"
       },
       "delivery_by": "u vás do {date}",
       "free_shipping_over": "Doručenie zdarma nad {threshold}",
@@ -443,6 +528,20 @@
         "also_bought": "Ďalšie kúpil tiež",
         "products": "Súvisiace produkty",
         "found": "Nájdené: {count}"
+      },
+      "option_titles": {
+        "color": "Farba",
+        "dimensions": "Rozmer",
+        "flavor": "Príchuť",
+        "packaging": "Balenie",
+        "size": "Veľkosť",
+        "variant": "Varianta",
+        "volume": "Objem",
+        "weight": "Hmotnosť"
+      },
+      "option_values": {
+        "capsules": "kapsúl",
+        "tablets": "tabliet"
       }
     },
     "reviews": {
@@ -525,6 +624,7 @@
       "label": "Značky",
       "all_title": "Všetky značky A-Z",
       "list_aria": "Zoznam značiek podľa abecedy",
+      "empty": "Zoznam značiek pre vás pripravujeme.",
       "metadata": {
         "index_title": "Všetky značky A-Z | Herbatica",
         "index_description": "Prehľad všetkých značiek dostupných v e-shope Herbatica zoradený podľa abecedy.",
@@ -579,6 +679,21 @@
       "best_selling": "Najpredávanejšie",
       "newest": "Najnovšie"
     },
+    "category": {
+      "default_name": "Kategória",
+      "status": {
+        "found": "kategória nájdená",
+        "not_found": "kategória nenájdená"
+      },
+      "badges": {
+        "products": "produkty: {count}",
+        "filtered_products": "po filtri: {count}"
+      },
+      "subtitle": {
+        "direct_products": "Zobrazené produkty danej kategórie",
+        "includes_subcategories": "{count, plural, one {Zobrazené vrátane # podkategórie} few {Zobrazené vrátane # podkategórií} other {Zobrazené vrátane # podkategórií}}"
+      }
+    },
     "results": {
       "items_total": "položiek celkom",
       "empty_category": "V tejto kategórii zatiaľ nie sú dostupné produkty pre zvolený filter.",
@@ -604,6 +719,13 @@
       "blog": {
         "title": "Blog o zdraví a kráse"
       },
+      "promo": {
+        "image_alt": "Predajňa Herbatika",
+        "heading": "Prírodná kozmetika, doplnky výživy a tradičná medicína",
+        "paragraph_1": "Spoznajte blahodarné účinky prírodnej kozmetiky a jej pozitívny vplyv nielen na pokožku. Upevnite si svoje zdravie pomocou doplnkov stravy a tradičnej medicíny. Toto všetko nájdete v našej pestrej ponuke, ktorá je navyše obohatená aj o zdravotné doplnky z prírodných materiálov.",
+        "paragraph_2": "Špecializujeme sa na výber tých najkvalitnejších produktov, ktoré aj my sami používame, vylepšujeme a opakovane testujeme. Máme radi kvalitu a potrpíme si na detaily. Sme pripravení pomôcť vám s výberom produktov špeciálne podľa vašich potrieb alebo na váš zdravotný problém.",
+        "paragraph_3": "Herbatica má už aj svoju značku, pod ktorou vyrábame množstvo produktov, ktoré inde nenájdete. Máme radi kvalitu a detaily a na tie sa sústredíme v každom našom produkte."
+      },
       "product_sections": {
         "bestsellers": "Najobľúbenejšie produkty",
         "new_products": "Novinky",
@@ -624,7 +746,8 @@
     "blog": {
       "listing": {
         "title": "Blog o zdraví a kráse",
-        "description": "Články o zdraví, kráse, stravovaní a wellness od našich odborníkov."
+        "description": "Články o zdraví, kráse, stravovaní a wellness od našich odborníkov.",
+        "filter_all": "Všetky"
       },
       "card": {
         "open_article": "Prejsť na článok"
@@ -699,6 +822,13 @@
     "submenu": {
       "loading": "Načítavam podkategórie..."
     },
+    "contact": {
+      "hours": "(Po–Pia: 09:00–16:00)",
+      "email_display": "ahoj@herbatica.sk",
+      "email_href": "mailto:ahoj@herbatica.sk",
+      "phone_display": "+421 2/321 123 45",
+      "phone_href": "tel:+421232112345"
+    },
     "footer": {
       "copyright": "Copyright {year} <brand>{domain}.</brand> Všetky práva vyhradené.",
       "cookie_settings": "Upraviť nastavenie cookies",
@@ -715,7 +845,7 @@
         },
         "important": {
           "title": "Dôležité informácie",
-          "shipping_payment": "Doprava a platba",
+          "shipping_payment": "Doprava a platby",
           "claims_returns": "Reklamácia a vrátenie",
           "terms": "Obchodné podmienky",
           "privacy": "Ochrana osobných údajov",
@@ -733,14 +863,80 @@
     "breadcrumbs": {
       "root_aria": "Cesta na stránke",
       "home": "Domov"
+    },
+    "page_errors": {
+      "account": "Účet momentálne nie je dostupný.",
+      "advice": "Poradňa momentálne nie je dostupná.",
+      "authentication": "Prihlásenie a registrácia momentálne nie sú dostupné.",
+      "cart": "Nákupný košík momentálne nie je dostupný.",
+      "catalog": "Katalóg momentálne nie je dostupný.",
+      "checkout": "Pokladňa momentálne nie je dostupná.",
+      "content": "Obsah momentálne nie je dostupný.",
+      "not_found": "Stránka sa nenašla.",
+      "order": "Objednávka momentálne nie je dostupná.",
+      "review": "Hodnotenie momentálne nie je dostupné.",
+      "search": "Vyhľadávanie momentálne nie je dostupné.",
+      "storefront": "Obchod je momentálne nedostupný.",
+      "unavailable": "Obchod je dočasne nedostupný."
     }
+  },
+  "claims": {
+    "breadcrumb_home": "Domov",
+    "breadcrumb_current": "Reklamácie a vrátenie",
+    "title": "Reklamácie a vrátenie tovaru",
+    "intro": "Vyhľadajte objednávku, overte svoj e-mail a vyberte produkty, ktoré chcete vrátiť alebo reklamovať.",
+    "how_title": "Ako to funguje",
+    "how_step_type": "Zvoľte vrátenie alebo reklamáciu.",
+    "how_step_verify": "Overte objednávku kódom z e-mailu.",
+    "how_step_items": "Vyberte konkrétne produkty a množstvo.",
+    "how_step_submit": "Po odoslaní dostanete číslo prípadu a ďalšie pokyny.",
+    "manual_note": "Ak objednávku neviete dohľadať, použite ručný formulár.",
+    "captcha_required": "Dokončite, prosím, overenie proti robotom.",
+    "email_label": "E-mail z objednávky",
+    "order_number_label": "Číslo objednávky",
+    "send_code": "Poslať overovací kód",
+    "manual_entry": "Nemám číslo objednávky alebo používam iný e-mail",
+    "code_sent": "Ak sa údaje zhodujú, poslali sme šesťmiestny kód na {email}.",
+    "code_label": "Overovací kód",
+    "verify_order": "Overiť objednávku",
+    "back": "Späť",
+    "code_invalid": "Zadajte šesťmiestny kód z e-mailu.",
+    "details_incomplete": "Vyplňte povinné údaje a vyberte aspoň jeden produkt.",
+    "defect_required": "Popíšte, prosím, vadu produktu.",
+    "generic_error": "Požiadavku sa nepodarilo spracovať. Skúste to znova.",
+    "order_heading": "Objednávka č. {orderNumber}",
+    "contact_email_label": "Kontaktný e-mail",
+    "product_name_label": "Názov produktu",
+    "purchase_details_label": "Údaje o nákupe",
+    "return_reason_optional": "Dôvod vrátenia (nepovinné)",
+    "complaint_info_optional": "Doplňujúce informácie (nepovinné)",
+    "defect_description_label": "Popis vady",
+    "requested_resolution": "Požadované riešenie",
+    "resolution_repair": "Oprava",
+    "resolution_replacement": "Výmena",
+    "resolution_discount": "Zľava",
+    "resolution_refund": "Vrátenie peňazí",
+    "submit_return": "Odoslať vrátenie",
+    "submit_complaint": "Odoslať reklamáciu",
+    "select_products": "Vyberte produkty",
+    "ordered_quantity": "objednané: {quantity}",
+    "item_quantity": "Počet kusov pre {title}",
+    "success_case": "Prípad {caseNumber} bol úspešne odoslaný.",
+    "success_followup": "Potvrdenie a ďalšie pokyny vám pošleme e-mailom.",
+    "type_question": "Čo potrebujete vybaviť?",
+    "return_title": "Vrátiť tovar",
+    "return_description": "Požiadajte o vrátenie produktu.",
+    "complaint_title": "Reklamovať tovar",
+    "complaint_description": "Nahláste problém alebo vadu produktu."
   },
   "search": {
     "results": {
       "title": "Vyhľadávanie",
       "description": "Vyhľadajte produkty v katalógu.",
+      "related": "Súvisiace výsledky",
       "query": "dotaz: {query}",
       "found": "nájdené: {count}",
+      "displayed": "zobrazené: {count}",
       "page": "strana: {page}/{totalPages}",
       "empty": "Pre výraz „{query}“ sa nenašli žiadne produkty.",
       "enter_query": "Zadajte výraz do vyhľadávania v hornom paneli."

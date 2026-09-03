@@ -7,6 +7,7 @@ import {
   type ResendEmailLocale,
   resendEmailLocales,
 } from "../modules/resend/contracts"
+import { STOREFRONT_TEXT_MARKETS } from "../modules/storefront-text/configuration"
 
 export type NotificationMarketContextInput = {
   countryCode?: string | null
@@ -25,6 +26,7 @@ export type NotificationMarketContext = {
 
 type NotificationMarketConfiguration = {
   country_code: string
+  expected_currency_code?: string
   locale: ResendEmailLocale
   market_code: string
   store_name: string
@@ -38,6 +40,7 @@ type SalesChannelRecord = {
 
 type RegionRecord = {
   countries?: Array<{ iso_2?: string | null }> | null
+  currency_code?: string | null
   id: string
 }
 
@@ -45,6 +48,15 @@ const PAGE_SIZE = 100
 const MARKET_CONFIGURATION_KEY = "storefront_notification_markets"
 const MAXIMUM_HOSTNAME_LENGTH = 253
 const HOSTNAME_LABEL_PATTERN = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/u
+const NOTIFICATION_MARKET_CURRENCIES = {
+  cz: "czk",
+  hu: "huf",
+  ro: "ron",
+  sk: "eur",
+} as const satisfies Record<
+  (typeof STOREFRONT_TEXT_MARKETS)[number]["market"],
+  string
+>
 
 function normalize(value: unknown) {
   return typeof value === "string" ? value.trim() : ""
@@ -78,6 +90,8 @@ function isRegionRecord(value: unknown): value is RegionRecord {
 }
 
 function parseMarketConfiguration(
+  authorityKey: string,
+  enforceCanonicalAuthority: boolean,
   value: unknown
 ): NotificationMarketConfiguration {
   if (!isRecord(value)) {
@@ -90,6 +104,7 @@ function parseMarketConfiguration(
   const countryCode = normalizeCode(value.country_code)
   const locale = normalize(value.locale)
   const marketCode = normalizeCode(value.market_code)
+  const normalizedAuthorityKey = normalizeCode(authorityKey)
   const storeName = normalize(value.store_name)
   const storefrontDomain = normalizeCode(value.storefront_domain)
 
@@ -109,8 +124,31 @@ function parseMarketConfiguration(
     )
   }
 
+  const authority = STOREFRONT_TEXT_MARKETS.find(
+    (market) => market.market === marketCode
+  )
+  if (
+    enforceCanonicalAuthority &&
+    (!authority ||
+      normalizedAuthorityKey !== marketCode ||
+      authority.country !== countryCode ||
+      authority.locale !== locale ||
+      authority.domain !== storefrontDomain)
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Notification market configuration does not match its canonical authority."
+    )
+  }
+
   return {
     country_code: countryCode,
+    ...(authority
+      ? {
+          expected_currency_code:
+            NOTIFICATION_MARKET_CURRENCIES[authority.market],
+        }
+      : {}),
     locale,
     market_code: marketCode,
     store_name: storeName,
@@ -118,13 +156,35 @@ function parseMarketConfiguration(
   }
 }
 
-function getChannelMarkets(channel: SalesChannelRecord) {
+function getChannelMarkets(
+  channel: SalesChannelRecord,
+  enforceCanonicalAuthority = false
+) {
   const value = channel.metadata?.[MARKET_CONFIGURATION_KEY]
   if (!isRecord(value)) {
     return []
   }
 
-  return Object.values(value).map(parseMarketConfiguration)
+  return Object.entries(value).map(([authorityKey, configuration]) =>
+    parseMarketConfiguration(
+      authorityKey,
+      enforceCanonicalAuthority,
+      configuration
+    )
+  )
+}
+
+export function salesChannelSupportsMarket(
+  channel: unknown,
+  marketCode: string
+): boolean {
+  if (!isSalesChannelRecord(channel)) {
+    return false
+  }
+  const normalizedMarketCode = normalizeCode(marketCode)
+  return getChannelMarkets(channel).some(
+    (configuration) => configuration.country_code === normalizedMarketCode
+  )
 }
 
 async function listAll<T>(
@@ -166,7 +226,7 @@ async function assertRegionConfiguration(
   const regions = await listAll<RegionRecord>(
     query,
     "region",
-    ["id", "countries.iso_2"],
+    ["id", "currency_code", "countries.iso_2"],
     isRegionRecord
   )
   const matchingRegions = regions.filter((region) =>
@@ -179,6 +239,16 @@ async function assertRegionConfiguration(
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Notification market must match exactly one configured Medusa region."
+    )
+  }
+
+  if (
+    normalizeCode(matchingRegions[0]?.currency_code) !==
+    market.expected_currency_code
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Notification market region must use its canonical currency."
     )
   }
 }
@@ -211,21 +281,42 @@ export async function resolveNotificationMarketContext(
     ["id", "metadata"],
     isSalesChannelRecord
   )
+  const configuredChannels = channels.map((salesChannel) => ({
+    marketConfigurations: getChannelMarkets(salesChannel, true),
+    salesChannel,
+  }))
+  const claimedMarketCodes = new Set<string>()
+  for (const { marketConfigurations } of configuredChannels) {
+    for (const configuration of marketConfigurations) {
+      if (claimedMarketCodes.has(configuration.market_code)) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Notification market authority must be unique across Sales Channels."
+        )
+      }
+      claimedMarketCodes.add(configuration.market_code)
+    }
+  }
   const eligibleChannels = normalizedSalesChannelId
-    ? channels.filter((channel) => channel.id === normalizedSalesChannelId)
-    : channels.filter((channel) => getChannelMarkets(channel).length > 0)
-
-  const candidates = eligibleChannels.flatMap((channel) =>
-    getChannelMarkets(channel)
-      .filter(
-        (configuration) =>
-          !normalizedCountryCode ||
-          configuration.country_code === normalizedCountryCode
+    ? configuredChannels.filter(
+        ({ salesChannel }) => salesChannel.id === normalizedSalesChannelId
       )
-      .map((configuration) => ({
-        marketConfiguration: configuration,
-        salesChannel: channel,
-      }))
+    : configuredChannels.filter(
+        ({ marketConfigurations }) => marketConfigurations.length > 0
+      )
+
+  const candidates = eligibleChannels.flatMap(
+    ({ marketConfigurations, salesChannel }) =>
+      marketConfigurations
+        .filter(
+          (configuration) =>
+            !normalizedCountryCode ||
+            configuration.country_code === normalizedCountryCode
+        )
+        .map((configuration) => ({
+          marketConfiguration: configuration,
+          salesChannel,
+        }))
   )
 
   if (candidates.length !== 1) {
@@ -243,8 +334,8 @@ export async function resolveNotificationMarketContext(
     )
   }
 
-  const { marketConfiguration, salesChannel } = candidate
+  const { marketConfiguration, salesChannel: resolvedSalesChannel } = candidate
   await assertRegionConfiguration(query, marketConfiguration)
 
-  return toContext(marketConfiguration, salesChannel.id)
+  return toContext(marketConfiguration, resolvedSalesChannel.id)
 }

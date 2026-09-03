@@ -211,7 +211,7 @@ importers:
         version: 2.18.0
       '@medusajs/types':
         specifier: ^2.18.0
-        version: 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
+        version: 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
       '@tanstack/react-form':
         specifier: ^1.27.4
         version: 1.27.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -220,7 +220,7 @@ importers:
         version: 5.90.10(react@19.2.3)
       '@techsio/storefront-data':
         specifier: workspace:*
-        version: file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@techsio/storefront-i18n':
         specifier: workspace:*
         version: file:libs/storefront-i18n(@medusajs/js-sdk@2.18.0)(next-intl@4.13.4(@swc/helpers@0.5.23)(next@16.3.0-preview.5(@babel/core@7.29.7(supports-color@8.1.1))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.0)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(react@19.2.3)(typescript@5.9.3))
@@ -264,6 +264,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.17
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@types/node':
         specifier: 24.12.4
         version: 24.12.4
@@ -282,6 +285,9 @@ importers:
       esbuild:
         specifier: 0.28.0
         version: 0.28.0
+      jsdom:
+        specifier: ^27.4.0
+        version: 27.4.0(supports-color@8.1.1)
       postcss:
         specifier: ^8.5.6
         version: 8.5.14
@@ -353,7 +359,7 @@ importers:
         version: 2.18.0
       '@medusajs/medusa':
         specifier: ^2.18.0
-        version: 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+        version: 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/ui':
         specifier: ^4.2.0
         version: 4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
@@ -507,7 +513,7 @@ importers:
     devDependencies:
       '@medusajs/medusa-oas-cli':
         specifier: ^2.18.0
-        version: 2.18.0(eba74a54e57d941e51e9650c0f97fc4b)
+        version: 2.18.0(bbf6064d62da1a7267c643cbf91691d5)
       '@medusajs/test-utils':
         specifier: ^2.18.0
         version: 2.18.0(4fc20f7692e271715c16fc3027a5bef6)
@@ -1005,6 +1011,18 @@ importers:
 
   libs/ui:
     dependencies:
+      '@dnd-kit/core':
+        specifier: ^6.3.1
+        version: 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/modifiers':
+        specifier: ^9.0.0
+        version: 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/sortable':
+        specifier: ^10.0.0
+        version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/utilities':
+        specifier: ^3.2.2
+        version: 3.2.2(react@19.2.3)
       '@iconify-json/mdi':
         specifier: ^1.2.3
         version: 1.2.3
@@ -1020,6 +1038,21 @@ importers:
       '@internationalized/date':
         specifier: ^3.12.2
         version: 3.12.2
+      '@tanstack/charts':
+        specifier: ^0.6.5
+        version: 0.6.5
+      '@tanstack/charts-scales':
+        specifier: ^0.6.5
+        version: 0.6.5
+      '@tanstack/react-charts':
+        specifier: ^0.6.5
+        version: 0.6.5(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-table':
+        specifier: ^9.1.2
+        version: 9.1.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-virtual':
+        specifier: ^3.14.8
+        version: 3.14.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@types/react':
         specifier: 19.2.3
         version: 19.2.3
@@ -1098,6 +1131,12 @@ importers:
       better-themes:
         specifier: ^1.1.0
         version: 1.1.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      d3-scale:
+        specifier: ^4.0.2
+        version: 4.0.2
+      d3-shape:
+        specifier: ^3.2.0
+        version: 3.2.0
       libphonenumber-js:
         specifier: ^1.13.2
         version: 1.13.2
@@ -1121,8 +1160,8 @@ importers:
         specifier: ^9.39.1
         version: 9.39.1
       '@figma/code-connect':
-        specifier: ^1.4.3
-        version: 1.4.3(supports-color@8.1.1)
+        specifier: ^2.0.0
+        version: 2.0.0(supports-color@8.1.1)
       '@iconify/json':
         specifier: ^2.2.409
         version: 2.2.409
@@ -1174,6 +1213,12 @@ importers:
       '@techsio/storybook-better-a11y':
         specifier: 0.1.3
         version: 0.1.3(@storybook/icons@2.0.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@10.4.5(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
+      '@types/d3-scale':
+        specifier: ^4.0.9
+        version: 4.0.9
+      '@types/d3-shape':
+        specifier: ^3.1.8
+        version: 3.2.0
       '@typescript-eslint/parser':
         specifier: ^8.47.0
         version: 8.47.0(eslint@9.39.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
@@ -1182,7 +1227,7 @@ importers:
         version: 9.39.1(jiti@2.7.0)(supports-color@8.1.1)
       eslint-plugin-tailwindcss:
         specifier: beta
-        version: 4.3.0-svelte.beta.2(eslint@9.39.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(tailwindcss@4.1.17)(typescript@5.9.3)
+        version: 4.4.1-beta.1(eslint@9.39.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(tailwindcss@4.1.17)(typescript@5.9.3)
       glob:
         specifier: ^11.0.2
         version: 11.0.3
@@ -3499,8 +3544,8 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
-  '@figma/code-connect@1.4.3':
-    resolution: {integrity: sha512-Tj3QMhx3pfBB0I0tgvT82FTVbJb+DnSEE8hTJ0K+d1/8XXgrBzG62I5K8OLG9Vj+OkVmdOnnbC4MDl4DgP5wLA==}
+  '@figma/code-connect@2.0.0':
+    resolution: {integrity: sha512-FNpemwBciNCpskBZ8TK0iRa+oZR5H6+NP8XVDawww8Vz1bFoIrPu0y3NvPR0xnjtrOhAu+3DXqZmSR4cb0V+2w==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -8885,6 +8930,12 @@ packages:
   '@tailwindcss/postcss@4.1.17':
     resolution: {integrity: sha512-+nKl9N9mN5uJ+M7dBOOCzINw94MPstNR/GtIhz1fpZysxL/4a+No64jCBD6CPN+bIHWFx3KWuu8XJRrj/572Dw==}
 
+  '@tanstack/charts-scales@0.6.5':
+    resolution: {integrity: sha512-5RiMqmvQ3Q3y2nGnVvbBjsjAG84ZE3qnarqQttjtrybO5H+vBhtkYebtdOgKDshl/gSYNO2YXoZuLqJu5QpEyw==}
+
+  '@tanstack/charts@0.6.5':
+    resolution: {integrity: sha512-37wwhwzfgXvwjFkFnH6y+wH8+ho7AuXevN9TuUf34lGvEiQZfdf1SRnT8Y6/4en/HyaHK2lC8EISYJ6AnxzL8w==}
+
   '@tanstack/devtools-event-client@0.4.0':
     resolution: {integrity: sha512-RPfGuk2bDZgcu9bAJodvO2lnZeHuz4/71HjZ0bGb/SPg8+lyTA+RLSKQvo7fSmPSi8/vcH3aKQ8EM9ywf1olaw==}
     engines: {node: '>=18'}
@@ -8911,6 +8962,12 @@ packages:
 
   '@tanstack/query-devtools@5.92.0':
     resolution: {integrity: sha512-N8D27KH1vEpVacvZgJL27xC6yPFUy0Zkezn5gnB3L3gRCxlDeSuiya7fKge8Y91uMTnC8aSxBQhcK6ocY7alpQ==}
+
+  '@tanstack/react-charts@0.6.5':
+    resolution: {integrity: sha512-26GsbPKbEsFZaXwUKvRnbufK2vGTGPthAgHO3piYWOKzLM0Kg7sEMIKRngU8EM8+tdIWOgEBSBMXXqDwsPlSEg==}
+    peerDependencies:
+      react: 19.2.3
+      react-dom: 19.2.3
 
   '@tanstack/react-form@1.27.7':
     resolution: {integrity: sha512-xTg4qrUY0fuLaSnkATLZcK3BWlnwLp7IuAb6UTbZKngiDEvvDCNTvVvHgPlgef1O2qN4klZxInRyRY6oEkXZ2A==}
@@ -8942,6 +8999,12 @@ packages:
     peerDependencies:
       react: 19.2.3
 
+  '@tanstack/react-store@0.11.1':
+    resolution: {integrity: sha512-HaIGKI3YLmjBYIvy5DFDY23oNaYZIsTZfngey07Uh5iLVJgM3bIGCnZeOFOqzjFld9JHWcaHJnasD/bKoGKwJQ==}
+    peerDependencies:
+      react: 19.2.3
+      react-dom: 19.2.3
+
   '@tanstack/react-store@0.8.0':
     resolution: {integrity: sha512-1vG9beLIuB7q69skxK9r5xiLN3ztzIPfSQSs0GfeqWGO2tGIyInZx0x1COhpx97RKaONSoAb8C3dxacWksm1ow==}
     peerDependencies:
@@ -8955,11 +9018,20 @@ packages:
       react: 19.2.3
       react-dom: 19.2.3
 
+  '@tanstack/react-table@9.1.2':
+    resolution: {integrity: sha512-YQPZFJ1nIi/bjjwsPZVouABgahDcl7Gdm33CdTStUJBn0DjEVJ2uhSTVmIoWt9MVKdQziXGAsXipSzy949Hygg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      react: 19.2.3
+
   '@tanstack/react-virtual@3.14.8':
     resolution: {integrity: sha512-O39GJQpAYEJcIu3uN1//YtmhjSEOyw75vg9CKCatBDPiD5hKtZQoJHfferyrB/LdOD3UWaoMLWtdEjarwIwdDw==}
     peerDependencies:
       react: 19.2.3
       react-dom: 19.2.3
+
+  '@tanstack/store@0.11.1':
+    resolution: {integrity: sha512-mzTOBhypOuDJAy/D8n2MfUZ1HFkXnmSETviRyhqEC8LUE7/IZQExOTxMANj3KjTofYTkFNpBY67qaVrT41YccA==}
 
   '@tanstack/store@0.7.7':
     resolution: {integrity: sha512-xa6pTan1bcaqYDS9BDpSiS63qa6EoDkPN9RsRaxHuDdVDNntzq3xNwR5YKTU/V3SkSyC9T4YVOPh2zRQN0nhIQ==}
@@ -8970,6 +9042,10 @@ packages:
   '@tanstack/table-core@8.20.5':
     resolution: {integrity: sha512-P9dF7XbibHph2PFRz8gfBKEXEY/HJPOhym8CHmjF8y3q5mWpKx9xtZapXQUWCgkqvsK0R46Azuz+VaxD4Xl+Tg==}
     engines: {node: '>=12'}
+
+  '@tanstack/table-core@9.1.2':
+    resolution: {integrity: sha512-ONpWQeass1sfg80CWF1NSwQ8r3GiqxA2lT/EdqIcrDEPZ0Z+0mM94eQoFYLPN0Kztzj8TQVb2+PrSZSItqA61g==}
+    engines: {node: '>=20'}
 
   '@tanstack/virtual-core@3.17.6':
     resolution: {integrity: sha512-h0/Ebo18CkOrChlQIhNtQkM5ySUnh/GumQ/D1st3hG2HWUPEF+ILUc2k29UtivCi/9G7w7G3/f7Xyd5cCFbKBw==}
@@ -9136,6 +9212,21 @@ packages:
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
 
+  '@types/d3-geo@3.1.1':
+    resolution: {integrity: sha512-65Emv9fQiQQqphLlRkuQ5ypPsOmWPhtBGCMv61JDPEPMvsx+gzhGf74yw1a78xFKPj6zw4AgQICJoQv0vK9M2w==}
+
+  '@types/d3-path@3.1.1':
+    resolution: {integrity: sha512-VMZBYyQvbGmWyWVea0EHs/BwLgxc+MKi1zLDCONksozI4YJMcTt8ZEuIR4Sb1MMTE8MMW49v0IwI5+b7RmfWlg==}
+
+  '@types/d3-scale@4.0.9':
+    resolution: {integrity: sha512-dLmtwB8zkAeO/juAMfnV+sItKjlsw2lKdZVVy6LRr0cBmegxSABiLEpGVmSJJ8O08i4+sGR6qQtb6WtuwJdvVw==}
+
+  '@types/d3-shape@3.2.0':
+    resolution: {integrity: sha512-kVd74ta9eof3eJOvbNd1vGKS/XERRyQbT26Og63hIsvDO84cjD5gEOhsXf26w3FSoNlPVz84DOFcKv/oou+fMw==}
+
+  '@types/d3-time@3.0.4':
+    resolution: {integrity: sha512-yuzZug1nkAAaBlBBikKZTgzCeA+k1uy4ZFwWANOfKw5z5LRhV0gNA7gNkKm7HoK+HRN0wX3EkxGk0fpbWhmB7g==}
+
   '@types/debug@4.1.13':
     resolution: {integrity: sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw==}
 
@@ -9171,6 +9262,9 @@ packages:
 
   '@types/express@4.17.25':
     resolution: {integrity: sha512-dVd04UKsfpINUnK0yBoYHDF3xu7xVH4BuDotC/xGuycx4CgbP48X/KF/586bcObxT0HENHXEU8Nqtu6NR+eKhw==}
+
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
 
   '@types/hast@3.0.5':
     resolution: {integrity: sha512-rp/ezSWaD1m44dPKICGhiskI13nVr7qTloFwDa/IYkhhf5nzwP+zIQcIJh3WIFSBOy/H1PzB40jPjMDksN4F+g==}
@@ -10691,9 +10785,6 @@ packages:
   brace-expansion@1.1.16:
     resolution: {integrity: sha512-IDw48K2/2kRkg9LdJxurvq3lV3aBgq0REY89duEqFRthjlPdXHKMj7EnQOXVckxzgisinf3nHfrcE2FufFLXMw==}
 
-  brace-expansion@2.0.1:
-    resolution: {integrity: sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==}
-
   brace-expansion@2.1.2:
     resolution: {integrity: sha512-w5JZcKgdhDOgOwm8H+KgbosopHMuGcl6qbulwjtz3SM7I7P3yW1eAjzMPLrIE+NQ9vjgANKHWeMHnrT0OXW1oA==}
 
@@ -11459,6 +11550,46 @@ packages:
     resolution: {integrity: sha512-YGZxdTTL9lmLkCUTpg4j0zQ7IhRB5ZmqNBbGCl3Tg6MP/d5/6sY7L5mmTjzbc6JKgVZYiqTQTNhPFsbXNGlRaA==}
     engines: {node: '>=0.8'}
 
+  d3-array@3.2.4:
+    resolution: {integrity: sha512-tdQAmyA18i4J7wprpYq8ClcxZy3SC31QMeByyCFyRt7BVHdREQZ5lpzoe5mFEYZUWe+oq8HBvk9JjpibyEV4Jg==}
+    engines: {node: '>=12'}
+
+  d3-color@3.1.0:
+    resolution: {integrity: sha512-zg/chbXyeBtMQ1LbD/WSoW2DpC3I0mpmPdW+ynRTj/x2DAWYrIY7qeZIHidozwV24m4iavr15lNwIwLxRmOxhA==}
+    engines: {node: '>=12'}
+
+  d3-format@3.1.2:
+    resolution: {integrity: sha512-AJDdYOdnyRDV5b6ArilzCPPwc1ejkHcoyFarqlPqT7zRYjhavcT3uSrqcMvsgh2CgoPbK3RCwyHaVyxYcP2Arg==}
+    engines: {node: '>=12'}
+
+  d3-geo@3.1.1:
+    resolution: {integrity: sha512-637ln3gXKXOwhalDzinUgY83KzNWZRKbYubaG+fGVuc/dxO64RRljtCTnf5ecMyE1RIdtqpkVcq0IbtU2S8j2Q==}
+    engines: {node: '>=12'}
+
+  d3-interpolate@3.0.1:
+    resolution: {integrity: sha512-3bYs1rOD33uo8aqJfKP3JWPAibgw8Zm2+L9vBKEHJ2Rg+viTR7o5Mmv5mZcieN+FRYaAOWX5SJATX6k1PWz72g==}
+    engines: {node: '>=12'}
+
+  d3-path@3.1.0:
+    resolution: {integrity: sha512-p3KP5HCf/bvjBSSKuXid6Zqijx7wIfNW+J/maPs+iwR35at5JCbLUT0LzF1cnjbCHWhqzQTIN2Jpe8pRebIEFQ==}
+    engines: {node: '>=12'}
+
+  d3-scale@4.0.2:
+    resolution: {integrity: sha512-GZW464g1SH7ag3Y7hXjf8RoUuAFIqklOAq3MRl4OaWabTFJY9PN/E1YklhXLh+OQ3fM9yS2nOkCoS+WLZ6kvxQ==}
+    engines: {node: '>=12'}
+
+  d3-shape@3.2.0:
+    resolution: {integrity: sha512-SaLBuwGm3MOViRq2ABk3eLoxwZELpH6zhl3FbAoJ7Vm1gofKx6El1Ib5z23NUEhF9AsGl7y+dzLe5Cw2AArGTA==}
+    engines: {node: '>=12'}
+
+  d3-time-format@4.1.0:
+    resolution: {integrity: sha512-dJxPBlzC7NugB2PDLwo9Q8JiTR3M3e4/XANkreKSUxF8vvXKqm1Yfq4Q5dl8budlunRVlUUaDUgFt7eA8D6NLg==}
+    engines: {node: '>=12'}
+
+  d3-time@3.1.0:
+    resolution: {integrity: sha512-VqKjzBLejbSMT4IgbmVgDjpkYrNWUYJnbCGo874u7MMKIWsILRX+OpX/gTk8MqjpT1A/c6HY2dCA77ZN0lkQ2Q==}
+    engines: {node: '>=12'}
+
   d@1.0.2:
     resolution: {integrity: sha512-MOqHvMWF9/9MX6nza0KgvFH4HpMU0EF5uUDXqX/BtxtU8NfB0QzRtJ8Oe/6SuS4kbhyzVJwjd97EA4PKrzJ8bw==}
     engines: {node: '>=0.12'}
@@ -12068,6 +12199,11 @@ packages:
     peerDependencies:
       esbuild: '>=0.12 <1'
 
+  esbuild-wasm@0.27.3:
+    resolution: {integrity: sha512-AUXuOxZ145/5Az+lIqk6TdJbxKTyDGkXMJpTExmBdbnHR6n6qAFx+F4oG9ORpVYJ9dQYeQAqzv51TO4DFKsbXw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   esbuild@0.18.20:
     resolution: {integrity: sha512-ceqxoedUrcayh7Y7ZX6NdbbDzGROiyVBgC4PriJThBKSVPWnnFHZAkfI1lJT8QFkOwH4qOS2SJkS4wvpGl8BpA==}
     engines: {node: '>=12'}
@@ -12193,8 +12329,8 @@ packages:
     peerDependencies:
       eslint: ^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7
 
-  eslint-plugin-tailwindcss@4.3.0-svelte.beta.2:
-    resolution: {integrity: sha512-gywHsSccGxfEI1ah9qG+N5oNXZS7rxOk7OheQSZf16UObNfL/drLQHpiRypbicYENP6qEjWngMVwnhkVYj8sCA==}
+  eslint-plugin-tailwindcss@4.4.1-beta.1:
+    resolution: {integrity: sha512-qwRyTBA9QpSzrCIx9QrVlfcXY/QNDTRTOJPidhTpJjJZDD9e2S/p66fRhERAWddDvPaqBJ4QzAb+u3CZ7uXrUg==}
     engines: {node: '>=20.19.0'}
     peerDependencies:
       eslint: ^9.0.0 || ^10.0.0
@@ -12227,6 +12363,7 @@ packages:
   eslint@9.39.1:
     resolution: {integrity: sha512-BhHmn2yNOFA9H9JmmIVKJmd288g9hrVRDkdoIgRCRuSySRUHH7r/DI6aAXW9T1WwUuY3DFgrcaqB+deURBLR5g==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -13295,6 +13432,10 @@ packages:
   internal-slot@1.1.0:
     resolution: {integrity: sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw==}
     engines: {node: '>= 0.4'}
+
+  internmap@2.0.3:
+    resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
+    engines: {node: '>=12'}
 
   interpret@2.2.0:
     resolution: {integrity: sha512-Ju0Bz/cEia55xDwUWEa8+olFpCiQoypjnQySseKtmjNrnps3P+xfpUmGr90T7yjlVJmOtybRvPXhKMbHr+fWnw==}
@@ -14964,10 +15105,6 @@ packages:
 
   minimatch@3.1.5:
     resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
-
-  minimatch@5.1.6:
-    resolution: {integrity: sha512-lKwV/1brpG6mBUFHtb7NUmtABCb2WZZmm2wNiOA5hAb8VdCS4B3dtMWyvcoViccwAW/COERjXLt0zP1zXUN26g==}
-    engines: {node: '>=10'}
 
   minimatch@5.1.9:
     resolution: {integrity: sha512-7o1wEA2RyMP7Iu7GNba9vc0RWWGACJOCZBJX2GJWip0ikV+wcOsgVuY9uE8CPiyQhkGFSlhuSkZPavN7u1c2Fw==}
@@ -18169,6 +18306,11 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   ufo@1.6.1:
     resolution: {integrity: sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA==}
 
@@ -18218,10 +18360,6 @@ packages:
 
   undici@7.16.0:
     resolution: {integrity: sha512-QEg3HPMll0o3t2ourKwOeUAZ159Kn9mx5pnzHRQO8+Wixmh88YdZRiIwat0iNzNNXn0yoEtXJqFpyW7eM8BV7g==}
-    engines: {node: '>=20.18.1'}
-
-  undici@7.24.6:
-    resolution: {integrity: sha512-Xi4agocCbRzt0yYMZGMA6ApD7gvtUFaxm4ZmeacWI4cZxaF6C+8I8QfofC20NAePiB/IcvZmzkJ7XPa471AEtA==}
     engines: {node: '>=20.18.1'}
 
   undici@7.28.0:
@@ -21625,7 +21763,7 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
-  '@figma/code-connect@1.4.3(supports-color@8.1.1)':
+  '@figma/code-connect@2.0.0(supports-color@8.1.1)':
     dependencies:
       boxen: 5.1.1
       chalk: 4.1.2
@@ -21633,20 +21771,21 @@ snapshots:
       compare-versions: 6.1.1
       cross-spawn: 7.0.6
       dotenv: 16.6.1
+      esbuild-wasm: 0.27.3
       fast-fuzzy: 1.12.0
       find-up: 5.0.0
       glob: 11.1.0
       jsdom: 24.1.3(supports-color@8.1.1)
-      lodash: 4.17.23
-      minimatch: 9.0.5
+      lodash: 4.18.1
+      minimatch: 9.0.9
       ora: 5.4.1
       parse5: 7.3.0
       prettier: 2.8.8
       prompts: 2.4.2
       strip-ansi: 6.0.1
       ts-morph: 27.0.2
-      typescript: 5.9.3
-      undici: 7.24.6
+      typescript: 6.0.3
+      undici: 7.28.0
       zod: 3.25.58
       zod-validation-error: 3.5.1(zod@3.25.58)
     transitivePeerDependencies:
@@ -23862,9 +24001,9 @@ snapshots:
     dependencies:
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
 
-  '@medusajs/medusa-oas-cli@2.18.0(eba74a54e57d941e51e9650c0f97fc4b)':
+  '@medusajs/medusa-oas-cli@2.18.0(bbf6064d62da1a7267c643cbf91691d5)':
     dependencies:
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/utils': 2.18.0(@types/node@24.12.4)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)
       '@readme/json-schema-ref-parser': 1.2.0
       '@readme/openapi-parser': 2.7.0(openapi-types@12.1.3)
@@ -23925,7 +24064,7 @@ snapshots:
       - yalc
       - yaml
 
-  '@medusajs/medusa@2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)':
+  '@medusajs/medusa@2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)':
     dependencies:
       '@inquirer/checkbox': 2.5.0
       '@inquirer/confirm': 2.0.17
@@ -24335,7 +24474,7 @@ snapshots:
       - supports-color
       - tedious
 
-  '@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))':
     dependencies:
       '@medusajs/deps': 2.18.0(@types/node@24.12.4)(mysql2@3.15.3)(supports-color@8.1.1)
       bignumber.js: 9.3.1
@@ -24637,7 +24776,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.11.1
       '@emnapi/runtime': 1.11.1
-      '@tybys/wasm-util': 0.10.1
+      '@tybys/wasm-util': 0.10.3
     optional: true
 
   '@napi-rs/wasm-runtime@1.1.1':
@@ -27585,7 +27724,7 @@ snapshots:
       '@medusajs/admin-sdk': 2.18.0
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
       '@medusajs/js-sdk': 2.18.0
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/ui': 4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
       '@medusajs/utils': 2.18.0(@types/node@24.12.4)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)
       '@medusajs/workflows-sdk': 2.18.0(@types/node@24.12.4)(express@4.22.2(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)
@@ -28509,6 +28648,17 @@ snapshots:
       postcss: 8.5.6
       tailwindcss: 4.1.17
 
+  '@tanstack/charts-scales@0.6.5': {}
+
+  '@tanstack/charts@0.6.5':
+    dependencies:
+      '@types/d3-geo': 3.1.1
+      '@types/d3-shape': 3.2.0
+      d3-array: 3.2.4
+      d3-geo: 3.1.1
+      d3-scale: 4.0.2
+      d3-shape: 3.2.0
+
   '@tanstack/devtools-event-client@0.4.0': {}
 
   '@tanstack/form-core@1.27.7':
@@ -28533,6 +28683,12 @@ snapshots:
   '@tanstack/query-core@5.90.14': {}
 
   '@tanstack/query-devtools@5.92.0': {}
+
+  '@tanstack/react-charts@0.6.5(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@tanstack/charts': 0.6.5
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
 
   '@tanstack/react-form@1.27.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
@@ -28563,6 +28719,13 @@ snapshots:
       '@tanstack/query-core': 5.90.14
       react: 19.2.3
 
+  '@tanstack/react-store@0.11.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@tanstack/store': 0.11.1
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      use-sync-external-store: 1.6.0(react@19.2.3)
+
   '@tanstack/react-store@0.8.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@tanstack/store': 0.8.0
@@ -28576,11 +28739,21 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
+  '@tanstack/react-table@9.1.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@tanstack/react-store': 0.11.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/table-core': 9.1.2
+      react: 19.2.3
+    transitivePeerDependencies:
+      - react-dom
+
   '@tanstack/react-virtual@3.14.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@tanstack/virtual-core': 3.17.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
+
+  '@tanstack/store@0.11.1': {}
 
   '@tanstack/store@0.7.7': {}
 
@@ -28588,12 +28761,16 @@ snapshots:
 
   '@tanstack/table-core@8.20.5': {}
 
+  '@tanstack/table-core@9.1.2':
+    dependencies:
+      '@tanstack/store': 0.11.1
+
   '@tanstack/virtual-core@3.17.6': {}
 
-  '@techsio/storefront-data@file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@techsio/storefront-data@file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@medusajs/js-sdk': 2.18.0
-      '@medusajs/types': 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@medusajs/types': 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
       '@tanstack/react-query': 5.90.10(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
@@ -28626,11 +28803,20 @@ snapshots:
 
   '@techsio/ui-kit@file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(tailwindcss@4.1.17)':
     dependencies:
+      '@dnd-kit/core': 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/utilities': 3.2.2(react@19.2.3)
       '@iconify-json/mdi': 1.2.3
       '@iconify-json/mdi-light': 1.2.2
       '@iconify-json/svg-spinners': 1.2.4
       '@iconify/tailwind4': 1.1.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(tailwindcss@4.1.17)
       '@internationalized/date': 3.12.2
+      '@tanstack/charts': 0.6.5
+      '@tanstack/charts-scales': 0.6.5
+      '@tanstack/react-charts': 0.6.5(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-table': 9.1.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-virtual': 3.14.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@types/react': 19.2.3
       '@types/react-dom': 19.2.3(@types/react@19.2.3)
       '@zag-js/accordion': 1.42.0
@@ -28657,6 +28843,8 @@ snapshots:
       '@zag-js/tooltip': 1.42.0
       '@zag-js/tree-view': 1.42.0
       better-themes: 1.1.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      d3-scale: 4.0.2
+      d3-shape: 3.2.0
       libphonenumber-js: 1.13.8
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
@@ -28670,11 +28858,20 @@ snapshots:
 
   '@techsio/ui-kit@file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(tailwindcss@4.2.4)':
     dependencies:
+      '@dnd-kit/core': 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/utilities': 3.2.2(react@19.2.3)
       '@iconify-json/mdi': 1.2.3
       '@iconify-json/mdi-light': 1.2.2
       '@iconify-json/svg-spinners': 1.2.4
       '@iconify/tailwind4': 1.1.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(tailwindcss@4.2.4)
       '@internationalized/date': 3.12.2
+      '@tanstack/charts': 0.6.5
+      '@tanstack/charts-scales': 0.6.5
+      '@tanstack/react-charts': 0.6.5(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-table': 9.1.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-virtual': 3.14.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@types/react': 19.2.3
       '@types/react-dom': 19.2.3(@types/react@19.2.3)
       '@zag-js/accordion': 1.42.0
@@ -28701,6 +28898,8 @@ snapshots:
       '@zag-js/tooltip': 1.42.0
       '@zag-js/tree-view': 1.42.0
       better-themes: 1.1.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      d3-scale: 4.0.2
+      d3-shape: 3.2.0
       libphonenumber-js: 1.13.8
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
@@ -28850,6 +29049,22 @@ snapshots:
     dependencies:
       '@types/node': 24.12.4
 
+  '@types/d3-geo@3.1.1':
+    dependencies:
+      '@types/geojson': 7946.0.16
+
+  '@types/d3-path@3.1.1': {}
+
+  '@types/d3-scale@4.0.9':
+    dependencies:
+      '@types/d3-time': 3.0.4
+
+  '@types/d3-shape@3.2.0':
+    dependencies:
+      '@types/d3-path': 3.1.1
+
+  '@types/d3-time@3.0.4': {}
+
   '@types/debug@4.1.13':
     dependencies:
       '@types/ms': 2.1.0
@@ -28895,6 +29110,8 @@ snapshots:
       '@types/express-serve-static-core': 4.19.9
       '@types/qs': 6.15.1
       '@types/serve-static': 1.15.10
+
+  '@types/geojson@7946.0.16': {}
 
   '@types/hast@3.0.5':
     dependencies:
@@ -29250,7 +29467,7 @@ snapshots:
       '@typescript-eslint/types': 8.53.0
       '@typescript-eslint/visitor-keys': 8.53.0
       debug: 4.4.3(supports-color@8.1.1)
-      minimatch: 9.0.5
+      minimatch: 9.0.9
       semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.4.0(typescript@5.9.3)
@@ -29534,7 +29751,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.5)(happy-dom@20.10.6)(jsdom@27.4.0(supports-color@8.1.1))(msw@2.12.10(@types/node@24.12.4)(typescript@5.9.3))(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
+      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.5)(happy-dom@20.10.6)(jsdom@27.4.0(supports-color@8.1.1))(msw@2.12.10(@types/node@24.12.4)(typescript@5.9.3))(vite@8.1.3(@types/node@24.12.4)(esbuild@0.27.3)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.7.1))
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -30374,7 +30591,7 @@ snapshots:
 
   acorn-walk@8.3.4:
     dependencies:
-      acorn: 8.16.0
+      acorn: 8.17.0
 
   acorn@7.4.1: {}
 
@@ -30951,10 +31168,6 @@ snapshots:
     dependencies:
       balanced-match: 1.0.2
       concat-map: 0.0.1
-
-  brace-expansion@2.0.1:
-    dependencies:
-      balanced-match: 1.0.2
 
   brace-expansion@2.1.2:
     dependencies:
@@ -31770,6 +31983,44 @@ snapshots:
       find-pkg: 0.1.2
       fs-exists-sync: 0.1.0
 
+  d3-array@3.2.4:
+    dependencies:
+      internmap: 2.0.3
+
+  d3-color@3.1.0: {}
+
+  d3-format@3.1.2: {}
+
+  d3-geo@3.1.1:
+    dependencies:
+      d3-array: 3.2.4
+
+  d3-interpolate@3.0.1:
+    dependencies:
+      d3-color: 3.1.0
+
+  d3-path@3.1.0: {}
+
+  d3-scale@4.0.2:
+    dependencies:
+      d3-array: 3.2.4
+      d3-format: 3.1.2
+      d3-interpolate: 3.0.1
+      d3-time: 3.1.0
+      d3-time-format: 4.1.0
+
+  d3-shape@3.2.0:
+    dependencies:
+      d3-path: 3.1.0
+
+  d3-time-format@4.1.0:
+    dependencies:
+      d3-time: 3.1.0
+
+  d3-time@3.1.0:
+    dependencies:
+      d3-array: 3.2.4
+
   d@1.0.2:
     dependencies:
       es5-ext: 0.10.64
@@ -32387,6 +32638,8 @@ snapshots:
       - supports-color
     optional: true
 
+  esbuild-wasm@0.27.3: {}
+
   esbuild@0.18.20:
     optionalDependencies:
       '@esbuild/android-arm': 0.18.20
@@ -32608,7 +32861,7 @@ snapshots:
       hasown: 2.0.3
       is-core-module: 2.16.2
       is-glob: 4.0.3
-      minimatch: 3.1.2
+      minimatch: 3.1.5
       object.fromentries: 2.0.8
       object.groupby: 1.0.3
       object.values: 1.2.1
@@ -32636,7 +32889,7 @@ snapshots:
       hasown: 2.0.3
       jsx-ast-utils: 3.3.5
       language-tags: 1.0.9
-      minimatch: 3.1.2
+      minimatch: 3.1.5
       object.fromentries: 2.0.8
       safe-regex-test: 1.1.0
       string.prototype.includes: 2.0.1
@@ -32664,7 +32917,7 @@ snapshots:
       estraverse: 5.3.0
       hasown: 2.0.3
       jsx-ast-utils: 3.3.5
-      minimatch: 3.1.2
+      minimatch: 3.1.5
       object.entries: 1.1.9
       object.fromentries: 2.0.8
       object.values: 1.2.1
@@ -32674,7 +32927,7 @@ snapshots:
       string.prototype.matchall: 4.0.12
       string.prototype.repeat: 1.0.0
 
-  eslint-plugin-tailwindcss@4.3.0-svelte.beta.2(eslint@9.39.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(tailwindcss@4.1.17)(typescript@5.9.3):
+  eslint-plugin-tailwindcss@4.4.1-beta.1(eslint@9.39.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(tailwindcss@4.1.17)(typescript@5.9.3):
     dependencies:
       '@typescript-eslint/utils': 8.59.1(eslint@9.39.1(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
       eslint: 9.39.1(jiti@2.7.0)(supports-color@8.1.1)
@@ -33466,15 +33719,15 @@ snapshots:
       foreground-child: 3.3.1
       jackspeak: 4.1.1
       minimatch: 10.2.5
-      minipass: 7.1.2
+      minipass: 7.1.3
       package-json-from-dist: 1.0.1
-      path-scurry: 2.0.1
+      path-scurry: 2.0.2
 
   glob@12.0.0:
     dependencies:
       foreground-child: 3.3.1
       jackspeak: 4.1.1
-      minimatch: 10.1.1
+      minimatch: 10.2.5
       minipass: 7.1.2
       package-json-from-dist: 1.0.1
       path-scurry: 2.0.1
@@ -33977,6 +34230,8 @@ snapshots:
       es-errors: 1.3.0
       hasown: 2.0.4
       side-channel: 1.1.1
+
+  internmap@2.0.3: {}
 
   interpret@2.2.0: {}
 
@@ -34802,7 +35057,7 @@ snapshots:
       cssstyle: 4.6.0
       data-urls: 5.0.0
       decimal.js: 10.6.0
-      form-data: 4.0.5
+      form-data: 4.0.6
       html-encoding-sniffer: 4.0.0
       http-proxy-agent: 7.0.2(supports-color@8.1.1)
       https-proxy-agent: 7.0.6(supports-color@8.1.1)
@@ -34818,7 +35073,7 @@ snapshots:
       whatwg-encoding: 3.1.1
       whatwg-mimetype: 4.0.0
       whatwg-url: 14.2.0
-      ws: 8.21.0
+      ws: 8.21.1
       xml-name-validator: 5.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -35748,7 +36003,7 @@ snapshots:
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
       '@medusajs/icons': 2.18.0(react@19.2.3)
       '@medusajs/js-sdk': 2.18.0
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/ui': 4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
       '@tanstack/react-query': 5.64.2(react@19.2.3)
       react: 19.2.3
@@ -35761,7 +36016,7 @@ snapshots:
       '@mdxeditor/editor': 4.2.0(@codemirror/language@6.12.3)(@lezer/highlight@1.2.3)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(typescript@5.9.3)(yjs@13.6.30)
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
       '@medusajs/js-sdk': 2.18.0
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@shikijs/rehype': 4.3.1
       multer: 2.2.0
       rehype-sanitize: 6.0.0
@@ -35790,7 +36045,7 @@ snapshots:
       '@medusajs/cli': 2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)
       '@medusajs/framework': 2.18.0(@medusajs/cli@2.18.0(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1))(@types/node@24.12.4)(debug@4.4.3(supports-color@8.1.1))(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))(zod@4.4.3)
       '@medusajs/icons': 2.18.0(react@19.2.3)
-      '@medusajs/medusa': 2.18.0(8d85190fcba0d1ec8c6ed57af1db96cc)
+      '@medusajs/medusa': 2.18.0(0afb163bbd918071ed7ed2c0cc7f68ac)
       '@medusajs/ui': 4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
       jose: 6.2.3
       react: 19.2.3
@@ -36167,17 +36422,13 @@ snapshots:
     dependencies:
       brace-expansion: 1.1.16
 
-  minimatch@5.1.6:
-    dependencies:
-      brace-expansion: 2.1.2
-
   minimatch@5.1.9:
     dependencies:
       brace-expansion: 2.1.2
 
   minimatch@9.0.5:
     dependencies:
-      brace-expansion: 2.0.1
+      brace-expansion: 2.1.2
 
   minimatch@9.0.9:
     dependencies:
@@ -38163,7 +38414,7 @@ snapshots:
 
   readdir-glob@1.1.3:
     dependencies:
-      minimatch: 5.1.6
+      minimatch: 5.1.9
 
   readdirp@3.6.0:
     dependencies:
@@ -39560,7 +39811,7 @@ snapshots:
     dependencies:
       '@istanbuljs/schema': 0.1.3
       glob: 7.2.3
-      minimatch: 3.1.2
+      minimatch: 3.1.5
 
   text-hex@1.0.0: {}
 
@@ -39774,7 +40025,7 @@ snapshots:
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
       '@types/node': 24.12.4
-      acorn: 8.16.0
+      acorn: 8.17.0
       acorn-walk: 8.3.4
       arg: 4.1.3
       create-require: 1.1.1
@@ -39794,7 +40045,7 @@ snapshots:
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
       '@types/node': 24.12.4
-      acorn: 8.16.0
+      acorn: 8.17.0
       acorn-walk: 8.3.4
       arg: 4.1.3
       create-require: 1.1.1
@@ -39920,6 +40171,8 @@ snapshots:
 
   typescript@5.9.3: {}
 
+  typescript@6.0.3: {}
+
   ufo@1.6.1: {}
 
   uglify-js@3.19.3:
@@ -39978,8 +40231,6 @@ snapshots:
   undici@6.27.0: {}
 
   undici@7.16.0: {}
-
-  undici@7.24.6: {}
 
   undici@7.28.0: {}
 

@@ -1,6 +1,6 @@
 // biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: The proxy is an explicit closed grammar and fail-closed boundary for hosts, methods, paths, and canonicalization.
-import { normalizeHost, ROUTES } from "@/lib/market/market-runtime-definitions"
-import { parseAllowedMarkets } from "@/lib/market/market-runtime-environment"
+import { createMarketRoutingRuntime } from "@/lib/market/market-runtime"
+import { normalizeHost } from "@/lib/market/market-runtime-definitions"
 import {
   parseAccountChildSegment,
   parseCheckoutChildSegment,
@@ -9,7 +9,14 @@ import {
   ROUTE_SEGMENT_REGISTRY,
 } from "@/lib/url/segments"
 import { validatePublishedSlug } from "@/lib/url/slug"
-import type { Market, RootSegmentMatch } from "@/lib/url/types"
+import type {
+  Market,
+  MarketRouteSegments,
+  RootSegmentMatch,
+} from "@/lib/url/types"
+import { resolveLegacyOfficialCategoryRedirect } from "./legacy-official-redirects"
+import { resolveOfficialContentSectionRedirect } from "./official-content-section-redirects"
+import { resolveOfficialStaticRedirect } from "./official-static-redirects"
 import { isPrivatePagesPath } from "./private-pages-path"
 
 export type PublicProxyAction =
@@ -18,6 +25,11 @@ export type PublicProxyAction =
       allow?: "GET, HEAD"
       kind: "respond"
       status: 204 | 400 | 404 | 405 | 421
+    }>
+  | Readonly<{
+      kind: "redirect"
+      location: string
+      status: 308
     }>
   | Readonly<{
       canonicalOrigin: string
@@ -35,6 +47,7 @@ type ResolvePublicProxyInput = Readonly<{
   host: string | null
   method: string
   pathname: string
+  resolveUnknownStaticPaths?: boolean
 }>
 
 type ParsedPath = Readonly<{
@@ -60,19 +73,20 @@ const hasForbiddenDecodedCharacter = (value: string) =>
     )
   })
 const ENTITY_KINDS = {
-  products: { detail: "products", index: "products/index", route: "product" },
+  products: { detail: "products", index: "products", route: "product" },
   categories: {
     detail: "category",
-    index: "categories/index",
+    index: "categories",
     route: "category",
   },
-  brands: { detail: "brand", index: "brands/index", route: "brand" },
+  brands: { detail: "brand", index: "brands", route: "brand" },
   collections: {
     detail: "collection",
-    index: "collections/index",
+    index: "collections",
     route: "collection",
   },
-  advice: { detail: "advice", index: "advice/index", route: "article" },
+  campaigns: { detail: "campaign", index: "campaigns", route: "campaign" },
+  advice: { detail: "advice", index: "advice", route: "article" },
   information: { detail: "information", index: null, route: "page" },
 } as const
 
@@ -124,34 +138,26 @@ const parsePath = (pathname: string): ParsedPath | null => {
   }
 }
 
-const hostOwnership = (
+const routingBindingsByHost = (
   environment: Readonly<Record<string, string | undefined>>
-): Readonly<Record<string, Market>> => {
-  let allowedMarkets: readonly Market[]
+): Readonly<
+  Record<string, Readonly<{ canonicalOrigin: string; market: Market }>>
+> => {
   try {
-    allowedMarkets = parseAllowedMarkets(environment)
+    const runtime = createMarketRoutingRuntime(environment)
+    return Object.freeze(
+      Object.fromEntries(
+        Object.entries(runtime.marketByHost).flatMap(([host, market]) => {
+          const binding = runtime.bindings[market]
+          return binding
+            ? [[host, { canonicalOrigin: binding.canonicalOrigin, market }]]
+            : []
+        })
+      )
+    )
   } catch {
     return {}
   }
-  const ownership: Record<string, Market> = {}
-  for (const market of allowedMarkets) {
-    ownership[new URL(ROUTES[market].canonicalOrigin).hostname] = market
-    const extra =
-      environment[`HERBATICA_ACCEPTED_HOSTS_${market.toUpperCase()}`]
-    for (const value of extra?.split(",") ?? []) {
-      const host = normalizeHost(value)
-      if (!host) {
-        continue
-      }
-      const existing = ownership[host]
-      if (existing && existing !== market) {
-        delete ownership[host]
-      } else {
-        ownership[host] = market
-      }
-    }
-  }
-  return ownership
 }
 
 const resolveMarket = (
@@ -162,8 +168,8 @@ const resolveMarket = (
   if (!normalized) {
     return null
   }
-  const market = hostOwnership(environment)[normalized]
-  return market ? { host: normalized, market } : null
+  const binding = routingBindingsByHost(environment)[normalized]
+  return binding ? { ...binding, host: normalized } : null
 }
 
 const validEntitySlug = (value: string): string | null => {
@@ -183,9 +189,6 @@ const entityRoute = (
   match: Extract<RootSegmentMatch, { group: "type-prefix" }>,
   segments: readonly string[]
 ): Readonly<{ pathname: string; routeKey: string }> | null => {
-  if (match.key === "campaigns") {
-    return null
-  }
   const definition = ENTITY_KINDS[match.key]
   if (segments.length === 1) {
     return definition.index
@@ -328,12 +331,24 @@ const flowRoute = (
   return null
 }
 
+const methodGuard = (method: string): PublicProxyAction | null => {
+  const normalizedMethod = method.toUpperCase()
+  if (normalizedMethod === "OPTIONS") {
+    return { allow: "GET, HEAD", kind: "respond", status: 204 }
+  }
+  if (normalizedMethod !== "GET" && normalizedMethod !== "HEAD") {
+    return { allow: "GET, HEAD", kind: "respond", status: 405 }
+  }
+  return null
+}
+
 export const resolvePublicProxyAction = ({
   enabled,
   environment = process.env,
   host,
   method,
   pathname,
+  resolveUnknownStaticPaths = false,
 }: ResolvePublicProxyInput): PublicProxyAction => {
   if (isPrivatePagesPath(pathname)) {
     return { kind: "respond", status: 404 }
@@ -351,6 +366,55 @@ export const resolvePublicProxyAction = ({
   }
   if (isSystemRoute(parsed.segments)) {
     return { kind: "next" }
+  }
+  // Legacy official slugs violate the registry slug grammar, so they can never
+  // be registry aliases. They are redirected before any registry lookup.
+  const legacyLocation = resolveLegacyOfficialCategoryRedirect(
+    hostMarket.market,
+    parsed.segments
+  )
+  if (legacyLocation) {
+    return (
+      methodGuard(method) ?? {
+        kind: "redirect",
+        location: legacyLocation,
+        status: 308,
+      }
+    )
+  }
+  // Official root-level static/legal slugs already have equivalent
+  // operator-editable Payload pages at a different path depth. They are
+  // redirected before any registry lookup, the same way legacy category
+  // slugs are. See official-static-redirects.ts for the authorization.
+  const officialStaticLocation = resolveOfficialStaticRedirect(
+    hostMarket.market,
+    parsed.segments
+  )
+  if (officialStaticLocation) {
+    return (
+      methodGuard(method) ?? {
+        kind: "redirect",
+        location: officialStaticLocation,
+        status: 308,
+      }
+    )
+  }
+  // Official `magazin` / `slovnik-pojmov` content-section URLs whose articles
+  // were imported as local Payload blog articles under the identical slug.
+  // See official-content-section-redirects.ts for the allow-list and the
+  // authorization for this scoped extension of the issue-#545 rule.
+  const officialContentSectionLocation = resolveOfficialContentSectionRedirect(
+    hostMarket.market,
+    parsed.segments
+  )
+  if (officialContentSectionLocation) {
+    return (
+      methodGuard(method) ?? {
+        kind: "redirect",
+        location: officialContentSectionLocation,
+        status: 308,
+      }
+    )
   }
   let route: Readonly<{ pathname: string; routeKey: string }> | null = null
   if (parsed.segments.length === 0) {
@@ -376,19 +440,24 @@ export const resolvePublicProxyAction = ({
     }
   }
   if (!route) {
-    return { kind: "respond", status: 404 }
+    if (!resolveUnknownStaticPaths || parsed.segments.length === 0) {
+      return { kind: "respond", status: 404 }
+    }
+    route = {
+      pathname: internalPath(
+        hostMarket.market,
+        `url-registry/${parsed.segments.map(encodeURIComponent).join("/")}`
+      ),
+      routeKey: "url-registry.resolve",
+    }
   }
 
-  const normalizedMethod = method.toUpperCase()
-  if (normalizedMethod === "OPTIONS") {
-    return { allow: "GET, HEAD", kind: "respond", status: 204 }
-  }
-  if (normalizedMethod !== "GET" && normalizedMethod !== "HEAD") {
-    return { allow: "GET, HEAD", kind: "respond", status: 405 }
+  const methodAction = methodGuard(method)
+  if (methodAction) {
+    return methodAction
   }
 
-  const canonicalHost = new URL(ROUTES[hostMarket.market].canonicalOrigin)
-    .hostname
+  const canonicalHost = new URL(hostMarket.canonicalOrigin).hostname
   const canonicalPublicPath = (() => {
     if (parsed.segments.length === 0) {
       return "/"
@@ -400,14 +469,19 @@ export const resolvePublicProxyAction = ({
     if (!root) {
       return parsed.canonicalPath
     }
-    const config = ROUTE_SEGMENT_REGISTRY[hostMarket.market]
+    const config: MarketRouteSegments =
+      ROUTE_SEGMENT_REGISTRY[hostMarket.market]
     let first: string
     if (root.group === "type-prefix") {
       first = config.typePrefixes[root.key]
     } else if (root.group === "flow-root") {
       first = config.flowRoots[root.key]
     } else {
-      first = config.staticRootPages[root.key]
+      const staticRootPage = config.staticRootPages[root.key]
+      if (!staticRootPage) {
+        return parsed.canonicalPath
+      }
+      first = staticRootPage
     }
     const rest = parsed.segments
       .slice(1)
@@ -420,7 +494,7 @@ export const resolvePublicProxyAction = ({
   })()
 
   return {
-    canonicalOrigin: ROUTES[hostMarket.market].canonicalOrigin,
+    canonicalOrigin: hostMarket.canonicalOrigin,
     canonicalizationRequired:
       hostMarket.host !== canonicalHost || pathname !== canonicalPublicPath,
     kind: "rewrite",

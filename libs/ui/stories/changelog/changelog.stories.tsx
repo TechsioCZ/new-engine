@@ -15,13 +15,22 @@ const CHANGELOG = `
 ### DatePicker v1.1.0
 - Added date and date-time ranges to the existing compound DatePicker: complete typed tuples, indexed start/end segments and form values, coordinated two-month presentation, continuous range states, and one shared timed Cancel/Confirm transaction. Updated the paired date-picker-usage skill and component metadata.
 
+### Dialog v1.0.1
+- Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
+
 ### Button v0.3.2
 - Introduced per-component versioning: the component now carries \`@componentVersion\` + \`@skill\`,
   paired 1:1 with the \`button-usage\` skill's \`component_version\` and this changelog entry,
   enforced by the \`check-skill-sync\` pre-commit gate.
 
+### Chart v1.0.0
+- New data-visualization molecule built on TanStack Charts (\`@tanstack/charts\` + \`@tanstack/react-charts\`). A single \`type\` prop switches between line, area, bar, horizontal bar, scatter, pie and donut charts from the same \`data\`/\`x\`/\`y\`/\`series\` channels. Series colors come from the new \`--color-chart-series-1..6\` tokens (validated for CVD separation and surface contrast in light and dark mode, bridged to TanStack's \`--ts-chart-*\` palette variables), chart chrome inherits \`--color-chart-fg\`, and the native tooltip is styled by the Tooltip-atom-aliased \`--*-chart-tooltip-*\` tokens. Paired 1:1 with the chart-usage skill and this changelog entry.
+
 ### Accordion v1.0.0
 - Opted into per-component versioning; paired 1:1 with the accordion-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### DataTable v1.0.0
+- New headless data-grid organism built on \`@tanstack/react-table\` v9, rendering into the presentational \`Table\` organism so it inherits the \`--color-table-*\` tokens. Covers sorting, conditional column filters, global search, row selection, column visibility/pinning/reorder, row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization/infinite scroll and pagination. Every feature exposes a callback for Storybook interaction tests. Paired 1:1 with the data-table-usage skill and this changelog entry.
 
 ### ActionIcon v1.0.0
 - Opted into per-component versioning; paired 1:1 with the action-icon-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
@@ -40,6 +49,9 @@ const CHANGELOG = `
 
 ### ColorSelect v1.0.0
 - Opted into per-component versioning; paired 1:1 with the color-select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Combobox v1.1.0
+- Panel, item hover/selected colour, radius, shadow and z-index now come from the shared popup-surface tokens (also used by Select and Menu), so all three read as one system. Selected items get a real trailing check indicator (previously missing) in a reserved gutter that keeps the label from reflowing.
 
 ### Combobox v1.0.0
 - Opted into per-component versioning; paired 1:1 with the combobox-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
@@ -86,6 +98,9 @@ const CHANGELOG = `
 ### LinkButton v1.0.0
 - Opted into per-component versioning; paired 1:1 with the link-button-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Menu v1.1.0
+- Panel and item styling now come from the shared popup-surface tokens (see Select, Combobox). Added an \`xs\` size so parents whose own scale starts at \`xs\` (DataTable's column-settings menu) can forward \`size\` without it silently collapsing to \`md\`. Checkable rows reserve a trailing indicator gutter instead of shifting the label on toggle.
+
 ### Menu v1.0.0
 - Opted into per-component versioning; paired 1:1 with the menu-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
@@ -116,6 +131,9 @@ const CHANGELOG = `
 ### SearchForm v1.0.0
 - Opted into per-component versioning; paired 1:1 with the search-form-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Select v1.1.0
+- Panel and item styling now come from the shared popup-surface tokens (see Combobox, Menu): consistent radius, shadow, hover/selected colour and z-index across all three. The panel height now caps at the measured available space instead of a fixed height, and the selected-item indicator sits in a reserved gutter so the label no longer reflows on selection.
+
 ### Select v1.0.0
 - Opted into per-component versioning; paired 1:1 with the select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
@@ -133,6 +151,12 @@ const CHANGELOG = `
 
 ### Switch v1.0.0
 - Opted into per-component versioning; paired 1:1 with the switch-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Table v1.2.0
+- Selected rows use a filled brand background (previously a light tint) with \`color-table-row-fg-selected\` so row text and \`currentColor\` glyphs invert correctly against it.
+
+### Table v1.1.0
+- Cells and column headers style horizontal alignment from \`data-align\` (\`start | center | end\`). Unlike \`numeric\`, which asserts the value *is* a number, \`data-align\` is a pure presentation choice, so icon/boolean columns can be centred. Set one or the other, not both.
 
 ### Table v1.0.0
 - Opted into per-component versioning; paired 1:1 with the table-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.

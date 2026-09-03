@@ -7,6 +7,7 @@ import {
 import { ProductStatus } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import { filterByValidSalesChannels } from "@medusajs/medusa/api/utils/middlewares/products/filter-by-valid-sales-channels"
+import { enforceExactStorefrontMarketSalesChannel } from "../../../storefront-market-sales-channel"
 
 const multiValueParamSchema = z.union([z.string(), z.array(z.string())])
 
@@ -32,6 +33,7 @@ export const storeProductLocationAvailabilityRoutesMiddlewares: MiddlewareRoute[
         validateAndTransformQuery(StoreProductLocationAvailabilityQuerySchema, {
           isList: false,
         }),
+        enforceExactStorefrontMarketSalesChannel,
         filterByValidSalesChannels(),
         applyDefaultFilters({
           status: ProductStatus.PUBLISHED,

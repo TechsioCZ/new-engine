@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   fetchCmsBlogListing: vi.fn(),
-  readRequiredPublicEntitySlugs: vi.fn(),
 }))
 
 vi.mock("server-only", () => ({}))
@@ -25,9 +24,6 @@ vi.mock("@/lib/storefront/market-context", () => ({
 vi.mock("@/lib/storefront/ssr/context", () => ({
   getRegionServerContext: vi.fn(),
 }))
-vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
-  readRequiredPublicEntitySlugs: mocks.readRequiredPublicEntitySlugs,
-}))
 vi.mock("@/lib/storefront/storefront-texts.server", () => ({
   fetchStorefrontTextMessages: vi.fn(),
 }))
@@ -45,10 +41,6 @@ describe("advice index pagination boundary", () => {
       totalItems: 25,
       totalPages: 3,
     })
-    mocks.readRequiredPublicEntitySlugs.mockResolvedValue({
-      kind: "found",
-      value: {},
-    })
     const setHeader = vi.fn()
     const context = {
       params: { market: "sk" },
@@ -57,10 +49,10 @@ describe("advice index pagination boundary", () => {
         headers: {
           "x-sf-canonical-origin": "https://herbatica.sk",
           "x-sf-market": "sk",
-          "x-sf-public-path": "/poradna",
+          "x-sf-public-path": "/blog",
           "x-sf-route-key": "article.index",
         },
-        url: "/poradna?page=9999",
+        url: "/blog?page=9999",
       },
       res: { setHeader },
     } as unknown as GetServerSidePropsContext

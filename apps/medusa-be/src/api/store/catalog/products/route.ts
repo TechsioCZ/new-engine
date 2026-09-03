@@ -1,8 +1,13 @@
 import type { Query } from "@medusajs/framework"
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type { Logger } from "@medusajs/framework/types"
+import type {
+  ITranslationModuleService,
+  Logger,
+  MedusaContainer,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
+  Modules,
   ProductStatus,
   QueryContext,
 } from "@medusajs/framework/utils"
@@ -25,6 +30,10 @@ import {
   STATUS_FACET_LABEL_BY_ID,
 } from "../../../../modules/meilisearch/facets/product-facets"
 import {
+  type FacetPriceCurrencyScope,
+  resolveVerifiedFacetPriceCurrency,
+} from "../../../../modules/meilisearch/profile-currency"
+import {
   loadSearchProfiles,
   resolveSearchProfile,
   type SearchProfile,
@@ -35,9 +44,14 @@ import {
   expandProductsBySearchMatches,
   getSalesChannelIds,
   type RankedProductMatch,
+  resolveStorefrontSalesChannelFilter,
   selectRankedProductIds,
 } from "../../../../modules/meilisearch/search-results"
 import { isPlainRecord } from "../../../../utils/guards"
+import {
+  CATEGORY_CONTENT_SOURCE_LOCALE,
+  CATEGORY_TRANSLATION_REFERENCE,
+} from "../../../../utils/localized-category-content"
 import {
   decorateProductsWithLocalizedContent,
   requestsLocalizedProductContent,
@@ -55,9 +69,11 @@ import {
 } from "../../../../utils/product-sale-adapters"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
+import { CATALOG_SALES_CHANNEL_IDS_PROPERTY } from "./middlewares"
 import {
   applyCollectionScopeToProductFilters,
   buildCatalogFilterExpressions,
+  CATALOG_SORT_VALUES,
   type FacetCountItem,
   getFacetDistribution,
   getFacetDistributionFromHits,
@@ -85,6 +101,7 @@ type BrandRecord = {
 
 type CategoryRecord = {
   handle?: string
+  id?: string
   name?: string
 }
 
@@ -118,7 +135,8 @@ const FACETS_TO_FETCH = [
 ]
 
 const mapStatusFacets = (
-  facetCounts: Map<string, number>
+  facetCounts: Map<string, number>,
+  locale?: string
 ): FacetCountItem[] => {
   const usedIds = new Set<string>()
 
@@ -139,13 +157,17 @@ const mapStatusFacets = (
         id,
         label: STATUS_FACET_LABEL_BY_ID.get(id) ?? id,
         count,
-      }))
+      })),
+    locale
   )
 
   return [...result, ...additionalItems]
 }
 
-const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
+const mapFormFacets = (
+  facetCounts: Map<string, number>,
+  locale?: string
+): FacetCountItem[] => {
   const usedIds = new Set<string>()
 
   const result: FacetCountItem[] = FORM_FACET_DEFINITIONS.map((item) => {
@@ -165,7 +187,8 @@ const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
         id,
         label: FORM_FACET_LABEL_BY_ID.get(id) ?? id,
         count,
-      }))
+      })),
+    locale
   )
 
   return [...result, ...additionalItems]
@@ -264,7 +287,52 @@ const resolveBrandFacetLabels = async (
   return labelsById
 }
 
+const resolveTranslatedCategoryNames = async (
+  container: Pick<MedusaContainer, "resolve">,
+  categoryIds: string[],
+  locale?: string
+): Promise<Map<string, string>> => {
+  const namesByCategoryId = new Map<string, string>()
+  if (
+    !locale ||
+    locale === CATEGORY_CONTENT_SOURCE_LOCALE ||
+    categoryIds.length === 0
+  ) {
+    return namesByCategoryId
+  }
+
+  try {
+    const translationService = container.resolve<ITranslationModuleService>(
+      Modules.TRANSLATION
+    )
+    const translations = await translationService.listTranslations(
+      {
+        locale_code: locale,
+        reference: CATEGORY_TRANSLATION_REFERENCE,
+        reference_id: categoryIds,
+      },
+      { take: categoryIds.length }
+    )
+
+    for (const translation of translations) {
+      const translatedFields: unknown = translation.translations
+      if (!isPlainRecord(translatedFields)) {
+        continue
+      }
+      const name: unknown = translatedFields.name
+      if (typeof name === "string" && name.trim()) {
+        namesByCategoryId.set(translation.reference_id, name.trim())
+      }
+    }
+  } catch {
+    // Facet labels fall back to source-locale category names.
+  }
+
+  return namesByCategoryId
+}
+
 const resolveIngredientFacetLabels = async (
+  container: Pick<MedusaContainer, "resolve">,
   queryService: Query,
   facetIds: string[],
   locale?: string
@@ -285,7 +353,7 @@ const resolveIngredientFacetLabels = async (
   const { data: categories } = await queryService.graph(
     {
       entity: "product_category",
-      fields: ["handle", "name"],
+      fields: ["id", "handle", "name"],
       filters: {
         handle: {
           $in: handles,
@@ -295,12 +363,24 @@ const resolveIngredientFacetLabels = async (
     { locale }
   )
 
+  const translatedNameByCategoryId = await resolveTranslatedCategoryNames(
+    container,
+    (categories as CategoryRecord[])
+      .map((category) => category.id)
+      .filter((id): id is string => Boolean(id)),
+    locale
+  )
+
   const categoryNameByHandle = new Map<string, string>()
   for (const category of categories as CategoryRecord[]) {
     if (!(category.handle && category.name)) {
       continue
     }
-    categoryNameByHandle.set(category.handle, category.name)
+    categoryNameByHandle.set(
+      category.handle,
+      (category.id && translatedNameByCategoryId.get(category.id)) ??
+        category.name
+    )
   }
 
   for (const facetId of facetIds) {
@@ -320,14 +400,16 @@ const resolveIngredientFacetLabels = async (
 
 const mapDynamicFacets = (
   facetCounts: Map<string, number>,
-  labelsById: Map<string, string>
+  labelsById: Map<string, string>,
+  locale?: string
 ): FacetCountItem[] =>
   sortFacetCountItems(
     Array.from(facetCounts.entries()).map(([id, count]) => ({
       id,
       label: labelsById.get(id) ?? humanizeFacetHandle(id),
       count,
-    }))
+    })),
+    locale
   )
 
 const getLowestCalculatedProductPrice = (
@@ -370,13 +452,74 @@ const resolveAuthoritativePriceSortDirection = (
   return
 }
 
-const selectProductMatchesForHydration = (options: {
+export const usesIndexedProfilePriceSort = (
+  profile: Pick<SearchProfile, "locale">,
+  priceSortDirection: 1 | -1 | undefined,
+  currencyScope: FacetPriceCurrencyScope
+): boolean =>
+  Boolean(
+    priceSortDirection &&
+      resolveVerifiedFacetPriceCurrency(profile.locale, currencyScope)
+  )
+
+export const resolveCatalogSearchExecutionPlan = (options: {
+  cleanedQuery: string
+  fullSearchLimit: number
+  limit: number
+  offset: number
+  profile: Pick<SearchProfile, "locale">
+  pricingContextCurrencyCode?: string
+  requestedSort: string
+  requestedCurrencyCode?: string
+}) => {
+  const priceSortDirection = resolveAuthoritativePriceSortDirection(
+    options.requestedSort
+  )
+  const indexedProfilePriceSort = usesIndexedProfilePriceSort(
+    options.profile,
+    priceSortDirection,
+    {
+      pricingContextCurrencyCode: options.pricingContextCurrencyCode,
+      requestedCurrencyCode: options.requestedCurrencyCode,
+    }
+  )
+  const exhaustiveCandidateSearch = Boolean(
+    (options.cleanedQuery || priceSortDirection) && !indexedProfilePriceSort
+  )
+  const catalogSort = CATALOG_SORT_VALUES.find(
+    (candidate) => candidate === options.requestedSort
+  )
+  const sort =
+    (catalogSort ? resolveCatalogSort(catalogSort) : undefined) ??
+    (options.cleanedQuery ? undefined : ["facet_popularity:desc"])
+  const meiliSort =
+    priceSortDirection && !indexedProfilePriceSort ? undefined : sort
+
+  return {
+    exhaustiveCandidateSearch,
+    indexedProfilePriceSort,
+    meiliSort,
+    paginationOptions: {
+      limit: exhaustiveCandidateSearch
+        ? options.fullSearchLimit
+        : options.limit,
+      offset: exhaustiveCandidateSearch ? 0 : options.offset,
+    },
+    priceSortDirection,
+  }
+}
+
+export const selectProductMatchesForHydration = (options: {
   cleanedQuery: string
   limit: number
   matchingProducts: RankedProductMatch[]
   offset: number
+  prePaginated?: boolean
   priceSortDirection?: 1 | -1
 }): RankedProductMatch[] => {
+  if (options.prePaginated) {
+    return options.matchingProducts
+  }
   if (options.priceSortDirection) {
     return options.matchingProducts
   }
@@ -389,7 +532,7 @@ const selectProductMatchesForHydration = (options: {
   return options.matchingProducts
 }
 
-const resolveResultCount = (options: {
+export const resolveResultCount = (options: {
   estimatedTotalHits?: number
   exhaustiveCandidateSearch: boolean
   fallbackCount: number
@@ -641,9 +784,16 @@ export async function GET(
   const meilisearchService = req.scope.resolve<MeiliSearchService>(MEILISEARCH)
 
   const page = validatedQuery.page
-  const salesChannelIds = getSalesChannelIds(
-    req.filterableFields.sales_channel_id
+  const preservedSalesChannelIds = (
+    req as typeof req & {
+      [CATALOG_SALES_CHANNEL_IDS_PROPERTY]?: string[]
+    }
+  )[CATALOG_SALES_CHANNEL_IDS_PROPERTY]
+  const salesChannelFilter = resolveStorefrontSalesChannelFilter(
+    req.filterableFields.sales_channel_id,
+    preservedSalesChannelIds ?? req.publishable_key_context?.sales_channel_ids
   )
+  const salesChannelIds = getSalesChannelIds(salesChannelFilter)
   let searchProfile: SearchProfile
   try {
     searchProfile = resolveSearchProfile(
@@ -682,12 +832,13 @@ export async function GET(
   const limit = Math.min(validatedQuery.limit, searchProfile.limits.page)
   const offset = (page - 1) * limit
   const cleanedQuery = cleanSearchText(validatedQuery.q)
+  const pricingContextCurrencyCode = getPricingContextCurrencyCode(
+    req.pricingContext
+  )
 
   if (saleAdapterMatcher.enabled) {
     saleProductSelection = await listActiveSalePriceListProductSelection({
-      currencyCode:
-        getPricingContextCurrencyCode(req.pricingContext) ??
-        validatedQuery.currency_code,
+      currencyCode: pricingContextCurrencyCode ?? validatedQuery.currency_code,
       customerGroupIds: getPricingContextCustomerGroupIds(req.pricingContext),
       query: queryService,
     })
@@ -700,8 +851,8 @@ export async function GET(
         limit,
         totalPages: 0,
         facets: {
-          status: mapStatusFacets(new Map()),
-          form: mapFormFacets(new Map()),
+          status: mapStatusFacets(new Map(), graphLocale),
+          form: mapFormFacets(new Map(), graphLocale),
           brand: [],
           ingredient: [],
           price: {
@@ -736,15 +887,22 @@ export async function GET(
     priceMax: validatedQuery.price_max,
   })
 
-  const authoritativePriceSortDirection =
-    resolveAuthoritativePriceSortDirection(validatedQuery.sort)
-  const exhaustiveCandidateSearch = Boolean(
-    cleanedQuery || authoritativePriceSortDirection
-  )
-  const sort =
-    resolveCatalogSort(validatedQuery.sort) ??
-    (cleanedQuery ? undefined : ["facet_popularity:desc"])
-  const meiliSort = authoritativePriceSortDirection ? undefined : sort
+  const {
+    exhaustiveCandidateSearch,
+    indexedProfilePriceSort,
+    meiliSort,
+    paginationOptions,
+    priceSortDirection: authoritativePriceSortDirection,
+  } = resolveCatalogSearchExecutionPlan({
+    cleanedQuery,
+    fullSearchLimit: searchProfile.limits.fullSearch,
+    limit,
+    offset,
+    profile: searchProfile,
+    pricingContextCurrencyCode,
+    requestedSort: validatedQuery.sort,
+    requestedCurrencyCode: validatedQuery.currency_code,
+  })
   const saleSearchExpression = saleProductSelection
     ? buildMeiliOrExpression(
         "id",
@@ -758,7 +916,7 @@ export async function GET(
     ),
     ...filterExpressions,
     ...(saleSearchExpression ? [saleSearchExpression] : []),
-    ...buildVisibilityFilterExpressions(req.filterableFields.sales_channel_id),
+    ...buildVisibilityFilterExpressions(salesChannelFilter),
   ]
   const searchFilter =
     searchFilters.length > 0 ? searchFilters.join(" AND ") : undefined
@@ -768,12 +926,7 @@ export async function GET(
       searchProfile.indexes.product,
       cleanedQuery,
       {
-        paginationOptions: {
-          limit: exhaustiveCandidateSearch
-            ? searchProfile.limits.fullSearch
-            : limit,
-          offset: exhaustiveCandidateSearch ? 0 : offset,
-        },
+        paginationOptions,
         filter: searchFilter,
         additionalOptions: {
           attributesToRetrieve: [
@@ -799,10 +952,27 @@ export async function GET(
     )
   } catch (error) {
     const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+    const searchError = error instanceof Error ? error.message : String(error)
+
+    if (authoritativePriceSortDirection) {
+      logger.warn(
+        `Meilisearch catalog query failed; price-sorted degraded fallback is unavailable: ${searchError}`
+      )
+      res.status(503).json({
+        code: "CATALOG_PRICE_SORT_UNAVAILABLE_DEGRADED",
+        message:
+          "Price sorting is unavailable while catalog search is degraded",
+        search: {
+          degraded: true,
+          exactIdentifierMatch: false,
+          profile: searchProfile.key,
+        },
+      })
+      return
+    }
+
     logger.warn(
-      `Meilisearch catalog query failed; using capped Medusa fallback: ${
-        error instanceof Error ? error.message : String(error)
-      }`
+      `Meilisearch catalog query failed; using capped Medusa fallback: ${searchError}`
     )
     const pricingContext = req.pricingContext
       ? QueryContext(req.pricingContext)
@@ -828,7 +998,7 @@ export async function GET(
               ...(saleProductSelection
                 ? { id: buildProductIdFilter(saleProductSelection.productIds) }
                 : {}),
-              sales_channel_id: req.filterableFields.sales_channel_id,
+              sales_channel_id: salesChannelFilter,
               status: ProductStatus.PUBLISHED,
             },
             validatedQuery.collection_id
@@ -884,8 +1054,8 @@ export async function GET(
       limit,
       totalPages: Math.ceil(fallbackCount / limit),
       facets: {
-        status: mapStatusFacets(new Map()),
-        form: mapFormFacets(new Map()),
+        status: mapStatusFacets(new Map(), graphLocale),
+        form: mapFormFacets(new Map(), graphLocale),
         brand: [],
         ingredient: [],
         price: {
@@ -914,6 +1084,7 @@ export async function GET(
     limit,
     matchingProducts,
     offset,
+    prePaginated: indexedProfilePriceSort,
     priceSortDirection: authoritativePriceSortDirection,
   })
   const productIds = Array.from(
@@ -942,7 +1113,7 @@ export async function GET(
           id: {
             $in: productIds,
           },
-          sales_channel_id: req.filterableFields.sales_channel_id,
+          sales_channel_id: salesChannelFilter,
           status: ProductStatus.PUBLISHED,
         },
         validatedQuery.collection_id
@@ -972,30 +1143,31 @@ export async function GET(
     >[1]
   )
 
-  const finalProducts = authoritativePriceSortDirection
-    ? [...orderedProducts]
-        .sort((left, right) => {
-          const leftPrice = getLowestCalculatedProductPrice(
-            left as ProductWithCalculatedPrices
-          )
-          const rightPrice = getLowestCalculatedProductPrice(
-            right as ProductWithCalculatedPrices
-          )
+  const finalProducts =
+    authoritativePriceSortDirection && !indexedProfilePriceSort
+      ? [...orderedProducts]
+          .sort((left, right) => {
+            const leftPrice = getLowestCalculatedProductPrice(
+              left as ProductWithCalculatedPrices
+            )
+            const rightPrice = getLowestCalculatedProductPrice(
+              right as ProductWithCalculatedPrices
+            )
 
-          if (leftPrice === undefined && rightPrice === undefined) {
-            return 0
-          }
-          if (leftPrice === undefined) {
-            return 1
-          }
-          if (rightPrice === undefined) {
-            return -1
-          }
+            if (leftPrice === undefined && rightPrice === undefined) {
+              return 0
+            }
+            if (leftPrice === undefined) {
+              return 1
+            }
+            if (rightPrice === undefined) {
+              return -1
+            }
 
-          return (leftPrice - rightPrice) * authoritativePriceSortDirection
-        })
-        .slice(offset, offset + limit)
-    : orderedProducts
+            return (leftPrice - rightPrice) * authoritativePriceSortDirection
+          })
+          .slice(offset, offset + limit)
+      : orderedProducts
 
   if (requestsLocalizedProductContent(responseProductFields)) {
     await decorateProductsWithLocalizedContent(
@@ -1037,6 +1209,7 @@ export async function GET(
       graphLocale
     ),
     resolveIngredientFacetLabels(
+      req.scope,
       queryService,
       Array.from(ingredientFacetCounts.keys()),
       graphLocale
@@ -1077,10 +1250,14 @@ export async function GET(
       profile: searchProfile.key,
     },
     facets: {
-      status: mapStatusFacets(statusFacetCounts),
-      form: mapFormFacets(formFacetCounts),
-      brand: mapDynamicFacets(brandFacetCounts, brandLabelsById),
-      ingredient: mapDynamicFacets(ingredientFacetCounts, ingredientLabelsById),
+      status: mapStatusFacets(statusFacetCounts, graphLocale),
+      form: mapFormFacets(formFacetCounts, graphLocale),
+      brand: mapDynamicFacets(brandFacetCounts, brandLabelsById, graphLocale),
+      ingredient: mapDynamicFacets(
+        ingredientFacetCounts,
+        ingredientLabelsById,
+        graphLocale
+      ),
       price: {
         min: priceFacetStats.min ?? null,
         max: priceFacetStats.max ?? null,

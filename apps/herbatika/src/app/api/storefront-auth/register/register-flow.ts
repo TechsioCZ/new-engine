@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import type { RegistrationTermsVersion } from "@/lib/auth/registration-policy"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import type { HerbatikaMarketCode } from "@/lib/storefront/market-context"
 import {
@@ -8,6 +9,7 @@ import {
   getPublishableHeaders,
   isConflictStatus,
   parseResponseJson,
+  type StorefrontAuthMessages,
   serverError,
 } from "../_lib"
 import {
@@ -20,6 +22,10 @@ export type ParsedRegisterPayload = {
   password: string
   firstName?: string
   lastName?: string
+  termsAcceptance: {
+    acceptedAt: string
+    version: RegistrationTermsVersion
+  }
   wholesale: ParsedWholesaleRegistration | null
 }
 
@@ -44,9 +50,12 @@ export const refreshCustomerToken = async (loginToken: string) => {
 
 export const createCustomerIdentity = async ({
   email,
+  messages,
   password,
   wholesale,
-}: Pick<ParsedRegisterPayload, "email" | "password" | "wholesale">) => {
+}: Pick<ParsedRegisterPayload, "email" | "password" | "wholesale"> & {
+  messages: StorefrontAuthMessages
+}) => {
   const registerResponse = await fetch(
     buildMedusaUrl("/auth/customer/emailpass/register"),
     {
@@ -64,13 +73,15 @@ export const createCustomerIdentity = async ({
 
   const registerConflict = isConflictStatus(registerResponse.status)
   if (!(registerResponse.ok || registerConflict)) {
-    return buildErrorResponse(registerResponse)
+    return buildErrorResponse(
+      registerResponse,
+      messages,
+      messages.registrationFailed
+    )
   }
 
   if (registerConflict && wholesale) {
-    return conflict(
-      "Účet s týmto e-mailom už existuje. Prihláste sa a požiadajte o VO účet cez podporu."
-    )
+    return conflict(messages.wholesaleConflict)
   }
 
   return null
@@ -78,8 +89,11 @@ export const createCustomerIdentity = async ({
 
 export const loginCustomerIdentity = async ({
   email,
+  messages,
   password,
-}: Pick<ParsedRegisterPayload, "email" | "password">) => {
+}: Pick<ParsedRegisterPayload, "email" | "password"> & {
+  messages: StorefrontAuthMessages
+}) => {
   const loginResponse = await fetch(
     buildMedusaUrl("/auth/customer/emailpass"),
     {
@@ -97,7 +111,11 @@ export const loginCustomerIdentity = async ({
 
   if (!loginResponse.ok) {
     return {
-      error: await buildErrorResponse(loginResponse),
+      error: await buildErrorResponse(
+        loginResponse,
+        messages,
+        messages.registrationFailed
+      ),
       token: null,
     }
   }
@@ -110,9 +128,7 @@ export const loginCustomerIdentity = async ({
 
   if (!loginToken) {
     return {
-      error: serverError(
-        "Prihlásenie zákazníka prebehlo úspešne, ale token nebol vrátený."
-      ),
+      error: serverError(messages.customerLoginTokenMissing),
       token: null,
     }
   }
@@ -128,6 +144,7 @@ const buildCustomerProfile = ({
   firstName,
   lastName,
   marketCode,
+  termsAcceptance,
   wholesale,
 }: Omit<ParsedRegisterPayload, "password"> & {
   marketCode: HerbatikaMarketCode
@@ -137,6 +154,8 @@ const buildCustomerProfile = ({
   last_name: lastName,
   metadata: {
     storefront_market_code: marketCode,
+    registration_terms_accepted_at: termsAcceptance.acceptedAt,
+    registration_terms_version: termsAcceptance.version,
     ...(wholesale ? { company_identifier: wholesale.companyIdentifier } : {}),
   },
   ...(wholesale
@@ -149,10 +168,12 @@ const buildCustomerProfile = ({
 export const createCustomerProfile = async ({
   binding,
   loginToken,
+  messages,
   payload,
 }: {
   binding: MarketRuntimeBinding
   loginToken: string
+  messages: StorefrontAuthMessages
   payload: Omit<ParsedRegisterPayload, "password"> & {
     marketCode: HerbatikaMarketCode
   }
@@ -175,17 +196,23 @@ export const createCustomerProfile = async ({
     return null
   }
 
-  return buildErrorResponse(createCustomerResponse)
+  return buildErrorResponse(
+    createCustomerResponse,
+    messages,
+    messages.registrationFailed
+  )
 }
 
 export const createWholesaleProfile = async ({
   binding,
   email,
+  messages,
   sessionToken,
   wholesale,
 }: {
   binding: MarketRuntimeBinding
   email: string
+  messages: StorefrontAuthMessages
   sessionToken: string
   wholesale: ParsedWholesaleRegistration | null
 }) =>
@@ -193,6 +220,7 @@ export const createWholesaleProfile = async ({
     ? createWholesaleCompanyRequest({
         binding,
         email,
+        messages,
         token: sessionToken,
         wholesale,
       })

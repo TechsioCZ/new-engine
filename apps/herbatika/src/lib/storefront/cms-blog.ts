@@ -86,7 +86,9 @@ export const fetchCmsBlogPost = async (
 ) => {
   const article = await fetchCmsArticleBySlug(slug, signal, locale)
 
-  return article ? mapCmsArticleToBlogPost(article, fallbackCategory) : null
+  return article
+    ? mapCmsArticleToBlogPost(article, fallbackCategory, locale)
+    : null
 }
 
 export const fetchCmsBlogCategoryFilters = async (locale?: HerbatikaLocale) => {
@@ -198,7 +200,7 @@ export const fetchCmsBlogPostById = async (
   signal?: AbortSignal
 ) => {
   const article = await fetchCmsArticleById(id, locale, signal)
-  return article ? mapCmsArticleToBlogPost(article) : null
+  return article ? mapCmsArticleToBlogPost(article, undefined, locale) : null
 }
 
 export const fetchCachedLatestCmsBlogPosts = unstable_cache(

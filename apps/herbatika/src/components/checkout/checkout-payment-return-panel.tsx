@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
 import {
   logCheckoutAccountSetupDebug,
@@ -14,6 +14,10 @@ import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "@/components/checkout/checkout-completion.utils"
+import {
+  reportCheckoutError,
+  resolveCheckoutCustomerErrorMessage,
+} from "@/components/checkout/checkout-customer-error"
 import { clearStoredPaymentProviderSelection } from "@/components/checkout/checkout-payment-selection-storage"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
@@ -27,7 +31,6 @@ import {
   syncCartSession,
 } from "@/lib/storefront/checkout-access"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import type { PaymentResultProjection } from "@/lib/storefront/payment-result-session"
 import { storefront } from "@/lib/storefront/storefront"
@@ -61,7 +64,6 @@ const navigateToOrderConfirmation = async ({
   window.location.replace(
     buildOrderConfirmationHref({
       market,
-      orderToken: access?.orderToken,
       publicOrderId: access?.publicOrderId ?? orderId,
     })
   )
@@ -91,6 +93,7 @@ export function CheckoutPaymentReturnPanel({
   paymentResult,
 }: Readonly<{ paymentResult: PaymentResultProjection }>) {
   const tCheckout = useTranslations("checkout")
+  const tCart = useTranslations("cart")
   const marketContext = useMarketContext()
   const authQuery = useAuth()
   const confirmationPendingMessage = tCheckout(
@@ -100,6 +103,20 @@ export function CheckoutPaymentReturnPanel({
     "payment_return_verification_failed"
   )
   const paymentNotCompletedMessage = tCheckout("payment_return_not_completed")
+  const cartUnavailableMessage = tCheckout("cart_not_ready")
+  const insufficientInventoryMessage = tCart("insufficient_quantity")
+  const customerErrorMessages = useMemo(
+    () => ({
+      cartUnavailable: cartUnavailableMessage,
+      insufficientInventory: insufficientInventoryMessage,
+      paymentAuthorizationFailed: paymentNotCompletedMessage,
+    }),
+    [
+      cartUnavailableMessage,
+      insufficientInventoryMessage,
+      paymentNotCompletedMessage,
+    ]
+  )
   const cartId = paymentResult.cartId
   const isCancelled = paymentResult.status === "cancelled"
   const projectedOrderId = resolveProjectedOrderId(paymentResult)
@@ -191,14 +208,28 @@ export function CheckoutPaymentReturnPanel({
           return
         }
 
-        const failureMessage =
-          resolveCompleteCartFailure(completeResult) ??
-          confirmationPendingMessage
-        scheduleRetryOrFail(failureMessage)
+        const completionFailure = resolveCompleteCartFailure(completeResult)
+        if (completionFailure) {
+          reportCheckoutError("payment return response", completionFailure)
+          scheduleRetryOrFail(
+            resolveCheckoutCustomerErrorMessage(
+              completionFailure,
+              confirmationPendingMessage,
+              customerErrorMessages,
+              "payment-return"
+            )
+          )
+          return
+        }
+
+        scheduleRetryOrFail(confirmationPendingMessage)
       } catch (error) {
-        const errorMessage = resolveErrorMessage(
+        reportCheckoutError("payment return verification", error)
+        const errorMessage = resolveCheckoutCustomerErrorMessage(
           error,
-          verificationFailedMessage
+          verificationFailedMessage,
+          customerErrorMessages,
+          "payment-return"
         )
         scheduleRetryOrFail(errorMessage)
       }
@@ -210,12 +241,7 @@ export function CheckoutPaymentReturnPanel({
       }
 
       if (attemptCount >= MAX_PAYMENT_RETURN_ATTEMPTS) {
-        setReturnError(
-          resolvePaymentReturnFailureMessage(
-            message,
-            paymentNotCompletedMessage
-          )
-        )
+        setReturnError(message)
         return
       }
 
@@ -237,10 +263,10 @@ export function CheckoutPaymentReturnPanel({
     cartId,
     completedOrderId,
     confirmationPendingMessage,
+    customerErrorMessages,
     debugCartMetadata,
     isCancelled,
     marketContext.code,
-    paymentNotCompletedMessage,
     projectedOrderId,
     returnError,
     verificationFailedMessage,
@@ -351,25 +377,5 @@ function PaymentReturnStatusCard({
       <SupportingText>{tCheckout("payment_return_help")}</SupportingText>
       {actions ? <div className="flex flex-wrap gap-200">{actions}</div> : null}
     </section>
-  )
-}
-
-function resolvePaymentReturnFailureMessage(
-  message: string,
-  authorizationFailureMessage: string
-) {
-  if (isPaymentProviderAuthorizationFailure(message)) {
-    return authorizationFailureMessage
-  }
-
-  return message
-}
-
-function isPaymentProviderAuthorizationFailure(message: string) {
-  const normalizedMessage = message.toLowerCase()
-
-  return (
-    normalizedMessage.includes("not authorized with the provider") ||
-    normalizedMessage.includes("was not authorized")
   )
 }

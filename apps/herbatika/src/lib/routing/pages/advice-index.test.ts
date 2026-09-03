@@ -16,9 +16,6 @@ vi.mock("@/lib/storefront/cms", () => ({
 vi.mock("@/lib/storefront/market-context", () => ({
   getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk-SK" })),
 }))
-vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
-  readRequiredPublicEntitySlugs: vi.fn(),
-}))
 
 describe("advice index CMS source", () => {
   afterEach(() => {
@@ -27,21 +24,14 @@ describe("advice index CMS source", () => {
 
   it("passes the canonical category and page to the CMS listing loader", async () => {
     const { fetchCmsBlogListing } = await import("@/lib/storefront/cms")
-    const { readRequiredPublicEntitySlugs } = await import(
-      "@/lib/storefront/ssr/public-entity-projections"
-    )
     vi.mocked(fetchCmsBlogListing).mockResolvedValue({
       category: "zdravie & krása",
       categoryFilters: [],
       page: 2,
-      posts: [{ sourceId: "article-1" }],
+      posts: [{ slug: "zdravy-spanok", sourceId: "article-1" }],
       totalItems: 1,
       totalPages: 1,
     } as never)
-    vi.mocked(readRequiredPublicEntitySlugs).mockResolvedValue({
-      kind: "found",
-      value: { "article-1": "zdravy-spanok" },
-    })
     const { getServerSideProps } = await import("@/pages/~sf/[market]/advice")
 
     await getServerSideProps({

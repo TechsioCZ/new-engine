@@ -89,11 +89,22 @@ export const prefetchHomePageStorefrontData = async (
     fields: CATEGORY_TREE_FIELDS,
     locale,
   })
-  const categoryResponse = await fetchServerCategories(
-    market,
-    queryClient,
-    categoryListParams
-  )
+  let categoryResponse: Awaited<ReturnType<typeof fetchServerCategories>>
+  try {
+    categoryResponse = await fetchServerCategories(
+      market,
+      queryClient,
+      categoryListParams
+    )
+  } catch {
+    return {
+      categorySourceIds: [] as string[],
+      dehydratedState: dehydrate(queryClient),
+      homepageSectionCategorySourceIds: {},
+      region,
+      visibleProductIds: [] as string[],
+    }
+  }
   const homepageSectionCategorySourceIds = Object.fromEntries(
     Object.entries(HOMEPAGE_SECTION_CATEGORY_HANDLES).flatMap(
       ([sectionId, categoryHandle]) => {
@@ -141,7 +152,10 @@ export const prefetchHomePageStorefrontData = async (
       )
     }
 
-    const catalogs = await Promise.all(prefetches)
+    const catalogSettlements = await Promise.allSettled(prefetches)
+    const catalogs = catalogSettlements.flatMap((settlement) =>
+      settlement.status === "fulfilled" ? [settlement.value] : []
+    )
 
     return {
       categorySourceIds: categoryResponse.categories.map(

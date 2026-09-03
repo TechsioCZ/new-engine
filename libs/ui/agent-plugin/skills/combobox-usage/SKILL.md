@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.1.0"
 name: combobox-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Combobox for
@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/molecules/combobox.tsx"
   - "libs/ui/src/tokens/components/molecules/_combobox.css"
   - "libs/ui/stories/molecules/combobox.stories.tsx"
-  - "libs/ui/src/molecules/figma/combobox.figma.tsx"
+  - "libs/ui/src/molecules/combobox.figma.ts"
   - "https://zagjs.com/components/react/combobox"
 ---
 

@@ -1,10 +1,44 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import type { CmsPage } from "@/lib/storefront/cms"
 
-vi.mock("@/components/about/about-page", () => ({ AboutPage: vi.fn() }))
+type FoundCmsStaticSource = Readonly<{
+  kind: "found"
+  value: Readonly<{
+    kind: "cms"
+    page: CmsPage
+    publicationApproved: boolean
+  }>
+}>
+
+function assertFoundCmsStaticSource(
+  result: unknown
+): asserts result is FoundCmsStaticSource {
+  if (
+    typeof result !== "object" ||
+    result === null ||
+    !("kind" in result) ||
+    result.kind !== "found" ||
+    !("value" in result) ||
+    typeof result.value !== "object" ||
+    result.value === null ||
+    !("kind" in result.value) ||
+    result.value.kind !== "cms" ||
+    !("publicationApproved" in result.value) ||
+    typeof result.value.publicationApproved !== "boolean" ||
+    !("page" in result.value) ||
+    typeof result.value.page !== "object" ||
+    result.value.page === null ||
+    !("id" in result.value.page) ||
+    (typeof result.value.page.id !== "number" &&
+      typeof result.value.page.id !== "string")
+  ) {
+    throw new Error("Expected a found CMS static source result")
+  }
+}
+
 vi.mock("@/components/cms/cms-page-surface", () => ({
   CmsPageSurface: vi.fn(),
 }))
-vi.mock("@/components/faq/faq-page", () => ({ FaqPage: vi.fn() }))
 vi.mock("@/lib/routing/public-page", () => ({
   resolveStaticPublicPage: vi.fn(
     (_context: unknown, input: { loadSource: (market: "cz") => unknown }) =>
@@ -12,7 +46,25 @@ vi.mock("@/lib/routing/public-page", () => ({
   ),
 }))
 vi.mock("@/lib/storefront/cms", () => ({
-  readCmsStaticPage: vi.fn(),
+  readCmsStaticPageWithDemoFallback: vi.fn(),
+}))
+vi.mock(
+  "@/lib/url/segment-registry-publication/reviewed-source.server",
+  () => ({
+    assertReviewedStaticRouteSource: vi.fn(() => Promise.resolve()),
+  })
+)
+vi.mock("@/lib/url/segment-registry-publication.server", () => ({
+  loadStaticRoutePublicationDecision: vi.fn(async () => ({
+    evidence: {
+      editorialApprovalReference: "CZ-EDITORIAL-test",
+      frozenRegistrySha256: "f".repeat(64),
+      legalApprovalReference: "CZ-LEGAL-test",
+      staticContentArtifactRef: "market-static-content/cz/privacy.json",
+      staticContentArtifactSha256: "a".repeat(64),
+    },
+    kind: "approved",
+  })),
 }))
 
 describe("root-static CMS page source", () => {
@@ -21,8 +73,10 @@ describe("root-static CMS page source", () => {
   })
 
   it("loads CMS content by deployment-bound stable ID", async () => {
-    const { readCmsStaticPage } = await import("@/lib/storefront/cms")
-    vi.mocked(readCmsStaticPage).mockResolvedValue({
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValue({
       kind: "found",
       value: { id: 77, title: "Privacy" },
     })
@@ -34,9 +88,202 @@ describe("root-static CMS page source", () => {
       getServerSideProps({ params: { pageKey: "privacy" } } as never)
     ).resolves.toEqual({
       kind: "found",
-      value: { kind: "cms", page: { id: 77, title: "Privacy" } },
+      value: {
+        kind: "cms",
+        page: { id: 77, title: "Privacy" },
+        publicationApproved: true,
+      },
     })
-    expect(readCmsStaticPage).toHaveBeenCalledWith("privacy", "cs-CZ")
+    expect(readCmsStaticPageWithDemoFallback).toHaveBeenCalledWith(
+      "privacy",
+      "cs-CZ"
+    )
+  })
+
+  it("fails closed when the market has no localized FAQ source", async () => {
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValue({
+      kind: "missing",
+    })
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/static/[pageKey]"
+    )
+
+    await expect(
+      getServerSideProps({ params: { pageKey: "faq" } } as never)
+    ).resolves.toEqual({ kind: "missing" })
+    expect(readCmsStaticPageWithDemoFallback).toHaveBeenCalledWith(
+      "faq",
+      "cs-CZ"
+    )
+  })
+
+  it("publishes exact localized FAQ CMS content", async () => {
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValue({
+      kind: "found",
+      value: { content: "Localized FAQ", id: 12, title: "FAQ" },
+    })
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/static/[pageKey]"
+    )
+
+    await expect(
+      getServerSideProps({ params: { pageKey: "faq" } } as never)
+    ).resolves.toEqual({
+      kind: "found",
+      value: {
+        kind: "cms",
+        page: { content: "Localized FAQ", id: 12, title: "FAQ" },
+        publicationApproved: true,
+      },
+    })
+  })
+
+  it("fails closed before reading an indexable source without G1 approval", async () => {
+    const { loadStaticRoutePublicationDecision } = await import(
+      "@/lib/url/segment-registry-publication.server"
+    )
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/static/[pageKey]"
+    )
+
+    await expect(
+      getServerSideProps({ params: { pageKey: "privacy" } } as never)
+    ).resolves.toEqual({ kind: "unavailable", retryAfterSeconds: 30 })
+    expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    "about",
+    "faq",
+  ] as const)("fails closed before reading %s CMS content without G1 approval", async (pageKey) => {
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    const { loadStaticRoutePublicationDecision } = await import(
+      "@/lib/url/segment-registry-publication.server"
+    )
+    vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/static/[pageKey]"
+    )
+
+    await expect(
+      getServerSideProps({ params: { pageKey } } as never)
+    ).resolves.toEqual({ kind: "unavailable", retryAfterSeconds: 30 })
+    expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
+  })
+
+  it("keeps a real CMS source noindex when taxonomy does not require G1", async () => {
+    const { resolveStaticPublicPage } = await import(
+      "@/lib/routing/public-page"
+    )
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    const { loadStaticRoutePublicationDecision } = await import(
+      "@/lib/url/segment-registry-publication.server"
+    )
+    vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
+      kind: "not-required",
+      reason: "route-not-indexable",
+    })
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValueOnce({
+      kind: "found",
+      value: { content: "Reviewed contact", id: 77, title: "Contact" },
+    })
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/static/[pageKey]"
+    )
+
+    const result = await getServerSideProps({
+      params: { pageKey: "contact" },
+    } as never)
+    const options = vi.mocked(resolveStaticPublicPage).mock.calls.at(-1)?.[1]
+
+    expect(result).toMatchObject({
+      kind: "found",
+      value: { kind: "cms", publicationApproved: false },
+    })
+    assertFoundCmsStaticSource(result)
+    expect(options?.isIndexable?.(result.value)).toBe(false)
+  })
+
+  it("rejects a post-approval CMS content drift", async () => {
+    const { assertReviewedStaticRouteSource } = await import(
+      "@/lib/url/segment-registry-publication/reviewed-source.server"
+    )
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValueOnce({
+      kind: "found",
+      value: { content: "Drifted", id: 77, title: "Privacy" },
+    })
+    vi.mocked(assertReviewedStaticRouteSource).mockRejectedValueOnce(
+      new Error("content drift")
+    )
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/static/[pageKey]"
+    )
+
+    await expect(
+      getServerSideProps({ params: { pageKey: "privacy" } } as never)
+    ).resolves.toEqual({
+      causeCode: "STATIC_CONTENT_REVIEW_BINDING_FAILED",
+      kind: "invalid-response",
+    })
+  })
+
+  it("never lets an RO demo substitution satisfy an approval", async () => {
+    const { resolveStaticPublicPage } = await import(
+      "@/lib/routing/public-page"
+    )
+    const { assertReviewedStaticRouteSource } = await import(
+      "@/lib/url/segment-registry-publication/reviewed-source.server"
+    )
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValueOnce({
+      kind: "found",
+      value: {
+        content: "Demo",
+        id: "demo-generated-unreviewed:ro:terms",
+        title: "Terms",
+      },
+    })
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/static/[pageKey]"
+    )
+
+    const result = await getServerSideProps({
+      params: { pageKey: "terms" },
+    } as never)
+    const options = vi.mocked(resolveStaticPublicPage).mock.calls.at(-1)?.[1]
+
+    expect(result).toMatchObject({
+      kind: "found",
+      value: { kind: "cms", publicationApproved: false },
+    })
+    expect(assertReviewedStaticRouteSource).not.toHaveBeenCalled()
+    assertFoundCmsStaticSource(result)
+    expect(options?.isIndexable?.(result.value)).toBe(false)
   })
 
   it.each([
@@ -44,8 +291,10 @@ describe("root-static CMS page source", () => {
     { kind: "unavailable" as const, retryAfterSeconds: 9 },
     { kind: "invalid-response" as const, causeCode: "INVALID_PAGE" },
   ])("preserves the $kind source outcome", async (sourceResult) => {
-    const { readCmsStaticPage } = await import("@/lib/storefront/cms")
-    vi.mocked(readCmsStaticPage).mockResolvedValue(sourceResult)
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValue(sourceResult)
     const { getServerSideProps } = await import(
       "@/pages/~sf/[market]/static/[pageKey]"
     )

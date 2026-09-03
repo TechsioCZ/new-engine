@@ -18,6 +18,13 @@ if (!migrationFile) {
 const sql = readFileSync(join(migrationDirectory, migrationFile), "utf8")
   .toLowerCase()
   .replaceAll(/\s+/g, " ")
+const catalogLifecycleMigration = readFileSync(
+  join(migrationDirectory, "Migration20260820143000.ts"),
+  "utf8"
+)
+const catalogLifecycleDown = catalogLifecycleMigration.match(
+  /override async down\(\): Promise<void> \{(?<body>[\s\S]*?)\n {2}\}/
+)?.groups?.body
 
 describe("URL registry outbox migration", () => {
   it("persists one immutable ordered stream per product and market", () => {
@@ -51,5 +58,11 @@ describe("URL registry outbox migration", () => {
     expect(sql).not.toContain('"route_id"')
     expect(sql).not.toContain('"expected_version"')
     expect(sql).not.toContain('"normalized_slug"')
+  })
+
+  it("does not narrow catalog payload validation on down", () => {
+    expect(catalogLifecycleDown).toBeDefined()
+    expect(catalogLifecycleDown?.replaceAll(/\/\/.*$/gm, "").trim()).toBe("")
+    expect(catalogLifecycleDown).not.toContain("this.addSql")
   })
 })

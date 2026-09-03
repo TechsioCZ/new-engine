@@ -1,11 +1,25 @@
-import { NextResponse } from "next/server"
+import type { NextResponse } from "next/server"
 import {
+  getAuthPasswordPolicyViolation,
+  isRegistrationCompanyIdentifierValid,
+  isRegistrationCompanyNameValid,
+  isRegistrationNameValid,
+  isRegistrationPostalCodeValid,
+  isRegistrationTermsAcceptanceValid,
+  normalizeRegistrationCountryCode,
+  REGISTRATION_TERMS_VERSION,
+} from "@/lib/auth/registration-policy"
+import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
+import {
+  authenticatedCustomerResponse,
   badRequest,
+  fetchAuthenticatedCustomer,
   marketAuthorityError,
-  requireStorefrontMarketBinding,
+  requireStorefrontAuthContext,
+  type StorefrontAuthContext,
+  type StorefrontAuthMessages,
   StorefrontMarketAuthorityError,
   serverError,
-  setSessionTokenCookie,
 } from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 import {
@@ -23,11 +37,9 @@ type RegisterBody = {
   password?: string
   first_name?: string
   last_name?: string
+  accept_terms?: unknown
+  terms_version?: unknown
   wholesale?: unknown
-}
-
-type RegisterResponse = {
-  token: string
 }
 
 type ParseRegisterBodyResult =
@@ -40,20 +52,17 @@ type ParseRegisterBodyResult =
       value: ParsedRegisterPayload
     }
 
-const createRegisterResponse = (token: string) => {
-  const response = NextResponse.json<RegisterResponse>(
-    {
-      token,
-    },
-    { status: 200 }
-  )
-
-  setSessionTokenCookie(response, token)
-  return response
-}
-
 const parseRegisterBody = async (
-  request: Request
+  request: Request,
+  {
+    currencyCode,
+    countryCode,
+    messages,
+  }: {
+    currencyCode: string
+    countryCode: HerbatikaCountryCode
+    messages: StorefrontAuthMessages
+  }
 ): Promise<ParseRegisterBodyResult> => {
   const body = asRecordOrUndefined(await request.json()) as
     | RegisterBody
@@ -61,25 +70,59 @@ const parseRegisterBody = async (
 
   if (!body) {
     return {
-      error: badRequest("Telo požiadavky musí byť platný JSON objekt."),
+      error: badRequest(messages.invalidJsonObject),
       value: null,
     }
   }
 
   const email = asStringOrUndefined(body.email)
   const password = asStringOrUndefined(body.password)
+  const firstName = asStringOrUndefined(body.first_name)
+  const lastName = asStringOrUndefined(body.last_name)
 
   if (!(email && password)) {
     return {
-      error: badRequest("E-mail aj heslo sú povinné."),
+      error: badRequest(messages.emailAndPasswordRequired),
       value: null,
     }
   }
 
-  const wholesale = parseWholesaleRegistration(body.wholesale)
+  if (
+    getAuthPasswordPolicyViolation(password) ||
+    !isRegistrationNameValid(firstName) ||
+    !isRegistrationNameValid(lastName) ||
+    !isRegistrationTermsAcceptanceValid(body.accept_terms, body.terms_version)
+  ) {
+    return {
+      error: badRequest(messages.registrationFailed),
+      value: null,
+    }
+  }
+
+  const wholesale = parseWholesaleRegistration(body.wholesale, {
+    currencyCode,
+    messages,
+  })
   if (wholesale.error) {
     return {
       error: wholesale.error,
+      value: null,
+    }
+  }
+
+  if (
+    wholesale.value &&
+    !(
+      isRegistrationCompanyNameValid(wholesale.value.companyName) &&
+      isRegistrationCompanyIdentifierValid(wholesale.value.companyIdentifier) &&
+      isRegistrationPostalCodeValid(
+        wholesale.value.billingAddress.postalCode,
+        countryCode
+      )
+    )
+  ) {
+    return {
+      error: badRequest(messages.registrationFailed),
       value: null,
     }
   }
@@ -89,24 +132,50 @@ const parseRegisterBody = async (
     value: {
       email,
       password,
-      firstName: asStringOrUndefined(body.first_name),
-      lastName: asStringOrUndefined(body.last_name),
+      firstName,
+      lastName,
+      termsAcceptance: {
+        acceptedAt: new Date().toISOString(),
+        version: REGISTRATION_TERMS_VERSION,
+      },
       wholesale: wholesale.value,
     } satisfies ParsedRegisterPayload,
   }
 }
 
 export async function POST(request: Request) {
+  let context: StorefrontAuthContext
+
   try {
-    const parsedBody = await parseRegisterBody(request)
+    context = requireStorefrontAuthContext(request)
+  } catch (error) {
+    if (error instanceof StorefrontMarketAuthorityError) {
+      return marketAuthorityError()
+    }
+    throw error
+  }
+
+  const { binding, currencyCode, messages } = context
+  const countryCode = normalizeRegistrationCountryCode(binding.countryCode)
+  if (!countryCode) {
+    return serverError(messages.registrationFailed)
+  }
+
+  try {
+    const parsedBody = await parseRegisterBody(request, {
+      currencyCode,
+      countryCode,
+      messages,
+    })
     if (parsedBody.error) {
       return parsedBody.error
     }
 
-    const { email, firstName, lastName, password, wholesale } = parsedBody.value
-    const binding = requireStorefrontMarketBinding(request)
+    const { email, firstName, lastName, password, termsAcceptance, wholesale } =
+      parsedBody.value
     const registerError = await createCustomerIdentity({
       email,
+      messages,
       password,
       wholesale,
     })
@@ -114,7 +183,11 @@ export async function POST(request: Request) {
       return registerError
     }
 
-    const loginResult = await loginCustomerIdentity({ email, password })
+    const loginResult = await loginCustomerIdentity({
+      email,
+      messages,
+      password,
+    })
     if (loginResult.error) {
       return loginResult.error
     }
@@ -122,11 +195,13 @@ export async function POST(request: Request) {
     const createCustomerError = await createCustomerProfile({
       binding,
       loginToken: loginResult.token,
+      messages,
       payload: {
         email,
         firstName,
         lastName,
         marketCode: binding.market,
+        termsAcceptance,
         wholesale,
       },
     })
@@ -138,6 +213,7 @@ export async function POST(request: Request) {
     const companyError = await createWholesaleProfile({
       binding,
       email,
+      messages,
       sessionToken,
       wholesale,
     })
@@ -145,17 +221,17 @@ export async function POST(request: Request) {
       return companyError
     }
 
-    return createRegisterResponse(sessionToken)
-  } catch (error) {
-    if (error instanceof StorefrontMarketAuthorityError) {
-      return marketAuthorityError()
-    }
-    if (error instanceof SyntaxError) {
-      return badRequest("Telo požiadavky musí byť platné JSON.")
+    const customer = await fetchAuthenticatedCustomer(binding, sessionToken)
+    if (!customer) {
+      return serverError(messages.sessionRestoreFailed)
     }
 
-    return serverError("Nepodarilo sa dokončiť registráciu zákazníka.", {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    return authenticatedCustomerResponse(customer, sessionToken)
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return badRequest(messages.invalidJson)
+    }
+
+    return serverError(messages.registrationFailed)
   }
 }

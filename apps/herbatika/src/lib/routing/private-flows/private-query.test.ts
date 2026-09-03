@@ -10,7 +10,6 @@ import {
 
 describe("private-flow query handling", () => {
   it.each([
-    ["ot=Guest.Token", ["ot"]],
     ["token=Deactivate.Token", ["token"]],
     ["product_id=prod_CASE", ["product_id"]],
     [
@@ -22,7 +21,7 @@ describe("private-flow query handling", () => {
   })
 
   it.each([
-    "ot=one&ot=two",
+    "ot=Guest.Token",
     "token=one&unknown=two",
     "product_id=%E0%A4%A",
     "next=/account&&flow=reset-password",
@@ -32,7 +31,6 @@ describe("private-flow query handling", () => {
         "email",
         "flow",
         "next",
-        "ot",
         "product_id",
         "token",
       ])
@@ -43,7 +41,7 @@ describe("private-flow query handling", () => {
     const headers = new Map<string, string>()
     const context = {
       params: { market: "sk" },
-      query: { ot: "Guest.Token", publicOrderId: "order_CASE" },
+      query: { publicOrderId: "order_CASE" },
       req: {
         headers: {
           "x-sf-canonical-origin": "https://herbatika.sk",
@@ -52,7 +50,7 @@ describe("private-flow query handling", () => {
           "x-sf-public-path": "/pokladna/potvrdenie-objednavky/order_CASE",
           "x-sf-route-key": "checkout.confirmation",
         },
-        url: "/~sf/sk/checkout/confirmation/order_CASE?ot=Guest.Token",
+        url: "/~sf/sk/checkout/confirmation/order_CASE",
       },
       res: {
         getHeader: (name: string) => headers.get(name),
@@ -69,7 +67,6 @@ describe("private-flow query handling", () => {
     })
 
     expect(result).toEqual({ notFound: true })
-    expect(headers.get("Location") ?? "").not.toContain("Guest.Token")
     expect(headers.get("Location") ?? "").not.toContain("order_CASE")
   })
 })

@@ -3,10 +3,11 @@
 // is a Pages SSR boundary and must stay reachable only from getServerSideProps.
 
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+import { nestStorefrontMessages } from "@techsio/storefront-i18n/core/messages"
 import type { GetServerSidePropsContext, GetServerSidePropsResult } from "next"
 import type { AbstractIntlMessages } from "next-intl"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
-import { ROUTES } from "@/lib/market/market-runtime-definitions"
+import { getConfiguredMarketRoutingRuntime } from "@/lib/market/market-runtime.server"
 import { fetchCmsFooterNavigation } from "@/lib/storefront/cms-footer-navigation"
 import type { CmsFooterNavigation } from "@/lib/storefront/cms-types"
 import { fetchExternalReviewTrustSources } from "@/lib/storefront/external-reviews.server"
@@ -14,10 +15,12 @@ import {
   getHerbatikaMarketContext,
   type HerbatikaMarketContext,
 } from "@/lib/storefront/market-context"
+import { applyOperatorContactAuthority } from "@/lib/storefront/operator-contact-authority.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import { readRequiredPublicEntitySlugs } from "@/lib/storefront/ssr/public-entity-projections"
 import { fetchStorefrontTextMessages } from "@/lib/storefront/storefront-texts.server"
+import { hasValidActiveProjection } from "@/lib/url/public-route-api"
 import type { PublicSeoSchemaType } from "@/lib/url/public-seo"
 import { classifySeo } from "@/lib/url/public-seo"
 import { buildAbsoluteUrl, buildPath } from "@/lib/url/public-url"
@@ -26,6 +29,7 @@ import { parseMarket } from "@/lib/url/segments"
 import { validatePublishedSlug } from "@/lib/url/slug"
 import type { Market } from "@/lib/url/types"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
+import { readCurrentEntitySourceVersions } from "@/lib/url-registry/current-entity-source-versions"
 import type {
   ActiveEntityRouteTarget,
   EntityUrlKind,
@@ -60,7 +64,21 @@ export type PublicPageProps<Value> = StorefrontShellProps &
 
 export type PublicSourceResult<Value> = SourceReadResult<Value>
 
+export type PublicEntitySourceInput = Readonly<{
+  market: Market
+  publicSlug: string
+  sourceId: string
+  sourceVersion: string
+}>
+
 const NO_STORE = "private, no-store, max-age=0, must-revalidate"
+// Every market is served from the same origin and the same public paths; only
+// the request Host selects the market. Any cache that keys on the URL alone
+// would serve one market's page to another, so the response must vary on Host.
+// `no-store` already forbids shared storage in production, but Next discards it
+// in dev (base-server: `if (this.dev) res.setHeader('Cache-Control',
+// 'no-cache, must-revalidate')`), which leaves the URL-keyed response cacheable.
+const VARY_ON_HOST = "Host"
 const HREF_LANG = {
   sk: "sk-SK",
   cz: "cs-CZ",
@@ -81,22 +99,28 @@ const rawQueryFromRequest = (url: string | undefined) => {
 
 const setNoStore = (context: GetServerSidePropsContext) => {
   context.res.setHeader("Cache-Control", NO_STORE)
+  context.res.setHeader("Vary", VARY_ON_HOST)
 }
 
 export const loadPublicShell = async (
   market: Market,
   categoryPublicSlugsById?: PublicEntitySlugMap
 ): Promise<StorefrontShellProps> => {
-  const marketContext = getHerbatikaMarketContext(market)
+  const marketContext = getHerbatikaMarketContext(
+    market,
+    new URL(configuredCanonicalOrigin(market)).hostname
+  )
   const [
-    messages,
+    flatMessages,
     reviewTrustSources,
     footerNavigation,
     categoryProjections,
-    { region },
+    regionContext,
   ] = await Promise.all([
-    fetchStorefrontTextMessages(marketContext),
-    fetchExternalReviewTrustSources(market),
+    fetchStorefrontTextMessages(marketContext).catch(() =>
+      applyOperatorContactAuthority(market, {})
+    ),
+    fetchExternalReviewTrustSources(market).catch(() => []),
     fetchCmsFooterNavigation(marketContext.locale).catch(() => ({
       columns: [],
     })),
@@ -108,15 +132,13 @@ export const loadPublicShell = async (
       : readRequiredPublicEntitySlugs({ kind: "category", market }),
     getRegionServerContext({ market }),
   ])
-  if (categoryProjections.kind !== "found") {
-    throw new Error("Category URL projections are unavailable")
-  }
   return {
-    categoryPublicSlugsById: categoryProjections.value,
+    categoryPublicSlugsById:
+      categoryProjections.kind === "found" ? categoryProjections.value : {},
     footerNavigation,
-    initialRegion: region,
+    initialRegion: regionContext.region,
     marketContext,
-    messages,
+    messages: nestStorefrontMessages(flatMessages),
     reviewTrustSources,
   }
 }
@@ -124,17 +146,25 @@ export const loadPublicShell = async (
 export const loadPublicErrorShell = async (
   market: Market
 ): Promise<StorefrontShellProps> => {
-  const marketContext = getHerbatikaMarketContext(market)
-  const [messages, reviewTrustSources] = await Promise.all([
-    fetchStorefrontTextMessages(marketContext).catch(() => ({})),
+  const marketContext = getHerbatikaMarketContext(
+    market,
+    new URL(configuredCanonicalOrigin(market)).hostname
+  )
+  const [flatMessages, reviewTrustSources, regionContext] = await Promise.all([
+    fetchStorefrontTextMessages(marketContext).catch(() =>
+      applyOperatorContactAuthority(market, {})
+    ),
     fetchExternalReviewTrustSources(market).catch(() => []),
+    // The link-free shell exists to keep crawlable links off noindex pages;
+    // currency is not a link, so the header still needs the market region.
+    getRegionServerContext({ market }).catch(() => null),
   ])
   return {
     categoryPublicSlugsById: {},
     footerNavigation: { columns: [] },
-    initialRegion: null,
+    initialRegion: regionContext?.region ?? null,
     marketContext,
-    messages,
+    messages: nestStorefrontMessages(flatMessages),
     reviewTrustSources,
   }
 }
@@ -183,6 +213,14 @@ export const redirectResult = <Value>(
   } as GetServerSidePropsResult<PublicPageProps<Value>>)
 }
 
+const configuredCanonicalOrigin = (market: Market): string => {
+  const binding = getConfiguredMarketRoutingRuntime().bindings[market]
+  if (!binding) {
+    throw new Error(`Market ${market} is not configured`)
+  }
+  return binding.canonicalOrigin
+}
+
 const trustedMarket = (
   context: GetServerSidePropsContext,
   expectedRouteKey: string
@@ -194,7 +232,7 @@ const trustedMarket = (
   }
   const headers = context.req.headers
   return headers["x-sf-market"] === market &&
-    headers["x-sf-canonical-origin"] === ROUTES[market].canonicalOrigin &&
+    headers["x-sf-canonical-origin"] === configuredCanonicalOrigin(market) &&
     headers["x-sf-route-key"] === expectedRouteKey &&
     typeof headers["x-sf-public-path"] === "string"
     ? market
@@ -211,13 +249,23 @@ const currentAbsoluteUrl = (
   rawQuery: string
 ) => urlWithQuery(buildAbsoluteUrl({ kind, slug }, market).href, rawQuery)
 
-const loadAlternates = async <Value>(
+export const loadEntityAlternates = async <Value>(
   current: ActiveEntityRouteTarget,
-  loadSource: (input: {
-    market: Market
-    sourceId: string
-  }) => Promise<PublicSourceResult<Value>>
+  loadSource: (
+    input: PublicEntitySourceInput
+  ) => Promise<PublicSourceResult<Value>>,
+  isIndexable?: (value: Value) => boolean
 ): Promise<Readonly<Record<string, string>>> => {
+  if (
+    !hasValidActiveProjection(
+      current,
+      current.route.market,
+      current.route.kind
+    ) ||
+    current.route.indexPolicy !== "indexable"
+  ) {
+    throw new Error("Current route projection is invalid")
+  }
   const self = [
     HREF_LANG[current.route.market],
     buildAbsoluteUrl(
@@ -232,48 +280,139 @@ const loadAlternates = async <Value>(
   if (!equivalenceKey) {
     return Object.fromEntries([self])
   }
-  const runtime = await getUrlRegistryRuntime()
-  if (!runtime.enabled) {
-    throw new Error("URL registry is disabled")
-  }
-  const equivalents = await runtime.registry.findActiveEquivalents({
-    equivalenceKey,
-    kind: current.route.kind,
-  })
-  if (equivalents.kind !== "found") {
-    throw new Error("Equivalent routes are unavailable")
-  }
-
-  const entries = await Promise.all(
-    equivalents.value.flatMap((candidate) =>
-      candidate.projectionType === "entity" &&
-      candidate.route.kind === current.route.kind
-        ? [
-            (async () => {
-              const source = await loadSource({
-                market: candidate.route.market,
-                sourceId: candidate.route.sourceId,
-              })
-              if (source.kind === "missing") {
-                return null
-              }
-              if (source.kind !== "found") {
-                throw new Error("Equivalent route source is unavailable")
-              }
-              return [
-                HREF_LANG[candidate.route.market],
-                buildAbsoluteUrl(
-                  {
-                    kind: candidate.route.kind,
-                    slug: candidate.currentSlug.normalizedSlug,
-                  },
-                  candidate.route.market
-                ).href,
-              ] as const
-            })(),
-          ]
-        : []
+  try {
+    const runtime = await getUrlRegistryRuntime()
+    if (!runtime.enabled) {
+      return Object.fromEntries([self])
+    }
+    const equivalents = await runtime.registry.findActiveEquivalents({
+      equivalenceKey,
+      kind: current.route.kind,
+    })
+    if (equivalents.kind !== "found") {
+      return Object.fromEntries([self])
+    }
+    const allowedMarkets = new Set(
+      getConfiguredMarketRoutingRuntime().allowedMarkets
     )
+    const candidatesByMarket = new Map<Market, ActiveEntityRouteTarget>()
+    const ambiguousMarkets = new Set<Market>()
+    for (const candidate of equivalents.value) {
+      if (
+        candidate.projectionType !== "entity" ||
+        candidate.route.market === current.route.market ||
+        !allowedMarkets.has(candidate.route.market) ||
+        !hasValidActiveProjection(
+          candidate,
+          candidate.route.market,
+          current.route.kind
+        ) ||
+        candidate.route.equivalenceKey !== equivalenceKey ||
+        candidate.route.indexPolicy !== "indexable"
+      ) {
+        continue
+      }
+      if (ambiguousMarkets.has(candidate.route.market)) {
+        continue
+      }
+      const existing = candidatesByMarket.get(candidate.route.market)
+      if (existing && existing.route.id !== candidate.route.id) {
+        candidatesByMarket.delete(candidate.route.market)
+        ambiguousMarkets.add(candidate.route.market)
+        continue
+      }
+      candidatesByMarket.set(candidate.route.market, candidate)
+    }
+
+    const candidates = [...candidatesByMarket.values()]
+    const sourceVersions = await readCurrentEntitySourceVersions(
+      candidates,
+      runtime.registry
+    )
+    if (sourceVersions.kind !== "found") {
+      return Object.fromEntries([self])
+    }
+    const sourceVersionByRouteId = new Map(
+      sourceVersions.value.map(({ routeId, sourceVersion }) => [
+        routeId,
+        sourceVersion,
+      ])
+    )
+
+    const entries = await Promise.all(
+      candidates.map(async (candidate) => {
+        try {
+          const sourceVersion = sourceVersionByRouteId.get(candidate.route.id)
+          if (!sourceVersion) {
+            return null
+          }
+          const source = await loadSource({
+            market: candidate.route.market,
+            publicSlug: candidate.currentSlug.normalizedSlug,
+            sourceId: candidate.route.sourceId,
+            sourceVersion,
+          })
+          if (
+            source.kind !== "found" ||
+            !(isIndexable?.(source.value) ?? true)
+          ) {
+            return null
+          }
+          return [
+            HREF_LANG[candidate.route.market],
+            buildAbsoluteUrl(
+              {
+                kind: candidate.route.kind,
+                slug: candidate.currentSlug.normalizedSlug,
+              },
+              candidate.route.market
+            ).href,
+          ] as const
+        } catch {
+          return null
+        }
+      })
+    )
+    return Object.fromEntries([
+      ...entries.filter((entry) => entry !== null),
+      self,
+    ])
+  } catch {
+    return Object.fromEntries([self])
+  }
+}
+
+const loadStaticAlternates = async <Value>(
+  currentMarket: Market,
+  path: Parameters<typeof buildPath>[0],
+  loadSource: (market: Market) => Promise<PublicSourceResult<Value>>,
+  isIndexable?: (value: Value) => boolean
+): Promise<Readonly<Record<string, string>>> => {
+  const { allowedMarkets } = getConfiguredMarketRoutingRuntime()
+  const self = [
+    HREF_LANG[currentMarket],
+    buildAbsoluteUrl(path, currentMarket).href,
+  ] as const
+  const entries = await Promise.all(
+    allowedMarkets
+      .filter((market) => market !== currentMarket)
+      .map(async (market) => {
+        try {
+          const source = await loadSource(market)
+          if (
+            source.kind !== "found" ||
+            !(isIndexable?.(source.value) ?? true)
+          ) {
+            return null
+          }
+          return [
+            HREF_LANG[market],
+            buildAbsoluteUrl(path, market).href,
+          ] as const
+        } catch {
+          return null
+        }
+      })
   )
   return Object.fromEntries([
     self,
@@ -281,38 +420,19 @@ const loadAlternates = async <Value>(
   ])
 }
 
-const loadStaticAlternates = async <Value>(
-  path: Parameters<typeof buildPath>[0],
-  loadSource: (market: Market) => Promise<PublicSourceResult<Value>>
-): Promise<Readonly<Record<string, string>>> => {
-  const entries = await Promise.all(
-    (Object.keys(ROUTES) as Market[]).map(async (market) => {
-      const source = await loadSource(market)
-      if (source.kind === "missing") {
-        return null
-      }
-      if (source.kind !== "found") {
-        throw new Error("Static alternate source is unavailable")
-      }
-      return [HREF_LANG[market], buildAbsoluteUrl(path, market).href] as const
-    })
-  )
-  return Object.fromEntries(entries.filter((entry) => entry !== null))
-}
-
 export const resolveEntityPublicPage = async <Value>(
   context: GetServerSidePropsContext,
   input: Readonly<{
     expectedRouteKey: string
+    description?: (value: Value) => string | undefined
     kind: EntityUrlKind
-    loadSource: (input: {
-      market: Market
-      sourceId: string
-    }) => Promise<PublicSourceResult<Value>>
+    loadSource: (
+      input: PublicEntitySourceInput
+    ) => Promise<PublicSourceResult<Value>>
     isIndexable?: (value: Value) => boolean
     lastPage?: (value: Value) => number | undefined
     queryKind: QueryRouteKind
-    title?: (value: Value) => string
+    title?: (value: Value) => string | undefined
   }>
 ): Promise<GetServerSidePropsResult<PublicPageProps<Value>>> => {
   const market = trustedMarket(context, input.expectedRouteKey)
@@ -360,9 +480,22 @@ export const resolveEntityPublicPage = async <Value>(
       resolution.value.disposition === "superseded"
         ? resolution.value.successorRoute
         : resolution.value.route
+    const sourceProjection: ActiveEntityRouteTarget = {
+      currentSlug: resolution.value.currentSlug,
+      projectionType: "entity",
+      route: sourceRoute,
+    }
+    if (!hasValidActiveProjection(sourceProjection, market, input.kind)) {
+      return errorResult(context, market, 503)
+    }
+    // The registry route is the authority for slug -> source identity; page
+    // sources no longer consume the audit-log source version, so a constant
+    // satisfies the input shape without blocking rendering on audit history.
     const source = await input.loadSource({
       market,
+      publicSlug: resolution.value.currentSlug.normalizedSlug,
       sourceId: sourceRoute.sourceId,
+      sourceVersion: "1",
     })
     if (source.kind === "missing") {
       return notFoundResult(context)
@@ -400,11 +533,7 @@ export const resolveEntityPublicPage = async <Value>(
       return notFoundResult(context)
     }
 
-    const current: ActiveEntityRouteTarget = {
-      projectionType: "entity",
-      route: resolution.value.route,
-      currentSlug: resolution.value.currentSlug,
-    }
+    const current = sourceProjection
     const querySeo = classifySeo({
       canonicalRawQuery: boundedQuery.canonicalRawQuery,
       routeKind: input.queryKind,
@@ -414,7 +543,11 @@ export const resolveEntityPublicPage = async <Value>(
       querySeo.indexable && (input.isIndexable?.(source.value) ?? true)
     const alternates =
       isIndexable && querySeo.alternateEligible
-        ? await loadAlternates(current, input.loadSource)
+        ? await loadEntityAlternates(
+            current,
+            input.loadSource,
+            input.isIndexable
+          )
         : {}
     const canonical = isIndexable
       ? urlWithQuery(
@@ -424,19 +557,23 @@ export const resolveEntityPublicPage = async <Value>(
         )
       : undefined
     setNoStore(context)
+    const description = input.description?.(source.value)
+    const title = input.title?.(source.value)
     return {
       props: {
         ...(await loadPublicShell(market)),
         page: { kind: "found", value: source.value },
         seo: {
           alternates,
-          canonical,
+          ...(canonical ? { canonical } : {}),
           robots: isIndexable ? "index, follow" : "noindex, follow",
-          ...(input.title ? { title: input.title(source.value) } : {}),
+          ...(description === undefined ? {} : { description }),
+          ...(title === undefined ? {} : { title }),
         },
       },
     }
-  } catch {
+  } catch (error) {
+    console.error("resolveStaticPublicPage failed", error)
     return errorResult(context, market, 503)
   }
 }
@@ -450,7 +587,8 @@ export const resolveStaticPublicPage = async <Value>(
     lastPage?: (value: Value) => number | undefined
     path: Parameters<typeof buildPath>[0]
     queryKind: QueryRouteKind
-    title?: (value: Value) => string
+    title?: (value: Value) => string | undefined
+    useLinkFreeShellWhenNoindex?: boolean
   }>
 ): Promise<GetServerSidePropsResult<PublicPageProps<Value>>> => {
   const market = trustedMarket(context, input.expectedRouteKey)
@@ -470,13 +608,16 @@ export const resolveStaticPublicPage = async <Value>(
     return redirectResult(
       context,
       urlWithQuery(
-        new URL(canonicalPath, ROUTES[market].canonicalOrigin).href,
+        new URL(canonicalPath, configuredCanonicalOrigin(market)).href,
         query.kind === "redirect" ? query.redirectRawQuery : rawQuery
       )
     )
   }
   try {
     const source = await input.loadSource(market)
+    if (source.kind !== "found") {
+      console.error("resolveStaticPublicPage source rejected", source)
+    }
     if (source.kind === "missing") {
       return notFoundResult(context)
     }
@@ -505,24 +646,35 @@ export const resolveStaticPublicPage = async <Value>(
       querySeo.indexable && (input.isIndexable?.(source.value) ?? true)
     const canonical = isIndexable
       ? urlWithQuery(
-          new URL(canonicalPath, ROUTES[market].canonicalOrigin).href,
+          new URL(canonicalPath, configuredCanonicalOrigin(market)).href,
           querySeo.canonicalRawQuery ?? ""
         )
       : undefined
     const alternates =
       isIndexable && querySeo.alternateEligible
-        ? await loadStaticAlternates(input.path, input.loadSource)
+        ? await loadStaticAlternates(
+            market,
+            input.path,
+            input.loadSource,
+            input.isIndexable
+          )
         : {}
+    if (!isIndexable) {
+      context.res.setHeader("X-Robots-Tag", "noindex, follow")
+    }
     setNoStore(context)
+    const title = input.title?.(source.value)
     return {
       props: {
-        ...(await loadPublicShell(market)),
+        ...(await (input.useLinkFreeShellWhenNoindex && !isIndexable
+          ? loadPublicErrorShell(market)
+          : loadPublicShell(market))),
         page: { kind: "found", value: source.value },
         seo: {
           alternates,
-          canonical,
+          ...(canonical ? { canonical } : {}),
           robots: isIndexable ? "index, follow" : "noindex, follow",
-          ...(input.title ? { title: input.title(source.value) } : {}),
+          ...(title === undefined ? {} : { title }),
         },
       },
     }
@@ -540,6 +692,7 @@ export const resolveFlowPublicPage = async <Value>(
       kind: QueryRouteKind
       path: Parameters<typeof buildPath>[0]
     }>
+    title?: (value: Value) => string | undefined
   }>
 ): Promise<GetServerSidePropsResult<PublicPageProps<Value>>> => {
   const market = trustedMarket(context, input.expectedRouteKey)
@@ -564,7 +717,7 @@ export const resolveFlowPublicPage = async <Value>(
         ? buildAbsoluteUrl(input.query.path, market).href
         : new URL(
             typeof publicPath === "string" ? publicPath : "/",
-            ROUTES[market].canonicalOrigin
+            configuredCanonicalOrigin(market)
           ).href
     return redirectResult(
       context,
@@ -586,11 +739,15 @@ export const resolveFlowPublicPage = async <Value>(
       return errorResult(context, market, 503)
     }
     setNoStore(context)
+    const title = input.title?.(source.value)
     return {
       props: {
         ...(await loadPublicShell(market)),
         page: { kind: "found", value: source.value },
-        seo: { robots: "noindex, follow" },
+        seo: {
+          robots: "noindex, follow",
+          ...(title === undefined ? {} : { title }),
+        },
       },
     }
   } catch {

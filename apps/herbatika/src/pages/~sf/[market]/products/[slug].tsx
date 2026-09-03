@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next"
 import Head from "next/head"
+import { useTranslations } from "next-intl"
 import { ProductDetail } from "@/components/product-detail"
 import { ProductPagesProvider } from "@/components/product-detail/product-pages-provider"
 import {
@@ -7,13 +8,17 @@ import {
   rawQueryFromRequestTarget,
   resolveProductPageRequest,
 } from "@/lib/routing/pages/product-page"
-import type { ProductRouteRegistry } from "@/lib/routing/pages/product-route"
+import type {
+  ProductRouteRegistry,
+  ResolvedProductRoute,
+} from "@/lib/routing/pages/product-route"
 import {
   applySsrOutcome,
   type SsrOutcome,
   type SsrPageProps,
 } from "@/lib/routing/pages/ssr-outcome"
 import {
+  loadEntityAlternates,
   loadPublicErrorShell,
   loadPublicShell,
   type StorefrontShellProps,
@@ -22,18 +27,24 @@ import { buildProductSeo, serializeProductJsonLd } from "@/lib/seo/product"
 import type { ProductPageContext } from "@/lib/storefront/product-page-context"
 import type { ProductRouteMedusaProduct } from "@/lib/storefront/product-route-source"
 import {
+  readProductAlternateSourceFromMedusa,
   readProductPageContextFromMedusa,
+  readProductRouteSourceByHandleFromMedusa,
   readProductRouteSourceFromMedusa,
 } from "@/lib/storefront/product-route-source.server"
 import {
   type PublicEntitySlugMap,
+  readAvailablePublicEntitySlugs,
   readRequiredPublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
+import { buildProductAbsoluteUrl } from "@/lib/url/product-path"
+import { buildPublicOpenGraphLocales } from "@/lib/url/public-seo"
 import { parseMarket } from "@/lib/url/segments"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
 
 type ProductPageView = Readonly<{
+  alternates: Readonly<Record<string, string>>
   brandPublicSlugsById: PublicEntitySlugMap
   canonicalUrl: string
   categoryPublicSlugsById: PublicEntitySlugMap
@@ -63,6 +74,35 @@ const readRegistry = async (): Promise<
   return { kind: "found", value: runtime.registry } as const
 }
 
+const readProductAlternates = async (
+  market: NonNullable<ReturnType<typeof parseMarket>>,
+  productId: string
+): Promise<Readonly<Record<string, string>>> => {
+  const runtime = await getUrlRegistryRuntime()
+  if (!runtime.enabled) {
+    throw new Error("URL registry is disabled")
+  }
+  const current = await runtime.registry.findActiveEntityRoute({
+    market,
+    sourceId: productId,
+    sourceSystem: "medusa",
+    sourceType: "product",
+  })
+  if (current.kind !== "found") {
+    throw new Error("Current product route is unavailable")
+  }
+  return loadEntityAlternates(
+    current.value,
+    ({ market: targetMarket, publicSlug, sourceId, sourceVersion }) =>
+      readProductAlternateSourceFromMedusa({
+        market: targetMarket,
+        productId: sourceId,
+        publicSlug,
+        sourceVersion,
+      })
+  )
+}
+
 const singleHeader = (value: string | string[] | undefined) => value
 
 type ProductProjectionMaps = Readonly<{
@@ -70,6 +110,48 @@ type ProductProjectionMaps = Readonly<{
   categoryPublicSlugsById: PublicEntitySlugMap
   productPublicSlugsById: PublicEntitySlugMap
 }>
+
+// Registry-free path: Medusa handles are the public slugs and brand links are
+// dropped because they have no registry projection to link to.
+const handleProjectionMaps = (
+  product: ProductRouteMedusaProduct
+): ProductProjectionMaps => ({
+  brandPublicSlugsById: {},
+  categoryPublicSlugsById: Object.fromEntries(
+    (product.categories ?? []).flatMap((category) =>
+      category.handle ? [[category.id, category.handle]] : []
+    )
+  ),
+  productPublicSlugsById: { [product.id]: product.handle },
+})
+
+const resolveProductByHandle = async (
+  market: ReturnType<typeof parseMarket>,
+  slugParam: string | string[] | undefined
+): Promise<SsrOutcome<ResolvedProductRoute<ProductRouteMedusaProduct>>> => {
+  if (!(market && typeof slugParam === "string")) {
+    return { kind: "not-found" }
+  }
+  let canonicalUrl: string
+  try {
+    canonicalUrl = buildProductAbsoluteUrl(market, slugParam)
+  } catch {
+    return { kind: "not-found" }
+  }
+  const result = await readProductRouteSourceByHandleFromMedusa({
+    market,
+    publicSlug: slugParam,
+  })
+  if (result.kind !== "found") {
+    return result.kind === "missing"
+      ? { kind: "not-found" }
+      : { kind: "unavailable" }
+  }
+  return {
+    kind: "found",
+    value: { canonicalUrl, product: result.value, publicSlug: slugParam },
+  }
+}
 
 const unavailableFromSource = <Value,>(
   result: Exclude<SourceReadResult<Value>, { kind: "found" }>
@@ -104,8 +186,10 @@ const readProductProjectionMaps = async (
     return { kind: "unavailable" }
   }
 
+  // Brand routes may not be projected in the registry yet; a missing brand
+  // slug drops the brand link instead of taking the whole PDP down.
   const [brandMap, categoryMap, productMap] = await Promise.all([
-    readRequiredPublicEntitySlugs({
+    readAvailablePublicEntitySlugs({
       kind: "brand",
       market,
       requiredSourceIds: brandSourceId ? [brandSourceId] : [],
@@ -141,10 +225,9 @@ const readProductProjectionMaps = async (
 }
 
 const toPageView = async (
-  outcome: Awaited<
-    ReturnType<typeof resolveProductPageRequest<ProductRouteMedusaProduct>>
-  >,
-  market: ReturnType<typeof parseMarket>
+  outcome: SsrOutcome<ResolvedProductRoute<ProductRouteMedusaProduct>>,
+  market: ReturnType<typeof parseMarket>,
+  registryProjections: boolean
 ): Promise<SsrOutcome<ProductPageView>> => {
   if (outcome.kind !== "found") {
     return outcome
@@ -174,12 +257,15 @@ const toPageView = async (
   const seo = buildProductSeo({
     canonicalUrl: outcome.value.canonicalUrl,
     initialVariantId: outcome.value.initialVariantId,
+    locale: context.value.marketContext.locale,
     product: outcome.value.product,
   })
-  const projectionMaps = await readProductProjectionMaps(
-    market,
-    outcome.value.product
-  )
+  const alternates = registryProjections
+    ? await readProductAlternates(market, outcome.value.product.id)
+    : {}
+  const projectionMaps: SsrOutcome<ProductProjectionMaps> = registryProjections
+    ? await readProductProjectionMaps(market, outcome.value.product)
+    : { kind: "found", value: handleProjectionMaps(outcome.value.product) }
   if (projectionMaps.kind !== "found") {
     return projectionMaps
   }
@@ -187,6 +273,7 @@ const toPageView = async (
   return {
     kind: "found",
     value: {
+      alternates,
       brandPublicSlugsById: projectionMaps.value.brandPublicSlugsById,
       canonicalUrl: seo.canonicalUrl,
       categoryPublicSlugsById: projectionMaps.value.categoryPublicSlugsById,
@@ -222,15 +309,24 @@ export const getServerSideProps = (async ({ params, req, res }) => {
     rawQuery: rawQueryFromRequestTarget(req.url),
     slugParam: params?.slug,
   }
-  const outcome = await resolveProductPageRequest(request, {
-    readProductById: readProductRouteSourceFromMedusa,
-    readRegistry,
-  })
-
-  const pageOutcome = await toPageView(
-    outcome,
+  const headerMarket =
     typeof marketHeader === "string" ? parseMarket(marketHeader) : null
-  ).catch((): SsrOutcome<ProductPageView> => ({ kind: "unavailable" }))
+  const registry = await readRegistry()
+  const registryOutcome =
+    registry.kind === "found"
+      ? await resolveProductPageRequest(request, {
+          readProductById: readProductRouteSourceFromMedusa,
+          readRegistry: () => Promise.resolve(registry),
+        })
+      : null
+  const byHandle = !registryOutcome || registryOutcome.kind === "not-found"
+  const outcome = byHandle
+    ? await resolveProductByHandle(headerMarket, params?.slug)
+    : registryOutcome
+
+  const pageOutcome = await toPageView(outcome, headerMarket, !byHandle).catch(
+    (): SsrOutcome<ProductPageView> => ({ kind: "unavailable" })
+  )
   if (res.headersSent) {
     throw new Error("Product route resolved after response headers were sent")
   }
@@ -239,20 +335,23 @@ export const getServerSideProps = (async ({ params, req, res }) => {
   if (!("props" in result)) {
     return result
   }
-  const market =
-    typeof marketHeader === "string" ? parseMarket(marketHeader) : null
-  if (!market) {
+  if (!headerMarket) {
     return { notFound: true }
   }
   const pageProps = await result.props
   const shell =
     pageOutcome.kind === "found"
-      ? await loadPublicShell(market, pageOutcome.value.categoryPublicSlugsById)
-      : await loadPublicErrorShell(market)
+      ? await loadPublicShell(
+          headerMarket,
+          pageOutcome.value.categoryPublicSlugsById
+        )
+      : await loadPublicErrorShell(headerMarket)
   return { props: { ...pageProps, ...shell } }
 }) satisfies GetServerSideProps<ProductPageProps>
 
 export default function ProductPagesRoute({ page }: ProductPageProps) {
+  const tCatalog = useTranslations("catalog")
+
   if (page.kind === "error") {
     return (
       <>
@@ -260,22 +359,43 @@ export default function ProductPagesRoute({ page }: ProductPageProps) {
           <meta content="noindex, nofollow" name="robots" />
         </Head>
         <main>
-          <h1>Product unavailable</h1>
-          <p>Status: {page.status}</p>
+          <h1>{tCatalog("product_detail.errors.page_unavailable")}</h1>
+          <p>
+            {tCatalog("product_detail.errors.page_status", {
+              status: page.status,
+            })}
+          </p>
         </main>
       </>
     )
   }
 
+  const openGraphLocales = buildPublicOpenGraphLocales({
+    alternates: page.value.alternates,
+    locale: page.value.context.marketContext.locale,
+  })
+
   return (
     <>
       <Head>
-        <title>{page.value.title}</title>
+        <title>{`${page.value.title} | ${page.value.context.marketContext.metadata.title}`}</title>
         {page.value.description ? (
           <meta content={page.value.description} name="description" />
         ) : null}
         <link href={page.value.canonicalUrl} rel="canonical" />
+        {Object.entries(page.value.alternates).map(([hrefLang, href]) => (
+          <link
+            href={href}
+            hrefLang={hrefLang}
+            key={hrefLang}
+            rel="alternate"
+          />
+        ))}
         <meta content="product" property="og:type" />
+        <meta content={openGraphLocales.locale} property="og:locale" />
+        {openGraphLocales.alternateLocales.map((locale) => (
+          <meta content={locale} key={locale} property="og:locale:alternate" />
+        ))}
         <meta content={page.value.title} property="og:title" />
         {page.value.description ? (
           <meta content={page.value.description} property="og:description" />

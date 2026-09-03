@@ -2,6 +2,8 @@ import type { DehydratedState } from "@tanstack/react-query"
 import { HydrationBoundary } from "@tanstack/react-query"
 import type { GetServerSideProps } from "next"
 import { ProductIndexPage } from "@/components/products/product-index-page"
+import { PRODUCT_INDEX_TITLE } from "@/components/products/product-index-title"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   foundSource,
   type PublicPageProps,
@@ -11,13 +13,14 @@ import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-s
 import { prefetchProductIndexStorefrontData } from "@/lib/storefront/ssr"
 import {
   type PublicEntitySlugMap,
-  readRequiredPublicEntitySlugs,
+  readAvailablePublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
 
 type Props = PublicPageProps<
   Readonly<{
     dehydratedState: DehydratedState
     productPublicSlugsById: PublicEntitySlugMap
+    title: string
     totalPages: number
   }>
 >
@@ -37,28 +40,32 @@ export const getServerSideProps = ((context) => {
           causeCode: "MISSING_REGION",
         } as const
       }
-      const productPublicSlugsById = await readRequiredPublicEntitySlugs({
+      const productPublicSlugsById = await readAvailablePublicEntitySlugs({
         kind: "product",
         market,
         requiredSourceIds: result.visibleProductIds,
       })
-      return productPublicSlugsById.kind === "found"
-        ? foundSource({
-            dehydratedState: result.dehydratedState,
-            productPublicSlugsById: productPublicSlugsById.value,
-            totalPages: result.totalPages,
-          })
-        : productPublicSlugsById
+      // Registry projections are optional: Medusa handles are the public slugs.
+      return foundSource({
+        dehydratedState: result.dehydratedState,
+        productPublicSlugsById:
+          productPublicSlugsById.kind === "found"
+            ? productPublicSlugsById.value
+            : result.visibleProductSlugsById,
+        title: PRODUCT_INDEX_TITLE[market],
+        totalPages: result.totalPages,
+      })
     },
     lastPage: (value) => value.totalPages,
     path: { kind: "product" },
     queryKind: "product-index",
+    title: (value) => value.title,
   })
 }) satisfies GetServerSideProps<Props>
 
 export default function ProductsPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Products unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="catalog" />
   }
   return (
     <HydrationBoundary state={page.value.dehydratedState}>

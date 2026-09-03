@@ -4,12 +4,25 @@ import type {
   StaticRouteSnapshot,
 } from "@/lib/url-registry/model"
 
+const mocks = vi.hoisted(() => ({
+  listPublicEntityProjections: vi.fn(),
+  listPublicStaticProjections: vi.fn(),
+}))
+
 vi.mock("server-only", () => ({}))
+vi.mock("@/lib/url-registry/runtime/public-projections.server", () => ({
+  listPublicEntityProjections: mocks.listPublicEntityProjections,
+  listPublicStaticProjections: mocks.listPublicStaticProjections,
+}))
 
 import {
   mapRequiredPublicEntitySlugs,
   mapRequiredPublicStaticHrefs,
 } from "./public-entity-projection-map"
+import {
+  readAvailablePublicEntitySlugs,
+  readCompletePublicEntitySlugs,
+} from "./public-entity-projections"
 
 const projection = (
   sourceId: string,
@@ -163,6 +176,94 @@ describe("mapRequiredPublicEntitySlugs", () => {
     ).toEqual({
       causeCode: "MISMATCHED_PRODUCT_PUBLIC_PROJECTION_IDENTITY",
       kind: "invalid-response",
+    })
+  })
+})
+
+describe("readCompletePublicEntitySlugs", () => {
+  it("scans the complete projection index before validating a large source set", async () => {
+    const projections = Array.from({ length: 206 }, (_, index) =>
+      projection(`category-${index}`, `category-${index}`)
+    ).map((item) => ({
+      ...item,
+      currentSlug: { ...item.currentSlug, kind: "category" as const },
+      route: {
+        ...item.route,
+        kind: "category" as const,
+        sourceType: "category" as const,
+      },
+    }))
+    mocks.listPublicEntityProjections.mockResolvedValueOnce({
+      kind: "found",
+      value: projections,
+    })
+
+    const result = await readCompletePublicEntitySlugs({
+      kind: "category",
+      market: "sk",
+      rejectUnexpectedSourceIds: true,
+      requiredSourceIds: projections.map(({ route }) => route.sourceId),
+    })
+
+    expect(result.kind).toBe("found")
+    expect(mocks.listPublicEntityProjections).toHaveBeenCalledWith({
+      kind: "category",
+      market: "sk",
+    })
+  })
+})
+
+describe("readAvailablePublicEntitySlugs", () => {
+  it("returns only validated public projections for a partially populated listing", async () => {
+    mocks.listPublicEntityProjections.mockResolvedValueOnce({
+      kind: "found",
+      value: [projection("prod-1", "public-product")],
+    })
+
+    await expect(
+      readAvailablePublicEntitySlugs({
+        kind: "product",
+        market: "sk",
+        requiredSourceIds: ["prod-1", "prod-missing"],
+      })
+    ).resolves.toEqual({
+      kind: "found",
+      value: { "prod-1": "public-product" },
+    })
+    expect(mocks.listPublicEntityProjections).toHaveBeenCalledWith({
+      kind: "product",
+      market: "sk",
+      requiredSourceIds: ["prod-1", "prod-missing"],
+    })
+  })
+
+  it("loads large available listings in bounded projection batches", async () => {
+    const sourceIds = Array.from(
+      { length: 128 },
+      (_, index) => `brand-${index}`
+    )
+    mocks.listPublicEntityProjections.mockReset()
+    mocks.listPublicEntityProjections
+      .mockResolvedValueOnce({ kind: "found", value: [] })
+      .mockResolvedValueOnce({ kind: "found", value: [] })
+
+    await expect(
+      readAvailablePublicEntitySlugs({
+        kind: "brand",
+        market: "sk",
+        requiredSourceIds: sourceIds,
+      })
+    ).resolves.toEqual({ kind: "found", value: {} })
+
+    expect(mocks.listPublicEntityProjections).toHaveBeenNthCalledWith(1, {
+      kind: "brand",
+      market: "sk",
+      requiredSourceIds: sourceIds.slice(0, 100),
+    })
+    expect(mocks.listPublicEntityProjections).toHaveBeenNthCalledWith(2, {
+      kind: "brand",
+      market: "sk",
+      requiredSourceIds: sourceIds.slice(100),
     })
   })
 })

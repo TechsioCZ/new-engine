@@ -4,7 +4,6 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { resolveOrderNote } from "../utils/order-note"
 import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
 import { sendAccountSetupWorkflow } from "../workflows/send-account-setup"
-import { sendOrderReceiptWorkflow } from "../workflows/send-order-receipt"
 
 type OrderPlacedEvent = {
   id: string
@@ -14,12 +13,6 @@ export default async function orderPlacedHandler({
   event: { data },
   container,
 }: SubscriberArgs<OrderPlacedEvent>) {
-  await sendOrderReceiptWorkflow(container).run({
-    input: {
-      order_id: data.id,
-    },
-  })
-
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const {

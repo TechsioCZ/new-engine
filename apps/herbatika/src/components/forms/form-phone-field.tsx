@@ -7,18 +7,21 @@ import {
   PhoneInput,
   type PhoneInputCountry,
 } from "@techsio/ui-kit/molecules/phone-input"
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useMemo, useState } from "react"
 import {
   resolveVisibleFieldFeedback,
   shouldTrackLiveFieldFeedback,
 } from "@/lib/forms/core/field-errors"
 import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
+import { resolveCountryDisplayName } from "@/lib/forms/country-options"
 import {
   HERBATIKA_PHONE_COUNTRY_CODES,
   type HerbatikaPhoneCountryCode,
   normalizeHerbatikaPhoneCountryCode,
   toPhoneFormValue,
 } from "@/lib/forms/phone-number"
+import type { HerbatikaLocale } from "@/lib/storefront/market-context"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 type FormPhoneFieldProps = {
   id: string
@@ -32,29 +35,32 @@ type FormPhoneFieldProps = {
 
 const PHONE_COUNTRY_PRESENTATION = {
   CZ: {
-    label: "Česko",
     flagIcon: "icon-[emojione--flag-for-czechia]",
   },
   HU: {
-    label: "Maďarsko",
     flagIcon: "icon-[emojione--flag-for-hungary]",
   },
   RO: {
-    label: "Rumunsko",
     flagIcon: "icon-[emojione--flag-for-romania]",
   },
   SK: {
-    label: "Slovensko",
     flagIcon: "icon-[emojione--flag-for-slovakia]",
   },
-} as const satisfies Record<
-  HerbatikaPhoneCountryCode,
-  { flagIcon: string; label: string }
->
+} as const satisfies Record<HerbatikaPhoneCountryCode, { flagIcon: string }>
 
-const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] =
+const PHONE_PLACEHOLDER_BY_COUNTRY = {
+  CZ: "601 123 456",
+  HU: "30 123 4567",
+  RO: "712 345 678",
+  SK: "900 123 456",
+} as const satisfies Record<HerbatikaPhoneCountryCode, string>
+
+export const resolvePhoneFieldCountries = (
+  locale: HerbatikaLocale
+): PhoneInputCountry[] =>
   HERBATIKA_PHONE_COUNTRY_CODES.map((value) => {
-    const { flagIcon, label } = PHONE_COUNTRY_PRESENTATION[value]
+    const { flagIcon } = PHONE_COUNTRY_PRESENTATION[value]
+    const label = resolveCountryDisplayName(value, locale)
 
     return {
       value,
@@ -64,12 +70,19 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] =
     }
   })
 
+export const resolvePhoneFieldPlaceholder = (
+  countryCode: string | null | undefined
+) =>
+  PHONE_PLACEHOLDER_BY_COUNTRY[
+    normalizeHerbatikaPhoneCountryCode(countryCode) ?? "SK"
+  ]
+
 export function FormPhoneField({
   defaultCountry,
   id,
   label,
   onValueChange,
-  placeholder = "900 123 456",
+  placeholder,
   required = false,
   validationMode = "blur",
 }: FormPhoneFieldProps) {
@@ -79,12 +92,20 @@ export function FormPhoneField({
     (state) => state.submissionAttempts
   )
   const region = useRegionContext()
+  const marketContext = useMarketContext()
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
   const value = typeof field.state.value === "string" ? field.state.value : ""
   const resolvedDefaultCountry =
     defaultCountry ??
     normalizeHerbatikaPhoneCountryCode(region?.country_code) ??
+    normalizeHerbatikaPhoneCountryCode(marketContext.countryCode) ??
     HERBATIKA_PHONE_COUNTRY_CODES[0]
+  const countries = useMemo(
+    () => resolvePhoneFieldCountries(marketContext.locale),
+    [marketContext.locale]
+  )
+  const resolvedPlaceholder =
+    placeholder ?? resolvePhoneFieldPlaceholder(resolvedDefaultCountry)
   const fieldFeedback = resolveVisibleFieldFeedback({
     hasChangedSinceBlur,
     meta: field.state.meta,
@@ -94,7 +115,7 @@ export function FormPhoneField({
 
   return (
     <PhoneInput
-      countries={HERBATIKA_PHONE_COUNTRIES}
+      countries={countries}
       defaultCountry={resolvedDefaultCountry}
       id={id}
       name={field.name}
@@ -128,7 +149,7 @@ export function FormPhoneField({
             field.handleBlur()
             setHasChangedSinceBlur(false)
           }}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
         />
       </PhoneInput.Control>
       {fieldFeedback.errorText ? (

@@ -7,10 +7,14 @@ import {
 
 const COMPLETE_ENVIRONMENT = {
   ALLOWED_MARKETS: "sk,cz,hu,ro",
-  MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
-  MARKET_ACCEPTED_HOSTS_HU: "herbatica.hu",
-  MARKET_ACCEPTED_HOSTS_RO: "herbatica.ro",
-  MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+  MARKET_ACCEPTED_HOSTS_CZ:
+    "herbatica.cz,www.herbatica.cz,test-engine-herbatika-cz-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_HU:
+    "herbatica.hu,www.herbatica.hu,test-engine-herbatika-hu-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_RO:
+    "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_SK:
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-sk-zane.web-revolution.cz,test-engine-herbatika-zane.web-revolution.cz",
   MARKET_PUBLISHABLE_KEY_CZ: "pk_cz",
   MARKET_PUBLISHABLE_KEY_HU: "pk_hu",
   MARKET_PUBLISHABLE_KEY_RO: "pk_ro",
@@ -29,13 +33,35 @@ const COMPLETE_ENVIRONMENT = {
   MARKET_SALES_CHANNEL_SK: "sc_sk",
 } as const
 
+const HOST_MATRIX = [
+  ["herbatica.sk", "sk"],
+  ["www.herbatica.sk", "sk"],
+  ["test-engine-herbatika-sk-zane.web-revolution.cz", "sk"],
+  ["test-engine-herbatika-zane.web-revolution.cz", "sk"],
+  ["herbatica.cz", "cz"],
+  ["www.herbatica.cz", "cz"],
+  ["test-engine-herbatika-cz-zane.web-revolution.cz", "cz"],
+  ["herbatica.hu", "hu"],
+  ["www.herbatica.hu", "hu"],
+  ["test-engine-herbatika-hu-zane.web-revolution.cz", "hu"],
+  ["herbatica.ro", "ro"],
+  ["www.herbatica.ro", "ro"],
+  ["test-engine-herbatika-ro-zane.web-revolution.cz", "ro"],
+] as const
+
 describe("createMarketRuntime", () => {
   it("builds the exact four-market server authority", () => {
     const runtime = createMarketRuntime(COMPLETE_ENVIRONMENT)
 
     expect(runtime.allowedMarkets).toEqual(["sk", "cz", "hu", "ro"])
+    expect(HOST_MATRIX).toHaveLength(13)
     expect(getMarketRuntime(runtime, "sk")).toEqual({
-      acceptedHosts: ["herbatica.sk"],
+      acceptedHosts: [
+        "herbatica.sk",
+        "www.herbatica.sk",
+        "test-engine-herbatika-sk-zane.web-revolution.cz",
+        "test-engine-herbatika-zane.web-revolution.cz",
+      ],
       canonicalOrigin: "https://herbatica.sk",
       countryCode: "SK",
       locale: "sk-SK",
@@ -76,62 +102,47 @@ describe("createMarketRuntime", () => {
     expect(resolveMarketRuntimeByHost(runtime, "unknown.example")).toBeNull()
   })
 
-  it.each([
-    ["herbatica.sk", "sk"],
-    ["HERBATICA.CZ:443", "cz"],
-    ["herbatica.hu.", "hu"],
-    ["herbatica.ro:3001", "ro"],
-  ])("resolves the accepted host %s to only market %s", (host, market) => {
+  it.each(
+    HOST_MATRIX
+  )("resolves the exact accepted host %s to only market %s", (host, market) => {
     const runtime = createMarketRuntime(COMPLETE_ENVIRONMENT)
 
     expect(resolveMarketRuntimeByHost(runtime, host)?.market).toBe(market)
   })
 
-  it("accepts a known alias only when deployment ownership enables it", () => {
-    const withoutAlias = createMarketRuntime(COMPLETE_ENVIRONMENT)
-    const withAlias = createMarketRuntime({
-      ...COMPLETE_ENVIRONMENT,
-      MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk,www.herbatica.sk",
-    })
+  it.each([
+    ["HERBATICA.CZ:443", "cz"],
+    ["herbatica.hu.", "hu"],
+    ["herbatica.ro:3001", "ro"],
+  ])("normalizes the accepted host %s to market %s", (host, market) => {
+    const runtime = createMarketRuntime(COMPLETE_ENVIRONMENT)
 
-    expect(
-      resolveMarketRuntimeByHost(withoutAlias, "www.herbatica.sk")
-    ).toBeNull()
-    expect(
-      resolveMarketRuntimeByHost(withAlias, "www.herbatica.sk")?.market
-    ).toBe("sk")
+    expect(resolveMarketRuntimeByHost(runtime, host)?.market).toBe(market)
   })
 
-  it("binds the Romanian canonical and Zane preview hosts to Romania", () => {
-    const previewHost = "test-engine-herbatika-ro-zane.web-revolution.cz"
+  it("accepts arbitrary deployment domains and derives the canonical origin from the first host", () => {
     const runtime = createMarketRuntime({
       ...COMPLETE_ENVIRONMENT,
-      MARKET_ACCEPTED_HOSTS_RO: `herbatica.ro,${previewHost}`,
+      MARKET_ACCEPTED_HOSTS_HU: "shop.customer.example,www.customer.example",
     })
 
-    expect(getMarketRuntime(runtime, "ro")?.acceptedHosts).toEqual([
-      "herbatica.ro",
-      previewHost,
-    ])
-    expect(resolveMarketRuntimeByHost(runtime, "herbatica.ro")?.market).toBe(
-      "ro"
-    )
-    expect(resolveMarketRuntimeByHost(runtime, previewHost)?.market).toBe("ro")
+    expect(getMarketRuntime(runtime, "hu")).toMatchObject({
+      acceptedHosts: ["shop.customer.example", "www.customer.example"],
+      canonicalOrigin: "https://shop.customer.example",
+    })
+    expect(
+      resolveMarketRuntimeByHost(runtime, "www.customer.example")?.market
+    ).toBe("hu")
   })
 
-  it.each([
-    ["sk", "MARKET_ACCEPTED_HOSTS_SK", "herbatica.sk"],
-    ["cz", "MARKET_ACCEPTED_HOSTS_CZ", "herbatica.cz"],
-    ["hu", "MARKET_ACCEPTED_HOSTS_HU", "herbatica.hu"],
-  ])("rejects the Romanian preview host as a %s alias", (market, environmentName, canonicalHost) => {
-    const previewHost = "test-engine-herbatika-ro-zane.web-revolution.cz"
-
+  it("rejects a host assigned to more than one market", () => {
     expect(() =>
       createMarketRuntime({
         ...COMPLETE_ENVIRONMENT,
-        [environmentName]: `${canonicalHost},${previewHost}`,
+        MARKET_ACCEPTED_HOSTS_CZ: "shared.customer.example",
+        MARKET_ACCEPTED_HOSTS_SK: "shared.customer.example",
       })
-    ).toThrow(`not a declared route host for ${market}`)
+    ).toThrow("Host shared.customer.example is assigned to both sk and cz")
   })
 
   it.each([
@@ -226,8 +237,9 @@ describe("createMarketRuntime", () => {
   })
 
   it.each([
-    ["www.herbatica.sk", "canonical host herbatica.sk"],
-    ["herbatica.sk,evil.example", "not a declared route host"],
+    ["Herbatica.sk", "invalid host Herbatica.sk"],
+    ["https://herbatica.sk", "invalid host https://herbatica.sk"],
+    ["herbatica.sk:443", "invalid host herbatica.sk:443"],
     ["herbatica.sk,herbatica.sk", "duplicate host herbatica.sk"],
   ])("rejects an invalid accepted-host manifest %j", (acceptedHosts, message) => {
     expect(() =>

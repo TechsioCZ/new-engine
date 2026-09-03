@@ -14,7 +14,7 @@ sources:
   - "libs/ui/src/atoms/icon.tsx"
   - "libs/ui/src/tokens/components/atoms/_icon.css"
   - "libs/ui/stories/atoms/icon.stories.tsx"
-  - "libs/ui/src/atoms/figma/icon.figma.tsx"
+  - "libs/ui/src/atoms/icon.figma.ts"
 ---
 
 # @techsio/ui-kit Icon Usage

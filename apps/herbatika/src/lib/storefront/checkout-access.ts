@@ -1,4 +1,4 @@
-import { buildPath, withPublicSearchParams } from "@/lib/url/public-url"
+import { buildPath } from "@/lib/url/public-url"
 import type { Market } from "@/lib/url/types"
 
 const CART_SESSION_ENDPOINT = "/api/storefront/checkout/cart-session"
@@ -19,22 +19,22 @@ type CartSessionResponse = {
 }
 
 type OrderConfirmationResponse = {
-  ot?: unknown
   publicOrderId?: unknown
 }
 
 export type OrderConfirmationAccess = Readonly<{
-  orderToken: string
   publicOrderId: string
 }>
 
 export type PaymentReturnProvider = "comgate" | "gopay" | "stripe"
 
 export type PaymentReturnAccess = Readonly<{
+  canonicalOrigin: string
   cartId: string
   expiresAt: string
   provider: PaymentReturnProvider
   providerId: string
+  market: Market
   state: string
 }>
 
@@ -93,16 +93,11 @@ export const issueOrderConfirmationAccess = async (
     fetcher
   )) as OrderConfirmationResponse
 
-  if (
-    payload.publicOrderId !== input.publicOrderId ||
-    typeof payload.ot !== "string" ||
-    payload.ot.length === 0
-  ) {
+  if (payload.publicOrderId !== input.publicOrderId) {
     throw new Error("Checkout access response did not match the order.")
   }
 
   return {
-    orderToken: payload.ot,
     publicOrderId: payload.publicOrderId,
   }
 }
@@ -122,23 +117,37 @@ export const issuePaymentReturnAccess = async (
     fetcher
   )
 
+  let canonicalOrigin: URL
+  try {
+    canonicalOrigin = new URL(String(payload.canonicalOrigin))
+  } catch {
+    throw new Error("Payment return access response did not match the cart.")
+  }
   if (
+    canonicalOrigin.protocol !== "https:" ||
+    canonicalOrigin.origin !== payload.canonicalOrigin ||
     payload.cartId !== input.cartId ||
     payload.providerId !== input.providerId ||
     !isPaymentReturnProvider(payload.provider) ||
     typeof payload.state !== "string" ||
     payload.state.length === 0 ||
     typeof payload.expiresAt !== "string" ||
-    !Number.isFinite(Date.parse(payload.expiresAt))
+    !Number.isFinite(Date.parse(payload.expiresAt)) ||
+    (payload.market !== "sk" &&
+      payload.market !== "cz" &&
+      payload.market !== "hu" &&
+      payload.market !== "ro")
   ) {
     throw new Error("Payment return access response did not match the cart.")
   }
 
   return {
+    canonicalOrigin: canonicalOrigin.origin,
     cartId: payload.cartId,
     expiresAt: payload.expiresAt,
     provider: payload.provider,
     providerId: payload.providerId,
+    market: payload.market,
     state: payload.state,
   }
 }
@@ -174,19 +183,12 @@ export const bindPaymentReturnAccess = async (
 
 export const buildOrderConfirmationHref = ({
   market,
-  orderToken,
   publicOrderId,
 }: Readonly<{
   market: Market
-  orderToken?: string
   publicOrderId: string
-}>): string => {
-  const pathname = buildPath(
+}>): string =>
+  buildPath(
     { kind: "checkout", step: "confirmation", value: publicOrderId },
     market
   )
-
-  return orderToken
-    ? withPublicSearchParams(pathname, { ot: orderToken })
-    : pathname
-}

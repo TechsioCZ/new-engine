@@ -14,6 +14,24 @@ const expectedSubjects = {
     "hu-HU": "A fiók megszüntetésének megerősítése",
     "ro-RO": "Confirmarea dezactivării contului",
   },
+  [resendEmailTemplates.CUSTOMER_REGISTRATION_CONFIRMATION]: {
+    "sk-SK": "Potvrdenie registrácie",
+    "cs-CZ": "Potvrzení registrace",
+    "hu-HU": "Regisztráció megerősítése",
+    "ro-RO": "Confirmarea înregistrării",
+  },
+  [resendEmailTemplates.CLAIM_ACCESS_CODE]: {
+    "sk-SK": "Overenie objednávky",
+    "cs-CZ": "Ověření objednávky",
+    "hu-HU": "Rendelés ellenőrzése",
+    "ro-RO": "Verificarea comenzii",
+  },
+  [resendEmailTemplates.CLAIM_CONFIRMATION]: {
+    "sk-SK": "Potvrdenie prijatia požiadavky",
+    "cs-CZ": "Potvrzení přijetí požadavku",
+    "hu-HU": "A kérelem beérkezésének visszaigazolása",
+    "ro-RO": "Confirmarea primirii solicitării",
+  },
   [resendEmailTemplates.FORGOT_PASSWORD]: {
     "sk-SK": "Obnovenie hesla",
     "cs-CZ": "Obnovení hesla",
@@ -58,17 +76,6 @@ describe("Resend template subjects", () => {
     expect(
       getResendTemplateSubject(resendEmailTemplates.ORDER_PLACED)
     ).toBeUndefined()
-  })
-
-  it.each([
-    [
-      resendEmailTemplates.CUSTOMER_REGISTRATION_CONFIRMATION,
-      "Potvrdenie registrácie",
-    ],
-    [resendEmailTemplates.CLAIM_ACCESS_CODE, "Overenie objednávky"],
-    [resendEmailTemplates.CLAIM_CONFIRMATION, "Potvrdenie prijatia požiadavky"],
-  ])("preserves the static subject for %s", (template, subject) => {
-    expect(getResendTemplateSubject(template)).toBe(subject)
   })
 
   it("normalizes locale casing and rejects unsupported locales", () => {

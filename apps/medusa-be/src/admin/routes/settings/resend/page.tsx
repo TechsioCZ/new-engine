@@ -30,12 +30,19 @@ type ApiStoreListResponse = {
   api_stores: ApiStoreConfig[]
 }
 
+type ResendMarketConfig = {
+  from_email: string
+  reply_to: string
+  template_mappings: Record<string, string>
+}
+
 type ResendConfig = {
   api_store_id: string | null
   from_email: string | null
   has_webhook_secret: boolean
   is_enabled: boolean
   request_timeout_ms: number
+  market_configurations: Partial<Record<ResendMarket, ResendMarketConfig>>
   template_mappings: Record<string, string>
   product_review_request_delay_minutes: number
 }
@@ -53,6 +60,90 @@ type ResendConfigResponse = {
 const NO_API_STORE_SELECTION = "none"
 const MAXIMUM_PRODUCT_REVIEW_DELAY_MINUTES = 525_600
 
+const RESEND_MARKETS = ["sk", "cz", "hu", "ro"] as const
+type ResendMarket = (typeof RESEND_MARKETS)[number]
+
+const RESEND_MARKET_LABELS: Record<ResendMarket, string> = {
+  cz: "Czech Republic (CZ)",
+  hu: "Hungary (HU)",
+  ro: "Romania (RO)",
+  sk: "Slovakia (SK)",
+}
+
+type MarketConfigState = Record<ResendMarket, ResendMarketConfig>
+
+export const buildMarketConfigState = (
+  marketConfigurations: Partial<Record<ResendMarket, ResendMarketConfig>>
+): MarketConfigState =>
+  RESEND_MARKETS.reduce((state, market) => {
+    const marketConfig = marketConfigurations[market]
+    state[market] = {
+      from_email: marketConfig?.from_email ?? "",
+      reply_to: marketConfig?.reply_to ?? "",
+      template_mappings: { ...(marketConfig?.template_mappings ?? {}) },
+    }
+    return state
+  }, {} as MarketConfigState)
+
+type ResendConfigFormState = {
+  apiStoreId: string
+  fromEmail: string
+  isEnabled: boolean
+  requestTimeoutMs: string
+  productReviewDelayMinutes: string
+  templateMappings: Record<string, string>
+  marketConfigurations: MarketConfigState
+  webhookSecret: string
+  clearWebhookSecret: boolean
+}
+
+export type ResendConfigSubmitResult =
+  | { ok: true; body: Record<string, unknown> }
+  | { ok: false; error: string }
+
+export const buildResendConfigSubmitResult = (
+  form: ResendConfigFormState
+): ResendConfigSubmitResult => {
+  const timeout = Number(form.requestTimeoutMs)
+  const reviewDelay = Number(form.productReviewDelayMinutes)
+
+  if (!Number.isInteger(timeout) || timeout < 1000 || timeout > 120_000) {
+    return {
+      error: "Request Timeout must be between 1000 and 120000 ms",
+      ok: false,
+    }
+  }
+
+  if (
+    !Number.isInteger(reviewDelay) ||
+    reviewDelay < 0 ||
+    reviewDelay > MAXIMUM_PRODUCT_REVIEW_DELAY_MINUTES
+  ) {
+    return {
+      error: "Review Request Delay must be between 0 and 525600 minutes",
+      ok: false,
+    }
+  }
+
+  const body: Record<string, unknown> = {
+    api_store_id: form.apiStoreId || null,
+    from_email: form.fromEmail.trim() || null,
+    is_enabled: form.isEnabled,
+    request_timeout_ms: timeout,
+    product_review_request_delay_minutes: reviewDelay,
+    template_mappings: form.templateMappings,
+    market_configurations: form.marketConfigurations,
+  }
+
+  if (form.clearWebhookSecret) {
+    body.webhook_secret = null
+  } else if (form.webhookSecret.trim()) {
+    body.webhook_secret = form.webhookSecret.trim()
+  }
+
+  return { body, ok: true }
+}
+
 const ResendSettingsPage = () => {
   const queryClient = useQueryClient()
   const [apiStoreId, setApiStoreId] = useState("")
@@ -64,6 +155,8 @@ const ResendSettingsPage = () => {
   const [templateMappings, setTemplateMappings] = useState<
     Record<string, string>
   >({})
+  const [marketConfigurations, setMarketConfigurations] =
+    useState<MarketConfigState>(buildMarketConfigState({}))
   const [webhookSecret, setWebhookSecret] = useState("")
   const [clearWebhookSecret, setClearWebhookSecret] = useState(false)
 
@@ -94,6 +187,9 @@ const ResendSettingsPage = () => {
       String(config.product_review_request_delay_minutes)
     )
     setTemplateMappings(config.template_mappings)
+    setMarketConfigurations(
+      buildMarketConfigState(config.market_configurations ?? {})
+    )
     setWebhookSecret("")
     setClearWebhookSecret(false)
   }, [configQuery.data])
@@ -117,41 +213,55 @@ const ResendSettingsPage = () => {
     },
   })
 
+  const updateMarketField = (
+    market: ResendMarket,
+    field: "from_email" | "reply_to",
+    value: string
+  ) => {
+    setMarketConfigurations((current) => ({
+      ...current,
+      [market]: { ...current[market], [field]: value },
+    }))
+  }
+
+  const updateMarketTemplateMapping = (
+    market: ResendMarket,
+    templateKey: string,
+    value: string
+  ) => {
+    setMarketConfigurations((current) => ({
+      ...current,
+      [market]: {
+        ...current[market],
+        template_mappings: {
+          ...current[market].template_mappings,
+          [templateKey]: value,
+        },
+      },
+    }))
+  }
+
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    const timeout = Number(requestTimeoutMs)
-    const reviewDelay = Number(productReviewDelayMinutes)
 
-    if (!Number.isInteger(timeout) || timeout < 1000 || timeout > 120_000) {
-      toast.error("Request Timeout must be between 1000 and 120000 ms")
+    const result = buildResendConfigSubmitResult({
+      apiStoreId,
+      clearWebhookSecret,
+      fromEmail,
+      isEnabled,
+      marketConfigurations,
+      productReviewDelayMinutes,
+      requestTimeoutMs,
+      templateMappings,
+      webhookSecret,
+    })
+
+    if (!result.ok) {
+      toast.error(result.error)
       return
     }
 
-    if (
-      !Number.isInteger(reviewDelay) ||
-      reviewDelay < 0 ||
-      reviewDelay > MAXIMUM_PRODUCT_REVIEW_DELAY_MINUTES
-    ) {
-      toast.error("Review Request Delay must be between 0 and 525600 minutes")
-      return
-    }
-
-    const body: Record<string, unknown> = {
-      api_store_id: apiStoreId || null,
-      from_email: fromEmail.trim() || null,
-      is_enabled: isEnabled,
-      request_timeout_ms: timeout,
-      product_review_request_delay_minutes: reviewDelay,
-      template_mappings: templateMappings,
-    }
-
-    if (clearWebhookSecret) {
-      body.webhook_secret = null
-    } else if (webhookSecret.trim()) {
-      body.webhook_secret = webhookSecret.trim()
-    }
-
-    updateMutation.mutate(body)
+    updateMutation.mutate(result.body)
   }
 
   if (configQuery.isLoading || apiStoresQuery.isLoading) {
@@ -284,6 +394,93 @@ const ResendSettingsPage = () => {
                 />
               </div>
             ))}
+          </div>
+
+          <div className="flex flex-col gap-6 border-t pt-6">
+            <div>
+              <Heading level="h2">Market Configurations</Heading>
+              <Text className="text-ui-fg-subtle" size="small">
+                Configure sender details and template overrides for each of the
+                four markets.
+              </Text>
+            </div>
+            {RESEND_MARKETS.map((market) => {
+              const marketConfig = marketConfigurations[market]
+              return (
+                <div
+                  className="flex flex-col gap-4 rounded-lg border p-4"
+                  key={market}
+                >
+                  <Heading level="h3">{RESEND_MARKET_LABELS[market]}</Heading>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor={`resend-market-${market}-from-email`}>
+                        From Email
+                      </Label>
+                      <Input
+                        id={`resend-market-${market}-from-email`}
+                        onChange={(event) =>
+                          updateMarketField(
+                            market,
+                            "from_email",
+                            event.target.value
+                          )
+                        }
+                        placeholder={`Store <orders@${market}.example.com>`}
+                        value={marketConfig.from_email}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor={`resend-market-${market}-reply-to`}>
+                        Reply To
+                      </Label>
+                      <Input
+                        id={`resend-market-${market}-reply-to`}
+                        onChange={(event) =>
+                          updateMarketField(
+                            market,
+                            "reply_to",
+                            event.target.value
+                          )
+                        }
+                        placeholder={`support@${market}.example.com`}
+                        value={marketConfig.reply_to}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {(configQuery.data?.template_contracts ?? []).map(
+                      (template) => (
+                        <div
+                          className="flex flex-col gap-2"
+                          key={`${market}-${template.key}`}
+                        >
+                          <Label
+                            htmlFor={`resend-market-${market}-template-${template.key}`}
+                          >
+                            {template.label}
+                          </Label>
+                          <Input
+                            id={`resend-market-${market}-template-${template.key}`}
+                            onChange={(event) =>
+                              updateMarketTemplateMapping(
+                                market,
+                                template.key,
+                                event.target.value
+                              )
+                            }
+                            placeholder={template.key}
+                            value={
+                              marketConfig.template_mappings[template.key] ?? ""
+                            }
+                          />
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
           <div className="flex flex-col gap-2">

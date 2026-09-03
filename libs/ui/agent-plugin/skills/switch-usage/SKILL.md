@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/switch.tsx"
   - "libs/ui/src/tokens/components/molecules/_switch.css"
   - "libs/ui/stories/molecules/switch.stories.tsx"
-  - "libs/ui/src/molecules/figma/switch.figma.tsx"
+  - "libs/ui/src/molecules/switch.figma.ts"
   - "https://zagjs.com/components/react/switch"
 ---
 

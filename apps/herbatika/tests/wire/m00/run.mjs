@@ -39,10 +39,39 @@ const parseIngressPort = () => {
 const INGRESS_PORT = parseIngressPort()
 
 const MARKETS = [
-  { host: "herbatica.sk", market: "sk" },
-  { host: "herbatica.cz", market: "cz" },
-  { host: "herbatica.hu", market: "hu" },
-  { host: "herbatica.ro", market: "ro" },
+  { canonicalHost: "herbatica.sk", host: "herbatica.sk", market: "sk" },
+  { canonicalHost: "herbatica.sk", host: "www.herbatica.sk", market: "sk" },
+  {
+    canonicalHost: "herbatica.sk",
+    host: "test-engine-herbatika-sk-zane.web-revolution.cz",
+    market: "sk",
+  },
+  {
+    canonicalHost: "herbatica.sk",
+    host: "test-engine-herbatika-zane.web-revolution.cz",
+    market: "sk",
+  },
+  { canonicalHost: "herbatica.cz", host: "herbatica.cz", market: "cz" },
+  { canonicalHost: "herbatica.cz", host: "www.herbatica.cz", market: "cz" },
+  {
+    canonicalHost: "herbatica.cz",
+    host: "test-engine-herbatika-cz-zane.web-revolution.cz",
+    market: "cz",
+  },
+  { canonicalHost: "herbatica.hu", host: "herbatica.hu", market: "hu" },
+  { canonicalHost: "herbatica.hu", host: "www.herbatica.hu", market: "hu" },
+  {
+    canonicalHost: "herbatica.hu",
+    host: "test-engine-herbatika-hu-zane.web-revolution.cz",
+    market: "hu",
+  },
+  { canonicalHost: "herbatica.ro", host: "herbatica.ro", market: "ro" },
+  { canonicalHost: "herbatica.ro", host: "www.herbatica.ro", market: "ro" },
+  {
+    canonicalHost: "herbatica.ro",
+    host: "test-engine-herbatika-ro-zane.web-revolution.cz",
+    market: "ro",
+  },
 ]
 
 const OUTCOMES = [
@@ -429,14 +458,15 @@ const waitForIngress = async () => {
 // biome-ignore lint/style/noDoneCallback: node:test passes a TestContext used for named subtests, not a completion callback.
 test("M00 production standalone keeps hard statuses through Caddy TLS", async (t) => {
   const ca = await waitForIngress()
+  assert.equal(MARKETS.length, 13)
   const protocols = [
     { name: "http/1.1", request: requestHttp1 },
     { name: "h2", request: requestHttp2 },
   ]
   const assertResponsePair = ({
+    canonicalHost,
     getResponse,
     headResponse,
-    host,
     market,
     outcome,
   }) => {
@@ -455,7 +485,9 @@ test("M00 production standalone keeps hard statuses through Caddy TLS", async (t
     assert.equal(getResponse.headers["x-robots-tag"], "noindex, nofollow")
     assert.equal(
       getResponse.headers.location,
-      outcome.name === "alias" ? `https://${host}/__url-m00/current` : undefined
+      outcome.name === "alias"
+        ? `https://${canonicalHost}/__url-m00/current`
+        : undefined
     )
     assert.equal(getResponse.headers["retry-after"], outcome.retryAfter)
 
@@ -618,6 +650,28 @@ test("M00 production standalone keeps hard statuses through Caddy TLS", async (t
     }
   })
 
+  await t.test(
+    "HTTP/1.1 does not let x-forwarded-host rescue an unknown Host",
+    async () => {
+      const host = MARKETS[0].host
+      const [getResponse, headResponse] = await Promise.all(
+        ["GET", "HEAD"].map((method) =>
+          requestHttp1({
+            ca,
+            headers: {
+              Host: "unknown.example",
+              "x-forwarded-host": host,
+            },
+            host,
+            method,
+            pathname: "/__url-m00/current",
+          })
+        )
+      )
+      assertBoundaryPair({ getResponse, headResponse, status: 421 })
+    }
+  )
+
   await t.test("HTTP/2 preserves ingress status parity", async (http2) => {
     const host = MARKETS[0].host
     const boundaryPrefix = "/__url-m00/current?pad="
@@ -679,12 +733,34 @@ test("M00 production standalone keeps hard statuses through Caddy TLS", async (t
     }
   })
 
+  await t.test(
+    "HTTP/2 does not let x-forwarded-host rescue an unknown authority",
+    async () => {
+      const host = MARKETS[0].host
+      const [getResponse, headResponse] = await Promise.all(
+        ["GET", "HEAD"].map((method) =>
+          requestHttp2({
+            ca,
+            headers: {
+              ":authority": "unknown.example",
+              "x-forwarded-host": host,
+            },
+            host,
+            method,
+            pathname: "/__url-m00/current",
+          })
+        )
+      )
+      assertBoundaryPair({ getResponse, headResponse, status: 421 })
+    }
+  )
+
   for (const protocol of protocols) {
     for (const profile of PROFILES) {
-      for (const { host, market } of MARKETS) {
+      for (const { canonicalHost, host, market } of MARKETS) {
         for (const outcome of OUTCOMES) {
           await t.test(
-            `${protocol.name} ${profile.name} ${market} ${outcome.name}`,
+            `${protocol.name} ${profile.name} ${host} ${outcome.name}`,
             async () => {
               const pathname = `/__url-m00/${outcome.name}`
               const [getResponse, headResponse] = await Promise.all([
@@ -705,9 +781,9 @@ test("M00 production standalone keeps hard statuses through Caddy TLS", async (t
               ])
 
               assertResponsePair({
+                canonicalHost,
                 getResponse,
                 headResponse,
-                host,
                 market,
                 outcome,
               })
@@ -717,8 +793,8 @@ test("M00 production standalone keeps hard statuses through Caddy TLS", async (t
       }
     }
 
-    for (const { host, market } of MARKETS) {
-      await t.test(`${protocol.name} method contract ${market}`, async () => {
+    for (const { host } of MARKETS) {
+      await t.test(`${protocol.name} method contract ${host}`, async () => {
         const pathname = "/__url-m00/alias"
         const responses = await Promise.all([
           protocol.request({

@@ -279,6 +279,7 @@ export function useAccountProductLists() {
         quantity,
         variantId: item.variant_id,
       })
+      toast.success({ title: tCart("added_to_cart") })
     } catch (error) {
       toast.error({
         title: resolveAddProductToCartErrorMessage(error, tCart("failed")),

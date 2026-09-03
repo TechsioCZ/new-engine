@@ -1,5 +1,6 @@
 import { Pool } from "pg"
 import { readProductIdentityFromMedusa } from "@/lib/storefront/product-route-source.server"
+import { readCatalogLifecycleSourceFromMedusa } from "../catalog-lifecycle-source.server"
 import {
   createPostgresProductLifecycleConsumer,
   createPostgresUrlRegistry,
@@ -41,6 +42,7 @@ export const createUrlRegistryRuntime = (
     createInvalidationOutboxStore,
     createProductLifecycleConsumer: (pool) =>
       createPostgresProductLifecycleConsumer(pool, {
+        readCatalog: readCatalogLifecycleSourceFromMedusa,
         readProduct: readProductIdentityFromMedusa,
       }),
     createRegistry: createPostgresUrlRegistry,

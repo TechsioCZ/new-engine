@@ -2,11 +2,11 @@ import { createHash } from "node:crypto"
 import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import { generateEntityId, MedusaError } from "@medusajs/framework/utils"
 import type {
+  NormalizedCatalogLifecycleEvent,
   NormalizedProductLifecycleEvent,
+  NormalizedUrlRegistryLifecycleEvent,
   UrlRegistryOutboxMarket,
 } from "./types"
-
-const ENTITY_KIND = "product"
 
 export type UrlRegistryOutboxFingerprint = `sha256:${string}`
 
@@ -61,6 +61,21 @@ export const fingerprintProductLifecycleEvent = (
   return `sha256:${createHash("sha256").update(canonicalEnvelope).digest("hex")}`
 }
 
+export const fingerprintCatalogLifecycleEvent = (
+  event: NormalizedCatalogLifecycleEvent
+): UrlRegistryOutboxFingerprint => {
+  const canonicalEnvelope = JSON.stringify({
+    affectedMarketCodes: event.affectedMarketCodes,
+    entityId: event.entityId,
+    entityKind: event.entityKind,
+    eventId: event.eventId,
+    occurredAt: event.occurredAt,
+    payloadByMarket: event.payloadByMarket,
+    source: event.source,
+  })
+  return `sha256:${createHash("sha256").update(canonicalEnvelope).digest("hex")}`
+}
+
 const exactlyOne = <T extends object>(rows: readonly T[], label: string): T => {
   const row = rows[0]
   if (rows.length !== 1 || !row) {
@@ -97,12 +112,12 @@ const toResult = (
 
 const assertReplay = (
   row: EventRow,
-  event: NormalizedProductLifecycleEvent,
+  event: NormalizedUrlRegistryLifecycleEvent,
   fingerprint: UrlRegistryOutboxFingerprint,
   streamId: string
 ) => {
   if (
-    row.entity_id !== event.productId ||
+    row.entity_id !== event.entityId ||
     row.envelope_fingerprint !== fingerprint ||
     row.stream_id !== streamId
   ) {
@@ -112,10 +127,17 @@ const assertReplay = (
 
 const enqueueMarket = async (
   manager: SqlEntityManager,
-  event: NormalizedProductLifecycleEvent,
+  event: NormalizedUrlRegistryLifecycleEvent,
   fingerprint: UrlRegistryOutboxFingerprint,
   marketCode: UrlRegistryOutboxMarket
 ): Promise<EnqueuedProductLifecycleEvent> => {
+  const payload = event.payloadByMarket[marketCode]
+  if (!payload) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "URL registry outbox market payload is missing"
+    )
+  }
   await manager.execute(
     `insert into "url_registry_outbox_stream" (
       "id", "source", "entity_kind", "entity_id", "market_code", "last_sequence"
@@ -126,8 +148,8 @@ const enqueueMarket = async (
     [
       generateEntityId(undefined, "urlros"),
       event.source,
-      ENTITY_KIND,
-      event.productId,
+      event.entityKind,
+      event.entityId,
       marketCode,
     ]
   )
@@ -142,7 +164,7 @@ const enqueueMarket = async (
          and "market_code" = ?
          and "deleted_at" is null
        for update`,
-      [event.source, ENTITY_KIND, event.productId, marketCode]
+      [event.source, event.entityKind, event.entityId, marketCode]
     ),
     "stream"
   )
@@ -189,13 +211,13 @@ const enqueueMarket = async (
       generateEntityId(undefined, "urlroe"),
       event.eventId,
       event.source,
-      ENTITY_KIND,
-      event.productId,
+      event.entityKind,
+      event.entityId,
       marketCode,
       streamSequence,
-      event.payloadByMarket[marketCode].changeType,
+      payload.changeType,
       fingerprint,
-      JSON.stringify(event.payloadByMarket[marketCode]),
+      JSON.stringify(payload),
       event.occurredAt,
       stream.id,
     ]
@@ -224,6 +246,18 @@ export const enqueueNormalizedProductLifecycleEvent = async (
   manager: SqlEntityManager,
   event: NormalizedProductLifecycleEvent,
   fingerprint = fingerprintProductLifecycleEvent(event)
+): Promise<EnqueueProductLifecycleEventResult> => {
+  const events: EnqueuedProductLifecycleEvent[] = []
+  for (const marketCode of event.affectedMarketCodes) {
+    events.push(await enqueueMarket(manager, event, fingerprint, marketCode))
+  }
+  return { eventId: event.eventId, events, fingerprint }
+}
+
+export const enqueueNormalizedCatalogLifecycleEvent = async (
+  manager: SqlEntityManager,
+  event: NormalizedCatalogLifecycleEvent,
+  fingerprint = fingerprintCatalogLifecycleEvent(event)
 ): Promise<EnqueueProductLifecycleEventResult> => {
   const events: EnqueuedProductLifecycleEvent[] = []
   for (const marketCode of event.affectedMarketCodes) {

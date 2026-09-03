@@ -33,9 +33,12 @@ import {
   issueOrderConfirmationAccess,
   syncCartSession,
 } from "@/lib/storefront/checkout-access"
+import {
+  type CheckoutPurchaseAcceptanceSnapshot,
+  createCheckoutPurchaseAcceptance,
+} from "@/lib/storefront/checkout-purchase-acceptance"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   REGION_LIST_FIELDS,
@@ -53,6 +56,10 @@ import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
 import { resolveHasStoredAddress } from "./checkout-address.utils"
 import { resolveOrderId } from "./checkout-completion.utils"
 import {
+  reportCheckoutError,
+  resolveCheckoutCustomerErrorMessage,
+} from "./checkout-customer-error"
+import {
   buildCheckoutMetadata,
   isCheckoutMetadataSynced,
   readOrderNote,
@@ -67,6 +74,7 @@ import {
   writeStoredPaymentProviderSelection,
 } from "./checkout-payment-selection-storage"
 import { useCheckoutActions } from "./use-checkout-actions"
+import { useCheckoutConsent } from "./use-checkout-consent"
 import { useCheckoutDetailsForm } from "./use-checkout-details-form"
 
 const resolveCompleteResultOrderMetadata = (result: unknown) => {
@@ -77,25 +85,64 @@ const resolveCompleteResultOrderMetadata = (result: unknown) => {
   return result.order.metadata
 }
 
-export function useCheckoutController() {
+type CheckoutCartReadInput = Readonly<{
+  allowCartAutoCreate: boolean
+  authorizedCartId?: string
+  completedOrderId: string | null
+  countryCode?: string
+  regionId?: string
+}>
+
+export const resolveCheckoutCartReadInput = (
+  input: CheckoutCartReadInput
+): Parameters<typeof useCart>[0] => ({
+  autoCreate:
+    input.authorizedCartId === undefined &&
+    input.allowCartAutoCreate &&
+    !input.completedOrderId,
+  cartId: input.authorizedCartId,
+  country_code: input.countryCode,
+  enabled: Boolean(input.regionId),
+  region_id: input.regionId,
+})
+
+type UseCheckoutControllerOptions = Readonly<{
+  authorizedCartId?: string
+}>
+
+export function useCheckoutController({
+  authorizedCartId,
+}: UseCheckoutControllerOptions = {}) {
   const queryClient = useQueryClient()
   const tCheckout = useTranslations("checkout")
+  const tCart = useTranslations("cart")
+  const customerErrorMessages = {
+    cartUnavailable: tCheckout("cart_not_ready"),
+    insufficientInventory: tCart("insufficient_quantity"),
+    paymentAuthorizationFailed: tCheckout("payment_return_not_completed"),
+  }
   const marketContext = useMarketContext()
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const authQuery = useAuth()
   const [allowCartAutoCreate, setAllowCartAutoCreate] = useState(true)
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
-  const [marketingConsent, setMarketingConsent] = useState(false)
-  const [heurekaConsent, setHeurekaConsent] = useState(false)
+  const [purchaseAcceptanceState, setPurchaseAcceptanceState] = useState({
+    granted: false,
+    scope: "",
+  })
+  const checkoutConsent = useCheckoutConsent(marketContext.code)
   const saveAddressSucceededRef = useRef(false)
 
-  const cartQuery = useCart({
-    autoCreate: allowCartAutoCreate && !completedOrderId,
-    region_id: region?.region_id,
-    country_code: region?.country_code,
-    enabled: Boolean(region?.region_id),
-  })
+  const cartQuery = useCart(
+    resolveCheckoutCartReadInput({
+      allowCartAutoCreate,
+      authorizedCartId,
+      completedOrderId,
+      countryCode: region?.country_code,
+      regionId: region?.region_id,
+    })
+  )
   const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id
   const regionsQuery = useRegions({
     fields: REGION_LIST_FIELDS,
@@ -109,6 +156,13 @@ export function useCheckoutController() {
   const isUpdatingCartAddress = updateCartAddressMutation.isPending
   const isUpdatingCart = updateCartMutation.isPending
   const mutateCart = updateCartMutation.mutate
+  const purchaseAcceptanceScope = `${marketContext.code}:${cartQuery.cart?.id ?? ""}`
+  const purchaseAcceptanceGranted =
+    purchaseAcceptanceState.granted &&
+    purchaseAcceptanceState.scope === purchaseAcceptanceScope
+  const setPurchaseAcceptanceGranted = (granted: boolean) => {
+    setPurchaseAcceptanceState({ granted, scope: purchaseAcceptanceScope })
+  }
 
   const checkoutShippingQuery = storefront.flows.checkout.useCheckoutShipping(
     cartQuery.cart?.id,
@@ -116,8 +170,14 @@ export function useCheckoutController() {
     {
       enabled: Boolean(cartQuery.cart?.id),
       onError: (error) => {
+        reportCheckoutError("shipping options", error)
         setCheckoutError(
-          resolveErrorMessage(error, tCheckout("shipping_update_failed"))
+          resolveCheckoutCustomerErrorMessage(
+            error,
+            tCheckout("shipping_update_failed"),
+            customerErrorMessages,
+            "shipping"
+          )
         )
       },
     }
@@ -137,6 +197,17 @@ export function useCheckoutController() {
   const storedPaymentProviderId = useStoredPaymentProviderSelection(
     cartQuery.cart?.id
   )
+  const [paymentSelectionHydratedCartId, setPaymentSelectionHydratedCartId] =
+    useState<string | null>(null)
+
+  useEffect(() => {
+    if (cartQuery.cart?.id) {
+      setPaymentSelectionHydratedCartId(cartQuery.cart.id)
+    }
+  }, [cartQuery.cart?.id])
+
+  const isPaymentSelectionHydrated =
+    !cartQuery.cart?.id || paymentSelectionHydratedCartId === cartQuery.cart.id
   const selectedPaymentProviderId =
     storedPaymentProviderId ?? cartSelectedPaymentProviderId
   const compatiblePaymentProviders = filterPaymentProvidersForShipping({
@@ -292,7 +363,6 @@ export function useCheckoutController() {
         window.location.assign(
           buildOrderConfirmationHref({
             market: marketContext.code,
-            orderToken: access.orderToken,
             publicOrderId: access.publicOrderId,
           })
         )
@@ -361,8 +431,11 @@ export function useCheckoutController() {
         const checkoutMetadata = buildCheckoutMetadata({
           accountSetupRequested:
             !authQuery.isAuthenticated && values.accountSetupRequested,
+          cartId: cartQuery.cart.id,
+          consent: checkoutConsent.consent,
           metadata: cartQuery.cart.metadata,
           orderNote: effectiveCheckoutDetails.shipping.customerNote,
+          purchaseAcceptance: null,
         })
 
         logCheckoutAccountSetupDebug("address submit update cart request", {
@@ -399,8 +472,14 @@ export function useCheckoutController() {
 
         saveAddressSucceededRef.current = true
       } catch (error) {
+        reportCheckoutError("address update", error)
         setCheckoutError(
-          resolveErrorMessage(error, tCheckout("address_update_failed"))
+          resolveCheckoutCustomerErrorMessage(
+            error,
+            tCheckout("address_update_failed"),
+            customerErrorMessages,
+            "address"
+          )
         )
       }
     },
@@ -421,7 +500,9 @@ export function useCheckoutController() {
     return saveAddressSucceededRef.current
   }
 
-  const syncCheckoutMetadata = async () => {
+  const syncCheckoutMetadata = async (
+    purchaseAcceptance: CheckoutPurchaseAcceptanceSnapshot
+  ) => {
     const cart = cartQuery.cart
 
     if (!cart?.id) {
@@ -446,8 +527,11 @@ export function useCheckoutController() {
     if (
       isCheckoutMetadataSynced({
         accountSetupRequested: requested,
+        cartId: cart.id,
+        consent: checkoutConsent.consent,
         metadata: cart.metadata,
         orderNote,
+        purchaseAcceptance,
       })
     ) {
       logCheckoutAccountSetupDebug("complete order metadata already synced", {
@@ -462,8 +546,11 @@ export function useCheckoutController() {
         cartId: cart.id,
         metadata: buildCheckoutMetadata({
           accountSetupRequested: requested,
+          cartId: cart.id,
+          consent: checkoutConsent.consent,
           metadata: cart.metadata,
           orderNote,
+          purchaseAcceptance,
         }),
       })
 
@@ -475,17 +562,49 @@ export function useCheckoutController() {
         response_has_order_note: Boolean(readOrderNote(updatedCart.metadata)),
       })
 
+      if (
+        updatedCart.id !== cart.id ||
+        !isCheckoutMetadataSynced({
+          accountSetupRequested: requested,
+          cartId: cart.id,
+          consent: checkoutConsent.consent,
+          metadata: updatedCart.metadata,
+          orderNote,
+          purchaseAcceptance,
+        })
+      ) {
+        setCheckoutError(tCheckout("review_legal_required"))
+        return false
+      }
+
       return true
     } catch (error) {
+      reportCheckoutError("metadata update", error)
       setCheckoutError(
-        resolveErrorMessage(error, tCheckout("address_update_failed"))
+        resolveCheckoutCustomerErrorMessage(
+          error,
+          tCheckout("address_update_failed"),
+          customerErrorMessages,
+          "address"
+        )
       )
       return false
     }
   }
 
   const handleCompleteOrder = async () => {
-    const didSyncCheckoutMetadata = await syncCheckoutMetadata()
+    const cartId = cartQuery.cart?.id
+    if (!(cartId && purchaseAcceptanceGranted)) {
+      setCheckoutError(tCheckout("review_legal_required"))
+      return
+    }
+
+    const purchaseAcceptance = createCheckoutPurchaseAcceptance({
+      cartId,
+      market: marketContext.code,
+    })
+    const didSyncCheckoutMetadata =
+      await syncCheckoutMetadata(purchaseAcceptance)
 
     logCheckoutAccountSetupDebug("handle complete order sync verdict", {
       did_sync_checkout_metadata: didSyncCheckoutMetadata,
@@ -543,7 +662,8 @@ export function useCheckoutController() {
     updateCartMutation.isPending ||
     checkoutShippingQuery.isSettingShipping ||
     checkoutPaymentQuery.isInitiatingPayment ||
-    completeCheckoutMutation.isPending
+    completeCheckoutMutation.isPending ||
+    checkoutConsent.isPending
 
   return {
     ...actions,
@@ -571,19 +691,23 @@ export function useCheckoutController() {
     hasPayment,
     hasShipping,
     hasStoredAddress,
-    heurekaConsent,
+    heurekaConsent: checkoutConsent.heurekaConsent,
     isAuthenticated: authQuery.isAuthenticated,
     isBusy,
     isCompanyPurchase: checkoutDetailsForm.values.isCompanyPurchase,
-    marketingConsent,
+    isPaymentSelectionHydrated,
+    marketingConsent: checkoutConsent.marketingConsent,
+    purchaseAcceptanceGranted,
     selectedPaymentProviderId: effectiveSelectedPaymentProviderId,
-    setHeurekaConsent,
-    setMarketingConsent,
+    setHeurekaConsent: checkoutConsent.setHeurekaConsent,
+    setMarketingConsent: checkoutConsent.setMarketingConsent,
+    setPurchaseAcceptanceGranted,
     shippingAddressForm: checkoutDetailsForm.effectiveValues.shipping,
     updateCartAddressMutation,
     useSameAddress: checkoutDetailsForm.values.useSameAddress,
     canCompleteOrder:
       !isBusy &&
+      purchaseAcceptanceGranted &&
       Boolean(checkoutShippingQuery.selectedShippingMethodId) &&
       Boolean(effectiveSelectedPaymentProviderId),
   }

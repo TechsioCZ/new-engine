@@ -38,6 +38,36 @@ describe("CMS hero URL projections", () => {
     })
   })
 
+  it("prefers the localized heading over the shared, unlocalized media alt", () => {
+    expect(
+      mapCmsHeroCarouselToHeroBanner({
+        id: 2,
+        image: {
+          alt: "Rýchle doručenie 24h!",
+          url: "https://cdn.example.test/hero.jpg",
+        },
+        heading: "Descoperă gama Herbatica",
+      })
+    ).toMatchObject({
+      imageAlt: "Descoperă gama Herbatica",
+      title: "Descoperă gama Herbatica",
+    })
+  })
+
+  it("falls back to the shared media alt when no localized heading exists", () => {
+    expect(
+      mapCmsHeroCarouselToHeroBanner({
+        id: 3,
+        image: {
+          alt: "Rýchle doručenie 24h!",
+          url: "https://cdn.example.test/hero.jpg",
+        },
+      })
+    ).toMatchObject({
+      imageAlt: "Rýchle doručenie 24h!",
+    })
+  })
+
   it("collects stable entity identities and static keys for batch reads", () => {
     const banners: CmsHeroBannerItem[] = [
       {
@@ -117,7 +147,7 @@ describe("CMS hero URL projections", () => {
     })
   })
 
-  it("fails closed when any requested target has no projection", () => {
+  it("degrades a target without a projection to a link-free banner", () => {
     expect(
       mapCmsHeroBannersToPublicTargets(
         [
@@ -134,8 +164,8 @@ describe("CMS hero URL projections", () => {
         { entityPublicSlugsByKind: {}, staticHrefsByRouteKey: {} }
       )
     ).toEqual({
-      causeCode: "MISSING_HERO_ENTITY_PUBLIC_PROJECTION",
-      kind: "invalid-response",
+      kind: "found",
+      value: [baseBanner],
     })
   })
 })

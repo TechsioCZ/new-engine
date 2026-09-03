@@ -2,12 +2,10 @@
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useFormatter, useTranslations } from "next-intl"
 import type { ProductOfferState } from "@/components/product-detail/product-detail.types"
 import { SupportingText } from "@/components/text/supporting-text"
 import {
-  formatLocationAvailability,
   type ProductLocationAvailabilityState,
   shouldShowPhysicalStoreOnlyNotice,
 } from "@/lib/storefront/product-location-availability"
@@ -27,7 +25,6 @@ export function ProductDetailDeliveryInfo({
     locationAvailabilityState
   const showLocationAvailability =
     !(isLoading || error) && Boolean(items?.length)
-  const showLocationAvailabilityError = !isLoading && Boolean(error)
   const showPhysicalStoreOnlyNotice = shouldShowPhysicalStoreOnlyNotice(
     locationAvailabilityState,
     offerState.isInStock
@@ -85,7 +82,7 @@ export function ProductDetailDeliveryInfo({
       </div>
 
       {isLoading ? (
-        <Skeleton aria-label="Načítavam dostupnosť podľa skladov">
+        <Skeleton aria-label={tCatalog("product_detail.stock.loading_aria")}>
           <div className="grid gap-250 border-border-secondary border-t pt-400 sm:grid-cols-2">
             <Skeleton.Rectangle className="h-500 rounded-sm" />
             <Skeleton.Rectangle className="h-500 rounded-sm" />
@@ -105,6 +102,25 @@ export function ProductDetailDeliveryInfo({
             {items.map((location) => {
               const isAvailable =
                 !isInventoryManaged || location.available_quantity > 0
+              const normalizedQuantity = Math.max(
+                0,
+                Math.floor(
+                  Number.isFinite(location.available_quantity)
+                    ? location.available_quantity
+                    : 0
+                )
+              )
+              let availabilityLabel = tCatalog("product_detail.stock.in_stock")
+              if (isInventoryManaged) {
+                availabilityLabel =
+                  normalizedQuantity > 10
+                    ? tCatalog("product_detail.stock.more_than_quantity", {
+                        count: 10,
+                      })
+                    : tCatalog("product_detail.stock.quantity", {
+                        count: normalizedQuantity,
+                      })
+              }
 
               return (
                 <div
@@ -117,21 +133,13 @@ export function ProductDetailDeliveryInfo({
                   <dd
                     className={`shrink-0 text-right font-semibold text-sm ${isAvailable ? "text-primary" : "text-warning"}`}
                   >
-                    {formatLocationAvailability(location.available_quantity, {
-                      isInventoryManaged,
-                    })}
+                    {availabilityLabel}
                   </dd>
                 </div>
               )
             })}
           </dl>
         </div>
-      ) : null}
-
-      {showLocationAvailabilityError ? (
-        <StatusText showIcon size="sm" status="warning">
-          Dostupnosť podľa skladov sa nepodarilo načítať.
-        </StatusText>
       ) : null}
     </div>
   )

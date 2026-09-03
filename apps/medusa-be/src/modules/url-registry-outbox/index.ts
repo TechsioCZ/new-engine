@@ -8,6 +8,10 @@ export default Module(URL_REGISTRY_OUTBOX_MODULE, {
 
 export { URL_REGISTRY_OUTBOX_MODULE } from "./constants"
 export type {
+  CatalogLifecycleEntityKind,
+  CatalogLifecycleEventPayloadV1,
+  CatalogLifecycleReason,
+  NormalizedCatalogLifecycleEvent,
   NormalizedProductLifecycleEvent,
   ProductLifecycleEventPayloadV1,
   ProductLifecycleReason,

@@ -1,6 +1,7 @@
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { SHOP_REVIEW_MODULE } from "../../../../../modules/shop-review"
+import { STOREFRONT_URL_ASSIGNMENT_MODULE } from "../../../../../modules/storefront-url-assignment"
 import { GET } from "../route"
 
 const HEUREKA_SHOP_XML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -26,6 +27,22 @@ const createResponse = () => {
   return { json, response }
 }
 
+const scopedResolve = (
+  market: "ro" | "sk",
+  resolveDependency: (registrationName: string) => unknown
+) =>
+  vi.fn((registrationName: string) => {
+    if (registrationName === STOREFRONT_URL_ASSIGNMENT_MODULE) {
+      return {
+        listStorefrontUrlAssignments: vi.fn(
+          async (filters: { market_code?: string }) =>
+            filters.market_code === market ? [{ id: `url_${market}` }] : []
+        ),
+      }
+    }
+    return resolveDependency(registrationName)
+  })
+
 describe("GET /store/external-reviews/heureka", () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -40,7 +57,7 @@ describe("GET /store/external-reviews/heureka", () => {
         "https://www.heureka.sk/direct/dotaznik/export-review.php?key=%5BREDACTED%5D",
     })
     const logger = { error: vi.fn() }
-    const resolve = vi.fn((registrationName: string) => {
+    const resolve = scopedResolve("sk", (registrationName: string) => {
       if (registrationName === SHOP_REVIEW_MODULE) {
         return { fetchHeurekaReviews }
       }
@@ -53,6 +70,7 @@ describe("GET /store/external-reviews/heureka", () => {
     const firstResponse = createResponse()
     const secondResponse = createResponse()
     const request = {
+      publishable_key_context: { sales_channel_ids: ["sc_sk"] },
       scope: { resolve },
       validatedQuery: { kind: "shop", limit: 4 },
     } as never
@@ -79,6 +97,10 @@ describe("GET /store/external-reviews/heureka", () => {
         })
       )
     }
+    expect(firstResponse.response.setHeader).toHaveBeenCalledWith(
+      "Cache-Control",
+      "private, no-store"
+    )
   })
 
   it("logs internal failures without exposing them in the public response", async () => {
@@ -87,7 +109,7 @@ describe("GET /store/external-reviews/heureka", () => {
     )
     const fetchHeurekaReviews = vi.fn().mockRejectedValue(internalError)
     const logger = { error: vi.fn() }
-    const resolve = vi.fn((registrationName: string) => {
+    const resolve = scopedResolve("sk", (registrationName: string) => {
       if (registrationName === SHOP_REVIEW_MODULE) {
         return { fetchHeurekaReviews }
       }
@@ -101,6 +123,7 @@ describe("GET /store/external-reviews/heureka", () => {
 
     await GET(
       {
+        publishable_key_context: { sales_channel_ids: ["sc_sk"] },
         scope: { resolve },
         validatedQuery: { kind: "product", limit: 4 },
       } as never,
@@ -114,6 +137,32 @@ describe("GET /store/external-reviews/heureka", () => {
     expect(response.status).toHaveBeenCalledWith(502)
     expect(json).toHaveBeenCalledWith({
       code: "heureka_export_fetch_failed",
+      message: "External reviews are temporarily unavailable",
+    })
+  })
+
+  it("rejects an RO publishable key before reading the provider", async () => {
+    const resolve = scopedResolve("ro", (registrationName: string) => {
+      throw new Error(
+        `RO request resolved unexpected dependency: ${registrationName}`
+      )
+    })
+    const { json, response } = createResponse()
+
+    await GET(
+      {
+        publishable_key_context: { sales_channel_ids: ["sc_ro"] },
+        scope: { resolve },
+        validatedQuery: { kind: "shop", limit: 4 },
+      } as never,
+      response as never
+    )
+
+    expect(resolve).not.toHaveBeenCalledWith(SHOP_REVIEW_MODULE)
+    expect(response.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store")
+    expect(response.status).toHaveBeenCalledWith(404)
+    expect(json).toHaveBeenCalledWith({
+      code: "external_reviews_not_available",
       message: "External reviews are temporarily unavailable",
     })
   })

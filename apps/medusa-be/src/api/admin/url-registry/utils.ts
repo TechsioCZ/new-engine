@@ -2,7 +2,9 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import type {
+  Context,
   IProductModuleService,
   ISalesChannelModuleService,
 } from "@medusajs/framework/types"
@@ -10,6 +12,7 @@ import { MedusaError, Modules } from "@medusajs/framework/utils"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
 import { STOREFRONT_URL_ASSIGNMENT_MODULE } from "../../../modules/storefront-url-assignment"
+import { enqueueCatalogAssignmentLifecycle } from "../../../modules/storefront-url-assignment/catalog-lifecycle"
 import {
   type AdminUpsertCollectionUrlAssignment,
   AdminUpsertCollectionUrlAssignmentSchema,
@@ -19,6 +22,8 @@ import {
 } from "../../../modules/storefront-url-assignment/contracts"
 import type { StorefrontUrlAssignmentRecord } from "../../../modules/storefront-url-assignment/models/storefront-url-assignment"
 import type StorefrontUrlAssignmentModuleService from "../../../modules/storefront-url-assignment/service"
+import { URL_REGISTRY_OUTBOX_MODULE } from "../../../modules/url-registry-outbox"
+import type UrlRegistryOutboxModuleService from "../../../modules/url-registry-outbox/service"
 import {
   type CatalogTranslationEntityKind,
   type CatalogTranslationProof,
@@ -26,6 +31,7 @@ import {
   readExactCatalogTranslation,
   resolveCatalogMarketLocale,
 } from "../../../utils/catalog-translation"
+import { salesChannelSupportsMarket } from "../../../utils/notification-market-context"
 
 export type AdminCatalogTranslationStatus =
   | Readonly<{ kind: "found"; proof: CatalogTranslationProof }>
@@ -65,12 +71,14 @@ const persistAdminAssignment = async ({
   entityKind,
   existing,
   input,
+  sharedContext,
 }: Readonly<{
   assignmentService: StorefrontUrlAssignmentModuleService
   entityId: string
   entityKind: StorefrontUrlAssignmentEntityKind
   existing: StorefrontUrlAssignmentRecord | undefined
   input: AdminUpsertCollectionUrlAssignment
+  sharedContext: Context<SqlEntityManager>
 }>): Promise<StorefrontUrlAssignmentRecord> => {
   if (existing && assignmentMatchesInput(existing, input)) {
     return existing
@@ -83,23 +91,29 @@ const persistAdminAssignment = async ({
     )
   }
   return existing
-    ? assignmentService.updateStorefrontUrlAssignments({
-        id: existing.id,
-        sales_channel_id: input.salesChannelId,
-        public_slug: input.publicSlug,
-        publication_status: input.publicationStatus,
-        source_version: nextSourceVersion,
-      })
-    : assignmentService.createStorefrontUrlAssignments({
-        schema_version: 1,
-        entity_kind: entityKind,
-        entity_id: entityId,
-        market_code: input.marketCode,
-        sales_channel_id: input.salesChannelId,
-        public_slug: input.publicSlug,
-        publication_status: input.publicationStatus,
-        source_version: nextSourceVersion,
-      })
+    ? assignmentService.updateStorefrontUrlAssignments(
+        {
+          id: existing.id,
+          sales_channel_id: input.salesChannelId,
+          public_slug: input.publicSlug,
+          publication_status: input.publicationStatus,
+          source_version: nextSourceVersion,
+        },
+        sharedContext
+      )
+    : assignmentService.createStorefrontUrlAssignments(
+        {
+          schema_version: 1,
+          entity_kind: entityKind,
+          entity_id: entityId,
+          market_code: input.marketCode,
+          sales_channel_id: input.salesChannelId,
+          public_slug: input.publicSlug,
+          publication_status: input.publicationStatus,
+          source_version: nextSourceVersion,
+        },
+        sharedContext
+      )
 }
 
 class MissingCatalogTranslationError extends Error {
@@ -110,6 +124,8 @@ class MissingCatalogTranslationError extends Error {
     this.localeCode = localeCode
   }
 }
+
+class MissingCatalogEntityError extends Error {}
 
 const readPublicationTranslation = async (
   request: AuthenticatedMedusaRequest,
@@ -143,6 +159,9 @@ const resolveDependencies = (request: AuthenticatedMedusaRequest) => ({
     request.scope.resolve<StorefrontUrlAssignmentModuleService>(
       STOREFRONT_URL_ASSIGNMENT_MODULE
     ),
+  outboxService: request.scope.resolve<UrlRegistryOutboxModuleService>(
+    URL_REGISTRY_OUTBOX_MODULE
+  ),
   productService: request.scope.resolve<IProductModuleService>(Modules.PRODUCT),
   salesChannelService: request.scope.resolve<ISalesChannelModuleService>(
     Modules.SALES_CHANNEL
@@ -285,13 +304,17 @@ export const handleAdminAssignmentPOST = async (
 
   try {
     const entityId = request.params.id ?? ""
-    const { assignmentService, productService, salesChannelService } =
-      resolveDependencies(request)
+    const {
+      assignmentService,
+      outboxService,
+      productService,
+      salesChannelService,
+    } = resolveDependencies(request)
     const [entityExists, salesChannels] = await Promise.all([
       sourceEntityExists(request, productService, entityKind, entityId),
       salesChannelService.listSalesChannels(
         { id: input.data.salesChannelId },
-        { select: ["id"], take: 1 }
+        { select: ["id", "metadata"], take: 1 }
       ),
     ])
     if (!entityExists) {
@@ -302,65 +325,109 @@ export const handleAdminAssignmentPOST = async (
         .status(404)
         .json({ message: "Sales Channel was not found" })
     }
-
-    const translation = await readPublicationTranslation(
-      request,
-      entityKind,
-      entityId,
-      input.data
-    )
-
-    const [existingRecords, conflictingSlugRecords] = await Promise.all([
-      assignmentService.listStorefrontUrlAssignments(
-        {
-          entity_kind: entityKind,
-          entity_id: entityId,
-          market_code: input.data.marketCode,
-        },
-        { take: 2 }
-      ),
-      assignmentService.listStorefrontUrlAssignments(
-        {
-          entity_kind: entityKind,
-          market_code: input.data.marketCode,
-          public_slug: input.data.publicSlug,
-        },
-        { take: 2 }
-      ),
-    ])
-    if (existingRecords.length > 1 || conflictingSlugRecords.length > 1) {
-      return response
-        .status(503)
-        .json({ message: "Storefront assignment state is invalid" })
-    }
-    const existing = existingRecords[0]
-    const conflict = conflictingSlugRecords.find(
-      (candidate) => candidate.id !== existing?.id
-    )
-    if (conflict) {
-      return response.status(409).json({
-        message:
-          "Public slug is already assigned for this entity kind and market",
+    if (!salesChannelSupportsMarket(salesChannels[0], input.data.marketCode)) {
+      return response.status(400).json({
+        message: "Sales Channel is not configured for the requested market",
       })
     }
 
-    const assignment = await persistAdminAssignment({
-      assignmentService,
-      entityId,
-      entityKind,
-      existing,
-      input: input.data,
-    })
+    const mutation = await assignmentService.runInTransaction(
+      async (sharedContext) => {
+        await assignmentService.lockCatalogEntityAssignments(
+          entityKind,
+          entityId,
+          sharedContext
+        )
+        if (
+          !(await sourceEntityExists(
+            request,
+            productService,
+            entityKind,
+            entityId
+          ))
+        ) {
+          throw new MissingCatalogEntityError()
+        }
+        const translation = await readPublicationTranslation(
+          request,
+          entityKind,
+          entityId,
+          input.data
+        )
+        const [existingRecords, conflictingSlugRecords] = await Promise.all([
+          assignmentService.listStorefrontUrlAssignments(
+            {
+              entity_kind: entityKind,
+              entity_id: entityId,
+              market_code: input.data.marketCode,
+            },
+            { take: 2 },
+            sharedContext
+          ),
+          assignmentService.listStorefrontUrlAssignments(
+            {
+              entity_kind: entityKind,
+              market_code: input.data.marketCode,
+              public_slug: input.data.publicSlug,
+            },
+            { take: 2 },
+            sharedContext
+          ),
+        ])
+        if (existingRecords.length > 1 || conflictingSlugRecords.length > 1) {
+          throw new MedusaError(
+            MedusaError.Types.UNEXPECTED_STATE,
+            "Storefront assignment state is invalid"
+          )
+        }
+        const existing = existingRecords[0]
+        const conflict = conflictingSlugRecords.find(
+          (candidate) => candidate.id !== existing?.id
+        )
+        if (conflict) {
+          throw new MedusaError(
+            MedusaError.Types.DUPLICATE_ERROR,
+            "Public slug is already assigned for this entity kind and market"
+          )
+        }
+        const persisted = await persistAdminAssignment({
+          assignmentService,
+          entityId,
+          entityKind,
+          existing,
+          input: input.data,
+          sharedContext,
+        })
+        await enqueueCatalogAssignmentLifecycle(
+          outboxService,
+          persisted,
+          sharedContext
+        )
+        return { assignment: persisted, translation }
+      }
+    )
 
     return response.json({
-      assignment: serializeStorefrontUrlAssignment(assignment, entityKind),
-      translation,
+      assignment: serializeStorefrontUrlAssignment(
+        mutation.assignment,
+        entityKind
+      ),
+      translation: mutation.translation,
     })
   } catch (error) {
+    if (error instanceof MissingCatalogEntityError) {
+      return response.status(404).json({ message: "Entity was not found" })
+    }
     if (error instanceof MissingCatalogTranslationError) {
       return response.status(409).json({
         message: `${error.message} before publication`,
       })
+    }
+    if (
+      error instanceof MedusaError &&
+      error.type === MedusaError.Types.DUPLICATE_ERROR
+    ) {
+      return response.status(409).json({ message: error.message })
     }
     return response
       .status(503)

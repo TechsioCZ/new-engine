@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/product-card.tsx"
   - "libs/ui/src/tokens/components/molecules/_product-card.css"
   - "libs/ui/stories/molecules/product-card.stories.tsx"
-  - "libs/ui/src/molecules/figma/product-card.figma.tsx"
+  - "libs/ui/src/molecules/product-card.figma.ts"
 ---
 
 # @techsio/ui-kit ProductCard Usage

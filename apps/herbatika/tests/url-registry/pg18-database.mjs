@@ -128,12 +128,96 @@ export const waitForPostgres = async (
   })
 }
 
-export const migrateUrlRegistry = async (migrationUrl) => {
-  const plan = await loadUrlRegistryMigrationPlan({ migrationsDirectory })
+export const migrateUrlRegistry = async (
+  migrationUrl,
+  { throughVersion } = {}
+) => {
+  const completePlan = await loadUrlRegistryMigrationPlan({
+    migrationsDirectory,
+  })
+  if (
+    throughVersion !== undefined &&
+    (!Number.isSafeInteger(throughVersion) ||
+      throughVersion <= 0 ||
+      throughVersion > completePlan.length)
+  ) {
+    throw new TypeError(
+      "throughVersion must select a contiguous migration prefix"
+    )
+  }
+  const plan =
+    throughVersion === undefined
+      ? completePlan
+      : completePlan.slice(0, throughVersion)
   return runUrlRegistryMigrations({
     pool: new Pool({ connectionString: migrationUrl, max: 1 }),
     plan,
   })
+}
+
+export const seedLegacyCatalogUnpublishedReceipt = async (migrationUrl) => {
+  const sourceId = "pg18-v4-legacy-category-unpublished"
+  const pool = new Pool({ connectionString: migrationUrl, max: 1 })
+  const client = await pool.connect()
+  try {
+    await client.query("BEGIN")
+    await client.query(
+      `INSERT INTO url_registry.url_registry_source_event_receipt (
+        source_system, source_type, source_id, market, stream_sequence,
+        source_event_id, envelope_fingerprint, change_type, action,
+        command_idempotency_key
+      ) VALUES (
+        'medusa', 'category', $1, 'ro', 1, $2, $3,
+        'reconcile', 'unpublished', NULL
+      )`,
+      [sourceId, `${sourceId}:event`, `sha256:${"a".repeat(64)}`]
+    )
+    await client.query(
+      `INSERT INTO url_registry.url_registry_source_event_cursor (
+        source_system, source_type, source_id, market, last_sequence
+      ) VALUES ('medusa', 'category', $1, 'ro', 1)`,
+      [sourceId]
+    )
+    await client.query("COMMIT")
+    return sourceId
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {
+      /* best-effort rollback: original error already captured above */
+    })
+    throw error
+  } finally {
+    client.release()
+    await pool.end()
+  }
+}
+
+export const assertLegacyCatalogUnpublishedReceipt = async (
+  migrationUrl,
+  sourceId
+) => {
+  const pool = new Pool({ connectionString: migrationUrl, max: 1 })
+  try {
+    const result = await pool.query(
+      `SELECT action, command_idempotency_key
+       FROM url_registry.url_registry_source_event_receipt
+       WHERE source_system = 'medusa'
+         AND source_type = 'category'
+         AND source_id = $1
+         AND market = 'ro'`,
+      [sourceId]
+    )
+    if (
+      result.rows.length !== 1 ||
+      result.rows[0]?.action !== "unpublished" ||
+      result.rows[0]?.command_idempotency_key !== null
+    ) {
+      throw new Error(
+        "URL registry migration 0005 did not preserve the legacy catalog receipt"
+      )
+    }
+  } finally {
+    await pool.end()
+  }
 }
 
 const currentUser = async (connectionString) => {

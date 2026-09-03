@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.2.0"
 name: table-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Table for
@@ -45,7 +45,7 @@ size: sm | md | lg
 interactive, stickyHeader, stickyFirstColumn, showColumnBorder
 captionPlacement: top | bottom
 Row selected
-ColumnHeader/Cell numeric
+ColumnHeader/Cell numeric, data-align: start | center | end
 parts: Caption, Header, Body, Footer, Row, ColumnHeader, Cell
 ```
 
@@ -57,7 +57,22 @@ Use Table.Header/Body/Footer and ColumnHeader/Cell rather than div grids.
 
 ### Mark numeric columns
 
-Use `numeric` on headers and cells for right alignment.
+Use `numeric` on headers and cells for right alignment. It asserts that the
+value *is* a number, so keep it for money, counts and measures.
+
+### Align a column deliberately
+
+`data-align="start | center | end"` on a ColumnHeader/Cell is a pure
+presentation choice — reach for it when the column is not numeric, e.g. a
+centred icon, status or boolean column.
+
+```tsx
+<Table.ColumnHeader data-align="center">In stock</Table.ColumnHeader>
+<Table.Cell data-align="center">{inStock ? 'Yes' : 'No'}</Table.Cell>
+```
+
+Set `numeric` or `data-align`, not both — combining them with conflicting
+directions leaves the winner up to stylesheet order.
 
 ### Use selected/interactive props
 

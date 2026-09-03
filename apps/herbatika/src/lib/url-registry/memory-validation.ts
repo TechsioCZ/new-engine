@@ -19,7 +19,7 @@ const ENTITY_KINDS = new Set<EntityUrlKind>([
   "article",
   "page",
 ])
-const NORMALIZED_SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const NORMALIZED_SEGMENT = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 
 const hasControlCharacter = (value: string) =>
   [...value].some((character) => {
@@ -64,12 +64,12 @@ export const assertNonEmpty = (value: string, name: string, maximum = 255) => {
 export const assertNormalizedSegment = (value: string, name: string) => {
   if (
     typeof value !== "string" ||
-    value.length > 80 ||
+    value.length > 255 ||
     !NORMALIZED_SEGMENT.test(value)
   ) {
     throw new UrlRegistryError(
       "INVALID_COMMAND",
-      `${name} must be a normalized ASCII segment of at most 80 characters`,
+      `${name} must be a normalized ASCII segment of at most 255 characters`,
       { name, value }
     )
   }

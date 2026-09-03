@@ -28,6 +28,7 @@ import {
   readCmsPageById as readCmsPageByIdValue,
   readCmsPageBySlug as readCmsPageBySlugValue,
   readCmsStaticPage as readCmsStaticPageValue,
+  readCmsStaticPageWithDemoFallback as readCmsStaticPageWithDemoFallbackValue,
 } from "./cms-pages"
 import type {
   CmsArticleCategory as CmsArticleCategoryValue,
@@ -57,6 +58,8 @@ export const fetchCmsPageById = fetchCmsPageByIdValue
 export const readCmsPageById = readCmsPageByIdValue
 export const readCmsPageBySlug = readCmsPageBySlugValue
 export const readCmsStaticPage = readCmsStaticPageValue
+export const readCmsStaticPageWithDemoFallback =
+  readCmsStaticPageWithDemoFallbackValue
 export const mapCmsArticleToBlogPost = mapCmsArticleToBlogPostValue
 export const mapCmsHeroCarouselToHeroBanner =
   mapCmsHeroCarouselToHeroBannerValue

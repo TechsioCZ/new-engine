@@ -392,18 +392,43 @@ Use `$figma:figma-generate-library` conventions for sequencing and library hygie
 ### Step 9: Create Repo-Side Code Connect Files
  
 After the component is visually correct in Figma:
-1. create or update `<component>.figma.tsx` beside the component implementation
-2. follow the pattern used by `libs/ui/src/atoms/button.figma.tsx`
+1. create or update `<component>.figma.ts` beside the component implementation
+2. follow the pattern used by `libs/ui/src/atoms/button.figma.ts`
 3. map the real Figma node and the real visual props
 4. keep prop names aligned with code and Figma
 5. run local parse validation
+
+These are Code Connect v2 **parserless templates**, not the old v1
+`figma.connect()` files. That means:
+
+- the file is plain data: `// url=`, `// source=`, `// component=` header
+  comments, then `import figma from "figma"` and a `export default { id,
+  imports, example, metadata }`
+- `"figma"` is a virtual module supplied by Figma's runtime. It does not exist
+  locally, so these files are excluded from `tsconfig` and the rslib build —
+  never import them from application code
+- read props with `figma.selectedInstance.getEnum/getString/getBoolean/
+  getInstanceSwap`. Property names are case-sensitive and must exist on the
+  Figma component; referencing a missing one renders a red `Error` in Dev Mode
+- when the Figma component has no property for a text slot, read the layer:
+  `figma.selectedInstance.findText("Label").textContent`
+- `example` must use the `figma.tsx` tagged template so snippets render as React
+- `imports` is what a consumer pastes, so use the published specifier
+  (`@techsio/ui-kit/atoms/...`), never a relative path
+
+Validate and publish from `libs/ui`:
+
+```sh
+pnpm figma:connect:parse
+pnpm figma:connect:publish   # needs FIGMA_ACCESS_TOKEN from the repo .env
+```
  
 ### Step 10: Create Figma Code Connect Mapping
  
 Use `$figma:figma-code-connect-components` after the Figma component is published and the account has the required Figma plan.
  
 If Code Connect is blocked by plan or permissions:
-- still create the local `.figma.tsx` file
+- still create the local `.figma.ts` file
 - validate locally
 - report the publish blocker explicitly
  
@@ -420,7 +445,7 @@ Do not mark the work complete unless all items below are true:
 - Figma page shell matches the library pattern
 - Figma component visually matches Storybook
 - component was added to the library section
-- local `.figma.tsx` file was created or updated
+- local `.figma.ts` file was created or updated
 - Code Connect mapping was created, or the blocker was documented
  
 ## Output Format

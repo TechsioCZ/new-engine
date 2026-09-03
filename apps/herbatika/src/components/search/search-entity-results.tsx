@@ -1,6 +1,7 @@
 "use client"
 
 import { Link } from "@techsio/ui-kit/atoms/link"
+import { useTranslations } from "next-intl"
 import { StorefrontLink } from "@/components/storefront-link"
 import type {
   SearchAutocompleteResponse,
@@ -64,6 +65,8 @@ export function SearchEntityResults({
   categories,
   content,
 }: SearchEntityResultsProps) {
+  const t = useTranslations("search")
+
   if (brands.length + categories.length + content.length === 0) {
     return null
   }
@@ -77,14 +80,23 @@ export function SearchEntityResults({
         className="font-bold text-2xl text-fg-primary"
         id="search-related-results-heading"
       >
-        Súvisiace výsledky
+        {t("results.related")}
       </h2>
 
-      <SearchEntityResultSection items={categories} title="Kategórie" />
+      <SearchEntityResultSection
+        items={categories}
+        title={t("autocomplete.sections.categories")}
+      />
 
-      <SearchEntityResultSection items={brands} title="Výrobcovia" />
+      <SearchEntityResultSection
+        items={brands}
+        title={t("autocomplete.sections.brands")}
+      />
 
-      <SearchEntityResultSection items={content} title="Obsah" />
+      <SearchEntityResultSection
+        items={content}
+        title={t("autocomplete.sections.content")}
+      />
     </section>
   )
 }

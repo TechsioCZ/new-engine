@@ -15,18 +15,19 @@ describe("buildHerbatikaPaymentReturnUrl", () => {
     const url = new URL(
       buildHerbatikaPaymentReturnUrl({
         access: {
+          canonicalOrigin: "https://shop.example.hu",
           cartId: "cart/A+b?=1",
           expiresAt: "2026-08-19T03:00:00.000Z",
           provider: "gopay",
           providerId: "pp_gopay/AbC+42",
+          market: "hu",
           state: "opaque/State+AbC==",
         },
-        market: "hu",
       })
     )
 
     expect(`${url.origin}${url.pathname}`).toBe(
-      "https://herbatica.hu/api/payments/gopay/return"
+      "https://shop.example.hu/api/payments/gopay/return"
     )
     expect(url.searchParams.get("cart_id")).toBe("cart/A+b?=1")
     expect(url.searchParams.get("provider_id")).toBe("pp_gopay/AbC+42")
@@ -42,29 +43,34 @@ describe("buildHerbatikaPaymentReturnUrl", () => {
     const url = new URL(
       buildHerbatikaPaymentReturnUrl({
         access: {
+          canonicalOrigin: "https://shop.example.ro",
           cartId: "cart_1",
           expiresAt: "2026-08-19T03:00:00.000Z",
           provider: "stripe",
           providerId: "pp_stripe",
+          market: "ro",
           state: "opaque-state",
         },
-        market: "ro",
       })
     )
 
     expect(`${url.origin}${url.pathname}`).toBe(
-      "https://herbatica.ro/api/payments/stripe/return"
+      "https://shop.example.ro/api/payments/stripe/return"
     )
   })
 
   it("issues state before building provider data without duplicating it in metadata", async () => {
-    vi.stubGlobal("window", { location: { host: "www.herbatica.sk" } })
+    vi.stubGlobal("window", {
+      location: { origin: "https://shop.example.sk" },
+    })
     const fetcher = vi.fn(async () =>
       Response.json({
+        canonicalOrigin: "https://shop.example.sk",
         cartId: "cart_1",
         expiresAt: "2026-08-19T03:00:00.000Z",
         provider: "gopay",
         providerId: "pp_gopay",
+        market: "sk",
         state: "opaque-state",
       })
     ) as unknown as typeof fetch
@@ -78,7 +84,7 @@ describe("buildHerbatikaPaymentReturnUrl", () => {
 
     expect(fetcher).toHaveBeenCalledOnce()
     expect(data.return_url).toBe(
-      "https://herbatica.sk/api/payments/gopay/return?state=opaque-state&cart_id=cart_1&provider_id=pp_gopay"
+      "https://shop.example.sk/api/payments/gopay/return?state=opaque-state&cart_id=cart_1&provider_id=pp_gopay"
     )
     expect(data.cancel_url).toBe(data.return_url)
     expect(data.success_url).toBe(data.return_url)
@@ -90,7 +96,9 @@ describe("buildHerbatikaPaymentReturnUrl", () => {
   })
 
   it("binds only an exact callback URL and rejects extra or duplicate keys", async () => {
-    vi.stubGlobal("window", { location: { host: "herbatica.sk" } })
+    vi.stubGlobal("window", {
+      location: { origin: "https://shop.example.sk" },
+    })
     const fetcher = vi.fn(async () =>
       Response.json({
         cartId: "cart_1",
@@ -111,16 +119,16 @@ describe("buildHerbatikaPaymentReturnUrl", () => {
       ...baseInput,
       paymentSessionData: {
         return_url:
-          "https://herbatica.sk/api/payments/gopay/return?state=opaque-state&cart_id=cart_1&provider_id=pp_gopay",
+          "https://shop.example.sk/api/payments/gopay/return?state=opaque-state&cart_id=cart_1&provider_id=pp_gopay",
       },
     })
     expect(fetcher).toHaveBeenCalledOnce()
 
     for (const returnUrl of [
-      "https://herbatica.sk/api/payments/gopay/return?state=one&state=two&cart_id=cart_1&provider_id=pp_gopay",
-      "https://herbatica.sk/api/payments/gopay/return?state=one&cart_id=cart_1&provider_id=pp_gopay&extra=value",
-      "https://herbatica.ro/api/payments/gopay/return?state=one&cart_id=cart_1&provider_id=pp_gopay",
-      "https://user@herbatica.sk/api/payments/gopay/return?state=one&cart_id=cart_1&provider_id=pp_gopay",
+      "https://shop.example.sk/api/payments/gopay/return?state=one&state=two&cart_id=cart_1&provider_id=pp_gopay",
+      "https://shop.example.sk/api/payments/gopay/return?state=one&cart_id=cart_1&provider_id=pp_gopay&extra=value",
+      "https://shop.example.ro/api/payments/gopay/return?state=one&cart_id=cart_1&provider_id=pp_gopay",
+      "https://user@shop.example.sk/api/payments/gopay/return?state=one&cart_id=cart_1&provider_id=pp_gopay",
     ]) {
       await expect(
         bindHerbatikaPaymentSessionData({

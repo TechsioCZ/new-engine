@@ -7,6 +7,7 @@ import {
   buildMedusaUrl,
   getPublishableHeaders,
   isConflictStatus,
+  type StorefrontAuthMessages,
 } from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 
@@ -29,7 +30,14 @@ type WholesaleParseResult = {
 }
 
 export const parseWholesaleRegistration = (
-  value: unknown
+  value: unknown,
+  {
+    currencyCode,
+    messages,
+  }: {
+    currencyCode: string
+    messages: StorefrontAuthMessages
+  }
 ): WholesaleParseResult => {
   if (value === undefined || value === null) {
     return { error: null, value: null }
@@ -38,7 +46,7 @@ export const parseWholesaleRegistration = (
   const wholesale = asRecordOrUndefined(value)
   if (!wholesale) {
     return {
-      error: badRequest("Firemné údaje musia byť platný objekt."),
+      error: badRequest(messages.wholesaleDataInvalid),
       value: null,
     }
   }
@@ -46,7 +54,7 @@ export const parseWholesaleRegistration = (
   const companyName = asStringOrUndefined(wholesale.company_name)
   if (!companyName) {
     return {
-      error: badRequest("Názov firmy je povinný."),
+      error: badRequest(messages.wholesaleCompanyNameRequired),
       value: null,
     }
   }
@@ -54,7 +62,7 @@ export const parseWholesaleRegistration = (
   const companyIdentifier = asStringOrUndefined(wholesale.company_identifier)
   if (!companyIdentifier) {
     return {
-      error: badRequest("IČO alebo firemný identifikátor je povinný."),
+      error: badRequest(messages.wholesaleCompanyIdentifierRequired),
       value: null,
     }
   }
@@ -62,7 +70,7 @@ export const parseWholesaleRegistration = (
   const billingAddress = asRecordOrUndefined(wholesale.billing_address)
   if (!billingAddress) {
     return {
-      error: badRequest("Fakturačná adresa je povinná."),
+      error: badRequest(messages.wholesaleBillingAddressRequired),
       value: null,
     }
   }
@@ -74,7 +82,7 @@ export const parseWholesaleRegistration = (
 
   if (!(address1 && city && postalCode && rawCountryCode)) {
     return {
-      error: badRequest("Fakturačná adresa je povinná."),
+      error: badRequest(messages.wholesaleBillingAddressRequired),
       value: null,
     }
   }
@@ -82,7 +90,7 @@ export const parseWholesaleRegistration = (
   const countryCode = normalizeCountryCode(rawCountryCode)
   if (!countryCode) {
     return {
-      error: badRequest("Vyberte platnú krajinu fakturačnej adresy."),
+      error: badRequest(messages.invalidBillingAddressCountry),
       value: null,
     }
   }
@@ -92,8 +100,7 @@ export const parseWholesaleRegistration = (
     value: {
       companyName,
       companyIdentifier,
-      currencyCode:
-        asStringOrUndefined(wholesale.currency_code)?.toUpperCase() ?? "EUR",
+      currencyCode,
       billingAddress: {
         address1,
         address2: asStringOrUndefined(billingAddress.address_2),
@@ -116,11 +123,13 @@ export const createWholesaleCompanyRequest = async ({
   email,
   token,
   wholesale,
+  messages,
 }: {
   binding: MarketRuntimeBinding
   email: string
   token: string
   wholesale: ParsedWholesaleRegistration
+  messages: StorefrontAuthMessages
 }) => {
   const response = await fetch(buildMedusaUrl("/store/companies"), {
     method: "POST",
@@ -143,5 +152,5 @@ export const createWholesaleCompanyRequest = async ({
 
   return response.ok || isConflictStatus(response.status)
     ? null
-    : buildErrorResponse(response)
+    : buildErrorResponse(response, messages, messages.registrationFailed)
 }

@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/form-textarea.tsx"
   - "libs/ui/src/atoms/textarea.tsx"
   - "libs/ui/stories/molecules/form-textarea.stories.tsx"
-  - "libs/ui/src/molecules/figma/form-textarea.figma.tsx"
+  - "libs/ui/src/molecules/form-textarea.figma.ts"
 ---
 
 # @techsio/ui-kit FormTextarea Usage

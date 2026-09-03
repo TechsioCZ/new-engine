@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 import {
-  formatLocationAvailability,
   resolveProductLocationAvailabilityState,
   resolveSelectedVariantLocationAvailability,
   shouldShowPhysicalStoreOnlyNotice,
@@ -25,26 +24,6 @@ const availability = {
     },
   ],
 }
-
-describe("formatLocationAvailability", () => {
-  it.each([
-    [Number.NaN, "0 ks"],
-    [-2, "0 ks"],
-    [0, "0 ks"],
-    [1, "1 ks"],
-    [10, "10 ks"],
-    [10.9, "10 ks"],
-    [11, "Skladom (>10 ks)"],
-  ])("formats %s as %s", (quantity, expected) => {
-    expect(formatLocationAvailability(quantity)).toBe(expected)
-  })
-
-  it("formats unmanaged inventory as generally in stock", () => {
-    expect(formatLocationAvailability(0, { isInventoryManaged: false })).toBe(
-      "Skladom"
-    )
-  })
-})
 
 describe("resolveSelectedVariantLocationAvailability", () => {
   it("returns the selected variant locations", () => {

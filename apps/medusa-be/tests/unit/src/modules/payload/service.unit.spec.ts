@@ -492,6 +492,7 @@ describe("PayloadModuleService", () => {
       expect(parsedUrl.searchParams.get("page")).toBe("2")
       expect(parsedUrl.searchParams.get("sort")).toBe("-createdAt")
       expect(parsedUrl.searchParams.get("locale")).toBe("en")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
 
       expect(cacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -552,6 +553,96 @@ describe("PayloadModuleService", () => {
       expect(cacheService.get).toHaveBeenCalledWith({
         key: "cms:hero-carousels:en:default",
       })
+    })
+
+    it("rejects incomplete Romanian documents without reusing the old cache", async () => {
+      const { service, cacheService } = createServiceWithCache()
+      const completeCarousel = {
+        id: 9,
+        image: { url: "ro-complete" },
+        heading: "Starea ta de bine, inspirată din natură",
+        subheading: "Descoperă produse atent alese pentru fiecare zi.",
+      }
+
+      cacheService.get.mockResolvedValue(null)
+      fetchMock.mockResolvedValue(
+        createFetchResponse(
+          createBulkResponse([
+            {
+              id: 7,
+              image: { url: "missing-ro-heading" },
+              heading: null,
+              subheading: "Slovenský text nesmie preniknúť do RO",
+            },
+            {
+              id: 8,
+              image: { url: "blank-ro-heading" },
+              heading: "   ",
+              subheading: "Text românesc care nu repară un titlu gol",
+            },
+            {
+              id: 11,
+              image: { url: "missing-ro-subheading" },
+              heading: "Titlu românesc fără descriere",
+              subheading: null,
+            },
+            completeCarousel,
+          ])
+        )
+      )
+
+      const result = await service.listHeroCarousels({ locale: "ro" })
+
+      expect(result).toEqual([completeCarousel])
+      expect(cacheService.get).toHaveBeenCalledWith({
+        key: "cms:hero-carousels:ro:default:exact-locale-v1",
+      })
+
+      const parsedUrl = new URL(fetchMock.mock.calls[0]?.[0])
+      expect(parsedUrl.searchParams.get("locale")).toBe("ro")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
+      expect(parsedUrl.searchParams.get("where[and][0][heading][exists]")).toBe(
+        "true"
+      )
+      expect(
+        parsedUrl.searchParams.get("where[and][1][subheading][exists]")
+      ).toBe("true")
+    })
+
+    it("preserves image-only Slovak carousel documents", async () => {
+      const { service, cacheService } = createServiceWithCache()
+      const carousels = [{ id: 10, image: { url: "sk-image-only" } }]
+
+      cacheService.get.mockResolvedValue(null)
+      fetchMock.mockResolvedValue(
+        createFetchResponse(createBulkResponse(carousels))
+      )
+
+      await expect(
+        service.listHeroCarousels({ locale: "sk" })
+      ).resolves.toEqual(carousels)
+
+      const parsedUrl = new URL(fetchMock.mock.calls[0]?.[0])
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
+      expect(parsedUrl.searchParams.has("where[heading][exists]")).toBe(false)
+    })
+
+    it("revalidates incomplete Romanian cache hits", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.get.mockResolvedValue([
+        {
+          id: 12,
+          image: { url: "cached-incomplete-ro" },
+          heading: "Titlu românesc",
+          subheading: null,
+        },
+      ])
+
+      await expect(
+        service.listHeroCarousels({ locale: "ro" })
+      ).resolves.toEqual([])
+      expect(fetchMock).not.toHaveBeenCalled()
     })
 
     it("hashes cache key when only page is provided", async () => {
@@ -818,7 +909,7 @@ describe("PayloadModuleService", () => {
             items: [
               {
                 slot: "shipping_payment",
-                href: "/doprava-a-platba",
+                href: "/informacie/doprava-a-platba",
                 type: "internal",
               },
             ],
@@ -967,6 +1058,70 @@ describe("PayloadModuleService", () => {
 
       expect(cacheService.clear).toHaveBeenCalledWith({
         tags: ["cms:footer-navigation", "cms:pages", "cms:page-categories"],
+      })
+    })
+
+    it("clears the by-ID page entry on a locale-scoped invalidation", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("pages", "doprava", "cs", "7")
+
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        key: "cms:pages:id:7:cs",
+      })
+    })
+
+    it("clears the by-ID article entry for a numeric document id", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("articles", "bylinky", "cs", 42)
+
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        key: "cms:articles:id:42:cs",
+      })
+    })
+
+    it("clears the by-ID entry even when the slug is missing", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("articles", undefined, "cs", "42")
+
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        key: "cms:articles:id:42:cs",
+      })
+    })
+
+    it("skips the by-ID key when the invalidation is not locale-scoped", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("pages", "doprava", undefined, "7")
+
+      expect(cacheService.clear).not.toHaveBeenCalledWith({
+        key: "cms:pages:id:7:cs",
+      })
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        tags: ["cms:footer-navigation", "cms:pages", "cms:page-categories"],
+      })
+    })
+
+    it("skips the by-ID key for collections without by-ID reads", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("article-categories", undefined, "sk", "9")
+
+      expect(cacheService.clear).toHaveBeenCalledTimes(1)
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        tags: ["cms:article-categories:locale:sk"],
       })
     })
   })

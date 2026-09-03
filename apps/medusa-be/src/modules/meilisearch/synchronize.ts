@@ -1,14 +1,34 @@
+import { createHash } from "node:crypto"
 import type {
   ILockingModule,
   Logger,
   MedusaContainer,
   Query,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
+import { listActiveSalePriceListProductSelection } from "../../utils/product-sale-adapters"
+import { MARKET_VARIANT_AUTHORITY_MODULE } from "../market-variant-authority"
+import {
+  type MarketVariantAuthorityRecord,
+  resolveExactMarketVariantAuthority,
+} from "../market-variant-authority/contracts"
+import type MarketVariantAuthorityModuleService from "../market-variant-authority/service"
 import { PAYLOAD_MODULE } from "../payload"
 import type PayloadModuleService from "../payload/service"
 import { SEARCH_PROFILE_MODULE } from "../search-profile"
-import { MeilisearchAdminClient } from "./admin-client"
+import { STOREFRONT_TEXT_MARKETS } from "../storefront-text/configuration"
+import { STOREFRONT_URL_ASSIGNMENT_MODULE } from "../storefront-url-assignment"
+import type StorefrontUrlAssignmentModuleService from "../storefront-url-assignment/service"
+import { parseProductPublicationSnapshot } from "../url-registry-outbox/product-publication-assignment"
+import type { UrlRegistryOutboxMarket } from "../url-registry-outbox/types"
+import {
+  MeilisearchAdminClient,
+  MeilisearchSwapIndexError,
+} from "./admin-client"
 import {
   buildBrandSearchDocument,
   buildCategorySearchDocument,
@@ -16,6 +36,7 @@ import {
   buildProductSearchDocuments,
 } from "./documents"
 import { isMeilisearchEnabled } from "./env"
+import { resolveVerifiedFacetPriceCurrency } from "./profile-currency"
 import {
   loadSearchProfiles,
   SEARCH_INDEX_TYPES,
@@ -41,8 +62,16 @@ export type SearchProfileSyncOptions = {
   profileKeys?: string[]
 }
 
+export type SearchIndexGeneration = Readonly<Record<SearchIndexType, string>>
+
+export type RetainedSearchGeneration = Readonly<{
+  active: SearchIndexGeneration
+  retained: SearchIndexGeneration
+}>
+
 type SearchSyncTargets = Record<SearchIndexType, string>
 type SearchIndexDocumentCounts = Record<SearchIndexType, number>
+type ContentProjectionResolver = typeof resolveContentProjectionHrefs
 
 type SearchProfileSyncStateService = {
   updateSearchProfiles: (data: Record<string, unknown>) => Promise<unknown>
@@ -72,6 +101,7 @@ const PRODUCT_FIELDS = [
   "handle",
   "thumbnail",
   "created_at",
+  "updated_at",
   "collection_id",
   "metadata",
   "categories.id",
@@ -91,6 +121,12 @@ const PRODUCT_FIELDS = [
   "variants.metadata",
   "variants.prices.amount",
   "variants.prices.currency_code",
+  "variants.prices.price_list_id",
+  "variants.prices.min_quantity",
+  "variants.prices.max_quantity",
+  "variants.prices.price_rules.attribute",
+  "variants.prices.price_rules.operator",
+  "variants.prices.price_rules.value",
 ]
 
 const CATEGORY_FIELDS = [
@@ -298,54 +334,772 @@ const fetchGraphBatch = async (
 const normalizeLocale = (value: string): string =>
   value.trim().toLowerCase().replaceAll("_", "-").split("-")[0] ?? ""
 
-const applyLocalizedTranslations = async (
-  query: Query,
-  records: Record<string, unknown>[],
-  locale: string
-): Promise<Record<string, unknown>[]> => {
-  const ids = records.map(getId).filter((id): id is string => id !== undefined)
+export type LocalizedSearchEntity = "brand" | "product" | "product_category"
 
-  if (ids.length === 0 || locale === "default") {
-    return records
+const REQUIRED_TRANSLATION_FIELD_BY_ENTITY: Readonly<
+  Record<LocalizedSearchEntity, "name" | "title">
+> = {
+  brand: "title",
+  product: "title",
+  product_category: "name",
+}
+
+const LOCALIZED_FIELDS_BY_ENTITY: Readonly<
+  Record<LocalizedSearchEntity, readonly string[]>
+> = {
+  brand: ["title", "description"],
+  product: ["title", "subtitle", "description"],
+  product_category: ["name", "description"],
+}
+
+const isCatalogSourceLocale = (locale: string): boolean =>
+  locale === "default" || normalizeLocale(locale) === "sk"
+
+type ProfilePublicationScope = Readonly<{
+  market: UrlRegistryOutboxMarket
+  salesChannelId: string
+}>
+
+type ProfileCommerceScope = Readonly<{
+  currencyCode: string
+  regionId: string
+}>
+
+type ReferencedPublicationEntity = "brand" | "product_category"
+
+const URL_ASSIGNMENT_KIND_BY_ENTITY: Readonly<
+  Record<ReferencedPublicationEntity, "brand" | "category">
+> = {
+  brand: "brand",
+  product_category: "category",
+}
+
+const resolveProfilePublicationScope = (
+  profile: SearchProfile
+): ProfilePublicationScope | undefined => {
+  if (profile.locale === "default") {
+    return
   }
 
-  let data: unknown[]
+  const market = STOREFRONT_TEXT_MARKETS.find(
+    (candidate) =>
+      normalizeLocale(candidate.locale) === normalizeLocale(profile.locale)
+  )?.market
+  const salesChannelIds = [...new Set(profile.salesChannelIds)]
+  if (!(market && salesChannelIds.length === 1)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch profile "${profile.key}" cannot prove exact publication ` +
+        `for locale "${profile.locale}": expected one configured market and ` +
+        "one Sales Channel."
+    )
+  }
 
+  return {
+    market,
+    salesChannelId: salesChannelIds[0] ?? "",
+  }
+}
+
+const resolveProfileCommerceScope = async (
+  query: Query,
+  profile: SearchProfile,
+  publicationScope: ProfilePublicationScope | undefined
+): Promise<ProfileCommerceScope | undefined> => {
+  if (!publicationScope) {
+    return
+  }
+
+  const marketConfiguration = STOREFRONT_TEXT_MARKETS.find(
+    (candidate) => candidate.market === publicationScope.market
+  )
+  if (!marketConfiguration) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch profile "${profile.key}" has no exact commerce market configuration.`
+    )
+  }
+
+  const { data } = await query.graph({
+    entity: "region",
+    fields: ["id", "currency_code", "metadata", "countries.iso_2"],
+  })
+  const matchingRegions = asRecords(data).filter((candidateRegion) =>
+    asRecords(candidateRegion.countries).some(
+      (country) =>
+        typeof country.iso_2 === "string" &&
+        country.iso_2.toLowerCase() === marketConfiguration.country
+    )
+  )
+  if (matchingRegions.length !== 1) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch profile "${profile.key}" cannot prove one exact commerce ` +
+        `region for market "${publicationScope.market}".`
+    )
+  }
+
+  const region = matchingRegions[0] ?? {}
+  const regionId = getId(region)
+  const currencyCode =
+    typeof region.currency_code === "string"
+      ? region.currency_code.trim().toLowerCase()
+      : ""
+  const metadata = asRecord(region.metadata)
+  const countryCodes = asRecords(region.countries).flatMap((country) =>
+    typeof country.iso_2 === "string"
+      ? [country.iso_2.trim().toLowerCase()]
+      : []
+  )
+  const verifiedCurrencyCode = resolveVerifiedFacetPriceCurrency(
+    profile.locale,
+    {
+      pricingContextCurrencyCode: currencyCode,
+      requestedCurrencyCode: currencyCode,
+    }
+  )
+  const exactRegion =
+    regionId &&
+    currencyCode &&
+    verifiedCurrencyCode === currencyCode &&
+    countryCodes.length === 1 &&
+    countryCodes[0] === marketConfiguration.country &&
+    metadata?.market_code === publicationScope.market &&
+    metadata.sales_channel_id === publicationScope.salesChannelId
+  if (!exactRegion) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch profile "${profile.key}" cannot prove exact region, ` +
+        `currency, and Sales Channel authority for market "${publicationScope.market}".`
+    )
+  }
+
+  return { currencyCode, regionId }
+}
+
+const productIsPublishedForProfile = (
+  record: Record<string, unknown>,
+  profile: SearchProfile,
+  scope: ProfilePublicationScope
+): boolean => {
+  let snapshot: ReturnType<typeof parseProductPublicationSnapshot>
   try {
-    const result = await query.graph({
+    snapshot = parseProductPublicationSnapshot(record)
+  } catch (error) {
+    const id = getId(record) ?? "unknown"
+    const reason = error instanceof Error ? ` ${error.message}` : ""
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch profile "${profile.key}" cannot validate exact ` +
+        `publication for product "${id}".${reason}`
+    )
+  }
+
+  const assignment = snapshot.assignments[scope.market]
+  return (
+    assignment?.publicationStatus === "published" &&
+    assignment.salesChannelId === scope.salesChannelId
+  )
+}
+
+const filterProductsByPublication = (
+  records: Record<string, unknown>[],
+  profile: SearchProfile,
+  scope: ProfilePublicationScope | undefined
+): Record<string, unknown>[] =>
+  scope
+    ? records.filter((record) =>
+        productIsPublishedForProfile(record, profile, scope)
+      )
+    : records
+
+type ProfileVariantAuthority = Readonly<{
+  approvedVariantIds: ReadonlySet<string>
+  authoritySha256?: string
+  currencyCode: string
+  sourceVersion?: string
+  unavailableVariantIds: ReadonlySet<string>
+}>
+
+const isUnscopedBasePrice = (price: Record<string, unknown>): boolean =>
+  (price.price_list_id === null || price.price_list_id === undefined) &&
+  (price.min_quantity === null || price.min_quantity === undefined) &&
+  (price.max_quantity === null || price.max_quantity === undefined) &&
+  asRecords(price.price_rules).length === 0
+
+export const projectProductForVariantAuthority = (
+  record: Record<string, unknown>,
+  authority: ProfileVariantAuthority
+): Record<string, unknown> => {
+  const currencyCode = authority.currencyCode.trim().toLowerCase()
+  const variants = asRecords(record.variants)
+  const projectedVariants = variants.flatMap((variant) => {
+    const variantId = getId(variant)
+    if (!variantId) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Meilisearch cannot authorize a variant without an ID."
+      )
+    }
+
+    const approved = authority.approvedVariantIds.has(variantId)
+    const unavailable = authority.unavailableVariantIds.has(variantId)
+    if (approved === unavailable) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Meilisearch variant authority is missing or ambiguous for "${variantId}".`
+      )
+    }
+    if (unavailable) {
+      return []
+    }
+
+    const currencyPrices = asRecords(variant.prices).filter(
+      (price) =>
+        typeof price.currency_code === "string" &&
+        price.currency_code.trim().toLowerCase() === currencyCode
+    )
+    const exactPrices = currencyPrices.filter(isUnscopedBasePrice)
+    if (currencyPrices.length !== 1 || exactPrices.length !== 1) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Meilisearch cannot prove one exact ${currencyCode.toUpperCase()} ` +
+          "base price with no competing scoped price for approved variant " +
+          `"${variantId}".`
+      )
+    }
+
+    return [{ ...variant, prices: exactPrices }]
+  })
+  const metadata = asRecord(record.metadata)
+  const { top_offer: _sourceTopOffer, ...projectedMetadata } = metadata ?? {}
+
+  return {
+    ...record,
+    ...(metadata ? { metadata: projectedMetadata } : {}),
+    variants: projectedVariants,
+  }
+}
+
+const loadProfileVariantAuthority = async (options: {
+  commerceScope: ProfileCommerceScope
+  products: Record<string, unknown>[]
+  publicationScope: ProfilePublicationScope
+  service: MarketVariantAuthorityModuleService
+}): Promise<ProfileVariantAuthority> => {
+  const productIds = options.products
+    .map(getId)
+    .filter((id): id is string => id !== undefined)
+  const expectedVariantCount = options.products.reduce(
+    (count, product) => count + asRecords(product.variants).length,
+    0
+  )
+  const records = (await options.service.listMarketVariantAuthorities(
+    {
+      market_code: options.publicationScope.market,
+      product_id: { $in: productIds },
+    },
+    {
+      order: { product_id: "ASC", variant_id: "ASC" },
+      take: expectedVariantCount + 1,
+    }
+  )) as MarketVariantAuthorityRecord[]
+  const authorityHashes = new Set(records.map((row) => row.authority_sha256))
+  const sourceVersions = new Set(records.map((row) => row.source_version))
+  if (
+    productIds.length !== options.products.length ||
+    (expectedVariantCount === 0 && records.length !== 0) ||
+    (expectedVariantCount > 0 &&
+      (authorityHashes.size !== 1 || sourceVersions.size !== 1))
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Meilisearch cannot prove one exhaustive variant authority for market " +
+        `"${options.publicationScope.market}".`
+    )
+  }
+
+  const authoritySha256 = [...authorityHashes][0]
+  const sourceVersion = [...sourceVersions][0]
+  const approvedVariantIds = new Set<string>()
+  const unavailableVariantIds = new Set<string>()
+
+  for (const product of options.products) {
+    const productId = getId(product)
+    const variantIds = asRecords(product.variants)
+      .map(getId)
+      .filter((id): id is string => id !== undefined)
+    if (!productId || variantIds.length === 0) {
+      continue
+    }
+    const resolved = resolveExactMarketVariantAuthority({
+      authoritySha256: authoritySha256 ?? "",
+      marketCode: options.publicationScope.market,
+      productId,
+      records: records.filter((row) => row.product_id === productId),
+      sourceVersion,
+      variantIds,
+    })
+    for (const variantId of resolved.sellableVariantIds) {
+      approvedVariantIds.add(variantId)
+    }
+    for (const variantId of resolved.unavailableVariantIds) {
+      unavailableVariantIds.add(variantId)
+    }
+  }
+
+  return {
+    approvedVariantIds,
+    authoritySha256,
+    currencyCode: options.commerceScope.currencyCode,
+    sourceVersion,
+    unavailableVariantIds,
+  }
+}
+
+const projectProductsForProfileVariants = async (options: {
+  commerceScope?: ProfileCommerceScope
+  marketVariantAuthorityService?: MarketVariantAuthorityModuleService
+  products: Record<string, unknown>[]
+  publicationScope?: ProfilePublicationScope
+}): Promise<{
+  authority?: ProfileVariantAuthority
+  products: Record<string, unknown>[]
+}> => {
+  if (
+    !(
+      options.publicationScope &&
+      options.commerceScope &&
+      options.marketVariantAuthorityService
+    )
+  ) {
+    return { products: options.products }
+  }
+
+  const authority = await loadProfileVariantAuthority({
+    commerceScope: options.commerceScope,
+    products: options.products,
+    publicationScope: options.publicationScope,
+    service: options.marketVariantAuthorityService,
+  })
+  return {
+    authority,
+    products: options.products.map((record) =>
+      projectProductForVariantAuthority(record, authority)
+    ),
+  }
+}
+
+type ProfileVariantAuthorityIdentity = Readonly<{
+  authoritySha256: string
+  sourceVersion?: string
+}>
+
+const pinProfileVariantAuthorityIdentity = (
+  profile: SearchProfile,
+  current: ProfileVariantAuthorityIdentity | undefined,
+  authority: ProfileVariantAuthority | undefined
+): ProfileVariantAuthorityIdentity | undefined => {
+  if (!authority?.authoritySha256) {
+    return current
+  }
+  if (
+    current &&
+    (current.authoritySha256 !== authority.authoritySha256 ||
+      current.sourceVersion !== authority.sourceVersion)
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch profile "${profile.key}" received mixed variant ` +
+        "authority generations across product batches."
+    )
+  }
+  return {
+    authoritySha256: authority.authoritySha256,
+    sourceVersion: authority.sourceVersion,
+  }
+}
+
+const loadPublishedReferenceIds = async (options: {
+  entity: ReferencedPublicationEntity
+  ids: string[]
+  scope: ProfilePublicationScope
+  service: StorefrontUrlAssignmentModuleService
+}): Promise<Set<string>> => {
+  if (options.ids.length === 0) {
+    return new Set()
+  }
+
+  const entityKind = URL_ASSIGNMENT_KIND_BY_ENTITY[options.entity]
+  const requestedIds = new Set(options.ids)
+  const records = await options.service.listStorefrontUrlAssignments(
+    {
+      entity_id: options.ids,
+      entity_kind: entityKind,
+      market_code: options.scope.market,
+      publication_status: "published",
+      sales_channel_id: options.scope.salesChannelId,
+    },
+    { take: options.ids.length + 1 }
+  )
+  const publishedIds = new Set<string>()
+
+  for (const record of records) {
+    const exactRecord =
+      requestedIds.has(record.entity_id) &&
+      record.entity_kind === entityKind &&
+      record.market_code === options.scope.market &&
+      record.publication_status === "published" &&
+      record.sales_channel_id === options.scope.salesChannelId
+    if (!exactRecord || publishedIds.has(record.entity_id)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Meilisearch received an invalid or ambiguous ${entityKind} URL ` +
+          `assignment response for market "${options.scope.market}".`
+      )
+    }
+    publishedIds.add(record.entity_id)
+  }
+
+  return publishedIds
+}
+
+const loadAllPublishedReferenceIds = async (options: {
+  entity: ReferencedPublicationEntity
+  scope: ProfilePublicationScope
+  service: StorefrontUrlAssignmentModuleService
+}): Promise<Set<string>> => {
+  const entityKind = URL_ASSIGNMENT_KIND_BY_ENTITY[options.entity]
+  const publishedIds = new Set<string>()
+  let offset = 0
+
+  while (true) {
+    const records = await options.service.listStorefrontUrlAssignments(
+      {
+        entity_kind: entityKind,
+        market_code: options.scope.market,
+        publication_status: "published",
+        sales_channel_id: options.scope.salesChannelId,
+      },
+      { order: { entity_id: "ASC" }, skip: offset, take: BATCH_SIZE }
+    )
+
+    for (const record of records) {
+      const exactRecord =
+        record.entity_kind === entityKind &&
+        record.market_code === options.scope.market &&
+        record.publication_status === "published" &&
+        record.sales_channel_id === options.scope.salesChannelId
+      if (!exactRecord || publishedIds.has(record.entity_id)) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Meilisearch received an invalid or ambiguous ${entityKind} URL ` +
+            `assignment response for market "${options.scope.market}".`
+        )
+      }
+      publishedIds.add(record.entity_id)
+    }
+
+    offset += records.length
+    if (records.length < BATCH_SIZE) {
+      break
+    }
+  }
+
+  return publishedIds
+}
+
+const loadTranslationRows = async (options: {
+  entity: LocalizedSearchEntity
+  ids: string[]
+  locale: string
+  query: Query
+  sourceLocale: boolean
+}): Promise<Record<string, unknown>[] | undefined> => {
+  try {
+    const result = await options.query.graph({
       entity: "translation",
-      fields: ["reference_id", "locale_code", "translations"],
-      filters: { reference_id: ids },
+      fields: [
+        "reference",
+        "reference_id",
+        "locale_code",
+        "translations",
+        "deleted_at",
+      ],
+      filters: { reference_id: options.ids },
     })
 
-    data = result.data
-  } catch {
-    return records
+    return asRecords(result.data)
+  } catch (error) {
+    if (options.sourceLocale) {
+      return
+    }
+
+    const reason = error instanceof Error ? ` ${error.message}` : ""
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch cannot index ${options.entity} records for locale "${options.locale}": ` +
+        `the exact-translation lookup failed.${reason}`
+    )
   }
+}
 
+const collectTranslationsById = (
+  rows: Record<string, unknown>[],
+  locale: string,
+  entity: LocalizedSearchEntity,
+  sourceLocale: boolean
+): {
+  invalidOrDuplicateIds: Set<string>
+  translationsById: Map<string, Record<string, unknown>>
+} => {
   const translationsById = new Map<string, Record<string, unknown>>()
+  const invalidOrDuplicateIds = new Set<string>()
+  const requiredField = REQUIRED_TRANSLATION_FIELD_BY_ENTITY[entity]
 
-  for (const row of asRecords(data)) {
+  for (const row of rows) {
+    const referenceId = row.reference_id
+    const translations = asRecord(row.translations)
     if (
-      typeof row.reference_id !== "string" ||
+      typeof referenceId !== "string" ||
       typeof row.locale_code !== "string" ||
-      normalizeLocale(row.locale_code) !== normalizeLocale(locale)
+      normalizeLocale(row.locale_code) !== normalizeLocale(locale) ||
+      !translations
     ) {
       continue
     }
 
-    const translations = asRecord(row.translations)
-
-    if (translations) {
-      translationsById.set(row.reference_id, translations)
+    if (sourceLocale) {
+      translationsById.set(referenceId, translations)
+      continue
     }
+
+    const localizedRequiredField = translations[requiredField]
+    const isExactTranslation =
+      row.reference === entity &&
+      (row.deleted_at === null || row.deleted_at === undefined) &&
+      typeof localizedRequiredField === "string" &&
+      localizedRequiredField.trim().length > 0
+
+    if (
+      !isExactTranslation ||
+      translationsById.has(referenceId) ||
+      invalidOrDuplicateIds.has(referenceId)
+    ) {
+      translationsById.delete(referenceId)
+      invalidOrDuplicateIds.add(referenceId)
+      continue
+    }
+
+    translationsById.set(referenceId, translations)
+  }
+
+  return { invalidOrDuplicateIds, translationsById }
+}
+
+const assertCompleteTranslations = (options: {
+  entity: LocalizedSearchEntity
+  ids: string[]
+  invalidOrDuplicateIds: Set<string>
+  locale: string
+  translationsById: Map<string, Record<string, unknown>>
+}) => {
+  const missingIds = options.ids.filter(
+    (id) =>
+      !options.translationsById.has(id) || options.invalidOrDuplicateIds.has(id)
+  )
+  if (missingIds.length === 0) {
+    return
+  }
+
+  const sample = missingIds.slice(0, 5).join(", ")
+  const omitted = missingIds.length > 5 ? ", …" : ""
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    `Meilisearch cannot index ${options.entity} records for locale "${options.locale}": ` +
+      `${missingIds.length}/${options.ids.length} exact translation(s) are ` +
+      `missing or invalid (${sample}${omitted}).`
+  )
+}
+
+const removeSourceLocalizedFields = (
+  record: Record<string, unknown>,
+  entity: LocalizedSearchEntity
+): Record<string, unknown> => {
+  const localizedRecord = { ...record }
+  for (const field of LOCALIZED_FIELDS_BY_ENTITY[entity]) {
+    delete localizedRecord[field]
+  }
+  return localizedRecord
+}
+
+export const applyLocalizedTranslations = async (
+  query: Query,
+  records: Record<string, unknown>[],
+  locale: string,
+  entity: LocalizedSearchEntity
+): Promise<Record<string, unknown>[]> => {
+  const ids = records.map(getId).filter((id): id is string => id !== undefined)
+  const sourceLocale = isCatalogSourceLocale(locale)
+
+  if (records.length === 0 || locale === "default") {
+    return records
+  }
+
+  if (!sourceLocale && ids.length !== records.length) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch cannot index ${entity} records for locale "${locale}": ` +
+        `${records.length - ids.length} record(s) have no stable ID.`
+    )
+  }
+
+  const rows = await loadTranslationRows({
+    entity,
+    ids,
+    locale,
+    query,
+    sourceLocale,
+  })
+  if (!rows) {
+    return records
+  }
+
+  const { invalidOrDuplicateIds, translationsById } = collectTranslationsById(
+    rows,
+    locale,
+    entity,
+    sourceLocale
+  )
+
+  if (!sourceLocale) {
+    assertCompleteTranslations({
+      entity,
+      ids,
+      invalidOrDuplicateIds,
+      locale,
+      translationsById,
+    })
   }
 
   return records.map((record) => {
     const id = getId(record)
     const translations = id ? translationsById.get(id) : undefined
+    const sourceRecord = sourceLocale
+      ? record
+      : removeSourceLocalizedFields(record, entity)
+    const localizedRecord = translations
+      ? { ...sourceRecord, ...translations }
+      : sourceRecord
 
-    return translations ? { ...record, ...translations } : record
+    if (Object.hasOwn(record, "handle")) {
+      localizedRecord.handle = record.handle
+    }
+
+    return localizedRecord
+  })
+}
+
+const uniqueRecordsById = (
+  records: Record<string, unknown>[]
+): Record<string, unknown>[] => {
+  const seenIds = new Set<string>()
+  return records.filter((record) => {
+    const id = getId(record)
+    if (!(id && seenIds.has(id))) {
+      if (id) {
+        seenIds.add(id)
+      }
+      return true
+    }
+    return false
+  })
+}
+
+export const applyLocalizedProductRelations = async (
+  query: Query,
+  records: Record<string, unknown>[],
+  locale: string,
+  publication?: {
+    scope: ProfilePublicationScope
+    service: StorefrontUrlAssignmentModuleService
+  }
+): Promise<Record<string, unknown>[]> => {
+  const categories = uniqueRecordsById(
+    records.flatMap((record) => asRecords(record.categories))
+  )
+  const brands = uniqueRecordsById(
+    records.flatMap((record) =>
+      Array.isArray(record.brand)
+        ? asRecords(record.brand)
+        : [asRecord(record.brand)].filter(
+            (brand): brand is Record<string, unknown> => brand !== undefined
+          )
+    )
+  )
+  const publishedCategoryIds = publication
+    ? await loadPublishedReferenceIds({
+        entity: "product_category",
+        ids: categories
+          .map(getId)
+          .filter((id): id is string => id !== undefined),
+        ...publication,
+      })
+    : new Set(categories.map(getId).filter((id): id is string => Boolean(id)))
+  const publishedBrandIds = publication
+    ? await loadPublishedReferenceIds({
+        entity: "brand",
+        ids: brands.map(getId).filter((id): id is string => id !== undefined),
+        ...publication,
+      })
+    : new Set(brands.map(getId).filter((id): id is string => Boolean(id)))
+  const localizedCategories = await applyLocalizedTranslations(
+    query,
+    categories.filter((category) =>
+      publishedCategoryIds.has(getId(category) ?? "")
+    ),
+    locale,
+    "product_category"
+  )
+  const localizedBrands = await applyLocalizedTranslations(
+    query,
+    brands.filter((brand) => publishedBrandIds.has(getId(brand) ?? "")),
+    locale,
+    "brand"
+  )
+  const categoriesById = new Map(
+    localizedCategories.flatMap((category) => {
+      const id = getId(category)
+      return id ? [[id, category] as const] : []
+    })
+  )
+  const brandsById = new Map(
+    localizedBrands.flatMap((brand) => {
+      const id = getId(brand)
+      return id ? [[id, brand] as const] : []
+    })
+  )
+
+  return records.map((record) => {
+    const categoriesForProduct = asRecords(record.categories)
+      .filter((category) => publishedCategoryIds.has(getId(category) ?? ""))
+      .map((category) => categoriesById.get(getId(category) ?? "") ?? category)
+    const brandRecords = Array.isArray(record.brand)
+      ? asRecords(record.brand)
+      : [asRecord(record.brand)].filter(
+          (brand): brand is Record<string, unknown> => brand !== undefined
+        )
+    const localizedBrandRecords = brandRecords
+      .filter((brand) => publishedBrandIds.has(getId(brand) ?? ""))
+      .map((brand) => brandsById.get(getId(brand) ?? "") ?? brand)
+
+    return {
+      ...record,
+      brand: Array.isArray(record.brand)
+        ? localizedBrandRecords
+        : localizedBrandRecords[0],
+      categories: categoriesForProduct,
+    }
   })
 }
 
@@ -368,11 +1122,38 @@ const deleteStaleDocuments = async (
   return staleIds.length
 }
 
+// Sale membership comes from active sale price lists, not product metadata
+// flags, so the "action" status facet must be stamped per profile currency.
+const applySaleActionStatusFacet = (
+  document: Record<string, unknown>,
+  saleProductIds: Set<string>
+) => {
+  if (saleProductIds.size === 0) {
+    return
+  }
+  const productId = document.search_product_id
+  if (typeof productId !== "string" || !saleProductIds.has(productId)) {
+    return
+  }
+  const statusIds = Array.isArray(document.facet_status)
+    ? document.facet_status.filter(
+        (value): value is string => typeof value === "string"
+      )
+    : []
+  if (!statusIds.includes("action")) {
+    document.facet_status = [...statusIds, "action"]
+  }
+}
+
 const indexProductDocuments = async (options: {
+  assignmentService?: StorefrontUrlAssignmentModuleService
   client: MeilisearchAdminClient
+  commerceScope?: ProfileCommerceScope
   index: string
+  marketVariantAuthorityService?: MarketVariantAuthorityModuleService
   popularityByProductId: Map<string, number>
   profile: SearchProfile
+  publicationScope?: ProfilePublicationScope
   query: Query
 }): Promise<{
   ids: Set<string>
@@ -381,12 +1162,25 @@ const indexProductDocuments = async (options: {
 }> => {
   const { client, index, popularityByProductId, profile, query } = options
   const ids = new Set<string>()
+  const saleProductIds = options.commerceScope
+    ? new Set(
+        (
+          await listActiveSalePriceListProductSelection({
+            currencyCode: options.commerceScope.currencyCode,
+            query,
+          })
+        ).productIds
+      )
+    : new Set<string>()
 
   const references: ProfileReferenceIds = {
     brandIds: new Set<string>(),
     categoryIds: new Set<string>(),
     categoryProductTitles: new Map<string, string[]>(),
   }
+  const publicationScope =
+    options.publicationScope ?? resolveProfilePublicationScope(profile)
+  let profileAuthorityIdentity: ProfileVariantAuthorityIdentity | undefined
 
   let offset = 0
 
@@ -402,13 +1196,38 @@ const indexProductDocuments = async (options: {
       break
     }
 
-    const localizedRecords = await applyLocalizedTranslations(
-      query,
+    const publishedRecords = filterProductsByPublication(
       records,
-      profile.locale
+      profile,
+      publicationScope
+    )
+    const localizedProducts = await applyLocalizedTranslations(
+      query,
+      publishedRecords,
+      profile.locale,
+      "product"
+    )
+    const localizedRecords = await applyLocalizedProductRelations(
+      query,
+      localizedProducts,
+      profile.locale,
+      publicationScope && options.assignmentService
+        ? { scope: publicationScope, service: options.assignmentService }
+        : undefined
+    )
+    const projection = await projectProductsForProfileVariants({
+      commerceScope: options.commerceScope,
+      marketVariantAuthorityService: options.marketVariantAuthorityService,
+      products: localizedRecords,
+      publicationScope,
+    })
+    profileAuthorityIdentity = pinProfileVariantAuthorityIdentity(
+      profile,
+      profileAuthorityIdentity,
+      projection.authority
     )
 
-    const documents = localizedRecords
+    const documents = projection.products
       .flatMap((record) =>
         buildProductSearchDocuments(record, {
           popularity: popularityByProductId.get(getId(record) ?? ""),
@@ -423,6 +1242,7 @@ const indexProductDocuments = async (options: {
         ids.add(id)
       }
 
+      applySaleActionStatusFacet(document, saleProductIds)
       collectProductReferences(document, references)
     }
 
@@ -448,6 +1268,7 @@ const indexReferencedEntities = async (
     ids: Set<string>
     index: string
     locale: string
+    requireExactIds?: boolean
     transform: (document: Record<string, unknown>) => Record<string, unknown>
   }
 ): Promise<Set<string>> => {
@@ -464,10 +1285,32 @@ const indexReferencedEntities = async (
         ...(options.entity === "product_category" ? { is_active: true } : {}),
       },
     })
+    const records = asRecords(data)
+    if (options.requireExactIds) {
+      const returnedIds = records
+        .map(getId)
+        .filter((id): id is string => id !== undefined)
+      const returnedIdSet = new Set(returnedIds)
+      const missingIds = batchIds.filter((id) => !returnedIdSet.has(id))
+      if (
+        returnedIds.length !== records.length ||
+        returnedIdSet.size !== returnedIds.length ||
+        missingIds.length > 0 ||
+        returnedIds.some((id) => !batchIds.includes(id))
+      ) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Meilisearch cannot index the exact published ${options.entity} set ` +
+            `for locale "${options.locale}": ${missingIds.length} assigned ` +
+            "record(s) are missing or ambiguous."
+        )
+      }
+    }
     const localizedRecords = await applyLocalizedTranslations(
       query,
-      asRecords(data),
-      options.locale
+      records,
+      options.locale,
+      options.entity
     )
     const documents = localizedRecords.map(options.transform)
 
@@ -495,90 +1338,241 @@ const resolvePayloadService = (
   }
 }
 
+type SearchContentSourceType = "article" | "page"
+
+type ContentProjectionEntry = {
+  sourceId: string
+  sourceType: SearchContentSourceType
+}
+
+const toContentProjectionEntries = (
+  documents: Record<string, unknown>[],
+  sourceType: SearchContentSourceType
+): ContentProjectionEntry[] =>
+  documents.flatMap((document) => {
+    const sourceId = getId(document)
+    return sourceId ? [{ sourceId, sourceType }] : []
+  })
+
+const assertCompleteContentProjection = (options: {
+  documentCount: number
+  entries: ContentProjectionEntry[]
+  profile: SearchProfile
+  projections: ReadonlyMap<string, string>
+  sourceType: SearchContentSourceType
+}): void => {
+  const { documentCount, entries, profile, projections, sourceType } = options
+
+  if (entries.length !== documentCount) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch profile "${profile.key}" content projection is incomplete because a published ${sourceType} has no stable source ID.`
+    )
+  }
+
+  const hasEveryProjection = entries.every(({ sourceId, sourceType: type }) =>
+    projections.has(contentProjectionKey(type, sourceId))
+  )
+
+  if (projections.size !== entries.length || !hasEveryProjection) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch profile "${profile.key}" content projection is incomplete for published ${sourceType} records.`
+    )
+  }
+}
+
+const buildProjectedContentDocuments = (options: {
+  documents: Record<string, unknown>[]
+  locale: string
+  projections: ReadonlyMap<string, string>
+  sourceType: SearchContentSourceType
+}): Record<string, unknown>[] => {
+  const { documents, locale, projections, sourceType } = options
+
+  return documents.flatMap((source) => {
+    const sourceId = getId(source)
+    const document = buildContentSearchDocument(
+      source,
+      sourceType,
+      locale,
+      sourceId
+        ? projections.get(contentProjectionKey(sourceType, sourceId))
+        : undefined
+    )
+
+    return document ? [document] : []
+  })
+}
+
+type PublishedContentPage = {
+  docs: Record<string, unknown>[]
+  hasNextPage: boolean
+}
+
+const loadPublishedContentPage = async (options: {
+  locale: string
+  page: number
+  payload: PayloadModuleService
+  sourceType: SearchContentSourceType
+}): Promise<PublishedContentPage> => {
+  const { locale, page, payload, sourceType } = options
+  const query = { limit: BATCH_SIZE, locale, page }
+
+  const result =
+    sourceType === "article"
+      ? await payload.listPublishedArticles(query)
+      : await payload.listPublishedPages(query)
+
+  return {
+    docs: result.docs as Record<string, unknown>[],
+    hasNextPage: result.hasNextPage,
+  }
+}
+
+const indexProjectedContentBatch = async (options: {
+  client: MeilisearchAdminClient
+  contentProjectionResolver: ContentProjectionResolver
+  currentIds: Set<string>
+  documents: Record<string, unknown>[]
+  index: string
+  logger: Logger
+  profile: SearchProfile
+  requireCompleteProjection: boolean
+  sourceType: SearchContentSourceType
+}): Promise<void> => {
+  const {
+    client,
+    contentProjectionResolver,
+    currentIds,
+    documents: sources,
+    index,
+    logger,
+    profile,
+    requireCompleteProjection,
+    sourceType,
+  } = options
+  const projectionEntries = toContentProjectionEntries(sources, sourceType)
+  const projections = await contentProjectionResolver(
+    projectionEntries,
+    profile.locale,
+    logger
+  )
+
+  if (requireCompleteProjection) {
+    assertCompleteContentProjection({
+      documentCount: sources.length,
+      entries: projectionEntries,
+      profile,
+      projections,
+      sourceType,
+    })
+  }
+
+  const documents = buildProjectedContentDocuments({
+    documents: sources,
+    locale: profile.locale,
+    projections,
+    sourceType,
+  })
+  if (requireCompleteProjection && documents.length !== sources.length) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Meilisearch profile "${profile.key}" content projection is incomplete or invalid for published ${sourceType} records.`
+    )
+  }
+
+  for (const document of documents) {
+    const id = getId(document)
+
+    if (id) {
+      currentIds.add(id)
+    }
+  }
+
+  await client.addDocuments(index, documents)
+}
+
+const indexContentCollection = async (options: {
+  client: MeilisearchAdminClient
+  contentProjectionResolver: ContentProjectionResolver
+  currentIds: Set<string>
+  index: string
+  logger: Logger
+  payload: PayloadModuleService
+  profile: SearchProfile
+  requireCompleteProjection: boolean
+  sourceType: SearchContentSourceType
+}): Promise<void> => {
+  let page = 1
+
+  while (true) {
+    const result = await loadPublishedContentPage({
+      // Payload locales are bare language codes ("hu"), while profile locales
+      // are BCP-47 ("hu-HU"); passing the raw profile locale makes Payload
+      // fall back to its default locale and index the wrong language.
+      locale: normalizeLocale(options.profile.locale),
+      page,
+      payload: options.payload,
+      sourceType: options.sourceType,
+    })
+
+    await indexProjectedContentBatch({
+      ...options,
+      documents: result.docs,
+    })
+
+    if (!result.hasNextPage) {
+      return
+    }
+
+    page += 1
+  }
+}
+
 const indexContentDocuments = async (options: {
   client: MeilisearchAdminClient
+  contentProjectionResolver: ContentProjectionResolver
   index: string
   logger: Logger
   payload: PayloadModuleService | null
   profile: SearchProfile
+  requireCompleteProjection: boolean
 }): Promise<Set<string>> => {
-  const { client, index, logger, payload, profile } = options
+  const {
+    client,
+    contentProjectionResolver,
+    index,
+    logger,
+    payload,
+    profile,
+    requireCompleteProjection,
+  } = options
   const currentIds = new Set<string>()
 
   if (!payload) {
+    if (requireCompleteProjection) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Meilisearch profile "${profile.key}" content projection is incomplete because Payload is unavailable.`
+      )
+    }
     return currentIds
   }
 
-  const indexCollection = async (type: "article" | "page") => {
-    let page = 1
-
-    while (true) {
-      const result =
-        type === "article"
-          ? await payload.listPublishedArticles({
-              limit: BATCH_SIZE,
-              locale: profile.locale,
-              page,
-            })
-          : await payload.listPublishedPages({
-              limit: BATCH_SIZE,
-              locale: profile.locale,
-              page,
-            })
-      const projectionEntries = result.docs
-        .map((document) => {
-          const sourceId = getId(document as Record<string, unknown>)
-          return sourceId ? { sourceId, sourceType: type } : null
-        })
-        .filter(
-          (
-            entry
-          ): entry is { sourceId: string; sourceType: "article" | "page" } =>
-            entry !== null
-        )
-      const projections = await resolveContentProjectionHrefs(
-        projectionEntries,
-        profile.locale,
-        logger
-      )
-      const documents = result.docs
-        .map((document) => {
-          const source = document as Record<string, unknown>
-          const sourceId = getId(source)
-
-          return buildContentSearchDocument(
-            source,
-            type,
-            profile.locale,
-            sourceId
-              ? projections.get(contentProjectionKey(type, sourceId))
-              : undefined
-          )
-        })
-        .filter((document): document is Record<string, unknown> =>
-          Boolean(document)
-        )
-
-      for (const document of documents) {
-        const id = getId(document)
-
-        if (id) {
-          currentIds.add(id)
-        }
-      }
-
-      await client.addDocuments(index, documents)
-
-      if (!result.hasNextPage) {
-        break
-      }
-
-      page += 1
-    }
+  const collectionOptions = {
+    client,
+    contentProjectionResolver,
+    currentIds,
+    index,
+    logger,
+    payload,
+    profile,
+    requireCompleteProjection,
   }
 
-  await indexCollection("page")
-  await indexCollection("article")
+  await indexContentCollection({ ...collectionOptions, sourceType: "page" })
+  await indexContentCollection({ ...collectionOptions, sourceType: "article" })
 
   return currentIds
 }
@@ -633,10 +1627,173 @@ const updateTargetPaginationTotalHits = async (
   }
 }
 
+const validateRetainedSearchGeneration = (
+  generation: RetainedSearchGeneration
+): string => {
+  const expectedTypes = [...SEARCH_INDEX_TYPES].sort()
+  const activeTypes = Object.keys(generation.active).sort()
+  const retainedTypes = Object.keys(generation.retained).sort()
+
+  if (
+    activeTypes.length !== expectedTypes.length ||
+    retainedTypes.length !== expectedTypes.length ||
+    activeTypes.some((type, index) => type !== expectedTypes[index]) ||
+    retainedTypes.some((type, index) => type !== expectedTypes[index])
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Meilisearch rollback requires one exact retained generation for all search index types."
+    )
+  }
+
+  const allUids = new Set<string>()
+  let generationSuffix: string | undefined
+
+  for (const type of SEARCH_INDEX_TYPES) {
+    const activeUid = generation.active[type]
+    const retainedUid = generation.retained[type]
+    const retainedPrefix = `${activeUid}__build_`
+
+    if (
+      typeof activeUid !== "string" ||
+      activeUid.trim() !== activeUid ||
+      !activeUid ||
+      typeof retainedUid !== "string" ||
+      retainedUid.trim() !== retainedUid ||
+      !retainedUid.startsWith(retainedPrefix)
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Meilisearch rollback requires one exact retained generation bound to the active indexes."
+      )
+    }
+
+    const suffix = retainedUid.slice(retainedPrefix.length)
+    if (
+      !suffix ||
+      (generationSuffix !== undefined && suffix !== generationSuffix)
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Meilisearch rollback requires one exact retained generation bound to the active indexes."
+      )
+    }
+
+    generationSuffix = suffix
+    allUids.add(activeUid)
+    allUids.add(retainedUid)
+  }
+
+  if (allUids.size !== SEARCH_INDEX_TYPES.length * 2) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Meilisearch rollback requires one exact retained generation with distinct index UIDs."
+    )
+  }
+
+  if (!generationSuffix) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Meilisearch rollback requires one exact retained generation bound to the active indexes."
+    )
+  }
+
+  return generationSuffix
+}
+
+const deleteMarkerBestEffort = async (
+  client: MeilisearchAdminClient,
+  index: string,
+  markerId: string
+): Promise<void> => {
+  try {
+    await client.deleteDocuments(index, [markerId])
+  } catch {
+    // Markers are namespaced and excluded from accepted proof document IDs.
+  }
+}
+
+const rollbackCompletionMarkerId = (generationSuffix: string): string =>
+  `search_rollback_marker_${createHash("sha256")
+    .update(generationSuffix)
+    .digest("hex")
+    .slice(0, 24)}`
+
+export const rollbackRetainedSearchGeneration = async (
+  client: MeilisearchAdminClient,
+  generation: RetainedSearchGeneration
+): Promise<void> => {
+  const generationSuffix = validateRetainedSearchGeneration(generation)
+  const completionMarkerId = rollbackCompletionMarkerId(generationSuffix)
+
+  const activeDocumentIds = await client.getDocumentIds(
+    generation.active.content
+  )
+  if (activeDocumentIds.includes(completionMarkerId)) {
+    return
+  }
+
+  await client.addDocuments(generation.retained.content, [
+    { id: completionMarkerId },
+  ])
+
+  try {
+    await client.swapIndexPairs(
+      SEARCH_INDEX_TYPES.map((type) => ({
+        first: generation.active[type],
+        second: generation.retained[type],
+      })),
+      {
+        index: generation.active.content,
+        documentId: completionMarkerId,
+      }
+    )
+  } catch (error) {
+    try {
+      const documentIds = await client.getDocumentIds(generation.active.content)
+      if (documentIds.includes(completionMarkerId)) {
+        return
+      }
+    } catch {
+      // The original swap failure remains authoritative when probing fails.
+    }
+
+    try {
+      await client.deleteDocuments(generation.retained.content, [
+        completionMarkerId,
+      ])
+    } catch {
+      // Preserve the swap failure; the marker is namespaced and harmless.
+    }
+
+    throw error
+  }
+}
+
+export const acceptRetainedSearchGeneration = async (
+  client: MeilisearchAdminClient,
+  generation: RetainedSearchGeneration
+): Promise<void> => {
+  const generationSuffix = validateRetainedSearchGeneration(generation)
+
+  for (const type of SEARCH_INDEX_TYPES) {
+    await client.deleteIndex(generation.retained[type])
+  }
+
+  await client.deleteDocuments(generation.active.content, [
+    rollbackCompletionMarkerId(generationSuffix),
+  ])
+}
+
 const finalizeFullSync = async (
   client: MeilisearchAdminClient,
   profile: SearchProfile,
-  targets: SearchSyncTargets
+  targets: SearchSyncTargets,
+  options: {
+    logger: Logger
+    onSwapCommittedOrUncertain: () => void
+    retainPreviousGeneration: boolean
+  }
 ) => {
   const completionMarkerId = `search_build_marker_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
@@ -645,14 +1802,42 @@ const finalizeFullSync = async (
   }
 
   await client.addDocuments(targets.content, [{ id: completionMarkerId }])
-  await client.swapIndexPairs(
-    SEARCH_INDEX_TYPES.map((type) => ({
-      first: profile.indexes[type],
-      second: targets[type],
-    })),
-    { index: profile.indexes.content, documentId: completionMarkerId }
+  try {
+    await client.swapIndexPairs(
+      SEARCH_INDEX_TYPES.map((type) => ({
+        first: profile.indexes[type],
+        second: targets[type],
+      })),
+      { index: profile.indexes.content, documentId: completionMarkerId }
+    )
+  } catch (error) {
+    if (
+      !(
+        error instanceof MeilisearchSwapIndexError &&
+        error.definitelyNotCommitted
+      )
+    ) {
+      options.onSwapCommittedOrUncertain()
+    }
+    throw error
+  }
+  options.onSwapCommittedOrUncertain()
+  await deleteMarkerBestEffort(
+    client,
+    profile.indexes.content,
+    completionMarkerId
   )
-  await client.deleteDocuments(profile.indexes.content, [completionMarkerId])
+
+  if (options.retainPreviousGeneration) {
+    options.logger.info(
+      `Meilisearch profile ${profile.key} retained previous full-sync generation: ${Object.values(
+        targets
+      )
+        .sort((left, right) => left.localeCompare(right))
+        .join(",")}`
+    )
+    return
+  }
 
   for (const type of SEARCH_INDEX_TYPES) {
     await client.deleteIndex(targets[type])
@@ -675,9 +1860,10 @@ const cleanupBuildTargets = async (
   }
 }
 
-const syncProfile = async (options: {
+export const syncProfile = async (options: {
   client: MeilisearchAdminClient
   container: MedusaContainer
+  contentProjectionResolver?: ContentProjectionResolver
   logger: Logger
   mode: SearchProfileSyncMode
   profile: SearchProfile
@@ -688,9 +1874,27 @@ const syncProfile = async (options: {
     ContainerRegistrationKeys.PG_CONNECTION
   )
   const payload = resolvePayloadService(container)
-  const targets = createTargets(profile, mode)
+  const publicationScope = resolveProfilePublicationScope(profile)
+  const usesStagedTargets = mode === "full" || publicationScope !== undefined
+  const commerceScope = await resolveProfileCommerceScope(
+    query,
+    profile,
+    publicationScope
+  )
+  const assignmentService = publicationScope
+    ? container.resolve<StorefrontUrlAssignmentModuleService>(
+        STOREFRONT_URL_ASSIGNMENT_MODULE
+      )
+    : undefined
+  const marketVariantAuthorityService = publicationScope
+    ? container.resolve<MarketVariantAuthorityModuleService>(
+        MARKET_VARIANT_AUTHORITY_MODULE
+      )
+    : undefined
+  const targets = createTargets(profile, usesStagedTargets ? "full" : "normal")
 
   let finalized = false
+  let swapCommittedOrUncertain = false
 
   try {
     await prepareTargets(client, targets)
@@ -698,19 +1902,41 @@ const syncProfile = async (options: {
     const popularityByProductId = await readProductPopularity(database, profile)
 
     const products = await indexProductDocuments({
+      assignmentService,
       query,
       client,
+      commerceScope,
       profile,
       index: targets.product,
+      marketVariantAuthorityService,
       popularityByProductId,
+      publicationScope,
     })
+
+    const exactCategoryIds =
+      publicationScope && assignmentService
+        ? await loadAllPublishedReferenceIds({
+            entity: "product_category",
+            scope: publicationScope,
+            service: assignmentService,
+          })
+        : products.references.categoryIds
+    const exactBrandIds =
+      publicationScope && assignmentService
+        ? await loadAllPublishedReferenceIds({
+            entity: "brand",
+            scope: publicationScope,
+            service: assignmentService,
+          })
+        : products.references.brandIds
 
     const categoryIds = await indexReferencedEntities(query, client, {
       entity: "product_category",
       fields: CATEGORY_FIELDS,
-      ids: products.references.categoryIds,
+      ids: exactCategoryIds,
       index: targets.category,
       locale: profile.locale,
+      requireExactIds: Boolean(publicationScope),
 
       transform: (document) => {
         const category = buildCategorySearchDocument(document)
@@ -735,23 +1961,27 @@ const syncProfile = async (options: {
     const brandIds = await indexReferencedEntities(query, client, {
       entity: "brand",
       fields: BRAND_FIELDS,
-      ids: products.references.brandIds,
+      ids: exactBrandIds,
       index: targets.brand,
       locale: profile.locale,
+      requireExactIds: Boolean(publicationScope),
       transform: buildBrandSearchDocument,
     })
 
     const contentIds = await indexContentDocuments({
       client,
+      contentProjectionResolver:
+        options.contentProjectionResolver ?? resolveContentProjectionHrefs,
       index: targets.content,
       logger,
       payload,
       profile,
+      requireCompleteProjection: usesStagedTargets,
     })
 
     let deleted = 0
 
-    if (mode === "normal") {
+    if (!usesStagedTargets) {
       deleted += await deleteStaleDocuments(
         client,
         targets.product,
@@ -773,8 +2003,14 @@ const syncProfile = async (options: {
       content: contentIds.size,
     })
 
-    if (mode === "full") {
-      await finalizeFullSync(client, profile, targets)
+    if (usesStagedTargets) {
+      await finalizeFullSync(client, profile, targets, {
+        logger,
+        onSwapCommittedOrUncertain: () => {
+          swapCommittedOrUncertain = true
+        },
+        retainPreviousGeneration: mode === "full",
+      })
 
       finalized = true
     }
@@ -788,7 +2024,7 @@ const syncProfile = async (options: {
 
     return { deleted, indexed }
   } finally {
-    if (mode === "full" && !finalized) {
+    if (usesStagedTargets && !(finalized || swapCommittedOrUncertain)) {
       await cleanupBuildTargets(client, targets, logger)
     }
   }
@@ -872,6 +2108,56 @@ const syncProfileWithStatus = async (options: {
   }
 }
 
+export const selectRequestedSearchProfiles = (
+  configuredProfiles: readonly SearchProfile[],
+  requestedProfileKeys?: readonly string[]
+): SearchProfile[] => {
+  if (configuredProfiles.length === 0) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Meilisearch synchronization requires at least one configured profile."
+    )
+  }
+  if (requestedProfileKeys === undefined) {
+    return [...configuredProfiles]
+  }
+  if (requestedProfileKeys.length === 0) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Meilisearch requested profile set must contain at least one exact profile key."
+    )
+  }
+  const requestedKeys = requestedProfileKeys.map((key) => {
+    if (typeof key !== "string" || !key || key.trim() !== key) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Meilisearch requested profile keys must be nonblank trimmed strings."
+      )
+    }
+    return key
+  })
+  if (new Set(requestedKeys).size !== requestedKeys.length) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Meilisearch requested profile keys must be unique."
+    )
+  }
+  const configuredKeys = new Set(configuredProfiles.map(({ key }) => key))
+  const missingKeys = requestedKeys
+    .filter((key) => !configuredKeys.has(key))
+    .sort((left, right) => left.localeCompare(right))
+  if (missingKeys.length > 0) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Meilisearch configured profile keys are missing: ${missingKeys
+        .map((key) => `"${key}"`)
+        .join(", ")}.`
+    )
+  }
+  const requestedSet = new Set(requestedKeys)
+  return configuredProfiles.filter(({ key }) => requestedSet.has(key))
+}
+
 const synchronizeUnlocked = async (
   container: MedusaContainer,
   mode: SearchProfileSyncMode,
@@ -886,12 +2172,10 @@ const synchronizeUnlocked = async (
   }
 
   const configuredProfiles = await loadSearchProfiles(container)
-  const requestedKeys = options?.profileKeys?.length
-    ? new Set(options.profileKeys)
-    : undefined
-  const profiles = requestedKeys
-    ? configuredProfiles.filter((profile) => requestedKeys.has(profile.key))
-    : configuredProfiles
+  const profiles = selectRequestedSearchProfiles(
+    configuredProfiles,
+    options?.profileKeys
+  )
   const client = new MeilisearchAdminClient()
 
   let deleted = 0

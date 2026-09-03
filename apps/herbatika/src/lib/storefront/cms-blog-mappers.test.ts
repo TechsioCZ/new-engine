@@ -55,7 +55,7 @@ const article: CmsArticle = {
 
 describe("mapCmsArticleToBlogPost", () => {
   it("preserves structured content order and public article metadata", () => {
-    const post = mapCmsArticleToBlogPost(article)
+    const post = mapCmsArticleToBlogPost(article, undefined, "sk-SK")
 
     expect(post).not.toBeNull()
     if (!post) {
@@ -78,10 +78,29 @@ describe("mapCmsArticleToBlogPost", () => {
         alt: "Summer sale",
         src: "https://cms.example.com/sidebar.webp",
       },
-      product: { productExternalId: "4362", productSlug: undefined },
+      product: { productExternalId: "4362" },
     })
     expect(post.relatedPosts.map(({ slug }) => slug)).toEqual(["related"])
     expect(post.relatedPosts.map(({ sourceId }) => sourceId)).toEqual(["2"])
+  })
+
+  it("localizes only the default editorial author for Romanian detail pages", () => {
+    expect(
+      mapCmsArticleToBlogPost(article, undefined, "ro-RO")?.author?.name
+    ).toBe("Redacția Herbatica")
+    expect(
+      mapCmsArticleToBlogPost(article, undefined, "sk-SK")?.author?.name
+    ).toBe("Herbatika redakcia")
+    expect(
+      mapCmsArticleToBlogPost(
+        {
+          ...article,
+          author: { ...article.author, displayName: "Dr. Ana Popescu" },
+        },
+        undefined,
+        "ro-RO"
+      )?.author?.name
+    ).toBe("Dr. Ana Popescu")
   })
 
   it("keeps an article visible when its featured image is unavailable", () => {
@@ -92,5 +111,21 @@ describe("mapCmsArticleToBlogPost", () => {
 
   it("fails closed when the stable Payload document ID is invalid", () => {
     expect(mapCmsArticleToBlogPost({ ...article, id: " " })).toBeNull()
+  })
+
+  it("omits absent optional fields so the mapped post is JSON-safe", () => {
+    const post = mapCmsArticleToBlogPost({
+      ...article,
+      author: null,
+      sidebar: {
+        product: { productExternalId: "4362", productSlug: undefined },
+      },
+    })
+
+    expect(post).not.toHaveProperty("author")
+    expect(post?.sidebar?.product).toStrictEqual({
+      productExternalId: "4362",
+    })
+    expect(JSON.parse(JSON.stringify(post))).toStrictEqual(post)
   })
 })

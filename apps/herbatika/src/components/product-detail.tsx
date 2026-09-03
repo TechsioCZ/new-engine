@@ -22,6 +22,7 @@ import { RecentlyVisitedProductsSection } from "@/components/recently-visited-pr
 import { StorefrontLink } from "@/components/storefront-link"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { useProductPublicSlugs } from "@/lib/storefront/product-public-slugs"
 import { buildPath } from "@/lib/url/public-url"
 
 export function ProductDetail(props: ProductDetailProps) {
@@ -53,6 +54,12 @@ export function ProductDetail(props: ProductDetailProps) {
   const [activeInfoSection, setActiveInfoSection] = useState<
     string | undefined
   >(controller.defaultInfoSectionValue)
+  // Related products are fetched client-side, so the SSR projection map only
+  // covers the current product; resolve their public slugs on demand.
+  const relatedProductPublicSlugsById = useProductPublicSlugs(
+    controller.relatedSections.flatMap((section) => section.products),
+    controller.productPublicSlugsById ?? {}
+  )
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-syncs the active section when navigating to a different product (App Router reuses the component).
   useEffect(() => {
@@ -199,7 +206,7 @@ export function ProductDetail(props: ProductDetailProps) {
             onAddToCart={controller.handleAddRelatedProductToCart}
             onProductHoverEnd={controller.handleRelatedProductHoverEnd}
             onProductHoverStart={controller.handleRelatedProductHoverStart}
-            productPublicSlugsById={controller.productPublicSlugsById}
+            productPublicSlugsById={relatedProductPublicSlugsById}
             sections={controller.relatedSections}
           />
           <RecentlyVisitedProductsSection

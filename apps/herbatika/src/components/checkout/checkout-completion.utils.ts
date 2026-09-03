@@ -26,12 +26,8 @@ export const resolveCompleteCartFailure = (result: unknown) => {
     return null
   }
 
-  if (
-    result.type === "cart" &&
-    isObject(result.error) &&
-    typeof result.error.message === "string"
-  ) {
-    return result.error.message
+  if (result.type === "cart" && "error" in result) {
+    return result.error
   }
 
   return null

@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import {
   ORDER_EXPEDITION_SORT_QUERY_VALUES,
   type OrderExpeditionRawOrder,
@@ -39,7 +40,10 @@ export function parseOrderExpeditionSort(
   const field = direction === "DESC" ? query.slice(1) : query
 
   if (!isOrderExpeditionSortField(field)) {
-    throw new Error(`Unsupported order expedition sort field: ${field}`)
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Unsupported order expedition sort field: ${field}`
+    )
   }
 
   return { direction, field, query }
@@ -153,7 +157,10 @@ function getOrderExpeditionSortValue(
 }
 
 function assertNeverSortField(field: never): never {
-  throw new Error(`Unsupported order expedition sort field: ${field}`)
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    `Unsupported order expedition sort field: ${field}`
+  )
 }
 
 function compareOrderExpeditionSortValues(

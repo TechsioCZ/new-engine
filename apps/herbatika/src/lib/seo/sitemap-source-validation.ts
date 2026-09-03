@@ -1,6 +1,9 @@
+import { getAboutPageData } from "@/components/about/about-page.data"
+import { getFaqPageData } from "@/components/faq/faq-page.data"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import type { CmsArticle, CmsPage } from "@/lib/storefront/cms"
 import type { HerbatikaLocale } from "@/lib/storefront/market-context"
+import { getRoDemoStaticPage } from "@/lib/storefront/ro-demo-static-pages"
 import type { StaticRootPageKey } from "@/lib/url/types"
 import type { SourceReadResult } from "@/lib/url-registry/reads"
 import type {
@@ -9,13 +12,22 @@ import type {
   SitemapStaticSourceCandidate,
 } from "./sitemap-contract"
 
+type SitemapEntityIdentityCandidate = Omit<
+  SitemapEntitySourceCandidate,
+  "sourceVersion"
+>
+
 export type CatalogSitemapKind = "brand" | "category" | "collection"
 
-type CatalogBinding = Pick<MarketRuntimeBinding, "market" | "salesChannelId">
+type CatalogBinding = Pick<
+  MarketRuntimeBinding,
+  "locale" | "market" | "salesChannelId"
+>
 
 type CatalogAssignment = Readonly<{
   entityId: string
   publicSlug: string
+  sourceVersion: string
 }>
 
 export type CatalogSitemapSourceDependencies = Readonly<{
@@ -46,13 +58,14 @@ export type CmsSitemapSourceDependencies = Readonly<{
 export type ProductSitemapSourceDependencies = Readonly<{
   readProducts(input: {
     market: MarketRuntimeBinding["market"]
-    sources: readonly SitemapEntitySourceCandidate[]
+    sources: readonly SitemapEntityIdentityCandidate[]
   }): Promise<unknown>
 }>
 
 const CATALOG_SOURCE_BATCH_LIMIT = 100
 const SOURCE_VALIDATION_CONCURRENCY = 12
 const PUBLIC_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const CATALOG_SOURCE_VERSION_PATTERN = /^[1-9]\d*$/
 const PRODUCT_SOURCE_BATCH_LIMIT = 100
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504])
 const STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
@@ -65,6 +78,21 @@ const STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
   "privacy",
   "cookies",
 ])
+const TRANSLATION_REFERENCE_BY_CATALOG_KIND = {
+  brand: "brand",
+  category: "product_category",
+  collection: "product_collection",
+} as const satisfies Readonly<Record<CatalogSitemapKind, string>>
+
+const hasCodeOwnedStaticPage = (
+  pageKey: StaticRootPageKey,
+  locale: HerbatikaLocale
+) => {
+  if (pageKey === "about") {
+    return Boolean(getAboutPageData(locale))
+  }
+  return pageKey === "faq" ? Boolean(getFaqPageData(locale)) : null
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object" && !Array.isArray(value))
@@ -84,11 +112,13 @@ const mapCatalogError = <Value>(error: unknown): SourceReadResult<Value> => {
 
 const parseAssignment = (
   value: unknown,
-  binding: CatalogBinding
+  binding: CatalogBinding,
+  kind: CatalogSitemapKind
 ): CatalogAssignment | null => {
   if (!isRecord(value)) {
     return null
   }
+  const translation = value.translation
   return value.schemaVersion === 1 &&
     typeof value.id === "string" &&
     value.id.length > 0 &&
@@ -100,8 +130,17 @@ const parseAssignment = (
     value.publicSlug.length <= 80 &&
     PUBLIC_SLUG_PATTERN.test(value.publicSlug) &&
     typeof value.sourceVersion === "string" &&
-    value.sourceVersion.length > 0
-    ? { entityId: value.id, publicSlug: value.publicSlug }
+    CATALOG_SOURCE_VERSION_PATTERN.test(value.sourceVersion) &&
+    isRecord(translation) &&
+    translation.localeCode === binding.locale &&
+    translation.reference === TRANSLATION_REFERENCE_BY_CATALOG_KIND[kind] &&
+    typeof translation.translationId === "string" &&
+    translation.translationId.length > 0
+    ? {
+        entityId: value.id,
+        publicSlug: value.publicSlug,
+        sourceVersion: value.sourceVersion,
+      }
     : null
 }
 
@@ -123,7 +162,7 @@ const parseAssignmentBatch = (
   }
   const requestedIds = new Set(sources.map((source) => source.sourceId))
   const assignments = value.assignments.map((item) =>
-    parseAssignment(item, binding)
+    parseAssignment(item, binding, kind)
   )
   return assignments.some(
     (assignment) =>
@@ -139,7 +178,7 @@ const parseAssignmentBatch = (
 }
 
 const validateCandidateIdentities = (
-  sources: readonly SitemapEntitySourceCandidate[]
+  sources: readonly SitemapEntityIdentityCandidate[]
 ) =>
   new Set(sources.map((source) => source.routeId)).size === sources.length &&
   new Set(sources.map((source) => source.sourceId)).size === sources.length &&
@@ -155,6 +194,9 @@ export const validateCatalogSitemapSources = async (
 ): Promise<SourceReadResult<readonly SitemapSourceValidation[]>> => {
   if (
     !validateCandidateIdentities(input.sources) ||
+    input.sources.some(
+      (source) => !CATALOG_SOURCE_VERSION_PATTERN.test(source.sourceVersion)
+    ) ||
     input.sources.length > CATALOG_SOURCE_BATCH_LIMIT
   ) {
     return {
@@ -191,7 +233,8 @@ export const validateCatalogSitemapSources = async (
       kind: "found",
       value: input.sources.flatMap((source) => {
         const assignment = assignmentBySourceId.get(source.sourceId)
-        return assignment?.publicSlug === source.publicSlug
+        return assignment?.publicSlug === source.publicSlug &&
+          assignment.sourceVersion === source.sourceVersion
           ? [{ routeId: source.routeId }]
           : []
       }),
@@ -212,7 +255,7 @@ const chunks = <Value>(values: readonly Value[], size: number): Value[][] => {
 export const validateProductSitemapSources = async (
   input: Readonly<{
     binding: Pick<MarketRuntimeBinding, "locale" | "market" | "salesChannelId">
-    sources: readonly SitemapEntitySourceCandidate[]
+    sources: readonly SitemapEntityIdentityCandidate[]
   }>,
   dependencies: ProductSitemapSourceDependencies
 ): Promise<SourceReadResult<readonly SitemapSourceValidation[]>> => {
@@ -371,6 +414,76 @@ export const validateCmsEntitySitemapSources = async (
 const isStaticRootPageKey = (value: string): value is StaticRootPageKey =>
   STATIC_ROOT_PAGE_KEYS.has(value as StaticRootPageKey)
 
+const hasNoindexDemoFallback = (
+  source: SitemapStaticSourceCandidate,
+  locale: HerbatikaLocale
+) =>
+  Boolean(
+    getRoDemoStaticPage(source.staticRouteKey as StaticRootPageKey, locale)
+  )
+
+type StaticSourcePartition = Readonly<{
+  cmsSources: readonly SitemapStaticSourceCandidate[]
+  validations: readonly SitemapSourceValidation[]
+}>
+
+const partitionStaticSources = (
+  sources: readonly SitemapStaticSourceCandidate[],
+  locale: HerbatikaLocale
+): SourceReadResult<StaticSourcePartition> => {
+  const cmsSources: SitemapStaticSourceCandidate[] = []
+  const validations: SitemapSourceValidation[] = []
+  for (const source of sources) {
+    if (!isStaticRootPageKey(source.staticRouteKey)) {
+      continue
+    }
+    const codeOwned = hasCodeOwnedStaticPage(source.staticRouteKey, locale)
+    if (codeOwned === null) {
+      cmsSources.push(source)
+    } else if (codeOwned) {
+      validations.push({ routeId: source.routeId })
+    } else {
+      return {
+        causeCode: "MISSING_CODE_OWNED_STATIC_PAGE_SOURCE",
+        kind: "invalid-response",
+      }
+    }
+  }
+  return { kind: "found", value: { cmsSources, validations } }
+}
+
+const collectStaticCmsBatchValidations = (
+  batch: readonly SitemapStaticSourceCandidate[],
+  results: readonly CmsReadResult<CmsPage>[],
+  locale: HerbatikaLocale
+): SourceReadResult<readonly SitemapSourceValidation[]> => {
+  const validations: SitemapSourceValidation[] = []
+  for (const [index, result] of results.entries()) {
+    const source = batch[index]
+    if (!source) {
+      return {
+        causeCode: "INVALID_STATIC_CMS_VALIDATION_BATCH",
+        kind: "invalid-response",
+      }
+    }
+    if (
+      result.kind === "missing" ||
+      (result.kind !== "found" && hasNoindexDemoFallback(source, locale))
+    ) {
+      // Demo fallbacks are deliberately noindex and stay out of sitemaps.
+      continue
+    }
+    if (result.kind !== "found") {
+      return result
+    }
+    validations.push({
+      routeId: source.routeId,
+      updatedAt: contentUpdatedAt(result.value),
+    })
+  }
+  return { kind: "found", value: validations }
+}
+
 export const validateCmsStaticSitemapSources = async (
   input: Readonly<{
     locale: HerbatikaLocale
@@ -387,11 +500,15 @@ export const validateCmsStaticSitemapSources = async (
       kind: "invalid-response",
     }
   }
-  const validations: SitemapSourceValidation[] = []
-  const sources = input.sources.filter((source) =>
-    isStaticRootPageKey(source.staticRouteKey)
-  )
-  for (const batch of chunks(sources, SOURCE_VALIDATION_CONCURRENCY)) {
+  const partition = partitionStaticSources(input.sources, input.locale)
+  if (partition.kind !== "found") {
+    return partition
+  }
+  const validations = [...partition.value.validations]
+  for (const batch of chunks(
+    partition.value.cmsSources,
+    SOURCE_VALIDATION_CONCURRENCY
+  )) {
     const results = await Promise.all(
       batch.map((source) =>
         dependencies.readStaticPage(
@@ -400,25 +517,15 @@ export const validateCmsStaticSitemapSources = async (
         )
       )
     )
-    for (const [index, result] of results.entries()) {
-      if (result.kind === "missing") {
-        continue
-      }
-      if (result.kind !== "found") {
-        return result
-      }
-      const source = batch[index]
-      if (!source) {
-        return {
-          causeCode: "INVALID_STATIC_CMS_VALIDATION_BATCH",
-          kind: "invalid-response",
-        }
-      }
-      validations.push({
-        routeId: source.routeId,
-        updatedAt: contentUpdatedAt(result.value),
-      })
+    const batchValidation = collectStaticCmsBatchValidations(
+      batch,
+      results,
+      input.locale
+    )
+    if (batchValidation.kind !== "found") {
+      return batchValidation
     }
+    validations.push(...batchValidation.value)
   }
   return { kind: "found", value: validations }
 }

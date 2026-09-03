@@ -83,12 +83,22 @@ describe("Pages Router server boundary", () => {
       resolve(sourceRoot, "lib/storefront/ssr/context.app.server.ts"),
       "utf8"
     )
+    const appMarketContext = readFileSync(
+      resolve(sourceRoot, "lib/storefront/market-context.server.ts"),
+      "utf8"
+    )
 
     expect(pagesContext).not.toContain("next/headers")
     expect(pagesContext).not.toContain(
       "resolveConfiguredMarketRuntimeBindingByHost"
     )
     expect(appContext).toContain('import "server-only"')
-    expect(appContext).toContain('from "next/headers"')
+    expect(appContext).toContain("getMarketServerContext")
+    expect(appContext).not.toContain('from "next/headers"')
+    expect(appMarketContext).toContain('from "next/headers"')
+    expect(appMarketContext).toContain('headerStore.get("x-sf-market")')
+    expect(appMarketContext).toContain(
+      'headerStore.get("x-sf-canonical-origin")'
+    )
   })
 })

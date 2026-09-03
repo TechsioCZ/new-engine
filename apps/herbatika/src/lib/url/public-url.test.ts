@@ -19,7 +19,7 @@ describe("public URL API", () => {
   })
 
   it("builds entity indexes, root-static pages, and private flows", () => {
-    expect(buildPath({ kind: "article" }, "sk")).toBe("/poradna")
+    expect(buildPath({ kind: "article" }, "sk")).toBe("/blog")
     expect(buildPath({ kind: "static", page: "faq" }, "hu")).toBe(
       "/gyakori-kerdesek"
     )
@@ -29,6 +29,17 @@ describe("public URL API", () => {
     expect(buildPath({ kind: "checkout", step: "paymentReturn" }, "cz")).toBe(
       "/pokladna/navrat-z-platby"
     )
+  })
+
+  it.each([
+    ["sk", "dropshipping", "/dropshipping"],
+    ["sk", "privateLabel", "/private-label"],
+    ["sk", "wholesale", "/velkoobchod"],
+    ["cz", "dropshipping", "/dropshipping"],
+    ["cz", "privateLabel", "/private-label"],
+    ["cz", "wholesale", "/velkoobchod"],
+  ] as const)("builds the customer-authoritative %s %s static path", (market, page, expected) => {
+    expect(buildPath({ kind: "static", page }, market)).toBe(expected)
   })
 
   it("preserves opaque checkout confirmation identifiers", () => {
@@ -49,13 +60,22 @@ describe("public URL API", () => {
   it("builds a validated hierarchical static URLR snapshot path", () => {
     expect(
       buildAbsoluteUrl(
-        { kind: "staticSnapshot", segments: ["poradna", "spanok"] },
+        { kind: "staticSnapshot", segments: ["blog", "spanok"] },
         "sk"
       ).href
-    ).toBe("https://herbatica.sk/poradna/spanok")
+    ).toBe("https://herbatica.sk/blog/spanok")
     expect(() =>
       buildPath({ kind: "staticSnapshot", segments: ["Not-Canonical"] }, "sk")
     ).toThrow("normalized ASCII")
+  })
+
+  it("accepts a customer-authoritative static snapshot segment with consecutive hyphens", () => {
+    expect(
+      buildPath(
+        { kind: "staticSnapshot", segments: ["dropshipping--velkoobchod"] },
+        "sk"
+      )
+    ).toBe("/dropshipping--velkoobchod")
   })
 
   it("requires document navigation for every public HTML target", () => {

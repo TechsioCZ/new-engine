@@ -7,9 +7,11 @@ import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { StorefrontLink } from "@/components/storefront-link"
 import { SupportingText } from "@/components/text/supporting-text"
+import { useAuth } from "@/lib/storefront/auth"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   fetchOrderPaymentQr,
+  hasOrderPaymentQrAuthority,
   type StorefrontOrderPaymentQr,
 } from "@/lib/storefront/order-payment-qr"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
@@ -17,6 +19,7 @@ import { buildPath } from "@/lib/url/public-url"
 
 type CheckoutCompletedOrderSectionProps = {
   completedOrderId: string
+  orderToken?: string
 }
 
 const QR_PAYMENT_PENDING_REFETCH_INTERVAL_MS = 1500
@@ -24,18 +27,31 @@ const QR_PAYMENT_PENDING_TIMEOUT_MS = 15_000
 
 export function CheckoutCompletedOrderSection({
   completedOrderId,
+  orderToken,
 }: CheckoutCompletedOrderSectionProps) {
   const tCheckout = useTranslations("checkout")
   const marketContext = useMarketContext()
+  const authQuery = useAuth()
+  const hasQrPaymentAuthority = hasOrderPaymentQrAuthority({
+    isAuthenticated: authQuery.isAuthenticated,
+    orderToken,
+  })
   const [hasQrPaymentPendingTimedOut, setHasQrPaymentPendingTimedOut] =
     useState(false)
   const qrPaymentQuery = useQuery({
-    enabled: Boolean(completedOrderId),
+    enabled: Boolean(completedOrderId) && hasQrPaymentAuthority,
     queryFn: () =>
       fetchOrderPaymentQr({
+        expectedCurrencyCode: marketContext.currencyCode,
+        orderToken,
         orderId: completedOrderId,
       }),
-    queryKey: ["checkout-order-payment-qr", completedOrderId],
+    queryKey: [
+      "checkout-order-payment-qr",
+      marketContext.code,
+      marketContext.currencyCode,
+      completedOrderId,
+    ],
     refetchInterval: (query) =>
       query.state.data?.status === "pending" && !hasQrPaymentPendingTimedOut
         ? QR_PAYMENT_PENDING_REFETCH_INTERVAL_MS

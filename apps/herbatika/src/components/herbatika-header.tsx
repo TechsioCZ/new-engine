@@ -15,6 +15,7 @@ import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart"
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { useOperatorContact } from "@/lib/storefront/operator-contact"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
@@ -24,6 +25,7 @@ import { HerbatikaCartPopover } from "./header/herbatika-cart-popover"
 import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu"
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./header/herbatika-header.submenu-data"
 import { HerbatikaMobileMenuDialog } from "./header/herbatika-mobile-menu-dialog"
+import { HerbatikaPrimaryNav } from "./header/herbatika-primary-nav"
 import { useHerbatikaHeaderSubmenu } from "./header/use-herbatika-header-submenu"
 import { HerbatikaLogo } from "./herbatika-logo"
 import { SearchAutocomplete } from "./search/search-autocomplete"
@@ -39,6 +41,8 @@ export function HerbatikaHeader({
 }) {
   const t = useTranslations("navigation")
   const tAuth = useTranslations("auth")
+  const tCatalog = useTranslations("catalog")
+  const operatorContact = useOperatorContact()
   const region = useRegionContext()
   const marketContext = useMarketContext()
   const { actionItems, primaryNavItems } = useHerbatikaHeaderSubmenu(
@@ -119,20 +123,27 @@ export function HerbatikaHeader({
         </div>
 
         <Header.Actions className="@max-header-desktop:hidden gap-450">
-          <Link
-            className="inline-flex items-center gap-300 font-open-sans text-fg-secondary hover:text-fg-primary"
-            href="tel:+421232112345"
-          >
-            <Icon icon="token-icon-phone-talk" size="2xl" />
-            <span className="leading-snug">
-              <span className="block font-semibold text-fg-primary text-md leading-snug">
-                +421 2/321 123 45
+          {operatorContact.available ? (
+            <Link
+              className="inline-flex items-center gap-300 font-open-sans text-fg-secondary hover:text-fg-primary"
+              href={operatorContact.phoneHref}
+            >
+              <Icon icon="token-icon-phone-talk" size="2xl" />
+              <span className="leading-snug">
+                <span className="block font-semibold text-fg-primary text-md leading-snug">
+                  {operatorContact.phoneDisplay}
+                </span>
+                <span className="ml-50 block font-normal text-fg-secondary text-xs leading-snug">
+                  {operatorContact.hours}
+                </span>
               </span>
-              <span className="ml-50 block font-normal text-fg-secondary text-xs leading-snug">
-                (Po-Pia: 09:00 - 16:00)
-              </span>
+            </Link>
+          ) : (
+            <span className="inline-flex max-w-52 items-center gap-300 text-fg-secondary text-xs leading-snug">
+              <Icon icon="token-icon-phone-talk" size="2xl" />
+              {operatorContact.unavailable}
             </span>
-          </Link>
+          )}
 
           <LinkButton
             aria-label={tAuth("account.navigation.lists")}
@@ -198,38 +209,14 @@ export function HerbatikaHeader({
         onMouseLeave={() => setActiveRootHandle(null)}
       >
         <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between px-header-lg 2xl:px-header-2xl">
-          <Header.Nav
-            aria-label={t("primary_aria")}
-            className="flex-nowrap overflow-x-auto [scrollbar-width:none] md:h-full [&::-webkit-scrollbar]:hidden"
-            size="sm"
-          >
-            {primaryNavItems.map((item) => {
-              const rootHandle = item.rootHandle
-              const hasSubmenu = Boolean(
-                rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle)
-              )
-
-              return (
-                <StorefrontLink
-                  aria-expanded={
-                    hasSubmenu ? activeRootHandle === rootHandle : undefined
-                  }
-                  aria-haspopup={hasSubmenu ? "dialog" : undefined}
-                  className="h-full shrink-0"
-                  href={item.href}
-                  key={item.href}
-                  onFocus={() => handleActivateDesktopItem(rootHandle)}
-                >
-                  <Header.NavItem
-                    className="flex h-full items-center whitespace-nowrap leading-none lg:max-header-tablet:p-header-item-desktop-lg lg:max-header-tablet:text-header-item-desktop-lg"
-                    onMouseEnter={() => handleActivateDesktopItem(rootHandle)}
-                  >
-                    {item.label}
-                  </Header.NavItem>
-                </StorefrontLink>
-              )
-            })}
-          </Header.Nav>
+          <HerbatikaPrimaryNav
+            activeRootHandle={activeRootHandle}
+            ariaLabel={t("primary_aria")}
+            items={primaryNavItems}
+            onActivateItem={handleActivateDesktopItem}
+            overflowLabel={tCatalog("filters.show_more")}
+            submenuRootHandles={SUBMENU_ROOT_HANDLES}
+          />
 
           <Header.Actions className="gap-x-250" size="sm">
             {actionItems.map((action) => (

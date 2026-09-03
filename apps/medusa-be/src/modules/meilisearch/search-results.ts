@@ -1,5 +1,9 @@
 import { cleanSearchText, normalizeSearchIdentifier } from "./documents"
 
+const NON_ALPHANUMERIC_SPLIT_PATTERN = /[^\p{Letter}\p{Number}]+/u
+const IDENTIFIER_LIKE_QUERY_PATTERN = /^[\p{Letter}\p{Number}_-]+$/u
+const IDENTIFIER_LIKE_QUERY_HAS_DIGIT_OR_DASH_PATTERN = /[\p{Number}_-]/u
+
 export type RankedProductHit = {
   _rankingScore?: number
   brand?: unknown
@@ -57,7 +61,7 @@ const getSearchTokens = (value: string): string[] =>
     .normalize("NFKD")
     .replaceAll(/\p{Diacritic}/gu, "")
     .toLocaleLowerCase()
-    .split(/[^\p{Letter}\p{Number}]+/u)
+    .split(NON_ALPHANUMERIC_SPLIT_PATTERN)
     .filter(Boolean)
 
 const getNormalizedSearchIdentifiers = (hit: RankedProductHit): string[] => {
@@ -84,8 +88,8 @@ const isIdentifierLikeQuery = (query: string): boolean => {
   const normalizedQuery = normalizeSearchIdentifier(query)
 
   return (
-    /^[\p{Letter}\p{Number}_-]+$/u.test(normalizedQuery) &&
-    /[\p{Number}_-]/u.test(normalizedQuery)
+    IDENTIFIER_LIKE_QUERY_PATTERN.test(normalizedQuery) &&
+    IDENTIFIER_LIKE_QUERY_HAS_DIGIT_OR_DASH_PATTERN.test(normalizedQuery)
   )
 }
 
@@ -301,4 +305,17 @@ export const getSalesChannelIds = (value: unknown): string[] => {
   }
 
   return []
+}
+
+export const resolveStorefrontSalesChannelFilter = (
+  filterableSalesChannelId: unknown,
+  publishableKeySalesChannelIds: unknown
+): unknown => {
+  const trustedSalesChannelIds = getSalesChannelIds(
+    publishableKeySalesChannelIds
+  )
+
+  return trustedSalesChannelIds.length > 0
+    ? trustedSalesChannelIds
+    : filterableSalesChannelId
 }

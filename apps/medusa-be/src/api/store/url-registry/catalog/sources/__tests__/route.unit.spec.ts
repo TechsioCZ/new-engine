@@ -42,7 +42,7 @@ describe("catalog source batch route", () => {
     ["brand", "brand_1", "herbatika", "brand"],
     ["collection", "pcol_1", "zimna-kolekcia", "product_collection"],
   ] as const)("returns the exact successful %s response", async (entityKind, entityId, publicSlug, translationReference) => {
-    const candidate = { entityId, publicSlug }
+    const candidate = { entityId, publicSlug, sourceVersion: "1" }
     const assignment = {
       entityId,
       id: entityId,
@@ -95,13 +95,20 @@ describe("catalog source batch route", () => {
       "an extra candidate field",
       {
         candidates: [
-          { entityId: "pcat_1", extra: true, publicSlug: "doplnky" },
+          {
+            entityId: "pcat_1",
+            extra: true,
+            publicSlug: "doplnky",
+            sourceVersion: "1",
+          },
         ],
       },
     ],
   ])("rejects %s with an exact 400 response", async (_label, overrides) => {
     const request = makeRequest({
-      candidates: [{ entityId: "pcat_1", publicSlug: "doplnky" }],
+      candidates: [
+        { entityId: "pcat_1", publicSlug: "doplnky", sourceVersion: "1" },
+      ],
       entityKind: "category",
       market: "sk",
       schemaVersion: 1,
@@ -118,12 +125,60 @@ describe("catalog source batch route", () => {
     expect(json).toHaveBeenCalledWith({ message: "Invalid request" })
   })
 
+  it("accepts a customer-authoritative candidate slug with consecutive hyphens", async () => {
+    const candidate = {
+      entityId: "pcol_1",
+      publicSlug: "zimna--kolekcia",
+      sourceVersion: "1",
+    }
+    const assignment = {
+      entityId: "pcol_1",
+      id: "pcol_1",
+      marketCode: "sk",
+      publicationStatus: "published",
+      publicSlug: "zimna--kolekcia",
+      salesChannelId: "sc_sk",
+      schemaVersion: 1,
+      sourceVersion: "1",
+      translation: {
+        localeCode: "sk-SK",
+        reference: "product_collection",
+        translationId: "trans_pcol_1",
+      },
+    }
+    readPublishedStorefrontAssignmentSources.mockResolvedValueOnce({
+      assignments: [assignment],
+      kind: "found",
+    })
+    const request = makeRequest({
+      candidates: [candidate],
+      entityKind: "collection",
+      market: "sk",
+      schemaVersion: 1,
+    })
+    const { json, response, status } = makeResponse()
+
+    await POST(request, response)
+
+    expect(readPublishedStorefrontAssignmentSources).toHaveBeenCalledOnce()
+    expect(status).not.toHaveBeenCalled()
+    expect(json).toHaveBeenCalledOnce()
+    expect(json).toHaveBeenCalledWith({
+      assignments: [assignment],
+      entityKind: "collection",
+      marketCode: "sk",
+      schemaVersion: 1,
+    })
+  })
+
   it("maps unavailable catalog reads to an exact 503 response", async () => {
     readPublishedStorefrontAssignmentSources.mockResolvedValueOnce({
       kind: "unavailable",
     })
     const request = makeRequest({
-      candidates: [{ entityId: "pcat_1", publicSlug: "doplnky" }],
+      candidates: [
+        { entityId: "pcat_1", publicSlug: "doplnky", sourceVersion: "1" },
+      ],
       entityKind: "category",
       market: "sk",
       schemaVersion: 1,

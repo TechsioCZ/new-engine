@@ -1,0 +1,88 @@
+import type { GetServerSidePropsContext } from "next"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+const mocks = vi.hoisted(() => ({
+  fetchServerCategories: vi.fn(),
+  fetchStorefrontBrands: vi.fn(),
+  prefetchBrandPageStorefrontData: vi.fn(),
+  prefetchCategoryPageStorefrontData: vi.fn(),
+  resolveEntityPublicPage: vi.fn(),
+}))
+
+vi.mock("@/components/category-listing", () => ({
+  CategoryListing: vi.fn(() => null),
+}))
+vi.mock("@/components/brands/brand-listing", () => ({
+  BrandListing: vi.fn(() => null),
+}))
+vi.mock("@/lib/routing/pages/localized-page-error", () => ({
+  LocalizedPageError: vi.fn(() => null),
+}))
+vi.mock("@/lib/routing/public-page", () => ({
+  resolveEntityPublicPage: mocks.resolveEntityPublicPage,
+}))
+vi.mock("@/lib/storefront/plp-query-state", () => ({
+  parsePlpQueryStateFromSearchParams: vi.fn(() => ({ page: 1 })),
+}))
+vi.mock("@/lib/storefront/ssr", () => ({
+  prefetchBrandPageStorefrontData: mocks.prefetchBrandPageStorefrontData,
+  prefetchCategoryPageStorefrontData: mocks.prefetchCategoryPageStorefrontData,
+}))
+vi.mock("@/lib/storefront/ssr/context", () => ({
+  getRegionServerContext: vi.fn().mockResolvedValue({
+    locale: "cs-CZ",
+    queryClient: {},
+  }),
+}))
+vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
+  readCompletePublicEntitySlugs: vi.fn(),
+  readRequiredPublicEntitySlugs: vi.fn(),
+}))
+vi.mock("@/lib/storefront/storefront-server", () => ({
+  fetchServerCategories: mocks.fetchServerCategories,
+}))
+vi.mock("@/lib/storefront/brands.server", () => ({
+  fetchStorefrontBrands: mocks.fetchStorefrontBrands,
+}))
+
+import { getServerSideProps as getBrandServerSideProps } from "@/pages/~sf/[market]/brand/[slug]"
+import { getServerSideProps as getCategoryServerSideProps } from "@/pages/~sf/[market]/category/[slug]"
+
+const context = {
+  params: { market: "cz", slug: "vitaminy" },
+  query: {},
+  req: { headers: {}, url: "/~sf/cz/category/vitaminy" },
+  res: {},
+} as unknown as GetServerSidePropsContext
+
+describe("category and brand detail source reads", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.resolveEntityPublicPage.mockImplementation(async (_context, input) =>
+      input.loadSource({
+        market: "cz",
+        publicSlug: "vitaminy",
+        sourceId: input.kind === "category" ? "category_1" : "brand_1",
+        sourceVersion: "7",
+      })
+    )
+  })
+
+  it("reads the category catalog directly and maps an absent category to missing", async () => {
+    mocks.fetchServerCategories.mockResolvedValue({ categories: [] })
+
+    const result = await getCategoryServerSideProps(context)
+
+    expect(mocks.fetchServerCategories).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({ kind: "missing" })
+  })
+
+  it("reads the brand catalog directly and maps an absent brand to missing", async () => {
+    mocks.fetchStorefrontBrands.mockResolvedValue([])
+
+    const result = await getBrandServerSideProps(context)
+
+    expect(mocks.fetchStorefrontBrands).toHaveBeenCalledWith("cz")
+    expect(result).toEqual({ kind: "missing" })
+  })
+})

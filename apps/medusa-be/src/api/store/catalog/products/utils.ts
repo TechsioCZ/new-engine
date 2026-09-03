@@ -355,12 +355,13 @@ export const humanizeFacetHandle = (handle: string): string =>
   handle.replaceAll("-", " ").replaceAll(/\s+/g, " ").trim()
 
 export const sortFacetCountItems = (
-  items: FacetCountItem[]
+  items: FacetCountItem[],
+  locale = "sk"
 ): FacetCountItem[] =>
   [...items].sort((left, right) => {
     if (left.count !== right.count) {
       return right.count - left.count
     }
 
-    return left.label.localeCompare(right.label, "sk")
+    return left.label.localeCompare(right.label, locale)
   })

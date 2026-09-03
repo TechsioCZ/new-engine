@@ -1,6 +1,8 @@
 {
   "name": "@techsio/storefront-i18n",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "description": "Shared market resolution and backend-managed messages for Medusa storefronts.",
+  "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
@@ -12,23 +14,28 @@
     "./package.json": "./package.json",
     "./core/markets": {
       "types": "./dist/core/markets.d.ts",
-      "import": "./dist/core/markets.js"
+      "import": "./dist/core/markets.js",
+      "require": "./dist/core/markets.cjs"
     },
     "./core/messages": {
       "types": "./dist/core/messages.d.ts",
-      "import": "./dist/core/messages.js"
+      "import": "./dist/core/messages.js",
+      "require": "./dist/core/messages.cjs"
     },
     "./core/public-flow-routes": {
       "types": "./dist/core/public-flow-routes.d.ts",
-      "import": "./dist/core/public-flow-routes.js"
+      "import": "./dist/core/public-flow-routes.js",
+      "require": "./dist/core/public-flow-routes.cjs"
     },
     "./medusa/messages": {
       "types": "./dist/medusa/messages.d.ts",
-      "import": "./dist/medusa/messages.js"
+      "import": "./dist/medusa/messages.js",
+      "require": "./dist/medusa/messages.cjs"
     },
     "./next-intl/request": {
       "types": "./dist/next-intl/request.d.ts",
-      "import": "./dist/next-intl/request.js"
+      "import": "./dist/next-intl/request.js",
+      "require": "./dist/next-intl/request.cjs"
     }
   },
   "files": [
@@ -39,7 +46,9 @@
     "dev": "rslib build --watch --tsconfig tsconfig.build.json",
     "lint": "pnpm -w exec biome lint libs/storefront-i18n/src libs/storefront-i18n/tests --diagnostic-level=error",
     "test": "vitest run --config vitest.config.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "validate:package": "node scripts/validate-package.mjs",
+    "validate:release": "pnpm typecheck && pnpm test && pnpm build && pnpm validate:package"
   },
   "nx": {
     "tags": [
@@ -69,5 +78,12 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "ecommerce",
+    "i18n",
+    "medusa",
+    "next-intl",
+    "storefront"
+  ]
 }

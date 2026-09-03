@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto"
 import { fileURLToPath } from "node:url"
 import {
+  assertLegacyCatalogUnpublishedReceipt,
   assertPostgres181,
   bootstrapDedicatedDatabase,
   createDockerCredentialSet,
   grantRuntimeAccess,
   migrateUrlRegistry,
+  seedLegacyCatalogUnpublishedReceipt,
   waitForPostgres,
 } from "./pg18-database.mjs"
 import { runProcess } from "./pg18-process.mjs"
@@ -145,10 +147,20 @@ const main = async () => {
       external ?? (await startDockerDatabase(token, containerName))
     await assertPostgres181(database.migrationUrl)
     await assertPostgres181(database.runtimeUrl)
-    const migrationResult = await migrateUrlRegistry(database.migrationUrl)
+    const v4MigrationResult = await migrateUrlRegistry(database.migrationUrl, {
+      throughVersion: 4,
+    })
+    const legacySourceId = await seedLegacyCatalogUnpublishedReceipt(
+      database.migrationUrl
+    )
+    const v7MigrationResult = await migrateUrlRegistry(database.migrationUrl)
+    await assertLegacyCatalogUnpublishedReceipt(
+      database.migrationUrl,
+      legacySourceId
+    )
     await grantRuntimeAccess(database)
     process.stdout.write(
-      `PostgreSQL 18.1 ready; migrations applied=${migrationResult.applied.length}, skipped=${migrationResult.skipped.length}\n`
+      `PostgreSQL 18.1 ready; V4 applied=${v4MigrationResult.applied.length}, V7 applied=${v7MigrationResult.applied.length}, skipped=${v7MigrationResult.skipped.length}; legacy catalog receipt preserved\n`
     )
     await runProcess(
       process.execPath,

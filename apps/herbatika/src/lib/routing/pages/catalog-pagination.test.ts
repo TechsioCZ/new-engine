@@ -5,9 +5,13 @@ const mocks = vi.hoisted(() => ({
   fetchServerCategories: vi.fn(),
   fetchStorefrontBrands: vi.fn(),
   getRegionServerContext: vi.fn(),
+  findActiveEquivalents: vi.fn(),
+  listAuditRecords: vi.fn(),
   prefetchBrandPageStorefrontData: vi.fn(),
   prefetchCategoryPageStorefrontData: vi.fn(),
   prefetchProductIndexStorefrontData: vi.fn(),
+  readAvailablePublicEntitySlugs: vi.fn(),
+  readCompletePublicEntitySlugs: vi.fn(),
   readRequiredPublicEntitySlugs: vi.fn(),
   resolveRegistryRoute: vi.fn(),
 }))
@@ -43,6 +47,8 @@ vi.mock("@/lib/storefront/ssr/context", () => ({
   getRegionServerContext: mocks.getRegionServerContext,
 }))
 vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
+  readAvailablePublicEntitySlugs: mocks.readAvailablePublicEntitySlugs,
+  readCompletePublicEntitySlugs: mocks.readCompletePublicEntitySlugs,
   readRequiredPublicEntitySlugs: mocks.readRequiredPublicEntitySlugs,
 }))
 vi.mock("@/lib/storefront/storefront-server", () => ({
@@ -54,9 +60,15 @@ vi.mock("@/lib/storefront/storefront-texts.server", () => ({
 vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
   getUrlRegistryRuntime: vi.fn(async () => ({
     enabled: true,
-    registry: { resolve: mocks.resolveRegistryRoute },
+    registry: {
+      findActiveEquivalents: mocks.findActiveEquivalents,
+      listAuditRecords: mocks.listAuditRecords,
+      resolve: mocks.resolveRegistryRoute,
+    },
   })),
 }))
+
+const timestamp = "2026-08-21T10:00:00.000Z"
 
 const context = (
   routeKey: string,
@@ -118,18 +130,86 @@ describe("catalog page pagination boundaries", () => {
       kind: "found",
       value: { brand_1: "brand" },
     })
+    mocks.readAvailablePublicEntitySlugs.mockResolvedValue({
+      kind: "found",
+      value: {},
+    })
+    mocks.readCompletePublicEntitySlugs.mockResolvedValue({
+      kind: "found",
+      value: { cat_1: "herbs" },
+    })
+    mocks.findActiveEquivalents.mockResolvedValue({
+      kind: "found",
+      value: [],
+    })
+    mocks.listAuditRecords.mockResolvedValue({
+      kind: "found",
+      value: {
+        items: [
+          {
+            resultVersion: 1,
+            routeId: "route-brand",
+            source: {
+              sourceId: "brand_1",
+              sourceSystem: "medusa",
+              sourceType: "brand",
+              sourceVersion: "7",
+            },
+          },
+          {
+            resultVersion: 1,
+            routeId: "route-category",
+            source: {
+              sourceId: "cat_1",
+              sourceSystem: "medusa",
+              sourceType: "category",
+              sourceVersion: "7",
+            },
+          },
+        ],
+        nextCursor: null,
+      },
+    })
     mocks.resolveRegistryRoute.mockImplementation(
-      ({ kind }: { kind: "brand" | "category" }) =>
-        Promise.resolve({
+      ({ kind }: { kind: "brand" | "category" }) => {
+        const normalizedSlug = kind === "brand" ? "brand" : "herbs"
+        const route = {
+          createdAt: timestamp,
+          equivalenceKey: `${kind}:${kind === "brand" ? "brand_1" : "cat_1"}`,
+          id: `route-${kind}`,
+          indexPolicy: "indexable",
+          kind,
+          market: "sk",
+          sourceId: kind === "brand" ? "brand_1" : "cat_1",
+          sourceSystem: "medusa",
+          sourceType: kind,
+          staticRouteKey: null,
+          status: "active",
+          successorRouteId: null,
+          targetType: "entity",
+          updatedAt: timestamp,
+          version: 1,
+        } as const
+        const currentSlug = {
+          createdAt: timestamp,
+          disposition: "current",
+          id: `slug-${kind}`,
+          kind,
+          market: "sk",
+          normalizationVersion: 1,
+          normalizedSlug,
+          routeId: route.id,
+        } as const
+        return Promise.resolve({
           kind: "found",
           value: {
-            currentSlug: {
-              normalizedSlug: kind === "brand" ? "brand" : "herbs",
-            },
+            currentSlug,
             disposition: "current",
-            route: { sourceId: kind === "brand" ? "brand_1" : "cat_1" },
+            matchedSlug: currentSlug,
+            route,
           },
         })
+      }
     )
   })
 
@@ -201,6 +281,40 @@ describe("catalog page pagination boundaries", () => {
         page: { kind: "found", value: { totalPages: 3 } },
       },
     })
+  })
+
+  it("loads a complete projection set for category trees larger than the required-ID limit", async () => {
+    const categorySourceIds = Array.from(
+      { length: 206 },
+      (_, index) => `cat_${index + 1}`
+    )
+    mocks.prefetchCategoryPageStorefrontData.mockResolvedValue({
+      categorySourceIds,
+      dehydratedState: {},
+      region: {},
+      totalPages: 3,
+      visibleProductIds: [],
+    })
+    const request = context("category.detail", "/kategorie/herbs", "herbs", "2")
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/category/[slug]"
+    )
+
+    await expect(getServerSideProps(request)).resolves.toMatchObject({
+      props: { page: { kind: "found" } },
+    })
+    expect(mocks.readCompletePublicEntitySlugs).toHaveBeenCalledWith({
+      kind: "category",
+      market: "sk",
+      rejectUnexpectedSourceIds: true,
+      requiredSourceIds: categorySourceIds,
+    })
+    expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "category",
+        requiredSourceIds: categorySourceIds,
+      })
+    )
   })
 
   it("keeps the brand's exact last page found", async () => {

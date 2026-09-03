@@ -1,5 +1,5 @@
 // biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: The exhaustive typed switch is the single builder for every public route family.
-import { ROUTES } from "@/lib/market/market-runtime-definitions"
+import { readCanonicalOrigin } from "@/lib/market/market-runtime-environment"
 import type { EntityUrlKind } from "@/lib/url-registry/model"
 import { ROUTE_SEGMENT_REGISTRY } from "./segments"
 import { validatePublishedSlug } from "./slug"
@@ -57,14 +57,14 @@ const encodeOpaqueSegment = (value: string, name: string) => {
   return encodeURIComponent(value)
 }
 
-const STATIC_SNAPSHOT_SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const STATIC_SNAPSHOT_SEGMENT = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 
 const staticSnapshotPath = (segments: readonly string[]) => {
   if (segments.length === 0 || segments.length > 16) {
     throw new Error("A static snapshot path requires 1 to 16 segments")
   }
   for (const segment of segments) {
-    if (segment.length > 80 || !STATIC_SNAPSHOT_SEGMENT.test(segment)) {
+    if (segment.length > 255 || !STATIC_SNAPSHOT_SEGMENT.test(segment)) {
       throw new Error("Static snapshot paths require normalized ASCII segments")
     }
   }
@@ -96,8 +96,18 @@ export const buildPath = (
       }
       return `/${root}/${validatePublishedSlug(target.slug)}`
     }
-    case "static":
-      return `/${segments.staticRootPages[target.page]}`
+    case "static": {
+      const staticRootPages: Readonly<
+        Partial<Record<StaticRootPageKey, string>>
+      > = segments.staticRootPages
+      const root = staticRootPages[target.page]
+      if (!root) {
+        throw new Error(
+          `Static page ${target.page} is not available for market ${market}`
+        )
+      }
+      return `/${root}`
+    }
     case "staticSnapshot":
       return staticSnapshotPath(target.segments)
     case "search": {
@@ -142,8 +152,9 @@ export const buildPath = (
 
 export const buildAbsoluteUrl = (
   target: PublicRouteTarget,
-  market: Market
-): URL => new URL(buildPath(target, market), ROUTES[market].canonicalOrigin)
+  market: Market,
+  canonicalOrigin = readCanonicalOrigin(process.env, market)
+): URL => new URL(buildPath(target, market), canonicalOrigin)
 
 export const resolveNavigationMode = (_target: PublicRouteTarget): "document" =>
   "document"

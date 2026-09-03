@@ -1,3 +1,5 @@
+import { createMarketRoutingRuntime } from "@/lib/market/market-runtime"
+import { normalizeHost } from "@/lib/market/market-runtime-definitions"
 import { isPrivatePagesPath } from "./private-pages-path"
 
 export type M00Market = "sk" | "cz" | "hu" | "ro"
@@ -16,59 +18,39 @@ export type M00ProxyAction =
 
 type M00ProxyInput = {
   enabled: boolean
+  environment?: Readonly<Record<string, string | undefined>>
   host: string | null
   method: string
   pathname: string
 }
 
-const MARKET_BY_HOST: ReadonlyMap<
-  string,
-  { canonicalOrigin: string; market: M00Market }
-> = new Map([
-  ["herbatica.sk", { canonicalOrigin: "https://herbatica.sk", market: "sk" }],
-  ["herbatica.cz", { canonicalOrigin: "https://herbatica.cz", market: "cz" }],
-  ["herbatica.hu", { canonicalOrigin: "https://herbatica.hu", market: "hu" }],
-  ["herbatica.ro", { canonicalOrigin: "https://herbatica.ro", market: "ro" }],
-])
-
 const PROBE_PATH = /^\/__url-m00\/(current|alias|missing|gone|unavailable)$/
-const AUTHORITY = /^([a-z0-9.-]+)(?::([0-9]{1,5}))?$/i
-const TRAILING_DOT = /\.$/
 
 export const isM00ProbePath = (pathname: string) => PROBE_PATH.test(pathname)
 
 export const resolveCanonicalMarket = (
-  host: string | null
+  host: string | null,
+  environment: Readonly<Record<string, string | undefined>> = process.env
 ): { canonicalOrigin: string; market: M00Market } | null => {
-  if (
-    !host ||
-    host.includes(",") ||
-    host.includes("/") ||
-    host.includes("\\") ||
-    [...host].some((character) => character.charCodeAt(0) <= 32)
-  ) {
+  const hostname = normalizeHost(host)
+  if (!hostname) {
     return null
   }
-
-  const match = AUTHORITY.exec(host)
-  if (!match) {
+  try {
+    const runtime = createMarketRoutingRuntime(environment)
+    const market = runtime.marketByHost[hostname]
+    const binding = market ? runtime.bindings[market] : undefined
+    return binding
+      ? { canonicalOrigin: binding.canonicalOrigin, market: binding.market }
+      : null
+  } catch {
     return null
   }
-
-  const [, rawHostname, rawPort] = match
-  if (rawPort !== undefined) {
-    const port = Number(rawPort)
-    if (rawPort.startsWith("0") || port < 1 || port > 65_535) {
-      return null
-    }
-  }
-
-  const hostname = rawHostname.toLowerCase().replace(TRAILING_DOT, "")
-  return MARKET_BY_HOST.get(hostname) ?? null
 }
 
 export const resolveM00ProxyAction = ({
   enabled,
+  environment = process.env,
   host,
   method,
   pathname,
@@ -86,7 +68,7 @@ export const resolveM00ProxyAction = ({
     return { kind: "respond", status: 404 }
   }
 
-  const marketContext = resolveCanonicalMarket(host)
+  const marketContext = resolveCanonicalMarket(host, environment)
   if (!marketContext) {
     return { kind: "respond", status: 421 }
   }

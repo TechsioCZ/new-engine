@@ -300,6 +300,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     {
       resolve: "./src/modules/storefront-url-assignment",
     },
+    {
+      resolve: "./src/modules/market-variant-authority",
+    },
     ...buildPaymentQrModules(env),
     buildEventBusModule(env),
     buildWorkflowEngineModule(env),

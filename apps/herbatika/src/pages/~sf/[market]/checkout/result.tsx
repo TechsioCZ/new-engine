@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next"
 import { CheckoutPaymentReturnPanel } from "@/components/checkout/checkout-payment-return-panel"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import type { PaymentResultProjection } from "@/lib/routing/private-flows/medusa-transactional-flow-reader"
 import {
   readExactPrivateQuery,
@@ -37,7 +38,7 @@ export const getServerSideProps = ((context) => {
 
 export default function CheckoutResultPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Checkout unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="checkout" />
   }
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 pt-600 pb-850 font-rubik lg:px-550 xl:px-700">

@@ -21,17 +21,26 @@ const binding = {
 
 const source = (
   sourceId: string,
-  publicSlug = `slug-${sourceId.replaceAll("_", "-")}`
+  publicSlug = `slug-${sourceId.replaceAll("_", "-")}`,
+  sourceVersion = "1"
 ): SitemapEntitySourceCandidate => ({
   publicSlug,
   routeId: `route_${sourceId}`,
   sourceId,
+  sourceVersion,
 })
+
+const referenceByKind = {
+  brand: "brand",
+  category: "product_category",
+  collection: "product_collection",
+} as const
 
 const assignment = (
   sourceId: string,
   publicSlug = `slug-${sourceId.replaceAll("_", "-")}`,
-  patch: Record<string, unknown> = {}
+  patch: Record<string, unknown> = {},
+  kind: keyof typeof referenceByKind = "category"
 ) => ({
   entityId: sourceId,
   id: sourceId,
@@ -41,15 +50,21 @@ const assignment = (
   salesChannelId: "sc_cz",
   schemaVersion: 1,
   sourceVersion: "1",
+  translation: {
+    localeCode: "cs-CZ",
+    reference: referenceByKind[kind],
+    translationId: `translation_${sourceId}`,
+  },
   ...patch,
 })
 
 const catalogDependencies = (
-  items: readonly unknown[]
+  items: readonly unknown[],
+  kind: keyof typeof referenceByKind = "category"
 ): CatalogSitemapSourceDependencies => ({
   readAssignments: vi.fn().mockResolvedValue({
     assignments: items,
-    entityKind: "category",
+    entityKind: kind,
     marketCode: "cz",
     schemaVersion: 1,
   }),
@@ -130,7 +145,12 @@ describe("sitemap source validation", () => {
         {
           readAssignments: vi.fn().mockResolvedValue({
             assignments: [
-              assignment("brand_1", "slug-brand-1", { marketCode: "sk" }),
+              assignment(
+                "brand_1",
+                "slug-brand-1",
+                { marketCode: "sk" },
+                "brand"
+              ),
             ],
             entityKind: "brand",
             marketCode: "cz",
@@ -155,6 +175,82 @@ describe("sitemap source validation", () => {
         }
       )
     ).resolves.toEqual({ kind: "unavailable" })
+  })
+
+  it.each([
+    ["category", "product_category"],
+    ["brand", "brand"],
+    ["collection", "product_collection"],
+  ] as const)("requires the exact %s translation proof", async (kind, reference) => {
+    const valid = assignment(
+      `${kind}_1`,
+      `slug-${kind}-1`,
+      {
+        translation: {
+          localeCode: "cs-CZ",
+          reference,
+          translationId: `translation_${kind}_1`,
+        },
+      },
+      kind
+    )
+    await expect(
+      validateCatalogSitemapSources(
+        { binding, kind, sources: [source(`${kind}_1`)] },
+        catalogDependencies([valid], kind)
+      )
+    ).resolves.toEqual({
+      kind: "found",
+      value: [{ routeId: `route_${kind}_1` }],
+    })
+
+    for (const translation of [
+      {
+        localeCode: "sk-SK",
+        reference,
+        translationId: `translation_${kind}_1`,
+      },
+      {
+        localeCode: "cs-CZ",
+        reference: "product",
+        translationId: `translation_${kind}_1`,
+      },
+    ]) {
+      await expect(
+        validateCatalogSitemapSources(
+          { binding, kind, sources: [source(`${kind}_1`)] },
+          catalogDependencies([{ ...valid, translation }], kind)
+        )
+      ).resolves.toEqual({
+        causeCode: "INVALID_SITEMAP_ASSIGNMENT_BATCH_RESPONSE",
+        kind: "invalid-response",
+      })
+    }
+  })
+
+  it("rejects catalog source-version drift before or after the request", async () => {
+    const candidate = source("cat_1", "slug-cat-1", "7")
+
+    await expect(
+      validateCatalogSitemapSources(
+        { binding, kind: "category", sources: [candidate] },
+        catalogDependencies([assignment("cat_1")])
+      )
+    ).resolves.toEqual({ kind: "found", value: [] })
+
+    await expect(
+      validateCatalogSitemapSources(
+        {
+          binding,
+          kind: "category",
+          sources: [source("cat_1", "slug-cat-1", "timestamp")],
+        },
+        catalogDependencies([])
+      )
+    ).resolves.toEqual({
+      causeCode: "INVALID_SITEMAP_SOURCE_CANDIDATES",
+      kind: "invalid-response",
+    })
   })
 
   it("validates CMS stable IDs, exact locale slugs, and content timestamps", async () => {
@@ -245,6 +341,65 @@ describe("sitemap source validation", () => {
     })
     expect(dependencies.readStaticPage).toHaveBeenCalledTimes(1)
     expect(dependencies.readStaticPage).toHaveBeenCalledWith("privacy", "cs-CZ")
+  })
+
+  it("recognizes localized code-owned About and FAQ without CMS duplication", async () => {
+    const readStaticPage = vi.fn()
+    await expect(
+      validateCmsStaticSitemapSources(
+        {
+          locale: "sk-SK",
+          sources: [
+            { routeId: "route_about", staticRouteKey: "about" },
+            { routeId: "route_faq", staticRouteKey: "faq" },
+          ],
+        },
+        { readStaticPage }
+      )
+    ).resolves.toEqual({
+      kind: "found",
+      value: [{ routeId: "route_about" }, { routeId: "route_faq" }],
+    })
+    expect(readStaticPage).not.toHaveBeenCalled()
+  })
+
+  it("recognizes the localized Czech code-owned About source", async () => {
+    const readStaticPage = vi.fn()
+    await expect(
+      validateCmsStaticSitemapSources(
+        {
+          locale: "cs-CZ",
+          sources: [{ routeId: "route_about", staticRouteKey: "about" }],
+        },
+        { readStaticPage }
+      )
+    ).resolves.toEqual({
+      kind: "found",
+      value: [{ routeId: "route_about" }],
+    })
+    expect(readStaticPage).not.toHaveBeenCalled()
+  })
+
+  it("keeps an unreviewed RO demo fallback out of sitemaps", async () => {
+    const invalidResponse = {
+      causeCode: "MISSING_STATIC_PAGE_BINDING_TERMS",
+      kind: "invalid-response" as const,
+    }
+    const sourceInput = [{ routeId: "route_terms", staticRouteKey: "terms" }]
+
+    await expect(
+      validateCmsStaticSitemapSources(
+        { locale: "ro-RO", sources: sourceInput },
+        { readStaticPage: vi.fn().mockResolvedValue(invalidResponse) }
+      )
+    ).resolves.toEqual({ kind: "found", value: [] })
+
+    await expect(
+      validateCmsStaticSitemapSources(
+        { locale: "sk-SK", sources: sourceInput },
+        { readStaticPage: vi.fn().mockResolvedValue(invalidResponse) }
+      )
+    ).resolves.toEqual(invalidResponse)
   })
 
   it("fails the product shard when a URLR-active product source is missing", async () => {

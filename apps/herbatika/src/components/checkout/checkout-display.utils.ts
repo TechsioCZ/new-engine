@@ -1,6 +1,10 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { resolveCountryDisplayName } from "@/lib/forms/country-options"
-import { ON_SITE_PAYMENT_PROVIDER_ID } from "./checkout-payment-compatibility"
+import {
+  ON_SITE_PAYMENT_PROVIDER_ID,
+  resolveRoDemoNoDebitPaymentLabel,
+  type ShippingOption,
+} from "./checkout-payment-compatibility"
 
 const normalizeProviderValue = (providerId: string) =>
   providerId.toLowerCase().replace(/[_-]+/g, " ")
@@ -126,8 +130,17 @@ const resolvePaymentProviderKind = (
 }
 
 export const resolvePaymentDisplayTextKeys = (
-  providerId: string
+  providerId: string,
+  shippingOption?: ShippingOption | null
 ): PaymentDisplayTextKeys => {
+  const demoPaymentLabel = resolveRoDemoNoDebitPaymentLabel({
+    paymentProviderId: providerId,
+    shippingOption,
+  })
+  if (demoPaymentLabel) {
+    return { providerName: demoPaymentLabel }
+  }
+
   const providerKind = resolvePaymentProviderKind(providerId)
   return providerKind === "other" ? {} : PAYMENT_DISPLAY_TEXT_KEYS[providerKind]
 }

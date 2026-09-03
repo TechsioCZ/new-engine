@@ -1,7 +1,9 @@
 import type { GetServerSidePropsContext, GetServerSidePropsResult } from "next"
 import { getMarketRuntime } from "@/lib/market/market-runtime"
-import { getConfiguredMarketRuntime } from "@/lib/market/market-runtime.server"
-import { ROUTES } from "@/lib/market/market-runtime-definitions"
+import {
+  getConfiguredMarketRoutingRuntime,
+  getConfiguredMarketRuntime,
+} from "@/lib/market/market-runtime.server"
 import {
   type PublicPageProps,
   redirectResult,
@@ -26,6 +28,11 @@ const reader = createMedusaTransactionalFlowReader({
 
 export const transactionalFlowReader = reader
 
+export type CheckoutUiPageValue = Readonly<{
+  authorizedCartId: string
+  step: ReachableCheckoutStep
+}>
+
 const singleValue = (value: string | string[] | undefined): string | null =>
   typeof value === "string" ? value : null
 
@@ -39,8 +46,9 @@ const trustedMarket = (
     return null
   }
   const headers = context.req.headers
+  const binding = getConfiguredMarketRoutingRuntime().bindings[market]
   return headers["x-sf-market"] === market &&
-    headers["x-sf-canonical-origin"] === ROUTES[market].canonicalOrigin &&
+    headers["x-sf-canonical-origin"] === binding?.canonicalOrigin &&
     headers["x-sf-route-key"] === expectedRouteKey &&
     typeof headers["x-sf-public-path"] === "string"
     ? market
@@ -53,11 +61,7 @@ export const resolveCheckoutUiPage = async (
     expectedRouteKey: string
     requestedStep?: ReachableCheckoutStep
   }>
-): Promise<
-  GetServerSidePropsResult<
-    PublicPageProps<Readonly<{ step: ReachableCheckoutStep }>>
-  >
-> => {
+): Promise<GetServerSidePropsResult<PublicPageProps<CheckoutUiPageValue>>> => {
   const market = trustedMarket(context, input.expectedRouteKey)
   if (!market) {
     return resolveFlowPublicPage(context, {
@@ -114,7 +118,10 @@ export const resolveCheckoutUiPage = async (
     expectedRouteKey: input.expectedRouteKey,
     loadSource: async () => ({
       kind: "found",
-      value: { step: requestedStep },
+      value: {
+        authorizedCartId: projection.value.cartId,
+        step: requestedStep,
+      },
     }),
   })
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import Script from "next/script"
+import { useTranslations } from "next-intl"
 import { useEffect, useId, useRef } from "react"
 
 declare global {
@@ -29,6 +30,7 @@ type TurnstileWidgetProps = {
 }
 
 export function TurnstileWidget({ onTokenChange }: TurnstileWidgetProps) {
+  const tCatalog = useTranslations("catalog")
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const onTokenChangeRef = useRef(onTokenChange)
@@ -64,7 +66,7 @@ export function TurnstileWidget({ onTokenChange }: TurnstileWidgetProps) {
   if (!siteKey) {
     return (
       <p className="text-danger text-sm">
-        Overenie proti robotom nie je nakonfigurované.
+        {tCatalog("reviews.form.captcha_unavailable")}
       </p>
     )
   }

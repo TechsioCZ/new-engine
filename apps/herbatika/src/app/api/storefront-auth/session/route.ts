@@ -1,20 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server"
-import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import {
+  applyStorefrontAuthResponsePolicy,
+  authenticatedCustomerResponse,
   buildMedusaUrl,
   clearSessionTokenCookie,
-  getPublishableHeaders,
+  discardResponseBody,
+  fetchAuthenticatedCustomer,
   getSessionTokenFromCookieHeader,
   marketAuthorityError,
   parseResponseJson,
-  requireStorefrontMarketBinding,
+  requireStorefrontAuthContext,
+  type StorefrontAuthContext,
   StorefrontMarketAuthorityError,
   serverError,
-  setSessionTokenCookie,
 } from "../_lib"
 
 type SessionResponse = {
-  token: string | null
   authenticated: boolean
   message?: string
 }
@@ -35,25 +36,27 @@ const resolveToken = (
 }
 
 export async function GET(request: NextRequest) {
-  let binding: MarketRuntimeBinding
+  let context: StorefrontAuthContext
   try {
-    binding = requireStorefrontMarketBinding(request)
+    context = requireStorefrontAuthContext(request)
   } catch (error) {
     if (error instanceof StorefrontMarketAuthorityError) {
       return marketAuthorityError()
     }
     throw error
   }
+  const { binding, messages } = context
   const token = getSessionTokenFromCookieHeader(request.headers.get("cookie"))
 
   if (!token) {
-    return NextResponse.json<SessionResponse>(
-      {
-        token: null,
-        authenticated: false,
-        message: "Authentication required.",
-      },
-      { status: 200 }
+    return applyStorefrontAuthResponsePolicy(
+      NextResponse.json<SessionResponse>(
+        {
+          authenticated: false,
+          message: messages.authenticationRequired,
+        },
+        { status: 200 }
+      )
     )
   }
 
@@ -66,51 +69,29 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     })
 
+    let activeToken = token
     if (refreshResponse.ok) {
       const refreshPayload = await parseResponseJson(refreshResponse)
-      const refreshedToken = resolveToken(refreshPayload, token)
-      const response = NextResponse.json<SessionResponse>(
-        { token: refreshedToken, authenticated: true },
-        { status: 200 }
-      )
-      setSessionTokenCookie(response, refreshedToken)
-      return response
+      activeToken = resolveToken(refreshPayload, token)
+    } else {
+      await discardResponseBody(refreshResponse)
     }
 
-    const customerResponse = await fetch(
-      buildMedusaUrl("/store/customers/me"),
-      {
-        method: "GET",
-        headers: {
-          authorization: `Bearer ${token}`,
-          ...getPublishableHeaders(binding),
-        },
-        cache: "no-store",
-      }
-    )
-
-    if (!customerResponse.ok) {
+    const customer = await fetchAuthenticatedCustomer(binding, activeToken)
+    if (!customer) {
       const unauthorizedResponse = NextResponse.json<SessionResponse>(
         {
-          token: null,
           authenticated: false,
-          message: "Authentication required.",
+          message: messages.authenticationRequired,
         },
         { status: 200 }
       )
       clearSessionTokenCookie(unauthorizedResponse)
-      return unauthorizedResponse
+      return applyStorefrontAuthResponsePolicy(unauthorizedResponse)
     }
 
-    const response = NextResponse.json<SessionResponse>(
-      { token, authenticated: true },
-      { status: 200 }
-    )
-    setSessionTokenCookie(response, token)
-    return response
-  } catch (error) {
-    return serverError("Unable to restore auth session.", {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    return authenticatedCustomerResponse(customer, activeToken)
+  } catch {
+    return serverError(messages.sessionRestoreFailed)
   }
 }

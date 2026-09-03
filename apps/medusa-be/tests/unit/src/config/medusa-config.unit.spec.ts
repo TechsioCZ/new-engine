@@ -241,6 +241,9 @@ describe("readMedusaConfigEnv", () => {
         {
           resolve: "./src/modules/url-registry-outbox",
         },
+        {
+          resolve: "./src/modules/market-variant-authority",
+        },
       ])
     )
   })

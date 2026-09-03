@@ -10,6 +10,7 @@ import {
 import { GET } from "../../../src/api/store/storefront-texts/route"
 import {
   flattenStorefrontTextCatalog,
+  getFlatStorefrontTextCatalog,
   getPublishedStorefrontTextMessages,
   nestStorefrontTextMessages,
   STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
@@ -194,6 +195,124 @@ describe("storefront text registry", () => {
     }
   })
 
+  it("keeps the Hungarian legal confirmation free of Slovak leakage", () => {
+    const slovakValue = getStorefrontTextDefaultMessages({ market: "sk" })[
+      "checkout.review_legal_confirmation"
+    ]
+    const hungarianValue = getStorefrontTextDefaultMessages({ market: "hu" })[
+      "checkout.review_legal_confirmation"
+    ]
+
+    expect(hungarianValue).toContain("Megerősítem, hogy ")
+    expect(hungarianValue).not.toContain("že")
+    expect(
+      validateStorefrontTextOverride({
+        defaultValue: slovakValue ?? "",
+        locale: "hu-HU",
+        overrideValue: hungarianValue ?? "",
+      })
+    ).toEqual({ success: true })
+  })
+
+  it("keeps the claims namespace exact and ICU-compatible in every locale", () => {
+    const claimsDefinitions = STOREFRONT_TEXT_DEFINITIONS.filter(
+      (definition) => definition.namespace === "claims"
+    )
+    const expectedKeys = claimsDefinitions
+      .map((definition) => definition.key)
+      .sort()
+    const slovakCatalog = getFlatStorefrontTextCatalog("sk-SK")
+    const expectedPlaceholders = {
+      "claims.code_sent": "{email}",
+      "claims.item_quantity": "{title}",
+      "claims.order_heading": "{orderNumber}",
+      "claims.ordered_quantity": "{quantity}",
+      "claims.success_case": "{caseNumber}",
+    } as const
+
+    expect(expectedKeys).toHaveLength(47)
+
+    for (const { locale, market } of STOREFRONT_TEXT_MARKETS) {
+      const catalog = getFlatStorefrontTextCatalog(locale)
+      const localeClaimsKeys = Object.keys(catalog)
+        .filter((key) => key.startsWith("claims."))
+        .sort()
+
+      expect(localeClaimsKeys, locale).toEqual(expectedKeys)
+      expect(
+        Object.keys(
+          getStorefrontTextDefaultMessages({ market, namespace: "claims" })
+        ).sort(),
+        `${locale} published claims namespace`
+      ).toEqual(expectedKeys)
+
+      for (const key of expectedKeys) {
+        expect(
+          validateStorefrontTextOverride({
+            defaultValue: slovakCatalog[key] ?? "",
+            locale,
+            overrideValue: catalog[key] ?? "",
+          }),
+          `${key} (${locale})`
+        ).toEqual({ success: true })
+      }
+
+      for (const [key, placeholder] of Object.entries(expectedPlaceholders)) {
+        expect(catalog[key], `${key} (${locale})`).toContain(placeholder)
+      }
+    }
+  })
+
+  it("keeps saved-address keys exact and ICU-compatible in every locale", () => {
+    const expectedKeys = [
+      "auth.account.addresses.add",
+      "auth.account.addresses.cancel",
+      "auth.account.addresses.create_failed",
+      "auth.account.addresses.created",
+      "auth.account.addresses.default_billing",
+      "auth.account.addresses.default_shipping",
+      "auth.account.addresses.delete",
+      "auth.account.addresses.delete_description",
+      "auth.account.addresses.delete_failed",
+      "auth.account.addresses.delete_title",
+      "auth.account.addresses.deleted",
+      "auth.account.addresses.description",
+      "auth.account.addresses.edit",
+      "auth.account.addresses.edit_title",
+      "auth.account.addresses.empty_description",
+      "auth.account.addresses.empty_title",
+      "auth.account.addresses.load_failed",
+      "auth.account.addresses.new_title",
+      "auth.account.addresses.optional_label",
+      "auth.account.addresses.retry",
+      "auth.account.addresses.save",
+      "auth.account.addresses.title",
+      "auth.account.addresses.update_failed",
+      "auth.account.addresses.updated",
+    ]
+    const slovakCatalog = getFlatStorefrontTextCatalog("sk-SK")
+
+    for (const { locale } of STOREFRONT_TEXT_MARKETS) {
+      const catalog = getFlatStorefrontTextCatalog(locale)
+      const addressKeys = Object.keys(catalog)
+        .filter((key) => key.startsWith("auth.account.addresses."))
+        .sort()
+
+      expect(addressKeys, locale).toEqual(expectedKeys)
+
+      for (const key of expectedKeys) {
+        expect(
+          validateStorefrontTextOverride({
+            defaultValue: slovakCatalog[key] ?? "",
+            locale,
+            overrideValue: catalog[key] ?? "",
+          }),
+          `${key} (${locale})`
+        ).toEqual({ success: true })
+      }
+    }
+  })
+
   it("creates localized search defaults for every market", () => {
     const searchPlaceholderRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "search.input_placeholder"
@@ -208,6 +327,102 @@ describe("storefront text registry", () => {
       hu: "Írja be, mit keres...",
       ro: "Scrieți ce căutați...",
       sk: "Napíšte, čo hľadáte...",
+    })
+  })
+
+  it("creates localized shared-component defaults for every market", () => {
+    const localizedDefaults = Object.fromEntries(
+      STOREFRONT_TEXT_MARKETS.map(({ market }) => {
+        const messages = getStorefrontTextDefaultMessages({ market })
+
+        return [
+          market,
+          {
+            category: messages["catalog.category.default_name"],
+            categorySubtitle:
+              messages["catalog.category.subtitle.direct_products"],
+            checkoutPageUnavailable: messages["checkout.page_unavailable"],
+            contactHours: messages["navigation.contact.hours"],
+            contactEmail: messages["navigation.contact.email_display"],
+            contactEmailHref: messages["navigation.contact.email_href"],
+            contactHref: messages["navigation.contact.phone_href"],
+            contactPhone: messages["navigation.contact.phone_display"],
+            promoHeading: messages["content.home.promo.heading"],
+            productPageStatus:
+              messages["catalog.product_detail.errors.page_status"],
+            productPageUnavailable:
+              messages["catalog.product_detail.errors.page_unavailable"],
+            searchDisplayed: messages["search.results.displayed"],
+            stockLoading: messages["catalog.product_detail.stock.loading_aria"],
+          },
+        ]
+      })
+    )
+
+    expect(localizedDefaults).toEqual({
+      cz: {
+        category: "Kategorie",
+        categorySubtitle: "Zobrazené produkty dané kategorie",
+        checkoutPageUnavailable: "Pokladna momentálně není dostupná.",
+        contactHours: "(Po–Pá: 09:00–16:00)",
+        contactEmail: "ahoj@herbatica.cz",
+        contactEmailHref: "mailto:ahoj@herbatica.cz",
+        contactHref: "tel:+421232112345",
+        contactPhone: "+421 2/321 123 45",
+        promoHeading: "Přírodní kosmetika, doplňky stravy a tradiční medicína",
+        productPageStatus: "Stav: {status}",
+        productPageUnavailable: "Produkt momentálně není dostupný",
+        searchDisplayed: "zobrazeno: {count}",
+        stockLoading: "Načítám dostupnost podle skladů",
+      },
+      hu: {
+        category: "Kategória",
+        categorySubtitle: "A kategóriához tartozó termékek",
+        checkoutPageUnavailable: "A pénztár jelenleg nem érhető el.",
+        contactHours: "(Hé–Pé: 09:00–16:00)",
+        contactEmail: "szia@herbatica.hu",
+        contactEmailHref: "mailto:szia@herbatica.hu",
+        contactHref: "tel:+36213007325",
+        contactPhone: "+36 213 00 7325",
+        promoHeading:
+          "Természetes kozmetikumok, étrend-kiegészítők és hagyományos gyógyászat",
+        productPageStatus: "Állapot: {status}",
+        productPageUnavailable: "A termék jelenleg nem érhető el",
+        searchDisplayed: "megjelenítve: {count}",
+        stockLoading: "Raktárankénti elérhetőség betöltése",
+      },
+      ro: {
+        category: "Categorie",
+        categorySubtitle: "Produsele afișate din această categorie",
+        checkoutPageUnavailable:
+          "Finalizarea comenzii nu este disponibilă momentan.",
+        contactHours: "(Lun–Vin: 09:00–16:00)",
+        contactEmail: "salut@herbatica.ro",
+        contactEmailHref: "mailto:salut@herbatica.ro",
+        contactHref: "tel:+40(31)2295431",
+        contactPhone: "+40 (31) 2295431",
+        promoHeading:
+          "Cosmetice naturale, suplimente alimentare și medicină tradițională",
+        productPageStatus: "Stare: {status}",
+        productPageUnavailable: "Produsul nu este disponibil momentan",
+        searchDisplayed: "afișate: {count}",
+        stockLoading: "Se încarcă disponibilitatea pe depozite",
+      },
+      sk: {
+        category: "Kategória",
+        categorySubtitle: "Zobrazené produkty danej kategórie",
+        checkoutPageUnavailable: "Pokladňa momentálne nie je dostupná.",
+        contactHours: "(Po–Pia: 09:00–16:00)",
+        contactEmail: "ahoj@herbatica.sk",
+        contactEmailHref: "mailto:ahoj@herbatica.sk",
+        contactHref: "tel:+421232112345",
+        contactPhone: "+421 2/321 123 45",
+        promoHeading: "Prírodná kozmetika, doplnky výživy a tradičná medicína",
+        productPageStatus: "Stav: {status}",
+        productPageUnavailable: "Produkt momentálne nie je dostupný",
+        searchDisplayed: "zobrazené: {count}",
+        stockLoading: "Načítavam dostupnosť podľa skladov",
+      },
     })
   })
 

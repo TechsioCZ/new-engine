@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next"
 import { BlogListingPage } from "@/components/blog/blog-listing-page"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   foundSource,
   type PublicPageProps,
@@ -7,14 +8,19 @@ import {
 } from "@/lib/routing/public-page"
 import { type CmsBlogListing, fetchCmsBlogListing } from "@/lib/storefront/cms"
 import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
-import {
-  type PublicEntitySlugMap,
-  readRequiredPublicEntitySlugs,
-} from "@/lib/storefront/ssr/public-entity-projections"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projections"
+
+const BLOG_LISTING_TITLE = {
+  sk: "Blog o zdraví a kráse",
+  cz: "Blog o zdraví a kráse",
+  hu: "Egészség- és szépségblog",
+  ro: "Blog despre sănătate și frumusețe",
+} as const
 
 type AdviceIndexValue = Readonly<{
   articlePublicSlugsById: PublicEntitySlugMap
   listing: CmsBlogListing
+  title: string
 }>
 
 type Props = PublicPageProps<AdviceIndexValue>
@@ -35,25 +41,24 @@ export const getServerSideProps = (async (context) =>
             ? Number.parseInt(context.query.page, 10)
             : 1,
       })
-      const articlePublicSlugsById = await readRequiredPublicEntitySlugs({
-        kind: "article",
-        market,
-        requiredSourceIds: listing.posts.map((post) => post.sourceId),
+      // Without the URL registry, each post's own CMS slug is its public slug.
+      const articlePublicSlugsById: PublicEntitySlugMap = Object.fromEntries(
+        listing.posts.map((post) => [post.sourceId, post.slug])
+      )
+      return foundSource({
+        articlePublicSlugsById,
+        listing,
+        title: BLOG_LISTING_TITLE[market],
       })
-      return articlePublicSlugsById.kind === "found"
-        ? foundSource({
-            articlePublicSlugsById: articlePublicSlugsById.value,
-            listing,
-          })
-        : articlePublicSlugsById
     },
     path: { kind: "article" },
     queryKind: "advice-index",
+    title: (value) => value.title,
   })) satisfies GetServerSideProps<Props>
 
 export default function AdviceIndexPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Advice unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="advice" />
   }
   return (
     <BlogListingPage

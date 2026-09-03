@@ -212,6 +212,38 @@ describe("Payload CMS schemas", () => {
     })
   })
 
+  it("normalizes Payload's unset optional hero target group to null", () => {
+    const parsed = CmsHeroCarouselSchema.parse({
+      id: 1,
+      image: 2,
+      buttonTarget: {
+        targetType: null,
+        sourceSystem: null,
+        sourceType: null,
+        sourceId: null,
+        staticRouteKey: null,
+      },
+    })
+
+    expect(parsed.buttonTarget).toBeNull()
+  })
+
+  it("rejects a partially populated hero target without a target type", () => {
+    const parsed = CmsHeroCarouselSchema.safeParse({
+      id: 1,
+      image: 2,
+      buttonTarget: {
+        targetType: null,
+        sourceSystem: null,
+        sourceType: null,
+        sourceId: "prod_123",
+        staticRouteKey: null,
+      },
+    })
+
+    expect(parsed.success).toBe(false)
+  })
+
   it("rejects hero targets that mismatch source ownership or carry a path", () => {
     const wrongOwner = CmsHeroCarouselSchema.safeParse({
       id: 1,

@@ -32,8 +32,8 @@ type BlogListingPageProps = {
   listing: BlogListingWithSourceIds
 }
 
-const getFilterLabel = (filter: BlogCategoryFilter) =>
-  `${filter.label} (${filter.count})`
+const getFilterLabel = (filter: BlogCategoryFilter, allLabel: string) =>
+  `${filter.key === ALL_BLOG_CATEGORIES_KEY ? allLabel : filter.label} (${filter.count})`
 
 export function BlogListingPage({
   articlePublicSlugsById,
@@ -133,7 +133,10 @@ export function BlogListingPage({
                     theme={isActive ? "solid" : "outlined"}
                     variant={isActive ? "primary" : "secondary"}
                   >
-                    {getFilterLabel(filter)}
+                    {getFilterLabel(
+                      filter,
+                      tContent("blog.listing.filter_all")
+                    )}
                   </LinkButton>
                 )
               })}

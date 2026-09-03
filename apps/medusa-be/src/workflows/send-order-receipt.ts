@@ -1,12 +1,11 @@
 import type {
-  INotificationModuleService,
+  CreateNotificationDTO,
   Logger,
   Query,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
-  Modules,
 } from "@medusajs/framework/utils"
 import {
   createStep,
@@ -23,15 +22,10 @@ import {
   getOrderDisplayId,
   type PaymentReminderOrder,
 } from "../utils/order-payment-reminders"
+import { sendNotificationStep } from "./steps/send-notification"
 
 type WorkflowInput = {
   order_id: string
-}
-
-type OrderReceiptWorkflowResult = {
-  email?: string
-  order_id: string
-  sent: boolean
 }
 
 type QueryOrder = OrderReceiptOrder &
@@ -113,16 +107,14 @@ function getCustomerName(order: QueryOrder) {
   return customerName || address?.company || addressName || undefined
 }
 
-const sendOrderReceiptStep = createStep(
-  "send-order-receipt",
+const buildOrderReceiptNotificationStep = createStep(
+  "build-order-receipt-notification",
   async (
     input: WorkflowInput,
     { container }
-  ): Promise<StepResponse<OrderReceiptWorkflowResult>> => {
+  ): Promise<StepResponse<CreateNotificationDTO[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-    const notificationModuleService: INotificationModuleService =
-      container.resolve(Modules.NOTIFICATION)
     const orderReceiptModuleService =
       container.resolve<OrderReceiptModuleService>(ORDER_RECEIPT_MODULE)
 
@@ -144,10 +136,7 @@ const sendOrderReceiptStep = createStep(
 
     if (!order.email) {
       logger.warn(`Order ${order.id} has no email; receipt email skipped.`)
-      return new StepResponse({
-        order_id: order.id,
-        sent: false,
-      })
+      return new StepResponse([])
     }
 
     const marketContext = await resolveNotificationMarketContext(container, {
@@ -162,43 +151,42 @@ const sendOrderReceiptStep = createStep(
         storeName: marketContext.store_name,
       })
 
-    await notificationModuleService.createNotifications({
-      attachments: [
-        {
-          content: attachment.content.toString("base64"),
-          content_type: attachment.content_type,
-          disposition: "attachment",
-          filename: attachment.filename,
+    return new StepResponse([
+      {
+        attachments: [
+          {
+            content: attachment.content.toString("base64"),
+            content_type: attachment.content_type,
+            disposition: "attachment",
+            filename: attachment.filename,
+          },
+        ],
+        channel: "email",
+        data: {
+          ...marketContext,
+          customer_name: getCustomerName(order),
+          order_display_id: getOrderDisplayId(order),
+          order_id: order.id,
+          total: formatTotal(order, marketContext.locale),
         },
-      ],
-      channel: "email",
-      data: {
-        ...marketContext,
-        customer_name: getCustomerName(order),
-        order_display_id: getOrderDisplayId(order),
-        order_id: order.id,
-        total: formatTotal(order, marketContext.locale),
+        idempotency_key: `order-receipt:${order.id}`,
+        receiver_id: order.customer_id ?? undefined,
+        resource_id: order.id,
+        resource_type: "order",
+        template: "order-placed",
+        to: order.email,
+        trigger_type: "order.placed",
       },
-      resource_id: order.id,
-      resource_type: "order",
-      template: "order-placed",
-      to: order.email,
-      trigger_type: "order.placed",
-    })
-
-    return new StepResponse({
-      email: order.email,
-      order_id: order.id,
-      sent: true,
-    })
+    ])
   }
 )
 
 export const sendOrderReceiptWorkflow = createWorkflow(
   "send-order-receipt",
   (input: WorkflowInput) => {
-    const result = sendOrderReceiptStep(input)
+    const notificationInput = buildOrderReceiptNotificationStep(input)
+    const notification = sendNotificationStep(notificationInput)
 
-    return new WorkflowResponse(result)
+    return new WorkflowResponse({ notification })
   }
 )

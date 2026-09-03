@@ -18,6 +18,20 @@ const compactCommandUpgradeSql = commandUpgradeSql
   .replace(/\s+/g, " ")
   .trim()
   .toLowerCase()
+const catalogRetirementUpgradePath = fileURLToPath(
+  new URL(
+    "./migrations/0005_allow_catalog_unpublish_retirement.sql",
+    import.meta.url
+  )
+)
+const catalogRetirementUpgradeSql = readFileSync(
+  catalogRetirementUpgradePath,
+  "utf8"
+)
+const compactCatalogRetirementUpgradeSql = catalogRetirementUpgradeSql
+  .replace(/\s+/g, " ")
+  .trim()
+  .toLowerCase()
 const MANAGED_TRANSACTION = /\b(begin|commit)\s*;/
 
 const tableDefinition = (tableName: string): string => {
@@ -250,6 +264,36 @@ describe("URL registry source-event command receipt upgrade", () => {
     expect(compactCommandUpgradeSql).toContain("route.market = new.market")
     expect(compactCommandUpgradeSql).toContain(
       "create constraint trigger url_registry_source_event_command_deferred"
+    )
+  })
+})
+
+describe("URL registry catalog retirement receipt expansion", () => {
+  it("bounds the table lock and preflights historical receipts", () => {
+    expect(compactCatalogRetirementUpgradeSql).toContain(
+      "set local lock_timeout = '5s'"
+    )
+    expect(compactCatalogRetirementUpgradeSql).toContain("do $preflight$")
+    expect(compactCatalogRetirementUpgradeSql).toContain(
+      "contains source-event receipts incompatible with migration 0005"
+    )
+    expect(compactCatalogRetirementUpgradeSql).not.toContain(
+      "delete from url_registry.url_registry_source_event_receipt"
+    )
+    expect(compactCatalogRetirementUpgradeSql).not.toContain(
+      "update url_registry.url_registry_source_event_receipt"
+    )
+  })
+
+  it("keeps legacy commandless unpublished rows while adding exact retire commands", () => {
+    expect(compactCatalogRetirementUpgradeSql).toContain(
+      "action = 'unpublished' and ( command_idempotency_key is null or source_type in ('product', 'category', 'brand', 'collection') )"
+    )
+    expect(compactCatalogRetirementUpgradeSql).toContain(
+      "when 'unpublished' then case when new.source_type in ('product', 'category', 'brand', 'collection') then 'retire-route'"
+    )
+    expect(compactCatalogRetirementUpgradeSql).toContain(
+      "persisted_command.command_type = expected_command_type"
     )
   })
 })

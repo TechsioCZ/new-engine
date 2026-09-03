@@ -14,6 +14,7 @@ import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { isReviewTrustProviderSupported } from "@/lib/storefront/review-market-policy"
 import { buildPath } from "@/lib/url/public-url"
 
 type CheckoutCompleteSectionProps = {
@@ -31,9 +32,11 @@ type CheckoutCompleteSectionProps = {
   marketingConsent: boolean
   onHeurekaConsentChange: (value: boolean) => void
   onMarketingConsentChange: (value: boolean) => void
+  onPurchaseAcceptanceChange: (value: boolean) => void
   onCompleteOrder: () => Promise<void>
   paymentProviderId?: string
   paymentLabel?: string
+  purchaseAcceptanceGranted: boolean
   shippingAddressForm: AddressFormState
   shippingLabel?: string
   shippingOptionId?: string | null
@@ -134,9 +137,11 @@ export function CheckoutCompleteSection({
   marketingConsent,
   onHeurekaConsentChange,
   onMarketingConsentChange,
+  onPurchaseAcceptanceChange,
   onCompleteOrder,
   paymentProviderId,
   paymentLabel,
+  purchaseAcceptanceGranted,
   shippingAddressForm,
   shippingLabel,
   shippingOptionId,
@@ -146,6 +151,10 @@ export function CheckoutCompleteSection({
   const tCheckout = useTranslations("checkout")
   const tForm = useTranslations("form")
   const marketContext = useMarketContext()
+  const supportsHeureka = isReviewTrustProviderSupported(
+    marketContext.code,
+    "heureka"
+  )
   const shippingAddressRows = resolveAddressRows(
     shippingAddressForm,
     marketContext.locale,
@@ -203,34 +212,20 @@ export function CheckoutCompleteSection({
             onCheckedChange={onMarketingConsentChange}
             size="sm"
           />
-          <FormCheckbox
-            checked={heurekaConsent}
-            label={tCheckout("review_heureka_consent")}
-            onCheckedChange={onHeurekaConsentChange}
-            size="sm"
-          />
+          {supportsHeureka ? (
+            <FormCheckbox
+              checked={heurekaConsent}
+              label={tCheckout("review_heureka_consent")}
+              onCheckedChange={onHeurekaConsentChange}
+              size="sm"
+            />
+          ) : null}
         </div>
 
         <div className="space-y-200">
-          <Button
-            block
-            className="font-rubik tracking-wide"
-            disabled={!canCompleteOrder}
-            icon="token-icon-chevron-right"
-            iconPosition="right"
-            isLoading={isCompletingOrder}
-            onClick={() => {
-              runDetachedPromise(onCompleteOrder())
-            }}
-            size="lg"
-            type="button"
-            uppercase
-          >
-            {tCheckout("complete_order")}
-          </Button>
-
-          <p className="mx-auto max-w-[42rem] text-center text-fg-secondary text-xs leading-relaxed">
-            {tCheckout.rich("review_legal_confirmation", {
+          <FormCheckbox
+            checked={purchaseAcceptanceGranted}
+            label={tCheckout.rich("review_legal_confirmation", {
               privacy: (chunks) => (
                 <StorefrontLink
                   className={summaryInlineLinkClassName}
@@ -254,7 +249,28 @@ export function CheckoutCompleteSection({
                 </StorefrontLink>
               ),
             })}
-          </p>
+            name="purchase-terms-accepted"
+            onCheckedChange={onPurchaseAcceptanceChange}
+            required
+            size="sm"
+          />
+
+          <Button
+            block
+            className="font-rubik tracking-wide"
+            disabled={!canCompleteOrder}
+            icon="token-icon-chevron-right"
+            iconPosition="right"
+            isLoading={isCompletingOrder}
+            onClick={() => {
+              runDetachedPromise(onCompleteOrder())
+            }}
+            size="lg"
+            type="button"
+            uppercase
+          >
+            {tCheckout("complete_order")}
+          </Button>
         </div>
       </section>
 

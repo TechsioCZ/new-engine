@@ -3,14 +3,15 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import { useTranslations } from "next-intl"
 import { useRef, useState } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useRequestAccountDeactivation } from "@/lib/storefront/auth"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { AccountSurface } from "./account-surface"
 
 export function AccountDeactivationSection() {
+  const t = useTranslations("auth")
   const appToast = useAppToast()
   const requestAccountDeactivationMutation = useRequestAccountDeactivation()
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
@@ -35,34 +36,35 @@ export function AccountDeactivationSection() {
     try {
       const result = await requestAccountDeactivationMutation.mutateAsync()
       if (!result.sent) {
-        throw new Error("Potvrdzovací e-mail sa nepodarilo odoslať.")
+        setDeactivationError(t("deactivation.request.failed"))
+        return
       }
 
       setIsRequestSent(true)
       setIsDialogOpen(false)
       appToast.success({
-        title: "Potvrdzovací e-mail bol odoslaný",
-        description:
-          "Účet zostáva aktívny, kým jeho zrušenie nepotvrdíte v e-maile.",
+        title: t("deactivation.request.toast_title"),
+        description: t("deactivation.request.toast_description"),
       })
-    } catch (error) {
-      setDeactivationError(resolveErrorMessage(error))
+    } catch {
+      setDeactivationError(t("deactivation.request.failed"))
     }
   }
 
   return (
     <AccountSurface className="space-y-400">
       <header className="space-y-200">
-        <h2 className="font-semibold text-xl">Zrušenie účtu</h2>
+        <h2 className="font-semibold text-xl">
+          {t("deactivation.request.title")}
+        </h2>
         <p className="text-fg-secondary text-sm">
-          Pošleme vám e-mail s odkazom na potvrdenie. Účet zostane aktívny, kým
-          odkaz nepoužijete. Existujúce objednávky sa nevymažú.
+          {t("deactivation.request.description")}
         </p>
       </header>
 
       {isRequestSent && (
         <StatusText align="start" showIcon status="success">
-          Skontrolujte si e-mail. Potvrdzovací odkaz je platný 30 minút.
+          {t("deactivation.request.sent_status")}
         </StatusText>
       )}
 
@@ -73,7 +75,9 @@ export function AccountDeactivationSection() {
         }}
         variant="danger"
       >
-        {isRequestSent ? "Znovu odoslať e-mail" : "Požiadať o zrušenie účtu"}
+        {isRequestSent
+          ? t("deactivation.request.resend_action")
+          : t("deactivation.request.action")}
       </Button>
 
       <Dialog
@@ -88,12 +92,12 @@ export function AccountDeactivationSection() {
               type="button"
               variant="secondary"
             >
-              Ponechať účet
+              {t("deactivation.dialog.keep_account")}
             </Button>
             <Button
               disabled={requestAccountDeactivationMutation.isPending}
               isLoading={requestAccountDeactivationMutation.isPending}
-              loadingText="Odosiela sa e-mail"
+              loadingText={t("deactivation.dialog.sending")}
               onClick={() => {
                 runDetachedPromise(handleRequestAccountDeactivation())
               }}
@@ -101,7 +105,7 @@ export function AccountDeactivationSection() {
               type="button"
               variant="danger"
             >
-              Odoslať potvrdzovací e-mail
+              {t("deactivation.dialog.send")}
             </Button>
           </>
         }
@@ -112,11 +116,11 @@ export function AccountDeactivationSection() {
         customTrigger
         description={
           <div className="space-y-200">
-            <p>Účet sa týmto krokom ešte nezruší.</p>
+            <p>{t("deactivation.dialog.intro")}</p>
             <ul className="list-disc space-y-100 pl-400">
-              <li>Na váš e-mail pošleme odkaz platný 30 minút.</li>
-              <li>Účet zrušíme až po otvorení odkazu a potvrdení.</li>
-              <li>Existujúce objednávky sa nevymažú.</li>
+              <li>{t("deactivation.dialog.email_notice")}</li>
+              <li>{t("deactivation.dialog.confirmation_notice")}</li>
+              <li>{t("deactivation.dialog.orders_notice")}</li>
             </ul>
           </div>
         }
@@ -133,7 +137,7 @@ export function AccountDeactivationSection() {
         open={isDialogOpen}
         role="alertdialog"
         size="sm"
-        title="Odoslať potvrdenie zrušenia účtu?"
+        title={t("deactivation.dialog.title")}
       >
         {deactivationError && (
           <StatusText align="start" showIcon status="error">

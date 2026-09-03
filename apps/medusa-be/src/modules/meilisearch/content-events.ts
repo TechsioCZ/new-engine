@@ -1,4 +1,5 @@
 import type { Logger, MedusaContainer } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 import { MeilisearchAdminClient } from "./admin-client"
 import { buildContentSearchDocument } from "./documents"
 import { isMeilisearchEnabled } from "./env"
@@ -6,6 +7,7 @@ import { loadSearchProfiles } from "./profiles"
 import { CONTENT_INDEX_SETTINGS } from "./settings"
 import {
   contentProjectionKey,
+  readUrlRegistryContentProjectionConfig,
   resolveContentProjectionHrefs,
 } from "./url-registry-content-projection"
 
@@ -31,25 +33,17 @@ const isPublished = (
   change.doc?.status === "published" &&
   (type === "article" || change.doc?.visibility === "public")
 
-const reconcilePublishedContent = async ({
+const requirePublishedContentDocument = ({
   change,
-  client,
-  documentId,
-  index,
   locale,
-  logger,
   publicHref,
   type,
 }: {
   change: CmsSearchChange
-  client: MeilisearchAdminClient
-  documentId: string
-  index: string
   locale: string
-  logger: Logger
   publicHref: string | undefined
   type: "article" | "page"
-}) => {
+}): Record<string, unknown> => {
   const document = buildContentSearchDocument(
     change.doc ?? {},
     type,
@@ -58,14 +52,74 @@ const reconcilePublishedContent = async ({
   )
 
   if (document) {
-    await client.addDocuments(index, [document])
+    return document
+  }
+
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    `Cannot reconcile ${change.collection} search projection because its canonical public href is unavailable`
+  )
+}
+
+// A misconfigured-but-enabled projection must keep failing loudly, so only an
+// explicitly disabled feature flag is treated as "projection unavailable".
+const isContentProjectionDisabled = (): boolean => {
+  try {
+    return readUrlRegistryContentProjectionConfig() === null
+  } catch {
+    return false
+  }
+}
+
+const prepareContentIndex = async (
+  client: MeilisearchAdminClient,
+  index: string
+): Promise<void> => {
+  await client.ensureIndex(index)
+  await client.updateSettings(
+    index,
+    CONTENT_INDEX_SETTINGS as Record<string, unknown>
+  )
+}
+
+const indexPublishedContent = async ({
+  change,
+  client,
+  index,
+  locale,
+  logger,
+  sourceId,
+  type,
+}: {
+  change: CmsSearchChange
+  client: MeilisearchAdminClient
+  index: string
+  locale: string
+  logger: Logger
+  sourceId: string
+  type: "article" | "page"
+}): Promise<void> => {
+  if (isContentProjectionDisabled()) {
+    logger.warn(
+      `Skipping ${change.collection} search projection for ${index} because URL_REGISTRY_CONTENT_PROJECTION_ENABLED is not "1"; published documents stay out of the search index until the projection is enabled and a full content resync runs`
+    )
+
     return
   }
 
-  logger.warn(
-    `Removing ${change.collection} search projection because its canonical public href is unavailable`
+  const projections = await resolveContentProjectionHrefs(
+    [{ sourceId, sourceType: type }],
+    locale,
+    logger
   )
-  await client.deleteDocuments(index, [documentId])
+  const document = requirePublishedContentDocument({
+    change,
+    locale,
+    publicHref: projections.get(contentProjectionKey(type, sourceId)),
+    type,
+  })
+  await prepareContentIndex(client, index)
+  await client.addDocuments(index, [document])
 }
 
 export const reconcileContentSearchChange = async (
@@ -103,8 +157,16 @@ export const reconcileContentSearchChange = async (
     typeof change.doc?.locale === "string"
       ? normalizeLocale(change.doc.locale)
       : undefined
+  const isLocaleLessDelete = change.operation === "delete" && !locale
+  if (!(locale || isLocaleLessDelete)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Quarantining ${change.collection} search projection because its locale is missing`
+    )
+  }
   const profiles = (await loadSearchProfiles(container)).filter(
-    (profile) => !locale || normalizeLocale(profile.locale) === locale
+    (profile) =>
+      isLocaleLessDelete || normalizeLocale(profile.locale) === locale
   )
   const client = new MeilisearchAdminClient()
   const documentId = `${type}_${String(rawId)}`
@@ -112,30 +174,18 @@ export const reconcileContentSearchChange = async (
   for (const profile of profiles) {
     const index = profile.indexes.content
 
-    await client.ensureIndex(index)
-    await client.updateSettings(
-      index,
-      CONTENT_INDEX_SETTINGS as Record<string, unknown>
-    )
-
     if (isPublished(change, type)) {
-      const sourceId = String(rawId).trim()
-      const projections = await resolveContentProjectionHrefs(
-        [{ sourceId, sourceType: type }],
-        profile.locale,
-        logger
-      )
-      await reconcilePublishedContent({
+      await indexPublishedContent({
         change,
         client,
-        documentId,
         index,
         locale: profile.locale,
         logger,
-        publicHref: projections.get(contentProjectionKey(type, sourceId)),
+        sourceId: String(rawId).trim(),
         type,
       })
     } else {
+      await prepareContentIndex(client, index)
       await client.deleteDocuments(index, [documentId])
     }
   }

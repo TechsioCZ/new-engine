@@ -1,0 +1,91 @@
+name: Storefront Packages Release
+
+on:
+  push:
+    tags:
+      - 'storefront-data-v*'
+      - 'storefront-i18n-v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: storefront-packages-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Resolve and validate release tag
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          case "$RELEASE_TAG" in
+            storefront-data-v*)
+              PACKAGE_DIR="libs/storefront-data"
+              TAG_VERSION="${RELEASE_TAG#storefront-data-v}"
+              ;;
+            storefront-i18n-v*)
+              PACKAGE_DIR="libs/storefront-i18n"
+              TAG_VERSION="${RELEASE_TAG#storefront-i18n-v}"
+              ;;
+            *)
+              echo "Unsupported release tag: $RELEASE_TAG" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "package_dir=$PACKAGE_DIR" >> "$GITHUB_OUTPUT"
+          echo "tag_version=$TAG_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          scope: '@techsio'
+          cache: 'pnpm'
+
+      - name: Update npm for trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Install package dependencies
+        env:
+          PACKAGE_DIR: ${{ steps.release.outputs.package_dir }}
+        run: pnpm install --frozen-lockfile --prefer-offline --filter "./${PACKAGE_DIR}..."
+
+      - name: Verify tag matches package version
+        env:
+          PACKAGE_DIR: ${{ steps.release.outputs.package_dir }}
+          TAG_VERSION: ${{ steps.release.outputs.tag_version }}
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./${PACKAGE_DIR}/package.json').version")
+          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "Tag version $TAG_VERSION does not match $PACKAGE_DIR version $PACKAGE_VERSION" >&2
+            exit 1
+          fi
+
+      - name: Validate release candidate
+        env:
+          PACKAGE_DIR: ${{ steps.release.outputs.package_dir }}
+        run: pnpm -C "$PACKAGE_DIR" validate:release
+
+      - name: Inspect packed contents
+        working-directory: ${{ steps.release.outputs.package_dir }}
+        run: npm pack --dry-run --json
+
+      - name: Publish package with provenance
+        working-directory: ${{ steps.release.outputs.package_dir }}
+        run: npm publish --access public --provenance

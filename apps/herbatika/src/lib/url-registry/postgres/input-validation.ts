@@ -17,7 +17,7 @@ const ENTITY_KINDS = new Set([
   "article",
   "page",
 ])
-const SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const SEGMENT = /^(?=.*[a-z0-9])[a-z0-9-]+$/
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const REQUEST_FINGERPRINT = /^sha256:[0-9a-f]{64}$/
@@ -82,10 +82,10 @@ export const assertEntityKind: (
 }
 
 export const assertSegment = (value: unknown, name: string) => {
-  if (typeof value !== "string" || value.length > 80 || !SEGMENT.test(value)) {
+  if (typeof value !== "string" || value.length > 255 || !SEGMENT.test(value)) {
     throw new UrlRegistryError(
       "INVALID_COMMAND",
-      `${name} must be a normalized ASCII segment of at most 80 characters`
+      `${name} must be a normalized ASCII segment of at most 255 characters`
     )
   }
 }

@@ -18,6 +18,7 @@ import { FractionalRating } from "@/components/reviews/fractional-rating"
 import type { ReviewItem } from "@/components/reviews/reviews.types"
 import { StorefrontLink } from "@/components/storefront-link"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { isProductReviewMarketSupported } from "@/lib/storefront/review-market-policy"
 import {
   PRODUCT_REVIEWS_PAGE_SIZE,
   useProductReviews,
@@ -42,6 +43,28 @@ const reviewPageParser = createParser({
   },
   serialize: String,
 }).withDefault(1)
+
+const resolveReviewPageUrl = ({
+  currentQuery,
+  page,
+  productPath,
+}: {
+  currentQuery: string
+  page: number
+  productPath: string | null
+}) => {
+  if (!productPath) {
+    return `#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
+  }
+  const baseHref = currentQuery ? `${productPath}?${currentQuery}` : productPath
+  const href = withPublicSearchParams(baseHref, {
+    [REVIEW_PAGE_PARAM]: page <= 1 ? null : page,
+  })
+  return `${href}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
+}
+
+const isInitialReviewLoading = (isLoading: boolean, reviewCount: number) =>
+  isLoading && reviewCount === 0
 
 function ProductDetailReviewsSkeleton() {
   const tCatalog = useTranslations("catalog")
@@ -175,7 +198,8 @@ export function ProductDetailReviews({
 }: ProductDetailReviewsProps) {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
-  const { code: market } = useMarketContext()
+  const { code: market, locale } = useMarketContext()
+  const supportsProductReviews = isProductReviewMarketSupported(market)
   const searchParams = useSearchParams()
   const productPath = buildProjectedEntityPath(
     "product",
@@ -186,23 +210,19 @@ export function ProductDetailReviews({
     REVIEW_PAGE_PARAM,
     reviewPageParser
   )
-  const getReviewPageUrl = ({ page }: { page: number }) => {
-    if (!productPath) {
-      return `#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
-    }
-    const query = searchParams?.toString() ?? ""
-    const baseHref = query ? `${productPath}?${query}` : productPath
-    const href = withPublicSearchParams(baseHref, {
-      [REVIEW_PAGE_PARAM]: page <= 1 ? null : page,
+  const getReviewPageUrl = ({ page }: { page: number }) =>
+    resolveReviewPageUrl({
+      currentQuery: searchParams?.toString() ?? "",
+      page,
+      productPath,
     })
-    return `${href}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
-  }
 
   const reviewsQuery = useProductReviews({
     productId: productId ?? undefined,
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
+    locale,
     page: currentPage,
-    enabled: Boolean(productId),
+    enabled: Boolean(productId) && supportsProductReviews,
   })
   const reviews = reviewsQuery.reviews
   const totalCount = reviewsQuery.totalCount
@@ -218,7 +238,10 @@ export function ProductDetailReviews({
         }),
     })
   )
-  const isInitialLoading = reviewsQuery.isLoading && reviews.length === 0
+  const isInitialLoading = isInitialReviewLoading(
+    reviewsQuery.isLoading,
+    reviews.length
+  )
   const isEmpty = reviewsQuery.isSuccess && totalCount === 0
   const isPageOutOfRange =
     reviewsQuery.isSuccess &&
@@ -234,6 +257,10 @@ export function ProductDetailReviews({
 
     setCurrentPage(reviewsQuery.totalPages, { history: "replace" })
   }, [isPageOutOfRange, reviewsQuery.totalPages, setCurrentPage])
+
+  if (!supportsProductReviews) {
+    return null
+  }
 
   if (!productId) {
     return (

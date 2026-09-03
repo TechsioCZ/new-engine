@@ -33,13 +33,14 @@ const patchStorageMethod = <
   methodName: TMethodName,
   createFallback: (originalMethod: Storage[TMethodName]) => Storage[TMethodName]
 ): (() => void) => {
-  const storagePrototype = Object.getPrototypeOf(storage) as Storage
-  const prototypeDescriptor = Object.getOwnPropertyDescriptor(
-    storagePrototype,
-    methodName
-  )
+  // `storage` may have a null prototype in some environments, so
+  // `Object.getPrototypeOf` can legitimately return null here.
+  const storagePrototype = Object.getPrototypeOf(storage) as Storage | null
+  const prototypeDescriptor = storagePrototype
+    ? Object.getOwnPropertyDescriptor(storagePrototype, methodName)
+    : undefined
   const ownDescriptor = Object.getOwnPropertyDescriptor(storage, methodName)
-  const originalMethod = storage[methodName] ?? storagePrototype[methodName]
+  const originalMethod = storage[methodName] ?? storagePrototype?.[methodName]
   const fallbackMethod = createFallback(originalMethod)
 
   try {
@@ -50,12 +51,14 @@ const patchStorageMethod = <
       value: fallbackMethod,
     })
   } catch {
-    Object.defineProperty(storagePrototype, methodName, {
-      configurable: prototypeDescriptor?.configurable ?? true,
-      enumerable: prototypeDescriptor?.enumerable ?? false,
-      writable: prototypeDescriptor?.writable ?? true,
-      value: fallbackMethod,
-    })
+    if (storagePrototype) {
+      Object.defineProperty(storagePrototype, methodName, {
+        configurable: prototypeDescriptor?.configurable ?? true,
+        enumerable: prototypeDescriptor?.enumerable ?? false,
+        writable: prototypeDescriptor?.writable ?? true,
+        value: fallbackMethod,
+      })
+    }
   }
 
   return () => {
@@ -66,7 +69,7 @@ const patchStorageMethod = <
 
     Reflect.deleteProperty(storage, methodName)
 
-    if (prototypeDescriptor) {
+    if (prototypeDescriptor && storagePrototype) {
       Object.defineProperty(storagePrototype, methodName, prototypeDescriptor)
     }
   }
@@ -125,6 +128,12 @@ const withSafeLocalStorageMethods = <TValue>(
   try {
     storage = window.localStorage
   } catch {
+    return callback()
+  }
+
+  // Some environments (e.g. storage disabled entirely) expose `localStorage`
+  // as undefined/null instead of throwing on access.
+  if (!storage) {
     return callback()
   }
 

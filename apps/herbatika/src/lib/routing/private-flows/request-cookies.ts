@@ -2,6 +2,9 @@ import { getSessionTokenFromCookieHeader } from "@/app/api/storefront-auth/_lib"
 
 export const CART_ID_HINT_COOKIE_NAME = "herbatika_cart_id"
 export const CART_SESSION_COOKIE_NAME = "__Host-herbatika-cart-session"
+export const ORDER_CONFIRMATION_TOKEN_COOKIE_NAME =
+  "__Host-herbatika-order-confirmation"
+export const ORDER_CONFIRMATION_TOKEN_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60
 export const PAYMENT_RESULT_COOKIE_NAME = "__Host-herbatika-payment-result"
 
 const exactCookie = (cookieHeader: string | undefined, name: string) => {
@@ -29,6 +32,9 @@ export const readCartSessionId = (cookieHeader: string | undefined) =>
 
 export const readCartSessionToken = (cookieHeader: string | undefined) =>
   exactCookie(cookieHeader, CART_SESSION_COOKIE_NAME)
+
+export const readOrderConfirmationToken = (cookieHeader: string | undefined) =>
+  exactCookie(cookieHeader, ORDER_CONFIRMATION_TOKEN_COOKIE_NAME)
 
 export const readPaymentResultToken = (cookieHeader: string | undefined) =>
   exactCookie(cookieHeader, PAYMENT_RESULT_COOKIE_NAME)

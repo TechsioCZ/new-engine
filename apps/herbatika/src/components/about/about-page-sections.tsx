@@ -2,7 +2,7 @@ import { Fragment } from "react"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import { StorefrontLink } from "@/components/storefront-link"
-import { ABOUT_PAGE, type AboutParagraph } from "./about-page.data"
+import type { AboutPageData, AboutParagraph } from "./about-page.data"
 import {
   AboutImageFrame,
   AboutParagraphText,
@@ -27,11 +27,11 @@ function getAboutParagraphKey(paragraph: AboutParagraph) {
     .join("|")
 }
 
-function AboutLogoMeaning() {
+function AboutLogoMeaning({ data }: { data: AboutPageData }) {
   return (
     <section className="border-border-secondary border-t pt-650">
       <div className="max-w-5xl border-primary border-l-4 pl-400">
-        {ABOUT_PAGE.logoMeaning.paragraphs.map((paragraph) => (
+        {data.logoMeaning.paragraphs.map((paragraph) => (
           <AboutParagraphText
             key={`logo-meaning-${getAboutParagraphKey(paragraph)}`}
             paragraph={paragraph}
@@ -43,14 +43,16 @@ function AboutLogoMeaning() {
 }
 
 export function AboutArticleSections({
+  data,
   group = "beforeMilestones",
 }: {
+  data: AboutPageData
   group?: "afterMilestones" | "beforeMilestones"
 }) {
   const sections =
     group === "beforeMilestones"
-      ? ABOUT_PAGE.sections.slice(0, 3)
-      : ABOUT_PAGE.sections.slice(3)
+      ? data.sections.slice(0, 3)
+      : data.sections.slice(3)
 
   return (
     <div className="space-y-650">
@@ -73,7 +75,7 @@ export function AboutArticleSections({
           </section>
 
           {group === "beforeMilestones" && index === 0 ? (
-            <AboutLogoMeaning />
+            <AboutLogoMeaning data={data} />
           ) : null}
         </Fragment>
       ))}
@@ -81,12 +83,12 @@ export function AboutArticleSections({
   )
 }
 
-export function AboutMilestones() {
+export function AboutMilestones({ data }: { data: AboutPageData }) {
   return (
     <section className="space-y-400 border-border-secondary border-t pt-650">
-      <SectionHeader title="Kľúčové míľniky našej histórie" />
+      <SectionHeader title={data.milestonesTitle} />
       <ol className="space-y-250">
-        {ABOUT_PAGE.milestones.map((milestone) => (
+        {data.milestones.map((milestone) => (
           <li
             className="grid gap-150 border-border-secondary border-t py-250 first:border-t-0 sm:grid-cols-[5rem_minmax(0,1fr)]"
             key={`${milestone.year}-${getAboutParagraphKey(milestone.description)}`}
@@ -102,18 +104,18 @@ export function AboutMilestones() {
   )
 }
 
-export function AboutClosingStatement() {
+export function AboutClosingStatement({ data }: { data: AboutPageData }) {
   return (
     <p className="mx-auto max-w-5xl text-center font-bold text-2xl text-primary leading-snug">
-      {ABOUT_PAGE.closingStatement}
+      {data.closingStatement}
     </p>
   )
 }
 
-export function AboutPrinciples() {
+export function AboutPrinciples({ data }: { data: AboutPageData }) {
   return (
     <section className="grid gap-500 border-border-secondary border-t pt-650 md:grid-cols-3">
-      {ABOUT_PAGE.principles.map((principle) => (
+      {data.principles.map((principle) => (
         <article className="space-y-250" key={principle.title}>
           <h2 className="flex items-center gap-200 font-bold text-2xl text-fg-primary leading-tight">
             <span
@@ -129,10 +131,10 @@ export function AboutPrinciples() {
   )
 }
 
-function AboutSocialLinks() {
+function AboutSocialLinks({ data }: { data: AboutPageData }) {
   return (
     <ul className="flex flex-wrap gap-150">
-      {ABOUT_PAGE.socialLinks.map((link) => (
+      {data.socialLinks.map((link) => (
         <li key={link.href}>
           <StorefrontLink
             aria-label={link.label}
@@ -150,25 +152,27 @@ function AboutSocialLinks() {
 }
 
 export function AboutCommunityAndReviews({
+  data,
   reviewTrustSources,
 }: {
+  data: AboutPageData
   reviewTrustSources: readonly ReviewTrustSource[]
 }) {
   return (
     <div className="space-y-650 border-border-secondary border-t pt-650">
       <div className="grid gap-500 lg:grid-cols-2">
         <div className="space-y-300">
-          {ABOUT_PAGE.follow.paragraphs.map((paragraph) => (
+          {data.follow.paragraphs.map((paragraph) => (
             <AboutParagraphText
               key={`follow-${getAboutParagraphKey(paragraph)}`}
               paragraph={paragraph}
             />
           ))}
-          <AboutSocialLinks />
+          <AboutSocialLinks data={data} />
         </div>
 
         <div className="space-y-300">
-          {ABOUT_PAGE.loyalty.paragraphs.map((paragraph) => (
+          {data.loyalty.paragraphs.map((paragraph) => (
             <AboutParagraphText
               key={`loyalty-${getAboutParagraphKey(paragraph)}`}
               paragraph={paragraph}
@@ -178,8 +182,8 @@ export function AboutCommunityAndReviews({
       </div>
 
       <section className="space-y-300">
-        <SectionHeader title={ABOUT_PAGE.reviews.title} />
-        {ABOUT_PAGE.reviews.paragraphs.map((paragraph) => (
+        <SectionHeader title={data.reviews.title} />
+        {data.reviews.paragraphs.map((paragraph) => (
           <AboutParagraphText
             key={`reviews-${getAboutParagraphKey(paragraph)}`}
             paragraph={paragraph}
@@ -191,13 +195,13 @@ export function AboutCommunityAndReviews({
   )
 }
 
-export function AboutContact() {
+export function AboutContact({ data }: { data: AboutPageData }) {
   return (
     <section className="grid gap-500 border-border-secondary border-t pt-650 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,24rem)]">
       <div className="space-y-350">
-        <SectionHeader title={ABOUT_PAGE.contact.title} />
+        <SectionHeader title={data.contact.title} />
         <div className="space-y-300">
-          {ABOUT_PAGE.contact.paragraphs.map((paragraph) => (
+          {data.contact.paragraphs.map((paragraph) => (
             <AboutParagraphText
               key={`contact-${getAboutParagraphKey(paragraph)}`}
               paragraph={paragraph}
@@ -208,10 +212,10 @@ export function AboutContact() {
 
       <address className="not-italic">
         <h3 className="mb-250 font-bold text-fg-primary text-lg leading-tight">
-          Prevádzkovateľ internetového obchodu
+          {data.contact.operatorTitle}
         </h3>
         <ul className="space-y-100 font-verdana text-fg-secondary text-md leading-relaxed">
-          {ABOUT_PAGE.contact.companyDetails.map((detail) => (
+          {data.contact.companyDetails.map((detail) => (
             <li key={detail}>{detail}</li>
           ))}
         </ul>

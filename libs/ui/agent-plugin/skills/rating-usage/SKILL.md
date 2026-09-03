@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/atoms/rating.tsx"
   - "libs/ui/src/tokens/components/atoms/_rating.css"
   - "libs/ui/stories/atoms/rating.stories.tsx"
-  - "libs/ui/src/atoms/figma/rating.figma.tsx"
+  - "libs/ui/src/atoms/rating.figma.ts"
   - "https://zagjs.com/components/react/rating-group"
 ---
 

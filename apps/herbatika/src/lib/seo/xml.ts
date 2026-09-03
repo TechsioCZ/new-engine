@@ -21,12 +21,22 @@ export const escapeXml = (value: string): string =>
     .replaceAll("'", "&apos;")
 
 export type SitemapUrl = Readonly<{
+  alternates?: Readonly<Record<string, string>>
   location: string
   lastModified?: string
 }>
 
 const lastModifiedElement = (lastModified?: string) =>
   lastModified ? `<lastmod>${escapeXml(lastModified)}</lastmod>` : ""
+
+const alternateElements = (alternates?: Readonly<Record<string, string>>) =>
+  Object.entries(alternates ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([language, location]) =>
+        `<xhtml:link rel="alternate" hreflang="${escapeXml(language)}" href="${escapeXml(location)}"/>`
+    )
+    .join("")
 
 export const serializeSitemapIndex = (
   sitemaps: readonly SitemapUrl[]
@@ -39,9 +49,9 @@ export const serializeSitemapIndex = (
     .join("")}</sitemapindex>\n`
 
 export const serializeUrlSet = (urls: readonly SitemapUrl[]): string =>
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${urls
     .map(
-      ({ lastModified, location }) =>
-        `<url><loc>${escapeXml(location)}</loc>${lastModifiedElement(lastModified)}</url>`
+      ({ alternates, lastModified, location }) =>
+        `<url><loc>${escapeXml(location)}</loc>${alternateElements(alternates)}${lastModifiedElement(lastModified)}</url>`
     )
     .join("")}</urlset>\n`

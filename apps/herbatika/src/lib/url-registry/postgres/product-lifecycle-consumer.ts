@@ -1,8 +1,16 @@
+import {
+  CATALOG_LIFECYCLE_ENTITY_KINDS,
+  type CatalogLifecycleDeliveryV1,
+  parseCatalogLifecycleDeliveryV1,
+} from "../catalog-lifecycle-parser"
 import type { SourceReadResult } from "../contracts"
 import {
+  decideCatalogLifecycle,
   decideProductLifecycle,
+  decideTranslationInvalidatedProductLifecycle,
   fingerprintProductLifecycleDelivery,
   type ProductLifecycleReceiptAction,
+  type UrlRegistryLifecycleDeliveryV1,
 } from "../product-lifecycle"
 import {
   type ProductLifecycleDeliveryV1,
@@ -33,6 +41,10 @@ export type ProductLifecycleSourceReader = (input: {
   productId: string
 }) => Promise<SourceReadResult<unknown>>
 
+export type CatalogLifecycleSourceReader = (
+  delivery: CatalogLifecycleDeliveryV1
+) => Promise<SourceReadResult<unknown>>
+
 export type ProductLifecycleConsumeResult =
   | Readonly<{
       kind: "acknowledged"
@@ -47,6 +59,7 @@ export type ProductLifecycleConsumeResult =
     >
 
 export type PostgresProductLifecycleConsumerOptions = Readonly<{
+  readCatalog?: CatalogLifecycleSourceReader
   readProduct: ProductLifecycleSourceReader
   transaction?: TransactionRetryOptions
 }>
@@ -57,7 +70,7 @@ type ReadableProductSource = Extract<
 >
 
 const acknowledge = (
-  delivery: ProductLifecycleDeliveryV1,
+  delivery: UrlRegistryLifecycleDeliveryV1,
   action: ProductLifecycleReceiptAction,
   commandIdempotencyKey: string | null,
   replayed: boolean
@@ -72,6 +85,21 @@ const acknowledge = (
 const delay = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
 
+const parseDelivery = (input: unknown): UrlRegistryLifecycleDeliveryV1 => {
+  if (input && typeof input === "object") {
+    const entityKind = (input as { entityKind?: unknown }).entityKind
+    if (
+      typeof entityKind === "string" &&
+      CATALOG_LIFECYCLE_ENTITY_KINDS.includes(
+        entityKind as CatalogLifecycleDeliveryV1["entityKind"]
+      )
+    ) {
+      return parseCatalogLifecycleDeliveryV1(input)
+    }
+  }
+  return parseProductLifecycleDeliveryV1(input)
+}
+
 export class PostgresProductLifecycleConsumer {
   private readonly commands: PostgresCommandRunner
   private readonly options: PostgresProductLifecycleConsumerOptions
@@ -84,7 +112,7 @@ export class PostgresProductLifecycleConsumer {
   }
 
   async consume(input: unknown): Promise<ProductLifecycleConsumeResult> {
-    const delivery = parseProductLifecycleDeliveryV1(input)
+    const delivery = parseDelivery(input)
     const fingerprint = fingerprintProductLifecycleDelivery(delivery)
     const replay = await this.readReplay(delivery, fingerprint)
     if (replay) {
@@ -93,12 +121,19 @@ export class PostgresProductLifecycleConsumer {
     const requiresSourceRead =
       delivery.changeType === "delete" ||
       delivery.payload.assignment?.publicationStatus === "published"
-    const source = requiresSourceRead
-      ? await this.options.readProduct({
+    let source: SourceReadResult<unknown> = { kind: "missing" }
+    if (requiresSourceRead) {
+      if (delivery.entityKind === "product") {
+        source = await this.options.readProduct({
           market: delivery.marketCode,
           productId: delivery.entityId,
         })
-      : ({ kind: "missing" } as const)
+      } else if (this.options.readCatalog) {
+        source = await this.options.readCatalog(delivery)
+      } else {
+        source = { kind: "unavailable" }
+      }
+    }
     if (source.kind === "unavailable" || source.kind === "invalid-response") {
       return {
         kind: "retry",
@@ -110,7 +145,7 @@ export class PostgresProductLifecycleConsumer {
   }
 
   private async readReplay(
-    delivery: ProductLifecycleDeliveryV1,
+    delivery: UrlRegistryLifecycleDeliveryV1,
     fingerprint: `sha256:${string}`
   ): Promise<ProductLifecycleConsumeResult | null> {
     const preflight = await readProductLifecycleStreamState(
@@ -137,7 +172,7 @@ export class PostgresProductLifecycleConsumer {
   }
 
   private async consumeOrdered(
-    delivery: ProductLifecycleDeliveryV1,
+    delivery: UrlRegistryLifecycleDeliveryV1,
     fingerprint: `sha256:${string}`,
     source: ReadableProductSource
   ): Promise<ProductLifecycleConsumeResult> {
@@ -177,7 +212,7 @@ export class PostgresProductLifecycleConsumer {
 
   private async consumeInTransaction(
     executor: SqlClient,
-    delivery: ProductLifecycleDeliveryV1,
+    delivery: UrlRegistryLifecycleDeliveryV1,
     fingerprint: `sha256:${string}`,
     source: ReadableProductSource
   ): Promise<ProductLifecycleConsumeResult> {
@@ -200,12 +235,22 @@ export class PostgresProductLifecycleConsumer {
       )
     }
     const route = await readProductLifecycleRoute(executor, delivery)
-    const decision = decideProductLifecycle(
-      delivery.changeType,
-      delivery.payload.assignment,
-      source,
-      route
-    )
+    const decision =
+      delivery.entityKind === "product"
+        ? (delivery.payload.reason === "translation-invalidated"
+            ? decideTranslationInvalidatedProductLifecycle
+            : decideProductLifecycle)(
+            delivery.changeType,
+            delivery.payload.assignment,
+            source,
+            route
+          )
+        : decideCatalogLifecycle(
+            delivery.changeType,
+            delivery.payload.assignment,
+            source,
+            route
+          )
     if (decision.kind === "retry" || decision.kind === "conflict") {
       return decision
     }

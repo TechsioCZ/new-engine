@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.1.0"
 name: select-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Select for
@@ -17,7 +17,7 @@ sources:
   - "libs/ui/src/molecules/select.tsx"
   - "libs/ui/src/tokens/components/molecules/_select.css"
   - "libs/ui/stories/molecules/select.stories.tsx"
-  - "libs/ui/src/molecules/figma/select.figma.tsx"
+  - "libs/ui/src/molecules/select.figma.ts"
   - "https://zagjs.com/components/react/select"
 ---
 

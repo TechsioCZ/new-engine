@@ -1,13 +1,66 @@
 import { describe, expect, it } from "vitest"
 import { resolvePublicProxyAction } from "./public-proxy"
 
+const ROUTING_ENVIRONMENT = {
+  ALLOWED_MARKETS: "sk,cz,hu,ro",
+  MARKET_ACCEPTED_HOSTS_CZ:
+    "herbatica.cz,www.herbatica.cz,test-engine-herbatika-cz-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_HU:
+    "herbatica.hu,www.herbatica.hu,test-engine-herbatika-hu-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_RO:
+    "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_SK:
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-sk-zane.web-revolution.cz,test-engine-herbatika-zane.web-revolution.cz",
+} as const
+
+const HOST_MATRIX = [
+  ["herbatica.sk", "sk", false, "https://herbatica.sk"],
+  ["www.herbatica.sk", "sk", true, "https://herbatica.sk"],
+  [
+    "test-engine-herbatika-sk-zane.web-revolution.cz",
+    "sk",
+    true,
+    "https://herbatica.sk",
+  ],
+  [
+    "test-engine-herbatika-zane.web-revolution.cz",
+    "sk",
+    true,
+    "https://herbatica.sk",
+  ],
+  ["herbatica.cz", "cz", false, "https://herbatica.cz"],
+  ["www.herbatica.cz", "cz", true, "https://herbatica.cz"],
+  [
+    "test-engine-herbatika-cz-zane.web-revolution.cz",
+    "cz",
+    true,
+    "https://herbatica.cz",
+  ],
+  ["herbatica.hu", "hu", false, "https://herbatica.hu"],
+  ["www.herbatica.hu", "hu", true, "https://herbatica.hu"],
+  [
+    "test-engine-herbatika-hu-zane.web-revolution.cz",
+    "hu",
+    true,
+    "https://herbatica.hu",
+  ],
+  ["herbatica.ro", "ro", false, "https://herbatica.ro"],
+  ["www.herbatica.ro", "ro", true, "https://herbatica.ro"],
+  [
+    "test-engine-herbatika-ro-zane.web-revolution.cz",
+    "ro",
+    true,
+    "https://herbatica.ro",
+  ],
+] as const
+
 const resolve = (
   pathname: string,
   overrides: Partial<Parameters<typeof resolvePublicProxyAction>[0]> = {}
 ) =>
   resolvePublicProxyAction({
     enabled: true,
-    environment: { ALLOWED_MARKETS: "sk,cz,hu,ro" },
+    environment: ROUTING_ENVIRONMENT,
     host: "herbatica.sk",
     method: "GET",
     pathname,
@@ -17,11 +70,16 @@ const resolve = (
 describe("full public URL proxy", () => {
   it.each([
     ["/", "/~sf/sk/home", "home"],
-    ["/produkty", "/~sf/sk/products/index", "product.index"],
+    ["/produkty", "/~sf/sk/products", "product.index"],
     ["/produkty/ashwagandha", "/~sf/sk/products/ashwagandha", "product.detail"],
+    ["/kategorie", "/~sf/sk/categories", "category.index"],
     ["/kategorie/bylinky", "/~sf/sk/category/bylinky", "category.detail"],
-    ["/znacky", "/~sf/sk/brands/index", "brand.index"],
-    ["/poradna/clanok", "/~sf/sk/advice/clanok", "article.detail"],
+    ["/znacky", "/~sf/sk/brands", "brand.index"],
+    ["/kolekcie", "/~sf/sk/collections", "collection.index"],
+    ["/akcie", "/~sf/sk/campaigns", "campaign.index"],
+    ["/akcie/letna", "/~sf/sk/campaign/letna", "campaign.detail"],
+    ["/blog", "/~sf/sk/advice", "article.index"],
+    ["/blog/clanok", "/~sf/sk/advice/clanok", "article.detail"],
     [
       "/informacie/kontaktujte-nas",
       "/~sf/sk/information/kontaktujte-nas",
@@ -73,39 +131,173 @@ describe("full public URL proxy", () => {
     })
   })
 
-  it("accepts an explicitly bound deployment host without treating it as canonical", () => {
+  it.each(
+    HOST_MATRIX
+  )("binds accepted host %s to %s and its canonical origin", (host, market, canonicalizationRequired, canonicalOrigin) => {
+    expect(resolve("/", { host })).toMatchObject({
+      canonicalOrigin,
+      canonicalizationRequired,
+      kind: "rewrite",
+      market,
+    })
+  })
+
+  it.each([
+    ["/contact", "contact"],
+    ["/livrare", "shipping"],
+    ["/retururi", "returns"],
+    ["/termeni-si-conditii", "terms"],
+    ["/politica-de-confidentialitate", "privacy"],
+    ["/politica-cookies", "cookies"],
+    ["/program-afiliere", "affiliate"],
+    ["/vanzare-en-gros", "wholesale"],
+    ["/dropshipping", "dropshipping"],
+    ["/marca-proprie", "privateLabel"],
+    ["/voucher-cadou", "giftVoucher"],
+  ])("rewrites the RO static route %s", (pathname, pageKey) => {
+    expect(resolve(pathname, { host: "herbatica.ro" })).toMatchObject({
+      kind: "rewrite",
+      market: "ro",
+      pathname: `/~sf/ro/static/${pageKey}`,
+      routeKey: `static.${pageKey}`,
+    })
+  })
+
+  it.each([
+    "/program-afiliere",
+    "/vanzare-en-gros",
+    "/marca-proprie",
+    "/voucher-cadou",
+  ])("does not publish the RO-only static route %s on SK", (pathname) => {
+    expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
+  })
+
+  // `dropshipping` is a customer-authoritative segment on CZ/RO/SK whose slug
+  // happens to be identical across those markets, so the shared spelling must
+  // still resolve into the requesting market's own namespace and stay 404 on
+  // the markets that never registered the page.
+  it.each([
+    ["herbatica.cz", "cz"],
+    ["herbatica.ro", "ro"],
+    ["herbatica.sk", "sk"],
+  ] as const)("binds the shared /dropshipping segment to %s", (host, market) => {
+    expect(resolve("/dropshipping", { host })).toMatchObject({
+      kind: "rewrite",
+      market,
+      pathname: `/~sf/${market}/static/dropshipping`,
+      routeKey: "static.dropshipping",
+    })
+  })
+
+  it("does not publish /dropshipping on HU", () => {
+    expect(resolve("/dropshipping", { host: "herbatica.hu" })).toEqual({
+      kind: "respond",
+      status: 404,
+    })
+  })
+
+  it.each([
+    ["/private-label", "privateLabel"],
+    ["/velkoobchod", "wholesale"],
+  ])("rewrites the SK partner static route %s", (pathname, pageKey) => {
+    expect(resolve(pathname)).toMatchObject({
+      kind: "rewrite",
+      market: "sk",
+      pathname: `/~sf/sk/static/${pageKey}`,
+      routeKey: `static.${pageKey}`,
+    })
+  })
+
+  it("uses the first configured deployment host as canonical", () => {
     expect(
       resolve("/produkty/ashwagandha", {
         environment: {
-          ALLOWED_MARKETS: "sk,cz,hu,ro",
-          HERBATICA_ACCEPTED_HOSTS_SK:
-            "test-engine-herbatika-zane.web-revolution.cz",
+          ...ROUTING_ENVIRONMENT,
+          MARKET_ACCEPTED_HOSTS_SK:
+            "test-engine-herbatika-zane.web-revolution.cz,preview-alias.example",
         },
         host: "test-engine-herbatika-zane.web-revolution.cz",
       })
     ).toMatchObject({
-      canonicalizationRequired: true,
+      canonicalOrigin: "https://test-engine-herbatika-zane.web-revolution.cz",
+      canonicalizationRequired: false,
       kind: "rewrite",
       market: "sk",
     })
   })
 
+  it("accepts an arbitrary configured Romanian deployment host", () => {
+    const previewHost = "test-engine-herbatika-ro-zane.web-revolution.cz"
+
+    expect(
+      resolve("/", {
+        environment: {
+          ...ROUTING_ENVIRONMENT,
+          MARKET_ACCEPTED_HOSTS_RO: previewHost,
+        },
+        host: previewHost,
+      })
+    ).toMatchObject({
+      canonicalizationRequired: false,
+      kind: "rewrite",
+      market: "ro",
+      pathname: "/~sf/ro/home",
+    })
+    expect(
+      resolve("/", {
+        environment: {
+          ALLOWED_MARKETS: "sk,cz,hu",
+          MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
+          MARKET_ACCEPTED_HOSTS_HU: "herbatica.hu",
+          MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+        },
+        host: previewHost,
+      })
+    ).toEqual({ kind: "respond", status: 421 })
+  })
+
   it.each([
     "/p/legacy",
     "/c/legacy",
-    "/blog",
+    "/legacy-blog",
     "/account",
     "/auth/login",
   ])("does not preserve development-only route %s", (pathname) => {
     expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
   })
 
+  it("rewrites a safe unknown path to the private URL Registry resolver when enabled", () => {
+    expect(
+      resolve("/stare-produkty/Ashwagandha-AbC", {
+        resolveUnknownStaticPaths: true,
+      })
+    ).toMatchObject({
+      kind: "rewrite",
+      market: "sk",
+      pathname: "/~sf/sk/url-registry/stare-produkty/Ashwagandha-AbC",
+      publicPath: "/stare-produkty/Ashwagandha-AbC",
+      routeKey: "url-registry.resolve",
+    })
+  })
+
   it.each([
-    ["/kampane", "herbatica.sk"],
-    ["/kampany", "herbatica.cz"],
-    ["/kampanyok", "herbatica.hu"],
-    ["/campanii", "herbatica.ro"],
-  ])("omits the unimplemented campaign family %s", (pathname, host) => {
+    ["/akcie", "herbatica.sk", "/~sf/sk/campaigns"],
+    ["/akce/jarni", "herbatica.cz", "/~sf/cz/campaign/jarni"],
+    ["/akciok", "herbatica.hu", "/~sf/hu/campaigns"],
+    ["/promotii/vara", "herbatica.ro", "/~sf/ro/campaign/vara"],
+  ])("publishes the localized campaign route %s", (pathname, host, internal) => {
+    expect(resolve(pathname, { host })).toMatchObject({
+      kind: "rewrite",
+      pathname: internal,
+    })
+  })
+
+  it.each([
+    ["/akce", "herbatica.sk"],
+    ["/akcie", "herbatica.cz"],
+    ["/promotii", "herbatica.hu"],
+    ["/akciok", "herbatica.ro"],
+  ])("rejects the foreign-market campaign namespace %s", (pathname, host) => {
     expect(resolve(pathname, { host })).toEqual({
       kind: "respond",
       status: 404,
@@ -138,13 +330,21 @@ describe("full public URL proxy", () => {
   it("restricts host ownership to the deployment ALLOWED_MARKETS", () => {
     expect(
       resolve("/", {
-        environment: { ALLOWED_MARKETS: "sk,cz" },
+        environment: {
+          ALLOWED_MARKETS: "sk,cz",
+          MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
+          MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+        },
         host: "herbatica.hu",
       })
     ).toEqual({ kind: "respond", status: 421 })
     expect(
       resolve("/", {
-        environment: { ALLOWED_MARKETS: "sk,cz" },
+        environment: {
+          ALLOWED_MARKETS: "sk,cz",
+          MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
+          MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+        },
         host: "herbatica.cz",
       })
     ).toMatchObject({ kind: "rewrite", market: "cz" })
@@ -219,7 +419,7 @@ describe("full public URL proxy", () => {
     expect(
       resolvePublicProxyAction({
         enabled: false,
-        environment: { ALLOWED_MARKETS: "sk,cz,hu,ro" },
+        environment: ROUTING_ENVIRONMENT,
         host: "herbatica.sk",
         method: "GET",
         pathname: "/anything",

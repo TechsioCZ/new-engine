@@ -8,6 +8,7 @@ import { HerbatikaLogo } from "@/components/herbatika-logo"
 import { StorefrontLink } from "@/components/storefront-link"
 import { useAuth } from "@/lib/storefront/auth"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { useOperatorContact } from "@/lib/storefront/operator-contact"
 import { buildPath } from "@/lib/url/public-url"
 
 export function CheckoutHeader() {
@@ -15,6 +16,7 @@ export function CheckoutHeader() {
   const marketContext = useMarketContext()
   const tAuth = useTranslations("auth")
   const tCheckout = useTranslations("checkout")
+  const operatorContact = useOperatorContact()
 
   return (
     <header className="w-full border-border-secondary border-b bg-surface font-rubik">
@@ -28,13 +30,20 @@ export function CheckoutHeader() {
         </div>
 
         <div className="flex items-center gap-200">
-          <Link
-            className="hidden items-center gap-100 text-fg-primary text-sm hover:text-primary lg:inline-flex"
-            href="tel:+421232112345"
-          >
-            <Icon color="success" icon="token-icon-phone-talk" />
-            +421 2/321 123 45
-          </Link>
+          {operatorContact.available ? (
+            <Link
+              className="hidden items-center gap-100 text-fg-primary text-sm hover:text-primary lg:inline-flex"
+              href={operatorContact.phoneHref}
+            >
+              <Icon color="success" icon="token-icon-phone-talk" />
+              {operatorContact.phoneDisplay}
+            </Link>
+          ) : (
+            <span className="hidden items-center gap-100 text-fg-secondary text-xs lg:inline-flex">
+              <Icon icon="token-icon-phone-talk" />
+              {operatorContact.unavailable}
+            </span>
+          )}
           {!isAuthenticated && (
             <LinkButton
               as={StorefrontLink}

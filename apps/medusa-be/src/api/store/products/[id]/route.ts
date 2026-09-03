@@ -49,9 +49,8 @@ const includesCategoryVisibilityField = (fields: string[]) =>
     (field) => normalizeIncludedField(field) === "categories.is_internal"
   )
 
-const toStoreProduct = (
-  product: HttpTypes.StoreProduct
-): HttpTypes.StoreProduct => product
+const toStoreProduct = (product: unknown): HttpTypes.StoreProduct =>
+  product as HttpTypes.StoreProduct
 
 export const GET = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "markets": {
+    "sk": {
+      "language": "sk",
+      "locale": "sk-SK",
+      "rootTitle": "Herbatica",
+      "prefixes": {
+        "products": "produkty",
+        "categories": "kategorie",
+        "brands": "znacky",
+        "collections": "kolekcie"
+      },
+      "rootLabels": [
+        "Trápi ma",
+        "Prírodná kozmetika",
+        "Doplnky výživy",
+        "Potraviny a nápoje",
+        "EKO domácnosť",
+        "Účinné zložky od A po Z",
+        "Novinky"
+      ],
+      "currency": {
+        "code": "EUR",
+        "displayTokens": ["€", "EUR"]
+      },
+      "category": {
+        "path": "/kategorie/doplnky-vyzivy",
+        "slug": "doplnky-vyzivy",
+        "title": "Doplnky výživy"
+      },
+      "product": {
+        "path": "/produkty/befungin-tinktura-s-extraktom-z-cagy-sibirskej-100-ml-herbatica",
+        "slug": "befungin-tinktura-s-extraktom-z-cagy-sibirskej-100-ml-herbatica",
+        "title": "Befungin - tinktúra s extraktom z čagy sibírskej - 100 ml - Herbatica",
+        "identifiers": ["4868"]
+      }
+    },
+    "ro": {
+      "language": "ro",
+      "locale": "ro-RO",
+      "rootTitle": "Herbatica",
+      "prefixes": {
+        "products": "produse",
+        "categories": "categorii",
+        "brands": "marci",
+        "collections": "colectii"
+      },
+      "rootLabels": [
+        "Ce mă preocupă",
+        "Cosmetică naturală",
+        "Suplimente nutritive",
+        "Alimente și băuturi",
+        "Casă eco",
+        "Ingrediente active de la A la Z",
+        "Noutăți"
+      ],
+      "forbiddenRootLabels": [
+        "Trápi ma",
+        "Prírodná kozmetika",
+        "Doplnky výživy",
+        "Potraviny a nápoje",
+        "EKO domácnosť",
+        "Účinné zložky od A po Z"
+      ],
+      "reviewedNeutral": [],
+      "currency": {
+        "code": "RON",
+        "displayTokens": ["RON", "lei"],
+        "forbiddenCodes": ["EUR"],
+        "forbiddenDisplayTokens": ["EUR", "€"]
+      },
+      "category": {
+        "path": "/categorii/suplimente-nutritive",
+        "slug": "suplimente-nutritive",
+        "title": "Suplimente nutritive"
+      },
+      "product": {
+        "path": "/produse/befungin-tinctura-cu-extract-de-chaga-siberian-100-ml-herbatica",
+        "slug": "befungin-tinctura-cu-extract-de-chaga-siberian-100-ml-herbatica",
+        "title": "Befungin - tinctură cu extract de chaga siberiană - 100 ml - Herbatica",
+        "identifiers": ["4868"],
+        "forbiddenSlugs": [
+          "befungin-tinktura-s-extraktom-z-cagy-sibirskej-100-ml-herbatica"
+        ]
+      }
+    }
+  }
+}

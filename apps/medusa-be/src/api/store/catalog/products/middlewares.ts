@@ -12,6 +12,7 @@ import { filterByValidSalesChannels } from "@medusajs/medusa/api/utils/middlewar
 import { normalizeDataForContext } from "@medusajs/medusa/api/utils/middlewares/products/normalize-data-for-context"
 import { setPricingContext } from "@medusajs/medusa/api/utils/middlewares/products/set-pricing-context"
 import { setTaxContext } from "@medusajs/medusa/api/utils/middlewares/products/set-tax-context"
+import { enforceExactStorefrontMarketSalesChannel } from "../../storefront-market-sales-channel"
 import {
   STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
   STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
@@ -20,6 +21,8 @@ import {
 } from "./validators"
 
 export const CATALOG_RESPONSE_FIELDS_PROPERTY = "catalogResponseFields"
+export const CATALOG_SALES_CHANNEL_IDS_PROPERTY =
+  "catalogPublishableSalesChannelIds"
 
 const CATALOG_PRICING_FIELD = "variants.calculated_price.*"
 
@@ -63,6 +66,27 @@ const ensureCatalogPricingContextFields = (
   next()
 }
 
+const preserveCatalogSalesChannelContext = (
+  req: MedusaRequest,
+  _res: MedusaResponse,
+  next: MedusaNextFunction
+) => {
+  const request = req as MedusaRequest & {
+    publishable_key_context?: { sales_channel_ids?: unknown }
+    [CATALOG_SALES_CHANNEL_IDS_PROPERTY]?: string[]
+  }
+  const salesChannelIds = request.publishable_key_context?.sales_channel_ids
+
+  if (Array.isArray(salesChannelIds)) {
+    request[CATALOG_SALES_CHANNEL_IDS_PROPERTY] = salesChannelIds.filter(
+      (salesChannelId): salesChannelId is string =>
+        typeof salesChannelId === "string" && salesChannelId.length > 0
+    )
+  }
+
+  next()
+}
+
 export const storeCatalogProductsRoutesMiddlewares: MiddlewareRoute[] = [
   {
     methods: ["GET"],
@@ -77,6 +101,8 @@ export const storeCatalogProductsRoutesMiddlewares: MiddlewareRoute[] = [
         isList: true,
       }),
       ensureCatalogPricingContextFields,
+      enforceExactStorefrontMarketSalesChannel,
+      preserveCatalogSalesChannelContext,
       filterByValidSalesChannels(),
       applyDefaultFilters({
         status: ProductStatus.PUBLISHED,

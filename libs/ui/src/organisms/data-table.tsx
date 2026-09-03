@@ -1,0 +1,3759 @@
+/**
+ * DataTable — @techsio/ui-kit organism.
+ *
+ * @component DataTable
+ * @componentVersion v1.0.0
+ * @skill data-table-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the data-table-usage skill's component_version and a changelog entry. Bump all three together.
+ *
+ * Headless data grid: a TanStack Table (`@tanstack/react-table`) controller that
+ * renders into the presentational `Table` organism, so every cell/row/header
+ * inherits the `--color-table-*` / `--padding-table-cell-*` tokens. Optional
+ * virtualization (`@tanstack/react-virtual`) and drag reorder (`@dnd-kit`) load
+ * only when their feature flags are set. Every interactive feature exposes a
+ * callback so Storybook interaction tests can assert behaviour.
+ */
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core"
+import {
+  restrictToHorizontalAxis,
+  restrictToVerticalAxis,
+} from "@dnd-kit/modifiers"
+import {
+  arrayMove,
+  horizontalListSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import {
+  type ColumnFiltersState,
+  type ColumnPinningState,
+  type ColumnSizingState,
+  type ColumnVisibilityState,
+  type ExpandedState,
+  flexRender,
+  type OnChangeFn,
+  type PaginationState,
+  type RowData,
+  type RowSelectionState,
+  type SortingState,
+  useTable,
+} from "@tanstack/react-table"
+import { useVirtualizer } from "@tanstack/react-virtual"
+import {
+  type CSSProperties,
+  createContext,
+  Fragment,
+  type ReactNode,
+  type Ref,
+  type RefObject,
+  type UIEvent,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+import { ActionIcon } from "../atoms/action-icon"
+import { Button, type ButtonProps } from "../atoms/button"
+import { Checkbox } from "../atoms/checkbox"
+import { Icon, type IconType } from "../atoms/icon"
+import { Skeleton } from "../atoms/skeleton"
+import { Menu, type MenuItem } from "../molecules/menu"
+import { Pagination, type PaginationProps } from "../molecules/pagination"
+import { SearchForm } from "../molecules/search-form"
+import type { SelectItem } from "../molecules/select"
+import { tv } from "../utils"
+import {
+  columnLabel,
+  type DataTableColumnType,
+  type DataTableControlSize,
+  type DataTableEditorContext,
+  type DataTableEditorRenderer,
+  type DataTableFilterContext,
+  type DataTableFilterRenderer,
+  type DataTableFilterValue,
+  DEFAULT_EDITOR_RENDERERS,
+  DEFAULT_FILTER_RENDERERS,
+  FieldSelect,
+  isBlank,
+} from "./data-table.fields"
+import {
+  applyColumnDefaults,
+  type Cell,
+  type Column,
+  type ColumnDef,
+  DATA_TABLE_Z,
+  type DataTableGetCellSpan,
+  dataTableFeatures,
+  getColumnSizeStyles,
+  getPinningStyles,
+  type Header,
+  isFirstEndPinned,
+  isLastStartPinned,
+  type Row,
+  resolveColumnType,
+  type TanstackTable,
+} from "./data-table.helpers"
+import { Table } from "./table"
+
+// Re-exported so DataTable's own documented filterRenderers/editorRenderers/
+// renderHeaderFilter/renderEditor props are typeable without reaching into
+// the internal data-table.fields module.
+export type {
+  DataTableColumnType,
+  DataTableControlSize,
+  DataTableEditorContext,
+  DataTableEditorRenderer,
+  DataTableFilterContext,
+  DataTableFilterRenderer,
+  DataTableOption,
+} from "./data-table.fields"
+export type {
+  Cell,
+  CellContext,
+  Column,
+  ColumnDef,
+  DataTableCellSpan,
+  DataTableColumnWidth,
+  DataTableConditionalFilterValue,
+  DataTableFeatures,
+  DataTableFilterOperator,
+  DataTableGetCellSpan,
+  DataTableInstance,
+  Header,
+  Row,
+  TanstackTable,
+} from "./data-table.helpers"
+// biome-ignore lint/performance/noBarrelFile: DataTable's public API intentionally re-exports the conditional-filter helpers it is designed to be used with
+export { conditionalFilterFn } from "./data-table.helpers"
+
+/**
+ * PROTOTYPE styling: reuses the existing `Table` component tokens
+ * (`--color-table-*`, `--border-table-width`) plus semantic tokens
+ * (`--color-fg-*`, `--spacing-*`). Once the MVP look is signed off, these
+ * semantic references are lifted into `--color-data-table-*` component tokens
+ * and mirrored into Figma via the figma-token-binding skill.
+ */
+const dataTableVariants = tv({
+  slots: {
+    wrapper: [
+      "flex w-full flex-col overflow-hidden rounded-table",
+      "border-(length:--border-table-width) border-table-border",
+    ],
+    toolbar: [
+      "flex items-center justify-between gap-200",
+      "bg-table-header-bg text-table-header-fg",
+      "px-300 py-200",
+      "border-b-(length:--border-table-width) border-table-border",
+    ],
+    /* The search takes the remaining width; actions keep their intrinsic size
+     * and stay pinned to the trailing edge. */
+    toolbarSearch: ["min-w-0 flex-1"],
+    toolbarActions: ["flex shrink-0 items-center gap-200"],
+    scroll: ["relative w-full overflow-auto"],
+    headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
+    sortButton: [
+      "inline-flex items-center gap-100 whitespace-nowrap",
+      "cursor-pointer select-none bg-transparent text-left",
+      "data-[disabled=true]:cursor-default",
+    ],
+    sortIcon: [
+      "text-fg-secondary",
+      "data-[active=true]:text-fg-accent-primary",
+    ],
+    dragHandle: [
+      "inline-flex cursor-grab items-center rounded-table text-fg-secondary",
+      "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
+      "hover:bg-table-row-bg-hover hover:opacity-100 focus-visible:opacity-100",
+      "group-hover/header:opacity-100 group-hover/row:opacity-100",
+      "group-focus-within/header:opacity-100 group-focus-within/row:opacity-100",
+      "group-data-dragging/header:opacity-100 group-data-dragging/row:opacity-100",
+      "active:cursor-grabbing",
+    ],
+    resizeHandle: [
+      "absolute end-0 top-0 h-full w-100 cursor-col-resize touch-none select-none",
+      "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
+      "bg-table-border hover:opacity-100 focus-visible:opacity-100",
+      "group-hover/header:opacity-100",
+    ],
+    filterRow: ["bg-table-header-bg"],
+    filterCell: [
+      "px-200 py-100",
+      "min-w-fit",
+      "border-b-(length:--border-table-width) border-table-border",
+    ],
+    filterControl: ["flex flex-wrap items-center gap-100"],
+    editorControl: ["flex flex-col gap-50"],
+    // `-fg`, not the bare semantic: `--color-danger` is the fill/surface red,
+    // while AGENTS.md pins status *text* to `--color-<semantic>-fg`, which is
+    // the contrast-checked foreground. The bare token rendered the validation
+    // message at surface red on the table background.
+    editorError: ["text-danger-fg text-table-sm"],
+    actionsCell: ["flex items-center justify-end gap-100"],
+    empty: [
+      "flex flex-col items-center justify-center gap-200",
+      "p-700 text-center text-fg-secondary",
+    ],
+    /* Same background as the toolbar so the header and footer frame the table
+     * as one pair; without it the bar falls through to --color-table-bg. */
+    paginationBar: [
+      "flex flex-wrap items-center justify-between gap-300",
+      "bg-table-header-bg text-table-header-fg",
+      "px-300 py-200",
+      "border-t-(length:--border-table-width) border-table-border",
+    ],
+    detailBox: ["w-full p-300"],
+    paginationInfo: ["whitespace-nowrap text-table-sm"],
+    paginationControls: ["flex items-center gap-300"],
+  },
+  variants: {
+    /**
+     * `variant="outline"` draws its border on the wrapper rather than on the
+     * `<table>`, so the toolbar and pagination bar sit inside the same rounded
+     * card instead of the table alone being outlined.
+     */
+    outlined: {
+      true: { wrapper: "shadow-table-outline" },
+    },
+  },
+})
+
+/**
+ * A custom toolbar action, rendered as a `Button` at the table's `size`.
+ * Accepts the full Button API, so icon-only, themed and loading actions all
+ * work; `label` is a convenience alias for `children`.
+ */
+export type DataTableToolbarAction = Omit<ButtonProps, "size"> & {
+  /**
+   * Stable React key; falls back to the array index. The fallback is fine for
+   * a fixed list, but a `toolbarActions` array that adds, removes or
+   * reorders entries based on state (e.g. permission changes) needs a real
+   * `id` — an index-keyed action can otherwise inherit a sibling's DOM node,
+   * along with its transient disabled/hover/focus state, across a re-render.
+   */
+  id?: string
+  /** Button text. Omit for icon-only actions, but keep an `aria-label`. */
+  label?: ReactNode
+}
+
+/**
+ * Recommended ceiling for `toolbarActions`. Exceeding it warns rather than
+ * throws — a fourth action still renders, it just crowds the toolbar and is
+ * usually a sign the extra actions belong in a menu.
+ */
+export const DATA_TABLE_MAX_TOOLBAR_ACTIONS = 3
+
+/* ── Controllable state ──────────────────────────────────────────────────── */
+
+/**
+ * Controlled/uncontrolled state pair with a change callback.
+ *
+ * The updater is resolved synchronously against a ref mirroring the latest
+ * value rather than inside a `setState` updater, for two reasons: React may
+ * invoke a `setState` updater more than once (Strict Mode does in development),
+ * which would fire `callback` twice per interaction; and the ref is written
+ * before `setInternal`, so several updates batched in one tick still compose
+ * instead of the last one overwriting the rest.
+ *
+ * Callers may therefore assume the updater they pass runs exactly once, and
+ * synchronously.
+ */
+function useControllable<S>(
+  controlled: S | undefined,
+  initial: S,
+  callback?: (next: S) => void
+): [S, OnChangeFn<S>] {
+  const [internal, setInternal] = useState<S>(initial)
+  const isControlled = controlled !== undefined
+  const value = isControlled ? (controlled as S) : internal
+  const latest = useRef(value)
+  latest.current = value
+
+  const onChange: OnChangeFn<S> = (updater) => {
+    const next =
+      typeof updater === "function"
+        ? (updater as (o: S) => S)(latest.current)
+        : updater
+    latest.current = next
+    if (!isControlled) {
+      setInternal(next)
+    }
+    callback?.(next)
+  }
+  return [value, onChange]
+}
+
+/* ── Small single-value Select wrapper (page size, filter operator/value) ─── */
+
+/** Which edge of the hovered sortable should show the drop indicator. */
+function dropEdge<A, B>(
+  sortable: {
+    isOver: boolean
+    isDragging: boolean
+    activeIndex: number
+    overIndex: number
+  },
+  edges: { after: A; before: B }
+) {
+  if (!sortable.isOver || sortable.isDragging) {
+    return
+  }
+  return sortable.activeIndex < sortable.overIndex ? edges.after : edges.before
+}
+
+/* ── Sortable header cell (column reorder) ───────────────────────────────── */
+
+function SortableHeaderContent({
+  columnId,
+  children,
+}: {
+  columnId: string
+  children: (args: {
+    setActivatorNodeRef: (node: HTMLElement | null) => void
+    listeners: Record<string, unknown> | undefined
+    style: CSSProperties
+    setNodeRef: (node: HTMLElement | null) => void
+    isDragging: boolean
+    dropSide?: "start" | "end"
+    attributes: Record<string, unknown>
+  }) => ReactNode
+}) {
+  // `data.type` tags what is being dragged. Routing by "is this id in the
+  // column list?" misfired whenever a row id collided with a column id — with
+  // `getRowId={(r) => r.slug}`, dragging the row keyed "name" reordered the
+  // columns and never fired `onRowReorder`.
+  const sortable = useSortable({ id: columnId, data: { type: "column" } })
+  const style: CSSProperties = {
+    transform: CSS.Translate.toString(sortable.transform),
+    transition: sortable.transition,
+    opacity: sortable.isDragging ? 0.4 : 1,
+  }
+  const dropSide = dropEdge(
+    {
+      isOver: sortable.isOver,
+      isDragging: sortable.isDragging,
+      activeIndex: sortable.activeIndex ?? 0,
+      overIndex: sortable.overIndex ?? 0,
+    },
+    { after: "end" as const, before: "start" as const }
+  )
+  return (
+    <>
+      {children({
+        setActivatorNodeRef: sortable.setActivatorNodeRef,
+        listeners: sortable.listeners,
+        style,
+        setNodeRef: sortable.setNodeRef,
+        isDragging: sortable.isDragging,
+        dropSide,
+        attributes: sortable.attributes as unknown as Record<string, unknown>,
+      })}
+    </>
+  )
+}
+
+/* ── Sortable body row (row reorder) ─────────────────────────────────────── */
+
+function SortableRow<T extends RowData>({
+  row,
+  enabled,
+  children,
+}: {
+  row: Row<T>
+  enabled: boolean
+  children: (args: {
+    setNodeRef: (node: HTMLElement | null) => void
+    style: CSSProperties
+    dragHandleProps: Record<string, unknown>
+    isDragging: boolean
+    dropSide?: "top" | "bottom"
+  }) => ReactNode
+}) {
+  const sortable = useSortable({
+    id: row.id,
+    disabled: !enabled,
+    data: { type: "row" },
+  })
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(sortable.transform),
+    transition: sortable.transition,
+    opacity: sortable.isDragging ? 0.4 : 1,
+    position: "relative",
+    zIndex: sortable.isDragging ? 1 : undefined,
+  }
+  const dropSide = dropEdge(
+    {
+      isOver: sortable.isOver,
+      isDragging: sortable.isDragging,
+      activeIndex: sortable.activeIndex ?? 0,
+      overIndex: sortable.overIndex ?? 0,
+    },
+    { after: "bottom" as const, before: "top" as const }
+  )
+  const dragHandleProps = {
+    ref: sortable.setActivatorNodeRef,
+    ...sortable.attributes,
+    ...sortable.listeners,
+  }
+  return (
+    <>
+      {children({
+        setNodeRef: sortable.setNodeRef,
+        style,
+        dragHandleProps,
+        isDragging: sortable.isDragging,
+        dropSide,
+      })}
+    </>
+  )
+}
+
+/**
+ * Declarative row action. `hidden` and `disabled` are evaluated per row, so
+ * availability can follow the row's id, ownership or the current user's
+ * permissions.
+ */
+export type DataTableRowAction<T extends RowData> = {
+  id: string
+  label: string
+  icon: IconType
+  tone?: "neutral" | "danger"
+  /** Omit the action entirely for this row. */
+  hidden?: (row: Row<T>) => boolean
+  /** Render the action but block it for this row. */
+  disabled?: (row: Row<T>) => boolean
+  onAction: (row: Row<T>) => void
+}
+
+/**
+ * Interactions that report through `onInteractionBlocked` while a row is being
+ * edited inline.
+ *
+ * This is exactly the set `blocked()` is called with. Sorting, selection and
+ * both reorder flavours are absent on purpose: sorting and selection controls
+ * are natively `disabled` during an edit and reorder simply stops being
+ * draggable, so in every one of those cases nothing reaches a handler and
+ * nothing could ever report. Making any of them reportable means making the
+ * control clickable-but-inert first.
+ */
+export type DataTableBlockedAction =
+  | "globalFilter"
+  | "paginate"
+  | "columnVisibility"
+  | "rowClick"
+  | "expand"
+
+/* ── Context for composable sub-components ────────────────────────────────── */
+
+type DataTableContextValue<T extends RowData> = {
+  table: TanstackTable<T>
+  pageSizeOptions: number[]
+  translations: Required<DataTableTranslations>
+  /** True while an inline edit locks table-level controls. */
+  locked: boolean
+  /** Reports a blocked interaction; returns true when it must not proceed. */
+  blocked: (action: DataTableBlockedAction) => boolean
+  /** Control size shared by every nested form control. */
+  size: DataTableControlSize
+  paginationProps?: DataTableProps<T>["paginationProps"]
+  toolbarActions?: DataTableToolbarAction[]
+}
+
+const DataTableContext = createContext<DataTableContextValue<RowData> | null>(
+  null
+)
+
+function useDataTableContext<T extends RowData>() {
+  const ctx = useContext(DataTableContext) as DataTableContextValue<T> | null
+  if (!ctx) {
+    throw new Error("DataTable sub-components must be used within DataTable")
+  }
+  return ctx
+}
+
+/* ── Props ───────────────────────────────────────────────────────────────── */
+
+export type DataTableTranslations = {
+  searchPlaceholder?: string
+  /** Accessible name of the global search input. */
+  searchLabel?: string
+  /** Accessible name of the search field's clear button. */
+  clearSearchLabel?: string
+  /** Accessible name of the search submit button joined to the input. */
+  searchButtonLabel?: string
+  columnsLabel?: string
+  emptyTitle?: string
+  emptyDescription?: string
+  pageSizeLabel?: string
+  actionsLabel?: string
+  filtersLabel?: string
+  selectAllLabel?: string
+  loadingLabel?: string
+  /** Override the filter condition labels, keyed by operator. */
+  operatorLabels?: Partial<Record<string, string>>
+  editingLabel?: string
+  rangeLabel?: (info: { start: number; end: number; total: number }) => string
+  /** Inline-edit validation error for a blank `meta.required` field. */
+  requiredLabel?: string
+}
+
+const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
+  searchPlaceholder: "Search…",
+  searchLabel: "Search",
+  clearSearchLabel: "Clear search",
+  searchButtonLabel: "Submit search",
+  columnsLabel: "Column settings",
+  emptyTitle: "No records",
+  emptyDescription: "There is no data to display.",
+  pageSizeLabel: "Rows per page",
+  actionsLabel: "Actions",
+  filtersLabel: "Column filters",
+  selectAllLabel: "Select all rows",
+  loadingLabel: "Loading data",
+  operatorLabels: {},
+  editingLabel: "Editing a row — other table controls are locked",
+  rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
+  requiredLabel: "Required",
+}
+
+export type DataTableProps<T extends RowData> = {
+  data: T[]
+  columns: ColumnDef<T, unknown>[]
+  getRowId?: (row: T, index: number) => string
+  /** Stable id for the wrapper element; falls back to a generated one. */
+  id?: string
+  className?: string
+  ref?: Ref<HTMLDivElement>
+
+  /* Presentation (passed through to the Table organism) */
+  variant?: "line" | "outline" | "striped"
+  /**
+   * Zebra-stripe body rows. Independent of `variant`, so striping composes
+   * with `variant="outline"`. Equivalent to `variant="striped"` — DataTable
+   * routes both through this prop's own row-index-based coloring rather than
+   * `Table`'s `odd:`/`even:` implementation, which drifts under
+   * `enableVirtualization` (a row's DOM sibling position, not its logical
+   * index, changes as the windowed slice scrolls).
+   */
+  striped?: boolean
+  /**
+   * Tint rows by nesting depth (`getSubRows` tree data or `renderExpandedRow`
+   * detail rows) — same idea as `striped`, but keyed on `row.depth` instead of
+   * row index, so a child row reads as "inside" its parent instead of just
+   * being the next row in a flat zebra pattern. Composes with `striped`: the
+   * depth tint and the odd/even stripe are different CSS properties and stack
+   * rather than fight for the same one.
+   */
+  tintNestedRows?: boolean
+  size?: "sm" | "md" | "lg"
+  stickyHeader?: boolean
+  interactive?: boolean
+  showColumnBorder?: boolean
+  caption?: ReactNode
+  /** Hide the column header row(s) entirely (headerless / borderless layouts). */
+  hideHeader?: boolean
+  /** Height of the scroll container; enables sticky header / infinite scroll. */
+  maxHeight?: string
+
+  /* Feature flags */
+  enableSorting?: boolean
+  enableGlobalFilter?: boolean
+  enableColumnFilters?: boolean
+  enableRowSelection?: boolean
+  /**
+   * `"multiple"` (default) lets any number of rows be selected; `"single"`
+   * replaces the selection so only one row is ever selected.
+   */
+  selectionMode?: "single" | "multiple"
+  /**
+   * Hard cap on how many rows can be selected at once. Once reached, unselected
+   * rows report `getCanSelect() === false` and their checkboxes disable, while
+   * already-selected rows stay deselectable.
+   */
+  maxSelectedRows?: number
+  /**
+   * Per-row selectability predicate, for rules the mode/cap can't express
+   * (e.g. "only rows with status=active"). Composed with — not instead of —
+   * `selectionMode` and `maxSelectedRows`.
+   */
+  canSelectRow?: (
+    row: Row<T>,
+    context: { selectedCount: number; isSelected: boolean }
+  ) => boolean
+  /** Fired when a selection change reaches `maxSelectedRows`. */
+  onSelectionLimitReached?: (details: {
+    limit: number
+    selectedCount: number
+  }) => void
+  enableColumnVisibility?: boolean
+  enableColumnPinning?: boolean
+  enableColumnReorder?: boolean
+  enableColumnResizing?: boolean
+  /**
+   * CSS `table-layout`. Under the default `"auto"` a column's `meta.width` is
+   * only a hint and long content can still stretch the column; `"fixed"` makes
+   * declared widths exact and lets the remaining columns share what is left.
+   */
+  tableLayout?: "auto" | "fixed"
+  enableRowReorder?: boolean
+  enableExpanding?: boolean
+  enablePagination?: boolean
+  enableVirtualization?: boolean
+
+  /* Tree / sub-rows */
+  getSubRows?: (row: T) => T[] | undefined
+  /**
+   * Whether a row can expand. Defaults to "any row" when `renderExpandedRow` is
+   * given (master-detail), otherwise to "only rows that have sub-rows".
+   */
+  getRowCanExpand?: (row: Row<T>) => boolean
+
+  /* colSpan / rowSpan */
+  getCellSpan?: DataTableGetCellSpan<T>
+
+  /* Controlled state (+ change callbacks; all optional/uncontrolled by default) */
+  sorting?: SortingState
+  onSortingChange?: (state: SortingState) => void
+  columnFilters?: ColumnFiltersState
+  onColumnFiltersChange?: (state: ColumnFiltersState) => void
+  globalFilter?: string
+  onGlobalFilterChange?: (value: string) => void
+  rowSelection?: RowSelectionState
+  onRowSelectionChange?: (state: RowSelectionState) => void
+  columnVisibility?: ColumnVisibilityState
+  onColumnVisibilityChange?: (state: ColumnVisibilityState) => void
+  columnOrder?: string[]
+  onColumnOrderChange?: (order: string[]) => void
+  columnPinning?: ColumnPinningState
+  onColumnPinningChange?: (state: ColumnPinningState) => void
+  expanded?: ExpandedState
+  onExpandedChange?: (state: ExpandedState) => void
+  pagination?: PaginationState
+  onPaginationChange?: (state: PaginationState) => void
+  pageSizeOptions?: number[]
+
+  /* Server-side / manual mode */
+  manualSorting?: boolean
+  manualFiltering?: boolean
+  manualPagination?: boolean
+  rowCount?: number
+  pageCount?: number
+
+  /* Callbacks */
+  onRowClick?: (
+    row: Row<T>,
+    event: React.MouseEvent<HTMLTableRowElement>
+  ) => void
+  onReachEnd?: () => void
+  onColumnReorder?: (details: {
+    from: number
+    to: number
+    columnId: string
+    order: string[]
+  }) => void
+  onRowReorder?: (details: {
+    from: number
+    to: number
+    rowId: string
+    data: T[]
+  }) => void
+  onCellEditCommit?: (details: {
+    rowId: string
+    columnId: string
+    value: unknown
+    row: T
+  }) => void
+  /**
+   * Called once on mount with the table instance, for imperative access
+   * (`table.setPageIndex(…)`, `table.getSelectedRowModel()`, …).
+   *
+   * Methods stay live — they close over the core instance — but read
+   * `table.state` / `table.options` off this object with care: `useTable`
+   * returns a spread copy rather than the live instance, so the two fields
+   * captured here are a mount-time snapshot and never update. For live
+   * state use `renderToolbar`, which re-runs on render, or the instance's
+   * own `Subscribe`.
+   */
+  onReady?: (table: TanstackTable<T>) => void
+
+  /* ── Inline row editing ────────────────────────────────────────────────
+   * Editing a row puts the table into a modal-ish state: the row's editable
+   * cells swap to type-driven editors and, unless opted out, every interaction
+   * that could move the row out from under the user (sort, filter, paginate,
+   * reorder, selection) is locked until commit/cancel. */
+  enableInlineEdit?: boolean
+  /**
+   * Per-row gate for the built-in edit action. Returning false disables the
+   * edit affordance and refuses `startEdit` for that row.
+   */
+  canEditRow?: (row: Row<T>) => boolean
+  /**
+   * Declarative actions rendered in the actions cell, each able to hide or
+   * disable itself per row.
+   */
+  rowActions?: DataTableRowAction<T>[]
+  /** Controlled id of the row being edited (`null` = not editing). */
+  editingRowId?: string | null
+  onEditingRowIdChange?: (rowId: string | null) => void
+  onEditStart?: (details: { rowId: string; row: T }) => void
+  onEditChange?: (details: {
+    rowId: string
+    columnId: string
+    value: unknown
+    draft: Record<string, unknown>
+  }) => void
+  onEditCommit?: (details: {
+    rowId: string
+    draft: Record<string, unknown>
+    row: T
+  }) => void
+  onEditCancel?: (details: { rowId: string; dirty: boolean }) => void
+  onEditValidationError?: (details: {
+    rowId: string
+    errors: Record<string, string>
+  }) => void
+  /**
+   * Lock sorting/filtering/pagination/selection/reorder while a row is being
+   * edited (default `true`). Turning this off is possible but means the edited
+   * row can be re-sorted or filtered away mid-edit.
+   */
+  lockInteractionsWhileEditing?: boolean
+  /** Fired when a locked interaction is attempted during an edit. */
+  onInteractionBlocked?: (details: {
+    action: DataTableBlockedAction
+    reason: "editing"
+    rowId: string
+  }) => void
+
+  /* Type-driven field renderers (per-table override; per-column via meta) */
+  filterRenderers?: Partial<
+    Record<DataTableColumnType, DataTableFilterRenderer<T>>
+  >
+  editorRenderers?: Partial<
+    Record<DataTableColumnType, DataTableEditorRenderer<T>>
+  >
+
+  /** Pin the row-actions column to the right edge (sticky). Default `true`. */
+  stickyActions?: boolean
+
+  /**
+   * Human-readable label for a row, used by selection checkboxes and the edit
+   * action instead of the opaque row id.
+   */
+  getRowLabel?: (row: Row<T>) => string
+  /** Replace the body with skeleton rows while the first page is being fetched. */
+  loading?: boolean
+  /** How many skeleton rows to render while `loading`. */
+  loadingRowCount?: number
+  /** Append a skeleton row while an infinite-scroll page is being fetched. */
+  loadingMore?: boolean
+
+  /**
+   * Everything configurable on the `Pagination` molecule, surfaced at table
+   * level. `count`/`page`/`pageSize` stay owned by the table's pagination
+   * state, and `getPageUrl` by the table too — paging runs through the
+   * table's own state, so `Pagination` is rendered with a placeholder href
+   * whose navigation is suppressed. Requiring it here would force every
+   * consumer who only wants (say) `siblingCount` to invent a `getPageUrl`
+   * that is then overridden.
+   */
+  paginationProps?: Omit<
+    PaginationProps,
+    "count" | "page" | "pageSize" | "onPageChange" | "onChange" | "getPageUrl"
+  >
+
+  /* Slots */
+  renderToolbar?: (table: TanstackTable<T>) => ReactNode
+  /**
+   * Custom actions trailing the toolbar search. At most
+   * `DATA_TABLE_MAX_TOOLBAR_ACTIONS` is recommended; more still render but warn.
+   */
+  toolbarActions?: DataTableToolbarAction[]
+  renderEmpty?: () => ReactNode
+  /**
+   * Row actions; receives edit-mode state so you can swap in save/cancel.
+   * Return `null` to render no actions for that row, or `undefined` to fall
+   * through to the built-in edit button.
+   */
+  renderRowActions?: (
+    row: Row<T>,
+    state: {
+      isEditing: boolean
+      startEdit: () => void
+      commitEdit: () => void
+      cancelEdit: () => void
+      disabled: boolean
+    }
+  ) => ReactNode
+  /**
+   * Replace the filter control for a column. Return `null` for no filter at
+   * all, or `undefined` to fall through to the type-driven default.
+   */
+  renderHeaderFilter?: (column: Column<T, unknown>) => ReactNode
+  renderExpandedRow?: (row: Row<T>) => ReactNode
+
+  /* Passthrough for DOM access to nested layers */
+  slotProps?: {
+    root?: React.HTMLAttributes<HTMLTableElement>
+    header?: React.HTMLAttributes<HTMLTableSectionElement>
+    body?: React.HTMLAttributes<HTMLTableSectionElement>
+    row?: React.HTMLAttributes<HTMLTableRowElement> & {
+      ref?: Ref<HTMLTableRowElement>
+    }
+  }
+
+  translations?: DataTableTranslations
+  /** Estimated row height (px) for virtualization. */
+  estimateRowHeight?: number
+  /** Distance from bottom (px) that triggers `onReachEnd`. */
+  reachEndThreshold?: number
+}
+
+const SELECTION_COLUMN_ID = "__select"
+const EMPTY_COLUMN_PINNING: ColumnPinningState = { start: [], end: [] }
+
+const DRAG_COLUMN_ID = "__drag"
+const BUILTIN_COLUMN_IDS = new Set<string>([
+  SELECTION_COLUMN_ID,
+  DRAG_COLUMN_ID,
+])
+
+type DataTableStyles = ReturnType<typeof dataTableVariants>
+
+/** Sticky-edge classes for a pinned cell (opaque bg + edge shadow). */
+function pinClass<T extends RowData>(
+  column: Column<T, unknown>,
+  kind: "header" | "body"
+) {
+  if (!column.getIsPinned()) {
+    return
+  }
+  return [
+    // Body cells inherit the row's own background rather than stamping the
+    // table surface on top of it: row colour (striped / selected / hover)
+    // lives on the `<tr>`, and an opaque `<td>` background hid all three in
+    // every frozen column. `inherit` is still fully opaque — the row now
+    // carries a concrete base — so scrolled content cannot show through.
+    // Body cells composite the row's tint over an opaque surface. Plain
+    // `bg-inherit` was see-through: the row tints are alpha overlays and the
+    // even stripe is fully transparent, so scrolled content bled through the
+    // frozen column. See `data-table-frozen-cell`.
+    kind === "header" ? "bg-table-header-bg" : "data-table-frozen-cell",
+    isLastStartPinned(column)
+      ? "border-e-(length:--border-table-width) border-table-border"
+      : "",
+    isFirstEndPinned(column)
+      ? "border-s-(length:--border-table-width) border-table-border"
+      : "",
+  ].join(" ")
+}
+
+/** Column drag handle rendered in the header cell. */
+function HeaderDragHandle({
+  styles,
+  setActivatorNodeRef,
+  listeners,
+  attributes,
+  label,
+}: {
+  styles: DataTableStyles
+  label: string
+  setActivatorNodeRef: (node: HTMLElement | null) => void
+  listeners: Record<string, unknown> | undefined
+  attributes?: Record<string, unknown>
+}) {
+  return (
+    <button
+      aria-label={`Drag to reorder ${label}`}
+      className={styles.dragHandle()}
+      ref={setActivatorNodeRef as unknown as Ref<HTMLButtonElement>}
+      type="button"
+      {...attributes}
+      {...listeners}
+    >
+      <Icon icon="icon-[mdi--drag-vertical]" size="current" />
+    </button>
+  )
+}
+
+/** Header label with the optional sort toggle + direction icon. */
+function HeaderSortLabel<T extends RowData>({
+  header,
+  styles,
+  enableSorting,
+  locked,
+}: {
+  header: Header<T, unknown>
+  styles: DataTableStyles
+  enableSorting: boolean
+  locked?: boolean
+}) {
+  const column = header.column
+  const canSort = enableSorting && column.getCanSort()
+  const sortDir = column.getIsSorted()
+  const label = header.isPlaceholder
+    ? null
+    : flexRender(column.columnDef.header, header.getContext())
+
+  if (!canSort) {
+    return <>{label}</>
+  }
+
+  let sortIconName: IconType = "icon-[mdi--unfold-more-horizontal]"
+  if (sortDir === "desc") {
+    sortIconName = "token-icon-chevron-down"
+  } else if (sortDir === "asc") {
+    sortIconName = "token-icon-chevron-up"
+  }
+
+  return (
+    <button
+      className={styles.sortButton()}
+      data-disabled={locked || undefined}
+      disabled={locked}
+      onClick={(event) => column.getToggleSortingHandler()?.(event)}
+      type="button"
+    >
+      {label}
+      <Icon
+        className={styles.sortIcon()}
+        data-active={!!sortDir}
+        icon={sortIconName}
+        size="current"
+      />
+    </button>
+  )
+}
+
+/** Cell body: drag handle, active inline editor, or the column's cell template. */
+function renderCellContent<T extends RowData>({
+  cell,
+  column,
+  styles,
+  enableRowReorder,
+  dnd,
+  editor,
+  editorError,
+  editorErrorId,
+  isDragCol,
+  rowLabel,
+}: {
+  cell: Cell<T, unknown>
+  column: Column<T, unknown>
+  rowLabel: string
+  styles: DataTableStyles
+  enableRowReorder: boolean
+  dnd?: { dragHandleProps: Record<string, unknown> }
+  editor?: ReactNode
+  editorError?: string
+  editorErrorId?: string
+  isDragCol: boolean
+}) {
+  if (isDragCol && enableRowReorder && dnd) {
+    return (
+      <button
+        aria-label={`Drag to reorder ${rowLabel}`}
+        className={styles.dragHandle()}
+        onClick={(e) => e.stopPropagation()}
+        type="button"
+        {...dnd.dragHandleProps}
+      >
+        <Icon icon="icon-[mdi--drag-horizontal]" size="current" />
+      </button>
+    )
+  }
+  if (editor) {
+    return (
+      <div className={styles.editorControl()} data-editor-control="">
+        {editor}
+        {editorError ? (
+          <span
+            className={styles.editorError()}
+            id={editorErrorId}
+            role="alert"
+          >
+            {editorError}
+          </span>
+        ) : null}
+      </div>
+    )
+  }
+  return flexRender(column.columnDef.cell, cell.getContext())
+}
+
+/**
+ * Sticky `top` for one header label row.
+ *
+ * `Table.ColumnHeader` sticks every header row at `top: 0` through a class,
+ * which is right for a single row and wrong the moment there are grouped
+ * headers — they would all pile up on each other. This inline value wins over
+ * the class and stacks them.
+ */
+function stickyRowOffset(
+  stickyHeader: boolean | undefined,
+  offsets: number[],
+  groupIndex: number
+): CSSProperties | undefined {
+  if (!stickyHeader) {
+    return
+  }
+  return { top: offsets[groupIndex] ?? 0 }
+}
+
+function DataTableBodyCell<T extends RowData>({
+  cell,
+  span,
+  row,
+  styles,
+  columnSizing,
+  enableColumnResizing,
+  enableRowReorder,
+  dnd,
+  editor,
+  editorError,
+  editorErrorId,
+  indentColumnId,
+  rowLabel,
+}: {
+  cell: Cell<T, unknown>
+  span: { colSpan?: number; rowSpan?: number } | undefined
+  row: Row<T>
+  styles: DataTableStyles
+  columnSizing: ColumnSizingState
+  enableColumnResizing: boolean
+  enableRowReorder: boolean
+  dnd?: { dragHandleProps: Record<string, unknown> }
+  editor?: ReactNode
+  editorError?: string
+  editorErrorId?: string
+  indentColumnId?: string
+  rowLabel: string
+}) {
+  const column = cell.column
+  const pinned = column.getIsPinned()
+  const isDragCol = column.id === DRAG_COLUMN_ID
+  const indent =
+    row.depth > 0 && column.id === indentColumnId
+      ? { paddingInlineStart: `${row.depth * 1.5}rem` }
+      : undefined
+
+  return (
+    <Table.Cell
+      align={column.columnDef.meta?.align}
+      className={pinClass(column, "body")}
+      colSpan={span?.colSpan}
+      data-pinned={pinned || undefined}
+      rowSpan={span?.rowSpan}
+      style={{
+        ...getPinningStyles(column),
+        ...getColumnSizeStyles(column, enableColumnResizing, columnSizing),
+        ...indent,
+      }}
+    >
+      {renderCellContent({
+        cell,
+        column,
+        styles,
+        enableRowReorder,
+        dnd,
+        editor,
+        editorError,
+        editorErrorId,
+        isDragCol,
+        rowLabel,
+      })}
+    </Table.Cell>
+  )
+}
+
+/** Run `required` + `meta.validate` over a row draft, returning field errors. */
+function validateDraft<T extends RowData>(
+  columns: Column<T, unknown>[],
+  draft: Record<string, unknown>,
+  requiredLabel: string
+): Record<string, string> {
+  const errors: Record<string, string> = {}
+  for (const column of columns) {
+    const meta = column.columnDef.meta
+    if (!meta?.editable) {
+      continue
+    }
+    const value = draft[column.id]
+    // `NaN` is what a cleared numeric input parses to, and it is neither
+    // null nor "" — so it has to be spelled out or a required number column
+    // would validate as filled.
+    const empty =
+      isBlank(value) ||
+      (typeof value === "number" && Number.isNaN(value)) ||
+      (Array.isArray(value) && value.length === 0)
+    if (meta.required && empty) {
+      errors[column.id] = requiredLabel
+      continue
+    }
+    const message = meta.validate?.(value, draft)
+    if (message) {
+      errors[column.id] = message
+    }
+  }
+  return errors
+}
+
+/**
+ * One master-detail row: a single full-width cell holding whatever the
+ * `renderExpandedRow` slot returns. Split out of `renderBodyRow` to keep that
+ * function's branching under the complexity ceiling.
+ */
+function renderExpandedDetailRow<T extends RowData>({
+  row,
+  renderExpandedRow,
+  colSpan,
+  instanceId,
+  styles,
+  tintNestedRows,
+}: {
+  row: Row<T>
+  renderExpandedRow: (row: Row<T>) => ReactNode
+  colSpan: number
+  instanceId: string
+  styles: DataTableStyles
+  tintNestedRows: boolean
+}) {
+  return (
+    <Table.Row
+      className={tintNestedRows ? "data-table-row-nested-tint" : undefined}
+      data-depth={row.depth + 1}
+    >
+      <Table.Cell colSpan={colSpan}>
+        <div
+          className={styles.detailBox()}
+          id={`${instanceId}-detail-${row.id}`}
+        >
+          {renderExpandedRow(row)}
+        </div>
+      </Table.Cell>
+    </Table.Row>
+  )
+}
+
+/** Row classes conveying drag state: lifted while dragging, edge while hovered. */
+function rowDragClass(
+  dnd: { isDragging?: boolean; dropSide?: "top" | "bottom" } | undefined,
+  opts: {
+    className?: string
+    striped?: boolean
+    tintNestedRows?: boolean
+    rowIndex?: number
+  }
+) {
+  const { className, striped, tintNestedRows, rowIndex } = opts
+  return [
+    "group/row",
+    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-primary",
+    /* Publish the row's current tint as a custom property. Frozen cells
+     * composite it over an opaque surface (`data-table-frozen-cell`), which
+     * is the only way to be both opaque and row-coloured: these tints are
+     * alpha overlays — `--color-table-row-striped-secondary` is fully
+     * transparent — so a frozen cell that merely inherited the row's
+     * background let the scrolled content show straight through it.
+     * Listed before the striped classes so specificity, not source order,
+     * decides: selection and hover outrank a bare class and so win. */
+    "data-[selected=true]:[--dt-row-tint:var(--color-table-row-bg-selected)]",
+    "group-hover/row:[--dt-row-tint:var(--color-table-row-bg-hover)]",
+    "hover:[--dt-row-tint:var(--color-table-row-bg-hover)]",
+    // `Table.Row`'s own row-divider border and the zebra background are two
+    // ways of doing the same job — separating one row from the next — and
+    // showing both at once double-marks every boundary. `border-b-0` wins the
+    // conflict against Table's base `border-b-(length:--border-table-width)`
+    // through the same className-merge-order mechanism that made `relative`
+    // cancel `sticky` on the header cells.
+    //
+    // Colored from the row's logical index rather than `odd:`/`even:`
+    // structural pseudo-classes: under `enableVirtualization` only a windowed
+    // slice of rows is mounted as siblings, so a row's DOM sibling position
+    // (what `odd:`/`even:` key off) shifts as the window scrolls even though
+    // its logical index — and therefore its stripe color — must not.
+    striped
+      ? `${
+          (rowIndex ?? 0) % 2 === 0
+            ? "bg-table-row-striped-primary [--dt-row-tint:var(--color-table-row-striped-primary)]"
+            : "bg-table-row-striped-secondary [--dt-row-tint:var(--color-table-row-striped-secondary)]"
+        } border-b-0`
+      : "",
+    // `data-depth` is only ever set for `row.depth > 0` (see below).
+    // `data-table-row-nested-tint` (defined in
+    // tokens/components/organisms/_data-table.css) is an inset box-shadow, not
+    // a background — it paints as its own layer, so it composes with
+    // `striped`'s zebra background instead of losing the Tailwind-merge
+    // conflict a second `bg-*` class would.
+    tintNestedRows ? "data-[depth]:data-table-row-nested-tint" : "",
+    dnd?.isDragging ? "shadow-table-outline" : "",
+    dnd?.dropSide === "top" ? "border-primary border-t-2" : "",
+    dnd?.dropSide === "bottom" ? "border-primary border-b-2" : "",
+    className ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+}
+
+/**
+ * Opaque header surface. `--color-table-header-bg` resolves to a ~5% tint
+ * (`--color-fill-base`), which is fine for a static header but lets scrolled
+ * content show through sticky or frozen header cells — two labels end up
+ * legible at once. Compositing the tint over the table surface keeps the exact
+ * same colour while being fully opaque.
+ */
+const OPAQUE_HEADER_BG: CSSProperties = {
+  backgroundColor: "var(--color-table-bg)",
+  backgroundImage:
+    "linear-gradient(var(--color-table-header-bg), var(--color-table-header-bg))",
+}
+
+/** `aria-sort` for a header cell, or undefined when the column is not sortable. */
+function sortState<T extends RowData>(
+  column: Column<T, unknown>,
+  enableSorting: boolean
+) {
+  if (!(enableSorting && column.getCanSort())) {
+    return
+  }
+  const sorted = column.getIsSorted()
+  if (sorted === "asc") {
+    return "ascending" as const
+  }
+  if (sorted === "desc") {
+    return "descending" as const
+  }
+  return "none" as const
+}
+
+/** Enter/Space activates a clickable row, ignoring keys bubbling from controls. */
+function activateRowByKeyboard(
+  event: React.KeyboardEvent<HTMLTableRowElement>,
+  activate: () => void
+) {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return
+  }
+  if (event.target !== event.currentTarget) {
+    return
+  }
+  event.preventDefault()
+  activate()
+}
+
+/**
+ * Shared "reach end" latch used by both the window-scroll listener and the
+ * internal container's onScroll handler: fire `onReachEnd` once when the
+ * scroll distance crosses the threshold, then hold off until the user
+ * scrolls back away from the edge. Kept as one function so the two call
+ * sites (window vs. bounded container) can't drift the way the reach-end
+ * math already has twice in this component's history.
+ */
+function checkReachEnd(
+  distance: number,
+  reachEndThreshold: number,
+  reachedEndRef: { current: boolean },
+  onReachEnd: () => void
+): void {
+  if (distance <= reachEndThreshold) {
+    if (!reachedEndRef.current) {
+      reachedEndRef.current = true
+      onReachEnd()
+    }
+  } else {
+    reachedEndRef.current = false
+  }
+}
+
+/**
+ * `useLayoutEffect` on the client, `useEffect` on the server — React warns
+ * about the former during SSR, and this library is consumed by server-
+ * rendered apps. Used where a measurement has to land before paint.
+ */
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect
+
+/**
+ * Trim a selection down to `max`, keeping rows that were already selected
+ * before rows newly added by the same change.
+ *
+ * Used by the `setRowSelection` updater, where a selection *action*
+ * overshoots the cap and there is a meaningful "before" set to prioritise:
+ * for default index-based row ids `Object.keys` yields ascending numeric
+ * order rather than selection order, so slicing the raw list would keep
+ * whichever rows sort lowest instead of the ones already held.
+ *
+ * The effect that reacts to `maxSelectedRows` itself shrinking deliberately
+ * does *not* use this — every selected row there is equally pre-existing, so
+ * there is nothing to prioritise against. See its own comment.
+ */
+function clampSelection(
+  selectedIds: string[],
+  previous: RowSelectionState,
+  max: number
+): string[] {
+  return [
+    ...selectedIds.filter((id) => previous[id]),
+    ...selectedIds.filter((id) => !previous[id]),
+  ].slice(0, max)
+}
+
+/** Row-level Enter/Space activation, gated by the edit lock. */
+function buildRowKeyDownHandler<T extends RowData>(
+  row: Row<T>,
+  onRowClick: DataTableProps<T>["onRowClick"],
+  blocked: (action: DataTableBlockedAction) => boolean
+) {
+  return (event: React.KeyboardEvent<HTMLTableRowElement>) =>
+    activateRowByKeyboard(event, () => {
+      if (!blocked("rowClick")) {
+        onRowClick?.(
+          row,
+          event as unknown as React.MouseEvent<HTMLTableRowElement>
+        )
+      }
+    })
+}
+
+/**
+ * Row `onClick`: the consumer's raw `slotProps.row.onClick` always fires
+ * (it's a DOM passthrough they attached themselves) — DataTable's own edit
+ * lock governs only its own `onRowClick` dispatch, gated on `onRowClick`
+ * being set rather than on `rowIsClickable` so a table with no `onRowClick`
+ * never reports `onInteractionBlocked({ action: "rowClick" })` for stray
+ * clicks during an edit.
+ */
+function buildRowClickHandler<T extends RowData>(
+  row: Row<T>,
+  rowOnClick:
+    | ((event: React.MouseEvent<HTMLTableRowElement>) => void)
+    | undefined,
+  onRowClick: DataTableProps<T>["onRowClick"],
+  blocked: (action: DataTableBlockedAction) => boolean
+) {
+  return (event: React.MouseEvent<HTMLTableRowElement>) => {
+    rowOnClick?.(event)
+    if (onRowClick && !blocked("rowClick")) {
+      onRowClick(row, event)
+    }
+  }
+}
+
+/** Row ref: the sortable node ref, plus a handle on the row being edited. */
+/** Stable id for the currently-edited row's `<tr>`, used to find it by DOM
+ * id rather than a ref — see the focus-management effect for why. */
+function editedRowElementId(instanceId: string, rowId: string): string {
+  return `${instanceId}-editing-${rowId}`
+}
+
+/** `undefined` unless `rowId` is the one currently being edited. */
+function editingRowElementId(
+  editingRowId: string | null,
+  instanceId: string,
+  rowId: string
+): string | undefined {
+  return editingRowId === rowId
+    ? editedRowElementId(instanceId, rowId)
+    : undefined
+}
+
+function composeRowRef(
+  dnd: { setNodeRef: (node: HTMLElement | null) => void } | undefined,
+  consumerRef: Ref<HTMLTableRowElement> | undefined
+) {
+  return ((node: HTMLTableRowElement | null) => {
+    dnd?.setNodeRef(node)
+    if (typeof consumerRef === "function") {
+      consumerRef(node)
+    } else if (consumerRef) {
+      ;(consumerRef as { current: HTMLTableRowElement | null }).current = node
+    }
+  }) as unknown as RefObject<HTMLTableRowElement>
+}
+
+/* ── Component ───────────────────────────────────────────────────────────── */
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: a feature-complete data-grid controller wiring ~20 optional features into one instance
+export function DataTable<T extends RowData>(props: DataTableProps<T>) {
+  const {
+    data,
+    columns: userColumns,
+    getRowId,
+    id: idProp,
+    className,
+    ref,
+    variant = "line",
+    size = "md",
+    stickyHeader,
+    interactive,
+    showColumnBorder,
+    caption,
+    hideHeader,
+    maxHeight,
+    enableSorting = true,
+    enableGlobalFilter = false,
+    enableColumnFilters = false,
+    enableRowSelection = false,
+    enableColumnVisibility = false,
+    enableColumnPinning = false,
+    enableColumnReorder = false,
+    enableColumnResizing = false,
+    tableLayout = "auto",
+    enableRowReorder = false,
+    enableExpanding = false,
+    enablePagination = false,
+    enableVirtualization = false,
+    getSubRows,
+    getRowCanExpand,
+    getCellSpan,
+    sorting: sortingProp,
+    onSortingChange,
+    columnFilters: columnFiltersProp,
+    onColumnFiltersChange,
+    globalFilter: globalFilterProp,
+    onGlobalFilterChange,
+    rowSelection: rowSelectionProp,
+    onRowSelectionChange,
+    columnVisibility: columnVisibilityProp,
+    onColumnVisibilityChange,
+    columnOrder: columnOrderProp,
+    onColumnOrderChange,
+    columnPinning: columnPinningProp,
+    onColumnPinningChange,
+    expanded: expandedProp,
+    onExpandedChange,
+    pagination: paginationProp,
+    onPaginationChange,
+    pageSizeOptions = [10, 25, 50, 100],
+    manualSorting,
+    manualFiltering,
+    manualPagination,
+    rowCount,
+    pageCount,
+    onRowClick,
+    onReachEnd,
+    onColumnReorder,
+    onRowReorder,
+    onCellEditCommit,
+    onReady,
+    renderToolbar,
+    toolbarActions,
+    renderEmpty,
+    renderRowActions,
+    renderHeaderFilter,
+    renderExpandedRow,
+    slotProps,
+    translations: translationsProp,
+    estimateRowHeight = 44,
+    reachEndThreshold = 240,
+    enableInlineEdit = false,
+    editingRowId: editingRowIdProp,
+    onEditingRowIdChange,
+    onEditStart,
+    onEditChange,
+    onEditCommit,
+    onEditCancel,
+    onEditValidationError,
+    lockInteractionsWhileEditing = true,
+    onInteractionBlocked,
+    filterRenderers,
+    editorRenderers,
+    stickyActions = true,
+    paginationProps,
+    canEditRow,
+    rowActions,
+    getRowLabel,
+    striped = false,
+    tintNestedRows = false,
+    loading = false,
+    loadingRowCount = 5,
+    loadingMore = false,
+    selectionMode = "multiple",
+    maxSelectedRows,
+    canSelectRow,
+    onSelectionLimitReached,
+  } = props
+
+  /*
+   * Undefined entries are dropped rather than spread over the defaults.
+   * `translations={{ emptyTitle: t?.tableEmpty }}` is the ordinary call
+   * shape, and a missed i18n lookup passes `undefined` explicitly — which a
+   * plain spread writes straight over the default. Strings then rendered as
+   * literal "undefined", and `rangeLabel` is worse: `DataTable.Pagination`
+   * calls it unconditionally, so an undefined one threw "not a function" and
+   * took the whole table down the moment `enablePagination` was set.
+   */
+  const translations = { ...DEFAULT_TRANSLATIONS }
+  if (translationsProp) {
+    for (const [key, value] of Object.entries(translationsProp)) {
+      if (value !== undefined) {
+        ;(translations as Record<string, unknown>)[key] = value
+      }
+    }
+  }
+  const outlined = variant === "outline"
+  // `variant="striped"` forwards to the `Table` organism, which stripes via
+  // `odd:`/`even:` DOM-sibling pseudo-classes — the same drift bug fixed
+  // above for the `striped` boolean's rowIndex-based coloring. Route both
+  // spellings through the one correct implementation instead of letting a
+  // consumer pick the broken one.
+  const effectiveStriped = striped || variant === "striped"
+  const styles = dataTableVariants({ outlined })
+  const generatedId = useId()
+  const instanceId = idProp ?? generatedId
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const reachedEndRef = useRef(false)
+  // Row count at the last `onReachEnd`, so a request that brings back
+  // nothing doesn't immediately ask again. Written by every path that fires
+  // — the scroll handlers as well as the re-arm effects: when only the
+  // effects recorded it, a scroll-driven fire left this at its initial value
+  // and the following effect run happily issued one redundant duplicate
+  // request before the count was finally stored.
+  const lastReachEndCountRef = useRef(-1)
+  // Last over-cap selection reported via `onSelectionLimitReached`, so the
+  // shrink effect below reports each distinct one once.
+  const reportedSelectionLimitRef = useRef<string | null>(null)
+  // Current row count, readable from the scroll listeners without putting
+  // `data.length` in their dependency arrays (which would re-subscribe the
+  // window listener on every append).
+  const dataLengthRef = useRef(data.length)
+  dataLengthRef.current = data.length
+  /** `onReachEnd`, recording the row count it fired at. */
+  const fireReachEnd = () => {
+    lastReachEndCountRef.current = dataLengthRef.current
+    onReachEnd?.()
+  }
+  const headerRowRefs = useRef<(HTMLTableRowElement | null)[]>([])
+  /**
+   * Cumulative sticky offset for each header label row, plus the total in the
+   * last slot. With a single header row this is `[0, rowHeight]` — exactly the
+   * previous behaviour. With grouped headers each row needs its own `top` or
+   * they all pile up at 0, and the filter row below them needs the total.
+   */
+  const [headerOffsets, setHeaderOffsets] = useState<number[]>([0])
+  const headerHeight = headerOffsets.at(-1) ?? 0
+
+  /* Controlled/uncontrolled state slices */
+  const [sorting, setSorting] = useControllable<SortingState>(
+    sortingProp,
+    [],
+    onSortingChange
+  )
+  const [columnFilters, setColumnFilters] = useControllable<ColumnFiltersState>(
+    columnFiltersProp,
+    [],
+    onColumnFiltersChange
+  )
+  const [globalFilter, setGlobalFilter] = useControllable<string>(
+    globalFilterProp,
+    "",
+    onGlobalFilterChange
+  )
+  const [rowSelection, setRowSelectionState] =
+    useControllable<RowSelectionState>(
+      rowSelectionProp,
+      {},
+      onRowSelectionChange
+    )
+
+  /**
+   * Enforce `maxSelectedRows` on the resolved state rather than only through
+   * `getCanSelect`: TanStack applies sub-row and select-all toggles in a single
+   * updater, so a per-row predicate reading render-time state cannot see the
+   * count growing and the cap would be bypassed.
+   */
+  const setRowSelection: OnChangeFn<RowSelectionState> = (updater) => {
+    let limitReached: { limit: number; selectedCount: number } | undefined
+    setRowSelectionState((old) => {
+      const next =
+        typeof updater === "function"
+          ? (updater as (o: RowSelectionState) => RowSelectionState)(old)
+          : updater
+      if (maxSelectedRows == null) {
+        return next
+      }
+      const selectedIds = Object.keys(next).filter((id) => next[id])
+      const previousCount = Object.keys(old).filter((id) => old[id]).length
+      if (selectedIds.length <= maxSelectedRows) {
+        // Reaching the cap is itself the signal worth reporting: once it is hit
+        // the remaining checkboxes disable, so the "exceeded" branch below is
+        // unreachable through normal row clicks and only bulk toggles hit it.
+        if (
+          selectedIds.length === maxSelectedRows &&
+          selectedIds.length > previousCount
+        ) {
+          limitReached = {
+            limit: maxSelectedRows,
+            selectedCount: selectedIds.length,
+          }
+        }
+        return next
+      }
+      const kept = clampSelection(selectedIds, old, maxSelectedRows)
+      limitReached = { limit: maxSelectedRows, selectedCount: kept.length }
+      return Object.fromEntries(kept.map((id) => [id, true]))
+    })
+    // `useControllable` runs the updater exactly once and synchronously, so the
+    // notification lands after the state settles without firing twice.
+    if (limitReached) {
+      onSelectionLimitReached?.(limitReached)
+    }
+  }
+
+  // `setRowSelection`'s clamp only runs when a selection *action* happens —
+  // it can't see `maxSelectedRows` itself shrinking below the current
+  // selection (e.g. a permission change re-renders with a lower cap). Trim
+  // the resolved state directly whenever that happens.
+  //
+  // Which rows survive is arbitrary but deterministic here: unlike the
+  // updater path there is no "before" selection to prioritise against —
+  // every selected row is equally pre-existing — and `RowSelectionState` is
+  // a plain record that carries no selection order (for default index-based
+  // ids `Object.keys` yields ascending numeric order, not recency). A
+  // caller that needs a specific survivor set should control `rowSelection`
+  // and trim it themselves alongside lowering the cap.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-checks when the cap or the selection itself changes; setRowSelectionState/onSelectionLimitReached are stable
+  useEffect(() => {
+    if (maxSelectedRows == null) {
+      return
+    }
+    const selectedIds = Object.keys(rowSelection).filter(
+      (id) => rowSelection[id]
+    )
+    if (selectedIds.length <= maxSelectedRows) {
+      // Back within the cap: clear the latch so a later over-cap selection is
+      // trimmed and reported again. Leaving it set meant a controlled parent
+      // that re-applied a previously-seen over-cap selection (select 3 with a
+      // cap of 2, clear, select the same 3 again) matched the stale signature,
+      // returned early, and rendered an over-cap selection with no callback.
+      reportedSelectionLimitRef.current = null
+      return
+    }
+    // In controlled mode `useControllable` does not hold state of its own, so
+    // if the parent ignores the trimmed selection this effect keeps seeing an
+    // over-cap value. Without this guard a parent that also rebuilds
+    // `rowSelection` each render would get `onSelectionLimitReached` fired on
+    // every render instead of once per distinct over-cap selection.
+    const signature = `${maxSelectedRows}:${selectedIds.join(",")}`
+    if (reportedSelectionLimitRef.current === signature) {
+      return
+    }
+    reportedSelectionLimitRef.current = signature
+    const kept = selectedIds.slice(0, maxSelectedRows)
+    setRowSelectionState(Object.fromEntries(kept.map((id) => [id, true])))
+    onSelectionLimitReached?.({
+      limit: maxSelectedRows,
+      selectedCount: kept.length,
+    })
+  }, [maxSelectedRows, rowSelection])
+
+  const [columnVisibility, setColumnVisibility] =
+    useControllable<ColumnVisibilityState>(
+      columnVisibilityProp,
+      {},
+      onColumnVisibilityChange
+    )
+  const [columnOrder, setColumnOrder] = useControllable<string[]>(
+    columnOrderProp,
+    [],
+    onColumnOrderChange
+  )
+  const [columnPinning, setColumnPinning] = useControllable<ColumnPinningState>(
+    columnPinningProp,
+    // v9 made both halves of the pinning state required, so the uncontrolled
+    // default has to spell them out rather than start from `{}`.
+    EMPTY_COLUMN_PINNING,
+    onColumnPinningChange
+  )
+  const [expanded, setExpanded] = useControllable<ExpandedState>(
+    expandedProp,
+    {},
+    onExpandedChange
+  )
+  const [pagination, setPagination] = useControllable<PaginationState>(
+    paginationProp,
+    { pageIndex: 0, pageSize: pageSizeOptions[0] ?? 10 },
+    onPaginationChange
+  )
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
+
+  /* Inject built-in leading columns (drag handle, selection, expander). */
+  const editTriggerIdRef = useRef<string | null>(null)
+  // Row the current `draft` was seeded from, so a controlled `editingRowId`
+  // that changes without going through `startEdit` can be detected.
+  const draftRowIdRef = useRef<string | null>(null)
+  const [editingRowId, setEditingRowId] = useControllable<string | null>(
+    editingRowIdProp,
+    null,
+    onEditingRowIdChange
+  )
+  const [draft, setDraft] = useState<Record<string, unknown>>({})
+  // Mirrors `draft` so same-tick writes chain off each other rather than all
+  // resolving against one render's snapshot. Re-synced every render, so any
+  // other `setDraft` caller (seeding, reset) stays consistent with it.
+  const draftRef = useRef(draft)
+  draftRef.current = draft
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({})
+  const [dirty, setDirty] = useState(false)
+
+  const isEditing = editingRowId != null
+  const locked = isEditing && lockInteractionsWhileEditing
+
+  /**
+   * Guard for interactions that are locked during an inline edit. Reports the
+   * attempt through `onInteractionBlocked` and returns true when blocked.
+   */
+  const blocked = (
+    action: Parameters<NonNullable<typeof onInteractionBlocked>>[0]["action"]
+  ) => {
+    if (!locked) {
+      return false
+    }
+    onInteractionBlocked?.({
+      action,
+      reason: "editing",
+      rowId: editingRowId as string,
+    })
+    return true
+  }
+
+  const selectedCount = Object.values(rowSelection).filter(Boolean).length
+  const selectionLimitReached =
+    maxSelectedRows != null && selectedCount >= maxSelectedRows
+
+  /**
+   * Per-row selectability: the `canSelectRow` predicate, the `maxSelectedRows`
+   * cap (already-selected rows stay deselectable) and `enableRowSelection`
+   * composed into the single function TanStack expects.
+   */
+  const rowSelectionPredicate = (row: Row<T>) => {
+    const isSelected = rowSelection[row.id] === true
+    if (canSelectRow && !canSelectRow(row, { selectedCount, isSelected })) {
+      return false
+    }
+    if (selectionLimitReached && !isSelected) {
+      return false
+    }
+    return true
+  }
+
+  /**
+   * TanStack keys its column cache on this array's identity, so rebuilding it
+   * every render discards every derived column — hence the memo, and hence
+   * nothing render-scoped in its deps.
+   */
+  const columns = useMemo(
+    () =>
+      buildColumns<T>({
+        userColumns: applyColumnDefaults(userColumns),
+        enableRowReorder,
+        enableRowSelection,
+        locked,
+        getRowLabel,
+        selectAllLabel: translations.selectAllLabel,
+        showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
+      }),
+    [
+      userColumns,
+      enableRowReorder,
+      enableRowSelection,
+      locked,
+      getRowLabel,
+      translations.selectAllLabel,
+      selectionMode,
+      maxSelectedRows,
+    ]
+  )
+
+  /*
+   * Built-in columns are re-inserted at the front of a supplied
+   * `columnOrder`.
+   *
+   * `onColumnReorder` reports its `order` over the consumer's own columns
+   * (the injected `__drag`/`__select` ids stripped), which is what makes the
+   * indices usable — but TanStack appends any column *missing* from
+   * `columnOrder` to the end. So feeding that order straight back, or simply
+   * authoring `columnOrder` from your own ids, moved the checkbox and drag
+   * handle from the leading edge to the trailing edge. Verified against a
+   * real table: `columnOrder: ["age","name"]` rendered
+   * `age, name, __select`.
+   */
+  const effectiveColumnOrder = useMemo(() => {
+    if (columnOrder.length === 0) {
+      return columnOrder
+    }
+    const builtIns = [DRAG_COLUMN_ID, SELECTION_COLUMN_ID].filter(
+      (id) => !columnOrder.includes(id)
+    )
+    return builtIns.length > 0 ? [...builtIns, ...columnOrder] : columnOrder
+  }, [columnOrder])
+
+  const table = useTable({
+    features: dataTableFeatures,
+    data,
+    columns,
+    getRowId,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+      rowSelection,
+      columnVisibility,
+      columnOrder: effectiveColumnOrder,
+      columnPinning,
+      expanded,
+      pagination,
+      columnSizing,
+    },
+    enableSorting,
+    enableRowSelection: enableRowSelection ? rowSelectionPredicate : false,
+    enableMultiRowSelection: selectionMode === "multiple",
+    // v9 turned shift-click range selection on by default. It applies the whole
+    // range in one updater, so every row in it is tested against the
+    // `selectedCount` captured before the click — which would let a shift-click
+    // sail past `maxSelectedRows`. Off until DataTable exposes range selection
+    // as a real, cap-aware feature.
+    enableRowRangeSelection: false,
+    enableColumnFilters,
+    enableColumnPinning,
+    enableColumnResizing,
+    columnResizeMode: "onChange",
+    manualSorting,
+    manualFiltering,
+    // v9 registers the paginated row model on the feature set rather than
+    // per instance, so it is always present. `manualPagination` is the switch
+    // that makes the pipeline hand back the un-paginated rows, which is what
+    // "pagination is off" has to mean now.
+    manualPagination: manualPagination || !enablePagination,
+    rowCount,
+    pageCount,
+    getSubRows,
+    getRowCanExpand:
+      getRowCanExpand ?? (renderExpandedRow ? () => true : undefined),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    onRowSelectionChange: setRowSelection,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
+    onColumnPinningChange: setColumnPinning,
+    onExpandedChange: setExpanded,
+    onPaginationChange: setPagination,
+    onColumnSizingChange: setColumnSizing,
+    globalFilterFn: "includesString",
+    meta: {
+      updateData: (rowId: string, columnId: string, value: unknown) => {
+        const target = table.getCoreRowModel().rowsById[rowId]
+        if (!target) {
+          return
+        }
+        onCellEditCommit?.({ rowId, columnId, value, row: target.original })
+      },
+    },
+  })
+
+  // `useTable`'s returned wrapper is `useMemo(..., [table, tableOptions, state])`
+  // (@tanstack/react-table's useTable.js), and `tableOptions` is the options
+  // object literal built above — a fresh reference every render — so the
+  // wrapper's identity changes every render even though the underlying
+  // `constructTable` instance (created once via `useState`) never does.
+  // Firing on mount only, rather than keying off `table`, is what "ready"
+  // actually means here.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally mount-only — see comment above
+  useEffect(() => {
+    onReady?.(table)
+  }, [])
+
+  useEffect(() => {
+    if (editingRowId) {
+      // Looked up by id — set on the row's own element above — rather than
+      // held in a ref written from each row's ref callback: when
+      // `editingRowId` jumps directly from one row to an earlier one (a
+      // controlled `editingRowId` change, not the internal `startEdit` guard
+      // that always requires the previous edit to close first), React
+      // detaches the old row's ref *after* attaching the new one, since
+      // detach/attach run in DOM order across siblings — the old row's
+      // detach would null out a ref the new row had just set. A DOM id
+      // resolved fresh, after the whole commit lands, isn't exposed to that
+      // ordering at all.
+      // Scope to the editor wrappers so the (disabled) selection checkbox and
+      // other row controls are never picked, and include button-based editors.
+      const row = document.getElementById(
+        editedRowElementId(instanceId, editingRowId)
+      )
+      const candidates = row?.querySelectorAll<HTMLElement>(
+        "[data-editor-control] input, [data-editor-control] select, [data-editor-control] textarea, [data-editor-control] button"
+      )
+      const first = Array.from(candidates ?? []).find(
+        (node) => !(node as HTMLButtonElement).disabled
+      )
+      first?.focus()
+      return
+    }
+    // The pencil that opened the edit is unmounted while editing, so restore
+    // focus by id rather than by holding a (now detached) node.
+    const trigger = editTriggerIdRef.current
+      ? document.getElementById(editTriggerIdRef.current)
+      : null
+    trigger?.focus()
+    editTriggerIdRef.current = null
+  }, [editingRowId, instanceId])
+
+  // Draft state is cleared when the edit actually ends, so a controlled
+  // `editingRowId` held open across an async save keeps its values.
+  //
+  // A non-null id the draft was not seeded for means the edit was opened
+  // *without* going through `startEdit` — a parent setting `editingRowId`
+  // directly, or switching row A → B without passing through `null`. Both
+  // used to leave the draft as-is: the first opened every editor empty and
+  // committed `{}` over the row's real values, the second showed row A's
+  // values under row B and wrote A's data to B's id. Seed from the row the
+  // id actually names.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: seeds on id changes only; `table` is rebuilt every render by design
+  useEffect(() => {
+    if (!editingRowId) {
+      draftRowIdRef.current = null
+      setDraft({})
+      setEditErrors({})
+      setDirty(false)
+      return
+    }
+    if (draftRowIdRef.current === editingRowId) {
+      return
+    }
+    const row = table.getCoreRowModel().rowsById[editingRowId]
+    if (row) {
+      seedDraft(row)
+    }
+  }, [editingRowId])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: watches the edited row's existence, not the cancel identity
+  useEffect(() => {
+    if (editingRowId && !table.getCoreRowModel().rowsById[editingRowId]) {
+      cancelEdit()
+    }
+  }, [editingRowId, data])
+
+  const headerGroupCount = table.getHeaderGroups().length
+
+  // Measured before paint: `headerOffsets` starts at `[0]`, so a post-paint
+  // `useEffect` would render every sticky header row at `top: 0` for one
+  // frame on mount (and whenever the group count changes), flashing the
+  // grouped rows stacked on top of each other before they settle.
+  //
+  // Deps are `stickyHeader` + `headerGroupCount` on purpose: re-measure when
+  // the header gains or loses a row, which is what the group count tracks.
+  useIsomorphicLayoutEffect(() => {
+    if (!stickyHeader) {
+      return
+    }
+    // `!= null`, not `!== null`: this array is written by index, so an
+    // unwritten slot is `undefined` — which passes a `!== null` filter and
+    // then throws on `getBoundingClientRect`, taking the layout effect (and
+    // the render) down with it.
+    const nodes = headerRowRefs.current.filter((n) => n != null)
+    if (nodes.length === 0) {
+      return
+    }
+    const measure = () => {
+      const offsets = [0]
+      for (const node of nodes) {
+        offsets.push(
+          (offsets.at(-1) ?? 0) + node.getBoundingClientRect().height
+        )
+      }
+      setHeaderOffsets(offsets)
+    }
+    const observer = new ResizeObserver(measure)
+    for (const node of nodes) {
+      observer.observe(node)
+    }
+    measure()
+    return () => observer.disconnect()
+  }, [stickyHeader, headerGroupCount])
+
+  /**
+   * Load a row's editable values into the draft. The single seeding path, so
+   * the pencil button and a controlled `editingRowId` cannot disagree about
+   * what "start editing this row" means.
+   */
+  const seedDraft = (row: Row<T>) => {
+    const initial: Record<string, unknown> = {}
+    for (const column of table.getAllLeafColumns()) {
+      if (column.columnDef.meta?.editable) {
+        initial[column.id] = row.getValue(column.id)
+      }
+    }
+    draftRowIdRef.current = row.id
+    setDraft(initial)
+    setEditErrors({})
+    setDirty(false)
+  }
+
+  const startEdit = (row: Row<T>) => {
+    if (isEditing || (canEditRow && !canEditRow(row))) {
+      return
+    }
+    editTriggerIdRef.current = `${instanceId}-edit-${row.id}`
+    seedDraft(row)
+    setEditingRowId(row.id)
+    onEditStart?.({ rowId: row.id, row: row.original })
+  }
+
+  const setDraftValue = (rowId: string, columnId: string, value: unknown) => {
+    // Built from a ref, not the render-scoped `draft`: two fields committing
+    // in the same tick — the `dateRange` editor's two inputs, or a blur and a
+    // change batched together — otherwise both resolve against the same stale
+    // object and the first write is silently dropped. A functional updater
+    // would fix the stored state but not `onEditChange`'s payload, since
+    // React may run the updater after this call returns; the ref advances
+    // synchronously so both agree.
+    const next = { ...draftRef.current, [columnId]: value }
+    draftRef.current = next
+    setDraft(next)
+    onEditChange?.({ rowId, columnId, value, draft: next })
+    setDirty(true)
+    // Clear this field's stale error as soon as the user edits it again.
+    setEditErrors((old) => (old[columnId] ? { ...old, [columnId]: "" } : old))
+  }
+
+  const cancelEdit = () => {
+    if (!isEditing) {
+      return
+    }
+    const rowId = editingRowId as string
+    setEditingRowId(null)
+    onEditCancel?.({ rowId, dirty })
+  }
+
+  const commitEdit = () => {
+    if (!isEditing) {
+      return
+    }
+    const rowId = editingRowId as string
+    const row = table.getCoreRowModel().rowsById[rowId]
+    if (!row) {
+      // The record disappeared mid-edit (deleted, replaced, refetched);
+      // releasing the lock beats throwing or committing onto a stranger.
+      cancelEdit()
+      return
+    }
+    // Only columns that actually render an editor for the user.
+    //
+    // Two ways a `meta.editable` column ends up without one: it is hidden via
+    // `columnVisibility`, or it is `type: "custom"` with no `renderEditor`
+    // (the default custom editor renders nothing, so the cell stays
+    // read-only). Validating either produced an error for a field with no
+    // input on screen — stored where nothing displays it, while `commitEdit`
+    // returned early — so Save silently did nothing with no way out but
+    // cancelling. A field the user cannot see is a field they cannot fix.
+    const editableColumns = table.getVisibleLeafColumns().filter((column) => {
+      const meta = column.columnDef.meta
+      if (!meta?.editable) {
+        return false
+      }
+      if (resolveColumnType(meta) !== "custom") {
+        return true
+      }
+      return Boolean(meta.renderEditor || editorRenderers?.custom)
+    })
+    // `draftRef.current`, not the render-scoped `draft`. `setDraftValue`
+    // maintains the ref precisely so a same-tick `setValue(v); commit()` —
+    // the natural "pick an option, save" shape for the enum and boolean
+    // editors, which have no key handlers, and what Zag's INPUT.ENTER does on
+    // the numeric editor — sees the value that was just written. Reading the
+    // closure here dropped it: the new value never reached `onEditCommit`,
+    // and a `required` field the user had just filled in failed as blank.
+    const committed = draftRef.current
+    const errors = validateDraft(
+      editableColumns,
+      committed,
+      translations.requiredLabel
+    )
+
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors)
+      onEditValidationError?.({ rowId, errors })
+      return
+    }
+
+    onEditCommit?.({ rowId, draft: committed, row: row.original })
+    setEditingRowId(null)
+  }
+
+  const rows = table.getRowModel().rows
+  // Memoized for the same reason as `reorderableLeafIds`: a fresh array
+  // identity on every render defeats `SortableContext`'s own change
+  // detection regardless of whether the row order actually changed.
+  const rootRowIds = useMemo(
+    () => rows.filter((r) => r.depth === 0).map((r) => r.id),
+    [rows]
+  )
+  /*
+   * Leaf columns in *render* order.
+   *
+   * `getVisibleLeafColumns()` is only `getAllLeafColumns().filter(isVisible)`
+   * — it does not apply pinning. `getHeaderGroups()` and `row.getVisibleCells()`
+   * both reorder to `[...start, ...center, ...end]`, so reading the plain leaf
+   * list put anything derived from it out of step with the header and body the
+   * moment a column was pinned: the filter row rendered its controls under the
+   * wrong headers, the tree indent attached to a column that was no longer
+   * leftmost, and the loading skeleton's columns did not line up with the table
+   * it stands in for. The last header group is the leaf row, so its headers are
+   * exactly what the header renders.
+   */
+  const headerGroups = table.getHeaderGroups()
+  // Memoized on `headerGroups`, which TanStack itself memoizes on columns /
+  // order / grouping / pinning / visibility. Mapping it inline produced a
+  // fresh array every render, which silently defeated the `useMemo` on
+  // `reorderableLeafIds` below — the identity `SortableContext` reads as
+  // "the list changed".
+  // `table` is deliberately NOT a dependency: `useTable` returns
+  // `useMemo(() => ({...table, options, state}), [table, tableOptions, state])`
+  // and `tableOptions` is the object literal built above — a fresh identity
+  // every render (the same reason `onReady` fires mount-only). Including it
+  // made this memo recompute every render, which is exactly the churn it
+  // exists to prevent. `headerGroups` is memoized by TanStack on
+  // columns/order/grouping/pinning/visibility, and the fallback below reads
+  // the same underlying state, so keying on it alone is both stable and
+  // correct.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above — `table`'s identity churns every render by design
+  const leafColumns = useMemo(
+    () =>
+      headerGroups.at(-1)?.headers.map((h) => h.column as Column<T, unknown>) ??
+      table.getVisibleLeafColumns(),
+    [headerGroups]
+  )
+  const columnCount = leafColumns.length
+
+  /* Virtualization (windowing that preserves native table column alignment).
+   *
+   * The virtualizer measures `scrollTop` on `scrollRef`'s element, which is
+   * only the actual scrolling element when `maxHeight` bounds it — without a
+   * height the div grows to fit its content, the *page* scrolls instead, and
+   * `scrollTop` sits at 0 forever. Windowing then silently renders only the
+   * first `overscan`-sized slice of rows and nothing past it, however far the
+   * user scrolls. Rather than ship that quietly, virtualization is disabled
+   * (all rows render) whenever `maxHeight` is missing, with a dev warning.
+   */
+  const virtualizationUsable = enableVirtualization && !!maxHeight
+  const hasWarnedAboutUnboundedVirtualization = useRef(false)
+  // `getCellSpan`'s rowSpan relies on the owning `<tr>` and its merged-away
+  // followers being actual, adjacent DOM siblings — an HTML rowSpan can't
+  // reach past rows that were never rendered. Once virtualization windows
+  // the body, the owner can scroll out while a `hidden: true` follower is
+  // still mounted, leaving a visible gap. There's no general fix short of
+  // recomputing spans per rendered window (which breaks the moment the owner
+  // itself is offscreen in the other direction), so this is a documented
+  // incompatibility, surfaced once via a dev warning rather than silently
+  // producing gaps.
+  const hasWarnedAboutVirtualizedCellSpan = useRef(false)
+  useEffect(() => {
+    if (
+      !(virtualizationUsable && getCellSpan) ||
+      hasWarnedAboutVirtualizedCellSpan.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutVirtualizedCellSpan.current = true
+    console.warn(
+      "DataTable: getCellSpan and enableVirtualization are both set. " +
+        "rowSpan/colSpan require the merged rows to be adjacent DOM " +
+        "siblings, which virtualization's windowing does not guarantee — " +
+        "a spanning cell's owner row can scroll out of view while a " +
+        "`hidden: true` follower row stays rendered, leaving a gap."
+    )
+  }, [virtualizationUsable, getCellSpan])
+  // Row reorder's `SortableContext` is seeded with every root row id
+  // (`rootRowIds`), but only the virtualized window's rows actually mount a
+  // `useSortable` node — dnd-kit's collision detection can't resolve ids
+  // with no registered DOM node, so dragging toward an off-screen target
+  // can misfire. Same "documented, not fixable without a deeper rework"
+  // treatment as the getCellSpan incompatibility above.
+  const hasWarnedAboutVirtualizedRowReorder = useRef(false)
+  useEffect(() => {
+    if (
+      !(virtualizationUsable && enableRowReorder) ||
+      hasWarnedAboutVirtualizedRowReorder.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutVirtualizedRowReorder.current = true
+    console.warn(
+      "DataTable: enableRowReorder and enableVirtualization are both set. " +
+        "Dragging a row toward a target outside the currently rendered " +
+        "window is unreliable — dnd-kit only tracks rows that are actually " +
+        "mounted, not the full row list."
+    )
+  }, [virtualizationUsable, enableRowReorder])
+  useEffect(() => {
+    if (!enableVirtualization || maxHeight) {
+      // Reset the latch whenever the config is valid (or virtualization is
+      // off), so a *later* transition back to invalid — e.g. maxHeight gets
+      // cleared again after being fixed — re-warns instead of staying silent
+      // because some earlier, unrelated invalid render already tripped it.
+      hasWarnedAboutUnboundedVirtualization.current = false
+      return
+    }
+    if (
+      hasWarnedAboutUnboundedVirtualization.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutUnboundedVirtualization.current = true
+    console.warn(
+      "DataTable: enableVirtualization has no effect without maxHeight — " +
+        "the scroll container never gets a bounded height to measure " +
+        "scrollTop against, so only the first batch of rows would render. " +
+        "Pass maxHeight to enable virtualization."
+    )
+    // A warning that repeats on every keystroke is noise rather than a signal,
+    // so the ref fires it at most once per invalid stretch. The prop deps
+    // re-check configs that become invalid only after mount (e.g. a parent
+    // flips enableVirtualization on while maxHeight stays unset).
+  }, [enableVirtualization, maxHeight])
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => estimateRowHeight,
+    overscan: 12,
+    enabled: virtualizationUsable,
+  })
+  const virtualItems = virtualizationUsable
+    ? rowVirtualizer.getVirtualItems()
+    : []
+  const firstVirtual = virtualItems[0]
+  const lastVirtual = virtualItems.at(-1)
+  const paddingTop = firstVirtual ? firstVirtual.start : 0
+  const paddingBottom = lastVirtual
+    ? rowVirtualizer.getTotalSize() - lastVirtual.end
+    : 0
+  /*
+   * Each rendered row is carried together with its index into `rows`, rather
+   * than re-derived positionally from `virtualItems` further down. A windowed
+   * index can miss transiently — `rows.length` shrinks on a filter or page
+   * change before the virtualizer's `count` catches up — and dropping those
+   * entries while indexing the window by position would shift every later row
+   * onto its predecessor's index, silently offsetting `aria-rowindex`, the
+   * `striped` parity and the `rowIndex` handed to `getCellSpan`.
+   */
+  const renderRows: { row: Row<T>; index: number }[] = virtualizationUsable
+    ? virtualItems.flatMap((vi) => {
+        const row = rows[vi.index]
+        return row ? [{ row, index: vi.index }] : []
+      })
+    : rows.map((row, index) => ({ row, index }))
+
+  /* dnd sensors */
+  // Which axis the in-flight drag is constrained to; set on drag start so the
+  // shared DndContext can apply the right modifier for rows vs columns.
+  const [activeDragAxis, setActiveDragAxis] = useState<"row" | "column" | null>(
+    null
+  )
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Without `maxHeight` the table does not scroll itself, so infinite scroll has
+  // to observe the page instead of the container.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `fireReachEnd` is rebuilt every render but only closes over refs plus `onReachEnd`, which is already a dep — listing it would re-subscribe the window listener on every render
+  useEffect(() => {
+    if (!onReachEnd || maxHeight) {
+      return
+    }
+    const onWindowScroll = () => {
+      // Same end-of-data guard as the scroll handler and both re-arm effects.
+      // `checkReachEnd`'s latch clears the moment the user scrolls up past the
+      // threshold, so without this an exhausted list re-issued the identical
+      // request every time they scrolled back down.
+      if (dataLengthRef.current === lastReachEndCountRef.current) {
+        return
+      }
+      const distance =
+        document.documentElement.scrollHeight -
+        window.scrollY -
+        window.innerHeight
+      checkReachEnd(distance, reachEndThreshold, reachedEndRef, fireReachEnd)
+    }
+    window.addEventListener("scroll", onWindowScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onWindowScroll)
+  }, [onReachEnd, maxHeight, reachEndThreshold])
+
+  // Window-mode counterpart of the bounded re-arm effect below.
+  //
+  // `checkReachEnd`'s latch only clears on a scroll event reporting
+  // `distance > threshold`. If an appended page is shorter than the
+  // threshold the document still ends inside it, so every subsequent scroll
+  // reads "at the bottom", the latch is never released and loading stalls
+  // for good — unless the user happens to scroll back up past the
+  // threshold. Measures the *document*: `scrollRef`'s element is unbounded
+  // in this mode and always reads as at the bottom, which is exactly why the
+  // effect below excludes the no-`maxHeight` case rather than sharing it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-checks whenever the row count changes
+  useEffect(() => {
+    if (!onReachEnd || loadingMore || maxHeight) {
+      return
+    }
+    // Same end-of-data guard as the bounded path: a fetch that brings back
+    // nothing must not re-trigger itself forever.
+    if (data.length === lastReachEndCountRef.current) {
+      return
+    }
+    const distance =
+      document.documentElement.scrollHeight -
+      window.scrollY -
+      window.innerHeight
+    reachedEndRef.current = distance <= reachEndThreshold
+    if (reachedEndRef.current) {
+      fireReachEnd()
+    }
+  }, [data.length, loadingMore, reachEndThreshold, maxHeight])
+
+  // Re-arm after new rows land: if the freshly appended page is shorter than
+  // the threshold no further scroll event fires, and loading would stall.
+  // Internal-scroll only (`maxHeight` set) — without it `scrollRef`'s element
+  // is the unbounded div `onWindowScroll` deliberately ignores, so its
+  // `scrollHeight`/`clientHeight` are meaningless and always read as "at the
+  // bottom". Running this unconditionally forced `reachedEndRef.current` to
+  // `true` on every appended page in window-scroll mode too, re-arming the
+  // "already reported" latch the instant new rows landed — a user mid
+  // continuous-scroll (no incidental upward wobble to reset it first) would
+  // have the next real reach-end silently swallowed.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-checks whenever the row count changes
+  useEffect(() => {
+    if (!onReachEnd || loadingMore || !maxHeight) {
+      return
+    }
+    const el = scrollRef.current
+    if (!el) {
+      return
+    }
+    // Only re-fire once the row count has actually grown since the last
+    // request. `loadingMore` is a dependency, so at end-of-data the flip
+    // back to false would otherwise re-run this with the container still at
+    // the bottom and request the next page again — and again — forever,
+    // with no new rows to move the scroll position. A consumer whose fetch
+    // returns nothing is precisely how "no more data" is signalled.
+    if (data.length === lastReachEndCountRef.current) {
+      return
+    }
+    // No `scrollHeight > clientHeight` requirement here. Demanding that the
+    // content already overflow dead-ended the common case: a first page too
+    // short to fill `maxHeight` never scrolls, so no scroll event fires, and
+    // requiring overflow meant this effect refused to fire either — the list
+    // stuck on page one forever. Underflow is precisely when another page is
+    // needed. Runaway is prevented by the row-count guard above, not by
+    // overflow; the horizontal-scroll false positive it was guarding against
+    // belongs to the scroll handler, which still checks it.
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight
+    reachedEndRef.current = distance <= reachEndThreshold
+    if (reachedEndRef.current) {
+      fireReachEnd()
+    }
+  }, [data.length, loadingMore, reachEndThreshold])
+
+  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
+    // Mirrors the window-scroll effect's guard. Without `maxHeight` this div
+    // has no bounded height, so `scrollHeight - scrollTop - clientHeight` is
+    // permanently 0 — a single *horizontal* scroll on a wide table would
+    // then read as "at the bottom" and fire `onReachEnd`. The page-scroll
+    // listener owns the unbounded case.
+    if (!(onReachEnd && maxHeight)) {
+      return
+    }
+    const el = event.currentTarget
+    // A bounded container that does not scroll vertically (rows shorter than
+    // `maxHeight`) reports `distance === 0` forever, so a *horizontal* scroll
+    // on a wide table would read as "at the bottom" and refetch. That case is
+    // handled by the re-arm effect above, which fires on underflow directly
+    // rather than waiting for a scroll that will never come.
+    if (el.scrollHeight <= el.clientHeight) {
+      return
+    }
+    // Same end-of-data guard the re-arm effects apply: once a fetch has come
+    // back with no new rows, scrolling up past the threshold and back down
+    // would otherwise re-issue the identical request.
+    if (data.length === lastReachEndCountRef.current) {
+      return
+    }
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight
+    checkReachEnd(distance, reachEndThreshold, reachedEndRef, fireReachEnd)
+  }
+
+  const handleColumnDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) {
+      return
+    }
+    // Seed from ALL leaf columns (not just visible ones) so a reorder while
+    // some columns are hidden doesn't drop the hidden ids from columnOrder.
+    const current = table.state.columnOrder.length
+      ? table.state.columnOrder
+      : table.getAllLeafColumns().map((c) => c.id)
+    const from = current.indexOf(active.id as string)
+    const to = current.indexOf(over.id as string)
+    if (from === -1 || to === -1) {
+      return
+    }
+    const next = arrayMove(current, from, to)
+    setColumnOrder(next)
+    // Reported in the consumer's own frame of reference. `current` carries
+    // the injected `__drag`/`__select` columns, which the consumer never
+    // declared — indices into it are offset by one or two from their
+    // `columns` array, so `arrayMove(myColumns, from, to)` would move the
+    // wrong column. Strip the built-ins from both the order and the indices.
+    const publicBefore = current.filter((id) => !BUILTIN_COLUMN_IDS.has(id))
+    const publicOrder = next.filter((id) => !BUILTIN_COLUMN_IDS.has(id))
+    onColumnReorder?.({
+      from: publicBefore.indexOf(active.id as string),
+      to: publicOrder.indexOf(active.id as string),
+      columnId: active.id as string,
+      order: publicOrder,
+    })
+  }
+
+  const handleRowDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) {
+      return
+    }
+    // Map the dragged/target display rows back to their positions in the
+    // original `data` array — display order may be sorted/filtered/paginated,
+    // so row-model indices must not be applied to `data` directly. The core
+    // (unsorted, unfiltered) row model's `.index` already *is* that position,
+    // keyed by id in O(1) via `rowsById` — unlike `data.indexOf(row.original)`,
+    // this doesn't depend on `row.original` being reference-identical to an
+    // entry in `data`, so it doesn't silently no-op when `data` holds
+    // duplicate or content-equal objects.
+    const coreRowsById = table.getCoreRowModel().rowsById
+    const from = coreRowsById[active.id as string]?.index
+    const to = coreRowsById[over.id as string]?.index
+    if (from === undefined || to === undefined) {
+      return
+    }
+    const next = arrayMove([...data], from, to)
+    onRowReorder?.({ from, to, rowId: active.id as string, data: next })
+  }
+
+  const hasFooter = table
+    .getAllLeafColumns()
+    .some((c) => c.columnDef.footer != null)
+
+  const indentColumnId = leafColumns.find(
+    (c) => !BUILTIN_COLUMN_IDS.has(c.id)
+  )?.id
+  // Must match `renderHeaderCell`'s own `reorderable` check exactly: dnd-kit's
+  // `SortableContext` computes drag index/offset math from this `items`
+  // array assuming every id in it has a registered `useSortable` node, and
+  // pinned columns are the one leaf column `renderHeaderCell` deliberately
+  // never wraps in `SortableHeaderContent`.
+  //
+  // Memoized: `SortableContext` treats a new `items` identity as "the list
+  // changed" regardless of content, forcing dnd-kit to rebuild its id index —
+  // this recomputes only when the actual leaf columns change, not on every
+  // unrelated render (a filter keystroke, a hover state elsewhere).
+  const reorderableLeafIds = useMemo(
+    () =>
+      leafColumns
+        .filter((c) => !(BUILTIN_COLUMN_IDS.has(c.id) || c.getIsPinned()))
+        .map((c) => c.id),
+    [leafColumns]
+  )
+
+  /**
+   * The expand toggle lives in the trailing actions cell (so it cannot collide
+   * with the selection checkbox), which means expanding needs that cell to
+   * exist. Tree rows expand through `getSubRows`/`getRowCanExpand` and never set
+   * `renderExpandedRow`, so gating on the latter alone left them with no toggle.
+   */
+  const hasActionsColumn =
+    !!renderRowActions ||
+    !!rowActions?.length ||
+    enableInlineEdit ||
+    (enableExpanding &&
+      (!!renderExpandedRow || !!getSubRows || !!getRowCanExpand))
+
+  // An end-pinned column and the sticky actions cell both freeze at the
+  // trailing edge, and the actions column is not in TanStack's column model
+  // so `getAfter("end")` cannot reserve room for it — they overlap. The
+  // actions cell now wins the stacking deterministically, but the pinned
+  // column is still hidden underneath, so say so rather than let it look
+  // like a rendering glitch.
+  const hasWarnedAboutPinnedActionsOverlap = useRef(false)
+  useEffect(() => {
+    const endPinned =
+      enableColumnPinning &&
+      table.getAllLeafColumns().some((c) => c.getIsPinned() === "end")
+    if (
+      !(endPinned && stickyActions && hasActionsColumn) ||
+      hasWarnedAboutPinnedActionsOverlap.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutPinnedActionsOverlap.current = true
+    console.warn(
+      "DataTable: a column pinned to 'end' and the sticky actions cell both " +
+        "freeze at the trailing edge, so they overlap — the actions column " +
+        "is not part of the column model, so end-pinned offsets cannot " +
+        "account for its width. Use stickyActions={false}, or pin to " +
+        "'start' instead."
+    )
+  }, [enableColumnPinning, stickyActions, hasActionsColumn, table])
+
+  // Frozen offsets (`getStart`/`getAfter`) are sums of `getSize()`, and only a
+  // *numeric* `meta.width` is mirrored into `size` — a CSS string cannot be
+  // resolved without measuring. So a pinned column sized `"20%"` or
+  // `"var(--dimension-120)"` is laid out at its real width but offset as if it
+  // were the 150px default, and the frozen columns overlap.
+  const hasWarnedAboutPinnedStringWidth = useRef(false)
+  useEffect(() => {
+    const offender =
+      enableColumnPinning &&
+      table
+        .getAllLeafColumns()
+        .find(
+          (c) => c.getIsPinned() && typeof c.columnDef.meta?.width === "string"
+        )
+    if (
+      !offender ||
+      hasWarnedAboutPinnedStringWidth.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutPinnedStringWidth.current = true
+    console.warn(
+      `DataTable: pinned column "${offender.id}" declares a string ` +
+        "meta.width, which cannot be mirrored into TanStack's numeric " +
+        "`size`. Frozen offsets are computed from `size`, so this column " +
+        "will be positioned as if it were the default width and overlap its " +
+        "neighbours. Give pinned columns a numeric meta.width."
+    )
+  }, [enableColumnPinning, table])
+
+  /**
+   * Resolve a column's header filter: per-column `meta.renderFilter`, then the
+   * table-wide `renderHeaderFilter` slot, then the type-driven default.
+   * `resolveColumnType` is the same resolution `typedFilterFn` uses, so the
+   * control shown here and the matcher that runs against it never disagree.
+   */
+  const renderColumnFilter = (column: Column<T, unknown>) => {
+    const meta = column.columnDef.meta
+    const type: DataTableColumnType = resolveColumnType(meta)
+    const ctx: DataTableFilterContext<T> = {
+      column,
+      type,
+      value: column.getFilterValue() as DataTableFilterValue | undefined,
+      // Every DEFAULT_FILTER_RENDERERS control is `disabled={locked}` (see
+      // `disabled` below), with no clear-button style escape hatch the way
+      // `GlobalSearch` has — so unlike globalFilter, no path here can ever
+      // reach `setValue` while locked, and a `blocked("filter")` guard is
+      // unreachable. Removed for the same reason "sort" and "select" were.
+      setValue: (next) => column.setFilterValue(next),
+      disabled: locked,
+      size,
+      operatorLabels: translations.operatorLabels,
+      options: meta?.options ?? meta?.filterOptions ?? [],
+    }
+    if (meta?.renderFilter) {
+      return meta.renderFilter(ctx)
+    }
+    // Same `undefined` vs `null` contract as `rowActionsContent`: `null` is a
+    // deliberate "no filter for this column", not a fall-through.
+    const slot = renderHeaderFilter?.(column)
+    if (slot !== undefined) {
+      return slot
+    }
+    const renderer =
+      filterRenderers?.[type] ??
+      (DEFAULT_FILTER_RENDERERS[type] as DataTableFilterRenderer<T>)
+    return renderer?.(ctx) ?? null
+  }
+
+  const renderHeaderCell = (
+    header: Header<T, unknown>,
+    groupIndex: number,
+    dnd?: {
+      setNodeRef: (node: HTMLElement | null) => void
+      setActivatorNodeRef: (node: HTMLElement | null) => void
+      listeners: Record<string, unknown> | undefined
+      style: CSSProperties
+      isDragging: boolean
+      dropSide?: "start" | "end"
+      attributes: Record<string, unknown>
+    }
+  ) => {
+    const column = header.column
+    const ariaSort = sortState(column, enableSorting)
+    let dropClass = ""
+    if (dnd?.dropSide === "start") {
+      dropClass = "border-primary border-s-2"
+    } else if (dnd?.dropSide === "end") {
+      dropClass = "border-primary border-e-2"
+    }
+    return (
+      <Table.ColumnHeader
+        align={column.columnDef.meta?.align}
+        aria-sort={ariaSort}
+        // `relative` gives the absolutely-positioned resize handle a local
+        // positioning context. Tailwind-merge treats `position` utilities as
+        // one conflict group and this `className` is merged in last, so an
+        // unconditional `relative` here silently cancelled the `sticky`
+        // utility `stickyHeader` puts on `Table.ColumnHeader` — the header
+        // simply stopped sticking, grouped or not. `sticky` is itself a
+        // positioned value, so it already gives the resize handle the same
+        // context; `relative` is only needed when sticky isn't in play.
+        className={`group/header ${stickyHeader ? "" : "relative"} ${pinClass(column, "header") ?? ""} ${dropClass}`}
+        // The reorderable path keys `SortableHeaderContent` instead, where this
+        // key is simply ignored; the non-reorderable path renders this element
+        // straight into the header-group map and is the one that needs it.
+        colSpan={header.colSpan}
+        data-dragging={dnd?.isDragging || undefined}
+        data-pinned={column.getIsPinned() || undefined}
+        key={header.id}
+        ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
+        style={{
+          ...OPAQUE_HEADER_BG,
+          ...stickyRowOffset(stickyHeader, headerOffsets, groupIndex),
+          ...getPinningStyles(column, "header"),
+          ...dnd?.style,
+          ...getColumnSizeStyles(column, enableColumnResizing, columnSizing),
+        }}
+      >
+        <div className={styles.headerLabel()}>
+          {dnd && (
+            <HeaderDragHandle
+              attributes={dnd.attributes}
+              label={columnLabel(column)}
+              listeners={dnd.listeners}
+              setActivatorNodeRef={dnd.setActivatorNodeRef}
+              styles={styles}
+            />
+          )}
+          <HeaderSortLabel
+            enableSorting={enableSorting}
+            header={header}
+            locked={locked}
+            styles={styles}
+          />
+        </div>
+        {enableColumnResizing && column.getCanResize() ? (
+          <button
+            aria-label={`Resize ${columnLabel(column)}`}
+            className={styles.resizeHandle()}
+            onDoubleClick={() => column.resetSize()}
+            onMouseDown={header.getResizeHandler()}
+            onTouchStart={header.getResizeHandler()}
+            type="button"
+          />
+        ) : null}
+      </Table.ColumnHeader>
+    )
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  const headerContent = (
+    <Table.Header {...slotProps?.header}>
+      {table.getHeaderGroups().map((headerGroup, groupIndex) => (
+        <Table.Row
+          // `hideHeader` is documented as hiding the column labels. Putting
+          // `sr-only` on the whole `Table.Header` would also swallow the filter
+          // row below, which is a sibling inside it and is the only way to
+          // filter such a table.
+          className={hideHeader ? "sr-only" : undefined}
+          key={headerGroup.id}
+          ref={
+            ((node: HTMLTableRowElement | null) => {
+              headerRowRefs.current[groupIndex] = node
+            }) as unknown as RefObject<HTMLTableRowElement>
+          }
+        >
+          {headerGroup.headers.map((header) => {
+            const reorderable =
+              enableColumnReorder &&
+              !locked &&
+              header.subHeaders.length === 0 &&
+              !header.column.getIsPinned() &&
+              !BUILTIN_COLUMN_IDS.has(header.column.id)
+            return reorderable ? (
+              <SortableHeaderContent
+                columnId={header.column.id}
+                key={header.id}
+              >
+                {(dnd) => renderHeaderCell(header, groupIndex, dnd)}
+              </SortableHeaderContent>
+            ) : (
+              renderHeaderCell(header, groupIndex)
+            )
+          })}
+          {hasActionsColumn && groupIndex === 0 && (
+            <Table.ColumnHeader
+              className={stickyActions ? "sticky end-0" : undefined}
+              numeric
+              rowSpan={table.getHeaderGroups().length}
+              style={{
+                ...OPAQUE_HEADER_BG,
+                ...(stickyActions
+                  ? { zIndex: DATA_TABLE_Z.stickyActionsHeaderCell }
+                  : undefined),
+              }}
+            >
+              {translations.actionsLabel}
+            </Table.ColumnHeader>
+          )}
+        </Table.Row>
+      ))}
+
+      {enableColumnFilters && (
+        <tr
+          aria-label={translations.filtersLabel}
+          className={styles.filterRow()}
+        >
+          {leafColumns.map((column) => (
+            <td
+              className={`${styles.filterCell()} ${pinClass(column, "header") ?? ""}`}
+              data-pinned={column.getIsPinned() || undefined}
+              key={column.id}
+              style={{
+                ...OPAQUE_HEADER_BG,
+                ...getPinningStyles(column, "header"),
+                ...(stickyHeader
+                  ? {
+                      position: "sticky",
+                      top: headerHeight,
+                      // A base level for every sticky filter cell, pinned or
+                      // not: these `<td>`s are raw elements, so unlike real
+                      // header cells they never get Table's `z-10`, and at
+                      // `auto` a pinned body cell (`pinnedCell`) scrolled
+                      // straight over the filter row.
+                      zIndex: DATA_TABLE_Z.stickyHeaderCell,
+                    }
+                  : undefined),
+                ...(column.getIsPinned() && stickyHeader
+                  ? { zIndex: DATA_TABLE_Z.pinnedHeaderCell }
+                  : undefined),
+              }}
+            >
+              <div className={styles.filterControl()}>
+                {column.getCanFilter() ? renderColumnFilter(column) : null}
+              </div>
+            </td>
+          ))}
+          {hasActionsColumn && (
+            <td
+              className={
+                stickyActions
+                  ? `${styles.filterCell()} sticky end-0 bg-table-header-bg`
+                  : styles.filterCell()
+              }
+              style={{
+                ...OPAQUE_HEADER_BG,
+                ...(stickyHeader
+                  ? { position: "sticky", top: headerHeight }
+                  : undefined),
+                // Gated on `stickyActions` (which is what applies the
+                // `sticky end-0` class), not on `stickyHeader`. Pinned filter
+                // cells take `zIndex: pinnedHeaderCell` from
+                // `getPinningStyles` unconditionally, so when the header was
+                // not sticky this cell had no level at all and an end-pinned
+                // column's filter control painted straight over it — the
+                // inversion the header and body actions cells both avoid.
+                ...(stickyActions
+                  ? { zIndex: DATA_TABLE_Z.stickyActionsHeaderCell }
+                  : undefined),
+              }}
+            />
+          )}
+        </tr>
+      )}
+    </Table.Header>
+  )
+
+  /**
+   * Resolve the inline editor for a cell, or `undefined` when the cell is not
+   * currently editable. Per-column `meta.renderEditor` wins over the
+   * table-wide `editorRenderers` override, which wins over the type default.
+   */
+  const renderCellEditor = (row: Row<T>, column: Column<T, unknown>) => {
+    const meta = column.columnDef.meta
+    if (!(enableInlineEdit && meta?.editable) || editingRowId !== row.id) {
+      return
+    }
+    const type: DataTableColumnType = resolveColumnType(meta)
+    const ctx: DataTableEditorContext<T> = {
+      row,
+      column,
+      type,
+      value: draft[column.id],
+      setValue: (next) => setDraftValue(row.id, column.id, next),
+      disabled: false,
+      size,
+      // `meta.filterOptions` is deprecated in favour of `meta.options`, but a
+      // column not yet migrated still needs its enum/multiEnum editor
+      // populated — the header filter (above) already falls back the same way.
+      options: meta.options ?? meta.filterOptions ?? [],
+      error: editErrors[column.id] || undefined,
+      errorId: `${instanceId}-err-${row.id}-${column.id}`,
+      commit: commitEdit,
+      cancel: cancelEdit,
+    }
+    if (meta.renderEditor) {
+      return meta.renderEditor(ctx)
+    }
+    const renderer =
+      editorRenderers?.[type] ??
+      (DEFAULT_EDITOR_RENDERERS[type] as DataTableEditorRenderer<T>)
+    return renderer?.(ctx) ?? undefined
+  }
+
+  /** Edit/delete affordances used when no `renderRowActions` slot is given. */
+  const defaultRowActions = (row: Row<T>) => {
+    if (!enableInlineEdit) {
+      return null
+    }
+    if (editingRowId === row.id) {
+      return (
+        <>
+          <Button
+            aria-label="Save row"
+            icon="token-icon-check"
+            onClick={(e) => {
+              e.stopPropagation()
+              commitEdit()
+            }}
+            size="sm"
+            theme="borderless"
+            variant="primary"
+          />
+          <Button
+            aria-label="Cancel edit"
+            icon="token-icon-close"
+            onClick={(e) => {
+              e.stopPropagation()
+              cancelEdit()
+            }}
+            size="sm"
+            theme="borderless"
+            variant="secondary"
+          />
+        </>
+      )
+    }
+    return (
+      <ActionIcon
+        aria-label={`Edit ${getRowLabel?.(row) ?? `row ${row.id}`}`}
+        disabled={isEditing || (canEditRow ? !canEditRow(row) : false)}
+        icon="icon-[mdi--pencil-outline]"
+        id={`${instanceId}-edit-${row.id}`}
+        onClick={(e) => {
+          e.stopPropagation()
+          startEdit(row)
+        }}
+        size={size}
+        tone="neutral"
+      />
+    )
+  }
+
+  /** Row-level actions cell, optionally pinned to the right edge. */
+  /**
+   * Row actions for one row: the custom slot if it rendered something, the
+   * built-in edit button otherwise.
+   *
+   * `undefined` and `null` mean different things here. An absent slot, or one
+   * returning `undefined`, is "not handling this row" and falls through to the
+   * default; returning `null` is the React convention for "render nothing" and
+   * is how a consumer suppresses the actions for a particular row. The old
+   * `?? defaultRowActions(row)` collapsed the two and put the edit pencil back.
+   */
+  const rowActionsContent = (row: Row<T>) => {
+    const custom = renderRowActions?.(row, {
+      isEditing: editingRowId === row.id,
+      startEdit: () => startEdit(row),
+      commitEdit,
+      cancelEdit,
+      // `locked`, matching the declarative `rowActions` path: with
+      // `lockInteractionsWhileEditing={false}` the caller has opted out of
+      // edit-time locking, so a consumer's own actions must stay live too.
+      // Keyed on `isEditing` these two disagreed, and every other row's
+      // custom actions rendered disabled despite the opt-out.
+      disabled: locked && editingRowId !== row.id,
+    })
+    return custom === undefined ? defaultRowActions(row) : custom
+  }
+
+  /**
+   * Only a `renderExpandedRow` table renders `${instanceId}-detail-${row.id}`
+   * (see `renderExpandedDetailRow`); tree/`getSubRows` expansion reveals
+   * sibling `<tr>` rows from the row model instead, with no single container
+   * id to point at, so `aria-controls` naming a non-existent element would be
+   * worse than omitting it.
+   */
+  const expandAriaControls = (rowId: string) =>
+    renderExpandedRow ? `${instanceId}-detail-${rowId}` : undefined
+
+  const renderActionsCell = (row: Row<T>) => (
+    <Table.Cell
+      // Composites the row tint over an opaque surface, like pinned cells —
+      // `bg-inherit` alone was transparent on striped/selected rows.
+      className={
+        stickyActions ? "data-table-frozen-cell sticky end-0" : undefined
+      }
+      numeric
+      style={
+        // Pinned body cells carry `pinnedCell` from `getPinningStyles`;
+        // without a level here a frozen column scrolls straight over the
+        // sticky actions cell. One *above* them, so an end-pinned column —
+        // which freezes at the same trailing edge — loses the tie
+        // deterministically instead of by DOM order.
+        stickyActions ? { zIndex: DATA_TABLE_Z.stickyActionsCell } : undefined
+      }
+    >
+      <div className={styles.actionsCell()}>
+        {enableExpanding && row.getCanExpand() ? (
+          <Button
+            aria-controls={expandAriaControls(row.id)}
+            aria-expanded={row.getIsExpanded()}
+            aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
+            disabled={locked}
+            // Gated like every other affordance: expanding a row *above* the
+            // one being edited inserts a detail row and shifts the edited row
+            // out from under the user, which is exactly what
+            // `lockInteractionsWhileEditing` promises not to allow.
+            icon={
+              row.getIsExpanded()
+                ? "token-icon-chevron-down"
+                : "token-icon-chevron-right"
+            }
+            onClick={(e) => {
+              e.stopPropagation()
+              if (blocked("expand")) {
+                return
+              }
+              row.getToggleExpandedHandler()()
+            }}
+            size="sm"
+            theme="borderless"
+            variant="secondary"
+          />
+        ) : null}
+        {rowActions?.map((action) =>
+          action.hidden?.(row) ? null : (
+            <Button
+              aria-label={action.label}
+              // `locked`, not `isEditing`: with
+              // `lockInteractionsWhileEditing={false}` the caller has opted
+              // out of edit-time locking, so row actions stay live like every
+              // other guarded interaction.
+              disabled={action.disabled?.(row) || locked}
+              icon={action.icon}
+              key={action.id}
+              onClick={(e) => {
+                e.stopPropagation()
+                action.onAction(row)
+              }}
+              size="sm"
+              theme="borderless"
+              variant={action.tone === "danger" ? "danger" : "secondary"}
+            />
+          )
+        )}
+        {rowActionsContent(row)}
+      </div>
+    </Table.Cell>
+  )
+
+  // Spread the passthrough first, then internal props, so DataTable's own click
+  // handler, sortable ref and transform compose with (not get replaced by)
+  // slotProps.row.
+  const {
+    onClick: rowOnClick,
+    style: rowStyle,
+    ref: rowRef,
+    ...restRowProps
+  } = slotProps?.row ?? {}
+
+  /** One row's data cells, honouring cell spans and any active inline editor. */
+  const renderRowCells = (
+    row: Row<T>,
+    cells: Cell<T, unknown>[],
+    rowIndex: number,
+    dnd?: { dragHandleProps: Record<string, unknown> }
+  ) => {
+    const rowLabel = getRowLabel?.(row) ?? `row ${row.id}`
+    return cells.map((cell) => {
+      const span = getCellSpan?.(cell, { row, rows, rowIndex })
+      if (span?.hidden) {
+        return null
+      }
+      const column = cell.column as Column<T, unknown>
+      return (
+        <DataTableBodyCell
+          cell={cell}
+          columnSizing={columnSizing}
+          dnd={dnd}
+          editor={renderCellEditor(row, column)}
+          editorError={
+            editingRowId === row.id
+              ? editErrors[column.id] || undefined
+              : undefined
+          }
+          editorErrorId={`${instanceId}-err-${row.id}-${column.id}`}
+          enableColumnResizing={enableColumnResizing}
+          enableRowReorder={enableRowReorder}
+          indentColumnId={indentColumnId}
+          key={cell.id}
+          row={row}
+          rowLabel={rowLabel}
+          span={span}
+          styles={styles}
+        />
+      )
+    })
+  }
+
+  /**
+   * `aria-rowindex` is 1-based across the whole table including header rows,
+   * and must stay absolute when the body is paginated or virtualised — so body
+   * rows are offset by the rendered header rows plus the current page start.
+   */
+  const headerRowCount =
+    table.getHeaderGroups().length + (enableColumnFilters ? 1 : 0)
+  const pageRowOffset = enablePagination
+    ? pagination.pageIndex * pagination.pageSize
+    : 0
+
+  type RowDnd = {
+    setNodeRef: (node: HTMLElement | null) => void
+    style: CSSProperties
+    dragHandleProps: Record<string, unknown>
+    isDragging?: boolean
+    dropSide?: "top" | "bottom"
+  }
+
+  /** The visible `<tr>` for one row — split out so its own attribute
+   * ternaries don't count against `renderBodyRow`'s complexity budget. */
+  const buildMainRow = (
+    row: Row<T>,
+    rowIndex: number,
+    dnd: RowDnd | undefined,
+    opts: {
+      rowIsClickable: boolean
+      rowElementId: string | undefined
+      rowKeyDown:
+        | ((event: React.KeyboardEvent<HTMLTableRowElement>) => void)
+        | undefined
+    }
+  ) => (
+    <Table.Row
+      {...restRowProps}
+      aria-rowindex={headerRowCount + pageRowOffset + rowIndex + 1}
+      className={rowDragClass(dnd, {
+        className: restRowProps.className,
+        striped: effectiveStriped,
+        tintNestedRows,
+        rowIndex,
+      })}
+      data-depth={row.depth || undefined}
+      data-dragging={dnd?.isDragging || undefined}
+      id={opts.rowElementId ?? restRowProps.id}
+      onClick={buildRowClickHandler(row, rowOnClick, onRowClick, blocked)}
+      // Composed, not overwritten: like `onClick`, a consumer's
+      // `slotProps.row.onKeyDown` is a raw DOM passthrough they attached
+      // themselves and fires regardless of whether DataTable has its own
+      // row activation. Assigning `opts.rowKeyDown` straight across dropped
+      // it entirely — and dropped it to `undefined` on tables with no
+      // `onRowClick`, where `rowKeyDown` is not set at all.
+      onKeyDown={(event) => {
+        restRowProps.onKeyDown?.(event)
+        opts.rowKeyDown?.(event)
+      }}
+      ref={composeRowRef(dnd, rowRef)}
+      // Sortable ref wins while reordering; otherwise keep the consumer's ref.
+      selected={enableRowSelection ? row.getIsSelected() : undefined}
+      style={{ ...rowStyle, ...dnd?.style }}
+      tabIndex={opts.rowIsClickable ? 0 : restRowProps.tabIndex}
+    >
+      {renderRowCells(row, row.getVisibleCells(), rowIndex, dnd)}
+      {hasActionsColumn ? renderActionsCell(row) : null}
+    </Table.Row>
+  )
+
+  /* ── Body row renderer ──────────────────────────────────────────────── */
+  const renderBodyRow = (row: Row<T>, rowIndex: number, dnd?: RowDnd) => {
+    const rowIsClickable = !!onRowClick && !locked
+    const actionsColumn = hasActionsColumn ? 1 : 0
+    const rowElementId = editingRowElementId(editingRowId, instanceId, row.id)
+    const rowKeyDown = rowIsClickable
+      ? buildRowKeyDownHandler(row, onRowClick, blocked)
+      : undefined
+
+    const mainRow = buildMainRow(row, rowIndex, dnd, {
+      rowIsClickable,
+      rowElementId,
+      rowKeyDown,
+    })
+
+    const expandedRow =
+      renderExpandedRow && row.getIsExpanded()
+        ? renderExpandedDetailRow({
+            row,
+            renderExpandedRow,
+            colSpan: columnCount + actionsColumn,
+            instanceId,
+            styles,
+            tintNestedRows,
+          })
+        : null
+
+    return (
+      <Fragment key={row.id}>
+        {mainRow}
+        {expandedRow}
+      </Fragment>
+    )
+  }
+
+  // Row order only maps back to `data` while the view is unsorted/unfiltered.
+  const rowReorderActive =
+    enableRowReorder &&
+    !locked &&
+    sorting.length === 0 &&
+    columnFilters.length === 0 &&
+    !globalFilter
+
+  const bodyRows = renderRows.map(({ row, index: rowIndex }) => {
+    // Only top-level rows are reorderable — sub-rows aren't in the top-level
+    // `data` array, so dragging them could not be applied to it.
+    return rowReorderActive && row.depth === 0 ? (
+      <SortableRow enabled={enableRowReorder} key={row.id} row={row}>
+        {(dnd) => renderBodyRow(row, rowIndex, dnd)}
+      </SortableRow>
+    ) : (
+      renderBodyRow(row, rowIndex)
+    )
+  })
+
+  const skeletonRows = (count: number, keyPrefix: string) =>
+    Array.from({ length: count }, (_, i) => `${keyPrefix}-${i}`).map(
+      (rowKey) => (
+        <Table.Row aria-hidden="true" key={rowKey}>
+          {leafColumns.map((column) => (
+            <Table.Cell key={`${rowKey}-${column.id}`}>
+              <Skeleton.Text noOfLines={1} size={size} />
+            </Table.Cell>
+          ))}
+          {hasActionsColumn && (
+            // Same sticky treatment as the real actions cell, or the frozen
+            // column visibly breaks apart while the table is loading.
+            <Table.Cell
+              className={
+                stickyActions
+                  ? "data-table-frozen-cell sticky end-0"
+                  : undefined
+              }
+              numeric
+              style={
+                stickyActions
+                  ? { zIndex: DATA_TABLE_Z.stickyActionsCell }
+                  : undefined
+              }
+            >
+              <Skeleton.Text noOfLines={1} size={size} />
+            </Table.Cell>
+          )}
+        </Table.Row>
+      )
+    )
+
+  const emptyState = renderEmpty ? (
+    renderEmpty()
+  ) : (
+    <div className={styles.empty()}>
+      <Icon icon="icon-[mdi--table-off]" size="xl" />
+      <div>
+        <p>{translations.emptyTitle}</p>
+        <p className="text-table-sm">{translations.emptyDescription}</p>
+      </div>
+    </div>
+  )
+
+  let statusMessage = ""
+  if (loading) {
+    statusMessage = translations.loadingLabel
+  } else if (rows.length === 0) {
+    statusMessage = translations.emptyTitle
+  } else if (isEditing) {
+    statusMessage = translations.editingLabel
+  }
+
+  const emptyRow = (
+    <tr>
+      <Table.Cell colSpan={columnCount + (hasActionsColumn ? 1 : 0)}>
+        {emptyState}
+      </Table.Cell>
+    </tr>
+  )
+
+  let bodyState: "loading" | "empty" | "rows" = "rows"
+  if (loading) {
+    bodyState = "loading"
+  } else if (rows.length === 0) {
+    // `loadingMore` with nothing rendered yet is still loading, not empty.
+    // The append skeleton lives in the "rows" branch, so an infinite-scroll
+    // table fetching its first page — or one whose filter emptied the view
+    // while a page was in flight — showed "No records" during the fetch,
+    // with `aria-busy` set but nothing visible saying so.
+    bodyState = loadingMore ? "loading" : "empty"
+  }
+
+  const bodyContent = (
+    <Table.Body {...slotProps?.body}>
+      {bodyState === "loading" && skeletonRows(loadingRowCount, "skeleton")}
+      {bodyState === "empty" && emptyRow}
+      {bodyState === "rows" && (
+        <>
+          {paddingTop > 0 && (
+            <tr>
+              <td
+                colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
+                style={{ height: paddingTop }}
+              />
+            </tr>
+          )}
+          {bodyRows}
+          {loadingMore && skeletonRows(1, "skeleton-more")}
+          {paddingBottom > 0 && (
+            <tr>
+              <td
+                colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
+                style={{ height: paddingBottom }}
+              />
+            </tr>
+          )}
+        </>
+      )}
+    </Table.Body>
+  )
+
+  const footerContent = hasFooter ? (
+    <Table.Footer>
+      {table.getFooterGroups().map((footerGroup) => (
+        <Table.Row key={footerGroup.id}>
+          {footerGroup.headers.map((header) => (
+            <Table.Cell key={header.id}>
+              {header.isPlaceholder
+                ? null
+                : flexRender(
+                    header.column.columnDef.footer,
+                    header.getContext()
+                  )}
+            </Table.Cell>
+          ))}
+          {hasActionsColumn && (
+            // Footer actions cell freezes with the rest of the column.
+            <Table.Cell
+              className={
+                stickyActions ? "sticky end-0 bg-table-footer-bg" : undefined
+              }
+              numeric
+              style={
+                stickyActions
+                  ? { zIndex: DATA_TABLE_Z.stickyActionsCell }
+                  : undefined
+              }
+            />
+          )}
+        </Table.Row>
+      ))}
+    </Table.Footer>
+  ) : null
+
+  const tableEl = (
+    <Table
+      aria-busy={loading || loadingMore || undefined}
+      aria-rowcount={headerRowCount + table.getRowCount()}
+      interactive={(interactive || !!onRowClick) && !locked}
+      showColumnBorder={showColumnBorder}
+      size={size}
+      stickyHeader={stickyHeader}
+      // Never forward "striped" to Table — its own odd:/even: implementation
+      // is the broken one `effectiveStriped` is routing around.
+      variant={outlined || variant === "striped" ? "line" : variant}
+      {...slotProps?.root}
+      style={{ tableLayout, ...slotProps?.root?.style }}
+    >
+      {caption && <Table.Caption>{caption}</Table.Caption>}
+      {/*
+       * Each SortableContext is scoped to the region whose items it lists.
+       * `useSortable` resolves to the *nearest* one, so wrapping the whole
+       * table in both (column inside row, as the DndContext nesting below
+       * implies) made body rows resolve against `reorderableLeafIds` — index
+       * -1, horizontal-axis modifier, and the row id handed to the column
+       * drag handler, which bails. Row reorder silently did nothing whenever
+       * `enableColumnReorder` was also on. SortableContext renders no DOM, so
+       * scoping it this way is safe inside `<table>` (a DndContext is not —
+       * its accessibility markup would render as a div child of the table).
+       */}
+      {enableColumnReorder ? (
+        <SortableContext
+          items={reorderableLeafIds}
+          strategy={horizontalListSortingStrategy}
+        >
+          {headerContent}
+        </SortableContext>
+      ) : (
+        headerContent
+      )}
+      {rowReorderActive ? (
+        <SortableContext
+          items={rootRowIds}
+          strategy={verticalListSortingStrategy}
+        >
+          {bodyContent}
+        </SortableContext>
+      ) : (
+        bodyContent
+      )}
+      {footerContent}
+    </Table>
+  )
+
+  /*
+   * One DndContext for both axes. Nesting two of them meant the inner one
+   * captured every drag — `useDraggable` resolves to the nearest context
+   * just as `useSortable` does — so with both reorder flags on, row drags
+   * were routed to the column handler. Dispatch on what is actually being
+   * dragged instead, and pick the axis modifier to match.
+   */
+  const isColumnDrag = (event: {
+    active: { id: string | number; data: { current?: { type?: string } } }
+  }) => event.active.data.current?.type === "column"
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (enableColumnReorder && isColumnDrag(event)) {
+      handleColumnDragEnd(event)
+      return
+    }
+    if (rowReorderActive) {
+      handleRowDragEnd(event)
+    }
+  }
+
+  let scrollBody: ReactNode = tableEl
+  if (enableColumnReorder || rowReorderActive) {
+    scrollBody = (
+      <DndContext
+        collisionDetection={closestCenter}
+        modifiers={[
+          activeDragAxis === "column"
+            ? restrictToHorizontalAxis
+            : restrictToVerticalAxis,
+        ]}
+        onDragEnd={(event) => {
+          handleDragEnd(event)
+          setActiveDragAxis(null)
+        }}
+        onDragStart={(event) =>
+          setActiveDragAxis(
+            enableColumnReorder && isColumnDrag(event) ? "column" : "row"
+          )
+        }
+        sensors={sensors}
+      >
+        {scrollBody}
+      </DndContext>
+    )
+  }
+
+  const ctxValue: DataTableContextValue<T> = {
+    table,
+    pageSizeOptions,
+    translations,
+    locked,
+    blocked,
+    size,
+    paginationProps,
+    toolbarActions,
+  }
+
+  return (
+    <DataTableContext.Provider
+      value={ctxValue as DataTableContextValue<RowData>}
+    >
+      <div className={styles.wrapper({ className })} id={instanceId} ref={ref}>
+        <output aria-live="polite" className="sr-only">
+          {statusMessage}
+        </output>
+        {(enableGlobalFilter ||
+          enableColumnVisibility ||
+          toolbarActions?.length ||
+          renderToolbar) &&
+          (renderToolbar ? (
+            renderToolbar(table)
+          ) : (
+            <DataTable.Toolbar>
+              {enableGlobalFilter && <DataTable.GlobalSearch />}
+              <div className={styles.toolbarActions()}>
+                {enableColumnVisibility && <DataTable.ColumnVisibility />}
+                <DataTable.ToolbarActions />
+              </div>
+            </DataTable.Toolbar>
+          ))}
+        <div
+          className={styles.scroll()}
+          onScroll={handleScroll}
+          ref={scrollRef}
+          style={maxHeight ? { maxHeight } : undefined}
+        >
+          {scrollBody}
+        </div>
+        {enablePagination && <DataTable.Pagination />}
+      </div>
+    </DataTableContext.Provider>
+  )
+}
+
+/* ── Built-in leading columns ────────────────────────────────────────────── */
+
+function buildColumns<T extends RowData>({
+  userColumns,
+  enableRowReorder,
+  enableRowSelection,
+  locked,
+  getRowLabel,
+  selectAllLabel,
+  showSelectAll,
+}: {
+  userColumns: ColumnDef<T, unknown>[]
+  enableRowReorder: boolean
+  enableRowSelection: boolean
+  locked: boolean
+  getRowLabel?: (row: Row<T>) => string
+  selectAllLabel: string
+  showSelectAll: boolean
+}): ColumnDef<T, unknown>[] {
+  const leading: ColumnDef<T, unknown>[] = []
+
+  if (enableRowReorder) {
+    leading.push({
+      id: DRAG_COLUMN_ID,
+      header: () => null,
+      // Cell body is replaced by the drag handle in renderBodyRow.
+      cell: () => null,
+      enableSorting: false,
+      enableColumnFilter: false,
+      size: 40,
+      meta: { width: 40 },
+    })
+  }
+
+  if (enableRowSelection) {
+    leading.push({
+      id: SELECTION_COLUMN_ID,
+      header: ({ table }) =>
+        showSelectAll ? (
+          <Checkbox
+            aria-label={selectAllLabel}
+            checked={table.getIsAllRowsSelected()}
+            disabled={locked}
+            // v9 redefined `getIsSomeRowsSelected` as "at least one row is
+            // selected", so it now stays true once every row is checked. The
+            // all-rows guard keeps the box from showing the mixed state at
+            // full selection.
+            indeterminate={
+              table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()
+            }
+            onChange={table.getToggleAllRowsSelectedHandler()}
+          />
+        ) : null,
+      cell: ({ row }) => (
+        <Checkbox
+          aria-label={`Select ${getRowLabel?.(row) ?? `row ${row.id}`}`}
+          checked={row.getIsSelected()}
+          disabled={locked || !row.getCanSelect()}
+          indeterminate={row.getIsSomeSelected()}
+          onChange={row.getToggleSelectedHandler()}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      enableSorting: false,
+      enableColumnFilter: false,
+      size: 44,
+      meta: { width: 44 },
+    })
+  }
+
+  return [...leading, ...userColumns]
+}
+
+/* ── Composable sub-components ────────────────────────────────────────────── */
+
+DataTable.Toolbar = function DataTableToolbar({
+  children,
+}: {
+  children: ReactNode
+}) {
+  const styles = dataTableVariants()
+  return <div className={styles.toolbar()}>{children}</div>
+}
+
+DataTable.GlobalSearch = function DataTableGlobalSearch({
+  className,
+}: {
+  className?: string
+}) {
+  const { table, translations, locked, blocked, size } = useDataTableContext()
+  const styles = dataTableVariants()
+  return (
+    /* SearchForm renders <search><form>, and its `className` lands on the inner
+     * form — so the flex sizing has to go on a wrapper the toolbar can actually
+     * stretch. */
+    <div className={styles.toolbarSearch({ className })}>
+      <SearchForm
+        className="w-full"
+        onSubmit={(event) => event.preventDefault()}
+        onValueChange={(value) => {
+          if (blocked("globalFilter")) {
+            return
+          }
+          table.setGlobalFilter(value)
+        }}
+        size={size}
+        value={(table.state.globalFilter as string) ?? ""}
+      >
+        <SearchForm.Control>
+          <SearchForm.Input
+            aria-label={translations.searchLabel}
+            disabled={locked}
+            placeholder={translations.searchPlaceholder}
+          />
+          <SearchForm.ClearButton aria-label={translations.clearSearchLabel} />
+          {/* `gapped` defaults to false, so the button is joined to the input
+           * with the touching corners squared off. */}
+          <SearchForm.Button
+            aria-label={translations.searchButtonLabel}
+            disabled={locked}
+            showSearchIcon
+          />
+        </SearchForm.Control>
+      </SearchForm>
+    </div>
+  )
+}
+
+/**
+ * Consumer-supplied toolbar actions, trailing the search. Capped at
+ * `DATA_TABLE_MAX_TOOLBAR_ACTIONS` by convention only — see the warning below.
+ */
+DataTable.ToolbarActions = function DataTableToolbarActions() {
+  const { toolbarActions, size, locked } = useDataTableContext()
+  const styles = dataTableVariants()
+  const count = toolbarActions?.length ?? 0
+
+  const hasWarnedAboutToolbarOverflow = useRef(false)
+  useEffect(() => {
+    if (count <= DATA_TABLE_MAX_TOOLBAR_ACTIONS) {
+      hasWarnedAboutToolbarOverflow.current = false
+      return
+    }
+    if (
+      hasWarnedAboutToolbarOverflow.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
+    ) {
+      return
+    }
+    hasWarnedAboutToolbarOverflow.current = true
+    console.warn(
+      `[DataTable] toolbarActions has ${count} actions; at most ${DATA_TABLE_MAX_TOOLBAR_ACTIONS} is recommended. They still render, but the toolbar gets crowded — consider moving the extras into a menu.`
+    )
+  }, [count])
+
+  if (!count) {
+    return null
+  }
+
+  return (
+    <div className={styles.toolbarActions()}>
+      {toolbarActions?.map(
+        ({ id, label, children, disabled, ...action }, i) => (
+          <Button
+            disabled={disabled || locked}
+            key={id ?? `toolbar-action-${i}`}
+            size={size}
+            {...action}
+          >
+            {label ?? children}
+          </Button>
+        )
+      )}
+    </div>
+  )
+}
+
+DataTable.ColumnVisibility = function DataTableColumnVisibility() {
+  const { table, translations, blocked, size } = useDataTableContext()
+  const hideableColumns = table
+    .getAllLeafColumns()
+    .filter(
+      (c) =>
+        c.getCanHide() && ![SELECTION_COLUMN_ID, DRAG_COLUMN_ID].includes(c.id)
+    )
+
+  const items: MenuItem[] = hideableColumns.map((column) => ({
+    type: "checkbox",
+    value: column.id,
+    label: columnLabel(column),
+    checked: column.getIsVisible(),
+  }))
+
+  return (
+    <Menu
+      /* Toggling a column must not dismiss the list — hiding several columns
+       * otherwise means reopening the menu for each one. */
+      closeOnSelect={false}
+      /* Menu clones its trigger props onto this element, so it must be the
+       * button itself — a wrapper (e.g. Tooltip) swallows them and the click
+       * does nothing. `title` gives the hover hint without adding a wrapper. */
+      customTrigger={
+        <Button
+          aria-label={translations.columnsLabel}
+          icon="icon-[mdi--cog-outline]"
+          size="sm"
+          title={translations.columnsLabel}
+          variant="primary"
+        />
+      }
+      items={items}
+      onCheckedChange={(item) => {
+        if (item.type === "checkbox" && !blocked("columnVisibility")) {
+          table.getColumn(item.value)?.toggleVisibility()
+        }
+      }}
+      size={size}
+    />
+  )
+}
+
+DataTable.Pagination = function DataTablePagination() {
+  const {
+    table,
+    pageSizeOptions,
+    translations,
+    locked,
+    blocked,
+    size,
+    paginationProps,
+  } = useDataTableContext()
+  const state = table.state.pagination
+  /*
+   * `Pagination` builds its page list from `count`/`pageSize` and has no
+   * `pageCount` prop, while `getRowCount()` is
+   * `options.rowCount ?? prePaginatedRowModel.rows.length`. So a consumer
+   * following the documented server-side contract with `manualPagination` +
+   * `pageCount` (but no `rowCount`) handed us a single page of rows, the
+   * pager rendered exactly one page, and every other page was unreachable.
+   *
+   * Fall back to the span `pageCount` implies. Exact whenever `rowCount` is
+   * given; otherwise an upper bound on the last page, which is the most
+   * `pageCount` alone can express.
+   */
+  const declaredPageCount = table.options.pageCount
+  const total =
+    table.options.rowCount ??
+    (declaredPageCount != null && declaredPageCount >= 0
+      ? declaredPageCount * state.pageSize
+      : table.getRowCount())
+  const start = total === 0 ? 0 : state.pageIndex * state.pageSize + 1
+  const end = Math.min((state.pageIndex + 1) * state.pageSize, total)
+  const styles = dataTableVariants()
+
+  const pageSizeItems: SelectItem[] = pageSizeOptions.map((n) => ({
+    label: String(n),
+    value: String(n),
+  }))
+
+  return (
+    <div className={styles.paginationBar()} style={OPAQUE_HEADER_BG}>
+      <span className={styles.paginationInfo()}>
+        {translations.rangeLabel({ start, end, total })}
+      </span>
+      <div className={styles.paginationControls()}>
+        <Pagination
+          size={size}
+          {...paginationProps}
+          count={total}
+          getPageUrl={() => "#"}
+          // `Pagination` renders its items as links, and a real `href="#"`
+          // navigates: the viewport jumps to the top of the document and a
+          // `#` entry is pushed onto history on every page change. Paging
+          // here is driven entirely by `onPageChange`, so the default is
+          // pure side effect. Zag's `mergeProps` composes handlers, so
+          // suppressing it does not stop the page from changing.
+          //
+          // Declared *after* the `paginationProps` spread and composed with
+          // whatever the consumer passed, so supplying `linkProps` (say, to
+          // add a `data-testid`) cannot silently drop the guard.
+          linkProps={{
+            ...paginationProps?.linkProps,
+            onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+              paginationProps?.linkProps?.onClick?.(event)
+              event.preventDefault()
+            },
+          }}
+          onPageChange={(page) => {
+            if (!blocked("paginate")) {
+              table.setPageIndex(page - 1)
+            }
+          }}
+          page={state.pageIndex + 1}
+          pageSize={state.pageSize}
+        />
+        {/* The page-size control is labelled only for assistive tech; the
+            design shows the bare select next to the pager. */}
+        <FieldSelect
+          ariaLabel={translations.pageSizeLabel}
+          disabled={locked}
+          items={pageSizeItems}
+          onChange={(v) => {
+            if (!blocked("paginate")) {
+              table.setPageSize(Number(v))
+            }
+          }}
+          size={size}
+          value={String(state.pageSize)}
+        />
+      </div>
+    </div>
+  )
+}
+
+DataTable.displayName = "DataTable"

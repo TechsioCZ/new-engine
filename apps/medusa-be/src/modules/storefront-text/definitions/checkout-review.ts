@@ -26,6 +26,12 @@ export const STOREFRONT_CHECKOUT_REVIEW_TEXT_DEFINITIONS = [
   },
   {
     description:
+      "Chyba při pokusu dokončit objednávku bez povinného nákupního souhlasu.",
+    key: "checkout.review_legal_required",
+    namespace: "checkout",
+  },
+  {
+    description:
       "Upozornění na neuložené povinné údaje v rekapitulaci objednávky.",
     key: "checkout.review_missing_required_details",
     namespace: "checkout",

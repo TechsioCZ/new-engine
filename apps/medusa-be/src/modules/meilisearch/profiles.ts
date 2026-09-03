@@ -428,6 +428,22 @@ export const validateSearchProfileSet = (profiles: SearchProfile[]) => {
       "Every Meilisearch search profile must declare salesChannelIds when more than one domain profile is configured"
     )
   }
+
+  const salesChannelOwners = new Map<string, string>()
+
+  for (const profile of profiles) {
+    for (const salesChannelId of new Set(profile.salesChannelIds)) {
+      const owner = salesChannelOwners.get(salesChannelId)
+
+      if (owner) {
+        throw new SearchProfileConfigurationError(
+          `Meilisearch sales channel ${salesChannelId} is assigned to multiple search profiles: ${owner}, ${profile.key}`
+        )
+      }
+
+      salesChannelOwners.set(salesChannelId, profile.key)
+    }
+  }
 }
 
 export const readSearchProfiles = (
@@ -565,8 +581,18 @@ export const resolveSearchProfile = (
     : accessible
   const candidates = requestedLocale ? localized : accessible
 
-  if (candidates.length > 0) {
-    return sortProfilesByKey(candidates)[0] as SearchProfile
+  if (candidates.length === 1) {
+    return candidates[0] as SearchProfile
+  }
+
+  if (candidates.length > 1) {
+    const candidateKeys = sortProfilesByKey(candidates)
+      .map((profile) => profile.key)
+      .join(", ")
+
+    throw new SearchProfileResolutionError(
+      `Multiple Meilisearch profiles are assigned to this storefront Sales Channel and language: ${candidateKeys}`
+    )
   }
 
   throw new SearchProfileResolutionError(

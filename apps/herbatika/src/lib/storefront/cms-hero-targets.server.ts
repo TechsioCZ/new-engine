@@ -43,27 +43,20 @@ export const hydrateCmsHeroBannerTargets = async (
       : Promise.resolve({ kind: "found" as const, value: {} }),
   ])
 
+  // Projection reads are best-effort: an unavailable registry projection
+  // degrades the affected banners to link-free display instead of failing
+  // the homepage.
   const entityPublicSlugsByKind: Partial<
     Record<HeroEntityTargetKind, PublicEntitySlugMap>
   > = {}
   for (const [index, [kind]] of entityEntries.entries()) {
     const result = entityResults[index]
-    if (!result || result.kind !== "found") {
-      return (
-        result ?? {
-          causeCode: "MISSING_HERO_ENTITY_PUBLIC_PROJECTION_RESULT",
-          kind: "invalid-response" as const,
-        }
-      )
-    }
-    entityPublicSlugsByKind[kind] = result.value
-  }
-  if (staticResult.kind !== "found") {
-    return staticResult
+    entityPublicSlugsByKind[kind] = result?.kind === "found" ? result.value : {}
   }
 
   return mapCmsHeroBannersToPublicTargets(banners, {
     entityPublicSlugsByKind,
-    staticHrefsByRouteKey: staticResult.value,
+    staticHrefsByRouteKey:
+      staticResult.kind === "found" ? staticResult.value : {},
   })
 }

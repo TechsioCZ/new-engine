@@ -1,5 +1,9 @@
 import type { MedusaStoreRequest } from "@medusajs/framework/http"
-import { Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  Modules,
+  ProductStatus,
+} from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import {
   readPublishedProductCatalogSource,
@@ -7,6 +11,7 @@ import {
 } from "../../product-source"
 
 const product = (overrides: Record<string, unknown> = {}) => ({
+  description: "",
   id: "prod_1",
   metadata: {
     url_registry_publication: {
@@ -21,37 +26,51 @@ const product = (overrides: Record<string, unknown> = {}) => ({
     },
   },
   sales_channels: [{ id: "sc_sk" }],
+  subtitle: "",
   updated_at: "2026-08-19T00:00:00.000Z",
   ...overrides,
 })
 
-const request = ({
-  products = [product()],
-  salesChannelIds = ["sc_sk"],
-  translations = [
-    {
-      deleted_at: null,
-      id: "trans_1",
-      locale_code: "sk-SK",
-      reference: "product",
-      reference_id: "prod_1",
-      translations: { title: "Vitamín C" },
-    },
-  ],
-}: {
-  products?: unknown[]
-  salesChannelIds?: string[]
-  translations?: unknown[]
-} = {}) =>
+const request = (
+  {
+    products = [product()],
+    salesChannelIds = ["sc_sk"],
+    translations = [
+      {
+        deleted_at: null,
+        id: "trans_1",
+        locale_code: "sk-SK",
+        reference: "product",
+        reference_id: "prod_1",
+        translations: { title: "Vitamín C" },
+      },
+    ],
+  }: {
+    products?: unknown[]
+    salesChannelIds?: string[]
+    translations?: unknown[]
+  } = {},
+  graph = vi.fn(async () => ({ data: products }))
+) =>
   ({
     publishable_key_context: { sales_channel_ids: salesChannelIds },
     scope: {
       resolve: vi.fn((key: string) => {
-        if (key === Modules.PRODUCT) {
-          return { listProducts: vi.fn(async () => products) }
+        if (key === ContainerRegistrationKeys.QUERY) {
+          return { graph }
         }
         if (key === Modules.TRANSLATION) {
           return { listTranslations: vi.fn(async () => translations) }
+        }
+        if (key === Modules.PRODUCT) {
+          return {
+            listProducts: vi.fn(async ({ id }: { id: string[] }) =>
+              products.filter((entry) => {
+                const productId = (entry as { id?: unknown }).id
+                return typeof productId === "string" && id.includes(productId)
+              })
+            ),
+          }
         }
         throw new Error(`Unexpected dependency: ${key}`)
       }),
@@ -60,8 +79,10 @@ const request = ({
 
 describe("published product catalog source", () => {
   it("proves assignment, channel, source version, and exact translation", async () => {
+    const graph = vi.fn(async () => ({ data: [product()] }))
+
     await expect(
-      readPublishedProductCatalogSource(request(), "prod_1", "sk")
+      readPublishedProductCatalogSource(request({}, graph), "prod_1", "sk")
     ).resolves.toEqual({
       kind: "found",
       source: {
@@ -76,6 +97,12 @@ describe("published product catalog source", () => {
           translationId: "trans_1",
         },
       },
+    })
+    expect(graph).toHaveBeenCalledWith({
+      entity: "product",
+      fields: ["id", "metadata", "updated_at", "sales_channels.id"],
+      filters: { id: "prod_1", status: ProductStatus.PUBLISHED },
+      pagination: { take: 2 },
     })
   })
 
@@ -143,17 +170,24 @@ describe("published product catalog source", () => {
         translations: { title: "Zinok" },
       },
     ]
-    const listProducts = vi.fn(async () => products)
+    const graph = vi.fn(async () => ({ data: products }))
     const listTranslations = vi.fn(async () => translations)
     const batchRequest = {
       publishable_key_context: { sales_channel_ids: ["sc_sk"] },
       scope: {
         resolve: vi.fn((key: string) => {
-          if (key === Modules.PRODUCT) {
-            return { listProducts }
+          if (key === ContainerRegistrationKeys.QUERY) {
+            return { graph }
           }
           if (key === Modules.TRANSLATION) {
             return { listTranslations }
+          }
+          if (key === Modules.PRODUCT) {
+            return {
+              listProducts: vi.fn(async ({ id }: { id: string[] }) =>
+                products.filter((entry) => id.includes(entry.id))
+              ),
+            }
           }
           throw new Error(`Unexpected dependency: ${key}`)
         }),
@@ -176,7 +210,16 @@ describe("published product catalog source", () => {
         "prod_2",
       ])
     }
-    expect(listProducts).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledWith({
+      entity: "product",
+      fields: ["id", "metadata", "updated_at", "sales_channels.id"],
+      filters: {
+        id: ["prod_1", "prod_2"],
+        status: ProductStatus.PUBLISHED,
+      },
+      pagination: { take: 3 },
+    })
     expect(listTranslations).toHaveBeenCalledTimes(1)
   })
 

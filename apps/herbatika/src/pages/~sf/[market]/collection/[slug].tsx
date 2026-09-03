@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next"
 import { CollectionListing } from "@/components/collections/collection-listing"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   type PublicPageProps,
   resolveEntityPublicPage,
@@ -61,7 +62,7 @@ export const getServerSideProps = ((context) => {
 
 export default function CollectionPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Collection unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="catalog" />
   }
   return <CollectionListing {...page.value} />
 }

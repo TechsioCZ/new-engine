@@ -14,6 +14,7 @@ import {
 } from "@/lib/storefront/category-query-config"
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { useProductPublicSlugs } from "@/lib/storefront/product-public-slugs"
 import { RELATED_PRODUCT_FIELDS, useProducts } from "@/lib/storefront/products"
 import { selectRecommendedProductRepresentatives } from "@/lib/storefront/recommended-product-families"
 import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
@@ -62,6 +63,7 @@ export function CheckoutEmptyCartSection() {
     recommendationsQuery.products,
     EMPTY_CART_RECOMMENDATIONS_LIMIT
   )
+  const productPublicSlugsById = useProductPublicSlugs(recommendedProducts)
   const recommendationCategoryHref = buildProjectedEntityPath(
     "category",
     recommendationCategory as { publicSlug?: string | null } | undefined,
@@ -120,7 +122,11 @@ export function CheckoutEmptyCartSection() {
             {tCheckout("empty_cart_recommendations_title")}
           </h2>
 
-          <InlineProductsCarousel products={recommendedProducts} slidesLg={4} />
+          <InlineProductsCarousel
+            productPublicSlugsById={productPublicSlugsById}
+            products={recommendedProducts}
+            slidesLg={4}
+          />
         </section>
       ) : null}
     </section>

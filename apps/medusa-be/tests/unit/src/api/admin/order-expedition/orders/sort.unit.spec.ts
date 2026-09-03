@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
 import {
   getNativeOrderExpeditionSort,
@@ -19,6 +20,12 @@ describe("order expedition sorting", () => {
       field: "customer",
       query: "customer",
     })
+  })
+
+  it("rejects unsupported sort fields with a client-safe error", () => {
+    expect(() => parseOrderExpeditionSort("unsupported" as never)).toThrow(
+      expect.objectContaining({ type: MedusaError.Types.INVALID_DATA })
+    )
   })
 
   it("recognizes native sorts and builds stable native pagination order", () => {

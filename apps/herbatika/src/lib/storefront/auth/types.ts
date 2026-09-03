@@ -24,5 +24,6 @@ export type AuthRegisterInput = MedusaRegisterData & {
 export type AuthUpdateInput = MedusaUpdateCustomerData
 
 export type AuthProxyResponse = {
-  token: string
+  authenticated: true
+  user: import("@medusajs/types").HttpTypes.StoreCustomer
 }

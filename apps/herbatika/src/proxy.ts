@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
-import { isM00ProbePath, resolveM00ProxyAction } from "@/lib/routing/m00-proxy"
+import { resolveM00ProxyAction } from "@/lib/routing/m00-proxy"
 import { resolvePublicProxyAction } from "@/lib/routing/public-proxy"
 
 const NEXT_INTERNAL_REQUEST_HEADERS = [
@@ -73,14 +73,18 @@ export const proxy = (request: NextRequest) => {
     method: request.method,
     pathname: request.nextUrl.pathname,
   }
+  const m00Action = resolveM00ProxyAction({
+    ...input,
+    enabled: process.env.URL_ARCHITECTURE_M00_ENABLED === "1",
+  })
   const action =
-    process.env.URL_ARCHITECTURE_M00_ENABLED === "1" &&
-    isM00ProbePath(input.pathname)
-      ? resolveM00ProxyAction({ ...input, enabled: true })
-      : resolvePublicProxyAction({
+    m00Action.kind === "next"
+      ? resolvePublicProxyAction({
           ...input,
           enabled: process.env.URL_ARCHITECTURE_ENABLED === "1",
+          resolveUnknownStaticPaths: true,
         })
+      : m00Action
 
   if (action.kind === "next") {
     return NextResponse.next()
@@ -88,6 +92,17 @@ export const proxy = (request: NextRequest) => {
 
   if (action.kind === "respond") {
     return statusResponse(action.status, action.allow)
+  }
+
+  if (action.kind === "redirect") {
+    // Keep the redirect on the requesting public host and preserve the query.
+    // The target path then runs the normal canonicalization pass.
+    const location = new URL(request.url)
+    location.pathname = action.location
+    return NextResponse.redirect(location, {
+      status: action.status,
+      headers: { "Cache-Control": "public, max-age=0, must-revalidate" },
+    })
   }
 
   // Keep the adapter-provided origin. The pinned Next runtime canonicalizes

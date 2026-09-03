@@ -52,6 +52,9 @@ playwright-report
 test-results
 .playwright-cli/
 .playwright
+.qa/
+agent-sitemaps/
+dogfood-output/
 .env
 .env.zane*
 
@@ -80,3 +83,8 @@ apps/n1/next-env.d.ts
 apps/medusa-be/.env.test.local
 .oas/
 libs/ui/.visual-diff/
+
+# Seed-database handover output (dumps/media/manifests must never be committed)
+seed-handover-output/
+scripts/seed-handover/*.dump
+scripts/seed-handover/*.tar.gz

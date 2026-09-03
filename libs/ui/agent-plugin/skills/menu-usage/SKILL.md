@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.1.0"
 name: menu-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Menu for
@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/molecules/menu.tsx"
   - "libs/ui/src/tokens/components/molecules/_menu.css"
   - "libs/ui/stories/molecules/menu.stories.tsx"
-  - "libs/ui/src/molecules/figma/menu.figma.tsx"
+  - "libs/ui/src/molecules/menu.figma.ts"
   - "https://zagjs.com/components/react/menu"
 ---
 

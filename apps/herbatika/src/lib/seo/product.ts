@@ -1,4 +1,5 @@
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
+import type { HerbatikaLocale } from "@/lib/storefront/market-context"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import {
   asStorefrontRecord,
@@ -30,6 +31,7 @@ export type ProductJsonLd = Readonly<{
   gtin13?: string
   gtin14?: string
   image?: readonly string[]
+  inLanguage: HerbatikaLocale
   name: string
   offers?: ProductOfferJsonLd
   sku?: string
@@ -47,6 +49,7 @@ export type ProductSeo = Readonly<{
 type BuildProductSeoInput = Readonly<{
   canonicalUrl: string
   initialVariantId?: string
+  locale: HerbatikaLocale
   product: ProductRouteMedusaProduct
 }>
 
@@ -171,6 +174,7 @@ const resolveOffer = (
 export const buildProductSeo = ({
   canonicalUrl,
   initialVariantId,
+  locale,
   product,
 }: BuildProductSeoInput): ProductSeo => {
   assertCanonicalUrl(canonicalUrl)
@@ -191,6 +195,7 @@ export const buildProductSeo = ({
       : {}),
     ...(description ? { description } : {}),
     ...(images.length > 0 ? { image: images } : {}),
+    inLanguage: locale,
     name: title,
     ...(offer ? { offers: offer } : {}),
     ...(sku ? { sku } : {}),

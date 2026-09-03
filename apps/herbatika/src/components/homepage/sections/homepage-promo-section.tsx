@@ -1,14 +1,13 @@
 import NextImage from "next/image"
+import { useTranslations } from "next-intl"
 import { useEffect, useRef } from "react"
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
 import { sanitizeHomepagePromoHtml } from "./homepage-promo-html"
 
 const HOMEPAGE_PROMO_SECTION_ID = "homepage-promo"
 
-const DEFAULT_IMAGE = {
-  alt: "Predajňa Herbatika",
-  src: "https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?auto=format&fit=crop&w=1100&q=80",
-}
+const DEFAULT_IMAGE_SRC =
+  "https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?auto=format&fit=crop&w=1100&q=80"
 
 type HomepagePromoSectionProps = {
   promo?: HomepagePromoContent | null
@@ -16,9 +15,10 @@ type HomepagePromoSectionProps = {
 
 export function HomepagePromoSection({ promo }: HomepagePromoSectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
-  const imageAlt = promo?.imageAlt || DEFAULT_IMAGE.alt
-  const imageSrc = promo?.imageSrc || DEFAULT_IMAGE.src
+  const tContent = useTranslations("content")
   const contentHtml = sanitizeHomepagePromoHtml(promo?.contentHtml ?? "")
+  const imageAlt = promo?.imageAlt || tContent("home.promo.image_alt")
+  const imageSrc = promo?.imageSrc || DEFAULT_IMAGE_SRC
 
   useEffect(() => {
     if (window.location.hash === `#${HOMEPAGE_PROMO_SECTION_ID}`) {
@@ -45,8 +45,7 @@ export function HomepagePromoSection({ promo }: HomepagePromoSectionProps) {
 
       <div className="flex flex-col justify-center gap-300">
         <h2 className="font-bold text-2xl text-fg-primary leading-tight">
-          {promo?.heading ??
-            "Prírodná kozmetika, doplnky výživy a tradičná medicína"}
+          {promo?.heading || tContent("home.promo.heading")}
         </h2>
         {contentHtml ? (
           <div
@@ -57,23 +56,13 @@ export function HomepagePromoSection({ promo }: HomepagePromoSectionProps) {
         ) : (
           <>
             <p className="text-fg-secondary text-sm leading-relaxed">
-              Spoznajte blahodarné účinky prírodnej kozmetiky a jej pozitívny
-              vplyv nielen na pokožku. Upevnite si vaše zdravie pomocou doplnkov
-              stravy a tradičnej medicíny.Toto všetko nájdete v našej pestrej
-              ponuke, ktorá je navyše obohatená aj o zdravotné doplnky z
-              prírodných materiálov.
+              {tContent("home.promo.paragraph_1")}
             </p>
             <p className="text-fg-secondary text-sm leading-relaxed">
-              Špecializujeme sa na výber tých najkvalitnejších produktov, ktoré
-              aj my sami používame, vylepšujeme a opakovane testujeme. Máme radi
-              kvalitu a potrpíme si na detaily. Sme pripravení, pomôcť vám s
-              výberom produktov špeciálne podľa vašich potrieb alebo na váš
-              zdravotný problém.
+              {tContent("home.promo.paragraph_2")}
             </p>
             <p className="text-fg-secondary text-sm leading-relaxed">
-              Herbatica má už aj svoju značku, pod ktorou vyrábame množstvo
-              produktov, ktoré inde nenájdete. Máme radi kvalitu a detaily a na
-              tie sa sústredíme v každom našom produkte.
+              {tContent("home.promo.paragraph_3")}
             </p>
           </>
         )}

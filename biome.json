@@ -14,6 +14,7 @@
       "!**/check-env-variables.js",
       "!**/*.stories.tsx",
       "!**/.storybook/main.ts",
+      "!apps/medusa-be/tests/fixtures/ro-catalog-source-extract/befungin-minimal.html",
       "!**/libs/ui/src/tokens/index.css"
     ]
   },

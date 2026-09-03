@@ -114,7 +114,7 @@ describe("resolveBlogListingHref", () => {
         category: ALL_BLOG_CATEGORIES_KEY,
         page: 1,
       })
-    ).toBe("/poradna")
+    ).toBe("/blog")
   })
 
   it("serializes category and page consistently", () => {
@@ -123,7 +123,7 @@ describe("resolveBlogListingHref", () => {
         category: "zdravie & krása",
         page: 2,
       })
-    ).toBe("/tanacsok?category=zdravie+%26+krása&page=2")
+    ).toBe("/blog?category=zdravie+%26+krása&page=2")
   })
 
   it("builds the equivalent API URL for loading another page", () => {

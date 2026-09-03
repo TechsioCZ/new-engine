@@ -1,5 +1,14 @@
 import type { AuthProxyResponse } from "./types"
 
+const parseAuthenticatedUser = (
+  payload: Partial<AuthProxyResponse>
+): AuthProxyResponse["user"] | null => {
+  const user = payload.user
+  return user && typeof user === "object" && typeof user.id === "string"
+    ? user
+    : null
+}
+
 const parseProxyError = async (response: Response) => {
   try {
     const payload = (await response.json()) as { message?: string }
@@ -30,12 +39,14 @@ export const requestAuthProxy = async <TBody extends Record<string, unknown>>(
   }
 
   const payload = (await response.json()) as Partial<AuthProxyResponse>
-  if (typeof payload.token !== "string" || payload.token.length === 0) {
-    throw new Error("Autentifikačné rozhranie nevrátilo token.")
+  const user = parseAuthenticatedUser(payload)
+  if (payload.authenticated !== true || !user) {
+    throw new Error("Autentifikačné rozhranie nevrátilo používateľa.")
   }
 
   return {
-    token: payload.token,
+    authenticated: true,
+    user,
   }
 }
 
@@ -88,14 +99,15 @@ export const requestSessionProxy =
       throw new Error(await parseProxyError(response))
     }
 
-    const payload = (await response.json()) as Partial<AuthProxyResponse>
-    if (typeof payload.token !== "string" || payload.token.length === 0) {
+    const payload = (await response.json()) as Partial<AuthProxyResponse> & {
+      authenticated?: boolean
+    }
+    if (payload.authenticated !== true) {
       return null
     }
 
-    return {
-      token: payload.token,
-    }
+    const user = parseAuthenticatedUser(payload)
+    return user ? { authenticated: true, user } : null
   }
 
 export const requestLogoutProxy = async () => {

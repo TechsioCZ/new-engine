@@ -2,6 +2,7 @@ import type { DehydratedState } from "@tanstack/react-query"
 import { HydrationBoundary } from "@tanstack/react-query"
 import type { GetServerSideProps } from "next"
 import { BrandListing } from "@/components/brands/brand-listing"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   type PublicPageProps,
   resolveEntityPublicPage,
@@ -30,6 +31,8 @@ export const getServerSideProps = ((context) => {
   return resolveEntityPublicPage<BrandValue>(context, {
     expectedRouteKey: "brand.detail",
     kind: "brand",
+    // The URL registry already resolved slug -> brand ID, so the brand list
+    // read below is the only source proof this page needs.
     loadSource: async ({ market, sourceId }) => {
       const brands = await fetchStorefrontBrands(market)
       const brand = brands.find((item) => item.id === sourceId)
@@ -84,7 +87,7 @@ export const getServerSideProps = ((context) => {
 
 export default function BrandPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Brand unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="catalog" />
   }
   return (
     <HydrationBoundary state={page.value.dehydratedState}>

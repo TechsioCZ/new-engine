@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { cartReadQueryOptions, useAddLineItem, useCart } from "./cart"
+import { CART_ITEM_LOCALIZED_TITLE_METADATA_KEY } from "./cart-calculations"
 import { resolveErrorMessage } from "./error-utils"
 import { resolveVariantInventoryState } from "./product-availability"
 import {
@@ -96,8 +97,18 @@ const resolveProductVariant = (
 
 const resolveLineItemMetadata = (product: AddProductToCartInput["product"]) => {
   const topOffer = resolveProductTopOffer(product)
+  const localizedTitle = product.title?.trim()
 
-  return topOffer ? { top_offer: topOffer } : undefined
+  if (!(topOffer || localizedTitle)) {
+    return
+  }
+
+  return {
+    ...(topOffer ? { top_offer: topOffer } : {}),
+    ...(localizedTitle
+      ? { [CART_ITEM_LOCALIZED_TITLE_METADATA_KEY]: localizedTitle }
+      : {}),
+  }
 }
 
 const resolveLineItemVariantId = (

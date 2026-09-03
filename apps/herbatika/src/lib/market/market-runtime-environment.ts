@@ -1,12 +1,11 @@
 import {
-  DECLARED_HOST_OWNERSHIP,
   isMarketCode,
   MARKET_CODES,
   type MarketCode,
+  type MarketRoutingBinding,
   type MarketRuntimeBinding,
   type MarketRuntimeEnvironment,
   normalizeHost,
-  ROUTES,
 } from "./market-runtime-definitions"
 
 const MULTIPLE_VALUE_PATTERN = /[,\s]/
@@ -57,8 +56,7 @@ export const parseAllowedMarkets = (
 
 export const readAcceptedHosts = (
   environment: MarketRuntimeEnvironment,
-  market: MarketCode,
-  canonicalHost: string
+  market: MarketCode
 ): readonly string[] => {
   const environmentName = `MARKET_ACCEPTED_HOSTS_${market.toUpperCase()}`
   const rawValue = environment[environmentName]?.trim()
@@ -80,26 +78,38 @@ export const readAcceptedHosts = (
     if (normalizeHost(host) !== host) {
       throw new Error(`${environmentName} contains invalid host ${host}`)
     }
-    if (DECLARED_HOST_OWNERSHIP[host] !== market) {
-      throw new Error(
-        `${environmentName} contains host ${host} that is not a declared route host for ${market}`
-      )
-    }
     selected.add(host)
   }
 
-  if (!selected.has(canonicalHost)) {
-    throw new Error(
-      `${environmentName} must include canonical host ${canonicalHost}`
-    )
-  }
+  return Object.freeze([...selected])
+}
 
-  const route = ROUTES[market]
-  return Object.freeze(
-    [canonicalHost, ...route.proposedAliases].filter((host) =>
-      selected.has(host)
-    )
-  )
+export const readCanonicalOrigin = (
+  environment: MarketRuntimeEnvironment,
+  market: MarketCode
+): string => {
+  const canonicalHost = readAcceptedHosts(environment, market)[0]
+  if (!canonicalHost) {
+    throw new Error(`Market ${market} has no configured canonical host`)
+  }
+  return `https://${canonicalHost}`
+}
+
+export const assertUniqueAcceptedHosts = (
+  bindings: readonly MarketRoutingBinding[]
+) => {
+  const ownerByHost = new Map<string, MarketCode>()
+  for (const binding of bindings) {
+    for (const host of binding.acceptedHosts) {
+      const existingMarket = ownerByHost.get(host)
+      if (existingMarket) {
+        throw new Error(
+          `Host ${host} is assigned to both ${existingMarket} and ${binding.market}`
+        )
+      }
+      ownerByHost.set(host, binding.market)
+    }
+  }
 }
 
 export const assertUniqueAuthority = (

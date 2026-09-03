@@ -10,6 +10,8 @@ import {
 const TOKEN = "urlr-lifecycle-token-with-at-least-32-characters"
 const ENDPOINT =
   "https://internal.test/api/internal/url-registry/product-lifecycle"
+const CATALOG_ENDPOINT =
+  "https://internal.test/api/internal/url-registry/catalog-lifecycle"
 
 const claim = (
   overrides: Partial<ClaimedUrlRegistryOutboxEvent> = {}
@@ -106,9 +108,47 @@ describe("deliverUrlRegistryOutboxEvent", () => {
     })
   })
 
+  it("delivers taxonomy events to the catalog endpoint with the actual kind", async () => {
+    const event = claim({
+      entityId: "pcat_1",
+      entityKind: "category",
+      marketCode: "ro",
+      payload: {
+        assignment: {
+          publicationStatus: "published",
+          publicSlug: "suplimente-nutritive",
+          salesChannelId: "sc_ro",
+        },
+        changeType: "reconcile",
+        entityId: "pcat_1",
+        entityKind: "category",
+        reason: "assignment-upsert",
+        schemaVersion: 1,
+        sourceVersion: "7",
+      },
+    })
+    const fetchImpl = vi.fn(async () => jsonResponse(acknowledgement(event)))
+
+    const result = await deliverUrlRegistryOutboxEvent(
+      event,
+      { catalogEndpoint: CATALOG_ENDPOINT, endpoint: ENDPOINT, token: TOKEN },
+      { fetchImpl }
+    )
+
+    expect(result).toEqual({ kind: "acknowledge", outcome: "applied" })
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(CATALOG_ENDPOINT)
+    expect(
+      JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body))
+    ).toMatchObject({
+      entityId: "pcat_1",
+      entityKind: "category",
+      marketCode: "ro",
+    })
+  })
+
   it.each([
     [{ source: "payload" }, "source"],
-    [{ entityKind: "category" }, "entity kind"],
+    [{ entityKind: "page" }, "entity kind"],
   ])("fails an unsupported claimed %s before HTTP", async (overrides) => {
     const fetchImpl = vi.fn()
 
@@ -121,6 +161,22 @@ describe("deliverUrlRegistryOutboxEvent", () => {
     expect(result).toEqual({
       errorCode: "unsupported-delivery-topic",
       kind: "fail",
+    })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it("keeps a catalog event retryable until the catalog consumer is configured", async () => {
+    const fetchImpl = vi.fn()
+
+    const result = await deliverUrlRegistryOutboxEvent(
+      claim({ entityId: "pcat_1", entityKind: "category" }),
+      { endpoint: ENDPOINT, token: TOKEN },
+      { fetchImpl }
+    )
+
+    expect(result).toEqual({
+      errorCode: "catalog-consumer-not-ready",
+      kind: "retry",
     })
     expect(fetchImpl).not.toHaveBeenCalled()
   })
@@ -153,6 +209,39 @@ describe("deliverUrlRegistryOutboxEvent", () => {
     )
 
     expect(result).toEqual({ errorCode, kind: "fail" })
+  })
+
+  it.each([
+    400, 409,
+  ])("keeps a catalog HTTP %i response retryable during consumer-first cutover", async (status) => {
+    const result = await deliverUrlRegistryOutboxEvent(
+      claim({ entityId: "pcat_1", entityKind: "category" }),
+      {
+        catalogEndpoint: CATALOG_ENDPOINT,
+        endpoint: ENDPOINT,
+        token: TOKEN,
+      },
+      { fetchImpl: vi.fn(async () => new Response(null, { status })) }
+    )
+
+    expect(result).toEqual({
+      errorCode: `http-${status}`,
+      kind: "retry",
+    })
+  })
+
+  it("keeps an oversized catalog response request terminal", async () => {
+    const result = await deliverUrlRegistryOutboxEvent(
+      claim({ entityId: "pcat_1", entityKind: "category" }),
+      {
+        catalogEndpoint: CATALOG_ENDPOINT,
+        endpoint: ENDPOINT,
+        token: TOKEN,
+      },
+      { fetchImpl: vi.fn(async () => new Response(null, { status: 413 })) }
+    )
+
+    expect(result).toEqual({ errorCode: "http-413", kind: "fail" })
   })
 
   it.each([

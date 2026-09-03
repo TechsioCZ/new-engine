@@ -1,5 +1,9 @@
 import { createHash, randomBytes } from "node:crypto"
-import type { CreateNotificationDTO, Query } from "@medusajs/framework/types"
+import type {
+  CreateNotificationDTO,
+  MedusaContainer,
+  Query,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -8,6 +12,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { CLAIM_CASE_MODULE } from "../../../modules/claim-case"
 import type ClaimCaseModuleService from "../../../modules/claim-case/service"
 import { resendEmailTemplates } from "../../../modules/resend/templates"
+import { resolveNotificationMarketContext } from "../../../utils/notification-market-context"
 import type {
   ClaimStepResult,
   CreateClaimInput,
@@ -16,17 +21,30 @@ import type {
 } from "../types"
 
 type OrderLookup = {
+  billing_address?: { country_code?: string | null } | null
   customer_id: null | string
   display_id: number | string
   email: null | string
   id: string
   items: VerifiedOrderItem[]
+  sales_channel_id?: string | null
+  shipping_address?: { country_code?: string | null } | null
 }
 
 type CompensationInput = {
   access_id?: string
   claim_id: string
   item_ids: string[]
+}
+
+type ClaimAccessLookup = {
+  email: string
+  expires_at: Date
+  id: string
+  order_id: string
+  sales_channel_id: string
+  used_at?: Date | null
+  verified_at?: Date | null
 }
 
 function hashSecret(value: string) {
@@ -54,6 +72,80 @@ function invalidAccessError() {
     MedusaError.Types.NOT_ALLOWED,
     "Verified order access is invalid or expired."
   )
+}
+
+function isUsableClaimAccess(
+  access: ClaimAccessLookup | undefined,
+  input: CreateClaimInput,
+  normalizedEmail: string
+): access is ClaimAccessLookup {
+  return Boolean(
+    access?.verified_at &&
+      !access.used_at &&
+      access.expires_at.getTime() > Date.now() &&
+      access.sales_channel_id === input.sales_channel_id &&
+      normalizeEmail(access.email) === normalizedEmail
+  )
+}
+
+function isBoundOrder(
+  order: OrderLookup | undefined,
+  access: ClaimAccessLookup,
+  salesChannelId: string
+): order is OrderLookup {
+  return Boolean(
+    order?.id === access.order_id && order.sales_channel_id === salesChannelId
+  )
+}
+
+async function resolveVerifiedOrderAccess(
+  input: CreateClaimInput,
+  normalizedEmail: string,
+  container: MedusaContainer,
+  service: ClaimCaseModuleService
+) {
+  if (!input.access_token) {
+    return {}
+  }
+
+  const access = (
+    await service.listClaimAccesses(
+      { access_token_hash: hashSecret(input.access_token) },
+      { take: 1 }
+    )
+  )[0]
+  if (!isUsableClaimAccess(access, input, normalizedEmail)) {
+    throw invalidAccessError()
+  }
+
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: "order",
+    fields: [
+      "id",
+      "display_id",
+      "email",
+      "customer_id",
+      "sales_channel_id",
+      "shipping_address.country_code",
+      "billing_address.country_code",
+      "items.id",
+      "items.title",
+      "items.quantity",
+      "items.product_id",
+      "items.variant_id",
+    ],
+    filters: {
+      id: access.order_id,
+      sales_channel_id: input.sales_channel_id,
+    },
+  })
+  const order = data[0] as OrderLookup | undefined
+  if (!isBoundOrder(order, access, input.sales_channel_id)) {
+    throw invalidAccessError()
+  }
+
+  return { accessId: access.id, order }
 }
 
 function resolveClaimItems(input: CreateClaimInput, order?: OrderLookup) {
@@ -98,48 +190,24 @@ export const createClaimStep = createStep(
   async (input: CreateClaimInput, { container }) => {
     const service = container.resolve<ClaimCaseModuleService>(CLAIM_CASE_MODULE)
     const normalizedEmail = normalizeEmail(input.email)
-    let accessId: string | undefined
-    let order: OrderLookup | undefined
+    const { accessId, order } = await resolveVerifiedOrderAccess(
+      input,
+      normalizedEmail,
+      container,
+      service
+    )
 
-    if (input.access_token) {
-      const access = (
-        await service.listClaimAccesses(
-          { access_token_hash: hashSecret(input.access_token) },
-          { take: 1 }
-        )
-      )[0]
-      if (
-        !access?.verified_at ||
-        access.used_at ||
-        access.expires_at.getTime() <= Date.now() ||
-        normalizeEmail(access.email) !== normalizedEmail
-      ) {
-        throw invalidAccessError()
-      }
-
-      const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-      const { data } = await query.graph({
-        entity: "order",
-        fields: [
-          "id",
-          "display_id",
-          "email",
-          "customer_id",
-          "items.id",
-          "items.title",
-          "items.quantity",
-          "items.product_id",
-          "items.variant_id",
-        ],
-        filters: { id: access.order_id },
-      })
-      order = data[0] as OrderLookup | undefined
-      if (!order) {
-        throw invalidAccessError()
-      }
-      accessId = access.id
-    }
-
+    const marketContext = await resolveNotificationMarketContext(
+      container,
+      order
+        ? {
+            countryCode:
+              order.shipping_address?.country_code ??
+              order.billing_address?.country_code,
+            salesChannelId: input.sales_channel_id,
+          }
+        : { salesChannelId: input.sales_channel_id }
+    )
     const resolvedItems = resolveClaimItems(input, order)
 
     const submittedAt = new Date()
@@ -160,6 +228,7 @@ export const createClaimStep = createStep(
       purchase_details: input.purchase_details ?? null,
       reason: input.reason ?? null,
       requested_resolution: input.requested_resolution ?? null,
+      sales_channel_id: input.sales_channel_id,
       status: "submitted",
       submitted_at: submittedAt,
       type: input.type,
@@ -173,6 +242,7 @@ export const createClaimStep = createStep(
     }
 
     const notificationData = {
+      ...marketContext,
       case_number: caseNumber,
       case_type: input.type,
       items: resolvedItems.map((item) => ({

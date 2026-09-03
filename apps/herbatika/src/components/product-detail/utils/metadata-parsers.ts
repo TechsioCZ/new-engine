@@ -55,7 +55,7 @@ const addBusinessDays = (start: Date, daysToAdd: number) => {
 
 export const normalizeCategoryName = (
   value?: string | null,
-  fallbackLabel = "Kategória"
+  fallbackLabel = ""
 ) => {
   if (!value) {
     return fallbackLabel
@@ -86,14 +86,18 @@ export const resolveProductImages = (product: Product | null): string[] => {
 
 export const resolveVariantLabel = (
   variant: HttpTypes.StoreProductVariant,
-  optionTitlesById: Map<string, string>
+  optionTitlesById: Map<string, string>,
+  translateOptionValue?: (value: string) => string
 ) => {
   const optionLabels = (variant.options ?? [])
     .map((option) => {
-      const optionValue = asString(option?.value)
-      if (!optionValue) {
+      const rawOptionValue = asString(option?.value)
+      if (!rawOptionValue) {
         return null
       }
+      const optionValue = translateOptionValue
+        ? translateOptionValue(rawOptionValue)
+        : rawOptionValue
 
       const optionTitle = option.option_id
         ? optionTitlesById.get(option.option_id)
@@ -120,6 +124,7 @@ export const resolveOfferState = (
   product: Product | null,
   selectedVariant: HttpTypes.StoreProductVariant | null,
   fallbackLabels: {
+    allowSourceLabels: boolean
     inStock: string
     outOfStock: string
   }
@@ -135,9 +140,13 @@ export const resolveOfferState = (
   const isInStock = variantInventory.isInStock
 
   const inStockLabel =
-    asString(source?.availability_in_stock) ?? fallbackLabels.inStock
+    (fallbackLabels.allowSourceLabels
+      ? asString(source?.availability_in_stock)
+      : null) ?? fallbackLabels.inStock
   const outOfStockLabel =
-    asString(source?.availability_out_of_stock) ?? fallbackLabels.outOfStock
+    (fallbackLabels.allowSourceLabels
+      ? asString(source?.availability_out_of_stock)
+      : null) ?? fallbackLabels.outOfStock
   const currentAmount =
     asNumber(source?.current_price) ?? asNumber(source?.price_vat)
 

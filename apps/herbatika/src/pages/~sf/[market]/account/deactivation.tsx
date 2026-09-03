@@ -1,4 +1,5 @@
 import type { GetServerSideProps } from "next"
+import { useTranslations } from "next-intl"
 import { AccountDeactivationConfirmation } from "@/components/account/account-deactivation-confirmation"
 import { exactOpaqueSegment } from "@/lib/routing/private-flows/opaque-values"
 import {
@@ -33,8 +34,13 @@ export const getServerSideProps = (async (context) => {
 }) satisfies GetServerSideProps<Props>
 
 export default function AccountDeactivationPage({ page }: Props) {
+  const t = useTranslations("auth")
   if (page.kind === "error") {
-    return <main data-status={page.status}>Confirmation unavailable.</main>
+    return (
+      <main data-status={page.status}>
+        {t("deactivation.page.confirmation_unavailable")}
+      </main>
+    )
   }
   return <AccountDeactivationConfirmation token={page.value.token} />
 }

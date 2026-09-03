@@ -3,11 +3,10 @@ import { z } from "@medusajs/framework/zod"
 import { PAYLOAD_MODULE } from "../../../../modules/payload"
 import type PayloadModuleService from "../../../../modules/payload/service"
 import { optionalStringParam } from "../../../../utils/query-params"
-import { StoreCmsLocaleSchema } from "../locales"
+import { resolveStoreCmsLocale, StoreCmsLocaleQuerySchema } from "../locales"
 
-/** Query schema for fetching CMS article categories with articles. */
 export const StoreCmsArticleCategoriesSchema = z.object({
-  locale: StoreCmsLocaleSchema,
+  locale: StoreCmsLocaleQuerySchema,
   categorySlug: optionalStringParam,
 })
 
@@ -23,7 +22,8 @@ export async function GET(
 ) {
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
-  const { categorySlug, locale } = req.validatedQuery
+  const { categorySlug } = req.validatedQuery
+  const locale = resolveStoreCmsLocale(req.locale ?? req.validatedQuery.locale)
 
   try {
     const articleCategories =

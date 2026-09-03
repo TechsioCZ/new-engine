@@ -15,6 +15,12 @@ import {
 export const asString = asStorefrontString
 export const asRecord = asStorefrontRecord
 
+export type AvailabilityFallbackLabels = Readonly<{
+  allowSourceLabels: boolean
+  inStock: string
+  outOfStock: string
+}>
+
 const resolveLineItemTopOffer = (
   item: HttpTypes.StoreCartLineItem,
   product?: HttpTypes.StoreProduct | null
@@ -64,6 +70,7 @@ export const resolveOriginalLineItemTotalAmount = (
 
 export const resolveAvailabilityText = (
   item: HttpTypes.StoreCartLineItem,
+  fallbackLabels: AvailabilityFallbackLabels,
   product?: HttpTypes.StoreProduct | null
 ) => {
   const topOffer = resolveLineItemTopOffer(item, product)
@@ -74,14 +81,19 @@ export const resolveAvailabilityText = (
 
   if (!isInStock) {
     return (
-      asStorefrontString(topOffer?.availability_out_of_stock) ??
-      "Momentálne nie je skladom"
+      (fallbackLabels.allowSourceLabels
+        ? asStorefrontString(topOffer?.availability_out_of_stock)
+        : null) ?? fallbackLabels.outOfStock
     )
   }
 
   const availabilityLabel =
-    asStorefrontString(topOffer?.availability_in_stock) ?? "Na sklade"
-  const deliveryLabel = asStorefrontString(topOffer?.delivery_label)
+    (fallbackLabels.allowSourceLabels
+      ? asStorefrontString(topOffer?.availability_in_stock)
+      : null) ?? fallbackLabels.inStock
+  const deliveryLabel = fallbackLabels.allowSourceLabels
+    ? asStorefrontString(topOffer?.delivery_label)
+    : null
 
   return deliveryLabel
     ? `${availabilityLabel}, ${deliveryLabel}`

@@ -1,4 +1,5 @@
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
+import type { GatewayPathAuthority } from "./_routes"
 
 const PATH_SEPARATOR_PATTERN = /[\\/]/
 const ENCODED_SEPARATOR_PATTERN = /%(?:2e|2f|5c)/i
@@ -7,6 +8,15 @@ const FIELD_SEGMENT_SEPARATOR_PATTERN = /[.[\]]+/
 const DEFAULT_MAX_LIST_LIMIT = 100
 const CATEGORY_MAX_LIST_LIMIT = 500
 const MAX_LIST_OFFSET = 10_000
+const CHECKOUT_RESOURCE_PATH_PATTERN =
+  /^\/store\/(?:payment-collections(?:\/[^/]+\/payment-sessions)?|shipping-options\/[^/]+\/calculate)$/
+const CHECKOUT_RESOURCE_QUERY_FIELDS = [
+  "cart_id",
+  "customer_id",
+  "payment_collection_id",
+  "provider_id",
+  "shipping_option_id",
+] as const
 
 const decodePathSegment = (segment: string): string | null => {
   let decoded = segment
@@ -129,6 +139,16 @@ export const queryHasValidMarketScope = (
   if (entries.some(([key]) => containsFieldSegment(key, "sales_channel_id"))) {
     return false
   }
+  if (
+    CHECKOUT_RESOURCE_PATH_PATTERN.test(gatewayPath) &&
+    entries.some(([key]) =>
+      CHECKOUT_RESOURCE_QUERY_FIELDS.some((field) =>
+        containsFieldSegment(key, field)
+      )
+    )
+  ) {
+    return false
+  }
 
   const limits = entries
     .filter(([key]) => isTopLevelField(key, "limit"))
@@ -201,13 +221,22 @@ export const bodyHasValidMarketScope = (
   )
 }
 
-const parseOrigin = (value: string | null): string | null => {
+export const pathHasValidMarketScope = (
+  authority: GatewayPathAuthority | null,
+  binding: MarketRuntimeBinding
+): boolean => authority?.kind !== "region" || authority.id === binding.regionId
+
+const parseWebOriginHost = (value: string | null): string | null => {
   if (!value) {
     return null
   }
 
   try {
-    return new URL(value).origin
+    const url = new URL(value)
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null
+    }
+    return url.host
   } catch {
     return null
   }
@@ -215,25 +244,20 @@ const parseOrigin = (value: string | null): string | null => {
 
 export const hasSameOriginCsrfEvidence = (
   request: Request,
-  binding: MarketRuntimeBinding
+  _binding: MarketRuntimeBinding
 ): boolean => {
+  // Compare the Origin/Referer host against the request Host header instead
+  // of a canonical-protocol origin: TLS terminates at the edge proxy, so the
+  // scheme the app sees never reliably matches what the browser sent.
   const host = request.headers.get("host")
   if (!host) {
     return false
   }
 
-  let expectedOrigin: string
-  try {
-    const canonicalProtocol = new URL(binding.canonicalOrigin).protocol
-    expectedOrigin = new URL(`${canonicalProtocol}//${host}`).origin
-  } catch {
-    return false
+  const originHost = parseWebOriginHost(request.headers.get("origin"))
+  if (originHost) {
+    return originHost === host
   }
 
-  const origin = parseOrigin(request.headers.get("origin"))
-  if (origin) {
-    return origin === expectedOrigin
-  }
-
-  return parseOrigin(request.headers.get("referer")) === expectedOrigin
+  return parseWebOriginHost(request.headers.get("referer")) === host
 }

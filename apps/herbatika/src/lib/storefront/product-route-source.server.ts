@@ -6,16 +6,20 @@ import {
 import { loadMedusaStorefrontMessages } from "@techsio/storefront-i18n/medusa/messages"
 import { getMarketRuntime, type MarketCode } from "@/lib/market/market-runtime"
 import { getConfiguredMarketRuntime } from "@/lib/market/market-runtime.server"
+import { applyOperatorContactAuthority } from "./operator-contact-authority.server"
 import {
   type ProductPageContextRequest,
   readProductPageContext,
 } from "./product-page-context"
 import {
+  type ProductAlternateSourceRequest,
   type ProductIdentitySourceRequest,
   type ProductRouteSourceMarketBinding,
   type ProductRouteSourceRequest,
+  readProductAlternateSource,
   readProductIdentitySource,
   readProductRouteSource,
+  readProductRouteSourceByHandle,
 } from "./product-route-source"
 import { resolveMedusaBackendUrl } from "./runtime-env"
 
@@ -57,11 +61,20 @@ export const readProductRouteSourceFromMedusa = (
         }
       )
     },
-    retrievePublicationSource: ({ binding, market, productId }) =>
-      getMarketSdk(binding).client.fetch(
-        `/store/url-registry/products/${encodeURIComponent(productId)}/source`,
+  })
+
+export const readProductRouteSourceByHandleFromMedusa = (input: {
+  market: MarketCode
+  publicSlug: string
+}) =>
+  readProductRouteSourceByHandle(input, {
+    resolveMarket: (market) =>
+      getMarketRuntime(getConfiguredMarketRuntime(), market),
+    retrieveProducts: ({ binding, query }) =>
+      getMarketSdk(binding).client.fetch<HttpTypes.StoreProductListResponse>(
+        "/store/products",
         {
-          query: { market },
+          query,
           signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
         }
       ),
@@ -81,9 +94,21 @@ export const readProductIdentityFromMedusa = (
           signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
         }
       ),
-    retrievePublicationSource: () =>
-      Promise.reject(
-        new Error("Publication proof is not used for identity reads")
+  })
+
+export const readProductAlternateSourceFromMedusa = (
+  input: ProductAlternateSourceRequest
+) =>
+  readProductAlternateSource(input, {
+    resolveMarket: (market) =>
+      getMarketRuntime(getConfiguredMarketRuntime(), market),
+    retrieveProduct: ({ binding, productId, query }) =>
+      getMarketSdk(binding).client.fetch<HttpTypes.StoreProductResponse>(
+        `/store/products/${encodeURIComponent(productId)}`,
+        {
+          query,
+          signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
+        }
       ),
   })
 
@@ -98,5 +123,5 @@ export const readProductPageContextFromMedusa = (
         locale,
         market,
         signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
-      }),
+      }).then((messages) => applyOperatorContactAuthority(market, messages)),
   })

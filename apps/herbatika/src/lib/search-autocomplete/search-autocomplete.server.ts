@@ -64,6 +64,16 @@ const requirePublicSlugMap = async (
   throw new Error(`Public URL projections unavailable for ${kind}${cause}`)
 }
 
+// Content search documents use "<type>_<sourceId>" ids; the URL registry
+// stores the bare source id.
+const contentSourceId = (type: "article" | "page", id: unknown) => {
+  const normalized = normalizeString(id)
+  const prefix = `${type}_`
+  return normalized.startsWith(prefix)
+    ? normalized.slice(prefix.length)
+    : normalized
+}
+
 const normalizeSearchAutocompleteQuery = (query: string) =>
   query.trim().slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
 
@@ -218,7 +228,7 @@ export const fetchSearchAutocomplete = async ({
       uniqueCandidateIds(
         contentHits
           .filter(({ type }) => normalizeString(type) === "article")
-          .map(({ id }) => id)
+          .map(({ id }) => contentSourceId("article", id))
       )
     ),
     requirePublicSlugMap(
@@ -227,7 +237,7 @@ export const fetchSearchAutocomplete = async ({
       uniqueCandidateIds(
         contentHits
           .filter(({ type }) => normalizeString(type) === "page")
-          .map(({ id }) => id)
+          .map(({ id }) => contentSourceId("page", id))
       )
     ),
   ])

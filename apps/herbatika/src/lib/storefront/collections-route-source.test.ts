@@ -209,7 +209,16 @@ describe("readCollectionRouteSource", () => {
   })
 
   it("forwards the normalized collection listing query without changing source identity", async () => {
-    const deps = dependencies()
+    const retrieveCatalog = vi
+      .fn()
+      .mockImplementation(({ queryState: input }) =>
+        Promise.resolve({
+          ...catalog,
+          page: input.page,
+          totalPages: 4,
+        })
+      )
+    const deps = dependencies({ retrieveCatalog })
     const filteredQuery: CatalogQueryState = {
       brand: ["brand-1"],
       form: ["capsule"],
@@ -231,6 +240,59 @@ describe("readCollectionRouteSource", () => {
       binding,
       collectionId: "pcol_1",
       queryState: { ...filteredQuery, limit: 12 },
+    })
+    expect(retrieveCatalog).toHaveBeenCalledTimes(2)
+  })
+
+  it("loads a valid higher page only after checking the collection bounds", async () => {
+    const retrieveCatalog = vi
+      .fn()
+      .mockImplementation(({ queryState: input }) =>
+        Promise.resolve({
+          ...catalog,
+          page: input.page,
+          totalPages: 4,
+        })
+      )
+    const deps = dependencies({ retrieveCatalog })
+
+    const result = await readCollectionRouteSource(
+      {
+        collectionId: "pcol_1",
+        market: "sk",
+        queryState: { ...queryState, page: 3 },
+      },
+      deps
+    )
+
+    expect(result.kind === "found" && result.value.catalog.page).toBe(3)
+    expect(
+      retrieveCatalog.mock.calls.map(([input]) => input.queryState.page)
+    ).toEqual([1, 3])
+  })
+
+  it("does not forward an out-of-range page to the catalog backend", async () => {
+    const retrieveCatalog = vi.fn().mockResolvedValue({
+      ...catalog,
+      totalPages: 4,
+    })
+    const deps = dependencies({ retrieveCatalog })
+
+    const result = await readCollectionRouteSource(
+      {
+        collectionId: "pcol_1",
+        market: "sk",
+        queryState: { ...queryState, page: Number.MAX_SAFE_INTEGER },
+      },
+      deps
+    )
+
+    expect(result.kind === "found" && result.value.catalog.page).toBe(1)
+    expect(retrieveCatalog).toHaveBeenCalledTimes(1)
+    expect(retrieveCatalog).toHaveBeenCalledWith({
+      binding,
+      collectionId: "pcol_1",
+      queryState: { ...queryState, limit: 12, page: 1 },
     })
   })
 

@@ -18,6 +18,7 @@ const ClaimCase = model
     email: model.text(),
     order_id: model.text().nullable(),
     order_display_id: model.text().nullable(),
+    sales_channel_id: model.text().nullable(),
     customer_id: model.text().nullable(),
     reason: model.text().nullable(),
     defect_description: model.text().nullable(),
@@ -42,6 +43,11 @@ const ClaimCase = model
       name: "IDX_claim_case_order_id",
       on: ["order_id"],
       where: "deleted_at IS NULL AND order_id IS NOT NULL",
+    },
+    {
+      name: "IDX_claim_case_sales_channel_id",
+      on: ["sales_channel_id"],
+      where: "deleted_at IS NULL AND sales_channel_id IS NOT NULL",
     },
     {
       name: "IDX_claim_case_email",

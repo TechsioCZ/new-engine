@@ -75,19 +75,14 @@ export const mapCmsHeroBannersToPublicTargets = (
       continue
     }
 
+    // A banner whose CTA target cannot be resolved still renders as a plain
+    // banner without a link; a broken CTA must not take down the homepage.
     if (buttonTarget.targetType === "static") {
       const href =
         projections.staticHrefsByRouteKey[buttonTarget.staticRouteKey]
-      if (!href) {
-        return {
-          causeCode: "MISSING_HERO_STATIC_PUBLIC_PROJECTION",
-          kind: "invalid-response",
-        }
-      }
-      projected.push({
-        ...display,
-        ctaTarget: { href, kind: "static" },
-      })
+      projected.push(
+        href ? { ...display, ctaTarget: { href, kind: "static" } } : display
+      )
       continue
     }
 
@@ -96,25 +91,21 @@ export const mapCmsHeroBannersToPublicTargets = (
       buttonTarget.sourceId
     )
     if (identity.sourceSystem !== buttonTarget.sourceSystem) {
-      return {
-        causeCode: "INVALID_HERO_ENTITY_SOURCE_IDENTITY",
-        kind: "invalid-response",
-      }
+      projected.push(display)
+      continue
     }
     const publicSlug =
       projections.entityPublicSlugsByKind[buttonTarget.sourceType]?.[
         buttonTarget.sourceId
       ]
-    if (!publicSlug) {
-      return {
-        causeCode: "MISSING_HERO_ENTITY_PUBLIC_PROJECTION",
-        kind: "invalid-response",
-      }
-    }
-    projected.push({
-      ...display,
-      ctaTarget: { kind: buttonTarget.sourceType, publicSlug },
-    })
+    projected.push(
+      publicSlug
+        ? {
+            ...display,
+            ctaTarget: { kind: buttonTarget.sourceType, publicSlug },
+          }
+        : display
+    )
   }
 
   return { kind: "found", value: projected }

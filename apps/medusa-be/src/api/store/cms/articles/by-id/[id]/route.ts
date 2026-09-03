@@ -2,10 +2,13 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { z } from "@medusajs/framework/zod"
 import { PAYLOAD_MODULE } from "../../../../../../modules/payload"
 import type PayloadModuleService from "../../../../../../modules/payload/service"
-import { StoreCmsLocaleSchema } from "../../../locales"
+import {
+  resolveStoreCmsLocale,
+  StoreCmsLocaleQuerySchema,
+} from "../../../locales"
 
 export const StoreCmsArticleByIdSchema = z.object({
-  locale: StoreCmsLocaleSchema,
+  locale: StoreCmsLocaleQuerySchema,
 })
 
 export type StoreCmsArticleByIdSchemaType = z.infer<
@@ -21,11 +24,9 @@ export async function GET(
     return res.status(400).json({ message: "Missing Payload document ID" })
   }
   const service = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
+  const locale = resolveStoreCmsLocale(req.locale ?? req.validatedQuery.locale)
   try {
-    const article = await service.getPublishedArticleById(
-      id,
-      req.validatedQuery.locale
-    )
+    const article = await service.getPublishedArticleById(id, locale)
     return article
       ? res.json({ article })
       : res.status(404).json({ message: "Article not found" })

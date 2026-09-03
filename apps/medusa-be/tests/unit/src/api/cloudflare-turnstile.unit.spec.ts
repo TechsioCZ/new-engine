@@ -1,7 +1,28 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { verifyCloudflareTurnstile } from "../../../../src/api/middlewares/cloudflare-turnstile"
+import {
+  getAllowedTurnstileHostnames,
+  isTurnstileHostnameAllowed,
+  verifyTurnstileToken,
+} from "../../../../src/api/middlewares/cloudflare-turnstile/helpers"
 
 const ORIGINAL_ENV = { ...process.env }
+
+const FOUR_MARKET_TURNSTILE_HOSTNAMES = [
+  "herbatica.sk",
+  "www.herbatica.sk",
+  "test-engine-herbatika-zane.web-revolution.cz",
+  "herbatica.cz",
+  "www.herbatica.cz",
+  "test-engine-herbatika-cz-zane.web-revolution.cz",
+  "herbatica.hu",
+  "www.herbatica.hu",
+  "test-engine-herbatika-hu-zane.web-revolution.cz",
+  "herbatica.ro",
+  "www.herbatica.ro",
+  "test-engine-herbatika-ro-zane.web-revolution.cz",
+] as const
 
 const createReq = ({
   body = {},
@@ -49,6 +70,29 @@ describe("verifyCloudflareTurnstile", () => {
   afterEach(() => {
     vi.restoreAllMocks()
     process.env = { ...ORIGINAL_ENV }
+  })
+
+  it("keeps the Turnstile allowlist contract in parity with every four-market canonical, www, and preview hostname", () => {
+    process.env.CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES =
+      FOUR_MARKET_TURNSTILE_HOSTNAMES.join(",")
+
+    const allowedHostnames = getAllowedTurnstileHostnames()
+
+    expect(allowedHostnames).toEqual(FOUR_MARKET_TURNSTILE_HOSTNAMES)
+    for (const hostname of FOUR_MARKET_TURNSTILE_HOSTNAMES) {
+      expect(
+        isTurnstileHostnameAllowed(
+          { hostname, success: true },
+          allowedHostnames
+        )
+      ).toBe(true)
+    }
+    expect(
+      isTurnstileHostnameAllowed(
+        { hostname: "attacker.example", success: true },
+        allowedHostnames
+      )
+    ).toBe(false)
   })
 
   it("skips verification when disabled but strips token fields before body validation", async () => {
@@ -232,6 +276,45 @@ describe("verifyCloudflareTurnstile", () => {
       res,
       next
     )
+
+    expect(next).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(503)
+    expect(res.json).toHaveBeenCalledWith({
+      code: "captcha_verification_failed",
+      message: "Captcha verification is temporarily unavailable",
+      type: "invalid_data",
+    })
+  })
+
+  it("maps a failed Cloudflare response to an unexpected-state error and a 503 response", async () => {
+    process.env.CLOUDFLARE_TURNSTILE_ENABLED = "true"
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        json: async () => ({}),
+        ok: false,
+        status: 502,
+      }))
+    )
+    const req = createReq({
+      body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" },
+    })
+
+    await expect(
+      verifyTurnstileToken(
+        "XXXX.DUMMY.TOKEN.XXXX",
+        req,
+        "1x0000000000000000000000000000000AA"
+      )
+    ).rejects.toMatchObject({
+      message: "Turnstile Siteverify request failed",
+      type: MedusaError.Types.UNEXPECTED_STATE,
+    })
+
+    const res = createRes()
+    const next = vi.fn()
+
+    await verifyCloudflareTurnstile()(req, res, next)
 
     expect(next).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(503)

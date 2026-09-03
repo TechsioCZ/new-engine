@@ -5,9 +5,10 @@ import {
   type CmsSourceReadResult,
   readCmsJson,
 } from "./cms-client"
-import { rewriteCmsHtmlMediaUrls } from "./cms-content"
+import { rewriteCmsHtmlMediaUrls, stripCmsHtml } from "./cms-content"
 import type { CmsPage } from "./cms-types"
 import type { HerbatikaLocale } from "./market-context"
+import { getRoDemoStaticPage } from "./ro-demo-static-pages"
 
 type CmsPageResponse = {
   page?: CmsPage | null
@@ -133,18 +134,47 @@ const readStaticPageBindings = (): Readonly<
   }
 }
 
+const requireRenderableStaticPage = (
+  result: CmsSourceReadResult<CmsPage>
+): CmsSourceReadResult<CmsPage> => {
+  if (result.kind === "found" && !stripCmsHtml(result.value.content).trim()) {
+    return {
+      causeCode: "EMPTY_STATIC_PAGE_CONTENT",
+      kind: "invalid-response",
+    }
+  }
+  return result
+}
+
 /** Read root-static content by its deployment-bound immutable Payload ID. */
-export const readCmsStaticPage = (
+export const readCmsStaticPage = async (
   pageKey: StaticRootPageKey,
   locale: HerbatikaLocale
 ): Promise<CmsSourceReadResult<CmsPage>> => {
   const id = readStaticPageBindings()?.[pageKey]
   if (!id) {
-    return Promise.resolve({
+    return {
       kind: "invalid-response" as const,
       causeCode: `MISSING_STATIC_PAGE_BINDING_${pageKey.toUpperCase()}`,
-    })
+    }
   }
 
-  return readCmsPageById(id, locale)
+  return requireRenderableStaticPage(await readCmsPageById(id, locale))
+}
+
+/**
+ * Prefer deployment-bound Payload content and fall back only to an explicitly
+ * marked Romanian demo page. Non-RO markets retain the strict CMS result.
+ */
+export const readCmsStaticPageWithDemoFallback = async (
+  pageKey: StaticRootPageKey,
+  locale: HerbatikaLocale
+): Promise<CmsSourceReadResult<CmsPage>> => {
+  const result = await readCmsStaticPage(pageKey, locale)
+  if (result.kind === "found") {
+    return result
+  }
+
+  const fallback = getRoDemoStaticPage(pageKey, locale)
+  return fallback ? { kind: "found", value: fallback } : result
 }

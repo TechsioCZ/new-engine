@@ -115,24 +115,17 @@ export const useCatalogProducts = (
       .filter((product) => product.handle)
       .map((product) => [product.handle, product])
   )
-  const products =
-    shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading
-      ? []
-      : catalogQuery.products.map((product) =>
-          mergeProductInventorySnapshot(
-            product,
-            product.handle
-              ? inventoryProductByHandle.get(product.handle)
-              : undefined
-          )
-        )
+  const products = catalogQuery.products.map((product) =>
+    mergeProductInventorySnapshot(
+      product,
+      product.handle ? inventoryProductByHandle.get(product.handle) : undefined
+    )
+  )
 
   return {
     ...catalogQuery,
     products,
-    isLoading:
-      catalogQuery.isLoading ||
-      (shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading),
+    isLoading: catalogQuery.isLoading,
     isFetching:
       catalogQuery.isFetching ||
       (shouldLoadInventorySnapshots && inventorySnapshotsQuery.isFetching),

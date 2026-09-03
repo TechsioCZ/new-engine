@@ -97,6 +97,22 @@ type InspectedServiceState = {
   details: BootstrapInspectServiceDetails | null
 }
 
+const DNS_HOSTNAME_LABEL_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i
+const MARKET_CODES = ["sk", "cz", "hu", "ro"] as const
+const MARKET_REQUIRED_ENV_PREFIXES = [
+  "MARKET_ACCEPTED_HOSTS",
+  "MARKET_PUBLISHABLE_KEY",
+  "MARKET_PUBLISHABLE_KEY_ID",
+  "MARKET_REGION",
+  "MARKET_SALES_CHANNEL",
+] as const
+
+type MarketCode = (typeof MARKET_CODES)[number]
+type MarketDeploymentConfig = {
+  enabledMarkets: MarketCode[]
+  acceptedHostnames: string[]
+}
+
 function requiredServiceSlug(
   serviceSlugs: Record<string, string>,
   serviceId: string
@@ -135,6 +151,10 @@ const sharedEnvCleanupKeys = [
   "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
   "URL_PRODUCT_RESOLVER_ENABLED",
   "URL_ARCHITECTURE_M00_ENABLED",
+  "HERBATIKA_ACCEPTED_HOSTS_SK",
+  "HERBATIKA_ACCEPTED_HOSTS_CZ",
+  "HERBATIKA_ACCEPTED_HOSTS_HU",
+  "HERBATIKA_ACCEPTED_HOSTS_RO",
   "MINIO_FILE_URL",
   "VALKEY_HOST",
   "MINIO_HOST",
@@ -440,6 +460,41 @@ function publicServiceDomain(input: {
   return `${input.projectSlug}-${input.serviceSlug}${input.publicUrlAffix}.${input.publicDomain}`
 }
 
+function buildHerbatikaHealthcheck(
+  publicDomain: string | null
+): NonNullable<PlannedBootstrapService["healthcheck"]> {
+  if (!publicDomain) {
+    return {
+      type: "COMMAND",
+      value: "sh -lc 'exit 1'",
+      timeout_seconds: 120,
+      interval_seconds: 30,
+    }
+  }
+
+  const labels = publicDomain.split(".")
+  const isValidHostname =
+    publicDomain.length <= 253 &&
+    labels.every(
+      (label) =>
+        label.length > 0 &&
+        label.length <= 63 &&
+        DNS_HOSTNAME_LABEL_PATTERN.test(label)
+    )
+  if (!isValidHostname) {
+    throw new Error(
+      `Derived Herbatika public service domain is not a valid DNS hostname: ${JSON.stringify(publicDomain)}.`
+    )
+  }
+
+  return {
+    type: "COMMAND",
+    value: `curl -fsS -H 'Host: ${publicDomain}' http://127.0.0.1:3000/api/healthz`,
+    timeout_seconds: 120,
+    interval_seconds: 30,
+  }
+}
+
 function appendCsvOrigins(value: string, origins: string[]): string {
   return Array.from(
     new Set([
@@ -450,6 +505,125 @@ function appendCsvOrigins(value: string, origins: string[]): string {
       ...origins,
     ])
   ).join(",")
+}
+
+function marketEnvironmentVariable(
+  prefix: (typeof MARKET_REQUIRED_ENV_PREFIXES)[number],
+  market: MarketCode
+): string {
+  return `DC_HERBATIKA_${prefix}_${market.toUpperCase()}`
+}
+
+function isDnsHostname(value: string): boolean {
+  return (
+    value.length <= 253 &&
+    value
+      .split(".")
+      .every(
+        (label) =>
+          label.length > 0 &&
+          label.length <= 63 &&
+          DNS_HOSTNAME_LABEL_PATTERN.test(label)
+      )
+  )
+}
+
+function resolveMarketDeploymentConfig(
+  environment: NodeJS.ProcessEnv = process.env
+): MarketDeploymentConfig {
+  const configuredMarkets = (
+    environment.DC_HERBATIKA_ALLOWED_MARKETS ?? MARKET_CODES.join(",")
+  )
+    .split(",")
+    .map((market) => market.trim().toLowerCase())
+    .filter(Boolean)
+  const unsupportedMarkets = configuredMarkets.filter(
+    (market) => !MARKET_CODES.includes(market as MarketCode)
+  )
+
+  if (configuredMarkets.length === 0 || unsupportedMarkets.length > 0) {
+    throw new Error(
+      `DC_HERBATIKA_ALLOWED_MARKETS must contain only ${MARKET_CODES.join(",")}; received ${JSON.stringify(
+        environment.DC_HERBATIKA_ALLOWED_MARKETS ?? ""
+      )}.`
+    )
+  }
+
+  const enabledMarkets = Array.from(new Set(configuredMarkets as MarketCode[]))
+  const acceptedHostnameOwners = new Map<string, MarketCode>()
+
+  for (const market of enabledMarkets) {
+    const environmentVariable = marketEnvironmentVariable(
+      "MARKET_ACCEPTED_HOSTS",
+      market
+    )
+    const hostnames = (environment[environmentVariable] ?? "")
+      .split(",")
+      .map((hostname) => hostname.trim().toLowerCase())
+      .filter(Boolean)
+
+    for (const hostname of hostnames) {
+      if (!isDnsHostname(hostname)) {
+        throw new Error(
+          `${environmentVariable} contains an invalid DNS hostname: ${JSON.stringify(hostname)}.`
+        )
+      }
+
+      const existingOwner = acceptedHostnameOwners.get(hostname)
+      if (existingOwner && existingOwner !== market) {
+        throw new Error(
+          `Accepted hostname ${hostname} is assigned to both ${existingOwner} and ${market}.`
+        )
+      }
+      acceptedHostnameOwners.set(hostname, market)
+    }
+  }
+
+  return {
+    enabledMarkets,
+    acceptedHostnames: Array.from(acceptedHostnameOwners.keys()),
+  }
+}
+
+const normalizeTurnstileEnabled = (value: string | undefined): "0" | "1" => {
+  const normalized = value?.trim().toLowerCase() ?? "0"
+
+  if (normalized === "1" || normalized === "true") {
+    return "1"
+  }
+  if (normalized === "" || normalized === "0" || normalized === "false") {
+    return "0"
+  }
+
+  throw new Error(
+    "DC_CLOUDFLARE_TURNSTILE_ENABLED must be one of 0, 1, false, or true."
+  )
+}
+
+export function resolveTurnstileDeploymentConfig(
+  environment: NodeJS.ProcessEnv = process.env
+) {
+  const marketConfig = resolveMarketDeploymentConfig(environment)
+  const enabled = normalizeTurnstileEnabled(
+    environment.DC_CLOUDFLARE_TURNSTILE_ENABLED
+  )
+  const frontendOverride =
+    environment.DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED
+
+  if (
+    frontendOverride !== undefined &&
+    normalizeTurnstileEnabled(frontendOverride) !== enabled
+  ) {
+    throw new Error(
+      "Turnstile enablement mismatch: DC_CLOUDFLARE_TURNSTILE_ENABLED is the single backend/frontend authority."
+    )
+  }
+
+  return {
+    allowedHostnames:
+      enabled === "1" ? marketConfig.acceptedHostnames.join(",") : "",
+    enabled,
+  }
 }
 
 function applyAdditionalPublicUrls(input: {
@@ -465,12 +639,40 @@ function applyAdditionalPublicUrls(input: {
       )
     }
 
+    if (service.urls.some((url) => url.domain === definition.domain)) {
+      continue
+    }
+
     service.urls.push({
       domain: definition.domain,
       base_path: definition.base_path,
       strip_prefix: definition.strip_prefix,
       associated_port: definition.associated_port,
     })
+  }
+}
+
+function applyMarketPublicUrls(input: {
+  plannedServices: Record<string, PlannedBootstrapService>
+  marketConfig: MarketDeploymentConfig
+}) {
+  const herbatika = input.plannedServices.herbatika
+  if (!herbatika) {
+    throw new Error("Missing Herbatika bootstrap service plan.")
+  }
+
+  const configuredDomains = new Set(herbatika.urls.map((url) => url.domain))
+  for (const hostname of input.marketConfig.acceptedHostnames) {
+    if (configuredDomains.has(hostname)) {
+      continue
+    }
+    herbatika.urls.push({
+      domain: hostname,
+      base_path: "/",
+      strip_prefix: true,
+      associated_port: 3000,
+    })
+    configuredDomains.add(hostname)
   }
 }
 
@@ -599,6 +801,12 @@ function buildZaneProjectServices(
     publicUrlAffix: context.publicUrlAffix,
     publicDomain: context.publicDomain,
   })
+  const herbatikaPublicDomain = publicServiceDomain({
+    projectSlug: context.projectSlug,
+    serviceSlug: herbatikaSlug,
+    publicUrlAffix: context.publicUrlAffix,
+    publicDomain: context.publicDomain,
+  })
   const configuredGoPayWebhookUrl =
     process.env.DC_GOPAY_WEBHOOK_URL?.trim() ?? ""
   const generatedGoPayWebhookUrl = medusaBePublicDomain
@@ -608,6 +816,7 @@ function buildZaneProjectServices(
     configuredGoPayWebhookUrl && !isLoopbackUrl(configuredGoPayWebhookUrl)
       ? configuredGoPayWebhookUrl
       : generatedGoPayWebhookUrl
+  const turnstileConfig = resolveTurnstileDeploymentConfig()
 
   const servicePublicOrigins = {
     medusaBe: servicePublicOriginSource(medusaBeSlug),
@@ -1004,15 +1213,11 @@ function buildZaneProjectServices(
         },
         {
           envVar: "CLOUDFLARE_TURNSTILE_ENABLED",
-          source: literalSource(
-            process.env.DC_CLOUDFLARE_TURNSTILE_ENABLED ?? "0"
-          ),
+          source: literalSource(turnstileConfig.enabled),
         },
         {
           envVar: "CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES",
-          source: literalSource(
-            process.env.DC_CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES ?? ""
-          ),
+          source: literalSource(turnstileConfig.allowedHostnames),
         },
         {
           envVar: "MEDUSA_DISABLE_ZBOZI_ACCESS_TOKEN_BOOTSTRAP",
@@ -1330,25 +1535,13 @@ function buildZaneProjectServices(
       volumes: [],
       urls: [
         {
-          domain:
-            publicServiceDomain({
-              projectSlug: context.projectSlug,
-              serviceSlug: herbatikaSlug,
-              publicUrlAffix: context.publicUrlAffix,
-              publicDomain: context.publicDomain,
-            }) ?? "",
+          domain: herbatikaPublicDomain ?? "",
           base_path: "/",
           strip_prefix: true,
           associated_port: 3000,
         },
       ].filter((url) => url.domain),
-      healthcheck: {
-        type: "PATH",
-        value: "/",
-        timeout_seconds: 120,
-        interval_seconds: 30,
-        associated_port: 3000,
-      },
+      healthcheck: buildHerbatikaHealthcheck(herbatikaPublicDomain),
       resourceLimits: {
         cpus: 0.75,
         memory: { unit: "MEGABYTES", value: 1536 },
@@ -1373,6 +1566,10 @@ function buildZaneProjectServices(
         "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
         "URL_PRODUCT_RESOLVER_ENABLED",
         "URL_ARCHITECTURE_M00_ENABLED",
+        "HERBATIKA_ACCEPTED_HOSTS_SK",
+        "HERBATIKA_ACCEPTED_HOSTS_CZ",
+        "HERBATIKA_ACCEPTED_HOSTS_HU",
+        "HERBATIKA_ACCEPTED_HOSTS_RO",
       ],
       env: [
         {
@@ -1414,11 +1611,7 @@ function buildZaneProjectServices(
         },
         {
           envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
-          source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED ??
-              process.env.DC_CLOUDFLARE_TURNSTILE_ENABLED ??
-              "0"
-          ),
+          source: literalSource(turnstileConfig.enabled),
         },
         {
           envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
@@ -1676,6 +1869,7 @@ function resolveOperatorUpstreamBaseUrl(input: {
 function buildContext(input: {
   planInput: BootstrapZaneProjectPlanCommandInput
   stackInputs: StackInputs
+  marketConfig: MarketDeploymentConfig
   settings: {
     root_domain?: string | null
     app_domain?: string | null
@@ -1721,6 +1915,9 @@ function buildContext(input: {
     input.stackInputs.bootstrap_zane_project.additional_public_urls
       .filter((definition) => definition.auth_cors)
       .map((definition) => `https://${definition.domain}`)
+  const marketOrigins = input.marketConfig.acceptedHostnames.map(
+    (hostname) => `https://${hostname}`
+  )
   const storeCors = preferExplicitOrMergeCsv({
     explicitValue: input.planInput.storeCorsOverride,
     envValue: process.env.DC_STORE_CORS,
@@ -1746,7 +1943,10 @@ function buildContext(input: {
     publicDomain,
     publicUrlAffix: input.planInput.publicUrlAffix,
     minioFileUrlOverride: input.planInput.minioFileUrlOverride?.trim() || null,
-    storeCors: appendCsvOrigins(storeCors, additionalStoreOrigins),
+    storeCors: appendCsvOrigins(storeCors, [
+      ...additionalStoreOrigins,
+      ...marketOrigins,
+    ]),
     adminCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.adminCorsOverride,
       envValue: process.env.DC_ADMIN_CORS,
@@ -1754,7 +1954,10 @@ function buildContext(input: {
         ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
-    authCors: appendCsvOrigins(authCors, additionalAuthOrigins),
+    authCors: appendCsvOrigins(authCors, [
+      ...additionalAuthOrigins,
+      ...marketOrigins,
+    ]),
     operatorUpstreamBaseUrl,
     operatorUpstreamConnectBaseUrl: connectBaseUrl ?? null,
     operatorUpstreamConnectHostHeader: connectHostHeader,
@@ -1798,6 +2001,7 @@ function buildValueIssueReasons(input: {
 
 function buildBlockingReasons(input: {
   context: ZaneProjectContext
+  marketConfig: MarketDeploymentConfig
   phase: BootstrapZaneProjectPlanCommandInput["phase"]
   projectExists: boolean
   environmentExists: boolean
@@ -1828,6 +2032,44 @@ function buildBlockingReasons(input: {
         `Service ${serviceId} already exists but is not a Git service and cannot be reconciled by this bootstrap flow.`
       )
     }
+  }
+
+  reasons.push(
+    ...buildValueIssueReasons({
+      checks: input.marketConfig.enabledMarkets.flatMap((market) =>
+        MARKET_REQUIRED_ENV_PREFIXES.map((prefix) => {
+          const environmentVariable = marketEnvironmentVariable(prefix, market)
+          return {
+            label: environmentVariable,
+            value: process.env[environmentVariable],
+          }
+        })
+      ),
+      placeholderMessage:
+        "is still set to a placeholder value and must be replaced before bootstrap.",
+      missingMessage: "could not be resolved for bootstrap.",
+    })
+  )
+
+  if (
+    normalizeTurnstileEnabled(process.env.DC_CLOUDFLARE_TURNSTILE_ENABLED) ===
+    "1"
+  ) {
+    reasons.push(
+      ...buildValueIssueReasons({
+        checks: [
+          {
+            label: "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+            value:
+              process.env
+                .DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY,
+          },
+        ],
+        placeholderMessage:
+          "is still set to a placeholder value and must be replaced before bootstrap.",
+        missingMessage: "could not be resolved for bootstrap.",
+      })
+    )
   }
 
   if (input.phase === "services") {
@@ -2165,6 +2407,7 @@ export async function executeBootstrapZaneProjectPlan(
   const inspectResponse = bootstrapZaneProjectInspectResponseSchema.parse(
     await readJsonFile(input.inspectJsonPath)
   )
+  const marketConfig = resolveMarketDeploymentConfig()
   const inspectedServiceSlugs = new Set(
     inspectResponse.services.map((service) => service.service_slug)
   )
@@ -2176,6 +2419,7 @@ export async function executeBootstrapZaneProjectPlan(
   const context = buildContext({
     planInput: input,
     stackInputs,
+    marketConfig,
     settings: inspectResponse.settings,
     repositoryUrl,
     branchName,
@@ -2185,6 +2429,7 @@ export async function executeBootstrapZaneProjectPlan(
   ) as Record<string, string>
   const plannedServices = buildZaneProjectServices(context, serviceSlugById)
   applyAdditionalPublicUrls({ plannedServices, stackInputs })
+  applyMarketPublicUrls({ plannedServices, marketConfig })
   applySharedEnvServiceTargets({ plannedServices, stackInputs })
   const inspectedServices = Object.fromEntries(
     bootstrapServices.map((service) => {
@@ -2203,6 +2448,7 @@ export async function executeBootstrapZaneProjectPlan(
   ) as Record<string, InspectedServiceState>
   const blockingReasons = buildBlockingReasons({
     context,
+    marketConfig,
     phase: input.phase,
     projectExists: inspectResponse.project_exists,
     environmentExists: inspectResponse.environment_exists,

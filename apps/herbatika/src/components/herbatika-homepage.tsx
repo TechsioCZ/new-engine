@@ -1,8 +1,8 @@
 "use client"
 import { BENEFITS } from "@/assets/benefits"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
-import { HERO_BANNERS } from "@/components/homepage/homepage.data"
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
+import { resolveHomepageHeroBanners } from "@/components/homepage/homepage.hero.data"
 import { HomepageBlogSection } from "@/components/homepage/sections/homepage-blog-section"
 import { HomepageHeroCarouselSection } from "@/components/homepage/sections/homepage-hero-carousel-section"
 import { HomepageProductCollectionSection } from "@/components/homepage/sections/homepage-product-collection-section"
@@ -11,6 +11,7 @@ import { HomepageReviewsSection } from "@/components/homepage/sections/homepage-
 import { useHomepageController } from "@/components/homepage/use-homepage-controller"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import type { HomepageReviewsData } from "@/components/reviews/reviews.types"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import type { BlogCardItemWithSourceId } from "./blog/blog-card-projection"
 import { BenefitsSection } from "./homepage/sections/benefits-section"
@@ -37,15 +38,18 @@ export function HerbatikaHomepage({
   homepageSectionCategorySourceIds,
   productPublicSlugsById,
 }: HerbatikaHomepageProps) {
+  const marketContext = useMarketContext()
+  const market = marketContext.code
   const controller = useHomepageController({
     categoryPublicSlugsById,
     homepageSectionCategorySourceIds,
     productPublicSlugsById,
   })
-  const banners = heroBanners?.length ? heroBanners : HERO_BANNERS
+  const banners = resolveHomepageHeroBanners(heroBanners, market)
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-homepage-gap p-homepage font-rubik 2xl:p-homepage-lg">
+      <h1 className="sr-only">{marketContext.metadata.description}</h1>
       <HomepageHeroCarouselSection banners={banners} />
       <PurposeCarousel categoryPublicSlugsById={categoryPublicSlugsById} />
       <BenefitsSection benefits={BENEFITS} />
@@ -60,7 +64,10 @@ export function HerbatikaHomepage({
         />
       ))}
 
-      <HomepageReviewsSection reviewsData={homepageReviewsData} />
+      <HomepageReviewsSection
+        market={market}
+        reviewsData={homepageReviewsData}
+      />
 
       {controller.trailingSections.map((section) => (
         <HomepageProductCollectionSection

@@ -36,7 +36,7 @@ export const SEARCH_PRODUCT_CARD_FIELDS = PRODUCT_CARD_FIELDS
 
 export const RELATED_PRODUCT_FIELDS = PRODUCT_CARD_FIELDS
 
-export const PRODUCT_DETAIL_FIELDS = `${PRODUCT_CARD_FIELDS},description,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,brand.id,brand.title,brand.handle,${PRODUCT_BRAND_GPSR_FIELDS.join(",")},options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,+variants.metadata,+variants.calculated_price.price_per_unit`
+export const PRODUCT_DETAIL_FIELDS = `${PRODUCT_CARD_FIELDS},description,subtitle,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,brand.id,brand.title,brand.handle,${PRODUCT_BRAND_GPSR_FIELDS.join(",")},options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,+variants.metadata,+variants.calculated_price.price_per_unit`
 
 export type StorefrontProductListInput = HttpTypes.StoreProductListParams & {
   handle?: string | string[]

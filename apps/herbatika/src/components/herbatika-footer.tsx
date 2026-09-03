@@ -1,9 +1,13 @@
 "use client"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 import { useTranslations } from "next-intl"
+import {
+  type FooterMarketAlternates,
+  resolveFooterMarketLinks,
+} from "@/components/herbatika-footer.market-links"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import { StorefrontLink } from "@/components/storefront-link"
@@ -13,11 +17,23 @@ import type {
   CmsFooterNavigation,
 } from "@/lib/storefront/cms-types"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import { buildPath, type PublicRouteTarget } from "@/lib/url/public-url"
+import {
+  type OperatorSocialLink,
+  useOperatorContact,
+} from "@/lib/storefront/operator-contact"
+import { parsePublicPath } from "@/lib/url/public-route-api"
+import { buildPath } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 import { HerbatikaLogo } from "./herbatika-logo"
 
-const formatMarketDomain = (domain: string) =>
-  `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
+// The runtime domain is whatever host serves the app (localhost, a staging
+// proxy, ...); the copyright line must always name the brand storefront.
+const BRAND_DOMAIN_BY_MARKET: Record<Market, string> = {
+  cz: "Herbatica.cz",
+  hu: "Herbatica.hu",
+  ro: "Herbatica.ro",
+  sk: "Herbatica.sk",
+}
 
 const FOOTER_COLUMN_TITLE_KEYS = {
   information: "footer.columns.information.title",
@@ -43,20 +59,6 @@ const FOOTER_ITEM_LABEL_KEYS = {
   private_label: "footer.columns.partners.private_label",
 } as const satisfies Record<CmsFooterItemSlot, string>
 
-const INTERNAL_FOOTER_TARGETS: Partial<
-  Record<CmsFooterItemSlot, PublicRouteTarget>
-> = {
-  about: { kind: "static", page: "about" },
-  blog: { kind: "article" },
-  brands: { kind: "brand" },
-  claims_returns: { kind: "static", page: "returns" },
-  cookies: { kind: "static", page: "cookies" },
-  faq: { kind: "static", page: "faq" },
-  privacy: { kind: "static", page: "privacy" },
-  shipping_payment: { kind: "static", page: "shipping" },
-  terms: { kind: "static", page: "terms" },
-}
-
 const validatedExternalHref = (href: string): string | null => {
   try {
     const url = new URL(href)
@@ -76,22 +78,50 @@ const validatedExternalHref = (href: string): string | null => {
 type CmsFooterNavigationItem =
   CmsFooterNavigation["columns"][number]["items"][number]
 
+const validatedInternalHref = (href: string, market: Market): string | null => {
+  let url: URL
+  try {
+    url = new URL(href, "https://storefront.internal")
+  } catch {
+    return null
+  }
+
+  if (url.origin !== "https://storefront.internal" || url.hash) {
+    return null
+  }
+
+  const parsed = parsePublicPath({
+    market,
+    pathname: url.pathname,
+    rawQuery: url.search.slice(1),
+  })
+  return parsed.kind === "found" ? parsed.canonicalization.destination : null
+}
+
 export const resolveFooterNavigationItem = (
-  item: CmsFooterNavigationItem
+  item: CmsFooterNavigationItem,
+  market: Market
 ):
   | Readonly<{ href: string; kind: "external"; newTab: boolean }>
-  | Readonly<{ kind: "internal"; target: PublicRouteTarget }>
+  | Readonly<{ href: string; kind: "internal" }>
   | null => {
   if (item.type === "external") {
     const href = validatedExternalHref(item.href)
     return href ? { href, kind: "external", newTab: item.newTab ?? true } : null
   }
 
-  const target = INTERNAL_FOOTER_TARGETS[item.slot]
-  return target ? { kind: "internal", target } : null
+  const href = validatedInternalHref(item.href, market)
+  return href ? { href, kind: "internal" } : null
 }
 
-const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
+type FooterSocialLink = Readonly<{
+  href: string
+  icon: IconType
+  label: string
+  markets?: readonly Market[]
+}>
+
+const SOCIAL_LINKS: readonly FooterSocialLink[] = [
   {
     href: "https://www.facebook.com/vasaherbatica",
     icon: "token-icon-fb",
@@ -111,29 +141,72 @@ const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
     href: "https://www.linkedin.com/company/herbaticask/",
     icon: "token-icon-linkedin",
     label: "LinkedIn",
+    markets: ["sk"],
   },
   {
     href: "https://www.tiktok.com/@herbatica.sk",
     icon: "token-icon-tiktok",
     label: "TikTok",
+    markets: ["sk"],
   },
 ]
 
-const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
-  { code: "SK", icon: "token-icon-sk", active: true },
-  { code: "CZ", icon: "token-icon-cz" },
-  { code: "HU", icon: "token-icon-hu" },
-  { code: "RO", icon: "token-icon-ro" },
-]
+const SOCIAL_ICON_BY_PLATFORM = {
+  facebook: "token-icon-fb",
+  instagram: "token-icon-instagram",
+  linkedin: "token-icon-linkedin",
+  tiktok: "token-icon-tiktok",
+  youtube: "token-icon-youtube",
+} as const satisfies Record<OperatorSocialLink["platform"], IconType>
+
+const SOCIAL_LABEL_BY_PLATFORM = {
+  facebook: "Facebook",
+  instagram: "Instagram",
+  linkedin: "LinkedIn",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+} as const satisfies Record<OperatorSocialLink["platform"], string>
+
+export const resolveFooterSocialLinks = (
+  market: Market,
+  authoritySource = market === "sk" ? "sk-existing" : "unavailable",
+  reviewedLinks: readonly OperatorSocialLink[] = []
+): readonly FooterSocialLink[] => {
+  if (authoritySource === "reviewed") {
+    return reviewedLinks.map(({ href, platform }) => ({
+      href,
+      icon: SOCIAL_ICON_BY_PLATFORM[platform],
+      label: SOCIAL_LABEL_BY_PLATFORM[platform],
+    }))
+  }
+  return authoritySource === "sk-existing" && market === "sk"
+    ? SOCIAL_LINKS.filter(
+        (link) => !link.markets || link.markets.includes(market)
+      )
+    : []
+}
+
 export function HerbatikaFooter({
+  marketAlternates = {},
   navigation,
   reviewTrustSources,
 }: {
+  marketAlternates?: FooterMarketAlternates
   navigation: CmsFooterNavigation
   reviewTrustSources: readonly ReviewTrustSource[]
 }) {
   const t = useTranslations("navigation")
+  const operatorContact = useOperatorContact()
   const marketContext = useMarketContext()
+  const marketLinks = resolveFooterMarketLinks(
+    marketContext.code,
+    marketAlternates
+  )
+  const socialLinks = resolveFooterSocialLinks(
+    marketContext.code,
+    operatorContact.authoritySource,
+    operatorContact.socialLinks
+  )
 
   return (
     <Footer direction="vertical">
@@ -145,34 +218,49 @@ export function HerbatikaFooter({
             {t("footer.tagline")}
           </Footer.Text>
 
-          <Footer.Link
-            className="mt-250 flex items-start gap-300 text-footer-text-fg"
-            href="tel:+421232112345"
-          >
-            <Icon
-              className="mt-50 text-fg-secondary"
-              icon="token-icon-phone-talk"
-              size="lg"
-            />
-            <span className="leading-normal">
-              <span className="block font-bold text-primary hover:underline">
-                +421 2/321 123 45
-              </span>
-              <span className="block text-sm">(Po-Pia: 9:00 - 16:00)</span>
-            </span>
-          </Footer.Link>
+          {operatorContact.available ? (
+            <>
+              <Footer.Link
+                className="mt-250 flex items-start gap-300 text-footer-text-fg"
+                href={operatorContact.phoneHref}
+              >
+                <Icon
+                  className="mt-50 text-fg-secondary"
+                  icon="token-icon-phone-talk"
+                  size="lg"
+                />
+                <span className="leading-normal">
+                  <span className="block font-bold text-primary hover:underline">
+                    {operatorContact.phoneDisplay}
+                  </span>
+                  <span className="block text-sm">{operatorContact.hours}</span>
+                </span>
+              </Footer.Link>
 
-          <Footer.Link
-            className="mt-500 inline-flex items-center gap-300 font-bold text-primary"
-            href="mailto:ahoj@herbatica.sk"
-          >
-            <Icon
-              className="text-fg-secondary"
-              icon="token-icon-email"
-              size="lg"
-            />
-            <span className="font-bold hover:underline">ahoj@herbatica.sk</span>
-          </Footer.Link>
+              <Footer.Link
+                className="mt-500 inline-flex items-center gap-300 font-bold text-primary"
+                href={operatorContact.emailHref}
+              >
+                <Icon
+                  className="text-fg-secondary"
+                  icon="token-icon-email"
+                  size="lg"
+                />
+                <span className="font-bold hover:underline">
+                  {operatorContact.emailDisplay}
+                </span>
+              </Footer.Link>
+            </>
+          ) : (
+            <Footer.Text className="mt-250 flex items-start gap-300 text-footer-text-fg leading-normal">
+              <Icon
+                className="mt-50 shrink-0 text-fg-secondary"
+                icon="token-icon-phone-talk"
+                size="lg"
+              />
+              {operatorContact.unavailable}
+            </Footer.Text>
+          )}
         </Footer.Section>
 
         {navigation.columns.map((column) => (
@@ -182,7 +270,10 @@ export function HerbatikaFooter({
             </Footer.Title>
             <Footer.List>
               {column.items.map((item) => {
-                const resolved = resolveFooterNavigationItem(item)
+                const resolved = resolveFooterNavigationItem(
+                  item,
+                  marketContext.code
+                )
                 if (!resolved) {
                   return null
                 }
@@ -202,10 +293,7 @@ export function HerbatikaFooter({
 
                 return (
                   <li key={item.slot}>
-                    <Footer.Link
-                      as={StorefrontLink}
-                      href={buildPath(resolved.target, marketContext.code)}
-                    >
+                    <Footer.Link as={StorefrontLink} href={resolved.href}>
                       {t(FOOTER_ITEM_LABEL_KEYS[item.slot])}
                     </Footer.Link>
                   </li>
@@ -219,19 +307,18 @@ export function HerbatikaFooter({
       <Footer.Divider className="mx-auto max-w-footer-max" />
       <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-700 lg:flex-row lg:items-center lg:gap-800">
         <div className="flex w-full flex-wrap items-center justify-center gap-300 md:w-auto md:justify-start">
-          {SOCIAL_LINKS.map((social) => (
-            <Button
+          {socialLinks.map((social) => (
+            <LinkButton
               aria-label={social.label}
               className="h-750 w-750 rounded-full bg-bg-disabled p-0 text-fg-secondary hover:text-primary"
+              href={social.href}
               icon={social.icon}
               iconSize="lg"
               key={social.label}
-              onClick={() =>
-                window.open(social.href, "_blank", "noopener,noreferrer")
-              }
+              rel="noopener noreferrer"
               size="current"
+              target="_blank"
               theme="unstyled"
-              type="button"
             />
           ))}
         </div>
@@ -251,7 +338,7 @@ export function HerbatikaFooter({
             brand: (chunks) => (
               <strong className="text-fg-primary">{chunks}</strong>
             ),
-            domain: formatMarketDomain(marketContext.domain),
+            domain: BRAND_DOMAIN_BY_MARKET[marketContext.code],
             year: new Date().getFullYear(),
           })}{" "}
           <Footer.Link
@@ -267,19 +354,20 @@ export function HerbatikaFooter({
         </Footer.Text>
 
         <div className="flex w-full flex-wrap items-center justify-center gap-150 md:w-auto md:justify-end">
-          {FOOTER_LOCALES.map((locale) => (
-            <Button
-              className={`${!locale.active && "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
-              icon={locale.icon}
+          {marketLinks.map((link) => (
+            <LinkButton
+              aria-current={link.active ? "page" : undefined}
+              className={`${link.active ? "" : "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
+              href={link.href}
+              icon={link.icon}
               iconSize="md"
-              key={locale.code}
+              key={link.market}
               size="sm"
-              theme={locale.active ? "light" : "borderless"}
-              type="button"
-              variant={locale.active ? "primary" : "primary"}
+              theme={link.active ? "light" : "borderless"}
+              variant="primary"
             >
-              {locale.code}
-            </Button>
+              {link.code}
+            </LinkButton>
           ))}
         </div>
       </Footer.Bottom>

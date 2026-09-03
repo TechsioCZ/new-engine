@@ -1,4 +1,5 @@
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
+import { ROUTES } from "@/lib/market/market-runtime-definitions"
 import { classifySeo } from "@/lib/url/public-seo"
 import { buildAbsoluteUrl } from "@/lib/url/public-url"
 import type { QueryRouteKind } from "@/lib/url/query-normalizer"
@@ -23,6 +24,7 @@ const SEO_ROUTE_KIND_BY_SITEMAP_KIND = {
   collection: "collection-detail",
   article: "advice-article",
   page: "information-detail",
+  campaign: "campaign-detail",
   static: "static-page",
 } as const satisfies Record<SitemapKind, QueryRouteKind>
 
@@ -42,18 +44,49 @@ const isCleanRouteSitemapEligible = (kind: SitemapKind): boolean =>
     values: {},
   }).sitemapEligible
 
-const listCoreEntries = (
-  binding: MarketRuntimeBinding
-): SitemapEntryLoadResult => ({
-  kind: "found",
-  value: CORE_ROUTES.filter(
-    ({ routeKind }) =>
-      classifySeo({ canonicalRawQuery: "", routeKind, values: {} })
-        .sitemapEligible
-  ).map(({ target }) => ({
-    location: buildAbsoluteUrl(target, binding.market).href,
-  })),
-})
+const listCoreEntries = async (
+  binding: MarketRuntimeBinding,
+  dependencies: SitemapDataDependencies
+): Promise<SitemapEntryLoadResult> => {
+  const markets = [
+    ...new Set([binding.market, ...(dependencies.listMarkets?.() ?? [])]),
+  ]
+  const homepageSourceResults = await Promise.all(
+    markets.map((market) => dependencies.validateHomepageSource(market))
+  )
+  const homepageMarkets = markets.filter(
+    (_market, index) => homepageSourceResults[index]?.kind === "found"
+  )
+
+  return {
+    kind: "found",
+    value: CORE_ROUTES.filter(
+      ({ routeKind }) =>
+        classifySeo({ canonicalRawQuery: "", routeKind, values: {} })
+          .sitemapEligible
+    ).flatMap(({ routeKind, target }) => {
+      const alternateMarkets =
+        routeKind === "homepage" ? homepageMarkets : markets
+      if (
+        routeKind === "homepage" &&
+        !homepageMarkets.includes(binding.market)
+      ) {
+        return []
+      }
+      return [
+        {
+          alternates: Object.fromEntries(
+            alternateMarkets.map((market) => [
+              ROUTES[market].locale,
+              buildAbsoluteUrl(target, market).href,
+            ])
+          ),
+          location: buildAbsoluteUrl(target, binding.market).href,
+        },
+      ]
+    }),
+  }
+}
 
 const validateSitemapEntryCount = (
   result: SourceReadResult<number>
@@ -84,7 +117,7 @@ export const listSitemapEntries = (
     return Promise.resolve({ kind: "found", value: [] })
   }
   if (kind === "core") {
-    return Promise.resolve(listCoreEntries(binding))
+    return listCoreEntries(binding, dependencies)
   }
   return kind === "static"
     ? listStaticSitemapEntries(binding, dependencies)
@@ -97,7 +130,7 @@ export const countSitemapEntries = async (
   dependencies: SitemapDataDependencies
 ): Promise<SourceReadResult<number>> => {
   if (kind === "core") {
-    const result = listCoreEntries(binding)
+    const result = await listCoreEntries(binding, dependencies)
     return validateSitemapEntryCount(
       result.kind === "found"
         ? { kind: "found", value: result.value.length }

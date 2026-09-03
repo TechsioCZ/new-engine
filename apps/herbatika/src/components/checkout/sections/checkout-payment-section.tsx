@@ -5,6 +5,7 @@ import {
   resolvePaymentDisplayTextKeys,
   resolvePaymentIcon,
 } from "@/components/checkout/checkout-display.utils"
+import type { ShippingOption } from "@/components/checkout/checkout-payment-compatibility"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
@@ -23,6 +24,7 @@ type CheckoutPaymentSectionProps = {
   paymentProviders: PaymentProvider[]
   selectedPaymentProviderId?: string | null
   selectionMessage?: string | null
+  shippingOption?: ShippingOption | null
 }
 
 const resolveProviderId = (provider: PaymentProvider) => {
@@ -55,6 +57,7 @@ const createPaymentProviderOption = ({
   isBusy,
   isInitiatingPayment,
   provider,
+  shippingOption,
   translate,
 }: {
   canInitiatePayment: boolean
@@ -62,10 +65,14 @@ const createPaymentProviderOption = ({
   isBusy: boolean
   isInitiatingPayment: boolean
   provider: PaymentProvider
+  shippingOption?: ShippingOption | null
   translate: CheckoutTranslator
 }) => {
   const providerId = resolveProviderId(provider)
-  const displayTextKeys = resolvePaymentDisplayTextKeys(providerId)
+  const displayTextKeys = resolvePaymentDisplayTextKeys(
+    providerId,
+    shippingOption
+  )
   const providerLabel =
     translatePaymentText({
       key: displayTextKeys.labelKey,
@@ -104,6 +111,7 @@ export function CheckoutPaymentSection({
   paymentProviders,
   selectedPaymentProviderId,
   selectionMessage,
+  shippingOption,
 }: CheckoutPaymentSectionProps) {
   const tCheckout = useTranslations("checkout")
 
@@ -128,6 +136,7 @@ export function CheckoutPaymentSection({
                 isBusy,
                 isInitiatingPayment,
                 provider,
+                shippingOption,
                 translate: tCheckout,
               })
             )}

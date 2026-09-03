@@ -17,7 +17,7 @@ sources:
   - "libs/ui/src/molecules/steps.tsx"
   - "libs/ui/src/tokens/components/molecules/_steps.css"
   - "libs/ui/stories/molecules/steps.stories.tsx"
-  - "libs/ui/src/molecules/figma/steps.figma.tsx"
+  - "libs/ui/src/molecules/steps.figma.ts"
   - "https://zagjs.com/components/react/steps"
 ---
 

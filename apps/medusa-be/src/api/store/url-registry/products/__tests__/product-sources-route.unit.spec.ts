@@ -2,11 +2,16 @@ import type {
   MedusaResponse,
   MedusaStoreRequest,
 } from "@medusajs/framework/http"
-import { Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  Modules,
+  ProductStatus,
+} from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import { POST } from "../sources/route"
 
 const product = {
+  description: "",
   id: "prod_1",
   metadata: {
     url_registry_publication: {
@@ -21,11 +26,12 @@ const product = {
     },
   },
   sales_channels: [{ id: "sc_sk" }],
+  subtitle: "",
   updated_at: "2026-08-19T00:00:00.000Z",
 }
 
 const makeRequest = (body: unknown) => {
-  const listProducts = vi.fn(async () => [product])
+  const graph = vi.fn(async () => ({ data: [product] }))
   const listTranslations = vi.fn(async () => [
     {
       deleted_at: null,
@@ -37,16 +43,19 @@ const makeRequest = (body: unknown) => {
     },
   ])
   const resolve = vi.fn((key: string) => {
-    if (key === Modules.PRODUCT) {
-      return { listProducts }
+    if (key === ContainerRegistrationKeys.QUERY) {
+      return { graph }
     }
     if (key === Modules.TRANSLATION) {
       return { listTranslations }
     }
+    if (key === Modules.PRODUCT) {
+      return { listProducts: vi.fn(async () => [product]) }
+    }
     throw new Error(`Unexpected dependency: ${key}`)
   })
   return {
-    listProducts,
+    graph,
     listTranslations,
     request: {
       body,
@@ -68,7 +77,7 @@ const makeResponse = () => {
 
 describe("product sitemap source batch route", () => {
   it("returns a strict ordered source proof payload", async () => {
-    const { listProducts, listTranslations, request } = makeRequest({
+    const { graph, listTranslations, request } = makeRequest({
       candidates: [{ entityId: "prod_1", publicSlug: "vitamin-c" }],
       market: "sk",
       schemaVersion: 1,
@@ -95,7 +104,13 @@ describe("product sitemap source batch route", () => {
         },
       ],
     })
-    expect(listProducts).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledWith({
+      entity: "product",
+      fields: ["id", "metadata", "updated_at", "sales_channels.id"],
+      filters: { id: ["prod_1"], status: ProductStatus.PUBLISHED },
+      pagination: { take: 2 },
+    })
     expect(listTranslations).toHaveBeenCalledTimes(1)
   })
 

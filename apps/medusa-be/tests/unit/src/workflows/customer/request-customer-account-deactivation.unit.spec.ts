@@ -2,9 +2,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const workflowState = vi.hoisted(() => {
   const notification = { current: {} as unknown }
+  const prepared = {
+    country_code: "sk",
+    confirmation_url: "https://herbatica.sk/ucet/zrusenie-uctu?token=test",
+    customer_id: "cus_1",
+    customer_name: "Customer",
+    email: "customer@example.test",
+    locale: "sk-SK",
+    market_code: "sk",
+    sales_channel_id: "sc_sk",
+    storefront_base_url: "https://herbatica.sk",
+    storefront_domain: "herbatica.sk",
+  }
 
   return {
     notification,
+    prepareCustomerAccountDeactivationRequestStep: vi.fn(() => prepared),
     sendNotificationStep: vi.fn(() => notification.current),
   }
 })
@@ -34,24 +47,15 @@ vi.mock("../../../../../src/workflows/steps/send-notification", () => ({
 vi.mock(
   "../../../../../src/workflows/customer/steps/prepare-customer-account-deactivation-request",
   () => ({
-    prepareCustomerAccountDeactivationRequestStep: vi.fn(() => ({
-      country_code: "sk",
-      confirmation_url: "https://herbatica.sk/ucet/zrusenie-uctu?token=test",
-      customer_id: "cus_1",
-      customer_name: "Customer",
-      email: "customer@example.test",
-      locale: "sk-SK",
-      market_code: "sk",
-      sales_channel_id: "sc_sk",
-      storefront_base_url: "https://herbatica.sk",
-      storefront_domain: "herbatica.sk",
-    })),
+    prepareCustomerAccountDeactivationRequestStep:
+      workflowState.prepareCustomerAccountDeactivationRequestStep,
   })
 )
 
 describe("requestCustomerAccountDeactivationWorkflow", () => {
   beforeEach(() => {
     workflowState.notification.current = undefined
+    workflowState.prepareCustomerAccountDeactivationRequestStep.mockClear()
     workflowState.sendNotificationStep.mockClear()
   })
 
@@ -64,9 +68,15 @@ describe("requestCustomerAccountDeactivationWorkflow", () => {
     ]
 
     const { result } = await requestCustomerAccountDeactivationWorkflow({}).run(
-      { input: { customer_id: "cus_1" } }
+      { input: { customer_id: "cus_1", sales_channel_id: "sc_sk" } }
     )
 
+    expect(
+      workflowState.prepareCustomerAccountDeactivationRequestStep
+    ).toHaveBeenCalledWith({
+      customer_id: "cus_1",
+      sales_channel_id: "sc_sk",
+    })
     expect(result).toEqual({
       customer_id: "cus_1",
       email: "customer@example.test",
@@ -105,7 +115,7 @@ describe("requestCustomerAccountDeactivationWorkflow", () => {
     ]
 
     const { result } = await requestCustomerAccountDeactivationWorkflow({}).run(
-      { input: { customer_id: "cus_1" } }
+      { input: { customer_id: "cus_1", sales_channel_id: "sc_sk" } }
     )
 
     expect(result).toEqual({

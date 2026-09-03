@@ -9,6 +9,112 @@ import {
 } from "./behavior-helpers"
 
 export const runStaticBehavior = (createHarness: HarnessFactory) => {
+  it("resolves exact static paths, safe prefixes, and historical aliases", async () => {
+    const harness = await createHarness()
+    try {
+      const parent = await createStatic(harness, "resolve-parent")
+      const child = await createStatic(
+        harness,
+        "resolve-child",
+        parent.identity.staticRouteKey
+      )
+
+      await expect(
+        harness.registry.resolveStaticPath({
+          market: "sk",
+          pathSegments: ["resolve-parent", "resolve-child"],
+        })
+      ).resolves.toMatchObject({
+        kind: "found",
+        value: {
+          canonicalPathSegments: ["resolve-parent", "resolve-child"],
+          disposition: "current",
+          route: { id: child.result.snapshot.route.id },
+        },
+      })
+
+      await harness.registry.changeStaticPath(
+        command(`${harness.namespace}:resolve-parent-path`, {
+          commandType: "change-static-path",
+          expectedVersion: 1,
+          path: {
+            matchMode: "exact",
+            parentRouteKey: null,
+            segment: "renamed-parent",
+          },
+          source: staticSource(
+            parent.identity,
+            `${harness.namespace}:resolve-parent-path`
+          ),
+          target: {
+            identity: parent.identity,
+            routeId: parent.result.snapshot.route.id,
+          },
+        })
+      )
+
+      await expect(
+        harness.registry.resolveStaticPath({
+          market: "sk",
+          pathSegments: ["resolve-parent", "resolve-child"],
+        })
+      ).resolves.toMatchObject({
+        kind: "found",
+        value: {
+          canonicalPathSegments: ["renamed-parent", "resolve-child"],
+          disposition: "alias",
+          route: { id: child.result.snapshot.route.id },
+        },
+      })
+      await expect(
+        harness.registry.resolveStaticPath({
+          market: "sk",
+          pathSegments: ["renamed-parent", "resolve-child", "extra"],
+        })
+      ).resolves.toEqual({ kind: "missing" })
+      await expect(
+        harness.registry.resolveStaticPath({
+          market: "cz",
+          pathSegments: ["renamed-parent", "resolve-child"],
+        })
+      ).resolves.toEqual({ kind: "missing" })
+
+      const prefixIdentity = staticIdentity(
+        `${harness.namespace}-resolve-prefix`
+      )
+      await harness.registry.createStaticRoute(
+        command(`${harness.namespace}:resolve-prefix`, {
+          ...createStaticRequest({
+            eventId: `${harness.namespace}:resolve-prefix`,
+            identity: prefixIdentity,
+            segment: "resolve-prefix",
+          }),
+          path: {
+            matchMode: "prefix",
+            parentRouteKey: null,
+            segment: "resolve-prefix",
+          },
+        })
+      )
+      await expect(
+        harness.registry.resolveStaticPath({
+          market: "sk",
+          pathSegments: ["RESOLVE-PREFIX", "Opaque-AbC"],
+        })
+      ).resolves.toMatchObject({
+        kind: "found",
+        value: {
+          canonicalPathSegments: ["resolve-prefix", "Opaque-AbC"],
+          disposition: "current",
+          remainderSegments: ["Opaque-AbC"],
+          route: { staticRouteKey: prefixIdentity.staticRouteKey },
+        },
+      })
+    } finally {
+      await harness.cleanup()
+    }
+  })
+
   it("keeps static path history immutable and separate from entity slugs", async () => {
     const harness = await createHarness()
     try {

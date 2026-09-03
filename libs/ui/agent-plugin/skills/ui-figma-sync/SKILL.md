@@ -1,7 +1,7 @@
 ---
 name: ui-figma-sync
 description: >
-  Keep @techsio/ui-kit and Figma in sync: Code Connect (*.figma.tsx) mappings, Figma
+  Keep @techsio/ui-kit and Figma in sync: Code Connect (*.figma.ts) mappings, Figma
   variable naming/aliasing, and the token export pipeline. Use after a component's public
   API or visuals changed. Invoke explicitly with $ui-figma-sync.
 metadata:
@@ -17,7 +17,7 @@ the bundled `figma-sync-handoff` skill + the "Figma Sync Rules" section of
 
 ## Code Connect
 
-- Mapping file per component: `libs/ui/src/<level>/<name>.figma.tsx`
+- Mapping file per component: `libs/ui/src/<level>/<name>.figma.ts`
   (config: `libs/ui/figma.config.json`, alias `@libs/ui/* → src/*`).
 - Validate: `pnpm --dir libs/ui figma:connect:parse`
 - Publish (needs Figma auth; only when explicitly asked):
@@ -36,7 +36,7 @@ the bundled `figma-sync-handoff` skill + the "Figma Sync Rules" section of
 
 ## Checklist when a component changed
 
-1. Props added/renamed → update `<name>.figma.tsx` and re-parse.
+1. Props added/renamed → update `<name>.figma.ts` and re-parse.
 2. New tokens → mirror as Figma variables with correct aliasing + scopes.
 3. Visual change → flag for a fresh Figma screenshot/spec check (figma MCP:
    `get_design_context` / `get_screenshot`).

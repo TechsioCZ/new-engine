@@ -11,7 +11,6 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { MarketProvider } from "@/lib/storefront/market-context-provider"
 import { useRegionBootstrap } from "@/lib/storefront/regions"
-import { AUTH_SESSION_LOGOUT_STORAGE_KEY } from "@/lib/storefront/sdk"
 
 type RegionBootstrapProviderProps = PropsWithChildren<{
   initialRegion?: RegionInfo | null
@@ -27,7 +26,7 @@ function RegionBootstrapProvider({
 }
 
 type ProvidersProps = PropsWithChildren<{
-  initialMarketContext?: HerbatikaMarketContext
+  initialMarketContext: HerbatikaMarketContext
   initialRegion?: RegionInfo | null
   router?: "app" | "pages"
 }>
@@ -49,21 +48,6 @@ function useDisableNextDevIndicator() {
   }, [])
 }
 
-function useAuthSessionLogoutSync() {
-  useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== AUTH_SESSION_LOGOUT_STORAGE_KEY) {
-        return
-      }
-
-      window.location.replace("/")
-    }
-
-    window.addEventListener("storage", handleStorage)
-    return () => window.removeEventListener("storage", handleStorage)
-  }, [])
-}
-
 export function Providers({
   children,
   initialMarketContext,
@@ -71,7 +55,6 @@ export function Providers({
   router = "app",
 }: ProvidersProps) {
   useDisableNextDevIndicator()
-  useAuthSessionLogoutSync()
   const RouterNuqsAdapter =
     router === "pages" ? PagesNuqsAdapter : AppNuqsAdapter
 

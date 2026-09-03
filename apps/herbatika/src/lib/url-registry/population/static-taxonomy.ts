@@ -17,7 +17,6 @@ import type {
   Market,
   ReviewChildKey,
   StaticRootPageKey,
-  TypePrefixKey,
 } from "@/lib/url/types"
 import type { StaticPathMatchMode, UrlIndexPolicy } from "../model"
 
@@ -31,7 +30,6 @@ export type PopulationStaticRoute = Readonly<{
   segment: string
 }>
 
-const OMITTED_TYPE_PREFIXES = new Set<TypePrefixKey>(["campaigns"])
 const PREFIX_FLOW_ROOTS = new Set<FlowRootKey>([
   "account",
   "checkout",
@@ -46,6 +44,28 @@ const PREFIX_CHECKOUT_CHILDREN = new Set<CheckoutChildKey>([
   "checkoutResult",
 ])
 const PREFIX_REVIEW_CHILDREN = new Set<ReviewChildKey>(["product"])
+// Owner decision (demo delivery): the manual G1 editorial/legal publication
+// gate is retired for root-static pages. Static content is operator-editable
+// through Payload CMS, so every root static ships noindex and renderable and
+// no route requires a G1 approval artifact. "about" and "faq" were the last
+// two indexable root routes; they are listed here deliberately, not by
+// oversight. Re-introducing indexability for any root static is a deliberate
+// future decision that must restore the corresponding approval artifacts.
+const DEMO_NOINDEX_STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
+  "about",
+  "affiliate",
+  "contact",
+  "cookies",
+  "dropshipping",
+  "faq",
+  "giftVoucher",
+  "privacy",
+  "privateLabel",
+  "returns",
+  "shipping",
+  "terms",
+  "wholesale",
+])
 
 const staticRoute = (
   market: Market,
@@ -68,12 +88,11 @@ const staticRoute = (
 
 const typeRoutes = (market: Market): PopulationStaticRoute[] => {
   const registry = ROUTE_SEGMENT_REGISTRY[market]
-  return TYPE_PREFIX_KEYS.filter((key) => !OMITTED_TYPE_PREFIXES.has(key)).map(
-    (key) =>
-      staticRoute(market, `type:${key}`, registry.typePrefixes[key], {
-        indexPolicy: "indexable",
-        matchMode: "prefix",
-      })
+  return TYPE_PREFIX_KEYS.map((key) =>
+    staticRoute(market, `type:${key}`, registry.typePrefixes[key], {
+      indexPolicy: "indexable",
+      matchMode: "prefix",
+    })
   )
 }
 
@@ -88,11 +107,20 @@ const flowRoutes = (market: Market): PopulationStaticRoute[] => {
 
 const rootRoutes = (market: Market): PopulationStaticRoute[] => {
   const registry = ROUTE_SEGMENT_REGISTRY[market]
-  return STATIC_ROOT_PAGE_KEYS.map((key) =>
-    staticRoute(market, `root:${key}`, registry.staticRootPages[key], {
-      indexPolicy: "indexable",
-    })
-  )
+  const staticRootPages: Readonly<Partial<Record<StaticRootPageKey, string>>> =
+    registry.staticRootPages
+  return STATIC_ROOT_PAGE_KEYS.flatMap((key) => {
+    const segment = staticRootPages[key]
+    return segment
+      ? [
+          staticRoute(market, `root:${key}`, segment, {
+            indexPolicy: DEMO_NOINDEX_STATIC_ROOT_PAGE_KEYS.has(key)
+              ? "noindex"
+              : "indexable",
+          }),
+        ]
+      : []
+  })
 }
 
 const checkoutRoutes = (market: Market): PopulationStaticRoute[] => {

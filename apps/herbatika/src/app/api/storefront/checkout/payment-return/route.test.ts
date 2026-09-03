@@ -61,10 +61,12 @@ describe("payment return bridges", () => {
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({
+      canonicalOrigin: "https://herbatica.cz",
       cartId: "cart_Case",
       expiresAt: "2030-01-01T00:00:00.000Z",
       provider: "gopay",
       providerId: "pp_gopay",
+      market: "cz",
       state: "OpaqueState",
     })
     const [, init] = upstreamFetch.mock.calls[0] as [string, RequestInit]

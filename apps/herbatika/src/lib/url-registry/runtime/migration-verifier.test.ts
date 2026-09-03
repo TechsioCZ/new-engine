@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from "vitest"
 import type { SqlClient, SqlPool, SqlQueryResult } from "../postgres"
 import type { UrlRegistryMigrationManifest } from "./manifest"
 import {
+  URL_REGISTRY_MIGRATION_MANIFEST_V6,
+  URL_REGISTRY_MIGRATION_MANIFEST_V7,
+} from "./manifest"
+import {
   assertAppliedMigrationManifest,
   verifyUrlRegistryMigrations,
 } from "./migration-verifier"
@@ -46,19 +50,44 @@ const fakePool = (ledgerRows: readonly unknown[]) => {
 }
 
 describe("assertAppliedMigrationManifest", () => {
-  it("accepts only the exact ordered migration list", () => {
+  it("accepts the exact ordered migration list", () => {
     expect(() => assertAppliedMigrationManifest(rows, manifest)).not.toThrow()
+  })
+
+  it("accepts a checksum-exact known prefix for a compatibility build", () => {
+    const v7Rows = URL_REGISTRY_MIGRATION_MANIFEST_V7.map(
+      ({ checksum, name }) => ({ checksum, name })
+    )
+
+    expect(() =>
+      assertAppliedMigrationManifest(v7Rows, URL_REGISTRY_MIGRATION_MANIFEST_V6)
+    ).not.toThrow()
+  })
+
+  it("rejects a candidate whose database is still on the older manifest", () => {
+    const v6Rows = URL_REGISTRY_MIGRATION_MANIFEST_V6.map(
+      ({ checksum, name }) => ({ checksum, name })
+    )
+
+    expect(() =>
+      assertAppliedMigrationManifest(v6Rows, URL_REGISTRY_MIGRATION_MANIFEST_V7)
+    ).toThrow("behind the manifest")
+  })
+
+  it("accepts a contiguous future suffix without trusting it as known schema", () => {
+    expect(() =>
+      assertAppliedMigrationManifest(
+        [
+          ...rows,
+          { checksum: `sha256:${"c".repeat(64)}`, name: "0003_extra.sql" },
+        ],
+        manifest
+      )
+    ).not.toThrow()
   })
 
   it.each([
     ["missing", rows.slice(0, 1)],
-    [
-      "extra",
-      [
-        ...rows,
-        { checksum: `sha256:${"c".repeat(64)}`, name: "0003_extra.sql" },
-      ],
-    ],
     ["out of order", [...rows].reverse()],
     ["duplicate", [rows[0], rows[0]]],
     [

@@ -29,6 +29,31 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
     namespace: "content",
   },
   {
+    description: "Zástupný alternativní text obrázku promo sekce.",
+    key: "content.home.promo.image_alt",
+    namespace: "content",
+  },
+  {
+    description: "Zástupný nadpis promo sekce.",
+    key: "content.home.promo.heading",
+    namespace: "content",
+  },
+  {
+    description: "První zástupný odstavec promo sekce.",
+    key: "content.home.promo.paragraph_1",
+    namespace: "content",
+  },
+  {
+    description: "Druhý zástupný odstavec promo sekce.",
+    key: "content.home.promo.paragraph_2",
+    namespace: "content",
+  },
+  {
+    description: "Třetí zástupný odstavec promo sekce.",
+    key: "content.home.promo.paragraph_3",
+    namespace: "content",
+  },
+  {
     description: "Nadpis sekce nejprodávanějších produktů na domovské stránce.",
     key: "content.home.product_sections.bestsellers",
     namespace: "content",
@@ -92,6 +117,11 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
   {
     description: "Úvodní popis stránky se seznamem blogových článků.",
     key: "content.blog.listing.description",
+    namespace: "content",
+  },
+  {
+    description: "Label filtru všech kategorií v přehledu blogu.",
+    key: "content.blog.listing.filter_all",
     namespace: "content",
   },
   {

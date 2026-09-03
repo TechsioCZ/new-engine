@@ -21,6 +21,21 @@ if (!(baseUrl.protocol === "http:" || baseUrl.protocol === "https:")) {
 
 const appRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)))
 const NO_STORE = /no-store/
+const HOST_MATRIX = [
+  ["herbatica.sk", "sk"],
+  ["www.herbatica.sk", "sk"],
+  ["test-engine-herbatika-sk-zane.web-revolution.cz", "sk"],
+  ["test-engine-herbatika-zane.web-revolution.cz", "sk"],
+  ["herbatica.cz", "cz"],
+  ["www.herbatica.cz", "cz"],
+  ["test-engine-herbatika-cz-zane.web-revolution.cz", "cz"],
+  ["herbatica.hu", "hu"],
+  ["www.herbatica.hu", "hu"],
+  ["test-engine-herbatika-hu-zane.web-revolution.cz", "hu"],
+  ["herbatica.ro", "ro"],
+  ["www.herbatica.ro", "ro"],
+  ["test-engine-herbatika-ro-zane.web-revolution.cz", "ro"],
+]
 
 const request = ({
   headers = {},
@@ -39,6 +54,10 @@ const request = ({
         method,
         headers: { Host: host, ...headers },
         rejectUnauthorized: process.env.M00_ALLOW_SELF_SIGNED_TLS !== "1",
+        servername:
+          baseUrl.protocol === "https:"
+            ? process.env.M00_TLS_SERVERNAME
+            : undefined,
       },
       (response) => {
         responseHeadReceived = true
@@ -115,6 +134,7 @@ const requestProfiles = [
 
 test("M00 Pages Router production status matrix", async () => {
   assertActualNextVersion()
+  assert.equal(HOST_MATRIX.length, 13)
   const pagesManifest = JSON.parse(
     readFileSync(resolve(appRoot, ".next/server/pages-manifest.json"), "utf8")
   )
@@ -177,12 +197,7 @@ test("M00 Pages Router production status matrix", async () => {
     }
   }
 
-  for (const [host, market] of [
-    ["herbatica.sk", "sk"],
-    ["herbatica.cz", "cz"],
-    ["herbatica.hu", "hu"],
-    ["herbatica.ro", "ro"],
-  ]) {
+  for (const [host, market] of HOST_MATRIX) {
     const response = await request({ host, pathname: "/__url-m00/current" })
     assert.equal(response.status, 200)
     assert.ok(
@@ -202,6 +217,17 @@ test("M00 Pages Router production status matrix", async () => {
       })
     ).status,
     421
+  )
+  assert.equal(
+    (
+      await request({
+        headers: { "X-Forwarded-Host": "herbatica.sk" },
+        host: "unknown.example",
+        pathname: "/__url-m00/current",
+      })
+    ).status,
+    421,
+    "x-forwarded-host must not rescue an unknown public Host"
   )
 
   for (const [method, status] of [

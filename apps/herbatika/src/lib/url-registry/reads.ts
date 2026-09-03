@@ -2,6 +2,8 @@ import type { Market } from "@/lib/url/types"
 import type {
   EntityUrlKind,
   EntityUrlRoute,
+  StaticRoutePath,
+  StaticUrlRoute,
   UrlEntitySlug,
   UrlIndexPolicy,
   UrlRouteKind,
@@ -61,6 +63,19 @@ export type UrlRegistryResolveManyInput = Readonly<{
   market: Market
   kind: EntityUrlKind
   normalizedSlugs: readonly string[]
+}>
+
+export type StaticRouteResolveInput = Readonly<{
+  market: Market
+  pathSegments: readonly string[]
+}>
+
+export type StaticRouteResolution = Readonly<{
+  canonicalPathSegments: readonly [string, ...string[]]
+  disposition: "alias" | "current"
+  matchedPath: readonly [StaticRoutePath, ...StaticRoutePath[]]
+  remainderSegments: readonly string[]
+  route: StaticUrlRoute
 }>
 
 export type UrlRegistryBatchResolution = Readonly<{

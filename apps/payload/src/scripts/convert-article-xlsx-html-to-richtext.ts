@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs"
-import { writeFile } from "node:fs/promises"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import path from "node:path"
 import { gzipSync } from "node:zlib"
@@ -25,6 +25,8 @@ const CONTENT_HEADER_ALIASES = new Set([
   "post_content_html",
 ])
 
+const HTML_FILE_PREFIX = "payload-html-file:"
+const RICH_TEXT_FILE_PREFIX = "payload-richtext-file:"
 const RICH_TEXT_GZIP_PREFIX = "payload-richtext+gzip-base64:"
 const MEDIA_URL_PREFIX = "payload-media-url:"
 
@@ -66,6 +68,7 @@ const SOURCE_ENV_NAMES = [
 ]
 const BOM_PATTERN = /^\uFEFF/
 const HEADER_WHITESPACE_PATTERN = /\s+/g
+const LINK_WHITESPACE_PATTERN = /\s/
 const HEADER_DASH_PATTERN = /-/g
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/g
 const SAFE_FILENAME_PATTERN = /[^a-zA-Z0-9._-]+/g
@@ -204,6 +207,31 @@ const resolveMediaManifestPath = (outputPath: string) => {
 const resolveLinksManifestPath = (outputPath: string) => {
   const parsed = path.parse(outputPath)
   return path.join(parsed.dir, `${parsed.name}.links.json`)
+}
+
+const resolveLocalSidecarPath = (
+  workbookPath: string,
+  relativePath: string
+) => {
+  const baseDirectory = path.dirname(workbookPath)
+  const resolved = path.resolve(baseDirectory, relativePath)
+  const relative = path.relative(baseDirectory, resolved)
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(`Sidecar path escapes workbook directory: ${relativePath}`)
+  }
+  return resolved
+}
+
+const resolveHtmlValue = (value: string, sourcePath: string) => {
+  if (!value.startsWith(HTML_FILE_PREFIX)) {
+    return Promise.resolve(value)
+  }
+
+  const relativePath = value.slice(HTML_FILE_PREFIX.length).trim()
+  if (!relativePath) {
+    throw new Error("HTML sidecar path is empty")
+  }
+  return readFile(resolveLocalSidecarPath(sourcePath, relativePath), "utf8")
 }
 
 const sanitizeFilename = (value: string) =>
@@ -554,6 +582,50 @@ const sanitizeLexicalRoot = (
   return sanitizeLexicalNode(record.root, context)
 }
 
+const normalizeLexicalLinkUrl = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return
+  }
+  if (!LINK_WHITESPACE_PATTERN.test(trimmed)) {
+    return trimmed
+  }
+
+  try {
+    if (trimmed.startsWith("/")) {
+      const parsed = new URL(trimmed, DEFAULT_MEDIA_BASE_URL)
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+    return new URL(trimmed).toString()
+  } catch {
+    return
+  }
+}
+
+const unwrapInvalidLexicalLink = (
+  record: Record<string, unknown>,
+  context: SanitizeLexicalContext
+): unknown[] | null => {
+  if (record.type !== "link") {
+    return null
+  }
+
+  const fields = record.fields as Record<string, unknown> | undefined
+  const url = typeof fields?.url === "string" ? fields.url : ""
+  const normalizedUrl = normalizeLexicalLinkUrl(url)
+  if (normalizedUrl) {
+    record.fields = { ...fields, url: normalizedUrl }
+    return null
+  }
+  if (!Array.isArray(record.children)) {
+    return []
+  }
+  return record.children.flatMap((child) => {
+    const sanitized = sanitizeLexicalNode(child, context)
+    return sanitized === undefined ? [] : sanitized
+  })
+}
+
 const sanitizeLexicalNode = (
   node: unknown,
   context: SanitizeLexicalContext
@@ -572,13 +644,15 @@ const sanitizeLexicalNode = (
     return carouselBlockNode
   }
 
-  const nextRecord = { ...record }
-
-  const shouldRecordLink = record.type === "link"
-  if (shouldRecordLink) {
+  const unwrappedLink = unwrapInvalidLexicalLink(record, context)
+  if (unwrappedLink !== null) {
+    return unwrappedLink
+  }
+  if (record.type === "link") {
     addLinkManifestEntry(record, context.linkManifest)
   }
 
+  const nextRecord = { ...record }
   const root = sanitizeLexicalRoot(record, context)
   if (root !== undefined) {
     nextRecord.root = root
@@ -628,9 +702,15 @@ const assertLexicalEditorConfig = async () => {
   }
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Conversion must preserve one streaming pass across linked workbook artifacts.
 const convertWorkbook = async () => {
   const sourcePath = path.resolve(process.cwd(), resolveSourcePath())
   const outputPath = path.resolve(process.cwd(), resolveOutputPath(sourcePath))
+  const outputName = path.parse(outputPath).name
+  const richTextSidecarDirectory = path.join(
+    path.dirname(outputPath),
+    `${outputName}.richtext`
+  )
 
   if (!existsSync(sourcePath)) {
     throw new Error(`Input XLSX does not exist: ${sourcePath}`)
@@ -646,6 +726,7 @@ const convertWorkbook = async () => {
   let articleCarouselCount = 0
   let converted = 0
   let skipped = 0
+  let richTextSidecars = 0
   let maxJsonLength = 0
 
   for (const worksheet of workbook.worksheets) {
@@ -675,7 +756,9 @@ const convertWorkbook = async () => {
 
       for (const columnIndex of contentColumnIndexes) {
         const cell = row.getCell(columnIndex)
-        const html = getCellText(cell).trim()
+        const html = (
+          await resolveHtmlValue(getCellText(cell).trim(), sourcePath)
+        ).trim()
         if (!html) {
           skipped += 1
           continue
@@ -715,12 +798,20 @@ const convertWorkbook = async () => {
         const serialized = JSON.stringify(richText)
         const encoded = `${RICH_TEXT_GZIP_PREFIX}${gzipSync(serialized).toString("base64")}`
         if (encoded.length > EXCEL_CELL_CHARACTER_LIMIT) {
-          throw new Error(
-            `Converted rich text exceeds Excel's ${EXCEL_CELL_CHARACTER_LIMIT}-character limit at ${worksheet.name}!${cell.address}`
+          await mkdir(richTextSidecarDirectory, { recursive: true })
+          const sidecarName = `${sanitizeFilename(worksheet.name)}-${rowIndex}-${columnIndex}.txt`
+          const sidecarPath = path.join(richTextSidecarDirectory, sidecarName)
+          await writeFile(sidecarPath, encoded)
+          const relativePath = path.relative(
+            path.dirname(outputPath),
+            sidecarPath
           )
+          cell.value = `${RICH_TEXT_FILE_PREFIX}${relativePath}`
+          richTextSidecars += 1
+        } else {
+          cell.value = encoded
         }
         maxJsonLength = Math.max(maxJsonLength, serialized.length)
-        cell.value = encoded
         converted += 1
       }
     }
@@ -749,6 +840,7 @@ const convertWorkbook = async () => {
   console.log(`Links: ${linkManifest.size}`)
   console.log(`Product carousels: ${productCarouselCount}`)
   console.log(`Article carousels: ${articleCarouselCount}`)
+  console.log(`Rich text sidecars: ${richTextSidecars}`)
   console.log(`Max serialized RichText length: ${maxJsonLength}`)
 }
 

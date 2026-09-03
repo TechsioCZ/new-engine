@@ -44,6 +44,12 @@ const legacyPublicRouteFallbackPattern =
   /contains no legacy public-route\s+fallback/u
 const restoredTrafficPrerequisitePattern =
   /before\s+customer traffic is restored/u
+const marketBuildEnvironmentNames = Object.freeze([
+  "ALLOWED_MARKETS",
+  ...["SK", "CZ", "HU", "RO"].map(
+    (market) => `MARKET_ACCEPTED_HOSTS_${market}`
+  ),
+])
 
 async function loadUrlArchitectureDefinitions() {
   const { stackInputs } = await loadDeployContracts(
@@ -168,6 +174,12 @@ test("production image ships private-network migration and population tools", as
   expect(packageJson.scripts["build:url-registry-tools"]).toContain(
     "scripts/url-registry/populate.mjs"
   )
+  expect(packageJson.scripts["build:url-registry-tools"]).toContain(
+    "createRequire(import.meta.url)"
+  )
+  expect(packageJson.scripts["build:url-registry-tools"]).not.toContain(
+    "--packages=external"
+  )
   expect(dockerfile).toContain("scripts/url-registry/migrate.mjs")
   expect(dockerfile).toContain("scripts/url-registry/populate.mjs")
   expect(dockerfile).toContain("0004_add_invalidation_delivery_diagnostics.sql")
@@ -183,6 +195,41 @@ test("production image ships private-network migration and population tools", as
   expect(runbook).not.toContain("URL_ARCHITECTURE_M00_ENABLED")
   expect(runbook).toContain("legacy `buttonHref`")
   expect(runbook).toContain("stable `buttonTarget`")
+})
+
+test("production image receives public market routing only while building", async () => {
+  const dockerfile = await readFile(herbatikaDockerImagePath, "utf8")
+  const buildStage = dockerfile
+    .split("FROM base AS build\n", 2)[1]
+    ?.split("FROM node:24-slim AS prod\n", 1)[0]
+  const prodStage = dockerfile.split("FROM node:24-slim AS prod\n", 2)[1]
+
+  expect(buildStage).toBeDefined()
+  expect(prodStage).toBeDefined()
+
+  for (const environmentName of [
+    "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+    ...marketBuildEnvironmentNames,
+  ]) {
+    expect(buildStage).toContain(`ARG ${environmentName}\n`)
+    expect(buildStage).toContain(
+      `ENV ${environmentName}=\${${environmentName}}\n`
+    )
+    expect(prodStage).not.toContain(environmentName)
+  }
+
+  for (const serverOnlyEnvironmentPrefix of [
+    "MARKET_PUBLISHABLE_KEY_",
+    "MARKET_REGION_",
+    "MARKET_SALES_CHANNEL_",
+    "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY",
+    "URL_REGISTRY_ADMIN_TOKEN",
+    "URL_REGISTRY_CONTENT_PROJECTION_TOKEN",
+    "URL_REGISTRY_DATABASE_URL",
+    "URL_REGISTRY_INVALIDATION_TOKEN",
+  ]) {
+    expect(buildStage).not.toContain(`ARG ${serverOnlyEnvironmentPrefix}`)
+  }
 })
 
 test("URL registry runtime receives only runtime credentials and a shared lifecycle token", async () => {
@@ -335,7 +382,6 @@ test("all four market bindings are private, explicit, and scoped to Herbatika", 
   for (const market of ["SK", "CZ", "HU", "RO"] as const) {
     for (const prefix of [
       "MARKET_ACCEPTED_HOSTS",
-      "HERBATIKA_ACCEPTED_HOSTS",
       "MARKET_PUBLISHABLE_KEY",
       "MARKET_PUBLISHABLE_KEY_ID",
       "MARKET_REGION",
@@ -343,26 +389,18 @@ test("all four market bindings are private, explicit, and scoped to Herbatika", 
     ]) {
       const key = `${prefix}_${market}`
       const definition = byKey.get(key)
-      const sourceEnvVar = key.startsWith("HERBATIKA_")
-        ? `DC_${key}`
-        : `DC_HERBATIKA_${key}`
       expect(definition?.source.kind, key).toBe("local_env")
-      expect(definition?.source.env_var, key).toBe(sourceEnvVar)
+      expect(definition?.source.env_var, key).toBe(`DC_HERBATIKA_${key}`)
       expect(definition?.service_targets, key).toEqual([
         { service_id: "herbatika", env_var: key },
       ])
       expect(key.startsWith("NEXT_PUBLIC_"), key).toBe(false)
     }
+    expect(
+      byKey.get(`MARKET_ACCEPTED_HOSTS_${market}`)?.source.default_value
+    ).toBeUndefined()
+    expect(byKey.has(`HERBATIKA_ACCEPTED_HOSTS_${market}`)).toBe(false)
   }
-
-  const romanianHosts =
-    "herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz"
-  expect(byKey.get("MARKET_ACCEPTED_HOSTS_RO")?.source.default_value).toBe(
-    romanianHosts
-  )
-  expect(byKey.get("HERBATIKA_ACCEPTED_HOSTS_RO")?.source.default_value).toBe(
-    romanianHosts
-  )
 })
 
 test("Docker ingress pins Caddy and owns the raw URL boundary before Next", async () => {

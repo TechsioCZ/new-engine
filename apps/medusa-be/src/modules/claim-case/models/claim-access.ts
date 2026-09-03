@@ -4,6 +4,7 @@ const ClaimAccess = model
   .define("claim_access", {
     id: model.id().primaryKey(),
     order_id: model.text(),
+    sales_channel_id: model.text(),
     email: model.text(),
     code_hash: model.text(),
     access_token_hash: model.text().nullable(),
@@ -16,6 +17,11 @@ const ClaimAccess = model
     {
       name: "IDX_claim_access_order_email",
       on: ["order_id", "email"],
+      where: { deleted_at: null },
+    },
+    {
+      name: "IDX_claim_access_sales_channel_id",
+      on: ["sales_channel_id"],
       where: { deleted_at: null },
     },
     {

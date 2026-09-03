@@ -26,8 +26,6 @@ export type CheckoutDetailsValues = {
   useSameAddress: boolean
   isCompanyPurchase: boolean
   accountSetupRequested: boolean
-  marketingConsent: boolean
-  heurekaConsent: boolean
 }
 
 export type CheckoutAddressDetailsValues = Pick<

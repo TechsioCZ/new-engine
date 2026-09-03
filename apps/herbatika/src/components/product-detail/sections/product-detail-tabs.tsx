@@ -11,6 +11,8 @@ import {
   PRODUCT_DETAIL_REVIEWS_TAB_VALUE,
 } from "@/components/product-detail/sections/product-detail-review-utils"
 import { ProductDetailReviews } from "@/components/product-detail/sections/product-detail-reviews"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { isProductReviewMarketSupported } from "@/lib/storefront/review-market-policy"
 
 const getAccordionSectionId = (value: string) =>
   `product-detail-information-${value}`
@@ -47,8 +49,11 @@ export function ProductDetailTabs({
   sections,
 }: ProductDetailTabsProps) {
   const tCatalog = useTranslations("catalog")
+  const market = useMarketContext().code
+  const showProductReviews =
+    Boolean(productId) && isProductReviewMarketSupported(market)
   const selectedSectionValue = activeSectionValue ?? defaultSectionValue
-  const tabSections = productId
+  const tabSections = showProductReviews
     ? [
         ...sections,
         {
@@ -75,7 +80,9 @@ export function ProductDetailTabs({
   }
 
   return (
-    <section id={productId ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}>
+    <section
+      id={showProductReviews ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}
+    >
       <h2 className="mb-400 font-semibold text-3xl text-fg-primary">
         {tCatalog("product_detail.information_title")}
       </h2>

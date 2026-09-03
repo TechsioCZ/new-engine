@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type {
   MarketRuntime,
   MarketRuntimeBinding,
 } from "@/lib/market/market-runtime"
+
+const SENSITIVE_AUTHORITY_PATTERN = /pk_|pkid_|reg_|sc_|token/i
 
 const binding = {
   acceptedHosts: ["herbatica.cz"],
@@ -16,26 +18,80 @@ const binding = {
   salesChannelId: "sc_cz",
 } as const satisfies MarketRuntimeBinding
 
+const skBinding = {
+  acceptedHosts: ["herbatika.sk"],
+  canonicalOrigin: "https://herbatika.sk",
+  countryCode: "SK",
+  locale: "sk-SK",
+  market: "sk",
+  publishableApiKey: "pk_sk",
+  publishableApiKeyId: "pkid_sk",
+  regionId: "reg_sk",
+  salesChannelId: "sc_sk",
+} as const satisfies MarketRuntimeBinding
+
+const huBinding = {
+  acceptedHosts: ["herbatika.hu"],
+  canonicalOrigin: "https://herbatika.hu",
+  countryCode: "HU",
+  locale: "hu-HU",
+  market: "hu",
+  publishableApiKey: "pk_hu",
+  publishableApiKeyId: "pkid_hu",
+  regionId: "reg_hu",
+  salesChannelId: "sc_hu",
+} as const satisfies MarketRuntimeBinding
+
+const roBinding = {
+  acceptedHosts: ["herbatika.ro"],
+  canonicalOrigin: "https://herbatika.ro",
+  countryCode: "RO",
+  locale: "ro-RO",
+  market: "ro",
+  publishableApiKey: "pk_ro",
+  publishableApiKeyId: "pkid_ro",
+  regionId: "reg_ro",
+  salesChannelId: "sc_ro",
+} as const satisfies MarketRuntimeBinding
+
 const runtime = {
-  allowedMarkets: ["cz"],
-  bindings: { cz: binding },
-  marketByHost: { "herbatica.cz": "cz" },
+  allowedMarkets: ["sk", "cz", "hu", "ro"],
+  bindings: { cz: binding, hu: huBinding, ro: roBinding, sk: skBinding },
+  marketByHost: {
+    "herbatica.cz": "cz",
+    "herbatica.hu": "hu",
+    "herbatica.ro": "ro",
+    "herbatica.sk": "sk",
+  },
 } as const satisfies MarketRuntime
 
-const resolveSystemHostFromRequest = vi.fn((request: Request) =>
-  request.headers.get("host") === "herbatica.cz"
-    ? ({ binding, kind: "found" } as const)
+const bindingByHost = {
+  "herbatica.cz": binding,
+  "herbatica.hu": huBinding,
+  "herbatica.ro": roBinding,
+  "herbatica.sk": skBinding,
+} as const
+
+const resolveSystemHostFromRequest = vi.fn((request: Request) => {
+  const host = request.headers.get("host") as keyof typeof bindingByHost
+  const resolvedBinding = bindingByHost[host]
+  return resolvedBinding
+    ? ({ binding: resolvedBinding, kind: "found" } as const)
     : ({ kind: "unknown-host" } as const)
-)
+})
 const checkUrlRegistryHealth = vi.fn().mockResolvedValue(true)
+const getConfiguredMarketRuntime = vi.fn(() => runtime)
 const countEntities = vi.fn().mockResolvedValue({ kind: "found", value: 0 })
 const listEntities = vi.fn().mockResolvedValue({ kind: "found", value: [] })
+const readEntitySourceVersions = vi
+  .fn()
+  .mockResolvedValue({ kind: "found", value: [] })
 const validateEntitySources = vi
   .fn()
   .mockResolvedValue({ kind: "found", value: [] })
 
 vi.mock("@/lib/market/market-runtime.server", () => ({
-  getConfiguredMarketRuntime: () => runtime,
+  getConfiguredMarketRuntime,
 }))
 
 vi.mock("@/lib/seo/system-runtime.server", () => ({
@@ -49,7 +105,11 @@ vi.mock("@/lib/seo/system-runtime.server", () => ({
   systemSitemapDependencies: {
     countEntities,
     listEntities,
+    readEntitySourceVersions,
     listStatic: vi.fn().mockResolvedValue({ kind: "found", value: [] }),
+    validateHomepageSource: vi
+      .fn()
+      .mockResolvedValue({ kind: "found", value: true }),
     validateEntitySources,
     validateStaticSources: vi
       .fn()
@@ -64,12 +124,20 @@ describe("system Route Handlers", () => {
   beforeEach(() => {
     resolveSystemHostFromRequest.mockClear()
     checkUrlRegistryHealth.mockClear()
+    checkUrlRegistryHealth.mockResolvedValue(true)
+    getConfiguredMarketRuntime.mockClear()
     countEntities.mockReset()
     countEntities.mockResolvedValue({ kind: "found", value: 0 })
     listEntities.mockReset()
     listEntities.mockResolvedValue({ kind: "found", value: [] })
+    readEntitySourceVersions.mockReset()
+    readEntitySourceVersions.mockResolvedValue({ kind: "found", value: [] })
     validateEntitySources.mockReset()
     validateEntitySources.mockResolvedValue({ kind: "found", value: [] })
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it("serves host-specific robots and rejects an unknown authority", async () => {
@@ -92,7 +160,7 @@ describe("system Route Handlers", () => {
     expect(await indexResponse.text()).toContain(
       "https://herbatica.cz/sitemaps/core-1.xml"
     )
-    expect(countEntities).toHaveBeenCalledTimes(6)
+    expect(countEntities).toHaveBeenCalledTimes(7)
     expect(listEntities).not.toHaveBeenCalled()
     expect(validateEntitySources).not.toHaveBeenCalled()
 
@@ -124,7 +192,7 @@ describe("system Route Handlers", () => {
     expect(response.status).toBe(200)
     expect(xml).toContain("https://herbatica.cz/sitemaps/product-200.xml")
     expect(xml).not.toContain("https://herbatica.cz/sitemaps/product-201.xml")
-    expect(countEntities).toHaveBeenCalledTimes(6)
+    expect(countEntities).toHaveBeenCalledTimes(7)
     expect(listEntities).not.toHaveBeenCalled()
     expect(validateEntitySources).not.toHaveBeenCalled()
   })
@@ -142,7 +210,7 @@ describe("system Route Handlers", () => {
 
     expect(response.status).toBe(200)
     expect(await response.text()).toBe(
-      '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
+      '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml"></urlset>\n'
     )
   })
 
@@ -202,14 +270,105 @@ describe("system Route Handlers", () => {
     ).toBe(421)
   })
 
-  it("checks every configured market on the internal health endpoint", async () => {
-    const { GET } = await import("@/app/api/healthz/route")
+  it("keeps the public health endpoint minimal and independent of dependencies", async () => {
+    const { GET, HEAD, OPTIONS } = await import("@/app/api/healthz/route")
     const response = await GET(makeRequest("/api/healthz"))
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({ status: "ok" })
-    expect(checkUrlRegistryHealth).toHaveBeenCalledWith(binding)
+    expect(getConfiguredMarketRuntime).not.toHaveBeenCalled()
+    expect(checkUrlRegistryHealth).not.toHaveBeenCalled()
+    const head = await HEAD(makeRequest("/api/healthz", "herbatica.hu"))
+    expect(head.status).toBe(200)
+    expect(await head.text()).toBe("")
+    expect(OPTIONS().headers.get("allow")).toBe("GET, HEAD, POST")
     expect(
       (await GET(makeRequest("/api/healthz", "unknown.example"))).status
     ).toBe(421)
+  })
+
+  it("checks exactly SK, CZ, HU, and RO on the authenticated readiness projection", async () => {
+    vi.stubEnv(
+      "HERBATIKA_READINESS_TOKEN",
+      "readiness-token-with-at-least-32-characters"
+    )
+    const { POST } = await import("@/app/api/healthz/route")
+    const response = await POST(
+      new Request("https://internal/api/healthz", {
+        headers: {
+          authorization: "Bearer readiness-token-with-at-least-32-characters",
+          host: "herbatica.cz",
+        },
+        method: "POST",
+      })
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      markets: {
+        cz: { status: "ok" },
+        hu: { status: "ok" },
+        ro: { status: "ok" },
+        sk: { status: "ok" },
+      },
+      status: "ok",
+    })
+    expect(checkUrlRegistryHealth.mock.calls.map(([value]) => value)).toEqual([
+      skBinding,
+      binding,
+      huBinding,
+      roBinding,
+    ])
+  })
+
+  it("attributes readiness failure by market without leaking runtime authority", async () => {
+    vi.stubEnv(
+      "HERBATIKA_READINESS_TOKEN",
+      "readiness-token-with-at-least-32-characters"
+    )
+    checkUrlRegistryHealth.mockImplementation(async (marketBinding) =>
+      Promise.resolve(marketBinding.market !== "hu")
+    )
+    const { POST } = await import("@/app/api/healthz/route")
+    const response = await POST(
+      new Request("https://internal/api/healthz", {
+        headers: {
+          authorization: "Bearer readiness-token-with-at-least-32-characters",
+          host: "herbatica.cz",
+        },
+        method: "POST",
+      })
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(503)
+    expect(body).toEqual({
+      markets: {
+        cz: { status: "ok" },
+        hu: { status: "unavailable" },
+        ro: { status: "ok" },
+        sk: { status: "ok" },
+      },
+      status: "unavailable",
+    })
+    expect(JSON.stringify(body)).not.toMatch(SENSITIVE_AUTHORITY_PATTERN)
+  })
+
+  it("does not expose readiness details without dedicated authorization", async () => {
+    vi.stubEnv(
+      "HERBATIKA_READINESS_TOKEN",
+      "readiness-token-with-at-least-32-characters"
+    )
+    const { POST } = await import("@/app/api/healthz/route")
+    const response = await POST(
+      new Request("https://internal/api/healthz", {
+        headers: { host: "herbatica.cz" },
+        method: "POST",
+      })
+    )
+
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toEqual({ status: "unauthorized" })
+    expect(getConfiguredMarketRuntime).not.toHaveBeenCalled()
+    expect(checkUrlRegistryHealth).not.toHaveBeenCalled()
   })
 })

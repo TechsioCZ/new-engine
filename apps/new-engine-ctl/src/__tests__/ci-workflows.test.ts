@@ -26,6 +26,12 @@ const mainVerifyEnvironmentFallbackPattern =
   /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\}\}/
 const mainVerifySummaryEnvironmentFallbackPattern =
   /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\|\|\s*'n\/a'\s*\}\}/
+const currentMasterApiPattern =
+  /\$GITHUB_API_URL\/repos\/\$GITHUB_REPOSITORY\/git\/ref\/heads\/master/
+const freshnessOutputExpression = [
+  "$",
+  "{{ steps.master.outputs.is_fresh }}",
+].join("")
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -115,6 +121,58 @@ test("main verify falls back to the production environment secret", async () => 
 
   expect(raw).toMatch(mainVerifyEnvironmentFallbackPattern)
   expect(raw).toMatch(mainVerifySummaryEnvironmentFallbackPattern)
+})
+
+test("main deploy rejects stale workflow_run commits before mutation", async () => {
+  const raw = await readFile(join(repoRoot, mainWorkflowPath), "utf8")
+  const parsed = parseYaml(raw)
+
+  expect(parsed.jobs.deploy.outputs.is_fresh).toBe(freshnessOutputExpression)
+
+  const deploySteps = parsed.jobs.deploy.steps as Record<string, unknown>[]
+  const freshnessIndex = deploySteps.findIndex(
+    (step) => step.name === "Confirm deploy commit is current master"
+  )
+  const validateIndex = deploySteps.findIndex(
+    (step) => step.name === "Validate deploy inputs"
+  )
+  const mutationIndex = deploySteps.findIndex(
+    (step) => step.name === "Run main deploy"
+  )
+
+  expect(freshnessIndex).toBeGreaterThan(-1)
+  expect(validateIndex).toBeGreaterThan(-1)
+  expect(validateIndex).toBeGreaterThan(freshnessIndex)
+  expect(mutationIndex).toBeGreaterThan(validateIndex)
+  expect(deploySteps[freshnessIndex]?.run).toMatch(currentMasterApiPattern)
+  expect(deploySteps[validateIndex]?.if).toBe(
+    "steps.master.outputs.is_fresh == 'true'"
+  )
+  expect(deploySteps[mutationIndex]?.if).toBe(
+    "steps.master.outputs.is_fresh == 'true'"
+  )
+  expect(parsed.jobs.verify.if).toContain(
+    "needs.deploy.outputs.is_fresh == 'true'"
+  )
+})
+
+test("newer pushes cancel older CI before workflow_run deployment", async () => {
+  const [ciRaw, deployRaw] = await Promise.all([
+    readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8"),
+    readFile(join(repoRoot, mainWorkflowPath), "utf8"),
+  ])
+  const ci = parseYaml(ciRaw)
+  const deploy = parseYaml(deployRaw)
+
+  expect(ci.concurrency.group).toContain("github.workflow")
+  expect(ci.concurrency.group).toContain("github.ref")
+  expect(ci.concurrency["cancel-in-progress"]).toBe(true)
+  expect(deploy.concurrency.group).toContain(
+    "github.event.workflow_run.head_branch"
+  )
+  expect(deploy.concurrency["cancel-in-progress"]).toBe(true)
+  expect(deploy.jobs.deploy.concurrency).toBeUndefined()
+  expect(deploy.jobs.verify.concurrency).toBeUndefined()
 })
 
 // biome-ignore lint/suspicious/noSkippedTests: ZaneOps workflows are temporarily disabled.

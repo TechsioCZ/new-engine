@@ -34,11 +34,26 @@ type MeilisearchRequestOptions = {
 
 class MeilisearchHttpError extends Error {
   readonly retryable: boolean
+  readonly status: number
 
-  constructor(message: string, retryable: boolean) {
+  constructor(message: string, retryable: boolean, status: number) {
     super(message)
 
     this.retryable = retryable
+    this.status = status
+  }
+}
+
+export class MeilisearchSwapIndexError extends Error {
+  readonly definitelyNotCommitted: boolean
+
+  constructor(
+    message: string,
+    options: { cause: unknown; definitelyNotCommitted: boolean }
+  ) {
+    super(message, { cause: options.cause })
+    this.name = "MeilisearchSwapIndexError"
+    this.definitelyNotCommitted = options.definitelyNotCommitted
   }
 }
 
@@ -123,7 +138,8 @@ export class MeilisearchAdminClient {
 
       throw new MeilisearchHttpError(
         `Meilisearch ${options.method} ${options.path} failed (${response.status}): ${parsedMessage}`,
-        response.status === 429 || response.status >= 500
+        response.status === 429 || response.status >= 500,
+        response.status
       )
     } finally {
       clearTimeout(timeoutId)
@@ -343,26 +359,58 @@ export class MeilisearchAdminClient {
       return
     }
 
-    const task = await this.request<MeilisearchTask>({
-      method: "POST",
-      path: "/swap-indexes",
-      body: pairs.map(({ first, second }) => ({ indexes: [first, second] })),
-      attempts: 1,
-    })
-
-    if (completionProbe) {
-      await this.waitForDocument(
-        completionProbe.index,
-        completionProbe.documentId
+    let task: MeilisearchTask
+    try {
+      task = await this.request<MeilisearchTask>({
+        method: "POST",
+        path: "/swap-indexes",
+        body: pairs.map(({ first, second }) => ({ indexes: [first, second] })),
+        attempts: 1,
+      })
+    } catch (error) {
+      const definitelyNotCommitted =
+        error instanceof MeilisearchHttpError &&
+        error.status >= 400 &&
+        error.status < 500 &&
+        error.status !== 429
+      throw new MeilisearchSwapIndexError(
+        "Meilisearch swap submission failed",
+        { cause: error, definitelyNotCommitted }
       )
-
-      return
     }
 
     const taskUid = task.taskUid ?? task.uid
 
     if (typeof taskUid === "number") {
-      await this.waitForTask(taskUid)
+      try {
+        await this.waitForTask(taskUid)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : ""
+        throw new MeilisearchSwapIndexError(
+          `Meilisearch swap task ${taskUid} did not complete safely`,
+          {
+            cause: error,
+            definitelyNotCommitted:
+              message.includes(" failed:") || message.includes(" canceled:"),
+          }
+        )
+      }
+    }
+
+    if (completionProbe) {
+      try {
+        await this.waitForDocument(
+          completionProbe.index,
+          completionProbe.documentId
+        )
+      } catch (error) {
+        throw new MeilisearchSwapIndexError(
+          "Meilisearch swap committed but its completion marker was unavailable",
+          { cause: error, definitelyNotCommitted: false }
+        )
+      }
+
+      return
     }
   }
 

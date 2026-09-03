@@ -12,6 +12,7 @@ import {
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
 import { cleanSearchText } from "../../../../modules/meilisearch/documents"
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
+import { resolveVerifiedFacetPriceCurrency } from "../../../../modules/meilisearch/profile-currency"
 import {
   loadSearchProfiles,
   resolveSearchProfile,
@@ -22,6 +23,7 @@ import {
   buildProductResultFilter,
   expandProductsBySearchMatches,
   getSalesChannelIds,
+  resolveStorefrontSalesChannelFilter,
   selectRankedProductIds,
 } from "../../../../modules/meilisearch/search-results"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
@@ -92,6 +94,23 @@ const getStringId = (value: unknown): string | undefined => {
   return
 }
 
+const hasCompletePricingContext = (
+  value: unknown
+): value is Record<string, unknown> => {
+  if (!(value && typeof value === "object" && !Array.isArray(value))) {
+    return false
+  }
+
+  const regionId = (value as Record<string, unknown>).region_id
+  const currencyCode = (value as Record<string, unknown>).currency_code
+  return (
+    typeof regionId === "string" &&
+    Boolean(regionId.trim()) &&
+    typeof currencyCode === "string" &&
+    Boolean(currencyCode.trim())
+  )
+}
+
 const deduplicateHits = (
   hits: unknown[] | undefined,
   field: string
@@ -134,16 +153,19 @@ export async function GET(
   }
 
   const query = cleanSearchText(request.validatedQuery.q)
-  const salesChannelIds = getSalesChannelIds(
-    request.filterableFields.sales_channel_id
+  const salesChannelFilter = resolveStorefrontSalesChannelFilter(
+    request.filterableFields.sales_channel_id,
+    request.publishable_key_context?.sales_channel_ids
   )
+  const salesChannelIds = getSalesChannelIds(salesChannelFilter)
+  const requestedLocale = request.locale ?? request.validatedQuery.locale
 
   let profile: SearchProfile
 
   try {
     profile = resolveSearchProfile(
       {
-        locale: request.locale ?? request.validatedQuery.locale,
+        locale: requestedLocale,
         requestedKey: request.validatedQuery.profile,
         salesChannelIds,
       },
@@ -157,6 +179,49 @@ export async function GET(
     }
 
     throw error
+  }
+
+  if (
+    profile.locale !== "default" &&
+    requestedLocale &&
+    profile.locale.trim().toLowerCase().replaceAll("_", "-") !==
+      requestedLocale.trim().toLowerCase().replaceAll("_", "-")
+  ) {
+    response.status(400).json({
+      message: `Search profile ${profile.key} is not available for this storefront language`,
+    })
+
+    return
+  }
+
+  const pricingContextCurrencyCode =
+    request.pricingContext &&
+    typeof request.pricingContext === "object" &&
+    !Array.isArray(request.pricingContext) &&
+    typeof (request.pricingContext as Record<string, unknown>).currency_code ===
+      "string"
+      ? (
+          (request.pricingContext as Record<string, unknown>)
+            .currency_code as string
+        ).trim()
+      : undefined
+  const hasCurrencyScope = Boolean(
+    pricingContextCurrencyCode || request.validatedQuery.currency_code
+  )
+
+  if (
+    profile.locale !== "default" &&
+    hasCurrencyScope &&
+    !resolveVerifiedFacetPriceCurrency(profile.locale, {
+      pricingContextCurrencyCode,
+      requestedCurrencyCode: request.validatedQuery.currency_code,
+    })
+  ) {
+    response
+      .status(400)
+      .json({ message: "Search currency does not match the storefront market" })
+
+    return
   }
 
   const meilisearch = request.scope.resolve<MeiliSearchService>(MEILISEARCH)
@@ -247,7 +312,7 @@ export async function GET(
   const remoteQuery = request.scope.resolve(
     ContainerRegistrationKeys.REMOTE_QUERY
   )
-  const pricingContext = request.pricingContext
+  const pricingContext = hasCompletePricingContext(request.pricingContext)
     ? QueryContext(request.pricingContext)
     : undefined
   const productFields = pricingContext
@@ -270,7 +335,7 @@ export async function GET(
           remoteQuery,
           {
             id: { $in: productIds },
-            sales_channel_id: request.filterableFields.sales_channel_id,
+            sales_channel_id: salesChannelFilter,
             status: ProductStatus.PUBLISHED,
           }
         ),
@@ -278,7 +343,11 @@ export async function GET(
           ? { variants: { calculated_price: pricingContext } }
           : undefined,
       },
-      { locale: request.locale }
+      {
+        locale:
+          requestedLocale ??
+          (profile.locale === "default" ? undefined : profile.locale),
+      }
     )
 
     products = expandProductsBySearchMatches(
@@ -295,7 +364,7 @@ export async function GET(
           remoteQuery,
           {
             q: query,
-            sales_channel_id: request.filterableFields.sales_channel_id,
+            sales_channel_id: salesChannelFilter,
             status: ProductStatus.PUBLISHED,
           }
         ),
@@ -313,16 +382,27 @@ export async function GET(
             }
           : undefined,
       },
-      { locale: request.locale }
+      {
+        locale:
+          requestedLocale ??
+          (profile.locale === "default" ? undefined : profile.locale),
+      }
     )
 
     products = result.data as Record<string, unknown>[]
   }
 
-  await wrapProductsWithTaxPrices(
-    request,
-    products as unknown as Parameters<typeof wrapProductsWithTaxPrices>[1]
-  )
+  // Storefront autocomplete is also called before the browser has selected a
+  // region. In that case the request has no complete pricing context and the
+  // Medusa tax-price helper throws instead of returning unpriced suggestions.
+  // The query above deliberately omits pricing fields in the same branch, so
+  // only enrich results when a complete pricing context exists.
+  if (pricingContext) {
+    await wrapProductsWithTaxPrices(
+      request,
+      products as unknown as Parameters<typeof wrapProductsWithTaxPrices>[1]
+    )
+  }
 
   degraded ||= [categorySearch, brandSearch, contentSearch].some(
     (result) => result === null

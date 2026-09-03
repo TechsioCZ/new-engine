@@ -9,6 +9,7 @@ import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quan
 import { StorefrontLink } from "@/components/storefront-link"
 import {
   resolveCartItemName,
+  resolveCartItemVariantTitle,
   resolveLineItemQuantity,
   resolveLineItemUnitAmount,
 } from "@/lib/storefront/cart-calculations"
@@ -42,7 +43,7 @@ export function CartItemRow({
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
   const itemHref = resolveLineItemHref(item, marketContext.code)
-  const itemVariant = item.variant_title
+  const itemVariant = resolveCartItemVariantTitle(item)
   const itemInventory = resolveLineItemInventory(item)
   const itemMaxQuantity = Math.max(
     baseQuantity,
@@ -88,7 +89,7 @@ export function CartItemRow({
           <p className="block truncate font-semibold text-sm">{itemName}</p>
         )}
 
-        {itemVariant && itemVariant !== "Default" ? (
+        {itemVariant ? (
           <p className="truncate text-fg-secondary text-xs">{itemVariant}</p>
         ) : null}
 

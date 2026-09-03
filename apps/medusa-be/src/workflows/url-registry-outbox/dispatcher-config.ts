@@ -1,6 +1,7 @@
 import { MedusaError } from "@medusajs/framework/utils"
 
 const LIFECYCLE_PATH = "/api/internal/url-registry/product-lifecycle"
+const CATALOG_LIFECYCLE_PATH = "/api/internal/url-registry/catalog-lifecycle"
 const TOKEN_PATTERN = /^[\x21-\x7e]{32,512}$/
 const CRON_PATTERN = /^\S+(?:[ \t]+\S+){4}$/
 const MAX_SCHEDULE_LENGTH = 128
@@ -11,6 +12,7 @@ export type UrlRegistryDispatcherConfig =
   | Readonly<{ enabled: false }>
   | Readonly<{
       enabled: true
+      catalogEndpoint: string
       endpoint: string
       token: string
     }>
@@ -71,6 +73,7 @@ export const parseUrlRegistryDispatcherConfig = (
   const origin = readInternalOrigin(environment)
   return {
     enabled: true,
+    catalogEndpoint: new URL(CATALOG_LIFECYCLE_PATH, `${origin}/`).toString(),
     endpoint: new URL(LIFECYCLE_PATH, `${origin}/`).toString(),
     token: readLifecycleToken(environment),
   }

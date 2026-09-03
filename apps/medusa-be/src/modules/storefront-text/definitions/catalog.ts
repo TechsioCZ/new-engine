@@ -17,6 +17,11 @@ export const STOREFRONT_CATALOG_TEXT_DEFINITIONS = [
     namespace: "catalog",
   },
   {
+    description: "Prázdný stav přehledu značek bez dostupných značek.",
+    key: "catalog.brands.empty",
+    namespace: "catalog",
+  },
+  {
     description: "SEO titulek abecedního přehledu všech značek.",
     key: "catalog.brands.metadata.index_title",
     namespace: "catalog",
@@ -225,6 +230,41 @@ export const STOREFRONT_CATALOG_TEXT_DEFINITIONS = [
   {
     description: "Popisek celkového počtu produktů ve výpisu.",
     key: "catalog.results.items_total",
+    namespace: "catalog",
+  },
+  {
+    description: "Zástupný název kategorie bez lokalizovaného názvu.",
+    key: "catalog.category.default_name",
+    namespace: "catalog",
+  },
+  {
+    description: "Stavový štítek nalezené kategorie.",
+    key: "catalog.category.status.found",
+    namespace: "catalog",
+  },
+  {
+    description: "Stavový štítek nenalezené kategorie.",
+    key: "catalog.category.status.not_found",
+    namespace: "catalog",
+  },
+  {
+    description: "Štítek s celkovým počtem produktů kategorie.",
+    key: "catalog.category.badges.products",
+    namespace: "catalog",
+  },
+  {
+    description: "Štítek s počtem produktů po filtrování.",
+    key: "catalog.category.badges.filtered_products",
+    namespace: "catalog",
+  },
+  {
+    description: "Popis výpisu přímých produktů kategorie.",
+    key: "catalog.category.subtitle.direct_products",
+    namespace: "catalog",
+  },
+  {
+    description: "Popis výpisu zahrnujícího podkategorie.",
+    key: "catalog.category.subtitle.includes_subcategories",
     namespace: "catalog",
   },
   {

@@ -96,7 +96,7 @@ describe("URL registry content projection endpoint", () => {
       market: "cz",
       projections: [
         {
-          href: "/poradna/article-42",
+          href: "/blog/article-42",
           routeVersion: 3,
           sourceId: "42",
           sourceType: "article",

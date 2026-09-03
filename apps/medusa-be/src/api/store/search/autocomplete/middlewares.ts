@@ -14,6 +14,7 @@ import {
   STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
   STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
 } from "../../catalog/products/validators"
+import { enforceExactStorefrontMarketSalesChannel } from "../../storefront-market-sales-channel"
 import { StoreSearchAutocompleteSchema } from "./validators"
 
 export const storeSearchAutocompleteRoutesMiddlewares: MiddlewareRoute[] = [
@@ -33,6 +34,7 @@ export const storeSearchAutocompleteRoutesMiddlewares: MiddlewareRoute[] = [
         allowed: STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
         isList: true,
       }),
+      enforceExactStorefrontMarketSalesChannel,
       filterByValidSalesChannels(),
       applyDefaultFilters({ status: ProductStatus.PUBLISHED }),
       normalizeDataForContext(),

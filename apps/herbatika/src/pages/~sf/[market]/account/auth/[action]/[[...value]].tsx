@@ -3,6 +3,7 @@ import { resolveAfterAuthHref } from "@/components/auth/auth-helpers"
 import { ForgotPasswordPanel } from "@/components/auth/forgot-password-panel"
 import { ResetPasswordPanel } from "@/components/auth/reset-password-panel"
 import { AuthControls } from "@/components/auth-controls"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import { exactOpaqueSegment } from "@/lib/routing/private-flows/opaque-values"
 import {
   readExactPrivateQuery,
@@ -104,7 +105,7 @@ export const getServerSideProps = (async (context) => {
 
 export default function AccountAuthPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Authentication unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="authentication" />
   }
   const value = page.value
   return (

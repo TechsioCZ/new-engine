@@ -1,9 +1,9 @@
 import type { StaticImageData } from "next/image"
 import flameIcon from "@/assets/icons/flame-icon.avif"
 import giftIcon from "@/assets/icons/gift-icon.avif"
+import { normalizeCategoryName } from "@/components/category/category-product-utils"
 
 export type HeaderCategoryNavConfig = {
-  label: string
   rootHandle: string
 }
 
@@ -11,27 +11,33 @@ export type HeaderCategoryActionConfig = HeaderCategoryNavConfig & {
   src: StaticImageData
 }
 
+export const resolveHeaderCategoryLabel = (
+  localizedName: string | null | undefined,
+  rootHandle: string
+) => {
+  const normalizedName = localizedName?.trim()
+
+  return normalizedName
+    ? normalizeCategoryName(normalizedName) || rootHandle
+    : rootHandle
+}
+
 export const PRIMARY_NAV_ITEMS: HeaderCategoryNavConfig[] = [
-  { label: "Trápi ma", rootHandle: "trapi-ma" },
-  { label: "Prírodná kozmetika", rootHandle: "prirodna-kozmetika" },
-  { label: "Doplnky výživy", rootHandle: "doplnky-vyzivy" },
-  { label: "Potraviny a nápoje", rootHandle: "potraviny-a-napoje" },
-  { label: "EKO domácnosť", rootHandle: "eko-domacnost" },
-  {
-    label: "Účinné zložky od A po Z",
-    rootHandle: "ucinne-zlozky-od-a-po-z",
-  },
-  { label: "Novinky", rootHandle: "novinky" },
+  { rootHandle: "trapi-ma" },
+  { rootHandle: "prirodna-kozmetika" },
+  { rootHandle: "doplnky-vyzivy" },
+  { rootHandle: "potraviny-a-napoje" },
+  { rootHandle: "eko-domacnost" },
+  { rootHandle: "ucinne-zlozky-od-a-po-z" },
+  { rootHandle: "novinky" },
 ]
 
 export const HEADER_ACTION_ITEMS: HeaderCategoryActionConfig[] = [
   {
-    label: "Darčeky",
     rootHandle: "darceky",
     src: giftIcon,
   },
   {
-    label: "Akcie",
     rootHandle: "vypredaj-zlavy-a-akcie",
     src: flameIcon,
   },

@@ -48,6 +48,14 @@ const eventBusContext = (
       reference: filters.reference,
       reference_id: referenceId,
       translations: { title: "Localized" },
+    })),
+  listProducts: (filters: { id: string[] }) => Promise<unknown[]> = async (
+    filters
+  ) =>
+    filters.id.map((productId) => ({
+      description: "",
+      id: productId,
+      subtitle: "",
     }))
 ) => {
   const clearGroupedEvents = vi.fn().mockResolvedValue(undefined)
@@ -81,6 +89,11 @@ const eventBusContext = (
     if (key === Modules.TRANSLATION) {
       return {
         listTranslations: vi.fn(listTranslations),
+      }
+    }
+    if (key === Modules.PRODUCT) {
+      return {
+        listProducts: vi.fn(listProducts),
       }
     }
     throw new Error(`Unexpected container resolution: ${key}`)
@@ -209,6 +222,30 @@ describe("URL registry product lifecycle workflow event", () => {
     const snapshots = await loadProductPublicationSnapshots(["prod_1"], context)
 
     expect(snapshots[0]?.assignments.sk).toBeNull()
+  })
+
+  it("blocks initial publication when a required localized description is blank", async () => {
+    const { context } = eventBusContext(
+      async (filters) =>
+        filters.reference_id.map((referenceId, index) => ({
+          deleted_at: null,
+          id: `trans_${index}`,
+          locale_code: filters.locale_code,
+          reference: filters.reference,
+          reference_id: referenceId,
+          translations: { description: "<p> </p>", title: "Produkt" },
+        })),
+      async (filters) =>
+        filters.id.map((productId) => ({
+          description: "Zdrojový popis",
+          id: productId,
+          subtitle: "",
+        }))
+    )
+
+    await expect(
+      loadProductPublicationSnapshots(["prod_1"], context)
+    ).rejects.toBeInstanceOf(ProductLifecycleProducerInputError)
   })
 
   it("classifies an unavailable Translation dependency as retryable server state", async () => {

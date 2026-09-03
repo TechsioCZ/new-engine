@@ -281,15 +281,19 @@ describe("phase 1 regressions", () => {
     expect(packageJson.exports).toBeTruthy()
     expect(packageJson.exports?.["."]).toBeNull()
     expect(packageJson.exports?.["./client/provider"]).toEqual({
-      types: "./dist/src/client/provider.d.ts",
+      types: "./dist/client/provider.d.ts",
       import: "./dist/client/provider.js",
     })
+    expect(packageJson.exports?.["./shared/region"]).toEqual({
+      types: "./dist/shared/region.d.ts",
+      import: "./dist/shared/region.js",
+    })
     expect(packageJson.exports?.["./server/get-query-client"]).toEqual({
-      types: "./dist/src/server/get-query-client.d.ts",
+      types: "./dist/server/get-query-client.d.ts",
       import: "./dist/server/get-query-client.js",
     })
     expect(packageJson.exports?.["./product-lists/query-options"]).toEqual({
-      types: "./dist/src/product-lists/query-options.d.ts",
+      types: "./dist/product-lists/query-options.d.ts",
       import: "./dist/product-lists/query-options.js",
     })
     expect(packageJson.exports?.["./get-query-client"]).toBeUndefined()

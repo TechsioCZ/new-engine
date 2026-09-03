@@ -110,17 +110,97 @@ describe("initial URLR population manifest", () => {
     )
   })
 
-  it("requires the exact build taxonomy hash and omits campaigns", () => {
+  it("requires the exact build taxonomy hash and publishes campaign roots", () => {
     expect(
-      buildPopulationStaticTaxonomy().some(({ routeKey }) =>
-        routeKey.includes("campaigns")
-      )
-    ).toBe(false)
+      buildPopulationStaticTaxonomy()
+        .filter(({ routeKey }) => routeKey === "type:campaigns")
+        .map(({ market, segment }) => [market, segment])
+    ).toEqual([
+      ["sk", "akcie"],
+      ["cz", "akce"],
+      ["hu", "akciok"],
+      ["ro", "promotii"],
+    ])
     const input = inputManifest()
     input.taxonomyApproval.hash = HASH
     expect(() => parsePopulationManifest(input)).toThrow(
       "taxonomyApproval.hash does not match this build"
     )
+  })
+
+  // Owner decision (demo delivery): the manual G1 editorial/legal gate is
+  // retired for root statics, so every root static — "about" and "faq"
+  // included — is a Payload-operated noindex route on every market.
+  it("keeps every RO root static noindex", () => {
+    const roRoots = buildPopulationStaticTaxonomy().filter(
+      ({ market, routeKey }) => market === "ro" && routeKey.startsWith("root:")
+    )
+
+    expect(
+      roRoots
+        .filter(({ indexPolicy }) => indexPolicy === "indexable")
+        .map(({ routeKey }) => routeKey)
+    ).toEqual([])
+    expect(
+      roRoots
+        .filter(({ indexPolicy }) => indexPolicy === "noindex")
+        .map(({ routeKey }) => routeKey)
+    ).toEqual([
+      "root:about",
+      "root:affiliate",
+      "root:contact",
+      "root:dropshipping",
+      "root:faq",
+      "root:giftVoucher",
+      "root:privateLabel",
+      "root:shipping",
+      "root:returns",
+      "root:terms",
+      "root:privacy",
+      "root:cookies",
+      "root:wholesale",
+    ])
+  })
+
+  it("accepts a customer-authoritative publicSlug with consecutive hyphens", () => {
+    const input = inputManifest()
+    const catalog = input.entities[0]
+    if (!catalog) {
+      throw new Error("Fixture has no catalog entity")
+    }
+    catalog.publicSlug = "zeleny--caj"
+    const manifest = parsePopulationManifest(input)
+    expect(manifest.entities[0]?.publicSlug).toBe("zeleny--caj")
+  })
+
+  it("accepts a publicSlug up to 255 characters and rejects one over the limit", () => {
+    const input = inputManifest()
+    const catalog = input.entities[0]
+    if (!catalog) {
+      throw new Error("Fixture has no catalog entity")
+    }
+    catalog.publicSlug = `a${"-a".repeat(127)}`
+    expect(catalog.publicSlug).toHaveLength(255)
+    expect(() => parsePopulationManifest(input)).not.toThrow()
+
+    catalog.publicSlug = `${catalog.publicSlug}a`
+    expect(() => parsePopulationManifest(input)).toThrow(
+      "entities[0].publicSlug is invalid"
+    )
+  })
+
+  it("keeps every root static noindex on non-RO markets", () => {
+    for (const market of ["sk", "cz", "hu"] as const) {
+      const roots = buildPopulationStaticTaxonomy().filter(
+        (route) => route.market === market && route.routeKey.startsWith("root:")
+      )
+      expect(roots.length).toBeGreaterThan(0)
+      expect(
+        roots
+          .filter(({ indexPolicy }) => indexPolicy === "indexable")
+          .map(({ routeKey }) => routeKey)
+      ).toEqual([])
+    }
   })
 })
 

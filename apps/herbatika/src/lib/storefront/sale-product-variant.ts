@@ -30,12 +30,22 @@ export const prioritizeDiscountedVariant = (
 
   const discountedVariant = variants[discountedVariantIndex]
   const productWithSearchResult = product as ProductWithSearchResult
-  const searchResult = { ...(productWithSearchResult.search_result ?? {}) }
+  const sourceSearchResult = productWithSearchResult.search_result ?? {}
+  const { variant_title: sourceVariantTitle, ...searchResultRest } =
+    sourceSearchResult
 
-  if (searchResult.variant_id !== discountedVariant.id) {
-    searchResult.variant_title = undefined
+  // The stale variant title must be omitted rather than set to `undefined`:
+  // Next.js rejects `undefined` values when serializing getServerSideProps
+  // payloads, so an explicitly-undefined key crashes every page that ships
+  // search results.
+  const keepsVariantTitle =
+    sourceSearchResult.variant_id === discountedVariant.id &&
+    sourceVariantTitle !== undefined
+  const searchResult: Record<string, unknown> = {
+    ...searchResultRest,
+    ...(keepsVariantTitle ? { variant_title: sourceVariantTitle } : {}),
+    variant_id: discountedVariant.id,
   }
-  searchResult.variant_id = discountedVariant.id
 
   return {
     ...product,

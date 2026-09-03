@@ -7,6 +7,7 @@ import { type ReactNode, useState } from "react"
 import { HerbatikaProductCardCompact } from "@/components/herbatika-product-card-compact"
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
 import { SupportingText } from "@/components/text/supporting-text"
+import { useProductPublicSlugs } from "@/lib/storefront/product-public-slugs"
 import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
 import {
   orderProductsByHandles,
@@ -63,6 +64,9 @@ export function RecentlyVisitedProductsSection({
     enabled: Boolean(region?.region_id && productHandles.length > 0),
   })
 
+  const productPublicSlugsById = useProductPublicSlugs(
+    recentProductsQuery.products
+  )
   const visibleProducts = orderProductsByHandles(
     recentProductsQuery.products,
     productHandles
@@ -111,6 +115,7 @@ export function RecentlyVisitedProductsSection({
             key={`recent-product-${product.id}-${index}`}
             onCompactImageError={handleCompactImageError}
             product={product}
+            publicSlug={product.id ? productPublicSlugsById[product.id] : null}
           />
         ))}
       </div>

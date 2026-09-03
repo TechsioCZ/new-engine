@@ -11,6 +11,8 @@ import {
   resolveSelectedVariant,
   resolveShortDescriptionHtml,
   resolveVariantItems,
+  translateOptionTitles,
+  translateOptionValue,
 } from "@/components/product-detail/product-detail-data.utils"
 import {
   resolveFreeShippingThresholdLabel,
@@ -25,7 +27,7 @@ import {
 } from "@/components/product-detail/product-detail-query"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
-import { mergeBrandGpsrIntoProductContentSections } from "@/components/product-detail/utils/brand-gpsr"
+import { useProductInformationSections } from "@/components/product-detail/use-product-information-sections"
 import {
   resolveGalleryItems,
   resolveProductHighlights,
@@ -33,16 +35,11 @@ import {
 import { resolveProductMediaFacts } from "@/components/product-detail/utils/media-facts"
 import {
   resolveOfferState,
-  resolveProductContentSections,
   resolveProductImages,
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
 import { useAuth } from "@/lib/storefront/auth"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import {
-  mergeWarrantyIntoProductContentSections,
-  resolveProductWarranty,
-} from "@/lib/storefront/product-attributes"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 import { useProduct } from "@/lib/storefront/products"
@@ -124,10 +121,21 @@ export function useProductDetailData({
       isInventoryManaged: selectedVariant?.manage_inventory,
     }
   )
-  const optionTitlesById = resolveOptionTitlesById(product)
-  const variantItems = resolveVariantItems(variants, optionTitlesById)
+  const optionTitlesById = translateOptionTitles(
+    resolveOptionTitlesById(product),
+    (key) => tCatalog(`product_detail.option_titles.${key}`)
+  )
+  const variantItems = resolveVariantItems(
+    variants,
+    optionTitlesById,
+    (value) =>
+      translateOptionValue(value, (key) =>
+        tCatalog(`product_detail.option_values.${key}`)
+      )
+  )
 
   const offerState = resolveOfferState(product, selectedVariant, {
+    allowSourceLabels: market === "sk",
     inStock: tCatalog("product_detail.stock.in_stock"),
     outOfStock: tCatalog("product_detail.stock.out_of_stock"),
   })
@@ -163,24 +171,15 @@ export function useProductDetailData({
     product?.handle?.trim() || product?.id || handle
   )
   const productHighlights = resolveProductHighlights(productSummaryText)
-  const otherSectionTitle = tCatalog("product_detail.sections.other")
-  const productContentSections = mergeBrandGpsrIntoProductContentSections(
-    mergeWarrantyIntoProductContentSections(
-      resolveProductContentSections(product, {
-        composition: tCatalog("product_detail.sections.composition"),
-        content: tCatalog("product_detail.sections.content"),
-        description: tCatalog("product_detail.sections.description"),
-        other: otherSectionTitle,
-        usage: tCatalog("product_detail.sections.usage"),
-        warning: tCatalog("product_detail.sections.warning"),
-      }),
-      resolveProductWarranty(productAttributesQuery.productAttributes),
-      otherSectionTitle
-    ),
+  const productContentSections = useProductInformationSections({
+    brandPublicSlugsById,
+    categories: productCategories,
+    locale,
+    market,
+    offerState,
     product,
-    otherSectionTitle,
-    locale
-  )
+    productAttributes: productAttributesQuery.productAttributes,
+  })
   const mediaFacts = resolveProductMediaFacts(product, productContentSections, {
     dailyCapsules: (count) =>
       tCatalog("product_detail.media.daily_capsules", { count }),

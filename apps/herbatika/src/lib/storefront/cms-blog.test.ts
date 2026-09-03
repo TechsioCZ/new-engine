@@ -32,6 +32,29 @@ describe("CMS article source reads", () => {
     })
   })
 
+  it("threads the exact locale into the editorial author mapping", async () => {
+    const { readCmsJson } = await import("./cms-client")
+    vi.mocked(readCmsJson).mockResolvedValue({
+      kind: "found",
+      value: {
+        article: {
+          id: 42,
+          slug: "advice",
+          title: "Advice",
+          author: { displayName: "Herbatika redakcia" },
+        },
+      },
+    })
+    const { fetchCmsBlogPostById } = await import("./cms-blog")
+
+    await expect(fetchCmsBlogPostById("42", "ro-RO")).resolves.toMatchObject({
+      author: { name: "Redacția Herbatica" },
+    })
+    await expect(fetchCmsBlogPostById("42", "sk-SK")).resolves.toMatchObject({
+      author: { name: "Herbatika redakcia" },
+    })
+  })
+
   it("rejects a malformed 200 response rather than treating it as missing", async () => {
     const { readCmsJson } = await import("./cms-client")
     vi.mocked(readCmsJson).mockResolvedValue({

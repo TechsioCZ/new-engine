@@ -7,6 +7,16 @@ import type {
   SearchAutocompleteSuggestion,
 } from "./search-autocomplete-types"
 
+const CONTENT_SUBTITLES: Record<
+  Market,
+  Readonly<{ article: string; page: string }>
+> = {
+  cz: { article: "Článek", page: "Informační stránka" },
+  hu: { article: "Cikk", page: "Információs oldal" },
+  ro: { article: "Articol", page: "Pagină de informații" },
+  sk: { article: "Článok", page: "Informačná stránka" },
+}
+
 const createContentSuggestion = (
   hit: RawSearchAutocompleteContentHit,
   market: Market,
@@ -20,9 +30,15 @@ const createContentSuggestion = (
   if (type === "article" || type === "page") {
     entityKind = type
   }
+  // Content search documents use "<type>_<sourceId>" ids; the slug maps are
+  // keyed by the bare source id.
+  const sourceId =
+    entityKind && id.startsWith(`${entityKind}_`)
+      ? id.slice(entityKind.length + 1)
+      : id
   const publicSlug = entityKind
     ? (entityKind === "article" ? publicSlugsByArticleId : publicSlugsByPageId)[
-        id
+        sourceId
       ]
     : undefined
   const href = entityKind
@@ -41,8 +57,8 @@ const createContentSuggestion = (
     href,
     subtitle:
       type === "article"
-        ? "Článok"
-        : normalizeString(hit.excerpt) || "Informačná stránka",
+        ? CONTENT_SUBTITLES[market].article
+        : normalizeString(hit.excerpt) || CONTENT_SUBTITLES[market].page,
   }
 }
 

@@ -34,8 +34,12 @@ const asEntitySnapshot = (
 
 const assertLifecycleAllowsEntityCreation = async (
   executor: SqlExecutor,
-  request: CreateEntityRouteRequest
+  request: CreateEntityRouteRequest,
+  sourcePresenceConfirmed: boolean
 ) => {
+  if (sourcePresenceConfirmed) {
+    return
+  }
   const blocked = await executor.query(
     `SELECT 1
        FROM url_registry.url_registry_source_event_cursor AS cursor
@@ -70,7 +74,8 @@ const assertLifecycleAllowsEntityCreation = async (
 export const createEntityRoute = async (
   executor: SqlExecutor,
   command: UrlRegistryCommand<CreateEntityRouteRequest>,
-  createId: () => string
+  createId: () => string,
+  sourcePresenceConfirmed = false
 ): Promise<RouteCommandDraft> => {
   const { request } = command
   assertMarket(request.route.market)
@@ -85,7 +90,11 @@ export const createEntityRoute = async (
       "Create expectedVersion must be 0"
     )
   }
-  await assertLifecycleAllowsEntityCreation(executor, request)
+  await assertLifecycleAllowsEntityCreation(
+    executor,
+    request,
+    sourcePresenceConfirmed
+  )
   const routeId = createId()
   const slugId = createId()
   assertUuid(routeId, "generated routeId")
