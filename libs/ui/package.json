@@ -1,6 +1,7 @@
 {
   "name": "@techsio/ui-kit",
   "version": "0.3.2",
+  "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
