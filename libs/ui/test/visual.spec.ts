@@ -24,7 +24,7 @@ const shouldResetBetweenTests =
 
 let storybookIndex: StorybookIndex
 
-const test = base.extend<Record<string, never>, { workerPage: Page }>({
+const test = base.extend<Record<never, never>, { workerPage: Page }>({
   workerPage: [
     async ({ browser }, use, testInfo) => {
       const context = await browser.newContext(testInfo.project.use)
@@ -162,20 +162,6 @@ test.describe
             () => {
               const root = document.querySelector("#storybook-root")
               return root && root.children.length > 0
-            },
-            { timeout: 30_000 }
-          )
-          await page.waitForFunction(
-            () => {
-              const preview = (
-                globalThis as typeof globalThis & {
-                  __STORYBOOK_PREVIEW__?: {
-                    currentRender?: { phase?: string }
-                  }
-                }
-              ).__STORYBOOK_PREVIEW__
-
-              return preview?.currentRender?.phase === "finished"
             },
             { timeout: 30_000 }
           )
