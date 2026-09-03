@@ -14,18 +14,22 @@
       "import": "./dist/types/zag.js"
     },
     "./tokens": {
+      "types": "./src/tokens/styles.d.ts",
       "style": "./src/tokens/tokens-only.css",
       "default": "./src/tokens/tokens-only.css"
     },
     "./tokens-with-tailwind": {
+      "types": "./src/tokens/styles.d.ts",
       "style": "./src/tokens/index.css",
       "default": "./src/tokens/index.css"
     },
     "./theme.css": {
+      "types": "./src/tokens/styles.d.ts",
       "style": "./src/tokens/theme.css",
       "default": "./src/tokens/theme.css"
     },
     "./tokens/*": {
+      "types": "./src/tokens/styles.d.ts",
       "style": "./src/tokens/*.css",
       "default": "./src/tokens/*.css"
     },
@@ -60,7 +64,7 @@
   ],
   "scripts": {
     "build": "rslib build",
-    "check:package": "cross-env RSLIB_CHECK_OUTPUT=true rslib build",
+    "check:package": "cross-env RSLIB_CHECK_OUTPUT=true rslib build && node scripts/validate-package-exports.mjs",
     "build:storybook": "storybook build",
     "dev": "rslib build --watch",
     "storybook": "storybook dev",
@@ -135,9 +139,9 @@
     "@semantic-release/github": "^12.0.2",
     "@semantic-release/npm": "^13.1.2",
     "@semantic-release/release-notes-generator": "^14.1.0",
-    "@storybook/addon-a11y": "^10.4.4",
-    "@storybook/addon-themes": "^10.4.4",
-    "@storybook/react": "^10.4.4",
+    "@storybook/addon-a11y": "^10.6.0",
+    "@storybook/addon-themes": "^10.6.0",
+    "@storybook/react": "^10.6.0",
     "@storybook/test-runner": "^0.24.4",
     "@tailwindcss/postcss": "^4.1.17",
     "@techsio/storybook-a11y-reporter": "0.1.3",
@@ -153,9 +157,9 @@
     "rsbuild-plugin-arethetypeswrong": "0.3.1",
     "rsbuild-plugin-publint": "^1.0.0",
     "semantic-release": "^25.0.2",
-    "storybook": "^10.4.4",
-    "storybook-addon-rslib": "^3.3.4",
-    "storybook-react-rsbuild": "^3.3.4",
+    "storybook": "^10.6.0",
+    "storybook-addon-rslib": "^3.4.2",
+    "storybook-react-rsbuild": "^3.4.2",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3"
   },

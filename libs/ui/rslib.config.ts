@@ -27,7 +27,6 @@ export default defineConfig({
         // The package intentionally exposes CSS-only subpaths and is ESM-only.
         // Keep modern ESM and bundler checks active for every typed JS export.
         ignoreResolutions: ["node10", "node16-cjs"],
-        ignoreRules: ["no-resolution"],
       },
     }),
     pluginReact(),
