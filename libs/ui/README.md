@@ -204,7 +204,8 @@ TEST_BASE_URL=http://127.0.0.1:6006 PLAYWRIGHT_WORKERS=6 pnpm -C libs/ui test:co
 
 ## 8. Publishing and releases
 
-- Build + publint: `pnpm -C libs/ui build` runs `rsbuild-plugin-publint` after the build; if exports/entrypoints are wrong, this command fails.
+- Build: `pnpm -C libs/ui build` creates the package without release-only validation.
+- Package output checks: `pnpm -C libs/ui check:package` builds, runs publint against package structure and exports, and runs AreTheTypesWrong across TypeScript module-resolution modes. CI and the release workflow run this command automatically.
 - Exports only, no barrel: import from explicit subpaths (e.g. `@techsio/ui-kit/atoms/button`, `@techsio/ui-kit/templates/accordion`, `@techsio/ui-kit/utils`). The package root is intentionally not exported.
 - Automated releases: `libs/ui/release.config.mjs` uses semantic-release (tag format `ui-kit-v<version>`) to publish to npm and create GitHub releases without pushing generated version/changelog commits back to the protected branch. While we are <1.0.0, `BREAKING CHANGE` commits are forced to “minor” bumps to stay in 0.x; remove that release rule when stabilizing for 1.0.0+ to restore SemVer majors.
 - Security posture: releases are restricted to GitHub Actions (`GITHUB_ACTIONS` required), npm publishes use trusted publishing through GitHub OIDC (`id-token: write`) and do not require an npm token.
