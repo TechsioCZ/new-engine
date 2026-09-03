@@ -22,6 +22,7 @@
 @import "./molecules/_chart.css";
 @import "./molecules/_color-select.css";
 @import "./molecules/_combobox.css";
+@import "./molecules/_date-picker.css";
 @import "./molecules/_dialog.css";
 @import "./molecules/_pagination.css";
 @import "./molecules/_popover.css";

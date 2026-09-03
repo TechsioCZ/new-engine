@@ -70,6 +70,7 @@
     "storybook": "storybook dev",
     "figma:connect:parse": "figma connect parse --config figma.config.json",
     "figma:connect:publish": "figma connect publish --config figma.config.json",
+    "test": "vitest run --config vitest.config.ts",
     "test-storybook": "test-storybook",
     "storybook:a11y": "bash scripts/storybook-a11y.sh",
     "test:components": "node scripts/run-component-tests.mjs",
@@ -81,7 +82,8 @@
     "validate:tokens": "bun scripts/validate-token-usage.js && bun scripts/validate-token-definitions.js",
     "validate:token-usage": "bun scripts/validate-token-usage.js",
     "validate:token-definitions": "bun scripts/validate-token-definitions.js",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -92,6 +94,7 @@
     "@iconify-json/mdi-light": "^1.2.2",
     "@iconify-json/svg-spinners": "^1.2.4",
     "@iconify/tailwind4": "^1.1.0",
+    "@internationalized/date": "^3.12.2",
     "@tanstack/charts": "^0.6.5",
     "@tanstack/charts-scales": "^0.6.5",
     "@tanstack/react-charts": "^0.6.5",
@@ -101,6 +104,8 @@
     "@zag-js/carousel": "^1.41.2",
     "@zag-js/checkbox": "^1.41.2",
     "@zag-js/combobox": "^1.41.2",
+    "@zag-js/date-input": "^1.41.2",
+    "@zag-js/date-picker": "^1.41.2",
     "@zag-js/dialog": "^1.41.2",
     "@zag-js/i18n-utils": "^1.41.2",
     "@zag-js/menu": "^1.41.2",
@@ -161,7 +166,9 @@
     "storybook-addon-rslib": "^3.4.2",
     "storybook-react-rsbuild": "^3.4.2",
     "tailwindcss": "^4.1.17",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "catalog:vite5-testing",
+    "vitest": "catalog:vite5-testing"
   },
   "peerDependencies": {
     "@types/react": ">=19.2.0",

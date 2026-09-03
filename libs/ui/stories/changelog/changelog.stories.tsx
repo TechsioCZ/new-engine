@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DatePicker v1.1.0
+- Added date and date-time ranges to the existing compound DatePicker: complete typed tuples, indexed start/end segments and form values, coordinated two-month presentation, continuous range states, and one shared timed Cancel/Confirm transaction. Updated the paired date-picker-usage skill and component metadata.
+
 ### Dialog v1.0.1
 - Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
 
