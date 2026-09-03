@@ -11,8 +11,8 @@ library_version: "0.3.2"
 sources:
   - "libs/ui/AGENTS.md"
   - "libs/ui/figma.config.json"
-  - "libs/ui/src/atoms/figma/button.figma.tsx"
-  - "libs/ui/src/molecules/figma/dialog.figma.tsx"
+  - "libs/ui/src/atoms/button.figma.ts"
+  - "libs/ui/src/molecules/dialog.figma.ts"
   - ".agents/skills/component-to-figma/SKILL.md"
 ---
 
@@ -50,20 +50,34 @@ Use parse as a local consistency check when Code Connect files change.
 
 ### Keep Figma props aligned with code props
 
-```tsx
-figma.connect(Button, "https://www.figma.com/design/...", {
-  imports: ['import { Button } from "@techsio/ui-kit/atoms/button"'],
-  props: {
-    variant: figma.enum("variant", {
-      primary: "primary",
-      danger: "danger",
-    }),
-    theme: figma.enum("theme", {
-      solid: "solid",
-      outlined: "outlined",
-    }),
-  },
+Code Connect v2 uses parserless templates (`*.figma.ts`), not the removed v1
+`figma.connect()` API:
+
+```ts
+// url=https://www.figma.com/design/<fileKey>/<name>?node-id=<node>
+// source=<url to the component source>
+// component=Button
+
+import figma from "figma"
+
+const variant = figma.selectedInstance.getEnum("variant", {
+  primary: "primary",
+  danger: "danger",
 })
+const theme = figma.selectedInstance.getEnum("theme", {
+  solid: "solid",
+  outlined: "outlined",
+})
+
+export default {
+  id: "Button",
+  imports: ['import { Button } from "@techsio/ui-kit/atoms/button"'],
+  example: figma.tsx`<Button${figma.helpers.react.renderProp(
+    "theme",
+    theme
+  )}${figma.helpers.react.renderProp("variant", variant)} />`,
+  metadata: { nestable: true },
+}
 ```
 
 Public prop additions or renames should trigger a mapping review.
@@ -121,7 +135,7 @@ Source: libs/ui/AGENTS.md
 Wrong:
 
 ```tsx
-// Button adds theme="unstyled"; button.figma.tsx still omits it.
+// Button adds theme="unstyled"; button.figma.ts still omits it.
 ```
 
 Correct:
@@ -138,13 +152,13 @@ theme: figma.enum("theme", {
 
 Figma examples should not teach a stale public API.
 
-Source: libs/ui/src/atoms/figma/button.figma.tsx
+Source: libs/ui/src/atoms/button.figma.ts
 
 ## Validation Commands
 
 ```sh
 pnpm --dir libs/ui figma:connect:parse
-bunx biome check --write libs/ui/src/atoms/figma/button.figma.tsx
+bunx biome check --write libs/ui/src/atoms/button.figma.ts
 ```
 
 Run `figma:connect:publish` only when the maintainer explicitly asks.

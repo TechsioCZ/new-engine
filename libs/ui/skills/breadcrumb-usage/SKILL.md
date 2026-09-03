@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/breadcrumb.tsx"
   - "libs/ui/src/tokens/components/molecules/_breadcrumb.css"
   - "libs/ui/stories/molecules/breadcrumb.stories.tsx"
-  - "libs/ui/src/molecules/figma/breadcrumb.figma.tsx"
+  - "libs/ui/src/molecules/breadcrumb.figma.ts"
 ---
 
 # @techsio/ui-kit Breadcrumb Usage

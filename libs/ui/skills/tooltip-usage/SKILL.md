@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/atoms/tooltip.tsx"
   - "libs/ui/src/tokens/components/atoms/_tooltip.css"
   - "libs/ui/stories/atoms/tooltip.stories.tsx"
-  - "libs/ui/src/atoms/figma/tooltip.figma.tsx"
+  - "libs/ui/src/atoms/tooltip.figma.ts"
   - "https://zagjs.com/components/react/tooltip"
 ---
 

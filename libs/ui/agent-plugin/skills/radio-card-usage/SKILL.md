@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/radio-card.tsx"
   - "libs/ui/src/tokens/components/molecules/_radio-card.css"
   - "libs/ui/stories/molecules/radio-card.stories.tsx"
-  - "libs/ui/src/molecules/figma/radio-card.figma.tsx"
+  - "libs/ui/src/molecules/radio-card.figma.ts"
   - "https://zagjs.com/components/react/radio-group"
 ---
 

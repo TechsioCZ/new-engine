@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/molecules/dialog.tsx"
   - "libs/ui/src/tokens/components/molecules/_dialog.css"
   - "libs/ui/stories/molecules/dialog.stories.tsx"
-  - "libs/ui/src/molecules/figma/dialog.figma.tsx"
+  - "libs/ui/src/molecules/dialog.figma.ts"
   - "https://zagjs.com/components/react/dialog"
 ---
 

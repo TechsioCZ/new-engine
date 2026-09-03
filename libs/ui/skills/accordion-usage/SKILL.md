@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/accordion.tsx"
   - "libs/ui/src/tokens/components/molecules/_accordion.css"
   - "libs/ui/stories/molecules/accordion.stories.tsx"
-  - "libs/ui/src/molecules/figma/accordion.figma.tsx"
+  - "libs/ui/src/molecules/accordion.figma.ts"
   - "https://zagjs.com/components/react/accordion"
 ---
 

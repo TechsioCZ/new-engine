@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/atoms/status-text.tsx"
   - "libs/ui/src/tokens/components/atoms/_status-text.css"
   - "libs/ui/stories/atoms/status-text.stories.tsx"
-  - "libs/ui/src/atoms/figma/status-text.figma.tsx"
+  - "libs/ui/src/atoms/status-text.figma.ts"
 ---
 
 # @techsio/ui-kit StatusText Usage

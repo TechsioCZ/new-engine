@@ -15,7 +15,7 @@ sources:
   - "libs/ui/src/atoms/badge.tsx"
   - "libs/ui/src/tokens/components/atoms/_badge.css"
   - "libs/ui/stories/atoms/badge.stories.tsx"
-  - "libs/ui/src/atoms/figma/badge.figma.tsx"
+  - "libs/ui/src/atoms/badge.figma.ts"
 ---
 
 # @techsio/ui-kit Badge Usage

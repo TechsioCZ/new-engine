@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/popover.tsx"
   - "libs/ui/src/tokens/components/molecules/_popover.css"
   - "libs/ui/stories/molecules/popover.stories.tsx"
-  - "libs/ui/src/molecules/figma/popover.figma.tsx"
+  - "libs/ui/src/molecules/popover.figma.ts"
   - "https://zagjs.com/components/react/popover"
 ---
 

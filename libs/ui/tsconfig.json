@@ -30,5 +30,5 @@
     "test/**/*.ts",
     "test/**/*.tsx"
   ],
-  "exclude": ["node_modules", "./local/"]
+  "exclude": ["node_modules", "./local/", "src/**/*.figma.ts"]
 }

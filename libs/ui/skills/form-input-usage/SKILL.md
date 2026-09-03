@@ -16,7 +16,7 @@ sources:
   - "libs/ui/src/molecules/form-input.tsx"
   - "libs/ui/src/atoms/input.tsx"
   - "libs/ui/stories/molecules/form-input.stories.tsx"
-  - "libs/ui/src/molecules/figma/form-input.figma.tsx"
+  - "libs/ui/src/molecules/form-input.figma.ts"
 ---
 
 # @techsio/ui-kit FormInput Usage
