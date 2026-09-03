@@ -15,7 +15,7 @@
 
 import { execFileSync } from "node:child_process"
 import { existsSync, readdirSync } from "node:fs"
-import { join } from "node:path"
+import { posix } from "node:path"
 
 const SKILLS_DIR = "libs/ui/skills"
 // The plugin bundle is generated from SKILLS_DIR by sync-skills.mjs. It is committed, so a stale
@@ -119,8 +119,8 @@ for (const file of optedInComponents()) {
   const skillName = readStaged(file).match(SKILL_TAG_RE)?.[1]
   if (!skillName) continue
   const skillTouched =
-    stagedSet.has(join(SKILLS_DIR, skillName, "SKILL.md")) ||
-    stagedSet.has(join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md"))
+    stagedSet.has(posix.join(SKILLS_DIR, skillName, "SKILL.md")) ||
+    stagedSet.has(posix.join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md"))
   if (skillTouched || changelogStaged) toCheck.add(file)
 }
 
@@ -144,7 +144,7 @@ for (const file of toCheck) {
 
   const version = vMatch[1]
   const skillName = sMatch[1]
-  const skillPath = join(SKILLS_DIR, skillName, "SKILL.md")
+  const skillPath = posix.join(SKILLS_DIR, skillName, "SKILL.md")
 
   if (!existsSync(skillPath)) {
     errors.push(`${label}: @skill ${skillName} → ${skillPath} does not exist.`)
@@ -166,7 +166,7 @@ for (const file of toCheck) {
   // (sync-skills.mjs `cpSync`), so it must be byte-for-byte identical. Comparing only
   // `component_version` would let changed source guidance ship with a stale bundle that happens to
   // carry the same version — check the whole file, which subsumes the version.
-  const bundledPath = join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md")
+  const bundledPath = posix.join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md")
   if (!existsSync(bundledPath)) {
     errors.push(
       `${bundledPath} missing — run \`${SYNC_CMD}\` to bundle ${skillName}.`
