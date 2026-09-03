@@ -1,0 +1,93 @@
+@theme static {
+  /* BASE COLOR MAPPING */
+  --color-sidebar-surface: var(--color-surface);
+  --color-sidebar-base: var(--color-base);
+  --color-sidebar-foreground: var(--color-fg-primary);
+  --color-sidebar-muted-foreground: var(--color-fg-secondary);
+  --color-sidebar-border: var(--color-border-primary);
+  --color-sidebar-interactive: var(--color-overlay);
+  --color-sidebar-focus: var(--color-primary);
+
+  /* DERIVED COLORS */
+  --color-sidebar-root-bg: var(--color-sidebar-base);
+  --color-sidebar-root-fg: var(--color-sidebar-foreground);
+  --color-sidebar-panel-bg: var(--color-sidebar-surface);
+  --color-sidebar-panel-fg: var(--color-sidebar-foreground);
+  --color-sidebar-panel-border: var(--color-sidebar-border);
+  --color-sidebar-inset-bg: var(--color-sidebar-base);
+  --color-sidebar-inset-fg: var(--color-sidebar-foreground);
+  --color-sidebar-group-label-fg: var(--color-sidebar-muted-foreground);
+  --color-sidebar-pane-border: var(--color-sidebar-border);
+  --color-sidebar-separator-bg: var(--color-sidebar-border);
+  --color-sidebar-trigger-bg: transparent;
+  --color-sidebar-trigger-bg-hover: var(--color-sidebar-interactive);
+  --color-sidebar-trigger-bg-active: var(--color-sidebar-interactive);
+  --color-sidebar-trigger-fg: var(--color-sidebar-foreground);
+  --color-sidebar-rail-bg-hover: var(--color-sidebar-interactive);
+  --color-sidebar-rail-fg: var(--color-sidebar-muted-foreground);
+  --color-sidebar-rail-indicator-bg: var(--color-sidebar-border);
+  --color-sidebar-ring: var(--color-sidebar-focus);
+
+  /* RESPONSIVE CONTRACT */
+  --breakpoint-sidebar-desktop: 64rem;
+
+  /* VIEWPORT AND WIDTHS */
+  --spacing-sidebar-offset: 0rem;
+  --height-sidebar-viewport: calc(100dvh - var(--spacing-sidebar-offset));
+  --width-sidebar-expanded: 16rem;
+  --width-sidebar-icon: 3.5rem;
+  --container-sidebar-mobile: 18rem;
+  --width-sidebar-rail: var(--dimension-12);
+  --width-sidebar-rail-indicator: var(--dimension-2);
+  --height-sidebar-rail-indicator: var(--dimension-32);
+  --height-sidebar-separator: var(--dimension-1);
+
+  /* SPACING */
+  --padding-sidebar-section: var(--dimension-16);
+  --padding-sidebar-section-compact: var(--dimension-8);
+  --padding-sidebar-content: var(--dimension-12);
+  --padding-sidebar-content-compact: var(--dimension-8);
+  --padding-sidebar-group-label: var(--dimension-8);
+  --gap-sidebar-section: var(--dimension-8);
+  --gap-sidebar-content: var(--dimension-16);
+  --gap-sidebar-group: var(--dimension-8);
+  --gap-sidebar-group-content: var(--dimension-4);
+  --gap-sidebar-menu: var(--dimension-4);
+  --spacing-sidebar-rail: 0rem;
+
+  /* TYPOGRAPHY */
+  --text-sidebar-group-label: var(--text-xs);
+  --font-weight-sidebar-group-label: var(--font-weight-semibold);
+
+  /* BORDER, RADIUS, MOTION, LAYER */
+  --border-width-sidebar: var(--border-width-sm);
+  --radius-sidebar-rail: var(--radius-full);
+  --outline-sidebar-focus-offset: var(--default-ring-offset);
+  --outline-sidebar-focus-style: var(--default-ring-style);
+  --outline-sidebar-focus-width: var(--default-ring-width);
+  --duration-sidebar: 200ms;
+  --z-sidebar-rail: 10;
+}
+
+@utility token-icon-sidebar-trigger {
+  @apply token-icon-menu;
+}
+
+@utility token-icon-sidebar-close {
+  @apply token-icon-close;
+}
+
+@utility sidebar-focus-ring {
+  outline-color: var(--color-sidebar-ring);
+  outline-offset: var(--outline-sidebar-focus-offset);
+  outline-style: var(--outline-sidebar-focus-style);
+  outline-width: var(--outline-sidebar-focus-width);
+}
+
+@utility sidebar-group-label-typography {
+  font-size: var(--text-sidebar-group-label);
+}
+
+@utility sidebar-rail-layer {
+  z-index: var(--z-sidebar-rail);
+}
