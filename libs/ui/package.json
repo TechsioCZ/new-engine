@@ -102,6 +102,7 @@
     "@zag-js/checkbox": "^1.41.2",
     "@zag-js/combobox": "^1.41.2",
     "@zag-js/dialog": "^1.41.2",
+    "@zag-js/file-upload": "^1.41.2",
     "@zag-js/i18n-utils": "^1.41.2",
     "@zag-js/menu": "^1.41.2",
     "@zag-js/number-input": "^1.41.2",
