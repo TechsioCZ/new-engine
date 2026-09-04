@@ -17,8 +17,8 @@ if (packageJson.publishConfig?.access !== "public") {
   throw new Error("publishConfig.access must be public.")
 }
 
-if (packageJson.license !== "UNLICENSED") {
-  throw new Error("The package must remain UNLICENSED.")
+if (packageJson.license !== "MIT") {
+  throw new Error("The package license must remain MIT.")
 }
 
 const requiredSubpaths = [

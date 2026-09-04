@@ -2,6 +2,7 @@
   "name": "zane-operator",
   "version": "0.0.1",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/main.ts",

@@ -1,8 +1,8 @@
 {
   "name": "@techsio/storefront-i18n",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared market resolution and backend-managed messages for Medusa storefronts.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
