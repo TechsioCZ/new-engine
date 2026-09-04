@@ -27,12 +27,11 @@ const meta = {
     controls: {
       include: [
         "accept",
-        "allowDrop",
         "disabled",
         "invalid",
+        "maxFileSize",
         "maxFiles",
-        "readOnly",
-        "required",
+        "minFileSize",
       ],
     },
     docs: {
@@ -59,27 +58,26 @@ const meta = {
       control: "boolean",
       description: "Marks the file selector as invalid.",
     },
+    maxFileSize: {
+      control: { type: "number", min: 0, step: 1024 },
+      description: "Maximum accepted file size in bytes.",
+    },
     maxFiles: {
       control: { type: "number", min: 1, step: 1 },
       description: "Maximum number of accepted files.",
     },
-    readOnly: {
-      control: "boolean",
-      description: "Prevents changes while preserving the current files.",
-    },
-    required: {
-      control: "boolean",
-      description: "Marks the hidden native file input as required.",
+    minFileSize: {
+      control: { type: "number", min: 0, step: 1024 },
+      description: "Minimum accepted file size in bytes.",
     },
   },
   args: {
     accept: { "image/*": [".png", ".jpg", ".jpeg"] },
-    allowDrop: true,
     disabled: false,
     invalid: false,
+    maxFileSize: 5 * 1024 * 1024,
     maxFiles: 3,
-    readOnly: false,
-    required: false,
+    minFileSize: 0,
     onFileAccept: fn(),
     onFileChange: fn(),
     onFileReject: fn(),
@@ -123,9 +121,77 @@ const validateImage: NonNullable<FileUploadProps["validate"]> = (file) =>
   file.name === "profile.png" ? ["IMAGE_REQUIRES_ALT_TEXT"] : null
 
 function getValidationErrorMessage(error: string) {
-  return error === "IMAGE_REQUIRES_ALT_TEXT"
-    ? "Add alternative text before uploading."
-    : "This file could not be accepted."
+  const messages: Record<string, string> = {
+    FILE_EXISTS: "This file has already been selected.",
+    FILE_INVALID_TYPE: "This file type is not accepted.",
+    FILE_TOO_LARGE: "This file is larger than the maximum size.",
+    FILE_TOO_SMALL: "This file is smaller than the minimum size.",
+    IMAGE_REQUIRES_ALT_TEXT: "Add alternative text before uploading.",
+    TOO_MANY_FILES: "The maximum number of files would be exceeded.",
+  }
+
+  return messages[error] ?? "This file could not be accepted."
+}
+
+function formatFileSize(bytes: number | undefined) {
+  if (bytes === undefined || !Number.isFinite(bytes)) {
+    return "no size limit"
+  }
+
+  if (bytes < 1024) {
+    return `${bytes} B`
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`
+  }
+
+  return `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`
+}
+
+function formatAcceptedTypes(accept: FileUploadProps["accept"]) {
+  if (!accept) {
+    return "Any file type"
+  }
+
+  if (typeof accept === "string") {
+    return accept
+  }
+
+  if (Array.isArray(accept)) {
+    return accept.join(", ")
+  }
+
+  const extensions = Object.values(accept).flat()
+  return extensions.length > 0
+    ? extensions.join(", ")
+    : Object.keys(accept).join(", ")
+}
+
+function formatFileRequirements({
+  accept,
+  maxFileSize,
+  maxFiles,
+  minFileSize,
+}: Pick<
+  FileUploadProps,
+  "accept" | "maxFileSize" | "maxFiles" | "minFileSize"
+>) {
+  const requirements = [formatAcceptedTypes(accept)]
+
+  if (maxFiles !== undefined) {
+    requirements.push(`up to ${maxFiles} files`)
+  }
+
+  if (minFileSize !== undefined && minFileSize > 0) {
+    requirements.push(`at least ${formatFileSize(minFileSize)} each`)
+  }
+
+  if (maxFileSize !== undefined && Number.isFinite(maxFileSize)) {
+    requirements.push(`${formatFileSize(maxFileSize)} each`)
+  }
+
+  return requirements.join(", ")
 }
 
 type FileItemsProps = {
@@ -173,11 +239,17 @@ function FileItems({ imagePreview = false, type = "accepted" }: FileItemsProps) 
   )
 }
 
-function DropzoneContent({ detail = "PNG or JPG" }: { detail?: string }) {
+function DropzoneContent({
+  detail = "PNG or JPG",
+  title = "Drop files here",
+}: {
+  detail?: string
+  title?: string
+}) {
   return (
     <>
-      <strong>Drop files here</strong>
-      <span className="text-fg-primary text-md">{detail}</span>
+      <strong>{title}</strong>
+      <span className="text-center text-fg-primary text-md">{detail}</span>
     </>
   )
 }
@@ -193,8 +265,68 @@ function StandardFileUpload(props: FileUploadProps) {
   )
 }
 
+function PlaygroundFileUpload({
+  accept,
+  disabled,
+  invalid,
+  maxFileSize,
+  maxFiles,
+  minFileSize,
+  ...props
+}: FileUploadProps) {
+  return (
+    <FileUpload
+      {...props}
+      accept={accept}
+      className="w-full max-w-md"
+      disabled={disabled}
+      invalid={invalid}
+      maxFileSize={maxFileSize}
+      maxFiles={maxFiles}
+      minFileSize={minFileSize}
+    >
+      <FileUpload.Label>Attachments</FileUpload.Label>
+      <FileUpload.HiddenInput />
+      <FileUpload.Dropzone>
+        <DropzoneContent
+          detail={formatFileRequirements({
+            accept,
+            maxFileSize,
+            maxFiles,
+            minFileSize,
+          })}
+        />
+      </FileUpload.Dropzone>
+      {invalid ? (
+        <StatusText showIcon status="error">
+          The current file selection is invalid.
+        </StatusText>
+      ) : undefined}
+      <FileUpload.Context>
+        {(api) => {
+          const hasFiles =
+            api.acceptedFiles.length > 0 || api.rejectedFiles.length > 0
+
+          return hasFiles ? (
+            <StatusText
+              showIcon={api.rejectedFiles.length > 0}
+              size="sm"
+              status={api.rejectedFiles.length > 0 ? "error" : "default"}
+            >
+              {api.acceptedFiles.length} accepted, {api.rejectedFiles.length}{" "}
+              rejected, {api.remainingFiles} remaining
+            </StatusText>
+          ) : undefined
+        }}
+      </FileUpload.Context>
+      <FileItems />
+      <FileItems type="rejected" />
+    </FileUpload>
+  )
+}
+
 export const Playground: Story = {
-  render: (args) => <StandardFileUpload {...args} />,
+  render: (args) => <PlaygroundFileUpload {...args} />,
 }
 
 export const States: Story = {
@@ -304,16 +436,32 @@ export const Multiple: Story = {
 }
 
 export const Dropzone: Story = {
-  render: () => (
+  args: {
+    allowDrop: true,
+  },
+  parameters: {
+    controls: {
+      include: ["allowDrop"],
+    },
+  },
+  render: (args) => (
     <FileUpload
       accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+      allowDrop={args.allowDrop}
       className="w-full max-w-md"
       maxFiles={4}
     >
       <FileUpload.Label>Product images</FileUpload.Label>
       <FileUpload.HiddenInput />
       <FileUpload.Dropzone>
-        <DropzoneContent detail="PNG or JPG, up to four files" />
+        <DropzoneContent
+          detail={
+            args.allowDrop
+              ? "PNG or JPG, up to four files"
+              : "Click to browse; drag and drop is disabled"
+          }
+          title={args.allowDrop ? "Drop files here" : "Select product images"}
+        />
       </FileUpload.Dropzone>
       <FileItems imagePreview />
     </FileUpload>
