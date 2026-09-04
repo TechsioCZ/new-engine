@@ -66,6 +66,11 @@ if (storyFilter.length > 0 && selectedStories.length === 0) {
   throw new Error(`No stories matched TEST_STORIES=${storyFilter.join(",")}`)
 }
 
+const storyFinalText: Partial<Record<string, string>> = {
+  "molecules-fileupload--clearable": "restored.pdf",
+  "molecules-fileupload--controlled": "controlled.txt",
+}
+
 test.describe
   .parallel("storybook visual", () => {
     for (const story of selectedStories) {
@@ -306,6 +311,11 @@ test.describe
                 active.blur()
               }
             })
+          }
+
+          const finalText = storyFinalText[story.id]
+          if (finalText) {
+            await page.getByText(finalText, { exact: true }).waitFor()
           }
 
           await page.evaluate(

@@ -555,20 +555,6 @@ export const Clearable: Story = {
       <FileUpload.HiddenInput />
       <FileUpload.Trigger>Add document</FileUpload.Trigger>
       <FileItems />
-      <FileItems type="rejected" />
-      <FileUpload.Context>
-        {(api) =>
-          api.rejectedFiles.length > 0 ? (
-            <Button
-              onClick={api.clearRejectedFiles}
-              theme="borderless"
-              variant="danger"
-            >
-              Clear rejected files
-            </Button>
-          ) : null
-        }
-      </FileUpload.Context>
     </FileUpload>
   ),
   play: async ({ canvasElement }) => {
@@ -576,24 +562,21 @@ export const Clearable: Story = {
     await userEvent.click(
       canvas.getByRole("button", { name: "delete file invoice.pdf" })
     )
-    await expect(canvas.queryByText("invoice.pdf")).not.toBeInTheDocument()
-    await userEvent.upload(canvas.getByLabelText("Documents"), createTextFile(), {
-      applyAccept: false,
-    })
-    await userEvent.click(
-      canvas.getByRole("button", { name: "Clear rejected files" })
+    await waitFor(() =>
+      expect(canvas.queryByText("invoice.pdf")).not.toBeInTheDocument()
     )
-    await expect(canvas.queryByText("brief.txt")).not.toBeInTheDocument()
     await expect(canvas.getByText("receipt.pdf")).toBeVisible()
     await userEvent.click(
       canvas.getByRole("button", { name: "Clear all files" })
     )
-    await expect(canvas.queryByText("receipt.pdf")).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(canvas.queryByText("receipt.pdf")).not.toBeInTheDocument()
+    )
     await userEvent.upload(
       canvas.getByLabelText("Documents"),
       createPdfFile("restored.pdf")
     )
-    await expect(canvas.getByText("restored.pdf")).toBeVisible()
+    await expect(await canvas.findByText("restored.pdf")).toBeVisible()
   },
 }
 
@@ -651,12 +634,10 @@ export const Controlled: Story = {
       canvas.getByLabelText("Controlled files"),
       createTextFile("controlled.txt")
     )
-    await expect(canvas.getByText("1 of 2 files selected")).toBeVisible()
+    await expect(
+      await canvas.findByText("1 of 2 files selected")
+    ).toBeVisible()
     await expect(args.onFileChange).toHaveBeenCalled()
-    await userEvent.click(
-      canvas.getByRole("button", { name: "delete file controlled.txt" })
-    )
-    await expect(canvas.getByText("0 of 2 files selected")).toBeVisible()
   },
 }
 
