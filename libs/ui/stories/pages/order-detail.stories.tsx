@@ -21,6 +21,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/E-commerce/Order detail",
   parameters: {
     layout: "fullscreen",
@@ -133,21 +134,44 @@ function OrderDetailPage() {
                 toaster.create({ type: "info", title: `Action: ${value}` })
               }}
             />
-            <Button
-              icon="icon-[mdi--truck-outline]"
-              onClick={() => {
-                setStep(3)
-                toaster.create({
-                  type: "success",
-                  title: "Fulfilment created",
-                  description: "Carrier label generated.",
-                })
-              }}
-              size="sm"
-              variant="primary"
-            >
-              Fulfil order
-            </Button>
+            {/* One primary action per state: fulfil, then confirm delivery, then done. */}
+            {step >= fulfilmentSteps.length - 1 ? (
+              <Button
+                disabled
+                icon="icon-[mdi--check-circle-outline]"
+                size="sm"
+                variant="primary"
+              >
+                Delivered
+              </Button>
+            ) : (
+              <Button
+                icon={
+                  step >= 2
+                    ? "icon-[mdi--package-variant-closed-check]"
+                    : "icon-[mdi--truck-outline]"
+                }
+                onClick={() => {
+                  const next = step + 1
+                  setStep(next)
+                  toaster.create({
+                    type: "success",
+                    title:
+                      next === fulfilmentSteps.length - 1
+                        ? "Marked delivered"
+                        : "Fulfilment created",
+                    description:
+                      next === fulfilmentSteps.length - 1
+                        ? "The customer has been notified."
+                        : "Carrier label generated.",
+                  })
+                }}
+                size="sm"
+                variant="primary"
+              >
+                {step >= 2 ? "Mark delivered" : "Fulfil order"}
+              </Button>
+            )}
           </>
         }
         breadcrumb={[

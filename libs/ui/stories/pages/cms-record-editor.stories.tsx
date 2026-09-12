@@ -21,6 +21,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/CMS/Record editor",
   parameters: {
     layout: "fullscreen",
@@ -100,7 +101,13 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
           <>
             <Button
               icon="icon-[mdi--arrow-left]"
-              onClick={() => (dirty ? setLeaving(true) : undefined)}
+              onClick={() => {
+                if (dirty) {
+                  setLeaving(true)
+                  return
+                }
+                toaster.create({ type: "info", title: "Back to Pages" })
+              }}
               size="sm"
               theme="borderless"
               variant="secondary"
@@ -347,6 +354,11 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
               onClick={() => {
                 setLeaving(false)
                 setDirty(false)
+                toaster.create({
+                  type: "info",
+                  title: "Changes discarded",
+                  description: "Back to Pages.",
+                })
               }}
               variant="danger"
             >

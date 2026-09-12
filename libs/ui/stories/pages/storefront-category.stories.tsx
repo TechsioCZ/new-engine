@@ -17,6 +17,7 @@ import { ProductCardTemplate } from "../../src/templates/product-card"
 import { SelectTemplate } from "../../src/templates/select"
 import {
   brandFacets,
+  type StorefrontProduct,
   colorFacets,
   sizeFacets,
   sortOptions,
@@ -31,6 +32,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/Storefront/Category listing",
   parameters: {
     layout: "fullscreen",
@@ -113,6 +115,36 @@ function StorefrontHeader() {
           </Header.Actions>
         </Header.Container>
       </Header.Desktop>
+
+      {/* Below the desktop breakpoint the nav moves behind the hamburger. */}
+      <Header.Hamburger />
+      <Header.Mobile position="right">
+        <Header.Nav>
+          {storefrontNav.map((item) => (
+            <Header.NavItem active={item.id === "footwear"} key={item.id}>
+              {item.label}
+            </Header.NavItem>
+          ))}
+        </Header.Nav>
+        <Header.Actions>
+          <Header.ActionItem>
+            <Button
+              block
+              icon="icon-[mdi--account-outline]"
+              size="sm"
+              theme="outlined"
+              variant="secondary"
+            >
+              Account
+            </Button>
+          </Header.ActionItem>
+          <Header.ActionItem>
+            <Button block icon="icon-[mdi--cart-outline]" size="sm" variant="primary">
+              Cart · 2
+            </Button>
+          </Header.ActionItem>
+        </Header.Actions>
+      </Header.Mobile>
     </Header>
   )
 }
@@ -176,12 +208,14 @@ function FacetPanel({
   onToggleBrand,
   sizes,
   onToggleSize,
+  colors,
   onColorChange,
 }: {
   brands: string[]
   onToggleBrand: (value: string) => void
   sizes: string[]
   onToggleSize: (value: string) => void
+  colors: string[]
   onColorChange: (value: string) => void
 }) {
   return (
@@ -254,7 +288,10 @@ function FacetPanel({
         </Accordion.Header>
         <Accordion.Content>
           <ColorSelect
-            colors={colorFacets}
+            colors={colorFacets.map((facet) => ({
+              ...facet,
+              selected: colors.includes(facet.label),
+            }))}
             layout="grid"
             onColorClick={(color) =>
               onColorChange(
@@ -271,12 +308,23 @@ function FacetPanel({
   )
 }
 
-function ProductGrid() {
+function ProductGrid({ products }: { products: StorefrontProduct[] }) {
   const toaster = useToast()
+
+  if (products.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-150 rounded-lg border border-border-primary p-450 text-center">
+        <p className="font-semibold text-md">No products match those filters</p>
+        <p className="max-w-prose text-fg-secondary text-sm">
+          Clear a filter above to widen the results.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="grid grid-cols-1 gap-250 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-      {storefrontProducts.map((product) => (
+      {products.map((product) => (
         <ProductCardTemplate
           className="h-full"
           badges={
@@ -292,11 +340,19 @@ function ProductGrid() {
           key={product.id}
           name={product.name}
           onAddToCart={() =>
-            toaster.create({
-              type: "success",
-              title: "Added to cart",
-              description: product.name,
-            })
+            toaster.create(
+              product.stock === "out-of-stock"
+                ? {
+                    type: "info",
+                    title: "We'll let you know",
+                    description: `${product.name} is out of stock — we'll email you when it returns.`,
+                  }
+                : {
+                    type: "success",
+                    title: "Added to cart",
+                    description: product.name,
+                  }
+            )
           }
           onViewDetails={() =>
             toaster.create({ type: "info", title: product.name })
@@ -328,6 +384,14 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
         : [...list, value]
     )
 
+  const brandLabelOf = (product: StorefrontProduct) =>
+    brandFacets.find((facet) => facet.label === product.brand)?.value
+
+  const visibleProducts = storefrontProducts.filter((product) => {
+    const value = brandLabelOf(product)
+    return brands.length === 0 || (value !== undefined && brands.includes(value))
+  })
+
   const activeChips = [
     ...brands.map((value) => ({
       key: `brand-${value}`,
@@ -349,6 +413,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
   const facets = (
     <FacetPanel
       brands={brands}
+      colors={colors}
       onColorChange={(value) => toggle(colors, setColors, value)}
       onToggleBrand={(value) => toggle(brands, setBrands, value)}
       onToggleSize={(value) => toggle(sizes, setSizes, value)}
@@ -418,7 +483,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
                   </Button>
                 )}
                 <span className="text-fg-secondary text-sm">
-                  {storefrontProducts.length} of 82 products
+                  {visibleProducts.length} of 82 products
                 </span>
               </div>
               <div className="w-2xs">
@@ -449,7 +514,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
               </div>
             )}
 
-            <ProductGrid />
+            <ProductGrid products={visibleProducts} />
 
             <div className="flex justify-center pt-200">
               <Pagination
