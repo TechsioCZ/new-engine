@@ -33,7 +33,9 @@ admin page.
 | Tabs selected trigger | **1.23:1** (`#8ec5ff` on `#d1d5dc`) | 4.5:1 |
 | Tabs indicator / selected border vs page | 1.81:1 / 1.65:1 | 3:1 (non-text) |
 
-This is the single most visible failure: it hits the sidebar on *every* screen. The current
+This is the single most visible failure: the token is read from the sidebar's selected item,
+so it appears on every audited page that renders navigation (content list, record editor, CRUD
+workflow, settings, dashboard, orders) and on any screen built from the same components. The
 selected state is communicated almost entirely by a colour nobody can read.
 **Fix:** darken `--color-primary` for light mode (keep the light tint for dark mode), or split
 into `--color-primary` (fill) and `--color-primary-fg` (text/icon on light surfaces).

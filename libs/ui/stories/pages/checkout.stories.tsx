@@ -6,6 +6,7 @@ import { Icon } from "../../src/atoms/icon"
 import { Image } from "../../src/atoms/image"
 import { FormCheckbox } from "../../src/molecules/form-checkbox"
 import { FormInput } from "../../src/molecules/form-input"
+import { StatusText } from "../../src/atoms/status-text"
 import { PhoneInput } from "../../src/molecules/phone-input"
 import { RadioCard } from "../../src/molecules/radio-card"
 import { SearchForm } from "../../src/molecules/search-form"
@@ -21,6 +22,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/Storefront/Checkout",
   parameters: {
     layout: "fullscreen",
@@ -65,6 +67,13 @@ const countryItems = [
 
 const cartLines = storefrontProducts.slice(0, 3)
 
+/* Derived from the lines above so the summary can never drift from the cart. */
+const priceOf = (value: string) => Number(value.replace(/[^\d]/g, ""))
+const SUBTOTAL = cartLines.reduce((sum, line) => sum + priceOf(line.price), 0)
+const DISCOUNT = 60
+const TOTAL = SUBTOTAL - DISCOUNT
+const money = (value: number) => `${value} €`
+
 function OrderSummary() {
   return (
     <aside
@@ -108,7 +117,7 @@ function OrderSummary() {
       <dl className="flex flex-col gap-100">
         <div className="flex items-center justify-between gap-150">
           <dt className="text-fg-secondary text-sm">Subtotal</dt>
-          <dd className="text-sm">357 €</dd>
+          <dd className="text-sm">{money(SUBTOTAL)}</dd>
         </div>
         <div className="flex items-center justify-between gap-150">
           <dt className="text-fg-secondary text-sm">Delivery</dt>
@@ -116,11 +125,11 @@ function OrderSummary() {
         </div>
         <div className="flex items-center justify-between gap-150">
           <dt className="text-fg-secondary text-sm">Discount</dt>
-          <dd className="text-sm">−200 €</dd>
+          <dd className="text-sm">−{money(DISCOUNT)}</dd>
         </div>
         <div className="flex items-center justify-between gap-150 border-border-primary border-t pt-100">
           <dt className="font-semibold text-sm">Total</dt>
-          <dd className="font-semibold text-md">157 €</dd>
+          <dd className="font-semibold text-md">{money(TOTAL)}</dd>
         </div>
       </dl>
 
@@ -132,9 +141,74 @@ function OrderSummary() {
   )
 }
 
+type CheckoutForm = {
+  firstName: string
+  lastName: string
+  street: string
+  city: string
+  zip: string
+  card: string
+  expiry: string
+  cvc: string
+  payment: string
+  terms: boolean
+}
+
+const prefilled: CheckoutForm = {
+  firstName: "Marta",
+  lastName: "Nováková",
+  street: "Vinohradská 12",
+  city: "Praha",
+  zip: "120 00",
+  card: "4242424242424242",
+  expiry: "04/29",
+  cvc: "123",
+  payment: "card",
+  terms: false,
+}
+
+const empty: CheckoutForm = {
+  firstName: "",
+  lastName: "",
+  street: "",
+  city: "",
+  zip: "",
+  card: "",
+  expiry: "",
+  cvc: "",
+  payment: "card",
+  terms: false,
+}
+
 function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
   const toaster = useToast()
   const [step, setStep] = useState(initialStep)
+  /* A review-step story starts from a filled basket; step 1 starts empty. */
+  const [form, setForm] = useState<CheckoutForm>(
+    initialStep > 0 ? prefilled : empty
+  )
+
+  const set = (patch: Partial<CheckoutForm>) =>
+    setForm((current) => ({ ...current, ...patch }))
+
+  /*
+   * `linear` on Steps stops a shopper clicking ahead; this is the other half of
+   * that promise — the step's own Continue button refuses to advance until the
+   * decisions that step owns are actually made.
+   */
+  const addressComplete =
+    form.firstName.trim() !== "" &&
+    form.lastName.trim() !== "" &&
+    form.street.trim() !== "" &&
+    form.city.trim() !== "" &&
+    form.zip.trim() !== ""
+  const paymentComplete =
+    form.payment !== "card" ||
+    (form.card.replace(/\s/g, "").length === 16 &&
+      /^\d{2}\/\d{2}$/.test(form.expiry) &&
+      /^\d{3,4}$/.test(form.cvc))
+  const stepComplete = [addressComplete, true, paymentComplete, form.terms]
+  const canContinue = stepComplete[step] ?? true
 
   return (
     <div className="flex min-h-screen flex-col bg-base text-fg-primary">
@@ -179,13 +253,43 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
               <Steps.Content index={0}>
                 <div className="flex flex-col gap-200 py-250">
                   <div className="grid grid-cols-1 gap-200 sm:grid-cols-2">
-                    <FormInput id="co-first" label="First name" required />
-                    <FormInput id="co-last" label="Surname" required />
+                    <FormInput
+                      id="co-first"
+                      label="First name"
+                      onChange={(event) => set({ firstName: event.target.value })}
+                      required
+                      value={form.firstName}
+                    />
+                    <FormInput
+                      id="co-last"
+                      label="Surname"
+                      onChange={(event) => set({ lastName: event.target.value })}
+                      required
+                      value={form.lastName}
+                    />
                   </div>
-                  <FormInput id="co-street" label="Street and number" required />
+                  <FormInput
+                    id="co-street"
+                    label="Street and number"
+                    onChange={(event) => set({ street: event.target.value })}
+                    required
+                    value={form.street}
+                  />
                   <div className="grid grid-cols-1 gap-200 sm:grid-cols-2">
-                    <FormInput id="co-city" label="City" required />
-                    <FormInput id="co-zip" label="Postcode" required />
+                    <FormInput
+                      id="co-city"
+                      label="City"
+                      onChange={(event) => set({ city: event.target.value })}
+                      required
+                      value={form.city}
+                    />
+                    <FormInput
+                      id="co-zip"
+                      label="Postcode"
+                      onChange={(event) => set({ zip: event.target.value })}
+                      required
+                      value={form.zip}
+                    />
                   </div>
                   <SelectTemplate
                     defaultValue={["CZ"]}
@@ -255,7 +359,12 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
 
               <Steps.Content index={2}>
                 <div className="flex flex-col gap-200 py-250">
-                  <RadioCard defaultValue="card" name="payment" variant="outline">
+                  <RadioCard
+                    name="payment"
+                    onValueChange={(value) => set({ payment: value ?? "card" })}
+                    value={form.payment}
+                    variant="outline"
+                  >
                     <RadioCard.Label>Payment method</RadioCard.Label>
                     <RadioCard.Item value="card">
                       <RadioCard.ItemHiddenInput />
@@ -282,16 +391,40 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       </RadioCard.ItemControl>
                     </RadioCard.Item>
                   </RadioCard>
-                  <FormInput
-                    helpText="16 digits, no spaces."
-                    id="co-card"
-                    label="Card number"
-                    required
-                  />
-                  <div className="grid grid-cols-1 gap-200 sm:grid-cols-2">
-                    <FormInput id="co-exp" label="Expiry" placeholder="MM/YY" required />
-                    <FormInput id="co-cvc" label="CVC" required />
-                  </div>
+                  {form.payment === "card" ? (
+                    <>
+                      <FormInput
+                        helpText="16 digits, no spaces."
+                        id="co-card"
+                        label="Card number"
+                        onChange={(event) => set({ card: event.target.value })}
+                        required
+                        value={form.card}
+                      />
+                      <div className="grid grid-cols-1 gap-200 sm:grid-cols-2">
+                        <FormInput
+                          id="co-exp"
+                          label="Expiry"
+                          onChange={(event) => set({ expiry: event.target.value })}
+                          placeholder="MM/YY"
+                          required
+                          value={form.expiry}
+                        />
+                        <FormInput
+                          id="co-cvc"
+                          label="CVC"
+                          onChange={(event) => set({ cvc: event.target.value })}
+                          required
+                          value={form.cvc}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <StatusText showIcon status="default">
+                      Payment instructions are emailed after you place the order.
+                      Nothing ships until the transfer clears.
+                    </StatusText>
+                  )}
                 </div>
               </Steps.Content>
 
@@ -348,7 +481,9 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                     </div>
                   </div>
                   <FormCheckbox
+                    checked={form.terms}
                     label="I agree to the terms of sale and the returns policy"
+                    onCheckedChange={(checked) => set({ terms: checked })}
                     required
                   />
                 </div>
@@ -367,6 +502,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
               </Button>
               {step === checkoutSteps.length - 1 ? (
                 <Button
+                  disabled={!canContinue}
                   icon="icon-[mdi--lock-outline]"
                   onClick={() =>
                     toaster.create({
@@ -377,10 +513,11 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                   }
                   variant="primary"
                 >
-                  Pay 157 €
+                  {`Pay ${money(TOTAL)}`}
                 </Button>
               ) : (
                 <Button
+                  disabled={!canContinue}
                   icon="icon-[mdi--arrow-right]"
                   iconPosition="right"
                   onClick={() =>

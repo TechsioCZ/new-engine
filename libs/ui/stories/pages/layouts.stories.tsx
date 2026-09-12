@@ -23,6 +23,7 @@ import {
   Frame,
   GlobalSearch,
   IconRail,
+  NavDrawer,
   NavList,
   Panel,
   type RailItem,
@@ -46,6 +47,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/Layouts/Shell arrangements",
   parameters: {
     layout: "fullscreen",
@@ -98,6 +100,38 @@ const topNavItems = [
   { id: "customers", label: "Customers" },
   { id: "content-pages", label: "Content" },
 ]
+
+/* One sub-navigation set per top-level section. */
+type SubNavEntry = { value: string; label: string }
+
+const DASHBOARD_SUBNAV: SubNavEntry[] = [
+  { value: "overview", label: "Overview" },
+  { value: "alerts", label: "Alerts" },
+]
+
+const subNav: Record<string, SubNavEntry[]> = {
+  dashboard: DASHBOARD_SUBNAV,
+  "catalog-products": [
+    { value: "products", label: "Products" },
+    { value: "categories", label: "Categories" },
+    { value: "brands", label: "Brands" },
+  ],
+  "sales-orders": [
+    { value: "orders", label: "Orders" },
+    { value: "returns", label: "Returns" },
+    { value: "discounts", label: "Discounts" },
+  ],
+  customers: [
+    { value: "accounts", label: "Accounts" },
+    { value: "segments", label: "Segments" },
+  ],
+  "content-pages": [
+    { value: "pages", label: "Pages" },
+    { value: "articles", label: "Articles" },
+    { value: "media", label: "Media" },
+    { value: "redirects", label: "Redirects" },
+  ],
+}
 
 const accountMenu: MenuItem[] = [
   { type: "action", value: "profile", label: "Profile", icon: "icon-[mdi--account-outline]" },
@@ -288,7 +322,19 @@ export const SidebarLeft: Story = {
     return (
       <Frame
         left={<NavPanel onSelect={setNav} selected={nav} />}
-        top={<TopBar center={<GlobalSearch />} />}
+        top={
+          <TopBar
+            center={<GlobalSearch />}
+            start={
+              <NavDrawer
+                defaultExpanded={["content"]}
+                nav={adminNav}
+                onSelect={setNav}
+                selected={nav}
+              />
+            }
+          />
+        }
       >
         <DemoContent />
       </Frame>
@@ -360,7 +406,19 @@ export const DualSidebar: Story = {
       <Frame
         left={<NavPanel onSelect={setNav} selected={nav} />}
         right={<ContextPanel />}
-        top={<TopBar center={<GlobalSearch />} />}
+        top={
+          <TopBar
+            center={<GlobalSearch />}
+            start={
+              <NavDrawer
+                defaultExpanded={["content"]}
+                nav={adminNav}
+                onSelect={setNav}
+                selected={nav}
+              />
+            }
+          />
+        }
       >
         <DemoContent dense />
       </Frame>
@@ -501,12 +559,19 @@ export const TopNavWithSubnav: Story = {
                 <GlobalSearch placeholder="Search content…" />
               </div>
             </div>
-            <Tabs className="px-150" defaultValue="pages" variant="line">
+            {/* The sub-nav belongs to the section, so it changes with it. */}
+            <Tabs
+              className="px-150"
+              key={nav}
+              defaultValue={(subNav[nav] ?? DASHBOARD_SUBNAV)[0]?.value}
+              variant="line"
+            >
               <Tabs.List>
-                <Tabs.Trigger value="pages">Pages</Tabs.Trigger>
-                <Tabs.Trigger value="articles">Articles</Tabs.Trigger>
-                <Tabs.Trigger value="media">Media</Tabs.Trigger>
-                <Tabs.Trigger value="redirects">Redirects</Tabs.Trigger>
+                {(subNav[nav] ?? DASHBOARD_SUBNAV).map((entry) => (
+                  <Tabs.Trigger key={entry.value} value={entry.value}>
+                    {entry.label}
+                  </Tabs.Trigger>
+                ))}
                 <Tabs.Indicator />
               </Tabs.List>
             </Tabs>
@@ -544,20 +609,34 @@ export const ThreePane: Story = {
             selected={nav}
           />
         }
-        top={<TopBar center={<GlobalSearch />} />}
+        top={
+          <TopBar
+            center={<GlobalSearch />}
+            start={
+              <NavDrawer
+                defaultExpanded={["sales"]}
+                nav={adminNav}
+                onSelect={setNav}
+                selected={nav}
+              />
+            }
+          />
+        }
       >
         <div className="flex min-h-0 flex-1 gap-250">
           <div className="hidden w-sm shrink-0 flex-col gap-100 overflow-y-auto rounded-lg border border-border-primary bg-surface p-150 lg:flex">
             {orders.map((order) => (
-              <button
+              <Button
                 aria-current={order.id === activeId ? "true" : undefined}
                 className={[
-                  "flex w-full flex-col gap-50 rounded-md p-150 text-start",
+                  "flex w-full flex-col items-stretch gap-50 rounded-md p-150 text-start",
                   order.id === activeId ? "bg-overlay" : "hover:bg-overlay",
                 ].join(" ")}
                 key={order.id}
                 onClick={() => setActiveId(order.id)}
-                type="button"
+                size="current"
+                theme="unstyled"
+                variant="secondary"
               >
                 <span className="flex items-center justify-between gap-150">
                   <span className="font-medium text-sm">{order.number}</span>
@@ -566,7 +645,7 @@ export const ThreePane: Story = {
                 <span className="text-fg-secondary text-xs">
                   {order.customer} · {currency.format(order.total)}
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -682,7 +761,19 @@ export const CenteredColumn: Story = {
     return (
       <Frame
         left={<NavPanel onSelect={setNav} selected={nav} />}
-        top={<TopBar center={<GlobalSearch />} />}
+        top={
+          <TopBar
+            center={<GlobalSearch />}
+            start={
+              <NavDrawer
+                defaultExpanded={["content"]}
+                nav={adminNav}
+                onSelect={setNav}
+                selected={nav}
+              />
+            }
+          />
+        }
       >
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-250">
           <PageHeader

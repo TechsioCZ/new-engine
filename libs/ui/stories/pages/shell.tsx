@@ -8,10 +8,12 @@
  * fixtures for real data.
  */
 import type { ReactNode } from "react"
+import { useState } from "react"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Icon, type IconType } from "../../src/atoms/icon"
+import { Dialog } from "../../src/molecules/dialog"
 import { Menu, type MenuItem } from "../../src/molecules/menu"
 import { SearchForm } from "../../src/molecules/search-form"
 import { type TreeNode, TreeView } from "../../src/molecules/tree-view"
@@ -88,6 +90,8 @@ export function AdminShell({
   topbarActions,
   children,
 }: AdminShellProps) {
+  const [navDrawer, setNavDrawer] = useState(false)
+
   return (
     <div className="flex min-h-screen bg-base text-fg-primary">
       <aside className="hidden w-3xs shrink-0 flex-col gap-250 border-border-primary border-e bg-surface p-200 lg:flex">
@@ -142,6 +146,17 @@ export function AdminShell({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center gap-200 border-border-primary border-b bg-base p-150">
+          {/* The sidebar is hidden below lg, so navigation moves in here. */}
+          <Button
+            className="lg:hidden"
+            icon="icon-[mdi--menu]"
+            onClick={() => setNavDrawer(true)}
+            size="sm"
+            theme="borderless"
+            variant="secondary"
+          >
+            Menu
+          </Button>
           <SearchForm className="max-w-lg flex-1" size="sm">
             <SearchForm.Control>
               <SearchForm.Input
@@ -173,6 +188,36 @@ export function AdminShell({
           {children}
         </main>
       </div>
+
+      <Dialog
+        customTrigger
+        onOpenChange={(details) => setNavDrawer(details.open)}
+        open={navDrawer}
+        placement="left"
+        size="xs"
+        title="Navigation"
+      >
+        <TreeView
+          data={nav}
+          defaultExpandedValue={defaultExpandedNav}
+          onSelectionChange={(details) => {
+            const [next] = details.selectedValue
+            if (next) {
+              onNavChange?.(next)
+              setNavDrawer(false)
+            }
+          }}
+          selectedValue={[selectedNav]}
+          selectionMode="single"
+          size="sm"
+        >
+          <TreeView.Tree>
+            {nav.map((node, index) => (
+              <TreeView.Node indexPath={[index]} key={node.id} node={node} />
+            ))}
+          </TreeView.Tree>
+        </TreeView>
+      </Dialog>
     </div>
   )
 }

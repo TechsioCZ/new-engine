@@ -10,9 +10,8 @@ import { FormInput } from "../../src/molecules/form-input"
 import { Pagination } from "../../src/molecules/pagination"
 import { Toaster, useToast } from "../../src/molecules/toast"
 import { TreeView } from "../../src/molecules/tree-view"
-import { Gallery } from "../../src/organisms/gallery"
 import { SelectTemplate } from "../../src/templates/select"
-import { adminNav, productGallery, storefrontProducts } from "./data"
+import { adminNav, storefrontProducts } from "./data"
 import { Brand, Frame, GlobalSearch, NavList, Panel, TopBar } from "./frame"
 import {
   BulkActionBar,
@@ -30,6 +29,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/CMS/Media library",
   parameters: {
     layout: "fullscreen",
@@ -95,7 +95,9 @@ function MediaLibraryPage() {
   const [nav, setNav] = useState("content-media")
   const [folder, setFolder] = useState("media-products")
   const [selected, setSelected] = useState<string[]>([])
+  const [library, setLibrary] = useState(assets)
   const [preview, setPreview] = useState<(typeof assets)[number] | null>(null)
+  const [altDraft, setAltDraft] = useState("")
 
   const toggle = (id: string) =>
     setSelected((current) =>
@@ -179,7 +181,7 @@ function MediaLibraryPage() {
         <div className="flex min-w-0 flex-1 flex-col gap-200">
           <div className="flex flex-wrap items-center justify-between gap-150">
             <span className="text-fg-secondary text-sm">
-              {`${assets.length} of 1 284 assets`}
+              {`${library.length} of 1 284 assets`}
             </span>
             <div className="flex items-center gap-150">
               <div className="w-2xs">
@@ -215,23 +217,29 @@ function MediaLibraryPage() {
           </BulkActionBar>
 
           <div className="grid grid-cols-2 gap-200 md:grid-cols-3 xl:grid-cols-4">
-            {assets.map((asset) => (
+            {library.map((asset) => (
               <figure
                 className="flex flex-col gap-100 rounded-lg border border-border-primary bg-surface p-150"
                 key={asset.id}
               >
                 <div className="relative">
-                  <button
-                    className="block w-full overflow-hidden rounded-md"
-                    onClick={() => setPreview(asset)}
-                    type="button"
+                  <Button
+                    aria-label={`Preview ${asset.name}`}
+                    className="block w-full overflow-hidden rounded-md p-0"
+                    onClick={() => {
+                      setPreview(asset)
+                      setAltDraft(asset.alt)
+                    }}
+                    size="current"
+                    theme="unstyled"
+                    variant="secondary"
                   >
                     <Image
                       alt={asset.alt}
                       className="aspect-square w-full object-cover"
                       src={asset.src}
                     />
-                  </button>
+                  </Button>
                   <span className="absolute start-100 top-100">
                     <Checkbox
                       aria-label={`Select ${asset.name}`}
@@ -274,7 +282,7 @@ function MediaLibraryPage() {
               count={1284}
               defaultPage={1}
               getPageUrl={({ page }) => `?page=${page}`}
-              pageSize={assets.length}
+              pageSize={library.length}
               siblingCount={1}
             />
           </div>
@@ -293,7 +301,15 @@ function MediaLibraryPage() {
             </Button>
             <Button
               onClick={() => {
-                toaster.create({ type: "success", title: "Asset updated" })
+                const id = preview?.id
+                if (id) {
+                  setLibrary((current) =>
+                    current.map((asset) =>
+                      asset.id === id ? { ...asset, alt: altDraft } : asset
+                    )
+                  )
+                }
+                toaster.create({ type: "success", title: "Alt text saved" })
                 setPreview(null)
               }}
               variant="primary"
@@ -315,24 +331,18 @@ function MediaLibraryPage() {
       >
         {preview && (
           <div className="flex flex-col gap-200 py-200">
-            <Gallery
-              items={productGallery.map((item) => ({
-                ...item,
-                src: item.src,
-              }))}
-              thumbnailSize={64}
-            >
-              <Gallery.Main>
-                <Gallery.Carousel />
-              </Gallery.Main>
-              <Gallery.Thumbnails />
-            </Gallery>
+            <Image
+              alt={preview.alt}
+              className="aspect-square w-full rounded-md object-cover"
+              src={preview.src}
+            />
             <FormInput
-              defaultValue={preview.alt}
               helpText="Describe what the image shows, not that it is an image."
               id="asset-alt"
               label="Alt text"
+              onChange={(event) => setAltDraft(event.target.value)}
               required
+              value={altDraft}
             />
             <DetailList
               items={[

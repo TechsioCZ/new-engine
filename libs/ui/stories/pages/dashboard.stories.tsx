@@ -25,6 +25,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/E-commerce/Dashboard home",
   parameters: {
     layout: "fullscreen",
@@ -97,7 +98,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
             </Button>
           </>
         }
-        description="Tuesday, 12 September 2026 · everything below is scoped to the last 30 days."
+        description="Saturday, 12 September 2026 · everything below is scoped to the last 30 days."
         meta={
           <Badge size="sm" variant="warning">
             3 alerts

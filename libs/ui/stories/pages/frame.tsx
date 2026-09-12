@@ -11,10 +11,12 @@
  * the plain elements here are layout containers only.
  */
 import type { ReactNode } from "react"
+import { useState } from "react"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Button } from "../../src/atoms/button"
 import { Icon, type IconType } from "../../src/atoms/icon"
 import { Tooltip } from "../../src/atoms/tooltip"
+import { Dialog } from "../../src/molecules/dialog"
 import { SearchForm } from "../../src/molecules/search-form"
 import { type TreeNode, TreeView } from "../../src/molecules/tree-view"
 
@@ -32,15 +34,21 @@ type FrameProps = {
 
 export function Frame({ top, left, right, flush, children }: FrameProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-base text-fg-primary">
+    /*
+     * The shell is pinned to the viewport and `<main>` is the only scroll
+     * container: the top bar and both panels stay put while content moves.
+     * That is what makes a sticky page header inside the content column
+     * behave, and it is the contract the layout stories describe.
+     */
+    <div className="flex h-screen flex-col overflow-hidden bg-base text-fg-primary">
       {top}
       <div className="flex min-h-0 flex-1">
         {left}
         <main
           className={
             flush
-              ? "flex min-w-0 flex-1 flex-col"
-              : "flex min-w-0 flex-1 flex-col gap-250 p-250"
+              ? "flex min-w-0 flex-1 flex-col overflow-y-auto"
+              : "flex min-w-0 flex-1 flex-col gap-250 overflow-y-auto p-250"
           }
         >
           {children}
@@ -48,6 +56,53 @@ export function Frame({ top, left, right, flush, children }: FrameProps) {
         {right}
       </div>
     </div>
+  )
+}
+
+/**
+ * Narrow-screen escape hatch for the leading `Panel`, which is hidden below
+ * `lg`. Renders the trigger *and* the drawer, so a caller only has to drop it
+ * into the top bar — navigation is never unreachable on a phone.
+ */
+export function NavDrawer({
+  nav,
+  selected,
+  onSelect,
+  defaultExpanded,
+}: NavListProps) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <Button
+        className="lg:hidden"
+        icon="icon-[mdi--menu]"
+        onClick={() => setOpen(true)}
+        size="sm"
+        theme="borderless"
+        variant="secondary"
+      >
+        Menu
+      </Button>
+      <Dialog
+        customTrigger
+        onOpenChange={(details) => setOpen(details.open)}
+        open={open}
+        placement="left"
+        size="xs"
+        title="Navigation"
+      >
+        <NavList
+          defaultExpanded={defaultExpanded}
+          nav={nav}
+          onSelect={(value) => {
+            onSelect(value)
+            setOpen(false)
+          }}
+          selected={selected}
+        />
+      </Dialog>
+    </>
   )
 }
 

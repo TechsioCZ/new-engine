@@ -25,6 +25,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/Storefront/Product detail",
   parameters: {
     layout: "fullscreen",
