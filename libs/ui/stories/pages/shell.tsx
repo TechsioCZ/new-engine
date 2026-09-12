@@ -109,6 +109,7 @@ export function AdminShell({
           <TreeView
             data={nav}
             defaultExpandedValue={defaultExpandedNav}
+            /* Branches are groupings, not destinations. */
             onSelectionChange={(details) => {
               const [next] = details.selectedValue
               if (next) {
@@ -116,6 +117,7 @@ export function AdminShell({
               }
             }}
             selectedValue={[selectedNav]}
+            selectionBehavior="leaf-only"
             selectionMode="single"
             size="sm"
           >
@@ -208,6 +210,7 @@ export function AdminShell({
             }
           }}
           selectedValue={[selectedNav]}
+          selectionBehavior="leaf-only"
           selectionMode="single"
           size="sm"
         >

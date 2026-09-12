@@ -204,7 +204,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
     form.zip.trim() !== ""
   const paymentComplete =
     form.payment !== "card" ||
-    (form.card.replace(/\s/g, "").length === 16 &&
+    (/^\d{16}$/.test(form.card.replace(/\s/g, "")) &&
       /^\d{2}\/\d{2}$/.test(form.expiry) &&
       /^\d{3,4}$/.test(form.cvc))
   const stepComplete = [addressComplete, true, paymentComplete, form.terms]
