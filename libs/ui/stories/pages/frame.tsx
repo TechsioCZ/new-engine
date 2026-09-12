@@ -164,6 +164,7 @@ export function NavList({
       <TreeView
         data={nav}
         defaultExpandedValue={defaultExpanded}
+        /* Branches are groupings, not destinations: clicking one expands it. */
         onSelectionChange={(details) => {
           const [next] = details.selectedValue
           if (next) {
@@ -171,6 +172,7 @@ export function NavList({
           }
         }}
         selectedValue={[selected]}
+        selectionBehavior="leaf-only"
         selectionMode="single"
         size="sm"
       >
