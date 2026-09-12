@@ -801,6 +801,9 @@ export type StorefrontProduct = {
   reviewCount: number
   stock: "in-stock" | "limited-stock" | "out-of-stock"
   stockLabel: string
+  /** Facet data, so the category page can filter on more than brand. */
+  sizes: string[]
+  colors: string[]
   badge?: { label: string; variant: "success" | "danger" | "info" | "outline" }
 }
 
@@ -828,6 +831,8 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 128,
     stock: "in-stock",
     stockLabel: "In stock",
+    sizes: ["XS", "S", "M", "L", "XL"],
+    colors: ["Black", "Sand"],
     badge: { label: "New", variant: "success" },
   },
   {
@@ -841,6 +846,8 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 542,
     stock: "limited-stock",
     stockLabel: "Only 3 left",
+    sizes: ["M", "L", "XL"],
+    colors: ["Black", "Rust"],
     badge: { label: "−22%", variant: "danger" },
   },
   {
@@ -853,6 +860,8 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 64,
     stock: "in-stock",
     stockLabel: "In stock",
+    sizes: ["S", "M"],
+    colors: ["Navy", "Sand"],
   },
   {
     id: "sf-4",
@@ -864,6 +873,8 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 311,
     stock: "in-stock",
     stockLabel: "In stock",
+    sizes: ["M"],
+    colors: ["Black"],
     badge: { label: "Staff pick", variant: "info" },
   },
   {
@@ -876,6 +887,8 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 23,
     stock: "out-of-stock",
     stockLabel: "Out of stock",
+    sizes: ["M"],
+    colors: ["Black", "Olive"],
   },
   {
     id: "sf-6",
@@ -887,6 +900,8 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 187,
     stock: "in-stock",
     stockLabel: "In stock",
+    sizes: ["S", "M", "L"],
+    colors: ["Navy", "Olive"],
   },
   {
     id: "sf-7",
@@ -899,6 +914,8 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 96,
     stock: "limited-stock",
     stockLabel: "Low stock",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: ["Olive", "Black"],
     badge: { label: "−15%", variant: "danger" },
   },
   {
@@ -911,6 +928,8 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 58,
     stock: "in-stock",
     stockLabel: "In stock",
+    sizes: ["M", "L"],
+    colors: ["Rust", "Navy"],
   },
 ]
 
