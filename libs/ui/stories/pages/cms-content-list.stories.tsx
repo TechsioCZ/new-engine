@@ -28,6 +28,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/CMS/Content list",
   parameters: {
     layout: "fullscreen",
@@ -121,6 +122,26 @@ function ContentListPage({
 
   const selectedIds = Object.keys(selection)
 
+  const applyBulk = (status: ContentEntry["status"], label: string) => {
+    setData((current) =>
+      current.map((row) =>
+        selectedIds.includes(row.id) ? { ...row, status } : row
+      )
+    )
+    toaster.create({
+      type: "success",
+      title: `${label} ${selectedIds.length} pages`,
+    })
+    setSelection({})
+  }
+
+  const deleteSelected = () => {
+    const count = selectedIds.length
+    setData((current) => current.filter((row) => !selectedIds.includes(row.id)))
+    toaster.create({ type: "success", title: `Deleted ${count} pages` })
+    setSelection({})
+  }
+
   const confirmDelete = () => {
     if (!pendingDelete) {
       return
@@ -169,13 +190,31 @@ function ContentListPage({
       />
 
       <BulkActionBar count={selectedIds.length} onClear={() => setSelection({})}>
-        <Button icon="icon-[mdi--publish]" size="sm" theme="outlined" variant="secondary">
+        <Button
+          icon="icon-[mdi--publish]"
+          onClick={() => applyBulk("published", "Published")}
+          size="sm"
+          theme="outlined"
+          variant="secondary"
+        >
           Publish
         </Button>
-        <Button icon="icon-[mdi--archive-outline]" size="sm" theme="outlined" variant="secondary">
+        <Button
+          icon="icon-[mdi--archive-outline]"
+          onClick={() => applyBulk("archived", "Archived")}
+          size="sm"
+          theme="outlined"
+          variant="secondary"
+        >
           Archive
         </Button>
-        <Button icon="icon-[mdi--delete-outline]" size="sm" theme="outlined" variant="danger">
+        <Button
+          icon="icon-[mdi--delete-outline]"
+          onClick={deleteSelected}
+          size="sm"
+          theme="outlined"
+          variant="danger"
+        >
           Delete
         </Button>
       </BulkActionBar>

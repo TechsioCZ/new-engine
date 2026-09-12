@@ -23,6 +23,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/System/Settings",
   parameters: {
     layout: "fullscreen",
@@ -109,6 +110,7 @@ function SettingsPage() {
   const toaster = useToast()
   const [nav, setNav] = useState("settings-team")
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [team, setTeam] = useState(members)
 
   const memberColumns: ColumnDef<Member, unknown>[] = [
     {
@@ -258,7 +260,7 @@ function SettingsPage() {
           >
             <DataTable
               columns={memberColumns}
-              data={members}
+              data={team}
               enableGlobalFilter
               enableSorting
               getRowId={(row) => row.id}
@@ -277,8 +279,15 @@ function SettingsPage() {
                   icon: "icon-[mdi--account-remove-outline]",
                   tone: "danger",
                   disabled: (row) => row.original.role === "Owner",
-                  onAction: (row) =>
-                    toaster.create({ type: "warning", title: `Removed ${row.original.name}` }),
+                  onAction: (row) => {
+                    setTeam((current) =>
+                      current.filter((member) => member.id !== row.original.id)
+                    )
+                    toaster.create({
+                      type: "warning",
+                      title: `Removed ${row.original.name}`,
+                    })
+                  },
                 },
               ]}
               size="sm"

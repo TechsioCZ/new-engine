@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Button } from "../../src/atoms/button"
 import { NumericInput } from "../../src/atoms/numeric-input"
 import { Dialog } from "../../src/molecules/dialog"
@@ -33,6 +33,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/Patterns/CRUD workflow",
   parameters: {
     layout: "fullscreen",
@@ -201,6 +202,8 @@ function CrudPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [detail, setDetail] = useState<Product | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null)
+  /* Monotonic counter — deriving an id from row count reuses ids after a delete. */
+  const nextId = useRef(1)
 
   const columns = useMemo<ColumnDef<Product, unknown>[]>(
     () => [
@@ -294,10 +297,12 @@ function CrudPage() {
         description: draft.name,
       })
     } else {
+      const id = `sku-new-${nextId.current}`
+      nextId.current += 1
       setRows((current) => [
         {
           ...draft,
-          id: `sku-${String(current.length + 1).padStart(3, "0")}`,
+          id,
           status: draft.status as Product["status"],
           updatedAt: new Date().toISOString().slice(0, 10),
         },

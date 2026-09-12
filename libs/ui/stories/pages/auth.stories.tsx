@@ -17,6 +17,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/System/Sign in",
   parameters: {
     layout: "fullscreen",
@@ -65,7 +66,13 @@ function SignInForm({ error }: { error?: boolean }) {
         </StatusText>
       )}
 
-      <div className="flex flex-col gap-200">
+      <form
+        className="flex flex-col gap-200"
+        onSubmit={(event) => {
+          event.preventDefault()
+          toaster.create({ type: "info", title: "Checking credentials…" })
+        }}
+      >
         <FormInput
           autoComplete="email"
           id="auth-email"
@@ -86,16 +93,10 @@ function SignInForm({ error }: { error?: boolean }) {
           <FormCheckbox label="Keep me signed in" size="sm" />
           <Link href="#">Forgot password?</Link>
         </div>
-        <Button
-          block
-          onClick={() =>
-            toaster.create({ type: "info", title: "Checking credentials…" })
-          }
-          variant="primary"
-        >
+        <Button block type="submit" variant="primary">
           Sign in
         </Button>
-      </div>
+      </form>
 
       <div className="flex items-center gap-150">
         <span className="h-px flex-1 bg-border-primary" />
@@ -180,7 +181,7 @@ export const TwoFactor: Story = {
             label="Trust this device for 30 days"
             size="sm"
           />
-          <Button block disabled={code.length < 6} variant="primary">
+          <Button block disabled={!/^\d{6}$/.test(code)} variant="primary">
             Verify
           </Button>
           <div className="flex items-center justify-between gap-150">

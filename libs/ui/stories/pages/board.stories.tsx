@@ -18,6 +18,7 @@ const meta: Meta = {
    * it; the Brand toolbar still switches the whole set to Default or Neo.
    */
   globals: { brand: "business", mode: "light" },
+  tags: ["autodocs"],
   title: "Pages/Patterns/Board",
   parameters: {
     layout: "fullscreen",
@@ -166,7 +167,7 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
 
             {column.cards.length === 0 ? (
               <EmptyState
-                description="Nothing is waiting for review."
+                description={`Nothing is sitting in ${column.title.toLowerCase()} right now.`}
                 icon="icon-[mdi--check-circle-outline]"
                 title="Clear"
               />

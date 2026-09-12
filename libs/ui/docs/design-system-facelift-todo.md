@@ -61,8 +61,10 @@ Sub-pixel box edges are what makes borders look soft and columns look "almost al
 
 - [ ] Fix `merge-figma-themes.mjs` to emit `px` (or full-precision rem) for dimension/size
       tokens instead of 2-decimal rem.
-- [ ] Add a token test that fails when any `--dimension-*` / `--spacing-*` resolves to a
-      non-integer pixel value at 16 px root.
+- [ ] Add a token test that fails when any **fixed** token (`--dimension-*`, `--size-*`,
+      `--height-*`) resolves to a non-integer pixel value at a 16 px root. Fluid `--spacing-*`
+      `clamp()` values legitimately land between steps, so assert their **min and max ends**
+      instead of every viewport.
 
 ### 🟠 A3 · The spacing steps aren't a grid
 Resolved values of the app scale at 1440 px: **2, 4, 10, 14, 20, 25, 30, 34, 40, 45, 60** —
@@ -153,7 +155,7 @@ Astryx's model: a **closed semantic registry** plus **parts that inherit from th
       a new `token-icon-<component>-*` alias, an icon-only `<Button>` inside `libs/ui/src`,
       a floating panel that doesn't use `popup-surface-base`.
 
-### 🔴 B1 · Close / clear / dismiss — 6 tokens, 4 part names, 3 sizes, 3 labels
+### 🔴 B1 · Close / clear / dismiss — 7 aliases, 4 part names, 4 sizes, 5 hardcoded labels
 One affordance, implemented six times.
 
 | Where | Part name | Icon token | Size | Accessible name |
@@ -166,20 +168,21 @@ One affordance, implemented six times.
 | SearchForm | `SearchForm.ClearButton` | *(own)* | own logic | prop |
 | Header | *(internal)* | `token-icon-header-close` | `current` | "Toggle mobile menu" |
 
-All seven end up at `@apply token-icon-close`, so the glyph is right today by coincidence.
+All seven aliases end at `@apply token-icon-close`, so the glyph is right today by
+coincidence, not by contract.
 
 - [ ] Ship one `CloseButton` helper over `ActionIcon`: required `label`, size derived from the
       container's size context, single glyph, single hover pill.
 - [ ] Standardise the part name — `CloseTrigger` for "dismiss the surface", `ClearTrigger` for
       "empty the value". Retire `ClearButton`.
-- [ ] Delete the six aliases; keep `token-icon-close`.
+- [ ] Delete the six component-specific aliases; keep `token-icon-close`.
 
-### 🔴 B2 · Chevrons — 13 aliases over 4 glyphs, and two different open/close techniques
+### 🔴 B2 · Chevrons — 15 aliases over 4 glyphs, and two different open/close techniques
 Aliases in use: `accordion-chevron`, `combobox-chevron`, `select-indicator`,
 `select-indicator-open`, `tree-indicator`, `tree-indicator-open`, `pagination-prev`,
 `pagination-next`, `carousel-prev`, `carousel-next`, `breadcrumb-separator`,
-`numeric-input-increment`, `numeric-input-decrement` — plus generic `increment` / `decrement`.
-All resolve to `chevron-up/down/left/right`.
+`numeric-input-increment`, `numeric-input-decrement`, plus the generic `increment` /
+`decrement` — 15 in total, all resolving to `chevron-up/down/left/right`.
 
 | Technique | Components |
 | --- | --- |
@@ -304,7 +307,8 @@ That is how a `md` Combobox ends up with a `md` clear button and a `sm` trigger.
 
 ### 🔴 C2 · `--color-fg-secondary` fails in dark mode
 **3.26:1** on page, **3.05:1** on card, **2.38:1** on table rows. One page produced **12 axe
-violations** in dark. - [ ] Re-tune.
+violations** in dark.
+- [ ] Re-tune the dark half of `--color-fg-secondary` to ≥ 4.5:1 on base, surface and table rows.
 
 ### 🔴 C3 · Control boundaries and state fills below 3:1 (light)
 Form-control border **1.4:1**, checkbox border **1.4:1**, checkbox/switch checked fill
