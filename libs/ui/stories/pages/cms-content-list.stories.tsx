@@ -118,9 +118,11 @@ function ContentListPage({
   const [nav, setNav] = useState("content-pages")
   const [selection, setSelection] = useState<Record<string, true>>({})
   const [pendingDelete, setPendingDelete] = useState<ContentEntry | null>(null)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const [data, setData] = useState(rows)
 
   const selectedIds = Object.keys(selection)
+  const pageCount = (count: number) => `${count} ${count === 1 ? "page" : "pages"}`
 
   const applyBulk = (status: ContentEntry["status"], label: string) => {
     setData((current) =>
@@ -130,16 +132,17 @@ function ContentListPage({
     )
     toaster.create({
       type: "success",
-      title: `${label} ${selectedIds.length} pages`,
+      title: `${label} ${pageCount(selectedIds.length)}`,
     })
     setSelection({})
   }
 
-  const deleteSelected = () => {
+  const confirmBulkDelete = () => {
     const count = selectedIds.length
     setData((current) => current.filter((row) => !selectedIds.includes(row.id)))
-    toaster.create({ type: "success", title: `Deleted ${count} pages` })
+    toaster.create({ type: "success", title: `Deleted ${pageCount(count)}` })
     setSelection({})
+    setBulkDeleting(false)
   }
 
   const confirmDelete = () => {
@@ -210,7 +213,7 @@ function ContentListPage({
         </Button>
         <Button
           icon="icon-[mdi--delete-outline]"
-          onClick={deleteSelected}
+          onClick={() => setBulkDeleting(true)}
           size="sm"
           theme="outlined"
           variant="danger"
@@ -287,6 +290,32 @@ function ContentListPage({
           }}
         />
       </SectionCard>
+
+      {/* Bulk delete is destructive and irreversible, so it confirms too — and
+          it names the count, because the selection is off-screen by then. */}
+      <Dialog
+        actions={
+          <>
+            <Button
+              onClick={() => setBulkDeleting(false)}
+              theme="outlined"
+              variant="secondary"
+            >
+              Keep pages
+            </Button>
+            <Button onClick={confirmBulkDelete} variant="danger">
+              {`Delete ${pageCount(selectedIds.length)}`}
+            </Button>
+          </>
+        }
+        customTrigger
+        description={`${pageCount(selectedIds.length)} and ${selectedIds.length === 1 ? "its" : "their"} revision history will be removed. This cannot be undone.`}
+        onOpenChange={(details) => setBulkDeleting(details.open)}
+        open={bulkDeleting}
+        role="alertdialog"
+        size="sm"
+        title={selectedIds.length === 1 ? "Delete this page?" : "Delete the selected pages?"}
+      />
 
       <Dialog
         actions={
