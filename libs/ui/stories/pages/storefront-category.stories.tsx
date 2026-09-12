@@ -387,9 +387,18 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
   const brandLabelOf = (product: StorefrontProduct) =>
     brandFacets.find((facet) => facet.label === product.brand)?.value
 
+  /* Every active facet narrows the grid — a chip that changes nothing is a lie. */
   const visibleProducts = storefrontProducts.filter((product) => {
-    const value = brandLabelOf(product)
-    return brands.length === 0 || (value !== undefined && brands.includes(value))
+    const brandValue = brandLabelOf(product)
+    const brandOk =
+      brands.length === 0 ||
+      (brandValue !== undefined && brands.includes(brandValue))
+    const sizeOk =
+      sizes.length === 0 || sizes.some((size) => product.sizes.includes(size))
+    const colorOk =
+      colors.length === 0 ||
+      colors.some((color) => product.colors.includes(color))
+    return brandOk && sizeOk && colorOk
   })
 
   const activeChips = [
