@@ -1,0 +1,39 @@
+@theme static {
+  /* BASE COLOR MAPPING */
+  --color-command-surface: var(--color-popup-bg);
+  --color-command-foreground: var(--color-popup-item-fg);
+  --color-command-muted: var(--color-popup-item-fg-muted);
+  --color-command-highlight: var(--color-popup-item-bg-hover);
+
+  /* DERIVED COLORS */
+  --color-command-bg: var(--color-command-surface);
+  --color-command-fg: var(--color-command-foreground);
+  --color-command-border: var(--color-popup-border);
+  --color-command-group-label-fg: var(--color-command-muted);
+  --color-command-empty-fg: var(--color-command-muted);
+
+  /* STATE VARIATIONS */
+  --color-command-item-bg-highlighted: var(--color-command-highlight);
+
+  /* DISABLED STATES */
+  --color-command-item-fg-disabled: var(--color-popup-item-fg-disabled);
+
+  /* SPACING */
+  --spacing-command-gap: var(--spacing-100);
+  --spacing-command-item-gap: var(--spacing-popup-item-md);
+  --spacing-command-list-max: var(--container-xs);
+  --padding-command: var(--spacing-150);
+  --padding-command-list: var(--padding-popup-viewport);
+  --padding-command-item-x: var(--padding-popup-item-x-md);
+  --padding-command-item-y: var(--padding-popup-item-y-md);
+  --padding-command-empty: var(--spacing-300);
+
+  /* TYPOGRAPHY */
+  --text-command-md: var(--text-sm);
+  --font-weight-command-group-label: var(--font-weight-medium);
+
+  /* BORDERS & RADIUS */
+  --border-width-command: var(--border-width-popup);
+  --radius-command: var(--radius-popup);
+  --radius-command-item: var(--radius-popup-item);
+}

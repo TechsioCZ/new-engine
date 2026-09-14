@@ -12,6 +12,12 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Hotkeys v1.0.0
+- New compound shortcut hints with native Zag formatting, independently usable explicit-store registration hooks, current callbacks, optional registration readback and hydration-safe labels.
+
+### Command v1.0.0
+- New compound action panel on Zag Combobox with label/keyword filtering, groups, empty and disabled states, repeated activation and existing Dialog composition. Application callbacks can be shared with Hotkeys without a second command registry.
+
 ### Dialog v1.0.1
 - Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
 
