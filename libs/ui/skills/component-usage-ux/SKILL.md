@@ -39,6 +39,8 @@ Dialog confirmation -> dialog-usage
 Toast feedback -> toast-usage
 Tree navigation -> tree-view-usage
 Loading placeholder -> skeleton-usage
+Shortcut hint or keyboard registration -> hotkeys-usage
+Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
 ```
 
 ## Core Patterns
