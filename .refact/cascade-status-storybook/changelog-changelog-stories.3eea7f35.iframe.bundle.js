@@ -1,0 +1,172 @@
+/*! LICENSE: changelog-changelog-stories.3eea7f35.iframe.bundle.js.LICENSE.txt */
+"use strict";(self.rspackChunk_techsio_ui_kit=self.rspackChunk_techsio_ui_kit||[]).push([[2287],{"../../node_modules/.pnpm/react@19.2.3/node_modules/react/cjs/react-jsx-runtime.production.js"(e,t){var n=Symbol.for("react.transitional.element");function i(e,t,i){var o=null;if(void 0!==i&&(o=""+i),void 0!==t.key&&(o=""+t.key),"key"in t)for(var r in i={},t)"key"!==r&&(i[r]=t[r]);else i=t;return{$$typeof:n,type:e,key:o,ref:void 0!==(t=i.ref)?t:null,props:i}}t.Fragment=Symbol.for("react.fragment"),t.jsx=i,t.jsxs=i},"../../node_modules/.pnpm/react@19.2.3/node_modules/react/jsx-runtime.js"(e,t,n){e.exports=n("../../node_modules/.pnpm/react@19.2.3/node_modules/react/cjs/react-jsx-runtime.production.js")},"./stories/changelog/changelog.stories.tsx"(e,t,n){n.r(t);var i=n("../../node_modules/.pnpm/react@19.2.3/node_modules/react/jsx-runtime.js");let o=`
+## @techsio/ui-kit — Unreleased
+
+### CascadeSelect v1.0.1
+- Status text now automatically describes the interactive trigger, preserving custom status IDs and existing descriptions and removing the automatic reference when unmounted.
+
+### CascadeSelect v1.0.0
+- New Zag.js cascade-select molecule with a compound API, hierarchical path values, parent and multiple selection, and Select-aliased trigger tokens backed by the shared popup surface.
+
+### Dialog v1.0.1
+- Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
+
+### Button v0.3.2
+- Introduced per-component versioning: the component now carries \`@componentVersion\` + \`@skill\`,
+  paired 1:1 with the \`button-usage\` skill's \`component_version\` and this changelog entry,
+  enforced by the \`check-skill-sync\` pre-commit gate.
+
+### Chart v1.0.0
+- New data-visualization molecule built on TanStack Charts (\`@tanstack/charts\` + \`@tanstack/react-charts\`). A single \`type\` prop switches between line, area, bar, horizontal bar, scatter, pie and donut charts from the same \`data\`/\`x\`/\`y\`/\`series\` channels. Series colors come from the new \`--color-chart-series-1..6\` tokens (validated for CVD separation and surface contrast in light and dark mode, bridged to TanStack's \`--ts-chart-*\` palette variables), chart chrome inherits \`--color-chart-fg\`, and the native tooltip is styled by the Tooltip-atom-aliased \`--*-chart-tooltip-*\` tokens. Paired 1:1 with the chart-usage skill and this changelog entry.
+
+### Accordion v1.0.0
+- Opted into per-component versioning; paired 1:1 with the accordion-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### DataTable v1.0.0
+- New headless data-grid organism built on \`@tanstack/react-table\` v9, rendering into the presentational \`Table\` organism so it inherits the \`--color-table-*\` tokens. Covers sorting, conditional column filters, global search, row selection, column visibility/pinning/reorder, row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization/infinite scroll and pagination. Every feature exposes a callback for Storybook interaction tests. Paired 1:1 with the data-table-usage skill and this changelog entry.
+
+### ActionIcon v1.0.0
+- Opted into per-component versioning; paired 1:1 with the action-icon-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Badge v1.0.0
+- Opted into per-component versioning; paired 1:1 with the badge-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Breadcrumb v1.0.0
+- Opted into per-component versioning; paired 1:1 with the breadcrumb-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Carousel v1.0.0
+- Opted into per-component versioning; paired 1:1 with the carousel-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Checkbox v1.0.0
+- Opted into per-component versioning; paired 1:1 with the checkbox-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### ColorSelect v1.0.0
+- Opted into per-component versioning; paired 1:1 with the color-select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Combobox v1.1.0
+- Panel, item hover/selected colour, radius, shadow and z-index now come from the shared popup-surface tokens (also used by Select and Menu), so all three read as one system. Selected items get a real trailing check indicator (previously missing) in a reserved gutter that keeps the label from reflowing.
+
+### Combobox v1.0.0
+- Opted into per-component versioning; paired 1:1 with the combobox-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Dialog v1.0.0
+- Opted into per-component versioning; paired 1:1 with the dialog-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Footer v1.0.0
+- Opted into per-component versioning; paired 1:1 with the footer-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormCheckbox v1.0.0
+- Opted into per-component versioning; paired 1:1 with the form-checkbox-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormInput v1.0.0
+- Opted into per-component versioning; paired 1:1 with the form-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormNumericInput v1.0.0
+- Opted into per-component versioning; paired 1:1 with the form-numeric-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormTextarea v1.0.0
+- Opted into per-component versioning; paired 1:1 with the form-textarea-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Gallery v1.0.0
+- Opted into per-component versioning; paired 1:1 with the gallery-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Header v1.0.0
+- Opted into per-component versioning; paired 1:1 with the header-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Icon v1.0.0
+- Opted into per-component versioning; paired 1:1 with the icon-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Image v1.0.0
+- Opted into per-component versioning; paired 1:1 with the image-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Input v1.0.0
+- Opted into per-component versioning; paired 1:1 with the input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Label v1.0.0
+- Opted into per-component versioning; paired 1:1 with the label-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Link v1.0.0
+- Opted into per-component versioning; paired 1:1 with the link-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### LinkButton v1.0.0
+- Opted into per-component versioning; paired 1:1 with the link-button-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Menu v1.1.0
+- Panel and item styling now come from the shared popup-surface tokens (see Select, Combobox). Added an \`xs\` size so parents whose own scale starts at \`xs\` (DataTable's column-settings menu) can forward \`size\` without it silently collapsing to \`md\`. Checkable rows reserve a trailing indicator gutter instead of shifting the label on toggle.
+
+### Menu v1.0.0
+- Opted into per-component versioning; paired 1:1 with the menu-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### NumericInput v1.0.0
+- Opted into per-component versioning; paired 1:1 with the numeric-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Pagination v1.0.0
+- Opted into per-component versioning; paired 1:1 with the pagination-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### PhoneInput v1.0.0
+- Opted into per-component versioning; paired 1:1 with the phone-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Popover v1.0.0
+- Opted into per-component versioning; paired 1:1 with the popover-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### ProductCard v1.0.0
+- Opted into per-component versioning; paired 1:1 with the product-card-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### RadioCard v1.0.0
+- Opted into per-component versioning; paired 1:1 with the radio-card-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### RadioGroup v1.0.0
+- Opted into per-component versioning; paired 1:1 with the radio-group-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Rating v1.0.0
+- Opted into per-component versioning; paired 1:1 with the rating-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### SearchForm v1.0.0
+- Opted into per-component versioning; paired 1:1 with the search-form-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Select v1.1.0
+- Panel and item styling now come from the shared popup-surface tokens (see Combobox, Menu): consistent radius, shadow, hover/selected colour and z-index across all three. The panel height now caps at the measured available space instead of a fixed height, and the selected-item indicator sits in a reserved gutter so the label no longer reflows on selection.
+
+### Select v1.0.0
+- Opted into per-component versioning; paired 1:1 with the select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Skeleton v1.0.0
+- Opted into per-component versioning; paired 1:1 with the skeleton-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Slider v1.0.0
+- Opted into per-component versioning; paired 1:1 with the slider-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### StatusText v1.0.0
+- Opted into per-component versioning; paired 1:1 with the status-text-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Steps v1.0.0
+- Opted into per-component versioning; paired 1:1 with the steps-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Switch v1.0.0
+- Opted into per-component versioning; paired 1:1 with the switch-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Table v1.2.0
+- Selected rows use a filled brand background (previously a light tint) with \`color-table-row-fg-selected\` so row text and \`currentColor\` glyphs invert correctly against it.
+
+### Table v1.1.0
+- Cells and column headers style horizontal alignment from \`data-align\` (\`start | center | end\`). Unlike \`numeric\`, which asserts the value *is* a number, \`data-align\` is a pure presentation choice, so icon/boolean columns can be centred. Set one or the other, not both.
+
+### Table v1.0.0
+- Opted into per-component versioning; paired 1:1 with the table-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Tabs v1.0.0
+- Opted into per-component versioning; paired 1:1 with the tabs-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Textarea v1.0.0
+- Opted into per-component versioning; paired 1:1 with the textarea-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Toast v1.0.0
+- Opted into per-component versioning; paired 1:1 with the toast-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Tooltip v1.0.0
+- Opted into per-component versioning; paired 1:1 with the tooltip-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### TreeView v1.0.0
+- Opted into per-component versioning; paired 1:1 with the tree-view-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+`.trim();t.default={title:"Guide/Changelog",component:function(){return(0,i.jsx)("div",{className:"min-h-screen bg-base p-400",children:(0,i.jsx)("div",{className:"mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2",children:(0,i.jsx)("pre",{className:"whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed",children:o})})})},tags:["autodocs"],parameters:{layout:"fullscreen"}},n.d(t,{},{Playground:{},__namedExportsOrder:["Playground"]})}}]);
+//# sourceMappingURL=changelog-changelog-stories.3eea7f35.iframe.bundle.js.map

@@ -260,7 +260,7 @@ Source: https://chakra-ui.com/docs/components/accordion
 
 ```sh
 bunx biome check --write libs/ui/src/molecules/carousel.tsx
-bunx nx run ui:build
+bunx nx run ui-kit:build
 pnpm --dir libs/ui validate:tokens
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y

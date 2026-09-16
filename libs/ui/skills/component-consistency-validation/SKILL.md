@@ -155,7 +155,7 @@ Source: libs/ui/src/molecules/carousel.tsx
 ```sh
 bunx biome check --write libs/ui/src/atoms/button.tsx libs/ui/stories/atoms/button.stories.tsx
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+bunx nx run ui-kit:build
 pnpm --dir libs/ui figma:connect:parse
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y

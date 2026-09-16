@@ -107,21 +107,22 @@ pnpm add -w <package>        # Add to workspace root
 ```bash
 bunx nx run medusa-be:dev      # Start backend dev server
 bunx nx run medusa-fe:dev      # Start frontend dev server
-bunx nx run ui:storybook       # Start Storybook for UI library
+bunx nx run ui-kit:storybook   # Start Storybook for UI library
 ```
 
 ### Building Projects
 ```bash
 bunx nx run medusa-be:build    # Build backend
 bunx nx run medusa-fe:build    # Build frontend
-bunx nx run ui:build          # Build UI library
+bunx nx run ui-kit:build      # Build UI library
 ```
 
 ### Testing
-We don't have tests much (yet), but it is planned.
+We do not have broad UI unit-test coverage yet. Component tests are Playwright
+visual regression checks run through Docker.
 ```bash
 bunx nx run medusa-be:test     # Run backend tests with Vitest
-bunx nx run ui:test           # Run UI library tests with Vitest
+bunx nx run ui-kit:test:components # Run UI component visual tests
 ```
 
 ### Code Quality
@@ -143,7 +144,7 @@ The UI library uses Zag.js for React components with custom styling with Tailwin
 - **Atoms**: Basic components (button, input, badge, etc.)
 - **Molecules**: Composite components (accordion, dialog, form components, etc.)
 - **Tokens**: Design system tokens for colors, spacing, typography
-- **Storybook**: Run `bunx nx run ui:storybook` to view components
+- **Storybook**: Run `bunx nx run ui-kit:storybook` to view components
 
 Runtime app import pattern:
 ```typescript

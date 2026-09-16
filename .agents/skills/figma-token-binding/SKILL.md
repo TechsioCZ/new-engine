@@ -60,7 +60,7 @@ behavior with zero Figma schema changes.
   values change.
 - Component-level CSS file at `libs/ui/src/tokens/components/{atoms,molecules,…}/_{name}.css`.
 - Component implementation at `libs/ui/src/{atoms,molecules,…}/{name}.tsx`.
-- Storybook running (`bunx nx run ui:storybook`) for visual verification.
+- Storybook running (`bunx nx run ui-kit:storybook`) for visual verification.
 
 ## Workflow
 

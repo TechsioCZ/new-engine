@@ -220,7 +220,7 @@ Source: libs/ui/AGENTS.md
 
 ```sh
 bunx biome check --write libs/ui/stories/atoms/button.stories.tsx
-bunx nx run ui:build
+bunx nx run ui-kit:build
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y
 ```

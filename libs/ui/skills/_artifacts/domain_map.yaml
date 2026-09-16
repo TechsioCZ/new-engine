@@ -355,7 +355,7 @@ skills:
       Storybook build, a11y summaries, and semantic-release constraints.
     boundaries:
       includes:
-        - "bunx nx run ui:build"
+        - "bunx nx run ui-kit:build"
         - "pnpm validate:tokens"
         - "storybook build and a11y checks when relevant"
         - "package subpath export sanity"

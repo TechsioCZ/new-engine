@@ -33,8 +33,9 @@ stories/
 
 ## Commands
 
-- `bunx nx run ui:storybook`   # Component preview
-- `bunx nx run ui:build`       # Build library
+- `bunx nx run ui-kit:storybook`        # Component preview
+- `bunx nx run ui-kit:build`            # Build library
+- `bunx nx run ui-kit:test:components`  # Docker Playwright visual tests
 - `pnpm validate:tokens`       # Token validation
 - `bunx biome check --write <file>`   # Lint-specific file (never ".")
 

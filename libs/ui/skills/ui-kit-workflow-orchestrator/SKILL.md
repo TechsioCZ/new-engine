@@ -81,7 +81,7 @@ Do not edit Figma automatically from ordinary UI-kit skills.
 ```sh
 bunx biome check --write libs/ui/src/atoms/button.tsx
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+bunx nx run ui-kit:build
 ```
 
 Run narrow checks by default. Ask the maintainer before broader Storybook,

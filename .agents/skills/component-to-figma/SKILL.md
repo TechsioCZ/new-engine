@@ -122,7 +122,7 @@ Use Storybook to inspect the live component before building or fixing Figma.
  
 Preferred flow:
 1. If Storybook is already running, use it.
-2. Otherwise run `bunx nx run ui:storybook`.
+2. Otherwise run `bunx nx run ui-kit:storybook`.
 3. Open the relevant Storybook URL for the component.
 4. Use Chrome DevTools MCP to inspect the rendered HTML and final CSS.
  
@@ -412,7 +412,7 @@ These are Code Connect v2 **parserless templates**, not the old v1
   Figma component; referencing a missing one renders a red `Error` in Dev Mode
 - when the Figma component has no property for a text slot, read the layer:
   `figma.selectedInstance.findText("Label").textContent`
-- `example` must use the `figma.tsx` tagged template so snippets render as React
+- `example` must use the `figma.code` tagged template so snippets render as React
 - `imports` is what a consumer pastes, so use the published specifier
   (`@techsio/ui-kit/atoms/...`), never a relative path
 

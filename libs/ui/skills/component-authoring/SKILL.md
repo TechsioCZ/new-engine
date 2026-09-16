@@ -231,8 +231,7 @@ Source: libs/ui/skills/_artifacts/domain_map.yaml
 ```sh
 bunx biome check --write libs/ui/src/atoms/action.tsx libs/ui/stories/atoms/action.stories.tsx
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+bunx nx run ui-kit:build
 ```
 
 Add Storybook/a11y/component visual checks when visuals or interactions change.
-

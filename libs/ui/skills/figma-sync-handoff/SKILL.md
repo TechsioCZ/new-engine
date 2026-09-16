@@ -72,7 +72,7 @@ const theme = figma.selectedInstance.getEnum("theme", {
 export default {
   id: "Button",
   imports: ['import { Button } from "@techsio/ui-kit/atoms/button"'],
-  example: figma.tsx`<Button${figma.helpers.react.renderProp(
+  example: figma.code`<Button${figma.helpers.react.renderProp(
     "theme",
     theme
   )}${figma.helpers.react.renderProp("variant", variant)} />`,
