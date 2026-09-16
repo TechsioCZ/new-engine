@@ -85,6 +85,7 @@ Total: 14 skills, 52 failure modes.
 | Skill | Subsystems | Reference candidates |
 | --- | --- | --- |
 | `component-usage-ux` | per-component usage layer | `button-usage`, `input-usage`, `link-button-usage`, `dialog-usage`, `toast-usage`, `breadcrumb-usage`, `tree-view-usage`, `skeleton-usage`, plus additional usage skills generated from `libs/ui/src` inventory |
+| `player-usage`, `audio-player-usage`, `video-player-usage` | media playback | custom compound controls, ready-made audio/video presets, Vidstack behavior, and player token overrides |
 | `framework-consumer-integration` | Next.js adapter usage | NextLink/NextImage adapter props and prop forwarding |
 | `zag-compound-components` | Zag-backed components | machine/connect patterns and component-specific parts |
 | `tailwind-token-authoring` | token layers | semantic, typography, spacing, layout, radius, component tokens |
