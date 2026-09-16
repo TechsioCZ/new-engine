@@ -1,0 +1,184 @@
+@import "@vidstack/react/player/styles/default/theme.css";
+
+@theme static {
+  /* Reference layer */
+  --color-player-surface: var(--color-surface);
+  --color-player-content: var(--color-fg-primary);
+  --color-player-brand: var(--color-primary);
+  --color-player-media-surface: var(--color-base-dark);
+  --color-player-media-content: var(--color-base-light);
+
+  /* Derived layer */
+  --color-player-bg: var(--color-player-surface);
+  --color-player-fg: var(--color-player-content);
+  --color-player-border: var(--color-border-primary);
+  --color-player-control-fg: var(--color-player-content);
+  --color-player-control-bg-hover: var(--color-fill-hover);
+  --color-player-control-bg-active: var(--color-fill-active);
+  --color-player-overlay-control-fg: var(--color-player-media-content);
+  --color-player-overlay-control-bg-hover: --alpha(
+    var(--color-player-media-content) /
+    20%
+  );
+  --color-player-overlay-control-bg-active: --alpha(
+    var(--color-player-media-content) /
+    30%
+  );
+  --color-player-video-bg: var(--color-player-media-surface);
+  --color-player-scrim-bg: --alpha(var(--color-player-media-surface) / 90%);
+  --color-player-track-bg: var(--color-fill-hover);
+  --color-player-track-progress-bg: var(--color-fill-active);
+  --color-player-track-fill-bg: var(--color-player-brand);
+  --color-player-thumb-bg: var(--color-player-content);
+  --color-player-thumb-border: var(--color-border-primary);
+  --color-player-overlay-track-bg: --alpha(
+    var(--color-player-media-content) /
+    30%
+  );
+  --color-player-overlay-track-progress-bg: --alpha(
+    var(--color-player-media-content) /
+    50%
+  );
+  --color-player-focus-ring: var(--default-ring-color);
+
+  --radius-player: var(--radius-md);
+  --radius-player-track: var(--radius-sm);
+  --radius-player-thumb: var(--radius-full);
+  --padding-player-root: var(--spacing-150);
+  --padding-player-control: var(--spacing-200);
+  --padding-player-video-control: var(--spacing-100);
+  --gap-player-control: var(--spacing-150);
+  --gap-player-video-control: var(--spacing-50);
+  --size-player-slider: var(--spacing-400);
+  --size-player-track: var(--spacing-100);
+  --size-player-thumb: var(--spacing-200);
+  --size-player-cover: var(--spacing-600);
+  --spacing-player-volume: var(--spacing-750);
+  --border-width-player: var(--border-width-sm);
+  --text-player-time: var(--text-sm);
+  --text-player-title: var(--text-md);
+  --font-weight-player-time: var(--font-weight-medium);
+  --font-weight-player-title: var(--font-weight-semibold);
+  --z-index-player-controls: calc(var(--z-index) + 1);
+}
+
+@utility player-base {
+  cursor: auto !important;
+  --media-brand: var(--color-player-brand);
+  --media-controls-padding: 0px;
+  --media-controls-color: var(--color-player-fg);
+  --media-poster-bg: var(--color-player-video-bg);
+  --media-slider-height: var(--size-player-slider);
+  --media-slider-track-height: var(--size-player-track);
+  --media-slider-focused-track-height: var(--size-player-track);
+  --media-slider-track-border-radius: var(--radius-player-track);
+  --media-slider-track-bg: var(--color-player-track-bg);
+  --media-slider-track-progress-bg: var(--color-player-track-progress-bg);
+  --media-slider-track-fill-bg: var(--color-player-track-fill-bg);
+  --media-slider-thumb-size: var(--size-player-thumb);
+  --media-slider-focused-thumb-size: var(--size-player-thumb);
+  --media-slider-thumb-bg: var(--color-player-thumb-bg);
+  --media-slider-thumb-border: var(--border-width-player) solid
+    var(--color-player-thumb-border);
+  --media-slider-thumb-border-radius: var(--radius-player-thumb);
+  --media-slider-focused-thumb-shadow: var(--media-focus-ring);
+  --media-focus-ring: 0 0 0 var(--default-ring-width)
+    var(--color-player-focus-ring);
+}
+
+/* Vidstack removes the media root outline; keep its keyboard focus visible for
+ * the K/M shortcuts and keyboard users moving between the compound controls. */
+@utility player-focus-ring {
+  &:focus-visible {
+    outline: var(--default-ring-width) var(--default-ring-style)
+      var(--color-player-focus-ring) !important;
+    outline-offset: var(--default-ring-offset);
+  }
+}
+
+@utility player-overlay {
+  color: var(--color-player-overlay-control-fg);
+  background: linear-gradient(
+    to top,
+    var(--color-player-scrim-bg),
+    transparent
+  );
+  --color-player-control-fg: var(--color-player-overlay-control-fg);
+  --color-player-control-bg-hover: var(--color-player-overlay-control-bg-hover);
+  --color-player-control-bg-active: var(
+    --color-player-overlay-control-bg-active
+  );
+  --color-player-focus-ring: var(--color-player-overlay-control-fg);
+  --media-controls-color: var(--color-player-overlay-control-fg);
+  --media-slider-track-bg: var(--color-player-overlay-track-bg);
+  --media-slider-track-progress-bg: var(
+    --color-player-overlay-track-progress-bg
+  );
+  --media-slider-thumb-bg: var(--color-player-overlay-control-fg);
+  --media-focus-ring: 0 0 0 var(--default-ring-width)
+    var(--color-player-overlay-control-fg);
+}
+
+@utility player-video-controls {
+  opacity: 0;
+  visibility: hidden;
+
+  &[data-visible],
+  [data-media-player][data-paused] & {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto !important;
+  }
+}
+
+@utility player-volume-slider {
+  --media-slider-width: var(--spacing-player-volume);
+  width: var(--spacing-player-volume);
+}
+
+/* Vidstack's unlayered slider display rule outranks normal Tailwind display
+ * utilities, so the responsive preset rule must be explicit. */
+@utility player-responsive-volume {
+  display: none !important;
+
+  @variant sm {
+    display: inline-flex !important;
+  }
+}
+
+/* Control glyph aliases (mdi icons, following _icon.css). */
+@utility token-icon-player-play {
+  @apply token-icon-play;
+}
+
+@utility token-icon-player-pause {
+  @apply token-icon-pause;
+}
+
+@utility token-icon-player-mute {
+  @apply icon-[mdi--volume-off];
+}
+
+@utility token-icon-player-volume-high {
+  @apply icon-[mdi--volume-high];
+}
+
+@utility token-icon-player-volume-low {
+  @apply icon-[mdi--volume-medium];
+}
+
+@utility token-icon-player-fullscreen {
+  @apply icon-[mdi--fullscreen];
+}
+
+@utility token-icon-player-fullscreen-exit {
+  @apply icon-[mdi--fullscreen-exit];
+}
+
+@utility token-icon-player-seek-backward {
+  @apply icon-[mdi--rewind];
+}
+
+@utility token-icon-player-seek-forward {
+  @apply icon-[mdi--fast-forward];
+}
