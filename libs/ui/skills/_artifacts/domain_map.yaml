@@ -475,7 +475,9 @@ skills:
           Maintainer wants detailed usage split by component, for example
           button-usage, input-usage, link-button-usage, dialog-usage,
           toast-usage, breadcrumb-usage, tree-view-usage, skeleton-usage, and
-          additional entries generated from libs/ui/src inventory.
+          player-usage for custom media controls, audio-player-usage and
+          video-player-usage for ready-made media players, and additional
+          entries generated from libs/ui/src inventory.
     failure_modes:
       - id: "monolithic-usage-guidance"
         wrong_pattern: "Pick Button/Dialog/Input props from a generic UI rule without loading the component-specific usage guidance."

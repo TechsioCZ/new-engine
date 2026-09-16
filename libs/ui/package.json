@@ -97,6 +97,7 @@
     "@tanstack/react-charts": "^0.6.5",
     "@tanstack/react-table": "^9.1.2",
     "@tanstack/react-virtual": "^3.14.8",
+    "@vidstack/react": "^1.15.6",
     "@zag-js/accordion": "^1.41.2",
     "@zag-js/carousel": "^1.41.2",
     "@zag-js/checkbox": "^1.41.2",

@@ -39,6 +39,9 @@ Dialog confirmation -> dialog-usage
 Toast feedback -> toast-usage
 Tree navigation -> tree-view-usage
 Loading placeholder -> skeleton-usage
+Custom audio or video controls -> player-usage
+Ready-made audio player -> audio-player-usage
+Ready-made video player -> video-player-usage
 ```
 
 ## Core Patterns

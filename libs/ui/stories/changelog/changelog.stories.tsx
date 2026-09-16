@@ -12,6 +12,15 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Player v1.0.0
+- New token-driven media player molecule built on Vidstack (\`@vidstack/react\`). The engine stays headless; play/mute/fullscreen/seek buttons are the UI-kit's own atoms, while sliders, poster and time read from Vidstack's accessible primitives, themed through \`--color-player-*\` tokens and the \`--media-*\` bridge in \`_player.css\`.
+
+### AudioPlayer v1.0.0
+- New audio player preset over \`Player\` with a single \`audioUrl\` (string or \`{ src, title?, cover? }\`), a responsive control bar, and playback events. Playlist behaviour is out of scope.
+
+### VideoPlayer v1.0.0
+- New video player preset over \`Player\` with a Semi Design-shaped \`src\`/\`poster\`/\`controlsList\` API. Controls overlay the video on a dark scrim, and the visible control set is driven by \`controlsList\`.
+
 ### Dialog v1.0.1
 - Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
 

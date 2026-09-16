@@ -579,6 +579,24 @@ skills:
       - src/molecules/accordion.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/accordion
+  - name: audio-player-usage
+    slug: audio-player-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/audio-player-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux for a ready-made single-source audio player with
+      optional title and cover, responsive controls, playback events, and player token overrides.
+    requires:
+      - component-usage-ux
+      - player-usage
+      - app-token-overrides
+    sources:
+      - src/molecules/audio-player.tsx
+      - src/tokens/components/molecules/_player.css
+      - stories/molecules/audio-player.stories.tsx
+      - test/player.spec.ts
+      - https://semi.design/en-US/plus/audioPlayer
   - name: breadcrumb-usage
     slug: breadcrumb-usage
     type: sub-skill
@@ -808,6 +826,23 @@ skills:
       - src/tokens/components/molecules/_phone-input.css
       - stories/molecules/phone-input.stories.tsx
       - skills/_artifacts/consumer_app_usage_rules.md
+  - name: player-usage
+    slug: player-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/player-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux for custom audio or video controls composed from
+      the Vidstack-backed Player compound and token-driven UI-kit control parts.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/player.tsx
+      - src/tokens/components/molecules/_player.css
+      - stories/molecules/player.stories.tsx
+      - test/player.spec.ts
+      - https://vidstack.io/docs/player/getting-started/installation/react
   - name: popover-usage
     slug: popover-usage
     type: sub-skill
@@ -1046,6 +1081,24 @@ skills:
       - src/molecules/tree-view.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/tree-view
+  - name: video-player-usage
+    slug: video-player-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/video-player-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux for a ready-made video player with poster, sizing,
+      configurable controls, playback events, and responsive overlay controls.
+    requires:
+      - component-usage-ux
+      - player-usage
+      - app-token-overrides
+    sources:
+      - src/molecules/video-player.tsx
+      - src/tokens/components/molecules/_player.css
+      - stories/molecules/video-player.stories.tsx
+      - test/player.spec.ts
+      - https://semi.design/en-US/plus/videoPlayer
   - name: footer-usage
     slug: footer-usage
     type: sub-skill
