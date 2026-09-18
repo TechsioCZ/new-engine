@@ -2,14 +2,14 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the form-numeric-input-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { ReactNode } from "react"
+import { type ReactNode, useId } from "react"
 import { Label } from "../atoms/label"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 import { StatusText } from "../atoms/status-text"
@@ -35,12 +35,17 @@ export function FormNumericInput({
   required,
   disabled,
   children,
+  describedBy,
   ...numericInputProps
 }: FormNumericInputProps) {
+  const helpTextId = useId()
+  const mergedDescribedBy =
+    [describedBy, helpText ? helpTextId : undefined]
+      .filter(Boolean)
+      .join(" ") || undefined
+
   return (
-    <div
-      className="flex flex-col gap-form-field-gap"
-    >
+    <div className="flex flex-col gap-form-field-gap">
       <Label disabled={disabled} htmlFor={id} required={required} size={size}>
         {label}
       </Label>
@@ -51,6 +56,7 @@ export function FormNumericInput({
         invalid={validateStatus === "error"}
         required={required}
         size={size}
+        describedBy={mergedDescribedBy}
         {...numericInputProps}
       >
         {children}
@@ -58,6 +64,7 @@ export function FormNumericInput({
 
       {helpText && (
         <StatusText
+          id={helpTextId}
           status={validateStatus}
           showIcon={showHelpTextIcon}
           size={size}
