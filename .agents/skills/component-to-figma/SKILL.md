@@ -85,6 +85,28 @@ Use this for component-library work, not for product screens. For canvas writes,
     - Validate with a full-page `get_screenshot`, not only per-component
       shots. A component can be pixel-perfect while the page around it is
       unreadable.
+    - **`primaryAxisAlignItems = "SPACE_BETWEEN"` silently discards
+      `itemSpacing`.** Combined with a `FILL` child it collapses the gap to
+      zero while the inspector still shows the declared spacing, so it reads
+      as correct and renders as wrong. For "one element takes the free width,
+      the rest sit at the trailing edge with a real gap", use packed (`MIN`)
+      alignment plus a `FILL` child. Verify by measuring
+      `child[i+1].x - (child[i].x + child[i].width)`, never by reading
+      `itemSpacing` back.
+    - **`resize()` on a child inside an INSTANCE silently no-ops.** It throws
+      nothing and reports success. Drive instance-child size with
+      `layoutSizingHorizontal = "FILL" | "HUG"` instead, and re-measure to
+      confirm.
+    - **Hiding a text node does not reclaim its frame's space.** An emptied
+      label or helper row still reserves height. Hide the frame, not the
+      text.
+    - **Check `componentPropertyDefinitions` before composing with a library
+      component.** Some bake their icon as a vector with no `INSTANCE_SWAP`
+      slot, so the glyph can never be changed from an instance - compose with
+      one that exposes a slot instead of fighting it.
+    - A `use_figma` call is atomic: if the script throws part-way, every
+      mutation in it rolls back. Prefer one concern per call so a late
+      failure cannot discard earlier good work.
  
 ## What Counts As A Visual Prop
  
