@@ -49,6 +49,29 @@ the `Table2` page. Every `Action Icon` across the library has the same constrain
 As a stand-in, `Table2.FilterRow`'s operator control was rebuilt using the plain `Icon`
 component — which does expose a swap slot — showing a chevron for the conditions menu.
 
+### Status: the glyphs are now drawn, pending adoption
+
+Four of the six are **drawn and wired** on the `🟧 Table2` page, in a section named
+**Proposed token icons**, from the exact MDI paths the code references:
+
+| Component | Source | Wired into |
+|---|---|---|
+| `Token Icon/token-icon-sort-unfold` | `mdi--unfold-more-horizontal` | `Table2.ColumnHeader` |
+| `Token Icon/token-icon-filter` | `mdi--filter-variant` | `Table2.FilterRow` |
+| `Token Icon/token-icon-cog` | `mdi--cog-outline` | `Table2.Toolbar` |
+| `Token Icon/token-icon-chevron-up` | `mdi--chevron-up` | `Table2.ExpandToggle` (expanded) |
+
+They are **local components, not published library assets** — the designer still needs to
+adopt them into the `Icon` set's instance-swap options. `ellipsis-horizontal` and
+`drag-vertical` remain undrawn (row-actions overflow and reorder handles).
+
+**Drawing note for whoever redraws these properly:** Figma's `vectorPaths` accepts only
+`M L C Q Z`. MDI's compact comma form (`M16.59,5.41`), the `H`/`V` shorthands, and arc
+(`A`) commands all fail to parse. Paths were normalised to space-separated explicit `L`
+pairs, and the cog — which is arc-based — was constructed from unioned geometry instead.
+A subpath also needs an explicit `Z`, or Figma silently drops it: that is why
+`sort-unfold` first rendered as one chevron instead of two.
+
 ### Minimum set to publish
 
 1. `token-icon-chevron-up`
