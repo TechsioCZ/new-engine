@@ -68,9 +68,21 @@ adopt them into the `Icon` set's instance-swap options. `ellipsis-horizontal` an
 **Drawing note for whoever redraws these properly:** Figma's `vectorPaths` accepts only
 `M L C Q Z`. MDI's compact comma form (`M16.59,5.41`), the `H`/`V` shorthands, and arc
 (`A`) commands all fail to parse. Paths were normalised to space-separated explicit `L`
-pairs, and the cog — which is arc-based — was constructed from unioned geometry instead.
-A subpath also needs an explicit `Z`, or Figma silently drops it: that is why
-`sort-unfold` first rendered as one chevron instead of two.
+pairs, and the cog — which is arc-based — was rebuilt as a **computed** gear outline
+(8 teeth alternating between an outer and a root radius) plus a four-Bézier hub circle.
+
+Three further traps, each of which produced a wrong-looking icon that reported success:
+
+- A subpath needs an explicit `Z`, or Figma silently drops it — `sort-unfold` first
+  rendered as one chevron instead of two.
+- `EVENODD` only cuts a hole when both subpaths live in the **same** `data` string. Two
+  separate `vectorPaths` entries are independent shapes, so the cog came out solid.
+- A new vector lands at the frame origin, not centred — every glyph needed explicit
+  centring inside its 24×24 box.
+
+Verify any redraw against a zoomed screenshot, not the 24px node: at icon size a wrong
+glyph still looks plausible. The first `sort-unfold` pointed *inward* (a collapse mark)
+rather than outward, and that was only visible at 10×.
 
 ### Minimum set to publish
 
