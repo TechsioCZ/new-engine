@@ -47,6 +47,9 @@ const CHANGELOG = `
 ### ColorSelect v1.0.0
 - Opted into per-component versioning; paired 1:1 with the color-select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Combobox v1.2.0
+- Added external filtering mode (filterBehavior), async dropdown states (loading, error, onRetry) and custom item rendering (renderItem).
+
 ### Combobox v1.1.0
 - Panel, item hover/selected colour, radius, shadow and z-index now come from the shared popup-surface tokens (also used by Select and Menu), so all three read as one system. Selected items get a real trailing check indicator (previously missing) in a reserved gutter that keeps the label from reflowing.
 

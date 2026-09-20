@@ -279,3 +279,96 @@ export const ComplexStory: Story = {
     )
   },
 }
+
+export const ExternalFiltering: Story = {
+  render: () => <ExternalFilteringExample />,
+}
+
+function ExternalFilteringExample() {
+  const [results, setResults] = useState<ComboboxItem[]>(countries)
+  const [loading, setLoading] = useState(false)
+
+  const handleInput = (value: string) => {
+    setLoading(true)
+    setTimeout(() => {
+      setResults(
+        countries.filter((c) =>
+          c.label.toLowerCase().includes(value.toLowerCase())
+        )
+      )
+      setLoading(false)
+    }, 500)
+  }
+
+  return (
+    <div className="w-72">
+      <Combobox
+        label="Search country (external)"
+        placeholder="Type to search..."
+        items={results}
+        filterBehavior="external"
+        loading={loading}
+        onInputValueChange={handleInput}
+      />
+    </div>
+  )
+}
+
+export const Loading: Story = {
+  args: {
+    label: 'Loading results',
+    placeholder: 'Searching...',
+    items: [],
+    defaultOpen: true,
+    loading: true,
+  },
+}
+
+export const ErrorRetry: Story = {
+  render: () => {
+    const [retryCount, setRetryCount] = useState(0)
+
+    return (
+      <div className="w-72">
+        <Combobox
+          label="Search failed"
+          placeholder="Type to search..."
+          items={[]}
+          defaultOpen
+          error="Something went wrong while loading results."
+          onRetry={() => setRetryCount((n) => n + 1)}
+        />
+        {retryCount > 0 && (
+          <p className="mt-200 text-sm text-fg-secondary">
+            Retried {retryCount} time(s)
+          </p>
+        )}
+      </div>
+    )
+  },
+}
+
+const richCountries: ComboboxItem<{ subtitle: string }>[] = [
+  { id: '1', label: 'Czech Republic', value: 'cz', data: { subtitle: 'Central Europe' } },
+  { id: '2', label: 'Germany', value: 'de', data: { subtitle: 'Western Europe' } },
+  { id: '3', label: 'France', value: 'fr', data: { subtitle: 'Western Europe' } },
+]
+
+export const RichItem: Story = {
+  render: () => (
+    <div className="w-72">
+      <Combobox
+        label="Country with details"
+        placeholder="Select a country..."
+        items={richCountries}
+        defaultOpen
+        renderItem={(item) => (
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span>{item.label}</span>
+            <span className="text-xs text-fg-secondary">{item.data?.subtitle}</span>
+          </div>
+        )}
+      />
+    </div>
+  ),
+}

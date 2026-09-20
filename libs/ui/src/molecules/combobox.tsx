@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -15,7 +15,7 @@ import {
   collection as createComboboxCollection,
 } from "@zag-js/combobox"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { useEffect, useId, useState } from "react"
+import { type ReactNode, useEffect, useId, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
@@ -94,6 +94,11 @@ const comboboxVariants = tv({
       "size-(--size-popup-indicator) text-popup-item-fg-selected",
     ],
     emptyState: [
+      "px-(--popup-item-x) py-(--popup-item-y)",
+      "text-popup-item-fg-muted",
+    ],
+    status: [
+      "flex items-center gap-100",
       "px-(--popup-item-x) py-(--popup-item-y)",
       "text-popup-item-fg-muted",
     ],
@@ -185,6 +190,8 @@ export interface ComboboxProps<T = unknown>
   allowCustomValue?: boolean
   loopFocus?: boolean
   autoFocus?: boolean
+  open?: boolean
+  defaultOpen?: boolean
   triggerIcon?: IconType
   triggerIconSize?: IconProps["size"]
   clearIcon?: IconType
@@ -192,6 +199,11 @@ export interface ComboboxProps<T = unknown>
   onInputValueChange?: (value: string) => void
   onOpenChange?: (open: boolean) => void
   inputBehavior?: "autohighlight" | "autocomplete" | "none"
+  filterBehavior?: "local" | "external"
+  loading?: boolean
+  error?: ReactNode
+  onRetry?: () => void
+  renderItem?: (item: ComboboxItem<T>) => ReactNode
 }
 
 export function Combobox<T = unknown>({
@@ -218,10 +230,17 @@ export function Combobox<T = unknown>({
   allowCustomValue = false,
   loopFocus = true,
   autoFocus = false,
+  open,
+  defaultOpen,
   triggerIcon = "token-icon-combobox-chevron",
   triggerIconSize,
   clearIcon = "token-icon-combobox-clear",
   inputBehavior = "autocomplete",
+  filterBehavior = "local",
+  loading = false,
+  error,
+  onRetry,
+  renderItem,
   onChange,
   onInputValueChange,
   onOpenChange,
@@ -250,6 +269,8 @@ export function Combobox<T = unknown>({
     selectionBehavior,
     allowCustomValue,
     autoFocus,
+    open,
+    defaultOpen,
     inputBehavior,
     loopFocus,
     ids: {
@@ -265,10 +286,12 @@ export function Combobox<T = unknown>({
       onChange?.(selectedValue)
     },
     onInputValueChange: ({ inputValue: newItemInputValue }) => {
-      const filtered = items.filter((item) =>
-        item.label.toLowerCase().includes(newItemInputValue.toLowerCase())
-      )
-      setOptions(filtered)
+      if (filterBehavior === "local") {
+        const filtered = items.filter((item) =>
+          item.label.toLowerCase().includes(newItemInputValue.toLowerCase())
+        )
+        setOptions(filtered)
+      }
       onInputValueChange?.(newItemInputValue)
     },
     onOpenChange: ({ open }) => {
@@ -295,6 +318,7 @@ export function Combobox<T = unknown>({
     itemText,
     itemIndicator,
     emptyState,
+    status: statusSlot,
     triggerIndicator,
   } = comboboxVariants({ size })
 
@@ -353,7 +377,20 @@ export function Combobox<T = unknown>({
       <Portal>
         <div {...api.getPositionerProps()} className={positioner()}>
           <div {...api.getContentProps()} className={content()}>
-            {hasOptions && (
+            {loading ? (
+              <div className={statusSlot()}>
+                <Icon icon="token-icon-spinner" size="current" />
+              </div>
+            ) : error ? (
+              <div className={statusSlot()}>
+                <span className="min-w-0 flex-1">{error}</span>
+                {onRetry && (
+                  <Button onClick={onRetry} size="sm" variant="secondary">
+                    Retry
+                  </Button>
+                )}
+              </div>
+            ) : hasOptions ? (
               <ul {...api.getListProps()} className={list()}>
                 {options.map((item) => (
                   <li
@@ -361,7 +398,11 @@ export function Combobox<T = unknown>({
                     {...api.getItemProps({ item })}
                     className={itemSlot()}
                   >
-                    <span className={itemText()}>{item.label}</span>
+                    {renderItem ? (
+                      renderItem(item)
+                    ) : (
+                      <span className={itemText()}>{item.label}</span>
+                    )}
                     <span
                       {...api.getItemIndicatorProps({ item })}
                       className={itemIndicator()}
@@ -371,12 +412,11 @@ export function Combobox<T = unknown>({
                   </li>
                 ))}
               </ul>
-            )}
-            {showEmptyState && (
+            ) : showEmptyState ? (
               <div className={emptyState()}>
                 {noResultsMessage.replace("{inputValue}", api.inputValue)}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </Portal>
