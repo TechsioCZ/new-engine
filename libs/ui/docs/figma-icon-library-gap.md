@@ -33,6 +33,22 @@ This is the single highest-value thing to fix: one icon pass unblocks four separ
 | Column / row drag handle | `icon-[mdi--drag-vertical]`, `icon-[mdi--drag-horizontal]` | ❌ | not drawable |
 | Expand / collapse | chevron rotated 180° | ⚠️ | workaround in use |
 
+### `Action Icon` has no icon slot — this blocks the swap entirely
+
+Worse than the missing glyphs: the published **`Action Icon`** component exposes only
+`size`, `tone` and `state`. Its glyph is **baked in as a vector** (`icon-shape`) with **no
+`INSTANCE_SWAP` property**, so the mark cannot be changed from an instance *even once the
+right glyphs exist*.
+
+That is why the toolbar's column-visibility control renders a ✕ and cannot be corrected on
+the `Table2` page. Every `Action Icon` across the library has the same constraint.
+
+**Fix required:** add an `INSTANCE_SWAP` icon property to `Action Icon` (mirroring the one
+`Icon` already has as `icon#365:42`), *then* publish the glyphs below.
+
+As a stand-in, `Table2.FilterRow`'s operator control was rebuilt using the plain `Icon`
+component — which does expose a swap slot — showing a chevron for the conditions menu.
+
 ### Minimum set to publish
 
 1. `token-icon-chevron-up`
