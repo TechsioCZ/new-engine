@@ -64,6 +64,27 @@ Use this for component-library work, not for product screens. For canvas writes,
     - consistent vertical gaps between sections
 13. Validation is mandatory. Do not declare migration done until Storybook and Figma visually match.
 14. `use_figma` calls must be sequential and incremental. Never batch the whole migration into one large write.
+15. **Frames must always be complete and uncut.** Figma frames do not reflow
+    themselves, so any script that adds content to an existing frame MUST leave
+    the page visually correct, not just the component:
+    - Build every container with `figma.createAutoLayout()` and set
+      `layoutSizingVertical = "HUG"` so a card grows with its contents.
+    - NEVER position sibling frames using heights measured *before* they were
+      filled. Page-level `x`/`y` are absolute and do not shift when a child
+      grows, so a card laid out while empty WILL overlap the next one once
+      populated. This is the single most common way a migration ends up
+      looking broken while every component is individually correct.
+    - After ANY call that appends into page-level frames, run a reflow pass:
+      sort the page's frames by current `y`, then restack them from their
+      **measured** heights with a fixed gutter.
+    - Assert it, don't eyeball it: compute `y + height` per frame and verify it
+      is `<=` the next frame's `y`. Return the overlap list. A non-empty list
+      is a FAILED step, not a cosmetic nit.
+    - Never let `clipsContent` hide real content. If a child is cropped, the
+      parent is wrong - fix the parent, don't shrink the child.
+    - Validate with a full-page `get_screenshot`, not only per-component
+      shots. A component can be pixel-perfect while the page around it is
+      unreadable.
  
 ## What Counts As A Visual Prop
  
@@ -443,6 +464,7 @@ Do not mark the work complete unless all items below are true:
 - no duplicate existing Figma tokens were created
 - Storybook visual states were inspected in browser devtools
 - Figma page shell matches the library pattern
+- page reflowed after filling: every frame hugs its contents, no frame overlaps the next, nothing clipped
 - Figma component visually matches Storybook
 - component was added to the library section
 - local `.figma.ts` file was created or updated
