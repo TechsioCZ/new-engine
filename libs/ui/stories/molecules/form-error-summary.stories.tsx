@@ -1,4 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { useState } from 'react'
+import { Button } from '../../src/atoms/button'
+import { FormInput } from '../../src/molecules/form-input'
 import {
   FormErrorSummary,
   type FormErrorSummaryError,
@@ -67,4 +70,61 @@ export const Hidden: Story = {
       <FormErrorSummary errors={[]} />
     </div>
   ),
+}
+
+export const WithForm: Story = {
+  render: () => <FormErrorSummaryExample />,
+}
+
+function FormErrorSummaryExample() {
+  const [errors, setErrors] = useState<FormErrorSummaryError[]>([])
+
+  const validate = () => {
+    setErrors([
+      {
+        id: 'email',
+        label: 'Enter a valid email address',
+        targetId: 'email-field',
+      },
+      {
+        id: 'password',
+        label: 'Password must be at least 8 characters',
+        targetId: 'password-field',
+      },
+    ])
+  }
+
+  const isInvalid = (targetId: string) =>
+    errors.some((error) => error.targetId === targetId)
+
+  return (
+    <div className="flex w-md flex-col gap-200">
+      <FormErrorSummary errors={errors} />
+      <FormInput
+        id="email-field"
+        label="Email"
+        type="email"
+        validateStatus={isInvalid('email-field') ? 'error' : 'default'}
+        helpText={
+          isInvalid('email-field')
+            ? 'Enter a valid email address'
+            : 'We will send a confirmation'
+        }
+      />
+      <FormInput
+        id="password-field"
+        label="Password"
+        type="password"
+        validateStatus={isInvalid('password-field') ? 'error' : 'default'}
+        helpText={
+          isInvalid('password-field')
+            ? 'Password must be at least 8 characters'
+            : 'Minimum 8 characters'
+        }
+      />
+      <Button onClick={validate} variant="primary">
+        Validate
+      </Button>
+    </div>
+  )
 }
