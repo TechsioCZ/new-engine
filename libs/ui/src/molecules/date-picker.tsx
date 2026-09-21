@@ -545,6 +545,8 @@ export function DatePicker({
   const usesPopupDraft = isTimed || selectionMode === "range"
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen)
   const resolvedOpen = open === undefined ? uncontrolledOpen : open
+  const isTimedRangePopupOpen =
+    isTimed && selectionMode === "range" && resolvedOpen
   const [coordinator, dispatch] = useReducer(
     datePickerCoordinatorReducer,
     undefined,
@@ -572,12 +574,15 @@ export function DatePicker({
     }
 
     previousOpen.current = resolvedOpen
+    setRangeInputDraft((current) =>
+      isTimedRangePopupOpen ? null : current
+    )
     dispatch(
       resolvedOpen && usesPopupDraft
         ? { type: "open", value: acceptedCandidate }
         : { type: "discard" }
     )
-  }, [acceptedCandidate, resolvedOpen, usesPopupDraft])
+  }, [acceptedCandidate, isTimedRangePopupOpen, resolvedOpen, usesPopupDraft])
 
   useEffect(() => {
     if (previousAcceptedValue.current === acceptedValueKey) {
@@ -642,6 +647,10 @@ export function DatePicker({
     : acceptedCandidate
   const pickerValues =
     usesPopupDraft && resolvedOpen ? toDateValues(draftValue) : acceptedValues
+  const dateInputValues =
+    selectionMode === "range" && !isTimedRangePopupOpen
+      ? (rangeInputDraft ?? acceptedValues)
+      : acceptedValues
   const resolvedNumOfMonths = numOfMonths ?? (selectionMode === "range" ? 2 : 1)
 
   const pickerService = useMachine(datePickerMachine, {
@@ -718,11 +727,12 @@ export function DatePicker({
     min,
     onValueChange: (details) => {
       if (selectionMode === "range") {
-        setRangeInputDraft(details.value)
-        if (resolvedOpen) {
-          dispatch({ type: "edit", value: details.value })
+        dispatch({ type: "edit", value: details.value })
+        if (isTimedRangePopupOpen) {
+          return
         }
 
+        setRangeInputDraft(details.value)
         const nextRange = toCompleteDatePickerRange(details.value)
         if (nextRange) {
           setRangeInputDraft(null)
@@ -741,10 +751,7 @@ export function DatePicker({
     selectionMode,
     shouldForceLeadingZeros,
     timeZone,
-    value:
-      selectionMode === "range"
-        ? (rangeInputDraft ?? acceptedValues)
-        : acceptedValues,
+    value: dateInputValues,
   })
   const dateInputApi = connectDateInput(dateInputService, normalizeProps)
 
