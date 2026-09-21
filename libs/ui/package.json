@@ -104,6 +104,7 @@
     "@zag-js/combobox": "1.43.3",
     "@zag-js/dialog": "1.43.3",
     "@zag-js/drawer": "1.43.3",
+    "@zag-js/file-upload": "1.43.3",
     "@zag-js/i18n-utils": "1.43.3",
     "@zag-js/menu": "1.43.3",
     "@zag-js/number-input": "1.43.3",

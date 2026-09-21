@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### FileUpload v1.0.0
+- New Zag.js-backed FileUpload molecule for selecting, validating, previewing, and removing local accepted and rejected File objects through a compound API, native picker/form behavior, drag and drop, controlled state, clipboard input, directory selection, and media capture. It intentionally provides no network transport, progress, retry, or visual size/variant API.
+
 ### Drawer v1.0.0
 - New Zag.js-powered Drawer molecule with compound anatomy, logical placements, controlled and uncontrolled state, snap points, dragging, edge swipes, multiple triggers, custom portals, non-modal behavior, presence-aware motion, and nested drawer stacks.
 

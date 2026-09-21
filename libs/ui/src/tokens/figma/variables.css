@@ -359,8 +359,8 @@
   --color-fg-primary: light-dark(var(--color-slate-950), var(--color-white));
   --color-fg-reverse: light-dark(var(--color-white), var(--color-slate-950));
   --color-fg-secondary: oklch(0.494 0.037 261.595);
-  --color-fg-status-error: light-dark(var(--color-danger-400), var(--color-danger-300));
-  --color-fg-status-success: light-dark(var(--color-success-500), var(--color-success-300));
+  --color-fg-status-error: light-dark(var(--color-danger-600), var(--color-danger-300));
+  --color-fg-status-success: light-dark(var(--color-success-700), var(--color-success-300));
   --color-fg-status-warning: light-dark(var(--color-warning-500), var(--color-warning-400));
   --color-fill-active: light-dark(var(--color-black-15), var(--color-white-15));
   --color-fill-base: light-dark(var(--color-black-5), var(--color-white-5));
@@ -794,6 +794,7 @@
   --color-success-300: oklch(0.871 0.136 154.449);
   --color-success-500: oklch(0.723 0.192 149.579);
   --color-success-600: oklch(0.627 0.17 149.214);
+  --color-success-700: oklch(0.527 0.137 150.069);
   --color-success-disabled: var(--color-bg-disabled);
   --color-switch-bg-base: var(--color-fill-overlay);
   --color-switch-bg-checked: var(--color-bg-success);
