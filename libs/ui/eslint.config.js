@@ -23,7 +23,7 @@ export default [
     },
     settings: {
       tailwindcss: {
-        // For Tailwind CSS v4, point the plugin at the CSS-first theme entry.
+        // Tailwind CSS v4 reads its configuration from the CSS entrypoint.
         cssConfigPath: tokensCssAbsolutePath,
       },
     },
