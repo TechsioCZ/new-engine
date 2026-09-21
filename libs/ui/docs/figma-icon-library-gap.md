@@ -419,3 +419,65 @@ set before other files can use them. `Action Icon` still needs its
 `token-icon-pagination-prev` / `-next` now exist as real components, so that
 swap is unblocked — but `Pagination` is shared system-wide, so it is a
 design-system change, not a `Table2` one.
+
+## 9. Pre-export sign-off (2026-09-21)
+
+Full audit of the file before the token re-export.
+
+### Clean
+
+| Check | Result |
+|---|---|
+| Local variables / values | 2 228 variables, 4 401 mode values across 54 collections |
+| Broken aliases (pointing at a deleted variable) | **0** — the §7b repair holds |
+| Values missing in a mode | **0** |
+| `data-table` collection | 28 tokens, **all aliases, zero raw values**, scopes set on every one |
+| `pagination` collection | 26 tokens, all aliases, zero raw values |
+| Broken node bindings | **0** |
+| Hardcoded text fill / font size in `Table2.*` | **0** |
+| Hardcoded gap / padding in `Table2.*` | **0** |
+| Unbound icon fills | **0** |
+| Page frame overlaps | **0** across 15 sections |
+
+*(Remote-library instances — Button, Input, Select, Pagination, SearchForm —
+are excluded from the hardcode sweep: they carry their own library's bindings
+by design.)*
+
+### Fixed during this audit
+
+Rebuilding the glyphs from SVG (§8) **dropped their variable bindings** — the new
+vectors carried raw fills copied from the old ones. Eleven icon vectors were
+hardcoded to `#1f2129`. All are rebound:
+
+- 3 sort glyphs → `color/data-table/sort-icon/base`
+- 4 filter glyphs → `color/data-table/filter-icon` *(new token, aliases `color/fg/secondary`)*
+- 1 expander chevron → `color/data-table/expander`
+- 1 toolbar cog → `button::color/button/fg/primary` (it sits on a primary Button)
+- 2 `IconButton` cogs → `icon-control::color/icon-control/fg`
+
+This is worth recording as a trap: `createNodeFromSvg` produces vectors with
+plain paints, so any rebuild must re-apply bindings, not copy `fills` across.
+
+### Exports but currently unused — intentional
+
+8 of the 28 `data-table` tokens are bound to nothing in Figma, because the Figma
+component does not draw those parts. They are kept deliberately so code has a
+token to consume:
+
+| Token | Why unused in Figma |
+|---|---|
+| `color/data-table/drag-handle` | column drag not modelled |
+| `color/data-table/resize-handle`, `size/data-table/resize-handle` | column resize not modelled |
+| `color/data-table/editor-error/fg`, `spacing/data-table/editor` | inline cell editing not modelled |
+| `padding/data-table/detail` | master-detail panel not drawn (only its chevron) |
+| `color/data-table/toolbar/fg` | the toolbar has no text of its own |
+| `color/data-table/sort-icon/active` | **see below** |
+
+`color/data-table/sort-icon/active` is the one that is arguably a genuine gap
+rather than a deliberate one: `Table2.ColumnHeader` has a `sortable` boolean but
+no asc/desc state, so the active sort colour is never shown. Adding
+`sort=none|asc|desc` would use it and would match what the code renders.
+
+### Ready to export
+
+Nothing in the file blocks the export.
