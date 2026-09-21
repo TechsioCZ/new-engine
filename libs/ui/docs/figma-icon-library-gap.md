@@ -336,9 +336,13 @@ That was the wrong atom, not a missing fill. In code the trigger is a full
 
 The toolbar now carries a real `Button` instance (`variant=primary`,
 `theme=solid`, `state=default`) with the `Label` text hidden, `showLeftIcon`
-true and `iconLeft` swapped to `token-icon-cog`. Horizontal padding is set equal
-to vertical, because code applies `p-button-md` to all four sides — an icon-only
-`Button` is 32 × 44 at md, not square.
+true and `iconLeft` swapped to `token-icon-cog`. The button is a 44 × 44 square with the cog centred.
+
+Note this is a deliberate divergence: code applies `p-button-md` to all four
+sides of a `Button`, so an icon-only one renders 32 × 44 — a tall, narrow
+rectangle. Figma squares it off, which is what an icon-only control should be.
+The fix belongs in code: an icon-only `Button` needs a square hit area, not
+symmetric padding around a glyph.
 
 `Table2.IconButton` stays as the mirror of `ActionIcon` for the sub-buttons that
 really are one (clear, prev/next, row edit). Its transparent default is correct.
@@ -354,3 +358,64 @@ really are one (clear, prev/next, row edit). Its transparent default is correct.
    20 px into `size=md`. Code passes no `iconSize`, so `Icon` falls back to its
    own default (20 px) regardless of button size — a 20 px glyph in a 34 px sm
    button. Same root cause as §2.
+
+## 8. Stop hand-drawing glyphs — parse them from `@iconify-json/mdi`
+
+Everything in §1 was drawn by hand because Figma's `vectorPaths` API rejects
+most real-world SVG (no arcs, no `H`/`V` shorthands, no comma-separated pairs).
+That was the wrong tool. Two better routes exist, and we should use both.
+
+### Route A — what this repo now does (no plugin, fully reproducible)
+
+The codebase already ships the icon set as data. `libs/ui` depends on
+`@iconify-json/mdi`, and every `icon-[mdi--*]` utility resolves against
+`node_modules/.pnpm/@iconify-json+mdi@*/node_modules/@iconify-json/mdi/icons.json`.
+That file holds the exact path data the browser renders.
+
+Wrap a record as an SVG document and hand it to `figma.createNodeFromSvg()`,
+which uses Figma's real SVG parser — arcs, fill rules and all:
+
+```js
+const icons = require("@iconify-json/mdi/icons.json")
+const ic = icons.icons["cog-outline"]
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" ` +
+            `viewBox="0 0 24 24">${ic.body}</svg>`
+// then, inside use_figma:
+const frame = figma.createNodeFromSvg(svg)
+```
+
+Keep each vector's natural `x`/`y` when reparenting it into the 24x24 component
+— that offset *is* the glyph's position on the MDI grid, and zeroing it shoves
+the icon into the corner.
+
+This is exact by construction: the glyph in Figma and the glyph in the browser
+come from the same bytes, and it re-runs on any machine with the repo checked
+out. The `Table2` page's icons were all rebuilt this way — the cog, sort-unfold,
+chevron-up and filter were replaced, and `chevron-down`, `pagination-prev`,
+`pagination-next`, `ellipsis-horizontal`, `drag-vertical`, `row-edit` and
+`table-empty` were added, closing the §1 BLOCKING list.
+
+### Route B — the Iconify Figma plugin, for designers
+
+For designers working in Figma directly, the official **Iconify** plugin
+(Community → "Iconify", by Vjacheslav Trushkin) ships the same Iconify data,
+including the full MDI set. Search `cog-outline`, drop it on the canvas, and it
+is the identical glyph. A designer drawing an icon by hand instead of pulling it
+from this plugin is how the library drifts from code.
+
+**Recommended rule: no glyph in this file is ever drawn by hand.** It comes from
+the Iconify plugin, or it comes from `@iconify-json/mdi` through
+`createNodeFromSvg`. The only icons that should be original artwork are ones the
+codebase does not have either.
+
+### Still outstanding
+
+The published `Icon` component's swap list is the blocker, not the artwork.
+These components live on the `Table2` page and need adopting into the published
+set before other files can use them. `Action Icon` still needs its
+`INSTANCE_SWAP` slot (§1).
+
+`Pagination` still renders prev/next as the text characters `<` and `>` (§7e).
+`token-icon-pagination-prev` / `-next` now exist as real components, so that
+swap is unblocked — but `Pagination` is shared system-wide, so it is a
+design-system change, not a `Table2` one.
