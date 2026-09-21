@@ -313,3 +313,44 @@ they were bound to remote variables too, like everything else in this component.
 
 The proper fix is to replace the text characters with real icon instances once
 `token-icon-pagination-prev` / `-next` are published, so Figma matches code.
+
+### 7f. The toolbar cog was the wrong component entirely
+
+The column-visibility trigger in `Table2.Toolbar` was an instance of the local
+`Table2.IconButton`, which mirrors the `ActionIcon` atom. `ActionIcon`'s default
+state is genuinely transparent — the pill only appears on hover/active — so on
+the canvas the cog read as a glyph floating in the toolbar rather than a control.
+
+That was the wrong atom, not a missing fill. In code the trigger is a full
+`Button`:
+
+```tsx
+<Button
+  aria-label={translations.columnsLabel}
+  icon="icon-[mdi--cog-outline]"
+  size="sm"
+  title={translations.columnsLabel}
+  variant="primary"
+/>
+```
+
+The toolbar now carries a real `Button` instance (`variant=primary`,
+`theme=solid`, `state=default`) with the `Label` text hidden, `showLeftIcon`
+true and `iconLeft` swapped to `token-icon-cog`. Horizontal padding is set equal
+to vertical, because code applies `p-button-md` to all four sides — an icon-only
+`Button` is 32 × 44 at md, not square.
+
+`Table2.IconButton` stays as the mirror of `ActionIcon` for the sub-buttons that
+really are one (clear, prev/next, row edit). Its transparent default is correct.
+
+**Two divergences this surfaced, both for the design side to decide:**
+
+1. **Size.** Code passes `size="sm"` to this Button while the search field and
+   the adjacent action Button are md, so in the browser the cog is visibly
+   shorter than its neighbours. Figma uses md, per the md-only decision for this
+   family. Either code should drop the `size="sm"`, or the toolbar should be sm
+   throughout — right now the two disagree.
+2. **Icon size inside Button.** Figma bakes a 14 px icon slot into `size=sm` and
+   20 px into `size=md`. Code passes no `iconSize`, so `Icon` falls back to its
+   own default (20 px) regardless of button size — a 20 px glyph in a 34 px sm
+   button. Same root cause as §2.
