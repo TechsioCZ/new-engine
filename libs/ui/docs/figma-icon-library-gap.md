@@ -254,3 +254,46 @@ One judgement call to confirm: `radius/full` was set to `999` to match the code'
 `62.44rem`. That figure looks like a rounded export of an intended "effectively infinite"
 value — `9999` is the usual convention and renders identically. Worth normalising at the
 same time as the A2 precision work.
+
+### 7c. Pagination was bound to REMOTE library variables, not its own tokens
+
+The deeper reason editing tokens appeared to do nothing. Every binding on the Pagination
+items pointed at variable IDs carrying a **library key prefix**:
+
+```
+height → VariableID:2534b467476aedaf98deb5a8970ec7ddef301445/2589:6883
+```
+
+Those are **remote variables from an imported library**, not the local `pagination`
+collection. So the local tokens were orphans: the export reads them, but the component
+renders from something else entirely. Height, width, stroke weight and radius were all
+affected; only the gap responded, because that one was explicitly re-bound first.
+
+All nine variants are now bound to the local `pagination` collection.
+
+**Worth auditing the other components before exporting** — if Pagination drifted this way,
+others may have too, and the symptom is silent: tokens look right, the component ignores them.
+
+### 7d. Final pagination values
+
+| Token | Was | Now | Aliases |
+|---|---|---|---|
+| `spacing/pagination/list` | 16 | **4** | `Theme::size/4` |
+| `spacing/data-table/pagination` | 24 | **16** | `Theme::size/16` |
+| `height/pagination/sm` | 32 | **32** | `form-control::height/form-control/sm` |
+| `height/pagination/md` | 40 | **44** | `form-control::height/form-control/md` |
+| `height/pagination/lg` | 48 | **70** | `form-control::height/form-control/lg` |
+| `border-width/pagination` | 1 | **2** | `form-control::border-width/form-control` |
+
+Heights and border now **alias the form-control family** rather than holding their own
+values, so pagination tracks Input / Select / SearchForm / Combobox / NumericInput
+automatically. Verified in the Table2 footer: pagination item and page-size Select are both
+44px tall.
+
+Two things to be aware of:
+
+- **`lg` grows 48 → 70px.** That is what `height/form-control/lg` is, so a large pagination
+  button is now as tall as a large Select. Consistent, but a big jump — check it suits.
+- **4px gap is below the 8px minimum** for adjacent touch targets in the `ui-ux-pro-max`
+  Touch Spacing guideline. A deliberate density choice, recorded here so it is not mistaken
+  for an oversight.
