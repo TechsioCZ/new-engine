@@ -330,6 +330,11 @@ export const ErrorRetry: Story = {
 
     return (
       <div className="w-72">
+        {retryCount > 0 && (
+          <p className="mb-200 text-sm text-fg-secondary">
+            Retried {retryCount} time(s)
+          </p>
+        )}
         <Combobox
           label="Search failed"
           placeholder="Type to search..."
@@ -338,11 +343,6 @@ export const ErrorRetry: Story = {
           error="Something went wrong while loading results."
           onRetry={() => setRetryCount((n) => n + 1)}
         />
-        {retryCount > 0 && (
-          <p className="mt-200 text-sm text-fg-secondary">
-            Retried {retryCount} time(s)
-          </p>
-        )}
       </div>
     )
   },
