@@ -201,3 +201,56 @@ For completeness, these were found in the same audit and are done:
   `src/tokens/components/organisms/_table.css`.
 - Page-size Select pinned to 96px instead of stretching the footer.
 - Master-detail expander uses a **chevron**, not the ✕ the old Table page used.
+
+---
+
+## 7. Pre-export token audit (2026-09-21)
+
+Run before re-exporting tokens from Figma. Two classes of problem, both fixed in the file.
+
+### 7a. `Pagination` never bound its gap to its own token
+
+The gap between page buttons was **hardcoded at 16px on all nine variants**, while
+`spacing/pagination/list` sat unused beside it. So the token and the component disagreed,
+and changing the token did nothing — which is exactly the mismatch that made the pager look
+loose.
+
+Fixed: `spacing/pagination/list` now aliases `Theme::size/8`, and all nine variants
+(`filled`/`outlined`/`minimal` × `sm`/`md`/`lg`) are **bound** to it. Widths dropped
+320→272, 376→328, 432→384.
+
+8px, not 4px: `ui-ux-pro-max` Touch Spacing requires a **minimum 8px gap between touch
+targets**, and pagination buttons are touch targets. 4px would violate it.
+
+Worth re-checking after export whether the codebase's `--spacing-pagination-list`
+(currently `--dimension-16`) should follow.
+
+### 7b. 52 broken alias entries — every radius in the system
+
+`Theme::radius/*` aliased a **deleted variable in all six modes**, so the entire radius
+scale resolved to nothing:
+
+| Variable | Modes affected | Repaired to (from code) |
+|---|---|---|
+| `radius/none` | 6 | `0` |
+| `radius/xs` | 6 | `4` (`0.25rem`) |
+| `radius/sm` | 6 | `8` (`0.5rem`) |
+| `radius/md` | 6 | `12` (`0.75rem`) |
+| `radius/lg` | 6 | `16` (`1rem`) |
+| `radius/2xl` | 6 | `32` (`2rem`) |
+| `radius/full` | 6 | `999` (`62.44rem`) |
+| `select::padding/select/trigger/{x,y}/{sm,md}` | 1 each | `6` / `10` |
+| `textarea::padding/textarea/{x,y}/{sm,md,lg}` | 1 each | `6` / `10` / `16` |
+
+**63 component tokens across ~35 components** aliased those broken radii — `button`,
+`dialog`, `form-control`, `pagination`, `table`, `icon-control`, `popup-surface`,
+`switch`, `steps` and more. Exporting before the repair would have emitted an empty or
+wrong radius for essentially every component in the library.
+
+All values were taken from `src/tokens/figma/variables.css`, so code stays the source of
+truth. Post-repair audit: **0 broken aliases remaining**.
+
+One judgement call to confirm: `radius/full` was set to `999` to match the code's
+`62.44rem`. That figure looks like a rounded export of an intended "effectively infinite"
+value — `9999` is the usual convention and renders identically. Worth normalising at the
+same time as the A2 precision work.
