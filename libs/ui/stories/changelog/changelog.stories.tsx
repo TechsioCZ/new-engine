@@ -65,6 +65,9 @@ const CHANGELOG = `
 ### FormCheckbox v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-checkbox-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### FormErrorSummary v1.0.0
+- New focusable error summary molecule that lists validation errors as links to the invalid fields via targetId; presentational and form-library-agnostic.
+
 ### FormInput v1.1.0
 - Help/error text is now linked to the input via \`aria-describedby\`, and \`aria-invalid\` is set only for \`validateStatus="error"\`.
 
