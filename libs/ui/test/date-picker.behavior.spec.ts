@@ -548,6 +548,47 @@ test.describe("DatePicker browser behavior", () => {
     await expect(hidden.nth(1)).toHaveValue("")
   })
 
+  test("discards partial direct date range input when opening the popup", async ({
+    page,
+  }) => {
+    await openStory(
+      page,
+      stories.playground,
+      "selectionMode:range;granularity:day;initialValue:empty;locale:en-US"
+    )
+
+    const root = page.locator(pickerRootSelector).first()
+    const hidden = hiddenValue(root)
+    const firstEndpoint = root
+      .locator('[data-scope="date-input"][data-part="segment-group"]')
+      .first()
+
+    for (const [part, value] of [
+      ["month", "09"],
+      ["day", "06"],
+      ["year", "2026"],
+    ] as const) {
+      const segment = firstEndpoint.locator(`[data-type="${part}"]`)
+      await segment.click()
+      await segment.pressSequentially(value)
+    }
+
+    await expect(firstEndpoint.locator('[data-type="year"]')).toHaveText("2026")
+    await expect(hidden.nth(0)).toHaveValue("")
+    await expect(hidden.nth(1)).toHaveValue("")
+
+    await root
+      .locator('[data-scope="date-picker"][data-part="trigger"]')
+      .click()
+
+    await expect(page.locator(contentSelector)).toBeVisible()
+    await expect(firstEndpoint.locator('[data-type="year"]')).toHaveAttribute(
+      "data-placeholder-shown"
+    )
+    await expect(hidden.nth(0)).toHaveValue("")
+    await expect(hidden.nth(1)).toHaveValue("")
+  })
+
   test("discards one timed range transaction on Escape and Cancel", async ({
     page,
   }) => {

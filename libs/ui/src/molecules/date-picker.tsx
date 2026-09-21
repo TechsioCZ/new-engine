@@ -575,14 +575,14 @@ export function DatePicker({
 
     previousOpen.current = resolvedOpen
     setRangeInputDraft((current) =>
-      isTimedRangePopupOpen ? null : current
+      resolvedOpen && selectionMode === "range" ? null : current
     )
     dispatch(
       resolvedOpen && usesPopupDraft
         ? { type: "open", value: acceptedCandidate }
         : { type: "discard" }
     )
-  }, [acceptedCandidate, isTimedRangePopupOpen, resolvedOpen, usesPopupDraft])
+  }, [acceptedCandidate, resolvedOpen, selectionMode, usesPopupDraft])
 
   useEffect(() => {
     if (previousAcceptedValue.current === acceptedValueKey) {
