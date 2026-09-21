@@ -282,7 +282,7 @@ others may have too, and the symptom is silent: tokens look right, the component
 | `spacing/data-table/pagination` | 24 | **16** | `Theme::size/16` |
 | `height/pagination/sm` | 32 | **32** | `form-control::height/form-control/sm` |
 | `height/pagination/md` | 40 | **44** | `form-control::height/form-control/md` |
-| `height/pagination/lg` | 48 | **70** | `form-control::height/form-control/lg` |
+| `height/pagination/lg` | 48 | **48** | `Theme::dimension/48` (deliberately NOT form-control) |
 | `border-width/pagination` | 1 | **2** | `form-control::border-width/form-control` |
 
 Heights and border now **alias the form-control family** rather than holding their own
@@ -292,8 +292,24 @@ automatically. Verified in the Table2 footer: pagination item and page-size Sele
 
 Two things to be aware of:
 
-- **`lg` grows 48 → 70px.** That is what `height/form-control/lg` is, so a large pagination
-  button is now as tall as a large Select. Consistent, but a big jump — check it suits.
+- **`lg` stays 48, deliberately.** Aliasing it to `form-control` made it 70px, which is
+  too large for a pagination button. `sm` (32) and `md` (44) still alias form-control
+  because they genuinely match; `lg` does not. Worth noting the form-control scale itself
+  is odd — `32 / 44 / 70` is a +12 step then a +26 step, so 70 may be the real anomaly.
 - **4px gap is below the 8px minimum** for adjacent touch targets in the `ui-ux-pro-max`
   Touch Spacing guideline. A deliberate density choice, recorded here so it is not mistaken
   for an oversight.
+
+### 7e. Pagination prev/next are text glyphs, not icons
+
+In code the prev/next controls are icons — `token-icon-pagination-prev` and
+`token-icon-pagination-next`. In Figma they are **text characters** `‹` and `›` set in
+Inter Medium, at the *same point size as the page digits*. A chevron glyph at a digit's
+point size reads far smaller optically, which is why they looked undersized.
+
+Interim fix: new `text/pagination/nav/{sm,md,lg}` tokens, one step up the type scale
+(14 / 20 / 24 against the digits' 12 / 14 / 20), bound locally to all 18 glyph nodes —
+they were bound to remote variables too, like everything else in this component.
+
+The proper fix is to replace the text characters with real icon instances once
+`token-icon-pagination-prev` / `-next` are published, so Figma matches code.
