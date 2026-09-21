@@ -166,8 +166,9 @@ export type ComboboxItem<T = unknown> = {
   data?: T
 }
 
-export interface ComboboxProps<T = unknown>
-  extends VariantProps<typeof comboboxVariants> {
+export type ComboboxProps<T = unknown> = VariantProps<
+  typeof comboboxVariants
+> & {
   id?: string
   name?: string
   label?: string
@@ -252,8 +253,9 @@ export function Combobox<T = unknown>({
   useEffect(() => {
     setOptions(items)
   }, [items])
+  const displayedItems = filterBehavior === "external" ? items : options
   const collection = createComboboxCollection({
-    items: options,
+    items: displayedItems,
     itemToString: (item) => item.label,
     itemToValue: (item) => item.value,
     isItemDisabled: (item) => !!item.disabled,
@@ -378,11 +380,11 @@ export function Combobox<T = unknown>({
         <div {...api.getPositionerProps()} className={positioner()}>
           <div {...api.getContentProps()} className={content()}>
             {loading ? (
-              <div className={statusSlot()}>
+              <div className={statusSlot()} role="status">
                 <Icon icon="token-icon-spinner" size="current" />
               </div>
             ) : error ? (
-              <div className={statusSlot()}>
+              <div className={statusSlot()} role="alert">
                 <span className="min-w-0 flex-1">{error}</span>
                 {onRetry && (
                   <Button onClick={onRetry} size="sm" variant="secondary">
@@ -392,7 +394,7 @@ export function Combobox<T = unknown>({
               </div>
             ) : hasOptions ? (
               <ul {...api.getListProps()} className={list()}>
-                {options.map((item) => (
+                {displayedItems.map((item) => (
                   <li
                     key={item.value}
                     {...api.getItemProps({ item })}

@@ -301,7 +301,7 @@ function ExternalFilteringExample() {
   }
 
   return (
-    <div className="w-72">
+    <div className="w-xs">
       <Combobox
         label="Search country (external)"
         placeholder="Type to search..."
@@ -329,9 +329,9 @@ export const ErrorRetry: Story = {
     const [retryCount, setRetryCount] = useState(0)
 
     return (
-      <div className="w-72">
+      <div className="w-xs">
         {retryCount > 0 && (
-          <p className="mb-200 text-sm text-fg-secondary">
+          <p className="mb-200 text-status-text-sm text-fg-secondary">
             Retried {retryCount} time(s)
           </p>
         )}
@@ -356,7 +356,7 @@ const richCountries: ComboboxItem<{ subtitle: string }>[] = [
 
 export const RichItem: Story = {
   render: () => (
-    <div className="w-72">
+    <div className="w-xs">
       <Combobox
         label="Country with details"
         placeholder="Select a country..."
@@ -365,7 +365,7 @@ export const RichItem: Story = {
         renderItem={(item) => (
           <div className="flex min-w-0 flex-1 flex-col">
             <span>{item.label}</span>
-            <span className="text-xs text-fg-secondary">{item.data?.subtitle}</span>
+            <span className="text-status-text-sm text-fg-secondary">{item.data?.subtitle}</span>
           </div>
         )}
       />
