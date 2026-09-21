@@ -15,6 +15,12 @@ const CHANGELOG = `
 ### FileUpload v1.0.0
 - New Zag.js-backed FileUpload molecule for selecting, validating, previewing, and removing local accepted and rejected File objects through a compound API, native picker/form behavior, drag and drop, controlled state, clipboard input, directory selection, and media capture. It intentionally provides no network transport, progress, retry, or visual size/variant API.
 
+### Drawer v1.0.0
+- New Zag.js-powered Drawer molecule with compound anatomy, logical placements, controlled and uncontrolled state, snap points, dragging, edge swipes, multiple triggers, custom portals, non-modal behavior, presence-aware motion, and nested drawer stacks.
+
+### Sidebar v1.0.0
+- New responsive Sidebar organism with independent logical start/end state, Root-owned collapse policies, mobile Drawer composition, two-pane nested navigation, right and dual sidebars, sticky-header offsets, and breakpoint-safe focus transfer.
+
 ### Dialog v1.0.1
 - Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
 
