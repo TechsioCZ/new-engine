@@ -98,6 +98,21 @@ Once published, these swap straight into `Table2.ColumnHeader`, `Table2.Toolbar`
 
 ---
 
+## 1b. Icon-only buttons: `radius/icon-control` disagrees with `Action Icon`
+
+`Table2.IconButton` was built because a bare glyph is not a control — the toolbar cog and
+the filter operator menus need a real hit target. It binds the `icon-control` collection
+(`size/icon-control/md`, `radius/icon-control`, `color/icon-control/fg`,
+`color/icon-control/bg/hover`), which is the kit's own icon-button token set.
+
+Building it exposed a mismatch: **`radius/icon-control` resolves to 8px, but the published
+`Action Icon` hardcodes a 4px corner radius** on every variant. One of the two is wrong.
+Since `Action Icon` doesn't bind the token at all, the component is the likelier culprit.
+
+Geometry otherwise agrees: 32×32 at `md`, centred, transparent at rest with a bound fill
+on hover — which is why the cog looks unchanged until hovered. That is correct for a
+borderless icon button, not a missing style.
+
 ## 2. `size=current` means different things in Figma and code
 
 The Figma `Icon` set's size scale, measured:
