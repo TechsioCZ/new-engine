@@ -676,6 +676,27 @@ skills:
       - src/molecules/dialog.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/dialog
+  - name: drawer-usage
+    slug: drawer-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/drawer-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs Drawer from
+      @techsio/ui-kit/molecules/drawer for transient edge panels, modal or non-modal
+      behavior, snap points, swipe gestures, multiple triggers, custom portals,
+      controlled state, and coordinated stacks.
+    requires:
+      - component-usage-ux
+      - zag-compound-components
+      - app-token-overrides
+    sources:
+      - src/molecules/drawer.tsx
+      - src/internal/molecules/drawer.context.tsx
+      - src/internal/molecules/drawer.styles.ts
+      - src/tokens/components/molecules/_drawer.css
+      - stories/molecules/drawer.stories.tsx
+      - https://zagjs.com/components/react/drawer
   - name: form-checkbox-usage
     slug: form-checkbox-usage
     type: sub-skill
@@ -1101,6 +1122,27 @@ skills:
       - src/tokens/components/organisms/_header.css
       - stories/organisms/header.stories.tsx
       - skills/_artifacts/consumer_app_usage_rules.md
+  - name: sidebar-usage
+    slug: sidebar-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/sidebar-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs Sidebar from
+      @techsio/ui-kit/organisms/sidebar for responsive logical start/end navigation,
+      icon collapse, two-pane navigation, controlled expansion, or a sticky-header
+      shell with mobile Drawer behavior.
+    requires:
+      - component-usage-ux
+      - drawer-usage
+      - app-token-overrides
+    sources:
+      - src/organisms/sidebar.tsx
+      - src/internal/organisms/sidebar.context.tsx
+      - src/internal/organisms/sidebar.focus.ts
+      - src/internal/organisms/sidebar.styles.ts
+      - src/tokens/components/organisms/_sidebar.css
+      - stories/organisms/sidebar.stories.tsx
   - name: table-usage
     slug: table-usage
     type: sub-skill

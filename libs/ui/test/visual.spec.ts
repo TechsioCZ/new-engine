@@ -62,6 +62,11 @@ const selectedStories =
     ? stories.filter((story) => storyFilter.includes(story.id))
     : stories
 
+const drawerVisualVariants: Partial<Record<string, readonly string[]>> = {
+  'molecules-drawer--placements': ['Start', 'End', 'Top', 'Bottom'],
+  'molecules-drawer--sizes': ['XS', 'SM', 'MD', 'LG', 'XL', 'FULL'],
+}
+
 if (storyFilter.length > 0 && selectedStories.length === 0) {
   throw new Error(
     `No stories matched TEST_STORIES=${storyFilter.join(',')}`,
@@ -331,6 +336,22 @@ test.describe.parallel('storybook visual', () => {
               ...(mask.length > 0 ? { mask } : {}),
             },
           )
+
+          for (const variant of drawerVisualVariants[story.id] ?? []) {
+            await page.getByRole('button', { name: variant, exact: true }).click()
+            const dialog = page.getByRole('dialog')
+            await expect(dialog).toBeVisible()
+            await page.mouse.move(12, 12)
+
+            // Drawer portals live outside #storybook-root.
+            await expect(page).toHaveScreenshot(
+              `${story.id}-${variant.toLowerCase()}-open.png`,
+              { animations: 'disabled' },
+            )
+
+            await page.keyboard.press('Escape')
+            await expect(dialog).toHaveCount(0)
+          }
         }
 
         if (page.isClosed()) {
