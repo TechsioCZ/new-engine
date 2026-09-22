@@ -77,6 +77,7 @@ test("resolves a target that appears after start", async ({ page }) => {
   await page.goto("/iframe.html?id=molecules-tour--late-target&viewMode=story")
   await page.getByRole("button", { name: "Start tour" }).click()
   await expect(page.getByRole("alertdialog")).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Start tour" })).toBeDisabled()
   await page.getByRole("button", { name: "Reveal target" }).click()
   await expect(
     page.getByRole("alertdialog", { name: "The target is ready" })
@@ -109,6 +110,7 @@ test("interactive wait hides the overlay and cleans up on advance", async ({
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Next", exact: true }).click()
   await expect(page.getByRole("alertdialog")).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Start tour" })).toBeDisabled()
   await page.getByRole("button", { name: "Connect account" }).click()
   await expect(
     page.getByRole("alertdialog", { name: "Account connected" })
@@ -269,6 +271,64 @@ test("escape, outside click and arrow navigation can be disabled", async ({
   await expect(page.getByRole("alertdialog")).toHaveCount(0)
 })
 
+for (const scenario of [
+  {
+    story: "playground",
+    action: "Next",
+    step: "create",
+    target: "Create project",
+  },
+  {
+    story: "late-target",
+    action: "Reveal target",
+    step: "late",
+    target: "New target",
+  },
+]) {
+  test(`blocks ${scenario.story} target when its panel enters the DOM`, async ({
+    page,
+  }) => {
+    await page.goto(
+      `/iframe.html?id=molecules-tour--${scenario.story}&viewMode=story&args=preventInteraction:true`
+    )
+    await page.getByRole("button", { name: "Start tour" }).click()
+    const blocked = await page
+      .getByRole("button", { name: scenario.action, exact: true })
+      .evaluate(
+        (action: HTMLButtonElement, { step, target }) =>
+          new Promise<boolean>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              observer.disconnect()
+              reject(new Error("Targeted tour panel did not appear"))
+            }, 3000)
+            const observer = new MutationObserver(() => {
+              if (
+                !document.querySelector(
+                  `[data-scope="tour"][data-part="content"][data-step="${step}"]`
+                )
+              ) {
+                return
+              }
+              observer.disconnect()
+              clearTimeout(timeout)
+              const element = Array.from(
+                document.querySelectorAll("button")
+              ).find((button) => button.textContent?.trim() === target)
+              resolve(element?.inert === true)
+            })
+            observer.observe(document.body, {
+              childList: true,
+              subtree: true,
+              attributes: true,
+            })
+            action.click()
+          }),
+        scenario
+      )
+    expect(blocked).toBe(true)
+  })
+}
+
 test("late targets become inert and are restored after dismissal", async ({
   page,
 }) => {
@@ -395,7 +455,6 @@ test("restores interaction when the application withdraws inert during the tour"
   await expect(target).toHaveJSProperty("inert", true)
 
   await target.evaluate((element: HTMLButtonElement) => {
-    element.inert = true
     element.inert = false
   })
   await page.getByRole("button", { name: "Next", exact: true }).click()

@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Tour v1.0.2
+- Keep the start trigger disabled throughout target resolution and wait steps, then enable it after the tour ends. Apply target inert before paint while preserving application ownership. Revalidate Zag 1.43.3 guidance and remove obsolete skip/effect-dismiss adapters.
+
 ### Tour v1.0.1
 - Preserve application-owned inert state for existing and late targets when a step closes or changes. Tour removes only its own blocking; pre-existing inert and application writes during the tour survive cleanup. Includes browser regressions without public API or visual changes.
 

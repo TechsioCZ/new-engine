@@ -37,8 +37,8 @@
 }
 
 @utility tour-layer {
-  /* Zag 1.41.2 writes the first child's z-index inline (auto for an arrow).
-   * Keep our backdrop/spotlight/content stack independent of child order. */
+  /* Zag 1.43.3 derives the positioner's inline z-index from Content.
+   * Keep explicit backdrop/spotlight/content offsets for the ui-kit stack. */
   z-index: calc(var(--z-tour) + var(--tour-layer, 2)) !important;
 }
 

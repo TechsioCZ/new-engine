@@ -7,8 +7,18 @@ Code Connect není publikovaný. Jeho publikace a oprava sdílených Button
 vazeb zůstávají samostatnými navazujícími kroky.
 
 Implementační audit níže zachycuje původní v1.0.0. Navazující v1.0.1 opravuje
-zachování aplikačního inert u běžných i pozdních cílů; aktuální Tour suite
+zachování aplikačního inert u běžných i pozdních cílů; tehdejší Tour suite
 prošel 21/21 testů. API, tokeny ani vzhled se touto opravou nezměnily.
+
+Aktualizace kontraktu 2026-09-22 (v1.0.2): závislost je nyní Zag 1.43.3.
+Start se řídí stavem stroje, zůstává disabled i při resolving/wait a povolí
+se po ukončení. Blokování cíle probíhá v layout effectu před paintem.
+Skip a effect.dismiss používají nativní implementaci nové verze. Níže uvedené
+historické výsledky měření nepředstavují nový audit Figmy nebo přístupnosti.
+Aktuální browser ověření na statickém Storybook buildu: 23/23 testů PASS,
+včetně dostupnosti Start a inert při objevení panelu v DOM. Build knihovny,
+Storybook build a validátory tokenů prošly; upozornění na potenciálně nepoužité
+tokeny jsou neblokující.
 
 Navazující [audit stories a vlastní logiky](tour-story-audit.md) z 2026-09-08
 zredukoval katalog z 20 na 7 veřejných ukázek a jednu skrytou testovací
@@ -22,8 +32,8 @@ Zagu; wrapper není vydáván za čisté předání nativního API.
 - Ukázky: `stories/molecules/tour.stories.tsx`, Storybook `Molecules/Tour`.
 - Testy: `test/tour.spec.ts`, `test/tour.typecheck.tsx`.
 - Použití: `skills/tour-usage/SKILL.md` a shodná kopie v agent-plugin.
-- Verze komponenty / usage skill / changelog: `1.0.0`.
-- Jediný Zag stroj, `@zag-js/tour` připnutý na `1.41.2`; sdílené Button a ActionIcon.
+- Verze komponenty / usage skill / changelog: `1.0.2`.
+- Jediný Zag stroj, `@zag-js/tour` připnutý na `1.43.3`; sdílené Button a ActionIcon.
 
 Compound API: Root, Context, Trigger, Portal, Backdrop, Spotlight, Positioner,
 Content, Arrow, ArrowTip, Title, Description, ProgressText, Actions,
@@ -71,19 +81,20 @@ Nevytvářet raw komponentové hodnoty ani duplicitní primitiva ve Figmě.
 | Ovládání | Button a ActionIcon tokeny | Reuse existujících komponent, žádné soukromé Tour přebarvení |
 
 Arrow je sourozenec Content v Positioner, aby jej scrollovací Content neřezal.
-Šipka je nad stínem panelu. Vrstvení ignoruje chybný inline z-index z první
-Zag potomkovské vrstvy. Animace vstupu/výstupu není součástí kontraktu.
+Šipka je nad stínem panelu. Zag 1.43.3 odvozuje inline z-index z Content;
+ui-kit zachovává explicitní offsety vrstev. Animace vstupu/výstupu není součástí kontraktu.
 
 ## Známé limity a externí validační nálezy
 
-- Zag 1.41.2 čeká na chybějící cíl nejvýše 3000 ms, potom not-found a konec;
+- Zag 1.43.3 čeká na chybějící cíl nejvýše 3000 ms, potom not-found a konec;
   není přidaný konfigurovatelný timeout ani automatický skip.
 - Aktivní cíl musí zůstat stabilní. Změny routy/DOM aplikace koordinuje přes wait.
 - Dismiss posledního kroku podle Zagu emituje dismissed a completed; samotný
   onStepChange.complete znamená vybraný poslední krok, nikoli kliknutí na Finish.
   Callback indexy/progress používají raw seznam; pro UI používat getProgressText/Percent.
-- Regrese připnuté závislosti kryté adaptérem: skip trigger, effect.dismiss,
-  cleanup po not-found, návrat fokusu, RTL hranice, inert pozdního cíle a vrstvení.
+- Zbývající úpravy adaptéru: cleanup po not-found, návrat fokusu, RTL hranice
+  a ochrana textových vstupů, vlastnictví inert a lifecycle spouštěcího tlačítka.
+  Skip trigger a effect.dismiss jsou v 1.43.3 opravené nativně.
   Při upgradu Zagu znovu spustit tyto testy před odstraněním oprav.
 - Sken šesti otevřených povrchů (base light/dark) nenašel WCAG AA violations.
   Přísnější AAA/APCA není zelené: sdílený borderless Button má ve světlém

@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.1"
+component_version: "1.0.2"
 name: tour-usage
 description: >
   Use after component-usage-ux for guided walkthroughs with @techsio/ui-kit Tour:
@@ -115,7 +115,8 @@ step's backdrop/arrow flags. Portal is explicit and has Zag Portal options.
 - Floating placement accepts center and the twelve side/alignment values.
   Top/bottom start/end follow dir; left/right remain physical viewport sides.
 - Trigger accepts an optional starting `stepId`, Button props and a React 19 ref.
-  It is disabled for empty or already-active tours.
+  It is disabled for empty or already-active tours, including target resolution
+  and hidden wait steps. It enables again after dismissal, skip, completion or timeout.
 - ActionTrigger accepts `next | prev | dismiss | skip` or a callback receiving
   the Zag action map. Other props are Button props, including ref, loading and
   disabled. Label the action with children or an explicit aria-label.
@@ -162,14 +163,19 @@ For a regular visible step with an effect, call show to display it; wait steps
 are shown as a hidden waiting state automatically. Keep targets stable while
 their step is visible. Use wait steps when the app changes routes or swaps DOM.
 
-With preventInteraction, Tour makes the active target inert. Cleanup removes
+With preventInteraction, Tour makes the active target inert in a layout effect
+before the opened panel is painted. Cleanup removes
 only Tour-owned inert: targets already inert and later application writes to
 the inert attribute/property are left untouched, including another true write.
 
-The adapter preserves one machine while correcting pinned Zag 1.41.2 gaps:
-skip triggers, effect dismissal/timeout cleanup, final focus return and RTL
-boundary navigation, target inert ownership and overlay/arrow layering.
-Re-test these before changing the dependency version.
+The installed dependency is pinned to Zag 1.43.3. Its native skip trigger and
+effect.dismiss now handle their actions directly. The adapter still owns
+timeout cleanup, final focus return, editor-safe RTL boundary navigation and
+target inert ownership. Layer offsets are ui-kit presentation; Zag now derives
+the positioner's z-index from Content, not its first child. Trigger availability
+uses the machine lifecycle: api.open is false during resolution/waits, while
+api.step can remain populated after the tour ends. Re-test these contracts
+before changing the dependency version.
 
 ## Styling and accessibility
 

@@ -61,23 +61,33 @@ chybějící DOM element, efekty s cleanupem, navigace, progress, placements,
 nikoli nově vymyšlená funkční vrstva.
 [Oficiální Tour dokumentace](https://zagjs.com/components/react/tour).
 
-**Wrapper ale není čisté předání `connect()` do JSX.** Z předchozí
-implementace zůstávají tyto zásahy do připnutého `@zag-js/tour@1.41.2`:
+**Wrapper ale není čisté předání `connect()` do JSX.** Následující seznam
+byl znovu ověřen při upgradu na `@zag-js/tour@1.43.3` dne 2026-09-22.
+Původní výsledky auditu níže zůstávají historickým záznamem.
 
 | Vlastní zásah | Důvod a hranice |
 | --- | --- |
-| Oprava triggeru `skip` | Pinned connect nemá větev pro string `skip`; wrapper použije nativní callback action map |
-| Obalení efektu a cleanup-once | Pinned `effect.dismiss()` neukončuje stav stejně jako DISMISS; cesta not-found neuklidí efekt. Wrapper pošle existující DISMISS a zajistí cleanup |
+| Trigger `skip` a `effect.dismiss()` | Verze 1.43.3 obojí podporuje nativně; původní obcházení bylo odstraněno |
+| Obalení efektu a cleanup-once | Cesta TARGET.NOT_FOUND stále neuklidí efekt. Wrapper zajistí cleanup a zabrání jeho opakování |
 | Návrat fokusu po skončení/unmount | Zag má `returnFocusOnDeactivate: false`; wrapper vrací fokus až po konci celé tour |
 | Lokální klávesnicový handler | Pinned connect testuje LTR hranice před obrácením směru; šipky také odvádějí uživatele z textového vstupu |
-| `inert` pro pozdě nalezený cíl | Pinned synchronizace pozdního cíle neaplikuje preventInteraction; běžné cíle zůstávají řízené Zagem |
-| CSS vrstvy a scroll panelu | Prezentace ui-kitu; vlastní z-index koriguje inline vrstvu odvozenou Zagem z prvního potomka |
+| `inert` pro běžný i pozdní cíl | Zag při cleanupu běžného cíle bezpodmínečně odstraní inert a při pozdním nalezení ho nenastaví. Wrapper spravuje oba případy před paintem a zachovává zápisy aplikace |
+| Dostupnost Start | Odvozená ze stavu stroje tourInactive, nikoli api.open nebo přítomnosti posledního kroku. Resolving/wait blokují Start, ukončení jej znovu povolí |
+| CSS vrstvy a scroll panelu | Prezentace ui-kitu; Zag 1.43.3 již odvozuje inline z-index z Content. Vlastní offsety zachovávají vrstvy backdrop/spotlight/content/arrow |
 
 Důkazem pro pinned chování je instalovaný zdroj v
-`node_modules/.pnpm/@zag-js+tour@1.41.2/node_modules/@zag-js/tour/dist/`:
+`node_modules/.pnpm/@zag-js+tour@1.43.3/node_modules/@zag-js/tour/dist/`:
 `tour.connect.js` (akce/klávesy) a `tour.machine.js` (efekty, cíle, fokus).
 Novější upstream se liší; jeho dnešní zdroj nelze vydávat za chování
 lokálně připnuté verze.
+
+Při ověření 2026-09-22 nejprve selhaly doplněné aserce disabled triggeru
+v resolving a wait stavu; po opravě prošlo všech 23 browser testů proti
+novému statickému Storybook buildu. Dvě další kontroly sledují inert už při
+objevení cílového panelu v DOM. Zag 1.43.3 přijímá START pouze v tourInactive:
+chybně povolený trigger tedy neposkytoval funkční restart za běhu, ale
+odporoval dokumentovanému disabled kontraktu. Obnovení podmínky api.step
+by naopak znemožnilo restart po dokončení, protože poslední krok přetrvává.
 
 Opravy nebyly slepě odstraněny: `$deslop` požaduje zachovat chování mimo
 prokazatelný bug. Žádná další utilita, stavový stroj, persistence, router

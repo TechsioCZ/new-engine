@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -32,6 +32,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
 } from "react"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
@@ -72,7 +73,11 @@ export type TourApi = Omit<
   setSteps: (steps: TourStep[]) => void
 }
 
-const TourContext = createContext<TourApi | null>(null)
+type TourContextValue = TourApi & { isRunning: boolean }
+
+const TourContext = createContext<TourContextValue | null>(null)
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect
 
 function useTourContext() {
   const api = useContext(TourContext)
@@ -102,7 +107,7 @@ export function Tour({
   const effectCleanup = useRef<(() => void) | undefined>(undefined)
   const service: Service = useMachine(machine, {
     ...props,
-    // Zag 1.41.2 unconditionally clears inert for existing targets and skips
+    // Zag 1.43.3 unconditionally clears inert for existing targets and skips
     // late targets. Own both paths below so cleanup preserves application writes.
     preventInteraction: false,
     getRootNode,
@@ -121,7 +126,7 @@ export function Tour({
         previousFocus.current =
           activeElement instanceof HTMLElement ? activeElement : null
       } else if (details.status !== "idle") {
-        // Zag 1.41.2 intentionally disables focus return between steps. Restore
+        // Zag 1.43.3 intentionally disables focus return between steps. Restore
         // only when the entire tour ends, after its focus trap has been removed.
         const target = previousFocus.current
         previousFocus.current = null
@@ -141,13 +146,9 @@ export function Tour({
   function prepareEffect(
     effect: NonNullable<TourStep["effect"]>
   ): NonNullable<TourStep["effect"]> {
-    // In Zag 1.41.2 effect.dismiss clears the id without exiting the state or
-    // cleaning up. Use the same machine event as the public dismiss control.
+    // Zag 1.43.3 does not clean up the step effect on target timeout.
     return (args) => {
-      const cleanup = effect({
-        ...args,
-        dismiss: () => service.send({ type: "DISMISS" }),
-      })
+      const cleanup = effect(args)
       let cleaned = false
       const cleanupOnce = () => {
         if (cleaned) {
@@ -169,7 +170,7 @@ export function Tour({
     if (event.defaultPrevented || props.keyboardNavigation === false) {
       return
     }
-    // Zag 1.41.2 navigates out of editors and checks LTR boundaries in RTL.
+    // Zag 1.43.3 navigates out of editors and checks LTR boundaries in RTL.
     if (
       event.target instanceof Element &&
       event.target.closest("input, textarea, select, [contenteditable='true']")
@@ -201,22 +202,6 @@ export function Tour({
           : step
       ),
     setSteps: (nextSteps) => zag.setSteps(nextSteps.map(prepareStep)),
-    getActionTriggerProps(actionProps) {
-      if (actionProps.action.action !== "skip") {
-        return zag.getActionTriggerProps(actionProps)
-      }
-      // The pinned release exposes skip in the action map but not its trigger.
-      return {
-        ...zag.getActionTriggerProps({
-          action: {
-            ...actionProps.action,
-            action: (actions) => actions.skip(),
-          },
-        }),
-        "aria-label": props.translations?.skip ?? "Skip tour",
-        "data-type": "skip",
-      }
-    },
     getContentProps() {
       return {
         ...zag.getContentProps(),
@@ -225,7 +210,7 @@ export function Tour({
     },
   }
   const activeTarget = api.step?.target?.()
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (
       !(api.open && props.preventInteraction && activeTarget) ||
       activeTarget.inert
@@ -265,7 +250,13 @@ export function Tour({
     },
     []
   )
-  return <TourContext.Provider value={api}>{children}</TourContext.Provider>
+  return (
+    <TourContext.Provider
+      value={{ ...api, isRunning: !service.state.matches("tourInactive") }}
+    >
+      {children}
+    </TourContext.Provider>
+  )
 }
 
 export type TourContextProps = { children: (api: TourApi) => ReactNode }
@@ -291,7 +282,7 @@ Tour.Trigger = function TourTrigger({
   return (
     <Button
       {...props}
-      disabled={disabled || api.open || api.totalSteps === 0}
+      disabled={disabled || api.isRunning || api.totalSteps === 0}
       onClick={(event) => {
         onClick?.(event)
         if (!event.defaultPrevented) {
