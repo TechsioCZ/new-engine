@@ -332,6 +332,24 @@ skills:
       - stories/atoms/checkbox.stories.tsx
       - src/atoms/checkbox.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
+  - name: hotkeys-usage
+    slug: hotkeys-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/hotkeys-usage/SKILL.md
+    package: libs/ui
+    description: Use for compound shortcut hints and separate explicit-store Zag registrations,
+      including ownership, current callbacks, hydration-safe formatting and optional metadata readback.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/hotkeys.ts
+      - src/atoms/hotkeys.tsx
+      - src/tokens/components/atoms/_hotkeys.css
+      - stories/atoms/hotkeys.stories.tsx
+      - stories/molecules/command-hotkeys.stories.tsx
+      - test/hotkeys.spec.ts
   - name: icon-usage
     slug: icon-usage
     type: sub-skill
@@ -674,6 +692,25 @@ skills:
       - stories/molecules/combobox.stories.tsx
       - src/molecules/combobox.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/combobox
+  - name: command-usage
+    slug: command-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/command-usage/SKILL.md
+    package: libs/ui
+    description: Use for searchable application actions with compound Command parts,
+      grouped/disabled results, existing Dialog composition and optional Hotkeys hints.
+    requires:
+      - component-usage-ux
+      - zag-compound-components
+      - app-token-overrides
+    sources:
+      - src/molecules/command.tsx
+      - src/tokens/components/molecules/_command.css
+      - stories/molecules/command.stories.tsx
+      - stories/molecules/command-hotkeys.stories.tsx
+      - test/command.spec.ts
       - https://zagjs.com/components/react/combobox
   - name: date-picker-usage
     slug: date-picker-usage

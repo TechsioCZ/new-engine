@@ -1089,6 +1089,9 @@ importers:
       '@zag-js/file-upload':
         specifier: 1.43.3
         version: 1.43.3
+      '@zag-js/hotkeys':
+        specifier: 1.43.3
+        version: 1.43.3
       '@zag-js/i18n-utils':
         specifier: 1.43.3
         version: 1.43.3
@@ -10282,6 +10285,9 @@ packages:
 
   '@zag-js/focus-visible@1.43.3':
     resolution: {integrity: sha512-32l21nQUI328nfNTe2adXyXj+8t1ltDaEm7IQGmhtAw/DuIKvjpEkhJZHL1zUSlp47QGNfuYGPeD+ZXaZWFWMA==}
+
+  '@zag-js/hotkeys@1.43.3':
+    resolution: {integrity: sha512-uC3bc6WakCe0T2Hx73q+ywGiogibErBQep5UtRZGfTBhyKGyKa158NFmhl64oYx4RnlNyZliQ5cF/d74+HNtdA==}
 
   '@zag-js/i18n-utils@1.43.3':
     resolution: {integrity: sha512-bVCZxrd7xWTMhWks8zk/xRQNMPZz3CVoXjG9207b0GVTTQOwoiVg+MEIHDqirEaDJtzUKR6VbV0dRpC8LsceFg==}
@@ -29063,6 +29069,7 @@ snapshots:
       '@zag-js/dialog': 1.43.3
       '@zag-js/drawer': 1.43.3
       '@zag-js/file-upload': 1.43.3
+      '@zag-js/hotkeys': 1.43.3
       '@zag-js/i18n-utils': 1.43.3
       '@zag-js/menu': 1.43.3
       '@zag-js/number-input': 1.43.3
@@ -29123,6 +29130,7 @@ snapshots:
       '@zag-js/dialog': 1.43.3
       '@zag-js/drawer': 1.43.3
       '@zag-js/file-upload': 1.43.3
+      '@zag-js/hotkeys': 1.43.3
       '@zag-js/i18n-utils': 1.43.3
       '@zag-js/menu': 1.43.3
       '@zag-js/number-input': 1.43.3
@@ -30363,6 +30371,10 @@ snapshots:
       '@zag-js/dom-query': 1.43.3
 
   '@zag-js/focus-visible@1.43.3':
+    dependencies:
+      '@zag-js/dom-query': 1.43.3
+
+  '@zag-js/hotkeys@1.43.3':
     dependencies:
       '@zag-js/dom-query': 1.43.3
 

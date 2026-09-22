@@ -12,6 +12,18 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Hotkeys v1.0.1
+- Use named token utilities for keycap borders and shortcut-target focus styling while preserving the existing token values.
+
+### Command v1.0.1
+- Use a named component utility for the command border width while preserving the existing token value.
+
+### Hotkeys v1.0.0
+- New compound shortcut hints with native Zag formatting, independently usable explicit-store registration hooks, current callbacks, optional registration readback and hydration-safe labels.
+
+### Command v1.0.0
+- New compound action panel on Zag Combobox with label/keyword filtering, groups, empty and disabled states, repeated activation and existing Dialog composition. Application callbacks can be shared with Hotkeys without a second command registry.
+
 ### Tour v1.0.2
 - Keep the start trigger disabled throughout target resolution and wait steps, then enable it after the tour ends. Apply target inert before paint while preserving application ownership. Revalidate Zag 1.43.3 guidance and remove obsolete skip/effect-dismiss adapters.
 
