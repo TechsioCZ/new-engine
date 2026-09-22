@@ -5,7 +5,7 @@ import {
 	parseZonedDateTime,
 } from "@internationalized/date"
 import type { Meta, StoryObj } from "@storybook/react"
-import { type ComponentType, type ReactNode, useState } from "react"
+import { type ComponentType, type ReactNode, useRef, useState } from "react"
 import { fn } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
@@ -784,6 +784,41 @@ export const ControlledDateRange: Story = {
 	tags: ["!dev"],
 	parameters: { layout: "padded" },
 	render: () => <ControlledRangeExample />,
+}
+
+function RejectingControlledRangeExample() {
+	const [open, setOpen] = useState(true)
+	const [proposal, setProposal] = useState("No proposal yet")
+	const hasCompleteProposal = useRef(false)
+
+	return (
+		<div className="w-lg max-w-full space-y-200">
+			<DateRangeField
+				endName="reportingEnd"
+				id="date-picker-rejecting-controlled-range"
+				label="Rejecting controlled reporting period"
+				onOpenChange={({ open: nextOpen }) => {
+					if (nextOpen || hasCompleteProposal.current) {
+						setOpen(nextOpen)
+					}
+				}}
+				onValueChange={(details) => {
+					hasCompleteProposal.current = true
+					setProposal(details.valueAsString.join(" – "))
+				}}
+				open={open}
+				startName="reportingStart"
+				value={null}
+			/>
+			<output data-testid="date-picker-range-proposal">{proposal}</output>
+		</div>
+	)
+}
+
+export const RejectingControlledDateRange: Story = {
+	tags: ["!dev"],
+	parameters: { layout: "padded" },
+	render: () => <RejectingControlledRangeExample />,
 }
 
 function RangeFormSerializationExample() {

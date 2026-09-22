@@ -574,9 +574,9 @@ export function DatePicker({
     }
 
     previousOpen.current = resolvedOpen
-    setRangeInputDraft((current) =>
-      resolvedOpen && selectionMode === "range" ? null : current
-    )
+    if (selectionMode === "range") {
+      setRangeInputDraft(null)
+    }
     dispatch(
       resolvedOpen && usesPopupDraft
         ? { type: "open", value: acceptedCandidate }

@@ -12,6 +12,8 @@ const stories = {
     "molecules-datepicker--localized-unavailable-range",
   playground: "molecules-datepicker--playground",
   rangeForm: "molecules-datepicker--range-form-serialization",
+  rejectingControlledRange:
+    "molecules-datepicker--rejecting-controlled-date-range",
   sizes: "molecules-datepicker--sizes",
   states: "molecules-datepicker--states",
   timedOpen: "molecules-datepicker--initially-open-timed-draft",
@@ -833,6 +835,52 @@ test.describe("DatePicker browser behavior", () => {
     await expect(hiddenValue(root)).toHaveCount(2)
     await page.getByRole("button", { name: "Read serialized range" }).click()
     await expect(page.locator("output")).toHaveText("2026-09-05 → 2026-09-18")
+  })
+
+  test("restores a rejected controlled range after closing the popup", async ({
+    page,
+  }) => {
+    await openStory(page, stories.rejectingControlledRange)
+
+    const root = page.locator(pickerRootSelector).first()
+    const hidden = hiddenValue(root)
+    await expect(page.locator(contentSelector)).toBeVisible()
+
+    const firstEndpoint = root
+      .locator('[data-scope="date-input"][data-part="segment-group"]')
+      .first()
+    for (const [part, value] of [
+      ["month", "09"],
+      ["day", "06"],
+      ["year", "2026"],
+    ] as const) {
+      const segment = firstEndpoint.locator(`[data-type="${part}"]`)
+      await segment.click()
+      await segment.pressSequentially(value)
+    }
+
+    await expect(hidden.nth(0)).toHaveValue("")
+    await expect(hidden.nth(1)).toHaveValue("")
+    await page
+      .locator(
+        '[data-scope="date-picker"][data-part="table-cell-trigger"][data-value="2026-09-19"]'
+      )
+      .click()
+    await page
+      .locator(
+        '[data-scope="date-picker"][data-part="table-cell-trigger"][data-value="2026-09-20"]'
+      )
+      .click()
+
+    await expect(page.locator(contentSelector)).toHaveCount(0)
+    await expect(page.getByTestId("date-picker-range-proposal")).toHaveText(
+      "2026-09-19 – 2026-09-20"
+    )
+    await expect(firstEndpoint.locator('[data-type="year"]')).toHaveAttribute(
+      "data-placeholder-shown"
+    )
+    await expect(hidden.nth(0)).toHaveValue("")
+    await expect(hidden.nth(1)).toHaveValue("")
   })
 
   test("renders locale, week-start, hour-cycle, state, and zoned-value semantics", async ({
