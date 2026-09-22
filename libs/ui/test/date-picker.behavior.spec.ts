@@ -506,6 +506,82 @@ test.describe("DatePicker browser behavior", () => {
     await expect(hidden.nth(1)).toHaveValue("2026-09-18T17:45:00")
   })
 
+  test("keeps complete direct timed range input private until confirm", async ({
+    page,
+  }) => {
+    await openStory(
+      page,
+      stories.playground,
+      "selectionMode:range;granularity:minute;initialValue:empty;locale:en-US;hourCycle:24"
+    )
+
+    const root = page.locator(pickerRootSelector).first()
+    const hidden = hiddenValue(root)
+    const groups = root.locator(
+      '[data-scope="date-input"][data-part="segment-group"]'
+    )
+    const enterEndpoint = async (
+      group: Locator,
+      endpoint: {
+        day: string
+        hour: string
+        minute: string
+        month: string
+        year: string
+      }
+    ) => {
+      for (const part of ["month", "day", "year", "hour", "minute"] as const) {
+        const segment = group.locator(`[data-type="${part}"]`)
+        await segment.click()
+        await segment.pressSequentially(endpoint[part])
+      }
+    }
+
+    await enterEndpoint(groups.nth(0), {
+      day: "06",
+      hour: "10",
+      minute: "15",
+      month: "09",
+      year: "2026",
+    })
+    await enterEndpoint(groups.nth(1), {
+      day: "19",
+      hour: "16",
+      minute: "45",
+      month: "09",
+      year: "2026",
+    })
+
+    await expect(page.locator(contentSelector)).toBeVisible()
+    await expect(hidden.nth(0)).toHaveValue("")
+    await expect(hidden.nth(1)).toHaveValue("")
+    await expect(page.getByRole("button", { name: "Confirm" })).toBeEnabled()
+
+    await page.getByRole("button", { name: "Cancel" }).click()
+    await expect(page.locator(contentSelector)).toHaveCount(0)
+    await expect(hidden.nth(0)).toHaveValue("")
+    await expect(hidden.nth(1)).toHaveValue("")
+
+    await enterEndpoint(groups.nth(0), {
+      day: "06",
+      hour: "10",
+      minute: "15",
+      month: "09",
+      year: "2026",
+    })
+    await enterEndpoint(groups.nth(1), {
+      day: "19",
+      hour: "16",
+      minute: "45",
+      month: "09",
+      year: "2026",
+    })
+    await page.getByRole("button", { name: "Confirm" }).click()
+
+    await expect(hidden.nth(0)).toHaveValue("2026-09-06T10:15:00")
+    await expect(hidden.nth(1)).toHaveValue("2026-09-19T16:45:00")
+  })
+
   test("discards partial direct timed range input when opening the popup transaction", async ({
     page,
   }) => {

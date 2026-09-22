@@ -574,15 +574,30 @@ export function DatePicker({
     }
 
     previousOpen.current = resolvedOpen
+    const pendingTimedRange =
+      resolvedOpen && isTimed && selectionMode === "range" && rangeInputDraft
+        ? toCompleteDatePickerRange(rangeInputDraft)
+        : null
     if (selectionMode === "range") {
       setRangeInputDraft(null)
     }
-    dispatch(
-      resolvedOpen && usesPopupDraft
-        ? { type: "open", value: acceptedCandidate }
-        : { type: "discard" }
-    )
-  }, [acceptedCandidate, resolvedOpen, selectionMode, usesPopupDraft])
+    if (!(resolvedOpen && usesPopupDraft)) {
+      dispatch({ type: "discard" })
+      return
+    }
+
+    dispatch({ type: "open", value: acceptedCandidate })
+    if (pendingTimedRange) {
+      dispatch({ type: "edit", value: pendingTimedRange })
+    }
+  }, [
+    acceptedCandidate,
+    isTimed,
+    rangeInputDraft,
+    resolvedOpen,
+    selectionMode,
+    usesPopupDraft,
+  ])
 
   useEffect(() => {
     if (previousAcceptedValue.current === acceptedValueKey) {
@@ -735,11 +750,14 @@ export function DatePicker({
         setRangeInputDraft(details.value)
         const nextRange = toCompleteDatePickerRange(details.value)
         if (nextRange) {
+          if (isTimed) {
+            requestOpen(true)
+            return
+          }
+
           setRangeInputDraft(null)
           commitValue(nextRange)
-          if (!isTimed) {
-            requestOpen(false)
-          }
+          requestOpen(false)
         }
         return
       }
