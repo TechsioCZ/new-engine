@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-22T05:32:00.132Z
+ * Exported at: 2026-09-22T08:07:02.572Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -419,7 +419,7 @@
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
   --color-fg-secondary: oklch(0.494 0.037 261.595);
-  --color-fg-status-error: var(--color-danger-600);
+  --color-fg-status-error: var(--color-danger-700);
   --color-fg-status-success: var(--color-success-700);
   --color-fg-status-warning: var(--color-warning-500);
   --color-file-upload-accent: var(--color-primary);
@@ -1824,8 +1824,8 @@
   --spacing-command-gap: var(--spacing-100);
   --spacing-command-item-gap: var(--spacing-popup-item-md);
   --spacing-command-list-max: var(--container-xs);
-  --spacing-data-table-actions: var(--spacing-100);
   --spacing-data-table-editor: var(--spacing-50);
+  --spacing-data-table-filter-control: var(--spacing-100);
   --spacing-data-table-pagination: var(--size-16);
   --spacing-data-table-toolbar: var(--spacing-200);
   --spacing-date-picker-enter-offset: var(--spacing-50);

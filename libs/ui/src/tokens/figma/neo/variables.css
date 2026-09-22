@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-22T05:32:00.144Z
+ * Exported at: 2026-09-22T08:07:02.579Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -111,7 +111,7 @@
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
   --color-fg-secondary: oklch(0.494 0.037 261.595);
-  --color-fg-status-error: var(--color-danger-600);
+  --color-fg-status-error: var(--color-danger-700);
   --color-fg-status-success: var(--color-success-700);
   --color-fg-status-warning: var(--color-warning-500);
   --color-fill-active: var(--color-black-15);

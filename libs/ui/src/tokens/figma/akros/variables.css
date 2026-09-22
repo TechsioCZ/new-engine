@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-22T05:32:00.148Z
+ * Exported at: 2026-09-22T08:07:02.581Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -189,6 +189,7 @@
   --color-success-300: var(--color-secondary-100);
   --color-success-500: var(--color-secondary-500);
   --color-success-600: var(--color-secondary-600);
+  --color-success-700: oklch(0.348 0.102 136.135);
   --color-success-disabled: var(--color-bg-disabled);
   --color-tertiary: var(--color-bg-tertiary-base);
   --color-tertiary-100: oklch(0.965 0.019 235.72);
