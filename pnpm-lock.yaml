@@ -1065,6 +1065,9 @@ importers:
       '@zag-js/carousel':
         specifier: 1.43.3
         version: 1.43.3
+      '@zag-js/cascade-select':
+        specifier: 1.43.3
+        version: 1.43.3
       '@zag-js/checkbox':
         specifier: 1.43.3
         version: 1.43.3
@@ -10222,6 +10225,9 @@ packages:
 
   '@zag-js/carousel@1.43.3':
     resolution: {integrity: sha512-hXnG0XL/mpBPCJ3a+H88CZMSCzVsKnOLY7i1Fza+hKxUiGovxojCAitoASeg6ETd7bOzAbz0pvfGgwJPCdnGTQ==}
+
+  '@zag-js/cascade-select@1.43.3':
+    resolution: {integrity: sha512-zSHgbaPuD369sVwlc1cEn0XB4UgK+7RpHRRD/Lw0h7FJLbXvhz6afByK+3/3NpAuQ1YBg6wdiRfikxcVdkyPOQ==}
 
   '@zag-js/checkbox@1.43.3':
     resolution: {integrity: sha512-1vikdGcAokmLSMAnHQo5lYG/DMMNej2FlaAxiuyna2n0XJy/VFhv/3+/FZNB9CAJBkeqwLm9kqo94c7iEL7cxA==}
@@ -29043,6 +29049,7 @@ snapshots:
       '@types/react-dom': 19.2.3(@types/react@19.2.3)
       '@zag-js/accordion': 1.43.3
       '@zag-js/carousel': 1.43.3
+      '@zag-js/cascade-select': 1.43.3
       '@zag-js/checkbox': 1.43.3
       '@zag-js/combobox': 1.43.3
       '@zag-js/date-input': 1.43.3(@internationalized/date@3.12.2)
@@ -29101,6 +29108,7 @@ snapshots:
       '@types/react-dom': 19.2.3(@types/react@19.2.3)
       '@zag-js/accordion': 1.43.3
       '@zag-js/carousel': 1.43.3
+      '@zag-js/cascade-select': 1.43.3
       '@zag-js/checkbox': 1.43.3
       '@zag-js/combobox': 1.43.3
       '@zag-js/date-input': 1.43.3(@internationalized/date@3.12.2)
@@ -30219,6 +30227,19 @@ snapshots:
       '@zag-js/core': 1.43.3
       '@zag-js/dom-query': 1.43.3
       '@zag-js/scroll-snap': 1.43.3
+      '@zag-js/types': 1.43.3
+      '@zag-js/utils': 1.43.3
+
+  '@zag-js/cascade-select@1.43.3':
+    dependencies:
+      '@zag-js/anatomy': 1.43.3
+      '@zag-js/collection': 1.43.3
+      '@zag-js/core': 1.43.3
+      '@zag-js/dismissable': 1.43.3
+      '@zag-js/dom-query': 1.43.3
+      '@zag-js/focus-visible': 1.43.3
+      '@zag-js/popper': 1.43.3
+      '@zag-js/rect-utils': 1.43.3
       '@zag-js/types': 1.43.3
       '@zag-js/utils': 1.43.3
 

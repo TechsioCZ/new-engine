@@ -1,5 +1,6 @@
 export type * as Accordion from "@zag-js/accordion"
 export type * as Carousel from "@zag-js/carousel"
+export type * as CascadeSelect from "@zag-js/cascade-select"
 export type * as Checkbox from "@zag-js/checkbox"
 export type * as Combobox from "@zag-js/combobox"
 export type * as Dialog from "@zag-js/dialog"
