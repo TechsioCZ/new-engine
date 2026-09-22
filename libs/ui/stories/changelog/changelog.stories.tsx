@@ -12,6 +12,10 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### SearchSuggestions v1.0.0
+- Added a thin grouped catalog-search template over Combobox with rich result content, native links, async states and a separate all-results footer. Data fetching and routing remain consumer-owned.
+- Stories are manual examples; keyboard and navigation regressions run separately in Playwright.
+
 ### Combobox v1.3.0
 - Added Zag item groups, explicit navigation mode, navigation callback and footer/portal options. Selection remains the default.
 - Loading/error exclude hidden results from keyboard selection. Rich options retain their label, scalar values are normalized, and help/error text is connected to the input.
