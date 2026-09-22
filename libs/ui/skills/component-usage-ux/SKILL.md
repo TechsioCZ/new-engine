@@ -38,6 +38,8 @@ Button action -> button-usage
 Dialog confirmation -> dialog-usage
 Date or date-time selection -> date-picker-usage
 Toast feedback -> toast-usage
+Guided walkthrough -> tour-usage
+Wizard/progress workflow -> steps-usage
 Hierarchical choice -> cascade-select-usage
 Tree navigation -> tree-view-usage
 Loading placeholder -> skeleton-usage

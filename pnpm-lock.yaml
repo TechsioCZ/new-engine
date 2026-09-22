@@ -1137,6 +1137,9 @@ importers:
       '@zag-js/tooltip':
         specifier: 1.43.3
         version: 1.43.3
+      '@zag-js/tour':
+        specifier: 1.43.3
+        version: 1.43.3
       '@zag-js/tree-view':
         specifier: 1.43.3
         version: 1.43.3
@@ -10351,6 +10354,9 @@ packages:
 
   '@zag-js/tooltip@1.43.3':
     resolution: {integrity: sha512-sBVhcejAQN5oDFE3PoGrvvjqOt5+9rHQjtjnnuhPZqeghsiX/IaL7AY8KelwDoNkMf2npN5i7loQvAZMZLVFaw==}
+
+  '@zag-js/tour@1.43.3':
+    resolution: {integrity: sha512-Wxp2HJBnHI0Nm94PvItCEdKyBnwp/PJ1Y5u45X/VTebgVXggPug88ZD51Mm6twIDPpCTkOstOcSy8zz+FlTYlQ==}
 
   '@zag-js/tree-view@1.43.3':
     resolution: {integrity: sha512-5fj6RWe4FSRbE3QewuqbghS+ojd2vaWfTrn0jUmH3KHzay2h/w1464oW0IYOONzwOmUUHj4wLDZZKwVyzPvmJA==}
@@ -29073,6 +29079,7 @@ snapshots:
       '@zag-js/tabs': 1.43.3
       '@zag-js/toast': 1.43.3
       '@zag-js/tooltip': 1.43.3
+      '@zag-js/tour': 1.43.3
       '@zag-js/tree-view': 1.43.3
       better-themes: 1.1.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       d3-scale: 4.0.2
@@ -29132,6 +29139,7 @@ snapshots:
       '@zag-js/tabs': 1.43.3
       '@zag-js/toast': 1.43.3
       '@zag-js/tooltip': 1.43.3
+      '@zag-js/tour': 1.43.3
       '@zag-js/tree-view': 1.43.3
       better-themes: 1.1.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       d3-scale: 4.0.2
@@ -30523,6 +30531,18 @@ snapshots:
       '@zag-js/core': 1.43.3
       '@zag-js/dom-query': 1.43.3
       '@zag-js/focus-visible': 1.43.3
+      '@zag-js/popper': 1.43.3
+      '@zag-js/types': 1.43.3
+      '@zag-js/utils': 1.43.3
+
+  '@zag-js/tour@1.43.3':
+    dependencies:
+      '@zag-js/anatomy': 1.43.3
+      '@zag-js/core': 1.43.3
+      '@zag-js/dismissable': 1.43.3
+      '@zag-js/dom-query': 1.43.3
+      '@zag-js/focus-trap': 1.43.3
+      '@zag-js/interact-outside': 1.43.3
       '@zag-js/popper': 1.43.3
       '@zag-js/types': 1.43.3
       '@zag-js/utils': 1.43.3
