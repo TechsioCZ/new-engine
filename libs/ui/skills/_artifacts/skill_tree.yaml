@@ -637,6 +637,25 @@ skills:
       - src/molecules/carousel.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/carousel
+  - name: cascade-select-usage
+    slug: cascade-select-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/cascade-select-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app should use CascadeSelect from
+      @techsio/ui-kit/molecules/cascade-select for hierarchical form choices. Covers compound parts,
+      path values, parent and multiple selection, validation, and token-first styling. For Zag-backed
+      behavior, compare the local wrapper with official Zag React docs.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/cascade-select.tsx
+      - src/tokens/components/molecules/_cascade-select.css
+      - stories/molecules/cascade-select.stories.tsx
+      - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/cascade-select
   - name: color-select-usage
     slug: color-select-usage
     type: sub-skill
@@ -693,6 +712,28 @@ skills:
       - stories/molecules/command-hotkeys.stories.tsx
       - test/command.spec.ts
       - https://zagjs.com/components/react/combobox
+  - name: date-picker-usage
+    slug: date-picker-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/date-picker-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs DatePicker from
+      @techsio/ui-kit/molecules/date-picker for locale-aware segmented date entry,
+      calendar selection, transactional time entry, scalar typed values, and canonical
+      form serialization.
+    requires:
+      - component-usage-ux
+      - zag-compound-components
+      - app-token-overrides
+    sources:
+      - src/molecules/date-picker.tsx
+      - src/tokens/components/molecules/_date-picker.css
+      - stories/molecules/date-picker.stories.tsx
+      - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/date-input
+      - https://zagjs.com/components/react/date-picker
+      - https://react-aria.adobe.com/internationalized/date/
   - name: dialog-usage
     slug: dialog-usage
     type: sub-skill
@@ -713,6 +754,46 @@ skills:
       - src/molecules/dialog.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/dialog
+  - name: drawer-usage
+    slug: drawer-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/drawer-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs Drawer from
+      @techsio/ui-kit/molecules/drawer for transient edge panels, modal or non-modal
+      behavior, snap points, swipe gestures, multiple triggers, custom portals,
+      controlled state, and coordinated stacks.
+    requires:
+      - component-usage-ux
+      - zag-compound-components
+      - app-token-overrides
+    sources:
+      - src/molecules/drawer.tsx
+      - src/internal/molecules/drawer.context.tsx
+      - src/internal/molecules/drawer.styles.ts
+      - src/tokens/components/molecules/_drawer.css
+      - stories/molecules/drawer.stories.tsx
+      - https://zagjs.com/components/react/drawer
+  - name: file-upload-usage
+    slug: file-upload-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/file-upload-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app should use FileUpload from
+      @techsio/ui-kit/molecules/file-upload. Covers the compound API, Zag-managed local File state,
+      accepted and rejected collections, native form behavior, token-first styling, and the
+      explicit boundary against transport, progress, and retry APIs.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/file-upload.tsx
+      - src/tokens/components/molecules/_file-upload.css
+      - stories/molecules/file-upload.stories.tsx
+      - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/file-upload
   - name: form-checkbox-usage
     slug: form-checkbox-usage
     type: sub-skill
@@ -1138,6 +1219,27 @@ skills:
       - src/tokens/components/organisms/_header.css
       - stories/organisms/header.stories.tsx
       - skills/_artifacts/consumer_app_usage_rules.md
+  - name: sidebar-usage
+    slug: sidebar-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/sidebar-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs Sidebar from
+      @techsio/ui-kit/organisms/sidebar for responsive logical start/end navigation,
+      icon collapse, two-pane navigation, controlled expansion, or a sticky-header
+      shell with mobile Drawer behavior.
+    requires:
+      - component-usage-ux
+      - drawer-usage
+      - app-token-overrides
+    sources:
+      - src/organisms/sidebar.tsx
+      - src/internal/organisms/sidebar.context.tsx
+      - src/internal/organisms/sidebar.focus.ts
+      - src/internal/organisms/sidebar.styles.ts
+      - src/tokens/components/organisms/_sidebar.css
+      - stories/organisms/sidebar.stories.tsx
   - name: table-usage
     slug: table-usage
     type: sub-skill

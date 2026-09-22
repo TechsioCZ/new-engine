@@ -23,3 +23,14 @@
   --border-width-hotkeys-key: var(--border-width-sm);
   --radius-hotkeys-key: var(--radius-sm);
 }
+
+@utility hotkeys-key-border-width {
+  border-width: var(--border-width-hotkeys-key);
+}
+
+@utility hotkeys-target-focus {
+  outline-style: var(--default-ring-style);
+  outline-width: var(--default-ring-width);
+  outline-color: var(--color-primary);
+  outline-offset: var(--default-ring-offset);
+}

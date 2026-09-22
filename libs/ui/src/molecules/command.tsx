@@ -2,7 +2,7 @@
  * Command — @techsio/ui-kit molecule.
  *
  * @component Command
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill command-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -22,14 +22,14 @@ import {
   useMemo,
   useState,
 } from "react"
+import { Input } from "../atoms/input"
+import { Label } from "../atoms/label"
 import {
   CommandContext,
   CommandItemContext,
   useCommandContext,
   useCommandItemContext,
 } from "../internal/molecules/command.context"
-import { Input } from "../atoms/input"
-import { Label } from "../atoms/label"
 import { tv } from "../utils"
 
 export type CommandItem = {
@@ -61,7 +61,7 @@ export type CommandProps = Pick<
 
 const commandVariants = tv({
   slots: {
-    root: "border-(length:--border-width-command) flex w-full flex-col gap-command-gap rounded-command border-command-border bg-command-bg p-command text-command-fg text-command-md",
+    root: "command-border-width flex w-full flex-col gap-command-gap rounded-command border-command-border bg-command-bg p-command text-command-fg text-command-md",
     control: "relative flex items-center",
     list: "max-h-command-list-max overflow-y-auto overscroll-contain p-command-list",
     item: "flex w-full cursor-pointer select-none items-center gap-command-item-gap rounded-command-item px-command-item-x py-command-item-y data-disabled:cursor-not-allowed data-highlighted:bg-command-item-bg-highlighted data-disabled:text-command-item-fg-disabled",
@@ -131,7 +131,7 @@ export function Command({
   const api = combobox.connect<PropTypes, CommandItem>(service, normalizeProps)
 
   useEffect(() => {
-    // Zag 1.41.2 can retain a highlighted item after it becomes disabled.
+    // Clear stale highlighting when an action becomes unavailable.
     if (api.collection.find(api.highlightedValue)?.disabled) {
       api.clearHighlightValue()
     }

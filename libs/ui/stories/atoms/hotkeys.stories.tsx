@@ -571,7 +571,7 @@ function FocusedSequenceExample() {
       </p>
       <div
         aria-label="Keyboard shortcut demo"
-        className="rounded-sm border border-border-primary p-200 focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-primary focus-visible:outline-offset-(length:--default-ring-offset)"
+        className="rounded-sm border border-border-primary p-200 focus-visible:hotkeys-target-focus"
         ref={demo}
         role="region"
         tabIndex={0}

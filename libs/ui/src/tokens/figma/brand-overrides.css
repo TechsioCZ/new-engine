@@ -133,8 +133,8 @@
   --color-fg-on-primary-solid-neo: var(--color-fg-reverse);
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
-  --color-fg-status-error: var(--color-danger-400);
-  --color-fg-status-success: var(--color-success-500);
+  --color-fg-status-error: var(--color-danger-600);
+  --color-fg-status-success: var(--color-success-700);
   --color-fg-status-warning: var(--color-warning-500);
   --color-fill-active: var(--color-black-15);
   --color-fill-base: var(--color-black-5);

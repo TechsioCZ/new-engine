@@ -37,3 +37,7 @@
   --radius-command: var(--radius-popup);
   --radius-command-item: var(--radius-popup-item);
 }
+
+@utility command-border-width {
+  border-width: var(--border-width-command);
+}
