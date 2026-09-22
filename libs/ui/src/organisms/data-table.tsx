@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -144,28 +144,32 @@ export type {
 export { conditionalFilterFn } from "./data-table.helpers"
 
 /**
- * PROTOTYPE styling: reuses the existing `Table` component tokens
- * (`--color-table-*`, `--border-table-width`) plus semantic tokens
- * (`--color-fg-*`, `--spacing-*`). Once the MVP look is signed off, these
- * semantic references are lifted into `--color-data-table-*` component tokens
- * and mirrored into Figma via the figma-token-binding skill.
+ * Styling runs on the `--*-data-table-*` component tokens, exported from the
+ * Figma `data-table` collection. Every one of them aliases a Table or semantic
+ * token rather than holding a raw value, so the table still inherits the
+ * system's colours and rhythm — the component layer only gives each surface a
+ * name that can be retargeted without touching this file.
+ *
+ * Still on Table tokens deliberately: `--border-table-width` and the
+ * `text-table-*` ramp (no DataTable-specific counterpart), and the frozen
+ * header cell, which is a table header rather than a DataTable chrome surface.
  */
 const dataTableVariants = tv({
   slots: {
     wrapper: [
-      "flex w-full flex-col overflow-hidden rounded-table",
-      "border-(length:--border-table-width) border-table-border",
+      "flex w-full flex-col overflow-hidden rounded-data-table",
+      "border-(length:--border-table-width) border-data-table-border",
     ],
     toolbar: [
-      "flex items-center justify-between gap-200",
-      "bg-table-header-bg text-table-header-fg",
-      "px-300 py-200",
-      "border-b-(length:--border-table-width) border-table-border",
+      "flex items-center justify-between gap-data-table-toolbar",
+      "bg-data-table-toolbar-bg text-data-table-toolbar-fg",
+      "p-data-table-toolbar",
+      "border-b-(length:--border-table-width) border-data-table-border",
     ],
     /* The search takes the remaining width; actions keep their intrinsic size
      * and stay pinned to the trailing edge. */
     toolbarSearch: ["min-w-0 flex-1"],
-    toolbarActions: ["flex shrink-0 items-center gap-200"],
+    toolbarActions: ["flex shrink-0 items-center gap-data-table-toolbar"],
     scroll: ["relative w-full overflow-auto"],
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
     sortButton: [
@@ -174,11 +178,11 @@ const dataTableVariants = tv({
       "data-[disabled=true]:cursor-default",
     ],
     sortIcon: [
-      "text-fg-secondary",
-      "data-[active=true]:text-fg-accent-primary",
+      "text-data-table-sort-icon-base",
+      "data-[active=true]:text-data-table-sort-icon-active",
     ],
     dragHandle: [
-      "inline-flex cursor-grab items-center rounded-table text-fg-secondary",
+      "inline-flex cursor-grab items-center rounded-data-table text-data-table-drag-handle",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
       "hover:bg-table-row-bg-hover hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100 group-hover/row:opacity-100",
@@ -187,40 +191,42 @@ const dataTableVariants = tv({
       "active:cursor-grabbing",
     ],
     resizeHandle: [
-      "absolute end-0 top-0 h-full w-100 cursor-col-resize touch-none select-none",
+      "w-(length:--size-data-table-resize-handle) absolute end-0 top-0 h-full cursor-col-resize touch-none select-none",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
-      "bg-table-border hover:opacity-100 focus-visible:opacity-100",
+      "bg-data-table-resize-handle hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100",
     ],
-    filterRow: ["bg-table-header-bg"],
+    filterRow: ["bg-data-table-filter-row-bg"],
     filterCell: [
-      "px-200 py-100",
+      "p-data-table-filter-cell",
       "min-w-fit",
-      "border-b-(length:--border-table-width) border-table-border",
+      "border-b-(length:--border-table-width) border-data-table-border",
     ],
-    filterControl: ["flex flex-wrap items-center gap-100"],
-    editorControl: ["flex flex-col gap-50"],
+    filterControl: [
+      "flex flex-wrap items-center gap-data-table-filter-control",
+    ],
+    editorControl: ["flex flex-col gap-data-table-editor"],
     // `-fg`, not the bare semantic: `--color-danger` is the fill/surface red,
     // while AGENTS.md pins status *text* to `--color-<semantic>-fg`, which is
     // the contrast-checked foreground. The bare token rendered the validation
     // message at surface red on the table background.
-    editorError: ["text-danger-fg text-table-sm"],
+    editorError: ["text-data-table-editor-error-fg text-table-sm"],
     actionsCell: ["flex items-center justify-end gap-100"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
-      "p-700 text-center text-fg-secondary",
+      "p-data-table-empty text-center text-data-table-empty-fg",
     ],
     /* Same background as the toolbar so the header and footer frame the table
      * as one pair; without it the bar falls through to --color-table-bg. */
     paginationBar: [
-      "flex flex-wrap items-center justify-between gap-300",
-      "bg-table-header-bg text-table-header-fg",
-      "px-300 py-200",
-      "border-t-(length:--border-table-width) border-table-border",
+      "flex flex-wrap items-center justify-between gap-data-table-pagination",
+      "bg-data-table-pagination-bg text-data-table-pagination-fg",
+      "p-data-table-pagination",
+      "border-t-(length:--border-table-width) border-data-table-border",
     ],
-    detailBox: ["w-full p-300"],
+    detailBox: ["w-full p-data-table-detail"],
     paginationInfo: ["whitespace-nowrap text-table-sm"],
-    paginationControls: ["flex items-center gap-300"],
+    paginationControls: ["flex items-center gap-data-table-pagination"],
   },
   variants: {
     /**
@@ -2771,7 +2777,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <td
               className={
                 stickyActions
-                  ? `${styles.filterCell()} sticky end-0 bg-table-header-bg`
+                  ? `${styles.filterCell()} sticky end-0 bg-data-table-filter-row-bg`
                   : styles.filterCell()
               }
               style={{

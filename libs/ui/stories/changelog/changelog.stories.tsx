@@ -68,6 +68,9 @@ const CHANGELOG = `
 ### Accordion v1.0.0
 - Opted into per-component versioning; paired 1:1 with the accordion-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### DataTable v1.1.0
+- Moved off the prototype styling onto its own \`--*-data-table-*\` component tokens, exported from the Figma \`data-table\` collection. Toolbar, filter row, pagination bar, empty state, sort icon, drag and resize handles, editor error and detail box each read a named token instead of a Table or semantic one. No visual change — every component token aliases what the slot used before — but each surface can now be retargeted without editing the component. \`--border-table-width\` and the \`text-table-*\` ramp stay on Table tokens, having no DataTable counterpart.
+
 ### DataTable v1.0.0
 - New headless data-grid organism built on \`@tanstack/react-table\` v9, rendering into the presentational \`Table\` organism so it inherits the \`--color-table-*\` tokens. Covers sorting, conditional column filters, global search, row selection, column visibility/pinning/reorder, row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization/infinite scroll and pagination. Every feature exposes a callback for Storybook interaction tests. Paired 1:1 with the data-table-usage skill and this changelog entry.
 

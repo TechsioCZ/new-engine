@@ -1,4 +1,27 @@
 /*
+ * DataTable — component tokens.
+ *
+ * The colour, radius and spacing tokens all come from Figma via
+ * libs/ui/src/tokens/figma/variables.css (`--color-data-table-*`,
+ * `--padding-data-table-*`, `--spacing-data-table-*`).
+ *
+ * Kept here: the `-x`/`-y` padding composites. Figma exports padding split
+ * into halves, and Tailwind's `p-*` utilities resolve a single
+ * `--padding-<name>` value — there is no `px-<name>` lookup for a `-x` token.
+ * So the shorthands are rebuilt from the Figma halves (padding: y x), exactly
+ * as _table.css does for `--padding-table-cell-*`.
+ */
+
+@theme static {
+  --padding-data-table-toolbar: var(--padding-data-table-toolbar-y)
+    var(--padding-data-table-toolbar-x);
+  --padding-data-table-filter-cell: var(--padding-data-table-filter-cell-y)
+    var(--padding-data-table-filter-cell-x);
+  --padding-data-table-pagination: var(--padding-data-table-pagination-y)
+    var(--padding-data-table-pagination-x);
+}
+
+/*
  * DataTable — nested-row tint.
  *
  * `tintNestedRows` shades a row by `row.depth` as an inset box-shadow rather
