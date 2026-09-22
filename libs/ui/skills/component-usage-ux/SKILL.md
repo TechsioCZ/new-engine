@@ -36,9 +36,11 @@ Then choose the exact skill:
 ```text
 Button action -> button-usage
 Dialog confirmation -> dialog-usage
+Date or date-time selection -> date-picker-usage
 Toast feedback -> toast-usage
 Guided walkthrough -> tour-usage
 Wizard/progress workflow -> steps-usage
+Hierarchical choice -> cascade-select-usage
 Tree navigation -> tree-view-usage
 Loading placeholder -> skeleton-usage
 ```
@@ -50,6 +52,7 @@ Loading placeholder -> skeleton-usage
 ```text
 Destructive action -> Button danger, maybe Dialog confirmation
 CRUD success/error -> Toast or StatusText depending persistence and context
+Hierarchical form choice -> CascadeSelect
 Hierarchical navigation -> TreeView
 Page trail -> Breadcrumb with framework link adapter when needed
 ```

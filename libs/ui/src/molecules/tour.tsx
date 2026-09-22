@@ -291,7 +291,7 @@ Tour.Trigger = function TourTrigger({
   return (
     <Button
       {...props}
-      disabled={disabled || api.step !== null || api.totalSteps === 0}
+      disabled={disabled || api.open || api.totalSteps === 0}
       onClick={(event) => {
         onClick?.(event)
         if (!event.defaultPrevented) {

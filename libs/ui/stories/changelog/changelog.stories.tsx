@@ -18,6 +18,27 @@ const CHANGELOG = `
 ### Tour v1.0.0
 - New single-machine guided-tour molecule with tooltip, dialog, floating and interactive wait steps; shared Button/ActionIcon controls, component token aliases, focus restoration, RTL navigation and bounded missing-target handling. Includes regression tests and tour-usage guidance. Figma migration and Code Connect are explicitly deferred.
 
+### DatePicker v1.1.1
+- Aligned field typography, read-only presentation, placeholder binding, and invalid border/focus behavior with the shared Input and form-control contracts. Calendar headings stay compact while retaining full accessible month labels, and required date segments now expose their ARIA requirement state.
+
+### DatePicker v1.1.0
+- Added date and date-time ranges to the existing compound DatePicker: complete typed tuples, indexed start/end segments and form values, coordinated two-month presentation, continuous range states, and one shared timed Cancel/Confirm transaction. Updated the paired date-picker-usage skill and component metadata.
+
+### CascadeSelect v1.0.1
+- Status text now automatically describes the interactive trigger, preserving custom status IDs and existing descriptions and removing the automatic reference when unmounted.
+
+### CascadeSelect v1.0.0
+- New Zag.js cascade-select molecule with a compound API, hierarchical path values, parent and multiple selection, and Select-aliased trigger tokens backed by the shared popup surface.
+
+### FileUpload v1.0.0
+- New Zag.js-backed FileUpload molecule for selecting, validating, previewing, and removing local accepted and rejected File objects through a compound API, native picker/form behavior, drag and drop, controlled state, clipboard input, directory selection, and media capture. It intentionally provides no network transport, progress, retry, or visual size/variant API.
+
+### Drawer v1.0.0
+- New Zag.js-powered Drawer molecule with compound anatomy, logical placements, controlled and uncontrolled state, snap points, dragging, edge swipes, multiple triggers, custom portals, non-modal behavior, presence-aware motion, and nested drawer stacks.
+
+### Sidebar v1.0.0
+- New responsive Sidebar organism with independent logical start/end state, Root-owned collapse policies, mobile Drawer composition, two-pane nested navigation, right and dual sidebars, sticky-header offsets, and breakpoint-safe focus transfer.
+
 ### Dialog v1.0.1
 - Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
 
