@@ -12,6 +12,12 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### CascadeSelect v1.0.1
+- Status text now automatically describes the interactive trigger, preserving custom status IDs and existing descriptions and removing the automatic reference when unmounted.
+
+### CascadeSelect v1.0.0
+- New Zag.js cascade-select molecule with a compound API, hierarchical path values, parent and multiple selection, and Select-aliased trigger tokens backed by the shared popup surface.
+
 ### FileUpload v1.0.0
 - New Zag.js-backed FileUpload molecule for selecting, validating, previewing, and removing local accepted and rejected File objects through a compound API, native picker/form behavior, drag and drop, controlled state, clipboard input, directory selection, and media capture. It intentionally provides no network transport, progress, retry, or visual size/variant API.
 

@@ -619,6 +619,25 @@ skills:
       - src/molecules/carousel.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/carousel
+  - name: cascade-select-usage
+    slug: cascade-select-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/cascade-select-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app should use CascadeSelect from
+      @techsio/ui-kit/molecules/cascade-select for hierarchical form choices. Covers compound parts,
+      path values, parent and multiple selection, validation, and token-first styling. For Zag-backed
+      behavior, compare the local wrapper with official Zag React docs.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/cascade-select.tsx
+      - src/tokens/components/molecules/_cascade-select.css
+      - stories/molecules/cascade-select.stories.tsx
+      - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/cascade-select
   - name: color-select-usage
     slug: color-select-usage
     type: sub-skill

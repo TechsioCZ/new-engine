@@ -100,6 +100,7 @@
     "@tanstack/react-virtual": "^3.14.8",
     "@zag-js/accordion": "1.43.3",
     "@zag-js/carousel": "1.43.3",
+    "@zag-js/cascade-select": "1.43.3",
     "@zag-js/checkbox": "1.43.3",
     "@zag-js/combobox": "1.43.3",
     "@zag-js/dialog": "1.43.3",

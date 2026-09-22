@@ -1,0 +1,66 @@
+/* CascadeSelect inherits Select controls and the shared popup contract. */
+@theme static {
+  /* === COLORS === */
+  --color-cascade-select-trigger-bg-hover: var(--color-select-trigger-bg-hover);
+  --color-cascade-select-trigger-fg-base: var(--color-select-trigger-fg-base);
+  --color-cascade-select-trigger-fg-hover: var(--color-select-trigger-fg-hover);
+  --color-cascade-select-trigger-border: var(--color-select-trigger-border);
+  --color-cascade-select-trigger-border-hover: var(
+    --color-select-trigger-border-hover
+  );
+  --color-cascade-select-trigger-border-focus: var(
+    --color-select-trigger-border-focus
+  );
+  --color-cascade-select-bg-disabled: var(--color-select-bg-disabled);
+  --color-cascade-select-fg-disabled: var(--color-select-fg-disabled);
+  --color-cascade-select-border-disabled: var(--color-select-border-disabled);
+  --color-cascade-select-border-error: var(--color-select-border-error);
+  --color-cascade-select-border-success: var(--color-select-border-success);
+  --color-cascade-select-border-warning: var(--color-select-border-warning);
+  --color-cascade-select-placeholder: var(--color-select-placeholder);
+  --color-cascade-select-ring: var(--color-select-ring);
+
+  /* === SPACING === */
+  --spacing-cascade-select: var(--spacing-select);
+  --spacing-cascade-select-right: var(--spacing-select-right);
+  --padding-cascade-select-trigger-sm: var(--padding-select-trigger-sm);
+  --padding-cascade-select-trigger-md: var(--padding-select-trigger-md);
+
+  /* === SIZING === */
+  --container-cascade-select-column: var(--container-3xs);
+
+  /* === TYPOGRAPHY === */
+  --text-cascade-select-trigger-xs: var(--text-select-trigger-xs);
+  --text-cascade-select-trigger-sm: var(--text-select-trigger-sm);
+  --text-cascade-select-trigger-md: var(--text-select-trigger-md);
+  --text-cascade-select-trigger-lg: var(--text-select-trigger-lg);
+  --text-cascade-select-value-xs: var(--text-select-value-xs);
+  --text-cascade-select-value-sm: var(--text-select-value-sm);
+  --text-cascade-select-value-md: var(--text-select-value-md);
+  --text-cascade-select-value-lg: var(--text-select-value-lg);
+  --text-cascade-select-item-xs: var(--text-select-item-xs);
+  --text-cascade-select-item-sm: var(--text-select-item-sm);
+  --text-cascade-select-item-md: var(--text-select-item-md);
+  --text-cascade-select-item-lg: var(--text-select-item-lg);
+
+  /* === RADIUS === */
+  --radius-cascade-select-sm: var(--radius-select-sm);
+  --radius-cascade-select-md: var(--radius-select-md);
+}
+
+/* === ICONS === */
+@utility token-icon-cascade-select-indicator {
+  @apply token-icon-select-indicator;
+}
+
+@utility token-icon-cascade-select-clear {
+  @apply token-icon-select-clear;
+}
+
+@utility token-icon-cascade-select-branch {
+  @apply token-icon-chevron-right;
+}
+
+@utility token-icon-cascade-select-check {
+  @apply token-icon-check;
+}
