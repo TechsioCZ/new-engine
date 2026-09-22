@@ -1,5 +1,5 @@
 ---
-component_version: "1.2.0"
+component_version: "1.3.0"
 name: combobox-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Combobox for
@@ -40,13 +40,45 @@ import { Combobox } from "@techsio/ui-kit/molecules/combobox"
 Supported props:
 
 ```text
-items: { id, label, value, disabled, data }[]
+items: { id, label, value, disabled, data, href }[]
+groups: { id, label?, items }[] (alternative to items; never pass both)
 value/defaultValue: string | string[]
 inputValue, multiple, clearable, closeOnSelect, allowCustomValue
 validateStatus: default | error | success | warning
 inputBehavior: autohighlight | autocomplete | none
 onChange, onInputValueChange, onOpenChange
+filterBehavior: local | external
+loading, loadingMessage, error, onRetry, retryLabel, noResultsMessage
+renderItem, footer, portalled (default true)
+mode: selection | navigation (default selection)
+navigate: Zag navigation callback for Enter and unmodified clicks
 ```
+
+`onChange` receives Zag's selected value array, including in single selection.
+Scalar `value` and `defaultValue` are normalized to arrays internally.
+
+Use `SearchSuggestions` from `@techsio/ui-kit/templates/search-suggestions` for
+grouped catalog navigation. It derives this API and chooses navigation defaults.
+
+### Groups and Navigation
+
+Group IDs and item values must be unique within the control. Unlabelled groups
+are allowed; empty groups are omitted. Local filtering searches item labels;
+external filtering displays exactly the supplied items.
+
+`mode="navigation"` renders the option itself as an anchor using its `href`.
+It preserves the query and does not expose selection or call `onChange`.
+Disabled/read-only items omit href. `navigate` handles Enter and normal clicks;
+modified clicks retain browser behavior. With no callback, navigation is native.
+Keep routers in the consumer. Do not put links/buttons inside `renderItem`:
+it customizes presentation within the existing option. The accessible name is
+always `item.label`; include important identifying details in that label.
+
+`footer` and retry controls sit outside the listbox. Use `portalled={false}` when
+they need to follow the input in natural Tab order or the control is in a Dialog.
+The default portal remains available for clipping-sensitive selection menus.
+Status priority is loading, error, results, then empty (when a query is present).
+Loading/error remove stale results from the keyboard collection.
 
 ## Core Patterns
 
@@ -122,4 +154,3 @@ rg -n "<datalist|role=\"listbox\"|<Combobox[^>]*multiple[^>]*value=\"" apps
 rg -n "<Combobox[^>]*className=.*(bg-|text-|border-|p-|px-|py-)" apps
 rg -n "<Combobox[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
-
