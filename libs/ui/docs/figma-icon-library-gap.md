@@ -528,3 +528,56 @@ it makes 4.83. **Status foregrounds must be measured against
 `color/fill/surface`, not `#ffffff`** — most of them sit on the grey.
 
 All six modes now pass AA for both tokens.
+
+## 11. Code ⇄ Figma parity pass (2026-09-22)
+
+Everything the codebase renders now has a Figma counterpart. The gaps listed in
+§9 as "exports but currently unused — intentional" were mostly not intentional
+at all; they were features Figma had a token for but no artwork.
+
+### Component surface after the pass
+
+| Component | Variants | Properties |
+|---|---|---|
+| `Table2.ColumnHeader` | 9 | `align` · **`sort` (none/asc/desc)** · `sortable` · **`showDragHandle`** · **`showResizeHandle`** |
+| `Table2.Cell` | 9 | `align` · **`state` (default/editing/error)** · **`pinned`** |
+| `Table2.Row` | 6 | `state` · `striped` · **`nested`** · **`showDragHandle`** |
+| **`Table2.DetailPanel`** | 1 | new — the master-detail box a row expands into |
+
+`sort=asc/desc` uses `color/data-table/sort-icon/active`, which had no consumer
+before. The drag and resize handles default to hidden because in code both are
+`opacity-0` until hover. `nested` and `pinned` are overlays rather than
+backgrounds, mirroring why the CSS uses a shadow and a gradient layer: two
+`bg-*` utilities on one element cannot both render.
+
+A `colSpan` / `rowSpan` example was added to the Cell System section.
+
+### Two new tokens
+
+```
+color/data-table/pinned-cell/bg   → table::color/table/bg
+color/data-table/row/nested-tint  → table::color/table/row/bg/hover
+```
+
+The collection is now **30 tokens**, all aliases, no raw values.
+
+### Still deliberately absent
+
+**Virtualization** is a rendering strategy, not a visual state — there is
+nothing to draw, and inventing a "virtualized" variant would be inventing a
+design the code does not have.
+
+`color/data-table/toolbar/fg` is bound to nothing in Figma because the toolbar
+holds no text of its own (the search field and buttons carry their own
+foregrounds). It is still consumed in code by the `toolbar` slot, so it stays.
+
+### Two Figma API traps this pass turned up
+
+- **Setting `componentPropertyReferences` directly on an INSTANCE empties it.**
+  Fifteen drag handles silently lost their vector child: the bind call reported
+  success, the instance kept its name and size, and only a direct child count
+  showed `0`. Put the reference on a wrapper frame around the instance instead.
+- **A fresh instance's `componentProperties` keys are not reliably prefixed the
+  way the definition names them.** Matching `INSTANCE_SWAP` by property *type*
+  works; matching by a `"icon#"` name prefix silently found nothing and the swap
+  never happened, leaving an empty slot that still looked fine on canvas.
