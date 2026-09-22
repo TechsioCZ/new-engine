@@ -1144,6 +1144,27 @@ skills:
       - src/molecules/toast.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/toast
+  - name: tour-usage
+    slug: tour-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/tour-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux for guided walkthroughs with Tour,
+      target resolution, tooltip/dialog/floating panels, interactive wait effects,
+      imperative controls, cleanup and app-owned onboarding policy.
+    requires:
+      - component-usage-ux
+      - zag-compound-components
+      - app-token-overrides
+    sources:
+      - src/molecules/tour.tsx
+      - src/tokens/components/molecules/_tour.css
+      - stories/molecules/tour.stories.tsx
+      - test/tour.spec.ts
+      - src/molecules/tour.figma.ts
+      - docs/tour-figma-handoff.md
+      - https://zagjs.com/components/react/tour
   - name: tree-view-usage
     slug: tree-view-usage
     type: sub-skill

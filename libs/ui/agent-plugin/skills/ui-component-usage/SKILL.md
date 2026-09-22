@@ -28,7 +28,7 @@ accordion, badge, breadcrumb, button, carousel, checkbox, color-select, combobox
 footer, form-checkbox, form-input, form-numeric-input, form-textarea, gallery, header, icon,
 image, input, label, link, link-button, menu, numeric-input, pagination, phone-input,
 popover, product-card, radio-card, radio-group, rating, search-form, select, skeleton,
-slider, status-text, steps, switch, table, tabs, textarea, toast, tooltip, tree-view
+slider, status-text, steps, switch, table, tabs, textarea, toast, tooltip, tour, tree-view
 — each bundled as the `<name>-usage` skill.
 
 ## Import pattern

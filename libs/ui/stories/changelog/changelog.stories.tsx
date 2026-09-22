@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from "@storybook/react"
 
 /**
  * Per-component changelog for `@techsio/ui-kit`, rendered in Storybook.
@@ -23,6 +23,15 @@ const CHANGELOG = `
 
 ### Command v1.0.0
 - New compound action panel on Zag Combobox with label/keyword filtering, groups, empty and disabled states, repeated activation and existing Dialog composition. Application callbacks can be shared with Hotkeys without a second command registry.
+
+### Tour v1.0.2
+- Keep the start trigger disabled throughout target resolution and wait steps, then enable it after the tour ends. Apply target inert before paint while preserving application ownership. Revalidate Zag 1.43.3 guidance and remove obsolete skip/effect-dismiss adapters.
+
+### Tour v1.0.1
+- Preserve application-owned inert state for existing and late targets when a step closes or changes. Tour removes only its own blocking; pre-existing inert and application writes during the tour survive cleanup. Includes browser regressions without public API or visual changes.
+
+### Tour v1.0.0
+- New single-machine guided-tour molecule with tooltip, dialog, floating and interactive wait steps; shared Button/ActionIcon controls, component token aliases, focus restoration, RTL navigation and bounded missing-target handling. Includes regression tests and tour-usage guidance. Figma migration and Code Connect are explicitly deferred.
 
 ### DatePicker v1.1.1
 - Aligned field typography, read-only presentation, placeholder binding, and invalid border/focus behavior with the shared Input and form-control contracts. Calendar headings stay compact while retaining full accessible month labels, and required date segments now expose their ARIA requirement state.
@@ -220,10 +229,10 @@ function Changelog() {
 }
 
 const meta: Meta<typeof Changelog> = {
-  title: 'Guide/Changelog',
+  title: "Guide/Changelog",
   component: Changelog,
-  tags: ['autodocs'],
-  parameters: { layout: 'fullscreen' },
+  tags: ["autodocs"],
+  parameters: { layout: "fullscreen" },
 }
 
 export default meta
