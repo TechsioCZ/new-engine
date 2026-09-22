@@ -481,3 +481,50 @@ no asc/desc state, so the active sort colour is never shown. Adding
 ### Ready to export
 
 Nothing in the file blocks the export.
+
+## 10. Status foreground contrast, and the `spacing` rename (2026-09-22)
+
+Two Figma edits made after the 06:32 export, both needing a re-export.
+
+### 10a. `spacing/data-table/actions` → `spacing/data-table/filter-control`
+
+The token was named for the toolbar actions but bound to the filter cell. The
+toolbar's actions row uses `spacing/data-table/toolbar` (14) and the filter
+control uses this one (4) — code already had both values right, only the name
+was misleading. Renamed to match where it is used; `data-table.tsx` consumes it
+as `gap-data-table-filter-control`.
+
+### 10b. `fg/status-error` and `fg/status-success` fell below WCAG AA
+
+The 06:32 export moved both semantic foregrounds onto lighter ramp steps and
+**deleted the `color/success/700` primitive**. Measured against
+`color/fill/surface`:
+
+| Mode | Surface | Error | Success |
+|---|---|---|---|
+| Light / neo-light / Business | `#f3f4f6` | `danger/400` **2.51** ❌ | `success/500` **2.07** ❌ |
+| Dark / neo-dark | `#1f2937` | `danger/300` 7.73 ✅ | `success/300` 10.45 ✅ |
+| Akros | `#f2f3f4` | `danger/600` 5.45 ✅ | `success/600` 6.26 ✅ |
+
+Only the three light modes were affected — the dark modes and the newly added
+Akros theme were already correct. These feed `--color-status-text-fg-*`, so the
+failure covered every form validation message in the system.
+
+The deletion was the direct cause on the success side: with `700` gone, **no
+green left on the ramp clears AA on the light surface** — `success/600` is only
+2.99:1. So the primitive was restored at its original `#15803d` (Akros gets
+`#1e4502`, consistent with its own darker ramp).
+
+Fixed, light modes only:
+
+```
+color/fg/status-error   → color/danger/700   #b91c1c   5.88
+color/fg/status-success → color/success/700  #15803d   4.56
+```
+
+`danger/600` was not enough — it measures 4.39 against the grey surface. It read
+as passing before only because the old check was run against pure white, where
+it makes 4.83. **Status foregrounds must be measured against
+`color/fill/surface`, not `#ffffff`** — most of them sit on the grey.
+
+All six modes now pass AA for both tokens.
