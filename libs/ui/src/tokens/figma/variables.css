@@ -379,7 +379,7 @@
   --color-data-table-pagination-fg: var(--color-table-header-fg);
   --color-data-table-pinned-cell-bg: var(--color-table-bg);
   --color-data-table-resize-handle: var(--color-table-border);
-  --color-data-table-row-nested-tint: var(--color-table-row-bg-hover);
+  --color-data-table-row-nested-tint: var(--color-fill-active);
   --color-data-table-sort-icon-active: var(--color-fg-accent-primary);
   --color-data-table-sort-icon-base: var(--color-fg-secondary);
   --color-data-table-toolbar-bg: var(--color-table-header-bg);
