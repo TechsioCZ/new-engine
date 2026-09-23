@@ -68,7 +68,7 @@ const comboboxVariants = tv({
     content: [
       "popup-surface-base",
       "w-full",
-      "flex flex-col",
+      "flex flex-col overflow-hidden",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
@@ -76,12 +76,12 @@ const comboboxVariants = tv({
       "data-[state=open]:scale-100 data-[state=open]:opacity-100",
       "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
-    list: ["m-0 flex list-none flex-col"],
+    list: ["m-0 flex min-h-0 list-none flex-col overflow-y-auto overscroll-contain"],
     groupLabel: [
       "combobox-popup-padding",
       "text-combobox-group-label-size font-combobox-group-label text-combobox-group-fg",
     ],
-    footer: ["combobox-popup-padding border-t border-combobox-footer-border"],
+    footer: ["combobox-popup-padding shrink-0 border-t border-combobox-footer-border"],
     itemText: ["min-w-0 flex-grow truncate"],
     item: [
       "popup-item-base",
@@ -313,6 +313,10 @@ export function Combobox<T = unknown>({
     loopFocus,
     navigate,
     composite: false,
+    // The listbox scrolls; content remains Zag's dismissal boundary.
+    scrollToIndexFn: ({ getElement }) => {
+      getElement()?.scrollIntoView({ block: "nearest", inline: "nearest" })
+    },
     invalid: validateStatus === "error",
     ids: {
       label: `${uniqueId}-label`,
@@ -495,6 +499,8 @@ export function Combobox<T = unknown>({
 
         <Button
           {...api.getTriggerProps()}
+          aria-controls={api.open ? listId : undefined}
+          aria-haspopup="listbox"
           className={trigger()}
           size="current"
           theme="unstyled"
@@ -511,8 +517,11 @@ export function Combobox<T = unknown>({
         <div {...api.getPositionerProps()} className={positioner()}>
           <div
             {...api.getContentProps()}
+            aria-labelledby={undefined}
             className={content()}
             data-status={state}
+            role={undefined}
+            tabIndex={undefined}
           >
             {loading ? (
               <div className={statusSlot()} role="status">

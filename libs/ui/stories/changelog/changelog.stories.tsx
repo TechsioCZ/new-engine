@@ -20,6 +20,7 @@ const CHANGELOG = `
 - Added Zag item groups, explicit navigation mode, navigation callback and footer/portal options. Selection remains the default.
 - Loading/error exclude hidden results from keyboard selection. Rich options retain their label, scalar values are normalized, and help/error text is connected to the input.
 - Loading and retry labels are customizable; status and footer controls are outside listbox semantics.
+- Input and trigger reference the scrollable listbox; Zag keeps highlighted options visible without moving input focus.
 - Group headings and footer spacing follow the shared popup size scale; status text uses a component foreground token.
 
 ### Dialog v1.0.1

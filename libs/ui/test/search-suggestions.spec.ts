@@ -5,6 +5,57 @@ async function openStory(page: Page, story: string) {
   await expect(page.getByRole("combobox").first()).toBeAttached();
 }
 
+test("input and trigger control the scrollable listbox", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 600 });
+  await openStory(page, "molecules-combobox--sizes");
+  const input = page.getByRole("combobox").nth(2);
+  const trigger = page
+    .getByRole("button", { name: "Toggle suggestions" })
+    .nth(2);
+  await input.press("ArrowDown");
+  const listbox = page.getByRole("listbox");
+  await expect(listbox).toBeVisible();
+  const listId = await listbox.getAttribute("id");
+  expect(listId).toBeTruthy();
+  await expect(input).toHaveAttribute("aria-controls", listId as string);
+  await expect(trigger).toHaveAttribute("aria-controls", listId as string);
+  await expect(trigger).toHaveAttribute("aria-haspopup", "listbox");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect
+    .poll(() =>
+      listbox.evaluate((node) => node.scrollHeight > node.clientHeight),
+    )
+    .toBe(true);
+
+  const lastOption = page.getByRole("option", { name: "USA", exact: true });
+  for (let index = 0; index < 8; index++) await input.press("ArrowDown");
+  await expect(input).toBeFocused();
+  await expect(input).toHaveAttribute(
+    "aria-activedescendant",
+    (await lastOption.getAttribute("id")) as string,
+  );
+  await expect
+    .poll(() => listbox.evaluate((node) => node.scrollTop))
+    .toBeGreaterThan(0);
+  await expect
+    .poll(() =>
+      lastOption.evaluate((node) => {
+        const list = node.closest('[role="listbox"]')!;
+        const optionRect = node.getBoundingClientRect();
+        const listRect = list.getBoundingClientRect();
+        return (
+          optionRect.top >= listRect.top - 1 &&
+          optionRect.bottom <= listRect.bottom + 1
+        );
+      }),
+    )
+    .toBe(true);
+
+  await input.fill("Czech");
+  await expect(listbox.getByRole("option")).toHaveCount(1);
+  await expect.poll(() => listbox.evaluate((node) => node.scrollTop)).toBe(0);
+});
+
 test("Playground waits for user input", async ({ page }) => {
   await openStory(page, "templates-searchsuggestions--playground");
   await page.waitForTimeout(700);
