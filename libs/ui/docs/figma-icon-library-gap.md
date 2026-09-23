@@ -581,3 +581,42 @@ foregrounds). It is still consumed in code by the `toolbar` slot, so it stays.
   way the definition names them.** Matching `INSTANCE_SWAP` by property *type*
   works; matching by a `"icon#"` name prefix silently found nothing and the swap
   never happened, leaving an empty slot that still looked fine on canvas.
+
+## 12. Tree and master-detail demos (2026-09-23)
+
+The Demos section covered sorting, filtering, pagination and the empty state but
+not the two compositions that need more than one component to read correctly.
+Both are now there, bringing the section to seven:
+
+- **Tree / nested rows** — four rows at depths 0–2, expand toggles in the
+  leading cell, `color/data-table/row/nested-tint` on the nested rows.
+- **Master-detail (expanded row)** — an expanded row followed by
+  `Table2.DetailPanel`, with collapsed rows either side.
+
+### Why these two are composition frames, not component instances
+
+The other demos are instances of a `Demo / …` component. These two cannot be:
+an expand toggle has to sit **inside** the leading cell, and
+`insertChild` into an instance subtree throws
+
+```
+Cannot move node. New parent is an instance or is inside of an instance
+```
+
+Instances are structurally immutable — you can override a property, not add a
+child. So both demos are plain auto-layout frames composed from `Table2.*`
+instances, which is also closer to how the code assembles a row.
+
+Indentation has to eat into the leading cell rather than widen it. Leaving the
+columns on `FILL` let the indent push every later column right, so each row's
+columns landed at a different x. All columns are pinned to a fixed 240 instead.
+
+### One thing worth a design decision
+
+`color/data-table/row/nested-tint` aliases `color/table/row/bg/hover`, so on
+canvas a nested row reads as a **strong blue that looks like selection**, not as
+depth shading. That alias was inherited from the code comment in
+`_data-table.css`, which chose the hover token deliberately — "rather than a raw
+semantic token or a new one added ahead of the Figma sync". That sync now
+exists, so the constraint is gone: the nested tint can take its own, quieter
+value without disturbing hover. Worth deciding before this ships.
