@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-19998
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/form-input.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/form-input.tsx
 // component=FormInput
 
 import figma from "figma"
