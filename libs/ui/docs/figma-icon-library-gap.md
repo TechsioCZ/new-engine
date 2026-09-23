@@ -613,10 +613,31 @@ columns landed at a different x. All columns are pinned to a fixed 240 instead.
 
 ### One thing worth a design decision
 
-`color/data-table/row/nested-tint` aliases `color/table/row/bg/hover`, so on
-canvas a nested row reads as a **strong blue that looks like selection**, not as
-depth shading. That alias was inherited from the code comment in
-`_data-table.css`, which chose the hover token deliberately — "rather than a raw
-semantic token or a new one added ahead of the Figma sync". That sync now
-exists, so the constraint is gone: the nested tint can take its own, quieter
-value without disturbing hover. Worth deciding before this ships.
+`color/data-table/row/nested-tint` aliases `color/table/row/bg/hover`, and
+following that chain to the end explains the problem exactly:
+
+```
+nested-tint → table/row/bg/hover → fill/hover
+            → light-dark(primary-200, primary-900)
+```
+
+**Hover in this system is a brand tint, not a neutral.** So nesting currently
+inherits the brand colour, which is why a nested row reads as *selected* rather
+than *nested*. Depth shading should be neutral and mode-aware.
+
+A three-way comparison is rendered on the `Known gaps` section
+(`nested-tint decision`):
+
+| Option | Resolves to | Verdict |
+|---|---|---|
+| A — `color/fill/hover` (today) | `light-dark(primary-200, primary-900)` | brand tint; reads as selection |
+| B — `color/fill/base` | `light-dark(black-5, white-5)` | neutral, but **identical to the striped row tint** — a nested row becomes indistinguishable from a zebra stripe |
+| C — **`color/fill/active`** | `light-dark(black-15, white-15)` | neutral, mode-aware, clearly separated from the 5% stripe |
+
+**Recommendation: C.** It is an existing semantic token, so no new primitive is
+needed; it already carries a light/dark pair, so nesting stays legible in dark
+mode; and at 15% against the stripe's 5% the two never collide.
+
+Note the tint is applied once for any depth, not per level — the code uses
+`data-[depth]:data-table-row-nested-tint`, a single class — so depth 1 and
+depth 3 shade identically. The Figma demo matches that on purpose.
