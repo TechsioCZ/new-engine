@@ -611,7 +611,7 @@ Indentation has to eat into the leading cell rather than widen it. Leaving the
 columns on `FILL` let the indent push every later column right, so each row's
 columns landed at a different x. All columns are pinned to a fixed 240 instead.
 
-### One thing worth a design decision
+### Decided: the nested-row tint is neutral
 
 `color/data-table/row/nested-tint` aliases `color/table/row/bg/hover`, and
 following that chain to the end explains the problem exactly:
@@ -634,9 +634,19 @@ A three-way comparison is rendered on the `Known gaps` section
 | B — `color/fill/base` | `light-dark(black-5, white-5)` | neutral, but **identical to the striped row tint** — a nested row becomes indistinguishable from a zebra stripe |
 | C — **`color/fill/active`** | `light-dark(black-15, white-15)` | neutral, mode-aware, clearly separated from the 5% stripe |
 
-**Recommendation: C.** It is an existing semantic token, so no new primitive is
+**Chosen: C.** `color/data-table/row/nested-tint` now aliases
+`color/fill/active`. It is an existing semantic token, so no new primitive is
 needed; it already carries a light/dark pair, so nesting stays legible in dark
 mode; and at 15% against the stripe's 5% the two never collide.
+
+The comparison stays on the `Known gaps` section as the record of why, retitled
+"DECIDED: …" so it does not read as an open question.
+
+**No code change was needed for this.** `_data-table.css` reads
+`--color-data-table-row-nested-tint` and does not know or care what backs it —
+the retarget happens entirely in Figma and arrives with the next export. That is
+the payoff for putting a component token in the chain rather than letting the
+utility reach straight through to a Table token.
 
 Note the tint is applied once for any depth, not per level — the code uses
 `data-[depth]:data-table-row-nested-tint`, a single class — so depth 1 and
