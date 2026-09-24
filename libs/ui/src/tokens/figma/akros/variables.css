@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-23T11:23:30.270Z
+ * Exported at: 2026-09-24T06:56:20.880Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -33,16 +33,16 @@
   --color-bg-light-warning-active: var(--color-warning-300);
   --color-bg-light-warning-base: var(--color-warning-100);
   --color-bg-light-warning-hover: var(--color-warning-200);
-  --color-bg-outlined-danger-active: oklch(0 0 0);
-  --color-bg-outlined-danger-hover: oklch(0 0 0);
-  --color-bg-outlined-primary-active: oklch(0 0 0);
-  --color-bg-outlined-primary-hover: oklch(0 0 0);
-  --color-bg-outlined-secondary-active: oklch(0 0 0);
-  --color-bg-outlined-secondary-hover: oklch(0 0 0);
-  --color-bg-outlined-tertiary-active: oklch(0 0 0);
-  --color-bg-outlined-tertiary-hover: oklch(0 0 0);
-  --color-bg-outlined-warning-active: oklch(0 0 0);
-  --color-bg-outlined-warning-hover: oklch(0 0 0);
+  --color-bg-outlined-danger-active: oklch(0.586 0.225 27.911 / 0.12);
+  --color-bg-outlined-danger-hover: oklch(0.586 0.225 27.911 / 0.16);
+  --color-bg-outlined-primary-active: oklch(0.851 0.163 86.034 / 0.12);
+  --color-bg-outlined-primary-hover: oklch(0.851 0.163 86.034 / 0.16);
+  --color-bg-outlined-secondary-active: oklch(0.649 0.195 137.002 / 0.12);
+  --color-bg-outlined-secondary-hover: oklch(0.649 0.195 137.002 / 0.16);
+  --color-bg-outlined-tertiary-active: oklch(0.451 0.159 257.426 / 0.12);
+  --color-bg-outlined-tertiary-hover: oklch(0.451 0.159 257.426 / 0.16);
+  --color-bg-outlined-warning-active: oklch(0.829 0.171 81.038 / 0.12);
+  --color-bg-outlined-warning-hover: oklch(0.829 0.171 81.038 / 0.16);
   --color-bg-primary-active: var(--color-primary-800);
   --color-bg-primary-base: var(--color-primary-500);
   --color-bg-primary-hover: var(--color-primary-600);
@@ -62,8 +62,8 @@
   --color-bg-warning-base: var(--color-warning-500);
   --color-bg-warning-hover: var(--color-warning-600);
   --color-black: oklch(0 0 0);
-  --color-black-15: oklch(0 0 0);
-  --color-black-5: oklch(0 0 0);
+  --color-black-15: oklch(0 0 0 / 0.15);
+  --color-black-5: oklch(0 0 0 / 0.05);
   --color-blue-500: var(--color-tertiary-600);
   --color-border-danger-focus: var(--color-danger-500);
   --color-border-danger-hover: var(--color-danger-600);
@@ -79,7 +79,7 @@
   --color-danger-200: oklch(0.783 0.127 20.329);
   --color-danger-300: oklch(0.711 0.166 22.216);
   --color-danger-400: oklch(0.628 0.258 29.234);
-  --color-danger-400-10: oklch(0 0 0);
+  --color-danger-400-10: oklch(0.628 0.258 29.234 / 0.1);
   --color-danger-500: oklch(0.586 0.225 27.911);
   --color-danger-600: oklch(0.524 0.214 29.148);
   --color-danger-700: oklch(0.488 0.186 27.719);
@@ -209,7 +209,7 @@
   --color-tertiary-light-active: var(--color-bg-light-tertiary-active);
   --color-tertiary-light-disabled: var(--color-bg-disabled);
   --color-tertiary-light-hover: var(--color-bg-light-tertiary-hover);
-  --color-transparent: oklch(0 0 0);
+  --color-transparent: oklch(0 0 0 / 0);
   --color-warning: var(--color-warning-500);
   --color-warning-100: var(--color-primary-100);
   --color-warning-200: oklch(0.945 0.129 103.358);
@@ -228,8 +228,8 @@
   --color-warning-light-disabled: var(--color-bg-disabled);
   --color-warning-light-hover: var(--color-bg-light-warning-hover);
   --color-white: oklch(1 0 0);
-  --color-white-15: oklch(0 0 0);
-  --color-white-5: oklch(0 0 0);
+  --color-white-15: oklch(1 0 0 / 0.15);
+  --color-white-5: oklch(1 0 0 / 0.05);
   --default-ring-color: var(--color-black);
   /* Fonts */
   --font-weight-bold: 700;

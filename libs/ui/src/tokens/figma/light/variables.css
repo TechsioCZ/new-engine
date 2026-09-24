@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-23T11:23:30.258Z
+ * Exported at: 2026-09-24T06:56:20.869Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -294,20 +294,27 @@
   --color-danger-light-active: var(--color-bg-light-danger-active);
   --color-danger-light-disabled: var(--color-bg-disabled);
   --color-danger-light-hover: var(--color-bg-light-danger-hover);
+  --color-data-table-bg: var(--color-table-bg);
   --color-data-table-border: var(--color-table-border);
-  --color-data-table-drag-handle: var(--color-fg-secondary);
+  --color-data-table-drag-handle-fg: var(--color-fg-secondary);
   --color-data-table-editor-error-fg: var(--color-fg-status-error);
   --color-data-table-empty-fg: var(--color-fg-secondary);
-  --color-data-table-expander: var(--color-fg-secondary);
-  --color-data-table-filter-icon: var(--color-fg-secondary);
+  --color-data-table-expander-fg: var(--color-fg-secondary);
+  --color-data-table-filter-icon-fg: var(--color-fg-secondary);
   --color-data-table-filter-row-bg: var(--color-table-header-bg);
+  --color-data-table-footer-bg: var(--color-table-footer-bg);
+  --color-data-table-header-bg: var(--color-table-header-bg);
   --color-data-table-pagination-bg: var(--color-table-header-bg);
   --color-data-table-pagination-fg: var(--color-table-header-fg);
   --color-data-table-pinned-cell-bg: var(--color-table-bg);
-  --color-data-table-resize-handle: var(--color-table-border);
-  --color-data-table-row-nested-tint: var(--color-fill-active);
-  --color-data-table-sort-icon-active: var(--color-fg-accent-primary);
-  --color-data-table-sort-icon-base: var(--color-fg-secondary);
+  --color-data-table-resize-handle-bg: var(--color-table-border);
+  --color-data-table-row-bg-hover: var(--color-table-row-bg-hover);
+  --color-data-table-row-bg-nested: var(--color-fill-active);
+  --color-data-table-row-bg-selected: var(--color-table-row-bg-selected);
+  --color-data-table-row-bg-striped-primary: var(--color-table-row-striped-primary);
+  --color-data-table-row-bg-striped-secondary: var(--color-table-row-striped-secondary);
+  --color-data-table-sort-icon-fg: var(--color-fg-secondary);
+  --color-data-table-sort-icon-fg-active: var(--color-fg-accent-primary);
   --color-data-table-toolbar-bg: var(--color-table-header-bg);
   --color-data-table-toolbar-fg: var(--color-table-header-fg);
   --color-date-picker-accent: var(--color-bg-primary-base);
@@ -1145,6 +1152,7 @@
   --border-width-checkbox-error: var(--border-md);
   --border-width-combobox: var(--border-width-form-control);
   --border-width-command: var(--border-width-popup);
+  --border-width-data-table: var(--border-table-width);
   --border-width-date-picker-content: var(--border-sm);
   --border-width-date-picker-control: var(--border-width-form-control);
   --border-width-date-picker-day: var(--border-sm);
@@ -1520,10 +1528,10 @@
   --padding-select-item-y: var(--padding-popup-item-y-md);
   --padding-select-trigger-md: var(--spacing-150);
   --padding-select-trigger-sm: var(--spacing-100);
-  --padding-select-trigger-x-md: 0.63rem;
-  --padding-select-trigger-x-sm: 0.38rem;
-  --padding-select-trigger-y-md: 0.63rem;
-  --padding-select-trigger-y-sm: 0.38rem;
+  --padding-select-trigger-x-md: var(--dimension-10);
+  --padding-select-trigger-x-sm: var(--dimension-6);
+  --padding-select-trigger-y-md: var(--dimension-10);
+  --padding-select-trigger-y-sm: var(--dimension-6);
   --padding-sidebar-content: var(--dimension-12);
   --padding-sidebar-content-compact: var(--dimension-8);
   --padding-sidebar-group-label: var(--dimension-8);
@@ -1549,12 +1557,12 @@
   --padding-textarea-lg: var(--spacing-200);
   --padding-textarea-md: var(--spacing-150);
   --padding-textarea-sm: var(--spacing-100);
-  --padding-textarea-x-lg: 1rem;
-  --padding-textarea-x-md: 0.63rem;
-  --padding-textarea-x-sm: 0.38rem;
-  --padding-textarea-y-lg: 1rem;
-  --padding-textarea-y-md: 0.63rem;
-  --padding-textarea-y-sm: 0.38rem;
+  --padding-textarea-x-lg: var(--dimension-16);
+  --padding-textarea-x-md: var(--dimension-10);
+  --padding-textarea-x-sm: var(--dimension-6);
+  --padding-textarea-y-lg: var(--dimension-16);
+  --padding-textarea-y-md: var(--dimension-10);
+  --padding-textarea-y-sm: var(--dimension-6);
   --padding-toast-root: var(--dimension-20);
   --padding-tooltip-x-lg: var(--dimension-30);
   --padding-tooltip-x-md: var(--dimension-20);
@@ -1677,6 +1685,7 @@
   --shadow-accordion-content-sm: var(--shadow-sm);
   --shadow-accordion-root-md: var(--shadow-xl);
   --shadow-accordion-root-sm: var(--shadow-primary);
+  --shadow-data-table-outline: var(--shadow-table-outline);
   --shadow-date-picker-content: var(--shadow-popover);
   --shadow-dialog-content: var(--shadow-primary);
   --shadow-drawer-content: var(--shadow-xl);
@@ -2043,6 +2052,7 @@
   --text-combobox-sm: var(--text-sm);
   --text-combobox-trigger: var(--text-lg);
   --text-command-md: var(--text-sm);
+  --text-data-table-sm: var(--text-table-sm);
   --text-date-picker-content-lg: var(--text-sm);
   --text-date-picker-content-md: var(--text-sm);
   --text-date-picker-content-sm: var(--text-xs);
