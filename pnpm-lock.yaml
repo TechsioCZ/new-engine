@@ -1071,6 +1071,9 @@ importers:
       '@zag-js/checkbox':
         specifier: 1.43.3
         version: 1.43.3
+      '@zag-js/collapsible':
+        specifier: 1.43.3
+        version: 1.43.3
       '@zag-js/combobox':
         specifier: 1.43.3
         version: 1.43.3
@@ -10237,6 +10240,9 @@ packages:
 
   '@zag-js/checkbox@1.43.3':
     resolution: {integrity: sha512-1vikdGcAokmLSMAnHQo5lYG/DMMNej2FlaAxiuyna2n0XJy/VFhv/3+/FZNB9CAJBkeqwLm9kqo94c7iEL7cxA==}
+
+  '@zag-js/collapsible@1.43.3':
+    resolution: {integrity: sha512-ABOmW6o2SxKfuG5qNWeLXYgVDQDe30dyeRCbEGBhWFeYFO0IMvjlOLiLdk6MSXmFjMynUTIuYxaEv8gNhoOkCA==}
 
   '@zag-js/collection@1.43.3':
     resolution: {integrity: sha512-POufSu17mxTic09DP3CD2sGiRCaNODv/gAYyotrM/ynWSeb2+TjSxlKxuiyQS0amiY+BwJ3+m5qJ4odmU9TLMQ==}
@@ -30265,6 +30271,14 @@ snapshots:
       '@zag-js/core': 1.43.3
       '@zag-js/dom-query': 1.43.3
       '@zag-js/focus-visible': 1.43.3
+      '@zag-js/types': 1.43.3
+      '@zag-js/utils': 1.43.3
+
+  '@zag-js/collapsible@1.43.3':
+    dependencies:
+      '@zag-js/anatomy': 1.43.3
+      '@zag-js/core': 1.43.3
+      '@zag-js/dom-query': 1.43.3
       '@zag-js/types': 1.43.3
       '@zag-js/utils': 1.43.3
 

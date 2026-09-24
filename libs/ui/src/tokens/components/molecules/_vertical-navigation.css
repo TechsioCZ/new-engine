@@ -1,0 +1,122 @@
+@theme static {
+  /* BASE COLOR MAPPING */
+  --color-vertical-navigation-surface: var(--color-fill-surface);
+  --color-vertical-navigation-foreground: var(--color-fg-primary);
+  --color-vertical-navigation-accent: var(--color-bg-primary-base);
+  --color-vertical-navigation-secondary: var(--color-bg-secondary-base);
+  --color-vertical-navigation-accent-light: color-mix(
+    in oklab,
+    var(--color-vertical-navigation-accent) 15%,
+    var(--color-vertical-navigation-surface)
+  );
+
+  /* DERIVED COLORS */
+  --color-vertical-navigation-fg: var(--color-vertical-navigation-foreground);
+  --color-vertical-navigation-item-bg: transparent;
+  --color-vertical-navigation-label-fg: var(
+    --color-vertical-navigation-foreground
+  );
+  --color-vertical-navigation-guide-border: var(--color-border-primary);
+  --color-vertical-navigation-separator-bg: var(--color-border-primary);
+
+  /* STATE VARIATIONS */
+  --color-vertical-navigation-item-bg-hover: var(--color-fill-hover);
+  --color-vertical-navigation-item-bg-current: color-mix(
+    in oklab,
+    var(--color-vertical-navigation-accent) 30%,
+    var(--color-vertical-navigation-surface)
+  );
+  --color-vertical-navigation-item-fg-current: var(
+    --color-vertical-navigation-foreground
+  );
+
+  /* COMPONENT VARIANTS */
+  --color-vertical-navigation-group-bg-plain: transparent;
+  --color-vertical-navigation-group-fg-plain: var(
+    --color-vertical-navigation-foreground
+  );
+  --color-vertical-navigation-group-bg-subtle: var(
+    --color-vertical-navigation-surface
+  );
+  --color-vertical-navigation-group-fg-subtle: var(
+    --color-vertical-navigation-foreground
+  );
+  --color-vertical-navigation-group-bg-accent: var(
+    --color-vertical-navigation-accent-light
+  );
+  --color-vertical-navigation-group-fg-accent: var(
+    --color-vertical-navigation-foreground
+  );
+
+  --color-vertical-navigation-group-bg-secondary: color-mix(
+    in oklab,
+    var(--color-vertical-navigation-secondary) 15%,
+    var(--color-vertical-navigation-surface)
+  );
+  --color-vertical-navigation-group-fg-secondary: var(
+    --color-vertical-navigation-foreground
+  );
+
+  /* DISABLED STATES */
+  --color-vertical-navigation-item-fg-disabled: var(--color-fg-disabled);
+
+  /* SPACING */
+  --spacing-vertical-navigation-list: var(--dimension-2);
+  --spacing-vertical-navigation-row: var(--spacing-50);
+  --spacing-vertical-navigation-group: var(--spacing-100);
+  --spacing-vertical-navigation-indent: var(--dimension-12);
+  --spacing-vertical-navigation-label: var(--dimension-8);
+  --spacing-vertical-navigation-item-sm: var(--height-form-control-sm);
+  --spacing-vertical-navigation-item-md: var(--dimension-36);
+  --spacing-vertical-navigation-separator: var(--border-width-sm);
+  --padding-vertical-navigation-item-x-sm: var(--padding-popup-item-x-sm);
+  --padding-vertical-navigation-item-x-md: var(--padding-popup-item-x-md);
+  --padding-vertical-navigation-item-y-sm: var(--padding-popup-item-y-sm);
+  --padding-vertical-navigation-item-y-md: var(--padding-popup-item-y-md);
+  --padding-vertical-navigation-group: var(--dimension-0);
+
+  /* TYPOGRAPHY */
+  --text-vertical-navigation-sm: var(--text-sm);
+  --text-vertical-navigation-md: var(--text-base);
+  --text-vertical-navigation-label-sm: var(--text-xs);
+  --text-vertical-navigation-icon-sm: var(--text-icon-control-sm);
+  --text-vertical-navigation-icon-md: var(--text-icon-control-md);
+  --font-weight-vertical-navigation-current: var(--font-weight-semibold);
+  --font-weight-vertical-navigation-label: var(--font-weight-semibold);
+  --font-weight-vertical-navigation-path: var(--font-weight-medium);
+
+  /* BORDERS & RADIUS */
+  --border-width-vertical-navigation: var(--border-width-sm);
+  --radius-vertical-navigation-item: var(--radius-sm);
+  --radius-vertical-navigation-group: var(--radius-none);
+
+  /* FOCUS RINGS */
+  --color-vertical-navigation-focus-border: var(--color-ring);
+}
+
+@utility vertical-navigation-focus {
+  outline-style: var(--default-ring-style);
+  outline-width: var(--default-ring-width);
+  outline-color: var(--color-vertical-navigation-focus-border);
+  outline-offset: var(--default-ring-offset);
+}
+
+@utility vertical-navigation-guide {
+  border-inline-start: var(--border-width-vertical-navigation) solid
+    var(--color-vertical-navigation-guide-border);
+}
+
+@utility vertical-navigation-row {
+  & > [data-part="branch-trigger"] {
+    width: auto;
+    flex-shrink: 0;
+  }
+}
+
+@utility vertical-navigation-control {
+  overflow-wrap: anywhere;
+}
+
+@utility token-icon-vertical-navigation-chevron {
+  @apply token-icon-chevron-down;
+}

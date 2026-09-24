@@ -44,6 +44,7 @@
 @import "./molecules/_toast.css";
 @import "./molecules/_tour.css";
 @import "./molecules/_tree-view.css";
+@import "./molecules/_vertical-navigation.css";
 
 @import "./organisms/_table.css";
 @import "./organisms/_data-table.css";
