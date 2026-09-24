@@ -25,6 +25,14 @@ const state = figma.selectedInstance.getEnum("state", {
 const enableInlineEdit = state !== "default"
 
 /*
+ * Pinning is off by default *and* the pinned list starts empty, so the pinned
+ * variant also seeds `columnPinning` — otherwise the cell would not stick.
+ */
+const pinning = enableColumnPinning
+  ? figma.code` enableColumnPinning columnPinning={{ start: ["name"], end: [] }}`
+  : ""
+
+/*
  * `editingRowId` is controlled so the example actually opens row "0" in the
  * editor instead of only enabling editing. The `error` variant adds the
  * `meta.validate` that produces the message. That message only appears after
@@ -32,18 +40,18 @@ const enableInlineEdit = state !== "default"
  * with no prop to seed them, so no snippet can render the error on first paint.
  * The emitted code says so rather than implying it does.
  */
-const meta =
-  state === "error"
-    ? `{ align: "${align}", editable: true, validate: (value) => (Number(value) > 0 ? undefined : "Must be a positive number") }`
-    : state === "editing"
-      ? `{ align: "${align}", editable: true }`
-      : `{ align: "${align}" }`
+const metaByState = {
+  default: `{ align: "${align}" }`,
+  editing: `{ align: "${align}", editable: true }`,
+  error: `{ align: "${align}", editable: true, validate: (value) => (Number(value) > 0 ? undefined : "Must be a positive number") }`,
+}
+const meta = metaByState[state]
 
 export default {
   id: "DataTableCell",
   imports: [
     'import { useState } from "react"',
-    'import { DataTable } from "@techsio/ui-kit/organisms/data-table"',
+    'import { type ColumnDef, DataTable } from "@techsio/ui-kit/organisms/data-table"',
   ],
   example: figma.code`${
     enableInlineEdit
@@ -57,7 +65,7 @@ ${
 }
 `
       : ""
-  }const columns = [
+  }const columns: ColumnDef<Record<string, unknown>>[] = [
   { id: "name", header: "Column", accessorKey: "name", meta: ${meta} },
 ]
 
@@ -65,9 +73,6 @@ ${
     enableInlineEdit
       ? figma.code` enableInlineEdit editingRowId={editingRowId} onEditingRowIdChange={setEditingRowId} onEditCommit={saveRow}`
       : ""
-  }${figma.helpers.react.renderProp(
-    "enableColumnPinning",
-    enableColumnPinning
-  )} />`,
+  }${pinning} />`,
   metadata: { nestable: true },
 }

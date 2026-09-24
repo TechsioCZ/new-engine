@@ -11,8 +11,10 @@ import figma from "figma"
  */
 export default {
   id: "DataTableFilterRow",
-  imports: ['import { DataTable } from "@techsio/ui-kit/organisms/data-table"'],
-  example: figma.code`const columns = [
+  imports: [
+    'import { type ColumnDef, DataTable } from "@techsio/ui-kit/organisms/data-table"',
+  ],
+  example: figma.code`const columns: ColumnDef<Record<string, unknown>>[] = [
   {
     id: "name",
     header: "Column",

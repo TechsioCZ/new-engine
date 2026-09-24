@@ -36,7 +36,7 @@ export default {
   id: "DataTableColumnHeader",
   imports: [
     'import { useState } from "react"',
-    'import { DataTable } from "@techsio/ui-kit/organisms/data-table"',
+    'import { type ColumnDef, DataTable } from "@techsio/ui-kit/organisms/data-table"',
   ],
   example: figma.code`${
     initialSort
@@ -44,7 +44,7 @@ export default {
 
 `
       : ""
-  }const columns = [
+  }const columns: ColumnDef<Record<string, unknown>>[] = [
   { id: "name", header: "Column", accessorKey: "name", meta: { align: "${align}" } },
 ]
 
