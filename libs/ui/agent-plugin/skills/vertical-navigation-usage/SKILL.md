@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: vertical-navigation-usage
 description: >
   Use for nested page or category links with independently expandable and
@@ -55,7 +55,10 @@ import { VerticalNavigation } from "@techsio/ui-kit/molecules/vertical-navigatio
 
 List renders ul; its direct children must be Item or Branch (li).
 BranchContent holds a nested List. Row separates a navigable parent from its
-disclosure button; do not put a link inside a button. A category with no URL
+disclosure button; do not put a link inside a button. Row shares one hover and
+current-page background across both controls, while each keeps its own focus
+ring and click action. Hovering the disclosure highlights its indicator only.
+A category with no URL
 can use a full-width BranchTrigger containing its label and BranchIndicator.
 
 ## State and routing

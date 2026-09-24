@@ -21,6 +21,11 @@
 
   /* STATE VARIATIONS */
   --color-vertical-navigation-item-bg-hover: var(--color-fill-hover);
+  --color-vertical-navigation-indicator-fg-hover: color-mix(
+    in oklab,
+    var(--color-fg-accent-primary) 60%,
+    var(--color-vertical-navigation-foreground)
+  );
   --color-vertical-navigation-item-bg-current: color-mix(
     in oklab,
     var(--color-vertical-navigation-accent) 30%,
@@ -107,9 +112,37 @@
 }
 
 @utility vertical-navigation-row {
+  & > [data-part="link"],
+  & > [data-part="branch-trigger"] {
+    &,
+    &:hover,
+    &[data-current] {
+      background-color: transparent;
+    }
+  }
+
   & > [data-part="branch-trigger"] {
     width: auto;
     flex-shrink: 0;
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:has(> [data-part="link"][data-current])):has(
+        > [data-part="link"]:not([data-disabled]),
+        > [data-part="branch-trigger"]:not(:disabled)
+      ) {
+      background-color: var(--color-vertical-navigation-item-bg-hover);
+    }
+
+    &
+      > [data-part="branch-trigger"]:not(:disabled):hover
+      > [data-part="branch-indicator"] {
+      color: var(--color-vertical-navigation-indicator-fg-hover);
+    }
+  }
+
+  &:has(> [data-part="link"][data-current]) {
+    background-color: var(--color-vertical-navigation-item-bg-current);
   }
 }
 

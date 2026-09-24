@@ -40,6 +40,98 @@ test("keeps parent navigation separate from disclosure and supports keyboard tog
   await expect(navigation.getByRole("menu")).toHaveCount(0)
 })
 
+for (const mode of ["light", "dark"]) {
+  test(`shares split-row hover and current background with independent focus in ${mode} mode`, async ({
+    page,
+  }) => {
+    await page.goto(
+      `/iframe.html?id=molecules-verticalnavigation--playground&viewMode=story&globals=mode:${mode}`
+    )
+    const link = page.getByRole("link", { name: "Fasteners", exact: true })
+    const toggle = page.getByRole("button", { name: "Toggle Fasteners" })
+    const row = page.locator('[data-part="row"]').filter({ has: link })
+    const indicator = toggle.locator('[data-part="branch-indicator"]')
+    await expect(link).toBeVisible()
+    await expect(page.locator("html")).toHaveClass(new RegExp(mode))
+    const idleBackground = await row.evaluate(
+      (element) => getComputedStyle(element).backgroundColor
+    )
+    const idleIndicator = await indicator.evaluate(
+      (element) => getComputedStyle(element).color
+    )
+
+    await link.hover()
+    const hoverBackground = await row.evaluate(
+      (element) => getComputedStyle(element).backgroundColor
+    )
+    expect(hoverBackground).not.toBe(idleBackground)
+    await expect(link).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+    await expect(toggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+    await toggle.hover()
+    await expect(row).toHaveCSS("background-color", hoverBackground)
+    await expect(toggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+    expect(
+      await indicator.evaluate((element) => getComputedStyle(element).color)
+    ).not.toBe(idleIndicator)
+
+    await link.click()
+    await expect(link).toHaveAttribute("aria-current", "page")
+    await expect(toggle).toHaveAttribute("aria-expanded", "true")
+    const currentBackground = await row.evaluate(
+      (element) => getComputedStyle(element).backgroundColor
+    )
+    expect(currentBackground).not.toBe(hoverBackground)
+    await toggle.hover()
+    await expect(row).toHaveCSS("background-color", currentBackground)
+    await expect(link).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+    await page.mouse.move(600, 600)
+    await expect(row).toHaveCSS("background-color", currentBackground)
+
+    await page.keyboard.press("Tab")
+    await expect(toggle).toBeFocused()
+    await expect(toggle).toHaveCSS("outline-style", "solid")
+    await expect(row).toHaveCSS("outline-style", "none")
+    await page.keyboard.press("Shift+Tab")
+    await expect(link).toBeFocused()
+    await expect(link).toHaveCSS("outline-style", "solid")
+    await page.keyboard.press("Tab")
+    await page.keyboard.press("Space")
+    await expect(toggle).toHaveAttribute("aria-expanded", "false")
+    await expect(link).toHaveAttribute("aria-current", "page")
+  })
+}
+
+test("nested row hover stays local and does not change subgroup backgrounds", async ({
+  page,
+}) => {
+  await openStory(page, "akros-catalog")
+  const link = page.getByRole("link", {
+    name: "Šrouby se šestihrannou hlavou",
+    exact: true,
+  })
+  const row = page.locator('[data-part="row"]').filter({ has: link })
+  const parent = page
+    .locator('[data-part="row"]')
+    .filter({ has: page.getByRole("link", { name: "Šrouby", exact: true }) })
+  const group = page.locator('[data-tone="accent"][data-variant="primary"]')
+  await expect(link).toBeVisible()
+  const parentBackground = await parent.evaluate(
+    (element) => getComputedStyle(element).backgroundColor
+  )
+  const groupBackground = await group.evaluate(
+    (element) => getComputedStyle(element).backgroundColor
+  )
+  await link.hover()
+  await expect(row).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+  await expect(parent).toHaveCSS("background-color", parentBackground)
+  await expect(group).toHaveCSS("background-color", groupBackground)
+  const hoverBackground = await row.evaluate(
+    (element) => getComputedStyle(element).backgroundColor
+  )
+  await row.getByRole("button").hover()
+  await expect(row).toHaveCSS("background-color", hoverBackground)
+})
+
 test("respects rejected controlled proposals and external route-driven expansion", async ({
   page,
 }) => {

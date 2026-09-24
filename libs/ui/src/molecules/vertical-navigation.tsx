@@ -1,7 +1,7 @@
 /**
  * VerticalNavigation — @techsio/ui-kit molecule.
  * @component VerticalNavigation
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill vertical-navigation-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */

@@ -5,7 +5,7 @@ export const verticalNavigationStyles = tv({
     root: "min-w-0 text-vertical-navigation-fg",
     list: "flex min-w-0 list-none flex-col gap-vertical-navigation-list",
     item: "min-w-0",
-    row: "vertical-navigation-row flex min-w-0 items-start gap-vertical-navigation-row data-current-path:font-vertical-navigation-path",
+    row: "vertical-navigation-row flex min-w-0 items-start gap-vertical-navigation-row rounded-vertical-navigation-item bg-vertical-navigation-item-bg data-current-path:font-vertical-navigation-path",
     link: "vertical-navigation-control focus-visible:vertical-navigation-focus flex min-w-0 flex-1 items-center justify-start gap-vertical-navigation-row whitespace-normal rounded-vertical-navigation-item bg-vertical-navigation-item-bg text-start text-inherit hover:bg-vertical-navigation-item-bg-hover data-current:bg-vertical-navigation-item-bg-current data-current-path:font-vertical-navigation-path data-current:font-vertical-navigation-current data-current:text-vertical-navigation-item-fg-current data-disabled:text-vertical-navigation-item-fg-disabled data-current:underline data-disabled:hover:bg-vertical-navigation-item-bg",
     trigger:
       "vertical-navigation-control focus-visible:vertical-navigation-focus flex w-full min-w-0 items-center justify-between whitespace-normal rounded-vertical-navigation-item bg-vertical-navigation-item-bg text-start text-inherit hover:bg-vertical-navigation-item-bg-hover disabled:text-vertical-navigation-item-fg-disabled disabled:hover:bg-vertical-navigation-item-bg",
