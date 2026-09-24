@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.0.0
+ * @componentVersion v1.2.0
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -144,28 +144,32 @@ export type {
 export { conditionalFilterFn } from "./data-table.helpers"
 
 /**
- * PROTOTYPE styling: reuses the existing `Table` component tokens
- * (`--color-table-*`, `--border-table-width`) plus semantic tokens
- * (`--color-fg-*`, `--spacing-*`). Once the MVP look is signed off, these
- * semantic references are lifted into `--color-data-table-*` component tokens
- * and mirrored into Figma via the figma-token-binding skill.
+ * Styling runs on the `--*-data-table-*` component tokens, exported from the
+ * Figma `data-table` collection. Every one of them aliases a Table or semantic
+ * token rather than holding a raw value, so the table still inherits the
+ * system's colours and rhythm — the component layer only gives each surface a
+ * name that can be retargeted without touching this file.
+ *
+ * Still on Table tokens deliberately: `--border-table-width` and the
+ * `text-table-*` ramp (no DataTable-specific counterpart), and the frozen
+ * header cell, which is a table header rather than a DataTable chrome surface.
  */
 const dataTableVariants = tv({
   slots: {
     wrapper: [
-      "flex w-full flex-col overflow-hidden rounded-table",
-      "border-(length:--border-table-width) border-table-border",
+      "flex w-full flex-col overflow-hidden rounded-data-table",
+      "border-(length:--border-width-data-table) border-data-table-border",
     ],
     toolbar: [
-      "flex items-center justify-between gap-200",
-      "bg-table-header-bg text-table-header-fg",
-      "px-300 py-200",
-      "border-b-(length:--border-table-width) border-table-border",
+      "flex items-center justify-between gap-data-table-toolbar",
+      "bg-data-table-toolbar-bg text-data-table-toolbar-fg",
+      "p-data-table-toolbar",
+      "border-b-(length:--border-width-data-table) border-data-table-border",
     ],
     /* The search takes the remaining width; actions keep their intrinsic size
      * and stay pinned to the trailing edge. */
     toolbarSearch: ["min-w-0 flex-1"],
-    toolbarActions: ["flex shrink-0 items-center gap-200"],
+    toolbarActions: ["flex shrink-0 items-center gap-data-table-toolbar"],
     scroll: ["relative w-full overflow-auto"],
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
     sortButton: [
@@ -174,53 +178,55 @@ const dataTableVariants = tv({
       "data-[disabled=true]:cursor-default",
     ],
     sortIcon: [
-      "text-fg-secondary",
-      "data-[active=true]:text-fg-accent-primary",
+      "text-data-table-sort-icon-fg",
+      "data-[active=true]:text-data-table-sort-icon-fg-active",
     ],
     dragHandle: [
-      "inline-flex cursor-grab items-center rounded-table text-fg-secondary",
+      "inline-flex cursor-grab items-center rounded-data-table text-data-table-drag-handle-fg",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
-      "hover:bg-table-row-bg-hover hover:opacity-100 focus-visible:opacity-100",
+      "hover:bg-data-table-row-bg-hover hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100 group-hover/row:opacity-100",
       "group-focus-within/header:opacity-100 group-focus-within/row:opacity-100",
       "group-data-dragging/header:opacity-100 group-data-dragging/row:opacity-100",
       "active:cursor-grabbing",
     ],
     resizeHandle: [
-      "absolute end-0 top-0 h-full w-100 cursor-col-resize touch-none select-none",
+      "w-(length:--size-data-table-resize-handle) absolute end-0 top-0 h-full cursor-col-resize touch-none select-none",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
-      "bg-table-border hover:opacity-100 focus-visible:opacity-100",
+      "bg-data-table-resize-handle-bg hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100",
     ],
-    filterRow: ["bg-table-header-bg"],
+    filterRow: ["bg-data-table-filter-row-bg"],
     filterCell: [
-      "px-200 py-100",
+      "p-data-table-filter-cell",
       "min-w-fit",
-      "border-b-(length:--border-table-width) border-table-border",
+      "border-b-(length:--border-width-data-table) border-data-table-border",
     ],
-    filterControl: ["flex flex-wrap items-center gap-100"],
-    editorControl: ["flex flex-col gap-50"],
+    filterControl: [
+      "flex flex-wrap items-center gap-data-table-filter-control",
+    ],
+    editorControl: ["flex flex-col gap-data-table-editor"],
     // `-fg`, not the bare semantic: `--color-danger` is the fill/surface red,
     // while AGENTS.md pins status *text* to `--color-<semantic>-fg`, which is
     // the contrast-checked foreground. The bare token rendered the validation
     // message at surface red on the table background.
-    editorError: ["text-danger-fg text-table-sm"],
+    editorError: ["text-data-table-editor-error-fg text-data-table-sm"],
     actionsCell: ["flex items-center justify-end gap-100"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
-      "p-700 text-center text-fg-secondary",
+      "p-data-table-empty text-center text-data-table-empty-fg",
     ],
     /* Same background as the toolbar so the header and footer frame the table
      * as one pair; without it the bar falls through to --color-table-bg. */
     paginationBar: [
-      "flex flex-wrap items-center justify-between gap-300",
-      "bg-table-header-bg text-table-header-fg",
-      "px-300 py-200",
-      "border-t-(length:--border-table-width) border-table-border",
+      "flex flex-wrap items-center justify-between gap-data-table-pagination",
+      "bg-data-table-pagination-bg text-data-table-pagination-fg",
+      "p-data-table-pagination",
+      "border-t-(length:--border-width-data-table) border-data-table-border",
     ],
-    detailBox: ["w-full p-300"],
-    paginationInfo: ["whitespace-nowrap text-table-sm"],
-    paginationControls: ["flex items-center gap-300"],
+    detailBox: ["w-full p-data-table-detail"],
+    paginationInfo: ["whitespace-nowrap text-data-table-sm"],
+    paginationControls: ["flex items-center gap-data-table-pagination"],
   },
   variants: {
     /**
@@ -229,7 +235,7 @@ const dataTableVariants = tv({
      * card instead of the table alone being outlined.
      */
     outlined: {
-      true: { wrapper: "shadow-table-outline" },
+      true: { wrapper: "shadow-data-table-outline" },
     },
   },
 })
@@ -854,12 +860,12 @@ function pinClass<T extends RowData>(
     // `bg-inherit` was see-through: the row tints are alpha overlays and the
     // even stripe is fully transparent, so scrolled content bled through the
     // frozen column. See `data-table-frozen-cell`.
-    kind === "header" ? "bg-table-header-bg" : "data-table-frozen-cell",
+    kind === "header" ? "bg-data-table-header-bg" : "data-table-frozen-cell",
     isLastStartPinned(column)
-      ? "border-e-(length:--border-table-width) border-table-border"
+      ? "border-e-(length:--border-width-data-table) border-data-table-border"
       : "",
     isFirstEndPinned(column)
-      ? "border-s-(length:--border-table-width) border-table-border"
+      ? "border-s-(length:--border-width-data-table) border-data-table-border"
       : "",
   ].join(" ")
 }
@@ -1168,14 +1174,14 @@ function rowDragClass(
     /* Publish the row's current tint as a custom property. Frozen cells
      * composite it over an opaque surface (`data-table-frozen-cell`), which
      * is the only way to be both opaque and row-coloured: these tints are
-     * alpha overlays — `--color-table-row-striped-secondary` is fully
+     * alpha overlays — `--color-data-table-row-bg-striped-secondary` is fully
      * transparent — so a frozen cell that merely inherited the row's
      * background let the scrolled content show straight through it.
      * Listed before the striped classes so specificity, not source order,
      * decides: selection and hover outrank a bare class and so win. */
-    "data-[selected=true]:[--dt-row-tint:var(--color-table-row-bg-selected)]",
-    "group-hover/row:[--dt-row-tint:var(--color-table-row-bg-hover)]",
-    "hover:[--dt-row-tint:var(--color-table-row-bg-hover)]",
+    "data-[selected=true]:[--dt-row-tint:var(--color-data-table-row-bg-selected)]",
+    "group-hover/row:[--dt-row-tint:var(--color-data-table-row-bg-hover)]",
+    "hover:[--dt-row-tint:var(--color-data-table-row-bg-hover)]",
     // `Table.Row`'s own row-divider border and the zebra background are two
     // ways of doing the same job — separating one row from the next — and
     // showing both at once double-marks every boundary. `border-b-0` wins the
@@ -1191,8 +1197,8 @@ function rowDragClass(
     striped
       ? `${
           (rowIndex ?? 0) % 2 === 0
-            ? "bg-table-row-striped-primary [--dt-row-tint:var(--color-table-row-striped-primary)]"
-            : "bg-table-row-striped-secondary [--dt-row-tint:var(--color-table-row-striped-secondary)]"
+            ? "bg-data-table-row-bg-striped-primary [--dt-row-tint:var(--color-data-table-row-bg-striped-primary)]"
+            : "bg-data-table-row-bg-striped-secondary [--dt-row-tint:var(--color-data-table-row-bg-striped-secondary)]"
         } border-b-0`
       : "",
     // `data-depth` is only ever set for `row.depth > 0` (see below).
@@ -1202,7 +1208,7 @@ function rowDragClass(
     // `striped`'s zebra background instead of losing the Tailwind-merge
     // conflict a second `bg-*` class would.
     tintNestedRows ? "data-[depth]:data-table-row-nested-tint" : "",
-    dnd?.isDragging ? "shadow-table-outline" : "",
+    dnd?.isDragging ? "shadow-data-table-outline" : "",
     dnd?.dropSide === "top" ? "border-primary border-t-2" : "",
     dnd?.dropSide === "bottom" ? "border-primary border-b-2" : "",
     className ?? "",
@@ -1212,17 +1218,26 @@ function rowDragClass(
 }
 
 /**
- * Opaque header surface. `--color-table-header-bg` resolves to a ~5% tint
- * (`--color-fill-base`), which is fine for a static header but lets scrolled
- * content show through sticky or frozen header cells — two labels end up
+ * Opaque chrome surfaces. The header, filter-row and pagination tints resolve
+ * to a ~5% overlay (`--color-fill-base`), which is fine for static chrome but
+ * lets scrolled content show through sticky or frozen cells — two labels end up
  * legible at once. Compositing the tint over the table surface keeps the exact
  * same colour while being fully opaque.
+ *
+ * Each surface composites its *own* token. They used to share the header's,
+ * and because an inline `style` outranks a class, that silently overrode the
+ * filter row's and pagination bar's `bg-*` classes — so neither of their
+ * component tokens ever reached the browser.
  */
-const OPAQUE_HEADER_BG: CSSProperties = {
-  backgroundColor: "var(--color-table-bg)",
-  backgroundImage:
-    "linear-gradient(var(--color-table-header-bg), var(--color-table-header-bg))",
+function opaqueSurface(tint: string): CSSProperties {
+  return {
+    backgroundColor: "var(--color-data-table-bg)",
+    backgroundImage: `linear-gradient(var(${tint}), var(${tint}))`,
+  }
 }
+const OPAQUE_HEADER_BG = opaqueSurface("--color-data-table-header-bg")
+const OPAQUE_FILTER_ROW_BG = opaqueSurface("--color-data-table-filter-row-bg")
+const OPAQUE_PAGINATION_BG = opaqueSurface("--color-data-table-pagination-bg")
 
 /** `aria-sort` for a header cell, or undefined when the column is not sortable. */
 function sortState<T extends RowData>(
@@ -2743,7 +2758,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               data-pinned={column.getIsPinned() || undefined}
               key={column.id}
               style={{
-                ...OPAQUE_HEADER_BG,
+                ...OPAQUE_FILTER_ROW_BG,
                 ...getPinningStyles(column, "header"),
                 ...(stickyHeader
                   ? {
@@ -2771,11 +2786,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <td
               className={
                 stickyActions
-                  ? `${styles.filterCell()} sticky end-0 bg-table-header-bg`
+                  ? `${styles.filterCell()} sticky end-0 bg-data-table-filter-row-bg`
                   : styles.filterCell()
               }
               style={{
-                ...OPAQUE_HEADER_BG,
+                ...OPAQUE_FILTER_ROW_BG,
                 ...(stickyHeader
                   ? { position: "sticky", top: headerHeight }
                   : undefined),
@@ -3201,7 +3216,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       <Icon icon="icon-[mdi--table-off]" size="xl" />
       <div>
         <p>{translations.emptyTitle}</p>
-        <p className="text-table-sm">{translations.emptyDescription}</p>
+        <p className="text-data-table-sm">{translations.emptyDescription}</p>
       </div>
     </div>
   )
@@ -3282,7 +3297,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             // Footer actions cell freezes with the rest of the column.
             <Table.Cell
               className={
-                stickyActions ? "sticky end-0 bg-table-footer-bg" : undefined
+                stickyActions
+                  ? "sticky end-0 bg-data-table-footer-bg"
+                  : undefined
               }
               numeric
               style={
@@ -3702,7 +3719,7 @@ DataTable.Pagination = function DataTablePagination() {
   }))
 
   return (
-    <div className={styles.paginationBar()} style={OPAQUE_HEADER_BG}>
+    <div className={styles.paginationBar()} style={OPAQUE_PAGINATION_BG}>
       <span className={styles.paginationInfo()}>
         {translations.rangeLabel({ start, end, total })}
       </span>
