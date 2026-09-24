@@ -17,23 +17,47 @@ const align = figma.selectedInstance.getEnum("align", {
   end: "end",
 })
 const enableColumnPinning = figma.selectedInstance.getBoolean("pinned")
-const enableInlineEdit = figma.selectedInstance.getEnum("state", {
-  default: false,
-  editing: true,
-  error: true,
+const state = figma.selectedInstance.getEnum("state", {
+  default: "default",
+  editing: "editing",
+  error: "error",
 })
+const enableInlineEdit = state !== "default"
+
+/*
+ * `editingRowId` is controlled so the example actually opens row "0" in the
+ * editor instead of only enabling editing. The `error` variant adds the
+ * `meta.validate` that produces the message: it shows after an invalid value is
+ * committed, the same way the Figma variant draws it.
+ */
+const meta =
+  state === "error"
+    ? `{ align: "${align}", editable: true, validate: (value) => (Number(value) > 0 ? undefined : "Must be a positive number") }`
+    : state === "editing"
+      ? `{ align: "${align}", editable: true }`
+      : `{ align: "${align}" }`
 
 export default {
   id: "DataTableCell",
-  imports: ['import { DataTable } from "@techsio/ui-kit/organisms/data-table"'],
-  example: figma.code`const columns = [
-  { id: "name", header: "Column", accessorKey: "name", meta: { align: "${align}"${enableInlineEdit ? ", editable: true" : ""} } },
+  imports: [
+    'import { useState } from "react"',
+    'import { DataTable } from "@techsio/ui-kit/organisms/data-table"',
+  ],
+  example: figma.code`${
+    enableInlineEdit
+      ? figma.code`const [editingRowId, setEditingRowId] = useState<string | null>("0")
+
+`
+      : ""
+  }const columns = [
+  { id: "name", header: "Column", accessorKey: "name", meta: ${meta} },
 ]
 
-<DataTable columns={columns} data={data}${figma.helpers.react.renderProp(
-    "enableInlineEdit",
+<DataTable columns={columns} data={data}${
     enableInlineEdit
-  )}${enableInlineEdit ? figma.code` onEditCommit={saveRow}` : ""}${figma.helpers.react.renderProp(
+      ? figma.code` enableInlineEdit editingRowId={editingRowId} onEditingRowIdChange={setEditingRowId} onEditCommit={saveRow}`
+      : ""
+  }${figma.helpers.react.renderProp(
     "enableColumnPinning",
     enableColumnPinning
   )} />`,

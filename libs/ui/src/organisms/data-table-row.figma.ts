@@ -8,7 +8,8 @@ import figma from "figma"
  * Rows are rendered by DataTable, so every Figma property here is a DataTable
  * prop rather than something written per row. `hover` is a pure CSS state with
  * no prop behind it, which is why it maps to nothing. `selected` seeds a
- * controlled selection with the first row selected, so the example actually
+ * controlled selection with the first row selected (typed as TanStack's
+ * `RowSelectionState`, a string-keyed map), so the example actually
  * shows the selected state rather than only enabling it.
  */
 const striped = figma.selectedInstance.getEnum("striped", {
@@ -31,7 +32,7 @@ export default {
   ],
   example: figma.code`${
     enableRowSelection
-      ? figma.code`const [rowSelection, setRowSelection] = useState({ 0: true })
+      ? figma.code`const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({ "0": true })
 
 `
       : ""
