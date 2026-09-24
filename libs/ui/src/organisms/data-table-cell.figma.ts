@@ -27,8 +27,10 @@ const enableInlineEdit = state !== "default"
 /*
  * `editingRowId` is controlled so the example actually opens row "0" in the
  * editor instead of only enabling editing. The `error` variant adds the
- * `meta.validate` that produces the message: it shows after an invalid value is
- * committed, the same way the Figma variant draws it.
+ * `meta.validate` that produces the message. That message only appears after
+ * an invalid value is committed: DataTable holds edit errors in internal state
+ * with no prop to seed them, so no snippet can render the error on first paint.
+ * The emitted code says so rather than implying it does.
  */
 const meta =
   state === "error"
@@ -46,7 +48,13 @@ export default {
   example: figma.code`${
     enableInlineEdit
       ? figma.code`const [editingRowId, setEditingRowId] = useState<string | null>("0")
-
+${
+  state === "error"
+    ? figma.code`// The error shows after committing an invalid value: validate runs on commit,
+// and DataTable keeps edit errors internal, so no prop can pre-seed them.
+`
+    : ""
+}
 `
       : ""
   }const columns = [
