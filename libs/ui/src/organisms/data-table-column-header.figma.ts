@@ -20,26 +20,38 @@ const enableColumnResizing =
   figma.selectedInstance.getBoolean("showResizeHandle")
 
 /*
- * asc/desc is sort *state*, not column config, so it maps to DataTable's
- * `sorting` prop. `none` means sortable but unsorted, and emits nothing.
+ * asc/desc is sort *state*, not column config. DataTable has no initial-sort
+ * prop, so `sorting` makes it controlled — and a controlled `sorting` without
+ * `onSortingChange` freezes the header in that direction. The snippet therefore
+ * wires both through `useState`. `none` means sortable but unsorted, and emits
+ * no state at all.
  */
-const sorting = figma.selectedInstance.getEnum("sort", {
+const initialSort = figma.selectedInstance.getEnum("sort", {
   none: undefined,
-  asc: '[{ id: "name", desc: false }]',
-  desc: '[{ id: "name", desc: true }]',
+  asc: "false",
+  desc: "true",
 })
 
 export default {
   id: "DataTableColumnHeader",
-  imports: ['import { DataTable } from "@techsio/ui-kit/organisms/data-table"'],
-  example: figma.code`const columns = [
+  imports: [
+    'import { useState } from "react"',
+    'import { DataTable } from "@techsio/ui-kit/organisms/data-table"',
+  ],
+  example: figma.code`${
+    initialSort
+      ? figma.code`const [sorting, setSorting] = useState([{ id: "name", desc: ${initialSort} }])
+
+`
+      : ""
+  }const columns = [
   { id: "name", header: "Column", accessorKey: "name", meta: { align: "${align}" } },
 ]
 
 <DataTable columns={columns} data={data}${figma.helpers.react.renderProp(
     "enableSorting",
     enableSorting
-  )}${sorting ? figma.code` sorting={${sorting}}` : ""}${figma.helpers.react.renderProp(
+  )}${initialSort ? figma.code` sorting={sorting} onSortingChange={setSorting}` : ""}${figma.helpers.react.renderProp(
     "enableColumnReorder",
     enableColumnReorder
   )}${figma.helpers.react.renderProp(

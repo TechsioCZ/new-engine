@@ -94,9 +94,18 @@ Use this for component-library work, not for product screens. For canvas writes,
       `child[i+1].x - (child[i].x + child[i].width)`, never by reading
       `itemSpacing` back.
     - **`resize()` on a child inside an INSTANCE silently no-ops.** It throws
-      nothing and reports success. Drive instance-child size with
-      `layoutSizingHorizontal = "FILL" | "HUG"` instead, and re-measure to
-      confirm.
+      nothing and reports success, so don't use it to size instance children.
+      Use the layout-sizing properties, which have their own preconditions and
+      *throw* when one isn't met:
+      - `"FILL"` only works when the node is a **direct child of an
+        auto-layout parent**.
+      - `"HUG"` only works on an **auto-layout frame or a text node**.
+      - Anything else (a vector, a plain frame, a child of a non-auto-layout
+        parent) cannot be resized from the instance. Give it a fixed size in
+        the **main component** instead, or expose the size as a component
+        property.
+
+      Re-measure after every change rather than trusting the call returned.
     - **Hiding a text node does not reclaim its frame's space.** An emptied
       label or helper row still reserves height. Hide the frame, not the
       text.

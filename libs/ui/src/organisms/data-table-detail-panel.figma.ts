@@ -14,6 +14,7 @@ export default {
   example: figma.code`<DataTable
   columns={columns}
   data={data}
+  enableExpanding
   renderExpandedRow={(row) => <OrderDetail order={row.original} />}
 />`,
   metadata: { nestable: true },

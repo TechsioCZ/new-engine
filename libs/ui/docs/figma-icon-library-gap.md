@@ -11,10 +11,13 @@
 
 The Figma library publishes **4 token icons**. The codebase uses **96**.
 
-Three DataTable affordances therefore cannot be drawn at all, and today they silently render
-as a **✕**, because `Action Icon`'s default variant is `token-icon-close`.
+The inventory below lists **six** DataTable affordances whose glyph was missing. Two of them
+(the column-visibility cog and the filter operator) rendered as a **✕**, because
+`Action Icon`'s default variant is `token-icon-close`. The other four simply could not be
+drawn.
 
-This is the single highest-value thing to fix: one icon pass unblocks four separate findings below.
+The icon pass fixes only those six rows. The sizing (§2), spacing (§3), row-tone (§4) and
+`TableColumnHeader` (§5) findings are independent of it and stay open on their own terms.
 
 ---
 
@@ -40,8 +43,13 @@ Worse than the missing glyphs: the published **`Action Icon`** component exposes
 `INSTANCE_SWAP` property**, so the mark cannot be changed from an instance *even once the
 right glyphs exist*.
 
-That is why the toolbar's column-visibility control renders a ✕ and cannot be corrected on
-the `Table2` page. Every `Action Icon` across the library has the same constraint.
+That is why the toolbar's column-visibility control first rendered a ✕. It no longer depends
+on `Action Icon`: in code that trigger is a full `Button` (`DataTable.ColumnVisibility`
+renders `<Button icon="icon-[mdi--cog-outline]" variant="primary" />`), so `Table2.Toolbar`
+now carries a **`Button`** instance with the label hidden and its `iconLeft` `INSTANCE_SWAP`
+set to `token-icon-cog`. To update the toolbar cog, publish `token-icon-cog` so it can be
+chosen in `Button`'s `iconLeft` slot. `Action Icon` is not involved (§7f). Every other
+`Action Icon` across the library still has the constraint below.
 
 **Fix required:** add an `INSTANCE_SWAP` icon property to `Action Icon` (mirroring the one
 `Icon` already has as `icon#365:42`), *then* publish the glyphs below.
@@ -49,21 +57,26 @@ the `Table2` page. Every `Action Icon` across the library has the same constrain
 As a stand-in, `Table2.FilterRow`'s operator control was rebuilt using the plain `Icon`
 component — which does expose a swap slot — showing a chevron for the conditions menu.
 
-### Status: the glyphs are now drawn, pending adoption
+### Status: every glyph is drawn, pending adoption
 
-Four of the six are **drawn and wired** on the `🟧 Table2` page, in a section named
-**Proposed token icons**, from the exact MDI paths the code references:
+All of them are now **drawn and wired** on the `🟧 Table2` page, in a section named
+**Proposed token icons**, parsed from the exact MDI paths the code references (§8):
 
 | Component | Source | Wired into |
 |---|---|---|
-| `Token Icon/token-icon-sort-unfold` | `mdi--unfold-more-horizontal` | `Table2.ColumnHeader` |
+| `Token Icon/token-icon-sort-unfold` | `mdi--unfold-more-horizontal` | `Table2.ColumnHeader` (`sort=none`) |
+| `Token Icon/token-icon-chevron-up` / `-down` | `mdi--chevron-up` / `-down` | `Table2.ColumnHeader` (`sort=asc/desc`), `Table2.ExpandToggle` |
 | `Token Icon/token-icon-filter` | `mdi--filter-variant` | `Table2.FilterRow` |
-| `Token Icon/token-icon-cog` | `mdi--cog-outline` | `Table2.Toolbar` |
-| `Token Icon/token-icon-chevron-up` | `mdi--chevron-up` | `Table2.ExpandToggle` (expanded) |
+| `Token Icon/token-icon-cog` | `mdi--cog-outline` | `Table2.Toolbar` (`Button` `iconLeft`) |
+| `Token Icon/token-icon-drag-vertical` | `mdi--drag-vertical` | `Table2.ColumnHeader` column-reorder grip |
+| `Token Icon/token-icon-drag-horizontal` | `mdi--drag-horizontal` | `Table2.Row` row-reorder grip |
+| `Token Icon/token-icon-ellipsis-horizontal` | `mdi--dots-horizontal` | row-actions overflow |
 
-They are **local components, not published library assets** — the designer still needs to
-adopt them into the `Icon` set's instance-swap options. `ellipsis-horizontal` and
-`drag-vertical` remain undrawn (row-actions overflow and reorder handles).
+They are **local components, not published library assets**. The designer still needs to
+adopt them into the `Icon` set's instance-swap options.
+
+The rest of this subsection is kept as history: it describes the hand-drawn first pass,
+which §8 replaced.
 
 **Drawing note for whoever redraws these properly:** Figma's `vectorPaths` accepts only
 `M L C Q Z`. MDI's compact comma form (`M16.59,5.41`), the `H`/`V` shorthands, and arc
@@ -91,10 +104,15 @@ rather than outward, and that was only visible at 10×.
 3. `token-icon-cog` — from `mdi--cog-outline`
 4. `token-icon-filter` — from `mdi--filter-variant`
 5. `token-icon-ellipsis-horizontal`
-6. `token-icon-drag-vertical`
+6. `token-icon-drag-vertical`: the column-reorder grip (`mdi--drag-vertical` in code)
+7. `token-icon-drag-horizontal`: the row-reorder grip (`mdi--drag-horizontal` in code)
 
-Once published, these swap straight into `Table2.ColumnHeader`, `Table2.Toolbar` and
-`Table2.FilterRow` — no restructuring needed, the `INSTANCE_SWAP` slots are already wired.
+The two drag glyphs are not interchangeable. Code uses the vertical one on column headers
+and the horizontal one on rows, so both have to be published.
+
+Once published, these swap straight into `Table2.ColumnHeader`, `Table2.Row`,
+`Table2.Toolbar` and `Table2.FilterRow`. No restructuring is needed, because the
+`INSTANCE_SWAP` slots are already wired.
 
 ---
 
@@ -147,7 +165,7 @@ Also note **`xl` = 30px is odd and off the 8-point grid** (see §3); `32` would 
 
 **Root cause — this is not a Figma authoring error.** The values come from the token export:
 
-```
+```text
 --spacing-200:             0.88rem  → 14.08px
 --padding-table-cell-md-y: 0.63rem  → 10.08px
 --border-sm:               0.06rem  →  0.96px   (should be 0.0625rem = 1px)
@@ -215,15 +233,14 @@ The gap between page buttons was **hardcoded at 16px on all nine variants**, whi
 and changing the token did nothing — which is exactly the mismatch that made the pager look
 loose.
 
-Fixed: `spacing/pagination/list` now aliases `Theme::size/8`, and all nine variants
-(`filled`/`outlined`/`minimal` × `sm`/`md`/`lg`) are **bound** to it. Widths dropped
-320→272, 376→328, 432→384.
+Fixed: all nine variants (`filled`/`outlined`/`minimal` × `sm`/`md`/`lg`) are now
+**bound** to `spacing/pagination/list`.
 
-8px, not 4px: `ui-ux-pro-max` Touch Spacing requires a **minimum 8px gap between touch
-targets**, and pagination buttons are touch targets. 4px would violate it.
-
-Worth re-checking after export whether the codebase's `--spacing-pagination-list`
-(currently `--dimension-16`) should follow.
+**Final value: 4px (`Theme::size/4`)**, set per design decision. See §7d. The binding was
+first made at 8px, because `ui-ux-pro-max` Touch Spacing asks for an 8px minimum between
+touch targets. It was then deliberately tightened to 4px for density, and the export ships
+`--spacing-pagination-list: var(--size-4)`. The 8px guideline is recorded as a known,
+accepted exception in §7d. It is not a pending change.
 
 ### 7b. 52 broken alias entries — every radius in the system
 
@@ -285,10 +302,11 @@ others may have too, and the symptom is silent: tokens look right, the component
 | `height/pagination/lg` | 48 | **48** | `Theme::dimension/48` (deliberately NOT form-control) |
 | `border-width/pagination` | 1 | **2** | `form-control::border-width/form-control` |
 
-Heights and border now **alias the form-control family** rather than holding their own
-values, so pagination tracks Input / Select / SearchForm / Combobox / NumericInput
-automatically. Verified in the Table2 footer: pagination item and page-size Select are both
-44px tall.
+The **`sm` and `md` heights and the border width** now alias the form-control family rather
+than holding their own values, so at those sizes pagination tracks Input / Select /
+SearchForm / Combobox / NumericInput automatically. **`lg` does not**: it stays on
+`Theme::dimension/48` (see below). Verified in the Table2 footer: the pagination item and
+the page-size Select are both 44px tall at `md`.
 
 Two things to be aware of:
 
@@ -302,17 +320,18 @@ Two things to be aware of:
 
 ### 7e. Pagination prev/next are text glyphs, not icons
 
-In code the prev/next controls are icons — `token-icon-pagination-prev` and
-`token-icon-pagination-next`. In Figma they are **text characters** `‹` and `›` set in
-Inter Medium, at the *same point size as the page digits*. A chevron glyph at a digit's
+In code the prev/next controls are **icon components**, `token-icon-pagination-prev` and
+`token-icon-pagination-next`. In Figma they are **text characters**, `‹` (U+2039) and `›`
+(U+203A), set in Inter Medium at the *same point size as the page digits*. A chevron glyph at a digit's
 point size reads far smaller optically, which is why they looked undersized.
 
 Interim fix: new `text/pagination/nav/{sm,md,lg}` tokens, one step up the type scale
 (14 / 20 / 24 against the digits' 12 / 14 / 20), bound locally to all 18 glyph nodes —
 they were bound to remote variables too, like everything else in this component.
 
-The proper fix is to replace the text characters with real icon instances once
-`token-icon-pagination-prev` / `-next` are published, so Figma matches code.
+The proper fix is to replace the text characters `‹` / `›` with instances of
+`token-icon-pagination-prev` / `token-icon-pagination-next` once those are published, so
+Figma matches code.
 
 ### 7f. The toolbar cog was the wrong component entirely
 
@@ -338,26 +357,39 @@ The toolbar now carries a real `Button` instance (`variant=primary`,
 `theme=solid`, `state=default`) with the `Label` text hidden, `showLeftIcon`
 true and `iconLeft` swapped to `token-icon-cog`. The button is a 44 × 44 square with the cog centred.
 
-Note this is a deliberate divergence: code applies `p-button-md` to all four
-sides of a `Button`, so an icon-only one renders 32 × 44 — a tall, narrow
-rectangle. Figma squares it off, which is what an icon-only control should be.
-The fix belongs in code: an icon-only `Button` needs a square hit area, not
-symmetric padding around a glyph.
+This is a deliberate divergence. In code an icon-only `Button` is a **wide**
+rectangle, not a square. The padding is asymmetric: `--padding-button-md` is
+`6px 20px` and `--padding-button-sm` is `4px 16px`. The height comes from
+`h-form-control-*`, and the glyph is sized by the button's own font size (see the
+next list). So:
+
+| Code size | Height | Padding (y / x) | Glyph | Icon-only box |
+|---|---|---|---|---|
+| `sm` (what the toolbar uses today) | 32 | 4 / 16 | 14 | **46 × 32** |
+| `md` | 44 | 6 / 20 | 20 | **60 × 44** |
+
+Figma squares it off at 44 × 44, which is what an icon-only control should be.
+The fix belongs in code: an icon-only `Button` needs a square hit area rather
+than text-button padding around a glyph.
 
 `Table2.IconButton` stays as the mirror of `ActionIcon` for the sub-buttons that
 really are one (clear, prev/next, row edit). Its transparent default is correct.
 
-**Two divergences this surfaced, both for the design side to decide:**
+**One divergence this surfaced, for the design side to decide:**
 
-1. **Size.** Code passes `size="sm"` to this Button while the search field and
-   the adjacent action Button are md, so in the browser the cog is visibly
-   shorter than its neighbours. Figma uses md, per the md-only decision for this
-   family. Either code should drop the `size="sm"`, or the toolbar should be sm
-   throughout — right now the two disagree.
-2. **Icon size inside Button.** Figma bakes a 14 px icon slot into `size=sm` and
-   20 px into `size=md`. Code passes no `iconSize`, so `Icon` falls back to its
-   own default (20 px) regardless of button size — a 20 px glyph in a 34 px sm
-   button. Same root cause as §2.
+- **Size.** Code passes `size="sm"` to this Button (32px tall) while the search
+  field and the adjacent action Button are md (44px), so in the browser the cog
+  is visibly shorter than its neighbours. Figma uses md, per the md-only decision
+  for this family. Either code should drop the `size="sm"`, or the toolbar should
+  be sm throughout. Right now the two disagree.
+
+*Correction to an earlier version of this section:* it claimed a second
+divergence in the glyph size, on the assumption that an `Icon` with no `iconSize`
+renders at 20px. It doesn't. `Icon` defaults to `size="current"`, which adds no
+size class, so the glyph inherits the Button's font size: `--text-button-sm` =
+`--text-sm` (14px) at `sm`, and `--text-button-md` = `--text-md` (20px) at `md`.
+That is exactly what Figma's `Button` icon slots are (14 at `sm`, 20 at `md`), so
+there is no glyph-size divergence inside `Button`.
 
 ## 8. Stop hand-drawing glyphs — parse them from `@iconify-json/mdi`
 
@@ -415,9 +447,9 @@ These components live on the `Table2` page and need adopting into the published
 set before other files can use them. `Action Icon` still needs its
 `INSTANCE_SWAP` slot (§1).
 
-`Pagination` still renders prev/next as the text characters `<` and `>` (§7e).
-`token-icon-pagination-prev` / `-next` now exist as real components, so that
-swap is unblocked — but `Pagination` is shared system-wide, so it is a
+`Pagination` still renders prev/next as the text characters `‹` and `›` (§7e).
+The icon components `token-icon-pagination-prev` / `token-icon-pagination-next`
+now exist, so replacing the characters with them is unblocked — but `Pagination` is shared system-wide, so it is a
 design-system change, not a `Table2` one.
 
 ## 9. Pre-export sign-off (2026-09-21)
@@ -573,10 +605,14 @@ foregrounds). It is still consumed in code by the `toolbar` slot, so it stays.
 
 ### Two Figma API traps this pass turned up
 
-- **Setting `componentPropertyReferences` directly on an INSTANCE empties it.**
-  Fifteen drag handles silently lost their vector child: the bind call reported
-  success, the instance kept its name and size, and only a direct child count
-  showed `0`. Put the reference on a wrapper frame around the instance instead.
+- **A hidden instance reports zero children to the Plugin API.** *(Corrected: an
+  earlier version of this note blamed `componentPropertyReferences` for "emptying"
+  the instance. That diagnosis was wrong.)* Fifteen drag handles looked empty
+  because they were hidden (`visible = false`, driven by `showDragHandle`), and
+  a hidden instance's `children` comes back as `[]` even though it renders
+  correctly the moment it is shown. To read or re-bind the glyph inside a hidden
+  handle, set it visible, do the work, then restore `visible`. The wrapper frames
+  added at the time are harmless, but they were not what fixed it.
 - **A fresh instance's `componentProperties` keys are not reliably prefixed the
   way the definition names them.** Matching `INSTANCE_SWAP` by property *type*
   works; matching by a `"icon#"` name prefix silently found nothing and the swap
@@ -643,7 +679,7 @@ The comparison stays on the `Known gaps` section as the record of why, retitled
 "DECIDED: …" so it does not read as an open question.
 
 **No code change was needed for this.** `_data-table.css` reads
-`--color-data-table-row-nested-tint` and does not know or care what backs it —
+`--color-data-table-row-bg-nested` and does not know or care what backs it —
 the retarget happens entirely in Figma and arrives with the next export. That is
 the payoff for putting a component token in the chain rather than letting the
 utility reach straight through to a Table token.
@@ -651,3 +687,82 @@ utility reach straight through to a Table token.
 Note the tint is applied once for any depth, not per level — the code uses
 `data-[depth]:data-table-row-nested-tint`, a single class — so depth 1 and
 depth 3 shade identically. The Figma demo matches that on purpose.
+
+## 13. PR #627 review round (2026-09-24)
+
+### Figma changes: code only picks these up after the next export
+
+Per the repo rule, the exported token files under `src/tokens/figma/<mode>/` are
+never edited by hand. Every change below was made in Figma and reaches code only
+through an export.
+
+**DataTable uses only DataTable tokens now.** `AGENTS.md` requires component code
+to use component-specific token classes only, and DataTable still reached into
+nine Table tokens. Each now has a `data-table` alias:
+
+| New `data-table` variable | Aliases |
+|---|---|
+| `border-width/data-table` | `table::border/table/width` |
+| `text/data-table/sm` | `table::text/table/sm` |
+| `color/data-table/bg` | `table::color/table/bg` |
+| `color/data-table/header/bg` | `table::color/table/header/bg` |
+| `color/data-table/footer/bg` | `table::color/table/footer/bg` |
+| `color/data-table/row/bg/hover` | `table::color/table/row/bg/hover` |
+| `color/data-table/row/bg/selected` | `table::color/table/row/bg/selected` |
+| `color/data-table/row/bg/striped/primary` / `secondary` | `table::color/table/row/striped/*` |
+| `shadow/data-table/outline` | `table::shadow/table/outline` |
+
+**Seven existing names renamed to the `AGENTS.md` naming rules.** The rules are
+"derived colour tokens end in `-bg` / `-fg` / `-border`" and "border widths use
+`--border-width-<component>`":
+
+| Was | Now |
+|---|---|
+| `color/data-table/drag-handle` | `color/data-table/drag-handle/fg` |
+| `color/data-table/expander` | `color/data-table/expander/fg` |
+| `color/data-table/filter-icon` | `color/data-table/filter-icon/fg` |
+| `color/data-table/resize-handle` | `color/data-table/resize-handle/bg` |
+| `color/data-table/row/nested-tint` | `color/data-table/row/bg/nested` |
+| `color/data-table/sort-icon/base` / `active` | `color/data-table/sort-icon/fg` / `fg/active` |
+
+The collection is now **40 variables**, all aliases, each with WEB code syntax set.
+
+**Select / Textarea padding re-aliased.** The §7b repair had written raw `6 / 10 /
+16` into these ten padding tokens, so they exported as `0.38rem` etc. They now
+alias `Theme::dimension/6`, `/10` and `/16` again.
+
+**Akros alpha channels.** Sixteen Akros-mode colours were stored as an invalid
+"alias + opacity" object (`{ color: <alias>, opacity: 5 }`). Figma cannot express
+that, so the exporter fell back to `oklch(0 0 0)`: opaque black for
+`color/transparent`, the `black/*` and `white/*` overlays, and all ten
+outlined-button hover/active states. Each is now a real RGBA colour, built from
+its referenced base in the Akros mode. Akros isn't registered as a theme yet, so
+nothing rendered with the broken values.
+
+### Code fix in the same round
+
+`OPAQUE_HEADER_BG` was applied as an inline `style` to the filter cells and the
+pagination bar. Inline style outranks a class, so it silently overrode their
+`bg-data-table-filter-row-bg` / `bg-data-table-pagination-bg` classes, and
+neither token ever reached the browser. Each surface now composites its own
+token through `opaqueSurface()`.
+
+### Figma-only fixes
+
+- `Table2.Row` used the **column** grip glyph. Code uses `mdi--drag-vertical` for
+  columns and `mdi--drag-horizontal` for rows, so `token-icon-drag-horizontal` was
+  added from the MDI data and the six Row handles swapped to it.
+- **Known gaps** on the Figma page now lists open items only.
+
+### Review comments declined, with reasons
+
+- *Rename other components' colour tokens (command, date-picker, drawer,
+  file-upload, hotkeys, sidebar, tour).* Those collections belong to other
+  components and arrived with the export; renaming them is their own change.
+- *Convert `akros/variables.css` to `@theme static`.* The per-mode files are raw
+  exporter output (`:root`, the same as `light/variables.css`). The `@theme static`
+  layer is produced by `merge-figma-themes.mjs`. Neither is edited by hand.
+- *Load order in `dark/variables.css`.* Per-mode files are never imported at
+  runtime; only the merged `variables.css` is, and it contains every dependency.
+- *Unify `spacing/pagination/list` on 8px.* The final value is 4px by design
+  decision (§7a, §7d).

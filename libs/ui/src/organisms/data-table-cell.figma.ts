@@ -7,7 +7,9 @@ import figma from "figma"
 /*
  * A body cell has no standalone export. `align` is column meta, `pinned` is
  * column pinning, and `editing`/`error` are the inline editor — all of them
- * configured on DataTable or the column, never written by hand.
+ * configured on DataTable or the column, never written by hand. Inline edit
+ * only turns a cell into an editor when its column sets `meta.editable`, so the
+ * editing states emit that too; `onEditCommit` is where the edit is persisted.
  */
 const align = figma.selectedInstance.getEnum("align", {
   start: "start",
@@ -25,13 +27,13 @@ export default {
   id: "DataTableCell",
   imports: ['import { DataTable } from "@techsio/ui-kit/organisms/data-table"'],
   example: figma.code`const columns = [
-  { id: "name", header: "Column", accessorKey: "name", meta: { align: "${align}" } },
+  { id: "name", header: "Column", accessorKey: "name", meta: { align: "${align}"${enableInlineEdit ? ", editable: true" : ""} } },
 ]
 
 <DataTable columns={columns} data={data}${figma.helpers.react.renderProp(
     "enableInlineEdit",
     enableInlineEdit
-  )}${figma.helpers.react.renderProp(
+  )}${enableInlineEdit ? figma.code` onEditCommit={saveRow}` : ""}${figma.helpers.react.renderProp(
     "enableColumnPinning",
     enableColumnPinning
   )} />`,
