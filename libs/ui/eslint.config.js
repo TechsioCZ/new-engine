@@ -24,7 +24,7 @@ export default [
     settings: {
       tailwindcss: {
         // For TailwindCSS v4 - point to CSS config file
-        config: tokensCssAbsolutePath,
+        cssConfigPath: tokensCssAbsolutePath,
       },
     },
     plugins: {
