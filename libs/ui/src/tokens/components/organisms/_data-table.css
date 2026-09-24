@@ -28,7 +28,7 @@
  * than a background, so it composes with `striped`'s zebra background instead
  * of losing the Tailwind-merge conflict against it (two `bg-*` utilities on
  * one element can't both render; a shadow layers on top of whichever
- * background is already there). Reads `--color-data-table-row-nested-tint`,
+ * background is already there). Reads `--color-data-table-row-bg-nested`,
  * which aliases `--color-table-row-bg-hover` in Figma — the depth shading can
  * now be retargeted without this file knowing which Table token backs it.
  */
@@ -43,7 +43,7 @@
  * would cause.
  */
 @utility data-table-row-nested-tint {
-  box-shadow: inset 0 0 0 9999px var(--color-data-table-row-nested-tint);
+  box-shadow: inset 0 0 0 9999px var(--color-data-table-row-bg-nested);
 }
 
 /*
