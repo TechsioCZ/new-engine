@@ -228,6 +228,8 @@ function MediaLibraryPage() {
               const [next] = details.selectedValue
               if (next) {
                 setFolder(next)
+                /* A hidden asset must never stay selected for a bulk action. */
+                setSelected([])
               }
             }}
             selectedValue={[folder]}
