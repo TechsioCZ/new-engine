@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { fn } from "storybook/test"
 import type { ReactNode } from "react"
 import { useState } from "react"
 import { Badge } from "../../src/atoms/badge"
@@ -47,6 +48,13 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
+/* Navigation clicks are reported to the Actions panel and still drive state. */
+const reportNav = fn().mockName("onNavSelect")
+const selectNav = (setNav: (value: string) => void) => (value: string) => {
+  reportNav(value)
+  setNav(value)
+}
+
 function StateShell({ children }: { children: ReactNode }) {
   const [nav, setNav] = useState("content-pages")
   return (
@@ -54,7 +62,7 @@ function StateShell({ children }: { children: ReactNode }) {
       left={
         <Panel label="Main navigation" side="start">
           <Brand />
-          <NavList nav={adminNav} onSelect={setNav} selected={nav} />
+          <NavList nav={adminNav} onSelect={selectNav(setNav)} selected={nav} />
         </Panel>
       }
       top={<TopBar center={<GlobalSearch />} />}
@@ -110,7 +118,11 @@ export const NotFound: Story = {
       <StatePanel
         actions={
           <>
-            <Button icon="icon-[mdi--arrow-left]" theme="outlined" variant="secondary">
+            <Button
+              icon="icon-[mdi--arrow-left]"
+              theme="outlined"
+              variant="secondary"
+            >
               Go back
             </Button>
             <Button icon="icon-[mdi--home-outline]" variant="primary">
@@ -133,7 +145,11 @@ export const Forbidden: Story = {
       <StatePanel
         actions={
           <>
-            <Button icon="icon-[mdi--arrow-left]" theme="outlined" variant="secondary">
+            <Button
+              icon="icon-[mdi--arrow-left]"
+              theme="outlined"
+              variant="secondary"
+            >
               Go back
             </Button>
             <Button icon="icon-[mdi--account-key-outline]" variant="primary">
@@ -162,7 +178,11 @@ export const ServerError: Story = {
       <StatePanel
         actions={
           <>
-            <Button icon="icon-[mdi--refresh]" theme="outlined" variant="secondary">
+            <Button
+              icon="icon-[mdi--refresh]"
+              theme="outlined"
+              variant="secondary"
+            >
               Try again
             </Button>
             <Button icon="icon-[mdi--lifebuoy]" variant="primary">
@@ -223,7 +243,11 @@ export const Maintenance: Story = {
       <TopBar start={<Brand environment="Maintenance" />} />
       <StatePanel
         actions={
-          <Button icon="icon-[mdi--bell-outline]" theme="outlined" variant="secondary">
+          <Button
+            icon="icon-[mdi--bell-outline]"
+            theme="outlined"
+            variant="secondary"
+          >
             Notify me when it's back
           </Button>
         }
@@ -294,7 +318,11 @@ export const FirstRun: Story = {
       <div className="grid grid-cols-1 gap-250 lg:grid-cols-3">
         <SectionCard
           actions={
-            <Button icon="icon-[mdi--database-import-outline]" size="sm" variant="primary">
+            <Button
+              icon="icon-[mdi--database-import-outline]"
+              size="sm"
+              variant="primary"
+            >
               Import
             </Button>
           }
@@ -303,7 +331,12 @@ export const FirstRun: Story = {
         />
         <SectionCard
           actions={
-            <Button icon="icon-[mdi--palette-outline]" size="sm" theme="outlined" variant="secondary">
+            <Button
+              icon="icon-[mdi--palette-outline]"
+              size="sm"
+              theme="outlined"
+              variant="secondary"
+            >
               Choose theme
             </Button>
           }
@@ -312,7 +345,12 @@ export const FirstRun: Story = {
         />
         <SectionCard
           actions={
-            <Button icon="icon-[mdi--credit-card-outline]" size="sm" theme="outlined" variant="secondary">
+            <Button
+              icon="icon-[mdi--credit-card-outline]"
+              size="sm"
+              theme="outlined"
+              variant="secondary"
+            >
               Connect
             </Button>
           }

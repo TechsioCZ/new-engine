@@ -9,7 +9,15 @@ import { Popover } from "../../src/molecules/popover"
 import { Tabs } from "../../src/molecules/tabs"
 import { Table } from "../../src/organisms/table"
 import { adminNav, currency, orders, products, revenueByChannel } from "./data"
-import { Brand, Frame, GlobalSearch, NavList, Panel, TopBar } from "./frame"
+import {
+  Brand,
+  Frame,
+  GlobalSearch,
+  NavDrawer,
+  NavList,
+  Panel,
+  TopBar,
+} from "./frame"
 import {
   PageHeader,
   SectionCard,
@@ -85,12 +93,22 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           <NavList nav={adminNav} onSelect={setNav} selected={nav} />
         </Panel>
       }
-      top={<TopBar center={<GlobalSearch />} />}
+      top={
+        <TopBar
+          center={<GlobalSearch />}
+          start={<NavDrawer nav={adminNav} onSelect={setNav} selected={nav} />}
+        />
+      }
     >
       <PageHeader
         actions={
           <>
-            <Button icon="icon-[mdi--calendar-range]" size="sm" theme="outlined" variant="secondary">
+            <Button
+              icon="icon-[mdi--calendar-range]"
+              size="sm"
+              theme="outlined"
+              variant="secondary"
+            >
               Last 30 days
             </Button>
             <Button icon="icon-[mdi--plus]" size="sm" variant="primary">
@@ -118,7 +136,11 @@ function DashboardPage({ loading }: { loading?: boolean }) {
       >
         <div className="flex flex-col gap-150">
           <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
-            <Icon className="text-danger" icon="icon-[mdi--alert-circle-outline]" size="md" />
+            <Icon
+              className="text-danger"
+              icon="icon-[mdi--alert-circle-outline]"
+              size="md"
+            />
             <span className="flex-1 text-sm">
               12 marketplace SKUs rejected by the feed since 9 September
             </span>
@@ -127,7 +149,11 @@ function DashboardPage({ loading }: { loading?: boolean }) {
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
-            <Icon className="text-warning" icon="icon-[mdi--clock-alert-outline]" size="md" />
+            <Icon
+              className="text-warning"
+              icon="icon-[mdi--clock-alert-outline]"
+              size="md"
+            />
             <span className="flex-1 text-sm">
               17 paid orders have been awaiting fulfilment for over 24 hours
             </span>
@@ -136,7 +162,11 @@ function DashboardPage({ loading }: { loading?: boolean }) {
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
-            <Icon className="text-warning" icon="icon-[mdi--package-variant-closed-remove]" size="md" />
+            <Icon
+              className="text-warning"
+              icon="icon-[mdi--package-variant-closed-remove]"
+              size="md"
+            />
             <span className="flex-1 text-sm">
               {`${lowStock.length} products are below their reorder point`}
             </span>
@@ -228,7 +258,10 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           ) : (
             <ul className="flex flex-col gap-150">
               {orders.slice(0, 5).map((order) => (
-                <li className="flex items-center justify-between gap-150" key={order.id}>
+                <li
+                  className="flex items-center justify-between gap-150"
+                  key={order.id}
+                >
                   <span className="flex min-w-0 flex-col gap-50">
                     <span className="truncate text-sm">{order.customer}</span>
                     <span className="text-fg-secondary text-xs">
@@ -236,7 +269,9 @@ function DashboardPage({ loading }: { loading?: boolean }) {
                     </span>
                   </span>
                   <StatusBadge status={order.status} />
-                  <span className="text-sm">{currency.format(order.total)}</span>
+                  <span className="text-sm">
+                    {currency.format(order.total)}
+                  </span>
                 </li>
               ))}
             </ul>

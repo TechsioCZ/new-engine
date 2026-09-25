@@ -94,7 +94,7 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-screen bg-base text-fg-primary">
-      <aside className="hidden w-3xs shrink-0 flex-col gap-250 border-border-primary border-e bg-surface p-200 lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-3xs shrink-0 flex-col gap-250 border-border-primary border-e bg-surface p-200 lg:flex">
         <div className="flex items-center gap-150">
           <span className="flex size-icon-control-lg items-center justify-center rounded-md bg-overlay text-fg-primary">
             <Icon icon="icon-[mdi--hexagon-multiple-outline]" size="md" />

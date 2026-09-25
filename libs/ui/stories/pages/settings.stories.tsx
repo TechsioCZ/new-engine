@@ -13,7 +13,15 @@ import type { ColumnDef } from "../../src/organisms/data-table"
 import { DataTable } from "../../src/organisms/data-table"
 import { SelectTemplate } from "../../src/templates/select"
 import { adminNav } from "./data"
-import { Brand, Frame, GlobalSearch, NavList, Panel, TopBar } from "./frame"
+import {
+  Brand,
+  Frame,
+  GlobalSearch,
+  NavDrawer,
+  NavList,
+  Panel,
+  TopBar,
+} from "./frame"
 import { PageHeader, SectionCard, StatusBadge } from "./shell"
 
 const meta: Meta = {
@@ -62,10 +70,34 @@ type Member = {
 }
 
 const members: Member[] = [
-  { id: "m-1", name: "Nora Kessler", email: "nora@northwind.example", role: "Owner", status: "active" },
-  { id: "m-2", name: "Tom Hayes", email: "tom@northwind.example", role: "Admin", status: "active" },
-  { id: "m-3", name: "Alicia Moreau", email: "alicia@northwind.example", role: "Editor", status: "active" },
-  { id: "m-4", name: "Ivan Petrov", email: "ivan@northwind.example", role: "Editor", status: "pending" },
+  {
+    id: "m-1",
+    name: "Nora Kessler",
+    email: "nora@northwind.example",
+    role: "Owner",
+    status: "active",
+  },
+  {
+    id: "m-2",
+    name: "Tom Hayes",
+    email: "tom@northwind.example",
+    role: "Admin",
+    status: "active",
+  },
+  {
+    id: "m-3",
+    name: "Alicia Moreau",
+    email: "alicia@northwind.example",
+    role: "Editor",
+    status: "active",
+  },
+  {
+    id: "m-4",
+    name: "Ivan Petrov",
+    email: "ivan@northwind.example",
+    role: "Editor",
+    status: "pending",
+  },
 ]
 
 const roleItems = [
@@ -155,7 +187,19 @@ function SettingsPage() {
           />
         </Panel>
       }
-      top={<TopBar center={<GlobalSearch />} />}
+      top={
+        <TopBar
+          center={<GlobalSearch />}
+          start={
+            <NavDrawer
+              defaultExpanded={["settings"]}
+              nav={adminNav}
+              onSelect={setNav}
+              selected={nav}
+            />
+          }
+        />
+      }
     >
       <Toaster />
 
@@ -180,10 +224,17 @@ function SettingsPage() {
           <Tabs.Indicator />
         </Tabs.List>
 
-        <Tabs.Content className="flex min-w-0 flex-1 flex-col gap-250" value="general">
+        <Tabs.Content
+          className="flex min-w-0 flex-1 flex-col gap-250"
+          value="general"
+        >
           <SectionCard
             actions={
-              <Button onClick={() => saved("Workspace details")} size="sm" variant="primary">
+              <Button
+                onClick={() => saved("Workspace details")}
+                size="sm"
+                variant="primary"
+              >
                 Save changes
               </Button>
             }
@@ -247,10 +298,17 @@ function SettingsPage() {
           </SectionCard>
         </Tabs.Content>
 
-        <Tabs.Content className="flex min-w-0 flex-1 flex-col gap-250" value="team">
+        <Tabs.Content
+          className="flex min-w-0 flex-1 flex-col gap-250"
+          value="team"
+        >
           <SectionCard
             actions={
-              <Button icon="icon-[mdi--account-plus-outline]" size="sm" variant="primary">
+              <Button
+                icon="icon-[mdi--account-plus-outline]"
+                size="sm"
+                variant="primary"
+              >
                 Invite member
               </Button>
             }
@@ -271,7 +329,10 @@ function SettingsPage() {
                   label: "Change role",
                   icon: "icon-[mdi--account-key-outline]",
                   onAction: (row) =>
-                    toaster.create({ type: "info", title: `Change role · ${row.original.name}` }),
+                    toaster.create({
+                      type: "info",
+                      title: `Change role · ${row.original.name}`,
+                    }),
                 },
                 {
                   id: "remove",
@@ -309,7 +370,10 @@ function SettingsPage() {
           </SectionCard>
         </Tabs.Content>
 
-        <Tabs.Content className="flex min-w-0 flex-1 flex-col gap-250" value="notifications">
+        <Tabs.Content
+          className="flex min-w-0 flex-1 flex-col gap-250"
+          value="notifications"
+        >
           <SectionCard
             description="Choose the channel per event class. Silence is a valid answer and must be reachable."
             title="Delivery"
@@ -338,32 +402,57 @@ function SettingsPage() {
 
           <SectionCard title="Events">
             <div className="flex flex-col gap-200">
-              <Switch defaultChecked helpText="A paid order failed to reach the fulfilment queue.">
+              <Switch
+                defaultChecked
+                helpText="A paid order failed to reach the fulfilment queue."
+                onCheckedChange={() => saved("Fulfilment failures")}
+              >
                 Fulfilment failures
               </Switch>
-              <Switch defaultChecked helpText="A product drops below its reorder point.">
+              <Switch
+                defaultChecked
+                helpText="A product drops below its reorder point."
+                onCheckedChange={() => saved("Low stock")}
+              >
                 Low stock
               </Switch>
-              <Switch helpText="Someone publishes or unpublishes a content page.">
+              <Switch
+                helpText="Someone publishes or unpublishes a content page."
+                onCheckedChange={() => saved("Content changes")}
+              >
                 Content changes
               </Switch>
-              <Switch helpText="A new device signs in to an admin account.">
+              <Switch
+                helpText="A new device signs in to an admin account."
+                onCheckedChange={() => saved("New sign-ins")}
+              >
                 New sign-ins
               </Switch>
             </div>
           </SectionCard>
         </Tabs.Content>
 
-        <Tabs.Content className="flex min-w-0 flex-1 flex-col gap-250" value="checkout">
+        <Tabs.Content
+          className="flex min-w-0 flex-1 flex-col gap-250"
+          value="checkout"
+        >
           <SectionCard
             description="These settings change what shoppers see at the most sensitive moment of the funnel."
             title="Checkout"
           >
             <div className="flex max-w-2xl flex-col gap-200">
-              <Switch defaultChecked helpText="Shoppers can complete an order without creating an account.">
+              <Switch
+                defaultChecked
+                helpText="Shoppers can complete an order without creating an account."
+                onCheckedChange={() => saved("Guest checkout")}
+              >
                 Guest checkout
               </Switch>
-              <Switch defaultChecked helpText="Show the full tax breakdown before the payment step.">
+              <Switch
+                defaultChecked
+                helpText="Show the full tax breakdown before the payment step."
+                onCheckedChange={() => saved("Itemised tax")}
+              >
                 Itemised tax
               </Switch>
               <FormInput
@@ -384,7 +473,10 @@ function SettingsPage() {
           </SectionCard>
         </Tabs.Content>
 
-        <Tabs.Content className="flex min-w-0 flex-1 flex-col gap-250" value="danger">
+        <Tabs.Content
+          className="flex min-w-0 flex-1 flex-col gap-250"
+          value="danger"
+        >
           <SectionCard
             description="API credentials for this workspace. Rotating a key invalidates the old one immediately."
             title="API access"

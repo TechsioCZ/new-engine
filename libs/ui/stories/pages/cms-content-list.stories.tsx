@@ -45,7 +45,7 @@ const meta: Meta = {
           "- Filtering belongs to the grid (`enableColumnFilters` + `meta.type`), not to a",
           "  hand-built filter bar — the controls then match the table size automatically.",
           "- Bulk actions appear only while a selection exists, so the toolbar never",
-          "  reflows; destructive bulk actions are `variant=\"danger\"` and confirm in an",
+          '  reflows; destructive bulk actions are `variant="danger"` and confirm in an',
           "  `alertdialog`.",
           "- Row density (`size`) is a page-level decision: `sm` for scanning lists,",
           "  `md` for lists you also edit inline.",
@@ -122,7 +122,13 @@ function ContentListPage({
   const [data, setData] = useState(rows)
 
   const selectedIds = Object.keys(selection)
-  const pageCount = (count: number) => `${count} ${count === 1 ? "page" : "pages"}`
+  /* Same rule as the row action: a published page must be unpublished first. */
+  const deletableIds = selectedIds.filter(
+    (id) => data.find((row) => row.id === id)?.status !== "published"
+  )
+  const skippedCount = selectedIds.length - deletableIds.length
+  const pageCount = (count: number) =>
+    `${count} ${count === 1 ? "page" : "pages"}`
 
   const applyBulk = (status: ContentEntry["status"], label: string) => {
     setData((current) =>
@@ -138,9 +144,18 @@ function ContentListPage({
   }
 
   const confirmBulkDelete = () => {
-    const count = selectedIds.length
-    setData((current) => current.filter((row) => !selectedIds.includes(row.id)))
-    toaster.create({ type: "success", title: `Deleted ${pageCount(count)}` })
+    const count = deletableIds.length
+    setData((current) =>
+      current.filter((row) => !deletableIds.includes(row.id))
+    )
+    toaster.create({
+      type: "success",
+      title: `Deleted ${pageCount(count)}`,
+      description:
+        skippedCount > 0
+          ? `${pageCount(skippedCount)} kept — published pages must be unpublished first.`
+          : undefined,
+    })
     setSelection({})
     setBulkDeleting(false)
   }
@@ -192,7 +207,10 @@ function ContentListPage({
         title="Pages"
       />
 
-      <BulkActionBar count={selectedIds.length} onClear={() => setSelection({})}>
+      <BulkActionBar
+        count={selectedIds.length}
+        onClear={() => setSelection({})}
+      >
         <Button
           icon="icon-[mdi--publish]"
           onClick={() => applyBulk("published", "Published")}
@@ -212,6 +230,7 @@ function ContentListPage({
           Archive
         </Button>
         <Button
+          disabled={deletableIds.length === 0}
           icon="icon-[mdi--delete-outline]"
           onClick={() => setBulkDeleting(true)}
           size="sm"
@@ -265,12 +284,30 @@ function ContentListPage({
               id: "duplicate",
               label: "Duplicate",
               icon: "icon-[mdi--content-copy]",
-              onAction: (row) =>
+              onAction: (row) => {
+                const copy: ContentEntry = {
+                  ...row.original,
+                  id: `${row.original.id}-copy-${Date.now()}`,
+                  title: `${row.original.title} (copy)`,
+                  slug: `${row.original.slug}-copy`,
+                  status: "draft",
+                }
+                setData((current) => {
+                  const index = current.findIndex(
+                    (entry) => entry.id === row.original.id
+                  )
+                  return [
+                    ...current.slice(0, index + 1),
+                    copy,
+                    ...current.slice(index + 1),
+                  ]
+                })
                 toaster.create({
                   type: "success",
-                  title: "Duplicated",
-                  description: `${row.original.title} (copy)`,
-                }),
+                  title: "Duplicated as draft",
+                  description: copy.title,
+                })
+              },
             },
             {
               id: "delete",
@@ -304,17 +341,21 @@ function ContentListPage({
               Keep pages
             </Button>
             <Button onClick={confirmBulkDelete} variant="danger">
-              {`Delete ${pageCount(selectedIds.length)}`}
+              {`Delete ${pageCount(deletableIds.length)}`}
             </Button>
           </>
         }
         customTrigger
-        description={`${pageCount(selectedIds.length)} and ${selectedIds.length === 1 ? "its" : "their"} revision history will be removed. This cannot be undone.`}
+        description={`${pageCount(deletableIds.length)} and ${deletableIds.length === 1 ? "its" : "their"} revision history will be removed. This cannot be undone.${skippedCount > 0 ? ` ${pageCount(skippedCount)} in the selection ${skippedCount === 1 ? "is" : "are"} published and will be kept.` : ""}`}
         onOpenChange={(details) => setBulkDeleting(details.open)}
         open={bulkDeleting}
         role="alertdialog"
         size="sm"
-        title={selectedIds.length === 1 ? "Delete this page?" : "Delete the selected pages?"}
+        title={
+          deletableIds.length === 1
+            ? "Delete this page?"
+            : "Delete the selected pages?"
+        }
       />
 
       <Dialog

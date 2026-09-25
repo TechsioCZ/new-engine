@@ -108,7 +108,11 @@ function StorefrontHeader() {
               </Button>
             </Header.ActionItem>
             <Header.ActionItem>
-              <Button icon="icon-[mdi--cart-outline]" size="sm" variant="primary">
+              <Button
+                icon="icon-[mdi--cart-outline]"
+                size="sm"
+                variant="primary"
+              >
                 Cart · 2
               </Button>
             </Header.ActionItem>
@@ -139,7 +143,12 @@ function StorefrontHeader() {
             </Button>
           </Header.ActionItem>
           <Header.ActionItem>
-            <Button block icon="icon-[mdi--cart-outline]" size="sm" variant="primary">
+            <Button
+              block
+              icon="icon-[mdi--cart-outline]"
+              size="sm"
+              variant="primary"
+            >
               Cart · 2
             </Button>
           </Header.ActionItem>
@@ -203,6 +212,11 @@ function StorefrontFooter() {
   )
 }
 
+/* The fixture tops out at 1 299 €, so the slider must reach it. */
+const PRICE_MAX = 1300
+const PAGE_SIZE = 4
+const priceOf = (value: string) => Number(value.replace(/[^\d]/g, ""))
+
 function FacetPanel({
   brands,
   onToggleBrand,
@@ -210,6 +224,8 @@ function FacetPanel({
   onToggleSize,
   colors,
   onColorChange,
+  price,
+  onPriceChange,
 }: {
   brands: string[]
   onToggleBrand: (value: string) => void
@@ -217,9 +233,15 @@ function FacetPanel({
   onToggleSize: (value: string) => void
   colors: string[]
   onColorChange: (value: string) => void
+  price: number[]
+  onPriceChange: (value: number[]) => void
 }) {
   return (
-    <Accordion collapsible defaultValue={["brand", "price", "size", "colour"]} multiple>
+    <Accordion
+      collapsible
+      defaultValue={["brand", "price", "size", "colour"]}
+      multiple
+    >
       <Accordion.Item value="brand">
         <Accordion.Header>
           <Accordion.Title>Brand</Accordion.Title>
@@ -247,13 +269,14 @@ function FacetPanel({
         </Accordion.Header>
         <Accordion.Content>
           <Slider
-            defaultValue={[40, 260]}
             formatValue={(value) => priceFormatter.format(value)}
-            max={400}
+            max={PRICE_MAX}
+            onChange={onPriceChange}
             min={0}
             showValueText
             size="sm"
             step={10}
+            value={price}
           />
         </Accordion.Content>
       </Accordion.Item>
@@ -329,7 +352,12 @@ function ProductGrid({ products }: { products: StorefrontProduct[] }) {
           className="h-full"
           badges={
             product.badge
-              ? [{ variant: product.badge.variant, children: product.badge.label }]
+              ? [
+                  {
+                    variant: product.badge.variant,
+                    children: product.badge.label,
+                  },
+                ]
               : undefined
           }
           cartButtonText={
@@ -359,7 +387,11 @@ function ProductGrid({ products }: { products: StorefrontProduct[] }) {
           }
           originalPrice={product.originalPrice}
           price={product.price}
-          rating={{ value: product.rating, count: 5, reviewCount: product.reviewCount }}
+          rating={{
+            value: product.rating,
+            count: 5,
+            reviewCount: product.reviewCount,
+          }}
           stock={{ status: product.stock, label: product.stockLabel }}
         />
       ))}
@@ -372,6 +404,9 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
   const [sizes, setSizes] = useState<string[]>(["M"])
   const [colors, setColors] = useState<string[]>([])
   const [drawer, setDrawer] = useState(false)
+  const [price, setPrice] = useState<number[]>([0, PRICE_MAX])
+  const [sort, setSort] = useState("relevance")
+  const [page, setPage] = useState(1)
 
   const toggle = (
     list: string[],
@@ -398,8 +433,30 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
     const colorOk =
       colors.length === 0 ||
       colors.some((color) => product.colors.includes(color))
-    return brandOk && sizeOk && colorOk
+    const [min = 0, max = PRICE_MAX] = price
+    const amount = priceOf(product.price)
+    const priceOk = amount >= min && amount <= max
+    return brandOk && sizeOk && colorOk && priceOk
   })
+
+  /* Sorting works on a copy, so the fixture order stays the "relevance" baseline. */
+  const sortedProducts = [...visibleProducts]
+  if (sort === "price-asc") {
+    sortedProducts.sort((a, b) => priceOf(a.price) - priceOf(b.price))
+  } else if (sort === "price-desc") {
+    sortedProducts.sort((a, b) => priceOf(b.price) - priceOf(a.price))
+  } else if (sort === "rating") {
+    sortedProducts.sort((a, b) => b.rating - a.rating)
+  } else if (sort === "newest") {
+    sortedProducts.reverse()
+  }
+
+  const pageCount = Math.max(1, Math.ceil(sortedProducts.length / PAGE_SIZE))
+  const currentPage = Math.min(page, pageCount)
+  const pageProducts = sortedProducts.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
 
   const activeChips = [
     ...brands.map((value) => ({
@@ -417,6 +474,15 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
       label: value,
       clear: () => toggle(colors, setColors, value),
     })),
+    ...(price[0] !== 0 || price[1] !== PRICE_MAX
+      ? [
+          {
+            key: "price",
+            label: `${priceFormatter.format(price[0] ?? 0)} – ${priceFormatter.format(price[1] ?? PRICE_MAX)}`,
+            clear: () => setPrice([0, PRICE_MAX]),
+          },
+        ]
+      : []),
   ]
 
   const facets = (
@@ -425,7 +491,12 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
       colors={colors}
       onColorChange={(value) => toggle(colors, setColors, value)}
       onToggleBrand={(value) => toggle(brands, setBrands, value)}
+      onPriceChange={(value) => {
+        setPrice(value)
+        setPage(1)
+      }}
       onToggleSize={(value) => toggle(sizes, setSizes, value)}
+      price={price}
       sizes={sizes}
     />
   )
@@ -448,7 +519,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
         <div className="flex flex-col gap-100">
           <h1 className="font-semibold text-xl">Footwear</h1>
           <p className="max-w-prose text-fg-secondary text-sm">
-            Trainers, boots and everything between — 82 styles, restocked weekly.
+            Trainers, boots and everything between — restocked weekly.
           </p>
         </div>
 
@@ -465,6 +536,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
                     setBrands([])
                     setSizes([])
                     setColors([])
+                    setPrice([0, PRICE_MAX])
                   }}
                   size="sm"
                   theme="borderless"
@@ -480,27 +552,34 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
           <div className="flex min-w-0 flex-1 flex-col gap-200">
             <div className="flex flex-wrap items-center justify-between gap-150">
               <div className="flex items-center gap-150">
-                {filtersInDrawer && (
-                  <Button
-                    icon="icon-[mdi--filter-variant]"
-                    onClick={() => setDrawer(true)}
-                    size="sm"
-                    theme="outlined"
-                    variant="secondary"
-                  >
-                    Filters
-                  </Button>
-                )}
+                {/* The rail is hidden below lg, so the drawer trigger must exist there. */}
+                <Button
+                  className={filtersInDrawer ? undefined : "lg:hidden"}
+                  icon="icon-[mdi--filter-variant]"
+                  onClick={() => setDrawer(true)}
+                  size="sm"
+                  theme="outlined"
+                  variant="secondary"
+                >
+                  Filters
+                </Button>
                 <span className="text-fg-secondary text-sm">
-                  {visibleProducts.length} of 82 products
+                  {`${visibleProducts.length} of ${storefrontProducts.length} products`}
                 </span>
               </div>
               <div className="w-2xs">
                 <SelectTemplate
-                  defaultValue={["relevance"]}
                   items={sortOptions}
                   label="Sort by"
+                  onValueChange={(details) => {
+                    const [next] = details.value
+                    if (next) {
+                      setSort(next)
+                      setPage(1)
+                    }
+                  }}
                   size="sm"
+                  value={[sort]}
                 />
               </div>
             </div>
@@ -523,16 +602,19 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
               </div>
             )}
 
-            <ProductGrid products={visibleProducts} />
+            <ProductGrid products={pageProducts} />
 
             <div className="flex justify-center pt-200">
-              <Pagination
-                count={82}
-                defaultPage={1}
-                getPageUrl={({ page }) => `?page=${page}`}
-                pageSize={8}
-                siblingCount={1}
-              />
+              {pageCount > 1 && (
+                <Pagination
+                  count={sortedProducts.length}
+                  getPageUrl={({ page: target }) => `?page=${target}`}
+                  onPageChange={setPage}
+                  page={currentPage}
+                  pageSize={PAGE_SIZE}
+                  siblingCount={1}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -557,6 +639,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
                 setBrands([])
                 setSizes([])
                 setColors([])
+                setPrice([0, PRICE_MAX])
               }}
               theme="outlined"
               variant="secondary"
