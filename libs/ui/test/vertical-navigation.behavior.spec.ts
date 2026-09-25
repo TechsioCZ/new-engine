@@ -76,6 +76,7 @@ for (const mode of ["light", "dark"]) {
 
     await link.click()
     await expect(link).toHaveAttribute("aria-current", "page")
+    await expect(link).toHaveCSS("text-decoration-line", "none")
     await expect(toggle).toHaveAttribute("aria-expanded", "true")
     const currentBackground = await row.evaluate(
       (element) => getComputedStyle(element).backgroundColor
