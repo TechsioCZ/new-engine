@@ -94,6 +94,16 @@ const views: {
   },
 ]
 
+/* An order goes to ABRA once; cancelled orders never do. */
+const canSendToAbra = (order: AkOrder) =>
+  order.state !== "cancelled" &&
+  (order.abra === "not-sent" || order.abra === "error")
+
+/* A new payment link only makes sense for an unfinished online payment. */
+const canRemind = (order: AkOrder) =>
+  order.paymentMethod === "comgate" &&
+  (order.payment === "unpaid" || order.payment === "failed")
+
 function OrdersPage({ initialView = "all" }: { initialView?: View }) {
   const toaster = useToast()
   const [data, setData] = useState(akOrders)
@@ -106,7 +116,12 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
   const activeView = views.find((entry) => entry.value === view) ?? views[0]
   const rows = data.filter((order) => activeView?.match(order) ?? true)
   const selected = data.filter((order) => selection[order.id])
-  const selectedUnpaid = selected.filter((order) => order.payment !== "paid")
+  /* Bulk actions use the same eligibility as the row actions. */
+  const toAbra = selected.filter(canSendToAbra)
+  const toRemind = selected.filter(canRemind)
+  const toAbraUnpaid = toAbra.filter(
+    (order) => order.payment !== "paid" && order.payment !== "refunded"
+  )
 
   const sendToAbra = (ids: string[]) => {
     setData((current) =>
@@ -259,27 +274,29 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
                   onClear={() => setSelection({})}
                 >
                   <Button
+                    disabled={toAbra.length === 0}
                     icon="icon-[mdi--database-arrow-right-outline]"
                     onClick={() => setConfirming(true)}
                     size="sm"
                     variant="primary"
                   >
-                    Send to ABRA
+                    {`Send ${toAbra.length} to ABRA`}
                   </Button>
                   <Button
+                    disabled={toRemind.length === 0}
                     icon="icon-[mdi--email-sync-outline]"
                     onClick={() =>
                       toaster.create({
                         type: "info",
                         title: "Payment reminders sent",
-                        description: `${selected.length} customers received a new Comgate link.`,
+                        description: `${toRemind.length} customers received a new Comgate link.`,
                       })
                     }
                     size="sm"
                     theme="outlined"
                     variant="secondary"
                   >
-                    Send payment reminder
+                    {`Remind ${toRemind.length} unpaid Comgate`}
                   </Button>
                 </BulkActionBar>
 
@@ -317,14 +334,14 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
                         id: "abra",
                         label: "Send to ABRA",
                         icon: "icon-[mdi--database-arrow-right-outline]",
-                        hidden: (row) => row.original.abra === "sent",
+                        hidden: (row) => !canSendToAbra(row.original),
                         onAction: (row) => sendToAbra([row.original.id]),
                       },
                       {
                         id: "remind",
                         label: "Send payment reminder",
                         icon: "icon-[mdi--email-sync-outline]",
-                        hidden: (row) => row.original.payment === "paid",
+                        hidden: (row) => !canRemind(row.original),
                         onAction: (row) =>
                           toaster.create({
                             type: "info",
@@ -360,20 +377,25 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
             <Button
               onClick={() => {
                 setConfirming(false)
-                sendToAbra(selected.map((order) => order.id))
+                sendToAbra(toAbra.map((order) => order.id))
               }}
               variant="primary"
             >
-              Send {selected.length} to ABRA
+              {`Send ${toAbra.length} to ABRA`}
             </Button>
           </>
         }
         customTrigger
-        description={
-          selectedUnpaid.length > 0
-            ? `${selectedUnpaid.length} of the selected orders are not paid. They will reach ABRA with payment state "unpaid" and ABRA will expect the payment on delivery or by invoice.`
-            : "All selected orders are paid. ABRA receives the shipping and payment as text lines."
-        }
+        description={[
+          toAbraUnpaid.length > 0
+            ? `${toAbraUnpaid.length} of them are not paid; they reach ABRA as "unpaid" and ABRA expects the payment on delivery or by invoice.`
+            : "All of them are paid. ABRA receives the shipping and payment as text lines.",
+          selected.length > toAbra.length
+            ? `${selected.length - toAbra.length} selected orders are skipped — already in ABRA, queued or cancelled.`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         onOpenChange={(details) => setConfirming(details.open)}
         open={confirming}
         size="sm"

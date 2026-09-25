@@ -58,6 +58,15 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
+/* Changing the sale unit rounds the minimum up to the next valid multiple. */
+function withSaleUnit(product: AkProduct, saleUnit: number): AkProduct {
+  const minQty = Math.max(
+    saleUnit,
+    Math.ceil(product.minQty / saleUnit) * saleUnit
+  )
+  return { ...product, saleUnit, minQty }
+}
+
 function CompletenessBadge({ product }: { product: AkProduct }) {
   const missing = missingCmsFields(product)
   if (missing.length === 0) {
@@ -228,7 +237,7 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
                     setProducts((current) =>
                       current.map((product) =>
                         product.id === rowId
-                          ? { ...product, saleUnit: Number(draft.saleUnit) }
+                          ? withSaleUnit(product, Number(draft.saleUnit))
                           : product
                       )
                     )

@@ -84,7 +84,7 @@ const standardDelivery: DeliveryOption = {
   value: "standard",
   label: "Standard",
   price: 0,
-  when: "Tue 16 – Thu 18 September",
+  when: "2–3 working days",
 }
 
 const deliveryOptions: DeliveryOption[] = [
@@ -567,7 +567,9 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                   }
                   variant="primary"
                 >
-                  {`Pay ${money(total)}`}
+                  {form.payment === "card"
+                    ? `Pay ${money(total)}`
+                    : `Place order · ${money(total)}`}
                 </Button>
               ) : (
                 <Button

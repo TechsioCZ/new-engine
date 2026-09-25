@@ -98,10 +98,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
   const selected =
     customers.find((entry) => entry.id === selectedId) ?? customers[0]
   const duplicates = selected ? duplicatesOf(selected, customers) : []
-  const history = akOrders.filter(
-    (order) =>
-      order.email === selected?.email || order.phone === selected?.phone
-  )
+  const history = akOrders.filter((order) => order.email === selected?.email)
   const carts = akCarts.filter(
     (cart) =>
       cart.customer === selected?.name || cart.customer === selected?.company

@@ -50,7 +50,7 @@ const meta: Meta = {
           "- Result count and sort sit together, directly above the grid they govern.",
           "- Cards are `ProductCardTemplate` — price, rating, stock and actions in one",
           "  fixed order, so scanning a grid is a single vertical sweep.",
-          "- Paging uses the `Pagination` molecule with real URLs (`getPageUrl`), because",
+          "- Paging uses the `Pagination` molecule with real URLs (`getPageUrl`) and reads `?page=` on load, because",
           "  a category page must stay linkable and crawlable.",
         ].join("\n"),
       },
@@ -216,6 +216,28 @@ function StorefrontFooter() {
 const PRICE_MAX = 1300
 const PAGE_SIZE = 4
 const priceOf = (value: string) => Number(value.replace(/[^\d]/g, ""))
+
+/*
+ * Page links keep the current query (Storybook needs its own `id` param) and
+ * the page is read back from `?page=` on load, so a followed link lands on
+ * the page it names.
+ */
+function pageUrl(target: number) {
+  if (typeof window === "undefined") {
+    return `?page=${target}`
+  }
+  const params = new URLSearchParams(window.location.search)
+  params.set("page", String(target))
+  return `?${params.toString()}`
+}
+
+function pageFromUrl() {
+  if (typeof window === "undefined") {
+    return 1
+  }
+  const value = Number(new URLSearchParams(window.location.search).get("page"))
+  return Number.isInteger(value) && value > 0 ? value : 1
+}
 
 function FacetPanel({
   brands,
@@ -406,7 +428,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
   const [drawer, setDrawer] = useState(false)
   const [price, setPrice] = useState<number[]>([0, PRICE_MAX])
   const [sort, setSort] = useState("relevance")
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(pageFromUrl)
 
   const toggle = (
     list: string[],
@@ -608,7 +630,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
               {pageCount > 1 && (
                 <Pagination
                   count={sortedProducts.length}
-                  getPageUrl={({ page: target }) => `?page=${target}`}
+                  getPageUrl={({ page: target }) => pageUrl(target)}
                   onPageChange={setPage}
                   page={currentPage}
                   pageSize={PAGE_SIZE}
