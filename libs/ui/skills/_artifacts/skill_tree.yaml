@@ -1165,6 +1165,21 @@ skills:
       - src/molecules/tour.figma.ts
       - docs/tour-figma-handoff.md
       - https://zagjs.com/components/react/tour
+  - name: vertical-navigation-usage
+    slug: vertical-navigation-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/vertical-navigation-usage/SKILL.md
+    package: libs/ui
+    description: Nested page/category links with independent disclosure branches,
+      subgroup tones, capped indentation, and Sidebar/Drawer composition.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/vertical-navigation.tsx
+      - src/tokens/components/molecules/_vertical-navigation.css
+      - stories/molecules/vertical-navigation.stories.tsx
   - name: tree-view-usage
     slug: tree-view-usage
     type: sub-skill

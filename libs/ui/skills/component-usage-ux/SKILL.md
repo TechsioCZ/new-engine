@@ -41,7 +41,8 @@ Toast feedback -> toast-usage
 Guided walkthrough -> tour-usage
 Wizard/progress workflow -> steps-usage
 Hierarchical choice -> cascade-select-usage
-Tree navigation -> tree-view-usage
+Nested site/category links -> vertical-navigation-usage
+Tree widget with arrow-key selection -> tree-view-usage
 Loading placeholder -> skeleton-usage
 Shortcut hint or keyboard registration -> hotkeys-usage
 Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
@@ -55,7 +56,8 @@ Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
 Destructive action -> Button danger, maybe Dialog confirmation
 CRUD success/error -> Toast or StatusText depending persistence and context
 Hierarchical form choice -> CascadeSelect
-Hierarchical navigation -> TreeView
+Hierarchical page/category navigation -> VerticalNavigation
+Tree widget selection -> TreeView
 Page trail -> Breadcrumb with framework link adapter when needed
 ```
 

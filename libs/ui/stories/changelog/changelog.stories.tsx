@@ -12,6 +12,14 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### VerticalNavigation v1.0.1
+- Unify split-row hover and current-page backgrounds across the link and disclosure. Highlight only the chevron on disclosure hover, preserving separate navigation, expansion and keyboard focus.
+
+### VerticalNavigation v1.0.0
+- Promote the compact catalog styling to component tokens and unify all stories: smaller section labels, flat subgroups, consistent indentation, optional guides and 280 px standalone examples.
+- Accent subgroup surfaces support primary/secondary brand variants independently of the current page; the Akros catalog demonstrates two colored subgroups at 280 px.
+- New standalone link-based navigation with Zag disclosure branches, independent subgroup tones, capped indentation for deep hierarchies, controlled expansion, RTL and Drawer/Sidebar composition. Includes usage guidance and behavior tests; Figma/Code Connect mapping is deferred.
+
 ### Hotkeys v1.0.1
 - Use named token utilities for keycap borders and shortcut-target focus styling while preserving the existing token values.
 
