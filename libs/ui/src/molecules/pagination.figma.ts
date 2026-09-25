@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-32388
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/pagination.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/pagination.tsx
 // component=Pagination
 
 import figma from "figma"

@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.2.0"
 name: data-table-usage
 description: >
   Use after component-usage-ux when an app needs the @techsio/ui-kit DataTable —
