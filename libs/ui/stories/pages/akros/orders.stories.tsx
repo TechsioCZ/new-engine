@@ -104,6 +104,23 @@ const canRemind = (order: AkOrder) =>
   order.paymentMethod === "comgate" &&
   (order.payment === "unpaid" || order.payment === "failed")
 
+/* How each unpaid order will still be paid, named by its own method. */
+const unpaidHow: Record<AkOrder["paymentMethod"], string> = {
+  comgate: "awaiting online payment through Comgate",
+  transfer: "awaiting a bank transfer",
+  cod: "paid on delivery",
+  invoice: "paid by invoice",
+}
+
+function unpaidSummary(orders: AkOrder[]) {
+  const counts = new Map<string, number>()
+  for (const order of orders) {
+    const how = unpaidHow[order.paymentMethod]
+    counts.set(how, (counts.get(how) ?? 0) + 1)
+  }
+  return [...counts].map(([how, n]) => `${n} ${how}`).join(", ")
+}
+
 function OrdersPage({ initialView = "all" }: { initialView?: View }) {
   const toaster = useToast()
   const [data, setData] = useState(akOrders)
@@ -388,7 +405,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
         customTrigger
         description={[
           toAbraUnpaid.length > 0
-            ? `${toAbraUnpaid.length} of them are not paid; they reach ABRA as "unpaid" and ABRA expects the payment on delivery or by invoice.`
+            ? `${toAbraUnpaid.length} of them are not paid yet and reach ABRA as unpaid: ${unpaidSummary(toAbraUnpaid)}.`
             : "All of them are paid. ABRA receives the shipping and payment as text lines.",
           selected.length > toAbra.length
             ? `${selected.length - toAbra.length} selected orders are skipped — already in ABRA, queued or cancelled.`

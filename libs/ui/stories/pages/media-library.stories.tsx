@@ -96,6 +96,8 @@ const assets = storefrontProducts.map((product, index) => ({
   dimensions: index % 2 === 0 ? "2400 × 1600" : "1600 × 1600",
   uploadedAt: `2026-09-${String(11 - index).padStart(2, "0")}`,
   usedIn: index % 3,
+  folder: "media-products",
+  tags: [] as string[],
 }))
 
 function MediaLibraryPage() {
@@ -110,6 +112,20 @@ function MediaLibraryPage() {
   const assetCount = (n: number) => `${n} ${n === 1 ? "asset" : "assets"}`
 
   /* Bulk actions act on the selection, report, and clear it. */
+  const updateSelected = (
+    change: (asset: (typeof assets)[number]) => (typeof assets)[number]
+  ) =>
+    setLibrary((current) =>
+      current.map((asset) =>
+        selected.includes(asset.id) ? change(asset) : asset
+      )
+    )
+  /* "All media" shows everything; a folder shows only what lives in it. */
+  const visible =
+    folder === "media-root"
+      ? library
+      : library.filter((asset) => asset.folder === folder)
+
   const bulkDone = (title: string) => {
     toaster.create({ type: "success", title })
     setSelected([])
@@ -229,7 +245,7 @@ function MediaLibraryPage() {
         <div className="flex min-w-0 flex-1 flex-col gap-200">
           <div className="flex flex-wrap items-center justify-between gap-150">
             <span className="text-fg-secondary text-sm">
-              {`${library.length} of 1 284 assets`}
+              {`${visible.length} of 1 284 assets`}
             </span>
             <div className="flex items-center gap-150">
               <div className="w-2xs">
@@ -262,9 +278,13 @@ function MediaLibraryPage() {
           >
             <Button
               icon="icon-[mdi--folder-move-outline]"
-              onClick={() =>
+              onClick={() => {
+                updateSelected((asset) => ({
+                  ...asset,
+                  folder: "media-campaigns",
+                }))
                 bulkDone(`Moved ${assetCount(selected.length)} to Campaigns`)
-              }
+              }}
               size="sm"
               theme="outlined"
               variant="secondary"
@@ -273,9 +293,15 @@ function MediaLibraryPage() {
             </Button>
             <Button
               icon="icon-[mdi--tag-outline]"
-              onClick={() =>
+              onClick={() => {
+                updateSelected((asset) => ({
+                  ...asset,
+                  tags: asset.tags.includes("autumn-2026")
+                    ? asset.tags
+                    : [...asset.tags, "autumn-2026"],
+                }))
                 bulkDone(`Tagged ${assetCount(selected.length)} “autumn-2026”`)
-              }
+              }}
               size="sm"
               theme="outlined"
               variant="secondary"
@@ -328,7 +354,7 @@ function MediaLibraryPage() {
           />
 
           <div className="grid grid-cols-2 gap-200 md:grid-cols-3 xl:grid-cols-4">
-            {library.map((asset) => (
+            {visible.map((asset) => (
               <figure
                 className="flex flex-col gap-100 rounded-lg border border-border-primary bg-surface p-150"
                 key={asset.id}
@@ -364,6 +390,16 @@ function MediaLibraryPage() {
                   <span className="flex items-center gap-100 text-fg-secondary text-xs">
                     {asset.dimensions} · {asset.size}
                   </span>
+                  {asset.tags.map((tag) => (
+                    <Badge
+                      className="self-start"
+                      key={tag}
+                      size="sm"
+                      variant="info"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
                   {asset.usedIn === 0 ? (
                     <Badge className="self-start" size="sm" variant="warning">
                       Unused
@@ -399,7 +435,7 @@ function MediaLibraryPage() {
               count={1284}
               defaultPage={1}
               getPageUrl={({ page }) => `?page=${page}`}
-              pageSize={library.length}
+              pageSize={Math.max(visible.length, 1)}
               siblingCount={1}
             />
           </div>
