@@ -15,6 +15,7 @@ import { DetailList, PageHeader, SectionCard } from "../shell"
 import {
   type AkCart,
   akCarts,
+  akCustomers,
   akOrderLines,
   type CartState,
   cartStateOptions,
@@ -87,6 +88,12 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
 
   const cart = carts.find((entry) => entry.id === selectedId) ?? carts[0]
   const readOnly = cart?.state === "ordered"
+  /* Suggest the cart owner's address; never another customer's. */
+  const recipient =
+    akCustomers.find(
+      (entry) =>
+        entry.company === cart?.customer || entry.name === cart?.customer
+    )?.email ?? ""
   const shareLink = `https://www.akros.cz/kosik/sdileny/${cart?.id}-7f3a`
 
   const columns = useMemo<ColumnDef<AkCart, unknown>[]>(
@@ -404,8 +411,9 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             </Button>
           </div>
           <FormInput
-            defaultValue="nakup@svoboda-elektro.cz"
+            defaultValue={recipient}
             id="share-to"
+            key={cart.id}
             label="Recipient"
             type="email"
           />

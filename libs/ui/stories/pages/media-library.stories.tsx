@@ -106,6 +106,14 @@ function MediaLibraryPage() {
   const [library, setLibrary] = useState(assets)
   const [preview, setPreview] = useState<(typeof assets)[number] | null>(null)
   const [altDraft, setAltDraft] = useState("")
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const assetCount = (n: number) => `${n} ${n === 1 ? "asset" : "assets"}`
+
+  /* Bulk actions act on the selection, report, and clear it. */
+  const bulkDone = (title: string) => {
+    toaster.create({ type: "success", title })
+    setSelected([])
+  }
 
   const toggle = (id: string) =>
     setSelected((current) =>
@@ -254,6 +262,9 @@ function MediaLibraryPage() {
           >
             <Button
               icon="icon-[mdi--folder-move-outline]"
+              onClick={() =>
+                bulkDone(`Moved ${assetCount(selected.length)} to Campaigns`)
+              }
               size="sm"
               theme="outlined"
               variant="secondary"
@@ -262,6 +273,9 @@ function MediaLibraryPage() {
             </Button>
             <Button
               icon="icon-[mdi--tag-outline]"
+              onClick={() =>
+                bulkDone(`Tagged ${assetCount(selected.length)} “autumn-2026”`)
+              }
               size="sm"
               theme="outlined"
               variant="secondary"
@@ -270,6 +284,7 @@ function MediaLibraryPage() {
             </Button>
             <Button
               icon="icon-[mdi--delete-outline]"
+              onClick={() => setConfirmDelete(true)}
               size="sm"
               theme="outlined"
               variant="danger"
@@ -277,6 +292,40 @@ function MediaLibraryPage() {
               Delete
             </Button>
           </BulkActionBar>
+
+          <Dialog
+            actions={
+              <>
+                <Button
+                  onClick={() => setConfirmDelete(false)}
+                  theme="outlined"
+                  variant="secondary"
+                >
+                  Keep assets
+                </Button>
+                <Button
+                  onClick={() => {
+                    const count = selected.length
+                    setLibrary((current) =>
+                      current.filter((asset) => !selected.includes(asset.id))
+                    )
+                    setConfirmDelete(false)
+                    bulkDone(`Deleted ${assetCount(count)}`)
+                  }}
+                  variant="danger"
+                >
+                  {`Delete ${assetCount(selected.length)}`}
+                </Button>
+              </>
+            }
+            customTrigger
+            description="Pages and campaigns that embed these files will show a broken image. This cannot be undone."
+            onOpenChange={(details) => setConfirmDelete(details.open)}
+            open={confirmDelete}
+            role="alertdialog"
+            size="sm"
+            title="Delete the selected assets?"
+          />
 
           <div className="grid grid-cols-2 gap-200 md:grid-cols-3 xl:grid-cols-4">
             {library.map((asset) => (

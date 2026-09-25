@@ -15,7 +15,9 @@ import {
   akOrders,
   czk,
   type PaymentMethod,
+  paymentConfigs,
   paymentMethodLabels,
+  shippingMethods,
   unpaidOrderEvents,
 } from "./data"
 import {
@@ -107,6 +109,25 @@ const alternativeMethods: { value: PaymentMethod; description: string }[] = [
       "The carrier collects the amount on delivery. A 39 Kč fee is added.",
   },
 ]
+
+/*
+ * The literal lines ABRA receives come from the Shipping & payment settings
+ * (`abraText`); point-based methods get the pickup-point ID appended.
+ */
+function abraShippingLine(order: AkOrder) {
+  const method = shippingMethods.find(
+    (entry) => entry.carrier === order.carrier
+  )
+  const text = method?.abraText ?? `Doprava: ${order.carrier}`
+  return method?.pointBased && order.pointId ? `${text} ${order.pointId}` : text
+}
+
+function abraPaymentLine(order: AkOrder) {
+  return (
+    paymentConfigs.find((entry) => entry.id === order.paymentMethod)
+      ?.abraText ?? `Platba: ${paymentMethodLabels[order.paymentMethod]}`
+  )
+}
 
 function requireOrder(id: string): AkOrder {
   const order = akOrders.find((entry) => entry.id === id)
@@ -440,14 +461,8 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                   ),
                 },
                 { term: "Subtotal", value: czk.format(subtotal) },
-                {
-                  term: "Shipping line",
-                  value: `Doprava: ${order.carrier}${order.pointId ? ` ${order.pointId}` : ""}`,
-                },
-                {
-                  term: "Payment line",
-                  value: `Platba: ${paymentMethodLabels[order.paymentMethod]}`,
-                },
+                { term: "Shipping line", value: abraShippingLine(order) },
+                { term: "Payment line", value: abraPaymentLine(order) },
               ]}
             />
           </SectionCard>

@@ -85,6 +85,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
   const [editingId, setEditingId] = useState(initialId)
   const editing = templates.find((template) => template.id === editingId)
   const [subject, setSubject] = useState(editing?.subject ?? "")
+  const [savedBodies, setSavedBodies] = useState(bodies)
   const [body, setBody] = useState(
     editingId ? (bodies[editingId] ?? defaultBody) : defaultBody
   )
@@ -92,7 +93,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
   const open = (template: EmailTemplate) => {
     setEditingId(template.id)
     setSubject(template.subject)
-    setBody(bodies[template.id] ?? defaultBody)
+    setBody(savedBodies[template.id] ?? defaultBody)
   }
 
   const columns = useMemo<ColumnDef<EmailTemplate, unknown>[]>(
@@ -213,6 +214,10 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                         : template
                     )
                   )
+                  setSavedBodies((current) => ({
+                    ...current,
+                    [editing.id]: body,
+                  }))
                   setEditingId(undefined)
                   toaster.create({
                     type: "success",

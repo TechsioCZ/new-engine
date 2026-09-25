@@ -285,11 +285,12 @@ function ContentListPage({
               label: "Duplicate",
               icon: "icon-[mdi--content-copy]",
               onAction: (row) => {
+                const stamp = Date.now().toString(36)
                 const copy: ContentEntry = {
                   ...row.original,
-                  id: `${row.original.id}-copy-${Date.now()}`,
+                  id: `${row.original.id}-copy-${stamp}`,
                   title: `${row.original.title} (copy)`,
-                  slug: `${row.original.slug}-copy`,
+                  slug: `${row.original.slug}-copy-${stamp}`,
                   status: "draft",
                 }
                 setData((current) => {
