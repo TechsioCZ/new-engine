@@ -29,7 +29,7 @@ import {
 } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "business", mode: "light" },
+  globals: { brand: "akros", mode: "light" },
   tags: ["autodocs"],
   title: "Pages/Akros admin/Order detail",
   parameters: {

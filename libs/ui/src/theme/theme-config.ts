@@ -32,6 +32,7 @@ export const THEMES = {
   base: { label: "Default", modes: ["light", "dark"] },
   neo: { label: "Neo (Red)", modes: ["light", "dark"], attr: "neo" },
   business: { label: "Business", modes: ["light"], attr: "business" },
+  akros: { label: "Akros", modes: ["light"], attr: "akros" },
 } as const satisfies Record<string, BrandConfig>
 
 export type BrandKey = keyof typeof THEMES
