@@ -11,7 +11,7 @@ import { type AkCategory, akCategories, count } from "./data"
 import { AbraOwned, AkrosShell, akrosDocs, Notice } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "business", mode: "light" },
+  globals: { brand: "akros", mode: "light" },
   tags: ["autodocs"],
   title: "Pages/Akros admin/Categories",
   parameters: {

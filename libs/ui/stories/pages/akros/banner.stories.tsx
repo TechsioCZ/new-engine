@@ -14,7 +14,7 @@ import { type BannerSlide, bannerSlides } from "./data"
 import { AkrosShell, akrosDocs } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "business", mode: "light" },
+  globals: { brand: "akros", mode: "light" },
   tags: ["autodocs"],
   title: "Pages/Akros admin/Main banner",
   parameters: {
