@@ -656,6 +656,23 @@ skills:
       - src/molecules/combobox.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/combobox
+  - name: facet-filter-panel-usage
+    slug: facet-filter-panel-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/facet-filter-panel-usage/SKILL.md
+    package: libs/ui
+    description: Controlled catalog facet presentation with generic option and range groups, active filters, overflow, and an inline panel or Dialog drawer.
+    requires:
+      - component-usage-ux
+      - accordion-usage
+      - dialog-usage
+      - form-checkbox-usage
+      - slider-usage
+    sources:
+      - src/templates/facet-filter-panel.tsx
+      - src/tokens/components/templates/_facet-filter-panel.css
+      - stories/templates/facet-filter-panel.stories.tsx
   - name: dialog-usage
     slug: dialog-usage
     type: sub-skill

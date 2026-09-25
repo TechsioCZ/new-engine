@@ -43,3 +43,5 @@
 @import "./organisms/_footer.css";
 @import "./organisms/_header.css";
 @import "./organisms/_gallery.css";
+
+@import "./templates/_facet-filter-panel.css";
