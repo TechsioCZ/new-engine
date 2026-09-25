@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { fn } from "storybook/test"
 import { useMemo, useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
@@ -84,12 +85,39 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
+/* Navigation clicks are reported to the Actions panel and still drive state. */
+const reportNav = fn().mockName("onNavSelect")
+const selectNav = (setNav: (value: string) => void) => (value: string) => {
+  reportNav(value)
+  setNav(value)
+}
+
 const railItems: RailItem[] = [
-  { id: "dashboard", label: "Dashboard", icon: "icon-[mdi--view-dashboard-outline]" },
-  { id: "catalog-products", label: "Products", icon: "icon-[mdi--package-variant-closed]" },
-  { id: "sales-orders", label: "Orders", icon: "icon-[mdi--receipt-text-outline]" },
-  { id: "customers", label: "Customers", icon: "icon-[mdi--account-group-outline]" },
-  { id: "content-pages", label: "Content", icon: "icon-[mdi--text-box-outline]" },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: "icon-[mdi--view-dashboard-outline]",
+  },
+  {
+    id: "catalog-products",
+    label: "Products",
+    icon: "icon-[mdi--package-variant-closed]",
+  },
+  {
+    id: "sales-orders",
+    label: "Orders",
+    icon: "icon-[mdi--receipt-text-outline]",
+  },
+  {
+    id: "customers",
+    label: "Customers",
+    icon: "icon-[mdi--account-group-outline]",
+  },
+  {
+    id: "content-pages",
+    label: "Content",
+    icon: "icon-[mdi--text-box-outline]",
+  },
   { id: "settings-team", label: "Settings", icon: "icon-[mdi--cog-outline]" },
 ]
 
@@ -134,10 +162,25 @@ const subNav: Record<string, SubNavEntry[]> = {
 }
 
 const accountMenu: MenuItem[] = [
-  { type: "action", value: "profile", label: "Profile", icon: "icon-[mdi--account-outline]" },
-  { type: "action", value: "preferences", label: "Preferences", icon: "icon-[mdi--tune]" },
+  {
+    type: "action",
+    value: "profile",
+    label: "Profile",
+    icon: "icon-[mdi--account-outline]",
+  },
+  {
+    type: "action",
+    value: "preferences",
+    label: "Preferences",
+    icon: "icon-[mdi--tune]",
+  },
   { type: "separator", id: "account" },
-  { type: "action", value: "sign-out", label: "Sign out", icon: "icon-[mdi--logout]" },
+  {
+    type: "action",
+    value: "sign-out",
+    label: "Sign out",
+    icon: "icon-[mdi--logout]",
+  },
 ]
 
 function useContentColumns(): ColumnDef<ContentEntry, unknown>[] {
@@ -321,7 +364,7 @@ export const SidebarLeft: Story = {
     const [nav, setNav] = useState("content-pages")
     return (
       <Frame
-        left={<NavPanel onSelect={setNav} selected={nav} />}
+        left={<NavPanel onSelect={selectNav(setNav)} selected={nav} />}
         top={
           <TopBar
             center={<GlobalSearch />}
@@ -329,7 +372,7 @@ export const SidebarLeft: Story = {
               <NavDrawer
                 defaultExpanded={["content"]}
                 nav={adminNav}
-                onSelect={setNav}
+                onSelect={selectNav(setNav)}
                 selected={nav}
               />
             }
@@ -378,7 +421,11 @@ export const SidebarRight: Story = {
             start={
               <div className="flex items-center gap-250">
                 <Brand />
-                <TopNav items={topNavItems} onSelect={setNav} selected={nav} />
+                <TopNav
+                  items={topNavItems}
+                  onSelect={selectNav(setNav)}
+                  selected={nav}
+                />
               </div>
             }
           />
@@ -404,7 +451,7 @@ export const DualSidebar: Story = {
     const [nav, setNav] = useState("content-pages")
     return (
       <Frame
-        left={<NavPanel onSelect={setNav} selected={nav} />}
+        left={<NavPanel onSelect={selectNav(setNav)} selected={nav} />}
         right={<ContextPanel />}
         top={
           <TopBar
@@ -413,7 +460,7 @@ export const DualSidebar: Story = {
               <NavDrawer
                 defaultExpanded={["content"]}
                 nav={adminNav}
-                onSelect={setNav}
+                onSelect={selectNav(setNav)}
                 selected={nav}
               />
             }
@@ -460,7 +507,7 @@ export const IconRailNav: Story = {
                 />
               }
               items={railItems}
-              onSelect={setNav}
+              onSelect={selectNav(setNav)}
               selected={nav}
             />
           }
@@ -496,7 +543,7 @@ export const IconRailNav: Story = {
             defaultExpanded={["content"]}
             nav={adminNav}
             onSelect={(value) => {
-              setNav(value)
+              selectNav(setNav)(value)
               setDrawer(false)
             }}
             selected={nav}
@@ -523,7 +570,13 @@ export const TopNavigation: Story = {
       <Frame
         top={
           <TopBar
-            center={<TopNav items={topNavItems} onSelect={setNav} selected={nav} />}
+            center={
+              <TopNav
+                items={topNavItems}
+                onSelect={selectNav(setNav)}
+                selected={nav}
+              />
+            }
             start={<Brand />}
           />
         }
@@ -554,7 +607,11 @@ export const TopNavWithSubnav: Story = {
           <div className="sticky top-0 z-10 flex flex-col border-border-primary border-b bg-base">
             <div className="flex items-center gap-200 p-150">
               <Brand />
-              <TopNav items={topNavItems} onSelect={setNav} selected={nav} />
+              <TopNav
+                items={topNavItems}
+                onSelect={selectNav(setNav)}
+                selected={nav}
+              />
               <div className="ms-auto">
                 <GlobalSearch placeholder="Search content…" />
               </div>
@@ -605,7 +662,7 @@ export const ThreePane: Story = {
         left={
           <NavPanel
             defaultExpanded={["sales"]}
-            onSelect={setNav}
+            onSelect={selectNav(setNav)}
             selected={nav}
           />
         }
@@ -616,7 +673,7 @@ export const ThreePane: Story = {
               <NavDrawer
                 defaultExpanded={["sales"]}
                 nav={adminNav}
-                onSelect={setNav}
+                onSelect={selectNav(setNav)}
                 selected={nav}
               />
             }
@@ -657,7 +714,11 @@ export const ThreePane: Story = {
                     <Button size="sm" theme="outlined" variant="secondary">
                       Refund
                     </Button>
-                    <Button icon="icon-[mdi--truck-outline]" size="sm" variant="primary">
+                    <Button
+                      icon="icon-[mdi--truck-outline]"
+                      size="sm"
+                      variant="primary"
+                    >
                       Fulfil
                     </Button>
                   </>
@@ -667,7 +728,10 @@ export const ThreePane: Story = {
               >
                 <DetailList
                   items={[
-                    { term: "Status", value: <StatusBadge status={active.status} /> },
+                    {
+                      term: "Status",
+                      value: <StatusBadge status={active.status} />,
+                    },
                     { term: "Channel", value: active.channel },
                     { term: "Items", value: String(active.items) },
                     { term: "Total", value: currency.format(active.total) },
@@ -708,7 +772,11 @@ export const FullBleedWorkspace: Story = {
       <Frame
         flush
         left={
-          <IconRail items={railItems} onSelect={setNav} selected={nav} />
+          <IconRail
+            items={railItems}
+            onSelect={selectNav(setNav)}
+            selected={nav}
+          />
         }
         top={
           <TopBar
@@ -760,7 +828,7 @@ export const CenteredColumn: Story = {
     const [nav, setNav] = useState("content-pages")
     return (
       <Frame
-        left={<NavPanel onSelect={setNav} selected={nav} />}
+        left={<NavPanel onSelect={selectNav(setNav)} selected={nav} />}
         top={
           <TopBar
             center={<GlobalSearch />}
@@ -768,7 +836,7 @@ export const CenteredColumn: Story = {
               <NavDrawer
                 defaultExpanded={["content"]}
                 nav={adminNav}
-                onSelect={setNav}
+                onSelect={selectNav(setNav)}
                 selected={nav}
               />
             }
@@ -839,7 +907,12 @@ export const FocusedTask: Story = {
       top={
         <TopBar
           end={
-            <Button icon="icon-[mdi--close]" size="sm" theme="borderless" variant="secondary">
+            <Button
+              icon="icon-[mdi--close]"
+              size="sm"
+              theme="borderless"
+              variant="secondary"
+            >
               Save and exit
             </Button>
           }
@@ -849,7 +922,11 @@ export const FocusedTask: Story = {
     >
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-250 py-250">
         <div className="flex flex-col items-center gap-150 text-center">
-          <Icon className="text-fg-secondary" icon="icon-[mdi--database-import-outline]" size="xl" />
+          <Icon
+            className="text-fg-secondary"
+            icon="icon-[mdi--database-import-outline]"
+            size="xl"
+          />
           <h1 className="font-semibold text-xl">Import products</h1>
           <p className="max-w-prose text-fg-secondary text-sm">
             Three steps: upload the file, map the columns, review what will
@@ -858,7 +935,11 @@ export const FocusedTask: Story = {
         </div>
         <SectionCard title="1 · Upload">
           <div className="flex flex-col items-center gap-150 rounded-md border border-border-primary border-dashed p-350 text-center">
-            <Icon className="text-fg-secondary" icon="icon-[mdi--file-delimited-outline]" size="xl" />
+            <Icon
+              className="text-fg-secondary"
+              icon="icon-[mdi--file-delimited-outline]"
+              size="xl"
+            />
             <p className="text-sm">Drop a CSV file here</p>
             <Button size="sm" theme="outlined" variant="secondary">
               Choose file
@@ -869,7 +950,11 @@ export const FocusedTask: Story = {
           <Button theme="borderless" variant="secondary">
             Cancel
           </Button>
-          <Button icon="icon-[mdi--arrow-right]" iconPosition="right" variant="primary">
+          <Button
+            icon="icon-[mdi--arrow-right]"
+            iconPosition="right"
+            variant="primary"
+          >
             Continue
           </Button>
         </div>

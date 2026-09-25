@@ -12,7 +12,15 @@ import { Toaster, useToast } from "../../src/molecules/toast"
 import { TreeView } from "../../src/molecules/tree-view"
 import { SelectTemplate } from "../../src/templates/select"
 import { adminNav, storefrontProducts } from "./data"
-import { Brand, Frame, GlobalSearch, NavList, Panel, TopBar } from "./frame"
+import {
+  Brand,
+  Frame,
+  GlobalSearch,
+  NavDrawer,
+  NavList,
+  Panel,
+  TopBar,
+} from "./frame"
 import {
   BulkActionBar,
   DetailList,
@@ -119,17 +127,38 @@ function MediaLibraryPage() {
           />
         </Panel>
       }
-      top={<TopBar center={<GlobalSearch placeholder="Search media…" />} />}
+      top={
+        <TopBar
+          center={<GlobalSearch placeholder="Search media…" />}
+          start={
+            <NavDrawer
+              defaultExpanded={["content"]}
+              nav={adminNav}
+              onSelect={setNav}
+              selected={nav}
+            />
+          }
+        />
+      }
     >
       <Toaster />
 
       <PageHeader
         actions={
           <>
-            <Button icon="icon-[mdi--folder-plus-outline]" size="sm" theme="outlined" variant="secondary">
+            <Button
+              icon="icon-[mdi--folder-plus-outline]"
+              size="sm"
+              theme="outlined"
+              variant="secondary"
+            >
               New folder
             </Button>
-            <Button icon="icon-[mdi--cloud-upload-outline]" size="sm" variant="primary">
+            <Button
+              icon="icon-[mdi--cloud-upload-outline]"
+              size="sm"
+              variant="primary"
+            >
               Upload
             </Button>
           </>
@@ -144,8 +173,16 @@ function MediaLibraryPage() {
       />
 
       <StatRow>
-        <StatCard icon="icon-[mdi--image-multiple-outline]" label="Assets" value="1 284" />
-        <StatCard icon="icon-[mdi--harddisk]" label="Storage used" value="18.4 GB" />
+        <StatCard
+          icon="icon-[mdi--image-multiple-outline]"
+          label="Assets"
+          value="1 284"
+        />
+        <StatCard
+          icon="icon-[mdi--harddisk]"
+          label="Storage used"
+          value="18.4 GB"
+        />
         <StatCard
           hint="Assets with no alt text"
           icon="icon-[mdi--alert-outline]"
@@ -155,7 +192,10 @@ function MediaLibraryPage() {
       </StatRow>
 
       <div className="flex gap-250">
-        <aside aria-label="Folders" className="hidden w-3xs shrink-0 flex-col gap-150 lg:flex">
+        <aside
+          aria-label="Folders"
+          className="hidden w-3xs shrink-0 flex-col gap-150 lg:flex"
+        >
           <h2 className="font-semibold text-sm">Folders</h2>
           <TreeView
             data={folders}
@@ -185,7 +225,11 @@ function MediaLibraryPage() {
             </span>
             <div className="flex items-center gap-150">
               <div className="w-2xs">
-                <SelectTemplate defaultValue={["all"]} items={typeItems} size="sm" />
+                <SelectTemplate
+                  defaultValue={["all"]}
+                  items={typeItems}
+                  size="sm"
+                />
               </div>
               <Button
                 aria-label="Grid view"
@@ -204,14 +248,32 @@ function MediaLibraryPage() {
             </div>
           </div>
 
-          <BulkActionBar count={selected.length} onClear={() => setSelected([])}>
-            <Button icon="icon-[mdi--folder-move-outline]" size="sm" theme="outlined" variant="secondary">
+          <BulkActionBar
+            count={selected.length}
+            onClear={() => setSelected([])}
+          >
+            <Button
+              icon="icon-[mdi--folder-move-outline]"
+              size="sm"
+              theme="outlined"
+              variant="secondary"
+            >
               Move
             </Button>
-            <Button icon="icon-[mdi--tag-outline]" size="sm" theme="outlined" variant="secondary">
+            <Button
+              icon="icon-[mdi--tag-outline]"
+              size="sm"
+              theme="outlined"
+              variant="secondary"
+            >
               Tag
             </Button>
-            <Button icon="icon-[mdi--delete-outline]" size="sm" theme="outlined" variant="danger">
+            <Button
+              icon="icon-[mdi--delete-outline]"
+              size="sm"
+              theme="outlined"
+              variant="danger"
+            >
               Delete
             </Button>
           </BulkActionBar>
@@ -269,8 +331,14 @@ function MediaLibraryPage() {
 
           <SectionCard>
             <div className="flex flex-col items-center gap-150 rounded-md border border-border-primary border-dashed p-350 text-center">
-              <Icon className="text-fg-secondary" icon="icon-[mdi--cloud-upload-outline]" size="xl" />
-              <p className="text-sm">Drop files anywhere on this page to upload</p>
+              <Icon
+                className="text-fg-secondary"
+                icon="icon-[mdi--cloud-upload-outline]"
+                size="xl"
+              />
+              <p className="text-sm">
+                Drop files anywhere on this page to upload
+              </p>
               <p className="text-fg-secondary text-xs">
                 JPEG, PNG, WebP, AVIF, MP4 · up to 50 MB each
               </p>
@@ -351,7 +419,10 @@ function MediaLibraryPage() {
                 { term: "Uploaded", value: preview.uploadedAt },
                 {
                   term: "Used in",
-                  value: preview.usedIn === 0 ? "Nothing yet" : `${preview.usedIn} pages`,
+                  value:
+                    preview.usedIn === 0
+                      ? "Nothing yet"
+                      : `${preview.usedIn} pages`,
                 },
               ]}
             />

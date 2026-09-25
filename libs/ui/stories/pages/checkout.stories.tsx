@@ -71,10 +71,48 @@ const cartLines = storefrontProducts.slice(0, 3)
 const priceOf = (value: string) => Number(value.replace(/[^\d]/g, ""))
 const SUBTOTAL = cartLines.reduce((sum, line) => sum + priceOf(line.price), 0)
 const DISCOUNT = 60
-const TOTAL = SUBTOTAL - DISCOUNT
 const money = (value: number) => `${value} €`
 
-function OrderSummary() {
+type DeliveryOption = {
+  value: string
+  label: string
+  price: number
+  when: string
+}
+
+const standardDelivery: DeliveryOption = {
+  value: "standard",
+  label: "Standard",
+  price: 0,
+  when: "Tue 16 – Thu 18 September",
+}
+
+const deliveryOptions: DeliveryOption[] = [
+  standardDelivery,
+  {
+    value: "express",
+    label: "Express",
+    price: 9,
+    when: "Tomorrow before 12:00",
+  },
+  {
+    value: "pickup",
+    label: "Collect in store",
+    price: 0,
+    when: "Prague · Wenceslas Square · ready in 2 hours",
+  },
+]
+
+const deliveryOf = (value: string): DeliveryOption =>
+  deliveryOptions.find((option) => option.value === value) ?? standardDelivery
+
+const priceLabel = (price: number) => (price === 0 ? "free" : money(price))
+
+/* Everything the shopper pays is derived here, so summary and Pay button agree. */
+const totalFor = (delivery: DeliveryOption) =>
+  SUBTOTAL - DISCOUNT + delivery.price
+
+function OrderSummary({ delivery }: { delivery: DeliveryOption }) {
   return (
     <aside
       aria-label="Order summary"
@@ -109,7 +147,10 @@ function OrderSummary() {
 
       <SearchForm size="sm">
         <SearchForm.Control>
-          <SearchForm.Input aria-label="Discount code" placeholder="Discount code" />
+          <SearchForm.Input
+            aria-label="Discount code"
+            placeholder="Discount code"
+          />
           <SearchForm.Button>Apply</SearchForm.Button>
         </SearchForm.Control>
       </SearchForm>
@@ -121,7 +162,9 @@ function OrderSummary() {
         </div>
         <div className="flex items-center justify-between gap-150">
           <dt className="text-fg-secondary text-sm">Delivery</dt>
-          <dd className="text-sm">Free</dd>
+          <dd className="text-sm">
+            {delivery.price === 0 ? "Free" : money(delivery.price)}
+          </dd>
         </div>
         <div className="flex items-center justify-between gap-150">
           <dt className="text-fg-secondary text-sm">Discount</dt>
@@ -129,7 +172,7 @@ function OrderSummary() {
         </div>
         <div className="flex items-center justify-between gap-150 border-border-primary border-t pt-100">
           <dt className="font-semibold text-sm">Total</dt>
-          <dd className="font-semibold text-md">{money(TOTAL)}</dd>
+          <dd className="font-semibold text-md">{money(totalFor(delivery))}</dd>
         </div>
       </dl>
 
@@ -147,6 +190,8 @@ type CheckoutForm = {
   street: string
   city: string
   zip: string
+  country: string
+  delivery: string
   card: string
   expiry: string
   cvc: string
@@ -160,6 +205,8 @@ const prefilled: CheckoutForm = {
   street: "Vinohradská 12",
   city: "Praha",
   zip: "120 00",
+  country: "CZ",
+  delivery: "standard",
   card: "4242424242424242",
   expiry: "04/29",
   cvc: "123",
@@ -173,6 +220,8 @@ const empty: CheckoutForm = {
   street: "",
   city: "",
   zip: "",
+  country: "CZ",
+  delivery: "standard",
   card: "",
   expiry: "",
   cvc: "",
@@ -208,6 +257,8 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
       /^\d{2}\/\d{2}$/.test(form.expiry) &&
       /^\d{3,4}$/.test(form.cvc))
   const stepComplete = [addressComplete, true, paymentComplete, form.terms]
+  const delivery = deliveryOf(form.delivery)
+  const total = totalFor(delivery)
   const canContinue = stepComplete[step] ?? true
 
   return (
@@ -256,14 +307,18 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                     <FormInput
                       id="co-first"
                       label="First name"
-                      onChange={(event) => set({ firstName: event.target.value })}
+                      onChange={(event) =>
+                        set({ firstName: event.target.value })
+                      }
                       required
                       value={form.firstName}
                     />
                     <FormInput
                       id="co-last"
                       label="Surname"
-                      onChange={(event) => set({ lastName: event.target.value })}
+                      onChange={(event) =>
+                        set({ lastName: event.target.value })
+                      }
                       required
                       value={form.lastName}
                     />
@@ -292,9 +347,15 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                     />
                   </div>
                   <SelectTemplate
-                    defaultValue={["CZ"]}
                     items={countryItems}
                     label="Country"
+                    onValueChange={(details) => {
+                      const [next] = details.value
+                      if (next) {
+                        set({ country: next })
+                      }
+                    }}
+                    value={[form.country]}
                   />
                   <PhoneInput defaultCountry="CZ" id="co-phone" name="phone">
                     <PhoneInput.Label>Phone</PhoneInput.Label>
@@ -315,44 +376,31 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
 
               <Steps.Content index={1}>
                 <div className="py-250">
-                  <RadioCard defaultValue="standard" name="shipping" variant="outline">
+                  <RadioCard
+                    name="shipping"
+                    onValueChange={(value) =>
+                      set({ delivery: value ?? "standard" })
+                    }
+                    value={form.delivery}
+                    variant="outline"
+                  >
                     <RadioCard.Label>Delivery method</RadioCard.Label>
-                    <RadioCard.Item value="standard">
-                      <RadioCard.ItemHiddenInput />
-                      <RadioCard.ItemControl>
-                        <RadioCard.ItemContent>
-                          <RadioCard.ItemText>Standard — free</RadioCard.ItemText>
-                          <RadioCard.ItemDescription>
-                            Tue 16 – Thu 18 September
-                          </RadioCard.ItemDescription>
-                        </RadioCard.ItemContent>
-                        <RadioCard.ItemIndicator />
-                      </RadioCard.ItemControl>
-                    </RadioCard.Item>
-                    <RadioCard.Item value="express">
-                      <RadioCard.ItemHiddenInput />
-                      <RadioCard.ItemControl>
-                        <RadioCard.ItemContent>
-                          <RadioCard.ItemText>Express — 9 €</RadioCard.ItemText>
-                          <RadioCard.ItemDescription>
-                            Tomorrow before 12:00
-                          </RadioCard.ItemDescription>
-                        </RadioCard.ItemContent>
-                        <RadioCard.ItemIndicator />
-                      </RadioCard.ItemControl>
-                    </RadioCard.Item>
-                    <RadioCard.Item value="pickup">
-                      <RadioCard.ItemHiddenInput />
-                      <RadioCard.ItemControl>
-                        <RadioCard.ItemContent>
-                          <RadioCard.ItemText>Collect in store — free</RadioCard.ItemText>
-                          <RadioCard.ItemDescription>
-                            Prague · Wenceslas Square · ready in 2 hours
-                          </RadioCard.ItemDescription>
-                        </RadioCard.ItemContent>
-                        <RadioCard.ItemIndicator />
-                      </RadioCard.ItemControl>
-                    </RadioCard.Item>
+                    {deliveryOptions.map((option) => (
+                      <RadioCard.Item key={option.value} value={option.value}>
+                        <RadioCard.ItemHiddenInput />
+                        <RadioCard.ItemControl>
+                          <RadioCard.ItemContent>
+                            <RadioCard.ItemText>
+                              {`${option.label} — ${priceLabel(option.price)}`}
+                            </RadioCard.ItemText>
+                            <RadioCard.ItemDescription>
+                              {option.when}
+                            </RadioCard.ItemDescription>
+                          </RadioCard.ItemContent>
+                          <RadioCard.ItemIndicator />
+                        </RadioCard.ItemControl>
+                      </RadioCard.Item>
+                    ))}
                   </RadioCard>
                 </div>
               </Steps.Content>
@@ -405,7 +453,9 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                         <FormInput
                           id="co-exp"
                           label="Expiry"
-                          onChange={(event) => set({ expiry: event.target.value })}
+                          onChange={(event) =>
+                            set({ expiry: event.target.value })
+                          }
                           placeholder="MM/YY"
                           required
                           value={form.expiry}
@@ -421,8 +471,8 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                     </>
                   ) : (
                     <StatusText showIcon status="default">
-                      Payment instructions are emailed after you place the order.
-                      Nothing ships until the transfer clears.
+                      Payment instructions are emailed after you place the
+                      order. Nothing ships until the transfer clears.
                     </StatusText>
                   )}
                 </div>
@@ -433,9 +483,11 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                   <div className="flex flex-col gap-150 rounded-md border border-border-primary p-200">
                     <div className="flex items-start justify-between gap-150">
                       <div className="flex flex-col gap-50">
-                        <span className="font-medium text-sm">Delivery address</span>
+                        <span className="font-medium text-sm">
+                          Delivery address
+                        </span>
                         <span className="text-fg-secondary text-sm">
-                          Marta Nováková · Vinohradská 12, 120 00 Praha, CZ
+                          {`${form.firstName} ${form.lastName} · ${form.street}, ${form.zip} ${form.city}, ${form.country}`}
                         </span>
                       </div>
                       <Button
@@ -451,7 +503,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       <div className="flex flex-col gap-50">
                         <span className="font-medium text-sm">Delivery</span>
                         <span className="text-fg-secondary text-sm">
-                          Standard — free · Tue 16 – Thu 18 September
+                          {`${delivery.label} — ${priceLabel(delivery.price)} · ${delivery.when}`}
                         </span>
                       </div>
                       <Button
@@ -467,7 +519,9 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       <div className="flex flex-col gap-50">
                         <span className="font-medium text-sm">Payment</span>
                         <span className="text-fg-secondary text-sm">
-                          Card ending 4242
+                          {form.payment === "card"
+                            ? `Card ending ${form.card.replace(/\s/g, "").slice(-4)}`
+                            : "Bank transfer — instructions by email"}
                         </span>
                       </div>
                       <Button
@@ -513,7 +567,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                   }
                   variant="primary"
                 >
-                  {`Pay ${money(TOTAL)}`}
+                  {`Pay ${money(total)}`}
                 </Button>
               ) : (
                 <Button
@@ -534,7 +588,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
           </Steps>
         </div>
 
-        <OrderSummary />
+        <OrderSummary delivery={delivery} />
       </main>
     </div>
   )
