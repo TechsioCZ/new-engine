@@ -12,6 +12,13 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### FacetFilterPanel v1.0.1
+- Newly loaded option groups open by default, and controlled drawer focus returns to the trigger only after the drawer closes.
+
+### FacetFilterPanel v1.0.0
+- Added a controlled catalog-facet template with generic option and range groups, active-filter removal, reset, overflow, pending/disabled states, and explicit inline or Dialog drawer presentation.
+- Facet calculations, formatting, URL/query synchronization and responsive breakpoint selection remain consumer-owned. Stories are manual; interaction regressions run separately in Playwright.
+
 ### Dialog v1.0.1
 - Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
 
