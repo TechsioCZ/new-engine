@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: numeric-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit NumericInput
@@ -110,6 +110,8 @@ the output is still a usable input value.
 ```
 
 `describedBy` is merged into the input `aria-describedby`.
+When `id` is provided, it is also the native input's ID, so labels and form
+error summary links can target the editable field.
 
 ## Common Mistakes
 

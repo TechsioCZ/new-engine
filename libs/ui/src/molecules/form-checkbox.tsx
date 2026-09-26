@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.1
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -80,6 +80,7 @@ export type FormCheckboxProps = {
   children?: ReactNode
   label?: ReactNode
   helpText?: ReactNode
+  "aria-describedby"?: string
   validateStatus?: "default" | "error" | "success" | "warning"
   showHelpTextIcon?: boolean
   size?: "sm" | "md" | "lg"
@@ -100,6 +101,7 @@ export function FormCheckbox({
   children,
   label,
   helpText,
+  "aria-describedby": ariaDescribedBy,
   validateStatus = "default",
   showHelpTextIcon = validateStatus !== "default",
   size = "md",
@@ -108,9 +110,15 @@ export function FormCheckbox({
 }: FormCheckboxProps) {
   const generatedId = useId()
   const uniqueId = id || generatedId
+  const helpTextId = useId()
+  const describedBy =
+    [ariaDescribedBy, helpText ? helpTextId : undefined]
+      .filter(Boolean)
+      .join(" ") || undefined
 
   const service = useMachine(machine, {
     id: uniqueId,
+    ids: id ? { hiddenInput: id } : undefined,
     name,
     value,
     checked: indeterminate ? "indeterminate" : checked,
@@ -139,6 +147,7 @@ export function FormCheckbox({
         <input
           className={styles.hiddenInput()}
           {...api.getHiddenInputProps()}
+          aria-describedby={describedBy}
         />
         {labelContent && (
           <span className={styles.label()} {...api.getLabelProps()}>
@@ -150,6 +159,7 @@ export function FormCheckbox({
       {helpText && (
         <div className={styles.textIndented()} data-icon={showHelpTextIcon}>
           <StatusText
+            id={helpTextId}
             showIcon={showHelpTextIcon}
             size={size}
             status={validateStatus}

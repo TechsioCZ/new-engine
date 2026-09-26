@@ -116,14 +116,35 @@ const CHANGELOG = `
 ### Footer v1.0.0
 - Opted into per-component versioning; paired 1:1 with the footer-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### FormCheckbox v1.1.1
+- The public \`id\` now identifies the native checkbox input, so error-summary links can target it.
+
+### FormCheckbox v1.1.0
+- Help/error text is now linked to the control via \`aria-describedby\`; added an optional \`aria-describedby\` prop so apps can append their own description IDs.
+
 ### FormCheckbox v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-checkbox-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormErrorSummary v1.0.1
+- Focus-visible links now use component-specific ring aliases; their appearance is unchanged.
+
+### FormErrorSummary v1.0.0
+- New focusable error summary molecule that lists validation errors as links to the invalid fields via targetId; presentational and form-library-agnostic.
+
+### FormInput v1.1.0
+- Help/error text is now linked to the input via \`aria-describedby\`, and \`aria-invalid\` is set only for \`validateStatus="error"\`.
 
 ### FormInput v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### FormNumericInput v1.1.0
+- Help/error text is now linked to the numeric input via \`describedBy\`.
+
 ### FormNumericInput v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-numeric-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormTextarea v1.1.0
+- Help/error text is now linked to the textarea via \`aria-describedby\`, and \`aria-invalid\` is set only for \`validateStatus="error"\`.
 
 ### FormTextarea v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-textarea-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
@@ -157,6 +178,9 @@ const CHANGELOG = `
 
 ### Menu v1.0.0
 - Opted into per-component versioning; paired 1:1 with the menu-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### NumericInput v1.0.1
+- The public \`id\` now identifies the editable input, aligning external labels and error-summary links.
 
 ### NumericInput v1.0.0
 - Opted into per-component versioning; paired 1:1 with the numeric-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
