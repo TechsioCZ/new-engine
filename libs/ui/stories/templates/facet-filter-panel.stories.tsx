@@ -472,6 +472,7 @@ export const AsyncGroups: Story = {
 }
 
 function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [closeRequests, setCloseRequests] = useState(0)
 
   return (
@@ -479,8 +480,11 @@ function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
       <p className="text-fg-secondary text-sm">Close requests: {closeRequests}</p>
       <FacetFilterPanel
         {...args}
+        drawerOpen={drawerOpen}
         onDrawerOpenChange={(open) => {
-          if (!open) {
+          if (open) {
+            setDrawerOpen(true)
+          } else {
             setCloseRequests((current) => current + 1)
           }
           args.onDrawerOpenChange?.(open)
@@ -493,7 +497,6 @@ function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
 export const RejectedDrawerClose: Story = {
   args: {
     presentation: "drawer",
-    drawerOpen: true,
   },
   render: (args) => <RejectedDrawerCloseExample {...args} />,
 }

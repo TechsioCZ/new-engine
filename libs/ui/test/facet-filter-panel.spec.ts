@@ -156,6 +156,7 @@ test("rejected controlled drawer close keeps focus inside", async ({
   page,
 }) => {
   await openStory(page, "templates-facetfilterpanel--rejected-drawer-close")
+  await page.getByRole("button", { name: "Filters" }).click()
   const dialog = page.getByRole("dialog")
   await expect(dialog).toBeVisible()
   await dialog.getByRole("button", { name: "Close dialog" }).focus()
