@@ -313,6 +313,8 @@ export function Combobox<T = unknown>({
     loopFocus,
     navigate,
     composite: false,
+    // Keep inline popups inside modal focus containment without clipping to its scroll area.
+    positioning: { strategy: portalled ? "absolute" : "fixed" },
     // The listbox scrolls; content remains Zag's dismissal boundary.
     scrollToIndexFn: ({ getElement }) => {
       getElement()?.scrollIntoView({ block: "nearest", inline: "nearest" })

@@ -43,9 +43,11 @@ Optional `data` carries normalized presentation data for `resultSlot(item)`.
 Do not put interactive children inside the result slot. The option is the anchor.
 
 Defaults: external filtering, query-preserving navigation, no input autocomplete,
-inline popup. Inline placement keeps the footer/retry in natural Tab order and
-inside Dialog focus containment. `portalled` is available for clipping scenarios;
-the consumer must verify focus order when enabling it with interactive footer content.
+inline popup. Fixed positioning keeps the inline popup clear of a scrollable
+Dialog while preserving its focus containment and natural Tab order for the
+footer/retry. Do not portal the popup to `document.body` inside a modal Dialog:
+the dialog can hide it from assistive technology. Outside a modal, `portalled`
+remains available when needed.
 
 Use `inputValue`/`onInputValueChange` for a controlled query and pass new groups
 when results arrive. `loading`, `error`, `onRetry`, `loadingMessage`, `retryLabel`

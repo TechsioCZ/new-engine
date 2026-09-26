@@ -190,7 +190,7 @@ test("groups without labels have no dangling label reference", async ({
   await expect(page.getByRole("option", { name: "Footwear" })).toBeVisible();
 });
 
-test("dialog opens only on request and Escape closes one layer at a time", async ({
+test("dialog shows full first result and Escape closes one layer at a time", async ({
   page,
 }) => {
   await page.goto(
@@ -206,7 +206,21 @@ test("dialog opens only on request and Escape closes one layer at a time", async
   });
   const input = dialog.getByRole("combobox");
   await input.fill("trainers");
-  await expect(page.getByRole("option").first()).toBeVisible();
+  const firstOption = page.getByRole("option", { name: "Everyday trainers" });
+  await expect(firstOption).toBeVisible();
+  await expect
+    .poll(async () => {
+      const optionBounds = await firstOption.boundingBox();
+      const listBounds = await page.getByRole("listbox").boundingBox();
+      return Boolean(
+        optionBounds &&
+          listBounds &&
+          optionBounds.y >= listBounds.y &&
+          optionBounds.y + optionBounds.height <=
+            listBounds.y + listBounds.height + 1,
+      );
+    })
+    .toBe(true);
   // Zag registers the nested dismissal layer after its first animation frame.
   await expect(
     dialog.locator('[data-scope="combobox"][data-part="content"]'),
