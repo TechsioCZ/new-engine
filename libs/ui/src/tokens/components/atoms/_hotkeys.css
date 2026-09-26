@@ -1,0 +1,36 @@
+@theme static {
+  /* BASE COLOR MAPPING */
+  --color-hotkeys-surface: var(--color-surface);
+  --color-hotkeys-text: var(--color-fg-secondary);
+  --color-hotkeys-outline: var(--color-border-primary);
+
+  /* DERIVED COLORS */
+  --color-hotkeys-key-bg: var(--color-hotkeys-surface);
+  --color-hotkeys-key-fg: var(--color-hotkeys-text);
+  --color-hotkeys-key-border: var(--color-hotkeys-outline);
+  --color-hotkeys-separator-fg: var(--color-hotkeys-text);
+
+  /* SPACING */
+  --gap-hotkeys: var(--spacing-50);
+  --padding-hotkeys-key-x: var(--spacing-100);
+  --padding-hotkeys-key-y: var(--spacing-50);
+
+  /* TYPOGRAPHY */
+  --text-hotkeys-sm: var(--text-xs);
+  --font-weight-hotkeys: var(--font-weight-medium);
+
+  /* BORDERS & RADIUS */
+  --border-width-hotkeys-key: var(--border-width-sm);
+  --radius-hotkeys-key: var(--radius-sm);
+}
+
+@utility hotkeys-key-border-width {
+  border-width: var(--border-width-hotkeys-key);
+}
+
+@utility hotkeys-target-focus {
+  outline-style: var(--default-ring-style);
+  outline-width: var(--default-ring-width);
+  outline-color: var(--color-primary);
+  outline-offset: var(--default-ring-offset);
+}

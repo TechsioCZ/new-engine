@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-38963
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/organisms/gallery.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/organisms/gallery.tsx
 // component=Gallery
 
 import figma from "figma"

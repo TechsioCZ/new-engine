@@ -36,9 +36,16 @@ Then choose the exact skill:
 ```text
 Button action -> button-usage
 Dialog confirmation -> dialog-usage
+Date or date-time selection -> date-picker-usage
 Toast feedback -> toast-usage
-Tree navigation -> tree-view-usage
+Guided walkthrough -> tour-usage
+Wizard/progress workflow -> steps-usage
+Hierarchical choice -> cascade-select-usage
+Nested site/category links -> vertical-navigation-usage
+Tree widget with arrow-key selection -> tree-view-usage
 Loading placeholder -> skeleton-usage
+Shortcut hint or keyboard registration -> hotkeys-usage
+Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
 ```
 
 ## Core Patterns
@@ -48,7 +55,9 @@ Loading placeholder -> skeleton-usage
 ```text
 Destructive action -> Button danger, maybe Dialog confirmation
 CRUD success/error -> Toast or StatusText depending persistence and context
-Hierarchical navigation -> TreeView
+Hierarchical form choice -> CascadeSelect
+Hierarchical page/category navigation -> VerticalNavigation
+Tree widget selection -> TreeView
 Page trail -> Breadcrumb with framework link adapter when needed
 ```
 
