@@ -135,6 +135,39 @@ test("narrow inline composition fits without horizontal overflow", async ({
 
   expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.width)
   await expect(page.getByRole("heading", { name: "Filters" })).toBeVisible()
+  const narrowWidth = await page
+    .getByRole("complementary", { name: "Filters" })
+    .evaluate((element) => element.getBoundingClientRect().width)
+  await openStory(page, "templates-facetfilterpanel--playground")
+  const playgroundWidth = await page
+    .getByRole("complementary", { name: "Filters" })
+    .evaluate((element) => element.getBoundingClientRect().width)
+  expect(playgroundWidth - narrowWidth).toBeGreaterThanOrEqual(32)
+})
+
+test("option groups loaded after mount open by default", async ({ page }) => {
+  await openStory(page, "templates-facetfilterpanel--async-groups")
+  await expect(page.getByRole("checkbox", { name: /Cotton/ })).toHaveCount(0)
+  await page.getByRole("button", { name: "Load groups" }).click()
+  await expect(page.getByRole("checkbox", { name: /Cotton/ })).toBeVisible()
+})
+
+test("rejected controlled drawer close keeps focus inside", async ({
+  page,
+}) => {
+  await openStory(page, "templates-facetfilterpanel--rejected-drawer-close")
+  const dialog = page.getByRole("dialog")
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole("button", { name: "Close dialog" }).focus()
+  await dialog.getByRole("button", { name: "Close dialog" }).click()
+  await expect(page.getByText("Close requests: 1")).toBeVisible()
+  await expect(dialog).toBeVisible()
+  await page.waitForTimeout(50)
+  await expect
+    .poll(() =>
+      dialog.evaluate((element) => element.contains(document.activeElement))
+    )
+    .toBe(true)
 })
 
 test("drawer closes with Escape, restores focus and retains values", async ({

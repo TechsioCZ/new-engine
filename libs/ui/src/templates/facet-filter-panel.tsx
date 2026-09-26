@@ -2,12 +2,12 @@
  * FacetFilterPanel - @techsio/ui-kit template.
  *
  * @component FacetFilterPanel
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill facet-filter-panel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
 import type { ReactNode } from "react"
-import { useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { Button } from "../atoms/button"
 import { Accordion } from "../molecules/accordion"
 import { Dialog } from "../molecules/dialog"
@@ -260,6 +260,27 @@ function FacetFilterPanelContent({
   const optionGroupIds = groups
     .filter((group) => group.type === "options")
     .map((group) => group.id)
+  const [localExpandedGroups, setLocalExpandedGroups] = useState(
+    () => defaultExpandedGroups ?? optionGroupIds
+  )
+  const previousGroupIds = useRef(new Set(optionGroupIds))
+
+  useEffect(() => {
+    const addedGroupIds = optionGroupIds.filter(
+      (id) => !previousGroupIds.current.has(id)
+    )
+    previousGroupIds.current = new Set(optionGroupIds)
+
+    if (
+      expandedGroups === undefined &&
+      defaultExpandedGroups === undefined &&
+      addedGroupIds.length > 0
+    ) {
+      setLocalExpandedGroups((current) => [
+        ...new Set([...current, ...addedGroupIds]),
+      ])
+    }
+  }, [optionGroupIds, expandedGroups, defaultExpandedGroups])
 
   return (
     <div aria-busy={pending || undefined} className={styles.content()}>
@@ -286,11 +307,15 @@ function FacetFilterPanelContent({
 
       <Accordion
         className={styles.groups()}
-        defaultValue={defaultExpandedGroups ?? optionGroupIds}
         disabled={disabled}
         multiple
-        onChange={onExpandedGroupsChange}
-        value={expandedGroups}
+        onChange={(groupIds) => {
+          if (expandedGroups === undefined) {
+            setLocalExpandedGroups(groupIds)
+          }
+          onExpandedGroupsChange?.(groupIds)
+        }}
+        value={expandedGroups ?? localExpandedGroups}
         variant="child"
       >
         {groups.map((group) => {
@@ -377,10 +402,6 @@ export function FacetFilterPanel({
       setUncontrolledDrawerOpen(open)
     }
     onDrawerOpenChange?.(open)
-    if (!open) {
-      // The trigger is outside Dialog's Zag anatomy, so restore focus after the portal unmounts.
-      globalThis.setTimeout(() => drawerTriggerRef.current?.focus(), 0)
-    }
   }
 
   if (presentation === "drawer") {
@@ -406,6 +427,7 @@ export function FacetFilterPanel({
         <Dialog
           className={styles.drawerContent({ className })}
           customTrigger
+          finalFocusEl={() => drawerTriggerRef.current}
           onOpenChange={({ open }) => setDrawerOpen(open)}
           open={resolvedDrawerOpen}
           placement={drawerPlacement}

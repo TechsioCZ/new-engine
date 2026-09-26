@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: facet-filter-panel-usage
 description: Use for controlled catalog facet presentation with generic option and range groups, active filters, overflow, and an inline panel or Dialog drawer.
 type: core
@@ -86,7 +86,12 @@ presentation at a time. Do not mount hidden inline and drawer copies together.
 
 The drawer supports controlled `drawerOpen/onDrawerOpenChange` and
 uncontrolled `defaultDrawerOpen`. Closing it preserves selections because all
-filter values are controlled by the consumer.
+filter values are controlled by the consumer. Focus returns to the trigger
+only after the drawer actually closes, not when a controlled close is rejected.
+
+Unless `expandedGroups` or `defaultExpandedGroups` is provided, option groups
+open by default even when their data arrives after the initial render. A
+controlled `expandedGroups` value remains authoritative.
 
 `pending` and `disabled` prevent mutations without clearing current values.
 `collapseAfter` enables local show-more/show-less behavior for long option

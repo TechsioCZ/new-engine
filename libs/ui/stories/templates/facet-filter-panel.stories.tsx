@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { fn } from "storybook/test"
+import { Button } from "../../src/atoms/button"
 import {
   FacetFilterPanel,
   type FacetFilterActiveItem,
@@ -313,7 +314,7 @@ type Story = StoryObj<typeof FacetFilterPanel>
 
 export const Playground: Story = {
   render: (args) => (
-    <div className="w-full max-w-container-sm">
+    <div className="w-sm max-w-full">
       <PanelDemo {...args} />
     </div>
   ),
@@ -447,10 +448,54 @@ export const Overflow: Story = {
 
 export const NarrowLayout: Story = {
   render: (args) => (
-    <div className="w-container-xs max-w-full">
+    <div className="w-xs max-w-full">
       <PanelDemo {...args} />
     </div>
   ),
+}
+
+function AsyncGroupsExample(args: FacetFilterPanelProps) {
+  const [groups, setGroups] = useState<FacetFilterGroup[]>([])
+
+  return (
+    <div className="flex w-sm max-w-full flex-col gap-200">
+      <Button onClick={() => setGroups(baseGroups)} type="button">
+        Load groups
+      </Button>
+      <FacetFilterPanel {...args} groups={groups} />
+    </div>
+  )
+}
+
+export const AsyncGroups: Story = {
+  render: (args) => <AsyncGroupsExample {...args} />,
+}
+
+function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
+  const [closeRequests, setCloseRequests] = useState(0)
+
+  return (
+    <>
+      <p className="text-fg-secondary text-sm">Close requests: {closeRequests}</p>
+      <FacetFilterPanel
+        {...args}
+        onDrawerOpenChange={(open) => {
+          if (!open) {
+            setCloseRequests((current) => current + 1)
+          }
+          args.onDrawerOpenChange?.(open)
+        }}
+      />
+    </>
+  )
+}
+
+export const RejectedDrawerClose: Story = {
+  args: {
+    presentation: "drawer",
+    drawerOpen: true,
+  },
+  render: (args) => <RejectedDrawerCloseExample {...args} />,
 }
 
 export const DrawerOpen: Story = {
