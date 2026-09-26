@@ -47,6 +47,9 @@ const CHANGELOG = `
 ### ColorSelect v1.0.0
 - Opted into per-component versioning; paired 1:1 with the color-select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Combobox v1.2.1
+- Async loading and error states keep selected labels while preventing keyboard selection of options that are not rendered.
+
 ### Combobox v1.2.0
 - Added external filtering mode (filterBehavior), async dropdown states (loading, error, onRetry) and custom item rendering (renderItem).
 

@@ -1,5 +1,5 @@
 ---
-component_version: "1.2.0"
+component_version: "1.2.1"
 name: combobox-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Combobox for
@@ -59,6 +59,10 @@ static enum choices use Select, RadioGroup, or RadioCard.
 
 Do not render a custom `<ul>` next to Input. The wrapper builds a Zag
 collection from `items` and handles disabled options.
+
+For external filtering, keep the last `items` while `loading` or `error` is
+shown if the selected value still needs its label. The status replaces the
+option list, and keyboard navigation is unavailable until results return.
 
 ### Use validation props, not border classes
 
@@ -122,4 +126,3 @@ rg -n "<datalist|role=\"listbox\"|<Combobox[^>]*multiple[^>]*value=\"" apps
 rg -n "<Combobox[^>]*className=.*(bg-|text-|border-|p-|px-|py-)" apps
 rg -n "<Combobox[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
-

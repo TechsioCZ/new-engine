@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -254,11 +254,12 @@ export function Combobox<T = unknown>({
     setOptions(items)
   }, [items])
   const displayedItems = filterBehavior === "external" ? items : options
+  const optionsUnavailable = loading || Boolean(error)
   const collection = createComboboxCollection({
     items: displayedItems,
     itemToString: (item) => item.label,
     itemToValue: (item) => item.value,
-    isItemDisabled: (item) => !!item.disabled,
+    isItemDisabled: (item) => optionsUnavailable || !!item.disabled,
   })
 
   const service = useMachine(comboboxMachine, {

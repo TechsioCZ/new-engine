@@ -318,7 +318,17 @@ export const Loading: Story = {
   args: {
     label: 'Loading results',
     placeholder: 'Searching...',
-    items: [],
+    items: countries.slice(0, 2),
+    defaultOpen: true,
+    loading: true,
+  },
+}
+
+export const LoadingWithSelection: Story = {
+  args: {
+    label: 'Loading with selection',
+    items: countries.slice(0, 2),
+    defaultValue: ['cz'],
     defaultOpen: true,
     loading: true,
   },
@@ -338,7 +348,7 @@ export const ErrorRetry: Story = {
         <Combobox
           label="Search failed"
           placeholder="Type to search..."
-          items={[]}
+          items={countries.slice(0, 2)}
           defaultOpen
           error="Something went wrong while loading results."
           onRetry={() => setRetryCount((n) => n + 1)}
