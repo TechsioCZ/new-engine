@@ -1,5 +1,5 @@
 ---
-component_version: "1.1.0"
+component_version: "1.1.1"
 name: form-checkbox-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FormCheckbox
@@ -50,6 +50,8 @@ name, value, required, disabled, readOnly
 ### Use this for labeled checkbox UX
 
 It wires root, hidden input, control, indicator, label, and StatusText.
+When `id` is provided, the native hidden input uses it, so form error summary
+links can target the checkbox.
 
 ### Use indeterminate for partial selection
 

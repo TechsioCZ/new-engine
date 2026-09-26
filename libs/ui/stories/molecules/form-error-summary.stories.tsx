@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { Button } from '../../src/atoms/button'
+import { NumericInput } from '../../src/atoms/numeric-input'
+import { FormCheckbox } from '../../src/molecules/form-checkbox'
 import { FormInput } from '../../src/molecules/form-input'
+import { FormNumericInput } from '../../src/molecules/form-numeric-input'
 import {
   FormErrorSummary,
   type FormErrorSummaryError,
@@ -91,6 +94,16 @@ function FormErrorSummaryExample() {
         label: 'Password must be at least 8 characters',
         targetId: 'password-field',
       },
+      {
+        id: 'quantity',
+        label: 'Enter a quantity',
+        targetId: 'quantity-field',
+      },
+      {
+        id: 'terms',
+        label: 'Accept the terms',
+        targetId: 'terms-field',
+      },
     ])
   }
 
@@ -121,6 +134,20 @@ function FormErrorSummaryExample() {
             ? 'Password must be at least 8 characters'
             : 'Minimum 8 characters'
         }
+      />
+      <FormNumericInput
+        id="quantity-field"
+        label="Quantity"
+        validateStatus={isInvalid('quantity-field') ? 'error' : 'default'}
+      >
+        <NumericInput.Control>
+          <NumericInput.Input />
+        </NumericInput.Control>
+      </FormNumericInput>
+      <FormCheckbox
+        id="terms-field"
+        label="Accept the terms"
+        validateStatus={isInvalid('terms-field') ? 'error' : 'default'}
       />
       <Button onClick={validate} variant="primary">
         Validate

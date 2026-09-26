@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -118,6 +118,7 @@ export function FormCheckbox({
 
   const service = useMachine(machine, {
     id: uniqueId,
+    ids: id ? { hiddenInput: id } : undefined,
     name,
     value,
     checked: indeterminate ? "indeterminate" : checked,
