@@ -23,7 +23,7 @@ export default [
     },
     settings: {
       tailwindcss: {
-        // For TailwindCSS v4 - point to CSS config file
+        // Tailwind CSS v4 reads its configuration from the CSS entrypoint.
         cssConfigPath: tokensCssAbsolutePath,
       },
     },

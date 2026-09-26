@@ -215,6 +215,7 @@ const PREFIX_TOKEN_ALIASES = [
 
 const EXTERNAL_TOKENS = new Set([
   "--available-height",
+  "--available-width",
   "--height",
   "--border-width-badge-dynamic",
 ])

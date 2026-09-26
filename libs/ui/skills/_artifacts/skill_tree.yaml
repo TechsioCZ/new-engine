@@ -332,6 +332,24 @@ skills:
       - stories/atoms/checkbox.stories.tsx
       - src/atoms/checkbox.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
+  - name: hotkeys-usage
+    slug: hotkeys-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/hotkeys-usage/SKILL.md
+    package: libs/ui
+    description: Use for compound shortcut hints and separate explicit-store Zag registrations,
+      including ownership, current callbacks, hydration-safe formatting and optional metadata readback.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/hotkeys.ts
+      - src/atoms/hotkeys.tsx
+      - src/tokens/components/atoms/_hotkeys.css
+      - stories/atoms/hotkeys.stories.tsx
+      - stories/molecules/command-hotkeys.stories.tsx
+      - test/hotkeys.spec.ts
   - name: icon-usage
     slug: icon-usage
     type: sub-skill
@@ -619,6 +637,25 @@ skills:
       - src/molecules/carousel.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/carousel
+  - name: cascade-select-usage
+    slug: cascade-select-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/cascade-select-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app should use CascadeSelect from
+      @techsio/ui-kit/molecules/cascade-select for hierarchical form choices. Covers compound parts,
+      path values, parent and multiple selection, validation, and token-first styling. For Zag-backed
+      behavior, compare the local wrapper with official Zag React docs.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/cascade-select.tsx
+      - src/tokens/components/molecules/_cascade-select.css
+      - stories/molecules/cascade-select.stories.tsx
+      - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/cascade-select
   - name: color-select-usage
     slug: color-select-usage
     type: sub-skill
@@ -656,37 +693,47 @@ skills:
       - src/molecules/combobox.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/combobox
-  - name: search-suggestions-usage
-    slug: search-suggestions-usage
+  - name: command-usage
+    slug: command-usage
     type: sub-skill
     domain: consumer-app-adoption
-    path: skills/search-suggestions-usage/SKILL.md
+    path: skills/command-usage/SKILL.md
     package: libs/ui
-    description: Grouped catalog search navigation with rich results and an all-results link, composed from Combobox.
+    description: Use for searchable application actions with compound Command parts,
+      grouped/disabled results, existing Dialog composition and optional Hotkeys hints.
     requires:
       - component-usage-ux
-      - combobox-usage
+      - zag-compound-components
+      - app-token-overrides
     sources:
-      - src/templates/search-suggestions.tsx
-      - src/molecules/combobox.tsx
-      - stories/templates/search-suggestions.stories.tsx
-  - name: facet-filter-panel-usage
-    slug: facet-filter-panel-usage
+      - src/molecules/command.tsx
+      - src/tokens/components/molecules/_command.css
+      - stories/molecules/command.stories.tsx
+      - stories/molecules/command-hotkeys.stories.tsx
+      - test/command.spec.ts
+      - https://zagjs.com/components/react/combobox
+  - name: date-picker-usage
+    slug: date-picker-usage
     type: sub-skill
     domain: consumer-app-adoption
-    path: skills/facet-filter-panel-usage/SKILL.md
+    path: skills/date-picker-usage/SKILL.md
     package: libs/ui
-    description: Controlled catalog facet presentation with generic option and range groups, active filters, overflow, and an inline panel or Dialog drawer.
+    description: Use after component-usage-ux when an app needs DatePicker from
+      @techsio/ui-kit/molecules/date-picker for locale-aware segmented date entry,
+      calendar selection, transactional time entry, scalar typed values, and canonical
+      form serialization.
     requires:
       - component-usage-ux
-      - accordion-usage
-      - dialog-usage
-      - form-checkbox-usage
-      - slider-usage
+      - zag-compound-components
+      - app-token-overrides
     sources:
-      - src/templates/facet-filter-panel.tsx
-      - src/tokens/components/templates/_facet-filter-panel.css
-      - stories/templates/facet-filter-panel.stories.tsx
+      - src/molecules/date-picker.tsx
+      - src/tokens/components/molecules/_date-picker.css
+      - stories/molecules/date-picker.stories.tsx
+      - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/date-input
+      - https://zagjs.com/components/react/date-picker
+      - https://react-aria.adobe.com/internationalized/date/
   - name: dialog-usage
     slug: dialog-usage
     type: sub-skill
@@ -707,6 +754,63 @@ skills:
       - src/molecules/dialog.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/dialog
+  - name: drawer-usage
+    slug: drawer-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/drawer-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs Drawer from
+      @techsio/ui-kit/molecules/drawer for transient edge panels, modal or non-modal
+      behavior, snap points, swipe gestures, multiple triggers, custom portals,
+      controlled state, and coordinated stacks.
+    requires:
+      - component-usage-ux
+      - zag-compound-components
+      - app-token-overrides
+    sources:
+      - src/molecules/drawer.tsx
+      - src/internal/molecules/drawer.context.tsx
+      - src/internal/molecules/drawer.styles.ts
+      - src/tokens/components/molecules/_drawer.css
+      - stories/molecules/drawer.stories.tsx
+      - https://zagjs.com/components/react/drawer
+  - name: facet-filter-panel-usage
+    slug: facet-filter-panel-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/facet-filter-panel-usage/SKILL.md
+    package: libs/ui
+    description: Controlled catalog facet presentation with generic option and range groups, active filters, overflow, and an inline panel or Dialog drawer.
+    requires:
+      - component-usage-ux
+      - accordion-usage
+      - dialog-usage
+      - form-checkbox-usage
+      - slider-usage
+    sources:
+      - src/templates/facet-filter-panel.tsx
+      - src/tokens/components/templates/_facet-filter-panel.css
+      - stories/templates/facet-filter-panel.stories.tsx
+  - name: file-upload-usage
+    slug: file-upload-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/file-upload-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app should use FileUpload from
+      @techsio/ui-kit/molecules/file-upload. Covers the compound API, Zag-managed local File state,
+      accepted and rejected collections, native form behavior, token-first styling, and the
+      explicit boundary against transport, progress, and retry APIs.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/file-upload.tsx
+      - src/tokens/components/molecules/_file-upload.css
+      - stories/molecules/file-upload.stories.tsx
+      - skills/_artifacts/consumer_app_usage_rules.md
+      - https://zagjs.com/components/react/file-upload
   - name: form-checkbox-usage
     slug: form-checkbox-usage
     type: sub-skill
@@ -937,6 +1041,20 @@ skills:
       - stories/molecules/search-form.stories.tsx
       - src/molecules/search-form.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
+  - name: search-suggestions-usage
+    slug: search-suggestions-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/search-suggestions-usage/SKILL.md
+    package: libs/ui
+    description: Grouped catalog search navigation with rich results and an all-results link, composed from Combobox.
+    requires:
+      - component-usage-ux
+      - combobox-usage
+    sources:
+      - src/templates/search-suggestions.tsx
+      - src/molecules/combobox.tsx
+      - stories/templates/search-suggestions.stories.tsx
   - name: select-usage
     slug: select-usage
     type: sub-skill
@@ -1057,6 +1175,42 @@ skills:
       - src/molecules/toast.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/toast
+  - name: tour-usage
+    slug: tour-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/tour-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux for guided walkthroughs with Tour,
+      target resolution, tooltip/dialog/floating panels, interactive wait effects,
+      imperative controls, cleanup and app-owned onboarding policy.
+    requires:
+      - component-usage-ux
+      - zag-compound-components
+      - app-token-overrides
+    sources:
+      - src/molecules/tour.tsx
+      - src/tokens/components/molecules/_tour.css
+      - stories/molecules/tour.stories.tsx
+      - test/tour.spec.ts
+      - src/molecules/tour.figma.ts
+      - docs/tour-figma-handoff.md
+      - https://zagjs.com/components/react/tour
+  - name: vertical-navigation-usage
+    slug: vertical-navigation-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/vertical-navigation-usage/SKILL.md
+    package: libs/ui
+    description: Nested page/category links with independent disclosure branches,
+      subgroup tones, capped indentation, and Sidebar/Drawer composition.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/vertical-navigation.tsx
+      - src/tokens/components/molecules/_vertical-navigation.css
+      - stories/molecules/vertical-navigation.stories.tsx
   - name: tree-view-usage
     slug: tree-view-usage
     type: sub-skill
@@ -1132,6 +1286,27 @@ skills:
       - src/tokens/components/organisms/_header.css
       - stories/organisms/header.stories.tsx
       - skills/_artifacts/consumer_app_usage_rules.md
+  - name: sidebar-usage
+    slug: sidebar-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/sidebar-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs Sidebar from
+      @techsio/ui-kit/organisms/sidebar for responsive logical start/end navigation,
+      icon collapse, two-pane navigation, controlled expansion, or a sticky-header
+      shell with mobile Drawer behavior.
+    requires:
+      - component-usage-ux
+      - drawer-usage
+      - app-token-overrides
+    sources:
+      - src/organisms/sidebar.tsx
+      - src/internal/organisms/sidebar.context.tsx
+      - src/internal/organisms/sidebar.focus.ts
+      - src/internal/organisms/sidebar.styles.ts
+      - src/tokens/components/organisms/_sidebar.css
+      - stories/organisms/sidebar.stories.tsx
   - name: table-usage
     slug: table-usage
     type: sub-skill

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from "@storybook/react"
 
 /**
  * Per-component changelog for `@techsio/ui-kit`, rendered in Storybook.
@@ -29,6 +29,55 @@ const CHANGELOG = `
 ### FacetFilterPanel v1.0.0
 - Added a controlled catalog-facet template with generic option and range groups, active-filter removal, reset, overflow, pending/disabled states, and explicit inline or Dialog drawer presentation.
 - Facet calculations, formatting, URL/query synchronization and responsive breakpoint selection remain consumer-owned. Stories are manual; interaction regressions run separately in Playwright.
+### VerticalNavigation v1.0.1
+- Unify split-row hover and current-page backgrounds across the link and disclosure. Highlight only the chevron on disclosure hover, preserving separate navigation, expansion and keyboard focus.
+
+### VerticalNavigation v1.0.0
+- Promote the compact catalog styling to component tokens and unify all stories: smaller section labels, flat subgroups, consistent indentation, optional guides and 280 px standalone examples.
+- Accent subgroup surfaces support primary/secondary brand variants independently of the current page; the Akros catalog demonstrates two colored subgroups at 280 px.
+- New standalone link-based navigation with Zag disclosure branches, independent subgroup tones, capped indentation for deep hierarchies, controlled expansion, RTL and Drawer/Sidebar composition. Includes usage guidance and behavior tests; Figma/Code Connect mapping is deferred.
+
+### Hotkeys v1.0.1
+- Use named token utilities for keycap borders and shortcut-target focus styling while preserving the existing token values.
+
+### Command v1.0.1
+- Use a named component utility for the command border width while preserving the existing token value.
+
+### Hotkeys v1.0.0
+- New compound shortcut hints with native Zag formatting, independently usable explicit-store registration hooks, current callbacks, optional registration readback and hydration-safe labels.
+
+### Command v1.0.0
+- New compound action panel on Zag Combobox with label/keyword filtering, groups, empty and disabled states, repeated activation and existing Dialog composition. Application callbacks can be shared with Hotkeys without a second command registry.
+
+### Tour v1.0.2
+- Keep the start trigger disabled throughout target resolution and wait steps, then enable it after the tour ends. Apply target inert before paint while preserving application ownership. Revalidate Zag 1.43.3 guidance and remove obsolete skip/effect-dismiss adapters.
+
+### Tour v1.0.1
+- Preserve application-owned inert state for existing and late targets when a step closes or changes. Tour removes only its own blocking; pre-existing inert and application writes during the tour survive cleanup. Includes browser regressions without public API or visual changes.
+
+### Tour v1.0.0
+- New single-machine guided-tour molecule with tooltip, dialog, floating and interactive wait steps; shared Button/ActionIcon controls, component token aliases, focus restoration, RTL navigation and bounded missing-target handling. Includes regression tests and tour-usage guidance. Figma migration and Code Connect are explicitly deferred.
+
+### DatePicker v1.1.1
+- Aligned field typography, read-only presentation, placeholder binding, and invalid border/focus behavior with the shared Input and form-control contracts. Calendar headings stay compact while retaining full accessible month labels, and required date segments now expose their ARIA requirement state.
+
+### DatePicker v1.1.0
+- Added date and date-time ranges to the existing compound DatePicker: complete typed tuples, indexed start/end segments and form values, coordinated two-month presentation, continuous range states, and one shared timed Cancel/Confirm transaction. Updated the paired date-picker-usage skill and component metadata.
+
+### CascadeSelect v1.0.1
+- Status text now automatically describes the interactive trigger, preserving custom status IDs and existing descriptions and removing the automatic reference when unmounted.
+
+### CascadeSelect v1.0.0
+- New Zag.js cascade-select molecule with a compound API, hierarchical path values, parent and multiple selection, and Select-aliased trigger tokens backed by the shared popup surface.
+
+### FileUpload v1.0.0
+- New Zag.js-backed FileUpload molecule for selecting, validating, previewing, and removing local accepted and rejected File objects through a compound API, native picker/form behavior, drag and drop, controlled state, clipboard input, directory selection, and media capture. It intentionally provides no network transport, progress, retry, or visual size/variant API.
+
+### Drawer v1.0.0
+- New Zag.js-powered Drawer molecule with compound anatomy, logical placements, controlled and uncontrolled state, snap points, dragging, edge swipes, multiple triggers, custom portals, non-modal behavior, presence-aware motion, and nested drawer stacks.
+
+### Sidebar v1.0.0
+- New responsive Sidebar organism with independent logical start/end state, Root-owned collapse policies, mobile Drawer composition, two-pane nested navigation, right and dual sidebars, sticky-header offsets, and breakpoint-safe focus transfer.
 
 ### Dialog v1.0.1
 - Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
@@ -43,6 +92,13 @@ const CHANGELOG = `
 
 ### Accordion v1.0.0
 - Opted into per-component versioning; paired 1:1 with the accordion-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### DataTable v1.2.0
+- Uses only DataTable component tokens. The last Table tokens it reached through to (border width, the small text size, header/footer/row backgrounds, striped rows, the drag-handle hover, the outline shadow) now each have a \`--*-data-table-*\` alias. Derived colour tokens follow the \`-bg\` / \`-fg\` naming rule (e.g. \`--color-data-table-sort-icon-fg\`, \`--color-data-table-row-bg-nested\`), and the border width is \`--border-width-data-table\`.
+- Fixes the filter-row and pagination-bar backgrounds. Both shared the header's inline opaque-surface style, and because an inline \`style\` outranks a class it silently overrode their own \`bg-*\` classes, so neither token reached the browser. Each surface now composites its own token.
+
+### DataTable v1.1.0
+- Moved off the prototype styling onto its own \`--*-data-table-*\` component tokens, exported from the Figma \`data-table\` collection. Toolbar, filter row, pagination bar, empty state, sort icon, drag and resize handles, editor error and detail box each read a named token instead of a Table or semantic one. No visual change — every component token aliases what the slot used before — but each surface can now be retargeted without editing the component. \`--border-table-width\` and the \`text-table-*\` ramp stay on Table tokens, having no DataTable counterpart.
 
 ### DataTable v1.0.0
 - New headless data-grid organism built on \`@tanstack/react-table\` v9, rendering into the presentational \`Table\` organism so it inherits the \`--color-table-*\` tokens. Covers sorting, conditional column filters, global search, row selection, column visibility/pinning/reorder, row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization/infinite scroll and pagination. Every feature exposes a callback for Storybook interaction tests. Paired 1:1 with the data-table-usage skill and this changelog entry.
@@ -83,14 +139,35 @@ const CHANGELOG = `
 ### Footer v1.0.0
 - Opted into per-component versioning; paired 1:1 with the footer-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### FormCheckbox v1.1.1
+- The public \`id\` now identifies the native checkbox input, so error-summary links can target it.
+
+### FormCheckbox v1.1.0
+- Help/error text is now linked to the control via \`aria-describedby\`; added an optional \`aria-describedby\` prop so apps can append their own description IDs.
+
 ### FormCheckbox v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-checkbox-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormErrorSummary v1.0.1
+- Focus-visible links now use component-specific ring aliases; their appearance is unchanged.
+
+### FormErrorSummary v1.0.0
+- New focusable error summary molecule that lists validation errors as links to the invalid fields via targetId; presentational and form-library-agnostic.
+
+### FormInput v1.1.0
+- Help/error text is now linked to the input via \`aria-describedby\`, and \`aria-invalid\` is set only for \`validateStatus="error"\`.
 
 ### FormInput v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### FormNumericInput v1.1.0
+- Help/error text is now linked to the numeric input via \`describedBy\`.
+
 ### FormNumericInput v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-numeric-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormTextarea v1.1.0
+- Help/error text is now linked to the textarea via \`aria-describedby\`, and \`aria-invalid\` is set only for \`validateStatus="error"\`.
 
 ### FormTextarea v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-textarea-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
@@ -124,6 +201,9 @@ const CHANGELOG = `
 
 ### Menu v1.0.0
 - Opted into per-component versioning; paired 1:1 with the menu-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### NumericInput v1.0.1
+- The public \`id\` now identifies the editable input, aligning external labels and error-summary links.
 
 ### NumericInput v1.0.0
 - Opted into per-component versioning; paired 1:1 with the numeric-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
@@ -211,10 +291,10 @@ function Changelog() {
 }
 
 const meta: Meta<typeof Changelog> = {
-  title: 'Guide/Changelog',
+  title: "Guide/Changelog",
   component: Changelog,
-  tags: ['autodocs'],
-  parameters: { layout: 'fullscreen' },
+  tags: ["autodocs"],
+  parameters: { layout: "fullscreen" },
 }
 
 export default meta

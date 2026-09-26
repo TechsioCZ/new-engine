@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-08-28T10:50:48.936Z
+ * Exported at: 2026-09-24T06:56:20.876Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -74,6 +74,17 @@
   --color-border-success-hover: var(--color-success-500);
   --color-border-warning-focus: var(--color-warning-400);
   --color-border-warning-hover: var(--color-warning-500);
+  --color-command-bg: var(--color-popup-bg);
+  --color-command-border: var(--color-popup-border);
+  --color-command-empty-fg: var(--color-popup-item-fg-muted);
+  --color-command-fg: var(--color-popup-item-fg);
+  --color-command-foreground: var(--color-popup-item-fg);
+  --color-command-group-label-fg: var(--color-popup-item-fg-muted);
+  --color-command-highlight: var(--color-popup-item-bg-hover);
+  --color-command-item-bg-highlighted: var(--color-popup-item-bg-hover);
+  --color-command-item-fg-disabled: var(--color-popup-item-fg-disabled);
+  --color-command-muted: var(--color-popup-item-fg-muted);
+  --color-command-surface: var(--color-popup-bg);
   --color-danger: var(--color-danger-400);
   --color-danger-100: oklch(0.936 0.031 17.717);
   --color-danger-200: oklch(0.885 0.059 18.334);
@@ -128,6 +139,13 @@
   --color-float: var(--color-fill-highlight);
   --color-gray-950: oklch(0.13 0.027 261.692);
   --color-highlight: var(--color-fill-highlight);
+  --color-hotkeys-key-bg: var(--color-fill-surface);
+  --color-hotkeys-key-border: var(--color-border-primary);
+  --color-hotkeys-key-fg: var(--color-fg-secondary);
+  --color-hotkeys-outline: var(--color-border-primary);
+  --color-hotkeys-separator-fg: var(--color-fg-secondary);
+  --color-hotkeys-surface: var(--color-fill-surface);
+  --color-hotkeys-text: var(--color-fg-secondary);
   --color-info: var(--color-bg-info);
   --color-info-disabled: var(--color-bg-disabled);
   --color-link: var(--color-sky-300);
@@ -189,6 +207,7 @@
   --color-success-300: oklch(0.871 0.136 154.449);
   --color-success-500: oklch(0.723 0.192 149.579);
   --color-success-600: oklch(0.627 0.17 149.214);
+  --color-success-700: oklch(0.527 0.137 150.069);
   --color-success-disabled: var(--color-bg-disabled);
   --color-tertiary: var(--color-bg-tertiary-base);
   --color-tertiary-100: oklch(0.963 0.021 301.149);
@@ -232,7 +251,9 @@
   --default-ring-color: oklch(1 0 0);
   /* Fonts */
   --font-weight-bold: 700;
+  --font-weight-command-group-label: var(--font-weight-medium);
   --font-weight-extra-light: 200;
+  --font-weight-hotkeys: var(--font-weight-medium);
   --font-weight-light: 300;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
@@ -248,6 +269,8 @@
   --border-lg: 0.19rem;
   --border-md: 0.13rem;
   --border-sm: 0.06rem;
+  --border-width-command: var(--border-width-popup);
+  --border-width-hotkeys-key: var(--border-sm);
   --breakpoint-2xl: 96rem;
   --breakpoint-lg: 64rem;
   --breakpoint-md: 48rem;
@@ -379,8 +402,18 @@
   --opacity-disabled-placeholder: 30%;
   --opacity-placeholder: 60%;
   --opacity-text-secondary: 70%;
+  --padding-command: var(--spacing-150);
+  --padding-command-empty: var(--dimension-24);
+  --padding-command-item-x: var(--padding-popup-item-x-md);
+  --padding-command-item-y: var(--padding-popup-item-y-md);
+  --padding-command-list: var(--padding-popup-viewport);
+  --padding-hotkeys-key-x: var(--spacing-100);
+  --padding-hotkeys-key-y: var(--spacing-50);
   --radius-2xl: 2rem;
+  --radius-command: var(--radius-popup);
+  --radius-command-item: var(--radius-popup-item);
   --radius-full: 62.44rem;
+  --radius-hotkeys-key: var(--radius-sm);
   --radius-lg: 1rem;
   --radius-md: 0.75rem;
   --radius-none: 0rem;
@@ -410,6 +443,10 @@
   --size-6: 0.38rem;
   --size-8: 0.5rem;
   --size-800: 50rem;
+  --spacing-command-gap: var(--spacing-100);
+  --spacing-command-item-gap: var(--spacing-popup-item-md);
+  --spacing-command-list-max: var(--container-xs);
+  --spacing-hotkeys-gap: var(--spacing-50);
   --text-2xl: 2.5rem;
   --text-2xl-max: var(--text-2xl);
   --text-2xl-min: 1.88rem;
@@ -418,6 +455,8 @@
   --text-4xl-max: 3.88rem;
   --text-4xl-min: 2.75rem;
   --text-base: 1rem;
+  --text-command-md: var(--text-sm);
+  --text-hotkeys-sm: var(--text-xs);
   --text-lg: 1.5rem;
   --text-lg-max: var(--text-lg);
   --text-lg-min: 1.38rem;

@@ -1,0 +1,121 @@
+/* Code-owned until the explicitly deferred component-to-figma handoff. */
+@theme static {
+  /* Reference layer */
+  --color-tour-surface: var(--color-fill-surface);
+  --color-tour-text: var(--color-fg-primary);
+  --color-tour-outline: var(--color-border-primary);
+  --color-tour-scrim: var(--color-bg-scrim);
+
+  /* Derived layer */
+  --color-tour-bg: var(--color-tour-surface);
+  --color-tour-fg: var(--color-tour-text);
+  --color-tour-description-fg: var(--color-tour-text);
+  --color-tour-progress-fg: var(--color-tour-text);
+  --color-tour-border: var(--color-tour-outline);
+  --color-tour-backdrop-bg: var(--color-tour-scrim);
+  --color-tour-arrow-bg: var(--color-tour-surface);
+  --color-tour-spotlight-border: var(--color-tour-text);
+  --border-width-tour: var(--border-width-sm);
+  --radius-tour: var(--radius-sm);
+  --shadow-tour: var(--shadow-primary);
+  --padding-tour: var(--dimension-20);
+  --padding-tour-actions: var(--dimension-6);
+  --spacing-tour-content: var(--dimension-10);
+  --spacing-tour-actions: var(--dimension-6);
+  --spacing-tour-close: var(--dimension-10);
+  --spacing-tour-title: var(--dimension-30);
+  --spacing-tour-arrow: var(--dimension-10);
+  --spacing-tour-viewport: var(--dimension-16);
+  --container-tour: var(--container-sm);
+  --text-tour-title-size: var(--text-lg);
+  --text-tour-body-size: var(--text-base);
+  --text-tour-progress-size: var(--text-base);
+  --font-weight-tour-title: var(--font-weight-semibold);
+
+  /* Runtime layer, not a Figma variable. */
+  --z-tour: 80;
+}
+
+@utility tour-layer {
+  /* Zag 1.43.3 derives the positioner's inline z-index from Content.
+   * Keep explicit backdrop/spotlight/content offsets for the ui-kit stack. */
+  z-index: calc(var(--z-tour) + var(--tour-layer, 2)) !important;
+}
+
+@utility tour-border {
+  border: var(--border-width-tour) solid var(--color-tour-border);
+}
+
+@utility tour-spotlight-border {
+  border: var(--border-width-tour) solid var(--color-tour-spotlight-border);
+}
+
+@utility tour-content {
+  width: var(--container-tour);
+  max-width: calc(100vw - var(--spacing-tour-viewport) * 2);
+  max-height: calc(100svh - var(--spacing-tour-viewport) * 2);
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@utility tour-positioner {
+  &[data-type="dialog"] {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  &[data-type="floating"] {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-tour-viewport);
+    pointer-events: none;
+
+    &[data-placement^="top"],
+    &[data-placement="left-start"],
+    &[data-placement="right-start"] {
+      align-items: flex-start;
+    }
+
+    &[data-placement^="bottom"],
+    &[data-placement="left-end"],
+    &[data-placement="right-end"] {
+      align-items: flex-end;
+    }
+
+    &[data-placement="top-start"],
+    &[data-placement="bottom-start"] {
+      justify-content: flex-start;
+    }
+
+    &[data-placement="top-end"],
+    &[data-placement="bottom-end"] {
+      justify-content: flex-end;
+    }
+
+    &[data-placement^="left"] {
+      justify-content: left;
+    }
+
+    &[data-placement^="right"] {
+      justify-content: right;
+    }
+  }
+
+  & > [data-scope="tour"][data-part="content"] {
+    pointer-events: auto;
+  }
+}
+
+@utility tour-arrow {
+  --arrow-size: var(--spacing-tour-arrow);
+  --arrow-background: var(--color-tour-arrow-bg);
+  z-index: calc(var(--z-tour) + 3);
+}
