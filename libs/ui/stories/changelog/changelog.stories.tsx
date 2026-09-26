@@ -12,6 +12,23 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### SearchSuggestions v1.0.0
+- Added a thin grouped catalog-search template over Combobox with rich result content, native links, async states and a separate all-results footer. Data fetching and routing remain consumer-owned.
+- Stories are manual examples; keyboard and navigation regressions run separately in Playwright.
+
+### Combobox v1.3.0
+- Added Zag item groups, explicit navigation mode, navigation callback and footer/portal options. Selection remains the default.
+- Loading/error exclude hidden results from keyboard selection. Rich options retain their label, scalar values are normalized, and help/error text is connected to the input.
+- Loading and retry labels are customizable; status and footer controls are outside listbox semantics.
+- Input and trigger reference the scrollable listbox; Zag keeps highlighted options visible without moving input focus.
+- Group headings and footer spacing follow the shared popup size scale; status text uses a component foreground token.
+
+### FacetFilterPanel v1.0.1
+- Newly loaded option groups open by default, and controlled drawer focus returns to the trigger only after the drawer closes.
+
+### FacetFilterPanel v1.0.0
+- Added a controlled catalog-facet template with generic option and range groups, active-filter removal, reset, overflow, pending/disabled states, and explicit inline or Dialog drawer presentation.
+- Facet calculations, formatting, URL/query synchronization and responsive breakpoint selection remain consumer-owned. Stories are manual; interaction regressions run separately in Playwright.
 ### VerticalNavigation v1.0.1
 - Unify split-row hover and current-page backgrounds across the link and disclosure. Highlight only the chevron on disclosure hover, preserving separate navigation, expansion and keyboard focus.
 
@@ -103,6 +120,12 @@ const CHANGELOG = `
 
 ### ColorSelect v1.0.0
 - Opted into per-component versioning; paired 1:1 with the color-select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Combobox v1.2.1
+- Async loading and error states keep selected labels while preventing keyboard selection of options that are not rendered.
+
+### Combobox v1.2.0
+- Added external filtering mode (filterBehavior), async dropdown states (loading, error, onRetry) and custom item rendering (renderItem).
 
 ### Combobox v1.1.0
 - Panel, item hover/selected colour, radius, shadow and z-index now come from the shared popup-surface tokens (also used by Select and Menu), so all three read as one system. Selected items get a real trailing check indicator (previously missing) in a reserved gutter that keeps the label from reflowing.

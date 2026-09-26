@@ -775,6 +775,23 @@ skills:
       - src/tokens/components/molecules/_drawer.css
       - stories/molecules/drawer.stories.tsx
       - https://zagjs.com/components/react/drawer
+  - name: facet-filter-panel-usage
+    slug: facet-filter-panel-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/facet-filter-panel-usage/SKILL.md
+    package: libs/ui
+    description: Controlled catalog facet presentation with generic option and range groups, active filters, overflow, and an inline panel or Dialog drawer.
+    requires:
+      - component-usage-ux
+      - accordion-usage
+      - dialog-usage
+      - form-checkbox-usage
+      - slider-usage
+    sources:
+      - src/templates/facet-filter-panel.tsx
+      - src/tokens/components/templates/_facet-filter-panel.css
+      - stories/templates/facet-filter-panel.stories.tsx
   - name: file-upload-usage
     slug: file-upload-usage
     type: sub-skill
@@ -1024,6 +1041,20 @@ skills:
       - stories/molecules/search-form.stories.tsx
       - src/molecules/search-form.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
+  - name: search-suggestions-usage
+    slug: search-suggestions-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/search-suggestions-usage/SKILL.md
+    package: libs/ui
+    description: Grouped catalog search navigation with rich results and an all-results link, composed from Combobox.
+    requires:
+      - component-usage-ux
+      - combobox-usage
+    sources:
+      - src/templates/search-suggestions.tsx
+      - src/molecules/combobox.tsx
+      - stories/templates/search-suggestions.stories.tsx
   - name: select-usage
     slug: select-usage
     type: sub-skill
