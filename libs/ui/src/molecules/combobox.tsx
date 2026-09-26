@@ -76,12 +76,16 @@ const comboboxVariants = tv({
       "data-[state=open]:scale-100 data-[state=open]:opacity-100",
       "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
-    list: ["m-0 flex min-h-0 list-none flex-col overflow-y-auto overscroll-contain"],
+    list: [
+      "m-0 flex min-h-0 list-none flex-col overflow-y-auto overscroll-contain",
+    ],
     groupLabel: [
       "combobox-popup-padding",
       "text-combobox-group-label-size font-combobox-group-label text-combobox-group-fg",
     ],
-    footer: ["combobox-popup-padding shrink-0 border-t border-combobox-footer-border"],
+    footer: [
+      "combobox-popup-padding shrink-0 border-t border-combobox-footer-border",
+    ],
     itemText: ["min-w-0 flex-grow truncate"],
     item: [
       "popup-item-base",
@@ -290,11 +294,13 @@ export function Combobox<T = unknown>({
   const displayedItems = filterBehavior === "external" ? allItems : options
   const resultsHidden = loading || Boolean(error)
   const collection = createComboboxCollection({
-    items: resultsHidden ? [] : displayedItems,
+    items: displayedItems,
     itemToString: (item) => item.label,
     itemToValue: (item) => item.value,
     isItemDisabled: (item) =>
-      Boolean(item.disabled || readOnly || (navigation && !item.href)),
+      Boolean(
+        resultsHidden || item.disabled || readOnly || (navigation && !item.href)
+      ),
   })
 
   const service = useMachine(comboboxMachine, {
@@ -373,7 +379,8 @@ export function Combobox<T = unknown>({
   } = comboboxVariants({ size })
 
   const hasOptions = api.collection.size > 0
-  const showEmptyState = !hasOptions && Boolean(api.inputValue)
+  const showEmptyState =
+    !resultsHidden && !hasOptions && Boolean(api.inputValue)
   let state = "idle"
   if (loading) state = "loading"
   else if (error) state = "error"
@@ -555,39 +562,40 @@ export function Combobox<T = unknown>({
               className={list()}
               id={listId}
             >
-              {groups
-                ? groups.map((group) => {
-                    const groupItems = group.items.filter((item) =>
-                      visibleValues.has(item.value)
-                    )
-                    if (groupItems.length === 0) return null
-                    return (
-                      <div
-                        {...api.getItemGroupProps({ id: group.id })}
-                        aria-labelledby={
-                          group.label
-                            ? api.getItemGroupProps({ id: group.id })[
-                                "aria-labelledby"
-                              ]
-                            : undefined
-                        }
-                        key={group.id}
-                      >
-                        {group.label && (
-                          <div
-                            {...api.getItemGroupLabelProps({
-                              htmlFor: group.id,
-                            })}
-                            className={groupLabel()}
-                          >
-                            {group.label}
-                          </div>
-                        )}
-                        {groupItems.map(renderOption)}
-                      </div>
-                    )
-                  })
-                : collection.items.map(renderOption)}
+              {!resultsHidden &&
+                (groups
+                  ? groups.map((group) => {
+                      const groupItems = group.items.filter((item) =>
+                        visibleValues.has(item.value)
+                      )
+                      if (groupItems.length === 0) return null
+                      return (
+                        <div
+                          {...api.getItemGroupProps({ id: group.id })}
+                          aria-labelledby={
+                            group.label
+                              ? api.getItemGroupProps({ id: group.id })[
+                                  "aria-labelledby"
+                                ]
+                              : undefined
+                          }
+                          key={group.id}
+                        >
+                          {group.label && (
+                            <div
+                              {...api.getItemGroupLabelProps({
+                                htmlFor: group.id,
+                              })}
+                              className={groupLabel()}
+                            >
+                              {group.label}
+                            </div>
+                          )}
+                          {groupItems.map(renderOption)}
+                        </div>
+                      )
+                    })
+                  : collection.items.map(renderOption))}
             </div>
             {footer && (
               <div className={footerSlot()} data-part="footer">

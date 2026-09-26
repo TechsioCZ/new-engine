@@ -92,6 +92,10 @@ static enum choices use Select, RadioGroup, or RadioCard.
 Do not render a custom `<ul>` next to Input. The wrapper builds a Zag
 collection from `items` and handles disabled options.
 
+For external filtering, keep the last `items` while `loading` or `error` is
+shown if the selected value still needs its label. The status replaces the
+option list, and keyboard navigation is unavailable until results return.
+
 ### Use validation props, not border classes
 
 `validateStatus` controls trigger/input border state and `helpText` renders

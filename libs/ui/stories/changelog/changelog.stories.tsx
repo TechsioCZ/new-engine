@@ -23,6 +23,13 @@ const CHANGELOG = `
 - Input and trigger reference the scrollable listbox; Zag keeps highlighted options visible without moving input focus.
 - Group headings and footer spacing follow the shared popup size scale; status text uses a component foreground token.
 
+### FacetFilterPanel v1.0.1
+- Newly loaded option groups open by default, and controlled drawer focus returns to the trigger only after the drawer closes.
+
+### FacetFilterPanel v1.0.0
+- Added a controlled catalog-facet template with generic option and range groups, active-filter removal, reset, overflow, pending/disabled states, and explicit inline or Dialog drawer presentation.
+- Facet calculations, formatting, URL/query synchronization and responsive breakpoint selection remain consumer-owned. Stories are manual; interaction regressions run separately in Playwright.
+
 ### Dialog v1.0.1
 - Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
 
@@ -57,6 +64,9 @@ const CHANGELOG = `
 
 ### ColorSelect v1.0.0
 - Opted into per-component versioning; paired 1:1 with the color-select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### Combobox v1.2.1
+- Async loading and error states keep selected labels while preventing keyboard selection of options that are not rendered.
 
 ### Combobox v1.2.0
 - Added external filtering mode (filterBehavior), async dropdown states (loading, error, onRetry) and custom item rendering (renderItem).

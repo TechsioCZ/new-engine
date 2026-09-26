@@ -40,6 +40,7 @@ Toast feedback -> toast-usage
 Tree navigation -> tree-view-usage
 Loading placeholder -> skeleton-usage
 Catalog search navigation -> search-suggestions-usage
+Catalog facet filtering -> facet-filter-panel-usage
 ```
 
 ## Core Patterns
