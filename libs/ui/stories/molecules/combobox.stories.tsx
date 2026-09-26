@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
+import { fn } from 'storybook/test'
 import { VariantContainer } from '../../.storybook/decorator'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
 import { Button } from '../../src/atoms/button'
@@ -277,6 +278,30 @@ export const ComplexStory: Story = {
         </div>
       </div>
     )
+  },
+}
+
+export const Grouped: Story = {
+  args: {
+    label: 'Select Country',
+    placeholder: 'Choose a country...',
+    defaultOpen: true,
+    groups: [
+      {
+        id: 'europe',
+        label: 'Europe',
+        items: [
+          { value: 'cz', label: 'Czech Republic' },
+          { value: 'de', label: 'Germany' },
+        ],
+      },
+      {
+        id: 'north-america',
+        label: 'North America',
+        items: [{ value: 'us', label: 'USA' }],
+      },
+    ],
+    onChange: fn(),
   },
 }
 

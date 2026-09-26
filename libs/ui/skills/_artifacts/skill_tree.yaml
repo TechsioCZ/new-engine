@@ -656,6 +656,20 @@ skills:
       - src/molecules/combobox.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/combobox
+  - name: search-suggestions-usage
+    slug: search-suggestions-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/search-suggestions-usage/SKILL.md
+    package: libs/ui
+    description: Grouped catalog search navigation with rich results and an all-results link, composed from Combobox.
+    requires:
+      - component-usage-ux
+      - combobox-usage
+    sources:
+      - src/templates/search-suggestions.tsx
+      - src/molecules/combobox.tsx
+      - stories/templates/search-suggestions.stories.tsx
   - name: facet-filter-panel-usage
     slug: facet-filter-panel-usage
     type: sub-skill
