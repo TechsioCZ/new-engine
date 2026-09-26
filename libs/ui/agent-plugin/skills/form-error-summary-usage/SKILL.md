@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: form-error-summary-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FormErrorSummary
