@@ -1,0 +1,43 @@
+@theme static {
+  /* Reference layer */
+  --color-facet-filter-panel-surface: var(--color-fill-surface);
+  --color-facet-filter-panel-text: var(--color-fg-primary);
+  --color-facet-filter-panel-muted: var(--color-fg-secondary);
+  --color-facet-filter-panel-divider: var(--color-border-primary);
+  --color-facet-filter-panel-accent: var(--color-bg-primary-base);
+  --color-facet-filter-panel-on-accent: var(--color-fg-on-primary-solid-neo);
+
+  /* Derived layer */
+  --color-facet-filter-panel-bg: var(--color-facet-filter-panel-surface);
+  --color-facet-filter-panel-fg: var(--color-facet-filter-panel-text);
+  --color-facet-filter-panel-title-fg: var(--color-facet-filter-panel-text);
+  --color-facet-filter-panel-muted-fg: var(--color-facet-filter-panel-muted);
+  --color-facet-filter-panel-border: var(--color-facet-filter-panel-divider);
+  --color-facet-filter-panel-count-bg: var(--color-facet-filter-panel-accent);
+  --color-facet-filter-panel-count-fg: var(--color-facet-filter-panel-on-accent);
+
+  --border-width-facet-filter-panel: var(--border-sm);
+  --radius-facet-filter-panel: var(--radius-md);
+  --radius-facet-filter-panel-count: var(--radius-sm);
+  --container-facet-filter-panel-max-h: calc(100dvh - var(--spacing-400));
+  --spacing-facet-filter-panel: var(--spacing-200);
+  --spacing-facet-filter-panel-group: var(--spacing-100);
+  --spacing-facet-filter-panel-item: var(--spacing-100);
+  --spacing-facet-filter-panel-active: var(--spacing-100);
+  --spacing-facet-filter-panel-overflow: var(--spacing-100);
+  --spacing-facet-filter-panel-count: var(--spacing-400);
+  --padding-facet-filter-panel: var(--spacing-200);
+  --padding-facet-filter-panel-group: var(--spacing-200);
+  --padding-facet-filter-panel-active: var(--spacing-150);
+  --padding-facet-filter-panel-count: var(--spacing-100);
+  --text-facet-filter-panel-title: var(--text-md);
+  --text-facet-filter-panel-active-title: var(--text-sm);
+  --text-facet-filter-panel-status: var(--text-sm);
+  --text-facet-filter-panel-count: var(--text-xs);
+  --font-weight-facet-filter-panel-title: var(--font-weight-semibold);
+  --font-weight-facet-filter-panel-active-title: var(--font-weight-medium);
+}
+
+@utility token-icon-facet-filter-panel-filter {
+  @apply icon-[mdi--filter-variant];
+}

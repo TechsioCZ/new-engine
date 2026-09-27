@@ -5,14 +5,36 @@
  *   - `--padding-combobox-input-{size}` semantic aliases (Figma exports
  *     the shared per-size spacing axis).
  *   - `--padding-combobox-trigger` composite.
+ *   - Group, footer, and async status aliases over shared popup tokens.
  */
 
 @theme static {
+  --color-combobox-status: var(--color-popup-item-fg);
+  --color-combobox-group: var(--color-popup-item-fg);
+  --color-combobox-divider: var(--color-popup-border);
+
+  --color-combobox-status-fg: var(--color-combobox-status);
+  --color-combobox-group-fg: var(--color-combobox-group);
+  --color-combobox-footer-border: var(--color-combobox-divider);
+
   --padding-combobox-input-sm: var(--spacing-combobox-sm);
   --padding-combobox-input-md: var(--spacing-combobox-md);
   --padding-combobox-input-lg: var(--spacing-combobox-lg);
 
   --padding-combobox-trigger: 0 var(--spacing-100);
+
+  --text-combobox-group-label-size: var(--text-sm);
+  --font-weight-combobox-group-label: var(--font-weight-semibold);
+}
+
+/* Resolve the popup's size scale on each group label, footer, or status. */
+@utility combobox-popup-padding {
+  padding: var(--popup-item-y, var(--padding-popup-item-y-md))
+    var(--popup-item-x, var(--padding-popup-item-x-md));
+}
+
+@utility combobox-status-gap {
+  gap: var(--popup-item-gap, var(--spacing-popup-item-md));
 }
 
 /* Semantic tokens for combobox icons */

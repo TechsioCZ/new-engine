@@ -44,6 +44,8 @@ Hierarchical choice -> cascade-select-usage
 Nested site/category links -> vertical-navigation-usage
 Tree widget with arrow-key selection -> tree-view-usage
 Loading placeholder -> skeleton-usage
+Catalog search navigation -> search-suggestions-usage
+Catalog facet filtering -> facet-filter-panel-usage
 Shortcut hint or keyboard registration -> hotkeys-usage
 Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
 ```

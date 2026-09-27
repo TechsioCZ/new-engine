@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
+import { fn } from 'storybook/test'
 import { VariantContainer } from '../../.storybook/decorator'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
 import { Button } from '../../src/atoms/button'
@@ -278,4 +279,131 @@ export const ComplexStory: Story = {
       </div>
     )
   },
+}
+
+export const Grouped: Story = {
+  args: {
+    label: 'Select Country',
+    placeholder: 'Choose a country...',
+    defaultOpen: true,
+    groups: [
+      {
+        id: 'europe',
+        label: 'Europe',
+        items: [
+          { value: 'cz', label: 'Czech Republic' },
+          { value: 'de', label: 'Germany' },
+        ],
+      },
+      {
+        id: 'north-america',
+        label: 'North America',
+        items: [{ value: 'us', label: 'USA' }],
+      },
+    ],
+    onChange: fn(),
+  },
+}
+
+export const ExternalFiltering: Story = {
+  render: () => <ExternalFilteringExample />,
+}
+
+function ExternalFilteringExample() {
+  const [results, setResults] = useState<ComboboxItem[]>(countries)
+  const [loading, setLoading] = useState(false)
+
+  const handleInput = (value: string) => {
+    setLoading(true)
+    setTimeout(() => {
+      setResults(
+        countries.filter((c) =>
+          c.label.toLowerCase().includes(value.toLowerCase())
+        )
+      )
+      setLoading(false)
+    }, 500)
+  }
+
+  return (
+    <div className="w-xs">
+      <Combobox
+        label="Search country (external)"
+        placeholder="Type to search..."
+        items={results}
+        filterBehavior="external"
+        loading={loading}
+        onInputValueChange={handleInput}
+      />
+    </div>
+  )
+}
+
+export const Loading: Story = {
+  args: {
+    label: 'Loading results',
+    placeholder: 'Searching...',
+    items: countries.slice(0, 2),
+    defaultOpen: true,
+    loading: true,
+  },
+}
+
+export const LoadingWithSelection: Story = {
+  args: {
+    label: 'Loading with selection',
+    items: countries.slice(0, 2),
+    defaultValue: ['cz'],
+    defaultOpen: true,
+    loading: true,
+  },
+}
+
+export const ErrorRetry: Story = {
+  render: () => {
+    const [retryCount, setRetryCount] = useState(0)
+
+    return (
+      <div className="w-xs">
+        {retryCount > 0 && (
+          <p className="mb-200 text-status-text-sm text-fg-secondary">
+            Retried {retryCount} time(s)
+          </p>
+        )}
+        <Combobox
+          label="Search failed"
+          placeholder="Type to search..."
+          items={countries.slice(0, 2)}
+          defaultOpen
+          error="Something went wrong while loading results."
+          onRetry={() => setRetryCount((n) => n + 1)}
+        />
+      </div>
+    )
+  },
+}
+
+const richCountries: ComboboxItem<{ subtitle: string }>[] = [
+  { id: '1', label: 'Czech Republic', value: 'cz', data: { subtitle: 'Central Europe' } },
+  { id: '2', label: 'Germany', value: 'de', data: { subtitle: 'Western Europe' } },
+  { id: '3', label: 'France', value: 'fr', data: { subtitle: 'Western Europe' } },
+]
+
+export const RichItem: Story = {
+  render: () => (
+    <div className="w-xs">
+      <Combobox
+        label="Country with details"
+        placeholder="Select a country..."
+        items={richCountries}
+        defaultOpen
+        renderItem={(item) => (
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span>{item.label}</span>
+            <span className="text-status-text-sm text-fg-secondary">{item.data?.subtitle}</span>
+          </div>
+        )}
+      />
+    </div>
+  ),
 }
