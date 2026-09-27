@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-24T06:56:20.876Z
+ * Exported at: 2026-09-27T14:05:41.540Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -149,6 +149,10 @@
   --color-info: var(--color-bg-info);
   --color-info-disabled: var(--color-bg-disabled);
   --color-link: var(--color-sky-300);
+  --color-mix-vertical-navigation-accent-light: oklch(0.359 0.04 246.369);
+  --color-mix-vertical-navigation-indicator-hover: oklch(0.896 0.065 228.044);
+  --color-mix-vertical-navigation-item-current: oklch(0.442 0.052 240.328);
+  --color-mix-vertical-navigation-secondary-light: oklch(0.352 0.004 354.953);
   --color-neutral-100: oklch(0.967 0.003 264.542);
   --color-neutral-200: oklch(0.928 0.006 264.531);
   --color-neutral-300: oklch(0.872 0.011 261.787);

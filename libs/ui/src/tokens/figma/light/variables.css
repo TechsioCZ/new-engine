@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-24T06:56:20.869Z
+ * Exported at: 2026-09-27T14:05:41.528Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -582,6 +582,10 @@
   --color-menu-item-icon-fg: var(--color-popup-item-fg-muted);
   --color-menu-separator-bg: var(--color-border-primary);
   --color-menu-submenu-indicator-fg: var(--color-popup-item-fg-muted);
+  --color-mix-vertical-navigation-accent-light: oklch(0.943 0.018 253.341);
+  --color-mix-vertical-navigation-indicator-hover: oklch(0.388 0.053 259.023);
+  --color-mix-vertical-navigation-item-current: oklch(0.918 0.033 252.466);
+  --color-mix-vertical-navigation-secondary-light: oklch(0.927 0.029 39.345);
   --color-neutral-100: oklch(0.967 0.003 264.542);
   --color-neutral-200: oklch(0.928 0.006 264.531);
   --color-neutral-300: oklch(0.872 0.011 261.787);
@@ -1056,6 +1060,30 @@
   --color-tree-view-node-bg-hover: var(--color-bg-primary-hover);
   --color-tree-view-ring: var(--color-ring-default);
   --color-tree-view-root-bg: var(--color-transparent);
+  --color-vertical-navigation-accent: var(--color-bg-primary-base);
+  --color-vertical-navigation-accent-light: var(--color-mix-vertical-navigation-accent-light);
+  --color-vertical-navigation-fg: var(--color-fg-primary);
+  --color-vertical-navigation-focus-border: var(--color-ring);
+  --color-vertical-navigation-foreground: var(--color-fg-primary);
+  --color-vertical-navigation-group-bg-accent: var(--color-mix-vertical-navigation-accent-light);
+  --color-vertical-navigation-group-bg-plain: var(--color-bg-transparent);
+  --color-vertical-navigation-group-bg-secondary: var(--color-mix-vertical-navigation-secondary-light);
+  --color-vertical-navigation-group-bg-subtle: var(--color-fill-surface);
+  --color-vertical-navigation-group-fg-accent: var(--color-fg-primary);
+  --color-vertical-navigation-group-fg-plain: var(--color-fg-primary);
+  --color-vertical-navigation-group-fg-secondary: var(--color-fg-primary);
+  --color-vertical-navigation-group-fg-subtle: var(--color-fg-primary);
+  --color-vertical-navigation-guide-border: var(--color-border-primary);
+  --color-vertical-navigation-indicator-fg-hover: var(--color-mix-vertical-navigation-indicator-hover);
+  --color-vertical-navigation-item-bg: var(--color-bg-transparent);
+  --color-vertical-navigation-item-bg-current: var(--color-mix-vertical-navigation-item-current);
+  --color-vertical-navigation-item-bg-hover: var(--color-fill-hover);
+  --color-vertical-navigation-item-fg-current: var(--color-fg-primary);
+  --color-vertical-navigation-item-fg-disabled: var(--color-fg-disabled);
+  --color-vertical-navigation-label-fg: var(--color-fg-primary);
+  --color-vertical-navigation-secondary: var(--color-bg-secondary-base);
+  --color-vertical-navigation-separator-bg: var(--color-border-primary);
+  --color-vertical-navigation-surface: var(--color-fill-surface);
   --color-warning: var(--color-warning-500);
   --color-warning-100: oklch(0.962 0.058 95.617);
   --color-warning-200: oklch(0.924 0.115 95.746);
@@ -1130,6 +1158,9 @@
   --font-weight-toast-title: var(--font-weight-medium);
   --font-weight-tour-title: var(--font-weight-semibold);
   --font-weight-tree-view-label: var(--font-weight-medium);
+  --font-weight-vertical-navigation-current: var(--font-weight-semibold);
+  --font-weight-vertical-navigation-label: var(--font-weight-semibold);
+  --font-weight-vertical-navigation-path: var(--font-weight-medium);
   /* Measures */
   --aspect-card: 3 / 2;
   --aspect-golden: 1.618;
@@ -1189,6 +1220,7 @@
   --border-width-toast: var(--border-sm);
   --border-width-tooltip: var(--size-1);
   --border-width-tour: var(--border-sm);
+  --border-width-vertical-navigation: var(--border-sm);
   --breakpoint-2xl: 96rem;
   --breakpoint-lg: 64rem;
   --breakpoint-md: 48rem;
@@ -1572,6 +1604,11 @@
   --padding-tooltip-y-sm: var(--dimension-10);
   --padding-tour: var(--dimension-20);
   --padding-tour-actions: var(--dimension-6);
+  --padding-vertical-navigation-group: var(--dimension-0);
+  --padding-vertical-navigation-item-x-md: var(--padding-popup-item-x-md);
+  --padding-vertical-navigation-item-x-sm: var(--padding-popup-item-x-sm);
+  --padding-vertical-navigation-item-y-md: var(--padding-popup-item-y-md);
+  --padding-vertical-navigation-item-y-sm: var(--padding-popup-item-y-sm);
   --radius-2xl: 2rem;
   --radius-accordion: var(--radius-sm);
   --radius-badge: var(--radius-sm);
@@ -1678,6 +1715,8 @@
   --radius-tooltip: var(--radius-md);
   --radius-tour: var(--radius-sm);
   --radius-tree-view: var(--radius-none);
+  --radius-vertical-navigation-group: var(--radius-none);
+  --radius-vertical-navigation-item: var(--radius-sm);
   --radius-xs: 0.25rem;
   --ring-offset: 0.13rem;
   --ring-width: 0.13rem;
@@ -1995,6 +2034,14 @@
   --spacing-tree-view-indent-per-level: var(--dimension-6);
   --spacing-tree-view-indent-width: var(--size-1);
   --spacing-tree-view-node-padding: var(--dimension-6);
+  --spacing-vertical-navigation-group: var(--spacing-100);
+  --spacing-vertical-navigation-indent: var(--dimension-12);
+  --spacing-vertical-navigation-item-md: var(--dimension-36);
+  --spacing-vertical-navigation-item-sm: var(--height-form-control-sm);
+  --spacing-vertical-navigation-label: var(--dimension-8);
+  --spacing-vertical-navigation-list: var(--dimension-2);
+  --spacing-vertical-navigation-row: var(--spacing-50);
+  --spacing-vertical-navigation-separator: var(--border-sm);
   --text-2xl: 2.5rem;
   --text-2xl-max: var(--text-2xl);
   --text-2xl-min: 1.88rem;
@@ -2228,6 +2275,11 @@
   --text-tree-view-lg: var(--text-lg);
   --text-tree-view-md: var(--text-md);
   --text-tree-view-sm: var(--text-sm);
+  --text-vertical-navigation-icon-md: var(--text-icon-control-md);
+  --text-vertical-navigation-icon-sm: var(--text-icon-control-sm);
+  --text-vertical-navigation-label-sm: var(--text-xs);
+  --text-vertical-navigation-md: var(--text-base);
+  --text-vertical-navigation-sm: var(--text-sm);
   --text-xl: 1.88rem;
   --text-xl-max: var(--text-xl);
   --text-xl-min: 1.63rem;
