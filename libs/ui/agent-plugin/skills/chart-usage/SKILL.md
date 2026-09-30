@@ -13,7 +13,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/chart.tsx libs/ui/src/tokens/components/molecules/_chart.css libs/ui/stories/molecules/chart.stories.tsx \"https://tanstack.com/charts/v0/docs/overview\" # supported upstream: 0.6.x"
+  sources: "libs/ui/src/molecules/chart.tsx libs/ui/src/tokens/components/molecules/_chart.css libs/ui/stories/molecules/chart.stories.tsx https://tanstack.com/charts/v0/docs/overview"
 ---
 
 # @techsio/ui-kit Chart Usage

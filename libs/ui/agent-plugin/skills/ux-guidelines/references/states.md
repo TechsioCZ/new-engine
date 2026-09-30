@@ -83,7 +83,9 @@ Every list, table, chart and search result has three designed empty states:
 2. **No results** — names the query/filter and offers `Clear filters`.
 3. **Error** — says loading failed and offers `Try again`.
 
-DataTable exposes the empty copy through `translations`; charts show an empty
+DataTable shows one empty state at a time: choose the copy from the app's state
+(`translations.emptyTitle` / `emptyDescription`) or render per-case content with
+`renderEmpty` so a load error never reads as `No records`. Charts show an empty
 state instead of empty axes.
 
 ## Selected, active, current

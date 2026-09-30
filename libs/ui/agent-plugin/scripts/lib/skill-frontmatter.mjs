@@ -42,15 +42,23 @@ export function splitSkill(source) {
   return { lines: match[1].split(/\r?\n/), body: source.slice(match[0].length) }
 }
 
+// A quoted scalar followed by an optional YAML comment: `"value" # note`.
+const DOUBLE_QUOTED = /^("(?:[^"\\]|\\.)*")\s*(?:#.*)?$/
+const SINGLE_QUOTED = /^'((?:[^']|'')*)'\s*(?:#.*)?$/
+// In a plain scalar a comment starts at whitespace + `#`.
+const PLAIN_COMMENT = /\s+#.*$/
+
 const unquote = (raw) => {
   const value = raw.trim()
-  if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
-    return JSON.parse(value)
+  const double = DOUBLE_QUOTED.exec(value)
+  if (double) {
+    return JSON.parse(double[1])
   }
-  if (value.startsWith("'") && value.endsWith("'") && value.length >= 2) {
-    return value.slice(1, -1).replace(/''/g, "'")
+  const single = SINGLE_QUOTED.exec(value)
+  if (single) {
+    return single[1].replace(/''/g, "'")
   }
-  return value
+  return value.replace(PLAIN_COMMENT, "")
 }
 
 /**

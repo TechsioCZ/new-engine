@@ -49,7 +49,7 @@ where actions and feedback live). This section applies them to `DataTable`.
 - Format cells with the app's `Intl` formatters; render missing values as `—`.
 - Row click = read (detail drawer); edit and delete live in `rowActions`, delete last with `tone: "danger"`.
 - Show bulk actions only while rows are selected; confirm destructive bulk actions with the count.
-- Provide all three empty states through `translations` (first use, no results, error).
+- Design all three empty states (first use, no results, load error). `translations.emptyTitle` / `emptyDescription` hold one message, so pick it from the app's state on each render, or use `renderEmpty` to render a different state (with `Clear filters` / `Try again`) per case — never let a failed load read as `No records`.
 - Choose `size` per page: `sm` for scanning, `md` when rows are edited inline.
 
 **Don't**
