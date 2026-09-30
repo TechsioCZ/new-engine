@@ -8,7 +8,7 @@ import { Chart } from "../../src/molecules/chart"
 import { Popover } from "../../src/molecules/popover"
 import { Tabs } from "../../src/molecules/tabs"
 import { Table } from "../../src/organisms/table"
-import { adminNav, currency, orders, products, revenueByChannel } from "./data"
+import { adminNav, currency, orders, products, revenueByChannel, formatDate } from "./data"
 import {
   Brand,
   Frame,
@@ -265,7 +265,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
                   <span className="flex min-w-0 flex-col gap-50">
                     <span className="truncate text-sm">{order.customer}</span>
                     <span className="text-fg-secondary text-xs">
-                      {order.number} · {order.placedAt}
+                      {order.number} · {formatDate(order.placedAt)}
                     </span>
                   </span>
                   <StatusBadge status={order.status} />

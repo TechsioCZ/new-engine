@@ -11,6 +11,7 @@ import {
   contentEntries,
   contentStatusOptions,
   sectionOptions,
+  formatDate,
 } from "./data"
 import {
   AdminShell,
@@ -94,6 +95,7 @@ function useContentColumns(): ColumnDef<ContentEntry, unknown>[] {
         accessorKey: "updatedAt",
         header: "Updated",
         meta: { type: "date", width: 140 },
+        cell: (info) => formatDate(info.getValue<string>()),
       },
       {
         accessorKey: "views",

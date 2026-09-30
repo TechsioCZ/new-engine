@@ -10,7 +10,7 @@ import { Steps } from "../../src/molecules/steps"
 import { Tabs } from "../../src/molecules/tabs"
 import { Toaster, useToast } from "../../src/molecules/toast"
 import { Table } from "../../src/organisms/table"
-import { adminNav, currency, orderLines, orders, storefrontProducts } from "./data"
+import { adminNav, currency, orderLines, orders, storefrontProducts, formatDate } from "./data"
 import { Brand, Frame, GlobalSearch, NavList, Panel, TopBar } from "./frame"
 import { DetailList, PageHeader, SectionCard, StatusBadge } from "./shell"
 
@@ -180,7 +180,7 @@ function OrderDetailPage() {
           { label: "Orders", href: "#" },
           { label: order.number },
         ]}
-        description={`Placed ${order.placedAt} · ${order.channel} · ${order.items} items`}
+        description={`Placed ${formatDate(order.placedAt)} · ${order.channel} · ${order.items} items`}
         meta={
           <>
             <StatusBadge status={order.status} />

@@ -16,6 +16,7 @@ import {
   revenueByDay,
   trafficSources,
   visitsByDay,
+  formatDate,
 } from "./data"
 import {
   AkrosShell,
@@ -289,7 +290,7 @@ function HomePage({ loading }: { loading?: boolean }) {
                   <span className="flex flex-col gap-50">
                     <span className="font-medium">{order.number}</span>
                     <span className="text-fg-secondary text-xs">
-                      {order.placedAt}
+                      {formatDate(order.placedAt)}
                     </span>
                   </span>
                 </Table.Cell>

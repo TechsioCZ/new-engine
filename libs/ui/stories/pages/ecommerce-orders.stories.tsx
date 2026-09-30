@@ -14,6 +14,7 @@ import {
   orderStatusOptions,
   orders,
   revenueByChannel,
+  formatDate,
 } from "./data"
 import {
   AdminShell,
@@ -113,6 +114,7 @@ function OrdersDashboard() {
         accessorKey: "placedAt",
         header: "Placed",
         meta: { type: "date", width: 130 },
+        cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
     []

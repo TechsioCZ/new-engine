@@ -12,7 +12,7 @@ import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
 import { Table } from "../../../src/organisms/table"
 import { PageHeader, SectionCard } from "../shell"
-import { type EmailTemplate, emailTemplates, emailVariables } from "./data"
+import { type EmailTemplate, emailTemplates, emailVariables, formatDate } from "./data"
 import { AkrosShell, akrosDocs } from "./shared"
 
 const meta: Meta = {
@@ -147,6 +147,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
         accessorKey: "updatedAt",
         header: "Updated",
         meta: { type: "date", width: 130 },
+        cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
     []

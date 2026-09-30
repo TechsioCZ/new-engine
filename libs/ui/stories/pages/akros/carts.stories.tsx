@@ -20,6 +20,7 @@ import {
   type CartState,
   cartStateOptions,
   czk,
+  formatDate,
 } from "./data"
 import { AkrosShell, akrosDocs } from "./shared"
 
@@ -127,6 +128,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
         accessorKey: "updatedAt",
         header: "Updated",
         meta: { type: "string", width: 150 },
+        cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
     []
@@ -180,7 +182,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
 
         <div className="flex flex-col gap-250 xl:col-span-2">
           <SectionCard
-            description={`${cart.customer} · updated ${cart.updatedAt}`}
+            description={`${cart.customer} · updated ${formatDate(cart.updatedAt)}`}
             title={
               <span className="flex flex-wrap items-center gap-150">
                 {cart.name}

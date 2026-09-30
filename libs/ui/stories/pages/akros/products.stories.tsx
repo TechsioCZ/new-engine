@@ -19,6 +19,7 @@ import {
   count,
   missingCmsFields,
   shippingMethods,
+  czkUnit,
 } from "./data"
 import { AbraOwned, AkrosShell, akrosDocs, Notice } from "./shared"
 
@@ -115,7 +116,7 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
         accessorKey: "price",
         header: "Price (ABRA)",
         meta: { type: "number", align: "end", width: 130 },
-        cell: (info) => `${info.getValue<number>().toFixed(2)} Kč`,
+        cell: (info) => czkUnit.format(info.getValue<number>()),
       },
       {
         accessorKey: "stock",
@@ -544,7 +545,7 @@ function ProductEditorPage({ productId }: { productId: string }) {
               <ReadOnlyField label="Category" value={product.category} />
               <ReadOnlyField
                 label="Price excl. VAT"
-                value={`${product.price.toFixed(2)} Kč`}
+                value={czkUnit.format(product.price)}
               />
               <ReadOnlyField
                 label="Stock"

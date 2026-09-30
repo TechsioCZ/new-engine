@@ -47,8 +47,9 @@ const meta: Meta = {
           "  never by the database table the values live in.",
           "- Each setting states its consequence in help text; a toggle whose effect is",
           "  unclear will simply never be touched.",
-          "- Toggles save on change and confirm with a toast. Text fields save explicitly.",
-          "  Never mix the two silently in one group.",
+          "- Toggles save on change and confirm with a toast. Text fields save explicitly,",
+          "  with `Save changes` at the bottom-right of their section, after the last",
+          "  field. Never mix the two silently in one group.",
           "- Dangerous settings (deleting a workspace, rotating keys) are grouped at the",
           "  bottom and confirm through an `alertdialog`.",
           "- Roles and members belong in a table, not a form — they are records.",
@@ -172,7 +173,7 @@ function SettingsPage() {
   ]
 
   const saved = (what: string) =>
-    toaster.create({ type: "success", title: "Saved", description: what })
+    toaster.create({ type: "success", title: "Settings saved", description: what })
 
   return (
     <Frame
@@ -229,15 +230,6 @@ function SettingsPage() {
           value="general"
         >
           <SectionCard
-            actions={
-              <Button
-                onClick={() => saved("Workspace details")}
-                size="sm"
-                variant="primary"
-              >
-                Save changes
-              </Button>
-            }
             description="How this workspace identifies itself in emails, invoices and the admin."
             title="Workspace"
           >
@@ -266,6 +258,16 @@ function SettingsPage() {
                 items={currencyItems}
                 label="Default currency"
               />
+              {/* Explicit-save forms end with their action: bottom-right, after the last field. */}
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => saved("Workspace details")}
+                  size="sm"
+                  variant="primary"
+                >
+                  Save changes
+                </Button>
+              </div>
             </div>
           </SectionCard>
 
