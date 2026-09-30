@@ -1,18 +1,20 @@
 ---
-component_version: "1.0.0"
 name: header-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Header for
   responsive site header composition with desktop/mobile sections, containers,
   nav, nav items, actions, hamburger, active state, size, direction, and token
   styling.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/organisms/header.tsx"
   - "libs/ui/src/tokens/components/organisms/_header.css"
@@ -23,6 +25,37 @@ sources:
 
 Use Header for global page header/navigation layout. Compose it with Link or
 LinkButton for actual navigation items.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Header`.
+
+**Use it when**
+
+- The global top bar: logo, primary navigation, search, account, cart.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| In-app admin navigation with many destinations | Sidebar + VerticalNavigation |
+| Page-level title and actions | the page header inside content (title + top-right actions) |
+
+**Do**
+
+- Keep the same order across pages: logo start, navigation, search, account/cart end.
+- Show cart count and account state; collapse navigation to a Drawer/Sidebar below `lg`.
+- Make it sticky only if it stays compact; ensure it never covers focused content (scroll-padding).
+
+**Don't**
+
+- Put page-specific actions in the global header.
+- Hide search behind an icon on desktop storefronts where search is a primary task.
+
+**Copy and states**
+
+- Navigation labels are short nouns; icon buttons have labels (`Cart, 3 items`, `Account`).
 
 ## Setup
 

@@ -5,7 +5,7 @@ description: >
   biome on changed files, tailwind lint, visual tests, consistency checklist. Use as the
   last step of any libs/ui change. Invoke explicitly with $ui-validate.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
 ---
 

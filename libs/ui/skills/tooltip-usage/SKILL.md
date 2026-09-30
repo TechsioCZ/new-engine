@@ -1,16 +1,18 @@
 ---
-component_version: "1.0.0"
 name: tooltip-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Tooltip for
   supplemental hover/focus help using the Zag.js tooltip wrapper, supported
   timing, placement, interaction, controlled state, and token styling props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/atoms/tooltip.tsx"
   - "libs/ui/src/tokens/components/atoms/_tooltip.css"
@@ -23,6 +25,39 @@ sources:
 
 Use Tooltip for short supplemental information on hover/focus. Do not use it
 for required instructions, blocking errors, or primary content.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Tooltip`.
+
+**Use it when**
+
+- Short, non-essential hints on hover and focus: icon-button names, truncated text, keyboard shortcuts.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Required information or instructions | visible help text |
+| Interactive content | Popover |
+| Errors | inline StatusText / field error |
+
+**Do**
+
+- Keep to a few words; repeat the ActionIcon's `aria-label`.
+- Attach to focusable triggers so keyboard users get it too.
+- Use for the full value of truncated cells.
+
+**Don't**
+
+- Put tooltips on disabled buttons (they don't receive hover/focus) — explain next to the control.
+- Put links or buttons inside a tooltip.
+- Use tooltips on touch-only surfaces as the only explanation.
+
+**Copy and states**
+
+- No trailing period for fragments; sentence case.
 
 ## Setup
 

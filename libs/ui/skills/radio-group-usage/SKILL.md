@@ -1,18 +1,20 @@
 ---
-component_version: "1.0.0"
 name: radio-group-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit RadioGroup for
   simple exclusive choices with Zag.js radio behavior, label, item group,
   hidden inputs, controls, text, descriptions, validation status, variants, and
   sizes.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/radio-group.tsx"
   - "libs/ui/src/tokens/components/molecules/_radio-group.css"
@@ -25,6 +27,39 @@ sources:
 
 Use RadioGroup for simple exclusive text choices. Use RadioCard for larger
 card-like choices.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `RadioGroup`.
+
+**Use it when**
+
+- One choice from 2–5 short options that should all be visible.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Options need descriptions/prices | RadioCard |
+| 6+ options | Select |
+| On/off | Switch or FormCheckbox |
+| Several choices | FormCheckbox group |
+
+**Do**
+
+- Order options logically (frequency, size, alphabet) and consistently across the app.
+- Preselect a safe default when one exists.
+- Group label (legend) states the question (`Delivery speed`).
+
+**Don't**
+
+- Use a single radio button.
+- Trigger actions on change without a submit, unless it's a view switch.
+
+**Copy and states**
+
+- Option labels parallel in grammar and short; no trailing punctuation.
 
 ## Setup
 

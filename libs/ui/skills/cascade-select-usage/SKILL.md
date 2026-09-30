@@ -1,18 +1,20 @@
 ---
-component_version: "1.0.1"
 name: cascade-select-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit CascadeSelect
   for choosing a value from hierarchical data with Zag.js path values,
   compound parts, parent or multiple selection, validation, and keyboard
   navigation.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/cascade-select.tsx"
   - "libs/ui/src/tokens/components/molecules/_cascade-select.css"
@@ -24,6 +26,41 @@ sources:
 
 Use CascadeSelect for form choices whose options have parent/child levels.
 Use Select for a flat known list and TreeView for hierarchical navigation.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `CascadeSelect`.
+
+**Use it when**
+
+- A form value that lives inside a hierarchy: category → subcategory, region → city.
+- Hierarchies deep or wide enough that one flat Select would be unreadable.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A flat list of known options | Select |
+| A flat list the user needs to search | Combobox |
+| Navigating categories (links) | VerticalNavigation |
+| Selecting nodes in a tree widget with arrow keys | TreeView |
+
+**Do**
+
+- Show the full path of the selected value in the trigger (`Clothing › Shirts › Linen`).
+- Let users select parent levels only when a parent is a valid value; otherwise only leaves are selectable.
+- Keep level labels short; order siblings meaningfully (alphabetical or by popularity), consistently.
+
+**Don't**
+
+- Use it for two levels with a handful of items — two Selects or a grouped Select read faster.
+- Mix navigation links into a form control.
+
+**Copy and states**
+
+- Label is the noun of the final value (`Category`), placeholder `Select a category`.
+- Path separator comes from the component; don't type `>` or `/`.
 
 ## Setup
 

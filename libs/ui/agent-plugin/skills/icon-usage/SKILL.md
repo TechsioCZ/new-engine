@@ -1,26 +1,54 @@
 ---
-component_version: "1.0.0"
 name: icon-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or
   Iconify classes with the library's supported size and semantic color props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/icon.tsx"
-  - "libs/ui/src/tokens/components/atoms/_icon.css"
-  - "libs/ui/stories/atoms/icon.stories.tsx"
-  - "libs/ui/src/atoms/icon.figma.ts"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/atoms/icon.tsx libs/ui/src/tokens/components/atoms/_icon.css libs/ui/stories/atoms/icon.stories.tsx libs/ui/src/atoms/icon.figma.ts"
 ---
 
 # @techsio/ui-kit Icon Usage
 
 Use Icon for decorative or component-adjacent icons. The Icon atom renders
 `aria-hidden`, so it must not be the only accessible content for an action.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Icon`.
+
+**Use it when**
+
+- Decorative icons that support adjacent text (status, list items, headings).
+- Icons inside components that render them for you (Button `icon`, StatusText).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A clickable icon | ActionIcon (with `aria-label`) or Button with `icon` |
+| An icon that carries meaning without text | Icon + visually hidden text, or text instead |
+
+**Do**
+
+- Use one icon set and consistent size per context (the kit's icon tokens).
+- Use the same icon for the same meaning everywhere (trash = delete, pencil = edit).
+- Keep icons decorative — the text must carry the meaning.
+
+**Don't**
+
+- Use emoji as icons.
+- Attach `onClick` to an Icon.
+- Use colour-only icons to convey status.
+
+**Copy and states**
+
+- No text inside icons; meaning lives in the adjacent label.
 
 ## Setup
 

@@ -2,7 +2,7 @@
 /**
  * PreToolUse hook — a NARROW companion to the real gate.
  *
- * The enforcement lives in the git `pre-push` hook (`hooks/pre-push`, installed by
+ * The enforcement lives in the git `pre-push` hook (`scripts/git-hooks/pre-push`, installed by
  * `scripts/install-git-hook.mjs`), which git calls with the exact refs and SHAs it is about to
  * upload. This file deliberately does NOT try to work out which refs a push will send — an
  * earlier version did and was bypassable eleven different ways.

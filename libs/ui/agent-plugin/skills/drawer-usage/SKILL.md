@@ -1,24 +1,16 @@
 ---
-component_version: "1.0.0"
 name: drawer-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Drawer for
   transient edge panels, modal or non-modal behavior, snap points, swipe
   gestures, multiple triggers, custom portals, controlled state, and stacks.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - zag-compound-components
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/drawer.tsx"
-  - "libs/ui/src/internal/molecules/drawer.context.tsx"
-  - "libs/ui/src/internal/molecules/drawer.styles.ts"
-  - "libs/ui/src/tokens/components/molecules/_drawer.css"
-  - "libs/ui/stories/molecules/drawer.stories.tsx"
-  - "https://zagjs.com/components/react/drawer"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/molecules/drawer.tsx libs/ui/src/internal/molecules/drawer.context.tsx libs/ui/src/internal/molecules/drawer.styles.ts libs/ui/src/tokens/components/molecules/_drawer.css libs/ui/stories/molecules/drawer.stories.tsx https://zagjs.com/components/react/drawer"
 ---
 
 # @techsio/ui-kit Drawer Usage
@@ -26,6 +18,40 @@ sources:
 Use Drawer for transient panels that enter from a viewport or container edge.
 Use Sidebar for persistent application navigation, Dialog for centered focused
 flows, and Popover for anchored contextual content.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Drawer`.
+
+**Use it when**
+
+- Transient panels that slide from an edge: cart, mobile filters, mobile navigation, quick views.
+- Content that relates to the page behind it and should keep that context visible.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Persistent desktop navigation | Sidebar |
+| Record create/edit/read in admin | Dialog placement="right" (the CRUD reference pattern) |
+| Focused blocking decision | Dialog |
+| Anchored small content | Popover |
+
+**Do**
+
+- Open from the edge that matches the content's origin: navigation start, cart/filters/details end.
+- Keep a visible title and close button; footer actions bottom-right like dialogs.
+- Return focus to the trigger on close; preserve page scroll.
+
+**Don't**
+
+- Stack drawers.
+- Use a drawer for long multi-step flows — use a page with Steps.
+
+**Copy and states**
+
+- Title names the content (`Cart (3)`, `Filters`); filter drawers end with `[Reset] [Show 24 results]`.
 
 ## Setup
 

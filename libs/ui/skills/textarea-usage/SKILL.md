@@ -1,16 +1,18 @@
 ---
-component_version: "1.0.0"
 name: textarea-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Textarea for
   multi-line text entry with valid variant, size, resize, readonly styling, and
   token-first validation.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/atoms/textarea.tsx"
   - "libs/ui/src/tokens/components/atoms/_textarea.css"
@@ -22,6 +24,35 @@ sources:
 
 Use Textarea for multi-line text entry. Use form molecules when a complete
 label/help/error field abstraction exists for the current app context.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Textarea`.
+
+**Use it when**
+
+- Bare multi-line text controls in compositions that supply their own label (inline comment boxes, table editors).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A labelled field | FormTextarea |
+| Single-line text | Input |
+
+**Do**
+
+- Give it an accessible name.
+- Auto-grow or size to the expected content; keep a sensible max height.
+
+**Don't**
+
+- Use placeholder as the label.
+
+**Copy and states**
+
+- Placeholder as an example (`Add a note for the courier…`).
 
 ## Setup
 

@@ -1,15 +1,17 @@
 ---
-component_version: "1.0.1"
 name: vertical-navigation-usage
 description: >
   Use for nested page or category links with independently expandable and
   styled subgroups, standalone or inside Sidebar or Drawer.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/vertical-navigation.tsx"
   - "libs/ui/src/tokens/components/molecules/_vertical-navigation.css"
@@ -22,6 +24,38 @@ Use for site/category navigation: native links, lists and disclosure buttons.
 Sidebar owns responsive layout; Drawer owns an overlay. Neither is required.
 Use TreeView for a tree widget with arrow-key navigation and selection, or
 CascadeSelect for a hierarchical form value.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `VerticalNavigation`.
+
+**Use it when**
+
+- Site or app navigation lists with groups and nested sections (admin sidebar content, category navigation).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Tree widget with selection | TreeView |
+| A hierarchical form value | CascadeSelect |
+| Switching views within a page | Tabs |
+
+**Do**
+
+- Group destinations under short group labels; order by frequency, not alphabet.
+- Mark the current page (`aria-current="page"`) and expand its parent.
+- Keep icons consistent — all items or none in a group.
+
+**Don't**
+
+- Mix actions (`New product`) into navigation.
+- Hide unavailable destinations silently — explain on the destination page instead.
+
+**Copy and states**
+
+- Nouns in sentence case; counts as Badges only for actionable queues (`Orders 3`).
 
 ## Anatomy
 

@@ -6,7 +6,7 @@
 // Components without those tags are skipped, so the convention can roll out one component at a time.
 //
 // For each opted-in component in the commit:
-//   - the paired skill `libs/ui/skills/<name>/SKILL.md` must declare `component_version: X.Y.Z`
+//   - the paired skill `libs/ui/skills/<name>/SKILL.md` must declare `metadata.component_version: X.Y.Z`
 //   - the component `@componentVersion` must equal that `component_version`      (the 1:1 tie)
 //   - the changelog story must contain a `### <Component> vX.Y.Z` entry for that version
 //   - if the component's code changed vs the merge-base but the version did not, fail
@@ -16,6 +16,7 @@
 import { execFileSync } from "node:child_process"
 import { existsSync, readdirSync } from "node:fs"
 import { posix } from "node:path"
+import { toPortableSkill } from "../libs/ui/agent-plugin/scripts/lib/skill-frontmatter.mjs"
 
 const SKILLS_DIR = "libs/ui/skills"
 // The plugin bundle is generated from SKILLS_DIR by sync-skills.mjs. It is committed, so a stale
@@ -31,8 +32,9 @@ const COMPONENT_RE =
 const VERSION_RE = /@componentVersion\s+v?(\d+\.\d+\.\d+)/
 const SKILL_TAG_RE = /@skill\s+([a-z0-9-]+)/
 const COMPONENT_TAG_RE = /@component\s+([A-Za-z0-9]+)/
+// `component_version` lives under `metadata:` (indented); a legacy top-level key still matches.
 const SKILL_VERSION_RE =
-  /^component_version:\s*["']?v?(\d+\.\d+\.\d+)["']?\s*$/m
+  /^\s*component_version:\s*["']?v?(\d+\.\d+\.\d+)["']?\s*$/m
 const META_TAG_RE = /@componentVersion|@skill\b|@component\b/
 
 const git = (args) => {
@@ -51,6 +53,15 @@ const git = (args) => {
 // deleted from the index) must read as absent rather than silently validating content that will
 // not be committed. `git show :<path>` returns "" for a path missing from the index.
 const readStaged = (path) => git(["show", `:${path}`])
+
+// `git()` trims output, so compare trimmed generated content too.
+const portable = (src) => {
+  try {
+    return toPortableSkill(`${src}\n`).trim()
+  } catch {
+    return null
+  }
+}
 
 const baselineRef = () => {
   const candidates = ["origin/master", "master", "origin/main", "main"]
@@ -172,7 +183,7 @@ for (const file of toCheck) {
   const skillVMatch = readStaged(skillPath).match(SKILL_VERSION_RE)
   if (!skillVMatch) {
     errors.push(
-      `${skillPath}: missing \`component_version:\` (must equal ${label} @componentVersion v${version}).`
+      `${skillPath}: missing \`metadata.component_version\` (must equal ${label} @componentVersion v${version}).`
     )
   } else if (skillVMatch[1] !== version) {
     errors.push(
@@ -180,16 +191,16 @@ for (const file of toCheck) {
     )
   }
 
-  // The committed plugin bundle is generated from the source skill by a verbatim copy
-  // (sync-skills.mjs `cpSync`), so it must be byte-for-byte identical. Comparing only
-  // `component_version` would let changed source guidance ship with a stale bundle that happens to
-  // carry the same version — check the whole file, which subsumes the version.
+  // The committed plugin bundle is generated from the source skill by sync-skills.mjs, which
+  // rewrites only the frontmatter into the portable Agent Skills form (toPortableSkill). Comparing
+  // only `component_version` would let changed source guidance ship with a stale bundle that
+  // happens to carry the same version — check the whole generated file, which subsumes it.
   const bundledPath = posix.join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md")
   if (!existsSync(bundledPath)) {
     errors.push(
       `${bundledPath} missing — run \`${SYNC_CMD}\` to bundle ${skillName}.`
     )
-  } else if (readStaged(bundledPath) !== readStaged(skillPath)) {
+  } else if (readStaged(bundledPath) !== portable(readStaged(skillPath))) {
     errors.push(
       `${bundledPath}: out of sync with ${skillPath} (content differs) — run \`${SYNC_CMD}\`.`
     )

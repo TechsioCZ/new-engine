@@ -5,18 +5,11 @@ description: >
   libs/ui, including Playground stories, argTypes controls, VariantContainer
   and VariantGroup matrices, fn() handlers, token-based story layout classes,
   and UI-kit components instead of native HTML.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-sources:
-  - "libs/ui/AGENTS.md"
-  - "libs/ui/.storybook/main.ts"
-  - "libs/ui/.storybook/preview.ts"
-  - "libs/ui/stories/atoms/button.stories.tsx"
-  - "libs/ui/stories/molecules/dialog.stories.tsx"
-  - "libs/ui/stories/molecules/tree-view.stories.tsx"
-  - "libs/ui/local/storybook-practice.md"
-  - "libs/ui/local/storybook-migration.md"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  sources: "libs/ui/AGENTS.md libs/ui/.storybook/main.ts libs/ui/.storybook/preview.ts libs/ui/stories/atoms/button.stories.tsx libs/ui/stories/molecules/dialog.stories.tsx libs/ui/stories/molecules/tree-view.stories.tsx libs/ui/local/storybook-practice.md libs/ui/local/storybook-migration.md"
 ---
 
 # @techsio/ui-kit Storybook Authoring

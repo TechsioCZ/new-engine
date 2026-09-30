@@ -5,18 +5,12 @@ description: >
   typography, spacing, layout, radius, or component CSS token overrides while
   avoiding redundant token chains, duplicated JSX className styling, and
   permanent local API-gap workarounds.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - tailwind-token-authoring
-sources:
-  - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
-  - "libs/ui/src/tokens/_semantic.css"
-  - "libs/ui/src/tokens/components/atoms/_button.css"
-  - "libs/ui/src/tokens/components/molecules/_dialog.css"
-  - "libs/ui/src/tokens/components/components.css"
-  - "https://github.com/TechsioCZ/new-engine/issues/72"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "tailwind-token-authoring"
+  sources: "libs/ui/skills/_artifacts/consumer_app_usage_rules.md libs/ui/src/tokens/_semantic.css libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/tokens/components/molecules/_dialog.css libs/ui/src/tokens/components/components.css https://github.com/TechsioCZ/new-engine/issues/72"
 ---
 
 # @techsio/ui-kit App Token Overrides

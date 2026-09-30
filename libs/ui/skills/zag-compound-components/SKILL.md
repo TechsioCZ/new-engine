@@ -5,9 +5,10 @@ description: >
   Zag.js machine/connect APIs, normalizeProps, React context, compound
   Component.Subcomponent assignments, slots, adapter props, and data attribute
   state styling.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-authoring
   - tailwind-token-authoring

@@ -1,29 +1,56 @@
 ---
-component_version: "1.0.0"
 name: gallery-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Gallery for
   product or media image galleries with Carousel integration, thumbnails,
   controlled page, orientation, thumbnail image adapters, thumbnail aria labels,
   empty state, and NextImage support.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - carousel-usage
-  - framework-consumer-integration
-  - app-token-overrides
-sources:
-  - "libs/ui/src/organisms/gallery.tsx"
-  - "libs/ui/src/tokens/components/organisms/_gallery.css"
-  - "libs/ui/stories/organisms/gallery.stories.tsx"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux carousel-usage framework-consumer-integration app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/organisms/gallery.tsx libs/ui/src/tokens/components/organisms/_gallery.css libs/ui/stories/organisms/gallery.stories.tsx"
 ---
 
 # @techsio/ui-kit Gallery Usage
 
 Use Gallery for product or media galleries with thumbnails. Use Carousel
 directly when thumbnails are not part of the UX.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Gallery`.
+
+**Use it when**
+
+- Product detail images with thumbnails, zoom/fullscreen and variant switching.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Banners or related items without thumbnails | Carousel |
+| Single image | Image |
+| Media management in admin | a media library grid |
+
+**Do**
+
+- Keep a fixed aspect ratio so the page doesn't jump between images.
+- Give every image meaningful alt text (product, colour, angle); thumbnails can share the main alt.
+- Switch the gallery when the user changes the colour variant.
+- Support keyboard and swipe; show position (`2 / 6`).
+
+**Don't**
+
+- Auto-rotate product images.
+- Hide the only view of a variant behind the 10th thumbnail.
+
+**Copy and states**
+
+- Alt text: `Linen shirt in navy, front`; controls `Previous image`, `Next image`.
 
 ## Setup
 

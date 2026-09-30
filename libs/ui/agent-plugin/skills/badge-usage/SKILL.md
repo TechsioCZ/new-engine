@@ -1,27 +1,61 @@
 ---
-component_version: "1.0.0"
 name: badge-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Badge for
   compact status, category, discount, or metadata labels without duplicating
   token-backed color and spacing classes in JSX.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/badge.tsx"
-  - "libs/ui/src/tokens/components/atoms/_badge.css"
-  - "libs/ui/stories/atoms/badge.stories.tsx"
-  - "libs/ui/src/atoms/badge.figma.ts"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/atoms/badge.tsx libs/ui/src/tokens/components/atoms/_badge.css libs/ui/stories/atoms/badge.stories.tsx libs/ui/src/atoms/badge.figma.ts"
 ---
 
 # @techsio/ui-kit Badge Usage
 
 Use Badge for short non-interactive labels. It is not a button, link, alert, or
 long message container.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Badge`.
+
+**Use it when**
+
+- Short, non-interactive labels of state or category: `Draft`, `Paid`, `New`, `−20 %`.
+- Counts next to navigation items or tabs (unread, pending).
+- Product flags on cards (discount, new, out of stock).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A sentence explaining something | StatusText |
+| Something the user can click or remove | Button / ActionIcon (removable filter chips live in the filter UI) |
+| A page-level alert | inline StatusText section at the top of the content |
+| Confirming an action | Toast |
+
+**Do**
+
+- Use one word, two at most; map each state to one variant app-wide (see the status table in ux-guidelines/ux-writing).
+- Pair colour with the word — the text carries the meaning, colour only supports it.
+- Place status badges next to the title they describe (page header meta, first table column or a Status column).
+- Use `discount` only for price reductions, `danger` only for failed/blocked states.
+
+**Don't**
+
+- Mix synonyms (`Live`, `Active`, `Enabled`) for one state.
+- Use a badge as a button or link.
+- Stack more than two badges on one item — prioritise.
+- Show a `0` count badge; hide it until there is something to count.
+
+**Copy and states**
+
+- Sentence case, no punctuation; counts formatted with `Intl.NumberFormat` (`1,204`), capped (`99+`) in navigation.
+- Give count badges context for screen readers (`3 unread messages`).
 
 ## Setup
 

@@ -5,7 +5,7 @@ description: >
   variables pipeline or fully in code ("vibe" a theme). Use for brand colors, data-theme
   switching, or theme overrides. Invoke explicitly with $ui-theme-brand.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
 ---
 

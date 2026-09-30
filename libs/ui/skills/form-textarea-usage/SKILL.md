@@ -1,17 +1,19 @@
 ---
-component_version: "1.1.0"
 name: form-textarea-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FormTextarea
   for labeled multi-line text fields with Textarea, Label, StatusText,
   validation status, help text, size, resize, required, and disabled props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.1.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - textarea-usage
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/form-textarea.tsx"
   - "libs/ui/src/atoms/textarea.tsx"
@@ -23,6 +25,37 @@ sources:
 
 Use FormTextarea for labeled long text fields such as notes, comments, and
 descriptions.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `FormTextarea`.
+
+**Use it when**
+
+- Labelled free text longer than one line: notes, descriptions, comments, messages.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Single-line text | FormInput |
+| Rich formatted content | a rich-text editor |
+
+**Do**
+
+- Size the initial height to the expected length (3–5 lines for notes).
+- Show a character counter only when there is a limit, and before the limit is reached.
+- Explain where the text will appear (`Shown to the customer on the invoice.`).
+
+**Don't**
+
+- Use a textarea for structured data (addresses, lists) that deserves separate fields.
+- Truncate saved text silently.
+
+**Copy and states**
+
+- Counter format `120 / 500`; over-limit error `Shorten the note to 500 characters.`
 
 ## Setup
 

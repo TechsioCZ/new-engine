@@ -4,10 +4,11 @@ description: >
   Use when consuming @techsio/ui-kit in framework apps, especially Next.js 16+
   with React Compiler, NextLink, NextImage, token CSS imports, polymorphic `as`
   props, adapter prop forwarding, and wrapper-avoidance checks.
-type: framework
-framework: react
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "framework"
+  framework: "react"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
 sources:

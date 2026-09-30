@@ -223,6 +223,33 @@ skills:
       - package.json
     subsystems:
       - per-component usage skills
+  - name: ux-guidelines
+    slug: ux-guidelines
+    type: composition
+    domain: consumer-app-adoption
+    path: skills/ux-guidelines/SKILL.md
+    package: libs/ui
+    description: >
+      Use when designing, building or reviewing any screen with the UI kit. House UX/UI rules
+      shared by every component: UX writing, date/number formatting, numeric alignment,
+      disabled/read-only/loading/empty states, where CRUD actions and feedback appear, and
+      component selection. Every *-usage skill carries a UX/UI guidelines section that applies it.
+    requires:
+      - component-usage-ux
+    sources:
+      - stories/pages/crud-workflow.stories.tsx
+      - stories/pages/cms-record-editor.stories.tsx
+      - stories/pages/settings.stories.tsx
+      - stories/pages/system-states.stories.tsx
+      - src/molecules/toast.tsx
+      - src/organisms/table.tsx
+      - src/organisms/data-table.tsx
+    subsystems:
+      - ux writing
+      - formatting and alignment
+      - interaction states
+      - action and feedback placement
+      - component selection
   - name: app-ui-kit-audit
     slug: app-ui-kit-audit
     type: core

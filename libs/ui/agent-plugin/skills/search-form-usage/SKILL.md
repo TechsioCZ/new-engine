@@ -1,28 +1,55 @@
 ---
-component_version: "1.0.0"
 name: search-form-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit SearchForm for
   search landmarks, controlled or uncontrolled search text, label, control,
   input, submit button, clear button, icon props, and token-backed field
   layout.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/search-form.tsx"
-  - "libs/ui/src/tokens/components/molecules/_search-form.css"
-  - "libs/ui/stories/molecules/search-form.stories.tsx"
-  - "libs/ui/src/molecules/search-form.figma.ts"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/molecules/search-form.tsx libs/ui/src/tokens/components/molecules/_search-form.css libs/ui/stories/molecules/search-form.stories.tsx libs/ui/src/molecules/search-form.figma.ts"
 ---
 
 # @techsio/ui-kit SearchForm Usage
 
 Use SearchForm for search input and submit/clear actions. It wraps a semantic
 `<search>` and `<form>`.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `SearchForm`.
+
+**Use it when**
+
+- Site or catalog search input with submit and clear.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Search with live suggestions that navigate | SearchSuggestions |
+| Filtering a table | DataTable global filter |
+| Picking a form value | Combobox |
+
+**Do**
+
+- Keep the query visible on the results page and in the URL.
+- Offer clear (`Clear search`) and submit on Enter.
+- Results page states the query and count (`24 results for “linen”`) and a helpful no-results state.
+
+**Don't**
+
+- Search on every keystroke against the full catalog without debounce.
+- Hide the search field behind an icon on desktop storefronts.
+
+**Copy and states**
+
+- Placeholder `Search products…`; button label `Search`.
 
 ## Setup
 

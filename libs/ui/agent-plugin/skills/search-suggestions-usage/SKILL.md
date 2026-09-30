@@ -1,17 +1,13 @@
 ---
-component_version: "1.0.0"
 name: search-suggestions-usage
 description: Use for grouped storefront search navigation with rich results and an all-results link, composed from the UI-kit Combobox.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - combobox-usage
-sources:
-  - "libs/ui/src/templates/search-suggestions.tsx"
-  - "libs/ui/src/molecules/combobox.tsx"
-  - "libs/ui/stories/templates/search-suggestions.stories.tsx"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux combobox-usage ux-guidelines"
+  sources: "libs/ui/src/templates/search-suggestions.tsx libs/ui/src/molecules/combobox.tsx libs/ui/stories/templates/search-suggestions.stories.tsx"
 ---
 
 # SearchSuggestions Usage
@@ -33,6 +29,37 @@ import { SearchSuggestions } from "@techsio/ui-kit/templates/search-suggestions"
   allResultsLink={<Link href="/search?q=mounting">View all results</Link>}
 />
 ```
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `SearchSuggestions`.
+
+**Use it when**
+
+- Header/catalog search that suggests products, categories, brands and articles as the user types and navigates to them.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Selecting a value in a form | Combobox |
+| App commands | Command |
+
+**Do**
+
+- Group suggestions by type with headings; show product image and price in product rows.
+- Keep Enter on the typed query going to the full results page.
+- Show recent/popular searches on focus before typing.
+
+**Don't**
+
+- Auto-navigate on highlight.
+- Show more than ~8 suggestions per group.
+
+**Copy and states**
+
+- `See all 124 results for “linen”` as the last item.
 
 ## Contract
 

@@ -3,15 +3,17 @@ name: sidebar-usage
 description: >-
   Use after component-usage-ux when an app needs responsive start/end
   navigation, icon collapse, two-pane navigation, or a sticky-header shell.
-type: core
-component: Sidebar
-component_version: "1.0.0"
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  component: "Sidebar"
+  component_version: "1.0.0"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - drawer-usage
   - app-token-overrides
+  - ux-guidelines
 sources:
   - libs/ui/src/organisms/sidebar.tsx
   - libs/ui/src/internal/organisms/sidebar.context.tsx
@@ -26,6 +28,39 @@ sources:
 Use `Sidebar` for application navigation that must change between persistent
 desktop panels and modal mobile navigation. Its sides are logical: `start` and
 `end` follow `dir`, so consumers do not need separate RTL layouts.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Sidebar`.
+
+**Use it when**
+
+- Application navigation that is persistent on desktop and becomes a modal panel on mobile (the admin shell).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Page-local sections | Tabs |
+| A transient panel (cart, filters) | Drawer |
+| Global storefront nav | Header |
+
+**Do**
+
+- Put primary navigation in the start sidebar; the leading panel is always navigation (Pages/Layouts).
+- Highlight the current item and keep it visible after navigation.
+- Collapse to icons only when users know the destinations; keep labels in tooltips.
+- Only the content column scrolls; the sidebar scrolls independently when long.
+
+**Don't**
+
+- Mix sidebar, tabs and bottom navigation at the same hierarchy level.
+- Put page actions (Save, New) in the sidebar.
+
+**Copy and states**
+
+- Destinations are nouns (`Orders`, `Products`), not verbs.
 
 ## Import
 

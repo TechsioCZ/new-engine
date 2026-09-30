@@ -1,24 +1,17 @@
 ---
-component_version: "1.0.1"
 name: numeric-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit NumericInput
   for accessible number entry with Zag.js spinbutton behavior, compound parts,
   numeric public values, locale formatting, min/max/step, and token-first
   styling.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - zag-compound-components
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/numeric-input.tsx"
-  - "libs/ui/src/tokens/components/atoms/_numeric-input.css"
-  - "libs/ui/stories/atoms/numeric-input.stories.tsx"
-  - "libs/ui/src/atoms/numeric-input.figma.ts"
-  - "https://zagjs.com/components/react/number-input"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/atoms/numeric-input.tsx libs/ui/src/tokens/components/atoms/_numeric-input.css libs/ui/stories/atoms/numeric-input.stories.tsx libs/ui/src/atoms/numeric-input.figma.ts https://zagjs.com/components/react/number-input"
 ---
 
 # @techsio/ui-kit NumericInput Usage
@@ -26,6 +19,39 @@ sources:
 Use NumericInput for quantities, percentages, currency-like values, or bounded
 numbers where keyboard, wheel, increment/decrement, and validation behavior
 matter.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `NumericInput`.
+
+**Use it when**
+
+- Bare numeric controls in compact compositions: cart quantity, inline table editors, stepper fields.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A labelled numeric field | FormNumericInput |
+| Approximate values | Slider |
+| Numeric identifiers | Input |
+
+**Do**
+
+- Pass the app `locale` — the component defaults to `cs-CZ` (ux-guidelines/formatting#locale-defaults-in-the-kit).
+- Use `formatOptions` for currency/percent/unit so the displayed value matches the rest of the UI.
+- Set `min`/`max`/`step`; at the limit, disable only the trigger that would exceed it.
+- Right-align numeric editors inside numeric table columns.
+
+**Don't**
+
+- Use `type="number"` inputs.
+- Clamp silently on blur without feedback.
+
+**Copy and states**
+
+- Trigger labels `Increase quantity` / `Decrease quantity`.
 
 ## Setup
 
