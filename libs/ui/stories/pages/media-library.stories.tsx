@@ -80,6 +80,14 @@ const folders = [
   },
 ]
 
+const folderItems = [
+  { label: "All media", value: "media-root" },
+  ...(folders[0]?.children ?? []).map((child) => ({
+    label: child.name,
+    value: child.id,
+  })),
+]
+
 const typeItems = [
   { label: "All types", value: "all" },
   { label: "Images", value: "image" },
@@ -128,6 +136,12 @@ function MediaLibraryPage() {
 
   const bulkDone = (title: string) => {
     toaster.create({ type: "success", title })
+    setSelected([])
+  }
+
+  const selectFolder = (next: string) => {
+    setFolder(next)
+    /* A hidden asset must never stay selected for a bulk action. */
     setSelected([])
   }
 
@@ -215,6 +229,22 @@ function MediaLibraryPage() {
         />
       </StatRow>
 
+      {/* Below lg the tree is hidden, so folders stay reachable as a select. */}
+      <div className="lg:hidden">
+        <SelectTemplate
+          items={folderItems}
+          label="Folder"
+          onValueChange={(details) => {
+            const [next] = details.value
+            if (next) {
+              selectFolder(next)
+            }
+          }}
+          size="sm"
+          value={[folder]}
+        />
+      </div>
+
       <div className="flex gap-250">
         <aside
           aria-label="Folders"
@@ -227,9 +257,7 @@ function MediaLibraryPage() {
             onSelectionChange={(details) => {
               const [next] = details.selectedValue
               if (next) {
-                setFolder(next)
-                /* A hidden asset must never stay selected for a bulk action. */
-                setSelected([])
+                selectFolder(next)
               }
             }}
             selectedValue={[folder]}
