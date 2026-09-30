@@ -21,6 +21,22 @@
  * unexpected construct fails loudly instead of being rewritten wrongly.
  */
 
+/**
+ * Workflow skills written for the plugin itself. They exist only in the bundle; every other
+ * bundled skill is generated from libs/ui/skills/ (which also has `ui-kit-*` skills, so a name
+ * prefix cannot tell the two apart).
+ */
+export const AUTHORED_SKILLS = new Set([
+  "ui-new-component",
+  "ui-tokens",
+  "ui-story",
+  "ui-validate",
+  "ui-theme-brand",
+  "ui-figma-sync",
+  "ui-release-check",
+  "ui-component-usage",
+])
+
 export const SPEC_KEYS = [
   "name",
   "description",

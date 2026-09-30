@@ -25,23 +25,12 @@ import {
 } from "node:fs"
 import { dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { toPortableSkill } from "./lib/skill-frontmatter.mjs"
+import { AUTHORED_SKILLS, toPortableSkill } from "./lib/skill-frontmatter.mjs"
 
 const pluginDir = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const srcDir = resolve(pluginDir, "../skills") // libs/ui/skills
 const destDir = resolve(pluginDir, "skills")
 const check = process.argv.includes("--check")
-
-const AUTHORED = new Set([
-  "ui-new-component",
-  "ui-tokens",
-  "ui-story",
-  "ui-validate",
-  "ui-theme-brand",
-  "ui-figma-sync",
-  "ui-release-check",
-  "ui-component-usage",
-])
 
 if (!existsSync(srcDir)) {
   console.error(`Source skills directory not found: ${srcDir}`)
@@ -72,7 +61,7 @@ const entries = readdirSync(srcDir, { withFileTypes: true })
 
 const stale = []
 for (const name of entries) {
-  if (AUTHORED.has(name)) {
+  if (AUTHORED_SKILLS.has(name)) {
     console.error(
       `COLLISION: repo skill "${name}" clashes with an authored plugin skill — rename one.`
     )
@@ -109,7 +98,7 @@ for (const name of entries) {
 
 // A skill deleted from the source must disappear from the bundle too.
 for (const name of readdirSync(destDir)) {
-  if (AUTHORED.has(name) || entries.includes(name)) {
+  if (AUTHORED_SKILLS.has(name) || entries.includes(name)) {
     continue
   }
   if (check) {

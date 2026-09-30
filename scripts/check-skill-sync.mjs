@@ -16,7 +16,10 @@
 import { execFileSync } from "node:child_process"
 import { existsSync, readdirSync } from "node:fs"
 import { posix } from "node:path"
-import { toPortableSkill } from "../libs/ui/agent-plugin/scripts/lib/skill-frontmatter.mjs"
+import {
+  AUTHORED_SKILLS,
+  toPortableSkill,
+} from "../libs/ui/agent-plugin/scripts/lib/skill-frontmatter.mjs"
 
 const SKILLS_DIR = "libs/ui/skills"
 // The plugin bundle is generated from SKILLS_DIR by sync-skills.mjs. It is committed, so a stale
@@ -261,9 +264,9 @@ for (const name of touchedSkills) {
   const bundleDir = posix.join(PLUGIN_SKILLS_DIR, name)
   const sourceFiles = indexFiles(sourceDir)
   if (sourceFiles.length === 0) {
-    // Plugin-authored workflow skills (ui-*) live only in the bundle; a removed source skill must
-    // take its bundle copy with it.
-    if (!name.startsWith("ui-") && indexFiles(bundleDir).length > 0) {
+    // Plugin-authored workflow skills live only in the bundle; a removed source skill must take
+    // its bundle copy with it.
+    if (!AUTHORED_SKILLS.has(name) && indexFiles(bundleDir).length > 0) {
       errors.push(
         `${bundleDir}: source skill was removed — run \`${SYNC_CMD}\` to drop the bundle copy.`
       )
