@@ -53,6 +53,8 @@ const BRANDS = [
   // merge never emits light-dark() for it. Its dark control is hidden by
   // theme-config (modes: ["light"]).
   { attr: "business", light: "business", dark: "business" },
+  // Light-only client brand (Akros back office), same shape as business.
+  { attr: "akros", light: "akros", dark: "akros" },
 ]
 
 const DECL_RE = /^\s*(--[a-z0-9-]+):\s*([^;]+);/gm
