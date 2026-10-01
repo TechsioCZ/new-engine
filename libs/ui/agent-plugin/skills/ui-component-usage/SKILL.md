@@ -25,11 +25,11 @@ component types from the installed package.
 ## Available per-component guides
 
 accordion, badge, breadcrumb, button, carousel, checkbox, color-select, combobox, dialog,
-footer, form-checkbox, form-input, form-numeric-input, form-textarea, gallery, header, icon,
-image, input, label, link, link-button, menu, numeric-input, pagination, phone-input,
-popover, product-card, radio-card, radio-group, rating, search-form, select, skeleton,
-slider, status-text, steps, switch, table, tabs, textarea, toast, tooltip, tour, tree-view,
-vertical-navigation
+availability-status, footer, form-checkbox, form-input, form-numeric-input, form-textarea,
+gallery, header, icon, image, input, label, link, link-button, menu, numeric-input,
+pagination, phone-input, popover, price-block, product-card, radio-card, radio-group,
+rating, search-form, select, skeleton, slider, status-text, steps, switch, table, tabs,
+textarea, toast, tooltip, tour, tree-view, vertical-navigation
 — each bundled as the `<name>-usage` skill.
 
 ## Import pattern

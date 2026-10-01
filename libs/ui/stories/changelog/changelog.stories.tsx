@@ -12,6 +12,12 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### AvailabilityStatus v1.0.0
+- New props-driven availability molecule with explicit available, limited, preorder, unavailable, unknown and pending branches, app-owned localized copy, distinct decorative icons and optional delivery detail. Figma and Code Connect are deferred.
+
+### PriceBlock v1.0.0
+- New props-driven price molecule for known, from, discounted, on-request and pending presentation. It preserves semantic original-price markup, separate tax/unit metadata and app-owned formatting without pricing logic. Figma and Code Connect are deferred.
+
 ### VerticalNavigation v1.0.1
 - Unify split-row hover and current-page backgrounds across the link and disclosure. Highlight only the chevron on disclosure hover, preserving separate navigation, expansion and keyboard focus.
 

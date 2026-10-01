@@ -1,0 +1,35 @@
+@theme static {
+  /* Reference layer */
+  --color-price-block-content: var(--color-fg-primary);
+  --color-price-block-muted: var(--color-fg-secondary);
+
+  --spacing-price-block-compact: var(--spacing-50);
+  --spacing-price-block-related: var(--spacing-100);
+  --spacing-price-block-pending-line-base: var(--spacing-350);
+  --spacing-price-block-pending-width-base: calc(var(--spacing-950) * 2);
+
+  /* Derived color layer */
+  --color-price-block-amount-fg: var(--color-price-block-content);
+  --color-price-block-prefix-fg: var(--color-price-block-muted);
+  --color-price-block-original-fg: var(--color-price-block-muted);
+  --color-price-block-metadata-fg: var(--color-price-block-muted);
+  --color-price-block-separator-fg: var(--color-price-block-muted);
+  --color-price-block-detail-fg: var(--color-price-block-muted);
+
+  /* Derived layout and typography layer */
+  --gap-price-block: var(--spacing-price-block-related);
+  --gap-price-block-primary: var(--spacing-price-block-related);
+  --gap-price-block-metadata: var(--spacing-price-block-compact);
+  --gap-price-block-pending: var(--spacing-price-block-compact);
+  --spacing-price-block-pending-line: var(
+    --spacing-price-block-pending-line-base
+  );
+  --spacing-price-block-pending: var(--spacing-price-block-pending-width-base);
+
+  --text-price-block-amount: var(--text-lg);
+  --text-price-block-prefix: var(--text-sm);
+  --text-price-block-original: var(--text-sm);
+  --text-price-block-metadata: var(--text-xs);
+  --text-price-block-detail: var(--text-sm);
+  --font-weight-price-block-amount: var(--font-weight-medium);
+}
