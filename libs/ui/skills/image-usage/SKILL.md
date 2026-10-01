@@ -1,16 +1,18 @@
 ---
-component_version: "1.0.0"
 name: image-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Image or a
   framework image adapter such as NextImage through the Image atom's as prop.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/atoms/image.tsx"
   - "libs/ui/src/tokens/components/atoms/_image.css"
@@ -23,6 +25,38 @@ sources:
 Use Image when the UI-kit or a molecule needs a framework-agnostic image slot.
 In Next apps, prefer NextImage through `as` when the app needs framework image
 optimization.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Image`.
+
+**Use it when**
+
+- Framework-agnostic image slots in kit molecules/templates; `as={NextImage}` in Next apps.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Several product images | Gallery |
+| Decorative symbols | Icon |
+
+**Do**
+
+- Always reserve space (width/height or aspect ratio) to avoid layout shift.
+- Write alt text for meaningful images; `alt=""` for decorative ones.
+- Lazy-load below-the-fold images; prioritise the hero/LCP image.
+- Provide a neutral placeholder for missing images, not a broken icon.
+
+**Don't**
+
+- Put text that matters inside images.
+- Stretch images — use cover/contain deliberately.
+
+**Copy and states**
+
+- Alt text describes content and purpose (`Linen shirt in navy`), not `image` or file names.
 
 ## Setup
 

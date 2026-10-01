@@ -11,7 +11,7 @@ import { Tabs } from "../../src/molecules/tabs"
 import { Toaster, useToast } from "../../src/molecules/toast"
 import { TreeView } from "../../src/molecules/tree-view"
 import { SelectTemplate } from "../../src/templates/select"
-import { adminNav, categoryTree } from "./data"
+import { adminNav, categoryTree, formatDate } from "./data"
 import { AdminShell, DetailList, PageHeader, SectionCard, StatusBadge } from "./shell"
 
 const meta: Meta = {
@@ -248,7 +248,10 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
                     { term: "Revision 11", value: "Nora Kessler · 2026-09-04 14:02" },
                     { term: "Revision 10", value: "Tom Hayes · 2026-09-01 09:18" },
                     { term: "Revision 9", value: "Nora Kessler · 2026-08-26 17:44" },
-                    { term: "Created", value: "Nora Kessler · 2026-08-11 10:03" },
+                    {
+                      term: "Created",
+                      value: `Nora Kessler · ${formatDate("2026-08-11 10:03")}`,
+                    },
                   ]}
                 />
               </Tabs.Content>

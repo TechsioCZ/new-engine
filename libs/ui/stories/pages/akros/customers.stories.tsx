@@ -25,6 +25,7 @@ import {
   akOrders,
   customerTypeOptions,
   czk,
+  formatDate,
 } from "./data"
 import {
   AkrosShell,
@@ -330,7 +331,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
                           {order.number}
                         </span>
                         <span className="text-fg-secondary text-xs">
-                          {order.placedAt}
+                          {formatDate(order.placedAt)}
                         </span>
                       </span>
                       <OrderStateBadge state={order.state} />

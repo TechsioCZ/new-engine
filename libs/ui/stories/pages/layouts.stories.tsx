@@ -18,6 +18,7 @@ import {
   currency,
   orders,
   sectionOptions,
+  formatDate,
 } from "./data"
 import {
   Brand,
@@ -214,6 +215,7 @@ function useContentColumns(): ColumnDef<ContentEntry, unknown>[] {
         accessorKey: "updatedAt",
         header: "Updated",
         meta: { type: "date", width: 140 },
+        cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
     []
@@ -326,7 +328,7 @@ function ContextPanel() {
                 <li className="flex flex-col gap-50" key={entry.id}>
                   <span className="text-sm">{entry.title}</span>
                   <span className="text-fg-secondary text-xs">
-                    {entry.author} · {entry.updatedAt}
+                    {entry.author} · {formatDate(entry.updatedAt)}
                   </span>
                 </li>
               ))}
@@ -735,7 +737,7 @@ export const ThreePane: Story = {
                     { term: "Channel", value: active.channel },
                     { term: "Items", value: String(active.items) },
                     { term: "Total", value: currency.format(active.total) },
-                    { term: "Placed", value: active.placedAt },
+                    { term: "Placed", value: formatDate(active.placedAt) },
                   ]}
                 />
               </SectionCard>

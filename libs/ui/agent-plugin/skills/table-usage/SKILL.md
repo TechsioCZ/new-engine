@@ -1,27 +1,56 @@
 ---
-component_version: "1.2.0"
 name: table-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Table for
   semantic tabular data with caption, header, body, footer, rows, column
   headers, numeric cells, selected rows, variants, interactive rows, sticky
   header/first column, column borders, and size props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/organisms/table.tsx"
-  - "libs/ui/src/tokens/components/organisms/_table.css"
-  - "libs/ui/stories/organisms/table.stories.tsx"
+metadata:
+  component_version: "1.2.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/organisms/table.tsx libs/ui/src/tokens/components/organisms/_table.css libs/ui/stories/organisms/table.stories.tsx"
 ---
 
 # @techsio/ui-kit Table Usage
 
 Use Table for semantic tabular data. Do not use div grids for data tables when
 table semantics are needed.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Table`.
+
+**Use it when**
+
+- Static or lightly interactive tabular data: invoice lines, order items, spec sheets, comparison tables.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Sorting, filtering, selection, paging, inline edit | DataTable |
+| Layout of non-tabular content | grid/flex layout |
+| Trends | Chart |
+
+**Do**
+
+- Use `numeric` on number/money cells and their headers so they end-align; add `tabular-nums` (ux-guidelines/formatting#alignment-in-tables).
+- Keep precision equal within a column; totals row repeats alignment with a top border.
+- Render missing values as `—`; format dates/numbers with `Intl`.
+- Add a caption or heading that names the data.
+
+**Don't**
+
+- Use `$` + `toFixed(2)` or raw ISO dates in cells.
+- Center numeric columns or mix alignments between header and cells.
+
+**Copy and states**
+
+- Column headers short nouns with units (`Qty`, `Unit price (€)`).
 
 ## Setup
 
@@ -32,7 +61,7 @@ table semantics are needed.
     <Table.Row><Table.ColumnHeader>Order</Table.ColumnHeader><Table.ColumnHeader numeric>Total</Table.ColumnHeader></Table.Row>
   </Table.Header>
   <Table.Body>
-    <Table.Row selected={isSelected}><Table.Cell>#1001</Table.Cell><Table.Cell numeric>129 EUR</Table.Cell></Table.Row>
+    <Table.Row selected={isSelected}><Table.Cell>#1001</Table.Cell><Table.Cell numeric className="tabular-nums">{money.format(129)}</Table.Cell></Table.Row>
   </Table.Body>
 </Table>
 ```

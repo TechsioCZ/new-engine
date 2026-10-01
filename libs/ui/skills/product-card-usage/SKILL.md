@@ -1,17 +1,19 @@
 ---
-component_version: "1.0.0"
 name: product-card-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit ProductCard
   for product summaries with image adapter, name, price, stock, badges,
   rating, actions, and card button variants.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/product-card.tsx"
   - "libs/ui/src/tokens/components/molecules/_product-card.css"
@@ -23,6 +25,38 @@ sources:
 
 Use ProductCard for product listing and recommendation surfaces. It is a
 compound component; do not rebuild product card structure with generic divs.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `ProductCard`.
+
+**Use it when**
+
+- Products in listings, search results, recommendations and carousels.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Product detail page | the detail layout with Gallery |
+| Admin product rows | DataTable |
+
+**Do**
+
+- Show, in this order: image, name, key variant info, price (formatted, with the previous price when discounted), availability, one action.
+- Make the name the link to the product; keep one primary action (`Add to cart`).
+- Confirm `Add to cart` with a toast (`Added to cart`) and update the cart count.
+- Keep card heights consistent in a grid; clamp long names to two lines with the full name available.
+
+**Don't**
+
+- Stack more than two badges.
+- Hide the price until hover.
+
+**Copy and states**
+
+- Price via `Intl.NumberFormat` currency; discounts as `−20 %` badge plus struck-through old price.
 
 ## Setup
 

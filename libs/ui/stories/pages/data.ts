@@ -788,6 +788,41 @@ export const compactNumber = new Intl.NumberFormat("en-GB", {
   notation: "compact",
 })
 
+/*
+ * Fixture dates are local `YYYY-MM-DD` or `YYYY-MM-DD HH:mm` strings. They are
+ * data, never display: every page formats them through Intl, the same way an
+ * app formats API timestamps (see the ux-guidelines skill, formatting.md).
+ */
+const FIXTURE_DATE = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?$/
+
+export function parseFixtureDate(value: string): Date {
+  const match = FIXTURE_DATE.exec(value)
+  if (!match) {
+    return new Date(Number.NaN)
+  }
+  const [, year, month, day, hours = "0", minutes = "0"] = match
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hours),
+    Number(minutes)
+  )
+}
+
+/** `4 Sept 2026` for dates, `4 Sept 2026, 14:05` when the fixture has a time. */
+export function createFixtureDateFormatter(locale: string) {
+  const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium" })
+  const dateTime = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+  return (value: string) =>
+    (value.includes(" ") ? dateTime : date).format(parseFixtureDate(value))
+}
+
+export const formatDate = createFixtureDateFormatter("en-GB")
+
 /* ----------------------------------------------------------- storefront --- */
 
 export type StorefrontProduct = {

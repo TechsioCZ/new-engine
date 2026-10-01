@@ -1,18 +1,20 @@
 ---
-component_version: "1.0.0"
 name: phone-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit PhoneInput for
   international phone entry with country selection, libphonenumber details,
   hidden E.164 form value, native validation, validation status, and compound
   country picker slots.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - select-usage
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/phone-input.tsx"
   - "libs/ui/src/tokens/components/molecules/_phone-input.css"
@@ -23,6 +25,36 @@ sources:
 
 Use PhoneInput for telephone fields. Do not compose country Select and Input
 manually.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `PhoneInput`.
+
+**Use it when**
+
+- Any telephone field, with country code selection and formatting.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Other numeric identifiers | FormInput |
+
+**Do**
+
+- Default the country from the store/locale; allow changing it.
+- Validate on blur with a message showing the expected format.
+- Set `autoComplete="tel"`.
+
+**Don't**
+
+- Compose a country Select and an Input by hand.
+- Reject valid numbers because of spaces or dashes — normalise instead.
+
+**Copy and states**
+
+- Label `Phone`; help text says why you need it (`For delivery updates only.`).
 
 ## Setup
 

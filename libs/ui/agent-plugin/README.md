@@ -1,27 +1,47 @@
-# techsio-ui-kit-ai v0.1.0
+# techsio-ui-kit-ai v0.2.0
 
-Agent plugin for the **@techsio/ui-kit** design system — built for **OpenAI Codex** (CLI,
-IDE extension, and the Codex app), compatible with **Claude Code** (skills use the shared
-[Agent Skills](https://agentskills.io) standard; a `.claude-plugin/plugin.json` manifest is
-included).
+Agent plugin for the **@techsio/ui-kit** design system, packaged to the
+**[Agent Plugins 1.0.0](https://agent-plugins.org)** standard
+([spec](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md)) — one
+portable directory of [Agent Skills](https://agentskills.io) and MCP servers. Works in
+**OpenAI Codex** (reads the portable manifest natively), **Claude Code** (through a generated
+legacy manifest) and any other conformant client.
 
 The plugin is **self-contained and published separately** from the `new-engine` monorepo.
 It currently lives at `libs/ui/agent-plugin` only as its authoring location — deep skills are
 bundled in (see *Syncing bundled skills*), so the folder can be moved to its own repo or
 marketplace as-is.
 
-Inspired by the Neuron FE AI plugin, scoped to design-system development and consumption —
-no spec-driven workflow.
-
 ## What's included
 
 | Type | Count | Purpose |
 | --- | --- | --- |
 | Workflow skills | 8 | `$ui-*` entry points: scaffold, tokens, stories, theming, Figma sync, validation, release, usage routing |
-| Bundled deep skills | 60 | Synced 1:1 from `libs/ui/skills/`: per-component `*-usage` guides, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
-| Subagents (Codex TOML) | 6 | design-system expert, component-dev orchestrator, token/story/figma specialists, QA gate |
-| Hooks | 2 | Real git `pre-push` gate (auto-installed in the ui-kit source repo only) + a `--no-verify` guard |
-| MCP servers | 3 | context7 (docs), figma (design context + Code Connect), chrome-devtools (browser) |
+| Bundled deep skills | 74 | Synced from `libs/ui/skills/`: 59 per-component `*-usage` guides (each with a **UX/UI guidelines** section), `ux-guidelines`, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
+| MCP servers | 3 | context7 (docs), figma (design context + Code Connect), chrome-devtools (browser) — `mcp.json` |
+| Codex extension (`com.openai/`) | 6 agents + 2 hooks | Subagents (design-system expert, component-dev orchestrator, token/story/figma specialists, QA gate); real git `pre-push` gate installer + `--no-verify` guard |
+
+## UX/UI guidelines
+
+`ux-guidelines` is the house rulebook every screen follows, distilled from the Storybook page
+compositions (`Pages/*`) and the kit's components:
+
+- **UX writing** — sentence case; verb + object buttons (`New product`, `Create product`,
+  `Save changes`, `Delete product`, `Discard changes`); toasts as `<Object> <past participle>`;
+  errors say what, why and how to fix; one status vocabulary mapped to Badge variants.
+- **Formatting** — dates and numbers only through `Intl` with the app locale (never raw ISO,
+  never `"$" + n.toFixed(2)`); pass `locale` explicitly because kit defaults differ.
+- **Alignment** — money/quantities/percentages end-aligned with tabular figures; text, IDs
+  and dates start-aligned; missing values as `—`.
+- **States** — when to disable (only with a visible reason), read-only vs disabled, loading
+  (`isLoading` vs Skeleton), validation, empty, dirty.
+- **Where things live** — page actions top-right in the page header, form/dialog actions
+  bottom-right with the primary last, danger zone separated; one `<Toaster />` at bottom-end;
+  which feedback surface (inline, FormErrorSummary, toast, alertdialog) for which event.
+- **Component selection** — intent → component, with the look-alike to avoid.
+
+Every `<component>-usage` skill applies these rules in its own **UX/UI guidelines** section:
+when to use it, what to use instead, do, don't, copy and states.
 
 > **Note on slash commands:** Codex deprecated `~/.codex/prompts` custom prompts in favor of
 > skills. Skills ARE the slash commands now — invoke them explicitly with `$skill-name` (or
@@ -42,7 +62,8 @@ no spec-driven workflow.
 
 ## Subagents
 
-Codex subagents are TOML files in `agents/`. Copy (or symlink) them into `~/.codex/agents/`
+Codex subagents are TOML files in `com.openai/agents/` (Codex's extension directory — agents
+are not a portable Agent Plugins component type). Copy (or symlink) them into `~/.codex/agents/`
 (personal) or a repo's `.codex/agents/` (project-scoped — the project must be trusted in
 Codex). Hooks additionally require `features.hooks` enabled in Codex `config.toml`.
 
@@ -95,8 +116,33 @@ claude plugin marketplace add <marketplace-repo-or-path>
 claude plugin install techsio-ui-kit-ai
 ```
 
-Skills and hooks work as-is via `.claude-plugin/plugin.json`. The TOML subagents are
-Codex-specific — Claude Code users get equivalent behavior through the skills.
+Claude Code does not read the portable root `plugin.json` yet, so the plugin ships a
+**generated** `.claude-plugin/plugin.json` (metadata from `plugin.json`, MCP servers inlined
+from `mcp.json` with `streamable-http` → `http`) and `.claude-plugin/hooks.json` (a copy of
+`com.openai/hooks.json`). Never edit them by hand — change the portable files and run
+`node scripts/build-client-manifests.mjs`. The TOML subagents are Codex-specific — Claude Code
+users get equivalent behavior through the skills.
+
+### Any other Agent Plugins client
+
+Point the client at the plugin directory. It discovers `plugin.json`, `skills/*/SKILL.md` and
+`mcp.json`, and ignores `com.openai/` and `.claude-plugin/`.
+
+## Agent Plugins 1.0.0 conformance
+
+| Spec | How this package complies |
+| --- | --- |
+| §5 manifest | root `plugin.json`, `$schema` `https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`, closed field set, client data only under `extensions` |
+| §6–7.1 skills | fixed location `skills/<name>/SKILL.md`; frontmatter limited to Agent Skills keys — library metadata (`type`, `library_version`, `component_version`, `requires`, `sources`, …) lives under `metadata` as strings |
+| §7.2 MCP | root `mcp.json` with the matching `$schema`, explicit `type` per server (`streamable-http`, `stdio`) |
+| §8 extensions | Codex data in `extensions["com.openai"]` + the `com.openai/` directory (hooks, subagents) |
+| §4.1 containment | no path or symlink resolves outside the plugin root |
+
+Check it locally (also verifies the generated files are current):
+
+```sh
+node scripts/validate-plugin.mjs   # or: pnpm validate
+```
 
 ## Syncing bundled skills
 
@@ -104,17 +150,23 @@ Codex-specific — Claude Code users get equivalent behavior through the skills.
 skills. Before each plugin release, refresh the bundle from a checkout of `new-engine`:
 
 ```sh
-node scripts/sync-skills.mjs   # or: pnpm sync-skills
+node scripts/sync-skills.mjs           # or: pnpm sync-skills
+node scripts/sync-skills.mjs --check   # fail if the bundle is stale
 ```
 
-The script copies every skill (except `_artifacts`) into `skills/` and fails on a name
-collision with the 8 authored workflow skills. Never edit bundled skills inside the plugin —
-edit them in `libs/ui/skills/` and re-sync.
+The script copies every skill (except `_artifacts`) into `skills/`, removes skills deleted
+from the source, and fails on a name collision with the 8 authored workflow skills. The
+source keeps the TanStack Intent authoring format (`requires` / `sources` lists at top
+level); on the way into the bundle each `SKILL.md` frontmatter is rewritten to the strict
+Agent Skills form (every non-spec key moved under `metadata`, lists joined with spaces).
+The body and all other files are copied byte-for-byte. Never edit bundled skills inside the
+plugin — edit them in `libs/ui/skills/` and re-sync; the repo's pre-commit
+`scripts/check-skill-sync.mjs` rejects a stale bundle.
 
 ## The pre-push quality gate
 
 Pushes carrying `libs/ui` changes are blocked until `$ui-validate` has passed for the ref being
-pushed. Enforcement is a real **git `pre-push` hook** (`hooks/pre-push`), installed into the
+pushed. Enforcement is a real **git `pre-push` hook** (`scripts/git-hooks/pre-push`), installed into the
 repo by a `SessionStart` hook (`scripts/install-git-hook.mjs`).
 
 **Scoped to the ui-kit source repo.** The plugin may be installed globally, so sessions start
@@ -165,17 +217,26 @@ slot, collisions are resolved so existing hooks keep running — never won by fo
 
 ```
 techsio-ui-kit-ai/
-├── .codex-plugin/plugin.json    # Codex manifest
-├── .claude-plugin/plugin.json   # Claude Code manifest (same plugin)
-├── package.json                 # npm packaging (@techsio/ui-kit-ai)
-├── AGENTS.md                    # routing table
-├── .mcp.json                    # context7, figma, chrome-devtools
-├── agents/*.toml                # 6 Codex subagents
-├── skills/                      # 8 authored workflow skills + 60 bundled deep skills
-├── hooks/
+├── plugin.json                  # Agent Plugins 1.0.0 manifest (portable, canonical)
+├── mcp.json                     # MCP servers: context7, figma, chrome-devtools (portable)
+├── skills/                      # 8 authored workflow skills + 74 bundled deep skills (portable)
+├── com.openai/                  # Codex extension directory (extensions["com.openai"])
 │   ├── hooks.json               # SessionStart installer + --no-verify guard
-│   └── pre-push                 # the real gate (git hands it the exact refs/SHAs)
-└── scripts/                     # install-git-hook.mjs, pre-push-validate-gate.mjs, sync-skills.mjs
+│   └── agents/*.toml            # 6 Codex subagents
+├── .claude-plugin/              # GENERATED Claude Code shim — do not edit
+│   ├── plugin.json              # metadata + inlined MCP servers
+│   └── hooks.json               # copy of com.openai/hooks.json
+├── scripts/
+│   ├── git-hooks/pre-push       # the real gate (git hands it the exact refs/SHAs)
+│   ├── install-git-hook.mjs     # SessionStart installer
+│   ├── pre-push-validate-gate.mjs
+│   ├── sync-skills.mjs          # libs/ui/skills → skills/ (portable frontmatter)
+│   ├── build-client-manifests.mjs  # plugin.json + mcp.json → .claude-plugin/
+│   ├── validate-plugin.mjs      # Agent Plugins 1.0.0 + Agent Skills conformance
+│   └── lib/                     # shared helpers
+├── AGENTS.md                    # routing table
+├── package.json                 # npm packaging (@techsio/ui-kit-ai)
+└── LICENSE
 ```
 
 ## License

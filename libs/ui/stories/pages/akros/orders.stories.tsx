@@ -19,6 +19,7 @@ import {
   czk,
   orderStateOptions,
   paymentStateOptions,
+  formatDate,
 } from "./data"
 import {
   AbraBadge,
@@ -166,7 +167,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
           <span className="flex flex-col gap-50">
             <span className="font-medium">{info.getValue<string>()}</span>
             <span className="text-fg-secondary text-xs">
-              {info.row.original.placedAt}
+              {formatDate(info.row.original.placedAt)}
             </span>
           </span>
         ),

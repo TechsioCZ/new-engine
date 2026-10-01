@@ -5,9 +5,10 @@ description: >
   consumer. Routes component authoring, app usage, token work, Storybook,
   validation, framework adapters, Figma handoff, and Intent skill maintenance
   without crossing library/app scope accidentally.
-type: lifecycle
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "lifecycle"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 sources:
   - "libs/ui/AGENTS.md"
   - "libs/ui/skills/_artifacts/domain_map.yaml"

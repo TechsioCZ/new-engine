@@ -1,18 +1,20 @@
 ---
-component_version: "1.0.0"
 name: steps-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Steps for
   multi-step workflows using the Zag.js steps machine, compound list/items,
   panels, progress, navigation triggers, linear flow, controlled step, and
   variants.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/steps.tsx"
   - "libs/ui/src/tokens/components/molecules/_steps.css"
@@ -25,6 +27,39 @@ sources:
 
 Use Steps for wizard/progress workflows. Use Tabs for peer panels, and
 Pagination for page navigation.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Steps`.
+
+**Use it when**
+
+- Ordered multi-step tasks: checkout, onboarding, import wizards (3–7 steps).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Peer views | Tabs |
+| Pages of results | Pagination |
+| Explaining existing UI | Tour |
+
+**Do**
+
+- Name steps by what the user does (`Shipping`, `Payment`, `Review`).
+- Actions at the bottom: `Back` at the start, `Continue` at the end; the last step's button is the real action (`Place order`).
+- Validate each step before continuing; let users go back without losing data.
+- Allow jumping back to completed steps.
+
+**Don't**
+
+- Use more than ~7 steps; split the flow.
+- Hide the global navigation choice to leave (focused layouts still offer a way out).
+
+**Copy and states**
+
+- Step titles are nouns; progress text `Step 2 of 4` for assistive tech.
 
 ## Setup
 

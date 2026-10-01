@@ -1,15 +1,38 @@
 {
   "name": "techsio-ui-kit-ai",
-  "version": "0.1.0",
-  "description": "Techsio UI Kit AI — skills and subagents for developing the @techsio/ui-kit design system (libs/ui). Same content as .codex-plugin/plugin.json; this manifest makes the plugin installable in Claude Code / GitHub Copilot too.",
+  "version": "0.2.0",
+  "description": "Techsio UI Kit AI — skills for developing and consuming the @techsio/ui-kit design system (libs/ui): component usage with UX/UI guidance, tokens, Storybook, Figma sync and the quality gate.",
   "author": {
     "name": "Lukáš Chylík",
     "email": "lukaschylik93@gmail.com"
   },
   "homepage": "https://github.com/TechsioCZ/new-engine/tree/master/libs/ui/agent-plugin",
   "repository": "https://github.com/TechsioCZ/new-engine",
-  "keywords": ["techsio", "ui-kit", "design-system", "codex", "claude-code", "agent-skills"],
   "license": "MIT",
-  "hooks": "hooks/hooks.json",
-  "mcpServers": ".mcp.json"
+  "keywords": [
+    "techsio",
+    "ui-kit",
+    "design-system",
+    "ux-guidelines",
+    "agent-plugins",
+    "agent-skills",
+    "codex",
+    "claude-code"
+  ],
+  "hooks": "./.claude-plugin/hooks.json",
+  "mcpServers": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "figma": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"]
+    }
+  }
 }

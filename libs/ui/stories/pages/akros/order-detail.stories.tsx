@@ -19,6 +19,8 @@ import {
   paymentMethodLabels,
   shippingMethods,
   unpaidOrderEvents,
+  formatDate,
+  czkUnit,
 } from "./data"
 import {
   AbraBadge,
@@ -209,7 +211,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
           { label: "Orders", href: "#" },
           { label: order.number },
         ]}
-        description={`Placed ${order.placedAt} · ${order.items} items`}
+        description={`Placed ${formatDate(order.placedAt)} · ${order.items} items`}
         meta={
           <>
             <OrderStateBadge state={order.state} />
@@ -321,7 +323,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                       </span>
                     </Table.Cell>
                     <Table.Cell align="end">
-                      {line.unitPrice.toFixed(2)} Kč
+                      {czkUnit.format(line.unitPrice)}
                     </Table.Cell>
                     <Table.Cell align="end">
                       {czk.format(line.qty * line.unitPrice)}

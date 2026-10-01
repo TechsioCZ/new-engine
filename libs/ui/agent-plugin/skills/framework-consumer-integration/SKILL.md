@@ -4,20 +4,13 @@ description: >
   Use when consuming @techsio/ui-kit in framework apps, especially Next.js 16+
   with React Compiler, NextLink, NextImage, token CSS imports, polymorphic `as`
   props, adapter prop forwarding, and wrapper-avoidance checks.
-type: framework
-framework: react
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-sources:
-  - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
-  - "libs/ui/package.json"
-  - "libs/ui/src/atoms/link.tsx"
-  - "libs/ui/src/atoms/link-button.tsx"
-  - "libs/ui/src/atoms/image.tsx"
-  - "libs/ui/src/molecules/breadcrumb.tsx"
-  - "libs/ui/src/molecules/pagination.tsx"
+metadata:
+  type: "framework"
+  framework: "react"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux"
+  sources: "libs/ui/skills/_artifacts/consumer_app_usage_rules.md libs/ui/package.json libs/ui/src/atoms/link.tsx libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/image.tsx libs/ui/src/molecules/breadcrumb.tsx libs/ui/src/molecules/pagination.tsx"
 ---
 
 This skill builds on `component-usage-ux`. Read it first for component

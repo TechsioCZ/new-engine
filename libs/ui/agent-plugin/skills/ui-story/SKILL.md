@@ -5,7 +5,7 @@ description: >
   autodocs). Use when a component is added or its API changes. Invoke explicitly with
   $ui-story <component>.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
 ---
 

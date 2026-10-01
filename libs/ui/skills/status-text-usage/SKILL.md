@@ -1,16 +1,18 @@
 ---
-component_version: "1.0.0"
 name: status-text-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit StatusText
   for inline validation, success, warning, or default status messages with
   optional token icons and size/alignment props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/atoms/status-text.tsx"
   - "libs/ui/src/tokens/components/atoms/_status-text.css"
@@ -22,6 +24,39 @@ sources:
 
 Use StatusText for short inline messages that describe a nearby field, section,
 or operation result.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `StatusText`.
+
+**Use it when**
+
+- Short inline messages tied to a nearby field, section or operation: validation hints, section-level warnings, `Last saved 2 minutes ago`.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Transient confirmation of an action | Toast |
+| List of form errors after submit | FormErrorSummary |
+| Short state label | Badge |
+| Blocking decision | Dialog |
+
+**Do**
+
+- Place it directly under/next to what it describes.
+- Use `status` by meaning: `error` blocks, `warning` informs of a consequence, `success` confirms, `default` neutral.
+- Keep the icon — colour must not be the only signal.
+
+**Don't**
+
+- Stack many status texts; summarise.
+- Use it for long instructions — use help text or docs.
+
+**Copy and states**
+
+- One sentence: what + how to fix for errors (ux-guidelines/ux-writing#messages).
 
 ## Setup
 

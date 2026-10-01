@@ -1,28 +1,57 @@
 ---
-component_version: "1.3.0"
 name: combobox-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Combobox for
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/combobox.tsx"
-  - "libs/ui/src/tokens/components/molecules/_combobox.css"
-  - "libs/ui/stories/molecules/combobox.stories.tsx"
-  - "libs/ui/src/molecules/combobox.figma.ts"
-  - "https://zagjs.com/components/react/combobox"
+metadata:
+  component_version: "1.3.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/molecules/combobox.tsx libs/ui/src/tokens/components/molecules/_combobox.css libs/ui/stories/molecules/combobox.stories.tsx libs/ui/src/molecules/combobox.figma.ts https://zagjs.com/components/react/combobox"
 ---
 
 # @techsio/ui-kit Combobox Usage
 
 Use Combobox for searchable select-like input. Use Select when search/filtering
 is not needed.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Combobox`.
+
+**Use it when**
+
+- Choosing one or more values from a long list where typing is the fastest way to find it (countries, customers, products, tags).
+- Lists loaded asynchronously as the user types.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Fewer than ~10 known options | Select (or RadioGroup for 2–5 visible options) |
+| Search that navigates to pages/products | SearchSuggestions / SearchForm |
+| Running app commands | Command |
+| Hierarchical values | CascadeSelect |
+
+**Do**
+
+- Show a helpful empty state (`No customers match “nor”`) and, when allowed, a create option (`Create “Nora”`).
+- Debounce remote search and show loading inside the listbox, not a page spinner.
+- Keep selected values visible (tags for multiple) and removable by keyboard.
+- Highlight the matched part of each option.
+
+**Don't**
+
+- Allow free text when the value must come from the list — validate or restrict.
+- Open the list with hundreds of items before the user types; show recent or popular items instead.
+
+**Copy and states**
+
+- Placeholder is an example or instruction (`Search customers…`), never the label.
 
 ## Setup
 

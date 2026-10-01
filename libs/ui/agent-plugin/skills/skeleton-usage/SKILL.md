@@ -1,26 +1,53 @@
 ---
-component_version: "1.0.0"
 name: skeleton-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Skeleton for
   loading placeholders using Root, Circle, Text, and Rectangle compound parts
   with token-backed variants, sizes, and animation speeds.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/skeleton.tsx"
-  - "libs/ui/src/tokens/components/atoms/_skeleton.css"
-  - "libs/ui/stories/atoms/skeleton.stories.tsx"
-  - "libs/ui/src/atoms/skeleton-rectangle.figma.ts"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/atoms/skeleton.tsx libs/ui/src/tokens/components/atoms/_skeleton.css libs/ui/stories/atoms/skeleton.stories.tsx libs/ui/src/atoms/skeleton-rectangle.figma.ts"
 ---
 
 # @techsio/ui-kit Skeleton Usage
 
 Use Skeleton for loading placeholders that preserve the final layout shape.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Skeleton`.
+
+**Use it when**
+
+- Content that takes longer than ~300 ms to load, where the final layout is known (lists, cards, detail pages, charts).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A button action in progress | Button `isLoading` + `loadingText` |
+| Very short waits | nothing |
+| Unknown layout / long job | progress text or a loading toast |
+
+**Do**
+
+- Mirror the real layout: same number of rows/columns, same heights and widths.
+- Keep headers, navigation and actions real while their content loads.
+- Replace the skeleton in place without layout shift.
+
+**Don't**
+
+- Show skeletons for errors or empty results.
+- Animate aggressively; respect reduced motion.
+
+**Copy and states**
+
+- Announce loading once for assistive tech (`Loading orders`).
 
 ## Setup
 

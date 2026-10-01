@@ -1,25 +1,17 @@
 ---
-component_version: "1.1.1"
 name: date-picker-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit DatePicker
   for locale-aware segmented date entry, calendar selection, optional
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - zag-compound-components
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/date-picker.tsx"
-  - "libs/ui/src/tokens/components/molecules/_date-picker.css"
-  - "libs/ui/stories/molecules/date-picker.stories.tsx"
-  - "https://zagjs.com/components/react/date-input"
-  - "https://zagjs.com/components/react/date-picker"
-  - "https://react-aria.adobe.com/internationalized/date/"
+metadata:
+  component_version: "1.1.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/molecules/date-picker.tsx libs/ui/src/tokens/components/molecules/_date-picker.css libs/ui/stories/molecules/date-picker.stories.tsx https://zagjs.com/components/react/date-input https://zagjs.com/components/react/date-picker https://react-aria.adobe.com/internationalized/date/"
 ---
 
 # @techsio/ui-kit DatePicker Usage
@@ -28,6 +20,42 @@ Use DatePicker when a user should type a locale-aware date in segments or pick
 it from a calendar. Set `granularity` to `hour`, `minute`, or `second` when the
 same field must also collect a time. Use separate domain controls when date and
 time have independent lifecycles.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `DatePicker`.
+
+**Use it when**
+
+- Entering a specific date or date-time: delivery date, publish schedule, birth date, report period.
+- When users benefit from both typing (segments) and picking (calendar).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Showing a date (read-only) | formatted text via `Intl.DateTimeFormat` |
+| Relative choices (`Last 7 days`, `This month`) | Select or RadioGroup of presets, optionally with a custom range |
+| Time-of-day only with an independent lifecycle | a separate time control |
+
+**Do**
+
+- Pass the app `locale` explicitly — the component defaults to `en-US`, NumericInput to `cs-CZ` (ux-guidelines/formatting#locale-defaults-in-the-kit).
+- Set `min`/`max` and unavailable dates so impossible choices can't be made, and say why in help text (`Delivery from 2 working days`).
+- Use `granularity` for date-time instead of two unrelated fields when they form one value.
+- Show the time zone when it matters (scheduled publishing, cut-offs).
+
+**Don't**
+
+- Add a hand-written format hint that disagrees with the locale's segment order.
+- Use a calendar for birth dates far in the past without allowing typing.
+- Store or display ISO strings to users.
+
+**Copy and states**
+
+- Label names the date's meaning (`Delivery date`, `Publish at`), not `Date`.
+- Validation says the allowed range in formatted dates: `Choose a date between 4 Sept 2026 and 30 Sept 2026.`
 
 ## Setup
 

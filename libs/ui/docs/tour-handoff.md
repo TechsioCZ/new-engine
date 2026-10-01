@@ -31,7 +31,7 @@ Zagu; wrapper není vydáván za čisté předání nativního API.
 - Tokeny: `src/tokens/components/molecules/_tour.css`.
 - Ukázky: `stories/molecules/tour.stories.tsx`, Storybook `Molecules/Tour`.
 - Testy: `test/tour.spec.ts`, `test/tour.typecheck.tsx`.
-- Použití: `skills/tour-usage/SKILL.md` a shodná kopie v agent-plugin.
+- Použití: `skills/tour-usage/SKILL.md` a z něj generovaná kopie v agent-plugin (`scripts/sync-skills.mjs`).
 - Verze komponenty / usage skill / changelog: `1.0.2`.
 - Jediný Zag stroj, `@zag-js/tour` připnutý na `1.43.3`; sdílené Button a ActionIcon.
 

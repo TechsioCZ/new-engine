@@ -1,17 +1,19 @@
 ---
-component_version: "1.0.1"
 name: command-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Command for a
   searchable action list or a Dialog-based command palette with compound parts,
   grouped results, disabled actions, and optional shortcut hints.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/command.tsx"
   - "libs/ui/src/internal/molecules/command.context.ts"
@@ -26,6 +28,40 @@ sources:
 
 Use Command for searching and activating application actions. Use Combobox for
 a form value, Menu for a short menu without search, and Dialog for the modal shell.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Command`.
+
+**Use it when**
+
+- A keyboard-first palette for searching and running application actions and navigation (⌘K).
+- Power-user workflows in admin tools where many commands exist.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Choosing a form value | Combobox |
+| A short list of actions for one object | Menu |
+| Catalog search for shoppers | SearchSuggestions |
+
+**Do**
+
+- Group results (Navigation, Actions, Recent) with clear headings; put the most likely result first.
+- Show each command's shortcut with Hotkeys.
+- Name commands as verbs + objects (`Create product`, `Go to orders`).
+- Confirm destructive commands the same way the UI does (alertdialog or Undo).
+
+**Don't**
+
+- Make the palette the only way to reach a feature.
+- Execute on highlight; execute on Enter/click only.
+
+**Copy and states**
+
+- Placeholder `Type a command or search…`; empty state `No results for “exprt”`.
 
 ## Setup
 

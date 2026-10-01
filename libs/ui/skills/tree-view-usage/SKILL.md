@@ -1,18 +1,20 @@
 ---
-component_version: "1.0.0"
 name: tree-view-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit TreeView for
   hierarchical data with Zag.js tree-view behavior, node collection, branch and
   item parts, selection behavior, icons, indentation, expansion, selection, and
   keyboard/typeahead support.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/tree-view.tsx"
   - "libs/ui/src/tokens/components/molecules/_tree-view.css"
@@ -25,6 +27,38 @@ sources:
 
 Use TreeView for hierarchical navigation or selection. Do not flatten trees
 into custom nested lists when keyboard navigation/selection matters.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `TreeView`.
+
+**Use it when**
+
+- Selecting or managing items in a hierarchy with keyboard tree semantics: folders, category trees in admin, file browsers.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Site/category navigation links | VerticalNavigation |
+| A hierarchical form value | CascadeSelect |
+| Flat lists | Table / list |
+
+**Do**
+
+- Show counts or state per node where helpful; keep labels short.
+- Persist expanded state across navigation.
+- Offer search/filter for large trees.
+
+**Don't**
+
+- Put complex forms inside nodes.
+- Nest deeper than ~5 levels without breadcrumbs or search.
+
+**Copy and states**
+
+- Node labels are names; actions on nodes follow Menu rules.
 
 ## Setup
 

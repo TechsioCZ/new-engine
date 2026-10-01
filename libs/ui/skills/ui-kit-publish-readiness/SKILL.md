@@ -4,9 +4,10 @@ description: >
   Use before releasing or packaging @techsio/ui-kit. Checks RSLib build,
   package subpath exports, publint, token validators, Storybook build/a11y,
   component screenshots, files array, and semantic-release CI constraints.
-type: lifecycle
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "lifecycle"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-consistency-validation
 sources:

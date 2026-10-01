@@ -5,7 +5,7 @@ description: >
   semantic-release commit types, build output, and breaking-change review. Invoke
   explicitly with $ui-release-check.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
 ---
 

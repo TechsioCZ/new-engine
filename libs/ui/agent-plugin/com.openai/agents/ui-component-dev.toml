@@ -1,5 +1,5 @@
 # Codex subagent — orchestrator for @techsio/ui-kit component development.
-# Install: symlink/copy into <repo>/.codex/agents/ (project, trusted) or ~/.codex/agents/ (personal).
+# Install: symlink/copy com.openai/agents/*.toml into <repo>/.codex/agents/ (project, trusted) or ~/.codex/agents/ (personal).
 
 name = "ui-component-dev"
 description = "Builds and refactors @techsio/ui-kit components in libs/ui end-to-end: component source, tv() variants, token CSS, stories, exports. Delegates token CSS to ui-token-stylist, stories to ui-storybook-writer, Figma mapping to ui-figma-connector, and always finishes with ui-qa-validator."

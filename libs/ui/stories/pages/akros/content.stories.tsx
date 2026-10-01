@@ -11,7 +11,7 @@ import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
 import { SelectTemplate } from "../../../src/templates/select"
 import { DetailList, PageHeader, SectionCard, StatusBadge } from "../shell"
-import { type AkContent, akContent } from "./data"
+import { type AkContent, akContent, formatDate } from "./data"
 import { AkrosShell, akrosDocs } from "./shared"
 
 const meta: Meta = {
@@ -104,6 +104,7 @@ function ContentListPage() {
         accessorKey: "updatedAt",
         header: "Updated",
         meta: { type: "date", width: 130 },
+        cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
     []

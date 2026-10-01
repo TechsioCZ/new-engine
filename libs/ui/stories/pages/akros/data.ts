@@ -8,6 +8,7 @@
  * Values are fictional but realistic (CZK, Czech carriers, IČO/DIČ).
  */
 import type { TreeNode } from "../../../src/molecules/tree-view"
+import { createFixtureDateFormatter } from "../data"
 
 export const czk = new Intl.NumberFormat("cs-CZ", {
   style: "currency",
@@ -15,7 +16,16 @@ export const czk = new Intl.NumberFormat("cs-CZ", {
   maximumFractionDigits: 0,
 })
 
+/** Unit prices (screws at 1,90 Kč) keep their haléře; totals use `czk`. */
+export const czkUnit = new Intl.NumberFormat("cs-CZ", {
+  style: "currency",
+  currency: "CZK",
+  minimumFractionDigits: 2,
+})
+
 export const count = new Intl.NumberFormat("cs-CZ")
+
+export const formatDate = createFixtureDateFormatter("cs-CZ")
 
 /* ------------------------------------------------------------------ nav --- */
 

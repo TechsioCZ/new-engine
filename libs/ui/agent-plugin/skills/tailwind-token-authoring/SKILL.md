@@ -5,22 +5,11 @@ description: >
   @theme static, semantic aliases, two-layer component tokens, component CSS
   imports, Tailwind token utility class mapping, app override compatibility, and
   token validator commands.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-sources:
-  - "libs/ui/AGENTS.md"
-  - "libs/ui/token-contribution.md"
-  - "libs/ui/src/tokens/index.css"
-  - "libs/ui/src/tokens/_semantic.css"
-  - "libs/ui/src/tokens/_layout.css"
-  - "libs/ui/src/tokens/_spacing.css"
-  - "libs/ui/src/tokens/components/atoms/_button.css"
-  - "libs/ui/src/tokens/components/components.css"
-  - "libs/ui/scripts/validate-token-usage.js"
-  - "libs/ui/scripts/validate-token-definitions.js"
-  - "https://github.com/TechsioCZ/new-engine/issues/72"
-  - "https://github.com/TechsioCZ/new-engine/issues/329"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  sources: "libs/ui/AGENTS.md libs/ui/token-contribution.md libs/ui/src/tokens/index.css libs/ui/src/tokens/_semantic.css libs/ui/src/tokens/_layout.css libs/ui/src/tokens/_spacing.css libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/tokens/components/components.css libs/ui/scripts/validate-token-usage.js libs/ui/scripts/validate-token-definitions.js https://github.com/TechsioCZ/new-engine/issues/72 https://github.com/TechsioCZ/new-engine/issues/329"
 ---
 
 # @techsio/ui-kit Tailwind Token Authoring

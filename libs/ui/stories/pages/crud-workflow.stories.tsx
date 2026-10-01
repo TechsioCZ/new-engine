@@ -17,6 +17,7 @@ import {
   productCategoryOptions,
   productStatusOptions,
   products as seedProducts,
+  formatDate,
 } from "./data"
 import {
   AdminShell,
@@ -234,7 +235,11 @@ function CrudPage() {
         accessorKey: "price",
         header: "Price",
         meta: { type: "number", align: "end", editable: true, width: 150 },
-        cell: (info) => currency.format(info.getValue<number>()),
+        cell: (info) => (
+          <span className="tabular-nums">
+            {currency.format(info.getValue<number>())}
+          </span>
+        ),
       },
       {
         accessorKey: "stock",
@@ -250,7 +255,7 @@ function CrudPage() {
         cell: (info) => {
           const stock = info.getValue<number>()
           return (
-            <span className={stock === 0 ? "text-danger" : undefined}>
+            <span className={stock === 0 ? "text-danger" : "tabular-nums"}>
               {stock === 0 ? "Out of stock" : stock}
             </span>
           )
@@ -293,7 +298,7 @@ function CrudPage() {
       )
       toaster.create({
         type: "success",
-        title: "Product updated",
+        title: "Product saved",
         description: draft.name,
       })
     } else {
@@ -377,7 +382,7 @@ function CrudPage() {
                 row.id === rowId ? { ...row, ...(committed as Partial<Product>) } : row
               )
             )
-            toaster.create({ type: "success", title: "Row saved" })
+            toaster.create({ type: "success", title: "Product saved" })
           }}
           onRowClick={(row) => setDetail(row.original)}
           rowActions={[
@@ -474,7 +479,7 @@ function CrudPage() {
                 { term: "Price", value: currency.format(detail.price) },
                 { term: "Stock", value: String(detail.stock) },
                 { term: "Featured", value: detail.featured ? "Yes" : "No" },
-                { term: "Last updated", value: detail.updatedAt },
+                { term: "Last updated", value: formatDate(detail.updatedAt) },
               ]}
             />
           </div>

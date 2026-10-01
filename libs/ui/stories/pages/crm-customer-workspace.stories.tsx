@@ -19,6 +19,7 @@ import {
   customers,
   orders,
   tierOptions,
+  formatDate,
 } from "./data"
 import {
   AdminShell,
@@ -326,7 +327,7 @@ function CustomerWorkspace() {
                     >
                       <span className="font-medium text-sm">{order.number}</span>
                       <span className="text-fg-secondary text-sm">
-                        {order.placedAt} · {order.items} items
+                        {formatDate(order.placedAt)} · {order.items} items
                       </span>
                       <StatusBadge status={order.status} />
                       <span className="text-sm">

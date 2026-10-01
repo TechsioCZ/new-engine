@@ -1,17 +1,19 @@
 ---
-component_version: "1.0.0"
 name: file-upload-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FileUpload to
   select, validate, preview, and manage local File objects through the Zag.js
   compound API, including accepted/rejected files and native form behavior.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/file-upload.tsx"
   - "libs/ui/src/tokens/components/molecules/_file-upload.css"
@@ -24,6 +26,39 @@ sources:
 FileUpload manages local browser `File` objects for selection, validation,
 preview, and removal; it does not upload files to a server. Network transport,
 progress, cancellation, retry, and server errors belong to the consuming app.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `FileUpload`.
+
+**Use it when**
+
+- Attaching files to a record: product images, documents, imports.
+- Drag-and-drop with a visible click-to-browse alternative.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Picking from existing media | a media library dialog |
+| Pasting a URL | FormInput |
+
+**Do**
+
+- State accepted types and max size before selection (`PNG or JPG, up to 5 MB`).
+- Show each file with name, size (formatted), progress, and a remove action with an accessible label.
+- Show rejected files with the reason and how to fix it (`photo.heic isn't supported. Use PNG or JPG.`).
+- Upload progress, retry and server errors belong to the app — surface them per file, not only as a toast.
+
+**Don't**
+
+- Make drag-and-drop the only way to add files.
+- Clear already accepted files when one file is rejected.
+
+**Copy and states**
+
+- Dropzone text: `Drag files here or browse`; button label `Choose files`.
 
 ## Setup
 
