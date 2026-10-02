@@ -10,7 +10,10 @@
   --spacing-availability-status-compact: var(--spacing-100);
   --spacing-availability-status-icon-base: var(--spacing-250);
   --spacing-availability-status-pending-line-base: var(--spacing-250);
-  --spacing-availability-status-pending-width-base: calc(var(--spacing-950) * 2);
+  --spacing-availability-status-pending-width-base: calc(
+    var(--spacing-950) *
+    2
+  );
 
   /* Derived color layer */
   --color-availability-status-fg-available: var(
@@ -28,15 +31,11 @@
   --color-availability-status-fg-unknown: var(
     --color-availability-status-unknown
   );
-  --color-availability-status-detail-fg: var(
-    --color-availability-status-muted
-  );
+  --color-availability-status-detail-fg: var(--color-availability-status-muted);
 
   /* Derived layout and typography layer */
   --gap-availability-status: var(--spacing-availability-status-compact);
-  --gap-availability-status-summary: var(
-    --spacing-availability-status-compact
-  );
+  --gap-availability-status-summary: var(--spacing-availability-status-compact);
   --gap-availability-status-content: var(--spacing-availability-status-compact);
   --gap-availability-status-pending: var(--spacing-availability-status-compact);
   --spacing-availability-status-icon: var(
@@ -49,8 +48,8 @@
     --spacing-availability-status-pending-width-base
   );
 
-  --text-availability-status-label: var(--text-sm);
-  --text-availability-status-detail: var(--text-xs);
+  --text-availability-status-label-size: var(--text-sm);
+  --text-availability-status-detail-size: var(--text-xs);
   --font-weight-availability-status-label: var(--font-weight-medium);
 }
 

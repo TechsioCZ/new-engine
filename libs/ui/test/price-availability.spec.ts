@@ -21,6 +21,8 @@ test("PriceBlock preserves state semantics and localized pending copy", async ({
 
   const known = state(root, "known")
   await expect(known).toContainText("249 Kč")
+  await expect(known.locator(".text-price-block-amount-size")).toHaveCount(1)
+  await expect(known.locator(".text-price-block-metadata-size")).toHaveCount(1)
   await expect(known.locator('[aria-hidden="true"]')).toHaveText("·")
 
   const from = state(root, "from")
@@ -62,6 +64,11 @@ test("AvailabilityStatus keeps statuses distinct and icons decorative", async ({
 
   for (const [value, icon] of Object.entries(icons)) {
     await expect(status(root, value).first()).toBeVisible()
+    await expect(
+      status(root, value)
+        .first()
+        .locator(".text-availability-status-label-size")
+    ).toHaveCount(1)
     const decorativeIcon = status(root, value)
       .first()
       .locator('[aria-hidden="true"]')

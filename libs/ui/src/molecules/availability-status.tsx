@@ -18,12 +18,12 @@ const availabilityStatusVariants = tv({
   slots: {
     root: "flex min-w-0 flex-col gap-availability-status",
     summary: "flex min-w-0 items-start gap-availability-status-summary",
-    icon: "size-availability-status-icon shrink-0",
+    icon: "size-availability-status-icon shrink-0 self-start",
     content: "flex min-w-0 flex-col gap-availability-status-content",
     label:
-      "break-words font-availability-status-label text-availability-status-label",
+      "break-words font-availability-status-label text-availability-status-label-size",
     detail:
-      "break-words text-availability-status-detail text-availability-status-detail-fg",
+      "break-words text-availability-status-detail-fg text-availability-status-detail-size",
     pending:
       "w-availability-status-pending max-w-full gap-availability-status-pending",
     pendingLine: "h-availability-status-pending-line",

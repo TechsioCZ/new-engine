@@ -18,15 +18,17 @@ const priceBlockVariants = tv({
   slots: {
     root: "flex min-w-0 flex-col gap-price-block",
     primaryRow: "flex min-w-0 flex-wrap items-baseline gap-price-block-primary",
-    prefix: "break-words text-price-block-prefix text-price-block-prefix-fg",
+    prefix:
+      "break-words text-price-block-prefix-fg text-price-block-prefix-size",
     amount:
-      "break-words font-price-block-amount text-price-block-amount text-price-block-amount-fg",
+      "break-words font-price-block-amount text-price-block-amount-fg text-price-block-amount-size",
     original:
-      "break-words text-price-block-original text-price-block-original-fg",
+      "break-words text-price-block-original-fg text-price-block-original-size",
     metadata:
-      "flex min-w-0 flex-wrap items-center gap-price-block-metadata text-price-block-metadata text-price-block-metadata-fg",
+      "flex min-w-0 flex-wrap items-center gap-price-block-metadata text-price-block-metadata-fg text-price-block-metadata-size",
     separator: "text-price-block-separator-fg",
-    detail: "break-words text-price-block-detail text-price-block-detail-fg",
+    detail:
+      "break-words text-price-block-detail-fg text-price-block-detail-size",
     pending: "w-price-block-pending max-w-full gap-price-block-pending",
     pendingLine: "h-price-block-pending-line",
   },
@@ -113,6 +115,29 @@ export type PriceBlockProps = PriceBlockNativeProps &
     | PendingPriceProps
   )
 
+function PriceMetadata({
+  taxLabel,
+  unitLabel,
+}: Pick<KnownPriceProps, "taxLabel" | "unitLabel">) {
+  const styles = priceBlockVariants()
+
+  if (!(taxLabel || unitLabel)) {
+    return null
+  }
+
+  return (
+    <div className={styles.metadata()}>
+      {taxLabel ? <span>{taxLabel}</span> : null}
+      {taxLabel && unitLabel ? (
+        <span aria-hidden="true" className={styles.separator()}>
+          ·
+        </span>
+      ) : null}
+      {unitLabel ? <span>{unitLabel}</span> : null}
+    </div>
+  )
+}
+
 export function PriceBlock({
   state,
   amountLabel,
@@ -129,7 +154,6 @@ export function PriceBlock({
   ...props
 }: PriceBlockProps) {
   const styles = priceBlockVariants()
-  const hasMetadata = Boolean(taxLabel || unitLabel)
 
   return (
     <div
@@ -174,17 +198,7 @@ export function PriceBlock({
               </Badge>
             ) : null}
           </div>
-          {hasMetadata ? (
-            <div className={styles.metadata()}>
-              {taxLabel ? <span>{taxLabel}</span> : null}
-              {taxLabel && unitLabel ? (
-                <span aria-hidden="true" className={styles.separator()}>
-                  ·
-                </span>
-              ) : null}
-              {unitLabel ? <span>{unitLabel}</span> : null}
-            </div>
-          ) : null}
+          <PriceMetadata taxLabel={taxLabel} unitLabel={unitLabel} />
         </>
       ) : null}
     </div>

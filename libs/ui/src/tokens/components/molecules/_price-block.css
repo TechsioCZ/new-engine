@@ -26,10 +26,10 @@
   );
   --spacing-price-block-pending: var(--spacing-price-block-pending-width-base);
 
-  --text-price-block-amount: var(--text-lg);
-  --text-price-block-prefix: var(--text-sm);
-  --text-price-block-original: var(--text-sm);
-  --text-price-block-metadata: var(--text-xs);
-  --text-price-block-detail: var(--text-sm);
+  --text-price-block-amount-size: var(--text-lg);
+  --text-price-block-prefix-size: var(--text-sm);
+  --text-price-block-original-size: var(--text-sm);
+  --text-price-block-metadata-size: var(--text-xs);
+  --text-price-block-detail-size: var(--text-sm);
   --font-weight-price-block-amount: var(--font-weight-medium);
 }
