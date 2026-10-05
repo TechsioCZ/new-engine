@@ -12,6 +12,15 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### QuantityField v1.0.0
+- Added a controlled quantity molecule with a visible unit, linked label/helper/error text and localized pending feedback over NumericInput. Validation, persistence and explicit removal stay consumer-owned.
+- Manual stories cover drafts, bounds, compact layouts and pending/read-only states; behavior regressions run separately.
+- Figma authoring and Code Connect mapping are deferred; the handoff documents API and token ownership.
+
+### NumericInput v1.1.0
+- Added string value/defaultValue and Zag value/change/commit/invalid/focus callbacks while preserving numeric values, numeric onChange and legacy defaults.
+- Route declared machine options to Zag and keep explicit controlled parent updates authoritative. NumericInputTemplate shares the compatible draft contract.
+
 ### SearchSuggestions v1.0.0
 - Added a thin grouped catalog-search template over Combobox with rich result content, native links, async states and a separate all-results footer. Data fetching and routing remain consumer-owned.
 - Stories are manual examples; keyboard and navigation regressions run separately in Playwright.

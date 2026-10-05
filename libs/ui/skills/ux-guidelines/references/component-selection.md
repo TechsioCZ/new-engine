@@ -51,7 +51,8 @@ Each `<component>-usage` skill repeats its own rows in its UX/UI section.
 | --- | --- | --- |
 | Short text with label/help/error | `FormInput` | `Label` + `Input` + `StatusText` by hand |
 | Long text | `FormTextarea` | `FormInput` |
-| Exact number, price, quantity | `FormNumericInput` | `FormInput type="number"`, `Slider` |
+| Quantity with unit, helper/error and pending | `QuantityField` | app-owned numeric engines or quantity-removal logic in a field |
+| Exact number or price | `FormNumericInput` | `FormInput type="number"`, `Slider` |
 | Approximate value in a range, visual feedback | `Slider` | `NumericInput` |
 | Phone number | `PhoneInput` | `Select` + `Input` |
 | Date / date-time | `DatePicker` | three `Select`s, `Input type="date"` in apps |

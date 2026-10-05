@@ -509,6 +509,26 @@ skills:
       - src/atoms/numeric-input.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/number-input
+  - name: quantity-field-usage
+    slug: quantity-field-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/quantity-field-usage/SKILL.md
+    package: libs/ui
+    description: Controlled quantity drafts with units, helper/error feedback and pending state,
+      composed over NumericInput. Application owns stock, packaging, persistence and removal.
+    requires:
+      - component-usage-ux
+      - numeric-input-usage
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/quantity-field.tsx
+      - src/atoms/numeric-input.tsx
+      - src/tokens/components/molecules/_quantity-field.css
+      - stories/molecules/quantity-field.stories.tsx
+      - docs/quantity-field-figma-handoff.md
+      - https://zagjs.com/components/react/number-input
   - name: rating-usage
     slug: rating-usage
     type: sub-skill
