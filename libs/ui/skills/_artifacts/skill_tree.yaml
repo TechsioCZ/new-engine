@@ -644,6 +644,24 @@ skills:
       - src/molecules/accordion.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
       - https://zagjs.com/components/react/accordion
+  - name: availability-status-usage
+    slug: availability-status-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/availability-status-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs AvailabilityStatus from
+      @techsio/ui-kit/molecules/availability-status for explicit storefront availability
+      presentation without inventory or delivery inference.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/availability-status.tsx
+      - src/tokens/components/molecules/_availability-status.css
+      - stories/molecules/availability-status.stories.tsx
+      - docs/price-availability-figma-handoff.md
+      - skills/_artifacts/consumer_app_usage_rules.md
   - name: breadcrumb-usage
     slug: breadcrumb-usage
     type: sub-skill
@@ -1029,6 +1047,24 @@ skills:
       - src/tokens/components/molecules/_product-card.css
       - stories/molecules/product-card.stories.tsx
       - src/molecules/product-card.figma.ts
+      - skills/_artifacts/consumer_app_usage_rules.md
+  - name: price-block-usage
+    slug: price-block-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/price-block-usage/SKILL.md
+    package: libs/ui
+    description: Use after component-usage-ux when an app needs PriceBlock from
+      @techsio/ui-kit/molecules/price-block for display-ready storefront prices without
+      formatting or pricing logic in the UI kit.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+    sources:
+      - src/molecules/price-block.tsx
+      - src/tokens/components/molecules/_price-block.css
+      - stories/molecules/price-block.stories.tsx
+      - docs/price-availability-figma-handoff.md
       - skills/_artifacts/consumer_app_usage_rules.md
   - name: radio-card-usage
     slug: radio-card-usage

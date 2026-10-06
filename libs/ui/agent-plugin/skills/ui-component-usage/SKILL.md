@@ -28,11 +28,11 @@ component types from the installed package.
 
 ## Available per-component guides
 
-accordion, action-icon, badge, breadcrumb, button, carousel, cascade-select, chart,
+accordion, action-icon, availability-status, badge, breadcrumb, button, carousel, cascade-select, chart,
 checkbox, color-select, combobox, command, data-table, date-picker, dialog, drawer,
 facet-filter-panel, file-upload, footer, form-checkbox, form-error-summary, form-input,
 form-numeric-input, form-textarea, gallery, header, hotkeys, icon, image, input, label,
-link, link-button, menu, numeric-input, pagination, phone-input, popover, product-card,
+link, link-button, menu, numeric-input, pagination, phone-input, popover, price-block, product-card,
 radio-card, radio-group, rating, search-form, search-suggestions, select, sidebar, skeleton,
 slider, status-text, steps, switch, table, tabs, textarea, toast, tooltip, tour, tree-view,
 vertical-navigation
