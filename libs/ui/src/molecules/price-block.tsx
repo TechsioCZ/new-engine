@@ -48,6 +48,7 @@ type KnownPriceProps = {
 	unitLabel?: string
 	prefix?: never
 	originalLabel?: never
+	originalSrLabel?: never
 	discountLabel?: never
 	label?: never
 	detail?: never
@@ -61,6 +62,7 @@ type FromPriceProps = {
 	taxLabel?: string
 	unitLabel?: string
 	originalLabel?: never
+	originalSrLabel?: never
 	discountLabel?: never
 	label?: never
 	detail?: never
@@ -71,6 +73,7 @@ type DiscountedPriceProps = {
 	state: "discounted"
 	amountLabel: string
 	originalLabel: string
+	originalSrLabel: string
 	discountLabel?: string
 	taxLabel?: string
 	unitLabel?: string
@@ -86,6 +89,7 @@ type OnRequestPriceProps = {
 	detail?: string
 	amountLabel?: never
 	originalLabel?: never
+	originalSrLabel?: never
 	discountLabel?: never
 	taxLabel?: never
 	unitLabel?: never
@@ -98,6 +102,7 @@ type PendingPriceProps = {
 	pendingLabel: string
 	amountLabel?: never
 	originalLabel?: never
+	originalSrLabel?: never
 	discountLabel?: never
 	taxLabel?: never
 	unitLabel?: never
@@ -142,6 +147,7 @@ export function PriceBlock({
 	state,
 	amountLabel,
 	originalLabel,
+	originalSrLabel,
 	discountLabel,
 	taxLabel,
 	unitLabel,
@@ -193,7 +199,10 @@ export function PriceBlock({
 						) : null}
 						<span className={styles.amount()}>{amountLabel}</span>
 						{state === "discounted" ? (
-							<del className={styles.original()}>{originalLabel}</del>
+							<del className={styles.original()}>
+								<span className="sr-only">{originalSrLabel} </span>
+								{originalLabel}
+							</del>
 						) : null}
 						{state === "discounted" && discountLabel ? (
 							<Badge size="sm" variant="discount">

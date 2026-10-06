@@ -8,11 +8,14 @@ this implementation.
 ## PriceBlock
 
 - States: `known`, `from`, `discounted`, `on-request`, `pending`.
-- Text properties follow the code props: `amountLabel`, `originalLabel`,
+- Text properties follow the code props: `amountLabel`, `originalLabel`, `originalSrLabel`,
   `taxLabel`, `unitLabel`, `prefix`, `discountLabel`, `label`, `detail`, and
   `pendingLabel` only in their valid state branches.
 - Discounted original price is semantic deleted content; an optional discount
   label composes the existing Badge.
+- Discounted `originalSrLabel` is required localized screen-reader copy, such
+  as "Původní cena". It prefixes the original amount without affecting the
+  visual layout; document its accessibility purpose in the Figma handoff.
 - Tax and unit labels remain separate properties. The separator belongs to the
   component and appears only when both exist.
 - Component variables mirror `price-block` CSS tokens and alias semantic or

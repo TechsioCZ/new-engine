@@ -19,6 +19,7 @@ const CHANGELOG = `
 ### PriceBlock v1.0.0
 - New props-driven price molecule for known, from, discounted, on-request and pending presentation. It preserves semantic original-price markup, separate tax/unit metadata and app-owned formatting without pricing logic. Figma and Code Connect are deferred.
 - Pending copy is readable by screen readers while the decorative skeleton is hidden; no implicit live region is added.
+- Discounted prices require localized originalSrLabel copy so screen readers can identify the original amount even when no discount badge is shown.
 
 ### SearchSuggestions v1.0.0
 - Added a thin grouped catalog-search template over Combobox with rich result content, native links, async states and a separate all-results footer. Data fetching and routing remain consumer-owned.

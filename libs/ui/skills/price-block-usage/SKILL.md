@@ -34,6 +34,9 @@ Apply the house `ux-guidelines` rules for numbers, writing and loading states.
 - Format currency and discount copy in the application. Never substitute zero
   for an unknown amount; use the explicit `on-request` branch.
 - Keep the original discounted price, tax and unit labels distinct and readable.
+- Supply a localized `originalSrLabel` for every discounted price, including
+  when no discount badge is shown. The original-price prefix is visually hidden
+  text; the amount remains visible and retains its deletion markup.
 - Supply localized `pendingLabel` copy. Pending exposes that text to screen
   readers and hides the decorative skeleton; it adds no implicit live region.
 - Add root `aria-live` only when this particular dynamic update needs an
@@ -48,6 +51,7 @@ import { PriceBlock } from "@techsio/ui-kit/molecules/price-block"
   state="discounted"
   amountLabel="249 Kč"
   originalLabel="299 Kč"
+  originalSrLabel="Původní cena"
   taxLabel="vč. DPH"
   unitLabel="za balení"
   discountLabel="Akce"
@@ -59,7 +63,7 @@ Supported states:
 ```text
 known: amountLabel, optional taxLabel and unitLabel
 from: prefix, amountLabel, optional taxLabel and unitLabel
-discounted: amountLabel, originalLabel, optional discountLabel, taxLabel and unitLabel
+discounted: amountLabel, originalLabel, originalSrLabel, optional discountLabel, taxLabel and unitLabel
 on-request: label, optional detail
 pending: pendingLabel
 ```
@@ -78,8 +82,11 @@ separator only when both values exist and lets long localized copy wrap.
 
 ### Use the semantic discount branch
 
-`originalLabel` is required for `discounted` and renders as deleted content.
-`discountLabel` is optional display copy; PriceBlock does not calculate it.
+`originalLabel` and the localized `originalSrLabel` are required for `discounted`.
+The original amount retains deletion markup, prefixed by visually hidden
+`originalSrLabel` text so its meaning does not depend on a screen reader
+announcing deletion semantics. `discountLabel` remains optional badge copy;
+PriceBlock does not calculate it.
 
 ## Common Mistakes
 
@@ -122,7 +129,12 @@ Wrong:
 Correct:
 
 ```tsx
-<PriceBlock state="discounted" amountLabel="249 Kč" originalLabel="299 Kč" />
+<PriceBlock
+  state="discounted"
+  amountLabel="249 Kč"
+  originalLabel="299 Kč"
+  originalSrLabel="Původní cena"
+/>
 ```
 
 ## Validation Commands

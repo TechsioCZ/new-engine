@@ -1,7 +1,11 @@
 import { expect, type Locator, type Page, test } from "@playwright/test"
 
-async function openStory(page: Page, story: string) {
-	await page.goto(`/iframe.html?id=${story}&viewMode=story`)
+async function openStory(page: Page, story: string, args?: string) {
+	const query = new URLSearchParams({ id: story, viewMode: "story" })
+	if (args) {
+		query.set("args", args)
+	}
+	await page.goto(`/iframe.html?${query}`)
 	await expect(page.locator("#storybook-root")).not.toBeEmpty()
 }
 
@@ -30,7 +34,7 @@ test("PriceBlock preserves state semantics and localized pending copy", async ({
 	await expect(from.locator('[aria-hidden="true"]')).toHaveCount(0)
 
 	const discounted = state(root, "discounted")
-	await expect(discounted.locator("del")).toHaveText("299 Kč")
+	await expect(discounted.locator("del")).toHaveText("Původní cena 299 Kč")
 	await expect(discounted).toContainText("Akce")
 
 	const onRequest = state(root, "on-request")
@@ -47,6 +51,27 @@ test("PriceBlock preserves state semantics and localized pending copy", async ({
 	await expect(pending).toMatchAriaSnapshot("- text: Načítání ceny")
 	await expect(pending).not.toHaveAttribute("role", "status")
 	await expect(pending).not.toHaveAttribute("aria-live")
+})
+
+test("discounted prices retain localized original-price context without a badge", async ({
+	page,
+}) => {
+	await openStory(
+		page,
+		"molecules-priceblock--playground",
+		"discountLabel:!undefined;originalSrLabel:Previous price",
+	)
+	const discounted = state(page.locator("#storybook-root"), "discounted")
+	await expect(discounted).toBeVisible()
+	await expect(discounted).not.toContainText("Akce")
+	await expect(discounted.locator("del")).toHaveText("Previous price 299 Kč")
+	await expect(discounted.locator("del")).toMatchAriaSnapshot(
+		"- deletion: Previous price 299 Kč",
+	)
+	const label = discounted.locator("del .sr-only")
+	const labelBounds = await label.boundingBox()
+	expect(labelBounds?.width).toBeLessThanOrEqual(1)
+	expect(labelBounds?.height).toBeLessThanOrEqual(1)
 })
 
 test("AvailabilityStatus keeps statuses distinct and icons decorative", async ({
