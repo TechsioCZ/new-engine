@@ -18,6 +18,7 @@
 @import "./atoms/_tooltip.css";
 
 @import "./molecules/_accordion.css";
+@import "./molecules/_availability-status.css";
 @import "./molecules/_breadcrumb.css";
 @import "./molecules/_carousel.css";
 @import "./molecules/_cascade-select.css";
@@ -32,6 +33,7 @@
 @import "./molecules/_form-error-summary.css";
 @import "./molecules/_pagination.css";
 @import "./molecules/_popover.css";
+@import "./molecules/_price-block.css";
 @import "./molecules/_radio-card.css";
 @import "./molecules/_radio-group.css";
 @import "./molecules/_menu.css";

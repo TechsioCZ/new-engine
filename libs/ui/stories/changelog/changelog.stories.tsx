@@ -12,6 +12,15 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### AvailabilityStatus v1.0.0
+- New props-driven availability molecule with explicit available, limited, preorder, unavailable, unknown and pending branches, app-owned localized copy, distinct decorative icons and optional delivery detail. Figma and Code Connect are deferred.
+- Pending copy is readable by screen readers while the decorative skeleton is hidden; no implicit live region is added.
+
+### PriceBlock v1.0.0
+- New props-driven price molecule for known, from, discounted, on-request and pending presentation. It preserves semantic original-price markup, separate tax/unit metadata and app-owned formatting without pricing logic. Figma and Code Connect are deferred.
+- Pending copy is readable by screen readers while the decorative skeleton is hidden; no implicit live region is added.
+- Discounted prices require localized originalSrLabel copy so screen readers can identify the original amount even when no discount badge is shown.
+
 ### SearchSuggestions v1.0.0
 - Added a thin grouped catalog-search template over Combobox with rich result content, native links, async states and a separate all-results footer. Data fetching and routing remain consumer-owned.
 - Stories are manual examples; keyboard and navigation regressions run separately in Playwright.
@@ -279,22 +288,22 @@ const CHANGELOG = `
 `.trim()
 
 function Changelog() {
-  return (
-    <div className="min-h-screen bg-base p-400">
-      <div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
-        <pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
-          {CHANGELOG}
-        </pre>
-      </div>
-    </div>
-  )
+	return (
+		<div className="min-h-screen bg-base p-400">
+			<div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
+				<pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
+					{CHANGELOG}
+				</pre>
+			</div>
+		</div>
+	)
 }
 
 const meta: Meta<typeof Changelog> = {
-  title: "Guide/Changelog",
-  component: Changelog,
-  tags: ["autodocs"],
-  parameters: { layout: "fullscreen" },
+	title: "Guide/Changelog",
+	component: Changelog,
+	tags: ["autodocs"],
+	parameters: { layout: "fullscreen" },
 }
 
 export default meta
