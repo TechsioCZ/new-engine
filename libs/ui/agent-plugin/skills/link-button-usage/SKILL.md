@@ -1,29 +1,53 @@
 ---
-component_version: "1.0.0"
 name: link-button-usage
 description: >
   Use after component-usage-ux when navigation should look like a Button using
   @techsio/ui-kit LinkButton, including framework link adapters, href, disabled
   state, icons, and Button-compatible variants/themes/sizes.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - framework-consumer-integration
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/link-button.tsx"
-  - "libs/ui/src/atoms/link.tsx"
-  - "libs/ui/src/atoms/button.tsx"
-  - "libs/ui/src/tokens/components/atoms/_button.css"
-  - "libs/ui/src/atoms/link-button.figma.ts"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/link.tsx libs/ui/src/atoms/button.tsx libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/atoms/link-button.figma.ts"
 ---
 
 # @techsio/ui-kit LinkButton Usage
 
 Use LinkButton for navigation that needs Button styling. Use Button for
 actions that stay in the current page state.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `LinkButton`.
+
+**Use it when**
+
+- Navigation that must look like a button: `Go to checkout`, `View order`, CTA on marketing pages, `Back to list` when it is a real URL.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| An action that stays on the page | Button |
+| A link inside text or lists | Link |
+
+**Do**
+
+- Label with the destination or intent (`View order`, `Continue shopping`).
+- Follow Button hierarchy: one primary per surface.
+- Use the framework link adapter so client routing and prefetch work.
+
+**Don't**
+
+- Use LinkButton to submit forms or trigger mutations.
+- Open new tabs without saying so (`opens in a new tab`).
+
+**Copy and states**
+
+- No `Click here` / `Learn more` without context; `Read the returns policy` instead.
 
 ## Setup
 

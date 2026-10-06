@@ -223,6 +223,33 @@ skills:
       - package.json
     subsystems:
       - per-component usage skills
+  - name: ux-guidelines
+    slug: ux-guidelines
+    type: composition
+    domain: consumer-app-adoption
+    path: skills/ux-guidelines/SKILL.md
+    package: libs/ui
+    description: >
+      Use when designing, building or reviewing any screen with the UI kit. House UX/UI rules
+      shared by every component: UX writing, date/number formatting, numeric alignment,
+      disabled/read-only/loading/empty states, where CRUD actions and feedback appear, and
+      component selection. Every *-usage skill carries a UX/UI guidelines section that applies it.
+    requires:
+      - component-usage-ux
+    sources:
+      - stories/pages/crud-workflow.stories.tsx
+      - stories/pages/cms-record-editor.stories.tsx
+      - stories/pages/settings.stories.tsx
+      - stories/pages/system-states.stories.tsx
+      - src/molecules/toast.tsx
+      - src/organisms/table.tsx
+      - src/organisms/data-table.tsx
+    subsystems:
+      - ux writing
+      - formatting and alignment
+      - interaction states
+      - action and feedback placement
+      - component selection
   - name: app-ui-kit-audit
     slug: app-ui-kit-audit
     type: core
@@ -793,6 +820,23 @@ skills:
       - src/tokens/components/molecules/_drawer.css
       - stories/molecules/drawer.stories.tsx
       - https://zagjs.com/components/react/drawer
+  - name: facet-filter-panel-usage
+    slug: facet-filter-panel-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/facet-filter-panel-usage/SKILL.md
+    package: libs/ui
+    description: Controlled catalog facet presentation with generic option and range groups, active filters, overflow, and an inline panel or Dialog drawer.
+    requires:
+      - component-usage-ux
+      - accordion-usage
+      - dialog-usage
+      - form-checkbox-usage
+      - slider-usage
+    sources:
+      - src/templates/facet-filter-panel.tsx
+      - src/tokens/components/templates/_facet-filter-panel.css
+      - stories/templates/facet-filter-panel.stories.tsx
   - name: file-upload-usage
     slug: file-upload-usage
     type: sub-skill
@@ -1060,6 +1104,20 @@ skills:
       - stories/molecules/search-form.stories.tsx
       - src/molecules/search-form.figma.ts
       - skills/_artifacts/consumer_app_usage_rules.md
+  - name: search-suggestions-usage
+    slug: search-suggestions-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/search-suggestions-usage/SKILL.md
+    package: libs/ui
+    description: Grouped catalog search navigation with rich results and an all-results link, composed from Combobox.
+    requires:
+      - component-usage-ux
+      - combobox-usage
+    sources:
+      - src/templates/search-suggestions.tsx
+      - src/molecules/combobox.tsx
+      - stories/templates/search-suggestions.stories.tsx
   - name: select-usage
     slug: select-usage
     type: sub-skill

@@ -5,9 +5,10 @@ description: >
   including atoms, molecules, organisms, tv() variants, React 19 ref props,
   component token CSS, Storybook stories, package subpath exports, and Figma
   handoff reminders.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - tailwind-token-authoring
   - storybook-authoring

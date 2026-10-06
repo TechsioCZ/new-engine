@@ -83,6 +83,18 @@ Examples of agent mistakes:
   controlled value/input state, collection mapping, multiple selection,
   disabled items, close-on-select, positioning, or machine part anatomy.
 
+## UX/UI House Rules
+
+`ux-guidelines` is the single rulebook for how screens behave and read: UX
+writing (button labels, save/edit/delete copy, toast and error messages),
+locale-aware dates and numbers, end-aligned numeric columns with tabular
+figures, disabled/read-only/loading/empty states, where actions live (page
+actions top-right in the page header, form actions bottom-right with the
+primary last) and where feedback appears (one bottom-end Toaster, inline field
+errors, FormErrorSummary, alertdialog for irreversible actions). Every
+component usage skill has a "UX/UI guidelines" section with when to use the
+component, what to use instead, do/don't rules and copy.
+
 ## Component-Specific Usage Skills
 
 `component-usage-ux` should act as an orchestrator. Detailed rules belong in

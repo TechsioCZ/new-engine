@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -194,6 +194,7 @@ export function NumericInput({
 
   const service = useMachine(numberInput.machine, {
     id: uniqueId,
+    ids: id ? { input: id } : undefined,
     min,
     max,
     step,

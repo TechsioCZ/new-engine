@@ -1,0 +1,20 @@
+/*
+ * FormErrorSummary — runtime tokens derive from the status-text error token and
+ * danger primitives so the summary reads as one system with the form fields.
+ */
+@theme static {
+  --color-form-error-summary-fg: var(--color-status-text-fg-error);
+  --color-form-error-summary-border: var(--color-bg-danger-base);
+  --color-form-error-summary-bg: var(--color-bg-danger-subtle);
+  --color-form-error-summary-ring: var(--color-status-text-fg-error);
+  --outline-form-error-summary-focus-style: var(--default-ring-style);
+  --outline-form-error-summary-focus-width: var(--default-ring-width);
+  --outline-form-error-summary-focus-offset: var(--default-ring-offset);
+}
+
+@utility form-error-summary-focus-ring {
+  outline-color: var(--color-form-error-summary-ring);
+  outline-offset: var(--outline-form-error-summary-focus-offset);
+  outline-style: var(--outline-form-error-summary-focus-style);
+  outline-width: var(--outline-form-error-summary-focus-width);
+}

@@ -4,19 +4,12 @@ description: >
   Use before releasing or packaging @techsio/ui-kit. Checks RSLib build,
   package subpath exports, publint, token validators, Storybook build/a11y,
   component screenshots, files array, and semantic-release CI constraints.
-type: lifecycle
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-consistency-validation
-sources:
-  - "libs/ui/package.json"
-  - "libs/ui/project.json"
-  - "libs/ui/rslib.config.ts"
-  - "libs/ui/release.config.mjs"
-  - "libs/ui/scripts/storybook-a11y.sh"
-  - "libs/ui/scripts/storybook-a11y-summary.mjs"
-  - "libs/ui/scripts/run-component-tests.mjs"
+metadata:
+  type: "lifecycle"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-consistency-validation"
+  sources: "libs/ui/package.json libs/ui/project.json libs/ui/rslib.config.ts libs/ui/release.config.mjs libs/ui/scripts/storybook-a11y.sh libs/ui/scripts/storybook-a11y-summary.mjs libs/ui/scripts/run-component-tests.mjs"
 ---
 
 # @techsio/ui-kit Publish Readiness Checklist

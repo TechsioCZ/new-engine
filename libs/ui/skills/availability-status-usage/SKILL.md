@@ -1,16 +1,19 @@
 ---
-component_version: "1.0.0"
 name: availability-status-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit
   AvailabilityStatus for explicit available, limited, preorder, unavailable,
   unknown, or pending presentation.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  component: "AvailabilityStatus"
+  component_version: "1.0.0"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/availability-status.tsx"
   - "libs/ui/src/tokens/components/molecules/_availability-status.css"
@@ -23,6 +26,20 @@ sources:
 Use AvailabilityStatus after the application has normalized inventory into an
 explicit presentation status. The component does not inspect quantities or
 infer delivery promises.
+
+## UX/UI guidelines
+
+Apply the house `ux-guidelines` rules for status copy and loading states.
+
+- Use AvailabilityStatus for application-resolved inventory or delivery status;
+  use StatusText for unrelated generic feedback and Button for purchase actions.
+- Explain availability with localized text, not color or an icon alone.
+- Keep unknown availability distinct from an explicit unavailable status.
+  Delivery dates and promises must come from application data.
+- Supply localized `pendingLabel` copy. Pending exposes that text to screen
+  readers and hides the decorative skeleton; it adds no implicit live region.
+- Announce a dynamic change through root attributes only when needed; avoid
+  live regions on every card in a static catalog.
 
 ## Setup
 

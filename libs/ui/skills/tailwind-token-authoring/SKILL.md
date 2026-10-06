@@ -5,9 +5,10 @@ description: >
   @theme static, semantic aliases, two-layer component tokens, component CSS
   imports, Tailwind token utility class mapping, app override compatibility, and
   token validator commands.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 sources:
   - "libs/ui/AGENTS.md"
   - "libs/ui/token-contribution.md"

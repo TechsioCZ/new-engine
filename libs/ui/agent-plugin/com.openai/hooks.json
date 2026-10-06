@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/install-git-hook.mjs\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|shell|local_shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/pre-push-validate-gate.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

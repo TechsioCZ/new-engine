@@ -1,28 +1,55 @@
 ---
-component_version: "1.0.0"
 name: checkbox-usage
 description: >
   Use after component-usage-ux when an app needs the low-level
   @techsio/ui-kit Checkbox atom, including invalid and indeterminate states,
   while preferring form molecules for labeled form rows.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/checkbox.tsx"
-  - "libs/ui/src/molecules/form-checkbox.tsx"
-  - "libs/ui/src/tokens/components/atoms/_checkbox.css"
-  - "libs/ui/stories/atoms/checkbox.stories.tsx"
-  - "libs/ui/src/atoms/checkbox.figma.ts"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/atoms/checkbox.tsx libs/ui/src/molecules/form-checkbox.tsx libs/ui/src/tokens/components/atoms/_checkbox.css libs/ui/stories/atoms/checkbox.stories.tsx libs/ui/src/atoms/checkbox.figma.ts"
 ---
 
 # @techsio/ui-kit Checkbox Usage
 
 Use `Checkbox` for the bare control. Use `FormCheckbox` when the UI includes a
 label, helper text, validation text, or a form-field layout.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Checkbox`.
+
+**Use it when**
+
+- Bare selection controls inside tables and lists (row selection, select all).
+- Custom compositions where the label/help structure is provided by the surrounding component.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A checkbox with its own label, help or error | FormCheckbox |
+| A setting that applies immediately | Switch |
+| One exclusive option | RadioGroup |
+
+**Do**
+
+- Give bare checkboxes an accessible name (`Select Linen shirt`, `Select all products on this page`).
+- Use the indeterminate state for a partially selected group.
+- Make the whole row or label clickable where the pattern allows.
+
+**Don't**
+
+- Use a checkbox to trigger an immediate action (that is a Switch or Button).
+- Reverse meaning with negative labels (`Don't send emails`).
+
+**Copy and states**
+
+- Positive, parallel statements; no trailing punctuation for short labels.
 
 ## Setup
 

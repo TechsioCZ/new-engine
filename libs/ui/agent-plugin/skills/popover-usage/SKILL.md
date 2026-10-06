@@ -1,29 +1,55 @@
 ---
-component_version: "1.0.0"
 name: popover-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Popover for
   anchored non-blocking content using Zag.js compound parts, placement,
   portalling, close behavior, arrow, title, description, and close trigger.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - zag-compound-components
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/popover.tsx"
-  - "libs/ui/src/tokens/components/molecules/_popover.css"
-  - "libs/ui/stories/molecules/popover.stories.tsx"
-  - "libs/ui/src/molecules/popover.figma.ts"
-  - "https://zagjs.com/components/react/popover"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/molecules/popover.tsx libs/ui/src/tokens/components/molecules/_popover.css libs/ui/stories/molecules/popover.stories.tsx libs/ui/src/molecules/popover.figma.ts https://zagjs.com/components/react/popover"
 ---
 
 # @techsio/ui-kit Popover Usage
 
 Use Popover for anchored, dismissible content. Use Dialog for modal flows and
 Tooltip for tiny supplemental text.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Popover`.
+
+**Use it when**
+
+- Small interactive content anchored to its trigger: filter panels, colour pickers, quick edit of one value, share options.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A decision that must block the page | Dialog |
+| A read-only hint | Tooltip |
+| A list of commands | Menu |
+| Large forms | Dialog / drawer |
+
+**Do**
+
+- Keep content short; if it scrolls, it should be a dialog.
+- End filter popovers with `[Reset] [Apply]` bottom-right, or apply instantly — not both.
+- Return focus to the trigger on close; close on Escape and outside click.
+
+**Don't**
+
+- Put required information only in a popover.
+- Open popovers on hover.
+
+**Copy and states**
+
+- Trigger text says what opens (`Filters`, `Share`); count active filters in the trigger (`Filters (2)`).
 
 ## Setup
 

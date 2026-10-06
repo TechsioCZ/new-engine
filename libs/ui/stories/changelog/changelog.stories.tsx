@@ -14,10 +14,29 @@ const CHANGELOG = `
 
 ### AvailabilityStatus v1.0.0
 - New props-driven availability molecule with explicit available, limited, preorder, unavailable, unknown and pending branches, app-owned localized copy, distinct decorative icons and optional delivery detail. Figma and Code Connect are deferred.
+- Pending copy is readable by screen readers while the decorative skeleton is hidden; no implicit live region is added.
 
 ### PriceBlock v1.0.0
 - New props-driven price molecule for known, from, discounted, on-request and pending presentation. It preserves semantic original-price markup, separate tax/unit metadata and app-owned formatting without pricing logic. Figma and Code Connect are deferred.
+- Pending copy is readable by screen readers while the decorative skeleton is hidden; no implicit live region is added.
 
+### SearchSuggestions v1.0.0
+- Added a thin grouped catalog-search template over Combobox with rich result content, native links, async states and a separate all-results footer. Data fetching and routing remain consumer-owned.
+- Stories are manual examples; keyboard and navigation regressions run separately in Playwright.
+
+### Combobox v1.3.0
+- Added Zag item groups, explicit navigation mode, navigation callback and footer/portal options. Selection remains the default.
+- Loading/error exclude hidden results from keyboard selection. Rich options retain their label, scalar values are normalized, and help/error text is connected to the input.
+- Loading and retry labels are customizable; status and footer controls are outside listbox semantics.
+- Input and trigger reference the scrollable listbox; Zag keeps highlighted options visible without moving input focus.
+- Group headings and footer spacing follow the shared popup size scale; status text uses a component foreground token.
+
+### FacetFilterPanel v1.0.1
+- Newly loaded option groups open by default, and controlled drawer focus returns to the trigger only after the drawer closes.
+
+### FacetFilterPanel v1.0.0
+- Added a controlled catalog-facet template with generic option and range groups, active-filter removal, reset, overflow, pending/disabled states, and explicit inline or Dialog drawer presentation.
+- Facet calculations, formatting, URL/query synchronization and responsive breakpoint selection remain consumer-owned. Stories are manual; interaction regressions run separately in Playwright.
 ### VerticalNavigation v1.0.1
 - Unify split-row hover and current-page backgrounds across the link and disclosure. Highlight only the chevron on disclosure hover, preserving separate navigation, expansion and keyboard focus.
 
@@ -110,6 +129,12 @@ const CHANGELOG = `
 ### ColorSelect v1.0.0
 - Opted into per-component versioning; paired 1:1 with the color-select-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Combobox v1.2.1
+- Async loading and error states keep selected labels while preventing keyboard selection of options that are not rendered.
+
+### Combobox v1.2.0
+- Added external filtering mode (filterBehavior), async dropdown states (loading, error, onRetry) and custom item rendering (renderItem).
+
 ### Combobox v1.1.0
 - Panel, item hover/selected colour, radius, shadow and z-index now come from the shared popup-surface tokens (also used by Select and Menu), so all three read as one system. Selected items get a real trailing check indicator (previously missing) in a reserved gutter that keeps the label from reflowing.
 
@@ -122,14 +147,35 @@ const CHANGELOG = `
 ### Footer v1.0.0
 - Opted into per-component versioning; paired 1:1 with the footer-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### FormCheckbox v1.1.1
+- The public \`id\` now identifies the native checkbox input, so error-summary links can target it.
+
+### FormCheckbox v1.1.0
+- Help/error text is now linked to the control via \`aria-describedby\`; added an optional \`aria-describedby\` prop so apps can append their own description IDs.
+
 ### FormCheckbox v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-checkbox-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormErrorSummary v1.0.1
+- Focus-visible links now use component-specific ring aliases; their appearance is unchanged.
+
+### FormErrorSummary v1.0.0
+- New focusable error summary molecule that lists validation errors as links to the invalid fields via targetId; presentational and form-library-agnostic.
+
+### FormInput v1.1.0
+- Help/error text is now linked to the input via \`aria-describedby\`, and \`aria-invalid\` is set only for \`validateStatus="error"\`.
 
 ### FormInput v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### FormNumericInput v1.1.0
+- Help/error text is now linked to the numeric input via \`describedBy\`.
+
 ### FormNumericInput v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-numeric-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### FormTextarea v1.1.0
+- Help/error text is now linked to the textarea via \`aria-describedby\`, and \`aria-invalid\` is set only for \`validateStatus="error"\`.
 
 ### FormTextarea v1.0.0
 - Opted into per-component versioning; paired 1:1 with the form-textarea-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
@@ -163,6 +209,9 @@ const CHANGELOG = `
 
 ### Menu v1.0.0
 - Opted into per-component versioning; paired 1:1 with the menu-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
+
+### NumericInput v1.0.1
+- The public \`id\` now identifies the editable input, aligning external labels and error-summary links.
 
 ### NumericInput v1.0.0
 - Opted into per-component versioning; paired 1:1 with the numeric-input-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
@@ -238,22 +287,22 @@ const CHANGELOG = `
 `.trim()
 
 function Changelog() {
-  return (
-    <div className="min-h-screen bg-base p-400">
-      <div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
-        <pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
-          {CHANGELOG}
-        </pre>
-      </div>
-    </div>
-  )
+	return (
+		<div className="min-h-screen bg-base p-400">
+			<div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
+				<pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
+					{CHANGELOG}
+				</pre>
+			</div>
+		</div>
+	)
 }
 
 const meta: Meta<typeof Changelog> = {
-  title: "Guide/Changelog",
-  component: Changelog,
-  tags: ["autodocs"],
-  parameters: { layout: "fullscreen" },
+	title: "Guide/Changelog",
+	component: Changelog,
+	tags: ["autodocs"],
+	parameters: { layout: "fullscreen" },
 }
 
 export default meta

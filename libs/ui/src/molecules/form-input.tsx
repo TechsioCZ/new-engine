@@ -2,14 +2,14 @@
  * FormInput — @techsio/ui-kit molecule.
  *
  * @component FormInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill form-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the form-input-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { ReactNode } from "react"
+import { type ReactNode, useId } from "react"
 import { Input, type InputProps } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
@@ -63,13 +63,22 @@ export function FormInput({
   validateStatus = "default",
   showHelpTextIcon = validateStatus !== "default",
   size = "md",
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   ...props
 }: FormInputProps) {
+  const helpTextId = useId()
+  const describedBy =
+    [ariaDescribedBy, helpText ? helpTextId : undefined]
+      .filter(Boolean)
+      .join(" ") || undefined
+
   return (
     <FormInputRaw
       helpText={
         helpText && (
           <StatusText
+            id={helpTextId}
             status={validateStatus}
             showIcon={showHelpTextIcon}
             size={size}
@@ -81,6 +90,8 @@ export function FormInput({
       id={id}
       size={size}
       validateStatus={validateStatus}
+      aria-invalid={validateStatus === "error" ? true : ariaInvalid}
+      aria-describedby={describedBy}
       {...props}
     />
   )

@@ -4,25 +4,62 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Button for
   actions, including correct variant, theme, size, loading state, icon props,
   and token-first styling rules.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-component: Button
-component_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/button.tsx"
-  - "libs/ui/src/tokens/components/atoms/_button.css"
-  - "libs/ui/stories/atoms/button.stories.tsx"
-  - "libs/ui/src/atoms/button.figma.ts"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  component: "Button"
+  component_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/atoms/button.tsx libs/ui/src/tokens/components/atoms/_button.css libs/ui/stories/atoms/button.stories.tsx libs/ui/src/atoms/button.figma.ts"
 ---
 
 # @techsio/ui-kit Button Usage
 
 Use Button for in-place actions. Use `LinkButton` for navigation that should
 look like a button.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Button`.
+
+**Use it when**
+
+- Any action that changes state on the current page: save, create, delete, open a dialog, apply filters.
+- Form submission and dialog/drawer footers.
+- Page-level commands in the page header (`New product`).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Navigate to a URL, styled as a button | LinkButton |
+| Inline navigation in text | Link |
+| Compact repeated icon action | ActionIcon |
+| More than three related commands | Menu behind one Button |
+| Toggle a setting on/off | Switch |
+
+**Do**
+
+- One `variant="primary"` per surface; secondary actions use `secondary` / `outlined` / `borderless`.
+- Order groups `[Cancel] [Primary]` — primary last, at the end of the container (ux-guidelines/feedback-and-actions).
+- Use `variant="danger"` only for destructive actions and keep them away from Save.
+- Show progress with `isLoading` + `loadingText` (`Saving…`) on the button that started the action.
+- Add an `icon` only when it speeds recognition (`+` for New, trash for Delete); keep the text.
+
+**Don't**
+
+- Use `OK`, `Yes`, `Submit`, `Confirm` or `Click here` as labels.
+- Put two primary buttons side by side.
+- Disable a submit button when the user can't see why (ux-guidelines/states#disabled).
+- Fake a link with `onClick={() => router.push()}` — use LinkButton.
+- Change the label to a result (`Saved!`); confirm with a Toast instead.
+
+**Copy and states**
+
+- Verb + object in sentence case: `New product`, `Create product`, `Save changes`, `Delete product`, `Discard changes` (full table in ux-guidelines/ux-writing#button-labels).
+- `Cancel` leaves a form without saving; `Close` closes something with no pending changes.
 
 ## Setup
 

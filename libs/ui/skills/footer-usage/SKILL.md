@@ -1,18 +1,20 @@
 ---
-component_version: "1.0.0"
 name: footer-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Footer for
   site footer composition with container, section, title, list, link, text,
   divider, bottom area, size, layout, direction, section flow, and framework
   link adapters.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/organisms/footer.tsx"
   - "libs/ui/src/tokens/components/organisms/_footer.css"
@@ -23,6 +25,37 @@ sources:
 
 Use Footer for global footer layout. Do not build app footers from raw divs and
 anchors when this organism fits.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Footer`.
+
+**Use it when**
+
+- The global site footer: secondary navigation, legal links, contact, newsletter, payment/shipping marks.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Primary navigation | Header |
+| Actions for the current page | page content / page header |
+
+**Do**
+
+- Group links under short headings; keep the same footer on every storefront page.
+- Include legal links (terms, privacy, cookies) and contact details users look for.
+- Stack groups into accordions or a single column on mobile without hiding legal links.
+
+**Don't**
+
+- Put important actions only in the footer.
+- Duplicate the whole header navigation.
+
+**Copy and states**
+
+- Headings are nouns (`Customer care`, `Company`); `© 2026 Company name` generated from the current year.
 
 ## Setup
 

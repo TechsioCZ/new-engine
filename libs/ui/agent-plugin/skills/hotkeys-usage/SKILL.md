@@ -1,28 +1,53 @@
 ---
-component_version: "1.0.1"
 name: hotkeys-usage
 description: >
   Use after component-usage-ux when an app needs shortcut hints or explicit-store
   Zag keyboard registrations with @techsio/ui-kit Hotkeys. Covers compound
   keycaps, current callbacks, store ownership, scopes and optional registry readback.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/hotkeys.ts"
-  - "libs/ui/src/atoms/hotkeys.tsx"
-  - "libs/ui/src/tokens/components/atoms/_hotkeys.css"
-  - "libs/ui/stories/atoms/hotkeys.stories.tsx"
-  - "libs/ui/test/hotkeys.spec.ts"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/hotkeys.ts libs/ui/src/atoms/hotkeys.tsx libs/ui/src/tokens/components/atoms/_hotkeys.css libs/ui/stories/atoms/hotkeys.stories.tsx libs/ui/test/hotkeys.spec.ts"
 ---
 
 # @techsio/ui-kit Hotkeys Usage
 
 Use Hotkeys for shortcut hints and the separate hooks for native Zag
 registrations. A hint never installs a handler or requires a store.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Hotkeys`.
+
+**Use it when**
+
+- Showing a keyboard shortcut next to the command it triggers (menus, tooltips, Command palette).
+- Registering app shortcuts for frequent actions in power-user tools.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Explaining how to do something | help text or a Tour |
+
+**Do**
+
+- Show platform-appropriate keys (⌘ on macOS, Ctrl elsewhere).
+- Reserve shortcuts for frequent actions; list them in one discoverable place (Command palette or help).
+- Every shortcut action must also be reachable by pointer.
+
+**Don't**
+
+- Override browser or assistive-technology shortcuts.
+- Trigger shortcuts while the user types in inputs (unless the shortcut is meant for fields, like ⌘Enter).
+
+**Copy and states**
+
+- Order modifiers consistently (`⌘ Shift K`); the command name next to it follows button-label rules.
 
 ## Shortcut presentation
 

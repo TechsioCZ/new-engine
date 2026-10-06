@@ -1,5 +1,4 @@
 ---
-component_version: "1.0.0"
 name: chart-usage
 description: >
   Use after component-usage-ux when an app needs the @techsio/ui-kit Chart —
@@ -8,17 +7,13 @@ description: >
   area, bar, horizontal bar, scatter, pie and donut charts from the same
   data/x/y/series channels, with token-driven series colors, legend, tooltip,
   value formatting and selection callbacks.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/chart.tsx"
-  - "libs/ui/src/tokens/components/molecules/_chart.css"
-  - "libs/ui/stories/molecules/chart.stories.tsx"
-  - "https://tanstack.com/charts/v0/docs/overview" # supported upstream: 0.6.x
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/molecules/chart.tsx libs/ui/src/tokens/components/molecules/_chart.css libs/ui/stories/molecules/chart.stories.tsx https://tanstack.com/charts/v0/docs/overview"
 ---
 
 # @techsio/ui-kit Chart Usage
@@ -28,6 +23,41 @@ definition internally: you hand it rows plus `x`/`y` (and optionally `series`)
 channels and pick a `type`; it picks the right marks and scales, wires the
 tooltip and legend, and paints every series from the
 `--color-chart-series-*` design tokens in fixed order.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Chart`.
+
+**Use it when**
+
+- Trends over time (line/area), comparisons between categories (bar), composition of a small whole (≤ 5 parts).
+- Dashboards and reports where the shape of the data matters more than exact values.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Exact values the user looks up or copies | Table / DataTable |
+| A single KPI | a stat tile with the formatted number |
+| More than 5 slices of a whole | a bar chart, not a pie/donut |
+
+**Do**
+
+- Pick the chart type by the question (ux-guidelines/component-selection); keep series colours from `--color-chart-series-*` in fixed order.
+- Format axis ticks and tooltips with the app locale (`Intl.NumberFormat`, `Intl.DateTimeFormat`) and label units.
+- Provide a text summary or a table alternative for screen readers.
+- Show loading (Skeleton), empty (`No orders in this period`) and error (`Try again`) states instead of empty axes.
+
+**Don't**
+
+- Rely on colour alone to distinguish series — keep the legend and labels.
+- Use 3D, gradients or heavy grid lines.
+- Animate the entrance when the user prefers reduced motion.
+
+**Copy and states**
+
+- Title says the insight or metric and period: `Revenue, last 30 days`; axis labels include the unit.
 
 ## Setup
 

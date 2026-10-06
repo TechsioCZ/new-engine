@@ -1,16 +1,18 @@
 ---
-component_version: "1.0.0"
 name: color-select-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit ColorSelect
   for choosing color swatches with supported layout, size, radius, disabled
   state, selected state, labels, counts, and single/multiple roles.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/color-select.tsx"
   - "libs/ui/src/tokens/components/molecules/_color-select.css"
@@ -21,6 +23,37 @@ sources:
 
 Use ColorSelect for product color filters or swatch choices. It is not a
 general Select replacement.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `ColorSelect`.
+
+**Use it when**
+
+- Choosing a product colour/variant by swatch, or filtering a catalog by colour.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Choosing any other value | Select / RadioGroup |
+| Brand theme colour in admin settings | a dedicated color input, not a swatch filter |
+
+**Do**
+
+- Give every swatch an accessible name with the colour's product name (`Navy`), not the hex value.
+- Show the selected colour's name next to the control.
+- Mark unavailable colours as unavailable (not just faded) and explain on the product page.
+
+**Don't**
+
+- Rely on colour alone — the name must be visible or available on focus.
+- Use more than ~12 swatches without grouping or a More option.
+
+**Copy and states**
+
+- Label `Colour` (or `Color`, per locale); selected value shown as `Colour: Navy`.
 
 ## Setup
 

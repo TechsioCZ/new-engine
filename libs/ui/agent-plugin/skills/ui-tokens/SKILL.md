@@ -5,7 +5,7 @@ description: >
   the token cascade, shared form-control/icon-button utilities, and run token validation.
   Use for any change under libs/ui/src/tokens/. Invoke explicitly with $ui-tokens.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
 ---
 

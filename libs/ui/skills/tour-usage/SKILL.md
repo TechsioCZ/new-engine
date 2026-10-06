@@ -1,17 +1,19 @@
 ---
-component_version: "1.0.2"
 name: tour-usage
 description: >
   Use after component-usage-ux for guided walkthroughs with @techsio/ui-kit Tour:
   tooltip/dialog/floating steps, target resolution, interactive wait effects,
   imperative control, shared action buttons, cleanup and app-owned onboarding policy.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.2"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/tour.tsx"
   - "libs/ui/src/tokens/components/molecules/_tour.css"
@@ -27,6 +29,39 @@ sources:
 Use Tour to explain an existing interface. Use Steps for a wizard/progress
 workflow, Tooltip for a short contextual hint, and Dialog for an independent
 modal task. Tour owns one Zag machine, not nested Tooltip/Dialog machines.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Tour`.
+
+**Use it when**
+
+- Introducing new or changed UI in place, once, with 3–5 steps that point at real elements.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Doing a task step by step | Steps |
+| One contextual hint | Tooltip |
+| An independent modal task | Dialog |
+
+**Do**
+
+- Start only on user request or after a meaningful event (new feature), never on every visit.
+- Each step: short title, one sentence, `Back` / `Next`, final `Done`; always allow `Skip tour`.
+- Point at elements that exist and are visible; scroll them into view.
+- Remember completion per user.
+
+**Don't**
+
+- Block critical tasks with a tour.
+- Explain what the label already says.
+
+**Copy and states**
+
+- Progress `2 of 4`; final button `Done`.
 
 ## Setup
 

@@ -5,22 +5,12 @@ description: >
   Zag.js machine/connect APIs, normalizeProps, React context, compound
   Component.Subcomponent assignments, slots, adapter props, and data attribute
   state styling.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-authoring
-  - tailwind-token-authoring
-sources:
-  - "libs/ui/AGENTS.md"
-  - "libs/ui/src/molecules/accordion.tsx"
-  - "libs/ui/src/molecules/carousel.tsx"
-  - "libs/ui/src/molecules/select.tsx"
-  - "libs/ui/src/molecules/tree-view.tsx"
-  - "libs/ui/src/organisms/header.tsx"
-  - "https://chakra-ui.com/docs/components/accordion"
-  - "https://chakra-ui.com/docs/components/menu"
-  - "https://github.com/TechsioCZ/new-engine/issues/295"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-authoring tailwind-token-authoring"
+  sources: "libs/ui/AGENTS.md libs/ui/src/molecules/accordion.tsx libs/ui/src/molecules/carousel.tsx libs/ui/src/molecules/select.tsx libs/ui/src/molecules/tree-view.tsx libs/ui/src/organisms/header.tsx https://chakra-ui.com/docs/components/accordion https://chakra-ui.com/docs/components/menu https://github.com/TechsioCZ/new-engine/issues/295"
 ---
 
 This skill builds on `component-authoring` and `tailwind-token-authoring`. Read

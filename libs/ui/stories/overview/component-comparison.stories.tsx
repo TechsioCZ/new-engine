@@ -245,6 +245,11 @@ const treeData: TreeNode[] = [
   { id: 'package.json', name: 'package.json' },
 ]
 
+const usd = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+})
+
 const tableRows = [
   { id: 1, name: 'Laptop', category: 'Electronics', price: 999.99, stock: 24 },
   { id: 2, name: 'Coffee Maker', category: 'Appliances', price: 49.99, stock: 98 },
@@ -835,7 +840,7 @@ function ComponentComparison() {
                     <Table.Row key={row.id}>
                       <Table.Cell>{row.name}</Table.Cell>
                       <Table.Cell>{row.category}</Table.Cell>
-                      <Table.Cell numeric>${row.price.toFixed(2)}</Table.Cell>
+                      <Table.Cell numeric>{usd.format(row.price)}</Table.Cell>
                       <Table.Cell numeric>{row.stock}</Table.Cell>
                     </Table.Row>
                   ))}

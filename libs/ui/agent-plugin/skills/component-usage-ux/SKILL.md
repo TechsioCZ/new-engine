@@ -4,23 +4,26 @@ description: >
   Use as the apps/* UI-kit usage orchestrator. Chooses which @techsio/ui-kit
   component and per-component *-usage skill to load before selecting props,
   variants, themes, sizes, slots, framework adapters, and token overrides.
-type: composition
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - app-token-overrides
-sources:
-  - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
-  - "libs/ui/src/atoms"
-  - "libs/ui/src/molecules"
-  - "libs/ui/src/organisms"
-  - "libs/ui/package.json"
-  - "https://zagjs.com/components/react/combobox"
+metadata:
+  type: "composition"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "app-token-overrides"
+  sources: "libs/ui/skills/_artifacts/consumer_app_usage_rules.md libs/ui/src/atoms libs/ui/src/molecules libs/ui/src/organisms libs/ui/package.json https://zagjs.com/components/react/combobox"
 ---
 
 # @techsio/ui-kit Component Usage UX
 
 Use this in apps. It is a router, not a complete component manual.
+
+Load order for any UI work:
+
+```text
+component-usage-ux  -> which component fits the intent
+ux-guidelines       -> house UX rules: copy, dates/numbers, alignment, states,
+                       where actions and feedback live, component selection
+<component>-usage   -> the component API, plus its "UX/UI guidelines" section
+```
 
 ## Setup
 
@@ -44,6 +47,8 @@ Hierarchical choice -> cascade-select-usage
 Nested site/category links -> vertical-navigation-usage
 Tree widget with arrow-key selection -> tree-view-usage
 Loading placeholder -> skeleton-usage
+Catalog search navigation -> search-suggestions-usage
+Catalog facet filtering -> facet-filter-panel-usage
 Shortcut hint or keyboard registration -> hotkeys-usage
 Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
 ```
@@ -52,9 +57,13 @@ Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
 
 ### Start from UX intent
 
+The full intent → component table (with the look-alikes to avoid) is
+`ux-guidelines/references/component-selection.md`.
+
 ```text
 Destructive action -> Button danger, maybe Dialog confirmation
 CRUD success/error -> Toast or StatusText depending persistence and context
+Where the CRUD buttons go -> ux-guidelines (page actions top-right, form actions bottom-right)
 Hierarchical form choice -> CascadeSelect
 Hierarchical page/category navigation -> VerticalNavigation
 Tree widget selection -> TreeView

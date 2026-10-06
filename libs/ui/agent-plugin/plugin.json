@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "techsio-ui-kit-ai",
+  "version": "0.2.0",
+  "description": "Techsio UI Kit AI — skills for developing and consuming the @techsio/ui-kit design system (libs/ui): component usage with UX/UI guidance, tokens, Storybook, Figma sync and the quality gate.",
+  "author": {
+    "name": "Lukáš Chylík",
+    "email": "lukaschylik93@gmail.com"
+  },
+  "homepage": "https://github.com/TechsioCZ/new-engine/tree/master/libs/ui/agent-plugin",
+  "repository": "https://github.com/TechsioCZ/new-engine",
+  "license": "MIT",
+  "keywords": [
+    "techsio",
+    "ui-kit",
+    "design-system",
+    "ux-guidelines",
+    "agent-plugins",
+    "agent-skills",
+    "codex",
+    "claude-code"
+  ],
+  "extensions": {
+    "com.openai": {
+      "hooks": "./com.openai/hooks.json",
+      "interface": {
+        "displayName": "Techsio UI Kit AI",
+        "shortDescription": "Build and consume the @techsio/ui-kit design system.",
+        "longDescription": "Workflow skills ($ui-*) for scaffolding components, tokens, stories, theming, Figma sync, validation and release, plus per-component usage skills with UX/UI guidance (when to use, when not, copy, states, formatting, feedback placement).",
+        "developerName": "Techsio",
+        "category": "Coding",
+        "websiteURL": "https://github.com/TechsioCZ/new-engine/tree/master/libs/ui/agent-plugin"
+      }
+    }
+  }
+}

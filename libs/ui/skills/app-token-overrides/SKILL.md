@@ -5,9 +5,10 @@ description: >
   typography, spacing, layout, radius, or component CSS token overrides while
   avoiding redundant token chains, duplicated JSX className styling, and
   permanent local API-gap workarounds.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - tailwind-token-authoring
 sources:

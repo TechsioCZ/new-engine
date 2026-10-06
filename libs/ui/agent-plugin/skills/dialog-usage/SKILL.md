@@ -1,28 +1,62 @@
 ---
-component_version: "1.0.1"
 name: dialog-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Dialog for
   modal dialogs, alert dialogs, drawers, actions, focus management, placement,
   size, and close behavior backed by Zag.js.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/dialog.tsx"
-  - "libs/ui/src/tokens/components/molecules/_dialog.css"
-  - "libs/ui/stories/molecules/dialog.stories.tsx"
-  - "libs/ui/src/molecules/dialog.figma.ts"
-  - "https://zagjs.com/components/react/dialog"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/molecules/dialog.tsx libs/ui/src/tokens/components/molecules/_dialog.css libs/ui/stories/molecules/dialog.stories.tsx libs/ui/src/molecules/dialog.figma.ts https://zagjs.com/components/react/dialog"
 ---
 
 # @techsio/ui-kit Dialog Usage
 
 Use Dialog for focused overlays and confirmations. Use Popover for lightweight
 anchored content and Tooltip for short supplemental help.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Dialog`.
+
+**Use it when**
+
+- A focused task or decision that must be finished or cancelled before continuing.
+- Irreversible confirmations with `role="alertdialog"`.
+- Create / edit / read of a record over its list with `placement="right"` (drawer pattern from the CRUD reference).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Lightweight anchored content (filters, small forms next to their trigger) | Popover |
+| A hint on hover/focus | Tooltip |
+| Confirming a finished action | Toast |
+| Persistent navigation or edge panels | Sidebar / Drawer |
+| A long, multi-section record | a full page (record editor) |
+
+**Do**
+
+- Title = the action or record (`New product`, `Edit product`); destructive title = question (`Delete this product?`).
+- Put actions in the `actions` footer: `[Cancel] [Primary]`, bottom-right, one primary.
+- In an alertdialog the destructive button replaces the primary and repeats the verb + object (`Delete product`); the description names the record and consequences.
+- Ask before closing a dirty form (`Discard unsaved changes?`).
+- Size to the content: `sm` for confirmations, `md` for forms; right drawer for record CRUD.
+
+**Don't**
+
+- Open a dialog from a dialog; replace the content or use steps inside one dialog.
+- Use a dialog for success messages or marketing interruptions on load.
+- Put the only close affordance inside scrolled content — the close button and `Cancel` stay visible.
+- Use `Yes` / `No` buttons.
+
+**Copy and states**
+
+- Buttons follow ux-guidelines/ux-writing#button-labels; descriptions are one or two sentences about consequences.
 
 ## Setup
 
