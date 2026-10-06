@@ -5,18 +5,12 @@ description: >
   existing component usage, native HTML replacement, nonexistent props,
   duplicate className styling, token-first violations, framework adapter
   mistakes, unnecessary wrappers, and UI-kit API gaps.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
-  - "libs/ui/package.json"
-  - "libs/ui/src/atoms"
-  - "libs/ui/src/molecules"
-  - "libs/ui/src/tokens/components"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides"
+  sources: "libs/ui/skills/_artifacts/consumer_app_usage_rules.md libs/ui/package.json libs/ui/src/atoms libs/ui/src/molecules libs/ui/src/tokens/components"
 ---
 
 # @techsio/ui-kit App Adoption Audit

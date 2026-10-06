@@ -1,7 +1,7 @@
 {
   "name": "@techsio/ui-kit-ai",
-  "version": "0.1.0",
-  "description": "Techsio UI Kit AI — agent plugin (skills + Codex subagents) for developing and consuming the @techsio/ui-kit design system.",
+  "version": "0.2.0",
+  "description": "Techsio UI Kit AI — Agent Plugins 1.0.0 package (skills + MCP) for developing and consuming the @techsio/ui-kit design system.",
   "author": {
     "name": "Lukáš Chylík",
     "email": "lukaschylik93@gmail.com"
@@ -11,23 +11,33 @@
     "url": "git+https://github.com/TechsioCZ/new-engine.git",
     "directory": "libs/ui/agent-plugin"
   },
-  "keywords": ["techsio", "ui-kit", "design-system", "codex", "claude-code", "agent-skills", "plugin"],
+  "keywords": [
+    "techsio",
+    "ui-kit",
+    "design-system",
+    "agent-plugins",
+    "codex",
+    "claude-code",
+    "agent-skills",
+    "plugin"
+  ],
   "license": "MIT",
   "private": true,
   "scripts": {
-    "sync-skills": "node scripts/sync-skills.mjs"
+    "sync-skills": "node scripts/sync-skills.mjs",
+    "build:manifests": "node scripts/build-client-manifests.mjs",
+    "validate": "node scripts/validate-plugin.mjs"
   },
   "files": [
-    ".codex-plugin",
+    "plugin.json",
+    "mcp.json",
+    "skills",
+    "com.openai",
     ".claude-plugin",
-    ".mcp.json",
+    "scripts",
     "AGENTS.md",
     "LICENSE",
-    "README.md",
-    "agents",
-    "hooks",
-    "scripts",
-    "skills"
+    "README.md"
   ],
-  "_publishing": "Distributed as a Codex/Claude plugin via a marketplace (git source), not via npm. To publish to npm instead, drop `private` and add `publishConfig.access`."
+  "_publishing": "Distributed as an Agent Plugins directory via a marketplace (git source), not via npm. To publish to npm instead, drop `private` and add `publishConfig.access`."
 }

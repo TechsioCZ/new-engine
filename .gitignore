@@ -59,8 +59,6 @@ dogfood-output/
 
 # MCP configuration
 .mcp.json
-# ...except the agent plugin's own MCP server map, which is part of the published plugin
-!libs/ui/agent-plugin/.mcp.json
 .schaltwerk/
 
 # Frontend demo test pages

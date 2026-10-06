@@ -1,5 +1,4 @@
 ---
-component_version: "1.0.1"
 name: data-table-usage
 description: >
   Use after component-usage-ux when an app needs the @techsio/ui-kit DataTable —
@@ -8,13 +7,16 @@ description: >
   column filters, global search, row selection, column visibility/pinning/reorder,
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.2.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
   - table-usage
+  - ux-guidelines
 sources:
   - "libs/ui/src/organisms/data-table.tsx"
   - "libs/ui/src/organisms/data-table.helpers.ts"
@@ -28,6 +30,47 @@ renders into the presentational `Table` organism, so it inherits every
 `--color-table-*` / `--padding-table-cell-*` token. Reach for the plain `Table`
 when you only need static markup; reach for `DataTable` when you need
 sorting/filtering/selection/pagination and friends.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `DataTable`.
+
+**Use it when**
+
+- Collections users search, sort, filter, select, edit inline and page through — the default for admin lists.
+- Any list that is the main content of a page (orders, products, customers, pages).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A small static table (spec sheet, invoice lines) | Table |
+| Browsing products visually | a ProductCard grid |
+| Showing a trend | Chart |
+| Editing a whole record with validation across fields | the drawer/full form, not inline edit |
+
+**Do**
+
+- Align numeric columns (money, counts, percentages) with `meta: { align: "end" }` and render them with `tabular-nums`; text and dates stay start-aligned (ux-guidelines/formatting#alignment-in-tables).
+- Format cells with the app's `Intl` formatters; render missing values as `—`.
+- Row click = read (detail drawer); edit and delete live in `rowActions`, delete last with `tone: "danger"`.
+- Show bulk actions only while rows are selected; confirm destructive bulk actions with the count.
+- Design all three empty states (first use, no results, load error). `translations.emptyTitle` / `emptyDescription` hold one message, so pick it from the app's state on each render, or use `renderEmpty` to render a different state (with `Clear filters` / `Try again`) per case — never let a failed load read as `No records`.
+- Choose `size` per page: `sm` for scanning, `md` when rows are edited inline.
+
+**Don't**
+
+- Build a separate filter bar when column filters (`enableColumnFilters` + `meta.type`) fit.
+- Blank the table while refreshing — keep rows and show progress in the toolbar.
+- Center numbers or right-align text.
+- Put more than one primary action in the toolbar; the page's primary lives in the page header.
+
+**Copy and states**
+
+- Column headers are short nouns in sentence case, with units when shared (`Price (€)`).
+- Inline edit success → toast `<Object> saved`; errors stay on the cell editor.
+- Search placeholder `Search <objects>…`.
 
 ## Setup
 

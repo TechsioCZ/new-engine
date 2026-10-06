@@ -1,29 +1,55 @@
 ---
-component_version: "1.0.1"
 name: form-numeric-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit
   FormNumericInput for labeled numeric fields using NumericInput compound
   children, validation status, help text, and number-specific constraints.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - numeric-input-usage
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/form-numeric-input.tsx"
-  - "libs/ui/src/atoms/numeric-input.tsx"
-  - "libs/ui/stories/molecules/form-numeric-input.stories.tsx"
-  - "libs/ui/src/molecules/form-numeric-input.figma.ts"
-  - "https://zagjs.com/components/react/number-input"
+metadata:
+  component_version: "1.1.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux numeric-input-usage app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/molecules/form-numeric-input.tsx libs/ui/src/atoms/numeric-input.tsx libs/ui/stories/molecules/form-numeric-input.stories.tsx libs/ui/src/molecules/form-numeric-input.figma.ts https://zagjs.com/components/react/number-input"
 ---
 
 # @techsio/ui-kit FormNumericInput Usage
 
 Use FormNumericInput for labeled quantities, limits, prices, or measurements.
 It requires NumericInput compound children.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `FormNumericInput`.
+
+**Use it when**
+
+- Labelled exact numbers: price, quantity, stock, discount %, weight, dimensions.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Approximate value where feel matters (volume, price range filter) | Slider (optionally paired) |
+| Identifiers that look numeric (postal code, card, order #) | FormInput with `inputMode="numeric"` |
+| Unlabelled compact stepper (cart line) | NumericInput |
+
+**Do**
+
+- Pass the app `locale` and `formatOptions` (currency, percent, unit) so display matches the rest of the app.
+- Set `min`, `max` and step; show the limits in help text when not obvious (`Up to 99 per order`).
+- Put the unit in the label (`Price (€)`, `Weight (kg)`) when not formatted into the value.
+- Keep increment/decrement triggers for small integer adjustments; omit them for prices.
+
+**Don't**
+
+- Use `<input type="number">` or FormInput for numbers.
+- Silently clamp a typed value without telling the user — show the limit.
+
+**Copy and states**
+
+- Validation: `Enter a quantity between 1 and 99.` with formatted numbers.
 
 ## Setup
 

@@ -2,14 +2,14 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.1
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the form-numeric-input-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { ReactNode } from "react"
+import { type ReactNode, useId } from "react"
 import { Label } from "../atoms/label"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 import { StatusText } from "../atoms/status-text"
@@ -40,26 +40,26 @@ export function FormNumericInput({
   ...numericInputProps
 }: FormNumericInputProps) {
   const inputId = ids?.input ?? id
-  const helpTextId = helpText ? `${id}-help` : undefined
-  const inputDescribedBy =
-    [describedBy, helpTextId].filter(Boolean).join(" ") || undefined
+  const helpTextId = useId()
+  const mergedDescribedBy =
+    [describedBy, helpText ? helpTextId : undefined]
+      .filter(Boolean)
+      .join(" ") || undefined
 
   return (
-    <div
-      className="flex flex-col gap-form-field-gap"
-    >
+    <div className="flex flex-col gap-form-field-gap">
       <Label disabled={disabled} htmlFor={inputId} required={required} size={size}>
         {label}
       </Label>
 
       <NumericInput
-        describedBy={inputDescribedBy}
         disabled={disabled}
         id={id}
         ids={ids}
         invalid={validateStatus === "error"}
         required={required}
         size={size}
+        describedBy={mergedDescribedBy}
         {...numericInputProps}
       >
         {children}

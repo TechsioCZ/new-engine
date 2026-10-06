@@ -5,9 +5,10 @@ description: >
   usage patterns, Figma handoff practices, validation commands, or generated
   skills change and the TanStack Intent skill artifacts or SKILL.md files need
   review or regeneration.
-type: lifecycle
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "lifecycle"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 sources:
   - "libs/ui/skills/_artifacts/domain_map.yaml"
   - "libs/ui/skills/_artifacts/skill_spec.md"

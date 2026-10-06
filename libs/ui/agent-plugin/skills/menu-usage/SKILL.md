@@ -1,28 +1,56 @@
 ---
-component_version: "1.1.1"
 name: menu-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Menu for
   action, radio, checkbox, separator, or submenu items using the Zag.js menu
   wrapper, Button trigger, icons, and supported open/highlight/select props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/menu.tsx"
-  - "libs/ui/src/tokens/components/molecules/_menu.css"
-  - "libs/ui/stories/molecules/menu.stories.tsx"
-  - "libs/ui/src/molecules/menu.figma.ts"
-  - "https://zagjs.com/components/react/menu"
+metadata:
+  component_version: "1.1.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  sources: "libs/ui/src/molecules/menu.tsx libs/ui/src/tokens/components/molecules/_menu.css libs/ui/stories/molecules/menu.stories.tsx libs/ui/src/molecules/menu.figma.ts https://zagjs.com/components/react/menu"
 ---
 
 # @techsio/ui-kit Menu Usage
 
 Use Menu for contextual command lists. Use Select for choosing a value in a
 form, Tabs for switching panels, and Popover for custom content.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Menu`.
+
+**Use it when**
+
+- A list of commands for one object or context: row `More actions`, account menu, overflow of page actions.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Choosing a value in a form | Select |
+| Switching views | Tabs |
+| Custom content (forms, pickers) | Popover |
+| Searching many commands | Command |
+
+**Do**
+
+- Order items by frequency; group with separators; destructive items last and in danger tone.
+- Label items as verbs (`Duplicate`, `Archive`, `Delete…`); `…` when the item opens a dialog asking for more input.
+- Show shortcuts with Hotkeys when they exist.
+- Disable an unavailable item only if the reason is obvious; otherwise hide it.
+
+**Don't**
+
+- Put navigation and commands in one flat list without grouping.
+- Nest menus more than one level.
+
+**Copy and states**
+
+- Trigger for overflow: ActionIcon with `aria-label="More actions"`.
 
 ## Setup
 

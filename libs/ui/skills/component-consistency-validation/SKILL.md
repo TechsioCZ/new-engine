@@ -5,9 +5,10 @@ description: >
   stories, Figma Code Connect files, package exports, or validation scripts.
   Checks prop/variant/token/story/Figma consistency and recommends focused
   commands before maintainer handoff.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 sources:
   - "libs/ui/package.json"
   - "libs/ui/project.json"

@@ -1,18 +1,20 @@
 ---
-component_version: "1.0.1"
 name: carousel-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Carousel for
   Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect
   ratio, object fit, and framework image adapters.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/carousel.tsx"
   - "libs/ui/src/tokens/components/molecules/_carousel.css"
@@ -25,6 +27,42 @@ sources:
 
 Use Carousel for slide-based browsing. Use Gallery for product image galleries
 with thumbnails.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Carousel`.
+
+**Use it when**
+
+- Horizontally browsable sets of equal items: related products, banners, testimonials.
+- Content where only part needs to be visible and the rest is optional.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Product images with thumbnails and zoom | Gallery |
+| Content every user must see (key offer, required info) | a static layout — most users never swipe |
+| Navigating between steps | Steps |
+| A long list of results | a grid with Pagination |
+
+**Do**
+
+- Show a partial next item or visible controls so users know there is more.
+- Provide previous/next controls and indicators with accessible labels; keep swipe as an addition, not the only way.
+- Stop any auto-rotation on hover, focus and with `prefers-reduced-motion`; offer pause.
+- Keep slides the same height to avoid layout shift.
+
+**Don't**
+
+- Auto-rotate promotional banners faster than users can read (or at all, if the content has actions).
+- Put critical CTAs only on slide 3+.
+- Nest carousels or put a carousel inside a horizontally scrolling area.
+
+**Copy and states**
+
+- Controls labelled `Previous slide` / `Next slide`; indicators `Go to slide 2 of 5`.
 
 ## Setup
 

@@ -5,7 +5,7 @@ description: >
   variable naming/aliasing, and the token export pipeline. Use after a component's public
   API or visuals changed. Invoke explicitly with $ui-figma-sync.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
 ---
 

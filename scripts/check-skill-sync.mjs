@@ -6,7 +6,7 @@
 // Components without those tags are skipped, so the convention can roll out one component at a time.
 //
 // For each opted-in component in the commit:
-//   - the paired skill `libs/ui/skills/<name>/SKILL.md` must declare `component_version: X.Y.Z`
+//   - the paired skill `libs/ui/skills/<name>/SKILL.md` must declare `metadata.component_version: X.Y.Z`
 //   - the component `@componentVersion` must equal that `component_version`      (the 1:1 tie)
 //   - the changelog story must contain a `### <Component> vX.Y.Z` entry for that version
 //   - if the component's code changed vs the merge-base but the version did not, fail
@@ -15,7 +15,11 @@
 
 import { execFileSync } from "node:child_process"
 import { existsSync, readdirSync } from "node:fs"
-import { join } from "node:path"
+import { posix } from "node:path"
+import {
+  AUTHORED_SKILLS,
+  toPortableSkill,
+} from "../libs/ui/agent-plugin/scripts/lib/skill-frontmatter.mjs"
 
 const SKILLS_DIR = "libs/ui/skills"
 // The plugin bundle is generated from SKILLS_DIR by sync-skills.mjs. It is committed, so a stale
@@ -31,8 +35,10 @@ const COMPONENT_RE =
 const VERSION_RE = /@componentVersion\s+v?(\d+\.\d+\.\d+)/
 const SKILL_TAG_RE = /@skill\s+([a-z0-9-]+)/
 const COMPONENT_TAG_RE = /@component\s+([A-Za-z0-9]+)/
+// `component_version` lives under `metadata:` (indented); a legacy top-level key still matches.
 const SKILL_VERSION_RE =
-  /^component_version:\s*["']?v?(\d+\.\d+\.\d+)["']?\s*$/m
+  /^\s*component_version:\s*["']?v?(\d+\.\d+\.\d+)["']?\s*$/m
+const META_TAG_RE = /@componentVersion|@skill\b|@component\b/
 
 const git = (args) => {
   try {
@@ -51,23 +57,39 @@ const git = (args) => {
 // not be committed. `git show :<path>` returns "" for a path missing from the index.
 const readStaged = (path) => git(["show", `:${path}`])
 
+// `git()` trims output, so compare trimmed generated content too.
+const portable = (src) => {
+  try {
+    return toPortableSkill(`${src}\n`).trim()
+  } catch {
+    return null
+  }
+}
+
 const baselineRef = () => {
   const candidates = ["origin/master", "master", "origin/main", "main"]
   // Also honour the remote's actual default branch, so a repo whose default is neither master nor
   // main doesn't silently skip the bump check below (baselineRef() returning "" disables it).
-  const remoteHead = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"])
-  if (remoteHead) candidates.push(remoteHead)
+  const remoteHead = git([
+    "symbolic-ref",
+    "--short",
+    "refs/remotes/origin/HEAD",
+  ])
+  if (remoteHead) {
+    candidates.push(remoteHead)
+  }
   for (const base of candidates) {
     const mb = git(["merge-base", "HEAD", base])
-    if (mb) return mb
+    if (mb) {
+      return mb
+    }
   }
   return ""
 }
 
 const pascalFromFile = (file) =>
-  file
-    .replace(/^.*\//, "")
-    .replace(/\.tsx$/, "")
+  posix
+    .basename(file, ".tsx")
     .split("-")
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
     .join("")
@@ -76,7 +98,7 @@ const pascalFromFile = (file) =>
 const stripMeta = (src) =>
   src
     .split("\n")
-    .filter((l) => !/@componentVersion|@skill\b|@component\b/.test(l))
+    .filter((l) => !META_TAG_RE.test(l))
     .join("\n")
 
 // Include deletions (D): removing a component's SKILL.md, its generated bundle copy, or the
@@ -102,10 +124,14 @@ const optedInComponents = () => {
       continue
     }
     for (const entry of entries) {
-      if (!entry.endsWith(".tsx")) continue
+      if (!entry.endsWith(".tsx")) {
+        continue
+      }
       const file = `${dir}/${entry}`
       const src = readStaged(file)
-      if (VERSION_RE.test(src) && SKILL_TAG_RE.test(src)) out.push(file)
+      if (VERSION_RE.test(src) && SKILL_TAG_RE.test(src)) {
+        out.push(file)
+      }
     }
   }
   return out
@@ -117,11 +143,15 @@ const toCheck = new Set(staged.filter(isComponentPath))
 const changelogStaged = stagedSet.has(CHANGELOG)
 for (const file of optedInComponents()) {
   const skillName = readStaged(file).match(SKILL_TAG_RE)?.[1]
-  if (!skillName) continue
+  if (!skillName) {
+    continue
+  }
   const skillTouched =
-    stagedSet.has(join(SKILLS_DIR, skillName, "SKILL.md")) ||
-    stagedSet.has(join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md"))
-  if (skillTouched || changelogStaged) toCheck.add(file)
+    stagedSet.has(posix.join(SKILLS_DIR, skillName, "SKILL.md")) ||
+    stagedSet.has(posix.join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md"))
+  if (skillTouched || changelogStaged) {
+    toCheck.add(file)
+  }
 }
 
 const errors = []
@@ -132,7 +162,9 @@ for (const file of toCheck) {
   const vMatch = src.match(VERSION_RE)
   const sMatch = src.match(SKILL_TAG_RE)
 
-  if (!(vMatch || sMatch)) continue // not opted in yet — skip
+  if (!(vMatch || sMatch)) {
+    continue // not opted in yet — skip
+  }
 
   const label = file.replace(/^libs\/ui\/src\//, "")
   if (!(vMatch && sMatch)) {
@@ -144,7 +176,7 @@ for (const file of toCheck) {
 
   const version = vMatch[1]
   const skillName = sMatch[1]
-  const skillPath = join(SKILLS_DIR, skillName, "SKILL.md")
+  const skillPath = posix.join(SKILLS_DIR, skillName, "SKILL.md")
 
   if (!existsSync(skillPath)) {
     errors.push(`${label}: @skill ${skillName} → ${skillPath} does not exist.`)
@@ -154,7 +186,7 @@ for (const file of toCheck) {
   const skillVMatch = readStaged(skillPath).match(SKILL_VERSION_RE)
   if (!skillVMatch) {
     errors.push(
-      `${skillPath}: missing \`component_version:\` (must equal ${label} @componentVersion v${version}).`
+      `${skillPath}: missing \`metadata.component_version\` (must equal ${label} @componentVersion v${version}).`
     )
   } else if (skillVMatch[1] !== version) {
     errors.push(
@@ -162,16 +194,16 @@ for (const file of toCheck) {
     )
   }
 
-  // The committed plugin bundle is generated from the source skill by a verbatim copy
-  // (sync-skills.mjs `cpSync`), so it must be byte-for-byte identical. Comparing only
-  // `component_version` would let changed source guidance ship with a stale bundle that happens to
-  // carry the same version — check the whole file, which subsumes the version.
-  const bundledPath = join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md")
+  // The committed plugin bundle is generated from the source skill by sync-skills.mjs, which
+  // rewrites only the frontmatter into the portable Agent Skills form (toPortableSkill). Comparing
+  // only `component_version` would let changed source guidance ship with a stale bundle that
+  // happens to carry the same version — check the whole generated file, which subsumes it.
+  const bundledPath = posix.join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md")
   if (!existsSync(bundledPath)) {
     errors.push(
       `${bundledPath} missing — run \`${SYNC_CMD}\` to bundle ${skillName}.`
     )
-  } else if (readStaged(bundledPath) !== readStaged(skillPath)) {
+  } else if (readStaged(bundledPath) !== portable(readStaged(skillPath))) {
     errors.push(
       `${bundledPath}: out of sync with ${skillPath} (content differs) — run \`${SYNC_CMD}\`.`
     )
@@ -210,9 +242,58 @@ for (const file of toCheck) {
   }
 }
 
+// Every skill — paired with a component or not (ux-guidelines, component-usage-ux, …) — must ship
+// an up-to-date bundle copy. Compare the staged source tree of each touched skill with its staged
+// bundle: same file list, SKILL.md through toPortableSkill, every other file verbatim.
+const SKILL_PATH_RE = new RegExp(
+  `^(?:${SKILLS_DIR}|${PLUGIN_SKILLS_DIR})/([a-z0-9-]+)/`
+)
+const indexFiles = (dir) =>
+  git(["ls-files", "--cached", "--", dir])
+    .split("\n")
+    .filter(Boolean)
+    .map((f) => f.slice(dir.length + 1))
+    .sort()
+const touchedSkills = new Set(
+  staged
+    .map((f) => f.match(SKILL_PATH_RE)?.[1])
+    .filter((name) => name && name !== "_artifacts")
+)
+for (const name of touchedSkills) {
+  const sourceDir = posix.join(SKILLS_DIR, name)
+  const bundleDir = posix.join(PLUGIN_SKILLS_DIR, name)
+  const sourceFiles = indexFiles(sourceDir)
+  if (sourceFiles.length === 0) {
+    // Plugin-authored workflow skills live only in the bundle; a removed source skill must take
+    // its bundle copy with it.
+    if (!AUTHORED_SKILLS.has(name) && indexFiles(bundleDir).length > 0) {
+      errors.push(
+        `${bundleDir}: source skill was removed — run \`${SYNC_CMD}\` to drop the bundle copy.`
+      )
+    }
+    continue
+  }
+  const bundleFiles = indexFiles(bundleDir)
+  const inSync =
+    sourceFiles.join("\n") === bundleFiles.join("\n") &&
+    sourceFiles.every((file) => {
+      const source = readStaged(posix.join(sourceDir, file))
+      const expected = file === "SKILL.md" ? portable(source) : source
+      return readStaged(posix.join(bundleDir, file)) === expected
+    })
+  if (!inSync) {
+    const message = `${bundleDir}: out of sync with ${sourceDir} — run \`${SYNC_CMD}\`.`
+    if (!errors.some((e) => e.startsWith(`${bundleDir}/SKILL.md`))) {
+      errors.push(message)
+    }
+  }
+}
+
 if (errors.length) {
   process.stderr.write("\n✖ skill-sync: component ↔ skill version mismatch\n\n")
-  for (const e of errors) process.stderr.write(`  • ${e}\n`)
+  for (const e of errors) {
+    process.stderr.write(`  • ${e}\n`)
+  }
   process.stderr.write(
     "\nUpdate the component, its libs/ui/skills/<name>/SKILL.md, and the changelog story together, then re-stage.\n\n"
   )

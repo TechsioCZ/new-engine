@@ -1,15 +1,17 @@
 ---
-component_version: "1.0.0"
 name: label-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Label for
   form-control labels with valid size, disabled, required, and htmlFor usage.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/atoms/label.tsx"
   - "libs/ui/src/tokens/components/atoms/_label.css"
@@ -20,6 +22,37 @@ sources:
 
 Use Label for standalone form-control labels. Prefer form molecules when the
 whole field structure is available.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Label`.
+
+**Use it when**
+
+- Standalone labels for controls that are not wrapped by a Form* molecule.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A complete field | FormInput / FormTextarea / FormNumericInput / FormCheckbox |
+| Section headings | a heading element |
+
+**Do**
+
+- Connect every label to its control (`htmlFor`).
+- Keep labels short nouns; move explanations to help text.
+- Keep labels visible — no placeholder-only fields.
+
+**Don't**
+
+- End labels with a colon.
+- Write labels as instructions (`Please enter your email`).
+
+**Copy and states**
+
+- Sentence case, no punctuation; units in parentheses (`Weight (kg)`).
 
 ## Setup
 

@@ -15,6 +15,7 @@ import {
   Children,
   cloneElement,
   Fragment,
+  type HTMLAttributes,
   isValidElement,
   type ReactNode,
   type Ref,
@@ -173,7 +174,9 @@ export function Tooltip({
   })
 
   const api = tooltip.connect(service, normalizeProps)
-  const triggerProps = api.getTriggerProps()
+  // Zag types trigger props for a button; the inline trigger is a span wrapper.
+  const triggerProps =
+    api.getTriggerProps() as unknown as HTMLAttributes<HTMLSpanElement>
   const {
     trigger,
     positioner,

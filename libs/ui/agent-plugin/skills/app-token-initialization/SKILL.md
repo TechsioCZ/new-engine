@@ -4,19 +4,12 @@ description: >
   Use when adopting @techsio/ui-kit in a new or existing apps/* project and
   setting up app semantic, typography, spacing, layout, radius, state, and
   minimal component token override files after a focused design-token interview.
-type: lifecycle
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - tailwind-token-authoring
-sources:
-  - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
-  - "libs/ui/src/tokens/index.css"
-  - "libs/ui/src/tokens/_semantic.css"
-  - "libs/ui/src/tokens/_layout.css"
-  - "libs/ui/src/tokens/_spacing.css"
-  - "libs/ui/src/tokens/components/components.css"
-  - "https://github.com/TechsioCZ/new-engine/issues/72"
+metadata:
+  type: "lifecycle"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "tailwind-token-authoring"
+  sources: "libs/ui/skills/_artifacts/consumer_app_usage_rules.md libs/ui/src/tokens/index.css libs/ui/src/tokens/_semantic.css libs/ui/src/tokens/_layout.css libs/ui/src/tokens/_spacing.css libs/ui/src/tokens/components/components.css https://github.com/TechsioCZ/new-engine/issues/72"
 ---
 
 # @techsio/ui-kit App Token Initialization

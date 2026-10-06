@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-39583
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/action-icon.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/action-icon.tsx
 // component=ActionIcon
 
 import figma from "figma"

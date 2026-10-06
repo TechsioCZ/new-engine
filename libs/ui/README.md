@@ -191,7 +191,7 @@ Optional environment overrides:
 - `PLAYWRIGHT_DOCKER_SEQUENTIAL` (default: `0`, runs projects in parallel; set to `1` to run one project at a time and reduce memory spikes)
 
 Extra arguments are passed to `playwright test`, e.g. `pnpm -C libs/ui test:components -- --project=neo-mobile-dark`.
-Tests always run as `linux/amd64`, matching the committed baselines. A full run must cover every story in every project.
+Tests always run as `linux/amd64`, matching the committed baselines. A full run must cover every story in every visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
 
 ### Recommendation for `PLAYWRIGHT_WORKERS` and parallelism
 

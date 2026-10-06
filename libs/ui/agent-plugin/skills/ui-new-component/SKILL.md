@@ -5,7 +5,7 @@ description: >
   atom, molecule, organism, or template — walks through component source with tv(),
   token CSS, story, and Figma follow-up. Invoke explicitly with $ui-new-component <name>.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
 ---
 

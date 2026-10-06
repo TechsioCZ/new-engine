@@ -5,18 +5,11 @@ description: >
   stories, Figma Code Connect files, package exports, or validation scripts.
   Checks prop/variant/token/story/Figma consistency and recommends focused
   commands before maintainer handoff.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-sources:
-  - "libs/ui/package.json"
-  - "libs/ui/project.json"
-  - "libs/ui/.storybook/main.ts"
-  - "libs/ui/scripts/validate-token-usage.js"
-  - "libs/ui/scripts/validate-token-definitions.js"
-  - "libs/ui/scripts/run-component-tests.mjs"
-  - "libs/ui/figma.config.json"
-  - "libs/ui/skills/_artifacts/domain_map.yaml"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  sources: "libs/ui/package.json libs/ui/project.json libs/ui/.storybook/main.ts libs/ui/scripts/validate-token-usage.js libs/ui/scripts/validate-token-definitions.js libs/ui/scripts/run-component-tests.mjs libs/ui/figma.config.json libs/ui/skills/_artifacts/domain_map.yaml"
 ---
 
 # @techsio/ui-kit Component Consistency Validation

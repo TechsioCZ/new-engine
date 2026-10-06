@@ -20,7 +20,7 @@ const expectTimeout = 30_000
 
 export default defineConfig({
   testDir: "./test",
-  testMatch: "visual.spec.ts",
+  testMatch: "*.spec.ts",
   globalSetup: "./test/docker-only.global-setup.js",
   reporter: "html",
   updateSnapshots: "none",
@@ -37,23 +37,36 @@ export default defineConfig({
     reducedMotion: "reduce",
     serviceWorkers: "block",
   },
-  projects: matrix.map((project) => {
-    const device = project.isMobile ? "mobile" : "desktop"
-    const snapshotName =
-      project.brand === "base"
-        ? `${device}${project.colorScheme === "dark" ? "-dark" : ""}`
-        : project.name
-    return {
-      name: project.name,
-      metadata: { brand: project.brand },
-      snapshotPathTemplate: `{testDir}/{testFilePath}-snapshots/{arg}-${snapshotName}-{platform}{ext}`,
+  projects: [
+    // Component behavior specs run once per device; screenshots run per brand matrix.
+    ...(["desktop", "mobile"] as const).map((name) => ({
+      name,
+      testIgnore: "visual.spec.ts",
       use: {
-        ...devices[project.isMobile ? "iPhone 15" : "Desktop Chrome"],
-        browserName: project.isMobile ? "webkit" : "chromium",
-        colorScheme: project.colorScheme,
+        ...devices[name === "mobile" ? "iPhone 15" : "Desktop Chrome"],
+        browserName:
+          name === "mobile" ? ("webkit" as const) : ("chromium" as const),
       },
-    }
-  }),
+    })),
+    ...matrix.map((project) => {
+      const device = project.isMobile ? "mobile" : "desktop"
+      const snapshotName =
+        project.brand === "base"
+          ? `${device}${project.colorScheme === "dark" ? "-dark" : ""}`
+          : project.name
+      return {
+        name: project.name,
+        metadata: { brand: project.brand },
+        testMatch: "visual.spec.ts",
+        snapshotPathTemplate: `{testDir}/{testFilePath}-snapshots/{arg}-${snapshotName}-{platform}{ext}`,
+        use: {
+          ...devices[project.isMobile ? "iPhone 15" : "Desktop Chrome"],
+          browserName: project.isMobile ? "webkit" : "chromium",
+          colorScheme: project.colorScheme,
+        },
+      }
+    }),
+  ],
   webServer: {
     command: "node test/visual-static-server.mjs",
     url: storybookUrl,

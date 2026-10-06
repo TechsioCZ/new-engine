@@ -1,16 +1,18 @@
 ---
-component_version: "1.0.0"
 name: input-usage
 description: >
   Use after component-usage-ux when an app needs the low-level
   @techsio/ui-kit Input atom, including valid size, variant, embedded button
   spacing, and token-first validation styling.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/atoms/input.tsx"
   - "libs/ui/src/molecules/form-input.tsx"
@@ -23,6 +25,38 @@ sources:
 
 Use Input for a bare text-like control. Use `FormInput` when the UI includes a
 label, helper text, validation text, or full form-field spacing.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Input`.
+
+**Use it when**
+
+- Bare text controls inside compositions that supply their own label: table filters, inline edit cells, toolbars.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Any labelled form field | FormInput |
+| Numbers | NumericInput |
+| Search with submit/clear | SearchForm |
+
+**Do**
+
+- Give bare inputs an accessible name (`aria-label` or an associated Label).
+- Use the kit sizes that match the surrounding control size (DataTable `size`).
+- Set `type`, `autoComplete` and `inputMode` correctly.
+
+**Don't**
+
+- Compose Label + Input + StatusText by hand in app forms.
+- Use placeholder text as the only label.
+
+**Copy and states**
+
+- Placeholders are examples or `Search <objects>…` in filters.
 
 ## Setup
 

@@ -1,17 +1,19 @@
 ---
-component_version: "1.0.0"
 name: form-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FormInput for
   labeled single-line fields with Label, Input, StatusText, validation status,
   help text, required, disabled, and size props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.1.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - input-usage
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/form-input.tsx"
   - "libs/ui/src/atoms/input.tsx"
@@ -23,6 +25,45 @@ sources:
 
 Use FormInput for labeled text-like inputs. Prefer this over manually composing
 Label, Input, and StatusText in apps.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `FormInput`.
+
+**Use it when**
+
+- Every labelled single-line text field in app forms: name, email, SKU, URL, search inside a form.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Multi-line text | FormTextarea |
+| Numbers, prices, quantities | FormNumericInput |
+| Phone numbers | PhoneInput |
+| Dates | DatePicker |
+| Choosing from options | Select / Combobox / RadioGroup |
+| Global/site search | SearchForm |
+
+**Do**
+
+- Label = noun, no colon (`Email`); placeholder only as an example (`e.g. TS-0042`).
+- Use `helpText` for format rules and consequences; it stays visible.
+- Validate on blur/submit; show the error through `validateStatus="error"` with a message saying how to fix it.
+- Set the right `type`, `autoComplete` and `inputMode` so browsers and mobile keyboards help.
+- Size the field to the expected value length within the form grid.
+
+**Don't**
+
+- Use the placeholder as the label.
+- Disable fields to show read-only data — render text or use read-only (ux-guidelines/states#read-only-vs-disabled).
+- Block paste or password managers.
+
+**Copy and states**
+
+- Error messages: what's wrong + how to fix (`Enter an email like name@example.com.`), never `Invalid input`.
+- Mark required fields with the component's `required`, not a typed asterisk.
 
 ## Setup
 

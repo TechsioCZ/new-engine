@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-8692
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/checkbox.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/checkbox.tsx
 // component=Checkbox
 
 import figma from "figma"

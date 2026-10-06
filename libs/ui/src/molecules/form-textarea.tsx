@@ -2,14 +2,14 @@
  * FormTextarea — @techsio/ui-kit molecule.
  *
  * @component FormTextarea
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill form-textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the form-textarea-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { ReactNode } from "react"
+import { type ReactNode, useId } from "react"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { Textarea, type TextareaProps } from "../atoms/textarea"
@@ -62,13 +62,22 @@ export function FormTextarea({
   validateStatus = "default",
   showHelpTextIcon = validateStatus !== "default",
   size = "md",
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   ...props
 }: FormTextareaProps) {
+  const helpTextId = useId()
+  const describedBy =
+    [ariaDescribedBy, helpText ? helpTextId : undefined]
+      .filter(Boolean)
+      .join(" ") || undefined
+
   return (
     <FormTextareaRaw
       helpText={
         helpText && (
           <StatusText
+            id={helpTextId}
             status={validateStatus}
             showIcon={showHelpTextIcon}
             size={size}
@@ -80,6 +89,8 @@ export function FormTextarea({
       id={id}
       size={size}
       validateStatus={validateStatus}
+      aria-invalid={validateStatus === "error" ? true : ariaInvalid}
+      aria-describedby={describedBy}
       {...props}
     />
   )

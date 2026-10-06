@@ -68,7 +68,19 @@ function cleanup() {
   docker(["container", "rm", "--force", containerName])
 }
 
-/** @param {{errors: unknown[], stats: {expected: number, unexpected: number, flaky: number, skipped: number}}[]} reports */
+/** @typedef {{status: string}} ReportTest */
+/** @typedef {{specs?: {file: string, tests: ReportTest[]}[], suites?: ReportSuite[]}} ReportSuite */
+/** @param {ReportSuite[]} suites @returns {ReportTest[]} */
+function visualTests(suites) {
+  return suites.flatMap((suite) => [
+    ...(suite.specs ?? [])
+      .filter((spec) => spec.file === "visual.spec.ts")
+      .flatMap((spec) => spec.tests),
+    ...visualTests(suite.suites ?? []),
+  ])
+}
+
+/** @param {{errors: unknown[], stats: {unexpected: number, flaky: number}, suites: ReportSuite[]}[]} reports */
 function verifyCompletion(reports) {
   const stories = Object.values(
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
@@ -79,19 +91,21 @@ function verifyCompletion(reports) {
     extraArgs.some((arg) => partialSelectionPattern.test(arg))
   )
   let expected = 0
-  for (const { errors, stats } of reports) {
+  for (const { errors, stats, suites } of reports) {
+    const tests = visualTests(suites)
     if (
       errors.length ||
       stats.unexpected ||
       stats.flaky ||
-      (requireComplete && stats.skipped)
+      (requireComplete && tests.some((test) => test.status !== "expected"))
     ) {
       throw new Error(
         `Visual test run was not clean: ${JSON.stringify({ errors, stats })}`
       )
     }
-    expected += stats.expected
+    expected += tests.filter((test) => test.status === "expected").length
   }
+  // Behavior specs share the run; completeness counts screenshot cases only.
   const required = stories.length * projects.length
   if (!expected || (requireComplete && expected !== required)) {
     throw new Error(
@@ -185,7 +199,9 @@ function main() {
 
   const reportNames = []
   let status = 0
-  for (const project of sequentialProjects ? projects : [undefined]) {
+  for (const project of sequentialProjects
+    ? ["desktop", "mobile", ...projects]
+    : [undefined]) {
     const reportName = `${project ?? "all"}.json`
     reportNames.push(reportName)
     const result = spawnSync(

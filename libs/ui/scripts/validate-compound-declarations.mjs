@@ -83,6 +83,34 @@ function isRequiredPublicProperty(property, program) {
   return true
 }
 
+/**
+ * Declaration emit names a compound member that collides with an identifier in
+ * scope (an import or a DOM global such as Node) through a placeholder:
+ * `export var _a: ...; export { _a as Node }`. The alias is the public member.
+ * @param {ts.Symbol} property
+ */
+function isAliasedEmitPlaceholder(property) {
+  const name = property.getName()
+  return (property.declarations ?? []).some((declaration) => {
+    const block = declaration.parent?.parent?.parent
+    return (
+      ts.isVariableDeclaration(declaration) &&
+      block &&
+      ts.isModuleBlock(block) &&
+      block.statements.some(
+        (statement) =>
+          ts.isExportDeclaration(statement) &&
+          statement.exportClause &&
+          ts.isNamedExports(statement.exportClause) &&
+          statement.exportClause.elements.some(
+            (element) =>
+              element.propertyName?.text === name && element.name.text !== name
+          )
+      )
+    )
+  })
+}
+
 /** @param {ts.Symbol} property */
 function getRuntimePropertyKey(property) {
   const name = property.getName()
@@ -130,7 +158,10 @@ function getRuntimePropertyKey(property) {
 function validateRuntimeMembers(type, value, label, failures, program) {
   let checkedMembers = 0
   for (const property of type.getProperties()) {
-    if (!isRequiredPublicProperty(property, program)) {
+    if (
+      !isRequiredPublicProperty(property, program) ||
+      isAliasedEmitPlaceholder(property)
+    ) {
       continue
     }
     const key = getRuntimePropertyKey(property)

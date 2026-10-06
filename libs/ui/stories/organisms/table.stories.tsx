@@ -47,6 +47,9 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 // Sample data for stories
+// Money goes through Intl, never `$` + toFixed (ux-guidelines, formatting.md).
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
 const sampleProducts = [
   {
     id: 1,
@@ -108,7 +111,7 @@ export const Basic: Story = {
           <Table.Row key={product.id}>
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
             <Table.Cell numeric>{product.stock}</Table.Cell>
           </Table.Row>
         ))}
@@ -138,7 +141,7 @@ export const Outline: Story = {
           <Table.Row key={product.id}>
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
             <Table.Cell numeric>{product.stock}</Table.Cell>
           </Table.Row>
         ))}
@@ -172,7 +175,7 @@ export const Interactive: Story = {
           >
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
             <Table.Cell numeric>{product.stock}</Table.Cell>
           </Table.Row>
         ))}
@@ -202,7 +205,7 @@ export const Striped: Story = {
           <Table.Row key={product.id}>
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
             <Table.Cell numeric>{product.stock}</Table.Cell>
           </Table.Row>
         ))}
@@ -238,7 +241,7 @@ export const Sizes: Story = {
               <Table.Row key={product.id}>
                 <Table.Cell>{product.name}</Table.Cell>
                 <Table.Cell>{product.category}</Table.Cell>
-                <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>
@@ -276,7 +279,7 @@ export const WithFooter: Story = {
             <Table.Row key={product.id}>
               <Table.Cell>{product.name}</Table.Cell>
               <Table.Cell>{product.category}</Table.Cell>
-              <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+              <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
               <Table.Cell numeric>{product.stock}</Table.Cell>
             </Table.Row>
           ))}
@@ -287,7 +290,7 @@ export const WithFooter: Story = {
               <strong>Total</strong>
             </Table.Cell>
             <Table.Cell numeric>
-              <strong>${total.toFixed(2)}</strong>
+              <strong>{usd.format(total)}</strong>
             </Table.Cell>
             <Table.Cell numeric>
               <strong>{totalStock}</strong>
@@ -356,7 +359,7 @@ export const StickyHeader: Story = {
               <Table.Row key={product.id}>
                 <Table.Cell>{product.name}</Table.Cell>
                 <Table.Cell>{product.category}</Table.Cell>
-                <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
                 <Table.Cell numeric>{product.stock}</Table.Cell>
               </Table.Row>
             ))}
@@ -490,7 +493,7 @@ export const WithColumnBorders: Story = {
           <Table.Row key={product.id}>
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
             <Table.Cell numeric>{product.stock}</Table.Cell>
           </Table.Row>
         ))}
@@ -520,7 +523,7 @@ export const CaptionBottom: Story = {
           <Table.Row key={product.id}>
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
           </Table.Row>
         ))}
       </Table.Body>
@@ -564,7 +567,7 @@ export const WithStickyColumn: Story = {
               <Table.Cell>{product.category}</Table.Cell>
               <Table.Cell>Tech Corp</Table.Cell>
               <Table.Cell>SKU-{product.id}23456</Table.Cell>
-              <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+              <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
               <Table.Cell numeric>{product.stock}</Table.Cell>
               <Table.Cell>Warehouse A</Table.Cell>
               <Table.Cell>In Stock</Table.Cell>
@@ -645,7 +648,7 @@ export const WithSelection: Story = {
                   </Table.Cell>
                   <Table.Cell>{product.name}</Table.Cell>
                   <Table.Cell>{product.category}</Table.Cell>
-                  <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                  <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
                   <Table.Cell numeric>{product.stock}</Table.Cell>
                 </Table.Row>
               )
@@ -758,7 +761,7 @@ export const WithSelectionAndActions: Story = {
                   </Table.Cell>
                   <Table.Cell>{product.name}</Table.Cell>
                   <Table.Cell>{product.category}</Table.Cell>
-                  <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                  <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
                   <Table.Cell numeric>{product.stock}</Table.Cell>
                 </Table.Row>
               )
@@ -798,7 +801,7 @@ export const Alignment: Story = {
               {product.stock > 0 ? 'Yes' : 'No'}
             </Table.Cell>
             <Table.Cell data-align="end">
-              ${product.price.toFixed(2)}
+              {usd.format(product.price)}
             </Table.Cell>
           </Table.Row>
         ))}

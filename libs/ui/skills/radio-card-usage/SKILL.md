@@ -1,17 +1,19 @@
 ---
-component_version: "1.0.1"
 name: radio-card-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit RadioCard for
   prominent single-choice cards with Zag.js radio behavior, label, item,
   hidden input, control, text, description, addon, indicator, and status text.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
 sources:
   - "libs/ui/src/molecules/radio-card.tsx"
   - "libs/ui/src/tokens/components/molecules/_radio-card.css"
@@ -24,6 +26,37 @@ sources:
 
 Use RadioCard for prominent exclusive choices with title, description, or addon
 content. Use RadioGroup for simple text options.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `RadioCard`.
+
+**Use it when**
+
+- 2–4 exclusive choices that need a description, price or icon: shipping method, plan, payment method.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Simple short text options | RadioGroup |
+| Many options | Select |
+| Several can be chosen | FormCheckbox group |
+
+**Do**
+
+- Put the decisive information first (name, price, delivery time) and align prices at the end.
+- Preselect the recommended/cheapest option when a default is safe; say why in the description.
+- Keep all cards the same structure and height.
+
+**Don't**
+
+- Put links or buttons inside a card — the card is the control.
+
+**Copy and states**
+
+- Title is the option name; description one line; price formatted with the app locale (`Free` for zero).
 
 ## Setup
 

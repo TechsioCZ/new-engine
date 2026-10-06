@@ -37,7 +37,7 @@ import { fileURLToPath } from "node:url";
 import { isUiKitSourceRepo } from "./lib/is-ui-kit-source-repo.mjs";
 
 const MARKER = "git pre-push hook — the REAL ui-kit quality gate";
-const source = join(dirname(dirname(fileURLToPath(import.meta.url))), "hooks", "pre-push");
+const source = join(dirname(fileURLToPath(import.meta.url)), "git-hooks", "pre-push");
 
 const git = (...args) =>
   execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
