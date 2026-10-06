@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -90,11 +90,11 @@ const tableVariants = tv({
     stickyFirstColumn: {
       true: {
         columnHeader: [
-          "first:sticky first:start-0 first:z-20",
+          "first:sticky first:inset-s-0 first:z-20",
           "bg-table-header-bg",
         ],
         cell: [
-          "first:sticky first:start-0 first:z-10",
+          "first:sticky first:inset-s-0 first:z-10",
           /* The sticky cell paints its own background to stay opaque over
            * scrolled content, which would otherwise hide the row's selected
            * fill behind it — mirror that state here via the row's `group`. */

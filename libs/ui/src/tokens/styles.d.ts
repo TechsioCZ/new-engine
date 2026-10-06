@@ -1,3 +1,5 @@
-declare const stylesheet: string
+declare module "*.css" {
+  const stylesheet: string
 
-export default stylesheet
+  export default stylesheet
+}

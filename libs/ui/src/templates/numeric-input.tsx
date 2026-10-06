@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit template.
  *
  * @component NumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,6 +25,8 @@ export interface NumericInputTemplateProps
 }
 
 export function NumericInputTemplate({
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   showControls = true,
   showScrubber = false,
   controlsPosition = "right",
@@ -40,7 +42,10 @@ export function NumericInputTemplate({
       <NumericInput {...numericInputProps} className={className} ref={ref}>
         <NumericInput.Control>
           {showScrubber && <NumericInput.Scrubber />}
-          <NumericInput.Input />
+          <NumericInput.Input
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+          />
           {showControls && (
             <NumericInput.TriggerContainer>
               <NumericInput.IncrementTrigger icon={incrementIcon} />
@@ -59,7 +64,10 @@ export function NumericInputTemplate({
         {showControls && <NumericInput.DecrementTrigger icon={decrementIcon} />}
         <NumericInput.Control className="flex-1">
           {showScrubber && <NumericInput.Scrubber />}
-          <NumericInput.Input />
+          <NumericInput.Input
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+          />
         </NumericInput.Control>
         {showControls && <NumericInput.IncrementTrigger icon={incrementIcon} />}
       </div>

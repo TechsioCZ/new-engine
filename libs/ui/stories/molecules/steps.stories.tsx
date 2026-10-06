@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useEffect, useState } from 'react'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { Badge } from '../../src/atoms/badge'
 import { Button } from '../../src/atoms/button'
@@ -131,6 +132,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
+  tags: ['ui-semantic-regression'],
   render: (args) => {
     const [step, setStep] = useState(args.step ?? 0)
 
@@ -202,6 +204,34 @@ export const Playground: Story = {
         </Steps>
       </div>
     )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const list = within(canvas.getByRole('tablist'))
+    const first = list.getByRole('tab', { name: 'Brief' })
+    const second = list.getByRole('tab', { name: 'Inputs' })
+    await expect(list.getAllByRole('tab')).toHaveLength(demoSteps.length)
+    await expect(first).toHaveAttribute('aria-selected', 'true')
+    await expect(first).toHaveAttribute('aria-current', 'step')
+
+    await userEvent.click(second)
+    await waitFor(() => {
+      expect(second).toHaveAttribute('aria-selected', 'true')
+      expect(second).toHaveAttribute('aria-current', 'step')
+      expect(first).not.toHaveAttribute('aria-current')
+      expect(canvas.getByRole('tabpanel', { name: 'Inputs' })).toBeVisible()
+    })
+
+    await userEvent.click(first)
+    await waitFor(() => {
+      expect(first).toHaveAttribute('aria-selected', 'true')
+      expect(first).toHaveAttribute('aria-current', 'step')
+      expect(second).toHaveAttribute('aria-selected', 'false')
+      expect(second).not.toHaveAttribute('aria-current')
+      expect(canvas.getByRole('tabpanel', { name: 'Brief' })).toBeVisible()
+    })
+    await userEvent.click(canvas.getByRole('tablist'))
+    await expect(canvasElement.ownerDocument.activeElement).toBe(canvasElement.ownerDocument.body)
   },
 }
 
@@ -557,6 +587,7 @@ export const Vertical: Story = {
 }
 
 export const ProgressHorizontal: Story = {
+  tags: ['ui-semantic-regression'],
   render: () => (
     <div className="w-5xl">
       <Steps count={demoSteps.length} defaultStep={2} size="md">
@@ -574,7 +605,7 @@ export const ProgressHorizontal: Story = {
           ))}
         </Steps.List>
 
-        <Steps.Progress />
+        <Steps.Progress aria-label="Release progress" />
 
         <Steps.Panels>
           {demoSteps.map((item, index) => (
@@ -593,9 +624,23 @@ export const ProgressHorizontal: Story = {
       </Steps>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const progress = canvas.getByRole('progressbar', { name: 'Release progress' })
+    await expect(Number(progress.getAttribute('aria-valuenow'))).toBeCloseTo(66.67, 1)
+    const current = canvas.getByRole('tab', { name: /Review/ })
+    await expect(current).toHaveAttribute('aria-selected', 'true')
+    await expect(current).toHaveAttribute('aria-current', 'step')
+    for (const tab of canvas.getAllByRole('tab')) {
+      if (tab !== current) await expect(tab).not.toHaveAttribute('aria-current')
+    }
+    await expect(canvas.getByRole('tabpanel', { name: /Review/ })).toBeVisible()
+    await expect(canvas.getByText(completedText)).not.toBeVisible()
+  },
 }
 
 export const ProgressVertical: Story = {
+  tags: ['ui-semantic-regression'],
   render: () => (
     <div className="w-5xl">
       <Steps
@@ -637,6 +682,19 @@ export const ProgressVertical: Story = {
       </Steps>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const progress = canvas.getByRole('progressbar', { name: 'Step progress' })
+    await expect(Number(progress.getAttribute('aria-valuenow'))).toBeCloseTo(66.67, 1)
+    const current = canvas.getByRole('tab', { name: /Review/ })
+    await expect(current).toHaveAttribute('aria-selected', 'true')
+    await expect(current).toHaveAttribute('aria-current', 'step')
+    for (const tab of canvas.getAllByRole('tab')) {
+      if (tab !== current) await expect(tab).not.toHaveAttribute('aria-current')
+    }
+    await expect(canvas.getByRole('tabpanel', { name: /Review/ })).toBeVisible()
+    await expect(canvas.getByText(completedText)).not.toBeVisible()
+  },
 }
 
 export const Description: Story = {

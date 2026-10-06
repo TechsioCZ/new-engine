@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -45,9 +45,9 @@ type GalleryImageComponent<T extends ElementType = typeof Image> =
 const galleryVariants = tv({
   slots: {
     root: "w-full gap-gallery-root",
-    main: "relative flex min-w-0 h-fit",
+    main: "relative flex h-fit min-w-0",
     thumbnails: "shrink-0",
-    thumbnailsScrollArea: "scrollbar-thin",
+    thumbnailsScrollArea: "scrollbar-auto",
     thumbnailsList: "flex gap-gallery-sm",
     thumbnailTrigger: [
       "relative shrink-0",
@@ -64,7 +64,7 @@ const galleryVariants = tv({
       "brightness-gallery-trigger",
       "hover:brightness-gallery-trigger-active data-active:brightness-gallery-trigger-active",
       "transition-all duration-200 motion-reduce:transition-none",
-      "*:h-full *:w-full *:object-cover",
+      "*:size-full *:object-cover",
     ],
   },
   variants: {
@@ -81,7 +81,7 @@ const galleryVariants = tv({
         main: "order-1 md:col-start-1 md:row-start-1",
         thumbnails: "order-2 md:col-start-2 md:row-start-1",
         thumbnailsScrollArea:
-          "w-full overflow-x-auto overflow-y-hidden md:max-h-gallery md:overflow-x-hidden md:overflow-y-auto",
+          "w-full overflow-x-auto overflow-y-hidden md:max-h-gallery md:overflow-y-auto md:overflow-x-hidden",
         thumbnailsList:
           "flex-row items-center py-gallery-sm md:flex-col md:items-stretch md:px-gallery-xs md:py-0",
       },
@@ -389,6 +389,29 @@ Gallery.Thumbnail = function GalleryThumbnail<
     ...style,
   } as CSSProperties
 
+  let fallbackThumbnail: ReactNode = null
+  if (thumbnailSource) {
+    fallbackThumbnail = hasCustomThumbnailComponent ? (
+      <CustomThumbnailComponent
+        alt={thumbnailAlt}
+        className={imageClassName}
+        height={thumbnailSize}
+        src={thumbnailSource}
+        width={thumbnailSize}
+        {...item.thumbnailImageProps}
+      />
+    ) : (
+      <Image
+        alt={thumbnailAlt}
+        className={imageClassName}
+        height={thumbnailSize}
+        src={thumbnailSource}
+        width={thumbnailSize}
+        {...item.thumbnailImageProps}
+      />
+    )
+  }
+
   return (
     <Button
       aria-current={isActive ? "true" : undefined}
@@ -402,29 +425,7 @@ Gallery.Thumbnail = function GalleryThumbnail<
       type="button"
       {...props}
     >
-      {children ??
-        item.thumbnailContent ??
-        (thumbnailSource ? (
-          hasCustomThumbnailComponent ? (
-            <CustomThumbnailComponent
-              alt={thumbnailAlt}
-              className={imageClassName}
-              height={thumbnailSize}
-              src={thumbnailSource}
-              width={thumbnailSize}
-              {...item.thumbnailImageProps}
-            />
-          ) : (
-            <Image
-              alt={thumbnailAlt}
-              className={imageClassName}
-              height={thumbnailSize}
-              src={thumbnailSource}
-              width={thumbnailSize}
-              {...item.thumbnailImageProps}
-            />
-          )
-        ) : null)}
+      {children ?? item.thumbnailContent ?? fallbackThumbnail}
     </Button>
   )
 }
@@ -496,4 +497,5 @@ Gallery.Slides = function GallerySlides({
   )
 }
 
-Gallery.Root = Gallery
+// Keep native TypeScript declarations from hiding siblings behind a Root export alias.
+Gallery.Root = Gallery satisfies typeof Gallery

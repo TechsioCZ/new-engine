@@ -2,277 +2,256 @@ import { spawnSync } from "node:child_process"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
+import { createVisualMatrix } from "../test/visual-projects.mjs"
 
-// Runs Playwright component visual tests inside Docker for reproducible snapshots.
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const uiRoot = path.resolve(__dirname, "..")
+// Runs the Playwright visual tests inside Docker for reproducible snapshots.
+const uiRoot = path.resolve(import.meta.dirname, "..")
 const repoRoot = path.resolve(uiRoot, "../..")
+const playwrightVersionPattern = /^ARG\s+PLAYWRIGHT_VERSION\s*=\s*([^\s]+)\s*$/m
+const partialSelectionPattern =
+  /^(?:--project|--grep|--grep-invert|--shard|--test-list|--test-list-invert|--last-failed|--only-changed)(?:=|$)|^-[gG]/
+const updateSnapshotsPattern = /^(?:-u|--update-snapshots)(?:=(\w+))?$/
 
-const dockerfilePath = path.resolve(
+const dockerfilePath = path.join(
   repoRoot,
   "docker/development/playwright/Dockerfile"
 )
-const dockerfileContents = fs.readFileSync(dockerfilePath, "utf8")
-const playwrightVersion = dockerfileContents.match(
-  /^ARG\s+PLAYWRIGHT_VERSION\s*=\s*([^\s]+)\s*$/m
-)?.[1]
+const dockerfile = fs.readFileSync(dockerfilePath, "utf8")
 const dockerfileHash = crypto
   .createHash("sha256")
-  .update(dockerfileContents)
+  .update(dockerfile)
   .digest("hex")
   .slice(0, 12)
-const defaultImageName = playwrightVersion
-  ? `new-engine-ui-playwright:${playwrightVersion}-${dockerfileHash}`
-  : `new-engine-ui-playwright:${dockerfileHash}`
-const imageName = process.env.PLAYWRIGHT_DOCKER_IMAGE ?? defaultImageName
-const platform = process.env.DOCKER_PLATFORM ?? "linux/amd64"
-const testBaseUrl = process.env.TEST_BASE_URL
-const shmSize = process.env.PLAYWRIGHT_DOCKER_SHM_SIZE ?? "2g"
-const ipcMode = process.env.PLAYWRIGHT_DOCKER_IPC ?? "host"
+const playwrightVersion = dockerfile.match(playwrightVersionPattern)?.[1]
+const imageName =
+  process.env.PLAYWRIGHT_DOCKER_IMAGE ??
+  `new-engine-ui-playwright:${playwrightVersion ? `${playwrightVersion}-` : ""}${dockerfileHash}`
+const platform = "linux/amd64"
+const projects = createVisualMatrix(process.env.VISUAL_BRANDS).map(
+  (project) => project.name
+)
 const sequentialProjects =
   (process.env.PLAYWRIGHT_DOCKER_SEQUENTIAL ?? "0") !== "0"
-const dockerProjectsEnv = process.env.PLAYWRIGHT_DOCKER_PROJECTS ?? ""
-const dockerProjects = dockerProjectsEnv
+const storybookOverride = process.env.VISUAL_STORYBOOK_STATIC_DIR
+const storybookDir = storybookOverride ?? path.join(uiRoot, "storybook-static")
+const harPath =
+  process.env.VISUAL_ASSET_HAR_PATH ??
+  path.join(uiRoot, "test/fixtures/visual-assets/assets.har")
+const selectedStories = (process.env.TEST_STORIES ?? "")
   .split(",")
-  .map((project) => project.trim())
+  .map((story) => story.trim())
   .filter(Boolean)
-const storybookDir = path.resolve(uiRoot, "storybook-static")
-const storybookIframe = path.resolve(storybookDir, "iframe.html")
-const snapshotsDir = path.resolve(uiRoot, "test/visual.spec.ts-snapshots")
-const containerName = `pw-visual-${Date.now()}`
-const rebuildStorybook =
-  (process.env.PLAYWRIGHT_STORYBOOK_REBUILD ?? "1") !== "0"
-const optionalContainerEnv = [
-  ["TEST_BASE_URL", testBaseUrl],
-  ["PLAYWRIGHT_WORKERS", process.env.PLAYWRIGHT_WORKERS],
-  ["PLAYWRIGHT_PAGE_RESET", process.env.PLAYWRIGHT_PAGE_RESET],
-  ["TEST_STORIES", process.env.TEST_STORIES],
-]
+const extraArgs = process.argv.slice(2)
+const updatesSnapshots = extraArgs.some((arg, index) => {
+  const match = updateSnapshotsPattern.exec(arg)
+  const mode = match?.[1] ?? (match && extraArgs[index + 1])
+  return match && mode !== "none"
+})
+const containerName = `pw-visual-${crypto.randomUUID()}`
+const reportRoot = "/app/test-results/visual-reports"
 
-console.log(`Using Docker image: ${imageName}`)
-
-const run = (command, args, options = {}) => {
-  const result = spawnSync(command, args, {
-    stdio: "inherit",
-    shell: process.platform === "win32",
-    ...options,
-  })
-  if (result.error) {
-    throw new Error(
-      `Failed to spawn command: ${command} ${args.join(" ")} (${result.error.message})`
-    )
-  }
-  if (result.status !== 0) {
+/** @param {string} command @param {string[]} args @param {import("node:child_process").SpawnSyncOptions} [options] */
+function run(command, args, options = {}) {
+  const result = spawnSync(command, args, { stdio: "inherit", ...options })
+  if (result.error || result.status !== 0) {
     throw new Error(`Command failed: ${command} ${args.join(" ")}`)
   }
   return result
 }
 
-const runSilent = (command, args) =>
-  spawnSync(command, args, {
-    stdio: "pipe",
-    shell: process.platform === "win32",
-  })
-
-const cleanup = () => {
-  runSilent("docker", ["rm", "-f", containerName])
+/** @param {string[]} args */
+function docker(args) {
+  return spawnSync("docker", args, { stdio: "pipe" })
 }
 
-const handleExit = (signal) => {
-  console.warn(`Received ${signal}, cleaning up container...`)
-  cleanup()
-  process.exit(1)
+function cleanup() {
+  docker(["container", "rm", "--force", containerName])
 }
 
-process.on("SIGINT", () => handleExit("SIGINT"))
-process.on("SIGTERM", () => handleExit("SIGTERM"))
-process.on("exit", cleanup)
-
-const getProcessOutcome = (result, contextLabel) => {
-  if (result.error) {
-    console.error(`${contextLabel} failed to spawn:`, result.error.message)
+/** @param {{errors: unknown[], stats: {expected: number, unexpected: number, flaky: number, skipped: number}}[]} reports */
+function verifyCompletion(reports) {
+  const stories = Object.values(
+    JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
+      .entries
+  ).filter((entry) => entry.type === "story")
+  const requireComplete = !(
+    selectedStories.length ||
+    extraArgs.some((arg) => partialSelectionPattern.test(arg))
+  )
+  let expected = 0
+  for (const { errors, stats } of reports) {
+    if (
+      errors.length ||
+      stats.unexpected ||
+      stats.flaky ||
+      (requireComplete && stats.skipped)
+    ) {
+      throw new Error(
+        `Visual test run was not clean: ${JSON.stringify({ errors, stats })}`
+      )
+    }
+    expected += stats.expected
   }
-  return {
-    status: result.status ?? (result.signal || result.error ? 1 : 0),
-    signal: result.signal,
+  const required = stories.length * projects.length
+  if (!expected || (requireComplete && expected !== required)) {
+    throw new Error(
+      `Visual test run covered ${expected} of ${required} story/project cases`
+    )
   }
 }
 
-const copyArtifact = (label, sourcePath, destinationPath) => {
-  console.log(`Copying ${label} back to host...`)
-  const copyResult = runSilent("docker", [
-    "cp",
-    `${containerName}:${sourcePath}`,
-    destinationPath,
-  ])
-  if (copyResult.status !== 0) {
-    console.warn(`Warning: Could not copy ${label} (may not exist yet)`)
+function main() {
+  if (
+    storybookOverride === undefined &&
+    process.env.PLAYWRIGHT_STORYBOOK_REBUILD !== "0"
+  ) {
+    run("pnpm", ["-C", uiRoot, "build:storybook"])
   }
-}
+  if (!fs.existsSync(path.join(storybookDir, "iframe.html"))) {
+    throw new Error(`Storybook build not found: ${storybookDir}`)
+  }
+  if (docker(["image", "inspect", imageName]).status !== 0) {
+    run("docker", [
+      "build",
+      `--platform=${platform}`,
+      "-t",
+      imageName,
+      "-f",
+      dockerfilePath,
+      repoRoot,
+    ])
+  }
+  console.log(`Using Docker image: ${imageName}`)
 
-// Build storybook (default) or when missing
-if (rebuildStorybook) {
-  console.log("Building Storybook...")
-  run("pnpm", ["-C", uiRoot, "build:storybook"])
-} else if (!fs.existsSync(storybookIframe)) {
-  console.log("storybook-static not found, building Storybook...")
-  run("pnpm", ["-C", uiRoot, "build:storybook"])
-}
-
-// Build docker image if needed
-const imageInspect = runSilent("docker", ["image", "inspect", imageName])
-if (imageInspect.status !== 0) {
-  console.log("Building Docker image...")
+  const env = {
+    CI: "true",
+    PLAYWRIGHT_DOCKER: "1",
+    PLAYWRIGHT_WORKERS: process.env.PLAYWRIGHT_WORKERS ?? "4",
+    TEST_BASE_URL: process.env.TEST_BASE_URL,
+    TEST_STORIES: process.env.TEST_STORIES,
+    VISUAL_BRANDS: process.env.VISUAL_BRANDS,
+    VISUAL_ASSET_HAR_PATH: `/app/visual-assets/${path.basename(harPath)}`,
+  }
+  const mounts = [
+    [storybookDir, "/app/storybook-static"],
+    [path.join(uiRoot, "playwright.config.mts"), "/app/playwright.config.mts"],
+    [path.join(uiRoot, "package.json"), "/app/package.json"],
+    [path.dirname(harPath), "/app/visual-assets"],
+  ]
+  run(
+    "docker",
+    [
+      "run",
+      "--detach",
+      "--name",
+      containerName,
+      "--label",
+      "io.techsio.visual-tests=1",
+      `--platform=${platform}`,
+      `--shm-size=${process.env.PLAYWRIGHT_DOCKER_SHM_SIZE ?? "2g"}`,
+      `--ipc=${process.env.PLAYWRIGHT_DOCKER_IPC ?? "host"}`,
+      "--add-host=host.docker.internal:host-gateway",
+      ...Object.entries(env).flatMap(([key, value]) =>
+        value === undefined ? [] : ["--env", `${key}=${value}`]
+      ),
+      ...mounts.flatMap(([source, destination]) => [
+        "--volume",
+        `${fs.realpathSync(source)}:${destination}:ro`,
+      ]),
+      "--entrypoint",
+      "sleep",
+      imageName,
+      "infinity",
+    ],
+    { stdio: ["ignore", "ignore", "inherit"] }
+  )
+  // docker cp streams a tar archive, avoiding copy_file_range corruption on VM
+  // bind mounts; the copy stays writable for snapshot updates.
   run("docker", [
-    "build",
-    `--platform=${platform}`,
-    "-t",
-    imageName,
-    "-f",
-    dockerfilePath,
-    repoRoot,
+    "cp",
+    path.join(uiRoot, "test/."),
+    `${containerName}:/app/test`,
   ])
-}
-
-const extraArgs = process.argv.slice(2)
-
-console.log("Starting container...")
-
-// Start container in background (keeps running)
-const containerEnvArgs = optionalContainerEnv.flatMap(([key, value]) =>
-  value ? ["-e", `${key}=${value}`] : []
-)
-const dockerRunArgs = [
-  "run",
-  "-d",
-  "--name",
-  containerName,
-  `--platform=${platform}`,
-  // With --ipc=host this is a no-op, but it still applies for non-host IPC modes.
-  `--shm-size=${shmSize}`,
-  `--ipc=${ipcMode}`,
-  "--add-host=host.docker.internal:host-gateway",
-  "-e",
-  "CI=true",
-  "-e",
-  "PLAYWRIGHT_DOCKER=1",
-  ...containerEnvArgs,
-  "--entrypoint",
-  "sleep",
-  // Mount sources as read-only
-  "-v",
-  `${storybookDir}:/app/storybook-static:ro`,
-  "-v",
-  `${path.resolve(uiRoot, "test")}:/app/test-src:ro`,
-  "-v",
-  `${path.resolve(uiRoot, "playwright.config.cts")}:/app/playwright.config.cts:ro`,
-  "-v",
-  `${path.resolve(uiRoot, "package.json")}:/app/package.json:ro`,
-  imageName,
-  "infinity",
-]
-
-const startResult = runSilent("docker", dockerRunArgs)
-
-if (startResult.status !== 0) {
-  console.error("Failed to start container")
-  console.error(startResult.stderr?.toString())
-  process.exit(1)
-}
-
-const runningCheck = runSilent("docker", [
-  "inspect",
-  containerName,
-  "--format",
-  "{{.State.Running}}",
-])
-if (runningCheck.status !== 0 || runningCheck.stdout?.toString().trim() !== "true") {
-  console.error("Container is not running after start.")
-  const logsResult = runSilent("docker", ["logs", containerName])
-  if (logsResult.status === 0) {
-    console.error(logsResult.stdout?.toString())
-  }
-  cleanup()
-  process.exit(1)
-}
-
-try {
-  // Copy test files into container (internal I/O is faster)
-  console.log("Copying test files into container...")
   run("docker", [
     "exec",
+    "--user",
+    "0",
     containerName,
-    "cp",
-    "-r",
-    "/app/test-src",
+    "chown",
+    "-R",
+    "node:node",
     "/app/test",
   ])
 
-  // Run playwright tests (all I/O happens inside container)
-  console.log("Running Playwright tests...")
-  const runPlaywright = (project) =>
-    spawnSync(
+  const reportNames = []
+  let status = 0
+  for (const project of sequentialProjects ? projects : [undefined]) {
+    const reportName = `${project ?? "all"}.json`
+    reportNames.push(reportName)
+    const result = spawnSync(
       "docker",
       [
         "exec",
-        "-t",
+        "--tty",
+        "--env",
+        `PLAYWRIGHT_JSON_OUTPUT_FILE=${reportRoot}/${reportName}`,
         containerName,
         "npx",
         "playwright",
         "test",
         "-c",
-        "playwright.config.cts",
-        "--reporter=list,html",
+        "playwright.config.mts",
+        "--reporter=list,html,json",
         ...(project ? ["--project", project] : []),
         ...extraArgs,
       ],
       { stdio: "inherit" }
     )
-
-  let testStatus = 0
-  let testSignal = null
-  if (sequentialProjects) {
-    const projectsToRun =
-      dockerProjects.length > 0 ? dockerProjects : ["desktop", "mobile"]
-    for (const project of projectsToRun) {
-      const result = runPlaywright(project)
-      const outcome = getProcessOutcome(result, `Playwright project "${project}"`)
-      if (outcome.status !== 0 || outcome.signal) {
-        testStatus = outcome.status
-        testSignal = outcome.signal
-        break
-      }
+    status = result.status ?? 1
+    if (status !== 0) {
+      break
     }
-  } else {
-    const outcome = getProcessOutcome(runPlaywright(), "Playwright")
-    testStatus = outcome.status
-    testSignal = outcome.signal
   }
 
-  if (testStatus !== 0 || testSignal) {
-    console.warn("Playwright exited with a non-zero status.")
-    const inspectResult = runSilent("docker", [
-      "inspect",
-      containerName,
-      "--format",
-      "{{json .State}}",
+  if (updatesSnapshots) {
+    run("docker", [
+      "cp",
+      `${containerName}:/app/test/visual.spec.ts-snapshots/.`,
+      path.join(uiRoot, "test/visual.spec.ts-snapshots"),
     ])
-    if (inspectResult.status === 0) {
-      console.warn("Container state:", inspectResult.stdout?.toString().trim())
-    }
   }
+  for (const [source, destination] of [
+    ["/app/playwright-report/.", "playwright-report"],
+    ["/app/test-results/.", "test-results"],
+  ]) {
+    docker(["cp", `${containerName}:${source}`, path.join(uiRoot, destination)])
+  }
+  if (status !== 0) {
+    return status
+  }
+  verifyCompletion(
+    reportNames.map((name) =>
+      JSON.parse(
+        run("docker", ["exec", containerName, "cat", `${reportRoot}/${name}`], {
+          stdio: "pipe",
+        }).stdout.toString()
+      )
+    )
+  )
+  return 0
+}
 
-  const reportDir = path.resolve(uiRoot, "playwright-report")
-  const resultsDir = path.resolve(uiRoot, "test-results")
-  copyArtifact("snapshots", "/app/test/visual.spec.ts-snapshots/.", snapshotsDir)
-  copyArtifact("HTML report", "/app/playwright-report/.", reportDir)
-  copyArtifact("test results", "/app/test-results/.", resultsDir)
-
-  cleanup()
-  process.exit(testStatus ?? 0)
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => {
+    cleanup()
+    process.exit(1)
+  })
+}
+try {
+  process.exitCode = main()
 } catch (error) {
-  console.error("Error:", error.message)
+  console.error("Error:", error instanceof Error ? error.message : error)
+  process.exitCode = 1
+} finally {
   cleanup()
-  process.exit(1)
 }

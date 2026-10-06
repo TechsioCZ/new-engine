@@ -2,7 +2,7 @@
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,7 +23,7 @@ import type { VariantProps } from "tailwind-variants"
 import { Icon, type IconType } from "../atoms/icon"
 import { tv } from "../utils"
 
-export interface TreeNode {
+export type TreeNode = {
   id: string
   name: string
   children?: TreeNode[]
@@ -70,7 +70,7 @@ const treeViewVariants = tv({
     ],
     branchContent: ["relative", "data-[state=closed]:hidden"],
     indentGuide: [
-      "absolute start-1 top-0 bottom-0",
+      "absolute inset-s-1 inset-y-0",
       "w-tree-view-indent-width bg-tree-view-indent-bg",
       "opacity-tree-view-indent",
     ],
@@ -141,7 +141,7 @@ const treeViewVariants = tv({
   },
 })
 
-interface TreeViewContextValue {
+type TreeViewContextValue = {
   api: tree.Api
   size?: "sm" | "md" | "lg"
   styles: ReturnType<typeof treeViewVariants>
@@ -158,7 +158,7 @@ function useTreeViewContext() {
   return context
 }
 
-interface TreeViewNodeContextValue {
+type TreeViewNodeContextValue = {
   node: TreeNode
   indexPath: number[]
   nodeProps: tree.NodeProps
@@ -235,7 +235,7 @@ export function TreeView({
     onFocusChange,
   })
 
-  const api = tree.connect(service as unknown as tree.Service, normalizeProps)
+  const api = tree.connect(service, normalizeProps)
   const styles = treeViewVariants({ size })
 
   return (
@@ -291,7 +291,7 @@ TreeView.Tree = function TreeViewTree({
   )
 }
 
-interface TreeViewNodeProviderProps {
+type TreeViewNodeProviderProps = {
   node: TreeNode
   indexPath: number[]
   children: ReactNode
@@ -408,7 +408,7 @@ TreeView.BranchControl = function TreeViewBranchControl({
   )
 }
 
-interface TreeViewBranchTextProps {
+type TreeViewBranchTextProps = {
   children?: ReactNode
   className?: string
 }
@@ -430,7 +430,7 @@ TreeView.BranchText = function TreeViewBranchText({
   )
 }
 
-interface TreeViewBranchIndicatorProps {
+type TreeViewBranchIndicatorProps = {
   icon?: IconType
   className?: string
 }
@@ -485,7 +485,7 @@ TreeView.BranchContent = function TreeViewBranchContent({
   )
 }
 
-interface TreeViewIndentGuideProps {
+type TreeViewIndentGuideProps = {
   className?: string
 }
 
@@ -551,7 +551,7 @@ TreeView.Item = function TreeViewItem({
   )
 }
 
-interface TreeViewItemTextProps {
+type TreeViewItemTextProps = {
   children?: ReactNode
   className?: string
 }
@@ -606,7 +606,7 @@ TreeView.NodeIcon = function TreeViewNodeIcon({
 }
 
 // This component provides a default implementation using all subcomponents
-interface TreeViewNodeProps {
+type TreeViewNodeProps = {
   node: TreeNode
   indexPath: number[]
   showIndentGuides?: boolean

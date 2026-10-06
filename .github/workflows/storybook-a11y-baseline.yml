@@ -8,7 +8,7 @@ on:
       - "libs/ui/.storybook/**"
       - "libs/ui/assets/**"
       - "libs/ui/package.json"
-      - "libs/ui/playwright.config.cts"
+      - "libs/ui/playwright.config.mts"
       - "libs/ui/postcss.config.mjs"
       - "libs/ui/project.json"
       - "libs/ui/rslib.config.ts"
@@ -20,119 +20,59 @@ on:
       - ".github/workflows/storybook-a11y-baseline.yml"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build-storybook:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          fetch-depth: 1
-          persist-credentials: false
-
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter=@techsio/ui-kit...
-
-      - name: Build Storybook (UI)
-        run: pnpm -C libs/ui run build:storybook
-
-      - name: Upload Storybook static
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: storybook-static
-          path: libs/ui/storybook-static
-          retention-days: 7
-          compression-level: 6
-
   storybook-a11y-baseline:
     runs-on: ubuntu-latest
-    needs: build-storybook
-    strategy:
-      fail-fast: false
-      matrix:
-        theme: [light, dark]
-    env:
-      A11Y_REPORT_FAIL_ON_VIOLATIONS: "false"
-      A11Y_REPORT_WRITE_JUNIT: "true"
-      A11Y_REPORT_WAIT_MS: "30000"
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           persist-credentials: false
 
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version: 26.10.0
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
 
       - name: Install Playwright browsers
-        # Storybook's test runner can use a different Playwright version than
-        # the workspace root. Install its exact matching browser revision.
-        run: timeout 420 node scripts/install-storybook-playwright.mjs libs/ui install --only-shell chromium
+        # pnpm-workspace.yaml pins the test runner's Playwright to the
+        # workspace version, so the root CLI installs the matching browser.
+        run: timeout 420 pnpm exec playwright install --only-shell chromium
 
-      - name: Download Storybook static
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: storybook-static
-          path: libs/ui/storybook-static
-
-      - name: Normalize Storybook static path
-        run: |
-          if [ -d "libs/ui/storybook-static/libs/ui/storybook-static" ]; then
-            rm -rf libs/ui/storybook-static.tmp
-            mv libs/ui/storybook-static/libs/ui/storybook-static libs/ui/storybook-static.tmp
-            rm -rf libs/ui/storybook-static
-            mv libs/ui/storybook-static.tmp libs/ui/storybook-static
-          fi
-
-      - name: Run a11y tests (${{ matrix.theme }} theme)
+      # Same entry point as local runs: build, serve, then test both themes.
+      - name: Run a11y tests (light and dark themes)
         id: a11y
-        continue-on-error: true
         env:
-          A11Y_REPORT_OUTPUT_DIR: a11y-report/${{ matrix.theme }}
-        run: |
-          mkdir -p "libs/ui/a11y-report/${{ matrix.theme }}"
-          python3 -m http.server 6006 --directory libs/ui/storybook-static &
-          SERVER_PID=$!
-          cleanup() {
-            kill "${SERVER_PID}" >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
-          for _ in {1..20}; do
-            if curl -sf http://127.0.0.1:6006/ >/dev/null; then
-              break
-            fi
-            sleep 1
-          done
-          if ! curl -sf http://127.0.0.1:6006/ >/dev/null; then
-            echo "Storybook server failed to start within timeout." >&2
-            exit 1
-          fi
-          pnpm -C libs/ui exec test-storybook --url "http://127.0.0.1:6006/?globals=theme:${{ matrix.theme }}" --config-dir .storybook --maxWorkers 2 --testTimeout 60000
+          A11Y_REPORT_FAIL_ON_VIOLATIONS: "false"
+        run: pnpm -C libs/ui storybook:a11y
 
-      - name: Upload baseline report (${{ matrix.theme }})
-        if: always() && hashFiles(format('libs/ui/a11y-report/{0}/report.json', matrix.theme)) != ''
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      # The PR workflow downloads <prefix>-<theme> and reads report.json at its root.
+      - name: Upload baseline report (light)
+        if: always() && steps.a11y.outputs.report-dir != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: storybook-a11y-baseline-${{ matrix.theme }}
-          path: libs/ui/a11y-report/${{ matrix.theme }}/report.json
+          name: storybook-a11y-baseline-light
+          path: ${{ steps.a11y.outputs.report-dir }}/light/report.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload baseline report (dark)
+        if: always() && steps.a11y.outputs.report-dir != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: storybook-a11y-baseline-dark
+          path: ${{ steps.a11y.outputs.report-dir }}/dark/report.json
+          if-no-files-found: ignore
           retention-days: 30

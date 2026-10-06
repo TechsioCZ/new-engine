@@ -10,7 +10,6 @@ node-compile-cache
 
 # IDE
 .vscode/*
-!.vscode/extensions.json
 .idea
 .vercel
 

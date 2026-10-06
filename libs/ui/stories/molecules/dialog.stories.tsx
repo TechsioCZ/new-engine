@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { Button } from '../../src/atoms/button'
 import { Link } from '../../src/atoms/link'
 import { Dialog } from '../../src/molecules/dialog'
+import { Popover } from '../../src/molecules/popover'
 
 const meta: Meta<typeof Dialog> = {
   title: 'Molecules/Dialog',
@@ -123,6 +125,99 @@ type Story = StoryObj<typeof meta>
 export const Playground: Story = {
   args: {
     title: 'Playground Dialog',
+  },
+}
+
+export const ControlledEscape: Story = {
+  tags: ['ui-runtime-regression'],
+  render: () => {
+    const [open, setOpen] = useState(false)
+    const [escapeDisabledOpen, setEscapeDisabledOpen] = useState(false)
+
+    return (
+      <div className="flex gap-150">
+        <Button onClick={() => setOpen(true)}>Open controlled dialog</Button>
+        <Dialog
+          open={open}
+          onOpenChange={({ open: nextOpen }) => setOpen(nextOpen)}
+          customTrigger
+          title="Controlled escape dialog"
+          description="Escape dismisses the most recently opened popup."
+        >
+          <Popover>
+            <Popover.Trigger>Open nested popover</Popover.Trigger>
+            <Popover.Positioner>
+              <Popover.Content>
+                <Popover.Title>Nested escape popover</Popover.Title>
+                <Popover.Description>Nested popup description.</Popover.Description>
+                <Popover.CloseTrigger>Close nested popover</Popover.CloseTrigger>
+              </Popover.Content>
+            </Popover.Positioner>
+          </Popover>
+        </Dialog>
+        <Button onClick={() => setEscapeDisabledOpen(true)}>
+          Open escape-disabled dialog
+        </Button>
+        <Dialog
+          open={escapeDisabledOpen}
+          onOpenChange={({ open: nextOpen }) => setEscapeDisabledOpen(nextOpen)}
+          customTrigger
+          closeOnEscape={false}
+          title="Escape disabled dialog"
+          description="Use the close button to dismiss this dialog."
+        />
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const page = within(canvasElement.ownerDocument.body)
+    const openDialog = canvas.getByRole('button', {
+      name: 'Open controlled dialog',
+    })
+
+    await userEvent.click(openDialog)
+    await waitFor(() => {
+      expect(page.getByRole('dialog', { name: 'Controlled escape dialog' })).toBeVisible()
+    })
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => {
+      expect(page.queryByRole('dialog', { name: 'Controlled escape dialog' })).toBeNull()
+    })
+
+    await userEvent.click(openDialog)
+    const dialog = await page.findByRole('dialog', { name: 'Controlled escape dialog' })
+    await userEvent.click(within(dialog).getByRole('button', {
+      name: 'Open nested popover',
+    }))
+    await waitFor(() => {
+      expect(page.getByRole('dialog', { name: 'Nested escape popover' })).toBeVisible()
+      expect(page.getByRole('dialog', { name: 'Nested escape popover' })).toHaveAccessibleDescription('Nested popup description.')
+    })
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => {
+      expect(page.queryByRole('dialog', { name: 'Nested escape popover' })).toBeNull()
+      expect(page.getByRole('dialog', { name: 'Controlled escape dialog' })).toBeVisible()
+    })
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => {
+      expect(page.queryByRole('dialog', { name: 'Controlled escape dialog' })).toBeNull()
+    })
+
+    await userEvent.click(canvas.getByRole('button', {
+      name: 'Open escape-disabled dialog',
+    }))
+    const escapeDisabledDialog = await page.findByRole('dialog', {
+      name: 'Escape disabled dialog',
+    })
+    await userEvent.keyboard('{Escape}')
+    await expect(escapeDisabledDialog).toBeVisible()
+    await userEvent.click(within(escapeDisabledDialog).getByRole('button', {
+      name: 'Close dialog',
+    }))
+    await waitFor(() => {
+      expect(page.queryByRole('dialog', { name: 'Escape disabled dialog' })).toBeNull()
+    })
   },
 }
 
@@ -341,7 +436,7 @@ export const RichContent: Story = {
     children: (
       <div className="space-y-300">
         <div className="flex gap-200">
-          <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-surface">
+          <div className="flex items-center justify-center rounded-lg bg-surface size-24">
             <span className="text-secondary text-sm">Image</span>
           </div>
           <div className="flex-1">
@@ -747,6 +842,7 @@ export const PortalComparison: Story = {
           {/* With Portal (default) */}
           <div className="space-y-200">
             <h3 className="font-medium">With Portal (default)</h3>
+            {/* eslint-disable-next-line tailwindcss/no-unnecessary-arbitrary-value -- h-50 resolves the --spacing-50 token instead of 200px. */}
             <div className="relative h-[200px] overflow-hidden rounded-lg border-2 border-border-primary bg-surface-secondary p-300">
               <p className="mb-200 text-sm text-fg-muted">
                 Container with overflow:hidden
@@ -779,6 +875,7 @@ export const PortalComparison: Story = {
           {/* Without Portal */}
           <div className="space-y-200">
             <h3 className="font-medium">Without Portal</h3>
+            {/* eslint-disable-next-line tailwindcss/no-unnecessary-arbitrary-value -- h-50 resolves the --spacing-50 token instead of 200px. */}
             <div className="relative h-[200px] overflow-hidden rounded-lg border-2 border-border-primary bg-surface-secondary p-300">
               <p className="mb-200 text-sm text-fg-muted">
                 Container with overflow:hidden

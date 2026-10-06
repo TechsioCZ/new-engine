@@ -2,7 +2,7 @@
  * Tooltip — @techsio/ui-kit atom.
  *
  * @component Tooltip
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill tooltip-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,7 +11,15 @@
  */
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as tooltip from "@zag-js/tooltip"
-import { type ReactNode, type Ref, useId } from "react"
+import {
+  Children,
+  cloneElement,
+  Fragment,
+  isValidElement,
+  type ReactNode,
+  type Ref,
+  useId,
+} from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 
 const tooltipVariants = tv({
@@ -60,6 +68,45 @@ export interface TooltipProps
   content: ReactNode
   children: ReactNode
   className?: string
+}
+
+function describeTooltipChildren(
+  children: ReactNode,
+  describedBy: string | undefined
+): ReactNode {
+  return Children.map(children, (child) => {
+    if (
+      !isValidElement<{
+        children?: ReactNode
+        "aria-describedby"?: string
+      }>(child)
+    ) {
+      return child
+    }
+
+    if (child.type === Fragment) {
+      return cloneElement(
+        child,
+        {},
+        describeTooltipChildren(child.props.children, describedBy)
+      )
+    }
+
+    const ids = [child.props["aria-describedby"], describedBy].flatMap(
+      (value) => value?.split(/\s+/).filter(Boolean) ?? []
+    )
+    const props = {
+      "aria-describedby": [...new Set(ids)].join(" ") || undefined,
+    }
+
+    return typeof child.type === "string" && child.props.children !== undefined
+      ? cloneElement(
+          child,
+          props,
+          describeTooltipChildren(child.props.children, describedBy)
+        )
+      : cloneElement(child, props)
+  })
 }
 
 export function Tooltip({
@@ -125,7 +172,8 @@ export function Tooltip({
     },
   })
 
-  const api = tooltip.connect(service as tooltip.Service, normalizeProps)
+  const api = tooltip.connect(service, normalizeProps)
+  const triggerProps = api.getTriggerProps()
   const {
     trigger,
     positioner,
@@ -136,14 +184,10 @@ export function Tooltip({
     size,
   })
 
-  const triggerProps = api.getTriggerProps()
-  // Exclude onBeforeInput: incompatible with span elements in React 19.2+
-  const { onBeforeInput, ...spanCompatibleProps } = triggerProps
-
   return (
     <>
-      <span {...spanCompatibleProps} className={trigger()} ref={ref}>
-        {children}
+      <span {...triggerProps} className={trigger()} ref={ref}>
+        {describeTooltipChildren(children, triggerProps["aria-describedby"])}
       </span>
       <Portal>
         {api.open && (

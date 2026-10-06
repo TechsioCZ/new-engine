@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,7 +28,7 @@ const footerVariants = tv({
     section: "bg-footer-section-bg",
     list: "flex list-none flex-col gap-footer-list bg-footer-list-bg",
     bottom:
-      "flex w-full items-center justify-between border-t-(length:--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
+      "border-t-(length:--border-footer-width) flex w-full items-center justify-between bg-footer-bottom-bg pt-footer-bottom",
     title:
       "font-footer-title text-footer-title-fg transition-footer-title hover:text-footer-title-fg-hover",
     link: "font-footer-link text-footer-link-fg transition-footer-link hover:text-footer-link-fg-hover",
@@ -104,7 +104,7 @@ const footerVariants = tv({
   },
 })
 
-interface FooterContextValue {
+type FooterContextValue = {
   size?: "sm" | "md" | "lg"
   sectionFlow?: "col" | "row"
   layout?: "col" | "row"
@@ -231,7 +231,8 @@ function FooterLink<T extends ElementType = "a">({
   )
 }
 
-Footer.Link = FooterLink
+// Keep native TypeScript declarations from hiding siblings behind a Link export alias.
+Footer.Link = FooterLink satisfies typeof FooterLink
 
 Footer.Text = function FooterText({ children, className }: FooterTextProps) {
   const { size } = useContext(FooterContext)
@@ -274,4 +275,10 @@ Footer.Bottom = function FooterBottom({
       {children}
     </div>
   )
+}
+
+// Declare colliding member names explicitly so native TypeScript emits no synthetic public aliases.
+// biome-ignore lint/style/noNamespace: Ambient merging preserves compound functions without emitting runtime code.
+export declare namespace Footer {
+  export let Text: (props: FooterTextProps) => import("react").JSX.Element
 }

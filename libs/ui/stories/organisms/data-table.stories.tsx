@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ComponentType, useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Badge } from "../../src/atoms/badge"
 import { Input } from "../../src/atoms/input"
@@ -695,6 +695,160 @@ export const RowReorder: Story = {
   },
 }
 
+export const KeyboardReorder: Story = {
+  tags: ["dnd-regression"],
+  args: {
+    ...base,
+    enableColumnReorder: true,
+    enableRowReorder: true,
+    enableRowSelection: true,
+    enableColumnPinning: true,
+    columnPinning: { end: [], start: ["email"] },
+    columnVisibility: { lastName: false },
+    // Omitted columns must remain in the callback's complete public order.
+    columnOrder: ["firstName", "role", "status", "age", "visits"],
+    getRowId: (person) => person.id,
+    getRowLabel: (row) => `${row.original.firstName} ${row.original.lastName}`,
+    onColumnReorder: fn(),
+    onRowReorder: fn(),
+    onRowClick: fn(),
+  },
+  render: (args) => {
+    const [rows, setRows] = useState(() =>
+      people.map((person, index) => ({
+        ...person,
+        // Row ids deliberately match column ids in the shared provider.
+        id: index === 0 ? "firstName" : index === 1 ? "role" : person.id,
+      }))
+    )
+    const [order, setOrder] = useState(args.columnOrder)
+    return (
+      <DataTable
+        {...args}
+        columnOrder={order}
+        data={rows}
+        onColumnOrderChange={setOrder}
+        onRowReorder={(details) => {
+          setRows(details.data)
+          args.onRowReorder?.(details)
+        }}
+      />
+    )
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByRole("columnheader", { name: "Reorder rows" })).toBeVisible()
+    await expect(canvas.queryByLabelText("Drag to reorder Email")).toBeNull()
+    await expect(canvas.queryByLabelText("Drag to reorder Last name")).toBeNull()
+
+    const columnHandle = canvas.getByLabelText("Drag to reorder First name")
+    columnHandle.focus()
+    await userEvent.keyboard("[Space]")
+    await waitFor(() => expect(columnHandle).toHaveAttribute("aria-pressed", "true"))
+    await userEvent.keyboard("[ArrowRight]")
+    await waitFor(() =>
+      expect(canvas.getByRole("columnheader", { name: /Role/ })).toHaveClass("border-e-2")
+    )
+    await userEvent.keyboard("[Space]")
+    await waitFor(() =>
+      expect(args.onColumnReorder).toHaveBeenLastCalledWith({
+        from: 0,
+        to: 1,
+        columnId: "firstName",
+        order: ["role", "firstName", "status", "age", "visits", "lastName", "email"],
+      })
+    )
+    await expect(args.onRowReorder).not.toHaveBeenCalled()
+    await waitFor(() => expect(columnHandle).toHaveFocus())
+    await waitFor(async () => {
+      const rect = columnHandle.getBoundingClientRect()
+      await expect(
+        columnHandle.contains(
+          canvasElement.ownerDocument.elementFromPoint(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2
+          )
+        )
+      ).toBe(true)
+    })
+
+    const rowHandle = canvas.getByLabelText("Drag to reorder Ada Lovelace")
+    rowHandle.focus()
+    await userEvent.keyboard("[Space]")
+    await waitFor(() => expect(rowHandle).toHaveAttribute("aria-pressed", "true"))
+    await userEvent.keyboard("[ArrowDown]")
+    await waitFor(() =>
+      expect(canvas.getByLabelText("Drag to reorder Alan Turing").closest("tr")).toHaveClass("border-b-2")
+    )
+    await userEvent.keyboard("[Space]")
+    await waitFor(() =>
+      expect(args.onRowReorder).toHaveBeenLastCalledWith(
+        expect.objectContaining({ from: 0, to: 1, rowId: "firstName" })
+      )
+    )
+    await expect(args.onColumnReorder).toHaveBeenCalledTimes(1)
+    await expect(args.onRowClick).not.toHaveBeenCalled()
+    await waitFor(() => expect(rowHandle).toHaveFocus())
+
+    const cancelHandle = canvas.getByLabelText("Drag to reorder Ada Lovelace")
+    cancelHandle.focus()
+    await userEvent.keyboard("[Space]")
+    await waitFor(() => expect(cancelHandle).toHaveAttribute("aria-pressed", "true"))
+    await userEvent.keyboard("[ArrowDown]")
+    await waitFor(() =>
+      expect(canvas.getByLabelText("Drag to reorder Grace Hopper").closest("tr")).toHaveClass("border-b-2")
+    )
+    await userEvent.keyboard("[Escape]")
+    await waitFor(() => expect(cancelHandle).toHaveAttribute("aria-pressed", "false"))
+    await expect(args.onRowReorder).toHaveBeenCalledTimes(1)
+  },
+}
+
+export const PaginatedRowReorder: Story = {
+  tags: ["dnd-regression"],
+  args: {
+    ...base,
+    enableRowReorder: true,
+    enablePagination: true,
+    pageSizeOptions: [3, 10, 25],
+    pagination: { pageIndex: 1, pageSize: 3 },
+    getRowId: (person) => person.id,
+    onRowReorder: fn(),
+  },
+  render: (args) => {
+    const [rows, setRows] = useState(people)
+    return (
+      <DataTable
+        {...args}
+        data={rows}
+        onRowReorder={(details) => {
+          setRows(details.data)
+          args.onRowReorder?.(details)
+        }}
+      />
+    )
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const handle = canvas.getByLabelText("Drag to reorder row 4")
+    await expect(canvas.getByRole("columnheader", { name: "Reorder rows" })).toBeVisible()
+    await waitFor(() => {
+      const renderedRows = canvas.getAllByRole("row").filter(
+        (row) => row.parentElement?.tagName === "TBODY"
+      )
+      expect(renderedRows.map((row) =>
+        row.querySelector<HTMLButtonElement>('button[aria-label^="Drag to reorder row "]')?.getAttribute("aria-label")
+      )).toEqual([
+        "Drag to reorder row 4",
+        "Drag to reorder row 5",
+        "Drag to reorder row 6",
+      ])
+      expect(handle).toHaveAttribute("aria-pressed", "false")
+      expect(args.onRowReorder).not.toHaveBeenCalled()
+    })
+  },
+}
+
 /* ── 18. Column visibility (show/hide) ───────────────────────────────────── */
 
 export const ColumnVisibility: Story = {
@@ -710,11 +864,18 @@ export const ColumnVisibility: Story = {
     await userEvent.click(trigger)
 
     // Toggling a column keeps the list open, so several can be hidden in a row.
-    const items = await canvas.findAllByRole("menuitemcheckbox")
-    await userEvent.click(items[0] as HTMLElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const menu = within(await body.findByRole("menu"))
+    const firstName = await menu.findByRole("menuitemcheckbox", { name: "First name" })
+    await userEvent.click(firstName)
+    await expect(firstName).toHaveAttribute("aria-checked", "false")
     await expect(
-      await canvas.findAllByRole("menuitemcheckbox")
+      await menu.findAllByRole("menuitemcheckbox")
     ).not.toHaveLength(0)
+    // Zag's interaction modality is page-global; re-hover so the leave counts as pointer input.
+    await userEvent.hover(firstName)
+    await userEvent.unhover(firstName)
+    await waitFor(() => expect(firstName).not.toHaveAttribute("data-highlighted"))
   },
 }
 
@@ -1168,7 +1329,7 @@ export const DeprecatedFilterVariant: Story = {
     // `String(cell).includes("4")` — five ages (41/44/45/47/48) contain "4"
     // as a substring, so a still-populated table means the bug is back.
     await userEvent.type(ageInput, "4")
-    await expect(canvas.getByText("No records")).toBeInTheDocument()
+    await expect(await canvas.findByText("No records", { selector: "p" })).toBeVisible()
   },
 }
 
@@ -1274,11 +1435,16 @@ export const EditModeLocksInteractions: EmployeeStory = {
     await userEvent.click(canvas.getByLabelText("Edit row 0"))
     // Filter inputs, selection checkboxes and sort buttons are disabled.
     await expect(canvas.getByLabelText("Select row 0")).toBeDisabled()
-    await expect(canvas.getByRole("button", { name: /Salary/i })).toBeDisabled()
+    await expect(canvas.getByRole("button", { name: "Salary" })).toBeDisabled()
     // Cancelling releases the lock again.
     await userEvent.click(canvas.getByLabelText("Cancel edit"))
     await expect(canvas.getByLabelText("Select row 0")).not.toBeDisabled()
     await expect(args.onInteractionBlocked).not.toHaveBeenCalled()
+    const editTrigger = canvas.getByLabelText("Edit row 0")
+    await waitFor(() => expect(editTrigger).toHaveFocus())
+    await userEvent.unhover(editTrigger)
+    editTrigger.blur()
+    await expect(editTrigger).not.toHaveFocus()
   },
 }
 
@@ -1307,6 +1473,7 @@ export const SingleRowSelection: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    await expect(canvas.getByRole("columnheader", { name: "Select rows" })).toBeVisible()
     await userEvent.click(canvas.getByLabelText("Select row 0"))
     await expect(canvas.getByLabelText("Select row 0")).toBeChecked()
     // Selecting another row replaces the first instead of adding to it.
@@ -1327,6 +1494,7 @@ export const MaxTwoRowsSelectable: Story = {
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
+    await expect(canvas.getByRole("columnheader", { name: "Select rows" })).toBeVisible()
     await userEvent.click(canvas.getByLabelText("Select row 0"))
     await userEvent.click(canvas.getByLabelText("Select row 1"))
     await expect(args.onSelectionLimitReached).toHaveBeenCalled()

@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,6 +17,7 @@ import {
   type Ref,
   useContext,
   useId,
+  useMemo,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
@@ -240,7 +241,7 @@ Accordion.Item = function AccordionItem({
   )
 }
 
-// Header component (trigger wrapper)
+// Header component (heading wrapper for the trigger)
 interface AccordionHeaderProps extends ComponentPropsWithoutRef<"header"> {
   ref?: Ref<HTMLElement>
 }
@@ -253,9 +254,17 @@ Accordion.Header = function AccordionHeader({
 }: AccordionHeaderProps) {
   const { api, styles } = useAccordionContext()
   const { value, disabled } = useAccordionItemContext()
+  const headingRef = useMemo(() => {
+    if (typeof ref === "function" || !ref) {
+      return ref
+    }
+    return (node: HTMLHeadingElement | null) => {
+      ref.current = node
+    }
+  }, [ref])
 
   return (
-    <header className={className} ref={ref} {...props}>
+    <h3 className={className} ref={headingRef} {...props}>
       <Button
         className={styles.titleTrigger()}
         size="current"
@@ -266,7 +275,7 @@ Accordion.Header = function AccordionHeader({
       >
         {children}
       </Button>
-    </header>
+    </h3>
   )
 }
 

@@ -104,10 +104,8 @@ declare module "@tanstack/react-table" {
     // TypeScript requires a merged declaration to repeat the upstream
     // parameter list verbatim, names included, even though this augmentation
     // only reads TData.
-    // biome-ignore lint/correctness/noUnusedVariables: see above
     TFeatures extends TableFeatures,
     TData extends RowData,
-    // biome-ignore lint/correctness/noUnusedVariables: see above
     TValue,
   > {
     /**
@@ -156,7 +154,6 @@ declare module "@tanstack/react-table" {
   }
 
   // biome-ignore lint/style/useConsistentTypeDefinitions: module augmentation requires interface
-  // biome-ignore lint/correctness/noUnusedVariables: augmentation signature must match upstream generics
   interface TableMeta<TFeatures extends TableFeatures, TData extends RowData> {
     /** Commit an inline cell edit; wired by DataTable to `onCellEditCommit`. */
     updateData?: (rowId: string, columnId: string, value: unknown) => void
@@ -264,7 +261,10 @@ function filterValueIsEmpty(value: unknown, column?: unknown): boolean {
   // user made on purpose. The defaults mirror the two filter renderers'
   // own fallbacks in data-table.fields.tsx.
   const meta = (
-    column as { columnDef?: { meta?: Parameters<typeof resolveColumnType>[0] } }
+    column as
+      | { columnDef?: { meta?: Parameters<typeof resolveColumnType>[0] } }
+      | null
+      | undefined
   )?.columnDef?.meta
   const type = resolveColumnType(meta)
   // Mirrors which matcher `typedFilterMatch` routes each type to: `number`,
@@ -367,7 +367,7 @@ function guardNumericOperator(
     // it, exactly as the text matcher's `notContains` does.
     return operator === "notEquals"
   }
-  return
+  return undefined
 }
 
 function evaluateCondition(
@@ -455,7 +455,11 @@ function evaluateCondition(
 export const conditionalFilterFn: AnyFilterFn = (
   row,
   columnId,
-  filterValue: DataTableConditionalFilterValue
+  filterValue:
+    | DataTableConditionalFilterValue
+    | (DataTableFilterValue & { operator?: never })
+    | null
+    | undefined
 ) => {
   if (filterValue == null) {
     return true
@@ -599,7 +603,7 @@ export const DATA_TABLE_Z = {
   /**
    * The sticky actions cell sits one level above pinned body cells. Both
    * freeze at the trailing edge (`getAfter("end")` is 0 for the last
-   * end-pinned column, and the actions cell is `end-0`), and the actions
+   * end-pinned column, and the actions cell is `inset-e-0`), and the actions
    * column is not part of TanStack's column model so `getAfter` cannot
    * account for its width. At equal z-index the winner came down to DOM
    * order; this at least makes the actions cell deterministically on top.
@@ -665,9 +669,8 @@ export function isFirstEndPinned<T extends RowData>(
 }
 
 /* ── colSpan / rowSpan ────────────────────────────────────────────────────
- * TanStack has no body-cell spanning model, so DataTable exposes a `getCellSpan`
- * hook returning this shape. `hidden` drops a cell swallowed by a preceding
- * span. */
+ * DataTable's `getCellSpan` hook controls the rendered HTML spans directly.
+ * `hidden` drops a cell swallowed by a preceding span. */
 export type DataTableCellSpan = {
   colSpan?: number
   rowSpan?: number

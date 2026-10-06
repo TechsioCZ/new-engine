@@ -12,6 +12,90 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Checkbox v1.0.1
+- Preserve callback ref cleanup with React 19 and current Tailwind utilities.
+
+### NumericInput v1.0.1
+- Keep explicit input IDs linked to labels with the current Zag number-input machine and forward template labels to the input.
+
+### Skeleton v1.0.1
+- Keep busy placeholders accessible without naming generic wrapper elements.
+
+### Tooltip v1.0.1
+- Preserve tooltip descriptions and interaction with the current Zag machine.
+
+### Accordion v1.0.1
+- Use a heading for accordion triggers and preserve forwarded heading refs.
+
+### Breadcrumb v1.0.1
+- Preserve all compound members in native TypeScript declarations.
+
+### Carousel v1.0.1
+- Preserve compound declarations and use current Tailwind scrollbar utilities.
+
+### Chart v1.0.1
+- Adapt chart definitions, scales and React imports to TanStack Charts 1.x while preserving Cartesian rendering.
+
+### ColorSelect v1.0.1
+- Update types and sizing utilities for the current toolchain.
+
+### Combobox v1.1.1
+- Normalize single-value strings for the current Zag machine while retaining multi-value support.
+
+### Dialog v1.0.2
+- Use the current Zag dismissal behavior and remove the obsolete Escape workaround.
+
+### FormNumericInput v1.0.1
+- Link labels and help text to the actual numeric input ID.
+
+### Menu v1.1.1
+- Use current Zag types and adapt navigation callbacks without changing their public shape.
+
+### Pagination v1.0.1
+- Mark unavailable pagination links as disabled for assistive technology.
+
+### PhoneInput v1.0.1
+- Preserve the Input compound member in native TypeScript declarations.
+
+### Popover v1.0.1
+- Keep lazily mounted titles and descriptions linked to content and preserve compound declarations.
+
+### ProductCard v1.0.1
+- Preserve Button and Rating compound members in native TypeScript declarations.
+
+### RadioCard v1.0.1
+- Preserve compound declarations and recognize compound hidden-input labels.
+
+### RadioGroup v1.0.1
+- Preserve compound declarations and recognize compound hidden-input labels.
+
+### SearchForm v1.0.1
+- Preserve compound declarations and use the current React submit-event type.
+
+### Select v1.1.1
+- Use current Zag types and preserve the StatusText compound declaration.
+
+### Steps v1.0.1
+- Keep current-step and progress semantics accessible and preserve compound declarations.
+
+### Tabs v1.0.1
+- Update logical positioning utilities and context types for the current toolchain.
+
+### TreeView v1.0.1
+- Use current Zag types and logical positioning utilities.
+
+### DataTable v1.0.1
+- Adapt row drag-and-drop and table integration to the current dependencies while retaining keyboard interaction.
+
+### Footer v1.0.1
+- Preserve Footer compound members in native TypeScript declarations.
+
+### Gallery v1.0.1
+- Preserve compound declarations and use current scrollbar utilities.
+
+### Table v1.2.1
+- Use current logical positioning utilities for sticky columns.
+
 ### Dialog v1.0.1
 - Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
 

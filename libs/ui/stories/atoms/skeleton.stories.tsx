@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import type { ComponentPropsWithoutRef } from 'react'
 import { useState } from 'react'
+import { expect, userEvent, within } from 'storybook/test'
 import { Skeleton } from '../../src/atoms/skeleton'
 import { Button } from '../../src/atoms/button'
 
@@ -33,6 +34,7 @@ type PlaygroundArgs = ComponentPropsWithoutRef<typeof Skeleton> & {
 // ===== BASIC USAGE =====
 
 export const Playground: StoryObj<PlaygroundArgs> = {
+  tags: ['ui-semantic-regression'],
   args: {
     variant: 'primary',
     speed: 'normal',
@@ -118,9 +120,18 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       </div>
     )
   },
+  play: async ({ canvasElement }) => {
+    const placeholders = canvasElement.querySelectorAll('[aria-busy="true"]')
+    await expect(placeholders).toHaveLength(3)
+    for (const placeholder of placeholders) {
+      await expect(placeholder).not.toHaveAttribute('aria-label')
+      await expect(placeholder).not.toHaveAttribute('role', 'status')
+    }
+  },
 }
 
 export const WithContent: Story = {
+  tags: ['ui-semantic-regression'],
   render: () => {
     const [isLoaded, setIsLoaded] = useState(false)
 
@@ -139,6 +150,19 @@ export const WithContent: Story = {
         </Skeleton>
       </div>
     )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const toggle = canvas.getByRole('button', { name: 'Toggle Loaded State' })
+    await expect(canvasElement.querySelector('[aria-busy="true"]')).not.toHaveAttribute('aria-label')
+    await userEvent.click(toggle)
+    await expect(canvasElement.querySelector('[aria-busy="true"]')).toBeNull()
+    await expect(canvas.getByText('✨ Content loaded!')).toBeVisible()
+    await userEvent.click(toggle)
+    await expect(canvasElement.querySelector('[aria-busy="true"]')).toBeInTheDocument()
+    await userEvent.unhover(toggle)
+    toggle.blur()
+    await expect(toggle).not.toHaveFocus()
   },
 }
 
@@ -357,7 +381,7 @@ export const RectangleAspectRatios: Story = {
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">4:3</p>
-        <Skeleton.Rectangle className="aspect-[4/3]" />
+        <Skeleton.Rectangle className="aspect-landscape" />
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">1:1 (Square)</p>
@@ -390,7 +414,7 @@ export const ProductCardSkeleton: Story = {
       <Skeleton.Text noOfLines={2} size="sm" />
       <div className="flex gap-150 mt-250">
         <Skeleton.Rectangle className="h-10 flex-1" />
-        <Skeleton.Rectangle className="h-10 w-10" />
+        <Skeleton.Rectangle className="size-10" />
       </div>
     </div>
   ),

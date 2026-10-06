@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -147,8 +147,101 @@ const menuVariants = tv({
   },
 })
 
+// === ITEM RENDERER (shared by root menu and submenus) ===
+type MenuItemRenderContext = {
+  // Machine that owns the rendered items (root menu or a submenu)
+  api: menu.Api
+  service: menu.Service
+  slots: ReturnType<typeof menuVariants>
+  size: SubmenuItemProps["size"]
+  closeOnSelect: SubmenuItemProps["closeOnSelect"]
+  onCheckedChange: SubmenuItemProps["onCheckedChange"]
+  onSelect: SubmenuItemProps["onSelect"]
+}
+
+function renderMenuItem(
+  menuItem: MenuItem,
+  {
+    api,
+    service,
+    slots,
+    size,
+    closeOnSelect,
+    onCheckedChange,
+    onSelect,
+  }: MenuItemRenderContext
+) {
+  const {
+    separator,
+    optionItem,
+    item: itemSlot,
+    itemIcon,
+    itemText,
+    itemIndicator,
+  } = slots
+
+  // Handle separator
+  if (menuItem.type === "separator") {
+    return <hr className={separator()} key={`separator-${menuItem.id}`} />
+  }
+
+  // Handle submenu
+  if (menuItem.type === "submenu") {
+    return (
+      <SubmenuItem
+        closeOnSelect={closeOnSelect}
+        item={menuItem}
+        key={menuItem.value}
+        onCheckedChange={onCheckedChange}
+        onSelect={onSelect}
+        parentApi={api}
+        parentService={service}
+        size={size}
+      />
+    )
+  }
+
+  // Handle radio/checkbox items
+  if (menuItem.type === "radio" || menuItem.type === "checkbox") {
+    return (
+      <li
+        className={`${itemSlot()} ${optionItem()}`}
+        key={menuItem.value}
+        {...api.getOptionItemProps({
+          type: menuItem.type,
+          value: menuItem.value,
+          checked: menuItem.checked,
+          onCheckedChange: (checked) => {
+            onCheckedChange?.(menuItem, checked)
+          },
+        })}
+      >
+        <span className={itemText()}>{menuItem.label}</span>
+        <span className={itemIndicator()}>
+          {menuItem.checked && <Icon icon="token-icon-check" size="current" />}
+        </span>
+      </li>
+    )
+  }
+
+  // Handle action items
+  return (
+    <li
+      className={itemSlot()}
+      key={menuItem.value}
+      {...api.getItemProps({
+        value: menuItem.value,
+        disabled: menuItem.disabled,
+      })}
+    >
+      {menuItem.icon && <Icon className={itemIcon()} icon={menuItem.icon} />}
+      <span className={itemText()}>{menuItem.label}</span>
+    </li>
+  )
+}
+
 // === SUBMENU COMPONENT ===
-interface SubmenuItemProps {
+type SubmenuItemProps = {
   item: SubmenuMenuItem
   parentApi: menu.Api
   parentService: menu.Service
@@ -158,7 +251,6 @@ interface SubmenuItemProps {
   closeOnSelect?: boolean
 }
 
-// ! TODO: Fix menu.machine typing, it should work without 'as any'
 function SubmenuItem({
   item,
   parentApi,
@@ -168,93 +260,38 @@ function SubmenuItem({
   onSelect,
   closeOnSelect = true,
 }: SubmenuItemProps) {
-  const submenuService = useMachine(menu.machine as any, {
+  const submenuService = useMachine(menu.machine, {
     id: useId(),
     closeOnSelect,
     onSelect,
   })
 
-  const submenuApi = menu.connect(submenuService as any, normalizeProps)
+  const submenuApi = menu.connect(submenuService, normalizeProps)
 
   useEffect(() => {
     // Setup parent-child relationship
-    parentApi.setChild(submenuService as any)
+    parentApi.setChild(submenuService)
     submenuApi.setParent(parentService)
   }, [parentApi, submenuApi, submenuService, parentService])
 
+  const slots = menuVariants({ size })
   const {
     positioner,
     content,
-    separator,
-    optionItem,
     item: itemSlot,
     itemIcon,
     itemText,
-    itemIndicator,
     submenuIndicator,
-  } = menuVariants({ size })
+  } = slots
 
-  const renderMenuItem = (menuItem: MenuItem) => {
-    // Handle separator
-    if (menuItem.type === "separator") {
-      return <hr className={separator()} key={`separator-${menuItem.id}`} />
-    }
-
-    // Handle submenu
-    if (menuItem.type === "submenu") {
-      return (
-        <SubmenuItem
-          closeOnSelect={closeOnSelect}
-          item={menuItem}
-          key={menuItem.value}
-          onCheckedChange={onCheckedChange}
-          onSelect={onSelect}
-          parentApi={submenuApi}
-          parentService={submenuService as any}
-          size={size}
-        />
-      )
-    }
-
-    // Handle radio/checkbox items
-    if (menuItem.type === "radio" || menuItem.type === "checkbox") {
-      return (
-        <li
-          className={`${itemSlot()} ${optionItem()}`}
-          key={menuItem.value}
-          {...(submenuApi.getOptionItemProps({
-            type: menuItem.type,
-            value: menuItem.value,
-            checked: menuItem.checked,
-            onCheckedChange: (checked) => {
-              onCheckedChange?.(menuItem, checked)
-            },
-          }) as any)}
-        >
-          <span className={itemText()}>{menuItem.label}</span>
-          <span className={itemIndicator()}>
-            {menuItem.checked && (
-              <Icon icon="token-icon-check" size="current" />
-            )}
-          </span>
-        </li>
-      )
-    }
-
-    // Handle action items
-    return (
-      <li
-        className={itemSlot()}
-        key={menuItem.value}
-        {...(submenuApi.getItemProps({
-          value: menuItem.value,
-          disabled: menuItem.disabled,
-        }) as any)}
-      >
-        {menuItem.icon && <Icon className={itemIcon()} icon={menuItem.icon} />}
-        <span className={itemText()}>{menuItem.label}</span>
-      </li>
-    )
+  const itemContext: MenuItemRenderContext = {
+    api: submenuApi,
+    service: submenuService,
+    slots,
+    size,
+    closeOnSelect,
+    onCheckedChange,
+    onSelect,
   }
 
   // Get trigger props from parent
@@ -264,7 +301,7 @@ function SubmenuItem({
     <>
       <li
         className={itemSlot()}
-        {...(triggerProps as any)}
+        {...triggerProps}
         data-disabled={item.disabled || undefined}
       >
         {item.icon && <Icon className={itemIcon()} icon={item.icon} />}
@@ -273,12 +310,11 @@ function SubmenuItem({
       </li>
 
       <Portal>
-        <div
-          className={positioner()}
-          {...(submenuApi.getPositionerProps() as any)}
-        >
-          <ul className={content()} {...(submenuApi.getContentProps() as any)}>
-            {item.items.map(renderMenuItem)}
+        <div className={positioner()} {...submenuApi.getPositionerProps()}>
+          <ul className={content()} {...submenuApi.getContentProps()}>
+            {item.items.map((menuItem) =>
+              renderMenuItem(menuItem, itemContext)
+            )}
           </ul>
         </div>
       </Portal>
@@ -287,36 +323,38 @@ function SubmenuItem({
 }
 
 // === COMPONENT PROPS ===
-export interface MenuProps extends VariantProps<typeof menuVariants> {
-  items: MenuItem[]
-  triggerText?: string
-  triggerIcon?: IconType
-  customTrigger?: ReactNode
-  className?: string
-  onCheckedChange?: (item: MenuItem, checked: boolean) => void
-  // menu.Props
-  "aria-label"?: string
-  dir?: "ltr" | "rtl"
-  id?: string
-  closeOnSelect?: boolean
-  loopFocus?: boolean
-  typeahead?: boolean
-  positioning?: any
-  anchorPoint?: any
-  open?: boolean
-  defaultOpen?: boolean
-  composite?: boolean
-  navigate?: (value: string) => void
-  defaultHighlightedValue?: string
-  highlightedValue?: string
-  onHighlightChange?: (details: { highlightedValue: string | null }) => void
-  onSelect?: (details: { value: string }) => void
-  onOpenChange?: (details: { open: boolean }) => void
-  onEscapeKeyDown?: (event: KeyboardEvent) => void
-  onPointerDownOutside?: (event: PointerEvent) => void
-  onInteractOutside?: (event: FocusEvent | PointerEvent) => void
-  onFocusOutside?: (event: FocusEvent) => void
-}
+export type MenuProps = VariantProps<typeof menuVariants> &
+  Pick<
+    menu.Props,
+    | "aria-label"
+    | "dir"
+    | "closeOnSelect"
+    | "loopFocus"
+    | "typeahead"
+    | "positioning"
+    | "anchorPoint"
+    | "open"
+    | "defaultOpen"
+    | "composite"
+    | "defaultHighlightedValue"
+    | "highlightedValue"
+    | "onHighlightChange"
+    | "onSelect"
+    | "onOpenChange"
+    | "onEscapeKeyDown"
+    | "onPointerDownOutside"
+    | "onInteractOutside"
+    | "onFocusOutside"
+  > & {
+    items: MenuItem[]
+    triggerText?: string
+    triggerIcon?: IconType
+    customTrigger?: ReactNode
+    className?: string
+    onCheckedChange?: (item: MenuItem, checked: boolean) => void
+    id?: string
+    navigate?: (value: string) => void
+  }
 export function Menu({
   // NATIVE PROPS
   "aria-label": ariaLabel,
@@ -355,7 +393,7 @@ export function Menu({
 }: MenuProps) {
   const generatedId = useId()
 
-  const service = useMachine(menu.machine as any, {
+  const service = useMachine(menu.machine, {
     id: id || generatedId,
     dir,
     closeOnSelect,
@@ -368,7 +406,7 @@ export function Menu({
     open,
     defaultOpen,
     composite,
-    navigate,
+    navigate: navigate ? (details) => navigate(details.value) : undefined,
     onSelect,
     onOpenChange,
     onEscapeKeyDown,
@@ -379,79 +417,19 @@ export function Menu({
     "aria-label": ariaLabel,
   })
 
-  const api = menu.connect(service as any, normalizeProps)
+  const api = menu.connect(service, normalizeProps)
 
-  const {
-    trigger,
-    positioner,
-    content,
-    separator,
-    optionItem,
-    item: itemSlot,
-    itemIcon,
-    itemText,
-    itemIndicator,
-  } = menuVariants({ size })
+  const slots = menuVariants({ size })
+  const { trigger, positioner, content } = slots
 
-  const renderMenuItem = (item: MenuItem) => {
-    // Handle separator
-    if (item.type === "separator") {
-      return <hr className={separator()} key={`separator-${item.id}`} />
-    }
-
-    // Handle submenu
-    if (item.type === "submenu") {
-      return (
-        <SubmenuItem
-          closeOnSelect={closeOnSelect}
-          item={item}
-          key={item.value}
-          onCheckedChange={onCheckedChange}
-          onSelect={onSelect}
-          parentApi={api}
-          parentService={service as any}
-          size={size}
-        />
-      )
-    }
-
-    // Handle radio/checkbox items
-    if (item.type === "radio" || item.type === "checkbox") {
-      return (
-        <li
-          className={`${itemSlot()} ${optionItem()}`}
-          key={item.value}
-          {...(api.getOptionItemProps({
-            type: item.type,
-            value: item.value,
-            checked: item.checked,
-            onCheckedChange: (checked) => {
-              onCheckedChange?.(item, checked)
-            },
-          }) as any)}
-        >
-          <span className={itemText()}>{item.label}</span>
-          <span className={itemIndicator()}>
-            {item.checked && <Icon icon="token-icon-check" size="current" />}
-          </span>
-        </li>
-      )
-    }
-
-    // Handle action items
-    return (
-      <li
-        className={itemSlot()}
-        key={item.value}
-        {...(api.getItemProps({
-          value: item.value,
-          disabled: item.disabled,
-        }) as any)}
-      >
-        {item.icon && <Icon className={itemIcon()} icon={item.icon} />}
-        <span className={itemText()}>{item.label}</span>
-      </li>
-    )
+  const itemContext: MenuItemRenderContext = {
+    api,
+    service,
+    slots,
+    size,
+    closeOnSelect,
+    onCheckedChange,
+    onSelect,
   }
 
   return (
@@ -478,9 +456,9 @@ export function Menu({
       )}
 
       <Portal>
-        <div className={positioner()} {...(api.getPositionerProps() as any)}>
-          <ul className={content()} {...(api.getContentProps() as any)}>
-            {items.map(renderMenuItem)}
+        <div className={positioner()} {...api.getPositionerProps()}>
+          <ul className={content()} {...api.getContentProps()}>
+            {items.map((item) => renderMenuItem(item, itemContext))}
           </ul>
         </div>
       </Portal>

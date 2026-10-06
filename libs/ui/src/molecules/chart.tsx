@@ -2,15 +2,15 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the chart-usage skill's component_version and a changelog entry. Bump all three together.
  *
- * Declarative charting built on TanStack Charts (`@tanstack/charts` +
- * `@tanstack/react-charts`). One `type` prop switches between the popular
+ * Declarative charting built on TanStack Charts (`@tanstack/charts/react`).
+ * One `type` prop switches between the popular
  * chart forms — line, area, bar, horizontal bar, scatter, pie and donut —
  * from the same `data`/`x`/`y`/`series` channels. Series colors flow from
  * the `--color-chart-series-*` design tokens (bridged onto TanStack's
@@ -18,13 +18,8 @@
  * grid chrome inherit `--color-chart-fg` via `currentColor`, and the native
  * tooltip surface is styled by the `chart-tooltip` utility.
  *
- * @stability TanStack Charts (`@tanstack/charts`, `@tanstack/charts-scales`,
- * `@tanstack/react-charts`) is pre-alpha upstream (its own README/MARKETING.md
- * disclaim production readiness pending https://github.com/TanStack/charts
- * PLAN.md gates). This molecule is a deliberate, explicit exception to
- * `@techsio/ui-kit`'s otherwise-stable public API while that upstream library
- * matures — expect breaking changes here to track upstream, independent of
- * this package's semantic-release versioning for its other exports.
+ * @stability TanStack Charts follows semantic versioning from 1.0. This
+ * molecule follows `@techsio/ui-kit`'s public API versioning.
  */
 import {
   areaY,
@@ -32,24 +27,26 @@ import {
   barY,
   type ChartAxisOptions,
   type ChartColorOptions,
-  type ChartDefinition,
-  type ChartMark,
   type ChartPoint,
+  type ChartScene,
   type ChartTooltipInput,
+  type ChartValue,
   colorLegend,
+  type DomChartDefinition,
   d3Curve,
-  defineChart,
   dot,
   group,
   lineY,
+  type RenderChartSvgOptions,
   stack,
 } from "@tanstack/charts"
 import { polar, radialArc } from "@tanstack/charts/polar"
+import { Chart as TanstackChart } from "@tanstack/charts/react"
+import { scaleBand } from "@tanstack/charts/scales/band"
+import { scaleLinear } from "@tanstack/charts/scales/linear"
+import { scalePoint } from "@tanstack/charts/scales/point"
+import { renderChartSvg } from "@tanstack/charts/svg"
 import { tooltip as chartTooltip } from "@tanstack/charts/tooltip"
-import { scaleBand } from "@tanstack/charts-scales/band"
-import { scaleLinear } from "@tanstack/charts-scales/linear"
-import { scalePoint } from "@tanstack/charts-scales/point"
-import { Chart as TanstackChart } from "@tanstack/react-charts"
 import { scaleUtc } from "d3-scale"
 import { curveMonotoneX, type PieArcDatum, pie } from "d3-shape"
 import { useMemo } from "react"
@@ -163,28 +160,6 @@ function toAccessor<TDatum, TValue>(
   return (datum) => datum[accessor] as TValue
 }
 
-/**
- * defineChart's const-generic overloads infer the axis option types from the
- * marks' channel outputs. With an unresolved generic TDatum those conditional
- * types never collapse, so every spec fails overload resolution even though
- * the runtime shape is a plain static chart spec. This loosened alias keeps
- * the mark constructors (lineY, barY, …) fully typed and only relaxes the
- * final spec assembly.
- */
-type ChartSpecInput<TDatum> = {
-  marks: readonly ChartMark<unknown, any, any>[]
-  x?: ChartAxisOptions<any> | null
-  y?: ChartAxisOptions<any> | null
-  color?: ChartColorOptions
-  animate?: boolean
-  tooltip?: false | ChartTooltipInput<TDatum, any, any>
-  maxFocusDistance?: number
-}
-
-const defineChartSpec = defineChart as unknown as <TDatum>(
-  spec: ChartSpecInput<TDatum>
-) => ChartDefinition<TDatum>
-
 type BuildConfig<TDatum> = {
   type: ChartType
   data: readonly TDatum[]
@@ -217,9 +192,9 @@ type ResolvedBuild<TDatum> = {
   xLabel?: string
   yLabel?: string
   valueTicks?: { format: (value: number) => string }
-  valueAxis: ChartAxisOptions<any>
-  xAxis: ChartAxisOptions<any>
-  bandAxis: ChartAxisOptions<any>
+  valueAxis: ChartAxisOptions<number>
+  xAxis: ChartAxisOptions<ChartValue>
+  bandAxis: ChartAxisOptions<ChartValue>
   /**
    * Tooltip config for a cartesian chart, told which channel carries the value
    * so `formatValue` lands on the same number the axis ticks format.
@@ -227,12 +202,14 @@ type ResolvedBuild<TDatum> = {
   tooltipFor: (
     valueChannel: "x" | "y",
     swapped?: boolean
-  ) => false | ChartTooltipInput<TDatum, any, any>
+  ) => false | ChartTooltipInput<TDatum, ChartValue, ChartValue, "dom">
   /** Tooltip config for pie/donut, which read the value off the source row. */
-  polarTooltip: () => false | ChartTooltipInput<TDatum, any, any>
+  polarTooltip: () =>
+    | false
+    | ChartTooltipInput<TDatum, ChartValue, ChartValue, "dom">
   shared: {
     color?: ChartColorOptions
-    animate: boolean
+    svgAnimation: boolean
   }
 }
 
@@ -262,7 +239,7 @@ function resolveXAxis<TDatum>(
   data: readonly TDatum[],
   getX: (datum: TDatum) => string | number | Date,
   xLabel?: string
-): ChartAxisOptions<any> {
+): ChartAxisOptions<ChartValue> {
   const values = data.map(getX)
   if (values.length > 0 && values.every((value) => value instanceof Date)) {
     return { scale: () => scaleUtc(), nice: true, axis: { label: xLabel } }
@@ -412,7 +389,7 @@ function resolveBuild<TDatum>(
       color: showLegend
         ? { legend: colorLegend({ label: config.legendLabel }) }
         : undefined,
-      animate: config.animate,
+      svgAnimation: config.animate,
     },
   }
 }
@@ -452,9 +429,9 @@ function warnOnSeriesOverflow<TDatum>(
 
 function buildLine<TDatum>(
   build: ResolvedBuild<TDatum>
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
-  return defineChartSpec<TDatum>({
+  return {
     marks: [
       lineY(data, {
         x: getX,
@@ -466,19 +443,18 @@ function buildLine<TDatum>(
         stroke: getSeries == null ? SERIES_1_PAINT : undefined,
       }),
     ],
-    x: build.xAxis,
-    y: build.valueAxis,
+    scales: { x: build.xAxis, y: build.valueAxis },
     ...build.shared,
     tooltip: build.tooltipFor("y"),
-  })
+  }
 }
 
 function buildArea<TDatum>(
   build: ResolvedBuild<TDatum>
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
   const isStacked = build.stacked ?? true
-  return defineChartSpec<TDatum>({
+  return {
     marks: [
       areaY(data, {
         x: getX,
@@ -500,11 +476,10 @@ function buildArea<TDatum>(
         strokeWidth: 2,
       }),
     ],
-    x: build.xAxis,
-    y: build.valueAxis,
+    scales: { x: build.xAxis, y: build.valueAxis },
     ...build.shared,
     tooltip: build.tooltipFor("y"),
-  })
+  }
 }
 
 function barLayout(hasSeries: boolean, isStacked: boolean) {
@@ -517,7 +492,7 @@ function barLayout(hasSeries: boolean, isStacked: boolean) {
 function buildBars<TDatum>(
   build: ResolvedBuild<TDatum>,
   horizontal: boolean
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
   const isStacked = build.stacked ?? false
   const barOptions = {
@@ -529,34 +504,35 @@ function buildBars<TDatum>(
     radius: getSeries != null && isStacked ? 0 : 4,
   }
   if (horizontal) {
-    return defineChartSpec<TDatum>({
+    return {
       marks: [barX(data, { x: getY, y: getX, ...barOptions })],
       // The value channel runs along x here, so it carries grid and format.
-      x: {
-        scale: scaleLinear,
-        nice: true,
-        grid: build.grid,
-        axis: { label: build.yLabel, ticks: build.valueTicks },
+      scales: {
+        x: {
+          scale: scaleLinear,
+          nice: true,
+          grid: build.grid,
+          axis: { label: build.yLabel, ticks: build.valueTicks },
+        },
+        y: build.bandAxis,
       },
-      y: build.bandAxis,
       ...build.shared,
       tooltip: build.tooltipFor("x", true),
-    })
+    }
   }
-  return defineChartSpec<TDatum>({
+  return {
     marks: [barY(data, { x: getX, y: getY, ...barOptions })],
-    x: build.bandAxis,
-    y: build.valueAxis,
+    scales: { x: build.bandAxis, y: build.valueAxis },
     ...build.shared,
     tooltip: build.tooltipFor("y"),
-  })
+  }
 }
 
 function buildScatter<TDatum>(
   build: ResolvedBuild<TDatum>
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
-  return defineChartSpec<TDatum>({
+  return {
     marks: [
       dot(data, {
         x: getX,
@@ -568,29 +544,32 @@ function buildScatter<TDatum>(
         fill: getSeries == null ? SERIES_1_PAINT : undefined,
       }),
     ],
-    x: { ...build.xAxis, grid: build.grid },
-    y: build.valueAxis,
+    scales: {
+      x: { ...build.xAxis, grid: build.grid },
+      y: build.valueAxis,
+    },
     ...build.shared,
     tooltip: build.tooltipFor("y"),
-  })
+  }
 }
 
 function buildPolar<TDatum>(
   build: ResolvedBuild<TDatum>,
   donut: boolean
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY } = build
   const sliceLabel = (slice: PieArcDatum<TDatum>) => String(getX(slice.data))
   const slices = pie<TDatum>()
     .sort(null)
     .padAngle(0.02)
     .value((datum) => getY(datum))([...data])
-  return defineChartSpec<TDatum>({
-    x: null,
-    y: null,
+  return {
+    scales: { x: null, y: null },
     marks: [
       polar({
         inset: POLAR_INSET,
+        // radialArc uses explicit angles and radii, so disable both scales.
+        scales: { angle: null, radius: null },
         marks: [
           radialArc(slices, {
             startAngle: "startAngle",
@@ -617,21 +596,13 @@ function buildPolar<TDatum>(
     ],
     ...build.shared,
     tooltip: build.polarTooltip(),
-    // Deliberately NOT setting maxFocusDistance. Arc focus points sit at the
-    // slice centroid, so the library's 48px default leaves parts of a large pie
-    // hard to hover — but the value is fixed at spec time while the chart
-    // renders responsively, and the same distance also gates clicks. Any
-    // constant is therefore wrong at some width: too small and a big slice is
-    // unreachable, too large and `onSelect(null)` can never fire because every
-    // click resolves to a slice. Widening this needs a `focus` strategy that
-    // hit-tests the arc against the measured layout, not a guess from
-    // `initialWidth`. Tracked; the default at least keeps deselect correct.
-  })
+    // Upstream radialArc provides geometry-based focus across each slice.
+  }
 }
 
 function buildChartDefinition<TDatum>(
   config: BuildConfig<TDatum>
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const build = resolveBuild(config)
   switch (config.type) {
     case "area":
@@ -649,6 +620,61 @@ function buildChartDefinition<TDatum>(
     default:
       return buildLine(build)
   }
+}
+
+const CARTESIAN_GRID_PAINT_ORDER = ["y-grid", "x-grid"]
+const CARTESIAN_AXIS_PAINT_ORDER = [
+  "x-axis",
+  "y-axis",
+  "x-tick-rule",
+  "x-tick-label",
+  "y-tick-rule",
+  "y-tick-label",
+  "x-label",
+  "y-label",
+]
+
+function cartesianGuidePaintOrder(key: string, order: readonly string[]) {
+  const index = order.findIndex(
+    (prefix) => key === prefix || key.startsWith(`${prefix}:`)
+  )
+  return index < 0 ? order.length : index
+}
+
+/** Preserve the previous Cartesian rasterization at overlapping translucent guides. */
+function renderCartesianChartSvg(
+  scene: ChartScene,
+  options: RenderChartSvgOptions
+) {
+  const nodes = scene.nodes.map((node) => {
+    if (node.kind !== "group" || (node.key !== "grid" && node.key !== "axes")) {
+      return node
+    }
+    const order =
+      node.key === "grid"
+        ? CARTESIAN_GRID_PAINT_ORDER
+        : CARTESIAN_AXIS_PAINT_ORDER
+    const children = node.children.map((child) => {
+      // The old y ticks ran left to right. Reversing the same segment changes
+      // antialiasing at some intersections, even with identical bounds/paint.
+      if (
+        node.key === "axes" &&
+        child.kind === "rule" &&
+        child.key.startsWith("y-tick-rule:") &&
+        child.x1 > child.x2
+      ) {
+        return { ...child, x1: child.x2, x2: child.x1 }
+      }
+      return child
+    })
+    children.sort(
+      (left, right) =>
+        cartesianGuidePaintOrder(left.key, order) -
+        cartesianGuidePaintOrder(right.key, order)
+    )
+    return { ...node, children }
+  })
+  return renderChartSvg({ ...scene, nodes }, options)
 }
 
 export function Chart<TDatum>({
@@ -748,6 +774,7 @@ export function Chart<TDatum>({
       height={height}
       initialWidth={initialWidth}
       onSelect={handleSelect}
+      renderSvg={isPolar ? undefined : renderCartesianChartSvg}
     />
   )
 }

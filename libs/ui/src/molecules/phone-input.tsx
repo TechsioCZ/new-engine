@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -35,9 +35,9 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import type { IconProps } from "../atoms/icon"
-import { Input, type InputProps } from "../atoms/input"
+import { Input as InputComponent, type InputProps } from "../atoms/input"
 import { Label, type LabelProps } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import { tv } from "../utils"
 import { Select } from "./select"
 
@@ -456,7 +456,7 @@ PhoneInput.Control = function PhoneInputControl({
   const { disabled, readOnly, size, validateStatus } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
   const validationDataAttrs =
-    validateStatus !== "default" ? { "data-validation": validateStatus } : {}
+    validateStatus === "default" ? {} : { "data-validation": validateStatus }
 
   return (
     <div
@@ -592,6 +592,8 @@ PhoneInput.CountryTrigger = function PhoneInputCountryTrigger({
   children,
   className,
   ref,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: PhoneInputCountryTriggerProps) {
   const { selectedCountryItem, size } = usePhoneInputContext()
@@ -599,6 +601,13 @@ PhoneInput.CountryTrigger = function PhoneInputCountryTrigger({
 
   return (
     <Select.Trigger
+      aria-label={
+        ariaLabel ??
+        (ariaLabelledBy
+          ? undefined
+          : `${getCountryDisplayValue(selectedCountryItem)} (+${getPhoneCountryCallingCode(selectedCountryItem)})`)
+      }
+      aria-labelledby={ariaLabelledBy}
       className={styles.countryTrigger({ className })}
       ref={ref}
       {...props}
@@ -755,7 +764,7 @@ PhoneInput.Input = function PhoneInputInput({
   ])
 
   return (
-    <Input
+    <InputComponent
       {...props}
       aria-invalid={
         validateStatus === "error" ||
@@ -902,14 +911,14 @@ PhoneInput.StatusText = function PhoneInputStatusText({
   const { size, validateStatus } = usePhoneInputContext()
 
   return (
-    <StatusText
+    <StatusTextComponent
       showIcon={showIcon}
       size={size}
       status={status ?? validateStatus}
       {...props}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 

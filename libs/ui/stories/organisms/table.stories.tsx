@@ -299,6 +299,37 @@ export const WithFooter: Story = {
   },
 }
 
+// Fixed rows keep screenshots deterministic.
+const productStock: [price: number, stock: number][] = [
+  [678.19, 175],
+  [652.69, 44],
+  [731.46, 96],
+  [295.39, 120],
+  [320.47, 72],
+  [384.96, 54],
+  [39.75, 110],
+  [717.24, 145],
+  [90.1, 83],
+  [515.58, 126],
+  [340.45, 181],
+  [426.23, 109],
+  [357.22, 98],
+  [351.38, 139],
+  [583.28, 117],
+  [857.23, 70],
+  [447.15, 40],
+  [452.79, 158],
+  [987.42, 157],
+  [738.12, 141],
+]
+const manyProducts = productStock.map(([price, stock], i) => ({
+  id: i + 1,
+  name: `Product ${i + 1}`,
+  category: ['Electronics', 'Furniture', 'Accessories'][i % 3],
+  price,
+  stock,
+}))
+
 export const StickyHeader: Story = {
   args: {
     variant: 'line',
@@ -306,16 +337,9 @@ export const StickyHeader: Story = {
     stickyHeader: true,
   },
   render: (args) => {
-    // Generate more rows for scrolling demo
-    const manyProducts = Array.from({ length: 20 }, (_, i) => ({
-      id: i + 1,
-      name: `Product ${i + 1}`,
-      category: ['Electronics', 'Furniture', 'Accessories'][i % 3],
-      price: Math.random() * 1000,
-      stock: Math.floor(Math.random() * 200),
-    }))
-
     return (
+      // h-100 resolves to the theme's --spacing-100 token, not 400px.
+      // eslint-disable-next-line tailwindcss/no-unnecessary-arbitrary-value
       <div className='h-[400px] overflow-auto'>
         <Table {...args}>
           <Table.Caption>Scroll to see sticky header effect</Table.Caption>
@@ -510,6 +534,8 @@ export const WithStickyColumn: Story = {
     size: 'md',
   },
   render: (args) => (
+    // max-w-150 resolves to the theme's --spacing-150 token, not 600px.
+    // eslint-disable-next-line tailwindcss/no-unnecessary-arbitrary-value
     <div className="max-w-[600px] overflow-auto">
       <Table {...args} stickyFirstColumn>
         <Table.Caption>

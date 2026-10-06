@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
+import { expect, userEvent, within } from 'storybook/test'
 import { NumericInput } from '../../src/atoms/numeric-input'
 import { FormNumericInput } from '../../src/molecules/form-numeric-input'
 
@@ -135,7 +136,9 @@ type Story = StoryObj<typeof FormNumericInput>
 
 // Playground - Interactive with Controls
 export const Playground: Story = {
+  tags: ['ui-semantic-regression'],
   args: {
+    id: 'form-numeric-playground',
     label: 'Playground NumericInput',
   },
   render: (args) => {
@@ -153,10 +156,22 @@ export const Playground: Story = {
       </div>
     )
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('spinbutton', { name: 'Playground NumericInput' })
+    const label = canvas.getByText('Playground NumericInput')
+    await expect(input).toHaveAccessibleDescription('Enter a value between 0 and 100')
+    await userEvent.click(label)
+    await expect(input).toHaveFocus()
+    await userEvent.unhover(label)
+    input.blur()
+    await expect(input).not.toHaveFocus()
+  },
 }
 
 // With Error - Shows validation error state
 export const WithError: Story = {
+  tags: ['ui-semantic-regression'],
   render: () => {
     const [value, setValue] = useState(150)
     const isInvalid = value < 0 || value > 100
@@ -184,6 +199,11 @@ export const WithError: Story = {
         </FormNumericInput>
       </div>
     )
+  },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole('spinbutton', { name: 'Quantity' })
+    await expect(input).toHaveAttribute('aria-invalid', 'true')
+    await expect(input).toHaveAccessibleDescription('Value must be between 0 and 100')
   },
 }
 

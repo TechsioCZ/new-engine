@@ -2,7 +2,7 @@
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,7 +29,7 @@ const colorSelectVariants = tv({
     ],
     color: [
       "absolute",
-      "h-full w-full hover:brightness-75",
+      "size-full hover:brightness-75",
       "data-[selected=true]:brightness-75",
     ],
     icon: [
@@ -74,8 +74,8 @@ const colorSelectVariants = tv({
         icon: "text-color-select-lg",
       },
       full: {
-        group: "h-full w-full gap-color-select-md",
-        cell: "h-full w-full",
+        group: "size-full gap-color-select-md",
+        cell: "size-full",
         atom: "h-full",
         icon: "size-color-select-icon",
       },
@@ -101,7 +101,7 @@ const colorSelectVariants = tv({
   },
 })
 
-export interface ColorItem {
+export type ColorItem = {
   id?: string
   color: string
   selected?: boolean
@@ -110,7 +110,7 @@ export interface ColorItem {
   disabled?: boolean
 }
 
-interface ColorSelectProps {
+type ColorSelectProps = {
   colors: ColorItem[]
   layout?: "list" | "grid"
   size?: "sm" | "md" | "lg" | "full"

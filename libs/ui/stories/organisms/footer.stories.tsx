@@ -375,7 +375,7 @@ export const TailwindVarianta1: Story = {
           <Image
             src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
             alt="Company Logo"
-            className="mb-300 h-400 w-400"
+            className="mb-300 size-400"
           />
           <Footer.Text className="mb-200">
             Making the world a better place through constructing elegant

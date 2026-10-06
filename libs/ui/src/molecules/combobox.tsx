@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -100,7 +100,7 @@ const comboboxVariants = tv({
     triggerIndicator: [
       "text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover",
       "motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none",
-      "rotate-0 group-data-[state=open]:rotate-180",
+      "rotate-none group-data-[state=open]:rotate-180",
     ],
     helper: [
       "data-[validation=success]:text-combobox-success-fg",
@@ -240,6 +240,17 @@ export function Combobox<T = unknown>({
     isItemDisabled: (item) => !!item.disabled,
   })
 
+  let normalizedValue = value
+  if (typeof normalizedValue === "string") {
+    normalizedValue = normalizedValue ? [normalizedValue] : []
+  }
+  let normalizedDefaultValue = defaultValue
+  if (typeof normalizedDefaultValue === "string") {
+    normalizedDefaultValue = normalizedDefaultValue
+      ? [normalizedDefaultValue]
+      : []
+  }
+
   const service = useMachine(comboboxMachine, {
     id: uniqueId,
     name,
@@ -257,8 +268,8 @@ export function Combobox<T = unknown>({
       input: `${uniqueId}-input`,
       control: `${uniqueId}-control`,
     },
-    value: value as string[] | undefined,
-    defaultValue: defaultValue as string[] | undefined,
+    value: normalizedValue,
+    defaultValue: normalizedDefaultValue,
     multiple,
     inputValue,
     onValueChange: ({ value: selectedValue }) => {
@@ -280,7 +291,6 @@ export function Combobox<T = unknown>({
   const api = connectCombobox(service, normalizeProps)
 
   const inputProps = api.getInputProps()
-  const { ...restInputProps } = inputProps
 
   const {
     root,
@@ -320,7 +330,7 @@ export function Combobox<T = unknown>({
       >
         <Input
           className={input()}
-          {...restInputProps}
+          {...inputProps}
           name={name}
           placeholder={placeholder}
           required={required}

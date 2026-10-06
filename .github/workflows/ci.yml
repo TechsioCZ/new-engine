@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       # This enables task distribution via Nx Cloud
       # Run this command as early as possible, before dependencies are installed
@@ -38,7 +38,7 @@ jobs:
       # Cache node_modules
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 24
+          node-version: 26.10.0
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile --prefer-offline
@@ -78,6 +78,14 @@ jobs:
           ./node_modules/.bin/nubx --node nx run-many -t typecheck --projects="$projects"
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       - run: ./node_modules/.bin/nubx --node nx affected -t lint test
+      - name: Typecheck affected UI package
+        if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
+        run: pnpm --dir libs/ui exec tsc --noEmit -p tsconfig.json
+      - name: Test affected UI asset replay
+        if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
+        run: |
+          timeout 420 pnpm exec playwright install --only-shell chromium
+          pnpm --dir libs/ui test:visual-assets
       - name: Check affected UI package output
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
         run: pnpm --dir libs/ui check:package

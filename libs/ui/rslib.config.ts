@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url"
 import { pluginReact } from "@rsbuild/plugin-react"
 import { defineConfig } from "@rslib/core"
 import { pluginAreTheTypesWrong } from "rsbuild-plugin-arethetypeswrong"
@@ -7,8 +8,14 @@ const checkBuildOutput = Boolean(process.env.RSLIB_CHECK_OUTPUT)
 
 export default defineConfig({
   bundle: false,
-  dts: true,
+  dts: {
+    // The compatibility alias supplies the JS API to tooling; emit declarations
+    // with the native TypeScript compiler installed alongside it.
+    typescriptPath: fileURLToPath(import.meta.resolve("@typescript/native")),
+    tsgo: true,
+  },
   source: {
+    tsconfigPath: "./tsconfig.lib.json",
     entry: {
       // *.figma.ts are Code Connect templates: they are uploaded to Figma and
       // executed there against a virtual "figma" module, so they are neither

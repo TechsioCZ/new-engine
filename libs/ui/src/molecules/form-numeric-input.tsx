@@ -2,7 +2,7 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,6 +27,7 @@ interface FormNumericInputProps extends Omit<NumericInputProps, "children"> {
 
 export function FormNumericInput({
   id,
+  ids,
   label,
   validateStatus = "default",
   helpText,
@@ -34,20 +35,28 @@ export function FormNumericInput({
   size = "md",
   required,
   disabled,
+  describedBy,
   children,
   ...numericInputProps
 }: FormNumericInputProps) {
+  const inputId = ids?.input ?? id
+  const helpTextId = helpText ? `${id}-help` : undefined
+  const inputDescribedBy =
+    [describedBy, helpTextId].filter(Boolean).join(" ") || undefined
+
   return (
     <div
       className="flex flex-col gap-form-field-gap"
     >
-      <Label disabled={disabled} htmlFor={id} required={required} size={size}>
+      <Label disabled={disabled} htmlFor={inputId} required={required} size={size}>
         {label}
       </Label>
 
       <NumericInput
+        describedBy={inputDescribedBy}
         disabled={disabled}
         id={id}
+        ids={ids}
         invalid={validateStatus === "error"}
         required={required}
         size={size}
@@ -58,6 +67,7 @@ export function FormNumericInput({
 
       {helpText && (
         <StatusText
+          id={helpTextId}
           status={validateStatus}
           showIcon={showHelpTextIcon}
           size={size}

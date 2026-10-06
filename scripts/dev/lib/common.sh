@@ -136,6 +136,10 @@ common::ensure_pnpm() {
   fi
 
   common::require_command npm
+  # Release Corepack shims before npm links the fallback executable.
+  if command -v corepack >/dev/null 2>&1; then
+    corepack disable pnpm >/dev/null || common::warn "Could not disable the Corepack pnpm shims."
+  fi
   npm install --global "$pnpm_spec" >&2
   hash -r
 
