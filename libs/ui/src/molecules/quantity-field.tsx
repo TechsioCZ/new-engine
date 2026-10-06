@@ -89,6 +89,9 @@ export function QuantityField({
   required,
   describedBy,
   "aria-describedby": ariaDescribedBy,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
+  autoFocus,
   size = "md",
   formatOptions,
   ref,
@@ -167,7 +170,13 @@ export function QuantityField({
             className={styles.numeric()}
             data-validation={hasError ? "error" : undefined}
           >
-            <NumericInput.Input className={styles.input()} ref={ref} />
+            <NumericInput.Input
+              aria-label={ariaLabel}
+              aria-labelledby={ariaLabelledBy}
+              autoFocus={autoFocus}
+              className={styles.input()}
+              ref={ref}
+            />
             <NumericInput.TriggerContainer>
               <NumericInput.IncrementTrigger />
               <NumericInput.DecrementTrigger />

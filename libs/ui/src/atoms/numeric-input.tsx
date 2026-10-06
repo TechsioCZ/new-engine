@@ -17,6 +17,7 @@ import {
   type ReactNode,
   type Ref,
   useContext,
+  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -217,6 +218,15 @@ export function NumericInput({
   })
 
   const api = numberInput.connect(service, normalizeProps)
+  useEffect(() => {
+    // React's autoFocus runs before the parent machine starts. Reconcile that
+    // existing DOM focus so typing and arrow keys work without refocusing.
+    const inputId = api.getInputProps().id
+    const input = inputId ? service.scope.getById(inputId) : null
+    if (input && input === service.scope.getActiveElement() && !api.focused) {
+      service.send({ type: "INPUT.FOCUS" })
+    }
+  }, [api, service])
   const styles = numericInputVariants({ size })
   const inputDisabled = api.getInputProps().disabled
 
@@ -310,6 +320,7 @@ NumericInput.Input = function NumericInputInput({
     },
     [ref]
   )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Zag can synchronize the DOM after any machine update, even when the controlled draft is unchanged.
   useLayoutEffect(() => {
     if (controlledValue === undefined) {
       return

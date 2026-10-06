@@ -274,6 +274,29 @@ export const PendingAndReadOnly: Story = {
 	},
 }
 
+export const InputAttributes: Story = {
+	render: (args) => (
+		<div className="w-md max-w-full flex flex-col gap-200">
+			<p>
+				The first input receives focus automatically and an explicit accessible
+				name.
+			</p>
+			<ControlledField
+				{...args}
+				label="Quantity"
+				aria-label="Order quantity in pieces"
+				autoFocus
+			/>
+			<p id="quantity-delivery-label">Quantity for the next delivery</p>
+			<ControlledField
+				{...args}
+				label="Quantity"
+				aria-labelledby="quantity-delivery-label"
+			/>
+		</div>
+	),
+}
+
 export const FormIdentity: Story = {
 	render: function Render(args) {
 		const [value, setValue] = useState("2")

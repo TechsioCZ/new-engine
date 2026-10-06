@@ -125,6 +125,10 @@ contract. ref targets the input, not the root wrapper. The required label
 names the field. Unit, helper/error and pending descriptions are linked and
 caller-provided describedBy/aria-describedby references are preserved.
 
+autoFocus, aria-label and aria-labelledby target the editable input rather
+than the NumericInput wrapper. Use aria-label or aria-labelledby deliberately
+when the accessible name should differ from the visible label.
+
 ```tsx
 <QuantityField
   id="cart-line-quantity"

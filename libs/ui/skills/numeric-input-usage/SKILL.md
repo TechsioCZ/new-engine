@@ -92,6 +92,10 @@ precision, min, max, step, name, disabled, required, invalid
 allowMouseWheel, allowOverflow, clampValueOnBlur, spinOnPress, formatOptions
 ```
 
+Pass native input attributes such as `autoFocus`, `aria-label` and
+`aria-labelledby` to `NumericInput.Input`. Automatic focus is synchronized with
+Zag so typing and arrow keys work immediately after mount.
+
 ## Core Patterns
 
 ### Keep the compound anatomy intact

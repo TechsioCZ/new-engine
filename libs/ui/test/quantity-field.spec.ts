@@ -162,6 +162,30 @@ test("pending and read only block focused wheel, keys, triggers and held trigger
   await expect(page.getByTestId("commit-count")).toHaveText("Commits: 0")
 })
 
+test("autoFocus and accessible name props target the editable input", async ({
+  page,
+}) => {
+  await openStory(page, "input-attributes")
+  const focused = page.getByRole("spinbutton", {
+    name: "Order quantity in pieces",
+  })
+  await expect(focused).toBeFocused()
+  await expect(focused).toHaveAttribute(
+    "aria-label",
+    "Order quantity in pieces"
+  )
+  await expect(
+    page.getByRole("spinbutton", { name: "Quantity for the next delivery" })
+  ).toHaveAttribute("aria-labelledby", "quantity-delivery-label")
+  await expect(page.locator('[data-part="root"][aria-label]')).toHaveCount(0)
+  await expect(page.locator('[data-part="root"][aria-labelledby]')).toHaveCount(
+    0
+  )
+  await focused.fill("4")
+  await focused.press("ArrowUp")
+  await expect(focused).toHaveValue("5")
+})
+
 test("form identity, both external descriptions and the input ref are preserved", async ({
   page,
 }) => {
