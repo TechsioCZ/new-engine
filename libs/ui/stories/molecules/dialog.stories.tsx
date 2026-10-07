@@ -842,7 +842,6 @@ export const PortalComparison: Story = {
           {/* With Portal (default) */}
           <div className="space-y-200">
             <h3 className="font-medium">With Portal (default)</h3>
-            {/* eslint-disable-next-line tailwindcss/no-unnecessary-arbitrary-value -- h-50 resolves the --spacing-50 token instead of 200px. */}
             <div className="relative h-[200px] overflow-hidden rounded-lg border-2 border-border-primary bg-surface-secondary p-300">
               <p className="mb-200 text-sm text-fg-muted">
                 Container with overflow:hidden
@@ -875,7 +874,6 @@ export const PortalComparison: Story = {
           {/* Without Portal */}
           <div className="space-y-200">
             <h3 className="font-medium">Without Portal</h3>
-            {/* eslint-disable-next-line tailwindcss/no-unnecessary-arbitrary-value -- h-50 resolves the --spacing-50 token instead of 200px. */}
             <div className="relative h-[200px] overflow-hidden rounded-lg border-2 border-border-primary bg-surface-secondary p-300">
               <p className="mb-200 text-sm text-fg-muted">
                 Container with overflow:hidden

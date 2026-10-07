@@ -342,7 +342,6 @@ export const StickyHeader: Story = {
   render: (args) => {
     return (
       // h-100 resolves to the theme's --spacing-100 token, not 400px.
-      // eslint-disable-next-line tailwindcss/no-unnecessary-arbitrary-value
       <div className='h-[400px] overflow-auto'>
         <Table {...args}>
           <Table.Caption>Scroll to see sticky header effect</Table.Caption>
@@ -538,7 +537,6 @@ export const WithStickyColumn: Story = {
   },
   render: (args) => (
     // max-w-150 resolves to the theme's --spacing-150 token, not 600px.
-    // eslint-disable-next-line tailwindcss/no-unnecessary-arbitrary-value
     <div className="max-w-[600px] overflow-auto">
       <Table {...args} stickyFirstColumn>
         <Table.Caption>

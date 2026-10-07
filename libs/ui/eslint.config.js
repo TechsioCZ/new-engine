@@ -67,6 +67,17 @@ export default [
     },
   },
   {
+    // The theme remaps the spacing scale (h-50 is the --spacing-50 token, not
+    // 200px), so these fixed demo dimensions must stay arbitrary values.
+    files: [
+      "stories/molecules/dialog.stories.tsx",
+      "stories/organisms/table.stories.tsx",
+    ],
+    rules: {
+      "tailwindcss/no-unnecessary-arbitrary-value": "off",
+    },
+  },
+  {
     // These fixtures use custom size tokens and semantic spacing defaults.
     // Axis/side utilities preserve their values and cascade; shorthand does not.
     files: [
