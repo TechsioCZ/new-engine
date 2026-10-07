@@ -132,6 +132,11 @@ export const RejectedUpdate: Story = {
 		const [error, setError] = useState<string>()
 		return (
 			<div className="w-md max-w-full flex flex-col gap-100">
+				<p>
+					Change the quantity, then choose Reject update. Your draft stays
+					editable while the saved quantity remains 2. Reset from parent
+					restores the saved value.
+				</p>
 				<QuantityField
 					{...args}
 					label="Order quantity"
@@ -219,7 +224,11 @@ export const CompactLongUnit: Story = {
 			"Each package is supplied as a complete unit. Removing the item is a separate action.",
 	},
 	render: (args) => (
-		<div className="w-xs max-w-full">
+		<div className="w-xs max-w-full flex flex-col gap-200">
+			<p>
+				The long unit wraps below the input in this compact layout. The label is
+				visually hidden but still names the input for screen readers.
+			</p>
 			<ControlledField {...args} />
 		</div>
 	),
@@ -233,6 +242,10 @@ export const PendingAndReadOnly: Story = {
 		const [commitCount, setCommitCount] = useState(0)
 		return (
 			<div className="w-md max-w-full flex flex-col gap-100">
+				<p>
+					Change the quantity, then toggle pending or read only. Both block
+					editing; pending also shows an update message. Your draft is retained.
+				</p>
 				<QuantityField
 					{...args}
 					label="Toggle quantity"
@@ -252,8 +265,12 @@ export const PendingAndReadOnly: Story = {
 				<p data-testid="draft-value">
 					Draft: {value === "" ? "(empty)" : value}
 				</p>
+				<p>
+					Commits count value confirmations when you press Enter or leave the
+					editable input. The demo does not save data.
+				</p>
+				<p data-testid="commit-count">Commits: {commitCount}</p>
 				<div className="flex flex-wrap gap-100">
-					<p data-testid="commit-count">Commits: {commitCount}</p>
 					<Button
 						aria-pressed={pending}
 						onMouseDown={(event) => event.preventDefault()}
@@ -287,6 +304,11 @@ export const InputAttributes: Story = {
 				aria-label="Order quantity in pieces"
 				autoFocus
 			/>
+			<p>
+				The second input uses the text below as its accessible name via
+				aria-labelledby. Check the browser accessibility tree to compare the
+				input names.
+			</p>
 			<p id="quantity-delivery-label">Quantity for the next delivery</p>
 			<ControlledField
 				{...args}
