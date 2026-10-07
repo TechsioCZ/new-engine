@@ -35,6 +35,7 @@
 @import "./molecules/_popover.css";
 @import "./molecules/_price-block.css";
 @import "./molecules/_quantity-field.css";
+@import "./molecules/_totals-summary.css";
 @import "./molecules/_radio-card.css";
 @import "./molecules/_radio-group.css";
 @import "./molecules/_menu.css";
@@ -55,6 +56,7 @@
 @import "./organisms/_footer.css";
 @import "./organisms/_header.css";
 @import "./organisms/_gallery.css";
+@import "./organisms/_line-item.css";
 @import "./organisms/_sidebar.css";
 
 @import "./templates/_facet-filter-panel.css";

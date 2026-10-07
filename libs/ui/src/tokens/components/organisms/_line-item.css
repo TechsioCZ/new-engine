@@ -1,0 +1,31 @@
+@theme static {
+  /* Reference layer */
+  --color-line-item-content: var(--color-fg-primary);
+  --color-line-item-muted: var(--color-fg-primary);
+  --spacing-line-item-related: var(--spacing-150);
+  --spacing-line-item-separated: var(--spacing-200);
+  --spacing-line-item-thumbnail: var(--spacing-850);
+  --spacing-line-item-thumbnail-compact: var(--spacing-700);
+
+  /* Derived layer */
+  --color-line-item-content-fg: var(--color-line-item-content);
+  --color-line-item-options-fg: var(--color-line-item-muted);
+  --gap-line-item: var(--spacing-line-item-separated);
+  --gap-line-item-compact: var(--spacing-line-item-related);
+  --gap-line-item-content: var(--spacing-line-item-related);
+  --gap-line-item-heading: var(--spacing-line-item-related);
+  --gap-line-item-controls: var(--spacing-line-item-related);
+  --spacing-line-item-image: var(--spacing-line-item-thumbnail);
+  --spacing-line-item-image-compact: var(--spacing-line-item-thumbnail-compact);
+  --spacing-line-item-title-min-width: var(--spacing-950);
+  --spacing-line-item-quantity-width: calc(var(--spacing-950) * 2);
+  --grid-template-columns-line-item: auto minmax(0, 1fr);
+  --radius-line-item-image: var(--radius-sm);
+  --text-line-item-title-size: var(--text-md);
+  --text-line-item-detail-size: var(--text-sm);
+  --font-weight-line-item-title: var(--font-weight-medium);
+}
+
+@utility grid-cols-line-item {
+  grid-template-columns: var(--grid-template-columns-line-item);
+}
