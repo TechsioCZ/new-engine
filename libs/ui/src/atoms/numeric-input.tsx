@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.0.2
+ * @componentVersion v1.1.1
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,7 +17,11 @@ import {
   type ReactNode,
   type Ref,
   useContext,
+  useEffect,
   useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
 } from "react"
 import { tv } from "../utils"
 import { Button } from "./button"
@@ -111,7 +115,10 @@ type NumericInputContextValue = {
   styles: ReturnType<typeof numericInputVariants>
   invalid?: boolean
   describedBy?: string
+  controlledValue?: string
 }
+
+const triggerIconSizes = { sm: "xs", md: "sm", lg: "md" } as const
 
 const NumericInputContext = createContext<NumericInputContextValue | null>(null)
 
@@ -130,10 +137,13 @@ export type NumericInputProps = Omit<
   numberInput.Props,
   "value" | "defaultValue" | "id"
 > &
-  Omit<ComponentPropsWithoutRef<"div">, "onChange" | "children"> & {
+  Omit<
+    ComponentPropsWithoutRef<"div">,
+    "onChange" | "children" | "defaultValue"
+  > & {
     size?: "sm" | "md" | "lg"
-    value?: number
-    defaultValue?: number
+    value?: number | string
+    defaultValue?: number | string
     onChange?: (value: number) => void
     precision?: number
     children?: ReactNode
@@ -145,29 +155,13 @@ export type NumericInputProps = Omit<
 
 export function NumericInput({
   id,
-  ids,
-  name,
   size,
-  disabled = false,
-  required = false,
-  pattern,
-  readOnly,
-  inputMode,
   value,
   defaultValue,
   onChange,
   dir = "ltr",
   describedBy,
-  min,
-  max,
-  step = 1,
   precision,
-  allowMouseWheel = true,
-  allowOverflow,
-  clampValueOnBlur = true,
-  spinOnPress = true,
-  formatOptions,
-  invalid,
   children,
   ref,
   className,
@@ -175,13 +169,24 @@ export function NumericInput({
   ...props
 }: NumericInputProps) {
   const generatedId = useId()
-  const uniqueId = id || generatedId
+  const [machineProps, elementProps] = numberInput.splitProps(props)
+  const {
+    formatOptions,
+    invalid,
+    disabled = false,
+    required = false,
+    step = 1,
+    allowMouseWheel = true,
+    clampValueOnBlur = true,
+    spinOnPress = true,
+    focusInputOnChange = true,
+  } = machineProps
   const resolvedFormatOptions = precision
     ? { ...(formatOptions ?? {}), maximumFractionDigits: precision }
     : formatOptions
 
-  const formatValue = (inputValue: number) => {
-    if (!resolvedFormatOptions) {
+  const formatValue = (inputValue: number | string) => {
+    if (typeof inputValue === "string" || !resolvedFormatOptions) {
       return String(inputValue)
     }
     return new Intl.NumberFormat(locale, resolvedFormatOptions).format(
@@ -189,50 +194,68 @@ export function NumericInput({
     )
   }
 
-  const stringValue = value !== undefined ? formatValue(value) : undefined
-  const stringDefaultValue =
-    defaultValue !== undefined ? formatValue(defaultValue) : undefined
-
   const service = useMachine(numberInput.machine, {
-    id: uniqueId,
-    ids: { ...ids, input: ids?.input ?? id },
-    min,
-    max,
-    step,
-    name,
+    ...machineProps,
     disabled,
-    locale,
     required,
-    pattern,
-    readOnly,
-    inputMode,
-    dir,
-    invalid,
-    value: stringValue,
-    defaultValue: stringDefaultValue,
+    step,
     allowMouseWheel,
-    allowOverflow,
     clampValueOnBlur,
     spinOnPress,
+    focusInputOnChange,
+    id: id || generatedId,
+    ids: id
+      ? { ...machineProps.ids, input: machineProps.ids?.input ?? id }
+      : machineProps.ids,
+    dir,
+    locale,
+    value: value !== undefined ? formatValue(value) : undefined,
+    defaultValue:
+      defaultValue !== undefined ? formatValue(defaultValue) : undefined,
     formatOptions: resolvedFormatOptions,
     onValueChange: (details) => {
       onChange?.(details.valueAsNumber)
+      machineProps.onValueChange?.(details)
     },
-    focusInputOnChange: true,
   })
 
   const api = numberInput.connect(service, normalizeProps)
+  useEffect(() => {
+    // React's autoFocus runs before the parent machine starts. Reconcile that
+    // existing DOM focus so typing and arrow keys work without refocusing.
+    const inputId = api.getInputProps().id
+    const input = inputId ? service.scope.getById(inputId) : null
+    if (input && input === service.scope.getActiveElement() && !api.focused) {
+      service.send({ type: "INPUT.FOCUS" })
+    }
+  }, [api, service])
   const styles = numericInputVariants({ size })
+  const inputDisabled = api.getInputProps().disabled
 
   return (
     <NumericInputContext.Provider
-      value={{ api, size, styles, invalid, describedBy }}
+      value={{
+        api,
+        size,
+        styles,
+        invalid,
+        describedBy,
+        controlledValue: typeof value === "string" ? value : undefined,
+      }}
     >
       <div
         className={styles.root({ className })}
         ref={ref}
         {...api.getRootProps()}
-        {...props}
+        {...elementProps}
+        onWheelCapture={(event) => {
+          // Zag attaches a native wheel listener while focused. Its listener
+          // remains attached when readOnly changes, so block it before target.
+          if (inputDisabled || machineProps.readOnly) {
+            event.stopPropagation()
+          }
+          elementProps.onWheelCapture?.(event)
+        }}
       >
         {children}
       </div>
@@ -277,14 +300,83 @@ NumericInput.Input = function NumericInputInput({
   className,
   ...props
 }: NumericInputInputProps) {
-  const { api, styles, describedBy } = useNumericInputContext()
+  const { api, styles, describedBy, controlledValue } = useNumericInputContext()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const mergedRef = useMemo(
+    () => (node: HTMLInputElement | null) => {
+      inputRef.current = node
+      const cleanup = typeof ref === "function" ? ref(node) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = node
+      }
+      return () => {
+        inputRef.current = null
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Zag can synchronize the DOM after any machine update, even when the controlled draft is unchanged.
+  useLayoutEffect(() => {
+    if (controlledValue === undefined) {
+      return
+    }
+    const view = inputRef.current?.ownerDocument.defaultView
+    if (!view) {
+      return
+    }
+    let cancelled = false
+    let frame: number | undefined
+    // Zag's React adapter dispatches input events in a microtask and then
+    // formats the DOM in a frame. Keep its input handler uncontrolled, and
+    // restore the authoritative text prop after that queued synchronization.
+    queueMicrotask(() => {
+      if (cancelled) {
+        return
+      }
+      frame = view.requestAnimationFrame(() => {
+        const input = inputRef.current
+        if (!input || input.value === controlledValue) {
+          return
+        }
+        const start = input.selectionStart
+        const end = input.selectionEnd
+        const direction = input.selectionDirection
+        input.value = controlledValue
+        if (
+          input.ownerDocument.activeElement === input &&
+          start !== null &&
+          end !== null
+        ) {
+          input.setSelectionRange(
+            Math.min(start, controlledValue.length),
+            Math.min(end, controlledValue.length),
+            direction ?? undefined
+          )
+        }
+      })
+    })
+    return () => {
+      cancelled = true
+      if (frame !== undefined) {
+        view.cancelAnimationFrame(frame)
+      }
+    }
+  }, [api, controlledValue])
+
   const ariaDescribedBy =
     [props["aria-describedby"], describedBy].filter(Boolean).join(" ") ||
     undefined
 
   return (
     <Input
-      ref={ref}
+      ref={controlledValue === undefined ? ref : mergedRef}
       {...api.getInputProps()}
       {...props}
       aria-describedby={ariaDescribedBy}
@@ -335,8 +427,7 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   ...props
 }: NumericInputIncrementTriggerProps) {
   const { api, styles, size } = useNumericInputContext()
-  const resolvedIconSize =
-    iconSize ?? (size === "sm" ? "xs" : size === "lg" ? "md" : "sm")
+  const resolvedIconSize = iconSize ?? triggerIconSizes[size ?? "md"]
 
   return (
     <Button
@@ -402,8 +493,7 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   ...props
 }: NumericInputDecrementTriggerProps) {
   const { api, styles, size } = useNumericInputContext()
-  const resolvedIconSize =
-    iconSize ?? (size === "sm" ? "xs" : size === "lg" ? "md" : "sm")
+  const resolvedIconSize = iconSize ?? triggerIconSizes[size ?? "md"]
 
   return (
     <Button

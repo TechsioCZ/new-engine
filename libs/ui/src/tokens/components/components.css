@@ -34,6 +34,7 @@
 @import "./molecules/_pagination.css";
 @import "./molecules/_popover.css";
 @import "./molecules/_price-block.css";
+@import "./molecules/_quantity-field.css";
 @import "./molecules/_radio-card.css";
 @import "./molecules/_radio-group.css";
 @import "./molecules/_menu.css";

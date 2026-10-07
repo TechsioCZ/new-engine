@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
-import { expect, userEvent, within } from 'storybook/test'
+import { expect, fn, userEvent, within } from 'storybook/test'
+import { Button } from '../../src/atoms/button'
 import { NumericInput } from '../../src/atoms/numeric-input'
 import { FormNumericInput } from '../../src/molecules/form-numeric-input'
 
@@ -607,6 +608,78 @@ export const ComplexDemo: Story = {
             <li>Step: 5</li>
             <li>Min: 0, Max: 100</li>
           </ul>
+        </div>
+      </div>
+    )
+  },
+}
+
+
+const formDraftChanged = fn()
+const formDraftCommitted = fn()
+const formNumericChanged = fn()
+
+export const ControlledDraft: Story = {
+  render: function Render() {
+    const [value, setValue] = useState('2')
+    const [committedValue, setCommittedValue] = useState('')
+    const [numericValue, setNumericValue] = useState(2)
+    const [rejected, setRejected] = useState(false)
+
+    return (
+      <div lang="cs" className="w-md max-w-full flex flex-col gap-100">
+        <FormNumericInput
+          id="form-controlled-draft"
+          label="Form draft quantity"
+          value={value}
+          locale="cs-CZ"
+          formatOptions={{ useGrouping: false, maximumFractionDigits: 2 }}
+          min={0}
+          max={10}
+          allowOverflow={false}
+          clampValueOnBlur={false}
+          validateStatus={rejected ? 'error' : 'default'}
+          helpText={
+            rejected
+              ? 'Toto množství nelze dodat. Zvolte prosím jiné množství.'
+              : 'Zadejte požadované množství. Desetinná čísla oddělujte čárkou.'
+          }
+          onChange={(next) => {
+            setNumericValue(next)
+            formNumericChanged(next)
+          }}
+          onValueChange={(details) => {
+            setValue(details.value)
+            setRejected(false)
+            formDraftChanged(details)
+          }}
+          onValueCommit={(details) => {
+            setCommittedValue(details.value)
+            formDraftCommitted(details)
+          }}
+        >
+          <NumericInput.Control>
+            <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+        </FormNumericInput>
+        <p data-testid="form-draft-value">Draft: {value === '' ? '(empty)' : value}</p>
+        <p data-testid="form-committed-value">Committed: {committedValue}</p>
+        <p data-testid="form-numeric-value">Numeric: {String(numericValue)}</p>
+        <div className="flex flex-wrap gap-100">
+          <Button onClick={() => setRejected(true)}>Reject draft</Button>
+          <Button
+            theme="outlined"
+            onClick={() => {
+              setValue('2')
+              setRejected(false)
+            }}
+          >
+            Reset from parent
+          </Button>
         </div>
       </div>
     )

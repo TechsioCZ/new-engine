@@ -476,7 +476,8 @@ skills:
           button-usage, input-usage, link-button-usage, dialog-usage,
           toast-usage, breadcrumb-usage, tree-view-usage, skeleton-usage, and
           hotkeys-usage for shortcut hints and explicit-store registration,
-          command-usage for searchable action panels, and additional entries
+          command-usage for searchable action panels, quantity-field-usage for
+          controlled quantity drafts with units and pending feedback, and additional entries
           generated from libs/ui/src inventory.
     failure_modes:
       - id: "monolithic-usage-guidance"
