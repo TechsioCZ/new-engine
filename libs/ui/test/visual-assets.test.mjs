@@ -115,7 +115,7 @@ async function expectRejectedRequest(
 
 test("every remote HAR image retains its response bytes and headers", async () => {
   const har = JSON.parse(await readFile(publishedHar, "utf8"))
-  assert.equal(har.log.entries.length, 26)
+  assert.equal(har.log.entries.length, 35)
   await withReplay(publishedHar, async (page, dispose) => {
     for (const entry of har.log.entries) {
       const response = await requestImage(page, entry.request.url)
