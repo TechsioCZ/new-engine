@@ -240,6 +240,7 @@ packageExtensionsChecksum: sha256-r4eJpnx2Z8DPzmyCLZedsiEo7af/t+wO9igcEncm3BY=
 patchedDependencies:
   '@lexical/code@0.35.0': 38ef93d18a7c26b06c6c76116b49aa8fca1128da4eb27c3cda2b27d210788fd6
   '@rokmohar/medusa-plugin-meilisearch@1.4.3': 2c4bd4dbbc19dd75662a8779e611e20b5726274443f18c32d678e388f8af56de
+  '@zag-js/focus-visible@1.45.0': cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792
   object-inspect@1.13.4: 901c1ec93cfdee21c7fbef4ed06bc68e8f176055c3c556d9a5ea9fabcb9cc0eb
 
 importers:
@@ -33714,7 +33715,7 @@ snapshots:
       '@zag-js/core': 1.45.0
       '@zag-js/dismissable': 1.45.0
       '@zag-js/dom-query': 1.45.0
-      '@zag-js/focus-visible': 1.45.0
+      '@zag-js/focus-visible': 1.45.0(patch_hash=cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792)
       '@zag-js/popper': 1.45.0
       '@zag-js/rect-utils': 1.45.0
       '@zag-js/types': 1.45.0
@@ -33725,7 +33726,7 @@ snapshots:
       '@zag-js/anatomy': 1.45.0
       '@zag-js/core': 1.45.0
       '@zag-js/dom-query': 1.45.0
-      '@zag-js/focus-visible': 1.45.0
+      '@zag-js/focus-visible': 1.45.0(patch_hash=cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792)
       '@zag-js/types': 1.45.0
       '@zag-js/utils': 1.45.0
 
@@ -33748,7 +33749,7 @@ snapshots:
       '@zag-js/core': 1.45.0
       '@zag-js/dismissable': 1.45.0
       '@zag-js/dom-query': 1.45.0
-      '@zag-js/focus-visible': 1.45.0
+      '@zag-js/focus-visible': 1.45.0(patch_hash=cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792)
       '@zag-js/live-region': 1.45.0
       '@zag-js/popper': 1.45.0
       '@zag-js/types': 1.45.0
@@ -33839,7 +33840,7 @@ snapshots:
     dependencies:
       '@zag-js/dom-query': 1.45.0
 
-  '@zag-js/focus-visible@1.45.0':
+  '@zag-js/focus-visible@1.45.0(patch_hash=cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792)':
     dependencies:
       '@zag-js/dom-query': 1.45.0
 
@@ -33864,7 +33865,7 @@ snapshots:
       '@zag-js/core': 1.45.0
       '@zag-js/dismissable': 1.45.0
       '@zag-js/dom-query': 1.45.0
-      '@zag-js/focus-visible': 1.45.0
+      '@zag-js/focus-visible': 1.45.0(patch_hash=cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792)
       '@zag-js/popper': 1.45.0
       '@zag-js/rect-utils': 1.45.0
       '@zag-js/types': 1.45.0
@@ -33917,7 +33918,7 @@ snapshots:
       '@zag-js/anatomy': 1.45.0
       '@zag-js/core': 1.45.0
       '@zag-js/dom-query': 1.45.0
-      '@zag-js/focus-visible': 1.45.0
+      '@zag-js/focus-visible': 1.45.0(patch_hash=cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792)
       '@zag-js/types': 1.45.0
       '@zag-js/utils': 1.45.0
 
@@ -33964,7 +33965,7 @@ snapshots:
       '@zag-js/core': 1.45.0
       '@zag-js/dismissable': 1.45.0
       '@zag-js/dom-query': 1.45.0
-      '@zag-js/focus-visible': 1.45.0
+      '@zag-js/focus-visible': 1.45.0(patch_hash=cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792)
       '@zag-js/popper': 1.45.0
       '@zag-js/types': 1.45.0
       '@zag-js/utils': 1.45.0
@@ -33994,7 +33995,7 @@ snapshots:
       '@zag-js/anatomy': 1.45.0
       '@zag-js/core': 1.45.0
       '@zag-js/dom-query': 1.45.0
-      '@zag-js/focus-visible': 1.45.0
+      '@zag-js/focus-visible': 1.45.0(patch_hash=cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792)
       '@zag-js/types': 1.45.0
       '@zag-js/utils': 1.45.0
 
@@ -34020,7 +34021,7 @@ snapshots:
       '@zag-js/anatomy': 1.45.0
       '@zag-js/core': 1.45.0
       '@zag-js/dom-query': 1.45.0
-      '@zag-js/focus-visible': 1.45.0
+      '@zag-js/focus-visible': 1.45.0(patch_hash=cd3c982114e986ca2ff967e75bf896c85c2270d9125f48cb566932b0fddd7792)
       '@zag-js/popper': 1.45.0
       '@zag-js/types': 1.45.0
       '@zag-js/utils': 1.45.0
