@@ -80,6 +80,8 @@ Each `<component>-usage` skill repeats its own rows in its UX/UI section.
 | Product image with thumbnails / zoom | `Gallery` | `Carousel` |
 | Horizontally browsable slides (banners, related products) | `Carousel` | `Gallery` |
 | Product in a listing | `ProductCard` | custom card divs |
+| Product row in cart or order recap | `LineItem` | `ProductCard`, app-owned repeated row markup |
+| Prepared amount breakdown and total | `TotalsSummary` | component-owned fee calculations |
 | Catalog facets | `FacetFilterPanel` | hand-built accordions of checkboxes |
 | Images with fixed ratio / framework optimisation | `Image` (`as={NextImage}`) | `<img>` |
 | Decorative or adjacent icon | `Icon` | emoji, inline SVG |

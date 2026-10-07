@@ -1,0 +1,25 @@
+@theme static {
+	/* Reference layer */
+	--color-totals-summary-content: var(--color-fg-primary);
+	--color-totals-summary-muted: var(--color-fg-primary);
+	--color-totals-summary-positive: var(--color-success-fg);
+	--color-totals-summary-divider: var(--color-border-secondary);
+	--spacing-totals-summary-related: var(--spacing-150);
+	--spacing-totals-summary-section: var(--spacing-250);
+
+	/* Derived layer */
+	--color-totals-summary-fg: var(--color-totals-summary-content);
+	--color-totals-summary-note-fg: var(--color-totals-summary-muted);
+	--color-totals-summary-discount-fg: var(--color-totals-summary-positive);
+	--color-totals-summary-divider-border: var(--color-totals-summary-divider);
+	--border-width-totals-summary-divider: var(--border-width-sm);
+	--gap-totals-summary: var(--spacing-totals-summary-section);
+	--gap-totals-summary-rows: var(--spacing-totals-summary-related);
+	--gap-totals-summary-columns: var(--spacing-totals-summary-related);
+	--gap-totals-summary-actions: var(--spacing-totals-summary-related);
+	--padding-totals-summary-total: var(--spacing-totals-summary-related);
+	--text-totals-summary-size: var(--text-sm);
+	--text-totals-summary-note-size: var(--text-xs);
+	--text-totals-summary-total-size: var(--text-lg);
+	--font-weight-totals-summary-total: var(--font-weight-semibold);
+}

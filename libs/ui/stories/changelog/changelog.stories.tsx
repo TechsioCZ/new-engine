@@ -12,6 +12,12 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### LineItem v1.0.0
+- Added a compound cart and order row with composable image/title/price/quantity/actions parts, shared read-only/pending guards, product-specific removal labels and compact layout. Requests and inventory rules remain consumer-owned.
+
+### TotalsSummary v1.0.0
+- Added prepared label/value rows, notes, discounts, an explicit total and pending feedback. Unresolved fees remain caller-provided text; the component does not calculate totals.
+
 ### QuantityField v1.0.0
 - Added a controlled quantity molecule with a visible unit, linked label/helper/error text and localized pending feedback over NumericInput. Validation, persistence and explicit removal stay consumer-owned.
 - autoFocus, aria-label and aria-labelledby reach the editable input; native label and description bindings remain intact.
