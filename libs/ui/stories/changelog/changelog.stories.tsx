@@ -12,6 +12,17 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### QuantityField v1.0.0
+- Added a controlled quantity molecule with a visible unit, linked label/helper/error text and localized pending feedback over NumericInput. Validation, persistence and explicit removal stay consumer-owned.
+- autoFocus, aria-label and aria-labelledby reach the editable input; native label and description bindings remain intact.
+- Manual stories cover drafts, bounds, compact layouts and pending/read-only states; behavior regressions run separately.
+- Figma authoring and Code Connect mapping are deferred; the handoff documents API and token ownership.
+
+### NumericInput v1.1.0
+- Synchronize input focus established during mount with Zag so autoFocus supports typing and keyboard stepping immediately.
+- Added string value/defaultValue and Zag value/change/commit/invalid/focus callbacks while preserving numeric values, numeric onChange and legacy defaults.
+- Route declared machine options to Zag and keep explicit controlled parent updates authoritative. NumericInputTemplate shares the compatible draft contract.
+
 ### AvailabilityStatus v1.0.0
 - New props-driven availability molecule with explicit available, limited, preorder, unavailable, unknown and pending branches, app-owned localized copy, distinct decorative icons and optional delivery detail. Figma and Code Connect are deferred.
 - Pending copy is readable by screen readers while the decorative skeleton is hidden; no implicit live region is added.

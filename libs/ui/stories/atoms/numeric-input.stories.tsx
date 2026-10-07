@@ -1,7 +1,16 @@
-import type { Meta, StoryObj } from '@storybook/react'
+﻿import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
+import { fn } from 'storybook/test'
+import { Button } from '../../src/atoms/button'
+import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { Label } from '../../src/atoms/label'
 import { NumericInput, type NumericInputProps } from '../../src/atoms/numeric-input'
+
+const draftChanged = fn()
+const draftCommitted = fn()
+const legacyChanged = fn()
+const invalidChanged = fn()
+const focusChanged = fn()
 
 type PlaygroundArgs = NumericInputProps & {
   showLabel?: boolean
@@ -446,3 +455,196 @@ export const CustomButtonProps: Story = {
   },
 }
 
+
+export const ControlledDraft: Story = {
+	render: function Render() {
+		const [value, setValue] = useState("2")
+		const [committedValue, setCommittedValue] = useState("")
+		return (
+			<div className="w-md max-w-full flex flex-col gap-100">
+				<Label htmlFor="numeric-controlled-draft">Draft quantity</Label>
+				<NumericInput
+					id="numeric-controlled-draft"
+					value={value}
+					min={0}
+					max={10}
+					clampValueOnBlur={false}
+					allowOverflow={false}
+					onValueChange={(details) => {
+						setValue(details.value)
+						draftChanged(details)
+					}}
+					onValueCommit={(details) => {
+						setCommittedValue(details.value)
+						draftCommitted(details)
+					}}
+				>
+					<NumericInput.Control>
+						<NumericInput.Input />
+						<NumericInput.TriggerContainer>
+							<NumericInput.IncrementTrigger />
+							<NumericInput.DecrementTrigger />
+						</NumericInput.TriggerContainer>
+					</NumericInput.Control>
+				</NumericInput>
+				<p data-testid="draft-value">
+					Draft: {value === "" ? "(empty)" : value}
+				</p>
+				<p data-testid="committed-value">Committed: {committedValue}</p>
+				<Button onClick={() => setValue("7")}>Set parent value to 7</Button>
+			</div>
+		)
+	},
+}
+
+export const CallbackCompatibility: Story = {
+	render: function Render() {
+		const [draft, setDraft] = useState("2")
+		const [numeric, setNumeric] = useState<number>(2)
+		const [counts, setCounts] = useState({
+			numeric: 0,
+			change: 0,
+			commit: 0,
+			invalid: 0,
+			focus: 0,
+		})
+		const record = (key: keyof typeof counts) =>
+			setCounts((previous) => ({ ...previous, [key]: previous[key] + 1 }))
+		return (
+			<div className="w-md max-w-full flex flex-col gap-100">
+				<form
+					id="numeric-callback-form"
+					onSubmit={(event) => event.preventDefault()}
+				>
+					<Label htmlFor="numeric-callback">Callback quantity</Label>
+					<NumericInput
+						id="numeric-callback"
+						name="callbackQuantity"
+						form="numeric-callback-form"
+						value={draft}
+						min={0}
+						max={10}
+						translations={{
+							incrementLabel: "Increase callback quantity",
+							decrementLabel: "Decrease callback quantity",
+						}}
+						onChange={(next) => {
+							setNumeric(next)
+							record("numeric")
+							legacyChanged(next)
+						}}
+						onValueChange={(details) => {
+							setDraft(details.value)
+							record("change")
+							draftChanged(details)
+						}}
+						onValueCommit={(details) => {
+							record("commit")
+							draftCommitted(details)
+						}}
+						onValueInvalid={(details) => {
+							record("invalid")
+							invalidChanged(details)
+						}}
+						onFocusChange={(details) => {
+							record("focus")
+							focusChanged(details)
+						}}
+					>
+						<NumericInput.Control>
+							<NumericInput.Input />
+							<NumericInput.TriggerContainer>
+								<NumericInput.IncrementTrigger />
+								<NumericInput.DecrementTrigger />
+							</NumericInput.TriggerContainer>
+						</NumericInput.Control>
+					</NumericInput>
+				</form>
+				<p data-testid="draft-value">
+					Draft: {draft === "" ? "(empty)" : draft}
+				</p>
+				<p data-testid="numeric-value">Numeric: {String(numeric)}</p>
+				<p data-testid="callback-counts">{JSON.stringify(counts)}</p>
+				<Button theme="outlined" onClick={() => setDraft("2")}>
+					Reset parent value
+				</Button>
+			</div>
+		)
+	},
+}
+
+export const UncontrolledDefaults: Story = {
+	render: () => (
+		<VariantContainer>
+			<VariantGroup title="Legacy numeric default" fullWidth>
+				<Label htmlFor="numeric-default-number">Numeric default quantity</Label>
+				<NumericInput
+					id="numeric-default-number"
+					defaultValue={2}
+					min={0}
+					max={10}
+					onChange={legacyChanged}
+				>
+					<NumericInput.Control>
+						<NumericInput.Input />
+						<NumericInput.TriggerContainer>
+							<NumericInput.IncrementTrigger />
+							<NumericInput.DecrementTrigger />
+						</NumericInput.TriggerContainer>
+					</NumericInput.Control>
+				</NumericInput>
+			</VariantGroup>
+			<VariantGroup title="String default" fullWidth>
+				<Label htmlFor="numeric-default-string">String default quantity</Label>
+				<NumericInput
+					id="numeric-default-string"
+					defaultValue="2"
+					min={0}
+					max={10}
+					onValueChange={draftChanged}
+					clampValueOnBlur={false}
+				>
+					<NumericInput.Control>
+						<NumericInput.Input />
+						<NumericInput.TriggerContainer>
+							<NumericInput.IncrementTrigger />
+							<NumericInput.DecrementTrigger />
+						</NumericInput.TriggerContainer>
+					</NumericInput.Control>
+				</NumericInput>
+			</VariantGroup>
+		</VariantContainer>
+	),
+}
+
+
+export const ExplicitUndefinedDefaults: Story = {
+  render: () => (
+    <div className="w-md max-w-full flex flex-col gap-100">
+      <Label htmlFor="numeric-undefined-defaults">Undefined defaults quantity</Label>
+      <NumericInput
+        id="numeric-undefined-defaults"
+        defaultValue={2}
+        min={0}
+        max={10}
+        locale="en-US"
+        formatOptions={{ style: 'percent' }}
+        step={undefined}
+        allowMouseWheel={undefined}
+        clampValueOnBlur={undefined}
+        spinOnPress={undefined}
+        allowOverflow
+        onChange={legacyChanged}
+      >
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </NumericInput>
+      <p>Arrow keys and the wheel use the default step. Typed overflow clamps on blur.</p>
+    </div>
+  ),
+}

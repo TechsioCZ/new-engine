@@ -56,6 +56,8 @@ Tree widget with arrow-key selection -> tree-view-usage
 Loading placeholder -> skeleton-usage
 Catalog search navigation -> search-suggestions-usage
 Catalog facet filtering -> facet-filter-panel-usage
+Quantity with unit/help/error/pending -> quantity-field-usage
+Bare numeric draft or stepper -> numeric-input-usage
 Shortcut hint or keyboard registration -> hotkeys-usage
 Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
 ```
