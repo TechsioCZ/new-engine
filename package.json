@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "engines": {
-    "node": "26.x"
+    "node": ">=24"
   },
   "scripts": {
     "test-all": "cross-env TEST_ALL_ESHOPS=true nubx --node nx e2e e2e",
