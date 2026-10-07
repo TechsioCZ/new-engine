@@ -183,18 +183,14 @@ describe("validateRuleType", () => {
   })
 
   describe("invalid rule types", () => {
-    it.each([
-      "invalid",
-      "RULES",
-      "",
-      "rule",
-      "target",
-      "buy",
-    ])('throws for invalid rule type "%s"', (invalidType) => {
-      expect(() => validateRuleType(invalidType)).toThrow(
-        `Invalid param rule_type (${invalidType})`
-      )
-    })
+    it.each(["invalid", "RULES", "", "rule", "target", "buy"])(
+      'throws for invalid rule type "%s"',
+      (invalidType) => {
+        expect(() => validateRuleType(invalidType)).toThrow(
+          `Invalid param rule_type (${invalidType})`
+        )
+      }
+    )
   })
 
   it("narrows type after assertion", () => {

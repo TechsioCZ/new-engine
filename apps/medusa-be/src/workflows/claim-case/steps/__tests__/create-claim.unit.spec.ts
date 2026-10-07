@@ -69,46 +69,49 @@ describe("create claim step", () => {
     ["cz", "cs-CZ", "herbatica.cz"],
     ["hu", "hu-HU", "herbatica.hu"],
     ["ro", "ro-RO", "herbatica.ro"],
-  ])("adds the canonical %s market context to a manual claim confirmation", async (marketCode, locale, domain) => {
-    resolveNotificationMarketContext.mockResolvedValue({
-      country_code: marketCode,
-      locale,
-      market_code: marketCode,
-      sales_channel_id: `sc_${marketCode}`,
-      store_name: "Herbatica",
-      storefront_base_url: `https://${domain}`,
-      storefront_domain: domain,
-    })
-    await import("../create-claim")
-    const step = workflowSdkMock.steps.get("create-claim")
-    const { container } = createContext()
-
-    expect(step).toBeDefined()
-
-    const result = (await step?.(
-      {
-        email: "customer@example.test",
-        items: [{ quantity: 1, title: "Herbal tea" }],
-        sales_channel_id: `sc_${marketCode}`,
-        type: "complaint",
-      },
-      { container }
-    )) as { output: { notification_input: Notification[] } }
-
-    expect(resolveNotificationMarketContext).toHaveBeenCalledWith(container, {
-      salesChannelId: `sc_${marketCode}`,
-    })
-    expect(result.output.notification_input[0]).toMatchObject({
-      data: {
+  ])(
+    "adds the canonical %s market context to a manual claim confirmation",
+    async (marketCode, locale, domain) => {
+      resolveNotificationMarketContext.mockResolvedValue({
+        country_code: marketCode,
         locale,
         market_code: marketCode,
+        sales_channel_id: `sc_${marketCode}`,
+        store_name: "Herbatica",
         storefront_base_url: `https://${domain}`,
-        case_type: "complaint",
-      },
-      template: "claim-confirmation",
-      to: "customer@example.test",
-    })
-  })
+        storefront_domain: domain,
+      })
+      await import("../create-claim")
+      const step = workflowSdkMock.steps.get("create-claim")
+      const { container } = createContext()
+
+      expect(step).toBeDefined()
+
+      const result = (await step?.(
+        {
+          email: "customer@example.test",
+          items: [{ quantity: 1, title: "Herbal tea" }],
+          sales_channel_id: `sc_${marketCode}`,
+          type: "complaint",
+        },
+        { container }
+      )) as { output: { notification_input: Notification[] } }
+
+      expect(resolveNotificationMarketContext).toHaveBeenCalledWith(container, {
+        salesChannelId: `sc_${marketCode}`,
+      })
+      expect(result.output.notification_input[0]).toMatchObject({
+        data: {
+          locale,
+          market_code: marketCode,
+          storefront_base_url: `https://${domain}`,
+          case_type: "complaint",
+        },
+        template: "claim-confirmation",
+        to: "customer@example.test",
+      })
+    }
+  )
 
   it("fails before creating a claim when the customer market is ambiguous", async () => {
     resolveNotificationMarketContext.mockRejectedValue(

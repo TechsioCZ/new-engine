@@ -181,11 +181,14 @@ describe("resolveProductPageRequest", () => {
       { kind: "invalid-response", causeCode: "MIGRATION_DRIFT" },
       { kind: "unavailable" },
     ],
-  ] as const)("maps registry infrastructure outcome %# to an unavailable page", async (registryResult, expected) => {
-    await expect(
-      resolveProductPageRequest(input, dependencies(registryResult))
-    ).resolves.toEqual(expected)
-  })
+  ] as const)(
+    "maps registry infrastructure outcome %# to an unavailable page",
+    async (registryResult, expected) => {
+      await expect(
+        resolveProductPageRequest(input, dependencies(registryResult))
+      ).resolves.toEqual(expected)
+    }
+  )
 
   it("maps an unexpected adapter failure to unavailable", async () => {
     const deps = dependencies()

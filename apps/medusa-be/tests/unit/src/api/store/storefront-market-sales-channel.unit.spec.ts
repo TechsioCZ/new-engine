@@ -102,24 +102,25 @@ describe("ordinary storefront market Sales Channel guard", () => {
     vi.clearAllMocks()
   })
 
-  it.each(
-    MARKETS
-  )("accepts only the exact $market publishable-key binding and overwrites caller unions", async (market) => {
-    const harness = createHarness(market)
+  it.each(MARKETS)(
+    "accepts only the exact $market publishable-key binding and overwrites caller unions",
+    async (market) => {
+      const harness = createHarness(market)
 
-    await invokeGuard(harness)
+      await invokeGuard(harness)
 
-    expect(harness.graph).toHaveBeenCalledExactlyOnceWith({
-      entity: "sales_channel",
-      fields: ["id", "metadata"],
-      filters: { id: market.channelId },
-      pagination: { take: 2 },
-    })
-    expect(harness.req.filterableFields.sales_channel_id).toEqual([
-      market.channelId,
-    ])
-    expect(harness.next).toHaveBeenCalledOnce()
-  })
+      expect(harness.graph).toHaveBeenCalledExactlyOnceWith({
+        entity: "sales_channel",
+        fields: ["id", "metadata"],
+        filters: { id: market.channelId },
+        pagination: { take: 2 },
+      })
+      expect(harness.req.filterableFields.sales_channel_id).toEqual([
+        market.channelId,
+      ])
+      expect(harness.next).toHaveBeenCalledOnce()
+    }
+  )
 
   it.each([
     ["missing", undefined],
@@ -147,16 +148,16 @@ describe("ordinary storefront market Sales Channel guard", () => {
     expect(harness.next).not.toHaveBeenCalled()
   })
 
-  it.each([
-    undefined,
-    "",
-  ])("fails before any query when locale is %j", async (locale) => {
-    const harness = createHarness(MARKETS[0], { locale })
+  it.each([undefined, ""])(
+    "fails before any query when locale is %j",
+    async (locale) => {
+      const harness = createHarness(MARKETS[0], { locale })
 
-    await expect(invokeGuard(harness)).rejects.toThrow("locale is required")
-    expect(harness.graph).not.toHaveBeenCalled()
-    expect(harness.next).not.toHaveBeenCalled()
-  })
+      await expect(invokeGuard(harness)).rejects.toThrow("locale is required")
+      expect(harness.graph).not.toHaveBeenCalled()
+      expect(harness.next).not.toHaveBeenCalled()
+    }
+  )
 
   it("rejects a channel bound to another market before product queries", async () => {
     const wrongMarketChannel = {
@@ -202,14 +203,17 @@ describe("ordinary storefront market Sales Channel guard", () => {
   it.each([
     ["missing", []],
     ["ambiguous", [channelFor(MARKETS[0]), channelFor(MARKETS[0])]],
-  ])("rejects a %s Sales Channel authority result", async (_label, channels) => {
-    const harness = createHarness(MARKETS[0], { channels })
+  ])(
+    "rejects a %s Sales Channel authority result",
+    async (_label, channels) => {
+      const harness = createHarness(MARKETS[0], { channels })
 
-    await expect(invokeGuard(harness)).rejects.toThrow(
-      "could not be resolved exactly"
-    )
-    expect(harness.next).not.toHaveBeenCalled()
-  })
+      await expect(invokeGuard(harness)).rejects.toThrow(
+        "could not be resolved exactly"
+      )
+      expect(harness.next).not.toHaveBeenCalled()
+    }
+  )
 })
 
 describe("ordinary storefront transport registration", () => {

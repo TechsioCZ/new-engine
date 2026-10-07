@@ -20,11 +20,12 @@ const localeCases = [
 ] as const
 
 describe("createPublishedSlug", () => {
-  it.each(
-    localeCases
-  )("uses the frozen %s transliteration", (locale, input, expected) => {
-    expect(createPublishedSlug(input, { locale })).toBe(expected)
-  })
+  it.each(localeCases)(
+    "uses the frozen %s transliteration",
+    (locale, input, expected) => {
+      expect(createPublishedSlug(input, { locale })).toBe(expected)
+    }
+  )
 
   it("applies NFKC before locale-aware lowercasing", () => {
     expect(createPublishedSlug("  ＰŘÍLIŠ  ", { locale: "cs-CZ" })).toBe(
@@ -110,16 +111,16 @@ describe("validatePublishedSlug", () => {
     expect(validatePublishedSlug(maximumLengthSlug)).toBe(maximumLengthSlug)
   })
 
-  it.each([
-    "Upper-Case",
-    "under_score",
-  ])("rejects the unsafe value %s", (value) => {
-    expect(() => validatePublishedSlug(value)).toThrowError(
-      expect.objectContaining<Partial<PublishedSlugError>>({
-        reason: "invalid-characters",
-      })
-    )
-  })
+  it.each(["Upper-Case", "under_score"])(
+    "rejects the unsafe value %s",
+    (value) => {
+      expect(() => validatePublishedSlug(value)).toThrowError(
+        expect.objectContaining<Partial<PublishedSlugError>>({
+          reason: "invalid-characters",
+        })
+      )
+    }
+  )
 
   it("rejects an overlong value instead of truncating it", () => {
     const overlong = "a".repeat(MAX_PUBLISHED_SLUG_LENGTH + 1)

@@ -112,55 +112,47 @@ const SEARCH_CASES = [
 ] as const
 
 describe("search entity result localization", () => {
-  it.each(
-    SEARCH_CASES
-  )("renders every $locale public entity label without cross-market copy", ({
-    foreignCanaries,
-    locale,
-    related,
-    sections,
-  }) => {
-    const html = renderToStaticMarkup(
-      <NextIntlClientProvider
-        locale={locale}
-        messages={messagesForLocale(locale)}
-      >
-        <SearchEntityResults
-          brands={[suggestion("brand", "brand")]}
-          categories={[suggestion("category", "category")]}
-          content={[suggestion("article", "content")]}
-        />
-      </NextIntlClientProvider>
-    )
+  it.each(SEARCH_CASES)(
+    "renders every $locale public entity label without cross-market copy",
+    ({ foreignCanaries, locale, related, sections }) => {
+      const html = renderToStaticMarkup(
+        <NextIntlClientProvider
+          locale={locale}
+          messages={messagesForLocale(locale)}
+        >
+          <SearchEntityResults
+            brands={[suggestion("brand", "brand")]}
+            categories={[suggestion("category", "category")]}
+            content={[suggestion("article", "content")]}
+          />
+        </NextIntlClientProvider>
+      )
 
-    expect(html).toContain(related)
-    expect(html).toContain(sections.categories)
-    expect(html).toContain(sections.brands)
-    expect(html).toContain(sections.content)
-    for (const foreignCanary of foreignCanaries) {
-      expect(html).not.toContain(foreignCanary)
+      expect(html).toContain(related)
+      expect(html).toContain(sections.categories)
+      expect(html).toContain(sections.brands)
+      expect(html).toContain(sections.content)
+      for (const foreignCanary of foreignCanaries) {
+        expect(html).not.toContain(foreignCanary)
+      }
     }
-  })
+  )
 
   it("keeps the reachable component source free of hardcoded market labels", () => {
     expect(componentSource).toContain('useTranslations("search")')
     expect(componentSource).not.toMatch(LOCALIZED_ENTITY_LABELS)
   })
 
-  it.each(
-    SEARCH_CASES
-  )("publishes the exact $locale search catalog without foreign canaries", ({
-    foreignCanaries,
-    locale,
-    related,
-    sections,
-  }) => {
-    const search = messagesForLocale(locale).search
+  it.each(SEARCH_CASES)(
+    "publishes the exact $locale search catalog without foreign canaries",
+    ({ foreignCanaries, locale, related, sections }) => {
+      const search = messagesForLocale(locale).search
 
-    expect(search.results.related).toBe(related)
-    expect(search.autocomplete.sections).toEqual(sections)
-    for (const foreignCanary of foreignCanaries) {
-      expect(JSON.stringify(search)).not.toContain(foreignCanary)
+      expect(search.results.related).toBe(related)
+      expect(search.autocomplete.sections).toEqual(sections)
+      for (const foreignCanary of foreignCanaries) {
+        expect(JSON.stringify(search)).not.toContain(foreignCanary)
+      }
     }
-  })
+  )
 })

@@ -15,20 +15,18 @@ import { isOptionalCheckoutProviderAllowed } from "./checkout-consent-provider-g
 const NOW = new Date("2026-08-21T12:00:00.000Z")
 
 describe("checkout consent", () => {
-  it.each([
-    "sk",
-    "cz",
-    "hu",
-    "ro",
-  ] as const)("defaults every purpose to denied for %s", (market) => {
-    expect(createDeniedCheckoutConsent(market, NOW)).toEqual({
-      market,
-      policyVersion: CHECKOUT_CONSENT_POLICY_VERSION,
-      purposes: { heureka: false, marketing: false },
-      timestamp: NOW.toISOString(),
-      version: CHECKOUT_CONSENT_VERSION,
-    })
-  })
+  it.each(["sk", "cz", "hu", "ro"] as const)(
+    "defaults every purpose to denied for %s",
+    (market) => {
+      expect(createDeniedCheckoutConsent(market, NOW)).toEqual({
+        market,
+        policyVersion: CHECKOUT_CONSENT_POLICY_VERSION,
+        purposes: { heureka: false, marketing: false },
+        timestamp: NOW.toISOString(),
+        version: CHECKOUT_CONSENT_VERSION,
+      })
+    }
+  )
 
   it("keeps purpose decisions independent", () => {
     expect(
@@ -47,19 +45,18 @@ describe("checkout consent", () => {
     ).toEqual({ heureka: true, marketing: false })
   })
 
-  it.each([
-    "cz",
-    "hu",
-    "ro",
-  ] as const)("rejects Heureka consent for unapproved market %s", (market) => {
-    expect(
-      createCheckoutConsentSnapshot({
-        market,
-        now: NOW,
-        purposes: { heureka: true, marketing: false },
-      })
-    ).toBeNull()
-  })
+  it.each(["cz", "hu", "ro"] as const)(
+    "rejects Heureka consent for unapproved market %s",
+    (market) => {
+      expect(
+        createCheckoutConsentSnapshot({
+          market,
+          now: NOW,
+          purposes: { heureka: true, marketing: false },
+        })
+      ).toBeNull()
+    }
+  )
 
   it("fails closed for policy, market, timestamp, shape, or Heureka mismatch", () => {
     const valid = createDeniedCheckoutConsent("sk", NOW)

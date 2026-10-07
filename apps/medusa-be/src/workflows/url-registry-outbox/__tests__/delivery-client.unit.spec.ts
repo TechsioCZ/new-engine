@@ -211,24 +211,25 @@ describe("deliverUrlRegistryOutboxEvent", () => {
     expect(result).toEqual({ errorCode, kind: "fail" })
   })
 
-  it.each([
-    400, 409,
-  ])("keeps a catalog HTTP %i response retryable during consumer-first cutover", async (status) => {
-    const result = await deliverUrlRegistryOutboxEvent(
-      claim({ entityId: "pcat_1", entityKind: "category" }),
-      {
-        catalogEndpoint: CATALOG_ENDPOINT,
-        endpoint: ENDPOINT,
-        token: TOKEN,
-      },
-      { fetchImpl: vi.fn(async () => new Response(null, { status })) }
-    )
+  it.each([400, 409])(
+    "keeps a catalog HTTP %i response retryable during consumer-first cutover",
+    async (status) => {
+      const result = await deliverUrlRegistryOutboxEvent(
+        claim({ entityId: "pcat_1", entityKind: "category" }),
+        {
+          catalogEndpoint: CATALOG_ENDPOINT,
+          endpoint: ENDPOINT,
+          token: TOKEN,
+        },
+        { fetchImpl: vi.fn(async () => new Response(null, { status })) }
+      )
 
-    expect(result).toEqual({
-      errorCode: `http-${status}`,
-      kind: "retry",
-    })
-  })
+      expect(result).toEqual({
+        errorCode: `http-${status}`,
+        kind: "retry",
+      })
+    }
+  )
 
   it("keeps an oversized catalog response request terminal", async () => {
     const result = await deliverUrlRegistryOutboxEvent(
@@ -244,20 +245,21 @@ describe("deliverUrlRegistryOutboxEvent", () => {
     expect(result).toEqual({ errorCode: "http-413", kind: "fail" })
   })
 
-  it.each([
-    401, 404, 408, 429, 500, 503, 302,
-  ])("classifies HTTP %i as retryable", async (status) => {
-    const result = await deliverUrlRegistryOutboxEvent(
-      claim(),
-      { endpoint: ENDPOINT, token: TOKEN },
-      { fetchImpl: vi.fn(async () => new Response(null, { status })) }
-    )
+  it.each([401, 404, 408, 429, 500, 503, 302])(
+    "classifies HTTP %i as retryable",
+    async (status) => {
+      const result = await deliverUrlRegistryOutboxEvent(
+        claim(),
+        { endpoint: ENDPOINT, token: TOKEN },
+        { fetchImpl: vi.fn(async () => new Response(null, { status })) }
+      )
 
-    expect(result).toMatchObject({
-      errorCode: `http-${status}`,
-      kind: "retry",
-    })
-  })
+      expect(result).toMatchObject({
+        errorCode: `http-${status}`,
+        kind: "retry",
+      })
+    }
+  )
 
   it("passes a bounded Retry-After hint to orchestration", async () => {
     const result = await deliverUrlRegistryOutboxEvent(

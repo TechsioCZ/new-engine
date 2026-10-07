@@ -67,15 +67,14 @@ describe("public SEO classification", () => {
     })
   })
 
-  it.each([
-    "account-lists",
-    "search",
-    "account-orders",
-  ] as const)("never indexes %s", (routeKind) => {
-    expect(
-      classifySeo({ canonicalRawQuery: "", routeKind, values: {} })
-    ).toMatchObject({ canonicalRawQuery: null, indexable: false })
-  })
+  it.each(["account-lists", "search", "account-orders"] as const)(
+    "never indexes %s",
+    (routeKind) => {
+      expect(
+        classifySeo({ canonicalRawQuery: "", routeKind, values: {} })
+      ).toMatchObject({ canonicalRawQuery: null, indexable: false })
+    }
+  )
 
   it("emits matching canonical JSON-LD only for a public SEO identity", () => {
     expect(

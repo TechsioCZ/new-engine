@@ -36,43 +36,51 @@ const region = (
   }) as HttpTypes.StoreRegion
 
 describe("resolveBoundRegion", () => {
-  it.each(
-    MARKET_CASES
-  )("binds $market to its configured region, country, and $currencyCode currency", (marketCase) => {
-    expect(
-      resolveBoundRegion(binding(marketCase), [
-        region("reg_other", [marketCase.countryCode], marketCase.currencyCode),
-        region(
-          `reg_${marketCase.market}`,
-          [marketCase.countryCode],
-          marketCase.currencyCode.toLowerCase()
-        ),
-      ])
-    ).toEqual({
-      country_code: marketCase.countryCode.toLowerCase(),
-      currency_code: marketCase.currencyCode,
-      region_id: `reg_${marketCase.market}`,
-    })
-  })
+  it.each(MARKET_CASES)(
+    "binds $market to its configured region, country, and $currencyCode currency",
+    (marketCase) => {
+      expect(
+        resolveBoundRegion(binding(marketCase), [
+          region(
+            "reg_other",
+            [marketCase.countryCode],
+            marketCase.currencyCode
+          ),
+          region(
+            `reg_${marketCase.market}`,
+            [marketCase.countryCode],
+            marketCase.currencyCode.toLowerCase()
+          ),
+        ])
+      ).toEqual({
+        country_code: marketCase.countryCode.toLowerCase(),
+        currency_code: marketCase.currencyCode,
+        region_id: `reg_${marketCase.market}`,
+      })
+    }
+  )
 
   it.each([
     { ...MARKET_CASES[0], wrongCurrencyCode: "CZK" },
     { ...MARKET_CASES[1], wrongCurrencyCode: "HUF" },
     { ...MARKET_CASES[2], wrongCurrencyCode: "RON" },
     { ...MARKET_CASES[3], wrongCurrencyCode: "EUR" },
-  ])("rejects $market when its configured region uses $wrongCurrencyCode instead of $currencyCode", (marketCase) => {
-    expect(() =>
-      resolveBoundRegion(binding(marketCase), [
-        region(
-          `reg_${marketCase.market}`,
-          [marketCase.countryCode],
-          marketCase.wrongCurrencyCode
-        ),
-      ])
-    ).toThrow(
-      `Configured region currency does not match market ${marketCase.market}: expected ${marketCase.currencyCode}`
-    )
-  })
+  ])(
+    "rejects $market when its configured region uses $wrongCurrencyCode instead of $currencyCode",
+    (marketCase) => {
+      expect(() =>
+        resolveBoundRegion(binding(marketCase), [
+          region(
+            `reg_${marketCase.market}`,
+            [marketCase.countryCode],
+            marketCase.wrongCurrencyCode
+          ),
+        ])
+      ).toThrow(
+        `Configured region currency does not match market ${marketCase.market}: expected ${marketCase.currencyCode}`
+      )
+    }
+  )
 
   it("does not fall back to another region containing the same country", () => {
     const czBinding = binding(MARKET_CASES[1])

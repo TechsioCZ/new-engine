@@ -102,25 +102,23 @@ describe("POST /store/customers/deactivate/confirm", () => {
     expect(res.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
   })
 
-  it.each([
-    undefined,
-    [],
-    ["sc_ro", "sc_cz"],
-    [null, ""],
-  ])("rejects missing or ambiguous current market scope: %o", async (salesChannelIds) => {
-    const res = response()
+  it.each([undefined, [], ["sc_ro", "sc_cz"], [null, ""]])(
+    "rejects missing or ambiguous current market scope: %o",
+    async (salesChannelIds) => {
+      const res = response()
 
-    await expect(
-      POST(request(salesChannelIds) as never, res as never)
-    ).rejects.toThrow("Resource was not found.")
+      await expect(
+        POST(request(salesChannelIds) as never, res as never)
+      ).rejects.toThrow("Resource was not found.")
 
-    expect(workflows.verify).not.toHaveBeenCalled()
-    expect(workflows.deactivate).not.toHaveBeenCalled()
-    expect(res.setHeader).toHaveBeenNthCalledWith(
-      1,
-      "Cache-Control",
-      "private, no-store"
-    )
-    expect(res.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
-  })
+      expect(workflows.verify).not.toHaveBeenCalled()
+      expect(workflows.deactivate).not.toHaveBeenCalled()
+      expect(res.setHeader).toHaveBeenNthCalledWith(
+        1,
+        "Cache-Control",
+        "private, no-store"
+      )
+      expect(res.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
+    }
+  )
 })

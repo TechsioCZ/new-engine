@@ -47,35 +47,37 @@ describe("URL registry invalidation delivery client", () => {
     })
   })
 
-  it.each([
-    408, 425, 429, 500, 502, 503, 504, 599,
-  ])("retries HTTP %i with a bounded retry hint", async (status) => {
-    const response = new Response(null, {
-      headers: { "retry-after": "7" },
-      status,
-    })
-    await expect(
-      deliverInvalidationOutboxEvent(event(), config, {
-        fetchImpl: vi.fn(async () => response) as unknown as typeof fetch,
+  it.each([408, 425, 429, 500, 502, 503, 504, 599])(
+    "retries HTTP %i with a bounded retry hint",
+    async (status) => {
+      const response = new Response(null, {
+        headers: { "retry-after": "7" },
+        status,
       })
-    ).resolves.toEqual({
-      errorCode: `http-${status}`,
-      kind: "retry",
-      retryAfterMs: 7000,
-    })
-  })
+      await expect(
+        deliverInvalidationOutboxEvent(event(), config, {
+          fetchImpl: vi.fn(async () => response) as unknown as typeof fetch,
+        })
+      ).resolves.toEqual({
+        errorCode: `http-${status}`,
+        kind: "retry",
+        retryAfterMs: 7000,
+      })
+    }
+  )
 
-  it.each([
-    400, 401, 404, 409, 421,
-  ])("permanently fails non-retryable HTTP %i", async (status) => {
-    await expect(
-      deliverInvalidationOutboxEvent(event(), config, {
-        fetchImpl: vi.fn(
-          async () => new Response(null, { status })
-        ) as unknown as typeof fetch,
-      })
-    ).resolves.toEqual({ errorCode: `http-${status}`, kind: "failed" })
-  })
+  it.each([400, 401, 404, 409, 421])(
+    "permanently fails non-retryable HTTP %i",
+    async (status) => {
+      await expect(
+        deliverInvalidationOutboxEvent(event(), config, {
+          fetchImpl: vi.fn(
+            async () => new Response(null, { status })
+          ) as unknown as typeof fetch,
+        })
+      ).resolves.toEqual({ errorCode: `http-${status}`, kind: "failed" })
+    }
+  )
 
   it("caps Retry-After hints from both seconds and HTTP dates", async () => {
     const responses = [

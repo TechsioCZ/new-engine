@@ -38,18 +38,15 @@ describe("verifyUrlRegistryCommandAuthorization", () => {
     )
   })
 
-  it.each([
-    undefined,
-    "",
-    "short",
-    ` ${TOKEN}`,
-    `${TOKEN} `,
-  ])("fails closed for a malformed configured token: %s", (configuredToken) => {
-    expect(
-      verifyUrlRegistryCommandAuthorization(
-        `Bearer ${configuredToken ?? TOKEN}`,
-        configuredToken
-      )
-    ).toBe("misconfigured")
-  })
+  it.each([undefined, "", "short", ` ${TOKEN}`, `${TOKEN} `])(
+    "fails closed for a malformed configured token: %s",
+    (configuredToken) => {
+      expect(
+        verifyUrlRegistryCommandAuthorization(
+          `Bearer ${configuredToken ?? TOKEN}`,
+          configuredToken
+        )
+      ).toBe("misconfigured")
+    }
+  )
 })

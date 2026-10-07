@@ -182,26 +182,25 @@ describe("four-market static taxonomy convergence", () => {
     ).toThrow("is not converged")
   })
 
-  it.each([
-    "conflictCount",
-    "failedCount",
-    "pendingCount",
-  ] as const)("rejects non-zero %s", (field) => {
-    const health = zeroHealth()
-    health[3] = { ...health[3], [field]: 1 }
-    expect(() =>
-      buildFourMarketStaticTaxonomyConvergence({
-        environmentId: "zane-production",
-        generatedAt: "2026-08-21T08:05:00.000Z",
-        health,
-        manifest: manifestFixture(),
-        migrationLedgerSha256: MIGRATION_SHA256,
-        observedProjections: expectedStaticTaxonomyProjections(),
-        releaseId: "release-2026-08-21",
-        segmentRegistryByMarket,
-      })
-    ).toThrow("ro is not converged")
-  })
+  it.each(["conflictCount", "failedCount", "pendingCount"] as const)(
+    "rejects non-zero %s",
+    (field) => {
+      const health = zeroHealth()
+      health[3] = { ...health[3], [field]: 1 }
+      expect(() =>
+        buildFourMarketStaticTaxonomyConvergence({
+          environmentId: "zane-production",
+          generatedAt: "2026-08-21T08:05:00.000Z",
+          health,
+          manifest: manifestFixture(),
+          migrationLedgerSha256: MIGRATION_SHA256,
+          observedProjections: expectedStaticTaxonomyProjections(),
+          releaseId: "release-2026-08-21",
+          segmentRegistryByMarket,
+        })
+      ).toThrow("ro is not converged")
+    }
+  )
 
   it("rejects aggregate, binding, build taxonomy, and schema tampering", () => {
     const { manifest, proof } = buildFixture()

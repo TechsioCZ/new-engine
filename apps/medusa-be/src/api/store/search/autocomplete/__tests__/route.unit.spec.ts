@@ -210,45 +210,47 @@ describe("GET /store/search/autocomplete", () => {
     expect(mocks.wrapProductsWithTaxPrices).toHaveBeenCalledOnce()
   })
 
-  it.each(
-    MARKETS
-  )("rejects a competing currency for the $key storefront", async (current) => {
-    const competing = MARKETS[(MARKETS.indexOf(current) + 1) % MARKETS.length]
-    const { graph, request, response, search } = createRoute({
-      current,
-      pricingCurrency: competing.currency,
-      queryCurrency: competing.currency,
-    })
+  it.each(MARKETS)(
+    "rejects a competing currency for the $key storefront",
+    async (current) => {
+      const competing = MARKETS[(MARKETS.indexOf(current) + 1) % MARKETS.length]
+      const { graph, request, response, search } = createRoute({
+        current,
+        pricingCurrency: competing.currency,
+        queryCurrency: competing.currency,
+      })
 
-    await GET(request as never, response as never)
+      await GET(request as never, response as never)
 
-    expect(response.status).toHaveBeenCalledWith(400)
-    expect(response.json).toHaveBeenCalledWith({
-      message: "Search currency does not match the storefront market",
-    })
-    expect(search).not.toHaveBeenCalled()
-    expect(graph).not.toHaveBeenCalled()
-    expect(mocks.wrapProductsWithTaxPrices).not.toHaveBeenCalled()
-  })
+      expect(response.status).toHaveBeenCalledWith(400)
+      expect(response.json).toHaveBeenCalledWith({
+        message: "Search currency does not match the storefront market",
+      })
+      expect(search).not.toHaveBeenCalled()
+      expect(graph).not.toHaveBeenCalled()
+      expect(mocks.wrapProductsWithTaxPrices).not.toHaveBeenCalled()
+    }
+  )
 
-  it.each(
-    MARKETS
-  )("rejects a rotating cross-market profile spoof from $key", async (current) => {
-    const competing = MARKETS[(MARKETS.indexOf(current) + 1) % MARKETS.length]
-    const { graph, request, response, search } = createRoute({
-      current,
-      requestedProfile: competing.key,
-    })
+  it.each(MARKETS)(
+    "rejects a rotating cross-market profile spoof from $key",
+    async (current) => {
+      const competing = MARKETS[(MARKETS.indexOf(current) + 1) % MARKETS.length]
+      const { graph, request, response, search } = createRoute({
+        current,
+        requestedProfile: competing.key,
+      })
 
-    await GET(request as never, response as never)
+      await GET(request as never, response as never)
 
-    expect(response.status).toHaveBeenCalledWith(400)
-    expect(response.json).toHaveBeenCalledWith({
-      message: `Search profile ${competing.key} is not available for this storefront`,
-    })
-    expect(search).not.toHaveBeenCalled()
-    expect(graph).not.toHaveBeenCalled()
-  })
+      expect(response.status).toHaveBeenCalledWith(400)
+      expect(response.json).toHaveBeenCalledWith({
+        message: `Search profile ${competing.key} is not available for this storefront`,
+      })
+      expect(search).not.toHaveBeenCalled()
+      expect(graph).not.toHaveBeenCalled()
+    }
+  )
 
   it("rejects a same-channel profile whose locale disagrees with the trusted storefront locale", async () => {
     const mismatchedProfile = {

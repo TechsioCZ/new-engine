@@ -53,14 +53,14 @@ describe("postal-code validation", () => {
     { countryCode: "sk", postalCode: "123 45" },
     { countryCode: "hu", postalCode: "0123" },
     { countryCode: "ro", postalCode: "012345" },
-  ])("accepts the required digit count for $countryCode", ({
-    countryCode,
-    postalCode,
-  }) => {
-    const validators = createAddressFieldValidators(messages, countryCode)
+  ])(
+    "accepts the required digit count for $countryCode",
+    ({ countryCode, postalCode }) => {
+      const validators = createAddressFieldValidators(messages, countryCode)
 
-    expect(validators.postalCode(postalCode)).toBeUndefined()
-  })
+      expect(validators.postalCode(postalCode)).toBeUndefined()
+    }
+  )
 
   it.each<{
     countryCode: HerbatikaCountryCode
@@ -74,14 +74,14 @@ describe("postal-code validation", () => {
     { countryCode: "hu", postalCode: "12345" },
     { countryCode: "ro", postalCode: "12345" },
     { countryCode: "ro", postalCode: "1234567" },
-  ])("rejects the wrong digit count for $countryCode: $postalCode", ({
-    countryCode,
-    postalCode,
-  }) => {
-    const validators = createAddressFieldValidators(messages, countryCode)
+  ])(
+    "rejects the wrong digit count for $countryCode: $postalCode",
+    ({ countryCode, postalCode }) => {
+      const validators = createAddressFieldValidators(messages, countryCode)
 
-    expect(validators.postalCode(postalCode)).toBe(messages.postalCodeInvalid)
-  })
+      expect(validators.postalCode(postalCode)).toBe(messages.postalCodeInvalid)
+    }
+  )
 
   it("preserves required-value and invalid-character errors", () => {
     const validators = createAddressFieldValidators(messages, "cz")

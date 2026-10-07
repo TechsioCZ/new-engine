@@ -83,7 +83,10 @@ describe("Herbatika header category ordering", () => {
     ["cz", "cs-CZ", ["Șalvie", "Sare"]],
     ["hu", "hu-HU", ["Șalvie", "Sare"]],
     ["ro", "ro-RO", ["Sare", "Șalvie"]],
-  ] as const)("orders %s categories with the exact %s collation", (market, locale, expected) => {
-    expect(labelsForLocale(market, locale)).toEqual(expected)
-  })
+  ] as const)(
+    "orders %s categories with the exact %s collation",
+    (market, locale, expected) => {
+      expect(labelsForLocale(market, locale)).toEqual(expected)
+    }
+  )
 })

@@ -1750,87 +1750,93 @@ describe("Meilisearch catalog localization", () => {
     ["cz", "cs-CZ", "cz", "czk"],
     ["hu", "hu-HU", "hu", "huf"],
     ["ro", "ro-RO", "ro", "ron"],
-  ] as const)("requires explicit %s publication and commerce authority", async (market, locale, country, currencyCode) => {
-    const query = {
-      graph: vi.fn().mockResolvedValue({ data: [] }),
-    } as unknown as Query
-    const profile = {
-      ...roProfile(`herbatika-${market}`),
-      locale,
-      salesChannelIds: [`sc_${market}`],
-    } satisfies SearchProfile
-    const indexState = inMemoryIndexClient()
-    const region = {
-      countries: [{ iso_2: country }],
-      currency_code: currencyCode,
-      id: `reg_${market}`,
-      metadata: {
-        market_code: market,
-        sales_channel_id: `sc_${market}`,
-      },
+  ] as const)(
+    "requires explicit %s publication and commerce authority",
+    async (market, locale, country, currencyCode) => {
+      const query = {
+        graph: vi.fn().mockResolvedValue({ data: [] }),
+      } as unknown as Query
+      const profile = {
+        ...roProfile(`herbatika-${market}`),
+        locale,
+        salesChannelIds: [`sc_${market}`],
+      } satisfies SearchProfile
+      const indexState = inMemoryIndexClient()
+      const region = {
+        countries: [{ iso_2: country }],
+        currency_code: currencyCode,
+        id: `reg_${market}`,
+        metadata: {
+          market_code: market,
+          sales_channel_id: `sc_${market}`,
+        },
+      }
+
+      await expect(
+        syncProfile({
+          client: indexState.client,
+          container: syncContainer(
+            query,
+            vi.fn().mockResolvedValue([]),
+            vi.fn().mockResolvedValue([]),
+            [region]
+          ) as never,
+          logger: { info: vi.fn(), warn: vi.fn() } as never,
+          mode: "normal",
+          profile,
+        })
+      ).resolves.toEqual({ deleted: 0, indexed: 0 })
+
+      expect(indexState.swapIndexPairs).toHaveBeenCalledTimes(1)
     }
-
-    await expect(
-      syncProfile({
-        client: indexState.client,
-        container: syncContainer(
-          query,
-          vi.fn().mockResolvedValue([]),
-          vi.fn().mockResolvedValue([]),
-          [region]
-        ) as never,
-        logger: { info: vi.fn(), warn: vi.fn() } as never,
-        mode: "normal",
-        profile,
-      })
-    ).resolves.toEqual({ deleted: 0, indexed: 0 })
-
-    expect(indexState.swapIndexPairs).toHaveBeenCalledTimes(1)
-  })
+  )
 
   it.each([
     ["sk", "sk-SK", "sk", "czk"],
     ["cz", "cs-CZ", "cz", "eur"],
     ["hu", "hu-HU", "hu", "ron"],
     ["ro", "ro-RO", "ro", "huf"],
-  ] as const)("rejects a %s profile whose region violates its exact currency contract", async (market, locale, country, wrongCurrencyCode) => {
-    const query = {
-      graph: vi.fn().mockRejectedValue(new Error("catalog must not be read")),
-    } as unknown as Query
-    const profile = {
-      ...roProfile(`herbatika-${market}-wrong-currency`),
-      locale,
-      salesChannelIds: [`sc_${market}`],
-    } satisfies SearchProfile
-    const indexState = inMemoryIndexClient()
-    const region = {
-      countries: [{ iso_2: country }],
-      currency_code: wrongCurrencyCode,
-      id: `reg_${market}`,
-      metadata: {
-        market_code: market,
-        sales_channel_id: `sc_${market}`,
-      },
+  ] as const)(
+    "rejects a %s profile whose region violates its exact currency contract",
+    async (market, locale, country, wrongCurrencyCode) => {
+      const query = {
+        graph: vi.fn().mockRejectedValue(new Error("catalog must not be read")),
+      } as unknown as Query
+      const profile = {
+        ...roProfile(`herbatika-${market}-wrong-currency`),
+        locale,
+        salesChannelIds: [`sc_${market}`],
+      } satisfies SearchProfile
+      const indexState = inMemoryIndexClient()
+      const region = {
+        countries: [{ iso_2: country }],
+        currency_code: wrongCurrencyCode,
+        id: `reg_${market}`,
+        metadata: {
+          market_code: market,
+          sales_channel_id: `sc_${market}`,
+        },
+      }
+
+      await expect(
+        syncProfile({
+          client: indexState.client,
+          container: syncContainer(
+            query,
+            vi.fn().mockResolvedValue([]),
+            vi.fn().mockResolvedValue([]),
+            [region]
+          ) as never,
+          logger: { info: vi.fn(), warn: vi.fn() } as never,
+          mode: "normal",
+          profile,
+        })
+      ).rejects.toThrow("cannot prove exact region, currency")
+
+      expect(indexState.swapIndexPairs).not.toHaveBeenCalled()
+      expect(query.graph).not.toHaveBeenCalled()
     }
-
-    await expect(
-      syncProfile({
-        client: indexState.client,
-        container: syncContainer(
-          query,
-          vi.fn().mockResolvedValue([]),
-          vi.fn().mockResolvedValue([]),
-          [region]
-        ) as never,
-        logger: { info: vi.fn(), warn: vi.fn() } as never,
-        mode: "normal",
-        profile,
-      })
-    ).rejects.toThrow("cannot prove exact region, currency")
-
-    expect(indexState.swapIndexPairs).not.toHaveBeenCalled()
-    expect(query.graph).not.toHaveBeenCalled()
-  })
+  )
 
   it("rejects an implicit Slovak profile without exact market scope", async () => {
     const query = {

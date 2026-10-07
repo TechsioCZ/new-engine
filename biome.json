@@ -85,6 +85,49 @@
   },
   "overrides": [
     {
+      "includes": ["**", "!libs/ui/**"],
+      "assist": {
+        "actions": {
+          "source": {
+            "useSortedAttributes": "off"
+          }
+        }
+      },
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
+          },
+          "complexity": {
+            "noExtraBooleanCast": "off",
+            "noRedundantDefaultExport": "off",
+            "noUselessCatchBinding": "off",
+            "noUselessReturn": "off",
+            "useOptionalChain": "off"
+          },
+          "correctness": {
+            "noGlobalDirnameFilename": "off",
+            "noUnknownProperty": "off",
+            "noUnsafeOptionalChaining": "off",
+            "useExhaustiveDependencies": "off"
+          },
+          "nursery": {
+            "useSortedClasses": "off"
+          },
+          "style": {
+            "noNegationElse": "off",
+            "noSubstr": "off"
+          },
+          "suspicious": {
+            "noLeakedRender": "off",
+            "noMisplacedAssertion": "off",
+            "noSkippedTests": "off",
+            "noUnknownAttribute": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["libs/ui/**/*"],
       "linter": {
         "rules": {

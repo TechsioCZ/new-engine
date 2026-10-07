@@ -33,24 +33,29 @@ const MARKET_ROUTES = [
 ] as const
 
 describe("public flow routes", () => {
-  it.each(
-    MARKET_ROUTES
-  )("builds exact $market localized account and review paths", ({
-    deactivation,
-    market,
-    resetPassword,
-    review,
-  }) => {
-    expect(
-      buildPublicFlowPath({ kind: "account", section: "resetPassword" }, market)
-    ).toBe(resetPassword)
-    expect(
-      buildPublicFlowPath({ kind: "account", section: "deactivation" }, market)
-    ).toBe(deactivation)
-    expect(
-      buildPublicFlowPath({ kind: "review", token: "Token/Exact+Case" }, market)
-    ).toBe(review)
-  })
+  it.each(MARKET_ROUTES)(
+    "builds exact $market localized account and review paths",
+    ({ deactivation, market, resetPassword, review }) => {
+      expect(
+        buildPublicFlowPath(
+          { kind: "account", section: "resetPassword" },
+          market
+        )
+      ).toBe(resetPassword)
+      expect(
+        buildPublicFlowPath(
+          { kind: "account", section: "deactivation" },
+          market
+        )
+      ).toBe(deactivation)
+      expect(
+        buildPublicFlowPath(
+          { kind: "review", token: "Token/Exact+Case" },
+          market
+        )
+      ).toBe(review)
+    }
+  )
 
   it("builds against only the canonical origin", () => {
     expect(
@@ -62,15 +67,12 @@ describe("public flow routes", () => {
     ).toBe("https://herbatica.sk/ucet/obnova-hesla")
   })
 
-  it.each([
-    "SK",
-    "de",
-    "",
-    null,
-    undefined,
-  ])("fails closed for unknown market %s", (market) => {
-    expect(parsePublicFlowMarket(market)).toBeUndefined()
-  })
+  it.each(["SK", "de", "", null, undefined])(
+    "fails closed for unknown market %s",
+    (market) => {
+      expect(parsePublicFlowMarket(market)).toBeUndefined()
+    }
+  )
 
   it("rejects unsafe canonical origins", () => {
     expect(() =>

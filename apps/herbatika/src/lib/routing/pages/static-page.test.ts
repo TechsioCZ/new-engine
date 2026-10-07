@@ -165,29 +165,29 @@ describe("root-static CMS page source", () => {
     expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
   })
 
-  it.each([
-    "about",
-    "faq",
-  ] as const)("fails closed before reading %s CMS content without G1 approval", async (pageKey) => {
-    const { readCmsStaticPageWithDemoFallback } = await import(
-      "@/lib/storefront/cms"
-    )
-    const { loadStaticRoutePublicationDecision } = await import(
-      "@/lib/url/segment-registry-publication.server"
-    )
-    vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
-      kind: "rejected",
-      reason: "artifact-unavailable",
-    })
-    const { getServerSideProps } = await import(
-      "@/pages/~sf/[market]/static/[pageKey]"
-    )
+  it.each(["about", "faq"] as const)(
+    "fails closed before reading %s CMS content without G1 approval",
+    async (pageKey) => {
+      const { readCmsStaticPageWithDemoFallback } = await import(
+        "@/lib/storefront/cms"
+      )
+      const { loadStaticRoutePublicationDecision } = await import(
+        "@/lib/url/segment-registry-publication.server"
+      )
+      vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
+        kind: "rejected",
+        reason: "artifact-unavailable",
+      })
+      const { getServerSideProps } = await import(
+        "@/pages/~sf/[market]/static/[pageKey]"
+      )
 
-    await expect(
-      getServerSideProps({ params: { pageKey } } as never)
-    ).resolves.toEqual({ kind: "unavailable", retryAfterSeconds: 30 })
-    expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
-  })
+      await expect(
+        getServerSideProps({ params: { pageKey } } as never)
+      ).resolves.toEqual({ kind: "unavailable", retryAfterSeconds: 30 })
+      expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
+    }
+  )
 
   it("keeps a real CMS source noindex when taxonomy does not require G1", async () => {
     const { resolveStaticPublicPage } = await import(

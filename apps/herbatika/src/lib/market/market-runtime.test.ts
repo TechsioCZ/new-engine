@@ -102,13 +102,14 @@ describe("createMarketRuntime", () => {
     expect(resolveMarketRuntimeByHost(runtime, "unknown.example")).toBeNull()
   })
 
-  it.each(
-    HOST_MATRIX
-  )("resolves the exact accepted host %s to only market %s", (host, market) => {
-    const runtime = createMarketRuntime(COMPLETE_ENVIRONMENT)
+  it.each(HOST_MATRIX)(
+    "resolves the exact accepted host %s to only market %s",
+    (host, market) => {
+      const runtime = createMarketRuntime(COMPLETE_ENVIRONMENT)
 
-    expect(resolveMarketRuntimeByHost(runtime, host)?.market).toBe(market)
-  })
+      expect(resolveMarketRuntimeByHost(runtime, host)?.market).toBe(market)
+    }
+  )
 
   it.each([
     ["HERBATICA.CZ:443", "cz"],
@@ -192,26 +193,29 @@ describe("createMarketRuntime", () => {
     ["salesChannelId", "MARKET_SALES_CHANNEL_CZ", "sc_sk"],
     ["publishableApiKey", "MARKET_PUBLISHABLE_KEY_CZ", "pk_sk"],
     ["publishableApiKeyId", "MARKET_PUBLISHABLE_KEY_ID_CZ", "pkid_sk"],
-  ])("rejects a cross-market duplicate %s", (field, environmentName, duplicateValue) => {
-    expect(() =>
-      createMarketRuntime({
-        ...COMPLETE_ENVIRONMENT,
-        [environmentName]: duplicateValue,
-      })
-    ).toThrow(`${field} is assigned to both sk and cz`)
-  })
+  ])(
+    "rejects a cross-market duplicate %s",
+    (field, environmentName, duplicateValue) => {
+      expect(() =>
+        createMarketRuntime({
+          ...COMPLETE_ENVIRONMENT,
+          [environmentName]: duplicateValue,
+        })
+      ).toThrow(`${field} is assigned to both sk and cz`)
+    }
+  )
 
-  it.each([
-    "sc_sk,sc_other",
-    "sc_sk sc_other",
-  ])("requires exactly one salesChannelId instead of %j", (salesChannelId) => {
-    expect(() =>
-      createMarketRuntime({
-        ...COMPLETE_ENVIRONMENT,
-        MARKET_SALES_CHANNEL_SK: salesChannelId,
-      })
-    ).toThrow("MARKET_SALES_CHANNEL_SK must contain exactly one value")
-  })
+  it.each(["sc_sk,sc_other", "sc_sk sc_other"])(
+    "requires exactly one salesChannelId instead of %j",
+    (salesChannelId) => {
+      expect(() =>
+        createMarketRuntime({
+          ...COMPLETE_ENVIRONMENT,
+          MARKET_SALES_CHANNEL_SK: salesChannelId,
+        })
+      ).toThrow("MARKET_SALES_CHANNEL_SK must contain exactly one value")
+    }
+  )
 
   it("never accepts NEXT_PUBLIC publishable-key authority", () => {
     expect(() =>
@@ -241,12 +245,15 @@ describe("createMarketRuntime", () => {
     ["https://herbatica.sk", "invalid host https://herbatica.sk"],
     ["herbatica.sk:443", "invalid host herbatica.sk:443"],
     ["herbatica.sk,herbatica.sk", "duplicate host herbatica.sk"],
-  ])("rejects an invalid accepted-host manifest %j", (acceptedHosts, message) => {
-    expect(() =>
-      createMarketRuntime({
-        ...COMPLETE_ENVIRONMENT,
-        MARKET_ACCEPTED_HOSTS_SK: acceptedHosts,
-      })
-    ).toThrow(message)
-  })
+  ])(
+    "rejects an invalid accepted-host manifest %j",
+    (acceptedHosts, message) => {
+      expect(() =>
+        createMarketRuntime({
+          ...COMPLETE_ENVIRONMENT,
+          MARKET_ACCEPTED_HOSTS_SK: acceptedHosts,
+        })
+      ).toThrow(message)
+    }
+  )
 })

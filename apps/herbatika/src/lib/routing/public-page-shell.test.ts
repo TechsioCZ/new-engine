@@ -173,49 +173,52 @@ describe("public storefront shell URL projections", () => {
   it.each([
     { causeCode: "MARKET_DISABLED", kind: "invalid-response" as const },
     { kind: "unavailable" as const, retryAfterSeconds: 19 },
-  ])("omits a non-current static alternate whose source is $kind", async (alternateFailure) => {
-    const response = {
-      setHeader: vi.fn(),
-      statusCode: 200,
+  ])(
+    "omits a non-current static alternate whose source is $kind",
+    async (alternateFailure) => {
+      const response = {
+        setHeader: vi.fn(),
+        statusCode: 200,
+      }
+      const context = {
+        params: { market: "sk" },
+        req: {
+          headers: {
+            "x-sf-canonical-origin": "https://herbatica.sk",
+            "x-sf-market": "sk",
+            "x-sf-public-path": "/",
+            "x-sf-route-key": "home",
+          },
+          url: "/",
+        },
+        res: response,
+      } as never
+      const loadSource = vi.fn(async (market: "sk" | "cz" | "hu" | "ro") =>
+        market === "sk"
+          ? ({ kind: "found", value: { title: "Home" } } as const)
+          : alternateFailure
+      )
+
+      const result = await resolveStaticPublicPage(context, {
+        expectedRouteKey: "home",
+        loadSource,
+        path: { kind: "home" },
+        queryKind: "homepage",
+      })
+
+      expect(result).toMatchObject({
+        props: {
+          page: { kind: "found", value: { title: "Home" } },
+          seo: {
+            alternates: { "sk-SK": "https://herbatica.sk/" },
+          },
+        },
+      })
+      expect(loadSource).toHaveBeenCalledTimes(2)
+      expect(loadSource).toHaveBeenNthCalledWith(1, "sk")
+      expect(loadSource).toHaveBeenNthCalledWith(2, "cz")
     }
-    const context = {
-      params: { market: "sk" },
-      req: {
-        headers: {
-          "x-sf-canonical-origin": "https://herbatica.sk",
-          "x-sf-market": "sk",
-          "x-sf-public-path": "/",
-          "x-sf-route-key": "home",
-        },
-        url: "/",
-      },
-      res: response,
-    } as never
-    const loadSource = vi.fn(async (market: "sk" | "cz" | "hu" | "ro") =>
-      market === "sk"
-        ? ({ kind: "found", value: { title: "Home" } } as const)
-        : alternateFailure
-    )
-
-    const result = await resolveStaticPublicPage(context, {
-      expectedRouteKey: "home",
-      loadSource,
-      path: { kind: "home" },
-      queryKind: "homepage",
-    })
-
-    expect(result).toMatchObject({
-      props: {
-        page: { kind: "found", value: { title: "Home" } },
-        seo: {
-          alternates: { "sk-SK": "https://herbatica.sk/" },
-        },
-      },
-    })
-    expect(loadSource).toHaveBeenCalledTimes(2)
-    expect(loadSource).toHaveBeenNthCalledWith(1, "sk")
-    expect(loadSource).toHaveBeenNthCalledWith(2, "cz")
-  })
+  )
 
   it("omits a rejected non-current static alternate source", async () => {
     const response = {
@@ -300,37 +303,40 @@ describe("public storefront shell URL projections", () => {
   it.each([
     { causeCode: "MALFORMED_HOME", kind: "invalid-response" as const },
     { kind: "unavailable" as const, retryAfterSeconds: 19 },
-  ])("keeps the current static source $kind failure strict", async (sourceFailure) => {
-    const response = {
-      setHeader: vi.fn(),
-      statusCode: 200,
-    }
-    const context = {
-      params: { market: "sk" },
-      req: {
-        headers: {
-          "x-sf-canonical-origin": "https://herbatica.sk",
-          "x-sf-market": "sk",
-          "x-sf-public-path": "/",
-          "x-sf-route-key": "home",
+  ])(
+    "keeps the current static source $kind failure strict",
+    async (sourceFailure) => {
+      const response = {
+        setHeader: vi.fn(),
+        statusCode: 200,
+      }
+      const context = {
+        params: { market: "sk" },
+        req: {
+          headers: {
+            "x-sf-canonical-origin": "https://herbatica.sk",
+            "x-sf-market": "sk",
+            "x-sf-public-path": "/",
+            "x-sf-route-key": "home",
+          },
+          url: "/",
         },
-        url: "/",
-      },
-      res: response,
-    } as never
+        res: response,
+      } as never
 
-    const result = await resolveStaticPublicPage(context, {
-      expectedRouteKey: "home",
-      loadSource: vi.fn(async () => sourceFailure),
-      path: { kind: "home" },
-      queryKind: "homepage",
-    })
+      const result = await resolveStaticPublicPage(context, {
+        expectedRouteKey: "home",
+        loadSource: vi.fn(async () => sourceFailure),
+        path: { kind: "home" },
+        queryKind: "homepage",
+      })
 
-    expect(result).toMatchObject({
-      props: { page: { kind: "error", status: 503 } },
-    })
-    expect(response.statusCode).toBe(503)
-  })
+      expect(result).toMatchObject({
+        props: { page: { kind: "error", status: 503 } },
+      })
+      expect(response.statusCode).toBe(503)
+    }
+  )
 
   it("keeps a rejected current static source strict", async () => {
     const response = {

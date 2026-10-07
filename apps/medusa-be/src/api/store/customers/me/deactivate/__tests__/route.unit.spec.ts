@@ -65,30 +65,28 @@ describe("POST /store/customers/me/deactivate", () => {
     expect(result.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
   })
 
-  it.each([
-    undefined,
-    [],
-    ["sc_cz", "sc_hu"],
-    [null, ""],
-  ])("rejects missing or ambiguous publishable-key scope: %o", async (salesChannelIds) => {
-    const result = response()
+  it.each([undefined, [], ["sc_cz", "sc_hu"], [null, ""]])(
+    "rejects missing or ambiguous publishable-key scope: %o",
+    async (salesChannelIds) => {
+      const result = response()
 
-    await expect(
-      POST(
-        {
-          auth_context: { actor_id: "cus_1" },
-          publishable_key_context: { sales_channel_ids: salesChannelIds },
-          scope: {},
-        } as never,
-        result as never
+      await expect(
+        POST(
+          {
+            auth_context: { actor_id: "cus_1" },
+            publishable_key_context: { sales_channel_ids: salesChannelIds },
+            scope: {},
+          } as never,
+          result as never
+        )
+      ).rejects.toThrow("Resource was not found.")
+      expect(workflow.request).not.toHaveBeenCalled()
+      expect(result.setHeader).toHaveBeenNthCalledWith(
+        1,
+        "Cache-Control",
+        "private, no-store"
       )
-    ).rejects.toThrow("Resource was not found.")
-    expect(workflow.request).not.toHaveBeenCalled()
-    expect(result.setHeader).toHaveBeenNthCalledWith(
-      1,
-      "Cache-Control",
-      "private, no-store"
-    )
-    expect(result.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
-  })
+      expect(result.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
+    }
+  )
 })

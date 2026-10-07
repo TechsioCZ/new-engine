@@ -2,30 +2,26 @@ import { describe, expect, it } from "vitest"
 import { parseUrlRegistryRuntimeConfig } from "./config"
 
 describe("parseUrlRegistryRuntimeConfig", () => {
-  it.each([
-    undefined,
-    "0",
-  ])("keeps URLR disabled for the default gate value %s", (enabled) => {
-    expect(
-      parseUrlRegistryRuntimeConfig({
-        URL_REGISTRY_DATABASE_URL: "not parsed while disabled",
-        URL_REGISTRY_ENABLED: enabled,
-      })
-    ).toEqual({ enabled: false })
-  })
+  it.each([undefined, "0"])(
+    "keeps URLR disabled for the default gate value %s",
+    (enabled) => {
+      expect(
+        parseUrlRegistryRuntimeConfig({
+          URL_REGISTRY_DATABASE_URL: "not parsed while disabled",
+          URL_REGISTRY_ENABLED: enabled,
+        })
+      ).toEqual({ enabled: false })
+    }
+  )
 
-  it.each([
-    "",
-    "true",
-    "false",
-    " 1",
-    "1 ",
-    "yes",
-  ])("rejects the non-exact gate value %j", (enabled) => {
-    expect(() =>
-      parseUrlRegistryRuntimeConfig({ URL_REGISTRY_ENABLED: enabled })
-    ).toThrow("URL_REGISTRY_ENABLED must be exactly 0 or 1")
-  })
+  it.each(["", "true", "false", " 1", "1 ", "yes"])(
+    "rejects the non-exact gate value %j",
+    (enabled) => {
+      expect(() =>
+        parseUrlRegistryRuntimeConfig({ URL_REGISTRY_ENABLED: enabled })
+      ).toThrow("URL_REGISTRY_ENABLED must be exactly 0 or 1")
+    }
+  )
 
   it("requires the dedicated private database URL when enabled", () => {
     expect(() =>
@@ -38,17 +34,17 @@ describe("parseUrlRegistryRuntimeConfig", () => {
     ).toThrow("URL_REGISTRY_DATABASE_URL is required")
   })
 
-  it.each([
-    "postgres://urlr:secret@db/urlr",
-    "postgresql://db/urlr",
-  ])("accepts a private PostgreSQL URL", (databaseUrl) => {
-    expect(
-      parseUrlRegistryRuntimeConfig({
-        URL_REGISTRY_DATABASE_URL: databaseUrl,
-        URL_REGISTRY_ENABLED: "1",
-      })
-    ).toEqual({ databaseUrl, enabled: true })
-  })
+  it.each(["postgres://urlr:secret@db/urlr", "postgresql://db/urlr"])(
+    "accepts a private PostgreSQL URL",
+    (databaseUrl) => {
+      expect(
+        parseUrlRegistryRuntimeConfig({
+          URL_REGISTRY_DATABASE_URL: databaseUrl,
+          URL_REGISTRY_ENABLED: "1",
+        })
+      ).toEqual({ databaseUrl, enabled: true })
+    }
+  )
 
   it.each([
     " postgres://urlr:secret@db/urlr",

@@ -259,47 +259,48 @@ describe("send order payment reminder workflow", () => {
       domain: "herbatica.ro",
       locale: "ro-RO",
     },
-  ])("formats the $countryCode reminder for its canonical market", async ({
-    countryCode,
-    currencyCode,
-    domain,
-    locale,
-  }) => {
-    await import("../send-order-payment-reminder")
-    resolveNotificationMarketContext.mockResolvedValue({
-      country_code: countryCode,
-      locale,
-      market_code: countryCode,
-      sales_channel_id: `sc_${countryCode}`,
-      store_name: "Herbatica",
-      storefront_base_url: `https://${domain}`,
-      storefront_domain: domain,
-    })
+  ])(
+    "formats the $countryCode reminder for its canonical market",
+    async ({ countryCode, currencyCode, domain, locale }) => {
+      await import("../send-order-payment-reminder")
+      resolveNotificationMarketContext.mockResolvedValue({
+        country_code: countryCode,
+        locale,
+        market_code: countryCode,
+        sales_channel_id: `sc_${countryCode}`,
+        store_name: "Herbatica",
+        storefront_base_url: `https://${domain}`,
+        storefront_domain: domain,
+      })
 
-    const { container } = createPaymentReminderNotificationContext({
-      currency_code: currencyCode,
-      sales_channel_id: `sc_${countryCode}`,
-      shipping_address: { country_code: countryCode },
-      summary: { current_order_total: 1234.5 },
-      total: 9999,
-    })
-    const step = workflowSdkMock.steps.get(
-      "build-order-payment-reminder-notification"
-    )
-    const result = (await step?.({ order_id: "order_123" }, { container })) as {
-      output: Notification[]
+      const { container } = createPaymentReminderNotificationContext({
+        currency_code: currencyCode,
+        sales_channel_id: `sc_${countryCode}`,
+        shipping_address: { country_code: countryCode },
+        summary: { current_order_total: 1234.5 },
+        total: 9999,
+      })
+      const step = workflowSdkMock.steps.get(
+        "build-order-payment-reminder-notification"
+      )
+      const result = (await step?.(
+        { order_id: "order_123" },
+        { container }
+      )) as {
+        output: Notification[]
+      }
+
+      expect(result.output[0]?.data).toMatchObject({
+        locale,
+        payment_url: "https://payments.example.test/retry/123",
+        storefront_base_url: `https://${domain}`,
+        total: new Intl.NumberFormat(locale, {
+          currency: currencyCode.toUpperCase(),
+          style: "currency",
+        }).format(1234.5),
+      })
     }
-
-    expect(result.output[0]?.data).toMatchObject({
-      locale,
-      payment_url: "https://payments.example.test/retry/123",
-      storefront_base_url: `https://${domain}`,
-      total: new Intl.NumberFormat(locale, {
-        currency: currencyCode.toUpperCase(),
-        style: "currency",
-      }).format(1234.5),
-    })
-  })
+  )
 
   it.each([
     {
@@ -335,23 +336,26 @@ describe("send order payment reminder workflow", () => {
         total: null,
       },
     },
-  ])("uses fetched order total precedence before input fallback %#", async ({
-    expectedTotal,
-    order,
-  }) => {
-    await import("../send-order-payment-reminder")
+  ])(
+    "uses fetched order total precedence before input fallback %#",
+    async ({ expectedTotal, order }) => {
+      await import("../send-order-payment-reminder")
 
-    const step = workflowSdkMock.steps.get(
-      "build-order-payment-reminder-notification"
-    )
-    expect(step).toBeDefined()
+      const step = workflowSdkMock.steps.get(
+        "build-order-payment-reminder-notification"
+      )
+      expect(step).toBeDefined()
 
-    const { container } = createPaymentReminderNotificationContext(order)
+      const { container } = createPaymentReminderNotificationContext(order)
 
-    const result = (await step?.({ order_id: "order_123" }, { container })) as {
-      output: Notification[]
+      const result = (await step?.(
+        { order_id: "order_123" },
+        { container }
+      )) as {
+        output: Notification[]
+      }
+
+      expect(result.output[0]?.data?.total).toBe(expectedTotal)
     }
-
-    expect(result.output[0]?.data?.total).toBe(expectedTotal)
-  })
+  )
 })

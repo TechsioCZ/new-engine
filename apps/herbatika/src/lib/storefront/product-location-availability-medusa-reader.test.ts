@@ -76,25 +76,28 @@ describe("createProductLocationAvailabilityMedusaReader", () => {
     [401, { kind: "unavailable" }],
     [403, { kind: "unavailable" }],
     [500, { kind: "unavailable" }],
-  ] as const)("maps Medusa status %s without exposing its body", async (status, expected) => {
-    const read = createProductLocationAvailabilityMedusaReader({
-      baseUrl: "http://medusa.internal:9000",
-      createClient: () => ({
-        fetch: () =>
-          Promise.reject(
-            Object.assign(new Error("secret upstream detail"), { status })
-          ),
-      }),
-    })
-
-    await expect(
-      read({
-        binding: BINDING,
-        productId: "prod_cz_1",
-        signal: new AbortController().signal,
+  ] as const)(
+    "maps Medusa status %s without exposing its body",
+    async (status, expected) => {
+      const read = createProductLocationAvailabilityMedusaReader({
+        baseUrl: "http://medusa.internal:9000",
+        createClient: () => ({
+          fetch: () =>
+            Promise.reject(
+              Object.assign(new Error("secret upstream detail"), { status })
+            ),
+        }),
       })
-    ).resolves.toEqual(expected)
-  })
+
+      await expect(
+        read({
+          binding: BINDING,
+          productId: "prod_cz_1",
+          signal: new AbortController().signal,
+        })
+      ).resolves.toEqual(expected)
+    }
+  )
 
   it("does not send customer authorization and projects extra source fields", async () => {
     const fetch = vi.fn().mockResolvedValue({

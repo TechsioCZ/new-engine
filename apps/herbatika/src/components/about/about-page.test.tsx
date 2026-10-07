@@ -60,16 +60,19 @@ describe("AboutPage locale selection", () => {
   it.each([
     ["cs-CZ", "O našem týmu", "Kontakt pro český trh"],
     ["hu-HU", "Csapatunkról", "Kapcsolat a magyar piachoz"],
-  ] as const)("renders approved %s page copy", (locale, title, contactTitle) => {
-    const markup = renderToStaticMarkup(
-      <AboutPage locale={locale} reviewTrustSources={[]} />
-    )
+  ] as const)(
+    "renders approved %s page copy",
+    (locale, title, contactTitle) => {
+      const markup = renderToStaticMarkup(
+        <AboutPage locale={locale} reviewTrustSources={[]} />
+      )
 
-    expect(markup).toContain(title)
-    expect(markup).toContain(contactTitle)
-    expect(markup).not.toContain("salut@herbatica.ro")
-    expect(markup).not.toContain("Prevádzkovateľ internetového obchodu")
-  })
+      expect(markup).toContain(title)
+      expect(markup).toContain(contactTitle)
+      expect(markup).not.toContain("salut@herbatica.ro")
+      expect(markup).not.toContain("Prevádzkovateľ internetového obchodu")
+    }
+  )
 
   it("renders no content for an unsupported locale", () => {
     expect(

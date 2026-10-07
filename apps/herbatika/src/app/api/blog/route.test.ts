@@ -46,26 +46,27 @@ describe("blog listing API localization", () => {
     vi.restoreAllMocks()
   })
 
-  it.each(
-    MARKET_CASES
-  )("localizes temporary failure from %s", async (host, market, locale, message) => {
-    mocks.resolveBinding.mockReturnValue({ locale, market })
-    mocks.fetchListing.mockRejectedValue(
-      new Error("private CMS credential failure")
-    )
-    vi.spyOn(console, "error").mockImplementation(() => {
-      // Expected CMS failure is intentionally silent in this route test.
-    })
+  it.each(MARKET_CASES)(
+    "localizes temporary failure from %s",
+    async (host, market, locale, message) => {
+      mocks.resolveBinding.mockReturnValue({ locale, market })
+      mocks.fetchListing.mockRejectedValue(
+        new Error("private CMS credential failure")
+      )
+      vi.spyOn(console, "error").mockImplementation(() => {
+        // Expected CMS failure is intentionally silent in this route test.
+      })
 
-    const response = await GET(requestFor(host))
+      const response = await GET(requestFor(host))
 
-    expect(response.status).toBe(502)
-    expect(response.headers.get("cache-control")).toBe("private, no-store")
-    await expect(response.json()).resolves.toEqual({ message })
-    expect(mocks.fetchListing).toHaveBeenCalledWith(
-      expect.objectContaining({ locale })
-    )
-  })
+      expect(response.status).toBe(502)
+      expect(response.headers.get("cache-control")).toBe("private, no-store")
+      await expect(response.json()).resolves.toEqual({ message })
+      expect(mocks.fetchListing).toHaveBeenCalledWith(
+        expect.objectContaining({ locale })
+      )
+    }
+  )
 
   it("returns a generic 421 for an unknown Host", async () => {
     mocks.resolveBinding.mockReturnValue(null)

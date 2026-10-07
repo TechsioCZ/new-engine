@@ -372,17 +372,20 @@ describe("four-market Meilisearch runtime collector", () => {
         }),
       "task, staging-index, or completion-marker residue",
     ],
-  ])("rejects %s instead of writing a false candidate", async (_label, client, error) => {
-    await expect(
-      collectFourMarketMeiliConvergenceCandidate({
-        authorityReader: authorityReader(),
-        client: client(),
-        environmentId: "production-eu",
-        profiles: profiles(),
-        releaseId: "release-2026-08-21",
-      })
-    ).rejects.toThrow(error)
-  })
+  ])(
+    "rejects %s instead of writing a false candidate",
+    async (_label, client, error) => {
+      await expect(
+        collectFourMarketMeiliConvergenceCandidate({
+          authorityReader: authorityReader(),
+          client: client(),
+          environmentId: "production-eu",
+          profiles: profiles(),
+          releaseId: "release-2026-08-21",
+        })
+      ).rejects.toThrow(error)
+    }
+  )
 
   it("rejects task state changes during collection", async () => {
     const client = clientFixture()

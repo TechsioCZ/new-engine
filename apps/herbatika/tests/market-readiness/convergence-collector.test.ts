@@ -37,15 +37,14 @@ describe("four-market convergence collector", () => {
     expect(artifacts.staticTaxonomy.markets.ro.expectedCount).toBeGreaterThan(0)
   })
 
-  it.each([
-    "pending",
-    "processing",
-    "failed",
-  ])("rejects an outbox event in %s state", (status) => {
-    const rows = fourMarketRowsFixture()
-    const events = [{ ...rows.events[0], status }, ...rows.events.slice(1)]
-    expect(() => collect({ ...rows, events })).toThrow("is not converged")
-  })
+  it.each(["pending", "processing", "failed"])(
+    "rejects an outbox event in %s state",
+    (status) => {
+      const rows = fourMarketRowsFixture()
+      const events = [{ ...rows.events[0], status }, ...rows.events.slice(1)]
+      expect(() => collect({ ...rows, events })).toThrow("is not converged")
+    }
+  )
 
   it.each([
     [

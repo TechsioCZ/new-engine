@@ -226,61 +226,60 @@ const persistedStream = async (sourceId: string) => {
 }
 
 describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
-  it.each([
-    "category",
-    "brand",
-    "collection",
-  ] as const)("publishes and forward-changes a %s slug while preserving the old alias", async (entityKind) => {
-    const sourceId = context.nextNamespace(`catalog-${entityKind}`)
-    const readCatalog = vi.fn(async () => ({
-      kind: "found" as const,
-      value: { id: sourceId },
-    }))
-    const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
-      readCatalog,
-      readProduct: readSource({ kind: "missing" }),
-    })
-    const originalSlug = `${sourceId}-old`
-    const renamedSlug = `${sourceId}-nou`
-
-    await expect(
-      consumer.consume(
-        catalogDelivery({
-          entityKind,
-          publicSlug: originalSlug,
-          sequence: 1,
-          sourceId,
-        })
-      )
-    ).resolves.toMatchObject({ action: "published", kind: "acknowledged" })
-    await expect(
-      consumer.consume(
-        catalogDelivery({
-          entityKind,
-          publicSlug: renamedSlug,
-          sequence: 2,
-          sourceId,
-        })
-      )
-    ).resolves.toMatchObject({
-      action: "slug-changed",
-      kind: "acknowledged",
-    })
-    await expect(
-      context.registry.resolve({
-        kind: entityKind,
-        market: "ro",
-        normalizedSlug: originalSlug,
+  it.each(["category", "brand", "collection"] as const)(
+    "publishes and forward-changes a %s slug while preserving the old alias",
+    async (entityKind) => {
+      const sourceId = context.nextNamespace(`catalog-${entityKind}`)
+      const readCatalog = vi.fn(async () => ({
+        kind: "found" as const,
+        value: { id: sourceId },
+      }))
+      const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
+        readCatalog,
+        readProduct: readSource({ kind: "missing" }),
       })
-    ).resolves.toMatchObject({
-      kind: "found",
-      value: {
-        currentSlug: { normalizedSlug: renamedSlug },
-        disposition: "alias",
-        route: { kind: entityKind, sourceId },
-      },
-    })
-  })
+      const originalSlug = `${sourceId}-old`
+      const renamedSlug = `${sourceId}-nou`
+
+      await expect(
+        consumer.consume(
+          catalogDelivery({
+            entityKind,
+            publicSlug: originalSlug,
+            sequence: 1,
+            sourceId,
+          })
+        )
+      ).resolves.toMatchObject({ action: "published", kind: "acknowledged" })
+      await expect(
+        consumer.consume(
+          catalogDelivery({
+            entityKind,
+            publicSlug: renamedSlug,
+            sequence: 2,
+            sourceId,
+          })
+        )
+      ).resolves.toMatchObject({
+        action: "slug-changed",
+        kind: "acknowledged",
+      })
+      await expect(
+        context.registry.resolve({
+          kind: entityKind,
+          market: "ro",
+          normalizedSlug: originalSlug,
+        })
+      ).resolves.toMatchObject({
+        kind: "found",
+        value: {
+          currentSlug: { normalizedSlug: renamedSlug },
+          disposition: "alias",
+          route: { kind: entityKind, sourceId },
+        },
+      })
+    }
+  )
 
   it("keeps a stale queued catalog slug non-mutating before applying the current slug", async () => {
     const sourceId = context.nextNamespace("catalog-backlog")
@@ -411,67 +410,66 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
     expect(stream.rows).toEqual([{ last_sequence: 5, receipt_count: 5 }])
   })
 
-  it.each([
-    "category",
-    "brand",
-    "collection",
-  ] as const)("keeps an active %s route when its assignment becomes draft", async (entityKind) => {
-    const sourceId = context.nextNamespace(`catalog-draft-${entityKind}`)
-    const source = vi.fn(async () => ({
-      kind: "found" as const,
-      value: { id: sourceId },
-    }))
-    const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
-      readCatalog: source,
-      readProduct: readSource({ kind: "missing" }),
-    })
-    const publicSlug = `${sourceId}-public`
+  it.each(["category", "brand", "collection"] as const)(
+    "keeps an active %s route when its assignment becomes draft",
+    async (entityKind) => {
+      const sourceId = context.nextNamespace(`catalog-draft-${entityKind}`)
+      const source = vi.fn(async () => ({
+        kind: "found" as const,
+        value: { id: sourceId },
+      }))
+      const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
+        readCatalog: source,
+        readProduct: readSource({ kind: "missing" }),
+      })
+      const publicSlug = `${sourceId}-public`
 
-    await expect(
-      consumer.consume(
-        catalogDelivery({
-          entityKind,
-          publicSlug,
-          sequence: 1,
-          sourceId,
-        })
-      )
-    ).resolves.toMatchObject({ action: "published", kind: "acknowledged" })
-    const draft = catalogDelivery({
-      entityKind,
-      publicSlug,
-      sequence: 2,
-      sourceId,
-    })
-    await expect(
-      consumer.consume({
-        ...draft,
-        payload: {
-          ...draft.payload,
-          assignment: {
-            ...draft.payload.assignment,
-            publicationStatus: "draft",
+      await expect(
+        consumer.consume(
+          catalogDelivery({
+            entityKind,
+            publicSlug,
+            sequence: 1,
+            sourceId,
+          })
+        )
+      ).resolves.toMatchObject({ action: "published", kind: "acknowledged" })
+      const draft = catalogDelivery({
+        entityKind,
+        publicSlug,
+        sequence: 2,
+        sourceId,
+      })
+      await expect(
+        consumer.consume({
+          ...draft,
+          payload: {
+            ...draft.payload,
+            assignment: {
+              ...draft.payload.assignment,
+              publicationStatus: "draft",
+            },
           },
+        })
+      ).resolves.toMatchObject({ action: "unpublished", kind: "acknowledged" })
+
+      await expect(
+        context.registry.findEntityRoute({
+          market: "ro",
+          sourceId,
+          sourceSystem: "medusa",
+          sourceType: entityKind,
+        })
+      ).resolves.toMatchObject({
+        kind: "found",
+        value: {
+          currentSlug: { normalizedSlug: publicSlug },
+          route: { status: "active", version: 1 },
         },
       })
-    ).resolves.toMatchObject({ action: "unpublished", kind: "acknowledged" })
-
-    await expect(
-      context.registry.findEntityRoute({
-        market: "ro",
-        sourceId,
-        sourceSystem: "medusa",
-        sourceType: entityKind,
-      })
-    ).resolves.toMatchObject({
-      kind: "found",
-      value: {
-        currentSlug: { normalizedSlug: publicSlug },
-        route: { status: "active", version: 1 },
-      },
-    })
-    expect(source).toHaveBeenCalledTimes(1)
-  })
+      expect(source).toHaveBeenCalledTimes(1)
+    }
+  )
 
   it("keeps identical category slugs isolated between SK and RO", async () => {
     const sourceId = context.nextNamespace("catalog-market-isolation")
@@ -737,17 +735,20 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
       "invalid",
       { kind: "invalid-response", causeCode: "INVALID_MEDUSA_RESPONSE" },
     ],
-  ] as const)("does not advance for an %s source read", async (_label, sourceResult) => {
-    const sourceId = context.nextNamespace("lifecycle-source-retry")
-    const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
-      readProduct: readSource(sourceResult),
-    })
+  ] as const)(
+    "does not advance for an %s source read",
+    async (_label, sourceResult) => {
+      const sourceId = context.nextNamespace("lifecycle-source-retry")
+      const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
+        readProduct: readSource(sourceResult),
+      })
 
-    await expect(
-      consumer.consume(delivery(sourceId, 1))
-    ).resolves.toMatchObject({ kind: "retry" })
-    await expect(persistedStream(sourceId)).resolves.toBeNull()
-  })
+      await expect(
+        consumer.consume(delivery(sourceId, 1))
+      ).resolves.toMatchObject({ kind: "retry" })
+      await expect(persistedStream(sourceId)).resolves.toBeNull()
+    }
+  )
 
   it("does not advance a live-source conflict on a terminal route", async () => {
     const sourceId = context.nextNamespace("lifecycle-terminal-live")

@@ -309,17 +309,20 @@ describe("resolveProductRoute", () => {
   it.each([
     [{ kind: "unavailable", retryAfterSeconds: 12 }, 12],
     [{ kind: "invalid-response", causeCode: "bad-row" }, undefined],
-  ] as const)("maps registry source failure %o to 503", async (registryResult, retryAfterSeconds) => {
-    const result = await resolve(registryResult, {
-      kind: "found",
-      value: sourceProduct(),
-    })
+  ] as const)(
+    "maps registry source failure %o to 503",
+    async (registryResult, retryAfterSeconds) => {
+      const result = await resolve(registryResult, {
+        kind: "found",
+        value: sourceProduct(),
+      })
 
-    expect(result).toEqual({
-      kind: "unavailable",
-      ...(retryAfterSeconds === undefined ? {} : { retryAfterSeconds }),
-    })
-  })
+      expect(result).toEqual({
+        kind: "unavailable",
+        ...(retryAfterSeconds === undefined ? {} : { retryAfterSeconds }),
+      })
+    }
+  )
 
   it.each([
     [{ kind: "missing" }, { kind: "not-found" }],
@@ -331,14 +334,17 @@ describe("resolveProductRoute", () => {
       { kind: "invalid-response", causeCode: "bad-product" },
       { kind: "unavailable" },
     ],
-  ] as const)("maps Medusa source result %o", async (sourceResult, expected) => {
-    const result = await resolve(
-      { kind: "found", value: currentResolution() },
-      sourceResult
-    )
+  ] as const)(
+    "maps Medusa source result %o",
+    async (sourceResult, expected) => {
+      const result = await resolve(
+        { kind: "found", value: currentResolution() },
+        sourceResult
+      )
 
-    expect(result).toEqual(expected)
-  })
+      expect(result).toEqual(expected)
+    }
+  )
 
   it("fails closed when URLR identity and Medusa payload disagree", async () => {
     const wrongIdentity = await resolve(
@@ -370,30 +376,33 @@ describe("resolveProductRoute", () => {
   it.each([
     ["cross-market", route("prod-1", { market: "cz" })],
     ["inactive", route("prod-1", { status: "retired" })],
-  ] as const)("fails closed for a %s current URLR projection", async (_label, invalidRoute) => {
-    const currentSlug = slug("current-product", invalidRoute.id, "current")
-    const readProductById = createSourceReader({
-      kind: "found",
-      value: sourceProduct(),
-    })
-
-    const result = await resolve(
-      {
+  ] as const)(
+    "fails closed for a %s current URLR projection",
+    async (_label, invalidRoute) => {
+      const currentSlug = slug("current-product", invalidRoute.id, "current")
+      const readProductById = createSourceReader({
         kind: "found",
-        value: {
-          disposition: "current",
-          route: invalidRoute,
-          matchedSlug: currentSlug,
-          currentSlug,
-        },
-      },
-      { kind: "found", value: sourceProduct() },
-      { readProductById }
-    )
+        value: sourceProduct(),
+      })
 
-    expect(result).toEqual({ kind: "unavailable" })
-    expect(readProductById).not.toHaveBeenCalled()
-  })
+      const result = await resolve(
+        {
+          kind: "found",
+          value: {
+            disposition: "current",
+            route: invalidRoute,
+            matchedSlug: currentSlug,
+            currentSlug,
+          },
+        },
+        { kind: "found", value: sourceProduct() },
+        { readProductById }
+      )
+
+      expect(result).toEqual({ kind: "unavailable" })
+      expect(readProductById).not.toHaveBeenCalled()
+    }
+  )
 
   it("maps a malformed variant payload to 503 instead of throwing", async () => {
     const malformedProduct = {
