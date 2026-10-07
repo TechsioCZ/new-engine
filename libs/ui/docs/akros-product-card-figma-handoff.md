@@ -1,6 +1,6 @@
 # Akros ProductCard composition — PR09
 
-Audit P01: jedna skladba existujícího ProductCard s PriceBlock a
+Audit K03: jedna skladba existujícího ProductCard s PriceBlock a
 AvailabilityStatus z PR06. Výchozí karta nemá výběr množství; jedna story
 ukazuje QuantityField z PR08 v existujícím Actions slotu.
 
