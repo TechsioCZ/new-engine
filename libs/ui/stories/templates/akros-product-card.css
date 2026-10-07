@@ -1,0 +1,54 @@
+/* Story-only overrides: the application owns its card styling and cart behavior. */
+[data-akros-card-example] {
+	min-width: 0;
+	overflow-wrap: anywhere;
+	--color-product-card-bg: var(--color-base);
+	--color-availability-status-fg-available: var(--color-success-700);
+	--color-availability-status-detail-fg: var(--color-fg-primary);
+	--color-price-block-prefix-fg: var(--color-fg-primary);
+	--color-price-block-original-fg: var(--color-fg-primary);
+	--color-price-block-metadata-fg: var(--color-fg-primary);
+	--color-price-block-detail-fg: var(--color-fg-primary);
+	--font-weight-price-block-amount: var(--font-weight-bold);
+	--radius-product-card: var(--radius-sm);
+	--radius-product-card-image: var(--radius-none);
+	--spacing-product-card-col-layout: var(--spacing-200);
+	--spacing-product-card-padding: var(--spacing-200);
+	--text-product-card-name-size: var(--text-base);
+	--text-price-block-amount-size: var(--text-md);
+	--height-form-control-sm: var(--dimension-44);
+	--radius-button-sm: var(--radius-xs);
+}
+
+[data-akros-card-example] a:focus-visible {
+	outline: var(--default-ring-width) var(--default-ring-style)
+		var(--color-button-ring);
+	outline-offset: var(--default-ring-offset);
+}
+
+[data-akros-card-media] {
+	aspect-ratio: 373 / 282;
+}
+
+[data-akros-card-placeholder] {
+	height: 100%;
+}
+
+[data-akros-card-price] > div {
+	justify-content: center;
+}
+
+[data-akros-card-price] del {
+	white-space: nowrap;
+}
+
+[data-akros-card-grid] {
+	display: grid;
+	grid-template-columns: repeat(
+			auto-fit,
+			minmax(min(100%, var(--container-2xs)), 1fr)
+		);
+	gap: var(--spacing-300);
+	width: 100%;
+	max-width: var(--container-5xl);
+}
