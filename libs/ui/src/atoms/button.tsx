@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.3.2
+ * @componentVersion v0.3.3
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

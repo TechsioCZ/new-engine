@@ -6,7 +6,7 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

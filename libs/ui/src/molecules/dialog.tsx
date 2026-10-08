@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

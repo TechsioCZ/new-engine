@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -245,7 +245,7 @@ const datePickerVariants = tv({
     ],
     monthPanel: [
       "grid min-w-0 content-start gap-date-picker-calendar",
-      "sm:data-[index=1]:border-date-picker-month-divider-border sm:data-[index=1]:border-l sm:data-[index=1]:ps-date-picker-content",
+      "sm:data-[index=1]:border-date-picker-month-divider-border sm:data-[index=1]:border-s sm:data-[index=1]:ps-date-picker-content",
     ],
     view: "min-w-0",
     viewControl:
@@ -313,7 +313,7 @@ const datePickerVariants = tv({
     timeGroup: [
       "flex min-w-0 items-center gap-date-picker-time",
       "data-[index=1]:border-date-picker-time-border data-[index=1]:border-t data-[index=1]:pt-date-picker-time",
-      "sm:data-[index=1]:border-l sm:data-[index=1]:border-t-0 sm:data-[index=1]:pt-0 sm:data-[index=1]:ps-date-picker-time",
+      "sm:data-[index=1]:border-s sm:data-[index=1]:border-t-0 sm:data-[index=1]:pt-0 sm:data-[index=1]:ps-date-picker-time",
     ],
     timeGroupLabel:
       "shrink-0 font-date-picker-view text-date-picker-time-label-fg text-date-picker-time-label",

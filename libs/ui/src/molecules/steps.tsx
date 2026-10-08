@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -98,7 +98,7 @@ const stepsVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     progress: [
-      "relative overflow-clip rounded-steps-progress bg-steps-progress-bg",
+      "relative min-w-0 overflow-clip rounded-steps-progress bg-steps-progress-bg",
       "data-[orientation=horizontal]:h-steps-progress data-[orientation=horizontal]:w-full",
       "data-[orientation=vertical]:w-steps-progress data-[orientation=vertical]:self-stretch",
     ],

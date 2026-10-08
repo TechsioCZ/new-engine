@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -95,7 +95,7 @@ const phoneInputVariants = tv({
     root: ["relative flex w-full flex-col gap-phone-input"],
     control: [
       "form-control-base",
-      "relative flex w-full items-center overflow-clip",
+      "relative flex w-full min-w-0 items-center overflow-clip",
       "text-phone-input-fg",
       "hover:border-phone-input-border-hover hover:bg-phone-input-bg-hover",
       "phone-input-focus",

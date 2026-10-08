@@ -6,7 +6,7 @@ description: >
   controlled page, orientation, thumbnail image adapters, thumbnail aria labels,
   empty state, and NextImage support.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

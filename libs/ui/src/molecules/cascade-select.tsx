@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

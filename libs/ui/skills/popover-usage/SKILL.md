@@ -5,7 +5,7 @@ description: >
   anchored non-blocking content using Zag.js compound parts, placement,
   portalling, close behavior, arrow, title, description, and close trigger.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

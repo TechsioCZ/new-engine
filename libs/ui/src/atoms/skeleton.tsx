@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -20,7 +20,7 @@ import { tv } from "../utils"
 
 const skeletonVariants = tv({
   slots: {
-    root: ["relative overflow-clip"],
+    root: ["relative min-w-0 overflow-clip"],
     rectangle: "w-full",
     circle: ["rounded-full", "shrink-0"],
     textContainer: ["flex", "flex-col"],

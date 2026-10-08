@@ -6,7 +6,7 @@ description: >
   headers, numeric cells, selected rows, variants, interactive rows, sticky
   header/first column, column borders, and size props.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -53,7 +53,7 @@ const galleryVariants = tv({
       "relative shrink-0",
       "size-(--gallery-thumbnail-size)",
       "aspect-square",
-      "overflow-clip rounded-gallery-trigger border border-gallery-trigger-border bg-gallery-trigger-bg",
+      "min-w-0 overflow-clip rounded-gallery-trigger border border-gallery-trigger-border bg-gallery-trigger-bg",
       "cursor-pointer p-gallery-trigger",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-gallery-trigger-ring",

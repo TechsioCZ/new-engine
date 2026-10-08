@@ -12,6 +12,84 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Table v1.2.1
+- Switched the border between header and cell columns from physical border-r to logical border-e for RTL.
+
+### DataTable v1.2.1
+- Switched the sortable header's text-left to the logical text-start for RTL.
+
+### TreeView v1.0.1
+- Replaced transition-all with the explicit transition property list to avoid animating unrelated properties.
+
+### Tour v1.0.3
+- Replaced outline-none with outline-hidden per the updated focus-ring guideline.
+
+### Slider v1.0.1
+- Switched the vertical thumb's physical left offset to the logical start for RTL.
+
+### Select v1.1.1
+- Switched text-left to text-start and the clear trigger's physical right offset to logical end for RTL.
+
+### RadioCard v1.0.1
+- Switched overflow-hidden to overflow-clip and text-left/text-right to text-start/text-end for RTL.
+
+### Popover v1.0.1
+- Replaced outline-none with outline-hidden and switched the close trigger's physical right offset to logical end for RTL.
+
+### FormCheckbox v1.1.2
+- Replaced transition-all with the explicit transition property list and switched the indented text's physical pl- offset to logical ps- for RTL.
+
+### FileUpload v1.0.1
+- Switched overflow-hidden to overflow-clip on the item preview.
+
+### Dialog v1.0.2
+- Switched the close trigger and side-panel borders from physical top/right/left offsets to logical end/start equivalents for RTL.
+
+### CascadeSelect v1.0.2
+- Switched text-left to text-start and the trigger icon's physical right offset to logical end for RTL.
+
+### Accordion v1.0.1
+- Replaced transition-all with the explicit transition property list and switched the icon's physical pr- offset to logical pe- for RTL.
+
+### Textarea v1.0.1
+- Replaced transition-all with the explicit transition property list and added user-invalid styling for native constraint validation once the field has been interacted with.
+
+### Input v1.0.1
+- Replaced transition-all with the explicit transition property list and added user-invalid styling for native constraint validation once the field has been interacted with.
+
+### Checkbox v1.0.1
+- Replaced transition-all with the explicit transition property list to avoid animating unrelated properties.
+
+### Button v0.3.3
+- Replaced transition-all with the explicit transition property list, added motion-safe active press feedback, and switched the loading spinner's physical mr- offset to logical me- for RTL.
+
+### Gallery v1.0.1
+- Added min-w-0 to the thumbnail trigger's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### Toast v1.0.1
+- Added min-w-0 to the root's overflow-clip class so the toast keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### Steps v1.0.1
+- Added min-w-0 to the progress track's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### PhoneInput v1.0.1
+- Added min-w-0 to the control's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### DatePicker v1.1.2
+- Switched the month panel and time group's divider border from physical border-l to logical border-s so it follows the ps- padding in RTL.
+
+### Combobox v1.3.1
+- Added min-w-0 to the control's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### ColorSelect v1.0.1
+- Added min-w-0 to the atom's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### Skeleton v1.0.1
+- Added min-w-0 to the root's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### NumericInput v1.1.1
+- Added min-w-0 to the container's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
 ### QuantityField v1.0.0
 - Added a controlled quantity molecule with a visible unit, linked label/helper/error text and localized pending feedback over NumericInput. Validation, persistence and explicit removal stay consumer-owned.
 - autoFocus, aria-label and aria-labelledby reach the editable input; native label and description bindings remain intact.

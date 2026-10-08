@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

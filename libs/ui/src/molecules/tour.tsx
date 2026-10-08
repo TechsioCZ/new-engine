@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */

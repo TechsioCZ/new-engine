@@ -39,6 +39,11 @@
   --state-fg-lightness: calc(0.635 - 0.215 * var(--theme-sign));
 }
 
+/* Explicit Light class(es) — re-asserts light inside a nested .dark/.always-dark subtree */
+:is(.light, .always-light) {
+  --theme-sign: 1;
+}
+
 /* Explicit Dark class(es) */
 :is(.dark, .always-dark) {
   --theme-sign: -1;

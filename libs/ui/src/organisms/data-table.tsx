@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

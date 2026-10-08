@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

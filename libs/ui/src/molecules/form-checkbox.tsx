@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

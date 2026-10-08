@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

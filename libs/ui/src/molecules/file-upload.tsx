@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
