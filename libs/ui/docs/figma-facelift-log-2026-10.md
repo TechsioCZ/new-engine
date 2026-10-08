@@ -178,6 +178,32 @@ at 0 violations after it.
 
 ---
 
+## 2026-10-08 · Export 18:15 verified, round 2 (needs another export)
+
+The export `feat/figma-variables-20261008-1815` was cherry-picked and merged
+(`merge-figma-themes.mjs`). Every variable in the two sections above matched, 28/28 component
+re-aliases plus all per-mode Theme values, and `validate:tokens` passes. Code follow-ups landed:
+- Carousel v1.1.0 (ActionIcon triggers, 24 px indicators).
+- Steps needed no code change; its per-size icon classes already override the bare default.
+
+Re-running axe `color-contrast` on the real stories with the exported tokens cleared Tabs,
+TreeView, Badge, Input and Carousel in all six brand/mode combinations. It found 3 more Steps
+issues that only the real `solid` variant shows. Fixed in Figma:
+
+| Variable | Before | After | Why |
+| --- | --- | --- | --- |
+| `color/steps/trigger/bg/complete` | `color/fill/overlay` | `color/fill/surface` | solid complete title 4.05 : 1 → 4.56 |
+| `color/fg-accent/primary` [neo-dark] | `color/primary/600` (`#e60000`) | `color/primary/400` | accent text on near-black 4.18 : 1 → 8.31 (also the progress range) |
+| `color/steps/title/fg/solid/current` | — | `color/fg/primary` (**new**, `--color-steps-title-fg-solid-current`) | accent title on its own accent tint failed (neo-light 3.95, neo-dark 2.65); now 6.42 – 18.54 |
+
+The Figma Steps solid variants bind the new token. **Code waiting for the next export:**
+steps.tsx `solid` variant adds `title: "data-current:text-steps-title-fg-solid-current"`.
+
+Still open at Theme level: neo-light `fg-accent/primary` (`#e60000`) on `fill/surface` is
+4.37 : 1. That's accent text on grey cards, not used by Steps.
+
+---
+
 ## Check after the token export (code side)
 
 Run after the user re-exports. Expected diff in `tokens/figma/*/variables.css`:
