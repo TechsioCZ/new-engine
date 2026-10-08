@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Skeleton v1.0.2
+- Fixed axe \`aria-prohibited-attr\`: the root and standalone shapes are now \`role="status"\` (a role that permits \`aria-label\`), shapes inside \`<Skeleton>\` are \`aria-hidden\` so a group announces once, and a consumer-hidden shape (\`aria-hidden\`) gets no status semantics.
+
 ### Table v1.2.1
 - Switched the border between header and cell columns from physical border-r to logical border-e for RTL.
 

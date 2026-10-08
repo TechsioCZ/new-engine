@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -105,6 +105,30 @@ function useResolvedSkeletonProps(props: {
   }
 }
 
+const LOADING_STATUS_PROPS = {
+  role: "status",
+  "aria-busy": true,
+  "aria-label": "Loading content",
+} as const
+
+/**
+ * Accessible semantics for a skeleton shape. A standalone shape is its own
+ * loading status; a shape inside `<Skeleton>` is decorative because the root
+ * already announces the loading state once. `aria-label` is only allowed on a
+ * role that supports naming, hence `role="status"` instead of a bare div.
+ * A consumer-hidden shape (`aria-hidden`) gets no status semantics at all.
+ */
+function useSkeletonA11yProps(ariaHidden?: boolean | "true" | "false") {
+  const context = useSkeletonContext()
+  if (context) {
+    return { "aria-hidden": true } as const
+  }
+  if (ariaHidden === true || ariaHidden === "true") {
+    return { "aria-busy": true, "aria-hidden": true } as const
+  }
+  return LOADING_STATUS_PROPS
+}
+
 interface SkeletonRootProps
   extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
   isLoaded?: boolean
@@ -131,8 +155,7 @@ export function Skeleton({
         <>{children}</>
       ) : (
         <div
-          aria-busy="true"
-          aria-label="Loading content"
+          {...LOADING_STATUS_PROPS}
           className={styles.root({ className })}
           ref={ref}
           {...props}
@@ -165,6 +188,7 @@ Skeleton.Circle = function SkeletonCircle({
   ...props
 }: SkeletonCircleProps) {
   const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const a11yProps = useSkeletonA11yProps(props["aria-hidden"])
 
   const styles = skeletonVariants({
     size,
@@ -178,8 +202,7 @@ Skeleton.Circle = function SkeletonCircle({
 
   return (
     <div
-      aria-busy="true"
-      aria-label="Loading content"
+      {...a11yProps}
       className={styles.root({
         className: styles.circle({ className }),
       })}
@@ -216,6 +239,7 @@ Skeleton.Text = function SkeletonText({
   ...props
 }: SkeletonTextProps) {
   const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const a11yProps = useSkeletonA11yProps(props["aria-hidden"])
 
   const styles = skeletonVariants({
     size,
@@ -232,8 +256,7 @@ Skeleton.Text = function SkeletonText({
 
   return (
     <div
-      aria-busy="true"
-      aria-label="Loading content"
+      {...a11yProps}
       className={styles.textContainer({ className: containerClassName })}
       ref={ref}
       {...props}
@@ -275,6 +298,7 @@ Skeleton.Rectangle = function SkeletonRectangle({
   ...props
 }: SkeletonRectangleProps) {
   const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const a11yProps = useSkeletonA11yProps(props["aria-hidden"])
 
   const styles = skeletonVariants({
     variant: resolved.variant,
@@ -287,8 +311,7 @@ Skeleton.Rectangle = function SkeletonRectangle({
 
   return (
     <div
-      aria-busy="true"
-      aria-label="Loading content"
+      {...a11yProps}
       className={styles.root({ className: styles.rectangle({ className }) })}
       ref={ref}
       {...props}
