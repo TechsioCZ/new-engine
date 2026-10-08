@@ -34,7 +34,7 @@ const radioCardVariants = tv({
   slots: {
     root: ["flex w-full flex-col"],
     item: [
-      "relative flex min-w-0 flex-col overflow-hidden",
+      "relative flex min-w-0 flex-col overflow-clip",
       "rounded-radio-card-item",
       "border-(length:--border-width-radio-card)",
       "border-radio-card-item-border",
@@ -242,9 +242,9 @@ const radioCardVariants = tv({
       start: {
         itemControl: "items-start",
         itemContent: "items-start",
-        itemText: "text-left",
-        itemDescription: "text-left",
-        itemAddon: "text-left",
+        itemText: "text-start",
+        itemDescription: "text-start",
+        itemAddon: "text-start",
       },
       center: {
         itemControl: "items-center",
@@ -256,9 +256,9 @@ const radioCardVariants = tv({
       end: {
         itemControl: "items-end",
         itemContent: "items-end",
-        itemText: "text-right",
-        itemDescription: "text-right",
-        itemAddon: "text-right",
+        itemText: "text-end",
+        itemDescription: "text-end",
+        itemAddon: "text-end",
       },
     },
     justify: {

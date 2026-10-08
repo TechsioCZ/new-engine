@@ -106,8 +106,8 @@ const tableVariants = tv({
     showColumnBorder: {
       true: {
         columnHeader:
-          "border-r-(length:--border-table-width) border-table-border",
-        cell: "border-r-(length:--border-table-width) border-table-border",
+          "border-e-(length:--border-table-width) border-table-border",
+        cell: "border-e-(length:--border-table-width) border-table-border",
       },
     },
     captionPlacement: {

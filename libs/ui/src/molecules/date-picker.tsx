@@ -192,14 +192,14 @@ const datePickerVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     segments: [
-      "date-picker-scrollbar-hidden flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-hidden outline-none",
+      "date-picker-scrollbar-hidden flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-hidden outline-hidden",
       "data-disabled:overflow-hidden",
     ],
     segmentGroup: "flex min-w-0 items-center",
     rangeSeparator:
       "shrink-0 px-date-picker-range-separator text-date-picker-range-separator-fg",
     segment: [
-      "date-picker-segment-size inline-flex shrink-0 items-center justify-center rounded-date-picker-day px-date-picker-segment tabular-nums outline-none",
+      "date-picker-segment-size inline-flex shrink-0 items-center justify-center rounded-date-picker-day px-date-picker-segment tabular-nums outline-hidden",
       "data-placeholder-shown:text-date-picker-segment-fg-placeholder",
       "focus:bg-date-picker-segment-bg-focus",
       "data-[type=literal]:min-h-0 data-[type=literal]:min-w-0 data-[type=literal]:px-0 data-[type=literal]:text-date-picker-control-fg",
@@ -235,7 +235,7 @@ const datePickerVariants = tv({
       "data-[selection-mode=range]:w-date-picker-content-range",
       "border-(length:--border-width-date-picker-content) border-date-picker-content-border",
       "rounded-date-picker-content bg-date-picker-content-bg text-date-picker-content-fg shadow-date-picker-content",
-      "outline-none duration-200 ease-out",
+      "outline-hidden duration-200 ease-out",
       "motion-safe:transition motion-reduce:transition-none",
       "starting:-translate-y-date-picker-enter-offset starting:opacity-0",
     ],
@@ -245,7 +245,7 @@ const datePickerVariants = tv({
     ],
     monthPanel: [
       "grid min-w-0 content-start gap-date-picker-calendar",
-      "sm:data-[index=1]:border-date-picker-month-divider-border sm:data-[index=1]:border-l sm:data-[index=1]:pl-date-picker-content",
+      "sm:data-[index=1]:border-date-picker-month-divider-border sm:data-[index=1]:border-l sm:data-[index=1]:ps-date-picker-content",
     ],
     view: "min-w-0",
     viewControl:
@@ -283,8 +283,8 @@ const datePickerVariants = tv({
       "data-today:border-date-picker-day-today-border",
       "data-in-range:rounded-none data-in-range:bg-date-picker-day-bg-range",
       "data-in-hover-range:rounded-none data-in-hover-range:bg-date-picker-day-bg-range-hover",
-      "data-range-start:rounded-date-picker-day data-range-start:rounded-r-none",
-      "data-range-end:rounded-date-picker-day data-range-end:rounded-l-none",
+      "data-range-start:rounded-date-picker-day data-range-start:rounded-e-none",
+      "data-range-end:rounded-date-picker-day data-range-end:rounded-s-none",
       "data-range-start:bg-date-picker-day-bg-selected data-range-end:bg-date-picker-day-bg-selected",
       "data-range-start:text-date-picker-day-fg-selected data-range-end:text-date-picker-day-fg-selected",
       "data-selected:bg-date-picker-day-bg-selected data-selected:text-date-picker-day-fg-selected",
@@ -313,7 +313,7 @@ const datePickerVariants = tv({
     timeGroup: [
       "flex min-w-0 items-center gap-date-picker-time",
       "data-[index=1]:border-date-picker-time-border data-[index=1]:border-t data-[index=1]:pt-date-picker-time",
-      "sm:data-[index=1]:border-l sm:data-[index=1]:border-t-0 sm:data-[index=1]:pt-0 sm:data-[index=1]:pl-date-picker-time",
+      "sm:data-[index=1]:border-l sm:data-[index=1]:border-t-0 sm:data-[index=1]:pt-0 sm:data-[index=1]:ps-date-picker-time",
     ],
     timeGroupLabel:
       "shrink-0 font-date-picker-view text-date-picker-time-label-fg text-date-picker-time-label",

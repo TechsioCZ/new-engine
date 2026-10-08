@@ -20,7 +20,7 @@ import { tv } from "../utils"
 
 const skeletonVariants = tv({
   slots: {
-    root: ["relative overflow-hidden"],
+    root: ["relative overflow-clip"],
     rectangle: "w-full",
     circle: ["rounded-full", "shrink-0"],
     textContainer: ["flex", "flex-col"],

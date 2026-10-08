@@ -78,7 +78,7 @@ const sliderVariants = tv({
     ],
     markerText: [
       "absolute top-full",
-      "data-[orientation=vertical]:top-0 data-[orientation=vertical]:left-full",
+      "data-[orientation=vertical]:top-0 data-[orientation=vertical]:start-full",
       "data-[orientation=vertical]:h-full",
       "data-[orientation=vertical]:p-marker-text",
     ],

@@ -22,7 +22,7 @@ const toastVariants = tv({
     root: [
       "relative flex flex-col rounded-toast-root",
       "border-(length:--border-width-toast) bg-toast-bg shadow-lg",
-      "w-toast-width overflow-hidden p-toast-root",
+      "w-toast-width overflow-clip p-toast-root",
       "data-[type=error]:border-toast-error-border data-[type=error]:bg-toast-error-bg",
       "data-[type=success]:border-toast-success-border data-[type=success]:bg-toast-success-bg",
       "data-[type=info]:border-toast-info-border data-[type=info]:bg-toast-info-bg",

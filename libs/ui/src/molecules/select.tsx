@@ -59,7 +59,7 @@ const selectVariants = tv({
       "group",
       "flex items-center justify-between gap-0",
       "font-normal",
-      "text-left",
+      "text-start",
       "hover:bg-select-trigger-bg-hover",
       "hover:border-select-trigger-border-hover",
       "focus:border-select-trigger-border-focus",
@@ -86,7 +86,7 @@ const selectVariants = tv({
     ],
     // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
     // its own size, glyph and neutral hover pill.
-    clearTrigger: ["-translate-y-1/2 absolute top-1/2 right-select-right"],
+    clearTrigger: ["-translate-y-1/2 absolute end-select-right top-1/2"],
     content: [
       "popup-surface-base",
       "w-full",

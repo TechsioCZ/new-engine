@@ -31,7 +31,7 @@ const comboboxVariants = tv({
     root: ["relative flex w-full flex-col"],
     label: ["block font-label text-label-md"],
     control: [
-      "form-control-base relative flex w-full items-center overflow-hidden",
+      "form-control-base relative flex w-full items-center overflow-clip",
       "bg-combobox-bg-base",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
@@ -49,7 +49,7 @@ const comboboxVariants = tv({
     ],
     input: [
       "relative h-full min-w-0 flex-1 border-none bg-combobox-input-bg-base",
-      "hover:bg-combobox-input-bg-hover focus-visible:outline-none",
+      "hover:bg-combobox-input-bg-hover focus-visible:outline-hidden",
       "focus:bg-combobox-input-bg-focus",
       "placeholder:text-combobox-fg-placeholder",
       "data-disabled:text-combobox-fg-disabled",

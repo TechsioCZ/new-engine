@@ -1,0 +1,66 @@
+/*
+ * Element defaults and interaction variants shared by every component.
+ * Based on the good-css.com reset, adopted rule by rule.
+ */
+
+/*
+ * Tailwind's built-in hover: only checks (hover: hover). Hybrid and touch
+ * devices still report it, so a tapped control keeps its hover colour until
+ * the next tap elsewhere. Requiring a fine pointer limits hover to mice and
+ * trackpads.
+ */
+@custom-variant hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
+}
+
+@layer base {
+  :root {
+    /* Lets height/width transition to and from `auto` (accordions, disclosures). */
+    interpolate-size: allow-keywords;
+    /* Reserve the scrollbar track so locking scroll for a dialog does not shift
+     * the page. Zag's scroll lock detects this and skips its padding fallback. */
+    scrollbar-gutter: stable;
+    /* Avoid single-word last lines in body copy. */
+    text-wrap: pretty;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+    /* Components draw their own :active state. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :where(h1, h2, h3, h4, h5, h6) {
+    text-wrap: balance;
+  }
+
+  /* Removes the double-tap-to-zoom delay on controls. */
+  :where(
+      a,
+      button,
+      label,
+      select,
+      summary,
+      [role="button"],
+      [role="option"],
+      [role="tab"],
+      input:is([type="checkbox"], [type="radio"])
+    ) {
+    touch-action: manipulation;
+  }
+}
+
+/*
+ * iOS Safari zooms the page into any focused field whose text is under 16px.
+ * The fluid --text-sm step drops below that on phones, so small fields floor
+ * at 16px. Unlayered so it wins over the Figma @theme values.
+ */
+:root {
+  --text-input-sm: max(16px, var(--text-sm));
+  --text-textarea-sm: max(16px, var(--text-sm));
+  --text-numeric-input-sm: max(16px, var(--text-sm));
+  --text-combobox-sm: max(16px, var(--text-sm));
+  --text-phone-input-sm: max(16px, var(--text-sm));
+}

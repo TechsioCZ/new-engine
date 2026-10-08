@@ -61,7 +61,7 @@ const fileUploadStyles = tv({
       "data-disabled:text-file-upload-item-disabled-fg",
     ],
     itemPreview: [
-      "flex size-file-upload-item-preview shrink-0 items-center justify-center overflow-hidden rounded-file-upload-item-preview text-file-upload-item-preview-fg",
+      "flex size-file-upload-item-preview shrink-0 items-center justify-center overflow-clip rounded-file-upload-item-preview text-file-upload-item-preview-fg",
       "data-disabled:text-file-upload-item-disabled-fg",
     ],
     itemPreviewImage: "size-full object-cover",

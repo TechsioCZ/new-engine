@@ -53,7 +53,7 @@ const stepsVariants = tv({
     ],
     trigger: [
       "group relative flex min-w-0 items-center justify-start gap-steps-trigger",
-      "text-left",
+      "text-start",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-steps-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -98,7 +98,7 @@ const stepsVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     progress: [
-      "relative overflow-hidden rounded-steps-progress bg-steps-progress-bg",
+      "relative overflow-clip rounded-steps-progress bg-steps-progress-bg",
       "data-[orientation=horizontal]:h-steps-progress data-[orientation=horizontal]:w-full",
       "data-[orientation=vertical]:w-steps-progress data-[orientation=vertical]:self-stretch",
     ],

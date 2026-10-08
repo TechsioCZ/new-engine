@@ -174,7 +174,7 @@ const dataTableVariants = tv({
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
     sortButton: [
       "inline-flex items-center gap-100 whitespace-nowrap",
-      "cursor-pointer select-none bg-transparent text-left",
+      "cursor-pointer select-none bg-transparent text-start",
       "data-[disabled=true]:cursor-default",
     ],
     sortIcon: [

@@ -28,8 +28,7 @@ const accordionVariants = tv({
     root: [
       "flex w-full flex-col",
       "rounded-accordion bg-accordion-bg",
-      "transition-all duration-200",
-      "transition-all duration-200 motion-reduce:transition-none",
+      "transition duration-200 motion-reduce:transition-none",
     ],
     item: "",
     title: "grid place-items-start",
@@ -39,7 +38,7 @@ const accordionVariants = tv({
       "font-accordion-title",
       "bg-accordion-title-bg text-accordion-title-fg",
       "hover:bg-accordion-title-bg-hover",
-      "pr-accordion-icon-right",
+      "pe-accordion-icon-right",
       "data-[disabled=true]:cursor-not-allowed",
     ],
     subtitle: ["text-accordion-subtitle-fg"],

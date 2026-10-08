@@ -11,7 +11,7 @@ export const sidebarVariants = tv({
     desktopPanel: [
       "group/sidebar-panel sticky top-sidebar-offset hidden h-sidebar-viewport shrink-0 flex-col overflow-hidden",
       "sidebar-desktop:flex bg-sidebar-panel-bg text-sidebar-panel-fg",
-      "border-sidebar-panel-border transition-all duration-(--duration-sidebar) motion-reduce:transition-none",
+      "border-sidebar-panel-border transition-[width,background-color,border-color] duration-(--duration-sidebar) motion-reduce:transition-none",
       "focus-visible:sidebar-focus-ring",
       "data-[side=start]:border-e-(length:--border-width-sidebar)",
       "data-[side=end]:border-s-(length:--border-width-sidebar)",

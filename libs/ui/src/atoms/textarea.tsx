@@ -23,13 +23,18 @@ const textareaVariants = tv({
     "placeholder:text-textarea-fg-placeholder",
     "border-(length:--border-width-textarea) border-textarea-border",
     "rounded-textarea",
-    "transition-all duration-200 motion-reduce:transition-none",
+    "transition duration-200 motion-reduce:transition-none",
     "hover:border-textarea-border-hover hover:bg-textarea-bg-hover",
     "focus:border-textarea-border-focus focus:bg-textarea-bg-focus",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
     "focus-visible:outline-textarea-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:pointer-events-none disabled:border-textarea-border-disabled disabled:bg-textarea-bg-disabled disabled:text-textarea-fg-disabled",
+    // Native constraint validation once the user has interacted with the field.
+    "user-invalid:border-(length:--border-width-validation)",
+    "user-invalid:border-textarea-border-danger-base",
+    "user-invalid:hover:border-textarea-border-danger-hover",
+    "user-invalid:focus:border-textarea-border-danger-focus",
   ],
   variants: {
     variant: {

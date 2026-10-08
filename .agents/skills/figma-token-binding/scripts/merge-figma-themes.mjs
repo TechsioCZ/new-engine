@@ -59,12 +59,23 @@ const BRANDS = [
 
 const DECL_RE = /^\s*(--[a-z0-9-]+):\s*([^;]+);/gm
 
+/*
+ * Figma exports neutral greys as `oklch(L 0 0)`. A hue of 0 is red, so any
+ * `oklch(from …)` or `color-mix(in oklch, …)` derived from a grey drifts
+ * toward red. `none` marks the hue as missing and keeps derived tints neutral.
+ */
+const GREY_HUE_RE = /oklch\(\s*([^\s)]+)\s+0\s+0(?=\s*[/)])/g
+
+function normalizeValue(value) {
+  return value.replace(GREY_HUE_RE, "oklch($1 0 none")
+}
+
 function parseDecls(relDir) {
   const css = readFileSync(join(FIGMA_DIR, relDir, "variables.css"), "utf8")
   const out = new Map()
   DECL_RE.lastIndex = 0
   for (const m of css.matchAll(DECL_RE)) {
-    out.set(m[1], m[2].trim())
+    out.set(m[1], normalizeValue(m[2].trim()))
   }
   return out
 }

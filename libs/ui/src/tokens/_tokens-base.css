@@ -26,6 +26,9 @@
  * (e.g. neo) emit tokens here; base is the default @theme above. */
 @import "./figma/brand-overrides.css";
 
+/* Element defaults, the hover variant and the mobile input-size floor. */
+@import "./_reset.css";
+
 /* Base styles */
 :root {
   color-scheme: light dark;

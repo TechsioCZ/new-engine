@@ -23,13 +23,19 @@ const inputVariants = tv({
     "placeholder:text-input-fg-placeholder",
     "border-(length:--border-width-input) border-input-border-base",
     "rounded-input",
-    "transition-all duration-200 motion-reduce:transition-none",
+    "transition duration-200 motion-reduce:transition-none",
     "hover:border-input-border-hover hover:bg-input-bg-hover",
     "focus:border-input-border-focus focus:bg-input-bg-focus",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
     "focus-visible:outline-input-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:hover:bg-input-bg-disabled",
+    // Native constraint validation (required, type, pattern…) once the user
+    // has interacted with the field — never on first render.
+    "user-invalid:border-(length:--border-width-validation)",
+    "user-invalid:border-input-border-danger-base",
+    "user-invalid:hover:border-input-border-danger-hover",
+    "user-invalid:focus:border-input-border-danger-focus",
   ],
   variants: {
     size: {

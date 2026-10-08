@@ -24,7 +24,7 @@ const checkboxVariants = tv({
       "rounded-checkbox border border-checkbox-border-base",
       "bg-checkbox-bg-base",
       "flex items-center justify-center",
-      "transition-all duration-200 motion-reduce:transition-none",
+      "transition duration-200 motion-reduce:transition-none",
       "data-[state=checked]:bg-checkbox-bg-checked",
       "data-[state=checked]:border-checkbox-border-checked",
       "data-[state=indeterminate]:bg-checkbox-bg-indeterminate",
@@ -53,7 +53,7 @@ const checkboxVariants = tv({
       "data-disabled:text-label-fg-disabled",
     ],
     hiddenInput: "sr-only",
-    textIndented: "data-[icon=false]:pl-form-checkbox-text-offset",
+    textIndented: "data-[icon=false]:ps-form-checkbox-text-offset",
   },
   variants: {
     size: {
