@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### FormNumericInput v1.1.1
+- The label is always linked to the input: without an \`id\` the label pointed at nothing while Zag generated its own input id (axe \`label\`, critical). A generated id is now used when none is passed.
+
 ### Pagination v1.0.1
 - Fixed axe \`aria-prohibited-attr\` on the disabled prev/next triggers: without a page to go to they now render as an \`aria-disabled\` \`<button type="button">\` instead of an \`<a>\` with no \`href\`, so the Zag \`aria-label\` is valid. Also fixes DataTable pagination, which composes Pagination.
 

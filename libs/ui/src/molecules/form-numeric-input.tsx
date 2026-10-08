@@ -2,7 +2,7 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -38,6 +38,11 @@ export function FormNumericInput({
   describedBy,
   ...numericInputProps
 }: FormNumericInputProps) {
+  const generatedId = useId()
+  // The label must point at the real input. Zag only uses our id for the
+  // input when one is given, otherwise it generates `number-input:<id>:input`
+  // and the label's htmlFor dangles — so always pass a concrete id.
+  const inputId = id || generatedId
   const helpTextId = useId()
   const mergedDescribedBy =
     [describedBy, helpText ? helpTextId : undefined]
@@ -46,17 +51,22 @@ export function FormNumericInput({
 
   return (
     <div className="flex flex-col gap-form-field-gap">
-      <Label disabled={disabled} htmlFor={id} required={required} size={size}>
+      <Label
+        disabled={disabled}
+        htmlFor={inputId}
+        required={required}
+        size={size}
+      >
         {label}
       </Label>
 
       <NumericInput
+        describedBy={mergedDescribedBy}
         disabled={disabled}
-        id={id}
+        id={inputId}
         invalid={validateStatus === "error"}
         required={required}
         size={size}
-        describedBy={mergedDescribedBy}
         {...numericInputProps}
       >
         {children}
@@ -65,9 +75,9 @@ export function FormNumericInput({
       {helpText && (
         <StatusText
           id={helpTextId}
-          status={validateStatus}
           showIcon={showHelpTextIcon}
           size={size}
+          status={validateStatus}
         >
           {helpText}
         </StatusText>
