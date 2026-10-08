@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit template.
  *
  * @component NumericInput
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,6 +21,10 @@ export interface NumericInputTemplateProps
   incrementIcon?: IconType
   decrementIcon?: IconType
   className?: string
+  /** Names the input when there is no visible label; reaches the input, not the root. */
+  "aria-label"?: string
+  /** Id of a visible label for the input. */
+  "aria-labelledby"?: string
   ref?: Ref<HTMLDivElement>
 }
 
@@ -32,15 +36,24 @@ export function NumericInputTemplate({
   decrementIcon = "token-icon-numeric-input-decrement",
   className,
   ref,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...numericInputProps
 }: NumericInputTemplateProps) {
+  const input = (
+    <NumericInput.Input
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
+    />
+  )
+
   // Layout for controls on the right (default)
   if (controlsPosition === "right") {
     return (
       <NumericInput {...numericInputProps} className={className} ref={ref}>
         <NumericInput.Control>
           {showScrubber && <NumericInput.Scrubber />}
-          <NumericInput.Input />
+          {input}
           {showControls && (
             <NumericInput.TriggerContainer>
               <NumericInput.IncrementTrigger icon={incrementIcon} />
@@ -59,7 +72,7 @@ export function NumericInputTemplate({
         {showControls && <NumericInput.DecrementTrigger icon={decrementIcon} />}
         <NumericInput.Control className="flex-1">
           {showScrubber && <NumericInput.Scrubber />}
-          <NumericInput.Input />
+          {input}
         </NumericInput.Control>
         {showControls && <NumericInput.IncrementTrigger icon={incrementIcon} />}
       </div>

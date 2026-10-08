@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### NumericInput v1.1.2
+- \`NumericInputTemplate\` takes \`aria-label\` / \`aria-labelledby\` and forwards them to the input instead of the root, so a template without a visible label can be named (axe \`label\`, critical, on the template stories).
+
 ### Tabs v1.0.1
 - A trigger only sets \`aria-controls\` when its \`Tabs.Content\` is mounted, so a tab strip used as sub-navigation without panels no longer references missing ids (axe \`aria-valid-attr-value\`, critical).
 
