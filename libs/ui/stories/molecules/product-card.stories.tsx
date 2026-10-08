@@ -410,7 +410,7 @@ export const LayoutVariants: Story = {
         <ProductCard layout="column">
           <ProductCard.Image src={productImages.tshirt} alt="T-Shirt" />
           <ProductCard.Name>Cotton T-Shirt</ProductCard.Name>
-          <ProductCard.Rating rating={{defaultValue: 4}} />
+          <ProductCard.Rating rating={{ defaultValue: 4, readOnly: true }} />
           <ProductCard.Stock status="in-stock">In Stock</ProductCard.Stock>
           <ProductCard.Price>$24.99</ProductCard.Price>
           <ProductCard.Actions>
@@ -432,7 +432,7 @@ export const LayoutVariants: Story = {
             className="row-span-6"
           />
           <ProductCard.Name>Running Shoes</ProductCard.Name>
-          <ProductCard.Rating rating={{defaultValue: 5}} />
+          <ProductCard.Rating rating={{ defaultValue: 5, readOnly: true }} />
           <ProductCard.Stock status="limited-stock">Limited Stock</ProductCard.Stock>
           <ProductCard.Price>$89.99</ProductCard.Price>
           <ProductCard.Actions>
@@ -467,7 +467,7 @@ export const CustomComposition: Story = {
       </div>
 
       <div className="flex items-center gap-100">
-        <ProductCard.Rating rating={{defaultValue: 4.5}} />
+        <ProductCard.Rating rating={{ defaultValue: 4.5, readOnly: true }} />
         <span className="text-100 text-fg-muted">(245 reviews)</span>
       </div>
 
@@ -512,7 +512,7 @@ export const WithQuantityInput: Story = {
       <ProductCard.Actions>
         <NumericInput id="product-quantity" defaultValue={1} min={1} max={5}>
           <NumericInput.Control>
-            <NumericInput.Input />
+            <NumericInput.Input aria-label="Quantity" />
             <NumericInput.TriggerContainer>
               <NumericInput.IncrementTrigger />
               <NumericInput.DecrementTrigger />
@@ -573,7 +573,7 @@ export const ComplexCard: Story = {
       </ProductCard.Name>
 
       <div className="mb-100 flex items-center gap-100">
-        <ProductCard.Rating rating={{ defaultValue: 4.9 }} />
+        <ProductCard.Rating rating={{ defaultValue: 4.9, readOnly: true }} />
         <span className="text-50 text-fg-muted">(512 reviews)</span>
       </div>
 
@@ -594,7 +594,7 @@ export const ComplexCard: Story = {
         <div className="mb-100 flex items-center gap-100">
           <NumericInput id="product-quantity" defaultValue={1} min={1} max={10}>
             <NumericInput.Control>
-              <NumericInput.Input />
+              <NumericInput.Input aria-label="Quantity" />
               <NumericInput.TriggerContainer>
                 <NumericInput.IncrementTrigger />
                 <NumericInput.DecrementTrigger />
@@ -758,7 +758,7 @@ export const CustomRowSpan: Story = {
       </div>
       <div className="col-2 row-3 place-self-end">
       <ProductCard.Price>$1,299.99</ProductCard.Price>
-      <ProductCard.Rating rating={{ defaultValue: 4.5 }} />
+      <ProductCard.Rating rating={{ defaultValue: 4.5, readOnly: true }} />
       <ProductCard.Actions>
         <ProductCard.Button
           buttonVariant="cart"
@@ -797,7 +797,7 @@ export const CustomGridLayout: Story = {
           <Badge variant="info">Noise Cancelling</Badge>
         </ProductCard.Badges>
         <ProductCard.Price>$349.99</ProductCard.Price>
-        <ProductCard.Rating rating={{ defaultValue: 4.9 }} />
+        <ProductCard.Rating rating={{ defaultValue: 4.9, readOnly: true }} />
         <ProductCard.Stock status="limited-stock">
           Only 5 left in stock!
         </ProductCard.Stock>

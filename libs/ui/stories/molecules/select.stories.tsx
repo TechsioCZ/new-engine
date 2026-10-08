@@ -530,7 +530,7 @@ export const WithAvatars: Story = {
 							<span className="flex items-center gap-2">
 								<img
 									src={items[0]?.avatar as string}
-									alt={items[0]?.label as string}
+									alt=""
 									className="h-6 w-6 rounded-full object-cover"
 								/>
 								<span>{items[0]?.label}</span>
@@ -547,7 +547,7 @@ export const WithAvatars: Story = {
 							<span className="flex items-center gap-2">
 								<img
 									src={item.avatar as string}
-									alt={item.label as string}
+									alt=""
 									className="h-6 w-6 rounded-full object-cover"
 								/>
 								<span className="flex flex-col">
