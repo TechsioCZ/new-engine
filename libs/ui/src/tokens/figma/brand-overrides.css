@@ -36,7 +36,7 @@
   --color-bg-warning-active: light-dark(oklch(0.678 0.142 76.945), oklch(0.937 0.199 105.01));
   --color-bg-warning-hover: light-dark(oklch(0.718 0.149 79.256), oklch(0.909 0.189 99.865));
   --color-fg-accent-danger: oklch(0.452 0.066 4.881);
-  --color-fg-accent-primary: var(--color-primary-600);
+  --color-fg-accent-primary: light-dark(var(--color-primary-600), var(--color-primary-400));
   --color-fg-accent-secondary: oklch(0.447 0.076 49.767);
   --color-fg-accent-success: light-dark(var(--color-success-500), var(--color-success-300));
   --color-fg-accent-tertiary: oklch(0.511 0.054 323.997);

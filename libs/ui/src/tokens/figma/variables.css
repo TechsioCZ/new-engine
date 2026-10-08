@@ -1022,7 +1022,8 @@
   --color-steps-title-fg: var(--color-fg-primary);
   --color-steps-title-fg-complete: var(--color-fg-status-success);
   --color-steps-title-fg-current: var(--color-fg-accent-primary);
-  --color-steps-trigger-bg-complete: var(--color-fill-overlay);
+  --color-steps-title-fg-solid-current: var(--color-fg-primary);
+  --color-steps-trigger-bg-complete: var(--color-fill-surface);
   --color-steps-trigger-bg-current: var(--color-bg-light-primary-base);
   --color-steps-trigger-bg-hover: var(--color-fill-hover);
   --color-success: light-dark(var(--color-success-500), var(--color-success-300));
