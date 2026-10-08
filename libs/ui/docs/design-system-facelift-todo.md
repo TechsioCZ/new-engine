@@ -319,14 +319,14 @@ Form-control border **1.4:1**, checkbox border **1.4:1**, checkbox/switch checke
 `StatusText` renders a bare `<div>` — no `role="alert"`, no id — and `FormInput` /
 `FormTextarea` / `FormCheckbox` / `Select` / `Switch` / `Slider` never set `aria-describedby`.
 Only `NumericInput`, `RadioCard` and `DataTable` do it correctly.
-- [ ] Wire `aria-describedby` + `role="alert"` through the `Form*` wrappers, copying `RadioCard`.
+- [x] Wire `aria-describedby` + `role="alert"` through the `Form*` wrappers, copying `RadioCard`. *(StatusText live roles; Select / Switch / Slider / RadioGroup / PhoneInput linked)*
 
 ### 🔴 C5 · Five component ARIA bugs (reproduced with axe 4.11)
-- [ ] `Steps` — `role="tablist"` contains `div[aria-current]` children the role forbids *(critical)*
-- [ ] `PhoneInput.CountryPicker` — `aria-labelledby` points at an id that is never rendered → no accessible name *(critical)*
-- [ ] `Carousel` — inactive slides are `aria-hidden` but still focusable *(serious)*
-- [ ] `Pagination` — disabled prev/next render as `<a>` without `href`, so `aria-label` is prohibited *(serious)*
-- [ ] `Carousel.Indicators` — **16×16 px**, below the WCAG 2.2 AA 24×24 minimum *(serious)*
+- [x] `Steps` — `role="tablist"` contains `div[aria-current]` children the role forbids *(critical)*
+- [x] `PhoneInput.CountryPicker` — `aria-labelledby` points at an id that is never rendered → no accessible name *(critical)*
+- [x] `Carousel` — inactive slides are `aria-hidden` but still focusable *(serious)*
+- [x] `Pagination` — disabled prev/next render as `<a>` without `href`, so `aria-label` is prohibited *(serious)*
+- [x] `Carousel.Indicators` — **16×16 px**, below the WCAG 2.2 AA 24×24 minimum *(serious)*
 
 ### 🔴 C6 · The accent colour is unreadable as a selected state *(base brand only)*
 TreeView selected item **1.4:1**, selected Tabs trigger **1.23:1**. The `business` brand
@@ -346,14 +346,14 @@ exactly 24 px (the WCAG floor); sort triggers measure 48×21.
 
 ### 🟠 C9 · `Icon` is permanently `aria-hidden="true"`
 A meaningful standalone icon cannot be exposed without a hand-written `sr-only` span.
-- [ ] Add `decorative={false}` / `label`.
+- [x] Add `decorative={false}` / `label`. *(Icon v1.1.0 `label` → `role="img"`)*
 
 ### 🟠 C10 · Nothing enforces an accessible name on icon-only controls
 `<ActionIcon icon="…" />` compiles and ships an unlabelled button.
-- [ ] Require `aria-label` in the type when there are no children.
+- [x] Require `aria-label` in the type when there are no children. *(ActionIcon v1.1.0)*
 
 ### 🟠 C11 · `Chart` and `Footer` ignore reduced motion; `Carousel.autoplay` doesn't check it
-- [ ] Guard all three.
+- [x] Guard all three. *(usePrefersReducedMotion: Carousel autoplay, Chart animate; Footer transitions)*
 
 ### 🟠 C12 · The a11y gate does not gate
 `scripts/storybook-a11y.sh` defaults `A11Y_REPORT_FAIL_ON_VIOLATIONS=false`.
