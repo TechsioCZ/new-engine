@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -262,7 +262,13 @@ export function Pagination<T extends ElementType = "a">({
     variant,
     size,
   })
-  const rootProps = mergeProps(props, api.getRootProps())
+  // Zag's root aria-label (translations.rootLabel) would overwrite the
+  // caller's; a page with two paginations needs distinct names.
+  const rootProps = mergeProps(
+    props,
+    api.getRootProps(),
+    props["aria-label"] ? { "aria-label": props["aria-label"] } : {}
+  )
 
   const sharedLinkProps =
     linkProps && typeof linkProps === "object"

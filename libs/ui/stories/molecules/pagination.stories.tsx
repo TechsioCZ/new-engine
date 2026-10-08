@@ -112,8 +112,15 @@ export const Sizes: Story = {
     <VariantContainer>
       <VariantGroup title="Small (sm)">
         <div className="space-y-300">
-          <StoryPagination count={100} defaultPage={5} pageSize={10} size="sm" />
           <StoryPagination
+            aria-label="Pagination, Small (sm) 1"
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="sm"
+          />
+          <StoryPagination
+            aria-label="Pagination, Small (sm) 2"
             count={100}
             defaultPage={5}
             pageSize={10}
@@ -121,6 +128,7 @@ export const Sizes: Story = {
             variant="outlined"
           />
           <StoryPagination
+            aria-label="Pagination, Small (sm) 3"
             count={100}
             defaultPage={5}
             pageSize={10}
@@ -132,8 +140,15 @@ export const Sizes: Story = {
 
       <VariantGroup title="Medium (md)">
         <div className="space-y-300">
-          <StoryPagination count={100} defaultPage={5} pageSize={10} size="md" />
           <StoryPagination
+            aria-label="Pagination, Medium (md) 1"
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="md"
+          />
+          <StoryPagination
+            aria-label="Pagination, Medium (md) 2"
             count={100}
             defaultPage={5}
             pageSize={10}
@@ -141,6 +156,7 @@ export const Sizes: Story = {
             variant="outlined"
           />
           <StoryPagination
+            aria-label="Pagination, Medium (md) 3"
             count={100}
             defaultPage={5}
             pageSize={10}
@@ -152,8 +168,15 @@ export const Sizes: Story = {
 
       <VariantGroup title="Large (lg)">
         <div className="space-y-300">
-          <StoryPagination count={100} defaultPage={5} pageSize={10} size="lg" />
           <StoryPagination
+            aria-label="Pagination, Large (lg) 1"
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="lg"
+          />
+          <StoryPagination
+            aria-label="Pagination, Large (lg) 2"
             count={100}
             defaultPage={5}
             pageSize={10}
@@ -161,6 +184,7 @@ export const Sizes: Story = {
             variant="outlined"
           />
           <StoryPagination
+            aria-label="Pagination, Large (lg) 3"
             count={100}
             defaultPage={5}
             pageSize={10}
@@ -178,13 +202,25 @@ export const CompactMode: Story = {
     <VariantContainer>
       <VariantGroup title="Regular vs Compact">
         <div className="space-y-300">
-          <StoryPagination count={250} defaultPage={5} pageSize={10} />
-          <StoryPagination compact count={250} defaultPage={5} pageSize={10} />
+          <StoryPagination
+            aria-label="Pagination, Regular vs Compact 1"
+            count={250}
+            defaultPage={5}
+            pageSize={10}
+          />
+          <StoryPagination
+            aria-label="Pagination, Regular vs Compact 2"
+            compact
+            count={250}
+            defaultPage={5}
+            pageSize={10}
+          />
         </div>
       </VariantGroup>
 
       <VariantGroup title="Compact with sizes">
         <StoryPagination
+          aria-label="Pagination, Compact with sizes 1"
           compact
           count={200}
           defaultPage={12}
@@ -192,6 +228,7 @@ export const CompactMode: Story = {
           size="sm"
         />
         <StoryPagination
+          aria-label="Pagination, Compact with sizes 2"
           compact
           count={200}
           defaultPage={12}
@@ -199,6 +236,7 @@ export const CompactMode: Story = {
           size="md"
         />
         <StoryPagination
+          aria-label="Pagination, Compact with sizes 3"
           compact
           count={200}
           defaultPage={12}
@@ -214,11 +252,17 @@ export const StyleVariants: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Filled">
-        <StoryPagination count={100} defaultPage={5} pageSize={10} />
+        <StoryPagination
+          aria-label="Pagination, Filled 1"
+          count={100}
+          defaultPage={5}
+          pageSize={10}
+        />
       </VariantGroup>
 
       <VariantGroup title="Outlined">
         <StoryPagination
+          aria-label="Pagination, Outlined 1"
           count={100}
           defaultPage={5}
           pageSize={10}
@@ -228,6 +272,7 @@ export const StyleVariants: Story = {
 
       <VariantGroup title="Minimal">
         <StoryPagination
+          aria-label="Pagination, Minimal 1"
           count={100}
           defaultPage={5}
           pageSize={10}
@@ -243,14 +288,21 @@ export const EdgeCases: Story = {
     <VariantContainer>
       <VariantGroup title="Very few pages">
         <div className="space-y-300">
-          <StoryPagination count={5} defaultPage={1} pageSize={10} />
           <StoryPagination
+            aria-label="Pagination, Very few pages 1"
+            count={5}
+            defaultPage={1}
+            pageSize={10}
+          />
+          <StoryPagination
+            aria-label="Pagination, Very few pages 2"
             count={20}
             defaultPage={1}
             pageSize={10}
             variant="outlined"
           />
           <StoryPagination
+            aria-label="Pagination, Very few pages 3"
             count={30}
             defaultPage={2}
             pageSize={10}
@@ -261,8 +313,14 @@ export const EdgeCases: Story = {
 
       <VariantGroup title="Many pages">
         <div className="space-y-300">
-          <StoryPagination count={1000} defaultPage={50} pageSize={10} />
           <StoryPagination
+            aria-label="Pagination, Many pages 1"
+            count={1000}
+            defaultPage={50}
+            pageSize={10}
+          />
+          <StoryPagination
+            aria-label="Pagination, Many pages 2"
             count={5000}
             defaultPage={125}
             pageSize={20}
@@ -310,7 +368,12 @@ export const RealWorldScenarios: Story = {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-fg-secondary text-sm">20 items per page</span>
-              <StoryPagination count={456} defaultPage={3} pageSize={20} />
+              <StoryPagination
+                aria-label="Pagination, Table navigation 1"
+                count={456}
+                defaultPage={3}
+                pageSize={20}
+              />
             </div>
           </div>
         </div>
@@ -319,12 +382,14 @@ export const RealWorldScenarios: Story = {
       <VariantGroup title="Without prev/next buttons">
         <div className="space-y-300">
           <StoryPagination
+            aria-label="Pagination, Without prev/next buttons 1"
             count={150}
             defaultPage={5}
             pageSize={10}
             showPrevNext={false}
           />
           <StoryPagination
+            aria-label="Pagination, Without prev/next buttons 2"
             count={150}
             defaultPage={5}
             pageSize={10}
@@ -332,6 +397,7 @@ export const RealWorldScenarios: Story = {
             variant="outlined"
           />
           <StoryPagination
+            aria-label="Pagination, Without prev/next buttons 3"
             count={150}
             defaultPage={5}
             pageSize={10}
