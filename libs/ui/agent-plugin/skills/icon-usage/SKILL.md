@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or
   Iconify classes with the library's supported size and semantic color props.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -15,7 +15,9 @@ metadata:
 # @techsio/ui-kit Icon Usage
 
 Use Icon for decorative or component-adjacent icons. The Icon atom renders
-`aria-hidden`, so it must not be the only accessible content for an action.
+`aria-hidden` by default, so it must not be the only accessible content for an action.
+A meaningful standalone icon (a status glyph with no text beside it) takes `label`
+and renders as `role="img"`.
 
 ## UX/UI guidelines
 
@@ -96,6 +98,15 @@ separate Icon next to text.
 
 Icon itself is decorative. The parent action or surrounding text carries the
 accessible name.
+
+### Label a meaningful standalone icon
+
+```tsx
+<Icon icon="icon-[mdi--check-circle]" label="In stock" />
+```
+
+Use `label` only when the icon is not inside a control and no text next to it
+says the same thing. Never put `label` on an icon inside a labelled button.
 
 ## Common Mistakes
 

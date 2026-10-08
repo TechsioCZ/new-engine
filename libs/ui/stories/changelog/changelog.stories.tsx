@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Icon v1.1.0
+- New \`label\` prop (facelift C9): a meaningful standalone icon renders as \`role="img"\` with that accessible name. Without \`label\` the icon stays \`aria-hidden\` as before.
+
 ### Accordion v1.0.2
 - \`Accordion.Header\` renders the APG heading (\`role="heading"\`, \`aria-level\` 3 by default, overridable) instead of a bare \`<header>\`, which created one \`banner\` landmark per item (axe \`landmark-no-duplicate-banner\`, \`landmark-unique\`, \`landmark-banner-is-top-level\`). The ref is now \`Ref<HTMLDivElement>\`.
 
