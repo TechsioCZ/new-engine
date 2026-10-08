@@ -55,7 +55,7 @@
  *
  * `background: inherit` gives the second without the first: every row-level
  * tint in this system is an alpha overlay meant to composite over a surface
- * (`--color-table-row-striped-secondary` is literally `oklch(0 0 0 / 0)`), so
+ * (`--color-table-row-striped-secondary` is literally `oklch(0 0 none / 0)`), so
  * inheriting it yields a see-through cell.
  *
  * Compositing solves both at once — the same trick `OPAQUE_HEADER_BG` uses for

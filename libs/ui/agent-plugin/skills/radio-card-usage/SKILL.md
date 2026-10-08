@@ -5,7 +5,7 @@ description: >
   prominent single-choice cards with Zag.js radio behavior, label, item,
   hidden input, control, text, description, addon, indicator, and status text.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

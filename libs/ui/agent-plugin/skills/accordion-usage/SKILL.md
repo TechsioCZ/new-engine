@@ -5,7 +5,7 @@ description: >
   collapsible sections using the Zag.js-backed compound anatomy, supported
   variant, shadow, size, value, multiple, and collapsible props.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

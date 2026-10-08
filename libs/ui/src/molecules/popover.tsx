@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -42,7 +42,7 @@ const popoverVariants = tv({
       "bg-popover-bg",
       "text-popover-fg",
       "rounded-popover",
-      "outline-none",
+      "outline-hidden",
       "z-50",
       "relative",
     ],
@@ -53,7 +53,7 @@ const popoverVariants = tv({
       "text-popover-description text-popover-description-fg",
       "leading-normal",
     ],
-    closeTrigger: ["absolute top-2 right-2"],
+    closeTrigger: ["absolute end-2 top-2"],
   },
   variants: {
     shadow: {

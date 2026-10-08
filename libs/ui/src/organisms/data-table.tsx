@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -174,7 +174,7 @@ const dataTableVariants = tv({
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
     sortButton: [
       "inline-flex items-center gap-100 whitespace-nowrap",
-      "cursor-pointer select-none bg-transparent text-left",
+      "cursor-pointer select-none bg-transparent text-start",
       "data-[disabled=true]:cursor-default",
     ],
     sortIcon: [

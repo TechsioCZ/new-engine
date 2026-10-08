@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -34,7 +34,7 @@ const numericInputVariants = tv({
     container: [
       "group form-control-base relative flex",
       "border-numeric-input-border",
-      "items-center overflow-hidden",
+      "min-w-0 items-center overflow-clip",
       "hover:border-numeric-input-border-hover",
       "focus-within:border-numeric-input-border-focus",
       "data-disabled:bg-numeric-input-bg-disabled",
@@ -58,7 +58,7 @@ const numericInputVariants = tv({
       "hover:bg-numeric-input-input-bg-hover",
       "disabled:hover:bg-numeric-input-input-bg",
       "disabled:cursor-not-allowed",
-      "focus-visible:outline-none",
+      "focus-visible:outline-hidden",
       "duration-0 data-invalid:focus:border-input-border-danger-focus",
     ],
     // Subtle divider from the input instead of a gray fill block; the gap-px
@@ -87,19 +87,19 @@ const numericInputVariants = tv({
         root: "gap-numeric-input-sm text-numeric-input-sm",
         container: "h-form-control-sm rounded-numeric-input-sm",
         trigger: "text-numeric-input-sm",
-        input: "pl-numeric-input-input-sm text-numeric-input-sm",
+        input: "ps-numeric-input-input-sm text-numeric-input-sm",
       },
       md: {
         root: "gap-numeric-input-md text-numeric-input-md",
         container: "h-form-control-md rounded-numeric-input-md",
         trigger: "text-numeric-input-md",
-        input: "pl-numeric-input-input-md text-numeric-input-md",
+        input: "ps-numeric-input-input-md text-numeric-input-md",
       },
       lg: {
         root: "gap-numeric-input-lg text-numeric-input-lg",
         container: "h-form-control-lg rounded-numeric-input-lg",
         trigger: "text-numeric-input-lg",
-        input: "pl-numeric-input-input-lg text-numeric-input-lg",
+        input: "ps-numeric-input-input-lg text-numeric-input-lg",
       },
     },
   },

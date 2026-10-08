@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -106,8 +106,8 @@ const tableVariants = tv({
     showColumnBorder: {
       true: {
         columnHeader:
-          "border-r-(length:--border-table-width) border-table-border",
-        cell: "border-r-(length:--border-table-width) border-table-border",
+          "border-e-(length:--border-table-width) border-table-border",
+        cell: "border-e-(length:--border-table-width) border-table-border",
       },
     },
     captionPlacement: {

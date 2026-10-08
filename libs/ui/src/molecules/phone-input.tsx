@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -95,7 +95,7 @@ const phoneInputVariants = tv({
     root: ["relative flex w-full flex-col gap-phone-input"],
     control: [
       "form-control-base",
-      "relative flex w-full items-center overflow-hidden",
+      "relative flex w-full min-w-0 items-center overflow-clip",
       "text-phone-input-fg",
       "hover:border-phone-input-border-hover hover:bg-phone-input-bg-hover",
       "phone-input-focus",
@@ -124,7 +124,7 @@ const phoneInputVariants = tv({
       "bg-phone-input-trigger-bg-base",
       "hover:bg-phone-input-trigger-bg-hover",
       "border-(length:--border-phone-input-trigger)",
-      "focus-visible:outline-none",
+      "focus-visible:outline-hidden",
       "w-phone-input-trigger",
       "focus-visible:bg-phone-input-trigger-bg-hover",
       // Sits flush against the input: round only the leading (left) corners to
@@ -148,7 +148,7 @@ const phoneInputVariants = tv({
       "placeholder:text-phone-input-fg-placeholder",
       "hover:bg-phone-input-input-bg-hover",
       "focus:bg-phone-input-input-bg-focus",
-      "focus-visible:outline-none",
+      "focus-visible:outline-hidden",
       "disabled:text-phone-input-fg-disabled",
     ],
     itemContent: ["flex min-w-0 items-center gap-phone-input-item"],

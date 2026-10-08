@@ -5,7 +5,7 @@ description: >
   for choosing color swatches with supported layout, size, radius, disabled
   state, selected state, labels, counts, and single/multiple roles.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

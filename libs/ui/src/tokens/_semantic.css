@@ -5,86 +5,76 @@
  * - --alpha(var(--color) / 50%): Adjusts transparency of a color. Tailwind's v4 utility
  *   that compiles to color-mix() for better browser support.
  */
+
+/*
+ * Theme-direction switch: 1 on light surfaces, -1 on dark ones. Every
+ * lightness offset below is written once and flips with it, so a dark
+ * surface lightens on hover where a light one darkens.
+ */
 :root {
-  --state-hover: -0.08;
-  --state-active: -0.12;
+  --theme-sign: 1;
   --state-disabled-chroma: 0.01;
   --state-light-variant: 0.1; /* Always make colors lighter for -light variant */
   --state-light-chroma: 0.6; /* Reduce saturation for softer, pastel colors */
-  --state-secondary-text: 0.15;
   --state-border: 15%;
-  --state-placeholder: 0.25;
   --max-lightness: 0.97;
   --opacity-disabled: 60%;
   --opacity-placeholder: 60%;
   --opacity-text-secondary: 70%;
   --opacity-disabled-placeholder: 30%;
   --fill-increment: 5%;
-  --surface-increment: 0.05;
-  --state-fg-lightness: 0.42; /* Accent color lightness for text - WCAG AAA on light bg */
+}
+
+/*
+ * Custom properties resolve where they are declared, so the derived offsets
+ * are re-declared on every element that can change --theme-sign.
+ */
+:where(:root, .light, .always-light, .dark, .always-dark, .reverse) {
+  --state-hover: calc(-0.08 * var(--theme-sign));
+  --state-active: calc(-0.12 * var(--theme-sign));
+  --state-secondary-text: calc(0.15 * var(--theme-sign));
+  --state-placeholder: calc(0.25 * var(--theme-sign));
+  --surface-increment: calc(0.05 * var(--theme-sign));
+  /* Accent text lightness: 0.42 on light (WCAG AAA), 0.85 on dark. */
+  --state-fg-lightness: calc(0.635 - 0.215 * var(--theme-sign));
+}
+
+/* Explicit Light class(es) — re-asserts light inside a nested .dark/.always-dark subtree */
+:is(.light, .always-light) {
+  --theme-sign: 1;
 }
 
 /* Explicit Dark class(es) */
 :is(.dark, .always-dark) {
-  --state-hover: 0.08;
-  --state-active: 0.12;
-  --state-secondary-text: -0.15;
-  --state-placeholder: -0.25;
-  --surface-increment: -0.05;
-  --state-fg-lightness: 0.85;
+  --theme-sign: -1;
 }
 
 /* System Dark preference (when no explicit class forces light) */
 @media (prefers-color-scheme: dark) {
   :root:not(.light):not(.always-light) {
-    --state-hover: 0.08;
-    --state-active: 0.12;
-    --state-secondary-text: -0.15;
-    --state-placeholder: -0.25;
-    --surface-increment: -0.05;
-    --state-fg-lightness: 0.85;
+    --theme-sign: -1;
   }
 }
 
-/* Reverse if parents has .always-light/dark and we want to make reverse style to parent */
+/* Reverse flips whatever its parent theme is. */
 :is(.light, .always-light) .reverse {
-  --state-hover: 0.08;
-  --state-active: 0.12;
-  --state-secondary-text: -0.15;
-  --state-placeholder: -0.25;
-  --surface-increment: -0.05;
-  --state-fg-lightness: 0.85;
+  --theme-sign: -1;
 }
 
 :is(.dark, .always-dark) .reverse {
-  --state-hover: -0.08;
-  --state-active: -0.12;
-  --state-secondary-text: 0.15;
-  --state-placeholder: 0.25;
-  --surface-increment: 0.05;
-  --state-fg-lightness: 0.42;
+  --theme-sign: 1;
 }
 
 /* Reverse on System Light/Dark preference (when no explicit theme class is present) */
 @media (prefers-color-scheme: light) {
   .reverse:not(.dark):not(.always-dark):not(.light):not(.always-light) {
-    --state-hover: 0.08;
-    --state-active: 0.12;
-    --state-secondary-text: -0.15;
-    --state-placeholder: -0.25;
-    --surface-increment: -0.05;
-    --state-fg-lightness: 0.85;
+    --theme-sign: -1;
   }
 }
 
 @media (prefers-color-scheme: dark) {
   .reverse:not(.dark):not(.always-dark):not(.light):not(.always-light) {
-    --state-hover: -0.08;
-    --state-active: -0.12;
-    --state-secondary-text: 0.15;
-    --state-placeholder: 0.25;
-    --surface-increment: 0.05;
-    --state-fg-lightness: 0.42;
+    --theme-sign: 1;
   }
 }
 

@@ -2,7 +2,7 @@
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -66,7 +66,7 @@ const treeViewVariants = tv({
     branchIndicator: [
       "group-hover:text-tree-view-fg-hover",
       "data-[state=open]:token-icon-tree-indicator-open cursor-pointer hover:scale-125",
-      "transition-all duration-200 motion-reduce:transition-none",
+      "transition duration-200 motion-reduce:transition-none",
     ],
     branchContent: ["relative", "data-[state=closed]:hidden"],
     indentGuide: [
