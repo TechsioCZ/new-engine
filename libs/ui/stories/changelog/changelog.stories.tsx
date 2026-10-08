@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### PhoneInput v1.0.3
+- The country trigger (a \`role="combobox"\`, which takes no name from its content) gets a default accessible name, \`Country: <selected country>\` — axe \`button-name\` (critical) on every PhoneInput story (facelift C5). Pass \`aria-label\` or \`aria-labelledby\` on \`PhoneInput.CountryTrigger\` (or \`triggerProps\`) to localise it.
+
 ### Select v1.1.2
 - \`Select.StatusText\` is linked to the trigger through \`aria-describedby\` while it is mounted (facelift C4), so screen readers read the helper or error text when the trigger is focused. A caller's own \`aria-describedby\` is kept.
 

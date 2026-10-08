@@ -6,7 +6,7 @@ description: >
   hidden E.164 form value, native validation, validation status, and compound
   country picker slots.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
