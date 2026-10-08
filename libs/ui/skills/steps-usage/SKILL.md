@@ -6,7 +6,7 @@ description: >
   panels, progress, navigation triggers, linear flow, controlled step, and
   variants.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.0.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
