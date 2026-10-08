@@ -12,6 +12,11 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.2.2
+- \`tableLayout="fixed"\` now honours declared column widths with enum filters: the filter select no longer reserves a min-width wider than its column (it fills the cell instead), so long option labels cannot stretch the column or overflow into the next one.
+- Under \`tableLayout="fixed"\` the built-in actions column is sized to its widest rendered actions cell instead of collapsing to 0 px.
+- Akros Orders demo uses the fixed layout, so the shipping / pickup-point column keeps its 280 px at 1440 px instead of sliding under the pinned actions.
+
 ### FormNumericInput v1.1.1
 - The label is always linked to the input: without an \`id\` the label pointed at nothing while Zag generated its own input id (axe \`label\`, critical). A generated id is now used when none is passed.
 

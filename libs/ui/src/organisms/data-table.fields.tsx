@@ -13,7 +13,7 @@
  * touches this file.
  */
 import type { RowData } from "@tanstack/react-table"
-import type { ReactNode } from "react"
+import { createContext, type ReactNode, useContext } from "react"
 import { ActionIcon } from "../atoms/action-icon"
 import { Input } from "../atoms/input"
 import { NumericInput } from "../atoms/numeric-input"
@@ -193,6 +193,15 @@ function selectMinWidthCh(items: SelectItem[], placeholder?: string): string {
   return `${longest + 7}ch`
 }
 
+/**
+ * The `table-layout` of the table a field renders in. Under `"fixed"` the
+ * declared column widths are exact and content cannot reflow a column, so the
+ * width reservation above is unnecessary — and harmful, because a reservation
+ * wider than the column overflows into its neighbour. Fields outside a table
+ * (the page-size select) see the default `"auto"`.
+ */
+export const FieldTableLayoutContext = createContext<"auto" | "fixed">("auto")
+
 export function FieldSelect({
   items,
   value,
@@ -212,8 +221,16 @@ export function FieldSelect({
   invalid?: boolean
   onChange: (value: string) => void
 }) {
+  const tableLayout = useContext(FieldTableLayoutContext)
   return (
-    <div style={{ minWidth: selectMinWidthCh(items, placeholder) }}>
+    <div
+      className={tableLayout === "fixed" ? "w-full min-w-0" : undefined}
+      style={
+        tableLayout === "fixed"
+          ? undefined
+          : { minWidth: selectMinWidthCh(items, placeholder) }
+      }
+    >
       <Select
         disabled={disabled}
         items={items}
