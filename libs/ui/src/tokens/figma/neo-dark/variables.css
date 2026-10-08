@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-08T17:15:20.241Z
+ * Exported at: 2026-10-08T17:50:50.405Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -93,7 +93,7 @@
   --color-danger-light-disabled: var(--color-bg-disabled);
   --color-danger-light-hover: var(--color-bg-light-danger-hover);
   --color-fg-accent-danger: oklch(0.452 0.066 4.881);
-  --color-fg-accent-primary: var(--color-primary-600);
+  --color-fg-accent-primary: var(--color-primary-400);
   --color-fg-accent-secondary: oklch(0.447 0.076 49.767);
   --color-fg-accent-success: var(--color-success-300);
   --color-fg-accent-tertiary: oklch(0.511 0.054 323.997);
