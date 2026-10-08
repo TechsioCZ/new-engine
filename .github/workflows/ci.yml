@@ -88,9 +88,9 @@ jobs:
         if: contains(steps.determine_affected.outputs.projects_csv, ',herbatika,')
         run: pnpm --filter=herbatika test:m00:wire
 
-  # Required status check for master (ruleset "Master"). It mirrors the CI
-  # result so the ruleset has one stable name to require; add new blocking
-  # jobs to `needs` instead of editing the ruleset.
+  # Required status check for master (ruleset "Master"). It fails unless every
+  # job in `needs` succeeded, so the ruleset has one stable name to require.
+  # To make another job blocking, add it to `needs`; don't edit the ruleset.
   quality-gate:
     name: quality-gate
     if: always()
@@ -101,10 +101,11 @@ jobs:
     steps:
       - name: Require every blocking job to pass
         env:
-          MAIN: ${{ needs.main.result }}
+          NEEDS: ${{ toJSON(needs) }}
         run: |
-          echo "main: $MAIN"
-          if [ "$MAIN" != "success" ]; then
-            echo "::error::CI job 'main' finished with '$MAIN'."
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          failed=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
+          if [ -n "$failed" ]; then
+            echo "::error::Blocking jobs did not succeed: $failed"
             exit 1
           fi
