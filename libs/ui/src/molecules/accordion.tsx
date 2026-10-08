@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -240,21 +240,30 @@ Accordion.Item = function AccordionItem({
 }
 
 // Header component (trigger wrapper)
-interface AccordionHeaderProps extends ComponentPropsWithoutRef<"header"> {
-  ref?: Ref<HTMLElement>
+interface AccordionHeaderProps extends ComponentPropsWithoutRef<"div"> {
+  ref?: Ref<HTMLDivElement>
 }
 
+// APG accordion: each trigger sits in a heading. A bare <header> would be a
+// banner landmark, one per item. Pass aria-level to fit the page outline.
 Accordion.Header = function AccordionHeader({
   children,
   ref,
   className,
+  "aria-level": ariaLevel = 3,
   ...props
 }: AccordionHeaderProps) {
   const { api, styles } = useAccordionContext()
   const { value, disabled } = useAccordionItemContext()
 
   return (
-    <header className={className} ref={ref} {...props}>
+    <div
+      aria-level={ariaLevel}
+      className={className}
+      ref={ref}
+      role="heading"
+      {...props}
+    >
       <Button
         className={styles.titleTrigger()}
         size="current"
@@ -265,7 +274,7 @@ Accordion.Header = function AccordionHeader({
       >
         {children}
       </Button>
-    </header>
+    </div>
   )
 }
 

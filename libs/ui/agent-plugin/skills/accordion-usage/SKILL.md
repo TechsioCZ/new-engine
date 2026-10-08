@@ -5,7 +5,7 @@ description: >
   collapsible sections using the Zag.js-backed compound anatomy, supported
   variant, shadow, size, value, multiple, and collapsible props.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -89,6 +89,10 @@ collapsible, multiple, disabled, dir, onChange
 
 Use `Accordion.Item`, `Accordion.Header`, `Accordion.Content`, and optional
 `Accordion.Indicator`, `Accordion.Title`, `Accordion.Subtitle`.
+
+`Accordion.Header` is a `role="heading"` (level 3 by default). Set
+`aria-level` so it fits the page outline, e.g. `<Accordion.Header aria-level={2}>`
+directly under a page `h1`. Do not wrap it in another heading or `<header>`.
 
 ### Choose behavior from content model
 

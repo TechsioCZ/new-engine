@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Accordion v1.0.2
+- \`Accordion.Header\` renders the APG heading (\`role="heading"\`, \`aria-level\` 3 by default, overridable) instead of a bare \`<header>\`, which created one \`banner\` landmark per item (axe \`landmark-no-duplicate-banner\`, \`landmark-unique\`, \`landmark-banner-is-top-level\`). The ref is now \`Ref<HTMLDivElement>\`.
+
 ### PhoneInput v1.0.3
 - The country trigger (a \`role="combobox"\`, which takes no name from its content) gets a default accessible name, \`Country: <selected country>\` — axe \`button-name\` (critical) on every PhoneInput story (facelift C5). Pass \`aria-label\` or \`aria-labelledby\` on \`PhoneInput.CountryTrigger\` (or \`triggerProps\`) to localise it.
 
