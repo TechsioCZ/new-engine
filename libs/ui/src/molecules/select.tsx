@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,6 +25,12 @@ import { Button } from "../atoms/button"
 import { Icon, type IconProps } from "../atoms/icon"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
 
 export type SelectSize = "xs" | "sm" | "md" | "lg"
 
@@ -164,7 +170,8 @@ type SelectContextValue = {
   size: SelectSize
   items: SelectItem[]
   validateStatus: "default" | "error" | "success" | "warning"
-}
+  statusTextId: string
+} & DescribedBy
 
 const SelectContext = createContext<SelectContextValue | null>(null)
 
@@ -261,9 +268,19 @@ export function Select({
 
   const api = select.connect(service as select.Service, normalizeProps)
   const styles = selectVariants({ size })
+  const describedBy = useDescribedBy()
 
   return (
-    <SelectContext.Provider value={{ api, size, items, validateStatus }}>
+    <SelectContext.Provider
+      value={{
+        api,
+        size,
+        items,
+        validateStatus,
+        statusTextId: `${id}-status`,
+        ...describedBy,
+      }}
+    >
       {/* Hidden form select for native form submission */}
       <select {...api.getHiddenSelectProps()}>
         {items.map((item) => (
@@ -337,7 +354,12 @@ Select.Trigger = function SelectTrigger({
   ref,
   ...props
 }: SelectTriggerProps) {
-  const { api, size: contextSize, validateStatus } = useSelectContext()
+  const {
+    api,
+    size: contextSize,
+    validateStatus,
+    describedById,
+  } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
 
@@ -354,6 +376,10 @@ Select.Trigger = function SelectTrigger({
       {...api.getTriggerProps()}
       {...validationDataAttrs}
       {...props}
+      aria-describedby={joinDescribedBy(
+        props["aria-describedby"],
+        describedById
+      )}
     >
       {children}
       <Icon
@@ -647,8 +673,14 @@ Select.StatusText = function SelectStatusText({
   children,
   ...props
 }: SelectStatusTextProps) {
-  const { size: contextSize, validateStatus: contextValidateStatus } =
-    useSelectContext()
+  const {
+    size: contextSize,
+    validateStatus: contextValidateStatus,
+    statusTextId,
+    setDescribedById,
+  } = useSelectContext()
+  const id = props.id ?? statusTextId
+  useRegisterDescription(id, setDescribedById)
 
   const effectiveSize = sizeProp ?? contextSize
 
@@ -660,6 +692,7 @@ Select.StatusText = function SelectStatusText({
       size={effectiveSize === "xs" ? "sm" : effectiveSize}
       status={effectiveStatus}
       {...props}
+      id={id}
     >
       {children}
     </StatusText>

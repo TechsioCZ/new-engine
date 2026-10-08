@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -78,7 +78,7 @@ const sliderVariants = tv({
     ],
     markerText: [
       "absolute top-full",
-      "data-[orientation=vertical]:top-0 data-[orientation=vertical]:start-full",
+      "data-[orientation=vertical]:start-full data-[orientation=vertical]:top-0",
       "data-[orientation=vertical]:h-full",
       "data-[orientation=vertical]:p-marker-text",
     ],
@@ -139,8 +139,15 @@ export interface SliderProps extends VariantProps<typeof sliderVariants> {
   onChangeEnd?: (values: number[]) => void
 }
 
-const resolveFiniteNumber = (value: number | undefined, fallbackValue: number) => {
-  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+const resolveFiniteNumber = (
+  value: number | undefined,
+  fallbackValue: number
+) => {
+  if (
+    typeof value !== "number" ||
+    Number.isNaN(value) ||
+    !Number.isFinite(value)
+  ) {
     return fallbackValue
   }
 
@@ -219,9 +226,7 @@ const resolveSliderConfig = (
     Math.floor((span + Number.EPSILON) / resolvedStep)
   )
   const maxMinStepsBetweenThumbs =
-    thumbCount > 1
-      ? Math.floor(stepsInSpan / (thumbCount - 1))
-      : 0
+    thumbCount > 1 ? Math.floor(stepsInSpan / (thumbCount - 1)) : 0
   const normalizedMinSteps = Math.trunc(
     resolveFiniteNumber(minStepsBetweenThumbs, 0)
   )
@@ -365,6 +370,7 @@ export function Slider({
 }: SliderProps) {
   const generatedId = useId()
   const uniqueId = id || generatedId
+  const helpTextId = `${uniqueId}-help`
   const thumbCount = resolveThumbCount(value, defaultValue)
   const resolvedConfig = resolveSliderConfig(
     min,
@@ -455,7 +461,11 @@ export function Slider({
       )}
 
       <div className={control()} {...api.getControlProps()}>
-        <div className={track()} {...api.getTrackProps()} data-invalid={validateStatus === "error"}>
+        <div
+          className={track()}
+          {...api.getTrackProps()}
+          data-invalid={validateStatus === "error"}
+        >
           <div
             className={range()}
             {...api.getRangeProps()}
@@ -504,6 +514,8 @@ export function Slider({
             className={thumb()}
             key={`thumb-${index}`}
             {...api.getThumbProps({ index })}
+            // The thumb is the focusable slider; link the help/error text to it.
+            aria-describedby={helpText ? helpTextId : undefined}
           >
             <input {...api.getHiddenInputProps({ index })} />
           </div>
@@ -511,9 +523,10 @@ export function Slider({
       </div>
       {helpText && (
         <StatusText
-          status={validateStatus}
+          id={helpTextId}
           showIcon={showHelpTextIcon}
           size={size}
+          status={validateStatus}
         >
           {helpText}
         </StatusText>

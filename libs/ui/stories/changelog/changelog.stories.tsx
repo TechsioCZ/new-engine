@@ -12,6 +12,21 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Select v1.1.2
+- \`Select.StatusText\` is linked to the trigger through \`aria-describedby\` while it is mounted (facelift C4), so screen readers read the helper or error text when the trigger is focused. A caller's own \`aria-describedby\` is kept.
+
+### Switch v1.0.1
+- \`helpText\` is linked to the switch input through \`aria-describedby\` (facelift C4).
+
+### Slider v1.0.2
+- \`helpText\` is linked to each thumb (the focusable \`role="slider"\`) through \`aria-describedby\` (facelift C4).
+
+### RadioGroup v1.0.1
+- \`RadioGroup.StatusText\` is linked to the \`radiogroup\` root through \`aria-describedby\` while it is mounted (facelift C4).
+
+### PhoneInput v1.0.2
+- \`PhoneInput.StatusText\` is linked to the phone input through \`aria-describedby\` while it is mounted (facelift C4). A caller's own \`aria-describedby\` is kept.
+
 ### StatusText v1.0.1
 - Validation feedback is announced (facelift C4): \`status="error"\` renders \`role="alert"\`, \`warning\`/\`success\` render \`role="status"\`. Plain helper text has no live role; a \`role\` prop still wins.
 

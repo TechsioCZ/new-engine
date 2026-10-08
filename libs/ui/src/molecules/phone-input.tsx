@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -38,6 +38,12 @@ import type { IconProps } from "../atoms/icon"
 import { Input, type InputProps } from "../atoms/input"
 import { Label, type LabelProps } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
 import { tv } from "../utils"
 import { Select } from "./select"
 
@@ -193,7 +199,8 @@ type PhoneInputContextValue = {
   readOnly: boolean
   required: boolean
   validateStatus: PhoneInputValidateStatus
-}
+  statusTextId: string
+} & DescribedBy
 
 const PhoneInputContext = createContext<PhoneInputContextValue | null>(null)
 
@@ -378,6 +385,7 @@ export function PhoneInput({
   }
 
   const styles = phoneInputVariants({ size })
+  const describedBy = useDescribedBy()
 
   return (
     <PhoneInputContext.Provider
@@ -399,6 +407,8 @@ export function PhoneInput({
         readOnly,
         required,
         validateStatus,
+        statusTextId: `${id}-status`,
+        ...describedBy,
       }}
     >
       {name && (
@@ -718,6 +728,7 @@ PhoneInput.Input = function PhoneInputInput({
     required,
     setInputValue,
     size,
+    describedById,
     validateStatus,
   } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
@@ -757,6 +768,10 @@ PhoneInput.Input = function PhoneInputInput({
   return (
     <Input
       {...props}
+      aria-describedby={joinDescribedBy(
+        props["aria-describedby"],
+        describedById
+      )}
       aria-invalid={
         validateStatus === "error" ||
         (nativeValidation && inputValue.trim() !== "" && !details.isValid) ||
@@ -899,7 +914,10 @@ PhoneInput.StatusText = function PhoneInputStatusText({
   children,
   ...props
 }: PhoneInputStatusTextProps) {
-  const { size, validateStatus } = usePhoneInputContext()
+  const { size, validateStatus, statusTextId, setDescribedById } =
+    usePhoneInputContext()
+  const id = props.id ?? statusTextId
+  useRegisterDescription(id, setDescribedById)
 
   return (
     <StatusText
@@ -907,6 +925,7 @@ PhoneInput.StatusText = function PhoneInputStatusText({
       size={size}
       status={status ?? validateStatus}
       {...props}
+      id={id}
     >
       {children}
     </StatusText>
