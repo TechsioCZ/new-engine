@@ -87,3 +87,24 @@ jobs:
       - name: Prove Herbatika Pages hard statuses through Docker ingress
         if: contains(steps.determine_affected.outputs.projects_csv, ',herbatika,')
         run: pnpm --filter=herbatika test:m00:wire
+
+  # Required status check for master (ruleset "Master"). It mirrors the CI
+  # result so the ruleset has one stable name to require; add new blocking
+  # jobs to `needs` instead of editing the ruleset.
+  quality-gate:
+    name: quality-gate
+    if: always()
+    needs:
+      - main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every blocking job to pass
+        env:
+          MAIN: ${{ needs.main.result }}
+        run: |
+          echo "main: $MAIN"
+          if [ "$MAIN" != "success" ]; then
+            echo "::error::CI job 'main' finished with '$MAIN'."
+            exit 1
+          fi
