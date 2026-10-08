@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Tabs v1.0.1
+- A trigger only sets \`aria-controls\` when its \`Tabs.Content\` is mounted, so a tab strip used as sub-navigation without panels no longer references missing ids (axe \`aria-valid-attr-value\`, critical).
+
 ### Steps v1.0.4
 - A trigger only sets \`aria-controls\` when its \`Steps.Content\` is mounted. Steps used as a progress indicator (no content panels) pointed every trigger at a missing id (axe \`aria-valid-attr-value\`, critical).
 

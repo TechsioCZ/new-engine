@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,7 +16,9 @@ import {
   createContext,
   type Ref,
   useContext,
+  useEffect,
   useId,
+  useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
@@ -136,6 +138,15 @@ interface TabsContextValue {
   fitted?: boolean
   justify?: "start" | "center" | "end"
   styles: ReturnType<typeof tabsVariants>
+  /*
+   * Values whose Tabs.Content is mounted. Zag points each trigger's
+   * aria-controls at its panel, but a tab strip used as sub-navigation has no
+   * panels; a trigger must not reference an id that does not exist.
+   */
+  contentValues: ReadonlySet<string>
+  setContentValues: (
+    update: (previous: ReadonlySet<string>) => ReadonlySet<string>
+  ) => void
 }
 
 const TabsContext = createContext<TabsContextValue | null>(null)
@@ -199,10 +210,22 @@ export function Tabs({
 
   const api = tabs.connect(service, normalizeProps)
   const styles = tabsVariants({ variant, size, fitted, justify })
+  const [contentValues, setContentValues] = useState<ReadonlySet<string>>(
+    () => new Set()
+  )
 
   return (
     <TabsContext.Provider
-      value={{ api, variant, size, fitted, justify, styles }}
+      value={{
+        api,
+        variant,
+        size,
+        fitted,
+        justify,
+        styles,
+        contentValues,
+        setContentValues,
+      }}
     >
       <div
         className={styles.root({ className })}
@@ -258,7 +281,7 @@ Tabs.Trigger = function TabsTrigger({
   type = "button",
   ...props
 }: TabsTriggerProps) {
-  const { api, styles } = useTabsContext()
+  const { api, contentValues, styles } = useTabsContext()
   const triggerProps = mergeProps(
     props,
     api.getTriggerProps({ value, disabled })
@@ -267,6 +290,9 @@ Tabs.Trigger = function TabsTrigger({
   return (
     <Button
       {...triggerProps}
+      aria-controls={
+        contentValues.has(value) ? triggerProps["aria-controls"] : undefined
+      }
       className={styles.trigger({ className })}
       data-disabled={disabled || undefined}
       ref={ref}
@@ -292,7 +318,16 @@ Tabs.Content = function TabsContent({
   className,
   ...props
 }: TabsContentProps) {
-  const { api, styles } = useTabsContext()
+  const { api, setContentValues, styles } = useTabsContext()
+  useEffect(() => {
+    setContentValues((previous) => new Set(previous).add(value))
+    return () =>
+      setContentValues((previous) => {
+        const next = new Set(previous)
+        next.delete(value)
+        return next
+      })
+  }, [value, setContentValues])
 
   return (
     <div
