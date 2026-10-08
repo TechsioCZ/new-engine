@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### SearchForm v1.0.1
+- An icon-only \`SearchForm.Button\` (no children) defaults to \`aria-label="Search"\`; pass your own \`aria-label\` to localise it. Before, it was an unnamed submit button (axe \`button-name\`, critical).
+
 ### Pagination v1.0.2
 - A caller's \`aria-label\` now names the \`<nav>\`; Zag's default root label used to overwrite it, so two paginations on one page had the same name (axe \`landmark-unique\`).
 

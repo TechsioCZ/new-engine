@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -296,6 +296,8 @@ SearchForm.Button = function SearchFormButton({
 
   return (
     <Button
+      // An icon-only submit (no children) still needs a name; callers override.
+      aria-label={children ? undefined : "Search"}
       className={styles.button({ className })}
       icon={effectiveIcon}
       iconPosition={iconPosition}
