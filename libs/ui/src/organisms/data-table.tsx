@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,28 +16,33 @@
  * only when their feature flags are set. Every interactive feature exposes a
  * callback so Storybook interaction tests can assert behaviour.
  */
+
+import { CollisionPriority, CollisionType } from "@dnd-kit/abstract"
 import {
-  closestCenter,
-  DndContext,
-  type DragEndEvent,
-  KeyboardSensor,
+  RestrictToHorizontalAxis,
+  RestrictToVerticalAxis,
+} from "@dnd-kit/abstract/modifiers"
+import { type CollisionDetector, closestCenter } from "@dnd-kit/collision"
+import {
+  Accessibility,
+  type DragDropManagerInput,
+  PointerActivationConstraints,
   PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core"
+} from "@dnd-kit/dom"
+import { OptimisticSortingPlugin } from "@dnd-kit/dom/sortable"
 import {
-  restrictToHorizontalAxis,
-  restrictToVerticalAxis,
-} from "@dnd-kit/modifiers"
+  getFirstScrollableAncestor,
+  isHTMLElement,
+  isKeyboardEvent,
+  scrollIntoViewIfNeeded,
+} from "@dnd-kit/dom/utilities"
+import { arrayMove } from "@dnd-kit/helpers"
 import {
-  arrayMove,
-  horizontalListSortingStrategy,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+  type DragDropEventHandlers,
+  DragDropProvider,
+  useDragOperation,
+} from "@dnd-kit/react"
+import { type UseSortableInput, useSortable } from "@dnd-kit/react/sortable"
 import {
   type ColumnFiltersState,
   type ColumnPinningState,
@@ -56,6 +61,7 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import {
   type CSSProperties,
   createContext,
+  type FocusEvent,
   Fragment,
   type ReactNode,
   type Ref,
@@ -191,7 +197,7 @@ const dataTableVariants = tv({
       "active:cursor-grabbing",
     ],
     resizeHandle: [
-      "w-(length:--size-data-table-resize-handle) absolute end-0 top-0 h-full cursor-col-resize touch-none select-none",
+      "w-(length:--size-data-table-resize-handle) absolute inset-e-0 top-0 h-full cursor-col-resize touch-none select-none",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
       "bg-data-table-resize-handle-bg hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100",
@@ -307,127 +313,379 @@ function useControllable<S>(
 
 /* ── Small single-value Select wrapper (page size, filter operator/value) ─── */
 
+type DataTableDragData = {
+  kind: "column" | "row"
+  id: string
+  index: number
+  label: string
+}
+
+type DataTableDragHandleProps = {
+  onFocus: typeof handleTableDragFocus
+  ref: (node: Element | null) => void
+}
+
+type DataTableDragEndEvent = Parameters<
+  DragDropEventHandlers<DataTableDragData>["onDragEnd"]
+>[0]
+
+// React owns table order. Moving header DOM optimistically would leave the
+// body columns in their old order and can separate rows from expanded details.
+// Keep keyboard sorting and the default drag feedback without moving siblings.
+const tableSortablePlugins: NonNullable<
+  UseSortableInput<DataTableDragData>["plugins"]
+> = (defaults) =>
+  defaults.filter((plugin) => plugin !== OptimisticSortingPlugin)
+
+const tableDragAccessibility: NonNullable<
+  ConstructorParameters<typeof Accessibility>[1]
+> = {
+  screenReaderInstructions: {
+    draggable:
+      "To reorder, focus a drag handle and press Space or Enter. " +
+      "Use Up and Down for rows, or Left and Right for columns. " +
+      "Press Space or Enter to drop, or Escape to cancel.",
+  },
+  announcements: {
+    dragstart: ({ operation: { source } }) =>
+      source
+        ? `Picked up ${source.data.label}, position ${source.data.index + 1}.`
+        : undefined,
+    dragover: ({ operation: { source, target } }) => {
+      if (!(source && target) || source.id === target.id) {
+        return
+      }
+      const side = source.data.index < target.data.index ? "after" : "before"
+      return `${source.data.label} will move ${side} ${target.data.label}.`
+    },
+    dragend: ({ canceled, operation: { source, target } }) => {
+      if (!source) {
+        return
+      }
+      if (canceled || !target) {
+        return `Reordering ${source.data.label} canceled.`
+      }
+      return `Dropped ${source.data.label}, position ${target.data.index + 1}.`
+    },
+  },
+}
+
+const tableDragPlugins: NonNullable<DragDropManagerInput["plugins"]> = (
+  defaults
+) =>
+  defaults.map((plugin) =>
+    plugin === Accessibility
+      ? Accessibility.configure(tableDragAccessibility)
+      : plugin
+  )
+
+const tableDragSensors: NonNullable<DragDropManagerInput["sensors"]> = (
+  defaults
+) =>
+  defaults.map((sensor) =>
+    sensor === PointerSensor
+      ? PointerSensor.configure({
+          activationConstraints: [
+            new PointerActivationConstraints.Distance({ value: 5 }),
+          ],
+        })
+      : sensor
+  )
+
+// Keyboard sorting follows the rendered order, including targets outside the
+// scroll viewport. Keep its explicit target while drag feedback moves; the
+// pointer branch of closestCenter can otherwise select the source again.
+const tableCollisionDetector: CollisionDetector = (input) => {
+  const { dragOperation, droppable } = input
+  if (!isKeyboardEvent(dragOperation.activatorEvent)) {
+    return closestCenter(input)
+  }
+  const targetId = dragOperation.target?.id ?? dragOperation.source?.id
+  return droppable.id === targetId
+    ? {
+        id: droppable.id,
+        value: 1,
+        type: CollisionType.Collision,
+        priority: CollisionPriority.Normal,
+      }
+    : null
+}
+
+function tableDragScrollBounds(cell: Element, scroller: HTMLElement) {
+  const viewport = scroller.getBoundingClientRect()
+  let left = viewport.left + scroller.clientLeft
+  let right = left + scroller.clientWidth
+  for (const sibling of cell.parentElement?.children ?? []) {
+    const style = getComputedStyle(sibling)
+    if (style.position !== "sticky") {
+      continue
+    }
+    const rect = sibling.getBoundingClientRect()
+    if (style.left !== "auto") {
+      left = Math.max(left, rect.right)
+    }
+    if (style.right !== "auto") {
+      right = Math.min(right, rect.left)
+    }
+  }
+  return { left, right }
+}
+
+// Sticky columns cover part of the scrollport. Reveal the small drag handle,
+// including when its cell is wider than the space left between pinned columns.
+function revealTableDragHandle(element: Element) {
+  const cell = element.closest("td, th")
+  if (
+    !(cell && element.isConnected) ||
+    getComputedStyle(cell).position === "fixed" ||
+    (cell.parentElement &&
+      getComputedStyle(cell.parentElement).position === "fixed")
+  ) {
+    return
+  }
+  const cellStyle = getComputedStyle(cell)
+  if (
+    cellStyle.position === "sticky" &&
+    (cellStyle.left !== "auto" || cellStyle.right !== "auto")
+  ) {
+    return
+  }
+  const scroller = getFirstScrollableAncestor(cell)
+  if (
+    !isHTMLElement(scroller) ||
+    scroller.scrollWidth <= scroller.clientWidth
+  ) {
+    return
+  }
+  const { left, right } = tableDragScrollBounds(cell, scroller)
+  if (right <= left) {
+    return
+  }
+  const cellRect = cell.getBoundingClientRect()
+  const rect =
+    cellRect.width <= right - left ? cellRect : element.getBoundingClientRect()
+  let delta = 0
+  if (rect.width > right - left) {
+    delta = (rect.left + rect.right - left - right) / 2
+  } else if (rect.left < left) {
+    delta = rect.left - left
+  } else if (rect.right > right) {
+    delta = rect.right - right
+  }
+  // Physical coordinate deltas also work with the negative scrollLeft used
+  // by RTL scrollers, without assuming a logical start is on the left.
+  scroller.scrollLeft += delta
+}
+
+function handleTableDragFocus(event: FocusEvent<HTMLButtonElement>) {
+  if (event.currentTarget.matches(":focus-visible")) {
+    revealTableDragHandle(event.currentTarget)
+  }
+}
+
+function useTableDragHandleReveal(
+  sortable: ReturnType<typeof useSortable<DataTableDragData>>
+) {
+  const { sortable: entity, isDragging, isDropping } = sortable
+  useLayoutEffect(() => {
+    const handle = entity.draggable.handle
+    if (
+      !(isDragging || isDropping) &&
+      handle &&
+      handle.ownerDocument.activeElement === handle &&
+      handle.matches(":focus-visible")
+    ) {
+      revealTableDragHandle(handle)
+    }
+  }, [entity, isDragging, isDropping])
+}
+
+const handleTableKeyboardMove: DragDropEventHandlers<DataTableDragData>["onDragMove"] =
+  (event, manager) => {
+    const { source, target } = manager.dragOperation
+    if (!(source && isKeyboardEvent(event.nativeEvent) && event.by)) {
+      return
+    }
+    event.preventDefault()
+    const column = source.data.kind === "column"
+    let direction = Math.sign(column ? event.by.x : event.by.y)
+    if (
+      column &&
+      source.element &&
+      getComputedStyle(source.element).direction === "rtl"
+    ) {
+      direction *= -1
+    }
+    if (!direction) {
+      return
+    }
+    const index = target?.data.index ?? source.data.index
+    const next = [...manager.registry.droppables]
+      .filter(
+        (entry) =>
+          !entry.disabled &&
+          entry.element?.isConnected &&
+          entry.accepts(source) &&
+          entry.data.kind === source.data.kind &&
+          (entry.data.index - index) * direction > 0
+      )
+      .sort((a, b) => (a.data.index - b.data.index) * direction)[0]
+    if (!next?.element) {
+      return
+    }
+    const controller = manager.dragOperation.controller
+    manager.actions.setDropTarget(next.id).then(() => {
+      const operation = manager.dragOperation
+      if (
+        !operation.status.dragging ||
+        operation.controller !== controller ||
+        controller?.signal.aborted ||
+        operation.target?.id !== next.id ||
+        !next.element?.isConnected ||
+        !operation.shape
+      ) {
+        return
+      }
+      scrollIntoViewIfNeeded(next.element, {
+        block: column ? "none" : "nearest",
+        inline: column ? "nearest" : "none",
+      })
+      if (column) {
+        revealTableDragHandle(
+          next.element.querySelector("button") ?? next.element
+        )
+      }
+      const rect = next.element.getBoundingClientRect()
+      const center = operation.shape.current.center
+      manager.actions.move({
+        by: {
+          x: column ? rect.left + rect.width / 2 - center.x : 0,
+          y: column ? 0 : rect.top + rect.height / 2 - center.y,
+        },
+      })
+    })
+  }
+
 /** Which edge of the hovered sortable should show the drop indicator. */
 function dropEdge<A, B>(
   sortable: {
-    isOver: boolean
+    isDropTarget: boolean
     isDragging: boolean
     activeIndex: number
     overIndex: number
   },
   edges: { after: A; before: B }
 ) {
-  if (!sortable.isOver || sortable.isDragging) {
+  if (!sortable.isDropTarget || sortable.isDragging) {
     return
   }
   return sortable.activeIndex < sortable.overIndex ? edges.after : edges.before
+}
+
+/** Shared column/row sortable registration, focus reveal and drop edge. */
+function useTableSortable<A, B>(
+  kind: DataTableDragData["kind"],
+  id: string,
+  index: number,
+  label: string,
+  edges: { after: A; before: B }
+) {
+  const sortable = useSortable<DataTableDragData>({
+    id: `${kind}:${id}`,
+    index,
+    type: kind,
+    accept: kind,
+    group: `${kind}s`,
+    data: { kind, id, index, label },
+    modifiers: [
+      kind === "column" ? RestrictToHorizontalAxis : RestrictToVerticalAxis,
+    ],
+    collisionDetector: tableCollisionDetector,
+    plugins: tableSortablePlugins,
+  })
+  useTableDragHandleReveal(sortable)
+  const { source } = useDragOperation<DataTableDragData>()
+  const dropSide = dropEdge(
+    {
+      isDropTarget: sortable.isDropTarget,
+      isDragging: sortable.isDragging,
+      activeIndex: source?.data.index ?? index,
+      overIndex: index,
+    },
+    edges
+  )
+  return { sortable, dropSide }
 }
 
 /* ── Sortable header cell (column reorder) ───────────────────────────────── */
 
 function SortableHeaderContent({
   columnId,
+  index,
+  label,
   children,
 }: {
   columnId: string
+  index: number
+  label: string
   children: (args: {
-    setActivatorNodeRef: (node: HTMLElement | null) => void
-    listeners: Record<string, unknown> | undefined
+    handleRef: (node: Element | null) => void
     style: CSSProperties
-    setNodeRef: (node: HTMLElement | null) => void
+    nodeRef: (node: Element | null) => void
     isDragging: boolean
     dropSide?: "start" | "end"
-    attributes: Record<string, unknown>
   }) => ReactNode
 }) {
-  // `data.type` tags what is being dragged. Routing by "is this id in the
-  // column list?" misfired whenever a row id collided with a column id — with
-  // `getRowId={(r) => r.slug}`, dragging the row keyed "name" reordered the
-  // columns and never fired `onRowReorder`.
-  const sortable = useSortable({ id: columnId, data: { type: "column" } })
-  const style: CSSProperties = {
-    transform: CSS.Translate.toString(sortable.transform),
-    transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.4 : 1,
-  }
-  const dropSide = dropEdge(
-    {
-      isOver: sortable.isOver,
-      isDragging: sortable.isDragging,
-      activeIndex: sortable.activeIndex ?? 0,
-      overIndex: sortable.overIndex ?? 0,
-    },
+  const { sortable, dropSide } = useTableSortable(
+    "column",
+    columnId,
+    index,
+    label,
     { after: "end" as const, before: "start" as const }
   )
-  return (
-    <>
-      {children({
-        setActivatorNodeRef: sortable.setActivatorNodeRef,
-        listeners: sortable.listeners,
-        style,
-        setNodeRef: sortable.setNodeRef,
-        isDragging: sortable.isDragging,
-        dropSide,
-        attributes: sortable.attributes as unknown as Record<string, unknown>,
-      })}
-    </>
-  )
+  return children({
+    handleRef: sortable.handleRef,
+    nodeRef: sortable.ref,
+    style: { opacity: sortable.isDragging ? 0.4 : 1 },
+    isDragging: sortable.isDragging,
+    dropSide,
+  })
 }
 
 /* ── Sortable body row (row reorder) ─────────────────────────────────────── */
 
 function SortableRow<T extends RowData>({
   row,
-  enabled,
+  index,
+  label,
   children,
 }: {
   row: Row<T>
-  enabled: boolean
+  index: number
+  label: string
   children: (args: {
-    setNodeRef: (node: HTMLElement | null) => void
+    nodeRef: (node: Element | null) => void
     style: CSSProperties
-    dragHandleProps: Record<string, unknown>
+    dragHandleProps: DataTableDragHandleProps
     isDragging: boolean
     dropSide?: "top" | "bottom"
   }) => ReactNode
 }) {
-  const sortable = useSortable({
-    id: row.id,
-    disabled: !enabled,
-    data: { type: "row" },
+  const { sortable, dropSide } = useTableSortable("row", row.id, index, label, {
+    after: "bottom" as const,
+    before: "top" as const,
   })
-  const style: CSSProperties = {
-    transform: CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.4 : 1,
-    position: "relative",
-    zIndex: sortable.isDragging ? 1 : undefined,
-  }
-  const dropSide = dropEdge(
-    {
-      isOver: sortable.isOver,
-      isDragging: sortable.isDragging,
-      activeIndex: sortable.activeIndex ?? 0,
-      overIndex: sortable.overIndex ?? 0,
+  return children({
+    nodeRef: sortable.ref,
+    style: {
+      opacity: sortable.isDragging ? 0.4 : 1,
+      position: "relative",
+      zIndex: sortable.isDragging ? 1 : undefined,
     },
-    { after: "bottom" as const, before: "top" as const }
-  )
-  const dragHandleProps = {
-    ref: sortable.setActivatorNodeRef,
-    ...sortable.attributes,
-    ...sortable.listeners,
-  }
-  return (
-    <>
-      {children({
-        setNodeRef: sortable.setNodeRef,
-        style,
-        dragHandleProps,
-        isDragging: sortable.isDragging,
-        dropSide,
-      })}
-    </>
-  )
+    dragHandleProps: { onFocus: handleTableDragFocus, ref: sortable.handleRef },
+    isDragging: sortable.isDragging,
+    dropSide,
+  })
 }
 
 /**
@@ -510,6 +768,10 @@ export type DataTableTranslations = {
   actionsLabel?: string
   filtersLabel?: string
   selectAllLabel?: string
+  /** Accessible name of the selection column without a select-all control. */
+  selectionLabel?: string
+  /** Accessible name of the row-reordering column header. */
+  reorderLabel?: string
   loadingLabel?: string
   /** Override the filter condition labels, keyed by operator. */
   operatorLabels?: Partial<Record<string, string>>
@@ -531,6 +793,8 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   actionsLabel: "Actions",
   filtersLabel: "Column filters",
   selectAllLabel: "Select all rows",
+  selectionLabel: "Select rows",
+  reorderLabel: "Reorder rows",
   loadingLabel: "Loading data",
   operatorLabels: {},
   editingLabel: "Editing a row — other table controls are locked",
@@ -873,25 +1137,20 @@ function pinClass<T extends RowData>(
 /** Column drag handle rendered in the header cell. */
 function HeaderDragHandle({
   styles,
-  setActivatorNodeRef,
-  listeners,
-  attributes,
+  handleRef,
   label,
 }: {
   styles: DataTableStyles
   label: string
-  setActivatorNodeRef: (node: HTMLElement | null) => void
-  listeners: Record<string, unknown> | undefined
-  attributes?: Record<string, unknown>
+  handleRef: (node: Element | null) => void
 }) {
   return (
     <button
       aria-label={`Drag to reorder ${label}`}
       className={styles.dragHandle()}
-      ref={setActivatorNodeRef as unknown as Ref<HTMLButtonElement>}
+      onFocus={handleTableDragFocus}
+      ref={handleRef}
       type="button"
-      {...attributes}
-      {...listeners}
     >
       <Icon icon="icon-[mdi--drag-vertical]" size="current" />
     </button>
@@ -965,7 +1224,7 @@ function renderCellContent<T extends RowData>({
   rowLabel: string
   styles: DataTableStyles
   enableRowReorder: boolean
-  dnd?: { dragHandleProps: Record<string, unknown> }
+  dnd?: { dragHandleProps: DataTableDragHandleProps }
   editor?: ReactNode
   editorError?: string
   editorErrorId?: string
@@ -1044,7 +1303,7 @@ function DataTableBodyCell<T extends RowData>({
   columnSizing: ColumnSizingState
   enableColumnResizing: boolean
   enableRowReorder: boolean
-  dnd?: { dragHandleProps: Record<string, unknown> }
+  dnd?: { dragHandleProps: DataTableDragHandleProps }
   editor?: ReactNode
   editorError?: string
   editorErrorId?: string
@@ -1389,11 +1648,11 @@ function editingRowElementId(
 }
 
 function composeRowRef(
-  dnd: { setNodeRef: (node: HTMLElement | null) => void } | undefined,
+  dnd: { nodeRef: (node: Element | null) => void } | undefined,
   consumerRef: Ref<HTMLTableRowElement> | undefined
 ) {
   return ((node: HTMLTableRowElement | null) => {
-    dnd?.setNodeRef(node)
+    dnd?.nodeRef(node)
     if (typeof consumerRef === "function") {
       consumerRef(node)
     } else if (consumerRef) {
@@ -1782,6 +2041,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         locked,
         getRowLabel,
         selectAllLabel: translations.selectAllLabel,
+        selectionLabel: translations.selectionLabel,
+        reorderLabel: translations.reorderLabel,
         showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
       }),
     [
@@ -1791,6 +2052,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       locked,
       getRowLabel,
       translations.selectAllLabel,
+      translations.selectionLabel,
+      translations.reorderLabel,
       selectionMode,
       maxSelectedRows,
     ]
@@ -2113,9 +2376,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   }
 
   const rows = table.getRowModel().rows
-  // Memoized for the same reason as `reorderableLeafIds`: a fresh array
-  // identity on every render defeats `SortableContext`'s own change
-  // detection regardless of whether the row order actually changed.
+  // Sortable indices belong to the rendered root rows, while public reorder
+  // callbacks use each row's position in the original data array.
   const rootRowIds = useMemo(
     () => rows.filter((r) => r.depth === 0).map((r) => r.id),
     [rows]
@@ -2136,9 +2398,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const headerGroups = table.getHeaderGroups()
   // Memoized on `headerGroups`, which TanStack itself memoizes on columns /
   // order / grouping / pinning / visibility. Mapping it inline produced a
-  // fresh array every render, which silently defeated the `useMemo` on
-  // `reorderableLeafIds` below — the identity `SortableContext` reads as
-  // "the list changed".
+  // fresh array every render, which defeated the `useMemo` on
+  // `reorderableLeafIds` below.
   // `table` is deliberately NOT a dependency: `useTable` returns
   // `useMemo(() => ({...table, options, state}), [table, tableOptions, state])`
   // and `tableOptions` is the object literal built above — a fresh identity
@@ -2197,10 +2458,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         "`hidden: true` follower row stays rendered, leaving a gap."
     )
   }, [virtualizationUsable, getCellSpan])
-  // Row reorder's `SortableContext` is seeded with every root row id
-  // (`rootRowIds`), but only the virtualized window's rows actually mount a
-  // `useSortable` node — dnd-kit's collision detection can't resolve ids
-  // with no registered DOM node, so dragging toward an off-screen target
+  // Only the virtualized window's rows mount a sortable node. Collision
+  // detection cannot resolve off-screen rows, so dragging toward a target
   // can misfire. Same "documented, not fixable without a deeper rework"
   // treatment as the getCellSpan incompatibility above.
   const hasWarnedAboutVirtualizedRowReorder = useRef(false)
@@ -2280,19 +2539,6 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         return row ? [{ row, index: vi.index }] : []
       })
     : rows.map((row, index) => ({ row, index }))
-
-  /* dnd sensors */
-  // Which axis the in-flight drag is constrained to; set on drag start so the
-  // shared DndContext can apply the right modifier for rows vs columns.
-  const [activeDragAxis, setActiveDragAxis] = useState<"row" | "column" | null>(
-    null
-  )
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
 
   // Without `maxHeight` the table does not scroll itself, so infinite scroll has
   // to observe the page instead of the container.
@@ -2420,59 +2666,65 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     checkReachEnd(distance, reachEndThreshold, reachedEndRef, fireReachEnd)
   }
 
-  const handleColumnDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) {
+  const handleColumnDragEnd = (event: DataTableDragEndEvent) => {
+    const { source, target } = event.operation
+    if (
+      event.canceled ||
+      locked ||
+      !(source && target) ||
+      source.id === target.id ||
+      source.data.kind !== "column" ||
+      target.data.kind !== "column" ||
+      !reorderableLeafIds.includes(source.data.id) ||
+      !reorderableLeafIds.includes(target.data.id)
+    ) {
       return
     }
-    // Seed from ALL leaf columns (not just visible ones) so a reorder while
-    // some columns are hidden doesn't drop the hidden ids from columnOrder.
-    const current = table.state.columnOrder.length
-      ? table.state.columnOrder
-      : table.getAllLeafColumns().map((c) => c.id)
-    const from = current.indexOf(active.id as string)
-    const to = current.indexOf(over.id as string)
+    // Include every leaf, including hidden columns and ids omitted from a
+    // partial controlled columnOrder, so a visible reorder never drops them.
+    const current = table.getAllLeafColumns().map((column) => column.id)
+    const from = current.indexOf(source.data.id)
+    const to = current.indexOf(target.data.id)
     if (from === -1 || to === -1) {
       return
     }
     const next = arrayMove(current, from, to)
     setColumnOrder(next)
-    // Reported in the consumer's own frame of reference. `current` carries
-    // the injected `__drag`/`__select` columns, which the consumer never
-    // declared — indices into it are offset by one or two from their
-    // `columns` array, so `arrayMove(myColumns, from, to)` would move the
-    // wrong column. Strip the built-ins from both the order and the indices.
+    // Public indices refer to consumer columns, excluding injected controls.
     const publicBefore = current.filter((id) => !BUILTIN_COLUMN_IDS.has(id))
     const publicOrder = next.filter((id) => !BUILTIN_COLUMN_IDS.has(id))
     onColumnReorder?.({
-      from: publicBefore.indexOf(active.id as string),
-      to: publicOrder.indexOf(active.id as string),
-      columnId: active.id as string,
+      from: publicBefore.indexOf(source.data.id),
+      to: publicOrder.indexOf(source.data.id),
+      columnId: source.data.id,
       order: publicOrder,
     })
   }
 
-  const handleRowDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) {
+  const handleRowDragEnd = (event: DataTableDragEndEvent) => {
+    const { source, target } = event.operation
+    if (
+      event.canceled ||
+      !rowReorderActive ||
+      !(source && target) ||
+      source.id === target.id ||
+      source.data.kind !== "row" ||
+      target.data.kind !== "row" ||
+      !rootRowIds.includes(source.data.id) ||
+      !rootRowIds.includes(target.data.id)
+    ) {
       return
     }
-    // Map the dragged/target display rows back to their positions in the
-    // original `data` array — display order may be sorted/filtered/paginated,
-    // so row-model indices must not be applied to `data` directly. The core
-    // (unsorted, unfiltered) row model's `.index` already *is* that position,
-    // keyed by id in O(1) via `rowsById` — unlike `data.indexOf(row.original)`,
-    // this doesn't depend on `row.original` being reference-identical to an
-    // entry in `data`, so it doesn't silently no-op when `data` holds
-    // duplicate or content-equal objects.
+    // Page and virtual-window indices are local to the rendered view. The
+    // core row model maps original ids back to the consumer's data positions.
     const coreRowsById = table.getCoreRowModel().rowsById
-    const from = coreRowsById[active.id as string]?.index
-    const to = coreRowsById[over.id as string]?.index
+    const from = coreRowsById[source.data.id]?.index
+    const to = coreRowsById[target.data.id]?.index
     if (from === undefined || to === undefined) {
       return
     }
     const next = arrayMove([...data], from, to)
-    onRowReorder?.({ from, to, rowId: active.id as string, data: next })
+    onRowReorder?.({ from, to, rowId: source.data.id, data: next })
   }
 
   const hasFooter = table
@@ -2482,16 +2734,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const indentColumnId = leafColumns.find(
     (c) => !BUILTIN_COLUMN_IDS.has(c.id)
   )?.id
-  // Must match `renderHeaderCell`'s own `reorderable` check exactly: dnd-kit's
-  // `SortableContext` computes drag index/offset math from this `items`
-  // array assuming every id in it has a registered `useSortable` node, and
-  // pinned columns are the one leaf column `renderHeaderCell` deliberately
-  // never wraps in `SortableHeaderContent`.
-  //
-  // Memoized: `SortableContext` treats a new `items` identity as "the list
-  // changed" regardless of content, forcing dnd-kit to rebuild its id index —
-  // this recomputes only when the actual leaf columns change, not on every
-  // unrelated render (a filter keystroke, a hover state elsewhere).
+  // Only visible, unpinned consumer columns register sortable targets.
+  // Their indices follow the header's render order rather than columnOrder.
   const reorderableLeafIds = useMemo(
     () =>
       leafColumns
@@ -2617,13 +2861,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     header: Header<T, unknown>,
     groupIndex: number,
     dnd?: {
-      setNodeRef: (node: HTMLElement | null) => void
-      setActivatorNodeRef: (node: HTMLElement | null) => void
-      listeners: Record<string, unknown> | undefined
+      nodeRef: (node: Element | null) => void
+      handleRef: (node: Element | null) => void
       style: CSSProperties
       isDragging: boolean
       dropSide?: "start" | "end"
-      attributes: Record<string, unknown>
     }
   ) => {
     const column = header.column
@@ -2654,7 +2896,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         data-dragging={dnd?.isDragging || undefined}
         data-pinned={column.getIsPinned() || undefined}
         key={header.id}
-        ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
+        ref={dnd?.nodeRef as unknown as RefObject<HTMLTableCellElement>}
         style={{
           ...OPAQUE_HEADER_BG,
           ...stickyRowOffset(stickyHeader, headerOffsets, groupIndex),
@@ -2666,10 +2908,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         <div className={styles.headerLabel()}>
           {dnd && (
             <HeaderDragHandle
-              attributes={dnd.attributes}
+              handleRef={dnd.handleRef}
               label={columnLabel(column)}
-              listeners={dnd.listeners}
-              setActivatorNodeRef={dnd.setActivatorNodeRef}
               styles={styles}
             />
           )}
@@ -2721,7 +2961,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             return reorderable ? (
               <SortableHeaderContent
                 columnId={header.column.id}
+                index={reorderableLeafIds.indexOf(header.column.id)}
                 key={header.id}
+                label={columnLabel(header.column)}
               >
                 {(dnd) => renderHeaderCell(header, groupIndex, dnd)}
               </SortableHeaderContent>
@@ -2731,7 +2973,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           })}
           {hasActionsColumn && groupIndex === 0 && (
             <Table.ColumnHeader
-              className={stickyActions ? "sticky end-0" : undefined}
+              className={stickyActions ? "sticky inset-e-0" : undefined}
               numeric
               rowSpan={table.getHeaderGroups().length}
               style={{
@@ -2786,7 +3028,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <td
               className={
                 stickyActions
-                  ? `${styles.filterCell()} sticky end-0 bg-data-table-filter-row-bg`
+                  ? `${styles.filterCell()} sticky inset-e-0 bg-data-table-filter-row-bg`
                   : styles.filterCell()
               }
               style={{
@@ -2795,7 +3037,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   ? { position: "sticky", top: headerHeight }
                   : undefined),
                 // Gated on `stickyActions` (which is what applies the
-                // `sticky end-0` class), not on `stickyHeader`. Pinned filter
+                // `sticky inset-e-0` class), not on `stickyHeader`. Pinned filter
                 // cells take `zIndex: pinnedHeaderCell` from
                 // `getPinningStyles` unconditionally, so when the header was
                 // not sticky this cell had no level at all and an end-pinned
@@ -2940,7 +3182,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       // Composites the row tint over an opaque surface, like pinned cells —
       // `bg-inherit` alone was transparent on striped/selected rows.
       className={
-        stickyActions ? "data-table-frozen-cell sticky end-0" : undefined
+        stickyActions ? "data-table-frozen-cell sticky inset-e-0" : undefined
       }
       numeric
       style={
@@ -3021,7 +3263,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     row: Row<T>,
     cells: Cell<T, unknown>[],
     rowIndex: number,
-    dnd?: { dragHandleProps: Record<string, unknown> }
+    dnd?: { dragHandleProps: DataTableDragHandleProps }
   ) => {
     const rowLabel = getRowLabel?.(row) ?? `row ${row.id}`
     return cells.map((cell) => {
@@ -3067,9 +3309,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     : 0
 
   type RowDnd = {
-    setNodeRef: (node: HTMLElement | null) => void
+    nodeRef: (node: Element | null) => void
     style: CSSProperties
-    dragHandleProps: Record<string, unknown>
+    dragHandleProps: DataTableDragHandleProps
     isDragging?: boolean
     dropSide?: "top" | "bottom"
   }
@@ -3169,7 +3411,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     // Only top-level rows are reorderable — sub-rows aren't in the top-level
     // `data` array, so dragging them could not be applied to it.
     return rowReorderActive && row.depth === 0 ? (
-      <SortableRow enabled={enableRowReorder} key={row.id} row={row}>
+      <SortableRow
+        index={rootRowIds.indexOf(row.id)}
+        key={row.id}
+        label={getRowLabel?.(row) ?? `row ${row.id}`}
+        row={row}
+      >
         {(dnd) => renderBodyRow(row, rowIndex, dnd)}
       </SortableRow>
     ) : (
@@ -3192,7 +3439,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "data-table-frozen-cell sticky end-0"
+                  ? "data-table-frozen-cell sticky inset-e-0"
                   : undefined
               }
               numeric
@@ -3298,7 +3545,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "sticky end-0 bg-data-table-footer-bg"
+                  ? "sticky inset-e-0 bg-data-table-footer-bg"
                   : undefined
               }
               numeric
@@ -3329,57 +3576,21 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       style={{ tableLayout, ...slotProps?.root?.style }}
     >
       {caption && <Table.Caption>{caption}</Table.Caption>}
-      {/*
-       * Each SortableContext is scoped to the region whose items it lists.
-       * `useSortable` resolves to the *nearest* one, so wrapping the whole
-       * table in both (column inside row, as the DndContext nesting below
-       * implies) made body rows resolve against `reorderableLeafIds` — index
-       * -1, horizontal-axis modifier, and the row id handed to the column
-       * drag handler, which bails. Row reorder silently did nothing whenever
-       * `enableColumnReorder` was also on. SortableContext renders no DOM, so
-       * scoping it this way is safe inside `<table>` (a DndContext is not —
-       * its accessibility markup would render as a div child of the table).
-       */}
-      {enableColumnReorder ? (
-        <SortableContext
-          items={reorderableLeafIds}
-          strategy={horizontalListSortingStrategy}
-        >
-          {headerContent}
-        </SortableContext>
-      ) : (
-        headerContent
-      )}
-      {rowReorderActive ? (
-        <SortableContext
-          items={rootRowIds}
-          strategy={verticalListSortingStrategy}
-        >
-          {bodyContent}
-        </SortableContext>
-      ) : (
-        bodyContent
-      )}
+      {headerContent}
+      {bodyContent}
       {footerContent}
     </Table>
   )
 
-  /*
-   * One DndContext for both axes. Nesting two of them meant the inner one
-   * captured every drag — `useDraggable` resolves to the nearest context
-   * just as `useSortable` does — so with both reorder flags on, row drags
-   * were routed to the column handler. Dispatch on what is actually being
-   * dragged instead, and pick the axis modifier to match.
-   */
-  const isColumnDrag = (event: {
-    active: { id: string | number; data: { current?: { type?: string } } }
-  }) => event.active.data.current?.type === "column"
-  const handleDragEnd = (event: DragEndEvent) => {
-    if (enableColumnReorder && isColumnDrag(event)) {
-      handleColumnDragEnd(event)
+  // Rows and columns share one provider, with separate types and accepted
+  // targets. Each sortable carries its own axis constraint and original id.
+  const handleDragEnd = (event: DataTableDragEndEvent) => {
+    if (event.canceled) {
       return
     }
-    if (rowReorderActive) {
+    if (enableColumnReorder && event.operation.source?.data.kind === "column") {
+      handleColumnDragEnd(event)
+    } else if (rowReorderActive) {
       handleRowDragEnd(event)
     }
   }
@@ -3387,26 +3598,14 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   let scrollBody: ReactNode = tableEl
   if (enableColumnReorder || rowReorderActive) {
     scrollBody = (
-      <DndContext
-        collisionDetection={closestCenter}
-        modifiers={[
-          activeDragAxis === "column"
-            ? restrictToHorizontalAxis
-            : restrictToVerticalAxis,
-        ]}
-        onDragEnd={(event) => {
-          handleDragEnd(event)
-          setActiveDragAxis(null)
-        }}
-        onDragStart={(event) =>
-          setActiveDragAxis(
-            enableColumnReorder && isColumnDrag(event) ? "column" : "row"
-          )
-        }
-        sensors={sensors}
+      <DragDropProvider<DataTableDragData>
+        onDragEnd={handleDragEnd}
+        onDragMove={handleTableKeyboardMove}
+        plugins={tableDragPlugins}
+        sensors={tableDragSensors}
       >
         {scrollBody}
-      </DndContext>
+      </DragDropProvider>
     )
   }
 
@@ -3467,6 +3666,8 @@ function buildColumns<T extends RowData>({
   locked,
   getRowLabel,
   selectAllLabel,
+  selectionLabel,
+  reorderLabel,
   showSelectAll,
 }: {
   userColumns: ColumnDef<T, unknown>[]
@@ -3475,6 +3676,8 @@ function buildColumns<T extends RowData>({
   locked: boolean
   getRowLabel?: (row: Row<T>) => string
   selectAllLabel: string
+  selectionLabel: string
+  reorderLabel: string
   showSelectAll: boolean
 }): ColumnDef<T, unknown>[] {
   const leading: ColumnDef<T, unknown>[] = []
@@ -3482,7 +3685,7 @@ function buildColumns<T extends RowData>({
   if (enableRowReorder) {
     leading.push({
       id: DRAG_COLUMN_ID,
-      header: () => null,
+      header: () => <span className="sr-only">{reorderLabel}</span>,
       // Cell body is replaced by the drag handle in renderBodyRow.
       cell: () => null,
       enableSorting: false,
@@ -3510,7 +3713,9 @@ function buildColumns<T extends RowData>({
             }
             onChange={table.getToggleAllRowsSelectedHandler()}
           />
-        ) : null,
+        ) : (
+          <span className="sr-only">{selectionLabel}</span>
+        ),
       cell: ({ row }) => (
         <Checkbox
           aria-label={`Select ${getRowLabel?.(row) ?? `row ${row.id}`}`}

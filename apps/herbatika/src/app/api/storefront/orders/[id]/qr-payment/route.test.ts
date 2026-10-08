@@ -261,116 +261,107 @@ describe("order QR payment bridge", () => {
     expect(await response.text()).not.toContain("Guest.Cookie.Token")
   })
 
-  it.each(
-    MARKET_CASES
-  )("returns exact $currencyCode QR data for the $binding.market Host binding", async ({
-    binding,
-    currencyCode,
-    host,
-  }) => {
-    resolveBinding.mockReturnValue(binding)
-    const upstreamFetch = vi
-      .fn()
-      .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
-      .mockResolvedValueOnce(
-        authorizedOrderResponse({
-          currency_code: currencyCode,
-          payment_collections: [
-            {
-              payments: [
-                {
-                  data: {
-                    payment_qr_spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*CC:${currencyCode}*X-VS:42`,
+  it.each(MARKET_CASES)(
+    "returns exact $currencyCode QR data for the $binding.market Host binding",
+    async ({ binding, currencyCode, host }) => {
+      resolveBinding.mockReturnValue(binding)
+      const upstreamFetch = vi
+        .fn()
+        .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
+        .mockResolvedValueOnce(
+          authorizedOrderResponse({
+            currency_code: currencyCode,
+            payment_collections: [
+              {
+                payments: [
+                  {
+                    data: {
+                      payment_qr_spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*CC:${currencyCode}*X-VS:42`,
+                    },
+                    provider_id: "pp_qr_manual_default",
                   },
-                  provider_id: "pp_qr_manual_default",
-                },
-              ],
-            },
-          ],
-          region_id: binding.regionId,
-          sales_channel_id: binding.salesChannelId,
-        })
+                ],
+              },
+            ],
+            region_id: binding.regionId,
+            sales_channel_id: binding.salesChannelId,
+          })
+        )
+      vi.stubGlobal("fetch", upstreamFetch)
+
+      const response = await callQr(
+        { order_token: "Guest.Token-Exact" },
+        { host }
       )
-    vi.stubGlobal("fetch", upstreamFetch)
 
-    const response = await callQr(
-      { order_token: "Guest.Token-Exact" },
-      { host }
-    )
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({
+        qr_payment: { currency_code: currencyCode },
+        status: "ready",
+      })
+    }
+  )
 
-    expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({
-      qr_payment: { currency_code: currencyCode },
-      status: "ready",
-    })
-  })
-
-  it.each(
-    MARKET_CASES
-  )("rejects a tampered $currencyCode QR amount for the $binding.market Host binding", async ({
-    binding,
-    currencyCode,
-    host,
-  }) => {
-    resolveBinding.mockReturnValue(binding)
-    const upstreamFetch = vi
-      .fn()
-      .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
-      .mockResolvedValueOnce(
-        authorizedOrderResponse({
-          currency_code: currencyCode,
-          payment_collections: [
-            {
-              payments: [
-                {
-                  data: {
-                    payment_qr_spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.46*CC:${currencyCode}*X-VS:42`,
+  it.each(MARKET_CASES)(
+    "rejects a tampered $currencyCode QR amount for the $binding.market Host binding",
+    async ({ binding, currencyCode, host }) => {
+      resolveBinding.mockReturnValue(binding)
+      const upstreamFetch = vi
+        .fn()
+        .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
+        .mockResolvedValueOnce(
+          authorizedOrderResponse({
+            currency_code: currencyCode,
+            payment_collections: [
+              {
+                payments: [
+                  {
+                    data: {
+                      payment_qr_spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.46*CC:${currencyCode}*X-VS:42`,
+                    },
+                    provider_id: "pp_qr_manual_default",
                   },
-                  provider_id: "pp_qr_manual_default",
-                },
-              ],
-            },
-          ],
-          region_id: binding.regionId,
-          sales_channel_id: binding.salesChannelId,
-          total: 123.45,
-        })
+                ],
+              },
+            ],
+            region_id: binding.regionId,
+            sales_channel_id: binding.salesChannelId,
+            total: 123.45,
+          })
+        )
+      vi.stubGlobal("fetch", upstreamFetch)
+
+      const response = await callQr(
+        { order_token: "Guest.Token-Exact" },
+        { host }
       )
-    vi.stubGlobal("fetch", upstreamFetch)
 
-    const response = await callQr(
-      { order_token: "Guest.Token-Exact" },
-      { host }
-    )
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({
+        qr_payment: null,
+        status: "unavailable",
+      })
+    }
+  )
 
-    expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({
-      qr_payment: null,
-      status: "unavailable",
-    })
-  })
+  it.each(MARKET_CASES)(
+    "localizes private failures for the $binding.market Host",
+    async ({ binding, failureMessage, host }) => {
+      resolveBinding.mockReturnValue(binding)
+      const upstreamFetch = vi.fn()
+      vi.stubGlobal("fetch", upstreamFetch)
 
-  it.each(
-    MARKET_CASES
-  )("localizes private failures for the $binding.market Host", async ({
-    binding,
-    failureMessage,
-    host,
-  }) => {
-    resolveBinding.mockReturnValue(binding)
-    const upstreamFetch = vi.fn()
-    vi.stubGlobal("fetch", upstreamFetch)
-
-    expect(
-      await readFailureProjection(
-        await callQr({ order_token: " invalid" }, { host })
-      )
-    ).toEqual({
-      ...CZ_FAILURE_PROJECTION,
-      body: { message: failureMessage },
-    })
-    expect(upstreamFetch).not.toHaveBeenCalled()
-  })
+      expect(
+        await readFailureProjection(
+          await callQr({ order_token: " invalid" }, { host })
+        )
+      ).toEqual({
+        ...CZ_FAILURE_PROJECTION,
+        body: { message: failureMessage },
+      })
+      expect(upstreamFetch).not.toHaveBeenCalled()
+    }
+  )
 
   it("returns a generic 421 for an unknown Host", async () => {
     resolveBinding.mockReturnValue(null)
@@ -398,38 +389,41 @@ describe("order QR payment bridge", () => {
     ["foreign order currency", "EUR", "CC:CZK"],
     ["foreign SPAYD currency", "CZK", "CC:EUR"],
     ["ambiguous SPAYD currency", "CZK", "CC:CZK*CC:CZK"],
-  ] as const)("returns unavailable QR data for %s", async (_name, orderCurrencyCode, spaydCurrencyField) => {
-    resolveBinding.mockReturnValue(CZ_BINDING)
-    const upstreamFetch = vi
-      .fn()
-      .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
-      .mockResolvedValueOnce(
-        authorizedOrderResponse({
-          currency_code: orderCurrencyCode,
-          payment_collections: [
-            {
-              payments: [
-                {
-                  data: {
-                    payment_qr_spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*${spaydCurrencyField}*X-VS:42`,
+  ] as const)(
+    "returns unavailable QR data for %s",
+    async (_name, orderCurrencyCode, spaydCurrencyField) => {
+      resolveBinding.mockReturnValue(CZ_BINDING)
+      const upstreamFetch = vi
+        .fn()
+        .mockResolvedValueOnce(Response.json({ order: { id: "order_Case" } }))
+        .mockResolvedValueOnce(
+          authorizedOrderResponse({
+            currency_code: orderCurrencyCode,
+            payment_collections: [
+              {
+                payments: [
+                  {
+                    data: {
+                      payment_qr_spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*${spaydCurrencyField}*X-VS:42`,
+                    },
+                    provider_id: "pp_qr_manual_default",
                   },
-                  provider_id: "pp_qr_manual_default",
-                },
-              ],
-            },
-          ],
-        })
-      )
-    vi.stubGlobal("fetch", upstreamFetch)
+                ],
+              },
+            ],
+          })
+        )
+      vi.stubGlobal("fetch", upstreamFetch)
 
-    const response = await callQr({ order_token: "Guest.Token-Exact" })
+      const response = await callQr({ order_token: "Guest.Token-Exact" })
 
-    expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({
-      qr_payment: null,
-      status: "unavailable",
-    })
-  })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({
+        qr_payment: null,
+        status: "unavailable",
+      })
+    }
+  )
 
   it.each([
     ["missing authority", {}, { host: "herbatica.cz" }],
@@ -446,18 +440,21 @@ describe("order QR payment bridge", () => {
       {},
     ],
     ["non-exact token", { order_token: " Guest.Token-Exact" }, {}],
-  ] as const)("fails closed before Medusa for %s", async (_name, body, options) => {
-    resolveBinding.mockImplementation((host) =>
-      host === "herbatica.cz" ? CZ_BINDING : null
-    )
-    const upstreamFetch = vi.fn()
-    vi.stubGlobal("fetch", upstreamFetch)
+  ] as const)(
+    "fails closed before Medusa for %s",
+    async (_name, body, options) => {
+      resolveBinding.mockImplementation((host) =>
+        host === "herbatica.cz" ? CZ_BINDING : null
+      )
+      const upstreamFetch = vi.fn()
+      vi.stubGlobal("fetch", upstreamFetch)
 
-    expect(await readFailureProjection(await callQr(body, options))).toEqual(
-      CZ_FAILURE_PROJECTION
-    )
-    expect(upstreamFetch).not.toHaveBeenCalled()
-  })
+      expect(await readFailureProjection(await callQr(body, options))).toEqual(
+        CZ_FAILURE_PROJECTION
+      )
+      expect(upstreamFetch).not.toHaveBeenCalled()
+    }
+  )
 
   it.each([
     ["ownership not found", [new Response(null, { status: 404 })]],
@@ -487,18 +484,21 @@ describe("order QR payment bridge", () => {
         authorizedOrderResponse({ region_id: "reg_sk" }),
       ],
     ],
-  ] as const)("uses the same private failure for %s", async (_name, responses) => {
-    resolveBinding.mockReturnValue(CZ_BINDING)
-    const upstreamFetch = vi.fn()
-    for (const response of responses) {
-      upstreamFetch.mockResolvedValueOnce(response)
-    }
-    vi.stubGlobal("fetch", upstreamFetch)
+  ] as const)(
+    "uses the same private failure for %s",
+    async (_name, responses) => {
+      resolveBinding.mockReturnValue(CZ_BINDING)
+      const upstreamFetch = vi.fn()
+      for (const response of responses) {
+        upstreamFetch.mockResolvedValueOnce(response)
+      }
+      vi.stubGlobal("fetch", upstreamFetch)
 
-    expect(
-      await readFailureProjection(
-        await callQr({ order_token: "Guest.Token-Exact" })
-      )
-    ).toEqual(CZ_FAILURE_PROJECTION)
-  })
+      expect(
+        await readFailureProjection(
+          await callQr({ order_token: "Guest.Token-Exact" })
+        )
+      ).toEqual(CZ_FAILURE_PROJECTION)
+    }
+  )
 })

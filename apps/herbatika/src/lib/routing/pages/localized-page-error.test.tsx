@@ -79,38 +79,35 @@ const ERROR_CASES = [
 ] as const
 
 describe("localized Pages error shells", () => {
-  it.each(
-    ERROR_CASES
-  )("renders every $locale storefront-text surface without raw or foreign errors", ({
-    catalog,
-    foreignCatalogCanaries,
-    locale,
-  }) => {
-    const pageErrors = messagesForLocale(locale).navigation.page_errors
-    let renderedSurfaces = ""
+  it.each(ERROR_CASES)(
+    "renders every $locale storefront-text surface without raw or foreign errors",
+    ({ catalog, foreignCatalogCanaries, locale }) => {
+      const pageErrors = messagesForLocale(locale).navigation.page_errors
+      let renderedSurfaces = ""
 
-    expect(pageErrors.catalog).toBe(catalog)
-    for (const surface of LOCALIZED_ERROR_SURFACES) {
-      const html = renderToStaticMarkup(
-        <NextIntlClientProvider
-          locale={locale}
-          messages={messagesForLocale(locale)}
-        >
-          <LocalizedPageError status={503} surface={surface} />
-        </NextIntlClientProvider>
-      )
+      expect(pageErrors.catalog).toBe(catalog)
+      for (const surface of LOCALIZED_ERROR_SURFACES) {
+        const html = renderToStaticMarkup(
+          <NextIntlClientProvider
+            locale={locale}
+            messages={messagesForLocale(locale)}
+          >
+            <LocalizedPageError status={503} surface={surface} />
+          </NextIntlClientProvider>
+        )
 
-      expect(html, surface).toContain('data-status="503"')
-      expect(html, surface).toContain('role="alert"')
-      expect(html, surface).toContain(pageErrors[surface])
-      expect(html, surface).not.toContain("Error:")
-      expect(html, surface).not.toContain("page_errors.")
-      renderedSurfaces += html
+        expect(html, surface).toContain('data-status="503"')
+        expect(html, surface).toContain('role="alert"')
+        expect(html, surface).toContain(pageErrors[surface])
+        expect(html, surface).not.toContain("Error:")
+        expect(html, surface).not.toContain("page_errors.")
+        renderedSurfaces += html
+      }
+      for (const foreignCanary of foreignCatalogCanaries) {
+        expect(renderedSurfaces).not.toContain(foreignCanary)
+      }
     }
-    for (const foreignCanary of foreignCatalogCanaries) {
-      expect(renderedSurfaces).not.toContain(foreignCanary)
-    }
-  })
+  )
 
   it("renders market-complete standalone 404 and global error copy", () => {
     const notFoundHtml = renderToStaticMarkup(

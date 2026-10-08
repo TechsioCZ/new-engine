@@ -89,27 +89,28 @@ describe("search autocomplete market authority", () => {
     })
   })
 
-  it.each(
-    MARKET_CASES
-  )("derives $market country, currency, locale, and region from $host", async (marketCase) => {
-    const response = await GET(requestFor(marketCase.host))
+  it.each(MARKET_CASES)(
+    "derives $market country, currency, locale, and region from $host",
+    async (marketCase) => {
+      const response = await GET(requestFor(marketCase.host))
 
-    expect(response.status).toBe(200)
-    expect(response.headers.get("cache-control")).toBe(
-      "private, no-store, max-age=0"
-    )
-    expect(response.headers.get("vary")).toBe("Host, Cookie")
-    expect(mocks.resolveMarketBinding).toHaveBeenCalledWith(marketCase.host)
-    expect(mocks.fetchSearchAutocomplete).toHaveBeenCalledWith({
-      authToken: "private.session.token",
-      countryCode: marketCase.countryCode.toLowerCase(),
-      currencyCode: marketCase.currencyCode,
-      locale: marketCase.locale,
-      market: marketCase.market,
-      query: "herbs",
-      regionId: `reg_${marketCase.market}`,
-    })
-  })
+      expect(response.status).toBe(200)
+      expect(response.headers.get("cache-control")).toBe(
+        "private, no-store, max-age=0"
+      )
+      expect(response.headers.get("vary")).toBe("Host, Cookie")
+      expect(mocks.resolveMarketBinding).toHaveBeenCalledWith(marketCase.host)
+      expect(mocks.fetchSearchAutocomplete).toHaveBeenCalledWith({
+        authToken: "private.session.token",
+        countryCode: marketCase.countryCode.toLowerCase(),
+        currencyCode: marketCase.currencyCode,
+        locale: marketCase.locale,
+        market: marketCase.market,
+        query: "herbs",
+        regionId: `reg_${marketCase.market}`,
+      })
+    }
+  )
 
   it("ignores a foreign market parameter set for a trusted host", async () => {
     const response = await GET(

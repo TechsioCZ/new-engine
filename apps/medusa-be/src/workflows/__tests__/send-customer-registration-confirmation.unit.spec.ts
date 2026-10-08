@@ -57,48 +57,51 @@ describe("customer registration confirmation workflow", () => {
     ["cz", "cs-CZ", "herbatica.cz"],
     ["hu", "hu-HU", "herbatica.hu"],
     ["ro", "ro-RO", "herbatica.ro"],
-  ])("adds the canonical %s market context to the notification", async (marketCode, locale, domain) => {
-    resolveCustomerNotificationMarketContext.mockResolvedValue({
-      country_code: marketCode,
-      locale,
-      market_code: marketCode,
-      sales_channel_id: `sc_${marketCode}`,
-      store_name: "Herbatica",
-      storefront_base_url: `https://${domain}`,
-      storefront_domain: domain,
-    })
-    await import("../send-customer-registration-confirmation")
-    const step = workflowSdkMock.steps.get(
-      "build-customer-registration-confirmation-notification"
-    )
+  ])(
+    "adds the canonical %s market context to the notification",
+    async (marketCode, locale, domain) => {
+      resolveCustomerNotificationMarketContext.mockResolvedValue({
+        country_code: marketCode,
+        locale,
+        market_code: marketCode,
+        sales_channel_id: `sc_${marketCode}`,
+        store_name: "Herbatica",
+        storefront_base_url: `https://${domain}`,
+        storefront_domain: domain,
+      })
+      await import("../send-customer-registration-confirmation")
+      const step = workflowSdkMock.steps.get(
+        "build-customer-registration-confirmation-notification"
+      )
 
-    expect(step).toBeDefined()
+      expect(step).toBeDefined()
 
-    const result = (await step?.(
-      {
-        customer_id: "cus_123",
-        customer_name: "Test Customer",
-        email: "customer@example.test",
-      },
-      { container: { resolve: vi.fn() } }
-    )) as { output: Notification[] }
+      const result = (await step?.(
+        {
+          customer_id: "cus_123",
+          customer_name: "Test Customer",
+          email: "customer@example.test",
+        },
+        { container: { resolve: vi.fn() } }
+      )) as { output: Notification[] }
 
-    expect(resolveCustomerNotificationMarketContext).toHaveBeenCalledWith(
-      expect.anything(),
-      { customerId: "cus_123", email: "customer@example.test" }
-    )
-    expect(result.output).toEqual([
-      expect.objectContaining({
-        data: expect.objectContaining({
-          locale,
-          market_code: marketCode,
-          storefront_base_url: `https://${domain}`,
+      expect(resolveCustomerNotificationMarketContext).toHaveBeenCalledWith(
+        expect.anything(),
+        { customerId: "cus_123", email: "customer@example.test" }
+      )
+      expect(result.output).toEqual([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            locale,
+            market_code: marketCode,
+            storefront_base_url: `https://${domain}`,
+          }),
+          template: "customer-registration-confirmation",
+          to: "customer@example.test",
         }),
-        template: "customer-registration-confirmation",
-        to: "customer@example.test",
-      }),
-    ])
-  })
+      ])
+    }
+  )
 
   it("fails closed when the customer market is ambiguous", async () => {
     resolveCustomerNotificationMarketContext.mockRejectedValue(

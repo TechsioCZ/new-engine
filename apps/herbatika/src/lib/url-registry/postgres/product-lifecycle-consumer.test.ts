@@ -108,30 +108,36 @@ describe("classifyProductLifecycleStream", () => {
   it.each([
     [null, 2],
     [1, 3],
-  ] as const)("rejects sequence %s -> %s gaps", (cursorLastSequence, streamSequence) => {
-    expect(() =>
-      classifyProductLifecycleStream(delivery(streamSequence), fingerprint, {
-        cursorLastSequence,
-        eventReceipt: null,
-        sequenceReceipt: null,
-      })
-    ).toThrowError(
-      expect.objectContaining({
-        code: "SEQUENCE_GAP",
-      })
-    )
-  })
+  ] as const)(
+    "rejects sequence %s -> %s gaps",
+    (cursorLastSequence, streamSequence) => {
+      expect(() =>
+        classifyProductLifecycleStream(delivery(streamSequence), fingerprint, {
+          cursorLastSequence,
+          eventReceipt: null,
+          sequenceReceipt: null,
+        })
+      ).toThrowError(
+        expect.objectContaining({
+          code: "SEQUENCE_GAP",
+        })
+      )
+    }
+  )
 
   it.each([
     [null, 1],
     [1, 2],
-  ] as const)("accepts the next contiguous stream position", (cursorLastSequence, streamSequence) => {
-    expect(
-      classifyProductLifecycleStream(delivery(streamSequence), fingerprint, {
-        cursorLastSequence,
-        eventReceipt: null,
-        sequenceReceipt: null,
-      })
-    ).toEqual({ kind: "next" })
-  })
+  ] as const)(
+    "accepts the next contiguous stream position",
+    (cursorLastSequence, streamSequence) => {
+      expect(
+        classifyProductLifecycleStream(delivery(streamSequence), fingerprint, {
+          cursorLastSequence,
+          eventReceipt: null,
+          sequenceReceipt: null,
+        })
+      ).toEqual({ kind: "next" })
+    }
+  )
 })

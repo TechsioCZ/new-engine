@@ -117,40 +117,44 @@ describe.each(MARKETS)("$key degraded catalog price sorting", (market) => {
     mocks.loadSearchProfiles.mockResolvedValue(MARKETS.map(profile))
   })
 
-  it.each([
-    "price-asc",
-    "price-desc",
-  ] as const)("fails closed for %s instead of returning a wrongly ordered page", async (sort) => {
-    const { graph, request, response, search, warn } = createRoute(market, sort)
+  it.each(["price-asc", "price-desc"] as const)(
+    "fails closed for %s instead of returning a wrongly ordered page",
+    async (sort) => {
+      const { graph, request, response, search, warn } = createRoute(
+        market,
+        sort
+      )
 
-    await GET(request as never, response as never)
+      await GET(request as never, response as never)
 
-    expect(search).toHaveBeenCalledWith(
-      `product_${market.key}`,
-      "",
-      expect.objectContaining({
-        filter: expect.stringContaining(
-          `facet_sales_channel_ids = "${market.salesChannelId}"`
-        ),
-        paginationOptions: { limit: 20, offset: 0 },
-        additionalOptions: expect.objectContaining({
-          sort: [`facet_price:${sort === "price-asc" ? "asc" : "desc"}`],
-        }),
+      expect(search).toHaveBeenCalledWith(
+        `product_${market.key}`,
+        "",
+        expect.objectContaining({
+          filter: expect.stringContaining(
+            `facet_sales_channel_ids = "${market.salesChannelId}"`
+          ),
+          paginationOptions: { limit: 20, offset: 0 },
+          additionalOptions: expect.objectContaining({
+            sort: [`facet_price:${sort === "price-asc" ? "asc" : "desc"}`],
+          }),
+        })
+      )
+      expect(response.status).toHaveBeenCalledWith(503)
+      expect(response.json).toHaveBeenCalledWith({
+        code: "CATALOG_PRICE_SORT_UNAVAILABLE_DEGRADED",
+        message:
+          "Price sorting is unavailable while catalog search is degraded",
+        search: {
+          degraded: true,
+          exactIdentifierMatch: false,
+          profile: market.key,
+        },
       })
-    )
-    expect(response.status).toHaveBeenCalledWith(503)
-    expect(response.json).toHaveBeenCalledWith({
-      code: "CATALOG_PRICE_SORT_UNAVAILABLE_DEGRADED",
-      message: "Price sorting is unavailable while catalog search is degraded",
-      search: {
-        degraded: true,
-        exactIdentifierMatch: false,
-        profile: market.key,
-      },
-    })
-    expect(graph).not.toHaveBeenCalled()
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("price-sorted degraded fallback is unavailable")
-    )
-  })
+      expect(graph).not.toHaveBeenCalled()
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("price-sorted degraded fallback is unavailable")
+      )
+    }
+  )
 })

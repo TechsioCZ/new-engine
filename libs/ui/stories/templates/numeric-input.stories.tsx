@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
+import { Label } from '../../src/atoms/label'
 import { NumericInputTemplate } from '../../src/templates/numeric-input'
 
 const meta: Meta<typeof NumericInputTemplate> = {
   title: 'Templates/NumericInputTemplate',
   component: NumericInputTemplate,
+  args: { 'aria-label': 'Quantity' },
   parameters: {
     layout: 'centered',
     docs: {
@@ -172,6 +175,7 @@ export const Default: Story = {
 }
 
 export const Playground: Story = {
+  tags: ['ui-semantic-regression'],
   name: '🎮 Interactive Playground',
   args: {
     defaultValue: 50,
@@ -185,5 +189,46 @@ export const Playground: Story = {
     allowMouseWheel: true,
     clampValueOnBlur: true,
     spinOnPress: true,
+  },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole('spinbutton', { name: 'Quantity' })
+    await userEvent.click(input)
+    await userEvent.keyboard('{ArrowUp}')
+    await waitFor(() => expect(input).toHaveAttribute('aria-valuenow', '55'))
+    await userEvent.keyboard('{ArrowDown}')
+    await waitFor(() => expect(input).toHaveAttribute('aria-valuenow', '50'))
+    await userEvent.unhover(input)
+    input.blur()
+    await waitFor(() => {
+      expect(input).toHaveAttribute('aria-valuenow', '50')
+      expect(input).not.toHaveFocus()
+    })
+  },
+}
+
+export const WithExternalLabel: Story = {
+  tags: ['ui-semantic-regression'],
+  render: () => (
+    <div className="flex flex-col gap-50">
+      <Label htmlFor="order-quantity-input" id="order-quantity-label">
+        Order quantity
+      </Label>
+      <NumericInputTemplate
+        aria-label="Fallback quantity"
+        aria-labelledby="order-quantity-label"
+        controlsPosition="sides"
+        defaultValue={3}
+        id="order-quantity"
+        ids={{ input: 'order-quantity-input' }}
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('spinbutton', { name: 'Order quantity' })
+    await userEvent.click(canvas.getByText('Order quantity'))
+    await expect(input).toHaveFocus()
+    await userEvent.keyboard('{ArrowUp}')
+    await waitFor(() => expect(input).toHaveAttribute('aria-valuenow', '4'))
   },
 }

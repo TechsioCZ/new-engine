@@ -158,23 +158,26 @@ describe("Store collection assignment reads", () => {
   it.each([
     ["category", "pcat_1"],
     ["brand", "brand_1"],
-  ] as const)("uses the owning %s source adapter", async (entityKind, entityId) => {
-    const context = request({
-      records: [
-        assignment({
-          entity_id: entityId,
-          entity_kind: entityKind,
-          public_slug: `${entityKind}-slug`,
-        }),
-      ],
-    })
-    await expect(
-      readPublishedStorefrontAssignment(context.value, entityKind, entityId)
-    ).resolves.toMatchObject({
-      kind: "found",
-      assignment: { entityId },
-    })
-  })
+  ] as const)(
+    "uses the owning %s source adapter",
+    async (entityKind, entityId) => {
+      const context = request({
+        records: [
+          assignment({
+            entity_id: entityId,
+            entity_kind: entityKind,
+            public_slug: `${entityKind}-slug`,
+          }),
+        ],
+      })
+      await expect(
+        readPublishedStorefrontAssignment(context.value, entityKind, entityId)
+      ).resolves.toMatchObject({
+        kind: "found",
+        assignment: { entityId },
+      })
+    }
+  )
 
   it("returns missing for absent, draft, wrong-channel, or deleted collections", async () => {
     await expect(
@@ -283,69 +286,72 @@ describe("Store collection assignment reads", () => {
     ["category", "pcat_1", "category-slug", "product_category"],
     ["brand", "brand_1", "brand-slug", "brand"],
     ["collection", "pcol_1", "zimna-kolekcia", "product_collection"],
-  ] as const)("reads only exact %s sitemap candidates with one bounded assignment query", async (entityKind, entityId, publicSlug, translationReference) => {
-    const context = request({
-      records: [
-        assignment({
-          entity_id: entityId,
-          entity_kind: entityKind,
-          public_slug: publicSlug,
-        }),
-      ],
-    })
-    await expect(
-      readPublishedStorefrontAssignmentSources(
-        context.value,
-        entityKind,
-        "sk",
-        [
-          { entityId, publicSlug, sourceVersion: "1" },
+  ] as const)(
+    "reads only exact %s sitemap candidates with one bounded assignment query",
+    async (entityKind, entityId, publicSlug, translationReference) => {
+      const context = request({
+        records: [
+          assignment({
+            entity_id: entityId,
+            entity_kind: entityKind,
+            public_slug: publicSlug,
+          }),
+        ],
+      })
+      await expect(
+        readPublishedStorefrontAssignmentSources(
+          context.value,
+          entityKind,
+          "sk",
+          [
+            { entityId, publicSlug, sourceVersion: "1" },
+            {
+              entityId: "pcol_stale",
+              publicSlug: "new-slug",
+              sourceVersion: "2",
+            },
+          ]
+        )
+      ).resolves.toEqual({
+        assignments: [
           {
-            entityId: "pcol_stale",
-            publicSlug: "new-slug",
-            sourceVersion: "2",
+            entityId,
+            id: entityId,
+            marketCode: "sk",
+            publicationStatus: "published",
+            publicSlug,
+            salesChannelId: "sc_sk",
+            schemaVersion: 1,
+            sourceVersion: "1",
+            translation: {
+              localeCode: "sk-SK",
+              reference: translationReference,
+              translationId: "trans_1",
+            },
           },
-        ]
-      )
-    ).resolves.toEqual({
-      assignments: [
+        ],
+        kind: "found",
+      })
+      expect(
+        context.assignmentService.listStorefrontUrlAssignments
+      ).toHaveBeenCalledTimes(1)
+      expect(
+        context.assignmentService.listStorefrontUrlAssignments
+      ).toHaveBeenCalledWith(
         {
-          entityId,
-          id: entityId,
-          marketCode: "sk",
-          publicationStatus: "published",
-          publicSlug,
-          salesChannelId: "sc_sk",
-          schemaVersion: 1,
-          sourceVersion: "1",
-          translation: {
-            localeCode: "sk-SK",
-            reference: translationReference,
-            translationId: "trans_1",
-          },
+          entity_id: [entityId, "pcol_stale"],
+          entity_kind: entityKind,
+          market_code: "sk",
+          publication_status: "published",
+          sales_channel_id: "sc_sk",
         },
-      ],
-      kind: "found",
-    })
-    expect(
-      context.assignmentService.listStorefrontUrlAssignments
-    ).toHaveBeenCalledTimes(1)
-    expect(
-      context.assignmentService.listStorefrontUrlAssignments
-    ).toHaveBeenCalledWith(
-      {
-        entity_id: [entityId, "pcol_stale"],
-        entity_kind: entityKind,
-        market_code: "sk",
-        publication_status: "published",
-        sales_channel_id: "sc_sk",
-      },
-      {
-        order: { entity_id: "ASC" },
-        take: 3,
-      }
-    )
-  })
+        {
+          order: { entity_id: "ASC" },
+          take: 3,
+        }
+      )
+    }
+  )
 
   it("omits a superseded same-slug source version", async () => {
     const context = request({ records: [assignment()] })

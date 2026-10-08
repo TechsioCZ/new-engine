@@ -98,45 +98,39 @@ describe("order payment QR", () => {
     ).toContain("*AM:1109.91*")
   })
 
-  it.each([
-    "EUR",
-    "CZK",
-    "HUF",
-    "RON",
-  ])("preserves the exact %s order currency", (currencyCode) => {
-    expect(
-      orderPaymentQr.buildSpayd(
-        {
-          currency_code: currencyCode.toLowerCase(),
-          display_id: 23,
-          id: "order_23",
-          total: 578,
-        },
-        "CZ9608000000005444195083"
-      )
-    ).toContain(`*CC:${currencyCode}*`)
-  })
+  it.each(["EUR", "CZK", "HUF", "RON"])(
+    "preserves the exact %s order currency",
+    (currencyCode) => {
+      expect(
+        orderPaymentQr.buildSpayd(
+          {
+            currency_code: currencyCode.toLowerCase(),
+            display_id: 23,
+            id: "order_23",
+            total: 578,
+          },
+          "CZ9608000000005444195083"
+        )
+      ).toContain(`*CC:${currencyCode}*`)
+    }
+  )
 
-  it.each([
-    undefined,
-    null,
-    "",
-    "  ",
-    "EU",
-    "EURO",
-  ])("fails closed when order currency is missing or invalid: %s", (currencyCode) => {
-    expect(
-      orderPaymentQr.buildSpayd(
-        {
-          currency_code: currencyCode,
-          display_id: 23,
-          id: "order_23",
-          total: 578,
-        },
-        "CZ9608000000005444195083"
-      )
-    ).toBeNull()
-  })
+  it.each([undefined, null, "", "  ", "EU", "EURO"])(
+    "fails closed when order currency is missing or invalid: %s",
+    (currencyCode) => {
+      expect(
+        orderPaymentQr.buildSpayd(
+          {
+            currency_code: currencyCode,
+            display_id: 23,
+            id: "order_23",
+            total: 578,
+          },
+          "CZ9608000000005444195083"
+        )
+      ).toBeNull()
+    }
+  )
 
   it("fails closed when payment-session currency is missing", () => {
     expect(

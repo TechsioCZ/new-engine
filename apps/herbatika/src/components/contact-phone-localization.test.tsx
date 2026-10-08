@@ -115,14 +115,17 @@ describe("localized contact phone", () => {
     ["cs-CZ", unavailableByLocale["cs-CZ"]],
     ["hu-HU", unavailableByLocale["hu-HU"]],
     ["ro-RO", unavailableByLocale["ro-RO"]],
-  ] as const)("hides all contact actions for %s without reviewed authority", (locale, unavailable) => {
-    const html = renderCheckoutHeader(locale)
+  ] as const)(
+    "hides all contact actions for %s without reviewed authority",
+    (locale, unavailable) => {
+      const html = renderCheckoutHeader(locale)
 
-    expect(html).toContain(unavailable)
-    expect(html).not.toContain('href="tel:')
-    expect(html).not.toContain("+421 2/321 123 45")
-    expect(html).not.toContain("+40 (31) 2295431")
-  })
+      expect(html).toContain(unavailable)
+      expect(html).not.toContain('href="tel:')
+      expect(html).not.toContain("+421 2/321 123 45")
+      expect(html).not.toContain("+40 (31) 2295431")
+    }
+  )
 
   it.each([
     ["checkout header", checkoutHeaderSource],

@@ -157,33 +157,37 @@ const ACCOUNT_CASES = [
 ] as const
 
 describe("account deactivation localization", () => {
-  it.each(
-    ACCOUNT_CASES
-  )("renders the exact $locale request, modal, and confirmation copy", ({
-    confirmationAction,
-    confirmationTitle,
-    dialogTitle,
-    foreignCanaries,
-    locale,
-    requestAction,
-    requestTitle,
-  }) => {
-    const requestHtml = renderLocalized(locale, <AccountDeactivationSection />)
-    const confirmationHtml = renderLocalized(
+  it.each(ACCOUNT_CASES)(
+    "renders the exact $locale request, modal, and confirmation copy",
+    ({
+      confirmationAction,
+      confirmationTitle,
+      dialogTitle,
+      foreignCanaries,
       locale,
-      <AccountDeactivationConfirmation token="valid-token" />
-    )
-    const html = `${requestHtml}${confirmationHtml}`
+      requestAction,
+      requestTitle,
+    }) => {
+      const requestHtml = renderLocalized(
+        locale,
+        <AccountDeactivationSection />
+      )
+      const confirmationHtml = renderLocalized(
+        locale,
+        <AccountDeactivationConfirmation token="valid-token" />
+      )
+      const html = `${requestHtml}${confirmationHtml}`
 
-    expect(requestHtml).toContain(requestTitle)
-    expect(requestHtml).toContain(dialogTitle)
-    expect(requestHtml).toContain(requestAction)
-    expect(confirmationHtml).toContain(confirmationTitle)
-    expect(confirmationHtml).toContain(confirmationAction)
-    for (const foreignCanary of foreignCanaries) {
-      expect(html).not.toContain(foreignCanary)
+      expect(requestHtml).toContain(requestTitle)
+      expect(requestHtml).toContain(dialogTitle)
+      expect(requestHtml).toContain(requestAction)
+      expect(confirmationHtml).toContain(confirmationTitle)
+      expect(confirmationHtml).toContain(confirmationAction)
+      for (const foreignCanary of foreignCanaries) {
+        expect(html).not.toContain(foreignCanary)
+      }
     }
-  })
+  )
 
   it("keeps every reachable source wired to storefront text without market copy", () => {
     for (const source of componentSources) {
@@ -192,26 +196,27 @@ describe("account deactivation localization", () => {
     }
   })
 
-  it.each(
-    ACCOUNT_CASES
-  )("publishes exact $locale status and error messages without foreign canaries", ({
-    failed,
-    foreignCanaries,
-    invalidTokenCanary,
-    locale,
-    sentStatusCanary,
-    successCanary,
-  }) => {
-    const deactivation = messagesForLocale(locale).auth.deactivation
+  it.each(ACCOUNT_CASES)(
+    "publishes exact $locale status and error messages without foreign canaries",
+    ({
+      failed,
+      foreignCanaries,
+      invalidTokenCanary,
+      locale,
+      sentStatusCanary,
+      successCanary,
+    }) => {
+      const deactivation = messagesForLocale(locale).auth.deactivation
 
-    expect(deactivation.request.failed).toBe(failed)
-    expect(deactivation.request.sent_status).toContain(sentStatusCanary)
-    expect(deactivation.confirmation.invalid_token).toContain(
-      invalidTokenCanary
-    )
-    expect(deactivation.confirmation.success).toContain(successCanary)
-    for (const foreignCanary of foreignCanaries) {
-      expect(JSON.stringify(deactivation)).not.toContain(foreignCanary)
+      expect(deactivation.request.failed).toBe(failed)
+      expect(deactivation.request.sent_status).toContain(sentStatusCanary)
+      expect(deactivation.confirmation.invalid_token).toContain(
+        invalidTokenCanary
+      )
+      expect(deactivation.confirmation.success).toContain(successCanary)
+      for (const foreignCanary of foreignCanaries) {
+        expect(JSON.stringify(deactivation)).not.toContain(foreignCanary)
+      }
     }
-  })
+  )
 })

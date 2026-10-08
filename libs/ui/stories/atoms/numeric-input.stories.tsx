@@ -1,6 +1,6 @@
 ﻿import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
-import { fn } from 'storybook/test'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import { Button } from '../../src/atoms/button'
 import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { Label } from '../../src/atoms/label'
@@ -113,6 +113,7 @@ export const Playground: Story = {
 }
 
 export const WithLabel: Story = {
+  tags: ['ui-semantic-regression'],
   render: () => {
     const [value, setValue] = useState(42)
 
@@ -136,6 +137,21 @@ export const WithLabel: Story = {
         </NumericInput>
       </div>
     )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('spinbutton', { name: 'Quantity' })
+    const label = canvas.getByText('Quantity')
+    await expect(input).toHaveAttribute('id', 'numeric-with-label')
+    await userEvent.click(label)
+    await expect(input).toHaveFocus()
+    await userEvent.keyboard('{ArrowUp}')
+    await waitFor(() => expect(input).toHaveAttribute('aria-valuenow', '43'))
+    await userEvent.keyboard('{ArrowDown}')
+    await waitFor(() => expect(input).toHaveAttribute('aria-valuenow', '42'))
+    await userEvent.unhover(label)
+    input.blur()
+    await expect(input).not.toHaveFocus()
   },
 }
 

@@ -34,18 +34,19 @@ const HOST_MATRIX = [
 ] as const
 
 describe("resolveMarketContext", () => {
-  it.each(
-    HOST_MATRIX
-  )("resolves accepted host %s as the %s market", (host, code, countryCode, locale) => {
-    expect(
-      resolveMarketContext({ environment: ROUTING_ENVIRONMENT, host })
-    ).toMatchObject({
-      code,
-      countryCode,
-      domain: `herbatica.${code}`,
-      locale,
-    })
-  })
+  it.each(HOST_MATRIX)(
+    "resolves accepted host %s as the %s market",
+    (host, code, countryCode, locale) => {
+      expect(
+        resolveMarketContext({ environment: ROUTING_ENVIRONMENT, host })
+      ).toMatchObject({
+        code,
+        countryCode,
+        domain: `herbatica.${code}`,
+        locale,
+      })
+    }
+  )
 
   it("prefers the public Host header over a proxy forwarded host", () => {
     expect(

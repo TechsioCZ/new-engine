@@ -289,55 +289,54 @@ describe("system sitemap source wiring", () => {
     expect(mocks.fetch).not.toHaveBeenCalled()
   })
 
-  it.each([
-    "category",
-    "brand",
-    "collection",
-  ] as const)("uses the bounded %s assignment endpoint", async (kind) => {
-    mocks.fetch.mockResolvedValue({
-      assignments: [assignment("source_1", "public-slug", kind)],
-      entityKind: kind,
-      marketCode: "cz",
-      schemaVersion: 1,
-    })
-
-    await expect(
-      systemSitemapDependencies.validateEntitySources({
-        kind,
-        market: "cz",
-        sources: [
-          {
-            publicSlug: "public-slug",
-            routeId: "route_1",
-            sourceId: "source_1",
-            sourceVersion: "7",
-          },
-        ],
+  it.each(["category", "brand", "collection"] as const)(
+    "uses the bounded %s assignment endpoint",
+    async (kind) => {
+      mocks.fetch.mockResolvedValue({
+        assignments: [assignment("source_1", "public-slug", kind)],
+        entityKind: kind,
+        marketCode: "cz",
+        schemaVersion: 1,
       })
-    ).resolves.toEqual({
-      kind: "found",
-      value: [{ routeId: "route_1" }],
-    })
-    expect(mocks.fetch).toHaveBeenCalledWith(
-      "/store/url-registry/catalog/sources",
-      {
-        body: {
-          candidates: [
+
+      await expect(
+        systemSitemapDependencies.validateEntitySources({
+          kind,
+          market: "cz",
+          sources: [
             {
-              entityId: "source_1",
               publicSlug: "public-slug",
+              routeId: "route_1",
+              sourceId: "source_1",
               sourceVersion: "7",
             },
           ],
-          entityKind: kind,
-          market: "cz",
-          schemaVersion: 1,
-        },
-        method: "POST",
-        signal: expect.any(AbortSignal),
-      }
-    )
-  })
+        })
+      ).resolves.toEqual({
+        kind: "found",
+        value: [{ routeId: "route_1" }],
+      })
+      expect(mocks.fetch).toHaveBeenCalledWith(
+        "/store/url-registry/catalog/sources",
+        {
+          body: {
+            candidates: [
+              {
+                entityId: "source_1",
+                publicSlug: "public-slug",
+                sourceVersion: "7",
+              },
+            ],
+            entityKind: kind,
+            market: "cz",
+            schemaVersion: 1,
+          },
+          method: "POST",
+          signal: expect.any(AbortSignal),
+        }
+      )
+    }
+  )
 
   it("resolves the current catalog source version from the matching URLR audit", async () => {
     const target = projection("category_1", 2)
@@ -462,56 +461,56 @@ describe("system sitemap source wiring", () => {
     )
   })
 
-  it.each([
-    "about",
-    "faq",
-  ] as const)("validates the %s static root page against its live CMS-rendered source, not code-owned data", async (staticRouteKey) => {
-    const page = {
-      content: `Reviewed ${staticRouteKey} content`,
-      id: 91,
-      publishedDate: "2026-08-21T10:00:00.000Z",
-      title: staticRouteKey,
+  it.each(["about", "faq"] as const)(
+    "validates the %s static root page against its live CMS-rendered source, not code-owned data",
+    async (staticRouteKey) => {
+      const page = {
+        content: `Reviewed ${staticRouteKey} content`,
+        id: 91,
+        publishedDate: "2026-08-21T10:00:00.000Z",
+        title: staticRouteKey,
+      }
+      mocks.readStaticPage.mockResolvedValue({ kind: "found", value: page })
+
+      await expect(
+        systemSitemapDependencies.validateStaticSources({
+          market: "cz",
+          sources: [{ routeId: `route_${staticRouteKey}`, staticRouteKey }],
+        })
+      ).resolves.toEqual({
+        kind: "found",
+        value: [
+          {
+            routeId: `route_${staticRouteKey}`,
+            updatedAt: "2026-08-21T10:00:00.000Z",
+          },
+        ],
+      })
+      expect(mocks.readStaticPage).toHaveBeenCalledWith(staticRouteKey, "cs-CZ")
+      expect(mocks.assertReviewedStaticSource).toHaveBeenCalledWith(
+        expect.objectContaining({
+          market: "cz",
+          pageKey: staticRouteKey,
+          renderedSource: page,
+        })
+      )
     }
-    mocks.readStaticPage.mockResolvedValue({ kind: "found", value: page })
+  )
 
-    await expect(
-      systemSitemapDependencies.validateStaticSources({
-        market: "cz",
-        sources: [{ routeId: `route_${staticRouteKey}`, staticRouteKey }],
-      })
-    ).resolves.toEqual({
-      kind: "found",
-      value: [
-        {
-          routeId: `route_${staticRouteKey}`,
-          updatedAt: "2026-08-21T10:00:00.000Z",
-        },
-      ],
-    })
-    expect(mocks.readStaticPage).toHaveBeenCalledWith(staticRouteKey, "cs-CZ")
-    expect(mocks.assertReviewedStaticSource).toHaveBeenCalledWith(
-      expect.objectContaining({
-        market: "cz",
-        pageKey: staticRouteKey,
-        renderedSource: page,
-      })
-    )
-  })
+  it.each(["about", "faq"] as const)(
+    "excludes %s from the sitemap when the live CMS source is unavailable, even if code-owned fallback data exists",
+    async (staticRouteKey) => {
+      mocks.readStaticPage.mockResolvedValue({ kind: "missing" })
 
-  it.each([
-    "about",
-    "faq",
-  ] as const)("excludes %s from the sitemap when the live CMS source is unavailable, even if code-owned fallback data exists", async (staticRouteKey) => {
-    mocks.readStaticPage.mockResolvedValue({ kind: "missing" })
-
-    await expect(
-      systemSitemapDependencies.validateStaticSources({
-        market: "cz",
-        sources: [{ routeId: `route_${staticRouteKey}`, staticRouteKey }],
-      })
-    ).resolves.toEqual({ kind: "found", value: [] })
-    expect(mocks.assertReviewedStaticSource).not.toHaveBeenCalled()
-  })
+      await expect(
+        systemSitemapDependencies.validateStaticSources({
+          market: "cz",
+          sources: [{ routeId: `route_${staticRouteKey}`, staticRouteKey }],
+        })
+      ).resolves.toEqual({ kind: "found", value: [] })
+      expect(mocks.assertReviewedStaticSource).not.toHaveBeenCalled()
+    }
+  )
 
   it("normalizes only production root static taxonomy keys", async () => {
     const page = {

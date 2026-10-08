@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit template.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
-import { fn } from 'storybook/test'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import { VariantContainer } from '../../.storybook/decorator'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
 import { Button } from '../../src/atoms/button'
@@ -112,6 +112,49 @@ export const Playground: Story = {
     clearable: true,
     closeOnSelect: true,
     selectionBehavior: 'replace',
+  },
+}
+
+export const ControlledStringValue: Story = {
+  tags: ['ui-runtime-regression'],
+  render: () => {
+    const [value, setValue] = useState('cz')
+
+    return (
+      <div className="grid w-sm gap-150">
+        <Combobox
+          label="Controlled Country"
+          placeholder="Choose a country..."
+          items={countries}
+          value={value}
+          onChange={(nextValue) => {
+            setValue(Array.isArray(nextValue) ? (nextValue[0] ?? '') : nextValue)
+          }}
+        />
+        <Button onClick={() => setValue('')}>Clear selection</Button>
+        <Combobox
+          label="Empty default country"
+          placeholder="Choose a country..."
+          items={countries}
+          defaultValue=""
+        />
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('combobox', { name: 'Controlled Country' })
+
+    await waitFor(() => expect(input).toHaveValue('Czech Republic'))
+    await expect(
+      canvas.getByRole('combobox', { name: 'Empty default country' })
+    ).toHaveValue('')
+    await userEvent.click(canvas.getByRole('button', { name: 'Clear selection' }))
+
+    await waitFor(() => {
+      expect(input).toHaveValue('')
+      expect(canvas.queryByRole('button', { name: 'Clear value' })).toBeNull()
+    })
   },
 }
 

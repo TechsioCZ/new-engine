@@ -167,20 +167,21 @@ describe("readCollectionRouteSource", () => {
     })
   })
 
-  it.each([
-    408, 425, 429, 500, 503,
-  ])("maps retryable HTTP %s to unavailable", async (status) => {
-    const deps = dependencies({
-      retrieveAssignment: vi.fn().mockRejectedValue(statusError(status)),
-    })
+  it.each([408, 425, 429, 500, 503])(
+    "maps retryable HTTP %s to unavailable",
+    async (status) => {
+      const deps = dependencies({
+        retrieveAssignment: vi.fn().mockRejectedValue(statusError(status)),
+      })
 
-    await expect(
-      readCollectionRouteSource(
-        { collectionId: "pcol_1", market: "sk", queryState },
-        deps
-      )
-    ).resolves.toEqual({ kind: "unavailable" })
-  })
+      await expect(
+        readCollectionRouteSource(
+          { collectionId: "pcol_1", market: "sk", queryState },
+          deps
+        )
+      ).resolves.toEqual({ kind: "unavailable" })
+    }
+  )
 
   it("maps an absent assignment to a missing source", async () => {
     const deps = dependencies({

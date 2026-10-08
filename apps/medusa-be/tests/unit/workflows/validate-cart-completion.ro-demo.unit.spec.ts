@@ -193,17 +193,20 @@ describe("RO demo cart-completion validation", () => {
     ],
     ["cross-market", { ...makePurchaseAcceptance(), market: "sk" }],
     ["tampered", { ...makePurchaseAcceptance(), termsVersion: "old" }],
-  ])("rejects %s purchase acceptance immediately before completion", async (_case, acceptance) => {
-    const cart = makeRoDemoCart()
-    cart.metadata.checkout_purchase_acceptance = acceptance
-    graph.mockResolvedValue({ data: [cart] })
+  ])(
+    "rejects %s purchase acceptance immediately before completion",
+    async (_case, acceptance) => {
+      const cart = makeRoDemoCart()
+      cart.metadata.checkout_purchase_acceptance = acceptance
+      graph.mockResolvedValue({ data: [cart] })
 
-    await expect(
-      handler()({ cart: workflowCart(cart) }, { container })
-    ).rejects.toThrow(
-      "Current terms and privacy acceptance is required to complete this cart"
-    )
-  })
+      await expect(
+        handler()({ cart: workflowCart(cart) }, { container })
+      ).rejects.toThrow(
+        "Current terms and privacy acceptance is required to complete this cart"
+      )
+    }
+  )
 
   it("rejects when the fresh cart acceptance differs from the workflow snapshot copied to the order", async () => {
     const cart = makeRoDemoCart()

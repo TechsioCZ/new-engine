@@ -6,7 +6,7 @@ description: >
   divider, bottom area, size, layout, direction, section flow, and framework
   link adapters.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

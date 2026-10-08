@@ -2,7 +2,7 @@
  * Hotkeys — @techsio/ui-kit atom.
  *
  * @component Hotkeys
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill hotkeys-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -49,6 +49,9 @@ export function Hotkeys({
   )
 }
 
+// Assign Root first so native declaration emit exports every compound member.
+Hotkeys.Root = Hotkeys
+
 export type HotkeysKeyProps = ComponentPropsWithoutRef<"kbd"> & {
   ref?: Ref<HTMLElement>
 }
@@ -93,5 +96,4 @@ Hotkeys.Separator = function HotkeysSeparator({
   )
 }
 
-Hotkeys.Root = Hotkeys
 Hotkeys.displayName = "Hotkeys"

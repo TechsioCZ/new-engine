@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "engines": {
-    "node": "24.x"
+    "node": ">=24"
   },
   "scripts": {
     "test-all": "cross-env TEST_ALL_ESHOPS=true nubx --node nx e2e e2e",
@@ -28,30 +28,29 @@
   },
   "private": true,
   "devDependencies": {
-    "@biomejs/biome": "^2.3.7",
+    "@biomejs/biome": "^2.5.15",
     "@medusajs/eslint-plugin": "2.18.0",
-    "@nubjs/nub": "0.1.14",
-    "@nx/esbuild": "22.4.2",
-    "@nx/eslint-plugin": "22.4.2",
-    "@nx/js": "22.4.2",
-    "@nx/playwright": "22.4.2",
-    "@playwright/test": "^1.60.0",
-    "@swc-node/register": "~1.11.1",
-    "@swc/core": "~1.15.3",
+    "@nubjs/nub": "0.9.6",
+    "@nx/eslint-plugin": "23.2.1",
+    "@nx/js": "23.2.1",
+    "@playwright/test": "^1.63.0",
+    "@swc-node/register": "~1.12.1",
+    "@swc/core": "~1.16.13",
     "@types/bun": "1.3.3",
-    "@types/node": "24.12.4",
-    "@typescript-eslint/parser": "^8.47.0",
-    "cross-env": "^7.0.3",
-    "eslint": "^9.39.1",
+    "@types/node": "26.6.4",
+    "@typescript-eslint/parser": "^8.71.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "cross-env": "^10.1.0",
+    "eslint": "^10.12.0",
     "jiti": "^2.7.0",
-    "jscpd": "^4.0.5",
-    "knip": "^5.80.2",
-    "lefthook": "^2.1.10",
-    "nx": "22.4.2",
+    "jscpd": "^5.4.0",
+    "knip": "^6.39.0",
+    "lefthook": "^2.1.16",
+    "nx": "23.2.1",
     "tslib": "^2.8.1",
-    "typescript": "^5.9.3",
-    "ultracite": "6.3.6",
-    "yaml": "^2.7.1"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "ultracite": "7.12.2",
+    "yaml": "^2.9.1"
   },
-  "packageManager": "pnpm@11.24.0"
+  "packageManager": "pnpm@12.9.0"
 }

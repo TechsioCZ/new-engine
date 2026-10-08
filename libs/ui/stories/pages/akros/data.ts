@@ -1171,7 +1171,7 @@ export const bannerSlides: BannerSlide[] = [
     cta: "Shop fasteners",
     link: "/kategorie/sparovaci-material",
     image:
-      "https://images.unsplash.com/photo-1581147036324-c1c89c2c8b5c?w=1600",
+      "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=1600",
     from: "2026-09-15",
     to: "2026-09-30",
     live: true,

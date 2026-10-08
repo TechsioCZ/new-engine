@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "paths": {
     "@libs/ui": ["./libs/ui/src"],
     "@libs/ui/*": ["./libs/ui/src/*"],
@@ -105,21 +105,27 @@
         "src/molecules/*.tsx!",
         "src/organisms/*.tsx!",
         "src/templates/*.tsx!",
+        "src/theme/*.{ts,tsx}!",
         "src/types/*.ts!",
         "src/utils.ts!",
         "release.config.mjs"
       ],
       "project": [
-        "src/**/*.{ts,tsx}"
+        "src/**/*.{ts,tsx,css}",
+        "stories/**/*.{ts,tsx,mdx}",
+        ".storybook/**/*.{ts,tsx}"
       ],
       "storybook": {
-        "config": [".storybook/main.ts"],
+        "config": [
+          ".storybook/main.ts"
+        ],
         "entry": [
           "**/*.stories.{ts,tsx}",
           ".storybook/**/*.{ts,tsx}"
         ]
       },
       "ignoreDependencies": [
+        "^@iconify-json/",
         "^@semantic-release/"
       ],
       "ignore": [

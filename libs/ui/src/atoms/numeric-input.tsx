@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -204,7 +204,9 @@ export function NumericInput({
     spinOnPress,
     focusInputOnChange,
     id: id || generatedId,
-    ids: id ? { ...machineProps.ids, input: id } : machineProps.ids,
+    ids: id
+      ? { ...machineProps.ids, input: machineProps.ids?.input ?? id }
+      : machineProps.ids,
     dir,
     locale,
     value: value !== undefined ? formatValue(value) : undefined,

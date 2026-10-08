@@ -75,26 +75,29 @@ describe("createVolumeDiscountMedusaReader", () => {
     [404, { kind: "missing" }],
     [429, { kind: "rate-limited" }],
     [500, { kind: "unavailable" }],
-  ] as const)("maps Medusa status %s without exposing its body", async (status, expected) => {
-    const read = createVolumeDiscountMedusaReader({
-      baseUrl: "http://medusa.internal:9000",
-      createClient: () => ({
-        fetch: () =>
-          Promise.reject(
-            Object.assign(new Error("secret upstream detail"), { status })
-          ),
-      }),
-    })
-
-    await expect(
-      read({
-        authToken: null,
-        binding: BINDING,
-        signal: new AbortController().signal,
-        variantId: "variant_cz_1",
+  ] as const)(
+    "maps Medusa status %s without exposing its body",
+    async (status, expected) => {
+      const read = createVolumeDiscountMedusaReader({
+        baseUrl: "http://medusa.internal:9000",
+        createClient: () => ({
+          fetch: () =>
+            Promise.reject(
+              Object.assign(new Error("secret upstream detail"), { status })
+            ),
+        }),
       })
-    ).resolves.toEqual(expected)
-  })
+
+      await expect(
+        read({
+          authToken: null,
+          binding: BINDING,
+          signal: new AbortController().signal,
+          variantId: "variant_cz_1",
+        })
+      ).resolves.toEqual(expected)
+    }
+  )
 
   it("omits Authorization for a guest and aborts when the timeout fires", async () => {
     const timeoutAbort = new AbortController()

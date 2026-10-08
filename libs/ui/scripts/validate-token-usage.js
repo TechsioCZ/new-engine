@@ -7,82 +7,49 @@
  * Follows Tailwind v4 theme variable namespace rules for precise mapping.
  */
 
-import fs from "node:fs"
+import fs, { globSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
-import { globSync } from "glob"
+import {
+  COLOR_PREFIXES,
+  GAP_PREFIXES,
+  HEIGHT_PREFIXES,
+  INSET_PREFIXES,
+  MARGIN_PREFIXES,
+  PADDING_PREFIXES,
+  SINGLE_PREFIX_NAMESPACES,
+  SIZING_PREFIXES,
+  SPACE_PREFIXES,
+  WIDTH_PREFIXES,
+} from "./token-utility-prefixes.js"
 
 const ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..")
 
-// Tailwind v4 namespace to utility prefix mappings
+// Logical inset utilities are governed only by this checker.
+const INSET = [...INSET_PREFIXES, "inset-s", "inset-e", "inset-bs", "inset-be"]
+
+// Tailwind v4 namespace to utility prefix mappings. Key order sets the order
+// of candidate tokens in error messages (color before text/shadow/border).
 const NAMESPACE_MAPPINGS = {
-  color: [
-    "bg",
-    "text",
-    "border",
-    "fill",
-    "stroke",
-    "outline",
-    "ring",
-    "ring-offset",
-    "shadow",
-    "accent",
-    "caret",
-    "decoration",
-  ],
-  container: ["w", "h", "min-w", "min-h", "max-w", "max-h"],
+  color: COLOR_PREFIXES,
+  container: SIZING_PREFIXES,
   spacing: [
-    "p",
-    "px",
-    "py",
-    "pt",
-    "pr",
-    "pb",
-    "pl",
-    "ps",
-    "pe",
-    "m",
-    "mx",
-    "my",
-    "mt",
-    "mr",
-    "mb",
-    "ml",
-    "ms",
-    "me",
-    "gap",
-    "gap-x",
-    "gap-y",
-    "space-x",
-    "space-y",
-    "w",
-    "h",
-    "max-w",
-    "min-w",
-    "max-h",
-    "min-h",
-    "top",
-    "right",
-    "bottom",
-    "left",
-    "inset",
-    "inset-x",
-    "inset-y",
+    ...PADDING_PREFIXES,
+    ...MARGIN_PREFIXES,
+    ...GAP_PREFIXES,
+    ...SPACE_PREFIXES,
+    ...SIZING_PREFIXES,
+    ...INSET,
   ],
-  text: ["text"],
-  "font-weight": ["font"],
-  font: ["font"],
-  radius: ["rounded"],
+  ...SINGLE_PREFIX_NAMESPACES,
   shadow: ["shadow", "drop-shadow", "inset-shadow"],
   blur: ["blur"],
-  opacity: ["opacity"],
-  border: ["border"],
 }
 
 // Standard Tailwind utilities to ignore (not custom tokens)
 const IGNORE_PATTERNS = [
   // Standard positioning values
-  /^(top|right|bottom|left|inset)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit|start|end|1\/2)$/,
+  /^(top|right|bottom|left|inset|inset-x|inset-y|inset-s|inset-e|inset-bs|inset-be)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit|start|end|1\/2)$/,
 
   // Layout & positioning
   /^(flex|grid|block|inline|hidden|absolute|relative|fixed|sticky)$/,
@@ -175,43 +142,14 @@ const ARBITRARY_KEY_TOKEN_REGEX = /[:=]\s*(--[a-z][a-z0-9-]*)/gi
 const ARBITRARY_BARE_TOKEN_REGEX = /\((--[a-z][a-z0-9-]*)/gi
 
 const PREFIX_TOKEN_ALIASES = [
-  {
-    prefixes: new Set(["p", "px", "py", "pt", "pr", "pb", "pl", "ps", "pe"]),
-    namespaces: ["padding", "spacing"],
-  },
-  {
-    prefixes: new Set(["m", "mx", "my", "mt", "mr", "mb", "ml", "ms", "me"]),
-    namespaces: ["margin", "spacing"],
-  },
-  {
-    prefixes: new Set(["gap", "gap-x", "gap-y"]),
-    namespaces: ["gap", "spacing"],
-  },
-  {
-    prefixes: new Set(["w", "min-w", "max-w"]),
-    namespaces: ["width"],
-  },
-  {
-    prefixes: new Set(["h", "min-h", "max-h"]),
-    namespaces: ["height"],
-  },
-  {
-    prefixes: new Set(["space-x", "space-y"]),
-    namespaces: ["space", "spacing"],
-  },
-  {
-    prefixes: new Set([
-      "inset",
-      "inset-x",
-      "inset-y",
-      "top",
-      "right",
-      "bottom",
-      "left",
-    ]),
-    namespaces: ["inset", "spacing"],
-  },
-]
+  [PADDING_PREFIXES, ["padding", "spacing"]],
+  [MARGIN_PREFIXES, ["margin", "spacing"]],
+  [GAP_PREFIXES, ["gap", "spacing"]],
+  [WIDTH_PREFIXES, ["width"]],
+  [HEIGHT_PREFIXES, ["height"]],
+  [SPACE_PREFIXES, ["space", "spacing"]],
+  [INSET, ["inset", "spacing"]],
+].map(([prefixes, namespaces]) => ({ prefixes: new Set(prefixes), namespaces }))
 
 const EXTERNAL_TOKENS = new Set([
   "--available-height",
@@ -313,9 +251,9 @@ function mapClassToPossibleTokens(className) {
 }
 
 /**
- * Load all defined tokens from CSS files
+ * Load defined tokens and component sources for one validation pass
  */
-function loadDefinedTokens() {
+function loadTokenUsageInputs() {
   const tokens = new Set()
   const tokenFiles = globSync("src/tokens/**/*.css", { cwd: ROOT })
 
@@ -328,20 +266,28 @@ function loadDefinedTokens() {
     }
   }
 
+  const componentSources = new Map()
+
   // Also treat inline style custom properties in components as defined
   const componentFiles = globSync("src/**/*.{ts,tsx}", {
     cwd: ROOT,
-    ignore: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.spec.tsx"],
+    exclude: [
+      "**/*.stories.tsx",
+      "**/*.test.tsx",
+      "**/*.spec.tsx",
+      "**/*.figma.ts",
+    ],
   })
   for (const file of componentFiles) {
     const content = fs.readFileSync(path.join(ROOT, file), "utf8")
+    componentSources.set(file, content)
     // style={{ '--var': value }} or object entries '--var': value
     for (const m of content.matchAll(INLINE_TOKEN_REGEX)) {
       tokens.add(m[1])
     }
   }
 
-  return tokens
+  return { definedTokens: tokens, componentSources }
 }
 
 /**
@@ -393,8 +339,7 @@ function findMissingTokens(className, definedTokens) {
   return possibleTokens.length === 0 || hasMatchingToken ? [] : possibleTokens
 }
 
-function collectFileErrors(file, definedTokens) {
-  const content = fs.readFileSync(path.join(ROOT, file), "utf8")
+function collectFileErrors(content, definedTokens) {
   const contentLines = content.split("\n")
   const fileErrors = []
 
@@ -432,18 +377,14 @@ function reportErrors(errorsByFile, totalErrors) {
 function validateTokenUsage() {
   console.log("🔍 Validating token usage in components...\n")
 
-  const definedTokens = loadDefinedTokens()
+  const { definedTokens, componentSources } = loadTokenUsageInputs()
   console.log(`📋 Found ${definedTokens.size} defined tokens`)
 
-  const componentFiles = globSync("src/**/*.{ts,tsx}", {
-    cwd: ROOT,
-    ignore: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.spec.tsx"],
-  })
   const errorsByFile = new Map()
   let totalErrors = 0
 
-  for (const file of componentFiles) {
-    const fileErrors = collectFileErrors(file, definedTokens)
+  for (const [file, content] of componentSources) {
+    const fileErrors = collectFileErrors(content, definedTokens)
     if (fileErrors.length > 0) {
       errorsByFile.set(file, fileErrors)
       totalErrors += fileErrors.length
@@ -478,8 +419,8 @@ if (
 }
 
 export {
-  validateTokenUsage,
-  mapClassToPossibleTokens,
   extractTailwindClasses,
   findMissingTokens,
+  mapClassToPossibleTokens,
+  validateTokenUsage,
 }

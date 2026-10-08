@@ -40,27 +40,27 @@ describe("TurnstileWidget localization", () => {
     vi.resetModules()
   })
 
-  it.each(
-    MARKET_EXPECTATIONS
-  )("uses the $locale catalog copy when Turnstile is enabled without a site key", async ({
-    copy,
-    locale,
-  }) => {
-    vi.stubEnv("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED", "1")
-    vi.stubEnv("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY", "")
-    vi.resetModules()
-    const { TurnstileWidget } = await import("./turnstile-widget")
+  it.each(MARKET_EXPECTATIONS)(
+    "uses the $locale catalog copy when Turnstile is enabled without a site key",
+    async ({ copy, locale }) => {
+      vi.stubEnv("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED", "1")
+      vi.stubEnv("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY", "")
+      vi.resetModules()
+      const { TurnstileWidget } = await import("./turnstile-widget")
 
-    const html = renderToStaticMarkup(
-      <NextIntlClientProvider
-        locale={locale}
-        messages={messagesForLocale(locale)}
-      >
-        <TurnstileWidget onTokenChange={vi.fn()} />
-      </NextIntlClientProvider>
-    )
+      const html = renderToStaticMarkup(
+        <NextIntlClientProvider
+          locale={locale}
+          messages={messagesForLocale(locale)}
+        >
+          <TurnstileWidget onTokenChange={vi.fn()} />
+        </NextIntlClientProvider>
+      )
 
-    expect(html).toContain(copy)
-    expect(html).not.toContain("Overenie proti robotom nie je nakonfigurované.")
-  })
+      expect(html).toContain(copy)
+      expect(html).not.toContain(
+        "Overenie proti robotom nie je nakonfigurované."
+      )
+    }
+  )
 })

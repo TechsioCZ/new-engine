@@ -109,13 +109,16 @@ describe("full public URL proxy", () => {
       "/~sf/sk/reviews/product/Token-AbC",
       "reviews.product",
     ],
-  ])("rewrites %s to its semantic Pages target", (pathname, internal, routeKey) => {
-    expect(resolve(pathname)).toMatchObject({
-      kind: "rewrite",
-      pathname: internal,
-      routeKey,
-    })
-  })
+  ])(
+    "rewrites %s to its semantic Pages target",
+    (pathname, internal, routeKey) => {
+      expect(resolve(pathname)).toMatchObject({
+        kind: "rewrite",
+        pathname: internal,
+        routeKey,
+      })
+    }
+  )
 
   it("selects localized namespaces from the verified host market", () => {
     expect(
@@ -131,16 +134,17 @@ describe("full public URL proxy", () => {
     })
   })
 
-  it.each(
-    HOST_MATRIX
-  )("binds accepted host %s to %s and its canonical origin", (host, market, canonicalizationRequired, canonicalOrigin) => {
-    expect(resolve("/", { host })).toMatchObject({
-      canonicalOrigin,
-      canonicalizationRequired,
-      kind: "rewrite",
-      market,
-    })
-  })
+  it.each(HOST_MATRIX)(
+    "binds accepted host %s to %s and its canonical origin",
+    (host, market, canonicalizationRequired, canonicalOrigin) => {
+      expect(resolve("/", { host })).toMatchObject({
+        canonicalOrigin,
+        canonicalizationRequired,
+        kind: "rewrite",
+        market,
+      })
+    }
+  )
 
   it.each([
     ["/contact", "contact"],
@@ -180,14 +184,17 @@ describe("full public URL proxy", () => {
     ["herbatica.cz", "cz"],
     ["herbatica.ro", "ro"],
     ["herbatica.sk", "sk"],
-  ] as const)("binds the shared /dropshipping segment to %s", (host, market) => {
-    expect(resolve("/dropshipping", { host })).toMatchObject({
-      kind: "rewrite",
-      market,
-      pathname: `/~sf/${market}/static/dropshipping`,
-      routeKey: "static.dropshipping",
-    })
-  })
+  ] as const)(
+    "binds the shared /dropshipping segment to %s",
+    (host, market) => {
+      expect(resolve("/dropshipping", { host })).toMatchObject({
+        kind: "rewrite",
+        market,
+        pathname: `/~sf/${market}/static/dropshipping`,
+        routeKey: "static.dropshipping",
+      })
+    }
+  )
 
   it("does not publish /dropshipping on HU", () => {
     expect(resolve("/dropshipping", { host: "herbatica.hu" })).toEqual({
@@ -285,12 +292,15 @@ describe("full public URL proxy", () => {
     ["/akce/jarni", "herbatica.cz", "/~sf/cz/campaign/jarni"],
     ["/akciok", "herbatica.hu", "/~sf/hu/campaigns"],
     ["/promotii/vara", "herbatica.ro", "/~sf/ro/campaign/vara"],
-  ])("publishes the localized campaign route %s", (pathname, host, internal) => {
-    expect(resolve(pathname, { host })).toMatchObject({
-      kind: "rewrite",
-      pathname: internal,
-    })
-  })
+  ])(
+    "publishes the localized campaign route %s",
+    (pathname, host, internal) => {
+      expect(resolve(pathname, { host })).toMatchObject({
+        kind: "rewrite",
+        pathname: internal,
+      })
+    }
+  )
 
   it.each([
     ["/akce", "herbatica.sk"],
@@ -368,13 +378,16 @@ describe("full public URL proxy", () => {
     "/feeds/products.xml",
     "/favicon.ico",
     "/.well-known/security.txt",
-  ])("passes verified-host system route %s to its route handler", (pathname) => {
-    expect(resolve(pathname)).toEqual({ kind: "next" })
-    expect(resolve(pathname, { host: "unknown.example" })).toEqual({
-      kind: "respond",
-      status: 421,
-    })
-  })
+  ])(
+    "passes verified-host system route %s to its route handler",
+    (pathname) => {
+      expect(resolve(pathname)).toEqual({ kind: "next" })
+      expect(resolve(pathname, { host: "unknown.example" })).toEqual({
+        kind: "respond",
+        status: 421,
+      })
+    }
+  )
 
   it("preserves canonical /o-nas for SK/CZ and rejects it for HU/RO", () => {
     expect(resolve("/o-nas")).toMatchObject({

@@ -40,12 +40,15 @@ describe("product query fields", () => {
     )
   })
 
-  it.each(
-    Object.entries(productFieldSets)
-  )("%s requests metadata as an atomic JSON field", (_name, fields) => {
-    const selectors = fields.split(",")
+  it.each(Object.entries(productFieldSets))(
+    "%s requests metadata as an atomic JSON field",
+    (_name, fields) => {
+      const selectors = fields.split(",")
 
-    expect(selectors).toContain("+metadata")
-    expect(selectors.filter((field) => field.includes("metadata."))).toEqual([])
-  })
+      expect(selectors).toContain("+metadata")
+      expect(selectors.filter((field) => field.includes("metadata."))).toEqual(
+        []
+      )
+    }
+  )
 })

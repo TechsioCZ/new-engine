@@ -84,13 +84,16 @@ describe("claim Store routes", () => {
         type: "return",
       },
     ],
-  ])("binds the %s workflow input to the exact publishable-key channel", async (_name, handler, run, body) => {
-    await handler(createRequest(body) as never, createResponse() as never)
+  ])(
+    "binds the %s workflow input to the exact publishable-key channel",
+    async (_name, handler, run, body) => {
+      await handler(createRequest(body) as never, createResponse() as never)
 
-    expect(run).toHaveBeenCalledWith({
-      input: { ...body, sales_channel_id: "sc_cz" },
-    })
-  })
+      expect(run).toHaveBeenCalledWith({
+        input: { ...body, sales_channel_id: "sc_cz" },
+      })
+    }
+  )
 
   it("rejects an ambiguous key scope before invoking a workflow", async () => {
     const req = {

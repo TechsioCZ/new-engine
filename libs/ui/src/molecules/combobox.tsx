@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -115,7 +115,7 @@ const comboboxVariants = tv({
     triggerIndicator: [
       "text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover",
       "motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none",
-      "rotate-0 group-data-[state=open]:rotate-180",
+      "rotate-none group-data-[state=open]:rotate-180",
     ],
     helper: [
       "data-[validation=success]:text-combobox-success-fg",
@@ -303,6 +303,17 @@ export function Combobox<T = unknown>({
       ),
   })
 
+  let normalizedValue = value
+  if (typeof normalizedValue === "string") {
+    normalizedValue = normalizedValue ? [normalizedValue] : []
+  }
+  let normalizedDefaultValue = defaultValue
+  if (typeof normalizedDefaultValue === "string") {
+    normalizedDefaultValue = normalizedDefaultValue
+      ? [normalizedDefaultValue]
+      : []
+  }
+
   const service = useMachine(comboboxMachine, {
     id: uniqueId,
     name: navigation ? undefined : name,
@@ -331,12 +342,8 @@ export function Combobox<T = unknown>({
       input: `${uniqueId}-input`,
       control: `${uniqueId}-control`,
     },
-    value: navigation ? [] : typeof value === "string" ? [value] : value,
-    defaultValue: navigation
-      ? undefined
-      : typeof defaultValue === "string"
-        ? [defaultValue]
-        : defaultValue,
+    value: navigation ? [] : normalizedValue,
+    defaultValue: navigation ? undefined : normalizedDefaultValue,
     multiple: !navigation && multiple,
     inputValue,
     onValueChange: ({ value: selectedValue }) => {

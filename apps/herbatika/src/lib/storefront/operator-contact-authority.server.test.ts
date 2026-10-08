@@ -292,18 +292,19 @@ describe("applyOperatorContactAuthority", () => {
     })
   })
 
-  it.each([
-    "cz",
-    "hu",
-    "ro",
-  ] as const)("falls back to %s storefront messages without reviewed authority", (market) => {
-    expect(applyOperatorContactAuthority(market, baseMessages)).toMatchObject({
-      "navigation.contact.authority_status": "available",
-      "navigation.contact.authority_source": "sk-existing",
-      "navigation.contact.email_href": "mailto:ahoj@herbatica.sk",
-      "navigation.contact.phone_href": "tel:+421232112345",
-    })
-  })
+  it.each(["cz", "hu", "ro"] as const)(
+    "falls back to %s storefront messages without reviewed authority",
+    (market) => {
+      expect(applyOperatorContactAuthority(market, baseMessages)).toMatchObject(
+        {
+          "navigation.contact.authority_status": "available",
+          "navigation.contact.authority_source": "sk-existing",
+          "navigation.contact.email_href": "mailto:ahoj@herbatica.sk",
+          "navigation.contact.phone_href": "tel:+421232112345",
+        }
+      )
+    }
+  )
 
   it("accepts a payload only when manifest, artifact, and both approvals match", () => {
     expect(

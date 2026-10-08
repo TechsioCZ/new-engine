@@ -30,15 +30,14 @@ describe("resolveStorefrontAuthMessages", () => {
     )
   })
 
-  it.each([
-    "de",
-    "__proto__",
-    "toString",
-  ])("fails closed for unsupported runtime market %s", (market) => {
-    expect(() =>
-      resolveStorefrontAuthMessages(
-        market as Parameters<typeof resolveStorefrontAuthMessages>[0]
-      )
-    ).toThrow("Unsupported storefront auth market")
-  })
+  it.each(["de", "__proto__", "toString"])(
+    "fails closed for unsupported runtime market %s",
+    (market) => {
+      expect(() =>
+        resolveStorefrontAuthMessages(
+          market as Parameters<typeof resolveStorefrontAuthMessages>[0]
+        )
+      ).toThrow("Unsupported storefront auth market")
+    }
+  )
 })

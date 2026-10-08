@@ -164,39 +164,43 @@ describe("localized FAQ route", () => {
       [market, "about"],
       [market, "faq"],
     ])
-  )("returns a noindex 503 for %s %s when G1 evidence is absent", async (market, pageKey) => {
-    const { readCmsStaticPageWithDemoFallback } = await import(
-      "@/lib/storefront/cms"
-    )
-    const { loadStaticRoutePublicationDecision } = await import(
-      "@/lib/url/segment-registry-publication.server"
-    )
-    vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
-      kind: "rejected",
-      reason: "artifact-unavailable",
-    })
-    const request = requestContext(pageKey, market)
+  )(
+    "returns a noindex 503 for %s %s when G1 evidence is absent",
+    async (market, pageKey) => {
+      const { readCmsStaticPageWithDemoFallback } = await import(
+        "@/lib/storefront/cms"
+      )
+      const { loadStaticRoutePublicationDecision } = await import(
+        "@/lib/url/segment-registry-publication.server"
+      )
+      vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
+        kind: "rejected",
+        reason: "artifact-unavailable",
+      })
+      const request = requestContext(pageKey, market)
 
-    const result = await getServerSideProps(request.context)
+      const result = await getServerSideProps(request.context)
 
-    expect(result).toMatchObject({
-      props: {
-        page: { kind: "error", status: 503 },
-        seo: { robots: "noindex, nofollow" },
-      },
-    })
-    expect(
-      (result as { props: { seo: { canonical?: string } } }).props.seo.canonical
-    ).toBeUndefined()
-    expect(request.context.res.statusCode).toBe(503)
-    expect(request.headers.get("x-robots-tag")).toBe("noindex, nofollow")
-    expect(request.headers.get("retry-after")).toBe("30")
-    expect(request.headers.get("cache-control")).toBe(
-      "private, no-store, max-age=0, must-revalidate"
-    )
-    expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
-    expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalled()
-  })
+      expect(result).toMatchObject({
+        props: {
+          page: { kind: "error", status: 503 },
+          seo: { robots: "noindex, nofollow" },
+        },
+      })
+      expect(
+        (result as { props: { seo: { canonical?: string } } }).props.seo
+          .canonical
+      ).toBeUndefined()
+      expect(request.context.res.statusCode).toBe(503)
+      expect(request.headers.get("x-robots-tag")).toBe("noindex, nofollow")
+      expect(request.headers.get("retry-after")).toBe("30")
+      expect(request.headers.get("cache-control")).toBe(
+        "private, no-store, max-age=0, must-revalidate"
+      )
+      expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
+      expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalled()
+    }
+  )
 
   it("keeps a real CMS page noindex when the market taxonomy excludes it from G1", async () => {
     const { readCmsStaticPageWithDemoFallback } = await import(

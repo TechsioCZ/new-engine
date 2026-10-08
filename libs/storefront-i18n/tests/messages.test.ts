@@ -41,13 +41,12 @@ describe("nestStorefrontMessages", () => {
     })
   })
 
-  it.each([
-    "cart..title",
-    "cart.__proto__.title",
-    "cart.constructor.title",
-  ])("rejects invalid key %s", (key) => {
-    expect(() => nestStorefrontMessages({ [key]: "value" })).toThrow(
-      `Invalid storefront message key: ${key}`
-    )
-  })
+  it.each(["cart..title", "cart.__proto__.title", "cart.constructor.title"])(
+    "rejects invalid key %s",
+    (key) => {
+      expect(() => nestStorefrontMessages({ [key]: "value" })).toThrow(
+        `Invalid storefront message key: ${key}`
+      )
+    }
+  )
 })

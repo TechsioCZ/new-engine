@@ -119,16 +119,19 @@ describe("CheckoutCompleteSection external review consent", () => {
     ["cz", "cs-CZ", false],
     ["hu", "hu-HU", false],
     ["ro", "ro-RO", false],
-  ] as const)("renders approved optional purposes for %s", (code, locale, supportsHeureka) => {
-    testContext.market = { code, locale }
+  ] as const)(
+    "renders approved optional purposes for %s",
+    (code, locale, supportsHeureka) => {
+      testContext.market = { code, locale }
 
-    const markup = renderSection()
+      const markup = renderSection()
 
-    expect(markup).toContain("checkout.review_marketing_consent")
-    expect(markup).toContain("checkout.review_legal_confirmation")
-    expect(markup).toContain('data-required="true"')
-    expect(markup.includes("checkout.review_heureka_consent")).toBe(
-      supportsHeureka
-    )
-  })
+      expect(markup).toContain("checkout.review_marketing_consent")
+      expect(markup).toContain("checkout.review_legal_confirmation")
+      expect(markup).toContain('data-required="true"')
+      expect(markup.includes("checkout.review_heureka_consent")).toBe(
+        supportsHeureka
+      )
+    }
+  )
 })

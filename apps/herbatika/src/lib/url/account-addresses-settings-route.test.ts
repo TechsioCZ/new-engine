@@ -10,11 +10,12 @@ const SETTINGS_ROUTES = [
 ] as const satisfies readonly (readonly [Market, string])[]
 
 describe("saved-address account settings routes", () => {
-  it.each(
-    SETTINGS_ROUTES
-  )("keeps address management on the approved %s settings route", (market, expectedPath) => {
-    expect(buildPath({ kind: "account", section: "settings" }, market)).toBe(
-      expectedPath
-    )
-  })
+  it.each(SETTINGS_ROUTES)(
+    "keeps address management on the approved %s settings route",
+    (market, expectedPath) => {
+      expect(buildPath({ kind: "account", section: "settings" }, market)).toBe(
+        expectedPath
+      )
+    }
+  )
 })

@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -260,6 +260,9 @@ export function Tour({
 }
 
 export type TourContextProps = { children: (api: TourApi) => ReactNode }
+
+// Assign Root first so native declaration emit exports every compound member.
+Tour.Root = Tour
 
 Tour.Context = function TourApiContext({ children }: TourContextProps) {
   return children(useTourContext())
@@ -550,5 +553,4 @@ Tour.CloseTrigger = function TourCloseTrigger({
   )
 }
 
-Tour.Root = Tour
 Tour.displayName = "Tour"

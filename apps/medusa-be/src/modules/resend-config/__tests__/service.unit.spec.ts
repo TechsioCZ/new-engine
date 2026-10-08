@@ -211,13 +211,16 @@ describe("ResendConfigModuleService", () => {
       },
       "SK From Email and Reply-To must use herbatica.sk",
     ],
-  ])("refuses enablement when %s", async (_case, configuredMarkets, message) => {
-    const service = createEnabledConfigurationService(configuredMarkets)
+  ])(
+    "refuses enablement when %s",
+    async (_case, configuredMarkets, message) => {
+      const service = createEnabledConfigurationService(configuredMarkets)
 
-    await expect(service.updateConfig({ is_enabled: true })).rejects.toThrow(
-      message
-    )
-  })
+      await expect(service.updateConfig({ is_enabled: true })).rejects.toThrow(
+        message
+      )
+    }
+  )
 
   it("keeps a legacy global-only configuration disabled", async () => {
     const service = createEnabledConfigurationService({})

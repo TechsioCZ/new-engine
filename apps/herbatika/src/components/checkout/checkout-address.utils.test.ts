@@ -24,10 +24,10 @@ describe("resolveHasStoredAddress", () => {
     expect(resolveHasStoredAddress(createCart("0905 123 456"), "sk")).toBe(true)
   })
 
-  it.each([
-    undefined,
-    "+42155555555555",
-  ])("rejects a stored address with an invalid contact phone: %s", (phone) => {
-    expect(resolveHasStoredAddress(createCart(phone), "sk")).toBe(false)
-  })
+  it.each([undefined, "+42155555555555"])(
+    "rejects a stored address with an invalid contact phone: %s",
+    (phone) => {
+      expect(resolveHasStoredAddress(createCart(phone), "sk")).toBe(false)
+    }
+  )
 })

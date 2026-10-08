@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,7 +27,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import { tv } from "../utils"
 
 const radioCardVariants = tv({
@@ -93,10 +93,7 @@ const radioCardVariants = tv({
       "data-[state=checked]:opacity-100",
       "data-disabled:data-[state=checked]:text-radio-card-item-indicator-content-fg-disabled",
     ],
-    itemIndicatorMark: [
-      "block leading-none",
-      "token-icon-radio-card-checked",
-    ],
+    itemIndicatorMark: ["block leading-none", "token-icon-radio-card-checked"],
     itemAddon: [
       "border-t-(length:--border-width-radio-card-addon)",
       "border-radio-card-addon-border",
@@ -190,10 +187,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-sm",
         itemIndicator: "size-radio-card-indicator-sm",
         itemIndicatorMark: "size-radio-card-indicator-mark-sm",
-        itemAddon: [
-          "p-radio-card-addon-sm",
-          "text-radio-card-addon-sm",
-        ],
+        itemAddon: ["p-radio-card-addon-sm", "text-radio-card-addon-sm"],
       },
       md: {
         root: "gap-radio-card-stack-md",
@@ -206,10 +200,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-md",
         itemIndicator: "size-radio-card-indicator-md",
         itemIndicatorMark: "size-radio-card-indicator-mark-md",
-        itemAddon: [
-          "p-radio-card-addon-md",
-          "text-radio-card-addon-md",
-        ],
+        itemAddon: ["p-radio-card-addon-md", "text-radio-card-addon-md"],
       },
       lg: {
         root: "gap-radio-card-stack-lg",
@@ -222,10 +213,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-lg",
         itemIndicator: "size-radio-card-indicator-lg",
         itemIndicatorMark: "size-radio-card-indicator-mark-lg",
-        itemAddon: [
-          "p-radio-card-addon-lg",
-          "text-radio-card-addon-lg",
-        ],
+        itemAddon: ["p-radio-card-addon-lg", "text-radio-card-addon-lg"],
       },
     },
     itemOrientation: {
@@ -402,7 +390,7 @@ export function RadioCard({
     {
       "aria-describedby": ariaDescribedByProp,
     },
-    api.getRootProps(),
+    api.getRootProps()
   )
 
   return (
@@ -486,6 +474,7 @@ RadioCard.Item = function RadioCardItem({
 
   return (
     <RadioCardItemContext.Provider value={{ itemProps }}>
+      {/* biome-ignore lint/a11y/noLabelWithoutControl: The compound hidden input is rendered by children and shares these Zag item props. */}
       <label
         className={styles.item({ className })}
         ref={ref}
@@ -512,7 +501,10 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
   const { api, size, variant } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({ size, variant })
-  const hiddenInputProps = mergeProps(props, api.getItemHiddenInputProps(itemProps))
+  const hiddenInputProps = mergeProps(
+    props,
+    api.getItemHiddenInputProps(itemProps)
+  )
 
   return (
     <input
@@ -714,7 +706,7 @@ RadioCard.ItemAddon = function RadioCardItemAddon({
 }
 
 type RadioCardStatusTextProps = Omit<
-  ComponentPropsWithoutRef<typeof StatusText>,
+  ComponentPropsWithoutRef<typeof StatusTextComponent>,
   "status" | "size"
 > & {
   status?: RadioCardValidateStatus
@@ -734,14 +726,14 @@ RadioCard.StatusText = function RadioCardStatusText({
   const effectiveStatus = status ?? validateStatus
 
   return (
-    <StatusText
+    <StatusTextComponent
       showIcon={showIcon ?? effectiveStatus !== "default"}
       size={effectiveSize}
       status={effectiveStatus}
       {...props}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 

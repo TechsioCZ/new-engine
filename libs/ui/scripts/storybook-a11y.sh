@@ -1,68 +1,81 @@
 #!/usr/bin/env bash
+# Build Storybook, serve it, and run the APCA a11y test runner in light and
+# dark mode. Extra arguments are forwarded to test-storybook (for example
+# `--testTimeout 90000`). The test timeout defaults to the Jest config value.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${A11Y_STORYBOOK_PORT:-6006}"
 REPORT_DIR="${A11Y_REPORT_OUTPUT_DIR:-a11y-report}"
+case "${REPORT_DIR}" in
+  /*) REPORT_ROOT="${REPORT_DIR}" ;;
+  *) REPORT_ROOT="${ROOT_DIR}/${REPORT_DIR}" ;;
+esac
 FAIL_ON_VIOLATIONS="${A11Y_REPORT_FAIL_ON_VIOLATIONS:-false}"
-WAIT_MS="${A11Y_REPORT_WAIT_MS:-30000}"
 WORKERS="${A11Y_TEST_WORKERS:-2}"
-TEST_TIMEOUT="${A11Y_TEST_TIMEOUT:-60000}"
 
-mkdir -p "${ROOT_DIR}/${REPORT_DIR}/light" "${ROOT_DIR}/${REPORT_DIR}/dark"
+mkdir -p "${REPORT_ROOT}"
+# The reporter appends to NDJSON, so each invocation needs fresh output.
+RUN_REPORT_ROOT="$(mktemp -d "${REPORT_ROOT}/run.XXXXXXXX")"
+echo "A11y reports: ${RUN_REPORT_ROOT}"
+if [ -n "${GITHUB_OUTPUT:-}" ]; then
+  echo "report-dir=${RUN_REPORT_ROOT}" >> "${GITHUB_OUTPUT}"
+fi
 
 pnpm -C "${ROOT_DIR}" build:storybook
 
 SERVER_LOG="$(mktemp)"
-python3 -m http.server "${PORT}" --directory "${ROOT_DIR}/storybook-static" > "${SERVER_LOG}" 2>&1 &
+python3 -m http.server "${PORT}" --bind 127.0.0.1 \
+  --directory "${ROOT_DIR}/storybook-static" > "${SERVER_LOG}" 2>&1 &
 SERVER_PID=$!
 cleanup() {
   kill "${SERVER_PID}" >/dev/null 2>&1 || true
+  wait "${SERVER_PID}" >/dev/null 2>&1 || true
+  rm -f "${SERVER_LOG}"
 }
 trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
-sleep 2
+# The request log proves our server answered, not another process on the port.
+if ! curl -fs -o /dev/null --retry 30 --retry-connrefused --retry-delay 1 \
+  "http://127.0.0.1:${PORT}/index.json" ||
+  ! grep -q "GET /index.json" "${SERVER_LOG}"; then
+  echo "The Storybook HTTP server did not become ready on port ${PORT}." >&2
+  cat "${SERVER_LOG}" >&2
+  exit 1
+fi
 
-set +e
-A11Y_REPORT_OUTPUT_DIR="${REPORT_DIR}/light" \
-A11Y_REPORT_FAIL_ON_VIOLATIONS="${FAIL_ON_VIOLATIONS}" \
-A11Y_REPORT_WRITE_JUNIT="true" \
-A11Y_REPORT_WAIT_MS="${WAIT_MS}" \
-pnpm -C "${ROOT_DIR}" exec test-storybook \
-  --url "http://127.0.0.1:${PORT}/?globals=mode:light" \
-  --config-dir .storybook \
-  --maxWorkers "${WORKERS}" \
-  --testTimeout "${TEST_TIMEOUT}"
-LIGHT_STATUS=$?
-
-A11Y_REPORT_OUTPUT_DIR="${REPORT_DIR}/dark" \
-A11Y_REPORT_FAIL_ON_VIOLATIONS="${FAIL_ON_VIOLATIONS}" \
-A11Y_REPORT_WRITE_JUNIT="true" \
-A11Y_REPORT_WAIT_MS="${WAIT_MS}" \
-pnpm -C "${ROOT_DIR}" exec test-storybook \
-  --url "http://127.0.0.1:${PORT}/?globals=mode:dark" \
-  --config-dir .storybook \
-  --maxWorkers "${WORKERS}" \
-  --testTimeout "${TEST_TIMEOUT}"
-DARK_STATUS=$?
-set -e
-
+export A11Y_REPORT_FAIL_ON_VIOLATIONS="${FAIL_ON_VIOLATIONS}"
+STATUS=0
 for theme in light dark; do
-  if [ -f "${ROOT_DIR}/${REPORT_DIR}/${theme}/report.json" ]; then
+  THEME_DIR="${RUN_REPORT_ROOT}/${theme}"
+  mkdir -p "${THEME_DIR}"
+  A11Y_STORYBOOK_MODE="${theme}" A11Y_REPORT_OUTPUT_DIR="${THEME_DIR}" \
+    pnpm -C "${ROOT_DIR}" exec test-storybook \
+    --url "http://127.0.0.1:${PORT}" \
+    --config-dir .storybook \
+    --index-json \
+    --maxWorkers "${WORKERS}" \
+    "$@" || STATUS=1
+
+  REPORT_INPUT="${THEME_DIR}/report.ndjson"
+  if [ ! -f "${REPORT_INPUT}" ]; then
+    REPORT_INPUT="${THEME_DIR}/report.json"
+  fi
+  if [ -f "${REPORT_INPUT}" ]; then
     node "${ROOT_DIR}/scripts/storybook-a11y-summary.mjs" \
-      --input "${ROOT_DIR}/${REPORT_DIR}/${theme}/report.json" \
-      --output "${ROOT_DIR}/${REPORT_DIR}/${theme}/summary.md"
+      --input "${REPORT_INPUT}" \
+      --output "${THEME_DIR}/summary.md" || STATUS=1
   else
-    echo "No a11y report JSON found for ${theme}." > "${ROOT_DIR}/${REPORT_DIR}/${theme}/summary.md"
+    echo "No a11y report found for ${theme}." > "${THEME_DIR}/summary.md"
   fi
 done
 
 if [ "${FAIL_ON_VIOLATIONS}" = "false" ]; then
   echo "WARNING: Non-blocking mode enabled (A11Y_REPORT_FAIL_ON_VIOLATIONS=false)."
-  echo "See ${REPORT_DIR}/light/summary.md and ${REPORT_DIR}/dark/summary.md for details."
-  exit 0
+  echo "See ${RUN_REPORT_ROOT}/light/summary.md and ${RUN_REPORT_ROOT}/dark/summary.md for details."
 fi
 
-if [ "${LIGHT_STATUS}" -ne 0 ] || [ "${DARK_STATUS}" -ne 0 ]; then
-  exit 1
-fi
+exit "${STATUS}"

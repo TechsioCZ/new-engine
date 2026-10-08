@@ -23,15 +23,18 @@ describe("buildCustomerAccountDeactivationUrl", () => {
       "https://herbatica.ro",
       "https://herbatica.ro/cont/dezactivare-cont?token=Token%2FExact%2BCase",
     ],
-  ] as const)("builds an encoded %s link on the canonical market origin", (market, storefrontBaseUrl, expectedUrl) => {
-    expect(
-      buildCustomerAccountDeactivationUrl(
-        "Token/Exact+Case",
-        storefrontBaseUrl,
-        market
-      )
-    ).toBe(expectedUrl)
-  })
+  ] as const)(
+    "builds an encoded %s link on the canonical market origin",
+    (market, storefrontBaseUrl, expectedUrl) => {
+      expect(
+        buildCustomerAccountDeactivationUrl(
+          "Token/Exact+Case",
+          storefrontBaseUrl,
+          market
+        )
+      ).toBe(expectedUrl)
+    }
+  )
 
   it("rejects an invalid storefront base URL", () => {
     expect(() =>

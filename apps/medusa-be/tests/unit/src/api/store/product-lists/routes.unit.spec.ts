@@ -442,39 +442,38 @@ describe("Store product-list routes", () => {
           metadata: { origin: "header" },
         },
       },
-    ])("delegates $expectedType creation to the customer product-list workflow", async ({
-      expectedType,
-      importPath,
-      validatedBody,
-    }) => {
-      const { POST } = await import(importPath)
-      const productList = createProductList({
-        id: `plist_${expectedType}`,
-        type: expectedType,
-      })
-      workflowMocks.createCustomerProductListRun.mockResolvedValue({
-        result: {
-          created: expectedType === "custom",
-          product_list: productList,
-        },
-      })
-      const req = createMockRequest({
-        actorId: "cus_1",
-        validatedBody,
-      })
-      const res = createMockResponse()
-
-      await POST(req, res)
-
-      expect(res.status).toHaveBeenCalledWith(200)
-      expect(res.json).toHaveBeenCalledWith({
-        created: expectedType === "custom",
-        product_list: expect.objectContaining({
+    ])(
+      "delegates $expectedType creation to the customer product-list workflow",
+      async ({ expectedType, importPath, validatedBody }) => {
+        const { POST } = await import(importPath)
+        const productList = createProductList({
           id: `plist_${expectedType}`,
           type: expectedType,
-        }),
-      })
-    })
+        })
+        workflowMocks.createCustomerProductListRun.mockResolvedValue({
+          result: {
+            created: expectedType === "custom",
+            product_list: productList,
+          },
+        })
+        const req = createMockRequest({
+          actorId: "cus_1",
+          validatedBody,
+        })
+        const res = createMockResponse()
+
+        await POST(req, res)
+
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith({
+          created: expectedType === "custom",
+          product_list: expect.objectContaining({
+            id: `plist_${expectedType}`,
+            type: expectedType,
+          }),
+        })
+      }
+    )
   })
 
   describe("POST /store/product-lists/:id/items", () => {

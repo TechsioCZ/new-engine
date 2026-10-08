@@ -8,7 +8,7 @@ on:
       - ".github/workflows/storybook-a11y-baseline.yml"
       - "package.json"
       - "pnpm-lock.yaml"
-      - "scripts/install-storybook-playwright.mjs"
+      - "pnpm-workspace.yaml"
   workflow_dispatch:
     inputs:
       failOnViolations:
@@ -25,7 +25,7 @@ jobs:
     outputs:
       should-run: ${{ steps.changed-paths.outputs.should-run }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -46,11 +46,11 @@ jobs:
               .github/workflows/storybook-a11y-baseline.yml|\
               package.json|\
               pnpm-lock.yaml|\
-              scripts/install-storybook-playwright.mjs|\
+              pnpm-workspace.yaml|\
               libs/ui/.storybook/**|\
               libs/ui/assets/**|\
               libs/ui/package.json|\
-              libs/ui/playwright.config.cts|\
+              libs/ui/playwright.config.mts|\
               libs/ui/postcss.config.mjs|\
               libs/ui/project.json|\
               libs/ui/rslib.config.ts|\
@@ -79,7 +79,7 @@ jobs:
       checks: write
     uses: TechsioCZ/storybook-addons/.github/workflows/storybook-a11y.yml@b52eaf44688051b19eb989fab7b6ab721ce1a2d1 # storybook-a11y-workflow-v0.1.9
     with:
-      node-version: "24"
+      node-version: "26.10.0"
       pnpm-version: ""
       working-directory: libs/ui
       # Install the browser as part of the dependency step. The reusable
@@ -91,20 +91,26 @@ jobs:
       # is all the headless a11y test run needs, and avoids the stuck extract.
       # `timeout` is a safety net so a future regression fails fast instead of
       # hanging. ubuntu-latest already ships Chromium's system libs (no
-      # --with-deps needed). Install through Storybook's own Playwright so the
-      # downloaded browser revision always matches the test-runner runtime.
-      install-command: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...' && timeout 420 node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
+      # --with-deps needed). pnpm-workspace.yaml pins the test runner's
+      # Playwright to the workspace version, so the root CLI installs the
+      # browser revision the test runner launches.
+      install-command: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...' && timeout 420 pnpm exec playwright install --only-shell chromium
       build-command: pnpm -C {{workdir}} run build:storybook
+      # The reusable workflow evaluates this command inside its theme loop.
+      # The test timeout comes from .storybook/test-runner-jest.config.mjs.
+      test-command: >-
+        A11Y_STORYBOOK_MODE="$theme" pnpm -C {{workdir}} exec test-storybook
+        --index-json --url "{{url}}" --config-dir {{configDir}}
+        --maxWorkers {{maxWorkers}}
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook
       themes: '["light","dark"]'
-      globals-template: 'theme:{{theme}}'
+      globals-template: ""
       a11y-output-dir: a11y-report
       fail-on-violations: ${{ fromJSON(github.event.inputs.failOnViolations || vars.A11Y_REPORT_FAIL_ON_VIOLATIONS || 'false') }}
       write-junit: true
       wait-ms: 30000 # 30s based on observed Storybook startup time in CI
       test-workers: 2 # keep load stable on GitHub-hosted runners
-      test-timeout: 60000 # 60s to avoid flakes in slower CI
       install-playwright: false # browser installed via install-command (without --with-deps) to avoid the apt hang
       upload-artifacts: true
       post-pr-comment: true

@@ -190,16 +190,19 @@ describe("Medusa transactional-flow reader", () => {
       provider_id: "pp_paykit_stripe",
       status: "unknown",
     },
-  ])("collapses an incoherent payment-result projection to missing", async (payload) => {
-    const fetch = vi.fn().mockResolvedValue(response(200, payload))
+  ])(
+    "collapses an incoherent payment-result projection to missing",
+    async (payload) => {
+      const fetch = vi.fn().mockResolvedValue(response(200, payload))
 
-    await expect(
-      createReader(fetch).reader.readPaymentResult("sk", {
-        cartSessionToken: "Signed.Cart.Session",
-        resultToken: "Opaque.Result.Bearer",
-      })
-    ).resolves.toEqual({ kind: "missing" })
-  })
+      await expect(
+        createReader(fetch).reader.readPaymentResult("sk", {
+          cartSessionToken: "Signed.Cart.Session",
+          resultToken: "Opaque.Result.Bearer",
+        })
+      ).resolves.toEqual({ kind: "missing" })
+    }
+  )
 
   it("accepts only a coherent checkout projection", async () => {
     const fetch = vi.fn().mockResolvedValue(
@@ -274,14 +277,15 @@ describe("Medusa transactional-flow reader", () => {
     )
   })
 
-  it.each([
-    400, 401, 403, 404, 409, 410,
-  ])("collapses unusable secret status %s to missing", async (status) => {
-    const fetch = vi.fn().mockResolvedValue(response(status))
-    await expect(
-      createReader(fetch).reader.readReviewInvitation("sk", "secret")
-    ).resolves.toEqual({ kind: "missing" })
-  })
+  it.each([400, 401, 403, 404, 409, 410])(
+    "collapses unusable secret status %s to missing",
+    async (status) => {
+      const fetch = vi.fn().mockResolvedValue(response(status))
+      await expect(
+        createReader(fetch).reader.readReviewInvitation("sk", "secret")
+      ).resolves.toEqual({ kind: "missing" })
+    }
+  )
 
   it("maps backend failure and invalid JSON to unavailability", async () => {
     const backendFailure = vi.fn().mockResolvedValue(response(503))

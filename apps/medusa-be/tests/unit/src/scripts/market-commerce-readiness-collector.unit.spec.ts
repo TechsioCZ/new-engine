@@ -248,20 +248,23 @@ describe("four-market commerce live collector", () => {
     ["cz", "1299"],
     ["hu", "4999"],
     ["ro", "52.52"],
-  ] as const)("parses the %s approved major-unit amount as exact canonical decimal %s", (market, expectedAmount) => {
-    const bytes = serializeCanonicalCommerceArtifact({
-      currencyCode: COMMERCE_MARKET_CONTRACTS[market].currencyCode,
-      kind: "market-approved-variant-prices",
-      market,
-      prices: [{ amount: PRICE_AMOUNTS[market], variantId: "variant_1" }],
-      schemaVersion: 2,
-      unavailableVariants: [],
-    })
+  ] as const)(
+    "parses the %s approved major-unit amount as exact canonical decimal %s",
+    (market, expectedAmount) => {
+      const bytes = serializeCanonicalCommerceArtifact({
+        currencyCode: COMMERCE_MARKET_CONTRACTS[market].currencyCode,
+        kind: "market-approved-variant-prices",
+        market,
+        prices: [{ amount: PRICE_AMOUNTS[market], variantId: "variant_1" }],
+        schemaVersion: 2,
+        unavailableVariants: [],
+      })
 
-    expect(
-      parseMarketApprovedPricesArtifact(bytes, market).prices[0]?.amount
-    ).toBe(expectedAmount)
-  })
+      expect(
+        parseMarketApprovedPricesArtifact(bytes, market).prices[0]?.amount
+      ).toBe(expectedAmount)
+    }
+  )
 
   it("rejects approved amounts beyond the exact two-decimal contract", () => {
     const bytes = serializeCanonicalCommerceArtifact({
@@ -498,38 +501,40 @@ describe("four-market commerce live collector", () => {
       expected: "sk tax region differs from the reviewed identity scope",
       missingId: "taxreg_sk",
     },
-  ] as const)("fails closed when $collection omits the reviewed identity", async ({
-    collection,
-    expected,
-    missingId,
-  }) => {
-    const fixture = artifactFixture()
-    const artifacts = await readFourMarketReviewedArtifacts(
-      fixture.authority,
-      async (path) => fixture.files.get(path) ?? Promise.reject(new Error(path))
-    )
-    const state =
-      collection === "regions"
-        ? {
-            ...fixture.state,
-            regions: fixture.state.regions.filter(({ id }) => id !== missingId),
-          }
-        : {
-            ...fixture.state,
-            taxRegions: fixture.state.taxRegions.filter(
-              ({ id }) => id !== missingId
-            ),
-          }
-
-    expect(() =>
-      buildCollectedCommerceReadiness(
+  ] as const)(
+    "fails closed when $collection omits the reviewed identity",
+    async ({ collection, expected, missingId }) => {
+      const fixture = artifactFixture()
+      const artifacts = await readFourMarketReviewedArtifacts(
         fixture.authority,
-        artifacts,
-        state,
-        "2026-08-21T11:00:00.000Z"
+        async (path) =>
+          fixture.files.get(path) ?? Promise.reject(new Error(path))
       )
-    ).toThrow(expected)
-  })
+      const state =
+        collection === "regions"
+          ? {
+              ...fixture.state,
+              regions: fixture.state.regions.filter(
+                ({ id }) => id !== missingId
+              ),
+            }
+          : {
+              ...fixture.state,
+              taxRegions: fixture.state.taxRegions.filter(
+                ({ id }) => id !== missingId
+              ),
+            }
+
+      expect(() =>
+        buildCollectedCommerceReadiness(
+          fixture.authority,
+          artifacts,
+          state,
+          "2026-08-21T11:00:00.000Z"
+        )
+      ).toThrow(expected)
+    }
+  )
 
   it("does not enable a reviewed tax rate linked to another tax region", async () => {
     const fixture = artifactFixture()

@@ -85,65 +85,68 @@ describe("request claim access step", () => {
     ["cz", "cs-CZ", "herbatica.cz"],
     ["hu", "hu-HU", "herbatica.hu"],
     ["ro", "ro-RO", "herbatica.ro"],
-  ])("adds the canonical %s market context to the access email", async (marketCode, locale, domain) => {
-    resolveNotificationMarketContext.mockResolvedValue({
-      country_code: marketCode,
-      locale,
-      market_code: marketCode,
-      sales_channel_id: `sc_${marketCode}`,
-      store_name: "Herbatica",
-      storefront_base_url: `https://${domain}`,
-      storefront_domain: domain,
-    })
-    await import("../request-claim-access")
-    const step = workflowSdkMock.steps.get("request-claim-access")
-    const { container, createClaimAccesses, graph } = createContext(
-      marketCode,
-      `sc_${marketCode}`
-    )
-
-    expect(step).toBeDefined()
-
-    const result = (await step?.(
-      {
-        email: "customer@example.test",
-        order_number: "1001",
-        sales_channel_id: `sc_${marketCode}`,
-      },
-      { container }
-    )) as { output: { notification_input: Notification[] } }
-
-    expect(resolveNotificationMarketContext).toHaveBeenCalledWith(container, {
-      countryCode: marketCode,
-      salesChannelId: `sc_${marketCode}`,
-    })
-    expect(graph).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fields: expect.arrayContaining([
-          "sales_channel_id",
-          "shipping_address.country_code",
-          "billing_address.country_code",
-        ]),
-        filters: {
-          display_id: "1001",
-          sales_channel_id: `sc_${marketCode}`,
-        },
-      })
-    )
-    expect(createClaimAccesses).toHaveBeenCalledWith(
-      expect.objectContaining({ sales_channel_id: `sc_${marketCode}` })
-    )
-    expect(result.output.notification_input[0]).toMatchObject({
-      data: {
+  ])(
+    "adds the canonical %s market context to the access email",
+    async (marketCode, locale, domain) => {
+      resolveNotificationMarketContext.mockResolvedValue({
+        country_code: marketCode,
         locale,
         market_code: marketCode,
+        sales_channel_id: `sc_${marketCode}`,
+        store_name: "Herbatica",
         storefront_base_url: `https://${domain}`,
-        order_display_id: "1001",
-        verification_code: "123456",
-      },
-      template: "claim-access-code",
-    })
-  })
+        storefront_domain: domain,
+      })
+      await import("../request-claim-access")
+      const step = workflowSdkMock.steps.get("request-claim-access")
+      const { container, createClaimAccesses, graph } = createContext(
+        marketCode,
+        `sc_${marketCode}`
+      )
+
+      expect(step).toBeDefined()
+
+      const result = (await step?.(
+        {
+          email: "customer@example.test",
+          order_number: "1001",
+          sales_channel_id: `sc_${marketCode}`,
+        },
+        { container }
+      )) as { output: { notification_input: Notification[] } }
+
+      expect(resolveNotificationMarketContext).toHaveBeenCalledWith(container, {
+        countryCode: marketCode,
+        salesChannelId: `sc_${marketCode}`,
+      })
+      expect(graph).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fields: expect.arrayContaining([
+            "sales_channel_id",
+            "shipping_address.country_code",
+            "billing_address.country_code",
+          ]),
+          filters: {
+            display_id: "1001",
+            sales_channel_id: `sc_${marketCode}`,
+          },
+        })
+      )
+      expect(createClaimAccesses).toHaveBeenCalledWith(
+        expect.objectContaining({ sales_channel_id: `sc_${marketCode}` })
+      )
+      expect(result.output.notification_input[0]).toMatchObject({
+        data: {
+          locale,
+          market_code: marketCode,
+          storefront_base_url: `https://${domain}`,
+          order_display_id: "1001",
+          verification_code: "123456",
+        },
+        template: "claim-access-code",
+      })
+    }
+  )
 
   it("fails before creating an access challenge when the market is ambiguous", async () => {
     resolveNotificationMarketContext.mockRejectedValue(

@@ -225,38 +225,38 @@ describe("verifyCloudflareTurnstile", () => {
     })
   })
 
-  it.each([
-    undefined,
-    "login",
-  ])("rejects a valid Cloudflare response with action %s", async (action) => {
-    process.env.CLOUDFLARE_TURNSTILE_ENABLED = "true"
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({
-        json: async () => ({ action, success: true }),
-        ok: true,
-      }))
-    )
-    const req = createReq({
-      body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" },
-    })
-    const res = createRes()
-    const next = vi.fn()
+  it.each([undefined, "login"])(
+    "rejects a valid Cloudflare response with action %s",
+    async (action) => {
+      process.env.CLOUDFLARE_TURNSTILE_ENABLED = "true"
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({
+          json: async () => ({ action, success: true }),
+          ok: true,
+        }))
+      )
+      const req = createReq({
+        body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" },
+      })
+      const res = createRes()
+      const next = vi.fn()
 
-    await verifyCloudflareTurnstile({ expectedAction: "product_review" })(
-      req,
-      res,
-      next
-    )
+      await verifyCloudflareTurnstile({ expectedAction: "product_review" })(
+        req,
+        res,
+        next
+      )
 
-    expect(next).not.toHaveBeenCalled()
-    expect(res.status).toHaveBeenCalledWith(400)
-    expect(res.json).toHaveBeenCalledWith({
-      code: "captcha_verification_failed",
-      message: "Captcha verification failed",
-      type: "invalid_data",
-    })
-  })
+      expect(next).not.toHaveBeenCalled()
+      expect(res.status).toHaveBeenCalledWith(400)
+      expect(res.json).toHaveBeenCalledWith({
+        code: "captcha_verification_failed",
+        message: "Captcha verification failed",
+        type: "invalid_data",
+      })
+    }
+  )
 
   it("returns service unavailable when Cloudflare verification cannot complete", async () => {
     process.env.CLOUDFLARE_TURNSTILE_ENABLED = "true"

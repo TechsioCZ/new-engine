@@ -633,21 +633,24 @@ describe("order receipt service", () => {
     [36, 2],
     [37, 3],
     [51, 3],
-  ])("paginates %i receipt items into %i PDF pages without dropping rows", async (itemCount, expectedPageCount) => {
-    const service = new OrderReceiptModuleService()
-    const order = buildPaginationOrder(itemCount)
+  ])(
+    "paginates %i receipt items into %i PDF pages without dropping rows",
+    async (itemCount, expectedPageCount) => {
+      const service = new OrderReceiptModuleService()
+      const order = buildPaginationOrder(itemCount)
 
-    const attachment = await service.generateOrderReceiptAttachment(
-      order,
-      receiptContext
-    )
-    const pdf = attachment.content.toString("utf8")
+      const attachment = await service.generateOrderReceiptAttachment(
+        order,
+        receiptContext
+      )
+      const pdf = attachment.content.toString("utf8")
 
-    expect(getPdfPageCount(pdf)).toBe(expectedPageCount)
-    for (const item of order.items) {
-      expect(pdf).toContain(item.title)
+      expect(getPdfPageCount(pdf)).toBe(expectedPageCount)
+      for (const item of order.items) {
+        expect(pdf).toContain(item.title)
+      }
     }
-  })
+  )
 
   it("wraps long customer text without overlapping the item table", async () => {
     const service = new OrderReceiptModuleService()

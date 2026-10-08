@@ -6,7 +6,7 @@ description: >
   trigger, value text, clear trigger, item groups, item indicators, validation
   status, size, and multiple mode.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -87,45 +87,53 @@ describe("localized FAQ data", () => {
   it.each([
     ["cs-CZ", "Často kladené otázky", "CZK"],
     ["hu-HU", "Gyakran ismételt kérdések", "HUF"],
-  ] as const)("provides full %s item and answer-block parity", (locale, expectedTitle, currency) => {
-    const slovak = getFaqPageData("sk-SK")
-    const localized = getFaqPageData(locale)
+  ] as const)(
+    "provides full %s item and answer-block parity",
+    (locale, expectedTitle, currency) => {
+      const slovak = getFaqPageData("sk-SK")
+      const localized = getFaqPageData(locale)
 
-    expect(localized).not.toBeNull()
-    expect(localized?.title).toBe(expectedTitle)
-    expect(localized?.items.map((item) => item.id)).toEqual(
-      slovak?.items.map((item) => item.id)
-    )
-    expect(
-      localized?.items.map((item) => item.answer.map(({ type }) => type))
-    ).toEqual(slovak?.items.map((item) => item.answer.map(({ type }) => type)))
-    expect(
-      localized?.items.every(
-        (item) =>
-          item.question.trim().length > 0 &&
-          item.answer.every((block) =>
-            block.type === "list" || block.type === "links"
-              ? block.items.length > 0
-              : block.text.trim().length > 0
-          )
+      expect(localized).not.toBeNull()
+      expect(localized?.title).toBe(expectedTitle)
+      expect(localized?.items.map((item) => item.id)).toEqual(
+        slovak?.items.map((item) => item.id)
       )
-    ).toBe(true)
-    expect(visibleStrings(localized?.items ?? []).join("\n")).toContain(
-      currency
-    )
-  })
+      expect(
+        localized?.items.map((item) => item.answer.map(({ type }) => type))
+      ).toEqual(
+        slovak?.items.map((item) => item.answer.map(({ type }) => type))
+      )
+      expect(
+        localized?.items.every(
+          (item) =>
+            item.question.trim().length > 0 &&
+            item.answer.every((block) =>
+              block.type === "list" || block.type === "links"
+                ? block.items.length > 0
+                : block.text.trim().length > 0
+            )
+        )
+      ).toBe(true)
+      expect(visibleStrings(localized?.items ?? []).join("\n")).toContain(
+        currency
+      )
+    }
+  )
 
   it.each([
     ["cs-CZ", HUF_CANARY],
     ["hu-HU", CZK_CANARY],
-  ] as const)("keeps %s FAQ free of foreign contacts, operator claims, and currency leakage", (locale, otherMarketCurrency) => {
-    const localized = getFaqPageData(locale)
-    const serialized = JSON.stringify(localized)
+  ] as const)(
+    "keeps %s FAQ free of foreign contacts, operator claims, and currency leakage",
+    (locale, otherMarketCurrency) => {
+      const localized = getFaqPageData(locale)
+      const serialized = JSON.stringify(localized)
 
-    expect(serialized).not.toMatch(FOREIGN_CONTACT_AUTHORITY_CANARY)
-    expect(serialized).not.toMatch(otherMarketCurrency)
-    expect(serialized).toContain('"page":"contact"')
-  })
+      expect(serialized).not.toMatch(FOREIGN_CONTACT_AUTHORITY_CANARY)
+      expect(serialized).not.toMatch(otherMarketCurrency)
+      expect(serialized).toContain('"page":"contact"')
+    }
+  )
 
   it("has approved FAQ content for every supported storefront locale", () => {
     for (const locale of ["sk-SK", "cs-CZ", "hu-HU", "ro-RO"] as const) {

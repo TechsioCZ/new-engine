@@ -18,9 +18,12 @@ describe("translateVariantTitle", () => {
     ["30 kapsúl", "cs-CZ", "30 kapslí"],
     ["30 kapsúl", "hu-HU", "30 kapszula"],
     ["30 kapsúl", "ro-RO", "30 de capsule"],
-  ] as const)("localizes the unit count %s for %s", (source, locale, expected) => {
-    expect(translateVariantTitle(source, locale)).toBe(expected)
-  })
+  ] as const)(
+    "localizes the unit count %s for %s",
+    (source, locale, expected) => {
+      expect(translateVariantTitle(source, locale)).toBe(expected)
+    }
+  )
 
   it("keeps Romanian numerals under 20 without the linking word", () => {
     expect(translateVariantTitle("10 tabliet", "ro-RO")).toBe("10 comprimate")
@@ -36,9 +39,12 @@ describe("translateVariantTitle", () => {
     ["Škorica", "hu-HU", "Fahéj"],
     ["Bez príchute", "ro-RO", "Fără aromă"],
     ["Zlatá blond 7.3", "ro-RO", "Blond auriu 7.3"],
-  ] as const)("localizes the option value %s for %s", (source, locale, expected) => {
-    expect(translateVariantTitle(source, locale)).toBe(expected)
-  })
+  ] as const)(
+    "localizes the option value %s for %s",
+    (source, locale, expected) => {
+      expect(translateVariantTitle(source, locale)).toBe(expected)
+    }
+  )
 
   it("localizes every segment of a composite title", () => {
     expect(translateVariantTitle("S / Black", "ro-RO")).toBe("S / Negru")
@@ -202,17 +208,18 @@ const CZ_SK_SHIPPING_OPTIONS = [
 ]
 
 describe("shipping option labels stay distinguishable per market", () => {
-  it.each(
-    SHIPPING_OPTION_TARGET_LOCALES
-  )("renders no duplicate and no English label across the CZ/SK shipping options in %s", (locale) => {
-    const labels = CZ_SK_SHIPPING_OPTIONS.map((name) =>
-      translateShippingOptionName(name, locale)
-    )
+  it.each(SHIPPING_OPTION_TARGET_LOCALES)(
+    "renders no duplicate and no English label across the CZ/SK shipping options in %s",
+    (locale) => {
+      const labels = CZ_SK_SHIPPING_OPTIONS.map((name) =>
+        translateShippingOptionName(name, locale)
+      )
 
-    expect(labels.every((label) => label !== null)).toBe(true)
-    expect(labels.some((label) => label?.includes("Shipping"))).toBe(false)
-    expect(new Set(labels).size).toBe(labels.length)
-  })
+      expect(labels.every((label) => label !== null)).toBe(true)
+      expect(labels.some((label) => label?.includes("Shipping"))).toBe(false)
+      expect(new Set(labels).size).toBe(labels.length)
+    }
+  )
 
   it("localizes the Slovak checkout too, because the stored names are English seed labels", () => {
     expect(

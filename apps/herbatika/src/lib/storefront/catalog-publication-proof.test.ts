@@ -139,16 +139,19 @@ describe("readCatalogPublicationProof", () => {
         kind: "invalid-response",
       },
     ],
-  ])("maps HTTP %s without accepting an unproven entity", async (status, expected) => {
-    await expect(
-      readCatalogPublicationProof(request, {
-        resolveMarket: vi.fn(() => binding),
-        retrieveAssignments: vi
-          .fn()
-          .mockRejectedValue(
-            Object.assign(new Error("request failed"), { status })
-          ),
-      })
-    ).resolves.toEqual(expected)
-  })
+  ])(
+    "maps HTTP %s without accepting an unproven entity",
+    async (status, expected) => {
+      await expect(
+        readCatalogPublicationProof(request, {
+          resolveMarket: vi.fn(() => binding),
+          retrieveAssignments: vi
+            .fn()
+            .mockRejectedValue(
+              Object.assign(new Error("request failed"), { status })
+            ),
+        })
+      ).resolves.toEqual(expected)
+    }
+  )
 })

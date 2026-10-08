@@ -73,18 +73,21 @@ describe("applySsrOutcome", () => {
   it.each([
     ["bad-request", 400],
     ["gone", 410],
-  ] as const)("renders a hard %s error before the page flushes", (kind, status) => {
-    const { headers, response } = createResponse()
+  ] as const)(
+    "renders a hard %s error before the page flushes",
+    (kind, status) => {
+      const { headers, response } = createResponse()
 
-    expect(applySsrOutcome(response, { kind })).toEqual({
-      props: { page: { kind: "error", status } },
-    })
-    expect(response.statusCode).toBe(status)
-    expect(headers.get("cache-control")).toBe(
-      "private, no-store, max-age=0, must-revalidate"
-    )
-    expect(headers.get("x-robots-tag")).toBe("noindex, nofollow")
-  })
+      expect(applySsrOutcome(response, { kind })).toEqual({
+        props: { page: { kind: "error", status } },
+      })
+      expect(response.statusCode).toBe(status)
+      expect(headers.get("cache-control")).toBe(
+        "private, no-store, max-age=0, must-revalidate"
+      )
+      expect(headers.get("x-robots-tag")).toBe("noindex, nofollow")
+    }
+  )
 
   it("renders 503 with a bounded default Retry-After value", () => {
     const { headers, response } = createResponse()
@@ -122,14 +125,17 @@ describe("applySsrOutcome", () => {
     [{ kind: "bad-request" }],
     [{ kind: "gone" }],
     [{ kind: "unavailable" }],
-  ] as const)("keys the %o response on Host for any shared cache", (outcome) => {
-    const { headers, response } = createResponse()
+  ] as const)(
+    "keys the %o response on Host for any shared cache",
+    (outcome) => {
+      const { headers, response } = createResponse()
 
-    applySsrOutcome(response, outcome)
+      applySsrOutcome(response, outcome)
 
-    expect(headers.get("vary")).toBe("Host")
-    expect(headers.get("cache-control")).toBe(
-      "private, no-store, max-age=0, must-revalidate"
-    )
-  })
+      expect(headers.get("vary")).toBe("Host")
+      expect(headers.get("cache-control")).toBe(
+        "private, no-store, max-age=0, must-revalidate"
+      )
+    }
+  )
 })

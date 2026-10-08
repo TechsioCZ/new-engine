@@ -370,60 +370,62 @@ describe("four-market notification readiness collector", () => {
     ).rejects.toMatchObject({ code: "EEXIST" })
   })
 
-  it.each([
-    "writeFile",
-    "sync",
-  ] as const)("leaves no final artifact after an injected %s failure and permits retry", async (failurePoint) => {
-    const report = await collectFourMarketNotificationReadiness({
-      ...fourMarketInput(),
-      renderer: {
-        render: vi.fn(async ({ locale, template }) => ({
-          html: "<html><body><p>safe</p></body></html>",
-          subject: `subject:${template}:${locale}`,
-          text: "safe",
-        })),
-      },
-      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
-    })
-    const directory = await realpath(
-      await mkdtemp(join(tmpdir(), "notification-readiness-failure-test-"))
-    )
-    temporaryDirectories.push(directory)
-    const outputPath = join(directory, "notifications.json")
-    const probePath = join(directory, "probe")
-    const probeHandle = await open(probePath, "wx", 0o600)
-    const handlePrototype = Object.getPrototypeOf(probeHandle) as Pick<
-      typeof probeHandle,
-      "sync" | "writeFile"
-    >
-    const failure = new Error(`injected ${failurePoint} failure`)
-    const failureSpy =
-      failurePoint === "writeFile"
-        ? vi.spyOn(handlePrototype, "writeFile").mockRejectedValueOnce(failure)
-        : vi.spyOn(handlePrototype, "sync").mockRejectedValueOnce(failure)
-    await probeHandle.close()
-    await unlink(probePath)
+  it.each(["writeFile", "sync"] as const)(
+    "leaves no final artifact after an injected %s failure and permits retry",
+    async (failurePoint) => {
+      const report = await collectFourMarketNotificationReadiness({
+        ...fourMarketInput(),
+        renderer: {
+          render: vi.fn(async ({ locale, template }) => ({
+            html: "<html><body><p>safe</p></body></html>",
+            subject: `subject:${template}:${locale}`,
+            text: "safe",
+          })),
+        },
+        subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+      })
+      const directory = await realpath(
+        await mkdtemp(join(tmpdir(), "notification-readiness-failure-test-"))
+      )
+      temporaryDirectories.push(directory)
+      const outputPath = join(directory, "notifications.json")
+      const probePath = join(directory, "probe")
+      const probeHandle = await open(probePath, "wx", 0o600)
+      const handlePrototype = Object.getPrototypeOf(probeHandle) as Pick<
+        typeof probeHandle,
+        "sync" | "writeFile"
+      >
+      const failure = new Error(`injected ${failurePoint} failure`)
+      const failureSpy =
+        failurePoint === "writeFile"
+          ? vi
+              .spyOn(handlePrototype, "writeFile")
+              .mockRejectedValueOnce(failure)
+          : vi.spyOn(handlePrototype, "sync").mockRejectedValueOnce(failure)
+      await probeHandle.close()
+      await unlink(probePath)
 
-    try {
+      try {
+        await expect(
+          writeNotificationReadinessArtifact(outputPath, report)
+        ).rejects.toBe(failure)
+      } finally {
+        failureSpy.mockRestore()
+      }
+
+      await expect(readFile(outputPath, "utf8")).rejects.toMatchObject({
+        code: "ENOENT",
+      })
+      expect(await readdir(directory)).toEqual([])
+
       await expect(
         writeNotificationReadinessArtifact(outputPath, report)
-      ).rejects.toBe(failure)
-    } finally {
-      failureSpy.mockRestore()
+      ).resolves.toMatchObject({ path: outputPath })
+      expect(
+        parseNotificationReadinessArtifact(await readFile(outputPath, "utf8"))
+      ).toEqual(report)
     }
-
-    await expect(readFile(outputPath, "utf8")).rejects.toMatchObject({
-      code: "ENOENT",
-    })
-    expect(await readdir(directory)).toEqual([])
-
-    await expect(
-      writeNotificationReadinessArtifact(outputPath, report)
-    ).resolves.toMatchObject({ path: outputPath })
-    expect(
-      parseNotificationReadinessArtifact(await readFile(outputPath, "utf8"))
-    ).toEqual(report)
-  })
+  )
 
   it("rejects a symlinked output parent before creating an artifact", async () => {
     const report = await collectFourMarketNotificationReadiness({
@@ -457,36 +459,37 @@ describe("four-market notification readiness collector", () => {
     expect(await readdir(physicalParent)).toEqual([])
   })
 
-  it.each([
-    0o777, 0o770,
-  ])("rejects an output parent with mode %o", async (mode) => {
-    const report = await collectFourMarketNotificationReadiness({
-      ...fourMarketInput(),
-      renderer: {
-        render: vi.fn(async ({ locale, template }) => ({
-          html: "<html><body><p>safe</p></body></html>",
-          subject: `subject:${template}:${locale}`,
-          text: "safe",
-        })),
-      },
-      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
-    })
-    const directory = await realpath(
-      await mkdtemp(join(tmpdir(), "notification-readiness-mode-test-"))
-    )
-    temporaryDirectories.push(directory)
-    await chmod(directory, mode)
-
-    await expect(
-      writeNotificationReadinessArtifact(
-        join(directory, "notifications.json"),
-        report
+  it.each([0o777, 0o770])(
+    "rejects an output parent with mode %o",
+    async (mode) => {
+      const report = await collectFourMarketNotificationReadiness({
+        ...fourMarketInput(),
+        renderer: {
+          render: vi.fn(async ({ locale, template }) => ({
+            html: "<html><body><p>safe</p></body></html>",
+            subject: `subject:${template}:${locale}`,
+            text: "safe",
+          })),
+        },
+        subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+      })
+      const directory = await realpath(
+        await mkdtemp(join(tmpdir(), "notification-readiness-mode-test-"))
       )
-    ).rejects.toThrow(
-      "output parent must be a canonical process-owned private directory"
-    )
-    expect(await readdir(directory)).toEqual([])
-  })
+      temporaryDirectories.push(directory)
+      await chmod(directory, mode)
+
+      await expect(
+        writeNotificationReadinessArtifact(
+          join(directory, "notifications.json"),
+          report
+        )
+      ).rejects.toThrow(
+        "output parent must be a canonical process-owned private directory"
+      )
+      expect(await readdir(directory)).toEqual([])
+    }
+  )
 
   it("rejects a parent identity swap after linking the artifact", async () => {
     const report = await collectFourMarketNotificationReadiness({
