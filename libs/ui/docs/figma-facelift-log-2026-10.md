@@ -132,6 +132,52 @@ Carousel and Steps were already 🟢. They now meet the bar the emoji claims. Ta
 
 ---
 
+## 2026-10-08 · Contrast fixes from the audit and the Notion board
+
+Source: the Notion "Open" board (Akros contrast, Tabs, success badge, placeholder, selected
+nav) and the audit table. All of these are token changes, made in Figma. Every pair below
+was measured from the variables in all six Theme modes and passes ≥ 4.5 : 1, except where
+noted.
+
+### Component tokens (all modes)
+
+| Variable | Before | After | Fixes |
+| --- | --- | --- | --- |
+| `color/tabs/trigger/fg/selected` | `color/bg/primary/base` | `color/fg/primary` | selected tab 1.23 : 1 (base) and Akros yellow on grey; the indicator carries the brand colour |
+| `color/tabs/list/bg` | `color/fill/highlight` | `color/fill/surface` | inactive tab 4.18 : 1 (light), 1.66 : 1 (dark) → 5.6 / 5.64 |
+| `color/tabs/trigger/fg/solid/selected` | `color/fg/on-primary-solid` | `color/fg/on-primary-solid-neo` | was 3.3 : 1 in Business |
+| `color/tree-view/fg/selected` | `color/bg/primary/base` | `color/fg/primary` | TreeView selected 4.23 : 1 and the Akros "selected nav item" (`#fdc52f` on `#e2e2e2`, 1.22 : 1) — the Akros admin sidebar is a TreeView |
+| `color/badge/fg/success` | `color/fg/light` | `color/base/dark` | Akros success badge 3.03 : 1 → 6.91 |
+| `color/badge/fg/warning` | `color/fg/light` | `color/base/dark` | Akros warning badge 1.72 : 1 → 12.19 (also badges inside DataTable rows) |
+
+### Theme tokens (per mode)
+
+| Variable | Mode(s) | Before | After | Fixes |
+| --- | --- | --- | --- | --- |
+| `color/fg/secondary` | Dark, neo-dark | `#566277` (raw) | `color/neutral/400` | facelift **C2**: 3.26 : 1 on page, 2.38 : 1 on cards → 7.74 / 5.64 |
+| `color/fg/placeholder` | Light, neo-light, Business | `color/neutral/500` | `color/neutral/600` | placeholder on the input fill 4.3 : 1 → 6.78 (focus 5.39) |
+| `color/fg/placeholder` | Akros | `color/neutral/400` (`#999`) | `color/neutral/600` | Akros placeholder 2.85 : 1 → 6.78 (focus 5.35, hover 4.76) |
+| `color/fg/placeholder` | Dark, neo-dark | `color/neutral/500` | `color/neutral/400` | 4.17 : 1 → 7.74; also separates placeholder from disabled (facelift E) |
+| `color/bg-light/primary/base \| hover \| active` | neo-dark | `color/primary/100 \| 200 \| 300` (light tints) | `color/primary/800 \| 700 \| 600` | neo-dark used light-mode tints; mirrors what Dark already does. Outline-selected tab 1.22 : 1 → 6.42 |
+
+**Still open (design decision):** the input **hover** fill is the brand tint `fill/hover`.
+Placeholder on it is 3.64 : 1 (Dark) and 3.21 : 1 (neo-dark), on blue and red tints. Either the
+form-control hover fill moves to a neutral (`fill/active`), or hover is accepted as transient.
+
+### Code fixes in the same branch
+| Item | Commit |
+| --- | --- |
+| Skeleton `aria-prohibited-attr` | `fix(ui): Skeleton no longer puts aria-label on a role-less div` — v1.0.1 |
+| Pagination / DataTable pagination `aria-prohibited-attr` | `fix(ui): Pagination disabled prev/next render as a button` — v1.0.1 |
+| FormNumericInput label not linked (axe `label`, critical) | `fix(ui): FormNumericInput label always targets the real input` — v1.1.1 |
+| Akros Orders shipping column squeezed | `fix(ui): DataTable fixed layout keeps declared column widths` — v1.2.1 |
+| "Akros not registered" | already on master (`847ca8b58`); all Akros demo stories set `brand: "akros"` |
+
+Each fix was reproduced with axe-core 4.11 against Storybook before the change and verified
+at 0 violations after it.
+
+---
+
 ## Check after the token export (code side)
 
 Run after the user re-exports. Expected diff in `tokens/figma/*/variables.css`:
@@ -144,3 +190,6 @@ Code changes these Figma changes require:
 - [ ] `_carousel.css`: `--width-carousel-indicator` alias still valid (now 24 px); add the dot alias.
 - [ ] `_steps.css`: drop the hardcoded `--text-steps-icon: var(--text-md)` and use the per-size `--text-steps-icon-{sm,md,lg}`.
 - [ ] Re-run Storybook a11y on Carousel and Steps and compare against the contrast table.
+- [ ] Contrast block: re-run axe `color-contrast` on Tabs, TreeView, Badge, Input and every
+      `Pages/Akros/*` story under base, dark, neo, neo-dark, business and akros; expect 0
+      for the pairs listed above.
