@@ -12,6 +12,10 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Carousel v1.2.0
+- Off-screen slides are \`inert\`, not just \`aria-hidden\`: links or buttons on hidden slides left the tab order (facelift C5, axe \`aria-hidden-focus\`).
+- New \`aria-label\` prop names the carousel region; give each carousel on a page its own name (axe \`landmark-unique\`). Stories with several carousels are labelled.
+
 ### Steps v1.0.3
 - Fixed axe \`aria-required-children\` (critical): Zag's \`role="tablist"\` contained \`div[aria-current]\` items. Items are now \`role="presentation"\` and \`aria-current="step"\` moves to the tab. Separators are \`aria-hidden\`.
 - \`Steps.Progress\` has a default accessible name (\`aria-label="Steps progress"\`, overridable) — axe \`aria-progressbar-name\`.

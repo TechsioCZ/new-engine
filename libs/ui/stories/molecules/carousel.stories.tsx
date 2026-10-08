@@ -392,7 +392,7 @@ export const Sizes: Story = {
     <div className="space-y-lg">
       <div>
         <h3 className="mb-md font-medium text-lg text-fg-primary">Small</h3>
-        <Carousel.Root slideCount={3} size="sm">
+        <Carousel.Root aria-label="Small carousel" slideCount={3} size="sm">
           <Carousel.Slides slides={sampleImages.slice(0, 3)} />
           <Carousel.Control>
             <Carousel.Previous />
@@ -404,7 +404,7 @@ export const Sizes: Story = {
 
       <div>
         <h3 className="mb-md font-medium text-lg text-fg-primary">Medium (Default)</h3>
-        <Carousel.Root slideCount={3} size="md">
+        <Carousel.Root aria-label="Medium carousel" slideCount={3} size="md">
           <Carousel.Slides slides={sampleImages.slice(0, 3)} />
           <Carousel.Control>
             <Carousel.Previous />
@@ -416,7 +416,7 @@ export const Sizes: Story = {
 
       <div>
         <h3 className="mb-md font-medium text-lg text-fg-primary">Large</h3>
-        <Carousel.Root slideCount={3} size="lg">
+        <Carousel.Root aria-label="Large carousel" slideCount={3} size="lg">
           <Carousel.Slides slides={sampleImages.slice(0, 3)} />
           <Carousel.Control>
             <Carousel.Previous />
@@ -459,7 +459,7 @@ export const ObjectFitDemo: Story = {
             <p className="mb-md text-fg-muted text-xs">
               Image covers entire container, may crop
             </p>
-            <Carousel.Root
+            <Carousel.Root aria-label="Cover fit"
               slideCount={1}
               objectFit="cover"
               aspectRatio="square"
@@ -475,7 +475,7 @@ export const ObjectFitDemo: Story = {
             <p className="mb-md text-fg-muted text-xs">
               Entire image visible, may have empty space
             </p>
-            <Carousel.Root
+            <Carousel.Root aria-label="Contain fit"
               slideCount={1}
               objectFit="contain"
               aspectRatio="square"
@@ -491,7 +491,7 @@ export const ObjectFitDemo: Story = {
             <p className="mb-md text-fg-muted text-xs">
               Image stretches to fill, may distort
             </p>
-            <Carousel.Root
+            <Carousel.Root aria-label="Fill fit"
               slideCount={1}
               objectFit="fill"
               aspectRatio="square"
@@ -507,7 +507,7 @@ export const ObjectFitDemo: Story = {
             <p className="mb-md text-fg-muted text-xs">
               Natural size, no fitting applied
             </p>
-            <Carousel.Root
+            <Carousel.Root aria-label="No fit"
               slideCount={1}
               objectFit="none"
               aspectRatio="square"
@@ -543,7 +543,7 @@ export const AspectRatioDemo: Story = {
         <div className="space-y-md">
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Square (1:1)</h4>
-            <Carousel.Root
+            <Carousel.Root aria-label="Square"
               slideCount={1}
               aspectRatio="square"
               objectFit="cover"
@@ -556,7 +556,7 @@ export const AspectRatioDemo: Story = {
 
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Landscape (16:9)</h4>
-            <Carousel.Root
+            <Carousel.Root aria-label="Landscape"
               slideCount={1}
               aspectRatio="landscape"
               objectFit="cover"
@@ -569,7 +569,7 @@ export const AspectRatioDemo: Story = {
 
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Portrait (3:4)</h4>
-            <Carousel.Root
+            <Carousel.Root aria-label="Portrait"
               slideCount={1}
               aspectRatio="portrait"
               objectFit="cover"
@@ -582,7 +582,7 @@ export const AspectRatioDemo: Story = {
 
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Wide (21:9)</h4>
-            <Carousel.Root
+            <Carousel.Root aria-label="Wide"
               slideCount={1}
               aspectRatio="wide"
               objectFit="cover"

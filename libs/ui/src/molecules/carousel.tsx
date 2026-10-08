@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -233,6 +233,12 @@ export interface CarouselRootProps<T extends ElementType = typeof Image>
   imageAs?: CarouselImageComponent<T>
   width?: CarouselDimension
   height?: CarouselDimension
+  /**
+   * Accessible name of the carousel region. Give each carousel on a page its
+   * own name, e.g. "Product photos" — otherwise every carousel is an
+   * identical, unnamed region (axe landmark-unique).
+   */
+  "aria-label"?: string
 }
 
 interface CarouselSlidesProps {
@@ -303,6 +309,7 @@ export function Carousel<T extends ElementType = typeof Image>({
   width,
   height,
   onPageChange,
+  "aria-label": ariaLabel,
   ...props
 }: CarouselRootProps<T>) {
   const fallbackId = useId()
@@ -341,6 +348,7 @@ export function Carousel<T extends ElementType = typeof Image>({
       <div className={wrapper()} style={resolvedWrapperStyle}>
         <div
           {...rootProps}
+          aria-label={ariaLabel}
           className={root({ className })}
           style={resolvedRootStyle}
         >
@@ -417,9 +425,18 @@ Carousel.Slide = function CarouselSlide({
     aspectRatio,
   })
   const itemProps = api.getItemProps({ index })
+  // Zag hides off-screen slides with aria-hidden only; links or buttons inside
+  // them stay in the tab order (axe aria-hidden-focus). `inert` removes the
+  // whole hidden slide from focus and the accessibility tree.
+  const hidden =
+    itemProps["aria-hidden"] === true || itemProps["aria-hidden"] === "true"
 
   return (
-    <div {...itemProps} className={slideSlot({ className })}>
+    <div
+      {...itemProps}
+      className={slideSlot({ className })}
+      inert={hidden || undefined}
+    >
       {children}
     </div>
   )

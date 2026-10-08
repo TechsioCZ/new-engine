@@ -5,7 +5,7 @@ description: >
   Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect
   ratio, object fit, and framework image adapters.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -54,6 +54,8 @@ where actions and feedback live). This section applies them to `Carousel`.
 
 - Controls labelled `Previous slide` / `Next slide`; indicators `Go to slide 2 of 5`.
 - Prev / next / autoplay are `ActionIcon`s sized from the carousel `size` (`sm` → 24 px, `md` → 32 px, `lg` / `full` → 40 px). Don't restyle them with `Button` classes.
+- Give every carousel an `aria-label` ("Product photos") — several unnamed carousels on one page are indistinguishable regions.
+- Off-screen slides are `inert`; never rely on focusing content inside a hidden slide.
 - `Carousel.Indicator` is a 24 px target with an 8 px dot inside (`--size-carousel-indicator`, `--size-carousel-indicator-dot`). Passing `children` replaces the dot (e.g. numbered indicators); keep the button at least 24 px.
 
 ## Setup
