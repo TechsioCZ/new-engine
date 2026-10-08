@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -288,9 +288,13 @@ export function Pagination<T extends ElementType = "a">({
       baseTriggerProps,
       {
         ...(isNavigable && linkAs ? { as: linkAs } : {}),
+        // Without an href an <a> has no role, so Zag's aria-label on the
+        // disabled prev/next trigger is prohibited. Render a real button.
         ...(isNavigable
           ? {}
           : {
+              as: "button",
+              type: "button",
               disabled: true,
             }),
       }

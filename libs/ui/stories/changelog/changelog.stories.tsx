@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Pagination v1.0.1
+- Fixed axe \`aria-prohibited-attr\` on the disabled prev/next triggers: without a page to go to they now render as an \`aria-disabled\` \`<button type="button">\` instead of an \`<a>\` with no \`href\`, so the Zag \`aria-label\` is valid. Also fixes DataTable pagination, which composes Pagination.
+
 ### Skeleton v1.0.2
 - Fixed axe \`aria-prohibited-attr\`: the root and standalone shapes are now \`role="status"\` (a role that permits \`aria-label\`), shapes inside \`<Skeleton>\` are \`aria-hidden\` so a group announces once, and a consumer-hidden shape (\`aria-hidden\`) gets no status semantics.
 
