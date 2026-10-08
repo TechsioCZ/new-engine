@@ -1,4 +1,4 @@
-// url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-39180
+// url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=3938-1793
 // source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/organisms/table.tsx
 // component=Table
 
@@ -20,7 +20,7 @@ export default {
   imports: ['import { Table } from "@techsio/ui-kit/organisms/table"'],
   example: figma.code`<Table${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("variant", variant)}>
         <Table.Caption>Recent orders</Table.Caption>
         <Table.Header>
