@@ -12,6 +12,21 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### ActionIcon v1.1.0
+- The type now requires an accessible name (facelift C10): \`aria-label\` or \`aria-labelledby\`. An unlabelled \`<ActionIcon icon="…" />\` no longer compiles.
+
+### Carousel v1.2.1
+- Previous / next / autoplay pass Zag's \`aria-label\` explicitly (Zag's English default as fallback) to satisfy the stricter ActionIcon type. No runtime change.
+
+### Combobox v1.3.2
+- The clear trigger passes Zag's \`aria-label\` explicitly (fallback "Clear value") for the stricter ActionIcon type. No runtime change.
+
+### FileUpload v1.0.2
+- The item delete trigger passes Zag's \`aria-label\` explicitly (fallback "Delete file <name>") for the stricter ActionIcon type. No runtime change.
+
+### Tour v1.0.4
+- The close trigger falls back to "Close tour" when neither the caller nor Zag provides a name (stricter ActionIcon type).
+
 ### Icon v1.1.0
 - New \`label\` prop (facelift C9): a meaningful standalone icon renders as \`role="img"\` with that accessible name. Without \`label\` the icon stays \`aria-hidden\` as before.
 

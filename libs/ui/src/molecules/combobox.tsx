@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -81,10 +81,10 @@ const comboboxVariants = tv({
     ],
     groupLabel: [
       "combobox-popup-padding",
-      "text-combobox-group-label-size font-combobox-group-label text-combobox-group-fg",
+      "font-combobox-group-label text-combobox-group-fg text-combobox-group-label-size",
     ],
     footer: [
-      "combobox-popup-padding shrink-0 border-t border-combobox-footer-border",
+      "combobox-popup-padding shrink-0 border-combobox-footer-border border-t",
     ],
     itemText: ["min-w-0 flex-grow truncate"],
     item: [
@@ -380,7 +380,7 @@ export function Combobox<T = unknown>({
 
   const hasOptions = api.collection.size > 0
   const showEmptyState =
-    !resultsHidden && !hasOptions && Boolean(api.inputValue)
+    !(resultsHidden || hasOptions) && Boolean(api.inputValue)
   let state = "idle"
   if (loading) state = "loading"
   else if (error) state = "error"
@@ -492,6 +492,9 @@ export function Combobox<T = unknown>({
               size={size ?? "md"}
               tone="neutral"
               {...api.getClearTriggerProps()}
+              aria-label={
+                api.getClearTriggerProps()["aria-label"] ?? "Clear value"
+              }
               disabled={disabled || readOnly}
               hidden={false}
               onClick={(event) => {

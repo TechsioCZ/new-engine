@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -448,12 +448,14 @@ Carousel.Previous = function CarouselPrevious({
 }: CarouselPreviousProps) {
   const { api, size } = useCarouselContext()
   const { prevTrigger } = carouselVariants()
+  const triggerProps = api.getPrevTriggerProps()
 
   return (
     <ActionIcon
       className={prevTrigger({ className })}
       size={toTriggerSize(size)}
-      {...api.getPrevTriggerProps()}
+      {...triggerProps}
+      aria-label={triggerProps["aria-label"] ?? "Previous slide"}
       icon={icon}
     />
   )
@@ -465,12 +467,14 @@ Carousel.Next = function CarouselNext({
 }: CarouselNextProps) {
   const { api, size } = useCarouselContext()
   const { nextTrigger } = carouselVariants()
+  const triggerProps = api.getNextTriggerProps()
 
   return (
     <ActionIcon
       className={nextTrigger({ className })}
       size={toTriggerSize(size)}
-      {...api.getNextTriggerProps()}
+      {...triggerProps}
+      aria-label={triggerProps["aria-label"] ?? "Next slide"}
       icon={icon}
     />
   )
@@ -531,6 +535,7 @@ Carousel.Autoplay = function CarouselAutoplay({
 }: CarouselAutoplayProps) {
   const { api, size } = useCarouselContext()
   const { autoplayTrigger: autoplayTriggerSlot } = carouselVariants()
+  const triggerProps = api.getAutoplayTriggerProps()
 
   return (
     <ActionIcon
@@ -539,7 +544,11 @@ Carousel.Autoplay = function CarouselAutoplay({
         api.isPlaying ? "token-icon-carousel-pause" : "token-icon-carousel-play"
       }
       size={toTriggerSize(size)}
-      {...api.getAutoplayTriggerProps()}
+      {...triggerProps}
+      aria-label={
+        triggerProps["aria-label"] ??
+        (api.isPlaying ? "Stop slide rotation" : "Start slide rotation")
+      }
     />
   )
 }

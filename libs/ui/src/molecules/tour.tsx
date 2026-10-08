@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.4
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -536,7 +536,7 @@ Tour.CloseTrigger = function TourCloseTrigger({
   return (
     <ActionIcon
       {...mergeProps(props, machineProps)}
-      aria-label={props["aria-label"] ?? machineLabel}
+      aria-label={props["aria-label"] ?? machineLabel ?? "Close tour"}
       className={tourStyles().closeTrigger({ className })}
       icon={icon}
       onClick={(event) => {

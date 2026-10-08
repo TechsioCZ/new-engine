@@ -2,7 +2,7 @@
  * ActionIcon — @techsio/ui-kit atom.
  *
  * @component ActionIcon
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill action-icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -58,11 +58,17 @@ const actionIconVariants = tv({
 
 type ActionIconVariants = VariantProps<typeof actionIconVariants>
 
+/** An icon-only button has no text, so the type requires a name. */
+type ActionIconName =
+  | { "aria-label": string; "aria-labelledby"?: string }
+  | { "aria-label"?: string; "aria-labelledby": string }
+
 export type ActionIconProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
-  "children"
+  "children" | "aria-label" | "aria-labelledby"
 > &
-  ActionIconVariants & {
+  ActionIconVariants &
+  ActionIconName & {
     icon: IconType
     ref?: Ref<HTMLButtonElement>
   }

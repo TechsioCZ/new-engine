@@ -5,7 +5,7 @@ description: >
   tooltip/dialog/floating steps, target resolution, interactive wait effects,
   imperative control, shared action buttons, cleanup and app-owned onboarding policy.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.0.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
