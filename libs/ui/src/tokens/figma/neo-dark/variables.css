@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-24T06:56:20.878Z
+ * Exported at: 2026-10-08T17:15:20.241Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -21,9 +21,9 @@
   --color-bg-light-danger-active: oklch(0.962 0.019 25.602);
   --color-bg-light-danger-base: oklch(0.9 0.048 18.09);
   --color-bg-light-danger-hover: oklch(0.953 0.023 24.126);
-  --color-bg-light-primary-active: var(--color-primary-300);
-  --color-bg-light-primary-base: var(--color-primary-100);
-  --color-bg-light-primary-hover: var(--color-primary-200);
+  --color-bg-light-primary-active: var(--color-primary-600);
+  --color-bg-light-primary-base: var(--color-primary-800);
+  --color-bg-light-primary-hover: var(--color-primary-700);
   --color-bg-light-secondary-active: oklch(0.97 0.107 105.368);
   --color-bg-light-secondary-base: oklch(0.893 0.063 56.696);
   --color-bg-light-secondary-hover: oklch(0.97 0.107 105.368);
@@ -107,10 +107,10 @@
   --color-fg-on-primary-indicator: var(--color-white);
   --color-fg-on-primary-solid: var(--color-white);
   --color-fg-on-primary-solid-neo: var(--color-white);
-  --color-fg-placeholder: var(--color-neutral-500);
+  --color-fg-placeholder: var(--color-neutral-400);
   --color-fg-primary: var(--color-white);
   --color-fg-reverse: var(--color-slate-950);
-  --color-fg-secondary: oklch(0.494 0.037 261.595);
+  --color-fg-secondary: var(--color-neutral-400);
   --color-fg-status-error: var(--color-danger-300);
   --color-fg-status-success: var(--color-success-300);
   --color-fg-status-warning: var(--color-warning-400);
@@ -131,6 +131,10 @@
   --color-info: var(--color-bg-info);
   --color-info-disabled: var(--color-bg-disabled);
   --color-link: var(--color-sky-300);
+  --color-mix-vertical-navigation-accent-light: oklch(0.323 0.028 343.96);
+  --color-mix-vertical-navigation-indicator-hover: oklch(0.749 0.143 29.632);
+  --color-mix-vertical-navigation-item-current: oklch(0.37 0.06 14.127);
+  --color-mix-vertical-navigation-secondary-light: oklch(0.351 0.003 345.383);
   --color-neutral-100: oklch(0.967 0.003 264.542);
   --color-neutral-200: oklch(0.928 0.006 264.531);
   --color-neutral-300: oklch(0.872 0.011 261.787);
@@ -276,12 +280,14 @@
   --dimension-150-min: var(--dimension-8);
   --dimension-16: 1rem;
   --dimension-18: 1.13rem;
+  --dimension-192: 12rem;
   --dimension-2: 0.13rem;
   --dimension-20: 1.25rem;
   --dimension-200-max: var(--dimension-16);
   --dimension-200-min: var(--dimension-14);
   --dimension-22: 1.38rem;
   --dimension-24: 1.5rem;
+  --dimension-240: 15rem;
   --dimension-250-max: var(--dimension-20);
   --dimension-250-min: var(--dimension-18);
   --dimension-26: 1.63rem;
@@ -370,6 +376,7 @@
   --duration-fast: 1ms;
   --duration-normal: 2ms;
   --duration-slow: 3ms;
+  --line-height-21: 1.31rem;
   --line-height-24: 1.5rem;
   --line-height-30: 1.88rem;
   --line-height-36: 2.25rem;

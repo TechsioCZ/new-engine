@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-24T06:56:20.877Z
+ * Exported at: 2026-10-08T17:15:20.240Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -107,7 +107,7 @@
   --color-fg-on-primary-indicator: var(--color-fg-reverse);
   --color-fg-on-primary-solid: var(--color-fg-reverse);
   --color-fg-on-primary-solid-neo: var(--color-fg-reverse);
-  --color-fg-placeholder: var(--color-neutral-500);
+  --color-fg-placeholder: var(--color-neutral-600);
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
   --color-fg-secondary: oklch(0.494 0.037 261.595);
@@ -131,6 +131,10 @@
   --color-info: var(--color-bg-info);
   --color-info-disabled: var(--color-bg-disabled);
   --color-link: var(--color-blue-500);
+  --color-mix-vertical-navigation-accent-light: oklch(0.909 0.034 26.815);
+  --color-mix-vertical-navigation-indicator-hover: oklch(0.431 0.135 23.296);
+  --color-mix-vertical-navigation-item-current: oklch(0.851 0.071 27.295);
+  --color-mix-vertical-navigation-secondary-light: oklch(0.938 0.022 67.55);
   --color-neutral-100: oklch(0.967 0.003 264.542);
   --color-neutral-200: oklch(0.928 0.006 264.531);
   --color-neutral-300: oklch(0.872 0.011 261.787);
@@ -276,12 +280,14 @@
   --dimension-150-min: var(--dimension-8);
   --dimension-16: 1rem;
   --dimension-18: 1.13rem;
+  --dimension-192: 12rem;
   --dimension-2: 0.13rem;
   --dimension-20: 1.25rem;
   --dimension-200-max: var(--dimension-16);
   --dimension-200-min: var(--dimension-14);
   --dimension-22: 1.38rem;
   --dimension-24: 1.5rem;
+  --dimension-240: 15rem;
   --dimension-250-max: var(--dimension-20);
   --dimension-250-min: var(--dimension-18);
   --dimension-26: 1.63rem;
@@ -370,6 +376,7 @@
   --duration-fast: 1ms;
   --duration-normal: 2ms;
   --duration-slow: 3ms;
+  --line-height-21: 1.31rem;
   --line-height-24: 1.5rem;
   --line-height-30: 1.88rem;
   --line-height-36: 2.25rem;

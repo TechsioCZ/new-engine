@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-24T06:56:20.876Z
+ * Exported at: 2026-10-08T17:15:20.238Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -118,10 +118,10 @@
   --color-fg-on-primary-indicator: var(--color-fg-primary);
   --color-fg-on-primary-solid: var(--color-fg-light);
   --color-fg-on-primary-solid-neo: var(--color-fg-light);
-  --color-fg-placeholder: var(--color-neutral-500);
+  --color-fg-placeholder: var(--color-neutral-400);
   --color-fg-primary: var(--color-white);
   --color-fg-reverse: var(--color-slate-950);
-  --color-fg-secondary: oklch(0.494 0.037 261.595);
+  --color-fg-secondary: var(--color-neutral-400);
   --color-fg-status-error: var(--color-danger-300);
   --color-fg-status-success: var(--color-success-300);
   --color-fg-status-warning: var(--color-warning-400);
@@ -149,6 +149,10 @@
   --color-info: var(--color-bg-info);
   --color-info-disabled: var(--color-bg-disabled);
   --color-link: var(--color-sky-300);
+  --color-mix-vertical-navigation-accent-light: oklch(0.359 0.04 246.369);
+  --color-mix-vertical-navigation-indicator-hover: oklch(0.896 0.065 228.044);
+  --color-mix-vertical-navigation-item-current: oklch(0.442 0.052 240.328);
+  --color-mix-vertical-navigation-secondary-light: oklch(0.352 0.004 354.953);
   --color-neutral-100: oklch(0.967 0.003 264.542);
   --color-neutral-200: oklch(0.928 0.006 264.531);
   --color-neutral-300: oklch(0.872 0.011 261.787);
@@ -209,6 +213,7 @@
   --color-success-600: oklch(0.627 0.17 149.214);
   --color-success-700: oklch(0.527 0.137 150.069);
   --color-success-disabled: var(--color-bg-disabled);
+  --color-success-fg: var(--color-green-foreground-dark);
   --color-tertiary: var(--color-bg-tertiary-base);
   --color-tertiary-100: oklch(0.963 0.021 301.149);
   --color-tertiary-200: oklch(0.914 0.051 303.063);
@@ -298,12 +303,14 @@
   --dimension-150-min: var(--dimension-8);
   --dimension-16: 1rem;
   --dimension-18: 1.13rem;
+  --dimension-192: 12rem;
   --dimension-2: 0.13rem;
   --dimension-20: 1.25rem;
   --dimension-200-max: var(--dimension-16);
   --dimension-200-min: var(--dimension-14);
   --dimension-22: 1.38rem;
   --dimension-24: 1.5rem;
+  --dimension-240: 15rem;
   --dimension-250-max: var(--dimension-20);
   --dimension-250-min: var(--dimension-18);
   --dimension-26: 1.63rem;
@@ -392,6 +399,7 @@
   --duration-fast: 1ms;
   --duration-normal: 2ms;
   --duration-slow: 3ms;
+  --line-height-21: 1.31rem;
   --line-height-24: 1.5rem;
   --line-height-30: 1.88rem;
   --line-height-36: 2.25rem;
