@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,10 +28,10 @@ const footerVariants = tv({
     section: "bg-footer-section-bg",
     list: "flex list-none flex-col gap-footer-list bg-footer-list-bg",
     bottom:
-      "flex w-full items-center justify-between border-t-(length:--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
+      "border-t-(length:--border-footer-width) flex w-full items-center justify-between bg-footer-bottom-bg pt-footer-bottom",
     title:
-      "font-footer-title text-footer-title-fg transition-footer-title hover:text-footer-title-fg-hover",
-    link: "font-footer-link text-footer-link-fg transition-footer-link hover:text-footer-link-fg-hover",
+      "font-footer-title text-footer-title-fg transition-colors duration-200 hover:text-footer-title-fg-hover motion-reduce:transition-none",
+    link: "font-footer-link text-footer-link-fg transition-colors duration-200 hover:text-footer-link-fg-hover motion-reduce:transition-none",
     text: "text-footer-text-fg",
     divider: "flex h-footer-divider w-full border-0 bg-footer-divider-bg",
   },

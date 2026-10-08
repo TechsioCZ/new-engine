@@ -12,6 +12,15 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Carousel v1.2.2
+- \`autoplay\` no longer starts when the user prefers reduced motion (facelift C11); the autoplay control still starts it on request.
+
+### Chart v1.1.0
+- \`animate\` now defaults to false when the user prefers reduced motion (facelift C11). An explicit \`animate\` still wins.
+
+### Footer v1.0.1
+- Title and link hovers used \`transition-footer-*\` classes that resolved to no token; they now use \`transition-colors\` with \`motion-reduce:transition-none\` (facelift C11).
+
 ### ActionIcon v1.1.0
 - The type now requires an accessible name (facelift C10): \`aria-label\` or \`aria-labelledby\`. An unlabelled \`<ActionIcon icon="…" />\` no longer compiles.
 

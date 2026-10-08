@@ -2,7 +2,7 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -53,6 +53,7 @@ import { Chart as TanstackChart } from "@tanstack/react-charts"
 import { scaleUtc } from "d3-scale"
 import { curveMonotoneX, type PieArcDatum, pie } from "d3-shape"
 import { useMemo } from "react"
+import { usePrefersReducedMotion } from "../internal/reduced-motion"
 import { tv } from "../utils"
 
 export type { ChartPoint } from "@tanstack/charts"
@@ -117,7 +118,10 @@ export type ChartProps<TDatum> = {
   aspectRatio?: number
   /** Deterministic first-frame width for SSR and hidden containers. */
   initialWidth?: number
-  /** Animate mark transitions. Defaults to true. */
+  /**
+   * Animate mark transitions. Defaults to true, or false when the user prefers
+   * reduced motion.
+   */
   animate?: boolean
   /** Show the built-in tooltip on hover/focus. Defaults to true. */
   tooltip?: boolean
@@ -669,7 +673,7 @@ export function Chart<TDatum>({
   height,
   aspectRatio,
   initialWidth = 640,
-  animate = true,
+  animate,
   tooltip = true,
   ariaLabel,
   ariaDescription,
@@ -678,6 +682,8 @@ export function Chart<TDatum>({
 }: ChartProps<TDatum>) {
   const { root, tooltip: tooltipSlot } = chartVariants()
   const tooltipClassName = tooltipSlot()
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const shouldAnimate = animate ?? !prefersReducedMotion
 
   const definition = useMemo(
     () =>
@@ -696,7 +702,7 @@ export function Chart<TDatum>({
         xLabel,
         yLabel,
         formatValue,
-        animate,
+        animate: shouldAnimate,
         showTooltip: tooltip,
         tooltipClassName,
       }),
@@ -715,7 +721,7 @@ export function Chart<TDatum>({
       xLabel,
       yLabel,
       formatValue,
-      animate,
+      shouldAnimate,
       tooltip,
       tooltipClassName,
     ]

@@ -8,7 +8,7 @@ description: >
   data/x/y/series channels, with token-driven series colors, legend, tooltip,
   value formatting and selection callbacks.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -130,7 +130,7 @@ Never combine two value scales in one chart — render two charts instead.
 - `xLabel`, `yLabel`, `formatValue` — axis labels and value tick formatting.
 - `height` or `aspectRatio` (default 16/9) — fixed or proportional sizing;
   `initialWidth` is the SSR/first-frame fallback.
-- `animate` (default true), `tooltip` (default true).
+- `animate` (default true, or false when the user prefers reduced motion), `tooltip` (default true).
 - `ariaLabel` (required), `ariaDescription` — accessibility naming.
 - `onSelect(datum | null)` — click/keyboard selection of a mark.
 

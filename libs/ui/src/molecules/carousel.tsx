@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -24,6 +24,7 @@ import { tv, type VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import type { IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
+import { usePrefersReducedMotion } from "../internal/reduced-motion"
 
 type CarouselImageComponent<T extends ElementType = typeof Image> =
   T extends typeof Image
@@ -313,10 +314,13 @@ export function Carousel<T extends ElementType = typeof Image>({
   ...props
 }: CarouselRootProps<T>) {
   const fallbackId = useId()
+  // Autoplay is JS-driven, so motion-reduce: classes cannot stop it. Users who
+  // prefer reduced motion get a still carousel; the play control still works.
+  const prefersReducedMotion = usePrefersReducedMotion()
   const service = useMachine(carousel.machine, {
     id: id ?? fallbackId,
     slideCount,
-    autoplay,
+    autoplay: prefersReducedMotion ? false : autoplay,
     orientation,
     allowMouseDrag,
     loop,
