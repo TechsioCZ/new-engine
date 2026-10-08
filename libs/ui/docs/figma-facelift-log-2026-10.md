@@ -223,3 +223,66 @@ Code changes these Figma changes require:
 **Result (exports 18:15 + 18:50):** all items verified. Akros page demos went from 111 contrast
 violations to 0. Tabs, TreeView, Badge, Input, Carousel and Steps component markup are clean in
 all six brand/mode combinations.
+
+## 2026-10-08 · Visual comparison: control family (Figma ↔ Storybook)
+
+Method: measured every size of the control family in Storybook (Playwright, rendered box,
+computed radius / font size) and the same component sets in Figma (`use_figma`), then compared.
+Guidance from the `ui-ux-pro-max` skill: web target size is 24 CSS px (WCAG 2.2 AA) rather
+than the native 44/48, state clarity, and read-only kept distinct from disabled.
+
+### What was wrong
+
+| Control | sm | md | lg | Note |
+| --- | --- | --- | --- | --- |
+| Button (code) | 32 · r8 | 44 · r12 | **56** · r16 | `lg` height came from padding + line-height |
+| Button (Figma) | **34 · r4** | 44 · **r8** | **57.5 · r12** | stale remote variables, px line-heights 24 / 30 / 37.5 |
+| Input / NumericInput / SearchForm | 32 | 44 | **70** | `height/form-control/lg` → `dimension/70` |
+| Select / Combobox (code) | 32 | 44 | **60** | `lg` did not use the shared height token |
+| Select `lg` trigger (Figma) | 32 | 44 | **54, unbound** | |
+| PhoneInput | 32 | 44 | 56 / **70** | code / Figma disagreed |
+| Pagination | 32 | 44 | **48** | `height/pagination/lg` → `dimension/48` |
+| Tabs trigger | **33 / 36** | **50** | **68 / 70** | padding-derived, off the 4 px grid |
+
+Root causes:
+1. **Every control page was still bound to remote library copies** of the variables (the
+   problem first found on Steps / Carousel). Figma drew stale values, for example a 4 px Button
+   radius where the local and exported token is 8.
+2. Three different `lg` heights: 56 (Button), 60 (Select, Combobox) and 70 (form controls).
+3. Hard-coded pixel line-heights in Figma text layers, which do not match code's 1.5.
+4. `Tabs.Trigger` had a duplicate variant name (`outline / md / selected` twice, with
+   `outline / lg / selected` missing), so the component set was in an error state.
+
+### Figma changes
+
+- Rebound remote → local on Button, Input, NumericInput, Select, Combobox, SearchForm,
+  PhoneInput, Pagination and Tabs: **≈ 6 400 bindings**, every one matched. The remote
+  `Semantic/Color` collection maps to local `Theme` by unique name.
+- `height/form-control/lg`: `dimension/70` → **`dimension/56`**.
+- `size/form-control/{sm,md,lg}` now alias `height/form-control/*`, so there is one scale
+  instead of two parallel ones. `size/combobox/*` follows through it.
+- `height/pagination/lg`: `dimension/48` → `height/form-control/lg`.
+- Button variants (360): height bound to `height/form-control/{size}`; label line-height set to 150 %.
+- Select `lg` trigger: height `height/form-control/lg`, radius `radius/select/lg`.
+- Tabs.Trigger (36): height bound to `height/form-control/{size}`, line-height 150 %.
+  The mis-named variant was renamed to `variant=outline, size=lg, state=selected`.
+- Scopes: `dimension/56` and the 14 `date-picker` size variables moved off `ALL_SCOPES`.
+
+**Result in Figma:** Button, Input, NumericInput, SearchForm, Select, Combobox, PhoneInput and
+Pagination all measure **32 / 44 / 56** with radius **8 / 12 / 16**. Tabs triggers are 32 / 44 / 56.
+
+### Code changes waiting on the next export
+
+- [ ] Cherry-pick the export and run the merge script; `--height-form-control-lg` should become `3.5rem`.
+- [ ] `button.tsx` `lg`, `select.tsx` `lg` trigger and `combobox.tsx` `lg` control use
+      `h-form-control-lg` (+ `rounded-*-lg`) like `sm` / `md` already do.
+- [ ] `tabs.tsx` triggers use `h-form-control-{size}`.
+- [ ] Re-measure: every control renders 32 / 44 / 56.
+
+### Still open from this pass
+
+- Select `xs` (28 in Figma, 30 in code) and CascadeSelect `xs` (36) are off the control scale.
+  This needs a decision on whether `xs` stays as a compact step (for example 24 or 28) or goes.
+- Read-only Rating is still a focusable 20 px radiogroup (axe `target-size`). A display
+  rating should be `role="img"` with an "x out of 5" label.
+- The remaining ~40 component pages have not been rebound yet. Rebind before their facelift.
