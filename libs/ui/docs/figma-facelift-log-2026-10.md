@@ -207,15 +207,19 @@ Still open at Theme level: neo-light `fg-accent/primary` (`#e60000`) on `fill/su
 ## Check after the token export (code side)
 
 Run after the user re-exports. Expected diff in `tokens/figma/*/variables.css`:
-- [ ] All re-aliases from the table above, in every mode file.
-- [ ] 4 new `--size-carousel-*` variables.
+- [x] All re-aliases from the table above, in every mode file.
+- [x] 4 new `--size-carousel-*` variables.
 
 Code changes these Figma changes require:
-- [ ] `carousel.tsx`: `Carousel.Previous` / `Next` / `Autoplay` become `ActionIcon`, with size from the carousel `size` context (`sm` → `sm`, `md` → `md`, `lg` / `full` → `lg`). This is B9.
-- [ ] `carousel.tsx`: `Carousel.Indicator` becomes a 24 px button (`w-carousel-indicator`) that renders an 8 px dot (`size-carousel-indicator-dot`) inside it. Today the whole button is the dot.
-- [ ] `_carousel.css`: `--width-carousel-indicator` alias still valid (now 24 px); add the dot alias.
-- [ ] `_steps.css`: drop the hardcoded `--text-steps-icon: var(--text-md)` and use the per-size `--text-steps-icon-{sm,md,lg}`.
-- [ ] Re-run Storybook a11y on Carousel and Steps and compare against the contrast table.
-- [ ] Contrast block: re-run axe `color-contrast` on Tabs, TreeView, Badge, Input and every
+- [x] `carousel.tsx`: `Carousel.Previous` / `Next` / `Autoplay` become `ActionIcon`, with size from the carousel `size` context (`sm` → `sm`, `md` → `md`, `lg` / `full` → `lg`). This is B9.
+- [x] `carousel.tsx`: `Carousel.Indicator` becomes a 24 px button (`w-carousel-indicator`) that renders an 8 px dot (`size-carousel-indicator-dot`) inside it. Today the whole button is the dot.
+- [x] `_carousel.css`: no change needed — `size-carousel-indicator-dot` resolves straight from the exported `--size-*` token.
+- [x] `_steps.css`: no change needed — the per-size `text-steps-icon-{sm,md,lg}` classes already override the bare default.
+- [x] Re-run Storybook a11y on Carousel and Steps and compare against the contrast table.
+- [x] Contrast block: re-run axe `color-contrast` on Tabs, TreeView, Badge, Input and every
       `Pages/Akros/*` story under base, dark, neo, neo-dark, business and akros; expect 0
       for the pairs listed above.
+
+**Result (exports 18:15 + 18:50):** all items verified. Akros page demos went from 111 contrast
+violations to 0. Tabs, TreeView, Badge, Input, Carousel and Steps component markup are clean in
+all six brand/mode combinations.
