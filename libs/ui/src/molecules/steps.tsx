@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -432,7 +432,15 @@ Steps.Item = function StepsItem({
 }: StepsItemProps) {
   const { api, styles } = useStepsContext()
   const state = api.getItemState({ index })
-  const itemProps = mergeProps(props, api.getItemProps({ index }))
+  // Zag puts the item inside its role="tablist" with aria-current, which
+  // makes it a semantic child a tablist may not own (axe
+  // aria-required-children, critical). The item is layout only: mark it
+  // presentational and carry the step state on the tab itself.
+  const { "aria-current": _itemAriaCurrent, ...zagItemProps } =
+    api.getItemProps({ index }) as ReturnType<typeof api.getItemProps> & {
+      "aria-current"?: unknown
+    }
+  const itemProps = mergeProps(props, zagItemProps, { role: "presentation" })
 
   return (
     <StepsItemContext.Provider value={{ index, state }}>
@@ -459,7 +467,7 @@ Steps.Trigger = function StepsTrigger({
   ...props
 }: StepsTriggerProps) {
   const { api, styles } = useStepsContext()
-  const { index } = useStepsItemContext()
+  const { index, state } = useStepsItemContext()
   const triggerProps = api.getTriggerProps({ index })
   const {
     onClick: onTriggerClick,
@@ -481,6 +489,7 @@ Steps.Trigger = function StepsTrigger({
       theme="unstyled"
       type="button"
       {...buttonProps}
+      aria-current={state.current ? "step" : undefined}
       data-disabled={isDisabled || undefined}
       disabled={isDisabled}
       onClick={(event) => {
@@ -660,6 +669,7 @@ Steps.Separator = function StepsSeparator({
   const { api, styles } = useStepsContext()
   const { index, state } = useStepsItemContext()
   const separatorProps = mergeProps(props, api.getSeparatorProps({ index }), {
+    "aria-hidden": true,
     "data-last": state.last || undefined,
   })
 
@@ -705,7 +715,13 @@ Steps.Progress = function StepsProgress({
   ...props
 }: StepsProgressProps) {
   const { api, orientation, styles } = useStepsContext()
-  const progressProps = mergeProps(props, api.getProgressProps())
+  // A progressbar needs an accessible name (axe aria-progressbar-name).
+  const hasName = props["aria-label"] || props["aria-labelledby"]
+  const progressProps = mergeProps(
+    hasName ? {} : { "aria-label": "Steps progress" },
+    props,
+    api.getProgressProps()
+  )
   const progressRangeStyle =
     orientation === "horizontal"
       ? { width: "var(--percent)" }

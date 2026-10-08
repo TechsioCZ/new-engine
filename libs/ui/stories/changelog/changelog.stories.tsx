@@ -12,6 +12,10 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Steps v1.0.3
+- Fixed axe \`aria-required-children\` (critical): Zag's \`role="tablist"\` contained \`div[aria-current]\` items. Items are now \`role="presentation"\` and \`aria-current="step"\` moves to the tab. Separators are \`aria-hidden\`.
+- \`Steps.Progress\` has a default accessible name (\`aria-label="Steps progress"\`, overridable) — axe \`aria-progressbar-name\`.
+
 ### Steps v1.0.2
 - Contrast facelift (Figma 2026-10-08): indicators on the 24 / 32 / 40 px Action Icon scale; current number, complete check and complete title now pass WCAG AA in all six brand/mode combinations (were 1.81 / 2.46 / 2.46 : 1 in light).
 - The \`solid\` variant's current title uses the new \`--color-steps-title-fg-solid-current\` (neutral foreground) instead of accent text on the accent tint.
