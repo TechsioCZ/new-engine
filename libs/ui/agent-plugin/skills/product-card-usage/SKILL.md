@@ -5,7 +5,7 @@ description: >
   for product summaries with image adapter, name, price, stock, badges,
   rating, actions, and card button variants.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -71,6 +71,10 @@ Stock status: in-stock | limited-stock | out-of-stock
 Button buttonVariant: cart | detail | wishlist | custom
 Badges, Rating, Actions, Name, Price
 ```
+
+`ProductCard.Name` is an `h3` by default; set `as` (or `nameAs` on
+`ProductCardTemplate`) so it follows the page outline, e.g. `as="h2"` for cards
+directly under the page `h1`.
 
 ## Core Patterns
 

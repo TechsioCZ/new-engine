@@ -373,6 +373,7 @@ function ProductGrid({ products }: { products: StorefrontProduct[] }) {
       {products.map((product) => (
         <ProductCardTemplate
           className="h-full"
+          nameAs="h2"
           badges={
             product.badge
               ? [

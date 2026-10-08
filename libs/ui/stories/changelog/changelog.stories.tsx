@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### ProductCard v1.1.0
+- \`ProductCard.Name\` takes \`as\` (\`h2\`–\`h6\`, default \`h3\`) and \`ProductCardTemplate\` takes \`nameAs\`, so card names can follow the page outline (axe \`heading-order\` on the category page, where cards sat directly under the \`h1\`).
+
 ### Slider v1.1.0
 - New \`aria-label\` prop (\`string[]\`, one per thumb) for sliders without a visible \`label\`. Before, such thumbs had no accessible name (axe \`aria-input-field-name\`, serious).
 
