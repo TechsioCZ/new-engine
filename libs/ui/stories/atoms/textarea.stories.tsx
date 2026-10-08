@@ -107,8 +107,8 @@ export const AllVariants: Story = {
 
       <VariantGroup title="Interactivity">
         <Textarea placeholder="Normal state" />
-        <Textarea disabled value="Disabled textarea" />
-        <Textarea readonly value="Readonly textarea" />
+        <Textarea aria-label="Disabled textarea" disabled value="Disabled textarea" />
+        <Textarea aria-label="Readonly textarea" readonly value="Readonly textarea" />
       </VariantGroup>
     </VariantContainer>
   ),
@@ -120,6 +120,7 @@ export const AutoSizing: Story = {
       <VariantGroup title="Auto-sizing Textareas">
         <div className="w-80">
           <Textarea
+            aria-label="Auto-sizing notes"
             resize="auto"
             size="sm"
             defaultValue="This auto-sizing textarea starts with content. Try adding more lines - it will grow automatically!"
@@ -147,6 +148,7 @@ export const UseCaseCombinations: Story = {
           placeholder="Order notes with validation error"
         />
         <Textarea
+          aria-label="Stored product description"
           readonly
           variant="borderless"
           defaultValue="This is a read-only display of database content that maintains the same visual structure as editable fields."

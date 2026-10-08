@@ -217,7 +217,7 @@ export const WithIcon: Story = {
   args: {
     content: 'Get help and support',
     children: (
-      <Button theme="unstyled" icon="icon-[mdi--help-circle-outline]" />
+      <Button aria-label="Help" theme="unstyled" icon="icon-[mdi--help-circle-outline]" />
     ),
     placement: 'top',
   },
@@ -260,7 +260,13 @@ export const WithLinks: Story = {
     ),
     interactive: true,
     placement: 'top',
-    children: <Button theme="unstyled" icon="icon-[mdi--information]" />,
+    children: (
+      <Button
+        aria-label="More information"
+        icon="icon-[mdi--information]"
+        theme="unstyled"
+      />
+    ),
   },
 }
 
