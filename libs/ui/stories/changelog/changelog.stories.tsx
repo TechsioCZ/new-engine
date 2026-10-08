@@ -12,6 +12,12 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### FormInput v1.1.1
+- \`id\` is optional: when it is omitted or empty a generated id links the label to the input. Before, the label pointed at nothing (axe \`label-title-only\` on the Playground story).
+
+### FormTextarea v1.1.1
+- \`id\` is optional: when it is omitted or empty a generated id links the label to the textarea.
+
 ### Carousel v1.2.2
 - \`autoplay\` no longer starts when the user prefers reduced motion (facelift C11); the autoplay control still starts it on request.
 

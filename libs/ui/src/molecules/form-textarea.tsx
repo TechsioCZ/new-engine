@@ -2,7 +2,7 @@
  * FormTextarea — @techsio/ui-kit molecule.
  *
  * @component FormTextarea
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill form-textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,7 +17,8 @@ import { Textarea, type TextareaProps } from "../atoms/textarea"
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
 interface FormTextareaRawProps extends TextareaProps {
-  id: string
+  /** Links the label to the control; generated when omitted or empty. */
+  id?: string
   label: ReactNode
   validateStatus?: ValidateStatus
   helpText?: ReactNode
@@ -33,14 +34,23 @@ export function FormTextareaRaw({
   disabled,
   ...props
 }: FormTextareaRawProps) {
+  // An empty or missing id would leave the label pointing at nothing.
+  const generatedId = useId()
+  const controlId = id || generatedId
+
   return (
     <div className="flex flex-col gap-form-field-gap">
-      <Label disabled={disabled} htmlFor={id} required={required} size={size}>
+      <Label
+        disabled={disabled}
+        htmlFor={controlId}
+        required={required}
+        size={size}
+      >
         {label}
       </Label>
       <Textarea
         disabled={disabled}
-        id={id}
+        id={controlId}
         required={required}
         size={size}
         variant={validateStatus}
@@ -74,13 +84,15 @@ export function FormTextarea({
 
   return (
     <FormTextareaRaw
+      aria-describedby={describedBy}
+      aria-invalid={validateStatus === "error" ? true : ariaInvalid}
       helpText={
         helpText && (
           <StatusText
             id={helpTextId}
-            status={validateStatus}
             showIcon={showHelpTextIcon}
             size={size}
+            status={validateStatus}
           >
             {helpText}
           </StatusText>
@@ -89,8 +101,6 @@ export function FormTextarea({
       id={id}
       size={size}
       validateStatus={validateStatus}
-      aria-invalid={validateStatus === "error" ? true : ariaInvalid}
-      aria-describedby={describedBy}
       {...props}
     />
   )

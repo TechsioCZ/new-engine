@@ -2,7 +2,7 @@
  * FormInput — @techsio/ui-kit molecule.
  *
  * @component FormInput
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill form-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,7 +17,8 @@ import { StatusText } from "../atoms/status-text"
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
 interface FormInputRawProps extends InputProps {
-  id: string
+  /** Links the label to the control; generated when omitted or empty. */
+  id?: string
   label: ReactNode
   validateStatus?: ValidateStatus
   helpText?: ReactNode
@@ -33,14 +34,23 @@ export function FormInputRaw({
   disabled,
   ...props
 }: FormInputRawProps) {
+  // An empty or missing id would leave the label pointing at nothing.
+  const generatedId = useId()
+  const controlId = id || generatedId
+
   return (
     <div className="flex flex-col gap-form-field-gap">
-      <Label disabled={disabled} htmlFor={id} required={required} size={size}>
+      <Label
+        disabled={disabled}
+        htmlFor={controlId}
+        required={required}
+        size={size}
+      >
         {label}
       </Label>
       <Input
         disabled={disabled}
-        id={id}
+        id={controlId}
         required={required}
         size={size}
         variant={validateStatus}
@@ -75,13 +85,15 @@ export function FormInput({
 
   return (
     <FormInputRaw
+      aria-describedby={describedBy}
+      aria-invalid={validateStatus === "error" ? true : ariaInvalid}
       helpText={
         helpText && (
           <StatusText
             id={helpTextId}
-            status={validateStatus}
             showIcon={showHelpTextIcon}
             size={size}
+            status={validateStatus}
           >
             {helpText}
           </StatusText>
@@ -90,8 +102,6 @@ export function FormInput({
       id={id}
       size={size}
       validateStatus={validateStatus}
-      aria-invalid={validateStatus === "error" ? true : ariaInvalid}
-      aria-describedby={describedBy}
       {...props}
     />
   )
