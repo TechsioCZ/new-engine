@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### StatusText v1.0.1
+- Validation feedback is announced (facelift C4): \`status="error"\` renders \`role="alert"\`, \`warning\`/\`success\` render \`role="status"\`. Plain helper text has no live role; a \`role\` prop still wins.
+
 ### Carousel v1.2.0
 - Off-screen slides are \`inert\`, not just \`aria-hidden\`: links or buttons on hidden slides left the tab order (facelift C5, axe \`aria-hidden-focus\`).
 - New \`aria-label\` prop names the carousel region; give each carousel on a page its own name (axe \`landmark-unique\`). Stories with several carousels are labelled.
