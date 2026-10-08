@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,8 +12,8 @@
 import * as carousel from "@zag-js/carousel"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import {
-  type CSSProperties,
   type ComponentPropsWithoutRef,
+  type CSSProperties,
   createContext,
   type ElementType,
   type ReactNode,
@@ -21,7 +21,7 @@ import {
   useId,
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
-import { Button } from "../atoms/button"
+import { ActionIcon } from "../atoms/action-icon"
 import type { IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
 
@@ -62,40 +62,34 @@ const carouselVariants = tv({
     indicatorGroup: [
       "flex w-full items-center justify-center gap-carousel-indicator",
     ],
+    /*
+     * The indicator button is the 24 px hit area (WCAG 2.2 target size); the
+     * visible 8 px dot is a child, so the dot can stay small without shrinking
+     * the target.
+     */
     indicator: [
-      "aspect-carousel-indicator w-carousel-indicator bg-carousel-indicator-bg-base",
-      "data-current:bg-carousel-indicator-bg-active",
-      "data-current:border-carousel-indicator-border-active",
+      "group inline-flex shrink-0 cursor-pointer items-center justify-center",
+      "aspect-carousel-indicator w-carousel-indicator",
       "rounded-carousel-indicator border border-carousel-indicator-border-base",
+      "data-current:border-carousel-indicator-border-active",
+      "text-carousel-trigger-fg-base",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-carousel-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
+    indicatorDot: [
+      "size-carousel-indicator-dot rounded-carousel-indicator",
+      "bg-carousel-indicator-bg-base",
+      "group-data-current:bg-carousel-indicator-bg-active",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    autoplayIcon: ["token-icon-carousel-play", "data-[pressed=true]:token-icon-carousel-pause"],
     autoplayTrigger: [
       "absolute top-carousel-trigger-top right-carousel-trigger-right z-50",
-      "bg-carousel-trigger-bg-base",
+      // Sits over the slide image, so it needs the opaque control surface.
+      "bg-carousel-control-bg",
     ],
     spacer: ["flex-1"],
   },
-  compoundSlots: [
-    {
-      slots: ["autoplayTrigger", "indicator", "prevTrigger", "nextTrigger"],
-      class: [
-        "p-carousel-trigger",
-        "text-carousel-trigger-fg-base",
-        "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-        "focus-visible:outline-carousel-ring",
-        "focus-visible:outline-offset-(length:--default-ring-offset)",
-      ],
-    },
-    {
-      slots: ["prevTrigger", "nextTrigger"],
-      class: [
-        'bg-carousel-trigger-bg-base hover:bg-carousel-trigger-bg-hover text-carousel-trigger',
-        'hover:text-carousel-trigger-fg-hover',
-        'transition-colors duration-200 motion-reduce:transition-none',
-      ],
-    },
-  ],
   variants: {
     objectFit: {
       cover: {
@@ -200,6 +194,17 @@ interface CarouselContextValue {
 }
 
 const CarouselContext = createContext<CarouselContextValue | null>(null)
+
+/** Prev/next/autoplay follow the carousel size on the ActionIcon scale. */
+function toTriggerSize(size: CarouselContextValue["size"]): "sm" | "md" | "lg" {
+  if (size === "sm") {
+    return "sm"
+  }
+  if (size === "lg" || size === "full") {
+    return "lg"
+  }
+  return "md"
+}
 
 const useCarouselContext = () => {
   const context = useContext(CarouselContext)
@@ -373,8 +378,8 @@ Carousel.Slides = function CarouselSlides({
     <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
       {slides.map((slide, index) => (
         <Carousel.Slide index={index} key={slide.id}>
-          {slide.content || (
-            hasCustomImageComponent ? (
+          {slide.content ||
+            (hasCustomImageComponent ? (
               <CustomImageComponent
                 alt={slide.alt || ""}
                 src={slide.src || ""}
@@ -386,8 +391,7 @@ Carousel.Slides = function CarouselSlides({
                 src={slide.src || ""}
                 {...slide.imageProps}
               />
-            )
-          )}
+            ))}
         </Carousel.Slide>
       ))}
     </div>
@@ -425,12 +429,13 @@ Carousel.Previous = function CarouselPrevious({
   className,
   icon = "token-icon-carousel-prev" as IconType,
 }: CarouselPreviousProps) {
-  const { api } = useCarouselContext()
+  const { api, size } = useCarouselContext()
   const { prevTrigger } = carouselVariants()
 
   return (
-    <Button
+    <ActionIcon
       className={prevTrigger({ className })}
+      size={toTriggerSize(size)}
       {...api.getPrevTriggerProps()}
       icon={icon}
     />
@@ -441,12 +446,13 @@ Carousel.Next = function CarouselNext({
   className,
   icon = "token-icon-carousel-next" as IconType,
 }: CarouselNextProps) {
-  const { api } = useCarouselContext()
+  const { api, size } = useCarouselContext()
   const { nextTrigger } = carouselVariants()
 
   return (
-    <Button
+    <ActionIcon
       className={nextTrigger({ className })}
+      size={toTriggerSize(size)}
       {...api.getNextTriggerProps()}
       icon={icon}
     />
@@ -458,7 +464,7 @@ Carousel.Indicators = function CarouselIndicators({
   children,
 }: CarouselIndicatorsProps & { children?: ReactNode }) {
   const { api } = useCarouselContext()
-  const { indicatorGroup, indicator } = carouselVariants()
+  const { indicatorGroup } = carouselVariants()
 
   // If children are provided, render them (custom indicators)
   if (children) {
@@ -478,13 +484,7 @@ Carousel.Indicators = function CarouselIndicators({
       {...api.getIndicatorGroupProps()}
     >
       {api.pageSnapPoints.map((_, index) => (
-        <Button
-          className={indicator()}
-          key={`indicator-${index}`}
-          size="current"
-          theme="unstyled"
-          {...api.getIndicatorProps({ index })}
-        />
+        <Carousel.Indicator index={index} key={`indicator-${index}`} />
       ))}
     </div>
   )
@@ -496,30 +496,32 @@ Carousel.Indicator = function CarouselIndicator({
   children,
 }: CarouselIndicatorProps) {
   const { api } = useCarouselContext()
-  const { indicator } = carouselVariants()
+  const { indicator, indicatorDot } = carouselVariants()
 
   return (
-    <Button
+    <button
       className={indicator({ className })}
-      size="current"
-      theme="unstyled"
+      type="button"
       {...api.getIndicatorProps({ index })}
     >
-      {children}
-    </Button>
+      {children ?? <span aria-hidden="true" className={indicatorDot()} />}
+    </button>
   )
 }
 
 Carousel.Autoplay = function CarouselAutoplay({
   className,
 }: CarouselAutoplayProps) {
-  const { api } = useCarouselContext()
+  const { api, size } = useCarouselContext()
   const { autoplayTrigger: autoplayTriggerSlot } = carouselVariants()
 
   return (
-    <Button
+    <ActionIcon
       className={autoplayTriggerSlot({ className })}
-      icon={api.isPlaying ? "token-icon-carousel-pause" : "token-icon-carousel-play"}
+      icon={
+        api.isPlaying ? "token-icon-carousel-pause" : "token-icon-carousel-play"
+      }
+      size={toTriggerSize(size)}
       {...api.getAutoplayTriggerProps()}
     />
   )

@@ -12,6 +12,11 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Carousel v1.1.0
+- Prev / next / autoplay are now \`ActionIcon\`s (facelift B9) sized from the carousel \`size\`: \`sm\` 24 px, \`md\` 32 px, \`lg\`/\`full\` 40 px — matching the Figma CarouselControl.
+- \`Carousel.Indicator\` is a 24 px target (WCAG 2.2 target size, was 16 px) with an 8 px dot inside; \`children\` still replace the dot. Inactive dots are now visible against the control bar (4.4 : 1 light, was 1 : 1).
+- Autoplay keeps an opaque control surface because it sits over the slide image.
+
 ### DataTable v1.2.2
 - \`tableLayout="fixed"\` now honours declared column widths with enum filters: the filter select no longer reserves a min-width wider than its column (it fills the cell instead), so long option labels cannot stretch the column or overflow into the next one.
 - Under \`tableLayout="fixed"\` the built-in actions column is sized to its widest rendered actions cell instead of collapsing to 0 px.
