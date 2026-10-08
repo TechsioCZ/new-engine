@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,10 +10,12 @@
  * the footer-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
+  Children,
   type ComponentPropsWithoutRef,
   createContext,
   type ElementType,
   type HTMLAttributes,
+  isValidElement,
   type ReactNode,
   useContext,
 } from "react"
@@ -248,7 +250,11 @@ Footer.List = function FooterList({
   const { list } = footerVariants({ size })
   return (
     <ul className={list({ className })} {...props}>
-      {children}
+      {/* A <ul> may only own <li>; wrap bare links so both
+          <Footer.List><Footer.Link /></Footer.List> and explicit <li>s work. */}
+      {Children.map(children, (child) =>
+        isValidElement(child) && child.type !== "li" ? <li>{child}</li> : child
+      )}
     </ul>
   )
 }

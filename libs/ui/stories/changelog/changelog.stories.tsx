@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Footer v1.0.2
+- \`Footer.List\` wraps every child that is not already an \`<li>\` in one, so the documented \`<Footer.List><Footer.Link /></Footer.List>\` is valid list markup (axe \`list\`, serious). Explicit \`<li>\` children are left as they are.
+
 ### DataTable v1.2.3
 - The built-in row-reorder column and the single-select / capped selection column (no select-all checkbox) now have a screen-reader-only header, "Reorder" / "Select" (axe \`empty-table-header\`). Localise them with the new \`translations.reorderColumnLabel\` and \`translations.selectColumnLabel\`.
 
