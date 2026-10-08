@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -511,6 +511,10 @@ export type DataTableTranslations = {
   actionsLabel?: string
   filtersLabel?: string
   selectAllLabel?: string
+  /** Screen-reader header of the selection column when there is no select-all. */
+  selectColumnLabel?: string
+  /** Screen-reader header of the row-reorder (drag handle) column. */
+  reorderColumnLabel?: string
   loadingLabel?: string
   /** Override the filter condition labels, keyed by operator. */
   operatorLabels?: Partial<Record<string, string>>
@@ -532,6 +536,8 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   actionsLabel: "Actions",
   filtersLabel: "Column filters",
   selectAllLabel: "Select all rows",
+  selectColumnLabel: "Select",
+  reorderColumnLabel: "Reorder",
   loadingLabel: "Loading data",
   operatorLabels: {},
   editingLabel: "Editing a row — other table controls are locked",
@@ -1783,6 +1789,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         locked,
         getRowLabel,
         selectAllLabel: translations.selectAllLabel,
+        selectColumnLabel: translations.selectColumnLabel,
+        reorderColumnLabel: translations.reorderColumnLabel,
         showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
       }),
     [
@@ -1792,6 +1800,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       locked,
       getRowLabel,
       translations.selectAllLabel,
+      translations.selectColumnLabel,
+      translations.reorderColumnLabel,
       selectionMode,
       maxSelectedRows,
     ]
@@ -3519,6 +3529,8 @@ function buildColumns<T extends RowData>({
   locked,
   getRowLabel,
   selectAllLabel,
+  selectColumnLabel,
+  reorderColumnLabel,
   showSelectAll,
 }: {
   userColumns: ColumnDef<T, unknown>[]
@@ -3527,6 +3539,8 @@ function buildColumns<T extends RowData>({
   locked: boolean
   getRowLabel?: (row: Row<T>) => string
   selectAllLabel: string
+  selectColumnLabel: string
+  reorderColumnLabel: string
   showSelectAll: boolean
 }): ColumnDef<T, unknown>[] {
   const leading: ColumnDef<T, unknown>[] = []
@@ -3534,7 +3548,8 @@ function buildColumns<T extends RowData>({
   if (enableRowReorder) {
     leading.push({
       id: DRAG_COLUMN_ID,
-      header: () => null,
+      // A <th> needs text even when it shows nothing (axe empty-table-header).
+      header: () => <span className="sr-only">{reorderColumnLabel}</span>,
       // Cell body is replaced by the drag handle in renderBodyRow.
       cell: () => null,
       enableSorting: false,
@@ -3562,7 +3577,9 @@ function buildColumns<T extends RowData>({
             }
             onChange={table.getToggleAllRowsSelectedHandler()}
           />
-        ) : null,
+        ) : (
+          <span className="sr-only">{selectColumnLabel}</span>
+        ),
       cell: ({ row }) => (
         <Checkbox
           aria-label={`Select ${getRowLabel?.(row) ?? `row ${row.id}`}`}

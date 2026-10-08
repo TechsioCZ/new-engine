@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.2.3
+- The built-in row-reorder column and the single-select / capped selection column (no select-all checkbox) now have a screen-reader-only header, "Reorder" / "Select" (axe \`empty-table-header\`). Localise them with the new \`translations.reorderColumnLabel\` and \`translations.selectColumnLabel\`.
+
 ### SearchForm v1.0.1
 - An icon-only \`SearchForm.Button\` (no children) defaults to \`aria-label="Search"\`; pass your own \`aria-label\` to localise it. Before, it was an unnamed submit button (axe \`button-name\`, critical).
 
