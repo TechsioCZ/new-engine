@@ -388,6 +388,125 @@ Built by hand while making the 41 `Pages/*` stories, all of them standard:
 
 ---
 
+## F · Carousel and Steps facelift (contrast + control sizing)
+
+**Date added:** 2026-10-08. Evidence is measured from the Figma file `New-Design-System`
+(pages `🟢 Carousel` 1188:2 and `🟢 Steps` 1153:2, light mode) and from
+`molecules/carousel.tsx`, `molecules/steps.tsx` and `tokens/figma/variables.css`.
+Both pages are marked 🟢 in Figma, but neither follows the sizing and contrast rules the
+rest of the kit uses.
+
+**Reference sizes already in Figma (what Carousel and Steps should match):**
+
+| Control | sm | md | lg |
+| --- | --- | --- | --- |
+| Button | 34 | 44 | 57.5 |
+| Form control (Input, Select, …) | 32 | 44 | 70 |
+| ActionIcon (icon-only sub-button) | 24 | 32 | 40 |
+
+Note the three scales do not agree with each other either (Button `lg` 57.5 vs form-control
+`lg` 70). That mismatch is the root of A4, and it gets fixed there, not by patching Carousel.
+
+### 🔴 F1 · Carousel — contrast
+Measured in light mode, using the Figma fills.
+
+| Pair | Ratio | Needed |
+| --- | --- | --- |
+| Inactive indicator dot on the control bar (both `fill-highlight`) | **1.0 : 1**, so the dot is invisible | 3 : 1 |
+| Active dot (`#8ec5ff`) on the control bar (`#d1d5db`) | **≈ 1.2 : 1** | 3 : 1 |
+| Prev/next arrow on its pill | passes, but the pill (`#d1d5db`) against a white page is ≈ 1.5 : 1 | 3 : 1 |
+
+- [ ] Inactive dot: a visible neutral fill or a 1 px border at ≥ 3 : 1 against the bar.
+      `--color-carousel-indicator-border-base` is `transparent` today, so the border is unused.
+- [ ] Active dot: use a stronger primary step. This is the same fix as C6, since the root
+      cause is the accent tint.
+- [ ] Re-point `--color-carousel-control-bg` and `--color-carousel-trigger-bg-base` away from
+      `fill-highlight`. Today the bar, the buttons and the inactive dots all share one fill,
+      so nothing separates from anything else.
+- [ ] Check dark mode as well. Only light was measured.
+
+### 🔴 F2 · Carousel — control sizing is not on the system
+- **Prev/next are `Button` with `icon`.** This is the B9 call-site list (5 sites in this file).
+  They render as 40 × 40 circles with a `<` text glyph in Figma. That matches neither
+  ActionIcon (24 / 32 / 40, `radius/icon-control` = `sm`) nor Button (34 / 44 / 57.5).
+- **The control bar is 144 × 48**, with 32 × 32 inner frames for prev/next. So the bar
+  contains 32 px targets inside a 40 px sub-component, and the two disagree.
+- **Indicators are 16 × 16** (`--size-carousel-indicator` = `dimension-16`) in the code and in
+  the Sub-components frame. The composite `CarouselControl` frame draws them at **8 × 8**.
+  So Figma shows two different indicator sizes. The 16 px one is also under the 24 × 24
+  WCAG 2.2 minimum (C5).
+- **Trigger size is not tied to the carousel `size`.** `sm`, `md`, `lg` and `full` change only
+  the slide area (320 / 480 / 768 / 1000 px). The controls stay 40 px in every size.
+
+- [ ] Migrate prev/next/autoplay to `ActionIcon` (B9), size derived from the carousel `size`
+      context: `sm` → 24, `md` → 32, `lg`/`full` → 40.
+- [ ] Indicators: a ≥ 24 px hit area around a visible 8 px dot, decoupled from the visual size.
+      Do not grow the dot.
+- [ ] Use one icon-control token set for all three triggers (`--size-icon-control-*`).
+- [ ] Rename `Carousel.Control` → `Carousel.Toolbar` (B5), and use the same chevron glyph as
+      Pagination (B2). Today Figma draws `<` and `>` as text.
+- [ ] Figma: rebuild `CarouselPrevious`, `CarouselNext`, `CarouselIndicator`,
+      `CarouselIndicators` and `CarouselControl` as ActionIcon instances with real chevron
+      glyphs, and fix the 8 px vs 16 px indicator mismatch.
+
+### 🔴 F3 · Steps — contrast
+Measured in light mode. The same fills are used for `sm`, `md` and `lg`.
+
+| Element | Colours | Ratio | Needed |
+| --- | --- | --- | --- |
+| `current` indicator, white number on `#8ec5ff` | | **1.81 : 1** | 4.5 : 1 (3 : 1 if the number is ≥ 18.66 px bold) |
+| `complete` indicator, white check on `#00bc7d` | | **2.46 : 1** | 3 : 1 for the glyph |
+| `complete` title, `#00bc7d` on white | | **2.46 : 1** | 4.5 : 1 |
+| `current` title, `#4d6789` on white | | 5.81 : 1 | passes, but it reads as lighter than `default` (20.17 : 1), which is backwards for the active step |
+| `default` separator, `#020617` | 20.17 : 1 | | the line is solid black in Figma, while code uses `border-primary`; check which is intended |
+| `default` indicator number | 4.98 : 1 | | passes, but only just |
+
+- [ ] Fix `--color-steps-indicator-bg-current` / `-fg-current`: dark fg on the light tint, or
+      a stronger bg with white fg. Same root cause as C6.
+- [ ] Fix `--color-steps-indicator-bg-complete` and `--color-steps-title-fg-complete`. The
+      success green fails here for the same reason as C1 (`--color-fg-success`).
+- [ ] The `current` step should be the highest-emphasis one, so make the title weight and
+      colour at least as strong as `default`.
+- [ ] Reconcile the Figma separator colour with the code token.
+- [ ] Re-check the `solid` variant and dark mode. Only the `subtle` row was measured.
+
+### 🟠 F4 · Steps — size scale does not match Figma or the other controls
+- Figma variables say indicator `sm / md / lg` = **24 / 30 / 36** (`size/steps/indicator/*`).
+  The drawn components are **24 / 28 / 32**. One of the two is wrong, and the code reads the
+  variable.
+- Indicator numbers are 12 / 14 / 16 px, and `--text-steps-icon` is a fixed `text-md` (20 px).
+  So the check glyph is too large for the `sm` indicator.
+- The Steps row heights are 46 / 58 / 72, which is not a multiple of the 4 px base. That
+  follows from the sub-pixel dimension tokens in A2.
+- Steps `Prev` / `Next` navigation uses `Button`, so those sizes at least follow the
+  Button scale. The indicator circles are the part that is off. Decide whether the
+  indicator should map to the ActionIcon scale (24 / 32 / 40) so that a `md` step sits on the
+  same grid as a `md` button.
+- [ ] Pick one size source, update Figma and `--size-steps-indicator-*` together, and scale the
+      check and number text with the indicator.
+- [ ] `Steps` `role="tablist"` with `div[aria-current]` children is still the C5 critical item.
+      Fix it in the same PR, since the markup changes either way.
+- [ ] Figma: the Orientation frame says "orientation axis not yet encoded on component set".
+      Add `orientation` to the component set.
+
+> **Status 2026-10-08:** Figma side of F1–F4 done. See
+> [`figma-facelift-log-2026-10.md`](./figma-facelift-log-2026-10.md) for every variable and
+> node change, the measured contrast in all six modes, and the code check-list to run after
+> the token export. Still open: an `orientation` axis on the Steps set, and the Theme-level
+> contrast misses (Akros placeholder, neo-dark accent, Dark `fg/secondary`).
+
+### Figma action list for F (do in this order)
+1. Fix variables first: steps `current` / `complete` colours, carousel control and indicator
+   colours, steps indicator sizes. Edit in Figma, then the user re-exports (see the
+   "never edit exported tokens" rule).
+2. Rebuild Carousel prev/next/indicators/control from `Action Icon` instances (2774:39583).
+3. Rebuild Steps indicators on the agreed size scale.
+4. Re-screenshot both pages in light and dark and re-measure the ratios above.
+5. Publish Code Connect once the component sets exist (`carousel.figma.ts`, `steps.figma.ts`
+   are already in `src/molecules/`).
+
+---
+
 ## Suggested order
 
 1. **A2** (export precision) — one script change, removes sub-pixel noise everywhere and must
@@ -403,4 +522,6 @@ Built by hand while making the 41 `Pages/*` stories, all of them standard:
    size inheritance) — mechanical, wide, safe behind visual regression.
 8. **A1, A3, A4** (scale unification + rhythm) — the big one; do it component group by
    component group, behind the same visual-regression suite.
+   **F1 – F4** (Carousel / Steps contrast and control sizing) ride along with C1/C6 and B9,
+   because the colour fixes are the same tokens and the button migration is the same work.
 9. **B12 – B14, D, E** — API convergence and the missing primitives, as capacity allows.
