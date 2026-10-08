@@ -12,6 +12,10 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Steps v1.0.2
+- Contrast facelift (Figma 2026-10-08): indicators on the 24 / 32 / 40 px Action Icon scale; current number, complete check and complete title now pass WCAG AA in all six brand/mode combinations (were 1.81 / 2.46 / 2.46 : 1 in light).
+- The \`solid\` variant's current title uses the new \`--color-steps-title-fg-solid-current\` (neutral foreground) instead of accent text on the accent tint.
+
 ### Carousel v1.1.0
 - Prev / next / autoplay are now \`ActionIcon\`s (facelift B9) sized from the carousel \`size\`: \`sm\` 24 px, \`md\` 32 px, \`lg\`/\`full\` 40 px — matching the Figma CarouselControl.
 - \`Carousel.Indicator\` is a 24 px target (WCAG 2.2 target size, was 16 px) with an 8 px dot inside; \`children\` still replace the dot. Inactive dots are now visible against the control bar (4.4 : 1 light, was 1 : 1).

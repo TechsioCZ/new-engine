@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -140,6 +140,9 @@ const stepsVariants = tv({
           "data-current:bg-steps-trigger-bg-current",
           "data-complete:bg-steps-trigger-bg-complete",
         ],
+        // The current trigger sits on the primary tint, where the accent
+        // title colour would be accent-on-accent; use the neutral foreground.
+        title: "data-current:text-steps-title-fg-solid-current",
         indicator: [
           "border-transparent bg-steps-indicator-bg-solid text-steps-indicator-fg-solid",
           "group-hover:bg-steps-indicator-bg-solid-hover",
