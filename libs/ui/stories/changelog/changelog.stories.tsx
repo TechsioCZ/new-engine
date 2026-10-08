@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Slider v1.1.0
+- New \`aria-label\` prop (\`string[]\`, one per thumb) for sliders without a visible \`label\`. Before, such thumbs had no accessible name (axe \`aria-input-field-name\`, serious).
+
 ### NumericInput v1.1.2
 - \`NumericInputTemplate\` takes \`aria-label\` / \`aria-labelledby\` and forwards them to the input instead of the root, so a template without a visible label can be named (axe \`label\`, critical, on the template stories).
 

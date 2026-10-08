@@ -6,7 +6,7 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -75,6 +75,10 @@ formatRangeText, formatValue
 validateStatus, helpText, onChange, onChangeEnd
 size: sm | md | lg
 ```
+
+A slider without a visible `label` (a price filter under an accordion title)
+names its thumbs with `aria-label`, one entry per thumb:
+`<Slider aria-label={["Minimum price", "Maximum price"]} />`.
 
 ## Core Patterns
 

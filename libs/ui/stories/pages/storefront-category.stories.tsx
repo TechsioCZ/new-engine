@@ -291,6 +291,7 @@ function FacetPanel({
         </Accordion.Header>
         <Accordion.Content>
           <Slider
+            aria-label={["Minimum price", "Maximum price"]}
             formatValue={(value) => priceFormatter.format(value)}
             max={PRICE_MAX}
             onChange={onPriceChange}

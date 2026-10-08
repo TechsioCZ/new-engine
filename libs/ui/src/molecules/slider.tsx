@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.0.2
+ * @componentVersion v1.1.0
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -114,6 +114,11 @@ export interface SliderProps extends VariantProps<typeof sliderVariants> {
   id?: string
   name?: string
   label?: string
+  /**
+   * One accessible name per thumb, for a slider with no visible `label`
+   * (e.g. `["Minimum price", "Maximum price"]`).
+   */
+  "aria-label"?: string[]
   validateStatus?: "default" | "error" | "success" | "warning"
   helpText?: string
   showHelpTextIcon?: boolean
@@ -343,6 +348,7 @@ export function Slider({
   id,
   name,
   label,
+  "aria-label": ariaLabel,
   validateStatus,
   helpText,
   showHelpTextIcon = true,
@@ -400,6 +406,7 @@ export function Slider({
   const service = useMachine(slider.machine, {
     id: uniqueId,
     name,
+    "aria-label": ariaLabel,
     value: resolvedValue,
     defaultValue: resolvedDefaultValue,
     min: resolvedConfig.min,
