@@ -273,11 +273,11 @@ Pagination all measure **32 / 44 / 56** with radius **8 / 12 / 16**. Tabs trigge
 
 ### Code changes waiting on the next export
 
-- [ ] Cherry-pick the export and run the merge script; `--height-form-control-lg` should become `3.5rem`.
-- [ ] `button.tsx` `lg`, `select.tsx` `lg` trigger and `combobox.tsx` `lg` control use
+- [x] Cherry-pick the export and run the merge script; `--height-form-control-lg` should become `3.5rem`.
+- [x] `button.tsx` `lg`, `select.tsx` `lg` trigger and `combobox.tsx` `lg` control use
       `h-form-control-lg` (+ `rounded-*-lg`) like `sm` / `md` already do.
-- [ ] `tabs.tsx` triggers use `h-form-control-{size}`.
-- [ ] Re-measure: every control renders 32 / 44 / 56.
+- [x] `tabs.tsx` triggers use `h-form-control-{size}`.
+- [x] Re-measure: every control renders 32 / 44 / 56.
 
 ### Still open from this pass
 
@@ -356,9 +356,12 @@ below 3 : 1, in any mode.
 
 ### Code changes waiting on the next export
 
-- [ ] Cherry-pick the export and merge; `--height-form-control-lg` → 3.5rem; new `--color-border-control`,
+- [x] Cherry-pick the export and merge; `--height-form-control-lg` → 3.5rem; new `--color-border-control`,
       `--color-bg-control-checked`, `--color-border-control-selected`, `--color-border-danger|success|warning`,
       `--color-fg-on-selected`, `--radius-cascade-select-lg`.
-- [ ] Commit the control-scale code: Button / Select / Combobox / CascadeSelect `lg` on `h-form-control-lg`,
+- [x] Commit the control-scale code: Button / Select / Combobox / CascadeSelect `lg` on `h-form-control-lg`,
       Select / CascadeSelect `xs` on `h-form-control-sm`, Tabs triggers on `h-form-control-*`.
-- [ ] Re-measure every control at 32 / 44 / 56 and run axe `color-contrast` across all stories in all six modes.
+- [x] Re-measure every control at 32 / 44 / 56. **Result (export 2026-10-09 12:23):** Button, Input, NumericInput,
+      SearchForm, Select (`xs` = `sm`), Combobox, CascadeSelect, PhoneInput, Pagination and Tabs render 32 / 44 / 56 px
+      with radius 8 / 12 / 16 (Pagination keeps 8), and small field text is 16 px.
+- [ ] Run axe `color-contrast` across all stories in all six modes.
