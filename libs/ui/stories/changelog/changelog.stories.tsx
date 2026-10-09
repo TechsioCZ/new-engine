@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Carousel v1.2.3
+- Previous / next ActionIcons keep the carousel trigger colour tokens (\`--color-carousel-trigger-bg|fg-base|hover\`), so apps that restyle the arrows (white circles over banners in herbatika) work again. The defaults match ActionIcon's neutral tone.
+
 ### Button v0.3.4
 - \`lg\` uses the shared control height \`h-form-control-lg\` (56 px) like \`sm\` / \`md\` already did. It was padding-derived (56 px in code, 57.5 px in Figma). Buttons and form controls now share one 32 / 44 / 56 scale.
 

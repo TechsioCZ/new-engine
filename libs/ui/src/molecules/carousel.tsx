@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -58,8 +58,19 @@ const carouselVariants = tv({
       "overflow-hidden",
       "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-full",
     ],
-    prevTrigger: "",
-    nextTrigger: "",
+    /*
+     * Prev / next are ActionIcons, but keep the carousel trigger colour tokens
+     * on top so apps that restyle them (e.g. white circles over banners) still
+     * can. The defaults match ActionIcon's neutral tone.
+     */
+    prevTrigger: [
+      "bg-carousel-trigger-bg-base text-carousel-trigger-fg-base",
+      "hover:bg-carousel-trigger-bg-hover hover:text-carousel-trigger-fg-hover",
+    ],
+    nextTrigger: [
+      "bg-carousel-trigger-bg-base text-carousel-trigger-fg-base",
+      "hover:bg-carousel-trigger-bg-hover hover:text-carousel-trigger-fg-hover",
+    ],
     indicatorGroup: [
       "flex w-full items-center justify-center gap-carousel-indicator",
     ],
