@@ -240,7 +240,7 @@ Accordion.Item = function AccordionItem({
 }
 
 // Header component (trigger wrapper)
-interface AccordionHeaderProps extends ComponentPropsWithoutRef<"div"> {
+type AccordionHeaderProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 

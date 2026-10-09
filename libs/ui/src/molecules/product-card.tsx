@@ -104,7 +104,7 @@ type ProductCardImageProps<T extends ElementType = typeof Image> = {
   className?: string
 } & Partial<ComponentPropsWithoutRef<T>>
 
-interface ProductCardNameProps extends HTMLAttributes<HTMLHeadingElement> {
+type ProductCardNameProps = HTMLAttributes<HTMLHeadingElement> & {
   children: ReactNode
   /** Heading level that fits the page outline (`h3` by default). */
   as?: "h2" | "h3" | "h4" | "h5" | "h6"
