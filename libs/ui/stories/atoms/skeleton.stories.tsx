@@ -133,9 +133,14 @@ export const WithContent: Story = {
           Toggle Loaded State
         </Button>
         <Skeleton isLoaded={isLoaded} className="h-20 w-xs">
-          <div className="h-20 w-xs bg-fill-surface text-fg-primary flex items-center justify-center rounded">
-            ✨ Content loaded!
-          </div>
+          {/* While loading, show a placeholder shape, not the pulsing real content. */}
+          {isLoaded ? (
+            <div className="h-20 w-xs bg-fill-surface text-fg-primary flex items-center justify-center rounded">
+              ✨ Content loaded!
+            </div>
+          ) : (
+            <Skeleton.Rectangle className="h-20 w-xs" />
+          )}
         </Skeleton>
       </div>
     )
