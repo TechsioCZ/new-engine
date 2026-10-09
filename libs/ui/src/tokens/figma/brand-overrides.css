@@ -114,7 +114,12 @@
   --color-fg-badge-on-solid: var(--color-fg-reverse);
   --color-fg-icon-tree: var(--color-fg-primary);
   --color-fg-on-accent-solid: var(--color-fg-reverse);
+  --color-fg-on-danger: var(--color-base-dark);
   --color-fg-on-primary-solid-neo: var(--color-fg-reverse);
+  --color-fg-on-secondary: var(--color-base-dark);
+  --color-fg-on-tertiary: var(--color-base-dark);
+  --color-fg-on-tint: var(--color-fg-light);
+  --color-fg-on-warning: var(--color-base-dark);
   --color-fg-placeholder: var(--color-neutral-600);
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
@@ -246,7 +251,10 @@
   --color-fg-on-primary-indicator: var(--color-black);
   --color-fg-on-primary-solid: var(--color-black);
   --color-fg-on-primary-solid-neo: var(--color-black);
+  --color-fg-on-secondary: var(--color-base-dark);
   --color-fg-on-selected: var(--color-fg-primary);
+  --color-fg-on-tint: var(--color-base-dark);
+  --color-fg-on-warning: var(--color-base-dark);
   --color-fg-placeholder: var(--color-neutral-600);
   --color-fg-primary: var(--color-black);
   --color-fg-reverse: var(--color-white);
