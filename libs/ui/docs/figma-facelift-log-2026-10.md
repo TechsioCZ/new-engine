@@ -365,3 +365,20 @@ below 3 : 1, in any mode.
       SearchForm, Select (`xs` = `sm`), Combobox, CascadeSelect, PhoneInput, Pagination and Tabs render 32 / 44 / 56 px
       with radius 8 / 12 / 16 (Pagination keeps 8), and small field text is 16 px.
 - [ ] Run axe `color-contrast` across all stories in all six modes.
+
+### axe sweep, all stories (export 2026-10-09 14:05)
+
+Remaining `color-contrast` failures, not counting the APCA test stories (failing on purpose) and disabled labels:
+
+| Where | Failure | Fix |
+| --- | --- | --- |
+| ProductCard cart button (Business) | #0f172a on #336bab, 3.25 : 1 | Figma: `product-card/button/cart/fg` → `fg/on-primary-solid-neo` |
+| ProductCard detail button (Akros) | white on #4ca806, 3.04 : 1 | Figma: `product-card/button/detail/fg` → `fg/on-secondary` (6.91 : 1; ≥ 5.24 : 1 in every mode) |
+| Header actions and active nav (Akros) | #fdc52f on #f2f3f4, 1.43 : 1 | Figma: `header/actions/fg`, `header/nav/fg/active` → `fg-accent/primary` |
+| Pagination active item (Akros) | white on #fdc52f, 1.59 : 1 | Figma: `pagination/fg/filled/active` → `fg/on-primary-solid-neo` |
+| RadioCard checked description (Business, Akros) | 3.25 : 1 and 1.13 : 1 | Figma: solid-checked → `fg/on-primary-solid-neo`, subtle-checked → `fg/primary` |
+| N1 shop footer, Exclusive badge (dark modes) | fixed colours on fixed or dark surfaces | Code (stories): white text on the black bar, tinted badge background |
+
+All Figma fixes above resolve to ≥ 4.5 : 1 in every mode. They need the next export.
+
+- [ ] After the next export: re-run the sweep in all six modes and tick the item above.
