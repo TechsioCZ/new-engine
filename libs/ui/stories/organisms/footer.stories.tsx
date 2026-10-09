@@ -348,11 +348,14 @@ export const N1ShopFooter: Story = {
         </Footer.Section>
       </Footer.Container>
       <Footer.Bottom className="bg-black">
-        <Footer.Text>2025 COPYRIGHT N Distribution s.r.o.</Footer.Text>
+        {/* The bottom bar is black, so its text uses the reverse foreground. */}
+        <Footer.Text className="text-fg-reverse">
+          2025 COPYRIGHT N Distribution s.r.o.
+        </Footer.Text>
 
         <div className="flex items-center gap-100">
-          <Footer.Text>Tvorba eshopu:</Footer.Text>
-          <Link href="https://webrevolution.cz" className="underline">
+          <Footer.Text className="text-fg-reverse">Tvorba eshopu:</Footer.Text>
+          <Link href="https://webrevolution.cz" className="text-fg-reverse underline">
             Web Revolution
           </Link>
           <Image
