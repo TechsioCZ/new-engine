@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Rating v1.1.0
+- A \`readOnly\` rating is a display, not a control: it renders one \`role="img"\` named "<labelText>: 4.5 out of 5" with no radios and no tab stop. Before, Zag kept a focusable radiogroup of 20 px stars (axe \`target-size\`). The look is unchanged; interactive and disabled ratings are unchanged.
+
 ### ProductCard v1.1.0
 - \`ProductCard.Name\` takes \`as\` (\`h2\`–\`h6\`, default \`h3\`) and \`ProductCardTemplate\` takes \`nameAs\`, so card names can follow the page outline (axe \`heading-order\` on the category page, where cards sat directly under the \`h1\`).
 

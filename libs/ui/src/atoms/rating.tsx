@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -132,17 +132,45 @@ export function Rating({
     isInteractive: !(readOnly || disabled),
   })
 
+  // A read-only rating is a value to read, not a control: Zag would still
+  // render a focusable radiogroup of 20 px stars (axe target-size). Render
+  // one named image instead and keep only the data-* state for styling.
+  const isDisplay = readOnly && !disabled
+  const valueLabel = `${labelText ? `${labelText}: ` : ""}${api.value} out of ${count}`
+
   return (
     <div className={root({ className })} {...api.getRootProps()} {...props}>
-      {labelText && <Label {...api.getLabelProps()}>{labelText}</Label>}
-      <input {...api.getHiddenInputProps()} />
-      <div className={control()} {...api.getControlProps()}>
+      {labelText &&
+        (isDisplay ? (
+          // The image name already includes the label text.
+          <Label aria-hidden>{labelText}</Label>
+        ) : (
+          <Label {...api.getLabelProps()}>{labelText}</Label>
+        ))}
+      {!isDisplay && <input {...api.getHiddenInputProps()} />}
+      <div
+        className={control()}
+        {...(isDisplay
+          ? { role: "img", "aria-label": valueLabel }
+          : api.getControlProps())}
+      >
         {api.items.map((index) => (
           <div className={itemWrapper()} key={`star-${index}`}>
-            <span className={item()} {...api.getItemProps({ index })} />
+            <span
+              className={item()}
+              {...(isDisplay
+                ? pickDataAttributes(api.getItemProps({ index }))
+                : api.getItemProps({ index }))}
+            />
           </div>
         ))}
       </div>
     </div>
+  )
+}
+
+function pickDataAttributes(props: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(props).filter(([key]) => key.startsWith("data-"))
   )
 }
