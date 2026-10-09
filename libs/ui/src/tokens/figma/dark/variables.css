@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-08T17:50:50.403Z
+ * Exported at: 2026-10-09T11:23:01.779Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -12,6 +12,7 @@
   --color-bg-badge-danger-solid: var(--color-bg-danger-base);
   --color-bg-badge-primary-solid: var(--color-bg-primary-base);
   --color-bg-badge-secondary-solid: var(--color-bg-secondary-base);
+  --color-bg-control-checked: var(--color-success-600);
   --color-bg-danger-active: var(--color-danger-100);
   --color-bg-danger-base: var(--color-danger-400);
   --color-bg-danger-hover: var(--color-danger-200);
@@ -65,14 +66,19 @@
   --color-black-15: oklch(0.129 0.041 264.695 / 0.15);
   --color-black-5: oklch(0.129 0.041 264.695 / 0.05);
   --color-blue-500: oklch(0.623 0.188 259.815);
-  --color-border-danger-focus: var(--color-danger-300);
+  --color-border-control: var(--color-neutral-500);
+  --color-border-control-selected: var(--color-primary-600);
+  --color-border-danger: var(--color-fg-accent-danger);
+  --color-border-danger-focus: var(--color-border-danger);
   --color-border-danger-hover: var(--color-danger-400);
   --color-border-disabled: var(--color-neutral-700);
   --color-border-primary: var(--color-white-15);
   --color-border-secondary: var(--color-border-primary);
-  --color-border-success-focus: var(--color-success-300);
+  --color-border-success: var(--color-fg-accent-success);
+  --color-border-success-focus: var(--color-border-success);
   --color-border-success-hover: var(--color-success-500);
-  --color-border-warning-focus: var(--color-warning-400);
+  --color-border-warning: var(--color-fg-accent-warning);
+  --color-border-warning-focus: var(--color-border-warning);
   --color-border-warning-hover: var(--color-warning-500);
   --color-command-bg: var(--color-popup-bg);
   --color-command-border: var(--color-popup-border);
@@ -118,6 +124,7 @@
   --color-fg-on-primary-indicator: var(--color-fg-primary);
   --color-fg-on-primary-solid: var(--color-fg-light);
   --color-fg-on-primary-solid-neo: var(--color-fg-light);
+  --color-fg-on-selected: var(--color-white);
   --color-fg-placeholder: var(--color-neutral-400);
   --color-fg-primary: var(--color-white);
   --color-fg-reverse: var(--color-slate-950);
@@ -213,7 +220,7 @@
   --color-success-600: oklch(0.627 0.17 149.214);
   --color-success-700: oklch(0.527 0.137 150.069);
   --color-success-disabled: var(--color-bg-disabled);
-  --color-success-fg: var(--color-green-foreground-dark);
+  --color-success-fg: var(--color-fg-accent-success);
   --color-tertiary: var(--color-bg-tertiary-base);
   --color-tertiary-100: oklch(0.963 0.021 301.149);
   --color-tertiary-200: oklch(0.914 0.051 303.063);
