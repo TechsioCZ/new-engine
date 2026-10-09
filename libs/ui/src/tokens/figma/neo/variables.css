@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-09T11:23:01.780Z
+ * Exported at: 2026-10-09T13:05:09.653Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -110,10 +110,15 @@
   --color-fg-icon-tree: var(--color-fg-primary);
   --color-fg-light: var(--color-slate-950);
   --color-fg-on-accent-solid: var(--color-fg-light);
+  --color-fg-on-danger: var(--color-fg-on-accent-solid);
   --color-fg-on-primary-indicator: var(--color-fg-reverse);
   --color-fg-on-primary-solid: var(--color-fg-reverse);
   --color-fg-on-primary-solid-neo: var(--color-fg-reverse);
+  --color-fg-on-secondary: var(--color-fg-on-accent-solid);
   --color-fg-on-selected: var(--color-white);
+  --color-fg-on-tertiary: var(--color-fg-on-accent-solid);
+  --color-fg-on-tint: var(--color-fg-light);
+  --color-fg-on-warning: var(--color-fg-on-accent-solid);
   --color-fg-placeholder: var(--color-neutral-600);
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);

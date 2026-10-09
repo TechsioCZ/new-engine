@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-09T11:23:01.772Z
+ * Exported at: 2026-10-09T13:05:09.643Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -185,9 +185,9 @@
   --color-button-border-secondary: var(--color-bg-secondary-base);
   --color-button-border-tertiary: var(--color-bg-tertiary-base);
   --color-button-border-warning: var(--color-bg-warning-base);
-  --color-button-fg-danger: var(--color-fg-on-accent-solid);
+  --color-button-fg-danger: var(--color-fg-on-danger);
   --color-button-fg-danger-borderless: var(--color-fg-accent-danger);
-  --color-button-fg-danger-light: var(--color-fg-light);
+  --color-button-fg-danger-light: var(--color-fg-on-tint);
   --color-button-fg-disabled: var(--color-fg-disabled);
   --color-button-fg-outlined-danger: var(--color-fg-primary);
   --color-button-fg-outlined-primary: var(--color-fg-primary);
@@ -196,16 +196,16 @@
   --color-button-fg-outlined-warning: var(--color-fg-primary);
   --color-button-fg-primary: var(--color-fg-on-primary-solid-neo);
   --color-button-fg-primary-borderless: var(--color-fg-accent-primary);
-  --color-button-fg-primary-light: var(--color-fg-light);
-  --color-button-fg-secondary: var(--color-fg-on-accent-solid);
+  --color-button-fg-primary-light: var(--color-fg-on-tint);
+  --color-button-fg-secondary: var(--color-fg-on-secondary);
   --color-button-fg-secondary-borderless: var(--color-fg-accent-secondary);
-  --color-button-fg-secondary-light: var(--color-fg-light);
-  --color-button-fg-tertiary: var(--color-fg-on-accent-solid);
+  --color-button-fg-secondary-light: var(--color-fg-on-tint);
+  --color-button-fg-tertiary: var(--color-fg-on-tertiary);
   --color-button-fg-tertiary-borderless: var(--color-fg-accent-tertiary);
-  --color-button-fg-tertiary-light: var(--color-fg-light);
-  --color-button-fg-warning: var(--color-fg-on-accent-solid);
+  --color-button-fg-tertiary-light: var(--color-fg-on-tint);
+  --color-button-fg-warning: var(--color-fg-on-warning);
   --color-button-fg-warning-borderless: var(--color-fg-accent-warning);
-  --color-button-fg-warning-light: var(--color-fg-light);
+  --color-button-fg-warning-light: var(--color-fg-on-tint);
   --color-button-ring: var(--color-ring-default);
   --color-carousel-control-bg: var(--color-fill-surface);
   --color-carousel-indicator-bg-active: var(--color-fg-primary);
@@ -437,10 +437,15 @@
   --color-fg-icon-tree: var(--color-fg-primary);
   --color-fg-light: var(--color-slate-950);
   --color-fg-on-accent-solid: var(--color-fg-light);
+  --color-fg-on-danger: var(--color-fg-on-accent-solid);
   --color-fg-on-primary-indicator: var(--color-fg-primary);
   --color-fg-on-primary-solid: var(--color-fg-light);
   --color-fg-on-primary-solid-neo: var(--color-fg-light);
+  --color-fg-on-secondary: var(--color-fg-on-accent-solid);
   --color-fg-on-selected: var(--color-white);
+  --color-fg-on-tertiary: var(--color-fg-on-accent-solid);
+  --color-fg-on-tint: var(--color-fg-light);
+  --color-fg-on-warning: var(--color-fg-on-accent-solid);
   --color-fg-placeholder: var(--color-neutral-600);
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
