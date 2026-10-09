@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-24T06:56:20.879Z
+ * Exported at: 2026-10-09T13:05:09.655Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -12,6 +12,7 @@
   --color-bg-badge-danger-solid: var(--color-danger-300);
   --color-bg-badge-primary-solid: var(--color-primary-800);
   --color-bg-badge-secondary-solid: var(--color-secondary-800);
+  --color-bg-control-checked: var(--color-success-700);
   --color-bg-danger-active: var(--color-danger-500);
   --color-bg-danger-base: var(--color-danger-400);
   --color-bg-danger-hover: var(--color-danger-400);
@@ -65,14 +66,19 @@
   --color-black-15: oklch(0.129 0.041 264.695 / 0.15);
   --color-black-5: oklch(0.129 0.041 264.695 / 0.05);
   --color-blue-500: oklch(0.623 0.188 259.815);
-  --color-border-danger-focus: var(--color-danger-400);
+  --color-border-control: var(--color-neutral-500);
+  --color-border-control-selected: var(--color-primary-500);
+  --color-border-danger: var(--color-fg-accent-danger);
+  --color-border-danger-focus: var(--color-border-danger);
   --color-border-danger-hover: var(--color-danger-500);
   --color-border-disabled: var(--color-neutral-300);
   --color-border-primary: var(--color-black-15);
   --color-border-secondary: var(--color-border-primary);
-  --color-border-success-focus: var(--color-success-500);
+  --color-border-success: var(--color-fg-accent-success);
+  --color-border-success-focus: var(--color-border-success);
   --color-border-success-hover: var(--color-success-600);
-  --color-border-warning-focus: var(--color-warning-500);
+  --color-border-warning: var(--color-fg-accent-warning);
+  --color-border-warning-focus: var(--color-border-warning);
   --color-border-warning-hover: var(--color-warning-600);
   --color-danger: var(--color-danger-400);
   --color-danger-100: oklch(0.936 0.031 17.717);
@@ -92,28 +98,34 @@
   --color-danger-light-active: var(--color-bg-light-danger-active);
   --color-danger-light-disabled: var(--color-bg-disabled);
   --color-danger-light-hover: var(--color-bg-light-danger-hover);
-  --color-fg-accent-danger: var(--color-danger-600);
+  --color-fg-accent-danger: var(--color-danger-700);
   --color-fg-accent-primary: var(--color-primary-600);
   --color-fg-accent-secondary: var(--color-secondary-700);
-  --color-fg-accent-success: var(--color-success-600);
+  --color-fg-accent-success: var(--color-success-700);
   --color-fg-accent-tertiary: var(--color-tertiary-600);
-  --color-fg-accent-warning: var(--color-warning-600);
+  --color-fg-accent-warning: var(--color-warning-700);
   --color-fg-badge-on-solid: var(--color-fg-reverse);
   --color-fg-dark: var(--color-white);
   --color-fg-disabled: var(--color-neutral-500);
   --color-fg-icon-tree: var(--color-fg-primary);
   --color-fg-light: var(--color-slate-950);
   --color-fg-on-accent-solid: var(--color-fg-reverse);
+  --color-fg-on-danger: var(--color-base-dark);
   --color-fg-on-primary-indicator: var(--color-fg-primary);
   --color-fg-on-primary-solid: var(--color-fg-light);
   --color-fg-on-primary-solid-neo: var(--color-fg-reverse);
-  --color-fg-placeholder: var(--color-neutral-500);
+  --color-fg-on-secondary: var(--color-base-dark);
+  --color-fg-on-selected: var(--color-white);
+  --color-fg-on-tertiary: var(--color-base-dark);
+  --color-fg-on-tint: var(--color-fg-light);
+  --color-fg-on-warning: var(--color-base-dark);
+  --color-fg-placeholder: var(--color-neutral-600);
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
   --color-fg-secondary: oklch(0.494 0.037 261.595);
   --color-fg-status-error: var(--color-danger-700);
   --color-fg-status-success: var(--color-success-700);
-  --color-fg-status-warning: var(--color-warning-500);
+  --color-fg-status-warning: var(--color-warning-700);
   --color-fill-active: var(--color-black-15);
   --color-fill-base: var(--color-black-5);
   --color-fill-borderless-active: oklch(0 0 0 / 0);
@@ -131,6 +143,10 @@
   --color-info: var(--color-bg-info);
   --color-info-disabled: var(--color-bg-disabled);
   --color-link: var(--color-blue-500);
+  --color-mix-vertical-navigation-accent-light: oklch(0.9 0.021 254.921);
+  --color-mix-vertical-navigation-indicator-hover: oklch(0.354 0.079 255.706);
+  --color-mix-vertical-navigation-item-current: oklch(0.833 0.038 254.587);
+  --color-mix-vertical-navigation-secondary-light: oklch(0.911 0.015 186.668);
   --color-neutral-100: oklch(0.967 0.003 264.542);
   --color-neutral-200: oklch(0.928 0.006 264.531);
   --color-neutral-300: oklch(0.872 0.011 261.787);
@@ -276,12 +292,14 @@
   --dimension-150-min: var(--dimension-8);
   --dimension-16: 1rem;
   --dimension-18: 1.13rem;
+  --dimension-192: 12rem;
   --dimension-2: 0.13rem;
   --dimension-20: 1.25rem;
   --dimension-200-max: var(--dimension-16);
   --dimension-200-min: var(--dimension-14);
   --dimension-22: 1.38rem;
   --dimension-24: 1.5rem;
+  --dimension-240: 15rem;
   --dimension-250-max: var(--dimension-20);
   --dimension-250-min: var(--dimension-18);
   --dimension-26: 1.63rem;
@@ -370,6 +388,7 @@
   --duration-fast: 1ms;
   --duration-normal: 2ms;
   --duration-slow: 3ms;
+  --line-height-21: 1.31rem;
   --line-height-24: 1.5rem;
   --line-height-30: 1.88rem;
   --line-height-36: 2.25rem;
