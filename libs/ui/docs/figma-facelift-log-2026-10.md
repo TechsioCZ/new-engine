@@ -286,3 +286,79 @@ Pagination all measure **32 / 44 / 56** with radius **8 / 12 / 16**. Tabs trigge
 - Read-only Rating is still a focusable 20 px radiogroup (axe `target-size`). A display
   rating should be `role="img"` with an "x out of 5" label.
 - The remaining ~40 component pages have not been rebound yet. Rebind before their facelift.
+
+## 2026-10-09 · Full relink, small-size unification, contrast pass
+
+### Relinking (mandatory, done for the whole file)
+
+- **Variables:** every page was rebound from remote library copies to the local variables
+  (≈ 25 000 more bindings on top of the control family), including overrides inside instances.
+- **Components:** 2 919 instances of **remote library components** were swapped to their local
+  twins by name (380 distinct components). 96 components existed only in the library
+  (mostly Token Icons, plus Select item, Tooltip and similar parts). They were copied locally into
+  *Icon page → "Relinked library components (local copies, 2026-10-09)"* and their internals
+  were rebound.
+- 210 stale size overrides on nested icon instances (size can't be overridden there) were
+  cleared with `resetOverrides`; layer names were restored.
+- **Verification:** 66 / 66 pages, **0 remote variable bindings, 0 remote component instances.**
+
+### Small controls (Overview → Component comparison)
+
+- Select / CascadeSelect `xs` triggers now use the small control height (`height/form-control/sm`,
+  32 px) and radius. In Figma, Select `xs` = `sm` = 32 px / r8 / 16 px text.
+- Small field text is 16 px everywhere. `text/input|textarea|numeric-input|combobox|phone-input|date-picker/sm`
+  and the Select / CascadeSelect trigger and value `xs`/`sm` text → `text/base` (16). Code already
+  floored editable fields at 16 px for iOS (`_reset.css`); Select stayed at 14 px, so it looked
+  smaller next to Input and Combobox. `text/label/sm` is pinned to `text/sm` so labels stay 14 px.
+- CascadeSelect text variables were renamed `…/trigger-sm` → `…/trigger/sm` (same CSS names).
+  New `radius/cascade-select/lg`.
+
+### Contrast (all six modes: Light, Dark, neo-light, neo-dark, Business, Akros)
+
+Semantic text (4.5 : 1 on base **and** surface):
+
+| Token | Fix |
+| --- | --- |
+| `fg-accent/warning` | Light, Business → warning/700; neo-dark → warning/600 |
+| `fg-accent/success` | Light, Business, neo-light → success/700 |
+| `fg-accent/danger` | Light, Business → danger/700; neo-dark → danger/400 |
+| `fg/status-warning` (C1) | Light, neo-light, Business → warning/700; Akros → warning/800 |
+| `fg-accent/primary` | neo-light → primary/700 |
+| `fg-accent/secondary`, `tertiary` | neo-dark → secondary/600, tertiary/400 |
+
+New semantic tokens for control boundaries and states (C3, 3 : 1):
+
+| Token | Value | Used by |
+| --- | --- | --- |
+| `color/border/control` | neutral/500 | form-control border (Input, Textarea, NumericInput, Select, Combobox, SearchForm), Checkbox, Switch, Slider, Radio |
+| `color/bg/control-checked` | success/700 (dark modes and Akros: /600) | Checkbox checked and indeterminate, Switch checked |
+| `color/border/control-selected` | primary/600 (Business /500, Akros tertiary/500) | Radio checked borders |
+| `color/border/danger·success·warning` | → `fg-accent/*` | every control validation border, `border/*-focus` |
+| `color/fg/on-selected` | white; Akros → `fg/primary` | Select item, Table row, popup item selected text |
+
+Other component fixes: Select trigger hover text → `fg/primary`; NumericInput / Combobox trigger hover icons
+→ `fg-accent/primary`; danger ActionIcon hover → `fg-accent/danger`; RadioCard and DatePicker text
+on primary fills → `fg/on-primary-solid-neo`; RadioCard subtle-checked → `fg/primary`; status
+icons (`icon/fg/*`) → `fg-accent/*`.
+
+**38 raw colour values in neo-light / neo-dark** were left over from an older copy (neo-dark had
+light pastel `bg-light/*` tints) and are now aliased to the same palette steps as Light / Dark.
+
+Decorative separators (`border/primary`, table, popup, PhoneInput divider) stay at 1.4 : 1 because
+WCAG 1.4.11 doesn't apply to dividers.
+
+**Audit result in Figma:** 0 semantic text tokens below 4.5 : 1, and 0 control boundary or state tokens
+below 3 : 1, in any mode.
+
+### Flagged, not changed
+
+- Akros `color/fill/base` resolves to **#000000**, and `form-control/bg` aliases it. Is that intended?
+
+### Code changes waiting on the next export
+
+- [ ] Cherry-pick the export and merge; `--height-form-control-lg` → 3.5rem; new `--color-border-control`,
+      `--color-bg-control-checked`, `--color-border-control-selected`, `--color-border-danger|success|warning`,
+      `--color-fg-on-selected`, `--radius-cascade-select-lg`.
+- [ ] Commit the control-scale code: Button / Select / Combobox / CascadeSelect `lg` on `h-form-control-lg`,
+      Select / CascadeSelect `xs` on `h-form-control-sm`, Tabs triggers on `h-form-control-*`.
+- [ ] Re-measure every control at 32 / 44 / 56 and run axe `color-contrast` across all stories in all six modes.
