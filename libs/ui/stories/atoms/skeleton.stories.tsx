@@ -445,7 +445,7 @@ export const ReducedMotion: Story = {
   render: () => (
     <div className="space-y-250">
       <div className="bg-warning-subtle border border-warning p-250 rounded">
-        <p className="text-sm text-warning">
+        <p className="text-sm text-fg-accent-warning">
           💡 <strong>Accessibility:</strong> When users enable "Reduce motion"
             in their OS, animations automatically switch to the static state shown below.
         </p>

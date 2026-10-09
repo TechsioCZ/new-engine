@@ -255,7 +255,7 @@ function CrudPage() {
         cell: (info) => {
           const stock = info.getValue<number>()
           return (
-            <span className={stock === 0 ? "text-danger" : "tabular-nums"}>
+            <span className={stock === 0 ? "text-fg-accent-danger" : "tabular-nums"}>
               {stock === 0 ? "Out of stock" : stock}
             </span>
           )

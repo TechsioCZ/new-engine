@@ -216,10 +216,10 @@ const noticeIcons: Record<NoticeTone, IconType> = {
 }
 
 const noticeColors: Record<NoticeTone, string> = {
-  danger: "text-danger",
-  warning: "text-warning",
+  danger: "text-fg-accent-danger",
+  warning: "text-fg-accent-warning",
   info: "text-info",
-  success: "text-success",
+  success: "text-fg-accent-success",
 }
 
 /**

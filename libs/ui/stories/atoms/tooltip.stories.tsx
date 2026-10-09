@@ -572,7 +572,7 @@ export const DataPreview: Story = {
                 <div className="text-center">
                   <div className="font-semibold">{label}</div>
                   <div className="text-2xl">{value}</div>
-                  <div className="text-sm text-success">
+                  <div className="text-sm text-fg-accent-success">
                     {change} this month
                   </div>
                 </div>

@@ -89,9 +89,9 @@ function StatePanel({
 }) {
   const toneClass =
     tone === "danger"
-      ? "text-danger"
+      ? "text-fg-accent-danger"
       : tone === "warning"
-        ? "text-warning"
+        ? "text-fg-accent-warning"
         : "text-fg-secondary"
 
   return (

@@ -485,7 +485,7 @@ export const Validation: Story = {
             <div className="flex flex-col gap-150">
               <Badge variant="warning">Needs attention</Badge>
               <Input aria-label="Email" defaultValue="team@" readOnly variant="error" />
-              <p className="text-sm text-danger">
+              <p className="text-sm text-fg-accent-danger">
                 Example only: this panel shows how an invalid state can be composed.
               </p>
             </div>

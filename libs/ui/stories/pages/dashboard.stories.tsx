@@ -137,7 +137,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         <div className="flex flex-col gap-150">
           <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
             <Icon
-              className="text-danger"
+              className="text-fg-accent-danger"
               icon="icon-[mdi--alert-circle-outline]"
               size="md"
             />
@@ -150,7 +150,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           </div>
           <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
             <Icon
-              className="text-warning"
+              className="text-fg-accent-warning"
               icon="icon-[mdi--clock-alert-outline]"
               size="md"
             />
@@ -163,7 +163,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           </div>
           <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
             <Icon
-              className="text-warning"
+              className="text-fg-accent-warning"
               icon="icon-[mdi--package-variant-closed-remove]"
               size="md"
             />

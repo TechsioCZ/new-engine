@@ -229,7 +229,7 @@ export const AllVariants: Story = {
               </>
             }
           >
-            <p className="text-danger">
+            <p className="text-fg-accent-danger">
               This will permanently delete your data.
             </p>
           </Dialog>
@@ -349,7 +349,7 @@ export const RichContent: Story = {
             <p className="text-secondary">
               High-quality wireless headphones with noise cancellation
             </p>
-            <p className="mt-100 font-bold text-2xl text-success">$299.99</p>
+            <p className="mt-100 font-bold text-2xl text-fg-accent-success">$299.99</p>
           </div>
         </div>
 
@@ -367,7 +367,7 @@ export const RichContent: Story = {
           <h4 className="mb-100 font-semibold">Reviews</h4>
           <div className="space-y-100">
             <div className="flex items-center gap-50">
-              <span className="text-warning">★★★★★</span>
+              <span className="text-fg-accent-warning">★★★★★</span>
               <span className="text-sm">4.8 out of 5 stars</span>
             </div>
             <p className="text-secondary text-sm">Based on 2,847 reviews</p>
