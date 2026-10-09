@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -156,7 +156,7 @@ const comboboxVariants = tv({
       },
       lg: {
         root: "gap-combobox-lg",
-        control: "rounded-combobox text-input-lg",
+        control: "h-form-control-lg rounded-combobox-lg text-input-lg",
         input: "p-combobox-input-lg",
         content: "popup-size-lg text-combobox-item-lg",
         triggerIndicator: "text-icon-control-lg",

@@ -12,6 +12,21 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Button v0.3.4
+- \`lg\` uses the shared control height \`h-form-control-lg\` (56 px) like \`sm\` / \`md\` already did. It was padding-derived (56 px in code, 57.5 px in Figma). Buttons and form controls now share one 32 / 44 / 56 scale.
+
+### Select v1.1.3
+- \`lg\` trigger uses \`h-form-control-lg\` (56 px, was 60 px) and \`rounded-select-lg\`; \`xs\` trigger uses \`h-form-control-sm\` and \`rounded-select-sm\`, the same 32 px as \`sm\` (was 30 px). Small trigger text is 16 px like every other small field (token export 2026-10-09).
+
+### Combobox v1.3.3
+- \`lg\` control uses \`h-form-control-lg\` (56 px, was 60 px) and \`rounded-combobox-lg\`.
+
+### CascadeSelect v1.0.3
+- \`xs\` trigger is 32 px like \`sm\` (was 36 px); \`lg\` trigger uses \`h-form-control-lg\` and the new \`rounded-cascade-select-lg\`.
+
+### Tabs v1.0.2
+- Triggers use the control heights \`h-form-control-{sm,md,lg}\` (32 / 44 / 56 px, were 33 / 50 / 68 px), matching the Figma Tabs.Trigger set.
+
 ### Rating v1.1.0
 - A \`readOnly\` rating is a display, not a control: it renders one \`role="img"\` named "<labelText>: 4.5 out of 5" with no radios and no tab stop. Before, Zag kept a focusable radiogroup of 20 px stars (axe \`target-size\`). The look is unchanged; interactive and disabled ratings are unchanged.
 

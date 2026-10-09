@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -92,15 +92,15 @@ const tabsVariants = tv({
     },
     size: {
       sm: {
-        trigger: "p-tabs-trigger-sm text-tabs-trigger-sm",
+        trigger: "h-form-control-sm p-tabs-trigger-sm text-tabs-trigger-sm",
         content: "p-tabs-content-padding-sm text-tabs-content-sm",
       },
       md: {
-        trigger: "p-tabs-trigger-md text-tabs-trigger-md",
+        trigger: "h-form-control-md p-tabs-trigger-md text-tabs-trigger-md",
         content: "p-tabs-content-padding-md text-tabs-content-md",
       },
       lg: {
-        trigger: "p-tabs-trigger-lg text-tabs-trigger-lg",
+        trigger: "h-form-control-lg p-tabs-trigger-lg text-tabs-trigger-lg",
         content: "p-tabs-content-padding-lg text-tabs-content-lg",
       },
     },

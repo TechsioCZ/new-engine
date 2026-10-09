@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -133,7 +133,8 @@ const selectVariants = tv({
   variants: {
     size: {
       xs: {
-        trigger: "p-select-trigger-sm text-select-trigger-xs",
+        trigger:
+          "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-xs",
         content: "popup-size-xs text-select-item-xs",
         valueText: "text-select-value-xs",
         itemGroupLabel: "text-select-item-group-label-xs",
@@ -153,7 +154,8 @@ const selectVariants = tv({
         itemGroupLabel: "text-select-item-group-label-md",
       },
       lg: {
-        trigger: "p-select-trigger-md text-select-trigger-lg",
+        trigger:
+          "h-form-control-lg rounded-select-lg p-select-trigger-md text-select-trigger-lg",
         content: "popup-size-lg text-select-item-lg",
         valueText: "text-select-value-lg",
         itemGroupLabel: "text-select-item-group-label-lg",
