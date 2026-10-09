@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { Button } from "../../src/atoms/button"
 import { useState } from "react"
 import { FormCheckbox } from "../../src/molecules/form-checkbox"
 
@@ -249,13 +250,9 @@ export const Controlled: Story = {
 					label={`Checkbox is ${checked ? "checked" : "unchecked"}`}
 					onCheckedChange={setChecked}
 				/>
-				<button
-					type="button"
-					className="rounded bg-blue-500 px-4 py-2 text-white"
-					onClick={() => setChecked(!checked)}
-				>
+				<Button onClick={() => setChecked(!checked)} size="sm">
 					Toggle from outside
-				</button>
+				</Button>
 			</div>
 		)
 	},

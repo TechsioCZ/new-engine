@@ -251,8 +251,8 @@ export const BadgesWithCustomColors: Story = {
         <Badge
           variant="dynamic"
           bgColor="transparent"
-          fgColor="#fff"
-          borderColor="#fff"
+          fgColor="#7f22fe"
+          borderColor="#7f22fe"
         >
           Exclusive
         </Badge>
