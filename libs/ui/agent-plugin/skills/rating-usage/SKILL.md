@@ -5,7 +5,7 @@ description: >
   accessible rating capture or display using the Zag.js rating-group wrapper,
   supported value/count/allowHalf/readOnly/disabled props, and token styling.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -95,6 +95,7 @@ Use `disabled` when the control is unavailable, not for normal display.
 
 A `readOnly` rating renders as one `role="img"` named "<labelText>: 4.5 out of 5":
 no radios and no tab stop, so read-only stars are never focusable or a target.
+The hidden input stays, so a `name`d read-only rating still submits with its form.
 
 ### Use token-backed size and state styling
 

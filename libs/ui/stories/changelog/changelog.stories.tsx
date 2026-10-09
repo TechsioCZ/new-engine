@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Rating v1.1.1
+- A read-only rating keeps its hidden input, so a \`name\`d rating still submits with its form (the v1.1.0 display mode had dropped it). It adds no tab stop.
+
 ### Carousel v1.2.3
 - Previous / next ActionIcons keep the carousel trigger colour tokens (\`--color-carousel-trigger-bg|fg-base|hover\`), so apps that restyle the arrows (white circles over banners in herbatika) work again. The defaults match ActionIcon's neutral tone.
 

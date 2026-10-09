@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -147,7 +147,8 @@ export function Rating({
         ) : (
           <Label {...api.getLabelProps()}>{labelText}</Label>
         ))}
-      {!isDisplay && <input {...api.getHiddenInputProps()} />}
+      {/* Kept in display mode too: a named rating still submits with its form. */}
+      <input {...api.getHiddenInputProps()} />
       <div
         className={control()}
         {...(isDisplay
