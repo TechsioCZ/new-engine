@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Textarea v1.0.2
+- \`readonly\` keeps the muted surface and border but uses the normal text colour; it borrowed the disabled text colour (4.39 : 1 on the read-only fill, axe \`color-contrast\` in every brand). Read-only content is meant to be read, unlike disabled.
+
 ### Rating v1.1.1
 - A read-only rating keeps its hidden input, so a \`name\`d rating still submits with its form (the v1.1.0 display mode had dropped it). It adds no tab stop.
 

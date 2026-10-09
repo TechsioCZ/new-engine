@@ -2,7 +2,7 @@
  * Textarea — @techsio/ui-kit atom.
  *
  * @component Textarea
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -78,7 +78,8 @@ const textareaVariants = tv({
       auto: "field-sizing-content resize-none",
     },
     readonly: {
-      true: "cursor-default border-textarea-border-disabled bg-textarea-bg-disabled text-textarea-fg-disabled",
+      // Read-only text must stay readable: muted surface, normal text colour.
+      true: "cursor-default border-textarea-border-disabled bg-textarea-bg-disabled",
     },
   },
   defaultVariants: {
