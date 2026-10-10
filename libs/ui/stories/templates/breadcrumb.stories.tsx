@@ -117,9 +117,21 @@ export const Sizes: Story = {
     <VariantContainer>
       <VariantGroup title="Sizes">
         <div className='flex flex-col gap-300'>
-        <BreadcrumbTemplate items={defaultItems} size="sm" />
-        <BreadcrumbTemplate items={defaultItems} size="md" />
-        <BreadcrumbTemplate items={defaultItems} size="lg" />
+        <BreadcrumbTemplate
+          aria-label="Breadcrumb, sm"
+          items={defaultItems}
+          size="sm"
+        />
+        <BreadcrumbTemplate
+          aria-label="Breadcrumb, md"
+          items={defaultItems}
+          size="md"
+        />
+        <BreadcrumbTemplate
+          aria-label="Breadcrumb, lg"
+          items={defaultItems}
+          size="lg"
+        />
         </div>
       </VariantGroup>
     </VariantContainer>
@@ -131,8 +143,16 @@ export const Variants: Story = {
     <VariantContainer>
       <VariantGroup title="Variants">
         <div className='flex flex-col gap-300'>
-        <BreadcrumbTemplate items={defaultItems} variant="plain" />
-        <BreadcrumbTemplate items={defaultItems} variant="underline" />
+        <BreadcrumbTemplate
+          aria-label="Breadcrumb, plain"
+          items={defaultItems}
+          variant="plain"
+        />
+        <BreadcrumbTemplate
+          aria-label="Breadcrumb, underline"
+          items={defaultItems}
+          variant="underline"
+        />
         </div>
       </VariantGroup>
     </VariantContainer>

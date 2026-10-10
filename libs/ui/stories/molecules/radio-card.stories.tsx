@@ -97,7 +97,7 @@ function BasicRadioCard({
                       //className="w-max border-current"
                       //variant="outline"
                       variant="dynamic"
-                      bgColor="#888"
+                      bgColor="#4b5563"
                       fgColor="#fff"
                       borderColor="transparent"
 

@@ -6,7 +6,7 @@ description: >
   divider, bottom area, size, layout, direction, section flow, and framework
   link adapters.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -96,6 +96,8 @@ It wraps the UI-kit Link atom and supports framework adapters.
 ### Use sections for groups
 
 Group footer columns with `Footer.Section`, `Footer.Title`, and `Footer.List`.
+`Footer.List` is a `<ul>` and wraps each child that is not already an `<li>` in one,
+so put `Footer.Link`s straight inside it. Icon-only links (social icons) need `aria-label`.
 
 ### Let footer tokens define density
 

@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,6 +22,12 @@ import {
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
 import { tv } from "../utils"
 
 const radioGroupVariants = tv({
@@ -57,7 +63,7 @@ const radioGroupVariants = tv({
       "data-invalid:border-radio-group-item-border-error",
       "data-invalid:outline-offset-(length:--default-ring-offset)",
     ],
-    itemContent: ["col-start-2 row-start-1 min-w-0 flex flex-col"],
+    itemContent: ["col-start-2 row-start-1 flex min-w-0 flex-col"],
     itemIndicator: [
       "pointer-events-none block leading-none",
       "token-icon-radio-group-checked",
@@ -165,7 +171,8 @@ type RadioGroupContextValue = {
   disabled: boolean
   required: boolean
   validateStatus: RadioGroupValidateStatus
-}
+  statusTextId: string
+} & DescribedBy
 
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null)
 
@@ -181,13 +188,16 @@ type RadioGroupItemContextValue = {
   itemProps: zagRadioGroup.ItemProps
 }
 
-const RadioGroupItemContext =
-  createContext<RadioGroupItemContextValue | null>(null)
+const RadioGroupItemContext = createContext<RadioGroupItemContextValue | null>(
+  null
+)
 
 function useRadioGroupItemContext() {
   const context = useContext(RadioGroupItemContext)
   if (!context) {
-    throw new Error("RadioGroup item components must be used within RadioGroup.Item")
+    throw new Error(
+      "RadioGroup item components must be used within RadioGroup.Item"
+    )
   }
   return context
 }
@@ -237,17 +247,30 @@ export function RadioGroup({
     },
   })
 
-  const api = zagRadioGroup.connect(
-    service,
-    normalizeProps,
-  )
+  const api = zagRadioGroup.connect(service, normalizeProps)
   const styles = radioGroupVariants({ size, variant })
+  const describedBy = useDescribedBy()
 
   return (
     <RadioGroupContext.Provider
-      value={{ api, variant, size, orientation, disabled, required, validateStatus }}
+      value={{
+        api,
+        variant,
+        size,
+        orientation,
+        disabled,
+        required,
+        validateStatus,
+        statusTextId: `${id}-status`,
+        ...describedBy,
+      }}
     >
-      <div className={styles.root({ className })} ref={ref} {...api.getRootProps()}>
+      <div
+        className={styles.root({ className })}
+        ref={ref}
+        {...api.getRootProps()}
+        aria-describedby={joinDescribedBy(describedBy.describedById)}
+      >
         {children}
       </div>
     </RadioGroupContext.Provider>
@@ -270,8 +293,12 @@ RadioGroup.Label = function RadioGroupLabel({
   size: sizeProp,
   ...props
 }: RadioGroupLabelProps) {
-  const { api, size, disabled: groupDisabled, required: groupRequired } =
-    useRadioGroupContext()
+  const {
+    api,
+    size,
+    disabled: groupDisabled,
+    required: groupRequired,
+  } = useRadioGroupContext()
 
   return (
     <Label
@@ -311,7 +338,10 @@ RadioGroup.ItemGroup = function RadioGroupItemGroup({
   )
 }
 
-export type RadioGroupItemProps = Omit<ComponentPropsWithoutRef<"label">, "value"> &
+export type RadioGroupItemProps = Omit<
+  ComponentPropsWithoutRef<"label">,
+  "value"
+> &
   zagRadioGroup.ItemProps & {
     ref?: Ref<HTMLLabelElement>
   }
@@ -491,9 +521,12 @@ RadioGroup.StatusText = function RadioGroupStatusText({
   children,
   ...props
 }: RadioGroupStatusTextProps) {
-  const { size, validateStatus } = useRadioGroupContext()
+  const { size, validateStatus, statusTextId, setDescribedById } =
+    useRadioGroupContext()
   const effectiveSize = sizeProp ?? size
   const effectiveStatus = status ?? validateStatus
+  const id = props.id ?? statusTextId
+  useRegisterDescription(id, setDescribedById)
 
   return (
     <StatusText
@@ -501,6 +534,7 @@ RadioGroup.StatusText = function RadioGroupStatusText({
       size={effectiveSize}
       status={effectiveStatus}
       {...props}
+      id={id}
     >
       {children}
     </StatusText>

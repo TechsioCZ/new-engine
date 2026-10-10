@@ -97,7 +97,7 @@ export const Playground: Story = {
         >
           <NumericInput.Control>
             {showScrubber && <NumericInput.Scrubber />}
-            <NumericInput.Input />
+            <NumericInput.Input aria-label={showLabel ? undefined : label} />
             {showControls && (
               <NumericInput.TriggerContainer>
                 <NumericInput.IncrementTrigger />

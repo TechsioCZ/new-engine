@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.3
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -91,6 +91,7 @@ import {
   DEFAULT_EDITOR_RENDERERS,
   DEFAULT_FILTER_RENDERERS,
   FieldSelect,
+  FieldTableLayoutContext,
   isBlank,
 } from "./data-table.fields"
 import {
@@ -510,6 +511,10 @@ export type DataTableTranslations = {
   actionsLabel?: string
   filtersLabel?: string
   selectAllLabel?: string
+  /** Screen-reader header of the selection column when there is no select-all. */
+  selectColumnLabel?: string
+  /** Screen-reader header of the row-reorder (drag handle) column. */
+  reorderColumnLabel?: string
   loadingLabel?: string
   /** Override the filter condition labels, keyed by operator. */
   operatorLabels?: Partial<Record<string, string>>
@@ -531,6 +536,8 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   actionsLabel: "Actions",
   filtersLabel: "Column filters",
   selectAllLabel: "Select all rows",
+  selectColumnLabel: "Select",
+  reorderColumnLabel: "Reorder",
   loadingLabel: "Loading data",
   operatorLabels: {},
   editingLabel: "Editing a row — other table controls are locked",
@@ -1782,6 +1789,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         locked,
         getRowLabel,
         selectAllLabel: translations.selectAllLabel,
+        selectColumnLabel: translations.selectColumnLabel,
+        reorderColumnLabel: translations.reorderColumnLabel,
         showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
       }),
     [
@@ -1791,6 +1800,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       locked,
       getRowLabel,
       translations.selectAllLabel,
+      translations.selectColumnLabel,
+      translations.reorderColumnLabel,
       selectionMode,
       maxSelectedRows,
     ]
@@ -2513,6 +2524,52 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     (enableExpanding &&
       (!!renderExpandedRow || !!getSubRows || !!getRowCanExpand))
 
+  /*
+   * Under `tableLayout="fixed"` a column without a declared width only gets
+   * what the declared columns leave over — usually nothing, so the actions
+   * column collapsed to 0 px. It is not in TanStack's column model and its
+   * content (expand toggle, row actions, custom render) varies, so measure the
+   * widest rendered actions cell and declare that on the header instead.
+   * Children are measured edge to edge rather than via `scrollWidth`, because
+   * the cell content is end-aligned and overflows to the start side.
+   */
+  const [fixedActionsWidth, setFixedActionsWidth] = useState<number>()
+  useIsomorphicLayoutEffect(() => {
+    if (tableLayout !== "fixed" || !hasActionsColumn) {
+      return
+    }
+    const contents = scrollRef.current?.querySelectorAll<HTMLElement>(
+      '[data-part="actions-cell-content"]'
+    )
+    if (!contents?.length) {
+      return
+    }
+    let widest = 0
+    for (const content of contents) {
+      const rects = [...content.children].map((child) =>
+        child.getBoundingClientRect()
+      )
+      if (rects.length) {
+        const start = Math.min(...rects.map((r) => r.left))
+        const end = Math.max(...rects.map((r) => r.right))
+        widest = Math.max(widest, end - start)
+      }
+    }
+    const cell = contents[0]?.parentElement
+    if (!cell || widest === 0) {
+      return
+    }
+    const cellStyle = getComputedStyle(cell)
+    const width = Math.ceil(
+      widest +
+        Number.parseFloat(cellStyle.paddingLeft) +
+        Number.parseFloat(cellStyle.paddingRight)
+    )
+    if (width !== fixedActionsWidth) {
+      setFixedActionsWidth(width)
+    }
+  })
+
   // An end-pinned column and the sticky actions cell both freeze at the
   // trailing edge, and the actions column is not in TanStack's column model
   // so `getAfter("end")` cannot reserve room for it — they overlap. The
@@ -2739,6 +2796,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                 ...(stickyActions
                   ? { zIndex: DATA_TABLE_Z.stickyActionsHeaderCell }
                   : undefined),
+                ...(tableLayout === "fixed" && fixedActionsWidth
+                  ? { width: fixedActionsWidth }
+                  : undefined),
               }}
             >
               {translations.actionsLabel}
@@ -2952,7 +3012,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         stickyActions ? { zIndex: DATA_TABLE_Z.stickyActionsCell } : undefined
       }
     >
-      <div className={styles.actionsCell()}>
+      <div className={styles.actionsCell()} data-part="actions-cell-content">
         {enableExpanding && row.getCanExpand() ? (
           <Button
             aria-controls={expandAriaControls(row.id)}
@@ -3315,53 +3375,55 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   ) : null
 
   const tableEl = (
-    <Table
-      aria-busy={loading || loadingMore || undefined}
-      aria-rowcount={headerRowCount + table.getRowCount()}
-      interactive={(interactive || !!onRowClick) && !locked}
-      showColumnBorder={showColumnBorder}
-      size={size}
-      stickyHeader={stickyHeader}
-      // Never forward "striped" to Table — its own odd:/even: implementation
-      // is the broken one `effectiveStriped` is routing around.
-      variant={outlined || variant === "striped" ? "line" : variant}
-      {...slotProps?.root}
-      style={{ tableLayout, ...slotProps?.root?.style }}
-    >
-      {caption && <Table.Caption>{caption}</Table.Caption>}
-      {/*
-       * Each SortableContext is scoped to the region whose items it lists.
-       * `useSortable` resolves to the *nearest* one, so wrapping the whole
-       * table in both (column inside row, as the DndContext nesting below
-       * implies) made body rows resolve against `reorderableLeafIds` — index
-       * -1, horizontal-axis modifier, and the row id handed to the column
-       * drag handler, which bails. Row reorder silently did nothing whenever
-       * `enableColumnReorder` was also on. SortableContext renders no DOM, so
-       * scoping it this way is safe inside `<table>` (a DndContext is not —
-       * its accessibility markup would render as a div child of the table).
-       */}
-      {enableColumnReorder ? (
-        <SortableContext
-          items={reorderableLeafIds}
-          strategy={horizontalListSortingStrategy}
-        >
-          {headerContent}
-        </SortableContext>
-      ) : (
-        headerContent
-      )}
-      {rowReorderActive ? (
-        <SortableContext
-          items={rootRowIds}
-          strategy={verticalListSortingStrategy}
-        >
-          {bodyContent}
-        </SortableContext>
-      ) : (
-        bodyContent
-      )}
-      {footerContent}
-    </Table>
+    <FieldTableLayoutContext.Provider value={tableLayout}>
+      <Table
+        aria-busy={loading || loadingMore || undefined}
+        aria-rowcount={headerRowCount + table.getRowCount()}
+        interactive={(interactive || !!onRowClick) && !locked}
+        showColumnBorder={showColumnBorder}
+        size={size}
+        stickyHeader={stickyHeader}
+        // Never forward "striped" to Table — its own odd:/even: implementation
+        // is the broken one `effectiveStriped` is routing around.
+        variant={outlined || variant === "striped" ? "line" : variant}
+        {...slotProps?.root}
+        style={{ tableLayout, ...slotProps?.root?.style }}
+      >
+        {caption && <Table.Caption>{caption}</Table.Caption>}
+        {/*
+         * Each SortableContext is scoped to the region whose items it lists.
+         * `useSortable` resolves to the *nearest* one, so wrapping the whole
+         * table in both (column inside row, as the DndContext nesting below
+         * implies) made body rows resolve against `reorderableLeafIds` — index
+         * -1, horizontal-axis modifier, and the row id handed to the column
+         * drag handler, which bails. Row reorder silently did nothing whenever
+         * `enableColumnReorder` was also on. SortableContext renders no DOM, so
+         * scoping it this way is safe inside `<table>` (a DndContext is not —
+         * its accessibility markup would render as a div child of the table).
+         */}
+        {enableColumnReorder ? (
+          <SortableContext
+            items={reorderableLeafIds}
+            strategy={horizontalListSortingStrategy}
+          >
+            {headerContent}
+          </SortableContext>
+        ) : (
+          headerContent
+        )}
+        {rowReorderActive ? (
+          <SortableContext
+            items={rootRowIds}
+            strategy={verticalListSortingStrategy}
+          >
+            {bodyContent}
+          </SortableContext>
+        ) : (
+          bodyContent
+        )}
+        {footerContent}
+      </Table>
+    </FieldTableLayoutContext.Provider>
   )
 
   /*
@@ -3467,6 +3529,8 @@ function buildColumns<T extends RowData>({
   locked,
   getRowLabel,
   selectAllLabel,
+  selectColumnLabel,
+  reorderColumnLabel,
   showSelectAll,
 }: {
   userColumns: ColumnDef<T, unknown>[]
@@ -3475,6 +3539,8 @@ function buildColumns<T extends RowData>({
   locked: boolean
   getRowLabel?: (row: Row<T>) => string
   selectAllLabel: string
+  selectColumnLabel: string
+  reorderColumnLabel: string
   showSelectAll: boolean
 }): ColumnDef<T, unknown>[] {
   const leading: ColumnDef<T, unknown>[] = []
@@ -3482,7 +3548,8 @@ function buildColumns<T extends RowData>({
   if (enableRowReorder) {
     leading.push({
       id: DRAG_COLUMN_ID,
-      header: () => null,
+      // A <th> needs text even when it shows nothing (axe empty-table-header).
+      header: () => <span className="sr-only">{reorderColumnLabel}</span>,
       // Cell body is replaced by the drag handle in renderBodyRow.
       cell: () => null,
       enableSorting: false,
@@ -3510,7 +3577,9 @@ function buildColumns<T extends RowData>({
             }
             onChange={table.getToggleAllRowsSelectedHandler()}
           />
-        ) : null,
+        ) : (
+          <span className="sr-only">{selectColumnLabel}</span>
+        ),
       cell: ({ row }) => (
         <Checkbox
           aria-label={`Select ${getRowLabel?.(row) ?? `row ${row.id}`}`}

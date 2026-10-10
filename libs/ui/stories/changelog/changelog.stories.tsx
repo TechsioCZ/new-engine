@@ -12,6 +12,148 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Textarea v1.0.2
+- \`readonly\` keeps the muted surface and border but uses the normal text colour; it borrowed the disabled text colour (4.39 : 1 on the read-only fill, axe \`color-contrast\` in every brand). Read-only content is meant to be read, unlike disabled.
+
+### Rating v1.1.1
+- A read-only rating keeps its hidden input, so a \`name\`d rating still submits with its form (the v1.1.0 display mode had dropped it). It adds no tab stop.
+
+### Carousel v1.2.3
+- Previous / next ActionIcons keep the carousel trigger colour tokens (\`--color-carousel-trigger-bg|fg-base|hover\`), so apps that restyle the arrows (white circles over banners in herbatika) work again. The defaults match ActionIcon's neutral tone.
+
+### Button v0.3.4
+- \`lg\` uses the shared control height \`h-form-control-lg\` (56 px) like \`sm\` / \`md\` already did. It was padding-derived (56 px in code, 57.5 px in Figma). Buttons and form controls now share one 32 / 44 / 56 scale.
+
+### Select v1.1.3
+- \`lg\` trigger uses \`h-form-control-lg\` (56 px, was 60 px) and \`rounded-select-lg\`; \`xs\` trigger uses \`h-form-control-sm\` and \`rounded-select-sm\`, the same 32 px as \`sm\` (was 30 px). Small trigger text is 16 px like every other small field (token export 2026-10-09).
+
+### Combobox v1.3.3
+- \`lg\` control uses \`h-form-control-lg\` (56 px, was 60 px) and \`rounded-combobox-lg\`.
+
+### CascadeSelect v1.0.3
+- \`xs\` trigger is 32 px like \`sm\` (was 36 px); \`lg\` trigger uses \`h-form-control-lg\` and the new \`rounded-cascade-select-lg\`.
+
+### Tabs v1.0.2
+- Triggers use the control heights \`h-form-control-{sm,md,lg}\` (32 / 44 / 56 px, were 33 / 50 / 68 px), matching the Figma Tabs.Trigger set.
+
+### Rating v1.1.0
+- A \`readOnly\` rating is a display, not a control: it renders one \`role="img"\` named "<labelText>: 4.5 out of 5" with no radios and no tab stop. Before, Zag kept a focusable radiogroup of 20 px stars (axe \`target-size\`). The look is unchanged; interactive and disabled ratings are unchanged.
+
+### ProductCard v1.1.0
+- \`ProductCard.Name\` takes \`as\` (\`h2\`–\`h6\`, default \`h3\`) and \`ProductCardTemplate\` takes \`nameAs\`, so card names can follow the page outline (axe \`heading-order\` on the category page, where cards sat directly under the \`h1\`).
+
+### Slider v1.1.0
+- New \`aria-label\` prop (\`string[]\`, one per thumb) for sliders without a visible \`label\`. Before, such thumbs had no accessible name (axe \`aria-input-field-name\`, serious).
+
+### NumericInput v1.1.2
+- \`NumericInputTemplate\` takes \`aria-label\` / \`aria-labelledby\` and forwards them to the input instead of the root, so a template without a visible label can be named (axe \`label\`, critical, on the template stories).
+
+### Tabs v1.0.1
+- A trigger only sets \`aria-controls\` when its \`Tabs.Content\` is mounted, so a tab strip used as sub-navigation without panels no longer references missing ids (axe \`aria-valid-attr-value\`, critical).
+
+### Steps v1.0.4
+- A trigger only sets \`aria-controls\` when its \`Steps.Content\` is mounted. Steps used as a progress indicator (no content panels) pointed every trigger at a missing id (axe \`aria-valid-attr-value\`, critical).
+
+### Footer v1.0.2
+- \`Footer.List\` wraps every child that is not already an \`<li>\` in one, so the documented \`<Footer.List><Footer.Link /></Footer.List>\` is valid list markup (axe \`list\`, serious). Explicit \`<li>\` children are left as they are.
+
+### DataTable v1.2.3
+- The built-in row-reorder column and the single-select / capped selection column (no select-all checkbox) now have a screen-reader-only header, "Reorder" / "Select" (axe \`empty-table-header\`). Localise them with the new \`translations.reorderColumnLabel\` and \`translations.selectColumnLabel\`.
+
+### SearchForm v1.0.1
+- An icon-only \`SearchForm.Button\` (no children) defaults to \`aria-label="Search"\`; pass your own \`aria-label\` to localise it. Before, it was an unnamed submit button (axe \`button-name\`, critical).
+
+### Pagination v1.0.2
+- A caller's \`aria-label\` now names the \`<nav>\`; Zag's default root label used to overwrite it, so two paginations on one page had the same name (axe \`landmark-unique\`).
+
+### FormInput v1.1.1
+- \`id\` is optional: when it is omitted or empty a generated id links the label to the input. Before, the label pointed at nothing (axe \`label-title-only\` on the Playground story).
+
+### FormTextarea v1.1.1
+- \`id\` is optional: when it is omitted or empty a generated id links the label to the textarea.
+
+### Carousel v1.2.2
+- \`autoplay\` no longer starts when the user prefers reduced motion (facelift C11); the autoplay control still starts it on request.
+
+### Chart v1.1.0
+- \`animate\` now defaults to false when the user prefers reduced motion (facelift C11). An explicit \`animate\` still wins.
+
+### Footer v1.0.1
+- Title and link hovers used \`transition-footer-*\` classes that resolved to no token; they now use \`transition-colors\` with \`motion-reduce:transition-none\` (facelift C11).
+
+### ActionIcon v1.1.0
+- The type now requires an accessible name (facelift C10): \`aria-label\` or \`aria-labelledby\`. An unlabelled \`<ActionIcon icon="…" />\` no longer compiles.
+
+### Carousel v1.2.1
+- Previous / next / autoplay pass Zag's \`aria-label\` explicitly (Zag's English default as fallback) to satisfy the stricter ActionIcon type. No runtime change.
+
+### Combobox v1.3.2
+- The clear trigger passes Zag's \`aria-label\` explicitly (fallback "Clear value") for the stricter ActionIcon type. No runtime change.
+
+### FileUpload v1.0.2
+- The item delete trigger passes Zag's \`aria-label\` explicitly (fallback "Delete file <name>") for the stricter ActionIcon type. No runtime change.
+
+### Tour v1.0.4
+- The close trigger falls back to "Close tour" when neither the caller nor Zag provides a name (stricter ActionIcon type).
+
+### Icon v1.1.0
+- New \`label\` prop (facelift C9): a meaningful standalone icon renders as \`role="img"\` with that accessible name. Without \`label\` the icon stays \`aria-hidden\` as before.
+
+### Accordion v1.0.2
+- \`Accordion.Header\` renders the APG heading (\`role="heading"\`, \`aria-level\` 3 by default, overridable) instead of a bare \`<header>\`, which created one \`banner\` landmark per item (axe \`landmark-no-duplicate-banner\`, \`landmark-unique\`, \`landmark-banner-is-top-level\`). The ref is now \`Ref<HTMLDivElement>\`.
+
+### PhoneInput v1.0.3
+- The country trigger (a \`role="combobox"\`, which takes no name from its content) gets a default accessible name, \`Country: <selected country>\` — axe \`button-name\` (critical) on every PhoneInput story (facelift C5). Pass \`aria-label\` or \`aria-labelledby\` on \`PhoneInput.CountryTrigger\` (or \`triggerProps\`) to localise it.
+
+### Select v1.1.2
+- \`Select.StatusText\` is linked to the trigger through \`aria-describedby\` while it is mounted (facelift C4), so screen readers read the helper or error text when the trigger is focused. A caller's own \`aria-describedby\` is kept.
+
+### Switch v1.0.1
+- \`helpText\` is linked to the switch input through \`aria-describedby\` (facelift C4).
+
+### Slider v1.0.2
+- \`helpText\` is linked to each thumb (the focusable \`role="slider"\`) through \`aria-describedby\` (facelift C4).
+
+### RadioGroup v1.0.1
+- \`RadioGroup.StatusText\` is linked to the \`radiogroup\` root through \`aria-describedby\` while it is mounted (facelift C4).
+
+### PhoneInput v1.0.2
+- \`PhoneInput.StatusText\` is linked to the phone input through \`aria-describedby\` while it is mounted (facelift C4). A caller's own \`aria-describedby\` is kept.
+
+### StatusText v1.0.1
+- Validation feedback is announced (facelift C4): \`status="error"\` renders \`role="alert"\`, \`warning\`/\`success\` render \`role="status"\`. Plain helper text has no live role; a \`role\` prop still wins.
+
+### Carousel v1.2.0
+- Off-screen slides are \`inert\`, not just \`aria-hidden\`: links or buttons on hidden slides left the tab order (facelift C5, axe \`aria-hidden-focus\`).
+- New \`aria-label\` prop names the carousel region; give each carousel on a page its own name (axe \`landmark-unique\`). Stories with several carousels are labelled.
+
+### Steps v1.0.3
+- Fixed axe \`aria-required-children\` (critical): Zag's \`role="tablist"\` contained \`div[aria-current]\` items. Items are now \`role="presentation"\` and \`aria-current="step"\` moves to the tab. Separators are \`aria-hidden\`.
+- \`Steps.Progress\` has a default accessible name (\`aria-label="Steps progress"\`, overridable) — axe \`aria-progressbar-name\`.
+
+### Steps v1.0.2
+- Contrast facelift (Figma 2026-10-08): indicators on the 24 / 32 / 40 px Action Icon scale; current number, complete check and complete title now pass WCAG AA in all six brand/mode combinations (were 1.81 / 2.46 / 2.46 : 1 in light).
+- The \`solid\` variant's current title uses the new \`--color-steps-title-fg-solid-current\` (neutral foreground) instead of accent text on the accent tint.
+
+### Carousel v1.1.0
+- Prev / next / autoplay are now \`ActionIcon\`s (facelift B9) sized from the carousel \`size\`: \`sm\` 24 px, \`md\` 32 px, \`lg\`/\`full\` 40 px — matching the Figma CarouselControl.
+- \`Carousel.Indicator\` is a 24 px target (WCAG 2.2 target size, was 16 px) with an 8 px dot inside; \`children\` still replace the dot. Inactive dots are now visible against the control bar (4.4 : 1 light, was 1 : 1).
+- Autoplay keeps an opaque control surface because it sits over the slide image.
+
+### DataTable v1.2.2
+- \`tableLayout="fixed"\` now honours declared column widths with enum filters: the filter select no longer reserves a min-width wider than its column (it fills the cell instead), so long option labels cannot stretch the column or overflow into the next one.
+- Under \`tableLayout="fixed"\` the built-in actions column is sized to its widest rendered actions cell instead of collapsing to 0 px.
+- Akros Orders demo uses the fixed layout, so the shipping / pickup-point column keeps its 280 px at 1440 px instead of sliding under the pinned actions.
+
+### FormNumericInput v1.1.1
+- The label is always linked to the input: without an \`id\` the label pointed at nothing while Zag generated its own input id (axe \`label\`, critical). A generated id is now used when none is passed.
+
+### Pagination v1.0.1
+- Fixed axe \`aria-prohibited-attr\` on the disabled prev/next triggers: without a page to go to they now render as an \`aria-disabled\` \`<button type="button">\` instead of an \`<a>\` with no \`href\`, so the Zag \`aria-label\` is valid. Also fixes DataTable pagination, which composes Pagination.
+
+### Skeleton v1.0.2
+- Fixed axe \`aria-prohibited-attr\`: the root and standalone shapes are now \`role="status"\` (a role that permits \`aria-label\`), shapes inside \`<Skeleton>\` are \`aria-hidden\` so a group announces once, and a consumer-hidden shape (\`aria-hidden\`) gets no status semantics.
+
 ### Table v1.2.1
 - Switched the border between header and cell columns from physical border-r to logical border-e for RTL.
 

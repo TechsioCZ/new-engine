@@ -2,7 +2,7 @@
  * Switch — @techsio/ui-kit molecule.
  *
  * @component Switch
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill switch-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -96,6 +96,7 @@ export function Switch({
 }: SwitchProps) {
   const generatedId = useId()
   const uniqueId = id || generatedId
+  const helpTextId = `${uniqueId}-help`
 
   const service = useMachine(zagSwitch.machine, {
     id: uniqueId,
@@ -120,7 +121,12 @@ export function Switch({
   return (
     <div className={className}>
       <Label className={root()} required={required} {...api.getRootProps()}>
-        <input className={hiddenInput()} {...api.getHiddenInputProps()} />
+        <input
+          className={hiddenInput()}
+          {...api.getHiddenInputProps()}
+          // The help/error text is otherwise not associated with the switch.
+          aria-describedby={helpText ? helpTextId : undefined}
+        />
         <span className={control()} {...api.getControlProps()}>
           <span className={thumb()} {...api.getThumbProps()} />
         </span>
@@ -132,9 +138,10 @@ export function Switch({
       </Label>
       {helpText && (
         <StatusText
-          status={validateStatus}
+          id={helpTextId}
           showIcon={showHelpTextIcon}
           size="sm"
+          status={validateStatus}
         >
           {helpText}
         </StatusText>

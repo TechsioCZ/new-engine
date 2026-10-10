@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -619,6 +619,7 @@ FileUpload.ItemDeleteTrigger = function FileUploadItemDeleteTrigger({
       tone="neutral"
       type="button"
       {...deleteProps}
+      aria-label={deleteProps["aria-label"] ?? `Delete file ${file.name}`}
     />
   )
 }

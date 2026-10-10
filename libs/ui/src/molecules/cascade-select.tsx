@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -148,7 +148,8 @@ export const cascadeSelectVariants = tv({
   variants: {
     size: {
       xs: {
-        trigger: "p-cascade-select-trigger-sm text-cascade-select-trigger-xs",
+        trigger:
+          "h-form-control-sm rounded-cascade-select-sm p-cascade-select-trigger-sm text-cascade-select-trigger-xs",
         content: "popup-size-xs text-cascade-select-item-xs",
         valueText: "text-cascade-select-value-xs",
       },
@@ -165,7 +166,8 @@ export const cascadeSelectVariants = tv({
         valueText: "text-cascade-select-value-md",
       },
       lg: {
-        trigger: "p-cascade-select-trigger-md text-cascade-select-trigger-lg",
+        trigger:
+          "h-form-control-lg rounded-cascade-select-lg p-cascade-select-trigger-md text-cascade-select-trigger-lg",
         content: "popup-size-lg text-cascade-select-item-lg",
         valueText: "text-cascade-select-value-lg",
       },

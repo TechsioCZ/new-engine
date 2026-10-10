@@ -473,7 +473,7 @@ export const Validation: Story = {
           <Steps.Content index={0}>
             <div className="flex flex-col gap-150">
               <Badge variant="success">Looks good</Badge>
-              <Input defaultValue="Ada Lovelace" readOnly variant="success" />
+              <Input aria-label="Full name" defaultValue="Ada Lovelace" readOnly variant="success" />
               <p className="text-sm text-fg-secondary">
                 Validation UI can live inside the panel content without adding a
                 dedicated validation API to the stepper itself.
@@ -484,8 +484,8 @@ export const Validation: Story = {
           <Steps.Content index={1}>
             <div className="flex flex-col gap-150">
               <Badge variant="warning">Needs attention</Badge>
-              <Input defaultValue="team@" readOnly variant="error" />
-              <p className="text-sm text-danger">
+              <Input aria-label="Email" defaultValue="team@" readOnly variant="error" />
+              <p className="text-sm text-fg-accent-danger">
                 Example only: this panel shows how an invalid state can be composed.
               </p>
             </div>

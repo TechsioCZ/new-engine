@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,10 +10,12 @@
  * the footer-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
+  Children,
   type ComponentPropsWithoutRef,
   createContext,
   type ElementType,
   type HTMLAttributes,
+  isValidElement,
   type ReactNode,
   useContext,
 } from "react"
@@ -28,10 +30,10 @@ const footerVariants = tv({
     section: "bg-footer-section-bg",
     list: "flex list-none flex-col gap-footer-list bg-footer-list-bg",
     bottom:
-      "flex w-full items-center justify-between border-t-(length:--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
+      "border-t-(length:--border-footer-width) flex w-full items-center justify-between bg-footer-bottom-bg pt-footer-bottom",
     title:
-      "font-footer-title text-footer-title-fg transition-footer-title hover:text-footer-title-fg-hover",
-    link: "font-footer-link text-footer-link-fg transition-footer-link hover:text-footer-link-fg-hover",
+      "font-footer-title text-footer-title-fg transition-colors duration-200 hover:text-footer-title-fg-hover motion-reduce:transition-none",
+    link: "font-footer-link text-footer-link-fg transition-colors duration-200 hover:text-footer-link-fg-hover motion-reduce:transition-none",
     text: "text-footer-text-fg",
     divider: "flex h-footer-divider w-full border-0 bg-footer-divider-bg",
   },
@@ -248,7 +250,11 @@ Footer.List = function FooterList({
   const { list } = footerVariants({ size })
   return (
     <ul className={list({ className })} {...props}>
-      {children}
+      {/* A <ul> may only own <li>; wrap bare links so both
+          <Footer.List><Footer.Link /></Footer.List> and explicit <li>s work. */}
+      {Children.map(children, (child) =>
+        isValidElement(child) && child.type !== "li" ? <li>{child}</li> : child
+      )}
     </ul>
   )
 }

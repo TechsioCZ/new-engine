@@ -6,7 +6,7 @@ description: >
   numeric compatibility or controlled string drafts, locale formatting, min/max/step, and token-first
   styling.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -95,6 +95,10 @@ allowMouseWheel, allowOverflow, clampValueOnBlur, spinOnPress, formatOptions
 Pass native input attributes such as `autoFocus`, `aria-label` and
 `aria-labelledby` to `NumericInput.Input`. Automatic focus is synchronized with
 Zag so typing and arrow keys work immediately after mount.
+
+`NumericInputTemplate` forwards its own `aria-label` / `aria-labelledby` to the
+input (not the root), so an unlabelled template still has a name:
+`<NumericInputTemplate aria-label="Quantity" />`.
 
 ## Core Patterns
 

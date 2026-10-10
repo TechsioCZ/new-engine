@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit template.
  *
  * @component ProductCard
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -20,6 +20,8 @@ export interface ProductCardTemplateProps
     alt: string
   }
   name?: string
+  /** Heading level of the name, to fit the page outline (`h3` by default). */
+  nameAs?: "h2" | "h3" | "h4" | "h5" | "h6"
   price?: string
   originalPrice?: string
   badges?: BadgeProps[]
@@ -47,6 +49,7 @@ export interface ProductCardTemplateProps
 export function ProductCardTemplate({
   image,
   name,
+  nameAs,
   price,
   originalPrice,
   badges,
@@ -92,7 +95,7 @@ export function ProductCardTemplate({
         </ProductCard.Badges>
       )}
 
-      {name && <ProductCard.Name>{name}</ProductCard.Name>}
+      {name && <ProductCard.Name as={nameAs}>{name}</ProductCard.Name>}
 
       {(price || originalPrice) && (
         <div className="flex items-baseline gap-100">
@@ -112,9 +115,7 @@ export function ProductCardTemplate({
             }}
           />
           {rating.reviewCount && (
-            <span className="text-sm">
-              ({rating.reviewCount})
-            </span>
+            <span className="text-sm">({rating.reviewCount})</span>
           )}
         </div>
       )}

@@ -291,6 +291,7 @@ function FacetPanel({
         </Accordion.Header>
         <Accordion.Content>
           <Slider
+            aria-label={["Minimum price", "Maximum price"]}
             formatValue={(value) => priceFormatter.format(value)}
             max={PRICE_MAX}
             onChange={onPriceChange}
@@ -372,6 +373,7 @@ function ProductGrid({ products }: { products: StorefrontProduct[] }) {
       {products.map((product) => (
         <ProductCardTemplate
           className="h-full"
+          nameAs="h2"
           badges={
             product.badge
               ? [

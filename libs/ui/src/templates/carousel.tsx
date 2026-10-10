@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit template.
  *
  * @component Carousel
- * @componentVersion v1.0.0
+ * @componentVersion v1.2.3
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

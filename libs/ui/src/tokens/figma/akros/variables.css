@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-09-24T06:56:20.880Z
+ * Exported at: 2026-10-09T13:05:09.656Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -12,6 +12,7 @@
   --color-bg-badge-danger-solid: var(--color-bg-danger-base);
   --color-bg-badge-primary-solid: var(--color-bg-primary-base);
   --color-bg-badge-secondary-solid: var(--color-bg-secondary-base);
+  --color-bg-control-checked: var(--color-success-600);
   --color-bg-danger-active: var(--color-danger-700);
   --color-bg-danger-base: var(--color-danger-500);
   --color-bg-danger-hover: var(--color-danger-600);
@@ -65,14 +66,19 @@
   --color-black-15: oklch(0 0 0 / 0.15);
   --color-black-5: oklch(0 0 0 / 0.05);
   --color-blue-500: var(--color-tertiary-600);
-  --color-border-danger-focus: var(--color-danger-500);
+  --color-border-control: var(--color-neutral-500);
+  --color-border-control-selected: var(--color-tertiary-500);
+  --color-border-danger: var(--color-fg-accent-danger);
+  --color-border-danger-focus: var(--color-border-danger);
   --color-border-danger-hover: var(--color-danger-600);
   --color-border-disabled: var(--color-neutral-300);
   --color-border-primary: var(--color-neutral-300);
   --color-border-secondary: var(--color-border-primary);
-  --color-border-success-focus: var(--color-success-500);
+  --color-border-success: var(--color-fg-accent-success);
+  --color-border-success-focus: var(--color-border-success);
   --color-border-success-hover: var(--color-success-600);
-  --color-border-warning-focus: var(--color-warning-500);
+  --color-border-warning: var(--color-fg-accent-warning);
+  --color-border-warning-focus: var(--color-border-warning);
   --color-border-warning-hover: var(--color-warning-600);
   --color-danger: var(--color-danger-500);
   --color-danger-100: oklch(0.949 0.025 17.604);
@@ -104,16 +110,22 @@
   --color-fg-icon-tree: var(--color-black);
   --color-fg-light: var(--color-white);
   --color-fg-on-accent-solid: var(--color-white);
+  --color-fg-on-danger: var(--color-fg-on-accent-solid);
   --color-fg-on-primary-indicator: var(--color-black);
   --color-fg-on-primary-solid: var(--color-black);
   --color-fg-on-primary-solid-neo: var(--color-black);
-  --color-fg-placeholder: var(--color-neutral-400);
+  --color-fg-on-secondary: var(--color-base-dark);
+  --color-fg-on-selected: var(--color-fg-primary);
+  --color-fg-on-tertiary: var(--color-fg-on-accent-solid);
+  --color-fg-on-tint: var(--color-base-dark);
+  --color-fg-on-warning: var(--color-base-dark);
+  --color-fg-placeholder: var(--color-neutral-600);
   --color-fg-primary: var(--color-black);
   --color-fg-reverse: var(--color-white);
   --color-fg-secondary: var(--color-neutral-600);
   --color-fg-status-error: var(--color-danger-600);
   --color-fg-status-success: var(--color-success-600);
-  --color-fg-status-warning: var(--color-warning-700);
+  --color-fg-status-warning: var(--color-warning-800);
   --color-fill-active: var(--color-black-15);
   --color-fill-base: var(--color-black-5);
   --color-fill-borderless-active: var(--color-fill-active);
@@ -131,6 +143,10 @@
   --color-info: var(--color-bg-info);
   --color-info-disabled: var(--color-bg-disabled);
   --color-link: var(--color-black);
+  --color-mix-vertical-navigation-accent-light: oklch(0.947 0.024 88.236);
+  --color-mix-vertical-navigation-indicator-hover: oklch(0 0 0);
+  --color-mix-vertical-navigation-item-current: oklch(0.929 0.048 85.783);
+  --color-mix-vertical-navigation-secondary-light: oklch(0.916 0.028 138.724);
   --color-neutral-100: oklch(0.964 0.002 247.84);
   --color-neutral-200: oklch(0.937 0 0);
   --color-neutral-300: oklch(0.848 0 0);
@@ -276,12 +292,14 @@
   --dimension-150-min: var(--dimension-8);
   --dimension-16: 1rem;
   --dimension-18: 1.13rem;
+  --dimension-192: 12rem;
   --dimension-2: 0.13rem;
   --dimension-20: 1.25rem;
   --dimension-200-max: var(--dimension-16);
   --dimension-200-min: var(--dimension-14);
   --dimension-22: 1.38rem;
   --dimension-24: 1.5rem;
+  --dimension-240: 15rem;
   --dimension-250-max: var(--dimension-20);
   --dimension-250-min: var(--dimension-18);
   --dimension-26: 1.63rem;
@@ -370,6 +388,7 @@
   --duration-fast: 1ms;
   --duration-normal: 2ms;
   --duration-slow: 3ms;
+  --line-height-21: 1.31rem;
   --line-height-24: 1.5rem;
   --line-height-30: 1.88rem;
   --line-height-36: 2.25rem;

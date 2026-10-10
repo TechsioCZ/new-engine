@@ -37,6 +37,8 @@ const meta = {
     onChange: { action: 'changed' },
   },
   args: {
+    // Standalone checkboxes have no visible label; give the control a name.
+    'aria-label': 'Accept terms',
     invalid: false,
     required: false,
   },

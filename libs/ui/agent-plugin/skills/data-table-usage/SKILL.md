@@ -8,7 +8,7 @@ description: >
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.2.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

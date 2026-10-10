@@ -8,6 +8,7 @@ const size = figma.selectedInstance.getEnum("size", {
   sm: "sm",
   md: "md",
   lg: "lg",
+  full: "full",
 })
 const align = figma.selectedInstance.getEnum("Alignment", {
   Left: "start",

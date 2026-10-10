@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -104,8 +104,10 @@ type ProductCardImageProps<T extends ElementType = typeof Image> = {
   className?: string
 } & Partial<ComponentPropsWithoutRef<T>>
 
-interface ProductCardNameProps extends HTMLAttributes<HTMLHeadingElement> {
+type ProductCardNameProps = HTMLAttributes<HTMLHeadingElement> & {
   children: ReactNode
+  /** Heading level that fits the page outline (`h3` by default). */
+  as?: "h2" | "h3" | "h4" | "h5" | "h6"
   ref?: Ref<HTMLHeadingElement>
 }
 
@@ -178,6 +180,7 @@ ProductCard.Image = function ProductCardImage<
 }
 
 ProductCard.Name = function ProductCardName({
+  as: Heading = "h3",
   children,
   className,
   ref,
@@ -187,9 +190,9 @@ ProductCard.Name = function ProductCardName({
   const { nameSlot } = productCardVariants({ layout: context.layout })
 
   return (
-    <h3 className={nameSlot({ className })} ref={ref} {...props}>
+    <Heading className={nameSlot({ className })} ref={ref} {...props}>
       {children}
-    </h3>
+    </Heading>
   )
 }
 

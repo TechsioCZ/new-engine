@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.3.1"
+  component_version: "1.3.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

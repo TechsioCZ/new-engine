@@ -134,10 +134,10 @@ export const SimpleHeader: Story = {
           <Header.Hamburger className="relative left-11/12" />
         </Header>
 
-        <div className="w-2xl">
+        <section aria-label="Narrow container preview" className="w-2xl">
           <Header>
             <Header.Desktop>
-              <Header.Nav>
+              <Header.Nav aria-label="Main, narrow preview">
                 <Header.NavItem active>
                   <Link href="/">Home</Link>
                 </Header.NavItem>
@@ -196,7 +196,7 @@ export const SimpleHeader: Story = {
             </Header.Mobile>
             <Header.Hamburger className="relative left-11/12" />
           </Header>
-        </div>
+        </section>
       </div>
     )
   },
@@ -215,10 +215,10 @@ Sizes are inherited via Context, but can be overridden per subcomponent.
   },
   render: () => (
     <div className="flex flex-col gap-400">
-      <div>
+      <section aria-label="Header, small">
         <p className="mb-100 ">Small</p>
         <Header size="sm">
-          <Header.Nav>
+          <Header.Nav aria-label="Main, small">
             <Header.NavItem>
               <Link href="/">Home</Link>
             </Header.NavItem>
@@ -231,11 +231,11 @@ Sizes are inherited via Context, but can be overridden per subcomponent.
             </Header.ActionItem>
           </Header.Actions>
         </Header>
-      </div>
-      <div>
+      </section>
+      <section aria-label="Header, medium">
         <p className="mb-100">Medium (Default)</p>
         <Header size="md">
-          <Header.Nav>
+          <Header.Nav aria-label="Main, medium">
             <Header.NavItem>
               <Link href="/">Home</Link>
             </Header.NavItem>
@@ -248,11 +248,11 @@ Sizes are inherited via Context, but can be overridden per subcomponent.
             </Header.ActionItem>
           </Header.Actions>
         </Header>
-      </div>
-      <div>
+      </section>
+      <section aria-label="Header, large">
         <p className="mb-100">Large</p>
         <Header size="lg">
-          <Header.Nav>
+          <Header.Nav aria-label="Main, large">
             <Header.NavItem>
               <Link href="/">Home</Link>
             </Header.NavItem>
@@ -265,7 +265,7 @@ Sizes are inherited via Context, but can be overridden per subcomponent.
             </Header.ActionItem>
           </Header.Actions>
         </Header>
-      </div>
+      </section>
     </div>
   ),
 }
@@ -286,12 +286,12 @@ export const MobilePositioning: Story = {
   },
   render: () => (
     <div className="flex w-2xl flex-col gap-400">
-      <div className="mb-900">
+      <section aria-label="Header, menu left" className="mb-900">
         <p className="mb-100 ">position="left"</p>
         <Header>
           <Header.Hamburger />
           <Header.Mobile position="left">
-            <Header.Nav className="gap-y-0">
+            <Header.Nav aria-label="Main, menu left" className="gap-y-0">
               <Header.NavItem>
                 <Link href="/">Home</Link>
               </Header.NavItem>
@@ -301,7 +301,7 @@ export const MobilePositioning: Story = {
             </Header.Nav>
           </Header.Mobile>
         </Header>
-      </div>
+      </section>
 
       <div>
         <p className="mb-100 ">position="right" (default)</p>
@@ -458,10 +458,10 @@ export const NestedSubmenu: Story = {
           </Header.Container>
           <Header.Hamburger />
         </Header>
-        <div className="w-2xl">
+        <section aria-label="Narrow container preview" className="w-2xl">
           <Header>
             <Header.Desktop>
-              <Header.Nav>
+              <Header.Nav aria-label="Main, narrow preview">
                 <Header.NavItem>
                   <Link href="/">Home</Link>
                 </Header.NavItem>
@@ -594,7 +594,7 @@ export const NestedSubmenu: Story = {
             </Header.Container>
             <Header.Hamburger />
           </Header>
-        </div>
+        </section>
       </div>
     )
   },
@@ -694,14 +694,14 @@ export const EcommerceLayout: Story = {
           <Header.Hamburger />
         </Header>
 
-        <div className="w-2xl">
+        <section aria-label="Narrow container preview" className="w-2xl">
           <Header>
             <Header.Container className="items-center" position="start">
               <div className="font-bold text-lg">StoreBrand</div>
             </Header.Container>
 
             <Header.Desktop>
-              <Header.Nav>
+              <Header.Nav aria-label="Main, narrow preview">
                 <Header.NavItem>
                   <Link href="/">Home</Link>
                 </Header.NavItem>
@@ -775,7 +775,7 @@ export const EcommerceLayout: Story = {
             </Header.Container>
             <Header.Hamburger />
           </Header>
-        </div>
+        </section>
       </div>
     )
   },
@@ -813,10 +813,10 @@ export const DrawerSubmenu: Story = {
       { name: 'Sports', icon: 'icon-[mdi--basketball]', href: '/sports' },
     ]
 
-    const HeaderContent = () => (
+    const HeaderContent = ({ navLabel }: { navLabel?: string }) => (
       <>
         <Header.Desktop>
-          <Header.Nav className="z-50">
+          <Header.Nav aria-label={navLabel} className="z-50">
             <Header.NavItem>
               <Link href="/">Home</Link>
             </Header.NavItem>
@@ -921,11 +921,11 @@ export const DrawerSubmenu: Story = {
           <HeaderContent />
         </Header>
 
-        <div className="w-2xl">
+        <section aria-label="Narrow container preview" className="w-2xl">
           <Header>
-            <HeaderContent />
+            <HeaderContent navLabel="Main, narrow preview" />
           </Header>
-        </div>
+        </section>
       </div>
     )
   },

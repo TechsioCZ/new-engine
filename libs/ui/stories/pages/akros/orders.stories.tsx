@@ -332,6 +332,10 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
                     getRowId={(row) => row.id}
                     getRowLabel={(row) => `Order ${row.original.number}`}
                     onRowSelectionChange={setSelection}
+                    // Declared widths are exact: under "auto" the enum filter
+                    // selects stretched State/Payment/ABRA and pushed the
+                    // shipping column under the pinned actions.
+                    tableLayout="fixed"
                     renderEmpty={() => (
                       <p className="p-350 text-center text-fg-secondary text-sm">
                         Nothing in this view — the backlog is clear.

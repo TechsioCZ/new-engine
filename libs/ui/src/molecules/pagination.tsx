@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -262,7 +262,13 @@ export function Pagination<T extends ElementType = "a">({
     variant,
     size,
   })
-  const rootProps = mergeProps(props, api.getRootProps())
+  // Zag's root aria-label (translations.rootLabel) would overwrite the
+  // caller's; a page with two paginations needs distinct names.
+  const rootProps = mergeProps(
+    props,
+    api.getRootProps(),
+    props["aria-label"] ? { "aria-label": props["aria-label"] } : {}
+  )
 
   const sharedLinkProps =
     linkProps && typeof linkProps === "object"
@@ -288,9 +294,13 @@ export function Pagination<T extends ElementType = "a">({
       baseTriggerProps,
       {
         ...(isNavigable && linkAs ? { as: linkAs } : {}),
+        // Without an href an <a> has no role, so Zag's aria-label on the
+        // disabled prev/next trigger is prohibited. Render a real button.
         ...(isNavigable
           ? {}
           : {
+              as: "button",
+              type: "button",
               disabled: true,
             }),
       }
