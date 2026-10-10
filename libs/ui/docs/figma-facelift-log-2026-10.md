@@ -382,3 +382,22 @@ Remaining `color-contrast` failures, not counting the APCA test stories (failing
 All Figma fixes above resolve to ≥ 4.5 : 1 in every mode. They need the next export.
 
 - [ ] After the next export: re-run the sweep in all six modes and tick the item above.
+
+### Button hover and pressed states (2026-10-10)
+
+The story sweep only sees resting states. Checking every button bg state against its fg in Figma found
+15 pairs under 4.5 : 1, for example Business secondary pressed at 2.75 : 1. Fixed in the Theme collection:
+
+| Token | Modes | New value |
+| --- | --- | --- |
+| `bg/secondary/hover`, `/active` | Light, neo-light, Business, Akros | secondary/400, /300 |
+| `bg/tertiary/hover`, `/active` | Light, neo-light | tertiary/200, /100 |
+| `bg-light/primary/active` | Dark | primary/900 |
+| `bg-light/secondary/active`, `bg-light/warning/active` | Dark, neo-dark | /900 |
+| `bg-outlined/primary/hover`, `/active` | neo-dark | primary/900, /800 (were pale pink under white text) |
+
+Rule: fills under dark text lighten on hover and press (Dark already did this); fills under white text darken
+on press. Every button state now passes in all six modes.
+
+VerticalNavigation: `group-bg-subtle` → `vertical-navigation/surface` and `group-bg-accent` →
+`vertical-navigation/accent-light`, as on master. Both need the next export.
