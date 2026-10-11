@@ -56,8 +56,8 @@ publicHoistPattern:
 overrides:
   # Storybook's runner accepts these versions; share the browser revision with
   # the workspace CLI and Playwright container used to install Chromium.
-  '@storybook/test-runner@0.26.0>playwright': 1.63.0
-  '@storybook/test-runner@0.26.0>playwright-core': 1.63.0
+  '@storybook/test-runner@0.26.0>playwright': 1.64.0
+  '@storybook/test-runner@0.26.0>playwright-core': 1.64.0
   # Keep applications outside this design-system upgrade on their existing
   # React and Node type providers. The UI package owns its latest providers.
   'frontend-demo>react': 19.2.3

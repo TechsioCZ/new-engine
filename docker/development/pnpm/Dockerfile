@@ -1,4 +1,4 @@
-FROM node:26.10.0-bookworm-slim AS base
+FROM node:26.11.1-bookworm-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 

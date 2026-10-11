@@ -79,7 +79,7 @@ jobs:
       checks: write
     uses: TechsioCZ/storybook-addons/.github/workflows/storybook-a11y.yml@b52eaf44688051b19eb989fab7b6ab721ce1a2d1 # storybook-a11y-workflow-v0.1.9
     with:
-      node-version: "26.10.0"
+      node-version: "26.11.1"
       pnpm-version: ""
       working-directory: libs/ui
       # Install the browser as part of the dependency step. The reusable
