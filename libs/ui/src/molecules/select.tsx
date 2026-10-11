@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -59,7 +59,7 @@ const selectVariants = tv({
       "group",
       "flex items-center justify-between gap-0",
       "font-normal",
-      "text-left",
+      "text-start",
       "hover:bg-select-trigger-bg-hover",
       "hover:border-select-trigger-border-hover",
       "focus:border-select-trigger-border-focus",
@@ -86,7 +86,7 @@ const selectVariants = tv({
     ],
     // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
     // its own size, glyph and neutral hover pill.
-    clearTrigger: ["absolute top-1/2 right-select-right -translate-y-1/2"],
+    clearTrigger: ["absolute top-1/2 end-select-right -translate-y-1/2"],
     content: [
       "popup-surface-base",
       "w-full",

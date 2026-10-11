@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.3.2
+ * @componentVersion v0.3.3
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,7 +19,9 @@ export const buttonVariants = tv({
     "relative",
     "inline-flex cursor-pointer items-center justify-center",
     "font-medium",
-    "transition-all duration-200 motion-reduce:transition-none",
+    "transition duration-200 motion-reduce:transition-none",
+    // Press feedback; the tap highlight is disabled globally.
+    "motion-safe:not-disabled:active:scale-97",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
     "focus-visible:outline-button-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -300,7 +302,7 @@ export function Button({
     >
       {isLoading ? (
         <>
-          <Icon className="mr-2" icon="token-icon-button-spinner" />
+          <Icon className="me-2" icon="token-icon-button-spinner" />
           {loadingText || children}
         </>
       ) : (

@@ -11,5 +11,5 @@
  */
 
 @theme static {
-  --color-badge-border: oklch(0 0 0 / 0);
+  --color-badge-border: oklch(0 0 none / 0);
 }
