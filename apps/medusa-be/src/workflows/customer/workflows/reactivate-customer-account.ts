@@ -1,12 +1,12 @@
 import {
-  setAuthAppMetadataStep,
-  updateCustomersWorkflow,
-} from "@medusajs/core-flows"
-import {
   createWorkflow,
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import {
+  setAuthAppMetadataStep,
+  updateCustomersWorkflow,
+} from "@medusajs/medusa/core-flows"
 import { ensureReactivatedCustomerStep } from "../steps/ensure-reactivated-customer"
 import { markCustomerAccountActiveStep } from "../steps/mark-customer-account-active"
 import {
