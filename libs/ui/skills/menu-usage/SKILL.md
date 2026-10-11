@@ -5,7 +5,7 @@ description: >
   action, radio, checkbox, separator, or submenu items using the Zag.js menu
   wrapper, Button trigger, icons, and supported open/highlight/select props.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -85,52 +85,52 @@ describe("send forgot password notification", () => {
     vi.clearAllMocks()
   })
 
-  it.each(MARKETS)("builds a canonical $countryCode reset URL", async ({
-    countryCode,
-    domain,
-    locale,
-    resetPath,
-  }) => {
-    await import("../../../../src/workflows/send-forgot-password")
-    resolveNotificationMarketContext.mockResolvedValue({
-      country_code: countryCode,
-      locale,
-      market_code: countryCode,
-      sales_channel_id: ["sc_", countryCode].join(""),
-      storefront_base_url: ["https://", domain].join(""),
-      storefront_domain: domain,
-    })
-
-    const step = workflowSdkMock.steps.get("build-forgot-password-notification")
-    const result = (await step?.(
-      {
-        email: " customer+reset@example.test ",
-        storefrontMarketCode: ` ${countryCode} `,
-        token: " token/value ",
-      },
-      { container: { resolve: vi.fn() } }
-    )) as { output: Array<{ data: Record<string, unknown>; to: string }> }
-
-    expect(result.output[0]).toMatchObject({
-      data: {
+  it.each(MARKETS)(
+    "builds a canonical $countryCode reset URL",
+    async ({ countryCode, domain, locale, resetPath }) => {
+      await import("../../../../src/workflows/send-forgot-password")
+      resolveNotificationMarketContext.mockResolvedValue({
         country_code: countryCode,
         locale,
-        reset_url: [
-          "https://",
-          domain,
-          resetPath,
-          "/token%2Fvalue?email=customer%2Breset%40example.test",
-        ].join(""),
+        market_code: countryCode,
+        sales_channel_id: ["sc_", countryCode].join(""),
         storefront_base_url: ["https://", domain].join(""),
-      },
-      to: "customer+reset@example.test",
-    })
-    expect(resolveNotificationMarketContext).toHaveBeenCalledWith(
-      expect.anything(),
-      { countryCode }
-    )
-    expect(resolveCustomerNotificationMarketContext).not.toHaveBeenCalled()
-  })
+        storefront_domain: domain,
+      })
+
+      const step = workflowSdkMock.steps.get(
+        "build-forgot-password-notification"
+      )
+      const result = (await step?.(
+        {
+          email: " customer+reset@example.test ",
+          storefrontMarketCode: ` ${countryCode} `,
+          token: " token/value ",
+        },
+        { container: { resolve: vi.fn() } }
+      )) as { output: Array<{ data: Record<string, unknown>; to: string }> }
+
+      expect(result.output[0]).toMatchObject({
+        data: {
+          country_code: countryCode,
+          locale,
+          reset_url: [
+            "https://",
+            domain,
+            resetPath,
+            "/token%2Fvalue?email=customer%2Breset%40example.test",
+          ].join(""),
+          storefront_base_url: ["https://", domain].join(""),
+        },
+        to: "customer+reset@example.test",
+      })
+      expect(resolveNotificationMarketContext).toHaveBeenCalledWith(
+        expect.anything(),
+        { countryCode }
+      )
+      expect(resolveCustomerNotificationMarketContext).not.toHaveBeenCalled()
+    }
+  )
 
   it("falls back to customer context when request metadata has no market", async () => {
     await import("../../../../src/workflows/send-forgot-password")

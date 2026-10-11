@@ -80,17 +80,16 @@ describe("review market scope", () => {
     expect(listStorefrontUrlAssignments).toHaveBeenCalledTimes(4)
   })
 
-  it.each([
-    "cz",
-    "hu",
-    "ro",
-  ] as const)("rejects a catalog channel assigned to %s", async (market) => {
-    const { request } = catalogRequest({ market })
+  it.each(["cz", "hu", "ro"] as const)(
+    "rejects a catalog channel assigned to %s",
+    async (market) => {
+      const { request } = catalogRequest({ market })
 
-    await expect(hasExactSlovakReviewScope(request as never)).resolves.toBe(
-      false
-    )
-  })
+      await expect(hasExactSlovakReviewScope(request as never)).resolves.toBe(
+        false
+      )
+    }
+  )
 
   it("fails closed for missing, ambiguous, or unavailable channel scope", async () => {
     for (const salesChannelIds of [null, [], ["sc_sk", "sc_ro"]]) {

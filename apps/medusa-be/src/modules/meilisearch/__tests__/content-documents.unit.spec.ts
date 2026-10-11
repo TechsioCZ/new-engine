@@ -75,11 +75,10 @@ describe("content search documents", () => {
     ).toBeUndefined()
   })
 
-  it.each([
-    "/blog/article",
-    "/informace/kontakt",
-    "/",
-  ])("accepts a public path %s", (href) => {
-    expect(readCanonicalPublicHref(href)).toBe(href)
-  })
+  it.each(["/blog/article", "/informace/kontakt", "/"])(
+    "accepts a public path %s",
+    (href) => {
+      expect(readCanonicalPublicHref(href)).toBe(href)
+    }
+  )
 })

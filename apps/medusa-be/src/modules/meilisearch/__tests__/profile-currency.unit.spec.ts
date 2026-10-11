@@ -7,14 +7,17 @@ describe("Meilisearch profile facet-price currency", () => {
     ["cs_CZ", "czk", "czk"],
     ["hu-HU", "HUF", "huf"],
     ["ro-RO", "ron", "ron"],
-  ])("verifies %s against its exact %s contract", (locale, currency, expected) => {
-    expect(
-      resolveVerifiedFacetPriceCurrency(locale, {
-        pricingContextCurrencyCode: currency,
-        requestedCurrencyCode: currency,
-      })
-    ).toBe(expected)
-  })
+  ])(
+    "verifies %s against its exact %s contract",
+    (locale, currency, expected) => {
+      expect(
+        resolveVerifiedFacetPriceCurrency(locale, {
+          pricingContextCurrencyCode: currency,
+          requestedCurrencyCode: currency,
+        })
+      ).toBe(expected)
+    }
+  )
 
   it.each([
     ["missing currency proof", "sk-SK", undefined, undefined],
@@ -22,12 +25,15 @@ describe("Meilisearch profile facet-price currency", () => {
     ["wrong profile currency", "cs-CZ", "eur", "eur"],
     ["mixed request scope", "hu-HU", "huf", "eur"],
     ["blank competing scope", "ro-RO", "ron", " "],
-  ])("fails closed for %s", (_label, locale, pricingContextCurrencyCode, requestedCurrencyCode) => {
-    expect(
-      resolveVerifiedFacetPriceCurrency(locale, {
-        pricingContextCurrencyCode,
-        requestedCurrencyCode,
-      })
-    ).toBeUndefined()
-  })
+  ])(
+    "fails closed for %s",
+    (_label, locale, pricingContextCurrencyCode, requestedCurrencyCode) => {
+      expect(
+        resolveVerifiedFacetPriceCurrency(locale, {
+          pricingContextCurrencyCode,
+          requestedCurrencyCode,
+        })
+      ).toBeUndefined()
+    }
+  )
 })

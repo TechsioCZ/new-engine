@@ -60,16 +60,14 @@ const renderTabs = () =>
   )
 
 describe("ProductDetailTabs section structure", () => {
-  it.each([
-    "sk",
-    "cz",
-    "hu",
-    "ro",
-  ])("renders the reviews tab for %s", (market) => {
-    testContext.market = { code: market }
+  it.each(["sk", "cz", "hu", "ro"])(
+    "renders the reviews tab for %s",
+    (market) => {
+      testContext.market = { code: market }
 
-    expect(renderTabs()).toContain("reviews.tab_label")
-  })
+      expect(renderTabs()).toContain("reviews.tab_label")
+    }
+  )
 
   it("drops the reviews tab when the product id is unknown", () => {
     testContext.market = { code: "sk" }

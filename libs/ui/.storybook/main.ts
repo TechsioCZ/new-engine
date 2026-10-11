@@ -1,12 +1,12 @@
+import { fileURLToPath } from 'node:url'
 import type { StorybookConfig } from 'storybook-react-rsbuild'
 
 const config: StorybookConfig = {
   stories: [
-    '../stories/**/*.mdx',
     '../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)',
   ],
   addons: [
-    '@storybook/addon-themes',
+    '@storybook/addon-docs',
     '@techsio/storybook-better-a11y',
     'storybook-addon-rslib',
   ],
@@ -17,6 +17,14 @@ const config: StorybookConfig = {
   typescript: {
     reactDocgen: 'react-docgen-typescript',
     check: true,
+  },
+  rsbuildFinal: (rsbuildConfig) => {
+    // Library declaration builds exclude stories; preview checks include them.
+    rsbuildConfig.source ??= {}
+    rsbuildConfig.source.tsconfigPath = fileURLToPath(
+      new URL('../tsconfig.json', import.meta.url)
+    )
+    return rsbuildConfig
   },
 }
 

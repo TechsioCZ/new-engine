@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
@@ -576,7 +577,7 @@ export const EdgePositioning: Story = {
         </PopoverTemplate>
       </div>
 
-      <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
+      <div className="absolute top-1/2 left-1/2 -translate-1/2">
         <PopoverTemplate id="center-popover" placement="bottom" trigger="Center">
           <div className="w-3xs">
             <p>Center positioned with default behavior.</p>
@@ -633,6 +634,7 @@ export const OverflowPaddingDemo: Story = {
 }
 
 export const NestedPopovers: Story = {
+  tags: ["ui-runtime-regression"],
   args: {},
   render: () => (
     <PopoverTemplate
@@ -670,4 +672,36 @@ export const NestedPopovers: Story = {
       </div>
     </PopoverTemplate>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const page = within(canvasElement.ownerDocument.body)
+    const trigger = canvas.getByRole("button", { name: "Level 1" })
+
+    await userEvent.click(trigger)
+    const first = await page.findByRole("dialog", { name: "First Level" })
+    await userEvent.click(within(first).getByRole("button", { name: "Open Level 2" }))
+    const second = await page.findByRole("dialog", { name: "Second Level" })
+    await userEvent.click(within(second).getByRole("button", { name: "Open Level 3" }))
+    await expect(await page.findByRole("dialog", { name: "Third Level" })).toBeVisible()
+
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => {
+      expect(page.queryByRole("dialog", { name: "Third Level" })).toBeNull()
+      expect(second).toBeVisible()
+      expect(first).toBeVisible()
+    })
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => {
+      expect(page.queryByRole("dialog", { name: "Second Level" })).toBeNull()
+      expect(first).toBeVisible()
+    })
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => {
+      expect(page.queryByRole("dialog", { name: "First Level" })).toBeNull()
+    })
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await userEvent.unhover(trigger)
+    trigger.blur()
+    await expect(trigger).not.toHaveFocus()
+  },
 }

@@ -19,12 +19,8 @@ node_modules
 .settings/
 *.sublime-workspace
 
-# IDE - VSCode
+# Local editor configuration
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
 
 # misc
 /.sass-cache

@@ -66,11 +66,12 @@ const subjectCases = Object.entries(expectedSubjects).flatMap(
 )
 
 describe("Resend template subjects", () => {
-  it.each(
-    subjectCases
-  )("maps %s and %s to its localized subject", (template, locale, subject) => {
-    expect(getResendTemplateSubject(template, locale)).toBe(subject)
-  })
+  it.each(subjectCases)(
+    "maps %s and %s to its localized subject",
+    (template, locale, subject) => {
+      expect(getResendTemplateSubject(template, locale)).toBe(subject)
+    }
+  )
 
   it("requires an explicit supported locale", () => {
     expect(

@@ -189,30 +189,33 @@ describe("handleProductLifecycleRequest", () => {
     ["noop-source-present", false, "applied"],
     ["requires-publication", false, "applied"],
     ["retired", true, "already-applied"],
-  ] as const)("acknowledges %s with replay=%s", async (action, replayed, outcome) => {
-    const consume = vi.fn().mockResolvedValue({
-      kind: "acknowledged",
-      action: action as ProductLifecycleReceiptAction,
-      replayed,
-    })
-    const response = await handleProductLifecycleRequest(
-      request(),
-      dependencies(consume)
-    )
+  ] as const)(
+    "acknowledges %s with replay=%s",
+    async (action, replayed, outcome) => {
+      const consume = vi.fn().mockResolvedValue({
+        kind: "acknowledged",
+        action: action as ProductLifecycleReceiptAction,
+        replayed,
+      })
+      const response = await handleProductLifecycleRequest(
+        request(),
+        dependencies(consume)
+      )
 
-    expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({
-      schemaVersion: 1,
-      outcome,
-      action,
-      replayed,
-      outboxEventId: "urlroe_01",
-      marketCode: "sk",
-      streamSequence: 1,
-    })
-    expect(consume).toHaveBeenCalledWith(delivery())
-    expect(privateHeaders(response)).toEqual(PRIVATE_HEADERS)
-  })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({
+        schemaVersion: 1,
+        outcome,
+        action,
+        replayed,
+        outboxEventId: "urlroe_01",
+        marketCode: "sk",
+        streamSequence: 1,
+      })
+      expect(consume).toHaveBeenCalledWith(delivery())
+      expect(privateHeaders(response)).toEqual(PRIVATE_HEADERS)
+    }
+  )
 
   it.each([
     ["source-unavailable", 5],
@@ -220,62 +223,69 @@ describe("handleProductLifecycleRequest", () => {
     ["route-unavailable", 5],
     ["route-invalid-response", 5],
     ["source-event-gap", 17],
-  ] as const)("maps retryable %s to a bounded 503", async (code, retryAfter) => {
-    const consume = vi.fn().mockResolvedValue({
-      kind: "retry",
-      action: null,
-      cause: code,
-      ...(retryAfter === 5 ? {} : { retryAfterSeconds: retryAfter }),
-    })
-    const response = await handleProductLifecycleRequest(
-      request(),
-      dependencies(consume)
-    )
+  ] as const)(
+    "maps retryable %s to a bounded 503",
+    async (code, retryAfter) => {
+      const consume = vi.fn().mockResolvedValue({
+        kind: "retry",
+        action: null,
+        cause: code,
+        ...(retryAfter === 5 ? {} : { retryAfterSeconds: retryAfter }),
+      })
+      const response = await handleProductLifecycleRequest(
+        request(),
+        dependencies(consume)
+      )
 
-    expect(response.status).toBe(503)
-    expect(response.headers.get("retry-after")).toBe(String(retryAfter))
-    expect(await response.json()).toEqual({ error: code })
-    expect(privateHeaders(response)).toEqual(PRIVATE_HEADERS)
-  })
+      expect(response.status).toBe(503)
+      expect(response.headers.get("retry-after")).toBe(String(retryAfter))
+      expect(await response.json()).toEqual({ error: code })
+      expect(privateHeaders(response)).toEqual(PRIVATE_HEADERS)
+    }
+  )
 
-  it.each([
-    "live-source-has-terminal-route",
-  ] as const)("maps permanent %s to 409", async (cause) => {
-    const consume = vi
-      .fn()
-      .mockResolvedValue({ kind: "conflict", action: null, cause })
-    const response = await handleProductLifecycleRequest(
-      request(),
-      dependencies(consume)
-    )
+  it.each(["live-source-has-terminal-route"] as const)(
+    "maps permanent %s to 409",
+    async (cause) => {
+      const consume = vi
+        .fn()
+        .mockResolvedValue({ kind: "conflict", action: null, cause })
+      const response = await handleProductLifecycleRequest(
+        request(),
+        dependencies(consume)
+      )
 
-    expect(response.status).toBe(409)
-    expect(await response.json()).toEqual({ error: cause })
-    expect(privateHeaders(response)).toEqual(PRIVATE_HEADERS)
-  })
+      expect(response.status).toBe(409)
+      expect(await response.json()).toEqual({ error: cause })
+      expect(privateHeaders(response)).toEqual(PRIVATE_HEADERS)
+    }
+  )
 
   it.each([
     ["SEQUENCE_GAP", 503, "source-event-gap"],
     ["DELIVERY_DRIFT", 409, "source-event-conflict"],
     ["STALE_DELIVERY", 409, "source-event-conflict"],
-  ] as const)("redacts and maps consumer ordering error %s", async (code, status, publicCode) => {
-    const consume = vi.fn().mockRejectedValue(
-      Object.assign(new Error("private ordering details"), {
-        code,
-        name: "ProductLifecycleConsumerError",
-      })
-    )
-    const response = await handleProductLifecycleRequest(
-      request(),
-      dependencies(consume)
-    )
+  ] as const)(
+    "redacts and maps consumer ordering error %s",
+    async (code, status, publicCode) => {
+      const consume = vi.fn().mockRejectedValue(
+        Object.assign(new Error("private ordering details"), {
+          code,
+          name: "ProductLifecycleConsumerError",
+        })
+      )
+      const response = await handleProductLifecycleRequest(
+        request(),
+        dependencies(consume)
+      )
 
-    expect(response.status).toBe(status)
-    expect(await response.json()).toEqual({ error: publicCode })
-    expect(response.headers.get("retry-after")).toBe(
-      status === 503 ? "5" : null
-    )
-  })
+      expect(response.status).toBe(status)
+      expect(await response.json()).toEqual({ error: publicCode })
+      expect(response.headers.get("retry-after")).toBe(
+        status === 503 ? "5" : null
+      )
+    }
+  )
 
   it("redacts unexpected consumer failures", async () => {
     const consume = vi

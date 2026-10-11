@@ -1,9 +1,13 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite/core", "ultracite/react", "ultracite/next"],
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/next",
+    "ultracite/biome/vitest"
+  ],
   "files": {
     "includes": [
-      "**",
       "!**/node_modules/**/*",
       "!**/playwright-report/**/*",
       "!**/.medusa/**/*",
@@ -24,17 +28,50 @@
     "useIgnoreFile": true,
     "defaultBranch": "master"
   },
+  "assist": {
+    "actions": {
+      "source": {
+        "useSortedInterfaceMembers": "off",
+        "useSortedKeys": "off",
+        "useSortedPackageJson": "off",
+        "useSortedProperties": "off",
+        "useSortedSelectionSet": "off",
+        "useSortedTypeFields": "off"
+      }
+    }
+  },
   "linter": {
     "rules": {
+      "style": {
+        "noIncrementDecrement": {
+          "level": "error",
+          "options": {
+            "allowForLoopAfterthoughts": true
+          }
+        },
+        "useConsistentMethodSignatures": "off",
+        "useConsistentTypeDefinitions": {
+          "level": "error",
+          "options": {
+            "style": "type"
+          }
+        },
+        "useDestructuring": "off",
+        "useErrorCause": "off"
+      },
       "performance": {
+        "noAwaitInLoops": "off",
+        "noJsxPropsBind": "off",
         "noNamespaceImport": "info",
         "useTopLevelRegex": "info"
       },
       "suspicious": {
+        "noEqualsToNull": "off",
         "noEmptyBlockStatements": "info",
         "noArrayIndexKey": "warn",
         "noExplicitAny": "warn",
-        "noEvolvingTypes": "warn"
+        "noEvolvingTypes": "warn",
+        "noUnnecessaryConditions": "off"
       }
     }
   },
@@ -47,6 +84,59 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["**", "!libs/ui/**"],
+      "assist": {
+        "actions": {
+          "source": {
+            "useSortedAttributes": "off"
+          }
+        }
+      },
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
+          },
+          "complexity": {
+            "noExtraBooleanCast": "off",
+            "noRedundantDefaultExport": "off",
+            "noUselessCatchBinding": "off",
+            "noUselessReturn": "off",
+            "useOptionalChain": "off"
+          },
+          "correctness": {
+            "noGlobalDirnameFilename": "off",
+            "noUnknownProperty": "off",
+            "noUnsafeOptionalChaining": "off",
+            "useExhaustiveDependencies": "off"
+          },
+          "nursery": {
+            "useSortedClasses": "off"
+          },
+          "style": {
+            "noNegationElse": "off",
+            "noSubstr": "off"
+          },
+          "suspicious": {
+            "noLeakedRender": "off",
+            "noMisplacedAssertion": "off",
+            "noSkippedTests": "off",
+            "noUnknownAttribute": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["libs/ui/**/*"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noLeakedRender": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["**/*.spec.ts"],
       "javascript": {

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { expect, fn } from "storybook/test"
+import { expect, fn, userEvent, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Chart, type ChartType } from "../../src/molecules/chart"
 
@@ -81,7 +81,7 @@ const meta: Meta<typeof Chart<RevenuePoint>> = {
   parameters: {
     layout: "padded",
   },
-  tags: ["autodocs"],
+  tags: ["autodocs", "chart-regression"],
   argTypes: {
     type: {
       control: "select",
@@ -339,6 +339,175 @@ export const Interactive: Story = {
             ? `Selected: ${selected.channel} — ${selected.month} (${formatCurrency(selected.revenue)})`
             : "Click a point to select it."}
         </p>
+      </div>
+    )
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement)
+    const chart = canvas.getByRole("img", {
+      name: "Monthly revenue by sales channel",
+    })
+    chart.focus()
+    await userEvent.keyboard("[Home][Enter]")
+    await expect(args.onSelect).toHaveBeenCalledWith(revenueByChannel[0])
+    await expect(
+      canvas.getByText("Selected: Online — Jan (42k €)")
+    ).toBeInTheDocument()
+
+    const bounds = chart.getBoundingClientRect()
+    await userEvent.pointer({
+      target: chart,
+      coords: { clientX: bounds.left, clientY: bounds.top },
+      keys: "[MouseLeft]",
+    })
+    await expect(args.onSelect).toHaveBeenLastCalledWith(null)
+    await expect(
+      canvas.getByText("Click a point to select it.")
+    ).toBeInTheDocument()
+    chart.blur()
+    await expect(chart).not.toHaveFocus()
+    await expect(canvas.queryByRole("tooltip")).not.toBeInTheDocument()
+  },
+}
+
+/** Polar interaction must report the source row rather than d3's arc wrapper. */
+export const PolarSelection: Story = {
+  args: {
+    type: "pie",
+    data: onlineRevenue,
+    series: undefined,
+    ariaLabel: "Online revenue by month",
+    onSelect: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const chart = within(canvasElement).getByRole("img", {
+      name: "Online revenue by month",
+    })
+    chart.focus()
+    await userEvent.keyboard("[Home][Enter]")
+    await expect(args.onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        month: expect.any(String),
+        revenue: expect.any(Number),
+        channel: "Online",
+      })
+    )
+  },
+}
+
+type PointerSourceRow = {
+  id: string
+  label: string
+  value: number
+  payload: { source: string }
+}
+
+type PointerSelectionState = {
+  selected: PointerSourceRow | null
+  calls: number
+  isSourceRow: boolean
+}
+
+const pointerPolarRows: PointerSourceRow[] = [
+  {
+    id: "tiny",
+    label: "Tiny 0.5%",
+    value: 0.5,
+    payload: { source: "tiny-source" },
+  },
+  {
+    id: "medium",
+    label: "Medium",
+    value: 49.5,
+    payload: { source: "medium-source" },
+  },
+  {
+    id: "large",
+    label: "Large",
+    value: 50,
+    payload: { source: "large-source" },
+  },
+]
+
+const pointerCartesianRows: PointerSourceRow[] = [
+  {
+    id: "january",
+    label: "Jan",
+    value: 12,
+    payload: { source: "january-source" },
+  },
+  {
+    id: "february",
+    label: "Feb",
+    value: 34,
+    payload: { source: "february-source" },
+  },
+  {
+    id: "march",
+    label: "Mar",
+    value: 20,
+    payload: { source: "march-source" },
+  },
+]
+
+const pointerChartTypes = ["pie", "donut", "line"] as const
+
+/** The test-runner postVisit hook checks these marks with native browser input. */
+export const PointerSelection: Story = {
+  render: function PointerSelectionStory() {
+    const emptySelection: PointerSelectionState = {
+      selected: null,
+      calls: 0,
+      isSourceRow: true,
+    }
+    const [selections, setSelections] = useState({
+      pie: emptySelection,
+      donut: emptySelection,
+      line: emptySelection,
+    })
+
+    return (
+      <div className="flex w-full max-w-3xl flex-col gap-200">
+        {pointerChartTypes.map((type) => {
+          const rows = type === "line" ? pointerCartesianRows : pointerPolarRows
+          return (
+            <section
+              aria-label={`${type} pointer selection`}
+              data-testid={`pointer-${type}`}
+              key={type}
+            >
+              <Chart
+                animate={false}
+                ariaLabel={`Native ${type} pointer selection`}
+                data={rows}
+                height={280}
+                initialWidth={640}
+                legend={false}
+                onSelect={(selected) => {
+                  setSelections((previous) => ({
+                    ...previous,
+                    [type]: {
+                      selected,
+                      calls: previous[type].calls + 1,
+                      isSourceRow: selected === null || rows.includes(selected),
+                    },
+                  }))
+                }}
+                points={type === "line"}
+                type={type}
+                x="label"
+                y="value"
+              />
+              <output
+                aria-label={`${type} selected source row`}
+                className="text-fg-primary text-sm"
+                data-testid={`pointer-${type}-selection`}
+              >
+                {JSON.stringify(selections[type])}
+              </output>
+            </section>
+          )
+        })}
       </div>
     )
   },

@@ -25,12 +25,12 @@ describe("product-list normalizers", () => {
       expect(normalizeProductListAccessType(undefined)).toBe("private")
     })
 
-    it.each([
-      "private",
-      "public",
-    ] as const)("accepts %s access", (accessType) => {
-      expect(normalizeProductListAccessType(accessType)).toBe(accessType)
-    })
+    it.each(["private", "public"] as const)(
+      "accepts %s access",
+      (accessType) => {
+        expect(normalizeProductListAccessType(accessType)).toBe(accessType)
+      }
+    )
 
     it("rejects unsupported access values", () => {
       expect(

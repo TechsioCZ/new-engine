@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,9 +12,9 @@
 import {
   type ComponentPropsWithoutRef,
   createContext,
-  type FormEvent,
   type ReactNode,
   type Ref,
+  type SubmitEvent,
   useContext,
   useEffect,
   useId,
@@ -23,9 +23,9 @@ import {
 import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
-import { Button, type ButtonProps } from "../atoms/button"
+import { Button as ButtonComponent, type ButtonProps } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
-import { Input, type InputProps } from "../atoms/input"
+import { Input as InputComponent, type InputProps } from "../atoms/input"
 import { Label, type LabelProps } from "../atoms/label"
 import { tv } from "../utils"
 
@@ -49,7 +49,7 @@ const searchFormVariants = tv({
     // The clear button (an ActionIcon) lives inside the input, pinned to the
     // trailing edge at the input's inline padding (set per size below) and
     // vertically centered. ActionIcon owns its size, glyph and hover pill.
-    clearButton: ["-translate-y-1/2 absolute top-1/2"],
+    clearButton: ["absolute top-1/2 -translate-y-1/2"],
   },
   variants: {
     size: {
@@ -159,7 +159,7 @@ export function SearchForm({
     setInputValue("")
   }
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     onSubmit?.(e)
   }
@@ -258,7 +258,7 @@ SearchForm.Input = function SearchFormInput({
 
   return (
     <div className={styles.inputWrapper()} ref={setClearSlot}>
-      <Input
+      <InputComponent
         aria-label={props["aria-label"] || "Search"}
         className={styles.input({ className })}
         id={inputId}
@@ -295,7 +295,7 @@ SearchForm.Button = function SearchFormButton({
     icon ?? (showSearchIcon ? "token-icon-search" : undefined)
 
   return (
-    <Button
+    <ButtonComponent
       className={styles.button({ className })}
       icon={effectiveIcon}
       iconPosition={iconPosition}
@@ -304,7 +304,7 @@ SearchForm.Button = function SearchFormButton({
       {...props}
     >
       {children}
-    </Button>
+    </ButtonComponent>
   )
 }
 
@@ -359,6 +359,6 @@ SearchForm.ClearButton = function SearchFormClearButton({
   )
 }
 
-export { useSearchFormContext, searchFormVariants }
+export { searchFormVariants, useSearchFormContext }
 
 SearchForm.displayName = "SearchForm"

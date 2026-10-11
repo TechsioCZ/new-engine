@@ -12,11 +12,14 @@ describe("public URL API", () => {
     ["cz", "/produkty/ashwagandha"],
     ["hu", "/termekek/ashwagandha"],
     ["ro", "/produse/ashwagandha"],
-  ] as const)("builds the localized product path for %s", (market, expected) => {
-    expect(buildPath({ kind: "product", slug: "ashwagandha" }, market)).toBe(
-      expected
-    )
-  })
+  ] as const)(
+    "builds the localized product path for %s",
+    (market, expected) => {
+      expect(buildPath({ kind: "product", slug: "ashwagandha" }, market)).toBe(
+        expected
+      )
+    }
+  )
 
   it("builds entity indexes, root-static pages, and private flows", () => {
     expect(buildPath({ kind: "article" }, "sk")).toBe("/blog")
@@ -38,9 +41,12 @@ describe("public URL API", () => {
     ["cz", "dropshipping", "/dropshipping"],
     ["cz", "privateLabel", "/private-label"],
     ["cz", "wholesale", "/velkoobchod"],
-  ] as const)("builds the customer-authoritative %s %s static path", (market, page, expected) => {
-    expect(buildPath({ kind: "static", page }, market)).toBe(expected)
-  })
+  ] as const)(
+    "builds the customer-authoritative %s %s static path",
+    (market, page, expected) => {
+      expect(buildPath({ kind: "static", page }, market)).toBe(expected)
+    }
+  )
 
   it("preserves opaque checkout confirmation identifiers", () => {
     expect(

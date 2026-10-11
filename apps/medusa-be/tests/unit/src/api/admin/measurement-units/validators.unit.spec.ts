@@ -22,21 +22,19 @@ describe("measurement unit request validation", () => {
     ).toBe(true)
   })
 
-  it.each([
-    "2",
-    true,
-    false,
-    null,
-  ])("rejects coerced create quantities such as %j", (baseQuantity) => {
-    expect(
-      AdminCreateMeasurementUnitSchema.safeParse({
-        base_quantity: baseQuantity,
-        code: "kg",
-        name: "Kilogram",
-        symbol: "kg",
-      }).success
-    ).toBe(false)
-  })
+  it.each(["2", true, false, null])(
+    "rejects coerced create quantities such as %j",
+    (baseQuantity) => {
+      expect(
+        AdminCreateMeasurementUnitSchema.safeParse({
+          base_quantity: baseQuantity,
+          code: "kg",
+          name: "Kilogram",
+          symbol: "kg",
+        }).success
+      ).toBe(false)
+    }
+  )
 
   it("rejects coerced quantities on update and variant assignment", () => {
     expect(

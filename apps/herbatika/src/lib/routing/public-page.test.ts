@@ -283,51 +283,51 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
     })
   })
 
-  it.each(
-    redirectCases
-  )("returns 404 instead of redirecting a missing source for $label", async ({
-    expectedSourceId,
-    request,
-    resolution,
-  }) => {
-    mocks.resolveRegistryRoute.mockResolvedValue({
-      kind: "found",
-      value: resolution(),
-    })
-    const loadSource = vi.fn(async () => ({ kind: "missing" as const }))
+  it.each(redirectCases)(
+    "returns 404 instead of redirecting a missing source for $label",
+    async ({ expectedSourceId, request, resolution }) => {
+      mocks.resolveRegistryRoute.mockResolvedValue({
+        kind: "found",
+        value: resolution(),
+      })
+      const loadSource = vi.fn(async () => ({ kind: "missing" as const }))
 
-    const result = await resolve(request(), loadSource)
+      const result = await resolve(request(), loadSource)
 
-    expect(result).toEqual({ notFound: true })
-    expect(loadSource).toHaveBeenCalledWith({
-      market: "sk",
-      publicSlug:
-        expectedSourceId === "category-successor"
-          ? "successor-category"
-          : "current-category",
-      sourceId: expectedSourceId,
-      sourceVersion: "1",
-    })
-  })
+      expect(result).toEqual({ notFound: true })
+      expect(loadSource).toHaveBeenCalledWith({
+        market: "sk",
+        publicSlug:
+          expectedSourceId === "category-successor"
+            ? "successor-category"
+            : "current-category",
+        sourceId: expectedSourceId,
+        sourceVersion: "1",
+      })
+    }
+  )
 
   it.each([
     { kind: "unavailable" as const, retryAfterSeconds: 17 },
     { causeCode: "malformed-source", kind: "invalid-response" as const },
-  ])("returns 503 before an alias redirect for $kind", async (sourceFailure) => {
-    mocks.resolveRegistryRoute.mockResolvedValue({
-      kind: "found",
-      value: aliasResolution(),
-    })
-    const loadSource = vi.fn(async () => sourceFailure)
-    const requestContext = context({ slug: "old-category" })
+  ])(
+    "returns 503 before an alias redirect for $kind",
+    async (sourceFailure) => {
+      mocks.resolveRegistryRoute.mockResolvedValue({
+        kind: "found",
+        value: aliasResolution(),
+      })
+      const loadSource = vi.fn(async () => sourceFailure)
+      const requestContext = context({ slug: "old-category" })
 
-    const result = await resolve(requestContext, loadSource)
+      const result = await resolve(requestContext, loadSource)
 
-    expect(result).toMatchObject({
-      props: { page: { kind: "error", status: 503 } },
-    })
-    expect(requestContext.res.statusCode).toBe(503)
-  })
+      expect(result).toMatchObject({
+        props: { page: { kind: "error", status: 503 } },
+      })
+      expect(requestContext.res.statusCode).toBe(503)
+    }
+  )
 
   it("keeps a rejected current entity source strict", async () => {
     mocks.resolveRegistryRoute.mockResolvedValue({
@@ -438,44 +438,47 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
   it.each([
     { kind: "unavailable" as const, retryAfterSeconds: 23 },
     { causeCode: "malformed-alternate", kind: "invalid-response" as const },
-  ])("omits an equivalent category whose source is $kind", async (alternateFailure) => {
-    const resolution = currentResolution()
-    const czRoute = route("category-cz", { market: "cz" })
-    mocks.resolveRegistryRoute.mockResolvedValue({
-      kind: "found",
-      value: resolution,
-    })
-    mocks.findActiveEquivalents.mockResolvedValue({
-      kind: "found",
-      value: [
-        {
-          projectionType: "entity",
-          route: czRoute,
-          currentSlug: slug("ceska-kategorie", czRoute),
+  ])(
+    "omits an equivalent category whose source is $kind",
+    async (alternateFailure) => {
+      const resolution = currentResolution()
+      const czRoute = route("category-cz", { market: "cz" })
+      mocks.resolveRegistryRoute.mockResolvedValue({
+        kind: "found",
+        value: resolution,
+      })
+      mocks.findActiveEquivalents.mockResolvedValue({
+        kind: "found",
+        value: [
+          {
+            projectionType: "entity",
+            route: czRoute,
+            currentSlug: slug("ceska-kategorie", czRoute),
+          },
+        ],
+      })
+      const loadSource = vi.fn(async ({ market }: { market: string }) =>
+        market === "sk"
+          ? { kind: "found" as const, value: { title: "Category" } }
+          : alternateFailure
+      )
+      const requestContext = context()
+
+      const result = await resolve(requestContext, loadSource)
+
+      expect(result).toMatchObject({
+        props: {
+          page: { kind: "found", value: { title: "Category" } },
+          seo: { alternates: { "sk-SK": expect.any(String) } },
         },
-      ],
-    })
-    const loadSource = vi.fn(async ({ market }: { market: string }) =>
-      market === "sk"
-        ? { kind: "found" as const, value: { title: "Category" } }
-        : alternateFailure
-    )
-    const requestContext = context()
-
-    const result = await resolve(requestContext, loadSource)
-
-    expect(result).toMatchObject({
-      props: {
-        page: { kind: "found", value: { title: "Category" } },
-        seo: { alternates: { "sk-SK": expect.any(String) } },
-      },
-    })
-    expect(
-      (result as { props: { seo: { alternates: object } } }).props.seo
-        .alternates
-    ).not.toHaveProperty("cs-CZ")
-    expect(requestContext.res.statusCode).toBe(200)
-  })
+      })
+      expect(
+        (result as { props: { seo: { alternates: object } } }).props.seo
+          .alternates
+      ).not.toHaveProperty("cs-CZ")
+      expect(requestContext.res.statusCode).toBe(200)
+    }
+  )
 
   it("omits a rejected equivalent category source", async () => {
     const resolution = currentResolution()
@@ -516,50 +519,53 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
   it.each([
     { kind: "unavailable" as const, retryAfterSeconds: 23 },
     { causeCode: "malformed-alternate", kind: "invalid-response" as const },
-  ])("omits an equivalent product whose source is $kind", async (alternateFailure) => {
-    const skRoute = route("product-sk", {
-      equivalenceKey: "product:shared",
-      kind: "product",
-      sourceType: "product",
-    })
-    const czRoute = route("product-cz", {
-      equivalenceKey: "product:shared",
-      kind: "product",
-      market: "cz",
-      sourceType: "product",
-    })
-    mocks.findActiveEquivalents.mockResolvedValue({
-      kind: "found",
-      value: [
+  ])(
+    "omits an equivalent product whose source is $kind",
+    async (alternateFailure) => {
+      const skRoute = route("product-sk", {
+        equivalenceKey: "product:shared",
+        kind: "product",
+        sourceType: "product",
+      })
+      const czRoute = route("product-cz", {
+        equivalenceKey: "product:shared",
+        kind: "product",
+        market: "cz",
+        sourceType: "product",
+      })
+      mocks.findActiveEquivalents.mockResolvedValue({
+        kind: "found",
+        value: [
+          {
+            projectionType: "entity",
+            route: czRoute,
+            currentSlug: slug("cesky-produkt", czRoute),
+          },
+        ],
+      })
+      const loadSource = vi.fn(async () => alternateFailure)
+
+      const result = await loadEntityAlternates(
         {
           projectionType: "entity",
-          route: czRoute,
-          currentSlug: slug("cesky-produkt", czRoute),
+          route: skRoute,
+          currentSlug: slug("slovensky-produkt", skRoute),
         },
-      ],
-    })
-    const loadSource = vi.fn(async () => alternateFailure)
+        loadSource
+      )
 
-    const result = await loadEntityAlternates(
-      {
-        projectionType: "entity",
-        route: skRoute,
-        currentSlug: slug("slovensky-produkt", skRoute),
-      },
-      loadSource
-    )
-
-    expect(result).toEqual({
-      "sk-SK": "https://herbatica.sk/produkty/slovensky-produkt",
-    })
-    expect(loadSource).toHaveBeenCalledOnce()
-    expect(loadSource).toHaveBeenCalledWith({
-      market: "cz",
-      publicSlug: "cesky-produkt",
-      sourceId: "product-cz",
-      sourceVersion: "2026-08-21T10:00:00.000Z",
-    })
-  })
+      expect(result).toEqual({
+        "sk-SK": "https://herbatica.sk/produkty/slovensky-produkt",
+      })
+      expect(loadSource).toHaveBeenCalledOnce()
+      expect(loadSource).toHaveBeenCalledWith({
+        market: "cz",
+        publicSlug: "cesky-produkt",
+        sourceId: "product-cz",
+        sourceVersion: "2026-08-21T10:00:00.000Z",
+      })
+    }
+  )
 
   it("omits a product alternate whose current sourceVersion has no exact URLR audit", async () => {
     const skRoute = route("product-sk", {
@@ -619,73 +625,77 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
         throw new Error("Malformed collection projection")
       },
     },
-  ])("omits a found collection alternate when it $label", async ({
-    predicate,
-  }) => {
-    const skRoute = route("collection-sk", {
-      equivalenceKey: "collection:shared",
-      kind: "collection",
-      sourceType: "collection",
-    })
-    const czRoute = route("collection-cz", {
-      equivalenceKey: "collection:shared",
-      kind: "collection",
-      market: "cz",
-      sourceType: "collection",
-    })
-    mocks.findActiveEquivalents.mockResolvedValue({
-      kind: "found",
-      value: [
+  ])(
+    "omits a found collection alternate when it $label",
+    async ({ predicate }) => {
+      const skRoute = route("collection-sk", {
+        equivalenceKey: "collection:shared",
+        kind: "collection",
+        sourceType: "collection",
+      })
+      const czRoute = route("collection-cz", {
+        equivalenceKey: "collection:shared",
+        kind: "collection",
+        market: "cz",
+        sourceType: "collection",
+      })
+      mocks.findActiveEquivalents.mockResolvedValue({
+        kind: "found",
+        value: [
+          {
+            projectionType: "entity",
+            route: czRoute,
+            currentSlug: slug("ceska-kolekce", czRoute),
+          },
+        ],
+      })
+
+      const result = await loadEntityAlternates(
         {
           projectionType: "entity",
-          route: czRoute,
-          currentSlug: slug("ceska-kolekce", czRoute),
+          route: skRoute,
+          currentSlug: slug("slovenska-kolekcia", skRoute),
         },
-      ],
-    })
+        vi.fn(() =>
+          Promise.resolve({
+            kind: "found" as const,
+            value: { catalog: { count: 0 } },
+          })
+        ),
+        predicate
+      )
 
-    const result = await loadEntityAlternates(
-      {
-        projectionType: "entity",
-        route: skRoute,
-        currentSlug: slug("slovenska-kolekcia", skRoute),
-      },
-      vi.fn(() =>
-        Promise.resolve({
-          kind: "found" as const,
-          value: { catalog: { count: 0 } },
-        })
-      ),
-      predicate
-    )
-
-    expect(result).toEqual({
-      "sk-SK": expect.stringContaining("slovenska-kolekcia"),
-    })
-  })
+      expect(result).toEqual({
+        "sk-SK": expect.stringContaining("slovenska-kolekcia"),
+      })
+    }
+  )
 
   it.each([
     { kind: "unavailable" as const, retryAfterSeconds: 23 },
     { causeCode: "malformed-equivalents", kind: "invalid-response" as const },
-  ])("keeps self when equivalent route discovery is $kind", async (equivalentFailure) => {
-    const currentRoute = route("category-current")
-    mocks.findActiveEquivalents.mockResolvedValue(equivalentFailure)
-    const loadSource = vi.fn()
+  ])(
+    "keeps self when equivalent route discovery is $kind",
+    async (equivalentFailure) => {
+      const currentRoute = route("category-current")
+      mocks.findActiveEquivalents.mockResolvedValue(equivalentFailure)
+      const loadSource = vi.fn()
 
-    const result = await loadEntityAlternates(
-      {
-        projectionType: "entity",
-        route: currentRoute,
-        currentSlug: slug("current-category", currentRoute),
-      },
-      loadSource
-    )
+      const result = await loadEntityAlternates(
+        {
+          projectionType: "entity",
+          route: currentRoute,
+          currentSlug: slug("current-category", currentRoute),
+        },
+        loadSource
+      )
 
-    expect(result).toEqual({
-      "sk-SK": "https://herbatica.sk/kategorie/current-category",
-    })
-    expect(loadSource).not.toHaveBeenCalled()
-  })
+      expect(result).toEqual({
+        "sk-SK": "https://herbatica.sk/kategorie/current-category",
+      })
+      expect(loadSource).not.toHaveBeenCalled()
+    }
+  )
 
   it("keeps self when equivalent route discovery rejects", async () => {
     const currentRoute = route("category-current")

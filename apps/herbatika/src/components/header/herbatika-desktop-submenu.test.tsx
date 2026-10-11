@@ -71,9 +71,12 @@ describe("Herbatika desktop submenu ordering", () => {
     ["cs-CZ", "Șalvie", "Sare"],
     ["hu-HU", "Șalvie", "Sare"],
     ["ro-RO", "Sare", "Șalvie"],
-  ] as const)("orders desktop categories with the exact %s collation", (locale, first, second) => {
-    const html = renderLabels(locale)
+  ] as const)(
+    "orders desktop categories with the exact %s collation",
+    (locale, first, second) => {
+      const html = renderLabels(locale)
 
-    expect(html.indexOf(first)).toBeLessThan(html.indexOf(second))
-  })
+      expect(html.indexOf(first)).toBeLessThan(html.indexOf(second))
+    }
+  )
 })

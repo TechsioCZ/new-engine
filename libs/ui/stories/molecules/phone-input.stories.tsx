@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import type { ComponentProps } from "react"
-import { useState } from "react"
-import { fn } from "storybook/test"
+import { useId, useState } from "react"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
@@ -144,10 +144,12 @@ export default meta
 type Story = StoryObj<typeof PhoneInput>
 
 function PhoneInputExample({
+  countryTriggerProps,
   helpText = "Use a number we can reach for delivery updates.",
   label = "Phone number",
   ...props
 }: ComponentProps<typeof PhoneInput> & {
+  countryTriggerProps?: ComponentProps<typeof PhoneInput.CountryTrigger>
   helpText?: string
   label?: string
 }) {
@@ -156,7 +158,7 @@ function PhoneInputExample({
       <PhoneInput {...props}>
         <PhoneInput.Label>{label}</PhoneInput.Label>
         <PhoneInput.Control>
-          <PhoneInput.CountryPicker />
+          <PhoneInput.CountryPicker triggerProps={countryTriggerProps} />
           <PhoneInput.Input placeholder="900 123 456" />
         </PhoneInput.Control>
         <PhoneInput.StatusText>{helpText}</PhoneInput.StatusText>
@@ -207,6 +209,74 @@ function PhoneInputDetailsPanel({
 
 export const Playground: Story = {
   render: (args) => <PhoneInputExample {...args} />,
+}
+
+export const AccessibleCountryNames: Story = {
+  tags: ["ui-semantic-regression"],
+  render: (args) => {
+    const billingCountryLabelId = useId()
+
+    return (
+      <VariantContainer>
+        <VariantGroup fullWidth title="Selected country">
+          <PhoneInputExample {...args} label="Delivery phone" />
+        </VariantGroup>
+        <VariantGroup fullWidth title="Localized country">
+          <PhoneInputExample
+            {...args}
+            countries={[
+              { value: "SK", label: "Slovensko" },
+              { value: "CZ", label: "Česko" },
+            ]}
+            defaultCountry="CZ"
+            label="Localized phone"
+          />
+        </VariantGroup>
+        <VariantGroup fullWidth title="Custom country label">
+          <PhoneInputExample
+            {...args}
+            countryTriggerProps={{ "aria-label": "Country for support phone" }}
+            label="Support phone"
+          />
+        </VariantGroup>
+        <VariantGroup fullWidth title="External country label">
+          <span id={billingCountryLabelId}>Country for billing phone</span>
+          <PhoneInputExample
+            {...args}
+            countryTriggerProps={{ "aria-labelledby": billingCountryLabelId }}
+            label="Billing phone"
+          />
+        </VariantGroup>
+      </VariantContainer>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const defaultTrigger = canvas.getByRole("combobox", {
+      name: "Slovakia (+421)",
+    })
+
+    await expect(defaultTrigger).not.toHaveAttribute("aria-labelledby")
+    await expect(
+      canvas.getByRole("combobox", { name: "Česko (+420)" })
+    ).toBeVisible()
+    await expect(
+      canvas.getByRole("combobox", { name: "Country for support phone" })
+    ).toBeVisible()
+    const externallyLabelledTrigger = canvas.getByRole("combobox", {
+      name: "Country for billing phone",
+    })
+    await expect(externallyLabelledTrigger).not.toHaveAttribute("aria-label")
+
+    await userEvent.click(defaultTrigger)
+    await userEvent.click(await body.findByRole("option", { name: /Czechia/ }))
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("combobox", { name: "Czechia (+420)" })
+      ).toBeVisible()
+    )
+  },
 }
 
 export const WithDefaultValue: Story = {

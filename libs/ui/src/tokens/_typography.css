@@ -1,4 +1,9 @@
 @theme static {
+  /* Preserve the design system's font choice across Tailwind updates. */
+  --font-sans:
+    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+
   /* Primitive Typography Tokens - Utopia fluid typography */
   --text-xs: clamp(
     0.7813rem,

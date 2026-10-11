@@ -60,10 +60,7 @@ export function createProductLocationAvailabilityQueryOptionsFactory<
     buildDetailParams ?? ((input: TInput) => input as unknown as TParams)
 
   return {
-    getDetailQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<TResponse> => {
+    getDetailQueryOptions: (input, options): QueryFactoryOptions<TResponse> => {
       const detailParams = buildDetail(input)
       const cacheStrategy = options?.cacheStrategy ?? "realtime"
 

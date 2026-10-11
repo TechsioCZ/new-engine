@@ -97,16 +97,19 @@ describe("product lifecycle route wiring", () => {
   it.each([
     ["0", "1"],
     ["1", "0"],
-  ])("stays hidden unless both feature gates are enabled (%s/%s)", async (registryEnabled, lifecycleEnabled) => {
-    vi.stubEnv("URL_REGISTRY_ENABLED", registryEnabled)
-    vi.stubEnv("URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED", lifecycleEnabled)
-    const { POST } = await import("./route")
+  ])(
+    "stays hidden unless both feature gates are enabled (%s/%s)",
+    async (registryEnabled, lifecycleEnabled) => {
+      vi.stubEnv("URL_REGISTRY_ENABLED", registryEnabled)
+      vi.stubEnv("URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED", lifecycleEnabled)
+      const { POST } = await import("./route")
 
-    const response = await POST(request())
+      const response = await POST(request())
 
-    expect(response.status).toBe(404)
-    expect(mocks.getUrlRegistryRuntime).not.toHaveBeenCalled()
-  })
+      expect(response.status).toBe(404)
+      expect(mocks.getUrlRegistryRuntime).not.toHaveBeenCalled()
+    }
+  )
 
   it("accepts only the dedicated lifecycle token", async () => {
     const { POST } = await import("./route")

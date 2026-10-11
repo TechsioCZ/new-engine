@@ -64,41 +64,39 @@ describe("order payment QR private client", () => {
     expect(hasOrderPaymentQrAuthority(input)).toBe(expected)
   })
 
-  it.each([
-    "EUR",
-    "CZK",
-    "HUF",
-    "RON",
-  ] as const)("maps a QR response only for the exact %s market currency", async (currencyCode) => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        Response.json({
-          qr_payment: {
-            amount: 123.45,
-            currency_code: currencyCode.toLowerCase(),
-            iban: "CZ6508000000192000145399",
-            order_display_id: "42",
-            order_id: "order_Case",
-            provider_id: "pp_qr_manual_default",
-            qr_svg: "<svg />",
-            spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*CC:${currencyCode}*X-VS:42`,
-          },
-          status: "ready",
-        })
+  it.each(["EUR", "CZK", "HUF", "RON"] as const)(
+    "maps a QR response only for the exact %s market currency",
+    async (currencyCode) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          Response.json({
+            qr_payment: {
+              amount: 123.45,
+              currency_code: currencyCode.toLowerCase(),
+              iban: "CZ6508000000192000145399",
+              order_display_id: "42",
+              order_id: "order_Case",
+              provider_id: "pp_qr_manual_default",
+              qr_svg: "<svg />",
+              spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*CC:${currencyCode}*X-VS:42`,
+            },
+            status: "ready",
+          })
+        )
       )
-    )
 
-    await expect(
-      fetchOrderPaymentQr({
-        expectedCurrencyCode: currencyCode,
-        orderId: "order_Case",
+      await expect(
+        fetchOrderPaymentQr({
+          expectedCurrencyCode: currencyCode,
+          orderId: "order_Case",
+        })
+      ).resolves.toMatchObject({
+        qrPayment: { currencyCode },
+        status: "ready",
       })
-    ).resolves.toMatchObject({
-      qrPayment: { currencyCode },
-      status: "ready",
-    })
-  })
+    }
+  )
 
   it.each([
     ["missing response currency", null, "CC:CZK"],
@@ -106,30 +104,33 @@ describe("order payment QR private client", () => {
     ["foreign response currency", "EUR", "CC:CZK"],
     ["foreign SPAYD currency", "CZK", "CC:EUR"],
     ["ambiguous SPAYD currency", "CZK", "CC:CZK*CC:CZK"],
-  ] as const)("fails closed for %s", async (_name, responseCurrencyCode, spaydCurrencyField) => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        Response.json({
-          qr_payment: {
-            amount: 123.45,
-            currency_code: responseCurrencyCode,
-            iban: "CZ6508000000192000145399",
-            order_id: "order_Case",
-            provider_id: "pp_qr_manual_default",
-            qr_svg: "<svg />",
-            spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*${spaydCurrencyField}*X-VS:42`,
-          },
-          status: "ready",
-        })
+  ] as const)(
+    "fails closed for %s",
+    async (_name, responseCurrencyCode, spaydCurrencyField) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          Response.json({
+            qr_payment: {
+              amount: 123.45,
+              currency_code: responseCurrencyCode,
+              iban: "CZ6508000000192000145399",
+              order_id: "order_Case",
+              provider_id: "pp_qr_manual_default",
+              qr_svg: "<svg />",
+              spayd: `SPD*1.0*ACC:CZ6508000000192000145399*AM:123.45*${spaydCurrencyField}*X-VS:42`,
+            },
+            status: "ready",
+          })
+        )
       )
-    )
 
-    await expect(
-      fetchOrderPaymentQr({
-        expectedCurrencyCode: "CZK",
-        orderId: "order_Case",
-      })
-    ).resolves.toEqual({ qrPayment: null, status: "unavailable" })
-  })
+      await expect(
+        fetchOrderPaymentQr({
+          expectedCurrencyCode: "CZK",
+          orderId: "order_Case",
+        })
+      ).resolves.toEqual({ qrPayment: null, status: "unavailable" })
+    }
+  )
 })

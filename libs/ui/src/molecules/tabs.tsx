@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -54,7 +54,7 @@ const tabsVariants = tv({
       "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
       "data-[orientation=vertical]:h-(--height) data-[orientation=horizontal]:w-(--width)",
       "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
-      "data-[orientation=vertical]:start-0 data-[orientation=horizontal]:bottom-0",
+      "data-[orientation=vertical]:inset-s-0 data-[orientation=horizontal]:bottom-0",
     ],
     content: [
       "text-tabs-content-fg",
@@ -129,7 +129,7 @@ const tabsVariants = tv({
 })
 
 // Context for sharing state between sub-components
-interface TabsContextValue {
+type TabsContextValue = {
   api: ReturnType<typeof tabs.connect>
   variant?: "default" | "line" | "solid" | "outline"
   size?: "sm" | "md" | "lg"
@@ -192,8 +192,8 @@ export function Tabs({
     dir,
     activationMode,
     loopFocus,
-    onValueChange: ({ value }) => {
-      onValueChange?.(value)
+    onValueChange: ({ value: nextValue }) => {
+      onValueChange?.(nextValue)
     },
   })
 

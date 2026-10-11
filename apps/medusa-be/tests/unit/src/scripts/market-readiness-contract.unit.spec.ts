@@ -156,16 +156,14 @@ describe("four-market readiness canonical artifacts", () => {
     )
   })
 
-  it.each([
-    '{"a":1}',
-    '{"a":1}\r\n',
-    '{"a":1}\n\n',
-    '{ "a": 1 }\n',
-  ])("rejects non-canonical or non-LF input: %j", (input) => {
-    expect(() => parseCanonicalJsonWithLf(input)).toThrow(
-      "Artifact must be canonical JSON with exactly one trailing LF"
-    )
-  })
+  it.each(['{"a":1}', '{"a":1}\r\n', '{"a":1}\n\n', '{ "a": 1 }\n'])(
+    "rejects non-canonical or non-LF input: %j",
+    (input) => {
+      expect(() => parseCanonicalJsonWithLf(input)).toThrow(
+        "Artifact must be canonical JSON with exactly one trailing LF"
+      )
+    }
+  )
 })
 
 describe("immutable four-market release acceptance v2", () => {

@@ -189,33 +189,36 @@ describe("ResendNotificationProviderService", () => {
     ["cs-CZ", "herbatica.cz", "cz"],
     ["hu-HU", "herbatica.hu", "hu"],
     ["ro-RO", "herbatica.ro", "ro"],
-  ])("routes %s and %s to the exact %s sender and template", async (locale, storefrontDomain, market) => {
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(jsonResponse({ id: `email_${market}` }))
-    vi.stubGlobal("fetch", fetchMock)
+  ])(
+    "routes %s and %s to the exact %s sender and template",
+    async (locale, storefrontDomain, market) => {
+      const fetchMock = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(jsonResponse({ id: `email_${market}` }))
+      vi.stubGlobal("fetch", fetchMock)
 
-    await createProvider().provider.send({
-      ...notification,
-      data: {
-        locale,
-        reset_url: "https://shop.example/reset",
-        storefront_domain: storefrontDomain,
-      },
-    })
+      await createProvider().provider.send({
+        ...notification,
+        data: {
+          locale,
+          reset_url: "https://shop.example/reset",
+          storefront_domain: storefrontDomain,
+        },
+      })
 
-    const [, request] = fetchMock.mock.calls[0] ?? []
-    const body = JSON.parse(String(request?.body)) as {
-      from: string
-      reply_to: string
-      template: { id: string }
+      const [, request] = fetchMock.mock.calls[0] ?? []
+      const body = JSON.parse(String(request?.body)) as {
+        from: string
+        reply_to: string
+        template: { id: string }
+      }
+      expect(body).toMatchObject({
+        from: `Herbatica <notifications@herbatica.${market}>`,
+        reply_to: `support@herbatica.${market}`,
+        template: { id: `account-setup-template-id-${market}` },
+      })
     }
-    expect(body).toMatchObject({
-      from: `Herbatica <notifications@herbatica.${market}>`,
-      reply_to: `support@herbatica.${market}`,
-      template: { id: `account-setup-template-id-${market}` },
-    })
-  })
+  )
 
   it.each([
     [{ locale: "sk-SK" }, "missing domain"],
@@ -270,56 +273,56 @@ describe("ResendNotificationProviderService", () => {
     resendEmailMarkets.flatMap((market) =>
       resendEmailTemplateKeys.map((template) => ({ market, template }))
     )
-  )("routes $template through the exact $market critical-template configuration", async ({
-    market,
-    template,
-  }) => {
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(jsonResponse({ id: `email_${market}_${template}` }))
-    vi.stubGlobal("fetch", fetchMock)
+  )(
+    "routes $template through the exact $market critical-template configuration",
+    async ({ market, template }) => {
+      const fetchMock = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(jsonResponse({ id: `email_${market}_${template}` }))
+      vi.stubGlobal("fetch", fetchMock)
 
-    await createProvider({
-      ...enabledConfig,
-      market_configurations: criticalTemplateConfiguration,
-    }).provider.send({
-      channel: "email",
-      data: criticalTemplateData(market, template),
-      template,
-      to: "customer@example.test",
-    })
-
-    const [, request] = fetchMock.mock.calls[0] ?? []
-    const body = JSON.parse(String(request?.body)) as {
-      from: string
-      reply_to: string
-      template: { id: string }
-    }
-    const domain = resendEmailMarketBindings[market].senderDomain
-    expect(body).toMatchObject({
-      from: `Herbatica <notifications@${domain}>`,
-      reply_to: `support@${domain}`,
-      template: { id: `tmpl_${market}_${template}` },
-    })
-  })
-
-  it.each([
-    "market_code",
-    "country_code",
-  ] as const)("rejects a %s cross-wired to the resolved locale and domain tuple", async (field) => {
-    const { getRuntimeConfig, provider } = createProvider()
-
-    await expect(
-      provider.send({
-        ...notification,
-        data: {
-          ...notification.data,
-          [field]: "cz",
-        },
+      await createProvider({
+        ...enabledConfig,
+        market_configurations: criticalTemplateConfiguration,
+      }).provider.send({
+        channel: "email",
+        data: criticalTemplateData(market, template),
+        template,
+        to: "customer@example.test",
       })
-    ).rejects.toThrow("market context is cross-wired")
-    expect(getRuntimeConfig).not.toHaveBeenCalled()
-  })
+
+      const [, request] = fetchMock.mock.calls[0] ?? []
+      const body = JSON.parse(String(request?.body)) as {
+        from: string
+        reply_to: string
+        template: { id: string }
+      }
+      const domain = resendEmailMarketBindings[market].senderDomain
+      expect(body).toMatchObject({
+        from: `Herbatica <notifications@${domain}>`,
+        reply_to: `support@${domain}`,
+        template: { id: `tmpl_${market}_${template}` },
+      })
+    }
+  )
+
+  it.each(["market_code", "country_code"] as const)(
+    "rejects a %s cross-wired to the resolved locale and domain tuple",
+    async (field) => {
+      const { getRuntimeConfig, provider } = createProvider()
+
+      await expect(
+        provider.send({
+          ...notification,
+          data: {
+            ...notification.data,
+            [field]: "cz",
+          },
+        })
+      ).rejects.toThrow("market context is cross-wired")
+      expect(getRuntimeConfig).not.toHaveBeenCalled()
+    }
+  )
 
   it("rejects a legacy global-only runtime configuration", async () => {
     await expect(

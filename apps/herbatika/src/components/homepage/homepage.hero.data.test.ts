@@ -21,43 +21,46 @@ describe("resolveHomepageHeroBanners", () => {
     ["cz", CZ_HERO_BANNERS, "Objevte sortiment Herbatica"],
     ["hu", HU_HERO_BANNERS, "Fedezze fel a Herbatica kínálatát"],
     ["ro", RO_HERO_BANNERS, "Descoperă gama Herbatica"],
-  ] as const)("uses a complete safe %s fallback when CMS is empty", (market, expected, headline) => {
-    const result = resolveHomepageHeroBanners([], market)
-    const copy = result
-      .flatMap(({ badge, imageAlt, subtitle, title }) => [
-        badge,
-        imageAlt,
-        subtitle,
-        title,
-      ])
-      .filter(Boolean)
-      .join(" ")
+  ] as const)(
+    "uses a complete safe %s fallback when CMS is empty",
+    (market, expected, headline) => {
+      const result = resolveHomepageHeroBanners([], market)
+      const copy = result
+        .flatMap(({ badge, imageAlt, subtitle, title }) => [
+          badge,
+          imageAlt,
+          subtitle,
+          title,
+        ])
+        .filter(Boolean)
+        .join(" ")
 
-    expect(result).toBe(expected)
-    expect(result).toHaveLength(8)
-    expect(
-      result.every(
-        ({ ctaLabel, ctaTarget, imageAlt, title }) =>
-          ctaLabel && ctaTarget && imageAlt && title
-      )
-    ).toBe(true)
-    expect(copy).toContain(headline)
-    expect(copy).not.toMatch(SLOVAK_CANARY)
-    expect(copy).not.toMatch(UNSAFE_MARKETING_CLAIM_CANARY)
-    for (const banner of result) {
-      expect(banner.ctaTarget?.kind).toBe("static")
-      if (banner.ctaTarget?.kind !== "static") {
-        throw new Error("Expected a route-registry CTA")
-      }
+      expect(result).toBe(expected)
+      expect(result).toHaveLength(8)
       expect(
-        parsePublicPath({
-          market,
-          pathname: banner.ctaTarget.href,
-          rawQuery: "",
-        }).kind
-      ).toBe("found")
+        result.every(
+          ({ ctaLabel, ctaTarget, imageAlt, title }) =>
+            ctaLabel && ctaTarget && imageAlt && title
+        )
+      ).toBe(true)
+      expect(copy).toContain(headline)
+      expect(copy).not.toMatch(SLOVAK_CANARY)
+      expect(copy).not.toMatch(UNSAFE_MARKETING_CLAIM_CANARY)
+      for (const banner of result) {
+        expect(banner.ctaTarget?.kind).toBe("static")
+        if (banner.ctaTarget?.kind !== "static") {
+          throw new Error("Expected a route-registry CTA")
+        }
+        expect(
+          parsePublicPath({
+            market,
+            pathname: banner.ctaTarget.href,
+            rawQuery: "",
+          }).kind
+        ).toBe("found")
+      }
     }
-  })
+  )
 
   it("preserves the existing Slovak fallback", () => {
     expect(resolveHomepageHeroBanners(undefined, "sk")).toBe(HERO_BANNERS)
@@ -78,18 +81,16 @@ describe("resolveHomepageHeroBanners", () => {
 })
 
 describe("resolveHomepageHeroSource", () => {
-  it.each([
-    "sk",
-    "cz",
-    "hu",
-    "ro",
-  ] as const)("approves the bundled localized source for %s when CMS is empty", (market) => {
-    expect(resolveHomepageHeroSource([], market)).toEqual({
-      kind: "found",
-      publicationApproved: true,
-      value: HERO_BANNERS_BY_MARKET[market],
-    })
-  })
+  it.each(["sk", "cz", "hu", "ro"] as const)(
+    "approves the bundled localized source for %s when CMS is empty",
+    (market) => {
+      expect(resolveHomepageHeroSource([], market)).toEqual({
+        kind: "found",
+        publicationApproved: true,
+        value: HERO_BANNERS_BY_MARKET[market],
+      })
+    }
+  )
 
   it("prefers CMS banners over the bundled source", () => {
     const cms: HeroBannerItem[] = [{ id: "cms", imageSrc: "/cms.avif" }]

@@ -168,28 +168,27 @@ const requestContext = (market: "cz" | "hu" | "ro" = "cz") => {
 }
 
 describe("homepage hero readiness", () => {
-  it.each([
-    "cz",
-    "hu",
-    "ro",
-  ] as const)("renders the approved bundled hero source for %s without CMS content", async (market) => {
-    const request = requestContext(market)
+  it.each(["cz", "hu", "ro"] as const)(
+    "renders the approved bundled hero source for %s without CMS content",
+    async (market) => {
+      const request = requestContext(market)
 
-    const result = await getServerSideProps(request.context)
+      const result = await getServerSideProps(request.context)
 
-    expect(mocks.readReviewedHomepageHeroBanners).not.toHaveBeenCalled()
-    expect(mocks.hydrateCmsHeroBannerTargets).toHaveBeenCalled()
-    expect(result).toMatchObject({
-      props: {
-        page: {
-          kind: "found",
-          value: { publicationApproved: true },
+      expect(mocks.readReviewedHomepageHeroBanners).not.toHaveBeenCalled()
+      expect(mocks.hydrateCmsHeroBannerTargets).toHaveBeenCalled()
+      expect(result).toMatchObject({
+        props: {
+          page: {
+            kind: "found",
+            value: { publicationApproved: true },
+          },
+          seo: { robots: "index, follow" },
         },
-        seo: { robots: "index, follow" },
-      },
-    })
-    expect(request.context.res.statusCode).toBe(200)
-  })
+      })
+      expect(request.context.res.statusCode).toBe(200)
+    }
+  )
 
   it("returns 503 when commerce region authority is missing", async () => {
     mocks.prefetchHomePageStorefrontData.mockResolvedValueOnce({

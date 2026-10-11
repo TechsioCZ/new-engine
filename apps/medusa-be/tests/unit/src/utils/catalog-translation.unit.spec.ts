@@ -111,32 +111,35 @@ describe("exact catalog Translation-record reads", () => {
       "ro-RO",
       { title: "Colecție" },
     ],
-  ] as const)("requires the localized display field for %s translations", async (...[
-    entityKind,
-    reference,
-    entityId,
-    market,
-    localeCode,
-    translations,
-  ]) => {
-    const { container } = context([
-      translation({
-        locale_code: localeCode,
-        reference,
-        reference_id: entityId,
-        translations,
-      }),
-    ])
+  ] as const)(
+    "requires the localized display field for %s translations",
+    async (...[
+      entityKind,
+      reference,
+      entityId,
+      market,
+      localeCode,
+      translations,
+    ]) => {
+      const { container } = context([
+        translation({
+          locale_code: localeCode,
+          reference,
+          reference_id: entityId,
+          translations,
+        }),
+      ])
 
-    await expect(
-      readExactCatalogTranslation({
-        container,
-        entityId,
-        entityKind,
-        market,
-      })
-    ).resolves.toMatchObject({ kind: "found" })
-  })
+      await expect(
+        readExactCatalogTranslation({
+          container,
+          entityId,
+          entityKind,
+          market,
+        })
+      ).resolves.toMatchObject({ kind: "found" })
+    }
+  )
 
   it("returns missing instead of accepting a Store fallback value", async () => {
     const { container } = context([])
@@ -208,28 +211,31 @@ describe("exact catalog Translation-record reads", () => {
     ["category", "product_category", "pcat_1", { description: "Descriere" }],
     ["brand", "brand", "brand_1", { name: "Marcă" }],
     ["collection", "product_collection", "pcol_1", { name: "Colecție" }],
-  ] as const)("rejects a partial %s row without its required display field", async (entityKind, reference, entityId, translations) => {
-    const { container } = context([
-      translation({
-        locale_code: "ro-RO",
-        reference,
-        reference_id: entityId,
-        translations,
-      }),
-    ])
+  ] as const)(
+    "rejects a partial %s row without its required display field",
+    async (entityKind, reference, entityId, translations) => {
+      const { container } = context([
+        translation({
+          locale_code: "ro-RO",
+          reference,
+          reference_id: entityId,
+          translations,
+        }),
+      ])
 
-    await expect(
-      readExactCatalogTranslation({
-        container,
-        entityId,
-        entityKind,
-        market: "ro",
+      await expect(
+        readExactCatalogTranslation({
+          container,
+          entityId,
+          entityKind,
+          market: "ro",
+        })
+      ).resolves.toEqual({
+        causeCode: "INVALID_CATALOG_TRANSLATION_STATE",
+        kind: "invalid-response",
       })
-    ).resolves.toEqual({
-      causeCode: "INVALID_CATALOG_TRANSLATION_STATE",
-      kind: "invalid-response",
-    })
-  })
+    }
+  )
 
   it("rejects ambiguous records instead of selecting one", async () => {
     const { container } = context([

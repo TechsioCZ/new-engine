@@ -1,4 +1,3 @@
-import { createTranslationsWorkflow } from "@medusajs/core-flows"
 import type {
   CreateTranslationDTO,
   ITranslationModuleService,
@@ -6,6 +5,7 @@ import type {
   TranslationDTO,
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
+import { createTranslationsWorkflow } from "@medusajs/medusa/core-flows"
 import { isPieceMeasurementSourceUnit } from "../utils/measurement-unit-source"
 import { getMeasurementUnitService } from "../utils/measurement-units"
 
