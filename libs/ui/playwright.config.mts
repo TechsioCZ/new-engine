@@ -71,7 +71,8 @@ export default defineConfig({
     command: "node test/visual-static-server.mjs",
     url: storybookUrl,
     env: { VISUAL_STORYBOOK_PORT: baseUrl.port || "6006" },
-    reuseExistingServer: false,
+    // An explicit TEST_BASE_URL may point at an already running Storybook.
+    reuseExistingServer: process.env.TEST_BASE_URL !== undefined,
     timeout: 120_000,
   },
 })

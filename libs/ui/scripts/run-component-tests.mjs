@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process"
 import crypto from "node:crypto"
 import fs from "node:fs"
+import { createRequire } from "node:module"
 import path from "node:path"
 import { createVisualMatrix } from "../test/visual-projects.mjs"
 
@@ -48,7 +49,8 @@ const updatesSnapshots = extraArgs.some((arg, index) => {
   return match && mode !== "none"
 })
 const containerName = `pw-visual-${crypto.randomUUID()}`
-const reportRoot = "/app/test-results/visual-reports"
+// Each `playwright test` run empties test-results, so reports live beside it.
+const reportRoot = "/app/visual-reports"
 
 /** @param {string} command @param {string[]} args @param {import("node:child_process").SpawnSyncOptions} [options] */
 function run(command, args, options = {}) {
@@ -70,13 +72,13 @@ function cleanup() {
 
 /** @typedef {{status: string}} ReportTest */
 /** @typedef {{specs?: {file: string, tests: ReportTest[]}[], suites?: ReportSuite[]}} ReportSuite */
-/** @param {ReportSuite[]} suites @returns {ReportTest[]} */
-function visualTests(suites) {
+/** @param {ReportSuite[]} suites @param {string} [file] @returns {ReportTest[]} */
+function reportTests(suites, file) {
   return suites.flatMap((suite) => [
     ...(suite.specs ?? [])
-      .filter((spec) => spec.file === "visual.spec.ts")
+      .filter((spec) => file === undefined || spec.file === file)
       .flatMap((spec) => spec.tests),
-    ...visualTests(suite.suites ?? []),
+    ...reportTests(suite.suites ?? [], file),
   ])
 }
 
@@ -91,8 +93,10 @@ function verifyCompletion(reports) {
     extraArgs.some((arg) => partialSelectionPattern.test(arg))
   )
   let expected = 0
+  let ran = 0
   for (const { errors, stats, suites } of reports) {
-    const tests = visualTests(suites)
+    const tests = reportTests(suites, "visual.spec.ts")
+    ran += reportTests(suites).length
     if (
       errors.length ||
       stats.unexpected ||
@@ -106,8 +110,9 @@ function verifyCompletion(reports) {
     expected += tests.filter((test) => test.status === "expected").length
   }
   // Behavior specs share the run; completeness counts screenshot cases only.
+  // Focused behavior-only runs (e.g. --project=desktop) need no screenshots.
   const required = stories.length * projects.length
-  if (!expected || (requireComplete && expected !== required)) {
+  if (!ran || (requireComplete && expected !== required)) {
     throw new Error(
       `Visual test run covered ${expected} of ${required} story/project cases`
     )
@@ -119,7 +124,21 @@ function main() {
     storybookOverride === undefined &&
     process.env.PLAYWRIGHT_STORYBOOK_REBUILD !== "0"
   ) {
-    run("pnpm", ["-C", uiRoot, "build:storybook"])
+    // Run the Storybook CLI with Node: Windows cannot spawn the pnpm.cmd shim.
+    const storybookManifest = createRequire(
+      path.join(uiRoot, "package.json")
+    ).resolve("storybook/package.json")
+    const storybookBin = JSON.parse(
+      fs.readFileSync(storybookManifest, "utf8")
+    ).bin
+    run(
+      process.execPath,
+      [
+        path.join(path.dirname(storybookManifest), storybookBin),
+        "build",
+      ],
+      { cwd: uiRoot }
+    )
   }
   if (!fs.existsSync(path.join(storybookDir, "iframe.html"))) {
     throw new Error(`Storybook build not found: ${storybookDir}`)
@@ -239,6 +258,7 @@ function main() {
   for (const [source, destination] of [
     ["/app/playwright-report/.", "playwright-report"],
     ["/app/test-results/.", "test-results"],
+    [`${reportRoot}/.`, "test-results/visual-reports"],
   ]) {
     docker(["cp", `${containerName}:${source}`, path.join(uiRoot, destination)])
   }
