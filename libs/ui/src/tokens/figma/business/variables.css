@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-09T13:05:09.655Z
+ * Exported at: 2026-10-12T08:45:02.279Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -48,9 +48,9 @@
   --color-bg-primary-base: var(--color-primary-500);
   --color-bg-primary-hover: var(--color-primary-600);
   --color-bg-scrim: oklch(0.129 0.041 264.695 / 0.1);
-  --color-bg-secondary-active: var(--color-secondary-700);
+  --color-bg-secondary-active: var(--color-secondary-300);
   --color-bg-secondary-base: var(--color-secondary-500);
-  --color-bg-secondary-hover: var(--color-secondary-600);
+  --color-bg-secondary-hover: var(--color-secondary-400);
   --color-bg-success: var(--color-success-500);
   --color-bg-switch-checked-hover: var(--color-success-600);
   --color-bg-switch-hover: var(--color-neutral-300);

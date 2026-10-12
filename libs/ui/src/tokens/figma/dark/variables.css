@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-09T13:05:09.652Z
+ * Exported at: 2026-10-12T08:45:02.276Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -22,16 +22,16 @@
   --color-bg-light-danger-active: var(--color-danger-600);
   --color-bg-light-danger-base: var(--color-danger-800);
   --color-bg-light-danger-hover: var(--color-danger-700);
-  --color-bg-light-primary-active: var(--color-primary-600);
+  --color-bg-light-primary-active: var(--color-primary-900);
   --color-bg-light-primary-base: var(--color-primary-800);
   --color-bg-light-primary-hover: var(--color-primary-700);
-  --color-bg-light-secondary-active: var(--color-secondary-600);
+  --color-bg-light-secondary-active: var(--color-secondary-900);
   --color-bg-light-secondary-base: var(--color-secondary-800);
   --color-bg-light-secondary-hover: var(--color-secondary-700);
   --color-bg-light-tertiary-active: var(--color-tertiary-600);
   --color-bg-light-tertiary-base: var(--color-tertiary-800);
   --color-bg-light-tertiary-hover: var(--color-tertiary-700);
-  --color-bg-light-warning-active: var(--color-warning-600);
+  --color-bg-light-warning-active: var(--color-warning-900);
   --color-bg-light-warning-base: var(--color-warning-800);
   --color-bg-light-warning-hover: var(--color-warning-700);
   --color-bg-outlined-danger-active: oklch(0.794 0.119 20.048 / 0.122);

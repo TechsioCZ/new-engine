@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-09T13:05:09.654Z
+ * Exported at: 2026-10-12T08:45:02.278Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -25,19 +25,19 @@
   --color-bg-light-primary-active: var(--color-primary-600);
   --color-bg-light-primary-base: var(--color-primary-800);
   --color-bg-light-primary-hover: var(--color-primary-700);
-  --color-bg-light-secondary-active: var(--color-secondary-600);
+  --color-bg-light-secondary-active: var(--color-secondary-900);
   --color-bg-light-secondary-base: var(--color-secondary-800);
   --color-bg-light-secondary-hover: var(--color-secondary-700);
   --color-bg-light-tertiary-active: var(--color-tertiary-600);
   --color-bg-light-tertiary-base: var(--color-tertiary-800);
   --color-bg-light-tertiary-hover: var(--color-tertiary-700);
-  --color-bg-light-warning-active: var(--color-warning-600);
+  --color-bg-light-warning-active: var(--color-warning-900);
   --color-bg-light-warning-base: var(--color-warning-800);
   --color-bg-light-warning-hover: var(--color-warning-700);
   --color-bg-outlined-danger-active: oklch(0.794 0.119 20.048 / 0.122);
   --color-bg-outlined-danger-hover: oklch(0.805 0.111 19.782 / 0.161);
-  --color-bg-outlined-primary-active: var(--color-primary-200);
-  --color-bg-outlined-primary-hover: var(--color-primary-100);
+  --color-bg-outlined-primary-active: var(--color-primary-800);
+  --color-bg-outlined-primary-hover: var(--color-primary-900);
   --color-bg-outlined-secondary-active: oklch(0.822 0.171 78.982 / 0.122);
   --color-bg-outlined-secondary-hover: oklch(0.833 0.172 82.058 / 0.161);
   --color-bg-outlined-tertiary-active: oklch(0.705 0.19 14.191 / 0.122);
@@ -100,10 +100,10 @@
   --color-danger-light-hover: var(--color-bg-light-danger-hover);
   --color-fg-accent-danger: var(--color-danger-400);
   --color-fg-accent-primary: var(--color-primary-400);
-  --color-fg-accent-secondary: var(--color-secondary-600);
+  --color-fg-accent-secondary: var(--color-secondary-500);
   --color-fg-accent-success: var(--color-success-300);
   --color-fg-accent-tertiary: var(--color-tertiary-400);
-  --color-fg-accent-warning: var(--color-warning-600);
+  --color-fg-accent-warning: var(--color-warning-500);
   --color-fg-badge-on-solid: var(--color-fg-light);
   --color-fg-dark: var(--color-white);
   --color-fg-disabled: var(--color-neutral-500);

@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-09T13:05:09.643Z
+ * Exported at: 2026-10-12T08:45:02.267Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -95,16 +95,16 @@
   --color-bg-primary-base: var(--color-primary-300);
   --color-bg-primary-hover: oklch(0.73 0.105 251.457);
   --color-bg-scrim: oklch(0.129 0.041 264.695 / 0.1);
-  --color-bg-secondary-active: oklch(0.588 0.198 36.788);
+  --color-bg-secondary-active: var(--color-secondary-300);
   --color-bg-secondary-base: var(--color-secondary-500);
-  --color-bg-secondary-hover: oklch(0.628 0.201 39.026);
+  --color-bg-secondary-hover: var(--color-secondary-400);
   --color-bg-success: var(--color-success-500);
   --color-bg-switch-checked-hover: var(--color-success-600);
   --color-bg-switch-hover: var(--color-neutral-300);
   --color-bg-switch-invalid: var(--color-danger-400);
-  --color-bg-tertiary-active: var(--color-tertiary-500);
+  --color-bg-tertiary-active: var(--color-tertiary-100);
   --color-bg-tertiary-base: var(--color-tertiary-300);
-  --color-bg-tertiary-hover: var(--color-tertiary-400);
+  --color-bg-tertiary-hover: var(--color-tertiary-200);
   --color-bg-transparent: oklch(0 0 0 / 0);
   --color-bg-warning-active: var(--color-warning-500);
   --color-bg-warning-base: var(--color-warning-500);
@@ -334,7 +334,7 @@
   --color-data-table-toolbar-bg: var(--color-table-header-bg);
   --color-data-table-toolbar-fg: var(--color-table-header-fg);
   --color-date-picker-accent: var(--color-bg-primary-base);
-  --color-date-picker-accent-foreground: var(--color-fg-light);
+  --color-date-picker-accent-foreground: var(--color-fg-on-primary-solid-neo);
   --color-date-picker-accent-hover: var(--color-bg-primary-hover);
   --color-date-picker-border: var(--color-form-control-border);
   --color-date-picker-border-hover: var(--color-form-control-border-hover);
@@ -362,7 +362,7 @@
   --color-date-picker-day-bg-selected-hover: var(--color-date-picker-accent-hover);
   --color-date-picker-day-border: var(--color-date-picker-transparent);
   --color-date-picker-day-fg: var(--color-date-picker-text);
-  --color-date-picker-day-fg-selected: var(--color-fg-on-primary-solid-neo);
+  --color-date-picker-day-fg-selected: var(--color-date-picker-accent-foreground);
   --color-date-picker-day-fg-unavailable: var(--color-date-picker-disabled);
   --color-date-picker-day-ring: var(--color-date-picker-ring);
   --color-date-picker-day-today-border: var(--color-date-picker-accent);
@@ -527,14 +527,14 @@
   --color-gray-950: oklch(0.13 0.027 261.692);
   --color-green-foreground-dark: oklch(0.849 0.191 149.626);
   --color-green-foreground-light: oklch(0.442 0.15 142.495);
-  --color-header-actions-fg: var(--color-bg-primary-base);
+  --color-header-actions-fg: var(--color-fg-accent-primary);
   --color-header-actions-fg-hover: var(--color-fg-primary);
   --color-header-bg: var(--color-fill-surface);
   --color-header-fg: var(--color-fg-primary);
   --color-header-hamburger-fg: var(--color-fg-primary);
   --color-header-hamburger-fg-hover: var(--color-fg-secondary);
   --color-header-nav-fg: var(--color-fg-secondary);
-  --color-header-nav-fg-active: var(--color-bg-primary-base);
+  --color-header-nav-fg-active: var(--color-fg-accent-primary);
   --color-header-nav-fg-hover: var(--color-fg-primary);
   --color-header-nav-item-bg: var(--color-bg-transparent);
   --color-header-nav-item-bg-hover: var(--color-bg-transparent);
@@ -568,16 +568,16 @@
   --color-input-bg-hover: var(--color-form-control-bg-hover);
   --color-input-border-base: var(--color-form-control-border);
   --color-input-border-danger-base: var(--color-border-danger);
-  --color-input-border-danger-focus: var(--color-border-danger);
+  --color-input-border-danger-focus: var(--color-border-danger-focus);
   --color-input-border-danger-hover: var(--color-border-danger-hover);
   --color-input-border-disabled: var(--color-border-disabled);
   --color-input-border-focus: var(--color-form-control-border-focus);
   --color-input-border-hover: var(--color-form-control-border-hover);
   --color-input-border-success-base: var(--color-border-success);
-  --color-input-border-success-focus: var(--color-border-success);
+  --color-input-border-success-focus: var(--color-border-success-focus);
   --color-input-border-success-hover: var(--color-border-success-hover);
   --color-input-border-warning-base: var(--color-border-warning);
-  --color-input-border-warning-focus: var(--color-border-warning);
+  --color-input-border-warning-focus: var(--color-border-warning-focus);
   --color-input-border-warning-hover: var(--color-border-warning-hover);
   --color-input-danger: var(--color-danger);
   --color-input-fg: var(--color-fg-primary);
@@ -653,7 +653,7 @@
   --color-pagination-border-disabled: var(--color-border-disabled);
   --color-pagination-fg: var(--color-fg-primary);
   --color-pagination-fg-disabled: var(--color-fg-disabled);
-  --color-pagination-fg-filled-active: var(--color-white);
+  --color-pagination-fg-filled-active: var(--color-fg-on-primary-solid-neo);
   --color-pagination-fg-minimal-active: var(--color-fg-accent-primary);
   --color-pagination-fg-outlined-active: var(--color-fg-accent-primary);
   --color-pagination-ring: var(--color-ring-default);
@@ -719,10 +719,10 @@
   --color-product-card-border: var(--color-border-primary);
   --color-product-card-button-cart-bg-base: var(--color-bg-primary-base);
   --color-product-card-button-cart-bg-hover: var(--color-bg-primary-hover);
-  --color-product-card-button-cart-fg: var(--color-fg-on-primary-solid);
+  --color-product-card-button-cart-fg: var(--color-fg-on-primary-solid-neo);
   --color-product-card-button-detail-bg-base: var(--color-bg-secondary-base);
   --color-product-card-button-detail-bg-hover: var(--color-bg-secondary-hover);
-  --color-product-card-button-detail-fg: var(--color-fg-light);
+  --color-product-card-button-detail-fg: var(--color-fg-on-secondary);
   --color-product-card-button-wishlist-bg-base: var(--color-bg-tertiary-base);
   --color-product-card-button-wishlist-bg-hover: var(--color-bg-tertiary-hover);
   --color-product-card-button-wishlist-fg: var(--color-fg-light);
@@ -732,9 +732,9 @@
   --color-product-card-stock-fg-limited-stock: var(--color-fg-accent-warning);
   --color-product-card-stock-fg-out-of-stock: var(--color-fg-accent-danger);
   --color-quantity-field-message: var(--color-fg-primary);
-  --color-quantity-field-message-fg: var(--color-fg-primary);
+  --color-quantity-field-message-fg: var(--color-quantity-field-message);
   --color-quantity-field-unit: var(--color-fg-primary);
-  --color-quantity-field-unit-fg: var(--color-fg-primary);
+  --color-quantity-field-unit-fg: var(--color-quantity-field-unit);
   --color-radio-card-addon-bg-disabled: var(--color-bg-disabled);
   --color-radio-card-addon-border: var(--color-border-primary);
   --color-radio-card-addon-border-disabled: var(--color-border-disabled);
@@ -764,8 +764,8 @@
   --color-radio-card-item-border-subtle-checked-hover: var(--color-bg-light-primary-hover);
   --color-radio-card-item-description-fg: var(--color-fg-secondary);
   --color-radio-card-item-description-fg-disabled: var(--color-fg-disabled);
-  --color-radio-card-item-description-fg-solid-checked: var(--color-fg-on-primary-solid);
-  --color-radio-card-item-description-fg-subtle-checked: var(--color-fg-light);
+  --color-radio-card-item-description-fg-solid-checked: var(--color-fg-on-primary-solid-neo);
+  --color-radio-card-item-description-fg-subtle-checked: var(--color-fg-primary);
   --color-radio-card-item-fg: var(--color-fg-primary);
   --color-radio-card-item-fg-disabled: var(--color-fg-disabled);
   --color-radio-card-item-fg-solid-checked: var(--color-fg-on-primary-solid-neo);
@@ -862,7 +862,7 @@
   --color-select-item-bg-hover: var(--color-popup-item-bg-hover);
   --color-select-item-bg-selected: var(--color-popup-item-bg-selected);
   --color-select-item-fg-base: var(--color-popup-item-fg);
-  --color-select-item-fg-selected: var(--color-fg-on-selected);
+  --color-select-item-fg-selected: var(--color-popup-item-fg-selected);
   --color-select-placeholder: var(--color-form-control-fg-placeholder);
   --color-select-ring: var(--color-form-control-ring);
   --color-select-trigger-bg-hover: var(--color-form-control-bg-hover);
@@ -1105,25 +1105,25 @@
   --color-tree-view-root-bg: var(--color-transparent);
   --color-vertical-navigation-accent: var(--color-bg-primary-base);
   --color-vertical-navigation-accent-light: var(--color-mix-vertical-navigation-accent-light);
-  --color-vertical-navigation-fg: var(--color-fg-primary);
+  --color-vertical-navigation-fg: var(--color-vertical-navigation-foreground);
   --color-vertical-navigation-focus-border: var(--color-ring);
   --color-vertical-navigation-foreground: var(--color-fg-primary);
-  --color-vertical-navigation-group-bg-accent: var(--color-mix-vertical-navigation-accent-light);
+  --color-vertical-navigation-group-bg-accent: var(--color-vertical-navigation-accent-light);
   --color-vertical-navigation-group-bg-plain: var(--color-bg-transparent);
   --color-vertical-navigation-group-bg-secondary: var(--color-mix-vertical-navigation-secondary-light);
-  --color-vertical-navigation-group-bg-subtle: var(--color-fill-surface);
-  --color-vertical-navigation-group-fg-accent: var(--color-fg-primary);
-  --color-vertical-navigation-group-fg-plain: var(--color-fg-primary);
-  --color-vertical-navigation-group-fg-secondary: var(--color-fg-primary);
-  --color-vertical-navigation-group-fg-subtle: var(--color-fg-primary);
+  --color-vertical-navigation-group-bg-subtle: var(--color-vertical-navigation-surface);
+  --color-vertical-navigation-group-fg-accent: var(--color-vertical-navigation-foreground);
+  --color-vertical-navigation-group-fg-plain: var(--color-vertical-navigation-foreground);
+  --color-vertical-navigation-group-fg-secondary: var(--color-vertical-navigation-foreground);
+  --color-vertical-navigation-group-fg-subtle: var(--color-vertical-navigation-foreground);
   --color-vertical-navigation-guide-border: var(--color-border-primary);
   --color-vertical-navigation-indicator-fg-hover: var(--color-mix-vertical-navigation-indicator-hover);
   --color-vertical-navigation-item-bg: var(--color-bg-transparent);
   --color-vertical-navigation-item-bg-current: var(--color-mix-vertical-navigation-item-current);
   --color-vertical-navigation-item-bg-hover: var(--color-fill-hover);
-  --color-vertical-navigation-item-fg-current: var(--color-fg-primary);
+  --color-vertical-navigation-item-fg-current: var(--color-vertical-navigation-foreground);
   --color-vertical-navigation-item-fg-disabled: var(--color-fg-disabled);
-  --color-vertical-navigation-label-fg: var(--color-fg-primary);
+  --color-vertical-navigation-label-fg: var(--color-vertical-navigation-foreground);
   --color-vertical-navigation-secondary: var(--color-bg-secondary-base);
   --color-vertical-navigation-separator-bg: var(--color-border-primary);
   --color-vertical-navigation-surface: var(--color-fill-surface);
