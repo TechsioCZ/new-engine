@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.2
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -31,7 +31,7 @@ const comboboxVariants = tv({
     root: ["relative flex w-full flex-col"],
     label: ["block font-label text-label-md"],
     control: [
-      "form-control-base relative flex w-full items-center overflow-hidden",
+      "form-control-base relative flex w-full min-w-0 items-center overflow-clip",
       "bg-combobox-bg-base",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
@@ -49,7 +49,7 @@ const comboboxVariants = tv({
     ],
     input: [
       "relative h-full min-w-0 flex-1 border-none bg-combobox-input-bg-base",
-      "hover:bg-combobox-input-bg-hover focus-visible:outline-none",
+      "hover:bg-combobox-input-bg-hover focus-visible:outline-hidden",
       "focus:bg-combobox-input-bg-focus",
       "placeholder:text-combobox-fg-placeholder",
       "data-disabled:text-combobox-fg-disabled",
@@ -115,7 +115,7 @@ const comboboxVariants = tv({
     triggerIndicator: [
       "text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover",
       "motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none",
-      "rotate-0 group-data-[state=open]:rotate-180",
+      "rotate-none group-data-[state=open]:rotate-180",
     ],
     helper: [
       "data-[validation=success]:text-combobox-success-fg",
@@ -303,6 +303,17 @@ export function Combobox<T = unknown>({
       ),
   })
 
+  let normalizedValue = value
+  if (typeof normalizedValue === "string") {
+    normalizedValue = normalizedValue ? [normalizedValue] : []
+  }
+  let normalizedDefaultValue = defaultValue
+  if (typeof normalizedDefaultValue === "string") {
+    normalizedDefaultValue = normalizedDefaultValue
+      ? [normalizedDefaultValue]
+      : []
+  }
+
   const service = useMachine(comboboxMachine, {
     id: uniqueId,
     name: navigation ? undefined : name,
@@ -331,12 +342,8 @@ export function Combobox<T = unknown>({
       input: `${uniqueId}-input`,
       control: `${uniqueId}-control`,
     },
-    value: navigation ? [] : typeof value === "string" ? [value] : value,
-    defaultValue: navigation
-      ? undefined
-      : typeof defaultValue === "string"
-        ? [defaultValue]
-        : defaultValue,
+    value: navigation ? [] : normalizedValue,
+    defaultValue: navigation ? undefined : normalizedDefaultValue,
     multiple: !navigation && multiple,
     inputValue,
     onValueChange: ({ value: selectedValue }) => {

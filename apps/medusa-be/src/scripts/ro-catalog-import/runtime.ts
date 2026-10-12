@@ -1,7 +1,3 @@
-import {
-  createTranslationsWorkflow,
-  updateTranslationsWorkflow,
-} from "@medusajs/core-flows"
 import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import type {
   Context,
@@ -11,7 +7,11 @@ import type {
   UpdateTranslationDTO,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { updateProductsWorkflow } from "@medusajs/medusa/core-flows"
+import {
+  createTranslationsWorkflow,
+  updateProductsWorkflow,
+  updateTranslationsWorkflow,
+} from "@medusajs/medusa/core-flows"
 import { MARKET_VARIANT_AUTHORITY_MODULE } from "../../modules/market-variant-authority"
 import type MarketVariantAuthorityModuleService from "../../modules/market-variant-authority/service"
 import { STOREFRONT_URL_ASSIGNMENT_MODULE } from "../../modules/storefront-url-assignment"

@@ -2,7 +2,7 @@
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,8 +19,8 @@ const colorSelectVariants = tv({
     cell: "grid",
     atom: [
       "relative cursor-pointer p-color-select-atom",
-      "aspect-square overflow-hidden",
-      "border-2 transition-all duration-200 motion-reduce:transition-none",
+      "aspect-square min-w-0 overflow-clip",
+      "border-2 transition duration-200 motion-reduce:transition-none",
       "border-color-select-border shadow-color-select hover:border-color-select-border-hover",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-color-select-ring",
@@ -29,7 +29,7 @@ const colorSelectVariants = tv({
     ],
     color: [
       "absolute",
-      "h-full w-full hover:brightness-75",
+      "size-full hover:brightness-75",
       "data-[selected=true]:brightness-75",
     ],
     icon: [
@@ -74,8 +74,8 @@ const colorSelectVariants = tv({
         icon: "text-color-select-lg",
       },
       full: {
-        group: "h-full w-full gap-color-select-md",
-        cell: "h-full w-full",
+        group: "size-full gap-color-select-md",
+        cell: "size-full",
         atom: "h-full",
         icon: "size-color-select-icon",
       },
@@ -101,7 +101,7 @@ const colorSelectVariants = tv({
   },
 })
 
-export interface ColorItem {
+export type ColorItem = {
   id?: string
   color: string
   selected?: boolean
@@ -110,7 +110,7 @@ export interface ColorItem {
   disabled?: boolean
 }
 
-interface ColorSelectProps {
+type ColorSelectProps = {
   colors: ColorItem[]
   layout?: "list" | "grid"
   size?: "sm" | "md" | "lg" | "full"

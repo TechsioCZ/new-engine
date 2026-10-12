@@ -169,28 +169,34 @@ Docker image is defined in `docker/development/playwright/Dockerfile`.
 These tests are intentionally Docker-only; running them directly on the host is blocked to keep snapshots reproducible.
 Make sure Storybook is served at `TEST_BASE_URL` (default `http://127.0.0.1:6006` inside the container).
 You can run `pnpm -C libs/ui storybook` on the host and set `TEST_BASE_URL=http://host.docker.internal:6006`,
-or let Playwright start its own `http-server` inside Docker from `storybook-static`.
-For visual stability, stories used in regression tests should rely on local assets (avoid external image URLs).
+or let Playwright start its own static server inside Docker from `storybook-static`.
+Screenshots must match their baselines byte-for-byte after PNG decoding (Playwright's `toHaveScreenshot` tolerates anti-aliasing differences, so the spec compares decoded RGBA itself). `Math.random` is seeded per story and the clock is fixed.
+Prefer local assets in new stories. Existing remote images replay through Playwright's native `routeFromHAR()` from `test/fixtures/visual-assets/assets.har`; attached binaries are committed beside the HAR. Missing URLs or changed resource types fail the test. Snapshot updates keep these files read-only.
+
+When a story needs a new remote asset, record it using Playwright's [HAR recording](https://playwright.dev/docs/mock#recording-a-har-file). Use one recording context with `recordHar: { path: "assets.har", mode: "minimal", content: "attach", urlFilter: "https://images.unsplash.com/**" }`, visit the affected stories, then close the context to save it. Add the required entries and attachments to the existing HAR; preserve unrelated entries and keep one entry per URL (deduplicate repeated captures). Review image changes before updating screenshots.
+
+Run the focused replay contracts with `pnpm -C libs/ui test:visual-assets` after installing Chromium (`pnpm exec playwright install chromium`).
 
 Optional environment overrides:
 - `TEST_BASE_URL` (default: `http://127.0.0.1:6006` inside the container)
 - `PLAYWRIGHT_STORYBOOK_REBUILD` (default: `1`, rebuilds `storybook-static`; set to `0` to reuse an existing build)
+- `VISUAL_STORYBOOK_STATIC_DIR` (absolute path to another Storybook build, e.g. one built from `master`, to test against the committed baselines; skips the rebuild)
+- `VISUAL_BRANDS` (default: `base,neo,business`; also supports `akros`)
 - `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
 - `PLAYWRIGHT_WORKERS` (override worker count for parallel runs)
-- `PLAYWRIGHT_PAGE_RESET` (default: `1`, resets cookies/storage between stories; set to `0` for max speed if stable)
-- `DOCKER_PLATFORM` (default: `linux/amd64`)
+- `VISUAL_ASSET_HAR_PATH` (absolute path to an alternative HAR; its directory and attachments mount read-only)
 - `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright`)
 - `PLAYWRIGHT_DOCKER_SHM_SIZE` (default: `2g`, improves Playwright stability in Docker)
 - `PLAYWRIGHT_DOCKER_IPC` (default: `host`, improves Playwright stability in Docker)
-- `PLAYWRIGHT_DOCKER_SEQUENTIAL` (default: `0`, runs projects in parallel; set to `1` to reduce memory spikes)
-- `PLAYWRIGHT_DOCKER_PROJECTS` (comma-separated Playwright project names to run sequentially; default: `desktop,mobile`)
+- `PLAYWRIGHT_DOCKER_SEQUENTIAL` (default: `0`, runs projects in parallel; set to `1` to run one project at a time and reduce memory spikes)
+
+Extra arguments are passed to `playwright test`, e.g. `pnpm -C libs/ui test:components -- --project=neo-mobile-dark`.
+Tests always run as `linux/amd64`, matching the committed baselines. A full run must cover every story in every visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
 
 ### Recommendation for `PLAYWRIGHT_WORKERS` and parallelism
 
-- If `PLAYWRIGHT_WORKERS` is not set, the Playwright config defaults to
-    using (CPU cores - 1) workers. This balances parallelism with leaving one
-    core for system processes. You can override it in CI with `PLAYWRIGHT_WORKERS=4` (or
-    another suitable value) depending on your runner size.
+- If `PLAYWRIGHT_WORKERS` is not set, the Docker runner uses 4 workers to bound
+    browser memory. Override it depending on your machine or CI runner size.
 - The test suite enables `fullyParallel` in Playwright config, so tests can run
     concurrently across files and workers — ensure tests are isolated and use
     unique snapshot names (the visual tests already include `story.id` in the

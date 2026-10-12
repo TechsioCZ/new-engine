@@ -18,6 +18,168 @@ const CHANGELOG = `
 ### TotalsSummary v1.0.0
 - Added prepared label/value rows, notes, discounts, an explicit total and pending feedback. Unresolved fees remain caller-provided text; the component does not calculate totals.
 
+### Checkbox v1.0.2
+- Preserve callback ref cleanup with React 19 and current Tailwind utilities.
+
+### NumericInput v1.1.2
+- Keep explicit input IDs linked to labels with the current Zag number-input machine and forward template labels to the input.
+
+### Skeleton v1.0.2
+- Keep busy placeholders accessible without naming generic wrapper elements.
+
+### Tooltip v1.0.1
+- Preserve tooltip descriptions and interaction with the current Zag machine.
+
+### Accordion v1.0.2
+- Use a heading for accordion triggers and preserve forwarded heading refs.
+
+### Breadcrumb v1.0.1
+- Preserve all compound members in native TypeScript declarations.
+
+### Carousel v1.0.1
+- Preserve compound declarations and use current Tailwind scrollbar utilities.
+
+### Chart v1.0.1
+- Adapt chart definitions, scales and React imports to TanStack Charts 1.x while preserving Cartesian rendering.
+
+### ColorSelect v1.0.2
+- Update types and sizing utilities for the current toolchain.
+
+### Combobox v1.3.2
+- Normalize single-value strings for the current Zag machine while retaining multi-value support.
+
+### Dialog v1.0.3
+- Use the current Zag dismissal behavior and remove the obsolete Escape workaround.
+
+### FormNumericInput v1.1.1
+- Link labels and help text to the actual numeric input ID.
+
+### Menu v1.1.1
+- Use current Zag types and adapt navigation callbacks without changing their public shape.
+
+### Pagination v1.0.1
+- Mark unavailable pagination links as disabled for assistive technology.
+
+### PhoneInput v1.0.2
+- Preserve the Input compound member in native TypeScript declarations.
+
+### Popover v1.0.2
+- Keep lazily mounted titles and descriptions linked to content and preserve compound declarations.
+
+### ProductCard v1.0.1
+- Preserve Button and Rating compound members in native TypeScript declarations.
+
+### RadioCard v1.0.2
+- Preserve compound declarations and recognize compound hidden-input labels.
+
+### RadioGroup v1.0.1
+- Preserve compound declarations and recognize compound hidden-input labels.
+
+### SearchForm v1.0.1
+- Preserve compound declarations and use the current React submit-event type.
+
+### Select v1.1.2
+- Use current Zag types and preserve the StatusText compound declaration.
+
+### Steps v1.0.2
+- Keep current-step and progress semantics accessible and preserve compound declarations.
+
+### Tabs v1.0.1
+- Update logical positioning utilities and context types for the current toolchain.
+
+### TreeView v1.0.2
+- Use current Zag types and logical positioning utilities.
+
+### DataTable v1.2.2
+- Adapt row drag-and-drop and table integration to the current dependencies while retaining keyboard interaction.
+
+### Footer v1.0.1
+- Preserve Footer compound members in native TypeScript declarations.
+
+### Gallery v1.0.2
+- Preserve compound declarations and use current scrollbar utilities.
+
+### Table v1.2.2
+- Use current logical positioning utilities for sticky columns.
+
+### Table v1.2.1
+- Switched the border between header and cell columns from physical border-r to logical border-e for RTL.
+
+### DataTable v1.2.1
+- Switched the sortable header's text-left to the logical text-start for RTL.
+
+### TreeView v1.0.1
+- Replaced transition-all with the explicit transition property list to avoid animating unrelated properties.
+
+### Tour v1.0.3
+- Replaced outline-none with outline-hidden per the updated focus-ring guideline.
+
+### Slider v1.0.1
+- Switched the vertical thumb's physical left offset to the logical start for RTL.
+
+### Select v1.1.1
+- Switched text-left to text-start and the clear trigger's physical right offset to logical end for RTL.
+
+### RadioCard v1.0.1
+- Switched overflow-hidden to overflow-clip and text-left/text-right to text-start/text-end for RTL.
+
+### Popover v1.0.1
+- Replaced outline-none with outline-hidden and switched the close trigger's physical right offset to logical end for RTL.
+
+### FormCheckbox v1.1.2
+- Replaced transition-all with the explicit transition property list and switched the indented text's physical pl- offset to logical ps- for RTL.
+
+### FileUpload v1.0.1
+- Switched overflow-hidden to overflow-clip on the item preview.
+
+### Dialog v1.0.2
+- Switched the close trigger and side-panel borders from physical top/right/left offsets to logical end/start equivalents for RTL.
+
+### CascadeSelect v1.0.2
+- Switched text-left to text-start and the trigger icon's physical right offset to logical end for RTL.
+
+### Accordion v1.0.1
+- Replaced transition-all with the explicit transition property list and switched the icon's physical pr- offset to logical pe- for RTL.
+
+### Textarea v1.0.1
+- Replaced transition-all with the explicit transition property list and added user-invalid styling for native constraint validation once the field has been interacted with.
+
+### Input v1.0.1
+- Replaced transition-all with the explicit transition property list and added user-invalid styling for native constraint validation once the field has been interacted with.
+
+### Checkbox v1.0.1
+- Replaced transition-all with the explicit transition property list to avoid animating unrelated properties.
+
+### Button v0.3.3
+- Replaced transition-all with the explicit transition property list, added motion-safe active press feedback, and switched the loading spinner's physical mr- offset to logical me- for RTL.
+
+### Gallery v1.0.1
+- Added min-w-0 to the thumbnail trigger's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### Toast v1.0.1
+- Added min-w-0 to the root's overflow-clip class so the toast keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### Steps v1.0.1
+- Added min-w-0 to the progress track's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### PhoneInput v1.0.1
+- Added min-w-0 to the control's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### DatePicker v1.1.2
+- Switched the month panel and time group's divider border from physical border-l to logical border-s so it follows the ps- padding in RTL.
+
+### Combobox v1.3.1
+- Added min-w-0 to the control's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### ColorSelect v1.0.1
+- Added min-w-0 to the atom's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### Skeleton v1.0.1
+- Added min-w-0 to the root's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
+### NumericInput v1.1.1
+- Added min-w-0 to the container's overflow-clip class so it keeps clipping content correctly now that overflow-clip no longer creates a scroll container.
+
 ### QuantityField v1.0.0
 - Added a controlled quantity molecule with a visible unit, linked label/helper/error text and localized pending feedback over NumericInput. Validation, persistence and explicit removal stay consumer-owned.
 - autoFocus, aria-label and aria-labelledby reach the editable input; native label and description bindings remain intact.
@@ -63,6 +225,9 @@ const CHANGELOG = `
 - Accent subgroup surfaces support primary/secondary brand variants independently of the current page; the Akros catalog demonstrates two colored subgroups at 280 px.
 - New standalone link-based navigation with Zag disclosure branches, independent subgroup tones, capped indentation for deep hierarchies, controlled expansion, RTL and Drawer/Sidebar composition. Includes usage guidance and behavior tests; Figma/Code Connect mapping is deferred.
 
+### Hotkeys v1.0.2
+- Export the Key and Separator compound members in native TypeScript declarations.
+
 ### Hotkeys v1.0.1
 - Use named token utilities for keycap borders and shortcut-target focus styling while preserving the existing token values.
 
@@ -74,6 +239,9 @@ const CHANGELOG = `
 
 ### Command v1.0.0
 - New compound action panel on Zag Combobox with label/keyword filtering, groups, empty and disabled states, repeated activation and existing Dialog composition. Application callbacks can be shared with Hotkeys without a second command registry.
+
+### Tour v1.0.4
+- Export the Context and Trigger compound members in native TypeScript declarations.
 
 ### Tour v1.0.2
 - Keep the start trigger disabled throughout target resolution and wait steps, then enable it after the tour ends. Apply target inert before paint while preserving application ownership. Revalidate Zag 1.43.3 guidance and remove obsolete skip/effect-dismiss adapters.

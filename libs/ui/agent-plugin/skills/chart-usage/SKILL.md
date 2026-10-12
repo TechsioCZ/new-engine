@@ -3,12 +3,12 @@ name: chart-usage
 description: >
   Use after component-usage-ux when an app needs the @techsio/ui-kit Chart —
   a declarative data-visualization molecule built on TanStack Charts
-  (@tanstack/charts + @tanstack/react-charts). One `type` prop covers line,
+  (@tanstack/charts/react). One `type` prop covers line,
   area, bar, horizontal bar, scatter, pie and donut charts from the same
   data/x/y/series channels, with token-driven series colors, legend, tooltip,
   value formatting and selection callbacks.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -184,30 +184,29 @@ moduleIntegrationTestRunner<UrlRegistryOutboxModuleService>({
     })
 
     describe("enqueueCatalogLifecycleEvent", () => {
-      it.each([
-        "category",
-        "brand",
-        "collection",
-      ] as const)("preserves the %s stream identity and replays exactly", async (entityKind) => {
-        const event = catalogInput(`catalog:${entityKind}`, entityKind)
-        const first = await service.enqueueCatalogLifecycleEvent(event)
-        const replay = await service.enqueueCatalogLifecycleEvent(event)
+      it.each(["category", "brand", "collection"] as const)(
+        "preserves the %s stream identity and replays exactly",
+        async (entityKind) => {
+          const event = catalogInput(`catalog:${entityKind}`, entityKind)
+          const first = await service.enqueueCatalogLifecycleEvent(event)
+          const replay = await service.enqueueCatalogLifecycleEvent(event)
 
-        expect(first.events).toEqual([
-          expect.objectContaining({ marketCode: "ro", streamSequence: 1 }),
-        ])
-        expect(replay.events[0]).toEqual(
-          expect.objectContaining({ replayed: true, streamSequence: 1 })
-        )
-        const [stored] = await service.listUrlRegistryOutboxEvents({
-          event_id: event.eventId,
-        })
-        expect(stored).toMatchObject({
-          entity_id: `${entityKind}_1`,
-          entity_kind: entityKind,
-          market_code: "ro",
-        })
-      })
+          expect(first.events).toEqual([
+            expect.objectContaining({ marketCode: "ro", streamSequence: 1 }),
+          ])
+          expect(replay.events[0]).toEqual(
+            expect.objectContaining({ replayed: true, streamSequence: 1 })
+          )
+          const [stored] = await service.listUrlRegistryOutboxEvents({
+            event_id: event.eventId,
+          })
+          expect(stored).toMatchObject({
+            entity_id: `${entityKind}_1`,
+            entity_kind: entityKind,
+            market_code: "ro",
+          })
+        }
+      )
 
       it("isolates the same entity and slug between SK and RO streams", async () => {
         const ro = await service.enqueueCatalogLifecycleEvent(

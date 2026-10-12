@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,14 +27,14 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import { tv } from "../utils"
 
 const radioCardVariants = tv({
   slots: {
     root: ["flex w-full flex-col"],
     item: [
-      "relative flex min-w-0 flex-col overflow-hidden",
+      "relative flex min-w-0 flex-col overflow-clip",
       "rounded-radio-card-item",
       "border-(length:--border-width-radio-card)",
       "border-radio-card-item-border",
@@ -93,10 +93,7 @@ const radioCardVariants = tv({
       "data-[state=checked]:opacity-100",
       "data-disabled:data-[state=checked]:text-radio-card-item-indicator-content-fg-disabled",
     ],
-    itemIndicatorMark: [
-      "block leading-none",
-      "token-icon-radio-card-checked",
-    ],
+    itemIndicatorMark: ["block leading-none", "token-icon-radio-card-checked"],
     itemAddon: [
       "border-t-(length:--border-width-radio-card-addon)",
       "border-radio-card-addon-border",
@@ -190,10 +187,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-sm",
         itemIndicator: "size-radio-card-indicator-sm",
         itemIndicatorMark: "size-radio-card-indicator-mark-sm",
-        itemAddon: [
-          "p-radio-card-addon-sm",
-          "text-radio-card-addon-sm",
-        ],
+        itemAddon: ["p-radio-card-addon-sm", "text-radio-card-addon-sm"],
       },
       md: {
         root: "gap-radio-card-stack-md",
@@ -206,10 +200,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-md",
         itemIndicator: "size-radio-card-indicator-md",
         itemIndicatorMark: "size-radio-card-indicator-mark-md",
-        itemAddon: [
-          "p-radio-card-addon-md",
-          "text-radio-card-addon-md",
-        ],
+        itemAddon: ["p-radio-card-addon-md", "text-radio-card-addon-md"],
       },
       lg: {
         root: "gap-radio-card-stack-lg",
@@ -222,10 +213,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-lg",
         itemIndicator: "size-radio-card-indicator-lg",
         itemIndicatorMark: "size-radio-card-indicator-mark-lg",
-        itemAddon: [
-          "p-radio-card-addon-lg",
-          "text-radio-card-addon-lg",
-        ],
+        itemAddon: ["p-radio-card-addon-lg", "text-radio-card-addon-lg"],
       },
     },
     itemOrientation: {
@@ -242,9 +230,9 @@ const radioCardVariants = tv({
       start: {
         itemControl: "items-start",
         itemContent: "items-start",
-        itemText: "text-left",
-        itemDescription: "text-left",
-        itemAddon: "text-left",
+        itemText: "text-start",
+        itemDescription: "text-start",
+        itemAddon: "text-start",
       },
       center: {
         itemControl: "items-center",
@@ -256,9 +244,9 @@ const radioCardVariants = tv({
       end: {
         itemControl: "items-end",
         itemContent: "items-end",
-        itemText: "text-right",
-        itemDescription: "text-right",
-        itemAddon: "text-right",
+        itemText: "text-end",
+        itemDescription: "text-end",
+        itemAddon: "text-end",
       },
     },
     justify: {
@@ -402,7 +390,7 @@ export function RadioCard({
     {
       "aria-describedby": ariaDescribedByProp,
     },
-    api.getRootProps(),
+    api.getRootProps()
   )
 
   return (
@@ -486,6 +474,7 @@ RadioCard.Item = function RadioCardItem({
 
   return (
     <RadioCardItemContext.Provider value={{ itemProps }}>
+      {/* biome-ignore lint/a11y/noLabelWithoutControl: The compound hidden input is rendered by children and shares these Zag item props. */}
       <label
         className={styles.item({ className })}
         ref={ref}
@@ -512,7 +501,10 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
   const { api, size, variant } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({ size, variant })
-  const hiddenInputProps = mergeProps(props, api.getItemHiddenInputProps(itemProps))
+  const hiddenInputProps = mergeProps(
+    props,
+    api.getItemHiddenInputProps(itemProps)
+  )
 
   return (
     <input
@@ -714,7 +706,7 @@ RadioCard.ItemAddon = function RadioCardItemAddon({
 }
 
 type RadioCardStatusTextProps = Omit<
-  ComponentPropsWithoutRef<typeof StatusText>,
+  ComponentPropsWithoutRef<typeof StatusTextComponent>,
   "status" | "size"
 > & {
   status?: RadioCardValidateStatus
@@ -734,14 +726,14 @@ RadioCard.StatusText = function RadioCardStatusText({
   const effectiveStatus = status ?? validateStatus
 
   return (
-    <StatusText
+    <StatusTextComponent
       showIcon={showIcon ?? effectiveStatus !== "default"}
       size={effectiveSize}
       status={effectiveStatus}
       {...props}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 

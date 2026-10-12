@@ -31,14 +31,16 @@ describe("storefront text lock error handling", () => {
     })
   })
 
-  it.each([
-    new Error("Workflow failed"),
-    "Timed-out acquiring lock.",
-  ])("rethrows unrelated errors", (error) => {
-    const response = createResponse()
+  it.each([new Error("Workflow failed"), "Timed-out acquiring lock."])(
+    "rethrows unrelated errors",
+    (error) => {
+      const response = createResponse()
 
-    expect(() => handleStorefrontTextLockError(error, response)).toThrow(error)
-    expect(response.status).not.toHaveBeenCalled()
-    expect(response.json).not.toHaveBeenCalled()
-  })
+      expect(() => handleStorefrontTextLockError(error, response)).toThrow(
+        error
+      )
+      expect(response.status).not.toHaveBeenCalled()
+      expect(response.json).not.toHaveBeenCalled()
+    }
+  )
 })

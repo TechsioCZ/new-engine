@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -292,6 +292,7 @@ export function Pagination<T extends ElementType = "a">({
           ? {}
           : {
               disabled: true,
+              role: triggerProps.role ?? sharedLinkProps?.role ?? "link",
             }),
       }
     ) as LinkButtonProps<T>

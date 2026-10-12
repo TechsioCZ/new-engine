@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -80,7 +80,7 @@ export const cascadeSelectVariants = tv({
       "form-control-base group w-full",
       "flex items-center justify-between gap-0",
       "border-cascade-select-trigger-border",
-      "text-left font-normal",
+      "text-start font-normal",
       "hover:border-cascade-select-trigger-border-hover",
       "hover:bg-cascade-select-trigger-bg-hover",
       "focus:border-cascade-select-trigger-border-focus",
@@ -106,7 +106,7 @@ export const cascadeSelectVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     clearTrigger:
-      "-translate-y-1/2 absolute top-1/2 right-cascade-select-right data-readonly:hidden",
+      "-translate-y-1/2 absolute end-cascade-select-right top-1/2 data-readonly:hidden",
     content: [
       "popup-surface-base flex w-max min-w-(--reference-width) max-w-(--available-width) overflow-x-auto",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",

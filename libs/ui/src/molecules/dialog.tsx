@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.3
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,7 +11,7 @@
  */
 import * as dialog from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type KeyboardEventHandler, type ReactNode, useId } from "react"
+import { type ReactNode, useId } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
@@ -36,7 +36,7 @@ const dialogVariants = tv({
     // Positioning only — the close button is an ActionIcon that owns its size,
     // glyph and neutral hover pill.
     closeTrigger: [
-      "absolute top-dialog-close-trigger-offset right-dialog-close-trigger-offset",
+      "absolute end-dialog-close-trigger-offset top-dialog-close-trigger-offset",
     ],
     actions:
       "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
@@ -50,11 +50,11 @@ const dialogVariants = tv({
       },
       left: {
         positioner: "items-stretch justify-start",
-        content: "h-full rounded-dialog-content-side border-l-0",
+        content: "h-full rounded-dialog-content-side border-s-0",
       },
       right: {
         positioner: "items-stretch justify-end",
-        content: "h-full rounded-dialog-content-side border-r-0",
+        content: "h-full rounded-dialog-content-side border-e-0",
       },
       top: {
         positioner: "items-start justify-stretch",
@@ -241,29 +241,7 @@ export function Dialog({
     ...(open !== undefined && { open }),
   })
 
-  const api = dialog.connect(service as dialog.Service, normalizeProps)
-  const contentProps = api.getContentProps()
-  const handleContentKeyDown: KeyboardEventHandler<HTMLDivElement> = (
-    event
-  ) => {
-    contentProps.onKeyDown?.(event)
-
-    if (
-      open === undefined ||
-      !closeOnEscape ||
-      event.defaultPrevented ||
-      event.key !== "Escape"
-    ) {
-      return
-    }
-
-    event.preventDefault()
-    api.setOpen(false)
-  }
-  const interactiveContentProps = {
-    ...contentProps,
-    onKeyDown: handleContentKeyDown,
-  }
+  const api = dialog.connect(service, normalizeProps)
 
   const {
     backdrop,
@@ -280,7 +258,7 @@ export function Dialog({
     <>
       <div className={backdrop()} {...api.getBackdropProps()} />
       <div className={positioner()} {...api.getPositionerProps()}>
-        <div className={content({ className })} {...interactiveContentProps}>
+        <div className={content({ className })} {...api.getContentProps()}>
           {!hideCloseButton && (
             <ActionIcon
               className={closeTrigger()}

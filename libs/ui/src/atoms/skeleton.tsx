@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -20,7 +20,7 @@ import { tv } from "../utils"
 
 const skeletonVariants = tv({
   slots: {
-    root: ["relative overflow-hidden"],
+    root: ["relative min-w-0 overflow-clip"],
     rectangle: "w-full",
     circle: ["rounded-full", "shrink-0"],
     textContainer: ["flex", "flex-col"],
@@ -132,7 +132,6 @@ export function Skeleton({
       ) : (
         <div
           aria-busy="true"
-          aria-label="Loading content"
           className={styles.root({ className })}
           ref={ref}
           {...props}
@@ -179,7 +178,6 @@ Skeleton.Circle = function SkeletonCircle({
   return (
     <div
       aria-busy="true"
-      aria-label="Loading content"
       className={styles.root({
         className: styles.circle({ className }),
       })}
@@ -233,7 +231,6 @@ Skeleton.Text = function SkeletonText({
   return (
     <div
       aria-busy="true"
-      aria-label="Loading content"
       className={styles.textContainer({ className: containerClassName })}
       ref={ref}
       {...props}
@@ -288,7 +285,6 @@ Skeleton.Rectangle = function SkeletonRectangle({
   return (
     <div
       aria-busy="true"
-      aria-label="Loading content"
       className={styles.root({ className: styles.rectangle({ className }) })}
       ref={ref}
       {...props}

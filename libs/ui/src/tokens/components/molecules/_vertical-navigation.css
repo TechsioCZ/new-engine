@@ -126,7 +126,7 @@
     flex-shrink: 0;
   }
 
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     &:hover:not(:has(> [data-part="link"][data-current])):has(
         > [data-part="link"]:not([data-disabled]),
         > [data-part="branch-trigger"]:not(:disabled)

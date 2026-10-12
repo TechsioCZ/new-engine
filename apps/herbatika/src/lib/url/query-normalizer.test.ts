@@ -144,14 +144,15 @@ describe("normalizeQuery route scopes", () => {
     )
   })
 
-  it.each(
-    forbiddenQueryKeyCases
-  )("rejects known key %s on the wrong route scope %s", (routeKind, key) => {
-    const result = requireNotFound(routeKind, `${key}=value&unknown=strip-me`)
+  it.each(forbiddenQueryKeyCases)(
+    "rejects known key %s on the wrong route scope %s",
+    (routeKind, key) => {
+      const result = requireNotFound(routeKind, `${key}=value&unknown=strip-me`)
 
-    expect(result.reason).toBe("known-key-not-allowed")
-    expect(result.key).toBe(key)
-  })
+      expect(result.reason).toBe("known-key-not-allowed")
+      expect(result.key).toBe(key)
+    }
+  )
 })
 
 describe("normalizeQuery canonical output", () => {
@@ -182,19 +183,20 @@ describe("normalizeQuery canonical output", () => {
     expect(result.redirectRawQuery).toBe(result.canonicalRawQuery)
   })
 
-  it.each(
-    canonicalSerializationCases
-  )("uses WHATWG serialization for %s", (rawQuery, canonicalRawQuery) => {
-    const result = normalizeQuery({ rawQuery, routeKind: "search" })
+  it.each(canonicalSerializationCases)(
+    "uses WHATWG serialization for %s",
+    (rawQuery, canonicalRawQuery) => {
+      const result = normalizeQuery({ rawQuery, routeKind: "search" })
 
-    expect(result.kind).toBe(
-      rawQuery === canonicalRawQuery ? "accept" : "redirect"
-    )
-    if (result.kind === "not-found") {
-      throw new Error("Expected a valid WHATWG serialization fixture")
+      expect(result.kind).toBe(
+        rawQuery === canonicalRawQuery ? "accept" : "redirect"
+      )
+      if (result.kind === "not-found") {
+        throw new Error("Expected a valid WHATWG serialization fixture")
+      }
+      expect(result.canonicalRawQuery).toBe(canonicalRawQuery)
     }
-    expect(result.canonicalRawQuery).toBe(canonicalRawQuery)
-  })
+  )
 
   it("keeps an already canonical query without requesting a redirect", () => {
     const result = requireAccepted(

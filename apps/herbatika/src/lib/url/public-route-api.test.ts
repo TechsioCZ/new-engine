@@ -84,16 +84,19 @@ describe("parsePublicPath", () => {
       "/velemenyek/termek/Token-AbC",
       { kind: "review", token: "Token-AbC" },
     ],
-  ] as const)("parses %s %s to one semantic target", (market, pathname, target) => {
-    const parsed = parsePublicPath({ market, pathname })
-    expect(parsed).toMatchObject({
-      canonicalization: { required: false },
-      kind: "found",
-      market,
-      navigation: "document",
-      target,
-    })
-  })
+  ] as const)(
+    "parses %s %s to one semantic target",
+    (market, pathname, target) => {
+      const parsed = parsePublicPath({ market, pathname })
+      expect(parsed).toMatchObject({
+        canonicalization: { required: false },
+        kind: "found",
+        market,
+        navigation: "document",
+        target,
+      })
+    }
+  )
 
   it("composes path and query repairs into one canonicalization destination", () => {
     expect(
@@ -221,15 +224,14 @@ describe("parsePublicPath", () => {
     })
   })
 
-  it.each([
-    "q=%",
-    "q=%0G",
-    "q=ok%00bad",
-  ])("rejects malformed or control-bearing query %s", (rawQuery) => {
-    expect(
-      parsePublicPath({ market: "sk", pathname: "/vyhladavanie", rawQuery })
-    ).toMatchObject({ kind: "not-found", reason: "malformed-path" })
-  })
+  it.each(["q=%", "q=%0G", "q=ok%00bad"])(
+    "rejects malformed or control-bearing query %s",
+    (rawQuery) => {
+      expect(
+        parsePublicPath({ market: "sk", pathname: "/vyhladavanie", rawQuery })
+      ).toMatchObject({ kind: "not-found", reason: "malformed-path" })
+    }
+  )
 
   it.each([
     "/~sf/sk/home",
@@ -243,15 +245,15 @@ describe("parsePublicPath", () => {
     })
   })
 
-  it.each([
-    "/p/legacy",
-    "/informacie",
-  ])("omits disabled or invalid public route %s", (pathname) => {
-    expect(parsePublicPath({ market: "sk", pathname })).toMatchObject({
-      kind: "not-found",
-      reason: "route-not-found",
-    })
-  })
+  it.each(["/p/legacy", "/informacie"])(
+    "omits disabled or invalid public route %s",
+    (pathname) => {
+      expect(parsePublicPath({ market: "sk", pathname })).toMatchObject({
+        kind: "not-found",
+        reason: "route-not-found",
+      })
+    }
+  )
 })
 
 describe("resolvePublicRoute", () => {

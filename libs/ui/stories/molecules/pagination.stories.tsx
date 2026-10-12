@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { expect, within } from "storybook/test"
 import type { ComponentPropsWithoutRef } from "react"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import {
@@ -239,6 +240,7 @@ export const StyleVariants: Story = {
 }
 
 export const EdgeCases: Story = {
+  tags: ["ui-semantic-regression"],
   render: () => (
     <VariantContainer>
       <VariantGroup title="Very few pages">
@@ -272,6 +274,44 @@ export const EdgeCases: Story = {
       </VariantGroup>
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const disabledLinks = canvasElement.querySelectorAll<HTMLAnchorElement>(
+      'a[aria-disabled="true"]'
+    )
+    await expect(disabledLinks.length).toBeGreaterThan(0)
+    const pageUrl = canvasElement.ownerDocument.location.href
+    const selectedPages = Array.from(
+      canvasElement.querySelectorAll('a[aria-current="page"]'),
+      (element) => element.textContent
+    )
+
+    for (const link of disabledLinks) {
+      const navigation = link.closest("nav")
+      if (!navigation) {
+        throw new Error("Pagination link must belong to a navigation landmark")
+      }
+      const name = link.getAttribute("aria-label")
+      if (!name) {
+        throw new Error("Disabled pagination link must have an accessible name")
+      }
+      await expect(within(navigation).getByRole("link", { name })).toBe(link)
+      await expect(link).toHaveAttribute("aria-disabled", "true")
+      await expect(link).not.toHaveAttribute("href")
+      await expect(link).toHaveAttribute("tabindex", "-1")
+      await expect(
+        link.dispatchEvent(
+          new MouseEvent("click", { bubbles: true, cancelable: true })
+        )
+      ).toBe(false)
+      await expect(canvasElement.ownerDocument.location.href).toBe(pageUrl)
+      await expect(
+        Array.from(
+          canvasElement.querySelectorAll('a[aria-current="page"]'),
+          (element) => element.textContent
+        )
+      ).toEqual(selectedPages)
+    }
+  },
 }
 
 export const CustomLinkComponent: Story = {

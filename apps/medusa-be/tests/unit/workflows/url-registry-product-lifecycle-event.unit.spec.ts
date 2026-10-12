@@ -111,45 +111,44 @@ const eventBusContext = (
 }
 
 describe("URL registry product lifecycle workflow event", () => {
-  it.each([
-    "created",
-    "updated",
-    "deleted",
-  ] as const)("builds deterministic %s payloads for every market", (reason) => {
-    const first = buildProductLifecycleOutboxInputs({
-      eventGroupId: GROUP_ID,
-      productIds: ["prod_2", "prod_1", "prod_1"],
-      ...(reason === "deleted" ? {} : { productSnapshots }),
-      reason,
-    })
-    const replay = buildProductLifecycleOutboxInputs({
-      eventGroupId: GROUP_ID,
-      productIds: ["prod_1", "prod_2"],
-      ...(reason === "deleted" ? {} : { productSnapshots }),
-      reason,
-    })
+  it.each(["created", "updated", "deleted"] as const)(
+    "builds deterministic %s payloads for every market",
+    (reason) => {
+      const first = buildProductLifecycleOutboxInputs({
+        eventGroupId: GROUP_ID,
+        productIds: ["prod_2", "prod_1", "prod_1"],
+        ...(reason === "deleted" ? {} : { productSnapshots }),
+        reason,
+      })
+      const replay = buildProductLifecycleOutboxInputs({
+        eventGroupId: GROUP_ID,
+        productIds: ["prod_1", "prod_2"],
+        ...(reason === "deleted" ? {} : { productSnapshots }),
+        reason,
+      })
 
-    expect(replay).toEqual(first)
-    expect(first).toEqual([
-      {
-        affectedMarketCodes: ["sk", "cz", "hu", "ro"],
-        eventId: expect.stringMatching(SHA256_FINGERPRINT),
-        marketAssignments: expect.any(Array),
-        occurredAt: "2016-07-30T23:54:10.259Z",
-        productId: "prod_1",
-        reason,
-      },
-      {
-        affectedMarketCodes: ["sk", "cz", "hu", "ro"],
-        eventId: expect.stringMatching(SHA256_FINGERPRINT),
-        marketAssignments: expect.any(Array),
-        occurredAt: "2016-07-30T23:54:10.259Z",
-        productId: "prod_2",
-        reason,
-      },
-    ])
-    expect(first[0]?.eventId).not.toBe(first[1]?.eventId)
-  })
+      expect(replay).toEqual(first)
+      expect(first).toEqual([
+        {
+          affectedMarketCodes: ["sk", "cz", "hu", "ro"],
+          eventId: expect.stringMatching(SHA256_FINGERPRINT),
+          marketAssignments: expect.any(Array),
+          occurredAt: "2016-07-30T23:54:10.259Z",
+          productId: "prod_1",
+          reason,
+        },
+        {
+          affectedMarketCodes: ["sk", "cz", "hu", "ro"],
+          eventId: expect.stringMatching(SHA256_FINGERPRINT),
+          marketAssignments: expect.any(Array),
+          occurredAt: "2016-07-30T23:54:10.259Z",
+          productId: "prod_2",
+          reason,
+        },
+      ])
+      expect(first[0]?.eventId).not.toBe(first[1]?.eventId)
+    }
+  )
 
   it.each([
     ["missing", undefined],

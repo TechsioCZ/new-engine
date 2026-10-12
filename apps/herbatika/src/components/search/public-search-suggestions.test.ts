@@ -18,14 +18,12 @@ const suggestion = (href: string): SearchAutocompleteSuggestion => ({
 })
 
 describe("public search suggestion boundary", () => {
-  it.each([
-    "/p/handle",
-    "/c/handle",
-    "/znacka/title-slug",
-    "/search?q=x",
-  ])("rejects legacy producer href %s", (href) => {
-    expect(isCanonicalPublicSuggestion(suggestion(href))).toBe(false)
-  })
+  it.each(["/p/handle", "/c/handle", "/znacka/title-slug", "/search?q=x"])(
+    "rejects legacy producer href %s",
+    (href) => {
+      expect(isCanonicalPublicSuggestion(suggestion(href))).toBe(false)
+    }
+  )
 
   it.each([
     "https://example.test/product",
@@ -35,12 +33,12 @@ describe("public search suggestion boundary", () => {
     expect(isCanonicalPublicSuggestion(suggestion(href))).toBe(false)
   })
 
-  it.each([
-    "/produkt/public-slug",
-    "/produkt/public-slug?variant=variant-1",
-  ])("accepts a canonical public href %s", (href) => {
-    expect(isCanonicalPublicSuggestion(suggestion(href))).toBe(true)
-  })
+  it.each(["/produkt/public-slug", "/produkt/public-slug?variant=variant-1"])(
+    "accepts a canonical public href %s",
+    (href) => {
+      expect(isCanonicalPublicSuggestion(suggestion(href))).toBe(true)
+    }
+  )
 
   it("projects every suggestion kind from its stable source ID", () => {
     const response: SearchAutocompleteResponse = {

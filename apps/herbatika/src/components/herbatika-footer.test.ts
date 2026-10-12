@@ -83,21 +83,19 @@ describe("HerbatikaFooter market links", () => {
     },
   ] as const
 
-  it.each([
-    "sk",
-    "cz",
-    "hu",
-    "ro",
-  ] as const)("marks only %s active and preserves every configured market alternate", (activeMarket) => {
-    expect(
-      resolveFooterMarketLinks(activeMarket, configuredAlternates)
-    ).toEqual(
-      expectedLinks.map((link) => ({
-        active: link.market === activeMarket,
-        ...link,
-      }))
-    )
-  })
+  it.each(["sk", "cz", "hu", "ro"] as const)(
+    "marks only %s active and preserves every configured market alternate",
+    (activeMarket) => {
+      expect(
+        resolveFooterMarketLinks(activeMarket, configuredAlternates)
+      ).toEqual(
+        expectedLinks.map((link) => ({
+          active: link.market === activeMarket,
+          ...link,
+        }))
+      )
+    }
+  )
 
   it("omits unavailable or unsafe markets instead of guessing a domain", () => {
     expect(
@@ -134,13 +132,12 @@ describe("HerbatikaFooter social links", () => {
     ])
   })
 
-  it.each([
-    "cz",
-    "hu",
-    "ro",
-  ] as const)("hides every social action without %s market authority", (market) => {
-    expect(resolveFooterSocialLinks(market)).toEqual([])
-  })
+  it.each(["cz", "hu", "ro"] as const)(
+    "hides every social action without %s market authority",
+    (market) => {
+      expect(resolveFooterSocialLinks(market)).toEqual([])
+    }
+  )
 
   it("renders only the exact reviewed market profiles", () => {
     expect(

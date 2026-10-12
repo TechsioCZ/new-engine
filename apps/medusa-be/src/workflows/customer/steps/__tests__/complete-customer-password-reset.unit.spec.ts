@@ -95,28 +95,29 @@ describe("complete customer password reset step", () => {
     { expires_at: null, label: "null" },
     { expires_at: "not-a-date", label: "malformed" },
     { expires_at: new Date(Number.NaN), label: "non-finite" },
-  ])("rejects a token with $label expires_at before any auth mutation", async ({
-    expires_at: expiresAt,
-  }) => {
-    const token = validResetToken()
-    const tokenUnderTest =
-      expiresAt === undefined
-        ? {
-            entity_id: token.entity_id,
-            provider_identity: token.provider_identity,
-          }
-        : { ...token, expires_at: expiresAt }
-    const { consumePasswordResetToken, container, updateProvider } =
-      createResetContext(tokenUnderTest)
-    const step = workflowSdkMock.steps.get("complete-customer-password-reset")
+  ])(
+    "rejects a token with $label expires_at before any auth mutation",
+    async ({ expires_at: expiresAt }) => {
+      const token = validResetToken()
+      const tokenUnderTest =
+        expiresAt === undefined
+          ? {
+              entity_id: token.entity_id,
+              provider_identity: token.provider_identity,
+            }
+          : { ...token, expires_at: expiresAt }
+      const { consumePasswordResetToken, container, updateProvider } =
+        createResetContext(tokenUnderTest)
+      const step = workflowSdkMock.steps.get("complete-customer-password-reset")
 
-    expect(step).toBeDefined()
-    await expect(step?.(resetInput, { container })).rejects.toThrow(
-      "Resource was not found."
-    )
-    expect(updateProvider).not.toHaveBeenCalled()
-    expect(consumePasswordResetToken).not.toHaveBeenCalled()
-  })
+      expect(step).toBeDefined()
+      await expect(step?.(resetInput, { container })).rejects.toThrow(
+        "Resource was not found."
+      )
+      expect(updateProvider).not.toHaveBeenCalled()
+      expect(consumePasswordResetToken).not.toHaveBeenCalled()
+    }
+  )
 
   it("leaves the token retriable when the provider update fails", async () => {
     const firstAttempt = createResetContext(validResetToken())

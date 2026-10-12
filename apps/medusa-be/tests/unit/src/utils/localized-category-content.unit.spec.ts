@@ -143,28 +143,31 @@ describe("localized category content", () => {
         top_description_html: null,
       },
     ],
-  ])("maps Romanian %s to null without Slovak fallback", async (_label, translations) => {
-    const category: LocalizedCategoryContentDecoratable = {
-      description: "Slovenský popis",
-      id: "pcat_1",
-      metadata: { top_description_html: "<p>Slovenský text</p>" },
-    }
-    const result = await decorateCategoriesWithLocalizedContent(
-      containerFor([translation({ translations })]),
-      [category],
-      "ro-RO"
-    )
+  ])(
+    "maps Romanian %s to null without Slovak fallback",
+    async (_label, translations) => {
+      const category: LocalizedCategoryContentDecoratable = {
+        description: "Slovenský popis",
+        id: "pcat_1",
+        metadata: { top_description_html: "<p>Slovenský text</p>" },
+      }
+      const result = await decorateCategoriesWithLocalizedContent(
+        containerFor([translation({ translations })]),
+        [category],
+        "ro-RO"
+      )
 
-    expect(result).toEqual({ kind: "decorated" })
-    expect(category.localized_content).toMatchObject({
-      bottom_description_html: null,
-      meta_description: null,
-      meta_title: null,
-      top_description_html: null,
-    })
-    expect(category.description).not.toBe("Slovenský popis")
-    expect(category.metadata).toEqual({})
-  })
+      expect(result).toEqual({ kind: "decorated" })
+      expect(category.localized_content).toMatchObject({
+        bottom_description_html: null,
+        meta_description: null,
+        meta_title: null,
+        top_description_html: null,
+      })
+      expect(category.description).not.toBe("Slovenský popis")
+      expect(category.metadata).toEqual({})
+    }
+  )
 
   it("does not query translations for an empty page", async () => {
     const container = containerFor([])

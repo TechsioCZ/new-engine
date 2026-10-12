@@ -53,20 +53,19 @@ describe("collection URL assignment contract", () => {
     ).toBe(false)
   })
 
-  it.each([
-    "Zimna-kolekcia",
-    "zimná-kolekcia",
-    "",
-  ])("rejects a non-canonical slug: %s", (publicSlug) => {
-    expect(
-      AdminUpsertCollectionUrlAssignmentSchema.safeParse({
-        marketCode: "sk",
-        salesChannelId: "sc_sk",
-        publicSlug,
-        publicationStatus: "draft",
-      }).success
-    ).toBe(false)
-  })
+  it.each(["Zimna-kolekcia", "zimná-kolekcia", ""])(
+    "rejects a non-canonical slug: %s",
+    (publicSlug) => {
+      expect(
+        AdminUpsertCollectionUrlAssignmentSchema.safeParse({
+          marketCode: "sk",
+          salesChannelId: "sc_sk",
+          publicSlug,
+          publicationStatus: "draft",
+        }).success
+      ).toBe(false)
+    }
+  )
 
   it("accepts a customer-authoritative slug with consecutive hyphens", () => {
     expect(

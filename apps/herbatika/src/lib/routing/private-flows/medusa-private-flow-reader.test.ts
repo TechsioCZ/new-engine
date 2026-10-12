@@ -61,16 +61,17 @@ describe("Medusa private-flow reader", () => {
     )
   })
 
-  it.each([
-    401, 403,
-  ])("treats a %s customer response as unauthenticated", async (status) => {
-    const fetch = vi.fn().mockResolvedValue(response(status))
-    const { reader } = createReader(fetch)
+  it.each([401, 403])(
+    "treats a %s customer response as unauthenticated",
+    async (status) => {
+      const fetch = vi.fn().mockResolvedValue(response(status))
+      const { reader } = createReader(fetch)
 
-    await expect(reader.readSession("sk", "expired")).resolves.toEqual({
-      kind: "unauthenticated",
-    })
-  })
+      await expect(reader.readSession("sk", "expired")).resolves.toEqual({
+        kind: "unauthenticated",
+      })
+    }
+  )
 
   it("maps backend failures to retryable unavailability", async () => {
     const failingResponse = vi.fn().mockResolvedValue(response(503))

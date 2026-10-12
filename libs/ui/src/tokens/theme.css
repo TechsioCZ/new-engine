@@ -22,7 +22,7 @@
 
   --color-page-bg: light-dark(oklch(98% 0.012 248), oklch(17% 0.025 250));
   --color-page-fg: light-dark(oklch(21% 0.03 252), oklch(94% 0.014 248));
-  --color-surface: light-dark(oklch(100% 0 0), oklch(22% 0.027 250));
+  --color-surface: light-dark(oklch(100% 0 none), oklch(22% 0.027 250));
   --color-surface-subtle: light-dark(
     oklch(95% 0.016 248),
     oklch(27% 0.028 250)

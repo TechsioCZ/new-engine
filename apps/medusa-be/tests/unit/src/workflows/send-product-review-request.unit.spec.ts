@@ -195,56 +195,54 @@ describe("send product review request workflow", () => {
     vi.clearAllMocks()
   })
 
-  it.each(
-    MARKETS
-  )("uses the $locale market URL and copy from the fetched order", async ({
-    countryCode,
-    domain,
-    locale,
-    reviewPath,
-  }) => {
-    await import("../../../../src/workflows/send-product-review-request")
-    resolveNotificationMarketContext.mockResolvedValue({
-      country_code: countryCode,
-      locale,
-      market_code: countryCode,
-      sales_channel_id: ["sc_", countryCode].join(""),
-      storefront_base_url: ["https://", domain].join(""),
-      storefront_domain: domain,
-    })
+  it.each(MARKETS)(
+    "uses the $locale market URL and copy from the fetched order",
+    async ({ countryCode, domain, locale, reviewPath }) => {
+      await import("../../../../src/workflows/send-product-review-request")
+      resolveNotificationMarketContext.mockResolvedValue({
+        country_code: countryCode,
+        locale,
+        market_code: countryCode,
+        sales_channel_id: ["sc_", countryCode].join(""),
+        storefront_base_url: ["https://", domain].join(""),
+        storefront_domain: domain,
+      })
 
-    const { container, createReviewTokens } = createContext(countryCode)
-    const step = workflowSdkMock.steps.get(
-      "build-product-review-request-notification"
-    )
-    const result = (await step?.(
-      { email: "stale@example.test", order_id: "order_1" },
-      { container }
-    )) as {
-      output: Array<{ data: Record<string, unknown>; to: string }>
+      const { container, createReviewTokens } = createContext(countryCode)
+      const step = workflowSdkMock.steps.get(
+        "build-product-review-request-notification"
+      )
+      const result = (await step?.(
+        { email: "stale@example.test", order_id: "order_1" },
+        { container }
+      )) as {
+        output: Array<{ data: Record<string, unknown>; to: string }>
+      }
+      const productReviews = result.output[0].data.product_reviews as Array<{
+        review_url: string
+        title: string
+      }>
+
+      expect(result.output[0].to).toBe("fetched@example.test")
+      expect(result.output[0].data).toMatchObject({
+        locale,
+        message: reviewUtilities.copy[locale].message,
+        storefront_base_url: ["https://", domain].join(""),
+      })
+      expect(result.output[0].data.items).toContain(
+        reviewUtilities.copy[locale].action
+      )
+      expect(productReviews).toEqual([
+        expect.objectContaining({
+          review_url: ["https://", domain, reviewPath, "token%2Fvalue"].join(
+            ""
+          ),
+          title: reviewUtilities.copy[locale].product,
+        }),
+      ])
+      expect(createReviewTokens).not.toHaveBeenCalled()
     }
-    const productReviews = result.output[0].data.product_reviews as Array<{
-      review_url: string
-      title: string
-    }>
-
-    expect(result.output[0].to).toBe("fetched@example.test")
-    expect(result.output[0].data).toMatchObject({
-      locale,
-      message: reviewUtilities.copy[locale].message,
-      storefront_base_url: ["https://", domain].join(""),
-    })
-    expect(result.output[0].data.items).toContain(
-      reviewUtilities.copy[locale].action
-    )
-    expect(productReviews).toEqual([
-      expect.objectContaining({
-        review_url: ["https://", domain, reviewPath, "token%2Fvalue"].join(""),
-        title: reviewUtilities.copy[locale].product,
-      }),
-    ])
-    expect(createReviewTokens).not.toHaveBeenCalled()
-  })
+  )
 
   it("skips an already logged request before resolving market or creating tokens", async () => {
     await import("../../../../src/workflows/send-product-review-request")

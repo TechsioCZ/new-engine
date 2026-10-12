@@ -106,29 +106,32 @@ describe("buildProductSeo", () => {
     ["cs-CZ", "CZK", "https://herbatica.cz/produkty/bylinny-caj"],
     ["hu-HU", "HUF", "https://herbatica.hu/termekek/gyogytea"],
     ["ro-RO", "RON", "https://herbatica.ro/produse/ceai-de-plante"],
-  ] as const)("emits %s Product JSON-LD in %s", (locale, currency, canonicalUrl) => {
-    const marketProduct = {
-      ...product,
-      variants: [
-        {
-          ...product.variants[0],
-          calculated_price: {
-            calculated_amount: 125,
-            currency_code: currency.toLowerCase(),
+  ] as const)(
+    "emits %s Product JSON-LD in %s",
+    (locale, currency, canonicalUrl) => {
+      const marketProduct = {
+        ...product,
+        variants: [
+          {
+            ...product.variants[0],
+            calculated_price: {
+              calculated_amount: 125,
+              currency_code: currency.toLowerCase(),
+            },
           },
-        },
-      ],
-    } as unknown as ProductRouteMedusaProduct
+        ],
+      } as unknown as ProductRouteMedusaProduct
 
-    const jsonLd = buildProductSeo({
-      canonicalUrl,
-      locale,
-      product: marketProduct,
-    }).jsonLd
+      const jsonLd = buildProductSeo({
+        canonicalUrl,
+        locale,
+        product: marketProduct,
+      }).jsonLd
 
-    expect(jsonLd.inLanguage).toBe(locale)
-    expect(jsonLd.offers?.priceCurrency).toBe(currency)
-  })
+      expect(jsonLd.inLanguage).toBe(locale)
+      expect(jsonLd.offers?.priceCurrency).toBe(currency)
+    }
+  )
 
   it("omits an invalid GTIN instead of publishing unverified identifiers", () => {
     const invalidGtinProduct = {

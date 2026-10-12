@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.4
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -45,7 +45,7 @@ const tourStyles = tv({
     spotlight: "tour-layer tour-spotlight-border",
     positioner: "tour-layer tour-positioner",
     content:
-      "tour-layer tour-content tour-border relative flex flex-col gap-tour-content rounded-tour bg-tour-bg p-tour text-tour-fg shadow-tour outline-none",
+      "tour-layer tour-content tour-border relative flex flex-col gap-tour-content rounded-tour bg-tour-bg p-tour text-tour-fg shadow-tour outline-hidden",
     arrow: "tour-arrow",
     arrowTip: "bg-tour-arrow-bg",
     title: "pe-tour-title font-tour-title text-tour-title-size",
@@ -260,6 +260,9 @@ export function Tour({
 }
 
 export type TourContextProps = { children: (api: TourApi) => ReactNode }
+
+// Assign Root first so native declaration emit exports every compound member.
+Tour.Root = Tour
 
 Tour.Context = function TourApiContext({ children }: TourContextProps) {
   return children(useTourContext())
@@ -550,5 +553,4 @@ Tour.CloseTrigger = function TourCloseTrigger({
   )
 }
 
-Tour.Root = Tour
 Tour.displayName = "Tour"

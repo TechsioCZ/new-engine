@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -53,7 +53,7 @@ const stepsVariants = tv({
     ],
     trigger: [
       "group relative flex min-w-0 items-center justify-start gap-steps-trigger",
-      "text-left",
+      "text-start",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-steps-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -98,14 +98,14 @@ const stepsVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     progress: [
-      "relative overflow-hidden rounded-steps-progress bg-steps-progress-bg",
+      "relative min-w-0 overflow-clip rounded-steps-progress bg-steps-progress-bg",
       "data-[orientation=horizontal]:h-steps-progress data-[orientation=horizontal]:w-full",
       "data-[orientation=vertical]:w-steps-progress data-[orientation=vertical]:self-stretch",
     ],
     progressRange: [
       "absolute rounded-steps-progress bg-steps-progress-range-bg",
       "transition-[width,height] duration-200 motion-reduce:transition-none",
-      "data-[orientation=horizontal]:inset-y-0 data-[orientation=horizontal]:start-0",
+      "data-[orientation=horizontal]:inset-s-0 data-[orientation=horizontal]:inset-y-0",
       "data-[orientation=vertical]:inset-x-0 data-[orientation=vertical]:top-0",
     ],
     content: [
@@ -207,6 +207,7 @@ function useStepsContext() {
 }
 
 type StepsItemContextValue = {
+  ariaCurrent?: ComponentPropsWithoutRef<"div">["aria-current"]
   index: number
   state: StepsItemState
 }
@@ -429,11 +430,19 @@ Steps.Item = function StepsItem({
 }: StepsItemProps) {
   const { api, styles } = useStepsContext()
   const state = api.getItemState({ index })
-  const itemProps = mergeProps(props, api.getItemProps({ index }))
+  const { "aria-current": ariaCurrent, ...itemProps } = mergeProps(
+    props,
+    api.getItemProps({ index })
+  )
 
   return (
-    <StepsItemContext.Provider value={{ index, state }}>
-      <div className={styles.item({ className })} ref={ref} {...itemProps}>
+    <StepsItemContext.Provider value={{ ariaCurrent, index, state }}>
+      <div
+        className={styles.item({ className })}
+        ref={ref}
+        {...itemProps}
+        role={props.role ?? "presentation"}
+      >
         {children}
       </div>
     </StepsItemContext.Provider>
@@ -456,7 +465,7 @@ Steps.Trigger = function StepsTrigger({
   ...props
 }: StepsTriggerProps) {
   const { api, styles } = useStepsContext()
-  const { index } = useStepsItemContext()
+  const { ariaCurrent, index } = useStepsItemContext()
   const triggerProps = api.getTriggerProps({ index })
   const {
     onClick: onTriggerClick,
@@ -478,6 +487,7 @@ Steps.Trigger = function StepsTrigger({
       theme="unstyled"
       type="button"
       {...buttonProps}
+      aria-current={props["aria-current"] ?? ariaCurrent}
       data-disabled={isDisabled || undefined}
       disabled={isDisabled}
       onClick={(event) => {
@@ -696,6 +706,7 @@ type StepsProgressProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
 }
 
 Steps.Progress = function StepsProgress({
+  "aria-label": ariaLabel = "Step progress",
   className,
   ref,
   style,
@@ -713,7 +724,9 @@ Steps.Progress = function StepsProgress({
       className={styles.progress({ className })}
       ref={ref}
       {...progressProps}
+      aria-label={ariaLabel}
       data-orientation={orientation}
+      role="progressbar"
       style={style}
     >
       <span
@@ -832,5 +845,13 @@ Steps.NextTrigger = function StepsNextTrigger({
   )
 }
 
-Steps.Root = Steps
+// Keep native TypeScript declarations from hiding siblings behind a Root export alias.
+Steps.Root = Steps satisfies typeof Steps
 Steps.displayName = "Steps"
+
+// Declare colliding member names explicitly so native TypeScript emits no synthetic public aliases.
+// biome-ignore lint/style/noNamespace: Ambient merging preserves compound functions without emitting runtime code.
+export declare namespace Steps {
+  // biome-ignore lint/suspicious/noShadowRestrictedNames: This ambient member describes the existing writable compound API.
+  export let Number: (props: StepsNumberProps) => import("react").JSX.Element
+}

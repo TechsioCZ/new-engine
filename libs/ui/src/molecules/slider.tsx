@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -78,7 +78,7 @@ const sliderVariants = tv({
     ],
     markerText: [
       "absolute top-full",
-      "data-[orientation=vertical]:top-0 data-[orientation=vertical]:left-full",
+      "data-[orientation=vertical]:top-0 data-[orientation=vertical]:start-full",
       "data-[orientation=vertical]:h-full",
       "data-[orientation=vertical]:p-marker-text",
     ],

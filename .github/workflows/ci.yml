@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       # This enables task distribution via Nx Cloud
       # Run this command as early as possible, before dependencies are installed
@@ -78,6 +78,14 @@ jobs:
           ./node_modules/.bin/nubx --node nx run-many -t typecheck --projects="$projects"
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       - run: ./node_modules/.bin/nubx --node nx affected -t lint test
+      - name: Typecheck affected UI package
+        if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
+        run: pnpm --dir libs/ui exec tsc --noEmit -p tsconfig.json
+      - name: Test affected UI asset replay
+        if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
+        run: |
+          timeout 420 pnpm exec playwright install --only-shell chromium
+          pnpm --dir libs/ui test:visual-assets
       - name: Check affected UI package output
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
         run: pnpm --dir libs/ui check:package
@@ -87,3 +95,25 @@ jobs:
       - name: Prove Herbatika Pages hard statuses through Docker ingress
         if: contains(steps.determine_affected.outputs.projects_csv, ',herbatika,')
         run: pnpm --filter=herbatika test:m00:wire
+
+  # Required status check for master (ruleset "Master"). It fails unless every
+  # job in `needs` succeeded, so the ruleset has one stable name to require.
+  # To make another job blocking, add it to `needs`; don't edit the ruleset.
+  quality-gate:
+    name: quality-gate
+    if: always()
+    needs:
+      - main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every blocking job to pass
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          failed=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
+          if [ -n "$failed" ]; then
+            echo "::error::Blocking jobs did not succeed: $failed"
+            exit 1
+          fi

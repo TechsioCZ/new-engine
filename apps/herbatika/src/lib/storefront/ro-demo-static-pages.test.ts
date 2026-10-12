@@ -24,28 +24,30 @@ const RO_STATIC_ROUTE_MATRIX = [
 ] as const satisfies readonly (readonly [StaticRootPageKey, string])[]
 
 describe("Romanian demo static route matrix", () => {
-  it.each(
-    RO_STATIC_ROUTE_MATRIX
-  )("builds and parses %s at %s", (page, pathname) => {
-    expect(buildPath({ kind: "static", page }, "ro")).toBe(pathname)
-    expect(
-      parsePublicPath({ market: "ro", pathname, rawQuery: "" })
-    ).toMatchObject({
-      kind: "found",
-      target: { kind: "static", page },
-    })
-  })
+  it.each(RO_STATIC_ROUTE_MATRIX)(
+    "builds and parses %s at %s",
+    (page, pathname) => {
+      expect(buildPath({ kind: "static", page }, "ro")).toBe(pathname)
+      expect(
+        parsePublicPath({ market: "ro", pathname, rawQuery: "" })
+      ).toMatchObject({
+        kind: "found",
+        target: { kind: "static", page },
+      })
+    }
+  )
 
-  it.each(
-    RO_STATIC_ROUTE_MATRIX
-  )("provides explicit unreviewed Romanian demo content for %s", (page) => {
-    const fallback = getRoDemoStaticPage(page, "ro-RO")
+  it.each(RO_STATIC_ROUTE_MATRIX)(
+    "provides explicit unreviewed Romanian demo content for %s",
+    (page) => {
+      const fallback = getRoDemoStaticPage(page, "ro-RO")
 
-    expect(fallback).not.toBeNull()
-    expect(fallback?.id).toBe(`${RO_DEMO_APPROVAL_MARKER}:ro:${page}`)
-    expect(fallback?.content).toContain("Conținut demonstrativ neaprobat")
-    expect(fallback && isRoDemoStaticPage(fallback)).toBe(true)
-  })
+      expect(fallback).not.toBeNull()
+      expect(fallback?.id).toBe(`${RO_DEMO_APPROVAL_MARKER}:ro:${page}`)
+      expect(fallback?.content).toContain("Conținut demonstrativ neaprobat")
+      expect(fallback && isRoDemoStaticPage(fallback)).toBe(true)
+    }
+  )
 
   it("never supplies Romanian demo content to another locale", () => {
     expect(getRoDemoStaticPage("terms", "sk-SK")).toBeNull()

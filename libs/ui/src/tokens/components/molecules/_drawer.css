@@ -163,7 +163,7 @@
         var(--duration-drawer-backdrop-exit) *
         var(--drawer-swipe-strength, 1)
       )
-      ease-in both;
+      var(--ease-in-out) both;
   }
 
   &[data-swiping] {
@@ -200,25 +200,25 @@
   &[data-state="closed"][data-swipe-direction="left"] {
     animation: drawer-exit-left
       calc(var(--duration-drawer-exit) * var(--drawer-swipe-strength, 1))
-      ease-in both;
+      var(--ease-in-out) both;
   }
 
   &[data-state="closed"][data-swipe-direction="right"] {
     animation: drawer-exit-right
       calc(var(--duration-drawer-exit) * var(--drawer-swipe-strength, 1))
-      ease-in both;
+      var(--ease-in-out) both;
   }
 
   &[data-state="closed"][data-swipe-direction="up"] {
     animation: drawer-exit-up
       calc(var(--duration-drawer-exit) * var(--drawer-swipe-strength, 1))
-      ease-in both;
+      var(--ease-in-out) both;
   }
 
   &[data-state="closed"][data-swipe-direction="down"] {
     animation: drawer-exit-down
       calc(var(--duration-drawer-exit) * var(--drawer-swipe-strength, 1))
-      ease-in both;
+      var(--ease-in-out) both;
   }
 
   @starting-style {

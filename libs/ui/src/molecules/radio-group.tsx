@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,7 +21,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import { tv } from "../utils"
 
 const radioGroupVariants = tv({
@@ -57,7 +57,7 @@ const radioGroupVariants = tv({
       "data-invalid:border-radio-group-item-border-error",
       "data-invalid:outline-offset-(length:--default-ring-offset)",
     ],
-    itemContent: ["col-start-2 row-start-1 min-w-0 flex flex-col"],
+    itemContent: ["col-start-2 row-start-1 flex min-w-0 flex-col"],
     itemIndicator: [
       "pointer-events-none block leading-none",
       "token-icon-radio-group-checked",
@@ -181,13 +181,16 @@ type RadioGroupItemContextValue = {
   itemProps: zagRadioGroup.ItemProps
 }
 
-const RadioGroupItemContext =
-  createContext<RadioGroupItemContextValue | null>(null)
+const RadioGroupItemContext = createContext<RadioGroupItemContextValue | null>(
+  null
+)
 
 function useRadioGroupItemContext() {
   const context = useContext(RadioGroupItemContext)
   if (!context) {
-    throw new Error("RadioGroup item components must be used within RadioGroup.Item")
+    throw new Error(
+      "RadioGroup item components must be used within RadioGroup.Item"
+    )
   }
   return context
 }
@@ -237,17 +240,26 @@ export function RadioGroup({
     },
   })
 
-  const api = zagRadioGroup.connect(
-    service,
-    normalizeProps,
-  )
+  const api = zagRadioGroup.connect(service, normalizeProps)
   const styles = radioGroupVariants({ size, variant })
 
   return (
     <RadioGroupContext.Provider
-      value={{ api, variant, size, orientation, disabled, required, validateStatus }}
+      value={{
+        api,
+        variant,
+        size,
+        orientation,
+        disabled,
+        required,
+        validateStatus,
+      }}
     >
-      <div className={styles.root({ className })} ref={ref} {...api.getRootProps()}>
+      <div
+        className={styles.root({ className })}
+        ref={ref}
+        {...api.getRootProps()}
+      >
         {children}
       </div>
     </RadioGroupContext.Provider>
@@ -270,8 +282,12 @@ RadioGroup.Label = function RadioGroupLabel({
   size: sizeProp,
   ...props
 }: RadioGroupLabelProps) {
-  const { api, size, disabled: groupDisabled, required: groupRequired } =
-    useRadioGroupContext()
+  const {
+    api,
+    size,
+    disabled: groupDisabled,
+    required: groupRequired,
+  } = useRadioGroupContext()
 
   return (
     <Label
@@ -311,7 +327,10 @@ RadioGroup.ItemGroup = function RadioGroupItemGroup({
   )
 }
 
-export type RadioGroupItemProps = Omit<ComponentPropsWithoutRef<"label">, "value"> &
+export type RadioGroupItemProps = Omit<
+  ComponentPropsWithoutRef<"label">,
+  "value"
+> &
   zagRadioGroup.ItemProps & {
     ref?: Ref<HTMLLabelElement>
   }
@@ -331,6 +350,7 @@ RadioGroup.Item = function RadioGroupItem({
 
   return (
     <RadioGroupItemContext.Provider value={{ itemProps }}>
+      {/* biome-ignore lint/a11y/noLabelWithoutControl: The compound hidden input is rendered by children and shares these Zag item props. */}
       <label
         className={styles.item({ className })}
         ref={ref}
@@ -476,7 +496,7 @@ RadioGroup.ItemDescription = function RadioGroupItemDescription({
 }
 
 type RadioGroupStatusTextProps = Omit<
-  ComponentPropsWithoutRef<typeof StatusText>,
+  ComponentPropsWithoutRef<typeof StatusTextComponent>,
   "status" | "size"
 > & {
   status?: RadioGroupValidateStatus
@@ -496,14 +516,14 @@ RadioGroup.StatusText = function RadioGroupStatusText({
   const effectiveStatus = status ?? validateStatus
 
   return (
-    <StatusText
+    <StatusTextComponent
       showIcon={showIcon ?? effectiveStatus !== "default"}
       size={effectiveSize}
       status={effectiveStatus}
       {...props}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 

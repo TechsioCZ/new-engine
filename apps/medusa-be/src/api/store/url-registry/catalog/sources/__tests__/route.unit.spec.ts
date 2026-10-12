@@ -41,53 +41,56 @@ describe("catalog source batch route", () => {
     ["category", "pcat_1", "doplnky", "product_category"],
     ["brand", "brand_1", "herbatika", "brand"],
     ["collection", "pcol_1", "zimna-kolekcia", "product_collection"],
-  ] as const)("returns the exact successful %s response", async (entityKind, entityId, publicSlug, translationReference) => {
-    const candidate = { entityId, publicSlug, sourceVersion: "1" }
-    const assignment = {
-      entityId,
-      id: entityId,
-      marketCode: "sk",
-      publicationStatus: "published",
-      publicSlug,
-      salesChannelId: "sc_sk",
-      schemaVersion: 1,
-      sourceVersion: "1",
-      translation: {
-        localeCode: "sk-SK",
-        reference: translationReference,
-        translationId: `trans_${entityId}`,
-      },
+  ] as const)(
+    "returns the exact successful %s response",
+    async (entityKind, entityId, publicSlug, translationReference) => {
+      const candidate = { entityId, publicSlug, sourceVersion: "1" }
+      const assignment = {
+        entityId,
+        id: entityId,
+        marketCode: "sk",
+        publicationStatus: "published",
+        publicSlug,
+        salesChannelId: "sc_sk",
+        schemaVersion: 1,
+        sourceVersion: "1",
+        translation: {
+          localeCode: "sk-SK",
+          reference: translationReference,
+          translationId: `trans_${entityId}`,
+        },
+      }
+      readPublishedStorefrontAssignmentSources.mockResolvedValueOnce({
+        assignments: [assignment],
+        kind: "found",
+      })
+      const request = makeRequest({
+        candidates: [candidate],
+        entityKind,
+        market: "sk",
+        schemaVersion: 1,
+      })
+      const { json, response, status } = makeResponse()
+
+      await POST(request, response)
+
+      expect(readPublishedStorefrontAssignmentSources).toHaveBeenCalledOnce()
+      expect(readPublishedStorefrontAssignmentSources).toHaveBeenCalledWith(
+        request,
+        entityKind,
+        "sk",
+        [candidate]
+      )
+      expect(status).not.toHaveBeenCalled()
+      expect(json).toHaveBeenCalledOnce()
+      expect(json).toHaveBeenCalledWith({
+        assignments: [assignment],
+        entityKind,
+        marketCode: "sk",
+        schemaVersion: 1,
+      })
     }
-    readPublishedStorefrontAssignmentSources.mockResolvedValueOnce({
-      assignments: [assignment],
-      kind: "found",
-    })
-    const request = makeRequest({
-      candidates: [candidate],
-      entityKind,
-      market: "sk",
-      schemaVersion: 1,
-    })
-    const { json, response, status } = makeResponse()
-
-    await POST(request, response)
-
-    expect(readPublishedStorefrontAssignmentSources).toHaveBeenCalledOnce()
-    expect(readPublishedStorefrontAssignmentSources).toHaveBeenCalledWith(
-      request,
-      entityKind,
-      "sk",
-      [candidate]
-    )
-    expect(status).not.toHaveBeenCalled()
-    expect(json).toHaveBeenCalledOnce()
-    expect(json).toHaveBeenCalledWith({
-      assignments: [assignment],
-      entityKind,
-      marketCode: "sk",
-      schemaVersion: 1,
-    })
-  })
+  )
 
   it.each([
     ["an extra top-level field", { extra: true }],

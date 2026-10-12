@@ -165,18 +165,21 @@ describe("Herbatica native visibility mapping", () => {
     ],
     ["cashDeskOnly", "published", [], false],
     ["hidden", "draft", [], false],
-  ])("maps %s to exact status and channel membership", (visibility, status, salesChannelNames, storefrontAccessible) => {
-    expect(
-      resolveHerbaticaProductVisibility({
-        topOffer: { visible: true },
-        visibility,
+  ])(
+    "maps %s to exact status and channel membership",
+    (visibility, status, salesChannelNames, storefrontAccessible) => {
+      expect(
+        resolveHerbaticaProductVisibility({
+          topOffer: { visible: true },
+          visibility,
+        })
+      ).toEqual({
+        salesChannelNames,
+        status,
+        storefrontAccessible,
       })
-    ).toEqual({
-      salesChannelNames,
-      status,
-      storefrontAccessible,
-    })
-  })
+    }
+  )
 
   it("makes an offer marked invisible draft regardless of source visibility", () => {
     expect(

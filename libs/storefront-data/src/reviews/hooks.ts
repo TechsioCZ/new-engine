@@ -15,14 +15,14 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
+import { resolvePagination } from "../shared/pagination"
 import type { PrefetchSkipMode } from "../shared/prefetch"
 import { shouldSkipPrefetch } from "../shared/prefetch"
-import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createDefaultListParams } from "./input-utils"
-import { createProductReviewQueryOptionsFactory } from "./query-options"
 import { createProductReviewQueryKeys } from "./query-keys"
+import { createProductReviewQueryOptionsFactory } from "./query-options"
 import type {
   CreateProductReviewInput,
   ProductReviewListInputBase,
@@ -226,11 +226,7 @@ export function createProductReviewHooks<
       const listParams = buildList(input)
       const queryKey = resolvedQueryKeys.productList(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(
-        () => prefetchProductReviews(input),
-        id,
-        delay
-      )
+      return schedulePrefetch(() => prefetchProductReviews(input), id, delay)
     }
 
     return {

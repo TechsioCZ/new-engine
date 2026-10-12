@@ -79,8 +79,9 @@
   z-index: calc(var(--z-popup) + var(--layer-index, 0));
 
   /* The panel takes DOM focus for keyboard navigation, but that focus is
-   * never the thing the user should see — the highlighted option is. */
-  outline: none;
+   * never the thing the user should see — the highlighted option is.
+   * Transparent rather than none, so forced-colors mode still draws it. */
+  outline: 2px solid transparent;
 
   /* Scale from the trigger, whichever side the panel flipped to. */
   transform-origin: var(--transform-origin);
@@ -159,5 +160,14 @@
 
   /* Highlight is the focus affordance; a second ring on top of it reads as
    * two selected rows. */
-  outline: none;
+  outline-style: none;
+
+  /* Forced-colors mode drops the highlight background, so the active option
+   * would be invisible. Draw it as an outline instead. */
+  @media (forced-colors: active) {
+    &[data-highlighted] {
+      outline: 2px solid Highlight;
+      outline-offset: -2px;
+    }
+  }
 }

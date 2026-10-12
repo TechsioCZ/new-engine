@@ -127,15 +127,16 @@ const SLOVAK_UI_COPY =
   /Reklamácie|Vrátiť tovar|Odoslať|Späť|Objednávka č\.|Vyberte produkty|Počet kusov|Požiadavku sa|Ako to funguje|Čo potrebujete|Popíšte, prosím/
 
 describe("claims localization", () => {
-  it.each(
-    LOCALES
-  )("renders the %s claims flow from storefront text", (locale) => {
-    const html = renderClaims(locale)
+  it.each(LOCALES)(
+    "renders the %s claims flow from storefront text",
+    (locale) => {
+      const html = renderClaims(locale)
 
-    for (const copy of expectedCopy[locale]) {
-      expect(html).toContain(copy)
+      for (const copy of expectedCopy[locale]) {
+        expect(html).toContain(copy)
+      }
     }
-  })
+  )
 
   it("keeps every reachable claims component free of hard-coded Slovak UI", () => {
     for (const source of translatedComponentSources) {
