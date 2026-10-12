@@ -51,7 +51,10 @@ export default {
   <Drawer.Portal>
     ${backdrop ? figma.code`<Drawer.Backdrop />` : ""}
     <Drawer.Positioner>
-      <Drawer.Content>
+      <Drawer.Content${
+        // Without the header there is no Drawer.Title, so name the dialog here.
+        showHeader ? "" : figma.helpers.react.renderProp("aria-label", title ?? "Drawer")
+      }>
         ${
           showGrabber
             ? figma.code`<Drawer.Grabber>
