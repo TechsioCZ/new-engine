@@ -86,17 +86,20 @@ describe("population source export client", () => {
     "https://operator:secret@population.internal",
     "https://population.internal/export?token=embedded",
     "https://population.internal/export#fragment",
-  ])("rejects unsafe base URL %s before sending the bearer token", async (baseUrl) => {
-    const fetchImpl = vi.fn()
-    await expect(
-      fetchPopulationSourceExport("ro", "product", {
-        baseUrl,
-        fetchImpl,
-        token: "private-token",
-      })
-    ).rejects.toThrow("population source baseUrl")
-    expect(fetchImpl).not.toHaveBeenCalled()
-  })
+  ])(
+    "rejects unsafe base URL %s before sending the bearer token",
+    async (baseUrl) => {
+      const fetchImpl = vi.fn()
+      await expect(
+        fetchPopulationSourceExport("ro", "product", {
+          baseUrl,
+          fetchImpl,
+          token: "private-token",
+        })
+      ).rejects.toThrow("population source baseUrl")
+      expect(fetchImpl).not.toHaveBeenCalled()
+    }
+  )
 
   it("rejects kind-specific source fields and binding drift", () => {
     expect(() =>

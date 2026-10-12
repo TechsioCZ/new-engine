@@ -67,14 +67,17 @@ describe("region market metadata reconciliation", () => {
       { ...region, marketCode: "", salesChannelName: "" },
       [{ id: "sc_ro", name: "Herbatica Storefront RO" }],
     ],
-  ] as const)("fails closed for a %s", (_case, configuredRegion, salesChannels) => {
-    expect(() =>
-      resolveRegionSalesChannelBindings({
-        regions: [configuredRegion],
-        salesChannels: [...salesChannels],
-      })
-    ).toThrow()
-  })
+  ] as const)(
+    "fails closed for a %s",
+    (_case, configuredRegion, salesChannels) => {
+      expect(() =>
+        resolveRegionSalesChannelBindings({
+          regions: [configuredRegion],
+          salesChannels: [...salesChannels],
+        })
+      ).toThrow()
+    }
+  )
 
   it("rejects duplicate market or Sales Channel bindings", () => {
     expect(() =>

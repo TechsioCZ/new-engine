@@ -1,8 +1,4 @@
 import { createHash } from "node:crypto"
-import {
-  createTranslationsWorkflow,
-  updateTranslationsWorkflow,
-} from "@medusajs/core-flows"
 import type {
   CreateTranslationDTO,
   ExecArgs,
@@ -22,8 +18,10 @@ import {
   ProductStatus,
 } from "@medusajs/framework/utils"
 import {
+  createTranslationsWorkflow,
   updateProductsWorkflow,
   updateProductVariantsWorkflow,
+  updateTranslationsWorkflow,
 } from "@medusajs/medusa/core-flows"
 import { PRODUCT_CONTENT_MODULE } from "../modules/product-content"
 import type ProductContentModuleService from "../modules/product-content/service"

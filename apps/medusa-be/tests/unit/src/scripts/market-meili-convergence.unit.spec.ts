@@ -295,25 +295,22 @@ describe("four-market Meilisearch convergence proof", () => {
     )
   })
 
-  it.each([
-    "brand",
-    "category",
-    "content",
-    "product",
-    "variant",
-  ] as const)("rejects a %s authority/projected-ID mismatch", (kind) => {
-    const candidate = candidateFixture()
-    const target =
-      kind === "variant"
-        ? candidate.markets.cz.indexes.product.variantIds
-        : candidate.markets.cz.indexes[kind === "product" ? "product" : kind]
-            .entityIds
-    target.push(`unexpected_${kind}`)
-    target.sort()
-    expect(() => buildFourMarketMeiliConvergenceProof(candidate)).toThrow(
-      "projected IDs do not exactly match authority IDs"
-    )
-  })
+  it.each(["brand", "category", "content", "product", "variant"] as const)(
+    "rejects a %s authority/projected-ID mismatch",
+    (kind) => {
+      const candidate = candidateFixture()
+      const target =
+        kind === "variant"
+          ? candidate.markets.cz.indexes.product.variantIds
+          : candidate.markets.cz.indexes[kind === "product" ? "product" : kind]
+              .entityIds
+      target.push(`unexpected_${kind}`)
+      target.sort()
+      expect(() => buildFourMarketMeiliConvergenceProof(candidate)).toThrow(
+        "projected IDs do not exactly match authority IDs"
+      )
+    }
+  )
 
   it("rejects arbitrary same-cardinality document IDs", () => {
     const candidate = candidateFixture()

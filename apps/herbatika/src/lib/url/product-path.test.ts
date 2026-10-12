@@ -19,10 +19,13 @@ describe("product URL builder", () => {
       "https://herbatica.hu/termekek/bylinny-caj",
     ],
     ["ro", "/produse/bylinny-caj", "https://herbatica.ro/produse/bylinny-caj"],
-  ] as const)("binds the %s market to its exact path and canonical origin", (market, expectedPath, expectedUrl) => {
-    expect(buildProductPath(market, "bylinny-caj")).toBe(expectedPath)
-    expect(buildProductAbsoluteUrl(market, "bylinny-caj")).toBe(expectedUrl)
-  })
+  ] as const)(
+    "binds the %s market to its exact path and canonical origin",
+    (market, expectedPath, expectedUrl) => {
+      expect(buildProductPath(market, "bylinny-caj")).toBe(expectedPath)
+      expect(buildProductAbsoluteUrl(market, "bylinny-caj")).toBe(expectedUrl)
+    }
+  )
 
   it("appends an already-normalized raw query without changing case", () => {
     expect(

@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.0.4
+ * @componentVersion v1.0.5
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -107,7 +107,7 @@ const stepsVariants = tv({
     progressRange: [
       "absolute rounded-steps-progress bg-steps-progress-range-bg",
       "transition-[width,height] duration-200 motion-reduce:transition-none",
-      "data-[orientation=horizontal]:inset-y-0 data-[orientation=horizontal]:start-0",
+      "data-[orientation=horizontal]:inset-s-0 data-[orientation=horizontal]:inset-y-0",
       "data-[orientation=vertical]:inset-x-0 data-[orientation=vertical]:top-0",
     ],
     content: [
@@ -245,6 +245,7 @@ function useStepsContext() {
 }
 
 type StepsItemContextValue = {
+  ariaCurrent?: ComponentPropsWithoutRef<"div">["aria-current"]
   index: number
   state: StepsItemState
 }
@@ -472,19 +473,22 @@ Steps.Item = function StepsItem({
 }: StepsItemProps) {
   const { api, styles } = useStepsContext()
   const state = api.getItemState({ index })
-  // Zag puts the item inside its role="tablist" with aria-current, which
-  // makes it a semantic child a tablist may not own (axe
-  // aria-required-children, critical). The item is layout only: mark it
-  // presentational and carry the step state on the tab itself.
-  const { "aria-current": _itemAriaCurrent, ...zagItemProps } =
-    api.getItemProps({ index }) as ReturnType<typeof api.getItemProps> & {
-      "aria-current"?: unknown
-    }
-  const itemProps = mergeProps(props, zagItemProps, { role: "presentation" })
+  // Zag puts aria-current on the item, inside its role="tablist", where a
+  // tablist may not own it (axe aria-required-children). The item is layout
+  // only (role="presentation" below); the trigger carries the step state.
+  const { "aria-current": ariaCurrent, ...itemProps } = mergeProps(
+    props,
+    api.getItemProps({ index })
+  )
 
   return (
-    <StepsItemContext.Provider value={{ index, state }}>
-      <div className={styles.item({ className })} ref={ref} {...itemProps}>
+    <StepsItemContext.Provider value={{ ariaCurrent, index, state }}>
+      <div
+        className={styles.item({ className })}
+        ref={ref}
+        {...itemProps}
+        role={props.role ?? "presentation"}
+      >
         {children}
       </div>
     </StepsItemContext.Provider>
@@ -507,7 +511,7 @@ Steps.Trigger = function StepsTrigger({
   ...props
 }: StepsTriggerProps) {
   const { api, contentIndexes, styles } = useStepsContext()
-  const { index, state } = useStepsItemContext()
+  const { ariaCurrent, index } = useStepsItemContext()
   const triggerProps = api.getTriggerProps({ index })
   const {
     onClick: onTriggerClick,
@@ -532,7 +536,7 @@ Steps.Trigger = function StepsTrigger({
       aria-controls={
         contentIndexes.has(index) ? buttonProps["aria-controls"] : undefined
       }
-      aria-current={state.current ? "step" : undefined}
+      aria-current={props["aria-current"] ?? ariaCurrent}
       data-disabled={isDisabled || undefined}
       disabled={isDisabled}
       onClick={(event) => {
@@ -753,6 +757,7 @@ type StepsProgressProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
 }
 
 Steps.Progress = function StepsProgress({
+  "aria-label": ariaLabel = "Step progress",
   className,
   ref,
   style,
@@ -760,12 +765,7 @@ Steps.Progress = function StepsProgress({
 }: StepsProgressProps) {
   const { api, orientation, styles } = useStepsContext()
   // A progressbar needs an accessible name (axe aria-progressbar-name).
-  const hasName = props["aria-label"] || props["aria-labelledby"]
-  const progressProps = mergeProps(
-    hasName ? {} : { "aria-label": "Steps progress" },
-    props,
-    api.getProgressProps()
-  )
+  const progressProps = mergeProps(props, api.getProgressProps())
   const progressRangeStyle =
     orientation === "horizontal"
       ? { width: "var(--percent)" }
@@ -776,7 +776,9 @@ Steps.Progress = function StepsProgress({
       className={styles.progress({ className })}
       ref={ref}
       {...progressProps}
+      aria-label={ariaLabel}
       data-orientation={orientation}
+      role="progressbar"
       style={style}
     >
       <span
@@ -895,5 +897,13 @@ Steps.NextTrigger = function StepsNextTrigger({
   )
 }
 
-Steps.Root = Steps
+// Keep native TypeScript declarations from hiding siblings behind a Root export alias.
+Steps.Root = Steps satisfies typeof Steps
 Steps.displayName = "Steps"
+
+// Declare colliding member names explicitly so native TypeScript emits no synthetic public aliases.
+// biome-ignore lint/style/noNamespace: Ambient merging preserves compound functions without emitting runtime code.
+export declare namespace Steps {
+  // biome-ignore lint/suspicious/noShadowRestrictedNames: This ambient member describes the existing writable compound API.
+  export let Number: (props: StepsNumberProps) => import("react").JSX.Element
+}

@@ -295,7 +295,7 @@ export const MinimalControls: Story = {
     <Carousel.Root slideCount={sampleImages.length} loop className='relative'>
       <Carousel.Slides slides={sampleImages} />
       <Carousel.Previous className="absolute top-1/2 left-0 -translate-y-1/2 translate-x-1/2 bg-transparent text-xl hover:bg-transparent hover:text-primary"/>
-      <Carousel.Next className="absolute top-1/2 right-0 -translate-y-1/2 -translate-x-1/2 bg-transparent text-xl hover:bg-transparent hover:text-primary"/>
+      <Carousel.Next className="absolute top-1/2 right-0 bg-transparent text-xl hover:bg-transparent hover:text-primary -translate-1/2"/>
     </Carousel.Root>
   ),
   parameters: {

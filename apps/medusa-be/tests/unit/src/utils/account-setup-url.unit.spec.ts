@@ -7,18 +7,21 @@ describe("buildAccountSetupUrl", () => {
     ["cz", "herbatica.cz", "/ucet/obnova-hesla"],
     ["hu", "herbatica.hu", "/fiok/jelszo-visszaallitas"],
     ["ro", "herbatica.ro", "/cont/resetare-parola"],
-  ] as const)("builds the exact %s account-setup path on its market origin", (market, domain, path) => {
-    expect(
-      buildAccountSetupUrl(
-        "customer+market@example.test",
-        "Token/Exact+Case",
-        `https://${domain}/ignored-path`,
-        market
+  ] as const)(
+    "builds the exact %s account-setup path on its market origin",
+    (market, domain, path) => {
+      expect(
+        buildAccountSetupUrl(
+          "customer+market@example.test",
+          "Token/Exact+Case",
+          `https://${domain}/ignored-path`,
+          market
+        )
+      ).toBe(
+        `https://${domain}${path}/Token%2FExact%2BCase?email=customer%2Bmarket%40example.test&flow=account-setup`
       )
-    ).toBe(
-      `https://${domain}${path}/Token%2FExact%2BCase?email=customer%2Bmarket%40example.test&flow=account-setup`
-    )
-  })
+    }
+  )
 
   it("ignores the retired arbitrary URL template", () => {
     process.env.ACCOUNT_SETUP_URL_TEMPLATE =

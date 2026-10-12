@@ -62,27 +62,26 @@ describe("reset password subscriber", () => {
     })
   })
 
-  it.each([
-    "user",
-    "admin",
-    "",
-  ])("ignores non-customer actor type %s", async (actorType) => {
-    const { default: resetPasswordHandler } = await import(
-      "../../../../src/subscribers/reset-password"
-    )
+  it.each(["user", "admin", ""])(
+    "ignores non-customer actor type %s",
+    async (actorType) => {
+      const { default: resetPasswordHandler } = await import(
+        "../../../../src/subscribers/reset-password"
+      )
 
-    await resetPasswordHandler({
-      container: { resolve: vi.fn() },
-      event: {
-        data: {
-          actor_type: actorType,
-          entity_id: "admin@example.test",
-          token: "token",
+      await resetPasswordHandler({
+        container: { resolve: vi.fn() },
+        event: {
+          data: {
+            actor_type: actorType,
+            entity_id: "admin@example.test",
+            token: "token",
+          },
         },
-      },
-    } as never)
+      } as never)
 
-    expect(sendForgotPasswordWorkflow).not.toHaveBeenCalled()
-    expect(run).not.toHaveBeenCalled()
-  })
+      expect(sendForgotPasswordWorkflow).not.toHaveBeenCalled()
+      expect(run).not.toHaveBeenCalled()
+    }
+  )
 })

@@ -34,29 +34,29 @@ const roDemoCarrierShippingOption = {
 }
 
 describe("checkout payment compatibility", () => {
-  it.each([
-    "home_delivery_cod",
-    "parcelshop_cod",
-  ])("keeps only cash on delivery for GLS %s", (code) => {
-    expect(
-      filterPaymentProvidersForShipping({
-        paymentProviders: providers,
-        shippingOption: { data: { code, supports_cod: true } },
-      })
-    ).toEqual([{ id: CASH_ON_DELIVERY_PAYMENT_PROVIDER_ID }])
-  })
+  it.each(["home_delivery_cod", "parcelshop_cod"])(
+    "keeps only cash on delivery for GLS %s",
+    (code) => {
+      expect(
+        filterPaymentProvidersForShipping({
+          paymentProviders: providers,
+          shippingOption: { data: { code, supports_cod: true } },
+        })
+      ).toEqual([{ id: CASH_ON_DELIVERY_PAYMENT_PROVIDER_ID }])
+    }
+  )
 
-  it.each([
-    "home_delivery",
-    "parcelshop",
-  ])("removes cash on delivery for GLS %s", (code) => {
-    expect(
-      filterPaymentProvidersForShipping({
-        paymentProviders: providers,
-        shippingOption: { data: { code, supports_cod: false } },
-      })
-    ).toEqual([{ id: "pp_paykit_gopay" }])
-  })
+  it.each(["home_delivery", "parcelshop"])(
+    "removes cash on delivery for GLS %s",
+    (code) => {
+      expect(
+        filterPaymentProvidersForShipping({
+          paymentProviders: providers,
+          shippingOption: { data: { code, supports_cod: false } },
+        })
+      ).toEqual([{ id: "pp_paykit_gopay" }])
+    }
+  )
 
   it("offers on-site and online payment for a location pickup option", () => {
     expect(
@@ -112,39 +112,42 @@ describe("checkout payment compatibility", () => {
     ["Cargus", "ro-demo-cargus"],
     ["Packeta address", "ro-demo-packeta-address"],
     ["Packeta pickup", "ro-demo-packeta-pickup"],
-  ])("gates the generated %s carrier on the exact RO demo marker", (_, code) => {
-    const shippingOption = {
-      ...roDemoCarrierShippingOption,
-      data: { code, ro_demo_checkout: roDemoCheckoutMarker },
-    }
-    expect(
-      isPaymentProviderCompatibleWithShipping({
-        paymentProviderId: ON_SITE_PAYMENT_PROVIDER_ID,
-        shippingOption,
-      })
-    ).toBe(true)
-
-    const rejectedMarkers = [
-      undefined,
-      { ...roDemoCheckoutMarker, market: "sk" },
-      { ...roDemoCheckoutMarker, label: "Plată demo" },
-      { ...roDemoCheckoutMarker, binding_sha256: "not-a-valid-hash" },
-    ]
-    for (const marker of rejectedMarkers) {
+  ])(
+    "gates the generated %s carrier on the exact RO demo marker",
+    (_, code) => {
+      const shippingOption = {
+        ...roDemoCarrierShippingOption,
+        data: { code, ro_demo_checkout: roDemoCheckoutMarker },
+      }
       expect(
         isPaymentProviderCompatibleWithShipping({
           paymentProviderId: ON_SITE_PAYMENT_PROVIDER_ID,
-          shippingOption: {
-            ...shippingOption,
-            data: {
-              code,
-              ...(marker ? { ro_demo_checkout: marker } : {}),
-            },
-          },
+          shippingOption,
         })
-      ).toBe(false)
+      ).toBe(true)
+
+      const rejectedMarkers = [
+        undefined,
+        { ...roDemoCheckoutMarker, market: "sk" },
+        { ...roDemoCheckoutMarker, label: "Plată demo" },
+        { ...roDemoCheckoutMarker, binding_sha256: "not-a-valid-hash" },
+      ]
+      for (const marker of rejectedMarkers) {
+        expect(
+          isPaymentProviderCompatibleWithShipping({
+            paymentProviderId: ON_SITE_PAYMENT_PROVIDER_ID,
+            shippingOption: {
+              ...shippingOption,
+              data: {
+                code,
+                ...(marker ? { ro_demo_checkout: marker } : {}),
+              },
+            },
+          })
+        ).toBe(false)
+      }
     }
-  })
+  )
 
   it("keeps COD disabled even when an RO demo carrier option claims COD support", () => {
     expect(

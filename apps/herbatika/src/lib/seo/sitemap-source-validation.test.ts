@@ -181,52 +181,55 @@ describe("sitemap source validation", () => {
     ["category", "product_category"],
     ["brand", "brand"],
     ["collection", "product_collection"],
-  ] as const)("requires the exact %s translation proof", async (kind, reference) => {
-    const valid = assignment(
-      `${kind}_1`,
-      `slug-${kind}-1`,
-      {
-        translation: {
-          localeCode: "cs-CZ",
-          reference,
-          translationId: `translation_${kind}_1`,
+  ] as const)(
+    "requires the exact %s translation proof",
+    async (kind, reference) => {
+      const valid = assignment(
+        `${kind}_1`,
+        `slug-${kind}-1`,
+        {
+          translation: {
+            localeCode: "cs-CZ",
+            reference,
+            translationId: `translation_${kind}_1`,
+          },
         },
-      },
-      kind
-    )
-    await expect(
-      validateCatalogSitemapSources(
-        { binding, kind, sources: [source(`${kind}_1`)] },
-        catalogDependencies([valid], kind)
+        kind
       )
-    ).resolves.toEqual({
-      kind: "found",
-      value: [{ routeId: `route_${kind}_1` }],
-    })
-
-    for (const translation of [
-      {
-        localeCode: "sk-SK",
-        reference,
-        translationId: `translation_${kind}_1`,
-      },
-      {
-        localeCode: "cs-CZ",
-        reference: "product",
-        translationId: `translation_${kind}_1`,
-      },
-    ]) {
       await expect(
         validateCatalogSitemapSources(
           { binding, kind, sources: [source(`${kind}_1`)] },
-          catalogDependencies([{ ...valid, translation }], kind)
+          catalogDependencies([valid], kind)
         )
       ).resolves.toEqual({
-        causeCode: "INVALID_SITEMAP_ASSIGNMENT_BATCH_RESPONSE",
-        kind: "invalid-response",
+        kind: "found",
+        value: [{ routeId: `route_${kind}_1` }],
       })
+
+      for (const translation of [
+        {
+          localeCode: "sk-SK",
+          reference,
+          translationId: `translation_${kind}_1`,
+        },
+        {
+          localeCode: "cs-CZ",
+          reference: "product",
+          translationId: `translation_${kind}_1`,
+        },
+      ]) {
+        await expect(
+          validateCatalogSitemapSources(
+            { binding, kind, sources: [source(`${kind}_1`)] },
+            catalogDependencies([{ ...valid, translation }], kind)
+          )
+        ).resolves.toEqual({
+          causeCode: "INVALID_SITEMAP_ASSIGNMENT_BATCH_RESPONSE",
+          kind: "invalid-response",
+        })
+      }
     }
-  })
+  )
 
   it("rejects catalog source-version drift before or after the request", async () => {
     const candidate = source("cat_1", "slug-cat-1", "7")

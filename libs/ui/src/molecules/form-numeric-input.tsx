@@ -2,7 +2,7 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,6 +27,7 @@ interface FormNumericInputProps extends Omit<NumericInputProps, "children"> {
 
 export function FormNumericInput({
   id,
+  ids,
   label,
   validateStatus = "default",
   helpText,
@@ -34,15 +35,16 @@ export function FormNumericInput({
   size = "md",
   required,
   disabled,
-  children,
   describedBy,
+  children,
   ...numericInputProps
 }: FormNumericInputProps) {
   const generatedId = useId()
   // The label must point at the real input. Zag only uses our id for the
   // input when one is given, otherwise it generates `number-input:<id>:input`
   // and the label's htmlFor dangles — so always pass a concrete id.
-  const inputId = id || generatedId
+  const fieldId = id || generatedId
+  const inputId = ids?.input ?? fieldId
   const helpTextId = useId()
   const mergedDescribedBy =
     [describedBy, helpText ? helpTextId : undefined]
@@ -63,7 +65,8 @@ export function FormNumericInput({
       <NumericInput
         describedBy={mergedDescribedBy}
         disabled={disabled}
-        id={inputId}
+        id={fieldId}
+        ids={ids}
         invalid={validateStatus === "error"}
         required={required}
         size={size}

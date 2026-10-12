@@ -1,7 +1,7 @@
 [tools]
 "aqua:mikefarah/yq" = "4.45.4"
 "aqua:jqlang/jq" = "1.8.1"
-node = "24"
+node = "26.10.0"
 
 [tasks.dev]
 description = "Incremental local startup after `dev:init`: resources -> meili provisioning -> backend phase -> frontend phase"
@@ -67,9 +67,9 @@ run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper up adminer"
 description = "Stop and remove the local Adminer helper"
 run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper down adminer"
 
-[tasks."dev:corepack:update"]
-description = "Update Corepack inside the repo pnpm toolchain container"
-run = "bash ./scripts/dev/run-pnpm-toolchain.sh corepack up"
+[tasks."dev:pnpm:update"]
+description = "Update the workspace's pinned pnpm version inside the toolchain container"
+run = "bash ./scripts/dev/run-pnpm-toolchain.sh pnpm self-update"
 
 [tasks."dev:install"]
 description = "Install workspace dependencies inside the repo pnpm toolchain container"

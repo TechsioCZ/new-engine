@@ -1,4 +1,3 @@
-import { createCustomerAccountWorkflow } from "@medusajs/core-flows"
 import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
@@ -8,6 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { createCustomerAccountWorkflow } from "@medusajs/medusa/core-flows"
 import { normalizeEmail } from "../../../utils/email"
 import { reactivateCustomerAccountWorkflow } from "../../../workflows/customer/workflows/reactivate-customer-account"
 import { findInactiveCustomerWithEmail, refetchCustomer } from "./helpers"

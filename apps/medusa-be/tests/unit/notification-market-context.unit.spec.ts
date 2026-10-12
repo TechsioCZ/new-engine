@@ -107,27 +107,30 @@ describe("resolveNotificationMarketContext", () => {
       MarketCode,
       (typeof MARKET_FIXTURES)[MarketCode],
     ][]
-  )("resolves the configured %s market from its Sales Channel", async (marketCode, fixture) => {
-    const salesChannel = buildSalesChannel([marketCode])
-    const { container } = buildQuery({
-      regions: [buildRegion(marketCode)],
-      salesChannels: [salesChannel],
-    })
-
-    await expect(
-      resolveNotificationMarketContext(container, {
-        salesChannelId: salesChannel.id,
+  )(
+    "resolves the configured %s market from its Sales Channel",
+    async (marketCode, fixture) => {
+      const salesChannel = buildSalesChannel([marketCode])
+      const { container } = buildQuery({
+        regions: [buildRegion(marketCode)],
+        salesChannels: [salesChannel],
       })
-    ).resolves.toEqual({
-      country_code: marketCode,
-      locale: fixture.locale,
-      market_code: marketCode,
-      sales_channel_id: salesChannel.id,
-      store_name: fixture.storeName,
-      storefront_base_url: `https://${fixture.storefrontDomain}`,
-      storefront_domain: fixture.storefrontDomain,
-    })
-  })
+
+      await expect(
+        resolveNotificationMarketContext(container, {
+          salesChannelId: salesChannel.id,
+        })
+      ).resolves.toEqual({
+        country_code: marketCode,
+        locale: fixture.locale,
+        market_code: marketCode,
+        sales_channel_id: salesChannel.id,
+        store_name: fixture.storeName,
+        storefront_base_url: `https://${fixture.storefrontDomain}`,
+        storefront_domain: fixture.storefrontDomain,
+      })
+    }
+  )
 
   it("uses a unique country mapping when no Sales Channel is supplied", async () => {
     const salesChannel = buildSalesChannel(["cz"])
@@ -218,31 +221,34 @@ describe("resolveNotificationMarketContext", () => {
     ["locale", "cs-CZ"],
     ["market_code", "cz"],
     ["storefront_domain", "herbatica.cz"],
-  ])("rejects a %s cross-wired to another canonical market", async (field, value) => {
-    const salesChannel = buildSalesChannel(["sk"])
-    const marketConfiguration = salesChannel.metadata
-      ?.storefront_notification_markets as Record<
-      string,
-      Record<string, unknown>
-    >
-    const slovakMarket = marketConfiguration.sk
-    if (!slovakMarket) {
-      throw new Error("Expected the Slovak market fixture")
-    }
-    slovakMarket[field] = value
-    const { container } = buildQuery({
-      regions: [buildRegion("sk")],
-      salesChannels: [salesChannel],
-    })
-
-    await expect(
-      resolveNotificationMarketContext(container, {
-        salesChannelId: salesChannel.id,
+  ])(
+    "rejects a %s cross-wired to another canonical market",
+    async (field, value) => {
+      const salesChannel = buildSalesChannel(["sk"])
+      const marketConfiguration = salesChannel.metadata
+        ?.storefront_notification_markets as Record<
+        string,
+        Record<string, unknown>
+      >
+      const slovakMarket = marketConfiguration.sk
+      if (!slovakMarket) {
+        throw new Error("Expected the Slovak market fixture")
+      }
+      slovakMarket[field] = value
+      const { container } = buildQuery({
+        regions: [buildRegion("sk")],
+        salesChannels: [salesChannel],
       })
-    ).rejects.toThrow(
-      "Notification market configuration does not match its canonical authority."
-    )
-  })
+
+      await expect(
+        resolveNotificationMarketContext(container, {
+          salesChannelId: salesChannel.id,
+        })
+      ).rejects.toThrow(
+        "Notification market configuration does not match its canonical authority."
+      )
+    }
+  )
 
   it("rejects a canonical tuple published under another market key", async () => {
     const salesChannel = buildSalesChannel(["sk"])

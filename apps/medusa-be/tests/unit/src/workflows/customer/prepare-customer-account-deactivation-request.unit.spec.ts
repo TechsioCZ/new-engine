@@ -121,54 +121,55 @@ describe("prepareCustomerAccountDeactivationRequestStep", () => {
     vi.unstubAllEnvs()
   })
 
-  it.each(
-    marketFixtures
-  )("uses the requested $market_code market context for the confirmation link and token", async (marketContext) => {
-    resolveNotificationMarketContext.mockResolvedValue(marketContext)
-    const { prepareCustomerAccountDeactivationRequestStep } = await import(
-      "../../../../../src/workflows/customer/steps/prepare-customer-account-deactivation-request"
-    )
-    const container = makeContainer()
+  it.each(marketFixtures)(
+    "uses the requested $market_code market context for the confirmation link and token",
+    async (marketContext) => {
+      resolveNotificationMarketContext.mockResolvedValue(marketContext)
+      const { prepareCustomerAccountDeactivationRequestStep } = await import(
+        "../../../../../src/workflows/customer/steps/prepare-customer-account-deactivation-request"
+      )
+      const container = makeContainer()
 
-    const result = await (
-      prepareCustomerAccountDeactivationRequestStep as PrepareStep
-    )(
-      {
-        customer_id: "cus_1",
-        sales_channel_id: marketContext.sales_channel_id,
-      },
-      { container }
-    )
+      const result = await (
+        prepareCustomerAccountDeactivationRequestStep as PrepareStep
+      )(
+        {
+          customer_id: "cus_1",
+          sales_channel_id: marketContext.sales_channel_id,
+        },
+        { container }
+      )
 
-    expect(resolveNotificationMarketContext).toHaveBeenCalledWith(container, {
-      salesChannelId: marketContext.sales_channel_id,
-    })
-    expect(generateJwtToken).toHaveBeenCalledWith(
-      {
+      expect(resolveNotificationMarketContext).toHaveBeenCalledWith(container, {
+        salesChannelId: marketContext.sales_channel_id,
+      })
+      expect(generateJwtToken).toHaveBeenCalledWith(
+        {
+          customer_id: "cus_1",
+          email: "customer@example.test",
+          purpose: "customer-account-deactivation",
+          sales_channel_id: marketContext.sales_channel_id,
+        },
+        {
+          expiresIn: "30m",
+          secret: "test-jwt-secret",
+        }
+      )
+      expect(result.payload).toEqual({
+        ...marketContext,
+        confirmation_url: [
+          marketContext.storefront_base_url,
+          deactivationPathByMarket[
+            marketContext.market_code as keyof typeof deactivationPathByMarket
+          ],
+          "?token=token%2Fwith%2Bsymbols",
+        ].join(""),
         customer_id: "cus_1",
+        customer_name: "Test Customer",
         email: "customer@example.test",
-        purpose: "customer-account-deactivation",
-        sales_channel_id: marketContext.sales_channel_id,
-      },
-      {
-        expiresIn: "30m",
-        secret: "test-jwt-secret",
-      }
-    )
-    expect(result.payload).toEqual({
-      ...marketContext,
-      confirmation_url: [
-        marketContext.storefront_base_url,
-        deactivationPathByMarket[
-          marketContext.market_code as keyof typeof deactivationPathByMarket
-        ],
-        "?token=token%2Fwith%2Bsymbols",
-      ].join(""),
-      customer_id: "cus_1",
-      customer_name: "Test Customer",
-      email: "customer@example.test",
-    })
-  })
+      })
+    }
+  )
 
   it("rejects a market resolver result bound to another Sales Channel", async () => {
     resolveNotificationMarketContext.mockResolvedValue({

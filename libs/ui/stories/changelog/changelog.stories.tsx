@@ -24,16 +24,16 @@ const CHANGELOG = `
 ### Button v0.3.4
 - \`lg\` uses the shared control height \`h-form-control-lg\` (56 px) like \`sm\` / \`md\` already did. It was padding-derived (56 px in code, 57.5 px in Figma). Buttons and form controls now share one 32 / 44 / 56 scale.
 
-### Select v1.1.3
+### Select v1.1.4
 - \`lg\` trigger uses \`h-form-control-lg\` (56 px, was 60 px) and \`rounded-select-lg\`; \`xs\` trigger uses \`h-form-control-sm\` and \`rounded-select-sm\`, the same 32 px as \`sm\` (was 30 px). Small trigger text is 16 px like every other small field (token export 2026-10-09).
 
-### Combobox v1.3.3
+### Combobox v1.3.4
 - \`lg\` control uses \`h-form-control-lg\` (56 px, was 60 px) and \`rounded-combobox-lg\`.
 
 ### CascadeSelect v1.0.3
 - \`xs\` trigger is 32 px like \`sm\` (was 36 px); \`lg\` trigger uses \`h-form-control-lg\` and the new \`rounded-cascade-select-lg\`.
 
-### Tabs v1.0.2
+### Tabs v1.0.3
 - Triggers use the control heights \`h-form-control-{sm,md,lg}\` (32 / 44 / 56 px, were 33 / 50 / 68 px), matching the Figma Tabs.Trigger set.
 
 ### Rating v1.1.0
@@ -45,25 +45,22 @@ const CHANGELOG = `
 ### Slider v1.1.0
 - New \`aria-label\` prop (\`string[]\`, one per thumb) for sliders without a visible \`label\`. Before, such thumbs had no accessible name (axe \`aria-input-field-name\`, serious).
 
-### NumericInput v1.1.2
-- \`NumericInputTemplate\` takes \`aria-label\` / \`aria-labelledby\` and forwards them to the input instead of the root, so a template without a visible label can be named (axe \`label\`, critical, on the template stories).
-
-### Tabs v1.0.1
+### Tabs v1.0.2
 - A trigger only sets \`aria-controls\` when its \`Tabs.Content\` is mounted, so a tab strip used as sub-navigation without panels no longer references missing ids (axe \`aria-valid-attr-value\`, critical).
 
-### Steps v1.0.4
+### Steps v1.0.5
 - A trigger only sets \`aria-controls\` when its \`Steps.Content\` is mounted. Steps used as a progress indicator (no content panels) pointed every trigger at a missing id (axe \`aria-valid-attr-value\`, critical).
 
-### Footer v1.0.2
+### Footer v1.0.3
 - \`Footer.List\` wraps every child that is not already an \`<li>\` in one, so the documented \`<Footer.List><Footer.Link /></Footer.List>\` is valid list markup (axe \`list\`, serious). Explicit \`<li>\` children are left as they are.
 
-### DataTable v1.2.3
-- The built-in row-reorder column and the single-select / capped selection column (no select-all checkbox) now have a screen-reader-only header, "Reorder" / "Select" (axe \`empty-table-header\`). Localise them with the new \`translations.reorderColumnLabel\` and \`translations.selectColumnLabel\`.
+### DataTable v1.2.4
+- The built-in row-reorder column and the single-select / capped selection column (no select-all checkbox) now have a screen-reader-only header, "Reorder rows" / "Select rows" (axe \`empty-table-header\`). Localise them with \`translations.reorderLabel\` and \`translations.selectionLabel\`.
 
-### SearchForm v1.0.1
+### SearchForm v1.0.2
 - An icon-only \`SearchForm.Button\` (no children) defaults to \`aria-label="Search"\`; pass your own \`aria-label\` to localise it. Before, it was an unnamed submit button (axe \`button-name\`, critical).
 
-### Pagination v1.0.2
+### Pagination v1.0.3
 - A caller's \`aria-label\` now names the \`<nav>\`; Zag's default root label used to overwrite it, so two paginations on one page had the same name (axe \`landmark-unique\`).
 
 ### FormInput v1.1.1
@@ -78,7 +75,7 @@ const CHANGELOG = `
 ### Chart v1.1.0
 - \`animate\` now defaults to false when the user prefers reduced motion (facelift C11). An explicit \`animate\` still wins.
 
-### Footer v1.0.1
+### Footer v1.0.2
 - Title and link hovers used \`transition-footer-*\` classes that resolved to no token; they now use \`transition-colors\` with \`motion-reduce:transition-none\` (facelift C11).
 
 ### ActionIcon v1.1.0
@@ -87,25 +84,22 @@ const CHANGELOG = `
 ### Carousel v1.2.1
 - Previous / next / autoplay pass Zag's \`aria-label\` explicitly (Zag's English default as fallback) to satisfy the stricter ActionIcon type. No runtime change.
 
-### Combobox v1.3.2
+### Combobox v1.3.3
 - The clear trigger passes Zag's \`aria-label\` explicitly (fallback "Clear value") for the stricter ActionIcon type. No runtime change.
 
 ### FileUpload v1.0.2
 - The item delete trigger passes Zag's \`aria-label\` explicitly (fallback "Delete file <name>") for the stricter ActionIcon type. No runtime change.
 
-### Tour v1.0.4
+### Tour v1.0.5
 - The close trigger falls back to "Close tour" when neither the caller nor Zag provides a name (stricter ActionIcon type).
 
 ### Icon v1.1.0
 - New \`label\` prop (facelift C9): a meaningful standalone icon renders as \`role="img"\` with that accessible name. Without \`label\` the icon stays \`aria-hidden\` as before.
 
-### Accordion v1.0.2
-- \`Accordion.Header\` renders the APG heading (\`role="heading"\`, \`aria-level\` 3 by default, overridable) instead of a bare \`<header>\`, which created one \`banner\` landmark per item (axe \`landmark-no-duplicate-banner\`, \`landmark-unique\`, \`landmark-banner-is-top-level\`). The ref is now \`Ref<HTMLDivElement>\`.
+### PhoneInput v1.0.4
+- The country trigger (a \`role="combobox"\`, which takes no name from its content) gets a default accessible name, the selected country and its calling code (e.g. \`Czechia (+420)\`) — axe \`button-name\` (critical) on every PhoneInput story (facelift C5). Pass \`aria-label\` or \`aria-labelledby\` on \`PhoneInput.CountryTrigger\` (or \`triggerProps\`) to localise it.
 
-### PhoneInput v1.0.3
-- The country trigger (a \`role="combobox"\`, which takes no name from its content) gets a default accessible name, \`Country: <selected country>\` — axe \`button-name\` (critical) on every PhoneInput story (facelift C5). Pass \`aria-label\` or \`aria-labelledby\` on \`PhoneInput.CountryTrigger\` (or \`triggerProps\`) to localise it.
-
-### Select v1.1.2
+### Select v1.1.3
 - \`Select.StatusText\` is linked to the trigger through \`aria-describedby\` while it is mounted (facelift C4), so screen readers read the helper or error text when the trigger is focused. A caller's own \`aria-describedby\` is kept.
 
 ### Switch v1.0.1
@@ -114,10 +108,10 @@ const CHANGELOG = `
 ### Slider v1.0.2
 - \`helpText\` is linked to each thumb (the focusable \`role="slider"\`) through \`aria-describedby\` (facelift C4).
 
-### RadioGroup v1.0.1
+### RadioGroup v1.0.2
 - \`RadioGroup.StatusText\` is linked to the \`radiogroup\` root through \`aria-describedby\` while it is mounted (facelift C4).
 
-### PhoneInput v1.0.2
+### PhoneInput v1.0.3
 - \`PhoneInput.StatusText\` is linked to the phone input through \`aria-describedby\` while it is mounted (facelift C4). A caller's own \`aria-describedby\` is kept.
 
 ### StatusText v1.0.1
@@ -127,11 +121,11 @@ const CHANGELOG = `
 - Off-screen slides are \`inert\`, not just \`aria-hidden\`: links or buttons on hidden slides left the tab order (facelift C5, axe \`aria-hidden-focus\`).
 - New \`aria-label\` prop names the carousel region; give each carousel on a page its own name (axe \`landmark-unique\`). Stories with several carousels are labelled.
 
-### Steps v1.0.3
+### Steps v1.0.4
 - Fixed axe \`aria-required-children\` (critical): Zag's \`role="tablist"\` contained \`div[aria-current]\` items. Items are now \`role="presentation"\` and \`aria-current="step"\` moves to the tab. Separators are \`aria-hidden\`.
 - \`Steps.Progress\` has a default accessible name (\`aria-label="Steps progress"\`, overridable) — axe \`aria-progressbar-name\`.
 
-### Steps v1.0.2
+### Steps v1.0.3
 - Contrast facelift (Figma 2026-10-08): indicators on the 24 / 32 / 40 px Action Icon scale; current number, complete check and complete title now pass WCAG AA in all six brand/mode combinations (were 1.81 / 2.46 / 2.46 : 1 in light).
 - The \`solid\` variant's current title uses the new \`--color-steps-title-fg-solid-current\` (neutral foreground) instead of accent text on the accent tint.
 
@@ -140,19 +134,115 @@ const CHANGELOG = `
 - \`Carousel.Indicator\` is a 24 px target (WCAG 2.2 target size, was 16 px) with an 8 px dot inside; \`children\` still replace the dot. Inactive dots are now visible against the control bar (4.4 : 1 light, was 1 : 1).
 - Autoplay keeps an opaque control surface because it sits over the slide image.
 
-### DataTable v1.2.2
+### DataTable v1.2.3
 - \`tableLayout="fixed"\` now honours declared column widths with enum filters: the filter select no longer reserves a min-width wider than its column (it fills the cell instead), so long option labels cannot stretch the column or overflow into the next one.
 - Under \`tableLayout="fixed"\` the built-in actions column is sized to its widest rendered actions cell instead of collapsing to 0 px.
 - Akros Orders demo uses the fixed layout, so the shipping / pickup-point column keeps its 280 px at 1440 px instead of sliding under the pinned actions.
 
-### FormNumericInput v1.1.1
+### FormNumericInput v1.1.2
 - The label is always linked to the input: without an \`id\` the label pointed at nothing while Zag generated its own input id (axe \`label\`, critical). A generated id is now used when none is passed.
 
-### Pagination v1.0.1
+### Pagination v1.0.2
 - Fixed axe \`aria-prohibited-attr\` on the disabled prev/next triggers: without a page to go to they now render as an \`aria-disabled\` \`<button type="button">\` instead of an \`<a>\` with no \`href\`, so the Zag \`aria-label\` is valid. Also fixes DataTable pagination, which composes Pagination.
 
-### Skeleton v1.0.2
+### Skeleton v1.0.3
 - Fixed axe \`aria-prohibited-attr\`: the root and standalone shapes are now \`role="status"\` (a role that permits \`aria-label\`), shapes inside \`<Skeleton>\` are \`aria-hidden\` so a group announces once, and a consumer-hidden shape (\`aria-hidden\`) gets no status semantics.
+
+### LineItem v1.0.2
+- Accept object and callback refs on the removal button after the Button props update.
+
+### LineItem v1.0.1
+- Mark the compound row as a client module for Next.js and document client-wrapper composition for read-only recaps.
+
+### LineItem v1.0.0
+- Added a compound cart and order row with composable image/title/price/quantity/actions parts, shared read-only/pending guards, product-specific removal labels and compact layout. Requests and inventory rules remain consumer-owned.
+
+### TotalsSummary v1.0.0
+- Added prepared label/value rows, notes, discounts, an explicit total and pending feedback. Unresolved fees remain caller-provided text; the component does not calculate totals.
+
+### Checkbox v1.0.2
+- Preserve callback ref cleanup with React 19 and current Tailwind utilities.
+
+### NumericInput v1.1.2
+- Keep explicit input IDs linked to labels with the current Zag number-input machine and forward template labels to the input.
+
+### Skeleton v1.0.2
+- Keep busy placeholders accessible without naming generic wrapper elements.
+
+### Tooltip v1.0.1
+- Preserve tooltip descriptions and interaction with the current Zag machine.
+
+### Accordion v1.0.2
+- Use a heading for accordion triggers and preserve forwarded heading refs.
+
+### Breadcrumb v1.0.1
+- Preserve all compound members in native TypeScript declarations.
+
+### Carousel v1.0.1
+- Preserve compound declarations and use current Tailwind scrollbar utilities.
+
+### Chart v1.0.1
+- Adapt chart definitions, scales and React imports to TanStack Charts 1.x while preserving Cartesian rendering.
+
+### ColorSelect v1.0.2
+- Update types and sizing utilities for the current toolchain.
+
+### Combobox v1.3.2
+- Normalize single-value strings for the current Zag machine while retaining multi-value support.
+
+### Dialog v1.0.3
+- Use the current Zag dismissal behavior and remove the obsolete Escape workaround.
+
+### FormNumericInput v1.1.1
+- Link labels and help text to the actual numeric input ID.
+
+### Menu v1.1.1
+- Use current Zag types and adapt navigation callbacks without changing their public shape.
+
+### Pagination v1.0.1
+- Mark unavailable pagination links as disabled for assistive technology.
+
+### PhoneInput v1.0.2
+- Preserve the Input compound member in native TypeScript declarations.
+
+### Popover v1.0.2
+- Keep lazily mounted titles and descriptions linked to content and preserve compound declarations.
+
+### ProductCard v1.0.1
+- Preserve Button and Rating compound members in native TypeScript declarations.
+
+### RadioCard v1.0.2
+- Preserve compound declarations and recognize compound hidden-input labels.
+
+### RadioGroup v1.0.1
+- Preserve compound declarations and recognize compound hidden-input labels.
+
+### SearchForm v1.0.1
+- Preserve compound declarations and use the current React submit-event type.
+
+### Select v1.1.2
+- Use current Zag types and preserve the StatusText compound declaration.
+
+### Steps v1.0.2
+- Keep current-step and progress semantics accessible and preserve compound declarations.
+
+### Tabs v1.0.1
+- Update logical positioning utilities and context types for the current toolchain.
+
+### TreeView v1.0.2
+- Use current Zag types and logical positioning utilities.
+
+### DataTable v1.2.2
+- Adapt row drag-and-drop and table integration to the current dependencies while retaining keyboard interaction.
+
+### Footer v1.0.1
+- Preserve Footer compound members in native TypeScript declarations.
+
+### Gallery v1.0.2
+- Preserve compound declarations and use current scrollbar utilities.
+
+### Table v1.2.2
+- Use current logical positioning utilities for sticky columns.
 
 ### Table v1.2.1
 - Switched the border between header and cell columns from physical border-r to logical border-e for RTL.
@@ -277,6 +367,9 @@ const CHANGELOG = `
 - Accent subgroup surfaces support primary/secondary brand variants independently of the current page; the Akros catalog demonstrates two colored subgroups at 280 px.
 - New standalone link-based navigation with Zag disclosure branches, independent subgroup tones, capped indentation for deep hierarchies, controlled expansion, RTL and Drawer/Sidebar composition. Includes usage guidance and behavior tests; Figma/Code Connect mapping is deferred.
 
+### Hotkeys v1.0.2
+- Export the Key and Separator compound members in native TypeScript declarations.
+
 ### Hotkeys v1.0.1
 - Use named token utilities for keycap borders and shortcut-target focus styling while preserving the existing token values.
 
@@ -288,6 +381,9 @@ const CHANGELOG = `
 
 ### Command v1.0.0
 - New compound action panel on Zag Combobox with label/keyword filtering, groups, empty and disabled states, repeated activation and existing Dialog composition. Application callbacks can be shared with Hotkeys without a second command registry.
+
+### Tour v1.0.4
+- Export the Context and Trigger compound members in native TypeScript declarations.
 
 ### Tour v1.0.2
 - Keep the start trigger disabled throughout target resolution and wait steps, then enable it after the tour ends. Apply target inert before paint while preserving application ownership. Revalidate Zag 1.43.3 guidance and remove obsolete skip/effect-dismiss adapters.

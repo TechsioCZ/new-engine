@@ -75,7 +75,9 @@ const preview: Preview = {
         level: "gold",
         useCase: "body",
       },
-      test: "error",
+      // Let the reporter record each result before enforcing its violation
+      // policy. The standard test command remains strict by default.
+      test: "todo",
     },
   },
   globalTypes: {

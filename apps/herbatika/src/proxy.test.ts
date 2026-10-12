@@ -101,31 +101,33 @@ describe("public proxy adapter", () => {
     )
   })
 
-  it.each(
-    HOST_MATRIX
-  )("leaves public routing disabled for accepted host %s when the production flag is 0", (host) => {
-    process.env.URL_ARCHITECTURE_ENABLED = "0"
+  it.each(HOST_MATRIX)(
+    "leaves public routing disabled for accepted host %s when the production flag is 0",
+    (host) => {
+      process.env.URL_ARCHITECTURE_ENABLED = "0"
 
-    const response = proxy(request("/", host))
+      const response = proxy(request("/", host))
 
-    expect(response.status).toBe(200)
-    expect(response.headers.get("x-middleware-next")).toBe("1")
-    expect(response.headers.has("x-middleware-rewrite")).toBe(false)
-  })
+      expect(response.status).toBe(200)
+      expect(response.headers.get("x-middleware-next")).toBe("1")
+      expect(response.headers.has("x-middleware-rewrite")).toBe(false)
+    }
+  )
 
-  it.each(
-    HOST_MATRIX
-  )("rewrites accepted host %s when the production flag is 1", (host, market) => {
-    process.env.URL_ARCHITECTURE_ENABLED = "1"
+  it.each(HOST_MATRIX)(
+    "rewrites accepted host %s when the production flag is 1",
+    (host, market) => {
+      process.env.URL_ARCHITECTURE_ENABLED = "1"
 
-    const response = proxy(request("/", host))
+      const response = proxy(request("/", host))
 
-    expect(response.status).toBe(200)
-    expect(response.headers.has("x-middleware-rewrite")).toBe(true)
-    expect(response.headers.get("x-middleware-request-x-sf-market")).toBe(
-      market
-    )
-  })
+      expect(response.status).toBe(200)
+      expect(response.headers.has("x-middleware-rewrite")).toBe(true)
+      expect(response.headers.get("x-middleware-request-x-sf-market")).toBe(
+        market
+      )
+    }
+  )
 
   it("still rejects an unknown Host when production routing is enabled", () => {
     process.env.URL_ARCHITECTURE_ENABLED = "1"
@@ -166,19 +168,20 @@ describe("public proxy adapter", () => {
     )
   })
 
-  it.each(
-    HOST_MATRIX
-  )("recognizes accepted host %s as %s with the canonical origin", (host, market, canonicalOrigin) => {
-    const response = proxy(request("/", host))
+  it.each(HOST_MATRIX)(
+    "recognizes accepted host %s as %s with the canonical origin",
+    (host, market, canonicalOrigin) => {
+      const response = proxy(request("/", host))
 
-    expect(response.status).toBe(200)
-    expect(response.headers.get("x-middleware-request-x-sf-market")).toBe(
-      market
-    )
-    expect(
-      response.headers.get("x-middleware-request-x-sf-canonical-origin")
-    ).toBe(canonicalOrigin)
-  })
+      expect(response.status).toBe(200)
+      expect(response.headers.get("x-middleware-request-x-sf-market")).toBe(
+        market
+      )
+      expect(
+        response.headers.get("x-middleware-request-x-sf-canonical-origin")
+      ).toBe(canonicalOrigin)
+    }
+  )
 
   it("permanently redirects a legacy official category path and keeps the query", () => {
     const response = proxy(
@@ -283,22 +286,20 @@ describe("public proxy adapter", () => {
     expect(proxy(request(pathname)).status).toBe(404)
   })
 
-  it.each([
-    "/p",
-    "/p/legacy",
-    "/c",
-    "/c/legacy",
-  ])("delegates an unknown legacy route to URL Registry: %s", (pathname) => {
-    const response = proxy(request(pathname))
+  it.each(["/p", "/p/legacy", "/c", "/c/legacy"])(
+    "delegates an unknown legacy route to URL Registry: %s",
+    (pathname) => {
+      const response = proxy(request(pathname))
 
-    expect(response.status).toBe(200)
-    expect(response.headers.get("x-middleware-rewrite")).toBe(
-      `https://herbatica.sk/~sf/sk/url-registry${pathname}`
-    )
-    expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
-      "url-registry.resolve"
-    )
-  })
+      expect(response.status).toBe(200)
+      expect(response.headers.get("x-middleware-rewrite")).toBe(
+        `https://herbatica.sk/~sf/sk/url-registry${pathname}`
+      )
+      expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
+        "url-registry.resolve"
+      )
+    }
+  )
 
   it("passes a verified-host system route through and rejects an unknown host", () => {
     expect(proxy(request("/robots.txt")).headers.get("x-middleware-next")).toBe(
@@ -310,16 +311,19 @@ describe("public proxy adapter", () => {
   it.each([
     ["herbatica.hu", "hu"],
     ["herbatica.ro", "ro"],
-  ])("delegates the legacy about path on %s to URL Registry", (host, market) => {
-    const response = proxy(request("/o-nas", host))
+  ])(
+    "delegates the legacy about path on %s to URL Registry",
+    (host, market) => {
+      const response = proxy(request("/o-nas", host))
 
-    expect(response.status).toBe(200)
-    expect(response.headers.get("x-middleware-rewrite")).toBe(
-      `https://${host}/~sf/${market}/url-registry/o-nas`
-    )
-    expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
-      "url-registry.resolve"
-    )
-    expect(response.headers.has("location")).toBe(false)
-  })
+      expect(response.status).toBe(200)
+      expect(response.headers.get("x-middleware-rewrite")).toBe(
+        `https://${host}/~sf/${market}/url-registry/o-nas`
+      )
+      expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
+        "url-registry.resolve"
+      )
+      expect(response.headers.has("location")).toBe(false)
+    }
+  )
 })

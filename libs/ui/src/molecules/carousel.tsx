@@ -48,7 +48,7 @@ const carouselVariants = tv({
     ],
     slideGroup: [
       "overflow-hidden",
-      "scrollbar-hide",
+      "scrollbar-none",
       "data-dragging:cursor-grabbing",
       "data-[orientation=vertical]:h-full",
     ],
@@ -56,7 +56,7 @@ const carouselVariants = tv({
       "relative shrink-0",
       "flex items-center justify-center",
       "overflow-hidden",
-      "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-full",
+      "data-[orientation=vertical]:size-full",
     ],
     /*
      * Prev / next are ActionIcons, but keep the carousel trigger colour tokens
@@ -105,13 +105,13 @@ const carouselVariants = tv({
   variants: {
     objectFit: {
       cover: {
-        slide: "*:h-full *:w-full *:object-cover",
+        slide: "*:size-full *:object-cover",
       },
       contain: {
-        slide: "*:h-full *:w-full *:object-contain",
+        slide: "*:size-full *:object-contain",
       },
       fill: {
-        slide: "*:h-full *:w-full *:object-fill",
+        slide: "*:size-full *:object-fill",
       },
       none: {
         slide: "",
@@ -122,10 +122,10 @@ const carouselVariants = tv({
         control: "flex-col items-center justify-between",
       },
       top: {
-        control: "-translate-x-1/2 absolute top-0 left-1/2",
+        control: "absolute top-0 left-1/2 -translate-x-1/2",
       },
       bottom: {
-        control: "-translate-x-1/2 absolute bottom-0 left-1/2",
+        control: "absolute bottom-0 left-1/2 -translate-x-1/2",
       },
       unset: {},
     },
@@ -198,7 +198,7 @@ const carouselVariants = tv({
   },
 })
 
-interface CarouselContextValue {
+type CarouselContextValue = {
   api: ReturnType<typeof carousel.connect>
   size?: "sm" | "md" | "lg" | "full"
   objectFit?: "cover" | "contain" | "fill" | "none"
@@ -255,45 +255,45 @@ export type CarouselRootProps<T extends ElementType = typeof Image> = Omit<
     "aria-label"?: string
   }
 
-interface CarouselSlidesProps {
+type CarouselSlidesProps = {
   slides: CarouselSlide[]
   size?: "sm" | "md" | "lg" | "full"
   imageAs?: ElementType
   className?: string
 }
 
-interface CarouselSlideProps {
+type CarouselSlideProps = {
   index: number
   children: ReactNode
   size?: "sm" | "md" | "lg" | "full"
   className?: string
 }
 
-interface CarouselPreviousProps {
+type CarouselPreviousProps = {
   className?: string
   icon?: IconType
 }
 
-interface CarouselNextProps {
+type CarouselNextProps = {
   className?: string
   icon?: IconType
 }
 
-interface CarouselIndicatorsProps {
+type CarouselIndicatorsProps = {
   className?: string
 }
 
-interface CarouselIndicatorProps {
+type CarouselIndicatorProps = {
   index: number
   className?: string
   children?: ReactNode
 }
 
-interface CarouselAutoplayProps {
+type CarouselAutoplayProps = {
   className?: string
 }
 
-interface CarouselControlProps {
+type CarouselControlProps = {
   children: ReactNode
   className?: string
   controlPosition?: "top" | "bottom" | "side" | "unset"
@@ -352,12 +352,12 @@ export function Carousel<T extends ElementType = typeof Image>({
   const rootProps = api.getRootProps()
   const resolvedRootStyle = {
     ...(rootProps.style as CSSProperties),
-    ...(width !== undefined ? { width } : {}),
-    ...(height !== undefined ? { height } : {}),
+    ...(width === undefined ? {} : { width }),
+    ...(height === undefined ? {} : { height }),
   }
   const resolvedWrapperStyle = {
     ...(size === "full" ? { width: "100%" } : {}),
-    ...(width !== undefined ? { width } : {}),
+    ...(width === undefined ? {} : { width }),
   }
 
   return (
@@ -423,7 +423,7 @@ Carousel.Slides = function CarouselSlides({
   )
 }
 
-Carousel.Slide = function CarouselSlide({
+Carousel.Slide = function CarouselSlideRoot({
   index,
   children,
   size: overrideSize,
@@ -585,4 +585,5 @@ Carousel.Control = function CarouselControl({
   )
 }
 
-Carousel.Root = Carousel
+// Keep native TypeScript declarations from hiding siblings behind a Root export alias.
+Carousel.Root = Carousel satisfies typeof Carousel

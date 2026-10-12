@@ -131,21 +131,22 @@ const renderSection = (canCompleteOrder: boolean, currencyCode: string) =>
   )
 
 describe("four-market checkout mandatory legal acceptance", () => {
-  it.each(
-    FOUR_MARKET_CHECKOUT_FIXTURES
-  )("$market keeps completion gated and links its exact terms and privacy paths", (fixture) => {
-    testContext.market = { code: fixture.market, locale: fixture.locale }
+  it.each(FOUR_MARKET_CHECKOUT_FIXTURES)(
+    "$market keeps completion gated and links its exact terms and privacy paths",
+    (fixture) => {
+      testContext.market = { code: fixture.market, locale: fixture.locale }
 
-    const blockedMarkup = renderSection(false, fixture.currencyCode)
-    expect(blockedMarkup).toContain("checkout.review_legal_confirmation")
-    expect(blockedMarkup).toContain(`href="${fixture.termsPath}"`)
-    expect(blockedMarkup).toContain(`href="${fixture.privacyPath}"`)
-    expect(blockedMarkup).toContain('data-disabled="true"')
-    expect(blockedMarkup).toContain('data-checked="false"')
-    expect(blockedMarkup).toContain('data-required="true"')
+      const blockedMarkup = renderSection(false, fixture.currencyCode)
+      expect(blockedMarkup).toContain("checkout.review_legal_confirmation")
+      expect(blockedMarkup).toContain(`href="${fixture.termsPath}"`)
+      expect(blockedMarkup).toContain(`href="${fixture.privacyPath}"`)
+      expect(blockedMarkup).toContain('data-disabled="true"')
+      expect(blockedMarkup).toContain('data-checked="false"')
+      expect(blockedMarkup).toContain('data-required="true"')
 
-    const allowedMarkup = renderSection(true, fixture.currencyCode)
-    expect(allowedMarkup).toContain('data-disabled="false"')
-    expect(allowedMarkup).toContain('data-checked="true"')
-  })
+      const allowedMarkup = renderSection(true, fixture.currencyCode)
+      expect(allowedMarkup).toContain('data-disabled="false"')
+      expect(allowedMarkup).toContain('data-checked="true"')
+    }
+  )
 })

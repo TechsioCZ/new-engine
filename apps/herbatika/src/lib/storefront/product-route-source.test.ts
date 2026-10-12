@@ -82,34 +82,36 @@ describe("readProductRouteSource", () => {
     expect(retrieveProduct).not.toHaveBeenCalled()
   })
 
-  it.each([
-    404, 410,
-  ])("maps definitive Medusa HTTP %s according to the source contract", async (status) => {
-    const result = await readProductRouteSource(
-      request,
-      dependencies(vi.fn().mockRejectedValue(statusError(status)))
-    )
+  it.each([404, 410])(
+    "maps definitive Medusa HTTP %s according to the source contract",
+    async (status) => {
+      const result = await readProductRouteSource(
+        request,
+        dependencies(vi.fn().mockRejectedValue(statusError(status)))
+      )
 
-    expect(result).toEqual(
-      status === 404
-        ? { kind: "missing" }
-        : {
-            kind: "invalid-response",
-            causeCode: "MEDUSA_REJECTED_REQUEST",
-          }
-    )
-  })
+      expect(result).toEqual(
+        status === 404
+          ? { kind: "missing" }
+          : {
+              kind: "invalid-response",
+              causeCode: "MEDUSA_REJECTED_REQUEST",
+            }
+      )
+    }
+  )
 
-  it.each([
-    408, 425, 429, 500, 503,
-  ])("maps retryable Medusa HTTP %s to unavailable", async (status) => {
-    const result = await readProductRouteSource(
-      request,
-      dependencies(vi.fn().mockRejectedValue(statusError(status)))
-    )
+  it.each([408, 425, 429, 500, 503])(
+    "maps retryable Medusa HTTP %s to unavailable",
+    async (status) => {
+      const result = await readProductRouteSource(
+        request,
+        dependencies(vi.fn().mockRejectedValue(statusError(status)))
+      )
 
-    expect(result).toEqual({ kind: "unavailable" })
-  })
+      expect(result).toEqual({ kind: "unavailable" })
+    }
+  )
 
   it("maps a transport failure to unavailable", async () => {
     const result = await readProductRouteSource(
@@ -177,17 +179,20 @@ describe("readProductRouteSource", () => {
       },
     },
     { product: { id: "prod_1", variants: [null] } },
-  ])("maps malformed Medusa payload %o to invalid-response", async (payload) => {
-    const result = await readProductRouteSource(
-      request,
-      dependencies(vi.fn().mockResolvedValue(payload))
-    )
+  ])(
+    "maps malformed Medusa payload %o to invalid-response",
+    async (payload) => {
+      const result = await readProductRouteSource(
+        request,
+        dependencies(vi.fn().mockResolvedValue(payload))
+      )
 
-    expect(result).toEqual({
-      kind: "invalid-response",
-      causeCode: "INVALID_MEDUSA_PRODUCT_RESPONSE",
-    })
-  })
+      expect(result).toEqual({
+        kind: "invalid-response",
+        causeCode: "INVALID_MEDUSA_PRODUCT_RESPONSE",
+      })
+    }
+  )
 
   it("maps a mismatched product identity to invalid-response", async () => {
     const result = await readProductRouteSource(
@@ -238,35 +243,33 @@ describe("readProductRouteSourceByHandle", () => {
     variants: [{ id: "variant_1", sku: "SKU-1" }],
   }
 
-  it.each([
-    "sk",
-    "cz",
-    "hu",
-    "ro",
-  ] as const)("resolves a product by handle without any publication proof for %s", async (market) => {
-    const marketBinding = marketBindings[market]
-    const retrieveProducts = vi
-      .fn()
-      .mockResolvedValue({ products: [handleProduct] })
+  it.each(["sk", "cz", "hu", "ro"] as const)(
+    "resolves a product by handle without any publication proof for %s",
+    async (market) => {
+      const marketBinding = marketBindings[market]
+      const retrieveProducts = vi
+        .fn()
+        .mockResolvedValue({ products: [handleProduct] })
 
-    const result = await readProductRouteSourceByHandle(
-      { market, publicSlug: "vitamin-c" },
-      { resolveMarket: vi.fn(() => marketBinding), retrieveProducts }
-    )
+      const result = await readProductRouteSourceByHandle(
+        { market, publicSlug: "vitamin-c" },
+        { resolveMarket: vi.fn(() => marketBinding), retrieveProducts }
+      )
 
-    expect(result).toEqual({ kind: "found", value: handleProduct })
-    expect(retrieveProducts).toHaveBeenCalledWith({
-      binding: marketBinding,
-      query: {
-        country_code: marketBinding.countryCode.toLowerCase(),
-        fields: PRODUCT_DETAIL_FIELDS,
-        handle: "vitamin-c",
-        limit: 1,
-        locale: marketBinding.locale,
-        region_id: marketBinding.regionId,
-      },
-    })
-  })
+      expect(result).toEqual({ kind: "found", value: handleProduct })
+      expect(retrieveProducts).toHaveBeenCalledWith({
+        binding: marketBinding,
+        query: {
+          country_code: marketBinding.countryCode.toLowerCase(),
+          fields: PRODUCT_DETAIL_FIELDS,
+          handle: "vitamin-c",
+          limit: 1,
+          locale: marketBinding.locale,
+          region_id: marketBinding.regionId,
+        },
+      })
+    }
+  )
 
   it("returns missing when no product carries the handle", async () => {
     const result = await readProductRouteSourceByHandle(

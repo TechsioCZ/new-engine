@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,7 +21,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import {
   type DescribedBy,
   joinDescribedBy,
@@ -361,6 +361,7 @@ RadioGroup.Item = function RadioGroupItem({
 
   return (
     <RadioGroupItemContext.Provider value={{ itemProps }}>
+      {/* biome-ignore lint/a11y/noLabelWithoutControl: The compound hidden input is rendered by children and shares these Zag item props. */}
       <label
         className={styles.item({ className })}
         ref={ref}
@@ -506,7 +507,7 @@ RadioGroup.ItemDescription = function RadioGroupItemDescription({
 }
 
 type RadioGroupStatusTextProps = Omit<
-  ComponentPropsWithoutRef<typeof StatusText>,
+  ComponentPropsWithoutRef<typeof StatusTextComponent>,
   "status" | "size"
 > & {
   status?: RadioGroupValidateStatus
@@ -529,7 +530,7 @@ RadioGroup.StatusText = function RadioGroupStatusText({
   useRegisterDescription(id, setDescribedById)
 
   return (
-    <StatusText
+    <StatusTextComponent
       showIcon={showIcon ?? effectiveStatus !== "default"}
       size={effectiveSize}
       status={effectiveStatus}
@@ -537,7 +538,7 @@ RadioGroup.StatusText = function RadioGroupStatusText({
       id={id}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 

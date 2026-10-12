@@ -56,44 +56,45 @@ const createDependencies = (
 }
 
 describe("readProductPageContext", () => {
-  it.each(
-    Object.entries(marketDetails)
-  )("builds the trusted %s provider context without a market fallback", async (market, details) => {
-    const typedMarket = market as keyof typeof marketDetails
-    const dependencies = createDependencies(typedMarket)
-    const result = await readProductPageContext(
-      {
-        market: typedMarket,
-        product: createProduct(details.currencyCode.toLowerCase()),
-      },
-      dependencies
-    )
+  it.each(Object.entries(marketDetails))(
+    "builds the trusted %s provider context without a market fallback",
+    async (market, details) => {
+      const typedMarket = market as keyof typeof marketDetails
+      const dependencies = createDependencies(typedMarket)
+      const result = await readProductPageContext(
+        {
+          market: typedMarket,
+          product: createProduct(details.currencyCode.toLowerCase()),
+        },
+        dependencies
+      )
 
-    expect(result).toEqual({
-      kind: "found",
-      value: {
-        locale: details.locale,
-        marketContext: expect.objectContaining({ code: typedMarket }),
-        messages: {
-          catalog: { product_detail: { retry: "Retry" } },
-          navigation: { breadcrumbs: { home: "Home" } },
+      expect(result).toEqual({
+        kind: "found",
+        value: {
+          locale: details.locale,
+          marketContext: expect.objectContaining({ code: typedMarket }),
+          messages: {
+            catalog: { product_detail: { retry: "Retry" } },
+            navigation: { breadcrumbs: { home: "Home" } },
+          },
+          region: {
+            country_code: details.countryCode.toLowerCase(),
+            currency_code: details.currencyCode,
+            region_id: `reg_${market}`,
+            salesChannelId: `sc_${market}`,
+          },
         },
-        region: {
-          country_code: details.countryCode.toLowerCase(),
-          currency_code: details.currencyCode,
-          region_id: `reg_${market}`,
-          salesChannelId: `sc_${market}`,
-        },
-      },
-    })
-    expect(dependencies.loadMessages).toHaveBeenCalledWith(
-      expect.objectContaining({
-        binding: expect.objectContaining({ market: typedMarket }),
-        locale: details.locale,
-        market: typedMarket,
       })
-    )
-  })
+      expect(dependencies.loadMessages).toHaveBeenCalledWith(
+        expect.objectContaining({
+          binding: expect.objectContaining({ market: typedMarket }),
+          locale: details.locale,
+          market: typedMarket,
+        })
+      )
+    }
+  )
 
   it("derives currency from the explicitly selected non-first variant", async () => {
     const result = await readProductPageContext(

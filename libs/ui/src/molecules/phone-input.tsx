@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.4
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -35,9 +35,9 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import type { IconProps } from "../atoms/icon"
-import { Input, type InputProps } from "../atoms/input"
+import { Input as InputComponent, type InputProps } from "../atoms/input"
 import { Label, type LabelProps } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import {
   type DescribedBy,
   joinDescribedBy,
@@ -466,7 +466,7 @@ PhoneInput.Control = function PhoneInputControl({
   const { disabled, readOnly, size, validateStatus } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
   const validationDataAttrs =
-    validateStatus !== "default" ? { "data-validation": validateStatus } : {}
+    validateStatus === "default" ? {} : { "data-validation": validateStatus }
 
   return (
     <div
@@ -602,21 +602,24 @@ PhoneInput.CountryTrigger = function PhoneInputCountryTrigger({
   children,
   className,
   ref,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: PhoneInputCountryTriggerProps) {
   const { selectedCountryItem, size } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
-  // The trigger is a role="combobox", which takes no name from its content
-  // (the flag is decorative and the calling code alone is ambiguous).
-  const hasCallerName = props["aria-label"] || props["aria-labelledby"]
 
   return (
     <Select.Trigger
+      // The trigger is a role="combobox", which takes no name from its content
+      // (the flag is decorative), so name it after the visible country and code.
       aria-label={
-        hasCallerName
+        ariaLabel ??
+        (ariaLabelledBy
           ? undefined
-          : `Country: ${getCountryDisplayValue(selectedCountryItem)}`
+          : `${getCountryDisplayValue(selectedCountryItem)} (+${getPhoneCountryCallingCode(selectedCountryItem)})`)
       }
+      aria-labelledby={ariaLabelledBy}
       className={styles.countryTrigger({ className })}
       ref={ref}
       {...props}
@@ -774,7 +777,7 @@ PhoneInput.Input = function PhoneInputInput({
   ])
 
   return (
-    <Input
+    <InputComponent
       {...props}
       aria-describedby={joinDescribedBy(
         props["aria-describedby"],
@@ -928,7 +931,7 @@ PhoneInput.StatusText = function PhoneInputStatusText({
   useRegisterDescription(id, setDescribedById)
 
   return (
-    <StatusText
+    <StatusTextComponent
       showIcon={showIcon}
       size={size}
       status={status ?? validateStatus}
@@ -936,7 +939,7 @@ PhoneInput.StatusText = function PhoneInputStatusText({
       id={id}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 

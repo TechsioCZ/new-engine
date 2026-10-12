@@ -20,10 +20,10 @@ import {
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Button } from "../atoms/button"
+import { Button as ButtonComponent } from "../atoms/button"
 import type { IconProps, IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
-import { Rating, type RatingProps } from "../atoms/rating"
+import { Rating as RatingComponent, type RatingProps } from "../atoms/rating"
 import { tv } from "../utils"
 
 const productCardVariants = tv({
@@ -84,7 +84,7 @@ const productCardVariants = tv({
 })
 
 // === CONTEXT ===
-interface ProductCardContextValue {
+type ProductCardContextValue = {
   layout?: "column" | "row"
 }
 
@@ -264,7 +264,7 @@ ProductCard.Rating = function ProductCardRating({
 
   return (
     <div className={ratingSlot({ className })} ref={ref} {...props}>
-      {rating ? <Rating {...rating} /> : children}
+      {rating ? <RatingComponent {...rating} /> : children}
     </div>
   )
 }
@@ -300,7 +300,7 @@ ProductCard.Button = function ProductCardButton({
   const { button } = productCardVariants({ buttonVariant })
 
   return (
-    <Button
+    <ButtonComponent
       className={button({ className })}
       icon={icon}
       iconSize={iconSize}
@@ -310,6 +310,6 @@ ProductCard.Button = function ProductCardButton({
       {...props}
     >
       {children}
-    </Button>
+    </ButtonComponent>
   )
 }

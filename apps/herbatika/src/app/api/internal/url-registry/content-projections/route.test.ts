@@ -58,12 +58,15 @@ describe("URL registry content projection route wiring", () => {
   it.each([
     ["0", "1"],
     ["1", "0"],
-  ])("stays disabled unless both gates are enabled (%s/%s)", async (registry, projection) => {
-    vi.stubEnv("URL_REGISTRY_ENABLED", registry)
-    vi.stubEnv("URL_REGISTRY_CONTENT_PROJECTION_ENABLED", projection)
+  ])(
+    "stays disabled unless both gates are enabled (%s/%s)",
+    async (registry, projection) => {
+      vi.stubEnv("URL_REGISTRY_ENABLED", registry)
+      vi.stubEnv("URL_REGISTRY_CONTENT_PROJECTION_ENABLED", projection)
 
-    await POST(request)
+      await POST(request)
 
-    expect(mocks.handle.mock.calls[0]?.[1]).toMatchObject({ enabled: false })
-  })
+      expect(mocks.handle.mock.calls[0]?.[1]).toMatchObject({ enabled: false })
+    }
+  )
 })

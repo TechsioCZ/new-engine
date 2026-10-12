@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -24,7 +24,7 @@ import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { Icon, type IconProps } from "../atoms/icon"
 import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import {
   type DescribedBy,
   joinDescribedBy,
@@ -92,7 +92,7 @@ const selectVariants = tv({
     ],
     // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
     // its own size, glyph and neutral hover pill.
-    clearTrigger: ["-translate-y-1/2 absolute end-select-right top-1/2"],
+    clearTrigger: ["absolute end-select-right top-1/2 -translate-y-1/2"],
     content: [
       "popup-surface-base",
       "w-full",
@@ -115,7 +115,7 @@ const selectVariants = tv({
     // Absolutely positioned inside the reserved end gutter so the label never
     // shifts when the selection changes.
     itemIndicator: [
-      "-translate-y-1/2 absolute end-(--popup-item-x) top-1/2",
+      "absolute end-(--popup-item-x) top-1/2 -translate-y-1/2",
       "flex items-center justify-center",
       "size-(--size-popup-indicator) text-popup-item-fg-selected",
     ],
@@ -268,7 +268,7 @@ export function Select({
     onHighlightChange,
   })
 
-  const api = select.connect(service as select.Service, normalizeProps)
+  const api = select.connect(service, normalizeProps)
   const styles = selectVariants({ size })
   const describedBy = useDescribedBy()
 
@@ -367,7 +367,7 @@ Select.Trigger = function SelectTrigger({
 
   // Map validateStatus to unified data-validation attribute
   const validationDataAttrs =
-    validateStatus !== "default" ? { "data-validation": validateStatus } : {}
+    validateStatus === "default" ? {} : { "data-validation": validateStatus }
 
   return (
     <Button
@@ -386,7 +386,7 @@ Select.Trigger = function SelectTrigger({
       {children}
       <Icon
         className={`${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
-          api.open ? "rotate-180" : "rotate-0"
+          api.open ? "rotate-180" : "rotate-none"
         }`}
         icon="token-icon-select-indicator"
         size={iconSize ?? "current"}
@@ -418,7 +418,7 @@ Select.ValueText = function SelectValueText({
   const hasValue = api.value.length > 0
   const selectedItems = api.value
     .map((v) => items.find((item) => item.value === v))
-    .filter(Boolean) as SelectItem[]
+    .filter((item) => item !== undefined)
 
   const renderContent = () => {
     if (!hasValue) {
@@ -689,7 +689,7 @@ Select.StatusText = function SelectStatusText({
   const effectiveStatus = statusProp ?? contextValidateStatus
 
   return (
-    <StatusText
+    <StatusTextComponent
       showIcon={showIcon}
       size={effectiveSize === "xs" ? "sm" : effectiveSize}
       status={effectiveStatus}
@@ -697,10 +697,10 @@ Select.StatusText = function SelectStatusText({
       id={id}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 
-export { useSelectContext, selectVariants }
+export { selectVariants, useSelectContext }
 
 Select.displayName = "Select"

@@ -31,6 +31,8 @@ export type NumericInputTemplateProps = Omit<
 }
 
 export function NumericInputTemplate({
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   showControls = true,
   showScrubber = false,
   controlsPosition = "right",
@@ -38,24 +40,18 @@ export function NumericInputTemplate({
   decrementIcon = "token-icon-numeric-input-decrement",
   className,
   ref,
-  "aria-label": ariaLabel,
-  "aria-labelledby": ariaLabelledBy,
   ...numericInputProps
 }: NumericInputTemplateProps) {
-  const input = (
-    <NumericInput.Input
-      aria-label={ariaLabel}
-      aria-labelledby={ariaLabelledBy}
-    />
-  )
-
   // Layout for controls on the right (default)
   if (controlsPosition === "right") {
     return (
       <NumericInput {...numericInputProps} className={className} ref={ref}>
         <NumericInput.Control>
           {showScrubber && <NumericInput.Scrubber />}
-          {input}
+          <NumericInput.Input
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+          />
           {showControls && (
             <NumericInput.TriggerContainer>
               <NumericInput.IncrementTrigger icon={incrementIcon} />
@@ -74,7 +70,10 @@ export function NumericInputTemplate({
         {showControls && <NumericInput.DecrementTrigger icon={decrementIcon} />}
         <NumericInput.Control className="flex-1">
           {showScrubber && <NumericInput.Scrubber />}
-          {input}
+          <NumericInput.Input
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+          />
         </NumericInput.Control>
         {showControls && <NumericInput.IncrementTrigger icon={incrementIcon} />}
       </div>

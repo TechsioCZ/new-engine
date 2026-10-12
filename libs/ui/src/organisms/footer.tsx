@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -106,7 +106,7 @@ const footerVariants = tv({
   },
 })
 
-interface FooterContextValue {
+type FooterContextValue = {
   size?: "sm" | "md" | "lg"
   sectionFlow?: "col" | "row"
   layout?: "col" | "row"
@@ -233,7 +233,8 @@ function FooterLink<T extends ElementType = "a">({
   )
 }
 
-Footer.Link = FooterLink
+// Keep native TypeScript declarations from hiding siblings behind a Link export alias.
+Footer.Link = FooterLink satisfies typeof FooterLink
 
 Footer.Text = function FooterText({ children, className }: FooterTextProps) {
   const { size } = useContext(FooterContext)
@@ -280,4 +281,10 @@ Footer.Bottom = function FooterBottom({
       {children}
     </div>
   )
+}
+
+// Declare colliding member names explicitly so native TypeScript emits no synthetic public aliases.
+// biome-ignore lint/style/noNamespace: Ambient merging preserves compound functions without emitting runtime code.
+export declare namespace Footer {
+  export let Text: (props: FooterTextProps) => import("react").JSX.Element
 }

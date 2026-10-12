@@ -17,6 +17,7 @@ import {
   type Ref,
   useContext,
   useId,
+  useMemo,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
@@ -239,9 +240,9 @@ Accordion.Item = function AccordionItem({
   )
 }
 
-// Header component (trigger wrapper)
-type AccordionHeaderProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+// Header component (heading wrapper for the trigger)
+type AccordionHeaderProps = ComponentPropsWithoutRef<"h3"> & {
+  ref?: Ref<HTMLElement>
 }
 
 // APG accordion: each trigger sits in a heading. A bare <header> would be a
@@ -250,20 +251,21 @@ Accordion.Header = function AccordionHeader({
   children,
   ref,
   className,
-  "aria-level": ariaLevel = 3,
   ...props
 }: AccordionHeaderProps) {
   const { api, styles } = useAccordionContext()
   const { value, disabled } = useAccordionItemContext()
+  const headingRef = useMemo(() => {
+    if (typeof ref === "function" || !ref) {
+      return ref
+    }
+    return (node: HTMLHeadingElement | null) => {
+      ref.current = node
+    }
+  }, [ref])
 
   return (
-    <div
-      aria-level={ariaLevel}
-      className={className}
-      ref={ref}
-      role="heading"
-      {...props}
-    >
+    <h3 className={className} ref={headingRef} {...props}>
       <Button
         className={styles.titleTrigger()}
         size="current"
@@ -274,7 +276,7 @@ Accordion.Header = function AccordionHeader({
       >
         {children}
       </Button>
-    </div>
+    </h3>
   )
 }
 

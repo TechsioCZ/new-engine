@@ -109,93 +109,89 @@ describe("send order receipt workflow", () => {
     })
   })
 
-  it.each(
-    MARKETS
-  )("uses authoritative order data and $locale notification formatting", async ({
-    countryCode,
-    currencyCode,
-    domain,
-    locale,
-  }) => {
-    await import("../../../../src/workflows/send-order-receipt")
-    resolveNotificationMarketContext.mockResolvedValue({
-      country_code: countryCode,
-      locale,
-      market_code: countryCode,
-      sales_channel_id: ["sc_", countryCode].join(""),
-      store_name: "Herbatica",
-      storefront_base_url: ["https://", domain].join(""),
-      storefront_domain: domain,
-    })
-
-    const order = {
-      currency_code: currencyCode,
-      customer: { first_name: "Fetched", last_name: "Customer" },
-      customer_id: "cus_1",
-      display_id: 42,
-      email: "fetched@example.test",
-      id: "order_1",
-      sales_channel_id: ["sc_", countryCode].join(""),
-      shipping_address: { country_code: countryCode },
-      summary: { current_order_total: 1234.5 },
-      total: 9999,
-    }
-    const graph = vi.fn().mockResolvedValue({ data: [order] })
-    const generateOrderReceiptAttachment = vi.fn().mockResolvedValue({
-      content: Buffer.from("pdf"),
-      content_type: "application/pdf",
-      filename: "receipt.pdf",
-    })
-    const container = {
-      resolve: vi.fn((key: string) => {
-        if (key === "query") {
-          return { graph }
-        }
-
-        if (key === "logger") {
-          return { warn: vi.fn() }
-        }
-
-        if (key === "order_receipt") {
-          return { generateOrderReceiptAttachment }
-        }
-
-        throw new Error("Unexpected dependency")
-      }),
-    }
-    const step = workflowSdkMock.steps.get("build-order-receipt-notification")
-
-    const response = await step?.({ order_id: "order_1" }, { container })
-    const notification = (
-      response as { output: Record<string, unknown>[] } | undefined
-    )?.output[0]
-
-    expect(notification).toEqual(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          customer_name: "Fetched Customer",
-          locale,
-          storefront_base_url: ["https://", domain].join(""),
-          total: new Intl.NumberFormat(locale, {
-            currency: currencyCode.toUpperCase(),
-            style: "currency",
-          }).format(1234.5),
-        }),
-        idempotency_key: "order-receipt:order_1",
-        receiver_id: "cus_1",
-        resource_id: "order_1",
-        to: "fetched@example.test",
+  it.each(MARKETS)(
+    "uses authoritative order data and $locale notification formatting",
+    async ({ countryCode, currencyCode, domain, locale }) => {
+      await import("../../../../src/workflows/send-order-receipt")
+      resolveNotificationMarketContext.mockResolvedValue({
+        country_code: countryCode,
+        locale,
+        market_code: countryCode,
+        sales_channel_id: ["sc_", countryCode].join(""),
+        store_name: "Herbatica",
+        storefront_base_url: ["https://", domain].join(""),
+        storefront_domain: domain,
       })
-    )
-    expect(resolveNotificationMarketContext).toHaveBeenCalledWith(container, {
-      countryCode,
-      salesChannelId: ["sc_", countryCode].join(""),
-    })
-    expect(generateOrderReceiptAttachment).toHaveBeenCalledWith(order, {
-      locale,
-      storeName: "Herbatica",
-    })
-  })
+
+      const order = {
+        currency_code: currencyCode,
+        customer: { first_name: "Fetched", last_name: "Customer" },
+        customer_id: "cus_1",
+        display_id: 42,
+        email: "fetched@example.test",
+        id: "order_1",
+        sales_channel_id: ["sc_", countryCode].join(""),
+        shipping_address: { country_code: countryCode },
+        summary: { current_order_total: 1234.5 },
+        total: 9999,
+      }
+      const graph = vi.fn().mockResolvedValue({ data: [order] })
+      const generateOrderReceiptAttachment = vi.fn().mockResolvedValue({
+        content: Buffer.from("pdf"),
+        content_type: "application/pdf",
+        filename: "receipt.pdf",
+      })
+      const container = {
+        resolve: vi.fn((key: string) => {
+          if (key === "query") {
+            return { graph }
+          }
+
+          if (key === "logger") {
+            return { warn: vi.fn() }
+          }
+
+          if (key === "order_receipt") {
+            return { generateOrderReceiptAttachment }
+          }
+
+          throw new Error("Unexpected dependency")
+        }),
+      }
+      const step = workflowSdkMock.steps.get("build-order-receipt-notification")
+
+      const response = await step?.({ order_id: "order_1" }, { container })
+      const notification = (
+        response as { output: Record<string, unknown>[] } | undefined
+      )?.output[0]
+
+      expect(notification).toEqual(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            customer_name: "Fetched Customer",
+            locale,
+            storefront_base_url: ["https://", domain].join(""),
+            total: new Intl.NumberFormat(locale, {
+              currency: currencyCode.toUpperCase(),
+              style: "currency",
+            }).format(1234.5),
+          }),
+          idempotency_key: "order-receipt:order_1",
+          receiver_id: "cus_1",
+          resource_id: "order_1",
+          to: "fetched@example.test",
+        })
+      )
+      expect(resolveNotificationMarketContext).toHaveBeenCalledWith(container, {
+        countryCode,
+        salesChannelId: ["sc_", countryCode].join(""),
+      })
+      expect(generateOrderReceiptAttachment).toHaveBeenCalledWith(order, {
+        locale,
+        storeName: "Herbatica",
+      })
+    }
+  )
 
   it("skips a recipient-less order before attachment generation", async () => {
     await import("../../../../src/workflows/send-order-receipt")

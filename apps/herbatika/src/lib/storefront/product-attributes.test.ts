@@ -79,17 +79,20 @@ describe("Product Attribute Warranty", () => {
     ["2 roky", "2 ani"],
     ["24 mesiacov", "24 de luni"],
     ["1 mesiac", "1 lună"],
-  ] as const)("localizes the exact duration %s by market", (label, romanian) => {
-    const attribute = {
-      ...warrantyAttribute,
-      option: { ...warrantyAttribute.option, label },
-    }
+  ] as const)(
+    "localizes the exact duration %s by market",
+    (label, romanian) => {
+      const attribute = {
+        ...warrantyAttribute,
+        option: { ...warrantyAttribute.option, label },
+      }
 
-    expect(resolveProductWarranty([attribute], "sk-SK")).toBe(label)
-    expect(resolveProductWarranty([attribute], "cs-CZ")).toBe(label)
-    expect(resolveProductWarranty([attribute], "hu-HU")).toBe(label)
-    expect(resolveProductWarranty([attribute], "ro-RO")).toBe(romanian)
-  })
+      expect(resolveProductWarranty([attribute], "sk-SK")).toBe(label)
+      expect(resolveProductWarranty([attribute], "cs-CZ")).toBe(label)
+      expect(resolveProductWarranty([attribute], "hu-HU")).toBe(label)
+      expect(resolveProductWarranty([attribute], "ro-RO")).toBe(romanian)
+    }
+  )
 
   it("leaves an unrecognized warranty value unchanged", () => {
     const attribute = {
@@ -202,55 +205,55 @@ describe("Product Attribute Warranty", () => {
         warranty: "Garanție",
       },
     ],
-  ] as const)("renders the exact %s warranty presentation without cross-market labels", (locale, {
-    forbiddenLabels,
-    input,
-    other,
-    output,
-    warranty,
-  }) => {
-    const localizedWarranty = resolveProductWarranty(
-      [
-        {
-          ...warrantyAttribute,
-          option: { ...warrantyAttribute.option, label: input },
-        },
-      ],
-      locale
-    )
-    const [section] = mergeWarrantyIntoProductContentSections(
-      [],
-      localizedWarranty,
-      other,
-      warranty
-    )
+  ] as const)(
+    "renders the exact %s warranty presentation without cross-market labels",
+    (locale, { forbiddenLabels, input, other, output, warranty }) => {
+      const localizedWarranty = resolveProductWarranty(
+        [
+          {
+            ...warrantyAttribute,
+            option: { ...warrantyAttribute.option, label: input },
+          },
+        ],
+        locale
+      )
+      const [section] = mergeWarrantyIntoProductContentSections(
+        [],
+        localizedWarranty,
+        other,
+        warranty
+      )
 
-    expect(section).toEqual({
-      html: `<p><strong>${warranty}:</strong> ${output}</p>`,
-      key: "other",
-      title: other,
-    })
-    for (const forbiddenLabel of forbiddenLabels) {
-      expect(JSON.stringify(section)).not.toContain(forbiddenLabel)
+      expect(section).toEqual({
+        html: `<p><strong>${warranty}:</strong> ${output}</p>`,
+        key: "other",
+        title: other,
+      })
+      for (const forbiddenLabel of forbiddenLabels) {
+        expect(JSON.stringify(section)).not.toContain(forbiddenLabel)
+      }
+      if (locale === "ro-RO") {
+        expect(section?.html).not.toMatch(SLOVAK_WARRANTY_PATTERN)
+      }
+      expect(productAttributesSource).not.toContain(`${warranty}:`)
     }
-    if (locale === "ro-RO") {
-      expect(section?.html).not.toMatch(SLOVAK_WARRANTY_PATTERN)
-    }
-    expect(productAttributesSource).not.toContain(`${warranty}:`)
-  })
+  )
 
   it.each([
     ["sk-SK", "Záruka", ["Garancia", "Garanție"]],
     ["cs-CZ", "Záruka", ["Garancia", "Garanție"]],
     ["hu-HU", "Garancia", ["Záruka", "Garanție"]],
     ["ro-RO", "Garanție", ["Záruka", "Garancia"]],
-  ] as const)("publishes the exact %s warranty catalog label", (locale, expected, forbiddenLabels) => {
-    const warranty =
-      messagesForLocale(locale).catalog.product_detail.sections.warranty
+  ] as const)(
+    "publishes the exact %s warranty catalog label",
+    (locale, expected, forbiddenLabels) => {
+      const warranty =
+        messagesForLocale(locale).catalog.product_detail.sections.warranty
 
-    expect(warranty).toBe(expected)
-    for (const forbiddenLabel of forbiddenLabels) {
-      expect(warranty).not.toBe(forbiddenLabel)
+      expect(warranty).toBe(expected)
+      for (const forbiddenLabel of forbiddenLabels) {
+        expect(warranty).not.toBe(forbiddenLabel)
+      }
     }
-  })
+  )
 })

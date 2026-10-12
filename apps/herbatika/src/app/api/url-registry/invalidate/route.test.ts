@@ -74,16 +74,19 @@ describe("URL registry invalidation route wiring", () => {
   it.each([
     ["0", "1"],
     ["1", "0"],
-  ])("stays hidden unless both gates are enabled (%s/%s)", async (registry, invalidation) => {
-    vi.stubEnv("URL_REGISTRY_ENABLED", registry)
-    vi.stubEnv("URL_REGISTRY_INVALIDATION_ENABLED", invalidation)
-    const { POST } = await import("./route")
+  ])(
+    "stays hidden unless both gates are enabled (%s/%s)",
+    async (registry, invalidation) => {
+      vi.stubEnv("URL_REGISTRY_ENABLED", registry)
+      vi.stubEnv("URL_REGISTRY_INVALIDATION_ENABLED", invalidation)
+      const { POST } = await import("./route")
 
-    const response = await POST(request())
+      const response = await POST(request())
 
-    expect(response.status).toBe(404)
-    expect(mocks.consume).not.toHaveBeenCalled()
-  })
+      expect(response.status).toBe(404)
+      expect(mocks.consume).not.toHaveBeenCalled()
+    }
+  )
 
   it("rejects an unknown Host before consuming", async () => {
     const { POST } = await import("./route")

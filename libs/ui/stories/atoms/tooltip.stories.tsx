@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { type ComponentPropsWithoutRef, useState } from 'react'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { Button } from '@/atoms/button'
 import { type IconType } from '@/atoms/icon'
@@ -124,6 +125,64 @@ A tooltip component built with Zag.js that provides accessible, customizable too
 
 export default meta
 type Story = StoryObj<typeof meta>
+
+const tooltipChildRefCleanup = fn()
+const tooltipChildRef = fn((node: HTMLButtonElement | null) =>
+  node ? tooltipChildRefCleanup : undefined
+)
+
+function StatefulTooltipTrigger(props: ComponentPropsWithoutRef<typeof Button>) {
+  const [count, setCount] = useState(0)
+  return (
+    <Button {...props} ref={tooltipChildRef} onClick={() => setCount(count + 1)}>
+      Keyboard trigger {count}
+    </Button>
+  )
+}
+
+export const KeyboardDescription: Story = {
+  tags: ['ui-semantic-regression'],
+  render: () => (
+    <div className="grid gap-150">
+      <p id="tooltip-caller-description">Caller description.</p>
+      <Tooltip
+        content="Tooltip description."
+        openDelay={0}
+        closeDelay={0}
+        closeOnClick={false}
+        closeOnPointerDown={false}
+      >
+        <>
+          <StatefulTooltipTrigger aria-describedby="tooltip-caller-description" />
+        </>
+      </Tooltip>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const page = within(canvasElement.ownerDocument.body)
+    const button = canvas.getByRole('button', { name: 'Keyboard trigger 0' })
+    const cleanupsBeforeOpen = tooltipChildRefCleanup.mock.calls.length
+    await expect(button).toHaveAccessibleDescription('Caller description.')
+    await userEvent.tab()
+    await expect(button).toHaveFocus()
+    await expect(await page.findByRole('tooltip')).toBeVisible()
+    await waitFor(() => {
+      expect(button).toHaveAccessibleDescription('Caller description. Tooltip description.')
+    })
+    await userEvent.click(button)
+    await expect(button).toHaveTextContent('Keyboard trigger 1')
+    await expect(tooltipChildRefCleanup.mock.calls.length).toBe(cleanupsBeforeOpen)
+
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => {
+      expect(page.queryByRole('tooltip')).toBeNull()
+      expect(button).toHaveAccessibleDescription('Caller description.')
+      expect(button).toHaveTextContent('Keyboard trigger 1')
+      expect(tooltipChildRefCleanup.mock.calls.length).toBe(cleanupsBeforeOpen)
+    })
+  },
+}
 
 export const Playground: StoryObj<PlaygroundArgs> = {
   args: {

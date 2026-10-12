@@ -11,12 +11,10 @@ describe("resolvePagesDocumentHtmlLang", () => {
     expect(resolvePagesDocumentHtmlLang(market)).toBe(expected)
   })
 
-  it.each([
-    undefined,
-    "",
-    "en",
-    ["ro"],
-  ] as const)("falls back to the valid default language for an invalid header %#", (header) => {
-    expect(resolvePagesDocumentHtmlLang(header)).toBe("sk-SK")
-  })
+  it.each([undefined, "", "en", ["ro"]] as const)(
+    "falls back to the valid default language for an invalid header %#",
+    (header) => {
+      expect(resolvePagesDocumentHtmlLang(header)).toBe("sk-SK")
+    }
+  )
 })

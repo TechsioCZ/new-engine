@@ -204,7 +204,9 @@ export function NumericInput({
     spinOnPress,
     focusInputOnChange,
     id: id || generatedId,
-    ids: id ? { ...machineProps.ids, input: id } : machineProps.ids,
+    ids: id
+      ? { ...machineProps.ids, input: machineProps.ids?.input ?? id }
+      : machineProps.ids,
     dir,
     locale,
     value: value !== undefined ? formatValue(value) : undefined,

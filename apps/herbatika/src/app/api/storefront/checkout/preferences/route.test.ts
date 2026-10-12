@@ -163,19 +163,22 @@ describe("checkout consent preferences route", () => {
     ["cz", "Požadavek musí pocházet ze stejného webu."],
     ["hu", "A kérésnek ugyanarról a webhelyről kell érkeznie."],
     ["ro", "Cererea trebuie să provină de pe același site."],
-  ] as const)("localizes cross-origin %s rejection", async (market, message) => {
-    testContext.market = market
-    const response = await handleCheckoutConsentPut(
-      createRequest("PUT", {
-        body: body(false, true),
-        origin: "https://attacker.example",
-      }),
-      dependencies
-    )
+  ] as const)(
+    "localizes cross-origin %s rejection",
+    async (market, message) => {
+      testContext.market = market
+      const response = await handleCheckoutConsentPut(
+        createRequest("PUT", {
+          body: body(false, true),
+          origin: "https://attacker.example",
+        }),
+        dependencies
+      )
 
-    expect(response.status).toBe(403)
-    await expect(response.json()).resolves.toEqual({ message })
-  })
+      expect(response.status).toBe(403)
+      await expect(response.json()).resolves.toEqual({ message })
+    }
+  )
 
   it("keeps an unknown Host response generic", async () => {
     const response = handleCheckoutConsentGet(createRequest("GET"), {

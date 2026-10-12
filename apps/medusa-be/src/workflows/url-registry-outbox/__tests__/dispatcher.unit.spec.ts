@@ -63,11 +63,14 @@ describe("computeUrlRegistryRetryDelayMs", () => {
     [20, undefined, 3_600_000],
     [1, 120_000, 120_000],
     [1, 99_000_000, 3_600_000],
-  ])("bounds exponential attempt %i with Retry-After %s", (attemptCount, retryAfterMs, expected) => {
-    expect(computeUrlRegistryRetryDelayMs(attemptCount, retryAfterMs)).toBe(
-      expected
-    )
-  })
+  ])(
+    "bounds exponential attempt %i with Retry-After %s",
+    (attemptCount, retryAfterMs, expected) => {
+      expect(computeUrlRegistryRetryDelayMs(attemptCount, retryAfterMs)).toBe(
+        expected
+      )
+    }
+  )
 })
 
 describe("dispatchUrlRegistryOutboxBatch", () => {

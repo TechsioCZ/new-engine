@@ -107,20 +107,23 @@ describe("four-market convergence DB reader", () => {
         },
       ],
     ],
-  ])("rejects a migration ledger that is %s the build", async (_label, ledger) => {
-    const reader = createFourMarketConvergenceReader(
-      {
-        medusaDatabaseUrl: "postgres://medusa@db.internal/commerce",
-        urlRegistryDatabaseUrl: "postgres://urlr@urlr.internal/registry",
-      },
-      {
-        poolFactory: (connectionString) =>
-          connectionString.includes("urlr.internal")
-            ? fakePool("urlr", [], ledger)
-            : fakePool("medusa", []),
-      }
-    )
-    await expect(reader.read()).rejects.toThrow(MIGRATION_ERROR)
-    await reader.close()
-  })
+  ])(
+    "rejects a migration ledger that is %s the build",
+    async (_label, ledger) => {
+      const reader = createFourMarketConvergenceReader(
+        {
+          medusaDatabaseUrl: "postgres://medusa@db.internal/commerce",
+          urlRegistryDatabaseUrl: "postgres://urlr@urlr.internal/registry",
+        },
+        {
+          poolFactory: (connectionString) =>
+            connectionString.includes("urlr.internal")
+              ? fakePool("urlr", [], ledger)
+              : fakePool("medusa", []),
+        }
+      )
+      await expect(reader.read()).rejects.toThrow(MIGRATION_ERROR)
+      await reader.close()
+    }
+  )
 })

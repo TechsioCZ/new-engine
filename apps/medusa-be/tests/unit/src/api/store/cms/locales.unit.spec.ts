@@ -10,14 +10,12 @@ describe("store CMS locale handling", () => {
     expect(StoreCmsLocaleQuerySchema.parse(undefined)).toBeUndefined()
   })
 
-  it.each([
-    "sk",
-    "cs",
-    "hu",
-    "ro",
-  ] as const)("resolves the supported %s locale from the request context", (locale) => {
-    expect(resolveStoreCmsLocale(locale)).toBe(locale)
-  })
+  it.each(["sk", "cs", "hu", "ro"] as const)(
+    "resolves the supported %s locale from the request context",
+    (locale) => {
+      expect(resolveStoreCmsLocale(locale)).toBe(locale)
+    }
+  )
 
   it("rejects a missing locale at the handler boundary", () => {
     expect(() => resolveStoreCmsLocale()).toThrowError(MedusaError)

@@ -96,35 +96,38 @@ describe("Postgres URL registry transaction boundary", () => {
     Object.assign(new Error("socket reset"), { code: "ECONNRESET" }),
     Object.assign(new Error("broken pipe"), { code: "EPIPE" }),
     Object.assign(new Error("socket timeout"), { code: "ETIMEDOUT" }),
-  ])("retries and destroys the lease for ambiguous transport failure", async (failure) => {
-    const first = client()
-    const second = client()
-    const pool: SqlPool = {
-      connect: vi
-        .fn<() => Promise<SqlClient>>()
-        .mockResolvedValueOnce(first)
-        .mockResolvedValueOnce(second),
-      query: vi.fn(async () => result()),
+  ])(
+    "retries and destroys the lease for ambiguous transport failure",
+    async (failure) => {
+      const first = client()
+      const second = client()
+      const pool: SqlPool = {
+        connect: vi
+          .fn<() => Promise<SqlClient>>()
+          .mockResolvedValueOnce(first)
+          .mockResolvedValueOnce(second),
+        query: vi.fn(async () => result()),
+      }
+      let attempt = 0
+
+      await expect(
+        executeRetriableTransaction(
+          pool,
+          () => {
+            attempt += 1
+            if (attempt === 1) {
+              throw failure
+            }
+            return Promise.resolve("replayed")
+          },
+          { random: () => 0, sleep: vi.fn(() => Promise.resolve()) }
+        )
+      ).resolves.toBe("replayed")
+
+      expect(first.release).toHaveBeenCalledWith(failure)
+      expect(second.release).toHaveBeenCalledWith(undefined)
     }
-    let attempt = 0
-
-    await expect(
-      executeRetriableTransaction(
-        pool,
-        () => {
-          attempt += 1
-          if (attempt === 1) {
-            throw failure
-          }
-          return Promise.resolve("replayed")
-        },
-        { random: () => 0, sleep: vi.fn(() => Promise.resolve()) }
-      )
-    ).resolves.toBe("replayed")
-
-    expect(first.release).toHaveBeenCalledWith(failure)
-    expect(second.release).toHaveBeenCalledWith(undefined)
-  })
+  )
 
   it("retries an ambiguous COMMIT read timeout through a fresh lease", async () => {
     const failure = new Error("Query read timeout")

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
+import { createRef, useState } from 'react'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import { Accordion } from '../../src/molecules/accordion'
 import { Button } from '../../src/atoms/button'
 import { Badge } from '../../src/atoms/badge'
@@ -97,6 +98,78 @@ export const Playground: Story = {
       </Accordion>
     </div>
   ),
+}
+
+const headingObjectRef = createRef<HTMLElement>()
+const headingRefCleanup = fn()
+const headingCallbackRef = fn((node: HTMLElement | null) => {
+  if (node) return headingRefCleanup
+  return undefined
+})
+
+export const HeadingSemantics: Story = {
+  tags: ['ui-semantic-regression'],
+  render: () => {
+    const [visible, setVisible] = useState(true)
+
+    return (
+      <div className="w-md flex flex-col gap-200">
+        <Button size="sm" variant="secondary" onClick={() => setVisible(!visible)}>
+          {visible ? 'Hide accordion' : 'Show accordion'}
+        </Button>
+        {visible && (
+          <Accordion collapsible>
+            <Accordion.Item value="default">
+              <Accordion.Header ref={headingCallbackRef}>
+                <Accordion.Title>Default heading</Accordion.Title>
+                <Accordion.Indicator />
+              </Accordion.Header>
+              <Accordion.Content>Default heading content.</Accordion.Content>
+            </Accordion.Item>
+            <Accordion.Item value="custom">
+              <Accordion.Header aria-level={4} ref={headingObjectRef}>
+                <Accordion.Title>Custom heading level</Accordion.Title>
+                <Accordion.Indicator />
+              </Accordion.Header>
+              <Accordion.Content>Custom heading content.</Accordion.Content>
+            </Accordion.Item>
+          </Accordion>
+        )}
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    headingRefCleanup.mockClear()
+
+    const defaultHeading = canvas.getByRole('heading', { name: 'Default heading', level: 3 })
+    const customHeading = canvas.getByRole('heading', { name: 'Custom heading level', level: 4 })
+    expect(canvas.queryAllByRole('banner')).toHaveLength(0)
+    expect(defaultHeading.tagName).toBe('H3')
+    expect(headingCallbackRef).toHaveBeenLastCalledWith(defaultHeading)
+    expect(headingObjectRef.current).toBe(customHeading)
+
+    const trigger = within(defaultHeading).getByRole('button', { name: 'Default heading' })
+    expect(defaultHeading.children).toHaveLength(1)
+    await userEvent.click(trigger)
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute('aria-expanded', 'true')
+      expect(canvas.getByRole('region', { name: 'Default heading' })).toBeVisible()
+    })
+    await userEvent.keyboard('{Enter}')
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    })
+    expect(headingRefCleanup).not.toHaveBeenCalled()
+    expect(headingObjectRef.current).toBe(customHeading)
+
+    await userEvent.click(canvas.getByRole('button', { name: 'Hide accordion' }))
+    await waitFor(() => {
+      expect(canvas.queryAllByRole('heading')).toHaveLength(0)
+      expect(headingRefCleanup).toHaveBeenCalledTimes(1)
+      expect(headingObjectRef.current).toBeNull()
+    })
+  },
 }
 
 export const Multiple: Story = {
