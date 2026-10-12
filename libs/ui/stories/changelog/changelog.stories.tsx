@@ -12,6 +12,18 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### LineItem v1.0.2
+- Accept object and callback refs on the removal button after the Button props update.
+
+### LineItem v1.0.1
+- Mark the compound row as a client module for Next.js and document client-wrapper composition for read-only recaps.
+
+### LineItem v1.0.0
+- Added a compound cart and order row with composable image/title/price/quantity/actions parts, shared read-only/pending guards, product-specific removal labels and compact layout. Requests and inventory rules remain consumer-owned.
+
+### TotalsSummary v1.0.0
+- Added prepared label/value rows, notes, discounts, an explicit total and pending feedback. Unresolved fees remain caller-provided text; the component does not calculate totals.
+
 ### Checkbox v1.0.2
 - Preserve callback ref cleanup with React 19 and current Tailwind utilities.
 

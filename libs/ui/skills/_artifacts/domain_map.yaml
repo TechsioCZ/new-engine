@@ -477,7 +477,8 @@ skills:
           toast-usage, breadcrumb-usage, tree-view-usage, skeleton-usage, and
           hotkeys-usage for shortcut hints and explicit-store registration,
           command-usage for searchable action panels, quantity-field-usage for
-          controlled quantity drafts with units and pending feedback, and additional entries
+          controlled quantity drafts with units and pending feedback, line-item-usage for
+          cart/order rows, totals-summary-usage for prepared amount breakdowns, and additional entries
           generated from libs/ui/src inventory.
     failure_modes:
       - id: "monolithic-usage-guidance"

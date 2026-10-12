@@ -1407,3 +1407,39 @@ skills:
       - src/tokens/components/organisms/_table.css
       - stories/organisms/table.stories.tsx
       - skills/_artifacts/consumer_app_usage_rules.md
+
+  - name: line-item-usage
+    slug: line-item-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/line-item-usage/SKILL.md
+    package: libs/ui
+    description: Compound cart and order rows with shared editable/read-only and pending guards.
+    requires:
+      - component-usage-ux
+      - quantity-field-usage
+      - price-block-usage
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/organisms/line-item.tsx
+      - src/tokens/components/organisms/_line-item.css
+      - stories/organisms/line-item.stories.tsx
+      - docs/cart-presentation-figma-handoff.md
+
+  - name: totals-summary-usage
+    slug: totals-summary-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/totals-summary-usage/SKILL.md
+    package: libs/ui
+    description: Prepared amount breakdowns, unresolved fees and explicit totals without calculations.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/totals-summary.tsx
+      - src/tokens/components/molecules/_totals-summary.css
+      - stories/molecules/totals-summary.stories.tsx
+      - docs/cart-presentation-figma-handoff.md
