@@ -58,7 +58,7 @@ const CHANGELOG = `
 - A trigger only sets \`aria-controls\` when its \`Steps.Content\` is mounted. Steps used as a progress indicator (no content panels) pointed every trigger at a missing id (axe \`aria-valid-attr-value\`, critical).
 
 ### Footer v1.0.3
-- \`Footer.List\` wraps every child that is not already an \`<li>\` in one, so the documented \`<Footer.List><Footer.Link /></Footer.List>\` is valid list markup (axe \`list\`, serious). Explicit \`<li>\` children are left as they are.
+- \`Footer.List\` wraps every child that is not already an \`<li>\` in one, so the documented \`<Footer.List><Footer.Link /></Footer.List>\` is valid list markup (axe \`list\`, serious). Explicit \`<li>\` children are left as they are. Fragments are flattened first, so items grouped in a fragment stay separate entries.
 
 ### DataTable v1.2.4
 - The built-in row-reorder column and the single-select / capped selection column (no select-all checkbox) now have a screen-reader-only header, "Reorder rows" / "Select rows" (axe \`empty-table-header\`). Localise them with \`translations.reorderLabel\` and \`translations.selectionLabel\`.

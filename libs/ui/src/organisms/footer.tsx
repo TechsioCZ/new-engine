@@ -12,8 +12,10 @@
 import {
   Children,
   type ComponentPropsWithoutRef,
+  cloneElement,
   createContext,
   type ElementType,
+  Fragment,
   type HTMLAttributes,
   isValidElement,
   type ReactNode,
@@ -242,6 +244,21 @@ Footer.Text = function FooterText({ children, className }: FooterTextProps) {
   return <p className={text({ className })}>{children}</p>
 }
 
+// Fragments are transparent in the DOM, so their children are list entries in
+// their own right; keys are prefixed so items from two fragments never clash.
+function flattenFragments(children: ReactNode, keyPrefix = ""): ReactNode[] {
+  return Children.toArray(children).flatMap((child) => {
+    if (isValidElement<{ children?: ReactNode }>(child)) {
+      const key = `${keyPrefix}${child.key ?? ""}`
+      if (child.type === Fragment) {
+        return flattenFragments(child.props.children, `${key}/`)
+      }
+      return [keyPrefix ? cloneElement(child, { key }) : child]
+    }
+    return [child]
+  })
+}
+
 Footer.List = function FooterList({
   children,
   className,
@@ -253,8 +270,12 @@ Footer.List = function FooterList({
     <ul className={list({ className })} {...props}>
       {/* A <ul> may only own <li>; wrap bare links so both
           <Footer.List><Footer.Link /></Footer.List> and explicit <li>s work. */}
-      {Children.map(children, (child) =>
-        isValidElement(child) && child.type !== "li" ? <li>{child}</li> : child
+      {flattenFragments(children).map((child) =>
+        isValidElement(child) && child.type !== "li" ? (
+          <li key={child.key}>{child}</li>
+        ) : (
+          child
+        )
       )}
     </ul>
   )
