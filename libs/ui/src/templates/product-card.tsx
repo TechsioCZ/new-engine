@@ -13,8 +13,7 @@ import { Badge, type BadgeProps } from "../atoms/badge"
 import { ProductCard, type ProductCardProps } from "../molecules/product-card"
 import { slugify } from "../utils"
 
-export interface ProductCardTemplateProps
-  extends Pick<ProductCardProps, "layout"> {
+export type ProductCardTemplateProps = Pick<ProductCardProps, "layout"> & {
   image?: {
     src: string
     alt: string

@@ -16,7 +16,7 @@ import { StatusText } from "../atoms/status-text"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
-interface FormInputRawProps extends InputProps {
+type FormInputRawProps = InputProps & {
   /** Links the label to the control; generated when omitted or empty. */
   id?: string
   label: ReactNode

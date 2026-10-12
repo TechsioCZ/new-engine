@@ -110,7 +110,7 @@ const sliderVariants = tv({
   },
 })
 
-export interface SliderProps extends VariantProps<typeof sliderVariants> {
+export type SliderProps = VariantProps<typeof sliderVariants> & {
   id?: string
   name?: string
   label?: string

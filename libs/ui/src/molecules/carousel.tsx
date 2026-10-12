@@ -236,22 +236,24 @@ export type CarouselSlide = {
 
 type CarouselDimension = CSSProperties["width"]
 
-export interface CarouselRootProps<T extends ElementType = typeof Image>
-  extends Omit<VariantProps<typeof carouselVariants>, "controlPosition">,
-    Omit<carousel.Props, "id" | "size"> {
-  id?: string
-  className?: string
-  children: ReactNode
-  imageAs?: CarouselImageComponent<T>
-  width?: CarouselDimension
-  height?: CarouselDimension
-  /**
-   * Accessible name of the carousel region. Give each carousel on a page its
-   * own name, e.g. "Product photos" — otherwise every carousel is an
-   * identical, unnamed region (axe landmark-unique).
-   */
-  "aria-label"?: string
-}
+export type CarouselRootProps<T extends ElementType = typeof Image> = Omit<
+  VariantProps<typeof carouselVariants>,
+  "controlPosition"
+> &
+  Omit<carousel.Props, "id" | "size"> & {
+    id?: string
+    className?: string
+    children: ReactNode
+    imageAs?: CarouselImageComponent<T>
+    width?: CarouselDimension
+    height?: CarouselDimension
+    /**
+     * Accessible name of the carousel region. Give each carousel on a page its
+     * own name, e.g. "Product photos" — otherwise every carousel is an
+     * identical, unnamed region (axe landmark-unique).
+     */
+    "aria-label"?: string
+  }
 
 interface CarouselSlidesProps {
   slides: CarouselSlide[]

@@ -42,17 +42,16 @@ const iconVariants = tv({
   },
 })
 
-export interface IconProps
-  extends Omit<HTMLAttributes<HTMLSpanElement>, "color">,
-    VariantProps<typeof iconVariants> {
-  icon: IconType
-  className?: string
-  /**
-   * Accessible name for a meaningful standalone icon (rendered as `role="img"`).
-   * Omit it for decorative icons and icons next to text: they stay `aria-hidden`.
-   */
-  label?: string
-}
+export type IconProps = Omit<HTMLAttributes<HTMLSpanElement>, "color"> &
+  VariantProps<typeof iconVariants> & {
+    icon: IconType
+    className?: string
+    /**
+     * Accessible name for a meaningful standalone icon (rendered as `role="img"`).
+     * Omit it for decorative icons and icons next to text: they stay `aria-hidden`.
+     */
+    label?: string
+  }
 
 export function Icon({
   icon,

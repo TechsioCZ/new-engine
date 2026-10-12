@@ -16,7 +16,7 @@ import { Textarea, type TextareaProps } from "../atoms/textarea"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
-interface FormTextareaRawProps extends TextareaProps {
+type FormTextareaRawProps = TextareaProps & {
   /** Links the label to the control; generated when omitted or empty. */
   id?: string
   label: ReactNode

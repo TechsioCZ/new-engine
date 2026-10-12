@@ -131,7 +131,7 @@ const tabsVariants = tv({
 })
 
 // Context for sharing state between sub-components
-interface TabsContextValue {
+type TabsContextValue = {
   api: ReturnType<typeof tabs.connect>
   variant?: "default" | "line" | "solid" | "outline"
   size?: "sm" | "md" | "lg"
