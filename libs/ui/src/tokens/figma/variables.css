@@ -1418,10 +1418,10 @@
   --font-weight-vertical-navigation-current: var(--font-weight-semibold);
   --font-weight-vertical-navigation-label: var(--font-weight-semibold);
   --font-weight-vertical-navigation-path: var(--font-weight-medium);
-  --gap-availability-status-content: var(--spacing-100);
-  --gap-availability-status-pending: var(--dimension-6);
-  --gap-availability-status-root: var(--spacing-100);
-  --gap-availability-status-summary: var(--spacing-100);
+  --gap-availability-status-content: var(--spacing-availability-status-compact);
+  --gap-availability-status-pending: var(--spacing-availability-status-compact);
+  --gap-availability-status-root: var(--spacing-availability-status-compact);
+  --gap-availability-status-summary: var(--spacing-availability-status-compact);
   --gap-date-picker-calendar: var(--spacing-100);
   --gap-date-picker-control: var(--spacing-100);
   --gap-date-picker-footer: var(--spacing-100);
@@ -1432,10 +1432,10 @@
   --gap-file-upload-item: var(--spacing-file-upload-content-gap);
   --gap-file-upload-item-group: var(--spacing-file-upload-content-gap);
   --gap-file-upload-root: var(--spacing-file-upload-comfortable);
-  --gap-price-block-metadata: var(--spacing-50);
-  --gap-price-block-pending: var(--dimension-6);
-  --gap-price-block-primary: var(--spacing-100);
-  --gap-price-block-root: var(--spacing-100);
+  --gap-price-block-metadata: var(--spacing-price-block-compact);
+  --gap-price-block-pending: var(--spacing-price-block-compact);
+  --gap-price-block-primary: var(--spacing-price-block-related);
+  --gap-price-block-root: var(--spacing-price-block-related);
   --height-akros-product-card-control: var(--dimension-44);
   --height-availability-status-pending-line: var(--dimension-16);
   --height-date-picker-control-lg: var(--height-form-control-lg);
@@ -1934,6 +1934,7 @@
   --spacing-700: 4rem;
   --spacing-akros-product-card-layout: var(--spacing-200);
   --spacing-akros-product-card-padding: var(--spacing-200);
+  --spacing-availability-status-compact: var(--spacing-100);
   --spacing-breadcrumb-item: var(--dimension-10);
   --spacing-breadcrumb-lg: var(--dimension-16);
   --spacing-breadcrumb-link-lg: var(--spacing-200);
@@ -2036,6 +2037,8 @@
   --spacing-popup-item-sm: var(--dimension-6);
   --spacing-popup-item-xs: var(--dimension-4);
   --spacing-popup-separator-margin: var(--dimension-8);
+  --spacing-price-block-compact: var(--spacing-50);
+  --spacing-price-block-related: var(--spacing-100);
   --spacing-product-card-actions: var(--dimension-10);
   --spacing-product-card-badges: var(--dimension-10);
   --spacing-product-card-col-layout: var(--dimension-6);
