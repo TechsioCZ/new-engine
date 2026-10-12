@@ -364,7 +364,7 @@ below 3 : 1, in any mode.
 - [x] Re-measure every control at 32 / 44 / 56. **Result (export 2026-10-09 12:23):** Button, Input, NumericInput,
       SearchForm, Select (`xs` = `sm`), Combobox, CascadeSelect, PhoneInput, Pagination and Tabs render 32 / 44 / 56 px
       with radius 8 / 12 / 16 (Pagination keeps 8), and small field text is 16 px.
-- [ ] Run axe `color-contrast` across all stories in all six modes.
+- [x] Run axe `color-contrast` across all stories in all six modes.
 
 ### axe sweep, all stories (export 2026-10-09 14:05)
 
@@ -381,7 +381,10 @@ Remaining `color-contrast` failures, not counting the APCA test stories (failing
 
 All Figma fixes above resolve to ≥ 4.5 : 1 in every mode. They need the next export.
 
-- [ ] After the next export: re-run the sweep in all six modes and tick the item above.
+- [x] After the next export: re-run the sweep in all six modes and tick the item above.
+      **Result (export 2026-10-12 09:45, 696 stories per mode):** every fix above landed. Failing nodes went from
+      61 / 34 / 34 / 38 / 31 / 48 (Light / Dark / neo-light / neo-dark / Business / Akros) to the APCA test stories
+      and the disabled label in FormInput "All variants" only. Disabled controls are exempt from WCAG 1.4.3.
 
 ### Button hover and pressed states (2026-10-10)
 
@@ -400,4 +403,4 @@ Rule: fills under dark text lighten on hover and press (Dark already did this); 
 on press. Every button state now passes in all six modes.
 
 VerticalNavigation: `group-bg-subtle` → `vertical-navigation/surface` and `group-bg-accent` →
-`vertical-navigation/accent-light`, as on master. Both need the next export.
+`vertical-navigation/accent-light`, as on master. Both shipped in the 2026-10-12 09:45 export.
