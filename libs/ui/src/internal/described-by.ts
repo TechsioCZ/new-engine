@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 /*
  * Links a compound component's StatusText part to its focusable control.
@@ -9,23 +9,38 @@ import { useEffect, useState } from "react"
  */
 
 export type DescribedBy = {
+  /** Space-separated ids of every mounted message, or undefined when none. */
   describedById: string | undefined
-  setDescribedById: (id: string | undefined) => void
+  /** Registers a message id; the returned cleanup removes only that id. */
+  registerDescription: (id: string) => () => void
 }
 
 export function useDescribedBy(): DescribedBy {
-  const [describedById, setDescribedById] = useState<string>()
-  return { describedById, setDescribedById }
+  // A list, not a single id: a field can show a hint and an error at once,
+  // and removing one must not unlink the other. Entries are counted so two
+  // messages sharing the default id stay registered until both unmount.
+  const [ids, setIds] = useState<readonly string[]>([])
+  const registerDescription = useCallback((id: string) => {
+    setIds((current) => [...current, id])
+    return () =>
+      setIds((current) => {
+        const index = current.indexOf(id)
+        return index === -1
+          ? current
+          : [...current.slice(0, index), ...current.slice(index + 1)]
+      })
+  }, [])
+  return {
+    describedById: [...new Set(ids)].join(" ") || undefined,
+    registerDescription,
+  }
 }
 
 export function useRegisterDescription(
   id: string,
-  setDescribedById: DescribedBy["setDescribedById"]
+  registerDescription: DescribedBy["registerDescription"]
 ) {
-  useEffect(() => {
-    setDescribedById(id)
-    return () => setDescribedById(undefined)
-  }, [id, setDescribedById])
+  useEffect(() => registerDescription(id), [id, registerDescription])
 }
 
 /** Joins a caller's aria-describedby with the registered one. */

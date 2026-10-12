@@ -925,10 +925,10 @@ PhoneInput.StatusText = function PhoneInputStatusText({
   children,
   ...props
 }: PhoneInputStatusTextProps) {
-  const { size, validateStatus, statusTextId, setDescribedById } =
+  const { size, validateStatus, statusTextId, registerDescription } =
     usePhoneInputContext()
   const id = props.id ?? statusTextId
-  useRegisterDescription(id, setDescribedById)
+  useRegisterDescription(id, registerDescription)
 
   return (
     <StatusTextComponent

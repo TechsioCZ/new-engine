@@ -679,10 +679,10 @@ Select.StatusText = function SelectStatusText({
     size: contextSize,
     validateStatus: contextValidateStatus,
     statusTextId,
-    setDescribedById,
+    registerDescription,
   } = useSelectContext()
   const id = props.id ?? statusTextId
-  useRegisterDescription(id, setDescribedById)
+  useRegisterDescription(id, registerDescription)
 
   const effectiveSize = sizeProp ?? contextSize
 

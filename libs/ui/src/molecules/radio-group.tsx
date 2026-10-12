@@ -522,12 +522,12 @@ RadioGroup.StatusText = function RadioGroupStatusText({
   children,
   ...props
 }: RadioGroupStatusTextProps) {
-  const { size, validateStatus, statusTextId, setDescribedById } =
+  const { size, validateStatus, statusTextId, registerDescription } =
     useRadioGroupContext()
   const effectiveSize = sizeProp ?? size
   const effectiveStatus = status ?? validateStatus
   const id = props.id ?? statusTextId
-  useRegisterDescription(id, setDescribedById)
+  useRegisterDescription(id, registerDescription)
 
   return (
     <StatusTextComponent

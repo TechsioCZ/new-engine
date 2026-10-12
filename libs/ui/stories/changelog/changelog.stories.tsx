@@ -106,7 +106,7 @@ const CHANGELOG = `
 - The country trigger (a \`role="combobox"\`, which takes no name from its content) gets a default accessible name, the selected country and its calling code (e.g. \`Czechia (+420)\`) — axe \`button-name\` (critical) on every PhoneInput story (facelift C5). Pass \`aria-label\` or \`aria-labelledby\` on \`PhoneInput.CountryTrigger\` (or \`triggerProps\`) to localise it.
 
 ### Select v1.1.3
-- \`Select.StatusText\` is linked to the trigger through \`aria-describedby\` while it is mounted (facelift C4), so screen readers read the helper or error text when the trigger is focused. A caller's own \`aria-describedby\` is kept.
+- \`Select.StatusText\` is linked to the trigger through \`aria-describedby\` while it is mounted (facelift C4), so screen readers read the helper or error text when the trigger is focused. A caller's own \`aria-describedby\` is kept. Several mounted messages (a hint and an error) are all linked, and removing one keeps the others.
 
 ### Switch v1.0.1
 - \`helpText\` is linked to the switch input through \`aria-describedby\` (facelift C4).
@@ -115,10 +115,10 @@ const CHANGELOG = `
 - \`helpText\` is linked to each thumb (the focusable \`role="slider"\`) through \`aria-describedby\` (facelift C4).
 
 ### RadioGroup v1.0.2
-- \`RadioGroup.StatusText\` is linked to the \`radiogroup\` root through \`aria-describedby\` while it is mounted (facelift C4).
+- \`RadioGroup.StatusText\` is linked to the \`radiogroup\` root through \`aria-describedby\` while it is mounted (facelift C4). Several mounted messages (a hint and an error) are all linked, and removing one keeps the others.
 
 ### PhoneInput v1.0.3
-- \`PhoneInput.StatusText\` is linked to the phone input through \`aria-describedby\` while it is mounted (facelift C4). A caller's own \`aria-describedby\` is kept.
+- \`PhoneInput.StatusText\` is linked to the phone input through \`aria-describedby\` while it is mounted (facelift C4). A caller's own \`aria-describedby\` is kept. Several mounted messages (a hint and an error) are all linked, and removing one keeps the others.
 
 ### StatusText v1.0.1
 - Validation feedback is announced (facelift C4): \`status="error"\` renders \`role="alert"\`, \`warning\`/\`success\` render \`role="status"\`. Plain helper text has no live role; a \`role\` prop still wins.
