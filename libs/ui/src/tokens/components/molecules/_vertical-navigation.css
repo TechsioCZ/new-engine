@@ -4,11 +4,6 @@
   --color-vertical-navigation-foreground: var(--color-fg-primary);
   --color-vertical-navigation-accent: var(--color-bg-primary-base);
   --color-vertical-navigation-secondary: var(--color-bg-secondary-base);
-  --color-vertical-navigation-accent-light: color-mix(
-    in oklab,
-    var(--color-vertical-navigation-accent) 15%,
-    var(--color-vertical-navigation-surface)
-  );
 
   /* DERIVED COLORS */
   --color-vertical-navigation-fg: var(--color-vertical-navigation-foreground);
@@ -21,16 +16,6 @@
 
   /* STATE VARIATIONS */
   --color-vertical-navigation-item-bg-hover: var(--color-fill-hover);
-  --color-vertical-navigation-indicator-fg-hover: color-mix(
-    in oklab,
-    var(--color-fg-accent-primary) 60%,
-    var(--color-vertical-navigation-foreground)
-  );
-  --color-vertical-navigation-item-bg-current: color-mix(
-    in oklab,
-    var(--color-vertical-navigation-accent) 30%,
-    var(--color-vertical-navigation-surface)
-  );
   --color-vertical-navigation-item-fg-current: var(
     --color-vertical-navigation-foreground
   );
@@ -53,11 +38,6 @@
     --color-vertical-navigation-foreground
   );
 
-  --color-vertical-navigation-group-bg-secondary: color-mix(
-    in oklab,
-    var(--color-vertical-navigation-secondary) 15%,
-    var(--color-vertical-navigation-surface)
-  );
   --color-vertical-navigation-group-fg-secondary: var(
     --color-vertical-navigation-foreground
   );

@@ -1,0 +1,27 @@
+/* VerticalNavigation colours that are mixes of its reference tokens.
+ * Figma has no color-mix, so the export bakes these into fixed values; this
+ * file is imported after the Figma layer so the formulas win and app overrides
+ * of --color-vertical-navigation-accent / -secondary / -surface / -foreground
+ * still recolour the whole component. */
+@theme static {
+  --color-vertical-navigation-accent-light: color-mix(
+    in oklab,
+    var(--color-vertical-navigation-accent) 15%,
+    var(--color-vertical-navigation-surface)
+  );
+  --color-vertical-navigation-indicator-fg-hover: color-mix(
+    in oklab,
+    var(--color-fg-accent-primary) 60%,
+    var(--color-vertical-navigation-foreground)
+  );
+  --color-vertical-navigation-item-bg-current: color-mix(
+    in oklab,
+    var(--color-vertical-navigation-accent) 30%,
+    var(--color-vertical-navigation-surface)
+  );
+  --color-vertical-navigation-group-bg-secondary: color-mix(
+    in oklab,
+    var(--color-vertical-navigation-secondary) 15%,
+    var(--color-vertical-navigation-surface)
+  );
+}
