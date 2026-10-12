@@ -1,9 +1,27 @@
-import { type ComponentProps, createElement } from "react"
+import { type ComponentProps, createElement, createRef, type Ref } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, expectTypeOf, it } from "vitest"
 import { LineItem, type LineItemProps } from "../src/organisms/line-item"
 
 describe("LineItem compound contract", () => {
+	it("accepts object and callback refs for the removal button", () => {
+		type RemoveProps = ComponentProps<typeof LineItem.Remove>
+		const objectRef: RemoveProps = {
+			label: "Remove",
+			ref: createRef<HTMLButtonElement>(),
+		}
+		const callbackRef: RemoveProps = {
+			label: "Remove",
+			ref: (button) => {
+				expectTypeOf(button).toEqualTypeOf<HTMLButtonElement | null>()
+			},
+		}
+		expectTypeOf<RemoveProps["ref"]>().toEqualTypeOf<
+			Ref<HTMLButtonElement> | undefined
+		>()
+		expectTypeOf(objectRef).toExtend<RemoveProps>()
+		expectTypeOf(callbackRef).toExtend<RemoveProps>()
+	})
 	it("requires localized pending copy and a product name", () => {
 		const ready: LineItemProps = { title: "Product", children: null }
 		// @ts-expect-error Pending requires a localized explanation.

@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### LineItem v1.0.2
+- Accept object and callback refs on the removal button after the Button props update.
+
 ### LineItem v1.0.1
 - Mark the compound row as a client module for Next.js and document client-wrapper composition for read-only recaps.
 

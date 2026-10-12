@@ -3,7 +3,7 @@
 /**
  * LineItem — @techsio/ui-kit organism.
  * @component LineItem
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill line-item-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -73,6 +73,7 @@ export type LineItemRemoveProps = Omit<
 	"children" | "aria-label" | "aria-labelledby" | "type"
 > & {
 	label: string
+	ref?: Ref<HTMLButtonElement>
 	children?: never
 	"aria-label"?: never
 	"aria-labelledby"?: never
