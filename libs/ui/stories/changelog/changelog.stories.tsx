@@ -12,6 +12,12 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Accordion v1.0.3
+- \`Accordion.Header\` props are typed as \`<h3>\` attributes (they were \`<header>\`), matching the heading it renders. No runtime change.
+
+### NumericInput v1.1.3
+- \`NumericInputTemplateProps\` is a type alias and documents \`aria-label\` / \`aria-labelledby\`. No runtime change.
+
 ### Textarea v1.0.2
 - \`readonly\` keeps the muted surface and border but uses the normal text colour; it borrowed the disabled text colour (4.39 : 1 on the read-only fill, axe \`color-contrast\` in every brand). Read-only content is meant to be read, unlike disabled.
 
