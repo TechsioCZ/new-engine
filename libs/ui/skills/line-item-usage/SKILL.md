@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit LineItem
   compound composition for editable cart rows, compact previews or read-only recaps.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -25,6 +25,11 @@ sources:
 
 LineItem is a compound presentation organism. Applications own DTO mapping,
 formatting, routing, inventory, validation, saving and removal requests.
+
+LineItem uses React context and is a client module. In Next.js, compose the root
+and its compound parts inside a wrapper with `"use client"`, including read-only
+order recaps. A Server Component can render that wrapper with serializable data;
+do not access `LineItem.Body` or other compound properties in a Server Component.
 
 ## Setup
 

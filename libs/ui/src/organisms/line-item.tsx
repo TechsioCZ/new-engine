@@ -1,7 +1,9 @@
-﻿/**
+"use client"
+
+/**
  * LineItem — @techsio/ui-kit organism.
  * @component LineItem
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill line-item-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */

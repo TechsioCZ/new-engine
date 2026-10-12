@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### LineItem v1.0.1
+- Mark the compound row as a client module for Next.js and document client-wrapper composition for read-only recaps.
+
 ### LineItem v1.0.0
 - Added a compound cart and order row with composable image/title/price/quantity/actions parts, shared read-only/pending guards, product-specific removal labels and compact layout. Requests and inventory rules remain consumer-owned.
 

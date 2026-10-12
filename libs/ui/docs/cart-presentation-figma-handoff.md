@@ -1,8 +1,12 @@
-﻿# PR10 cart presentation: Figma handoff
+# PR10 cart presentation: Figma handoff
 
 LineItem and TotalsSummary implement audit C01/C02. Both are presentational; application formatting, shipping selection, inventory, totals and mutations remain application-owned.
 
 ## Component ownership
+
+LineItem is a client module because its compound parts share React context.
+Next.js consumers compose the whole row inside a `"use client"` wrapper, even
+for read-only recaps. Server Components pass serializable data to that wrapper.
 
 - LineItem is a compound organism. Root shares title, layout, pending and readOnly. Image, Body, Heading, Title, Price, Options and Controls arrange application-provided content. Quantity requires readOnlyLabel and replaces editable children with text in readOnly. Actions omits mutation controls in readOnly and blocks them while pending. Remove uses a localized label containing the root product name, is omitted in readOnly and disabled while pending. Root pending feedback is automatic. AvailabilityStatus and StatusText can be inserted directly; image, price and actions can be omitted or rearranged.
 - TotalsSummary is a molecule. It renders supplied label/value rows and notes in a definition list, a separately labeled total, optional footer and actions. Pending preserves the supplied values and blocks actions. An unresolved fee must be supplied as text such as `Choose delivery`, not assumed to be zero.
