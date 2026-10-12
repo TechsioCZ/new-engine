@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit template.
  *
  * @component NumericInput
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,14 +13,20 @@ import type { Ref } from "react"
 import type { IconType } from "../atoms/icon"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 
-export interface NumericInputTemplateProps
-  extends Omit<NumericInputProps, "children" | "ref"> {
+export type NumericInputTemplateProps = Omit<
+  NumericInputProps,
+  "children" | "ref"
+> & {
   showControls?: boolean
   showScrubber?: boolean
   controlsPosition?: "right" | "sides"
   incrementIcon?: IconType
   decrementIcon?: IconType
   className?: string
+  /** Names the input when there is no visible label; reaches the input, not the root. */
+  "aria-label"?: string
+  /** Id of a visible label for the input. */
+  "aria-labelledby"?: string
   ref?: Ref<HTMLDivElement>
 }
 

@@ -601,7 +601,7 @@ export const ComplexDemo: Story = {
             </li>
             <li>
               Status:{' '}
-              <strong className={isInvalid ? 'text-danger' : 'text-success'}>
+              <strong className={isInvalid ? 'text-fg-accent-danger' : 'text-fg-accent-success'}>
                 {isInvalid ? 'Invalid' : 'Valid'}
               </strong>
             </li>

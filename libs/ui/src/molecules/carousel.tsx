@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.0.1
+ * @componentVersion v1.2.3
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,9 +21,10 @@ import {
   useId,
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
-import { Button } from "../atoms/button"
+import { ActionIcon } from "../atoms/action-icon"
 import type { IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
+import { usePrefersReducedMotion } from "../internal/reduced-motion"
 
 type CarouselImageComponent<T extends ElementType = typeof Image> =
   T extends typeof Image
@@ -57,48 +58,50 @@ const carouselVariants = tv({
       "overflow-hidden",
       "data-[orientation=vertical]:size-full",
     ],
-    prevTrigger: "",
-    nextTrigger: "",
+    /*
+     * Prev / next are ActionIcons, but keep the carousel trigger colour tokens
+     * on top so apps that restyle them (e.g. white circles over banners) still
+     * can. The defaults match ActionIcon's neutral tone.
+     */
+    prevTrigger: [
+      "bg-carousel-trigger-bg-base text-carousel-trigger-fg-base",
+      "hover:bg-carousel-trigger-bg-hover hover:text-carousel-trigger-fg-hover",
+    ],
+    nextTrigger: [
+      "bg-carousel-trigger-bg-base text-carousel-trigger-fg-base",
+      "hover:bg-carousel-trigger-bg-hover hover:text-carousel-trigger-fg-hover",
+    ],
     indicatorGroup: [
       "flex w-full items-center justify-center gap-carousel-indicator",
     ],
+    /*
+     * The indicator button is the 24 px hit area (WCAG 2.2 target size); the
+     * visible 8 px dot is a child, so the dot can stay small without shrinking
+     * the target.
+     */
     indicator: [
-      "aspect-carousel-indicator w-carousel-indicator bg-carousel-indicator-bg-base",
-      "data-current:bg-carousel-indicator-bg-active",
-      "data-current:border-carousel-indicator-border-active",
+      "group inline-flex shrink-0 cursor-pointer items-center justify-center",
+      "aspect-carousel-indicator w-carousel-indicator",
       "rounded-carousel-indicator border border-carousel-indicator-border-base",
-      "transition-colors duration-200 motion-reduce:transition-none",
+      "data-current:border-carousel-indicator-border-active",
+      "text-carousel-trigger-fg-base",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-carousel-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
-    autoplayIcon: [
-      "token-icon-carousel-play",
-      "data-[pressed=true]:token-icon-carousel-pause",
+    indicatorDot: [
+      "size-carousel-indicator-dot rounded-carousel-indicator",
+      "bg-carousel-indicator-bg-base",
+      "group-data-current:bg-carousel-indicator-bg-active",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     autoplayTrigger: [
       "absolute top-carousel-trigger-top right-carousel-trigger-right z-50",
-      "bg-carousel-trigger-bg-base",
+      // Sits over the slide image, so it needs the opaque control surface.
+      "bg-carousel-control-bg",
     ],
     spacer: ["flex-1"],
   },
-  compoundSlots: [
-    {
-      slots: ["autoplayTrigger", "indicator", "prevTrigger", "nextTrigger"],
-      class: [
-        "p-carousel-trigger",
-        "text-carousel-trigger-fg-base",
-        "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-        "focus-visible:outline-carousel-ring",
-        "focus-visible:outline-offset-(length:--default-ring-offset)",
-      ],
-    },
-    {
-      slots: ["prevTrigger", "nextTrigger"],
-      class: [
-        "bg-carousel-trigger-bg-base text-carousel-trigger hover:bg-carousel-trigger-bg-hover",
-        "hover:text-carousel-trigger-fg-hover",
-        "transition-colors duration-200 motion-reduce:transition-none",
-      ],
-    },
-  ],
   variants: {
     objectFit: {
       cover: {
@@ -204,6 +207,17 @@ type CarouselContextValue = {
 
 const CarouselContext = createContext<CarouselContextValue | null>(null)
 
+/** Prev/next/autoplay follow the carousel size on the ActionIcon scale. */
+function toTriggerSize(size: CarouselContextValue["size"]): "sm" | "md" | "lg" {
+  if (size === "sm") {
+    return "sm"
+  }
+  if (size === "lg" || size === "full") {
+    return "lg"
+  }
+  return "md"
+}
+
 const useCarouselContext = () => {
   const context = useContext(CarouselContext)
   if (!context) {
@@ -222,16 +236,24 @@ export type CarouselSlide = {
 
 type CarouselDimension = CSSProperties["width"]
 
-export interface CarouselRootProps<T extends ElementType = typeof Image>
-  extends Omit<VariantProps<typeof carouselVariants>, "controlPosition">,
-    Omit<carousel.Props, "id" | "size"> {
-  id?: string
-  className?: string
-  children: ReactNode
-  imageAs?: CarouselImageComponent<T>
-  width?: CarouselDimension
-  height?: CarouselDimension
-}
+export type CarouselRootProps<T extends ElementType = typeof Image> = Omit<
+  VariantProps<typeof carouselVariants>,
+  "controlPosition"
+> &
+  Omit<carousel.Props, "id" | "size"> & {
+    id?: string
+    className?: string
+    children: ReactNode
+    imageAs?: CarouselImageComponent<T>
+    width?: CarouselDimension
+    height?: CarouselDimension
+    /**
+     * Accessible name of the carousel region. Give each carousel on a page its
+     * own name, e.g. "Product photos" — otherwise every carousel is an
+     * identical, unnamed region (axe landmark-unique).
+     */
+    "aria-label"?: string
+  }
 
 type CarouselSlidesProps = {
   slides: CarouselSlide[]
@@ -301,13 +323,17 @@ export function Carousel<T extends ElementType = typeof Image>({
   width,
   height,
   onPageChange,
+  "aria-label": ariaLabel,
   ...props
 }: CarouselRootProps<T>) {
   const fallbackId = useId()
+  // Autoplay is JS-driven, so motion-reduce: classes cannot stop it. Users who
+  // prefer reduced motion get a still carousel; the play control still works.
+  const prefersReducedMotion = usePrefersReducedMotion()
   const service = useMachine(carousel.machine, {
     id: id ?? fallbackId,
     slideCount,
-    autoplay,
+    autoplay: prefersReducedMotion ? false : autoplay,
     orientation,
     allowMouseDrag,
     loop,
@@ -339,6 +365,7 @@ export function Carousel<T extends ElementType = typeof Image>({
       <div className={wrapper()} style={resolvedWrapperStyle}>
         <div
           {...rootProps}
+          aria-label={ariaLabel}
           className={root({ className })}
           style={resolvedRootStyle}
         >
@@ -415,9 +442,18 @@ Carousel.Slide = function CarouselSlideRoot({
     aspectRatio,
   })
   const itemProps = api.getItemProps({ index })
+  // Zag hides off-screen slides with aria-hidden only; links or buttons inside
+  // them stay in the tab order (axe aria-hidden-focus). `inert` removes the
+  // whole hidden slide from focus and the accessibility tree.
+  const hidden =
+    itemProps["aria-hidden"] === true || itemProps["aria-hidden"] === "true"
 
   return (
-    <div {...itemProps} className={slideSlot({ className })}>
+    <div
+      {...itemProps}
+      className={slideSlot({ className })}
+      inert={hidden || undefined}
+    >
       {children}
     </div>
   )
@@ -427,13 +463,16 @@ Carousel.Previous = function CarouselPrevious({
   className,
   icon = "token-icon-carousel-prev" as IconType,
 }: CarouselPreviousProps) {
-  const { api } = useCarouselContext()
+  const { api, size } = useCarouselContext()
   const { prevTrigger } = carouselVariants()
+  const triggerProps = api.getPrevTriggerProps()
 
   return (
-    <Button
+    <ActionIcon
       className={prevTrigger({ className })}
-      {...api.getPrevTriggerProps()}
+      size={toTriggerSize(size)}
+      {...triggerProps}
+      aria-label={triggerProps["aria-label"] ?? "Previous slide"}
       icon={icon}
     />
   )
@@ -443,13 +482,16 @@ Carousel.Next = function CarouselNext({
   className,
   icon = "token-icon-carousel-next" as IconType,
 }: CarouselNextProps) {
-  const { api } = useCarouselContext()
+  const { api, size } = useCarouselContext()
   const { nextTrigger } = carouselVariants()
+  const triggerProps = api.getNextTriggerProps()
 
   return (
-    <Button
+    <ActionIcon
       className={nextTrigger({ className })}
-      {...api.getNextTriggerProps()}
+      size={toTriggerSize(size)}
+      {...triggerProps}
+      aria-label={triggerProps["aria-label"] ?? "Next slide"}
       icon={icon}
     />
   )
@@ -460,7 +502,7 @@ Carousel.Indicators = function CarouselIndicators({
   children,
 }: CarouselIndicatorsProps & { children?: ReactNode }) {
   const { api } = useCarouselContext()
-  const { indicatorGroup, indicator } = carouselVariants()
+  const { indicatorGroup } = carouselVariants()
 
   // If children are provided, render them (custom indicators)
   if (children) {
@@ -480,13 +522,7 @@ Carousel.Indicators = function CarouselIndicators({
       {...api.getIndicatorGroupProps()}
     >
       {api.pageSnapPoints.map((_, index) => (
-        <Button
-          className={indicator()}
-          key={`indicator-${index}`}
-          size="current"
-          theme="unstyled"
-          {...api.getIndicatorProps({ index })}
-        />
+        <Carousel.Indicator index={index} key={`indicator-${index}`} />
       ))}
     </div>
   )
@@ -498,33 +534,38 @@ Carousel.Indicator = function CarouselIndicator({
   children,
 }: CarouselIndicatorProps) {
   const { api } = useCarouselContext()
-  const { indicator } = carouselVariants()
+  const { indicator, indicatorDot } = carouselVariants()
 
   return (
-    <Button
+    <button
       className={indicator({ className })}
-      size="current"
-      theme="unstyled"
+      type="button"
       {...api.getIndicatorProps({ index })}
     >
-      {children}
-    </Button>
+      {children ?? <span aria-hidden="true" className={indicatorDot()} />}
+    </button>
   )
 }
 
 Carousel.Autoplay = function CarouselAutoplay({
   className,
 }: CarouselAutoplayProps) {
-  const { api } = useCarouselContext()
+  const { api, size } = useCarouselContext()
   const { autoplayTrigger: autoplayTriggerSlot } = carouselVariants()
+  const triggerProps = api.getAutoplayTriggerProps()
 
   return (
-    <Button
+    <ActionIcon
       className={autoplayTriggerSlot({ className })}
       icon={
         api.isPlaying ? "token-icon-carousel-pause" : "token-icon-carousel-play"
       }
-      {...api.getAutoplayTriggerProps()}
+      size={toTriggerSize(size)}
+      {...triggerProps}
+      aria-label={
+        triggerProps["aria-label"] ??
+        (api.isPlaying ? "Stop slide rotation" : "Start slide rotation")
+      }
     />
   )
 }

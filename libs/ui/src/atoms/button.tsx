@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.3.3
+ * @componentVersion v0.3.4
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -50,7 +50,7 @@ export const buttonVariants = tv({
     size: {
       sm: "h-form-control-sm gap-button-sm rounded-button-sm p-button-sm text-button-sm",
       md: "h-form-control-md gap-button-md rounded-button-md p-button-md text-button-md",
-      lg: "gap-button-lg rounded-button-lg p-button-lg text-button-lg",
+      lg: "h-form-control-lg gap-button-lg rounded-button-lg p-button-lg text-button-lg",
       current: "gap-button-md text-inherit",
     },
     block: {

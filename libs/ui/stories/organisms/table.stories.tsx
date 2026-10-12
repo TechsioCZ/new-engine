@@ -342,7 +342,12 @@ export const StickyHeader: Story = {
   render: (args) => {
     return (
       // h-100 resolves to the theme's --spacing-100 token, not 400px.
-      <div className='h-[400px] overflow-auto'>
+      <div
+        aria-label="Products, sticky header"
+        className="h-[400px] overflow-auto"
+        role="region"
+        tabIndex={0}
+      >
         <Table {...args}>
           <Table.Caption>Scroll to see sticky header effect</Table.Caption>
           <Table.Header>
@@ -537,7 +542,12 @@ export const WithStickyColumn: Story = {
   },
   render: (args) => (
     // max-w-150 resolves to the theme's --spacing-150 token, not 600px.
-    <div className="max-w-[600px] overflow-auto">
+    <div
+      aria-label="Products, sticky first column"
+      className="max-w-[600px] overflow-auto"
+      role="region"
+      tabIndex={0}
+    >
       <Table {...args} stickyFirstColumn>
         <Table.Caption>
           Scroll horizontally - first column stays fixed

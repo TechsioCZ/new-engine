@@ -227,7 +227,7 @@ function SubmitExample() {
 				</SearchForm.Control>
 			</SearchForm>
 			{submitted && (
-				<p className="text-sm text-success">{submitted}</p>
+				<p className="text-sm text-fg-accent-success">{submitted}</p>
 			)}
 		</div>
 	)
@@ -258,7 +258,7 @@ function FormDataExample() {
 					<SearchForm.Button>Search</SearchForm.Button>
 				</SearchForm.Control>
 			</SearchForm>
-			{result && <p className="text-sm text-success">{result}</p>}
+			{result && <p className="text-sm text-fg-accent-success">{result}</p>}
 		</div>
 	)
 }

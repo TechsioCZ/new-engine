@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.5
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,7 +23,9 @@ import {
   type ReactNode,
   type Ref,
   useContext,
+  useEffect,
   useId,
+  useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
@@ -140,6 +142,9 @@ const stepsVariants = tv({
           "data-current:bg-steps-trigger-bg-current",
           "data-complete:bg-steps-trigger-bg-complete",
         ],
+        // The current trigger sits on the primary tint, where the accent
+        // title colour would be accent-on-accent; use the neutral foreground.
+        title: "data-current:text-steps-title-fg-solid-current",
         indicator: [
           "border-transparent bg-steps-indicator-bg-solid text-steps-indicator-fg-solid",
           "group-hover:bg-steps-indicator-bg-solid-hover",
@@ -194,6 +199,39 @@ type StepsContextValue = {
   orientation: StepsOrientation
   size?: StepsSize
   styles: ReturnType<typeof stepsVariants>
+} & StepsContentRegistry
+
+/*
+ * Zag points every trigger's aria-controls at its content panel, but Steps is
+ * often used as a progress indicator with no Steps.Content at all. Panels
+ * register their index while mounted so a trigger only references a panel
+ * that exists (axe aria-valid-attr-value).
+ */
+type StepsContentRegistry = {
+  contentIndexes: ReadonlySet<number>
+  setContentIndexes: (
+    update: (previous: ReadonlySet<number>) => ReadonlySet<number>
+  ) => void
+}
+
+function useStepsContentRegistry(): StepsContentRegistry {
+  const [contentIndexes, setContentIndexes] = useState<ReadonlySet<number>>(
+    () => new Set()
+  )
+  return { contentIndexes, setContentIndexes }
+}
+
+function useRegisterStepsContent(index: number) {
+  const { setContentIndexes } = useStepsContext()
+  useEffect(() => {
+    setContentIndexes((previous) => new Set(previous).add(index))
+    return () =>
+      setContentIndexes((previous) => {
+        const next = new Set(previous)
+        next.delete(index)
+        return next
+      })
+  }, [index, setContentIndexes])
 }
 
 const StepsContext = createContext<StepsContextValue | null>(null)
@@ -305,9 +343,12 @@ export function Steps({
   })
   const styles = stepsVariants({ size, variant })
   const rootProps = mergeProps(props, api.getRootProps())
+  const contentRegistry = useStepsContentRegistry()
 
   return (
-    <StepsContext.Provider value={{ api, orientation, size, styles }}>
+    <StepsContext.Provider
+      value={{ api, orientation, size, styles, ...contentRegistry }}
+    >
       <div className={styles.root({ className })} ref={ref} {...rootProps}>
         {children}
       </div>
@@ -331,6 +372,7 @@ Steps.RootProvider = function StepsRootProvider({
   const styles = stepsVariants({ size, variant })
   const resolvedOrientation = getOrientationFromApi(value)
   const rootProps = mergeProps(props, value.getRootProps())
+  const contentRegistry = useStepsContentRegistry()
 
   return (
     <StepsContext.Provider
@@ -339,6 +381,7 @@ Steps.RootProvider = function StepsRootProvider({
         orientation: resolvedOrientation,
         size,
         styles,
+        ...contentRegistry,
       }}
     >
       <div className={styles.root({ className })} ref={ref} {...rootProps}>
@@ -430,6 +473,9 @@ Steps.Item = function StepsItem({
 }: StepsItemProps) {
   const { api, styles } = useStepsContext()
   const state = api.getItemState({ index })
+  // Zag puts aria-current on the item, inside its role="tablist", where a
+  // tablist may not own it (axe aria-required-children). The item is layout
+  // only (role="presentation" below); the trigger carries the step state.
   const { "aria-current": ariaCurrent, ...itemProps } = mergeProps(
     props,
     api.getItemProps({ index })
@@ -464,7 +510,7 @@ Steps.Trigger = function StepsTrigger({
   ref,
   ...props
 }: StepsTriggerProps) {
-  const { api, styles } = useStepsContext()
+  const { api, contentIndexes, styles } = useStepsContext()
   const { ariaCurrent, index } = useStepsItemContext()
   const triggerProps = api.getTriggerProps({ index })
   const {
@@ -487,6 +533,9 @@ Steps.Trigger = function StepsTrigger({
       theme="unstyled"
       type="button"
       {...buttonProps}
+      aria-controls={
+        contentIndexes.has(index) ? buttonProps["aria-controls"] : undefined
+      }
       aria-current={props["aria-current"] ?? ariaCurrent}
       data-disabled={isDisabled || undefined}
       disabled={isDisabled}
@@ -667,6 +716,7 @@ Steps.Separator = function StepsSeparator({
   const { api, styles } = useStepsContext()
   const { index, state } = useStepsItemContext()
   const separatorProps = mergeProps(props, api.getSeparatorProps({ index }), {
+    "aria-hidden": true,
     "data-last": state.last || undefined,
   })
 
@@ -693,6 +743,7 @@ Steps.Content = function StepsContent({
 }: StepsContentProps) {
   const { api, styles } = useStepsContext()
   const contentProps = mergeProps(props, api.getContentProps({ index }))
+  useRegisterStepsContent(index)
 
   return (
     <div className={styles.content({ className })} ref={ref} {...contentProps}>
@@ -713,6 +764,7 @@ Steps.Progress = function StepsProgress({
   ...props
 }: StepsProgressProps) {
   const { api, orientation, styles } = useStepsContext()
+  // A progressbar needs an accessible name (axe aria-progressbar-name).
   const progressProps = mergeProps(props, api.getProgressProps())
   const progressRangeStyle =
     orientation === "horizontal"

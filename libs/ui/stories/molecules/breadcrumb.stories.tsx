@@ -102,9 +102,9 @@ export const Sizes: Story = {
     <div className='flex flex-col gap-500'>
       <h2>Sizes</h2>
       <div className="flex flex-col gap-400">
-        <DemoBreadcrumb size="sm" />
-        <DemoBreadcrumb size="md" />
-        <DemoBreadcrumb size="lg" />
+        <DemoBreadcrumb aria-label="Breadcrumb, small" size="sm" />
+        <DemoBreadcrumb aria-label="Breadcrumb, medium" size="md" />
+        <DemoBreadcrumb aria-label="Breadcrumb, large" size="lg" />
       </div>
     </div>
   ),
@@ -115,8 +115,8 @@ export const Variants: Story = {
     <VariantContainer>
       <VariantGroup title="Variants">
         <div className='flex flex-col'>
-          <DemoBreadcrumb variant="plain" />
-          <DemoBreadcrumb variant="underline" />
+          <DemoBreadcrumb aria-label="Breadcrumb, plain" variant="plain" />
+          <DemoBreadcrumb aria-label="Breadcrumb, underline" variant="underline" />
         </div>
       </VariantGroup>
     </VariantContainer>

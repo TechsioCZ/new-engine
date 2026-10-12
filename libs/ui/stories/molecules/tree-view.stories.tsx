@@ -740,7 +740,7 @@ export const ExpandVsSelectionTest: Story = {
                 logs.map((log, index) => (
                   <div
                     key={index}
-                    className={log.includes('SELECTED') ? 'text-success' : 'text-info'}
+                    className={log.includes('SELECTED') ? 'text-fg-accent-success' : 'text-info'}
                   >
                     {log}
                   </div>
@@ -864,9 +864,9 @@ export const WithHoverEvents: Story = {
                   key={index}
                   className={
                     log.includes('HOVER')
-                      ? 'text-success'
+                      ? 'text-fg-accent-success'
                       : log.includes('LEAVE')
-                        ? 'text-warning'
+                        ? 'text-fg-accent-warning'
                         : 'text-info'
                   }
                 >

@@ -165,6 +165,7 @@ type Story = StoryObj<typeof NumericInputTemplate>
 
 export const Default: Story = {
   args: {
+    'aria-label': 'Quantity',
     defaultValue: 0,
     min: 0,
     max: 100,
@@ -178,6 +179,7 @@ export const Playground: Story = {
   tags: ['ui-semantic-regression'],
   name: '🎮 Interactive Playground',
   args: {
+    'aria-label': 'Quantity',
     defaultValue: 50,
     min: 0,
     max: 100,

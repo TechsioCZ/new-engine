@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2877-298
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/date-picker.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/date-picker.tsx
 // component=DatePicker
 
 import figma from "figma"

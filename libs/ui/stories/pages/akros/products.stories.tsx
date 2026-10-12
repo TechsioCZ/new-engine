@@ -461,7 +461,7 @@ function ProductEditorPage({ productId }: { productId: string }) {
                       key={method.id}
                     >
                       <Icon
-                        className={ok ? "text-success" : "text-fg-secondary"}
+                        className={ok ? "text-fg-accent-success" : "text-fg-secondary"}
                         icon={
                           ok
                             ? "icon-[mdi--check-circle-outline]"

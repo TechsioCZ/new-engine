@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.4
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -97,6 +97,7 @@ import {
   DEFAULT_EDITOR_RENDERERS,
   DEFAULT_FILTER_RENDERERS,
   FieldSelect,
+  FieldTableLayoutContext,
   isBlank,
 } from "./data-table.fields"
 import {
@@ -2757,6 +2758,52 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     (enableExpanding &&
       (!!renderExpandedRow || !!getSubRows || !!getRowCanExpand))
 
+  /*
+   * Under `tableLayout="fixed"` a column without a declared width only gets
+   * what the declared columns leave over — usually nothing, so the actions
+   * column collapsed to 0 px. It is not in TanStack's column model and its
+   * content (expand toggle, row actions, custom render) varies, so measure the
+   * widest rendered actions cell and declare that on the header instead.
+   * Children are measured edge to edge rather than via `scrollWidth`, because
+   * the cell content is end-aligned and overflows to the start side.
+   */
+  const [fixedActionsWidth, setFixedActionsWidth] = useState<number>()
+  useIsomorphicLayoutEffect(() => {
+    if (tableLayout !== "fixed" || !hasActionsColumn) {
+      return
+    }
+    const contents = scrollRef.current?.querySelectorAll<HTMLElement>(
+      '[data-part="actions-cell-content"]'
+    )
+    if (!contents?.length) {
+      return
+    }
+    let widest = 0
+    for (const content of contents) {
+      const rects = [...content.children].map((child) =>
+        child.getBoundingClientRect()
+      )
+      if (rects.length) {
+        const start = Math.min(...rects.map((r) => r.left))
+        const end = Math.max(...rects.map((r) => r.right))
+        widest = Math.max(widest, end - start)
+      }
+    }
+    const cell = contents[0]?.parentElement
+    if (!cell || widest === 0) {
+      return
+    }
+    const cellStyle = getComputedStyle(cell)
+    const width = Math.ceil(
+      widest +
+        Number.parseFloat(cellStyle.paddingLeft) +
+        Number.parseFloat(cellStyle.paddingRight)
+    )
+    if (width !== fixedActionsWidth) {
+      setFixedActionsWidth(width)
+    }
+  })
+
   // An end-pinned column and the sticky actions cell both freeze at the
   // trailing edge, and the actions column is not in TanStack's column model
   // so `getAfter("end")` cannot reserve room for it — they overlap. The
@@ -2981,6 +3028,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                 ...(stickyActions
                   ? { zIndex: DATA_TABLE_Z.stickyActionsHeaderCell }
                   : undefined),
+                ...(tableLayout === "fixed" && fixedActionsWidth
+                  ? { width: fixedActionsWidth }
+                  : undefined),
               }}
             >
               {translations.actionsLabel}
@@ -3194,7 +3244,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         stickyActions ? { zIndex: DATA_TABLE_Z.stickyActionsCell } : undefined
       }
     >
-      <div className={styles.actionsCell()}>
+      <div className={styles.actionsCell()} data-part="actions-cell-content">
         {enableExpanding && row.getCanExpand() ? (
           <Button
             aria-controls={expandAriaControls(row.id)}
@@ -3562,24 +3612,26 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   ) : null
 
   const tableEl = (
-    <Table
-      aria-busy={loading || loadingMore || undefined}
-      aria-rowcount={headerRowCount + table.getRowCount()}
-      interactive={(interactive || !!onRowClick) && !locked}
-      showColumnBorder={showColumnBorder}
-      size={size}
-      stickyHeader={stickyHeader}
-      // Never forward "striped" to Table — its own odd:/even: implementation
-      // is the broken one `effectiveStriped` is routing around.
-      variant={outlined || variant === "striped" ? "line" : variant}
-      {...slotProps?.root}
-      style={{ tableLayout, ...slotProps?.root?.style }}
-    >
-      {caption && <Table.Caption>{caption}</Table.Caption>}
-      {headerContent}
-      {bodyContent}
-      {footerContent}
-    </Table>
+    <FieldTableLayoutContext.Provider value={tableLayout}>
+      <Table
+        aria-busy={loading || loadingMore || undefined}
+        aria-rowcount={headerRowCount + table.getRowCount()}
+        interactive={(interactive || !!onRowClick) && !locked}
+        showColumnBorder={showColumnBorder}
+        size={size}
+        stickyHeader={stickyHeader}
+        // Never forward "striped" to Table — its own odd:/even: implementation
+        // is the broken one `effectiveStriped` is routing around.
+        variant={outlined || variant === "striped" ? "line" : variant}
+        {...slotProps?.root}
+        style={{ tableLayout, ...slotProps?.root?.style }}
+      >
+        {caption && <Table.Caption>{caption}</Table.Caption>}
+        {headerContent}
+        {bodyContent}
+        {footerContent}
+      </Table>
+    </FieldTableLayoutContext.Provider>
   )
 
   // Rows and columns share one provider, with separate types and accepted

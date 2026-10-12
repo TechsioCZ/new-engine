@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,6 +22,12 @@ import {
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
 import { StatusText as StatusTextComponent } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
 import { tv } from "../utils"
 
 const radioGroupVariants = tv({
@@ -165,7 +171,8 @@ type RadioGroupContextValue = {
   disabled: boolean
   required: boolean
   validateStatus: RadioGroupValidateStatus
-}
+  statusTextId: string
+} & DescribedBy
 
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null)
 
@@ -242,6 +249,7 @@ export function RadioGroup({
 
   const api = zagRadioGroup.connect(service, normalizeProps)
   const styles = radioGroupVariants({ size, variant })
+  const describedBy = useDescribedBy()
 
   return (
     <RadioGroupContext.Provider
@@ -253,12 +261,15 @@ export function RadioGroup({
         disabled,
         required,
         validateStatus,
+        statusTextId: `${id}-status`,
+        ...describedBy,
       }}
     >
       <div
         className={styles.root({ className })}
         ref={ref}
         {...api.getRootProps()}
+        aria-describedby={joinDescribedBy(describedBy.describedById)}
       >
         {children}
       </div>
@@ -511,9 +522,12 @@ RadioGroup.StatusText = function RadioGroupStatusText({
   children,
   ...props
 }: RadioGroupStatusTextProps) {
-  const { size, validateStatus } = useRadioGroupContext()
+  const { size, validateStatus, statusTextId, registerDescription } =
+    useRadioGroupContext()
   const effectiveSize = sizeProp ?? size
   const effectiveStatus = status ?? validateStatus
+  const id = props.id ?? statusTextId
+  useRegisterDescription(id, registerDescription)
 
   return (
     <StatusTextComponent
@@ -521,6 +535,7 @@ RadioGroup.StatusText = function RadioGroupStatusText({
       size={effectiveSize}
       status={effectiveStatus}
       {...props}
+      id={id}
     >
       {children}
     </StatusTextComponent>

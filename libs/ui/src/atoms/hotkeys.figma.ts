@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=3320-2
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/hotkeys.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/hotkeys.tsx
 // component=Hotkeys
 
 import figma from "figma"

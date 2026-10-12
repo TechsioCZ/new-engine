@@ -431,7 +431,7 @@ function CharacterCountExample() {
       <div className="mt-200 text-sm">
         <div className="flex gap-200">
           <span>Characters: {text.length}</span>
-          <span className={isOverLimit ? 'text-danger' : ''}>
+          <span className={isOverLimit ? 'text-fg-accent-danger' : ''}>
             Remaining: {remaining}
           </span>
         </div>

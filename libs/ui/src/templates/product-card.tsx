@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit template.
  *
  * @component ProductCard
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,13 +13,14 @@ import { Badge, type BadgeProps } from "../atoms/badge"
 import { ProductCard, type ProductCardProps } from "../molecules/product-card"
 import { slugify } from "../utils"
 
-export interface ProductCardTemplateProps
-  extends Pick<ProductCardProps, "layout"> {
+export type ProductCardTemplateProps = Pick<ProductCardProps, "layout"> & {
   image?: {
     src: string
     alt: string
   }
   name?: string
+  /** Heading level of the name, to fit the page outline (`h3` by default). */
+  nameAs?: "h2" | "h3" | "h4" | "h5" | "h6"
   price?: string
   originalPrice?: string
   badges?: BadgeProps[]
@@ -47,6 +48,7 @@ export interface ProductCardTemplateProps
 export function ProductCardTemplate({
   image,
   name,
+  nameAs,
   price,
   originalPrice,
   badges,
@@ -92,7 +94,7 @@ export function ProductCardTemplate({
         </ProductCard.Badges>
       )}
 
-      {name && <ProductCard.Name>{name}</ProductCard.Name>}
+      {name && <ProductCard.Name as={nameAs}>{name}</ProductCard.Name>}
 
       {(price || originalPrice) && (
         <div className="flex items-baseline gap-100">
@@ -112,9 +114,7 @@ export function ProductCardTemplate({
             }}
           />
           {rating.reviewCount && (
-            <span className="text-sm">
-              ({rating.reviewCount})
-            </span>
+            <span className="text-sm">({rating.reviewCount})</span>
           )}
         </div>
       )}

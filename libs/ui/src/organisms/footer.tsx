@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.3
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,10 +10,14 @@
  * the footer-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
+  Children,
   type ComponentPropsWithoutRef,
+  cloneElement,
   createContext,
   type ElementType,
+  Fragment,
   type HTMLAttributes,
+  isValidElement,
   type ReactNode,
   useContext,
 } from "react"
@@ -30,8 +34,8 @@ const footerVariants = tv({
     bottom:
       "border-t-(length:--border-footer-width) flex w-full items-center justify-between bg-footer-bottom-bg pt-footer-bottom",
     title:
-      "font-footer-title text-footer-title-fg transition-footer-title hover:text-footer-title-fg-hover",
-    link: "font-footer-link text-footer-link-fg transition-footer-link hover:text-footer-link-fg-hover",
+      "font-footer-title text-footer-title-fg transition-colors duration-200 hover:text-footer-title-fg-hover motion-reduce:transition-none",
+    link: "font-footer-link text-footer-link-fg transition-colors duration-200 hover:text-footer-link-fg-hover motion-reduce:transition-none",
     text: "text-footer-text-fg",
     divider: "flex h-footer-divider w-full border-0 bg-footer-divider-bg",
   },
@@ -240,6 +244,21 @@ Footer.Text = function FooterText({ children, className }: FooterTextProps) {
   return <p className={text({ className })}>{children}</p>
 }
 
+// Fragments are transparent in the DOM, so their children are list entries in
+// their own right; keys are prefixed so items from two fragments never clash.
+function flattenFragments(children: ReactNode, keyPrefix = ""): ReactNode[] {
+  return Children.toArray(children).flatMap((child) => {
+    if (isValidElement<{ children?: ReactNode }>(child)) {
+      const key = `${keyPrefix}${child.key ?? ""}`
+      if (child.type === Fragment) {
+        return flattenFragments(child.props.children, `${key}/`)
+      }
+      return [keyPrefix ? cloneElement(child, { key }) : child]
+    }
+    return [child]
+  })
+}
+
 Footer.List = function FooterList({
   children,
   className,
@@ -249,7 +268,15 @@ Footer.List = function FooterList({
   const { list } = footerVariants({ size })
   return (
     <ul className={list({ className })} {...props}>
-      {children}
+      {/* A <ul> may only own <li>; wrap bare links so both
+          <Footer.List><Footer.Link /></Footer.List> and explicit <li>s work. */}
+      {flattenFragments(children).map((child) =>
+        isValidElement(child) && child.type !== "li" ? (
+          <li key={child.key}>{child}</li>
+        ) : (
+          child
+        )
+      )}
     </ul>
   )
 }

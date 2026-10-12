@@ -2,7 +2,7 @@
  * Icon — @techsio/ui-kit atom.
  *
  * @component Icon
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -42,17 +42,32 @@ const iconVariants = tv({
   },
 })
 
-export interface IconProps
-  extends Omit<HTMLAttributes<HTMLSpanElement>, "color">,
-    VariantProps<typeof iconVariants> {
-  icon: IconType
-  className?: string
-}
+export type IconProps = Omit<HTMLAttributes<HTMLSpanElement>, "color"> &
+  VariantProps<typeof iconVariants> & {
+    icon: IconType
+    className?: string
+    /**
+     * Accessible name for a meaningful standalone icon (rendered as `role="img"`).
+     * Omit it for decorative icons and icons next to text: they stay `aria-hidden`.
+     */
+    label?: string
+  }
 
-export function Icon({ icon, size, color, className, ...props }: IconProps) {
+export function Icon({
+  icon,
+  size,
+  color,
+  className,
+  label,
+  ...props
+}: IconProps) {
+  const a11yProps = label
+    ? { role: "img", "aria-label": label }
+    : { "aria-hidden": true }
+
   return (
     <span
-      aria-hidden="true"
+      {...a11yProps}
       className={`${iconVariants({ size, color, className })} ${icon}`}
       {...props}
     />

@@ -5,7 +5,7 @@ description: >
   for inline validation, success, warning, or default status messages with
   optional token icons and size/alignment props.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

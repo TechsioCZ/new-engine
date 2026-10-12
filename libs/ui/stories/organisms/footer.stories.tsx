@@ -67,7 +67,7 @@ export const Default: Story = {
 export const Sizes: Story = {
   render: () => (
     <div className="flex flex-col gap-400">
-      <div className="border-border-primary border-t">
+      <section aria-label="Footer, size sm" className="border-border-primary border-t">
         <Footer size="sm">
           <Footer.Container>
             <Footer.Section>
@@ -100,9 +100,9 @@ export const Sizes: Story = {
             </Footer.Section>
           </Footer.Container>
         </Footer>
-      </div>
+      </section>
 
-      <div className="border-border-primary border-t">
+      <section aria-label="Footer, size md" className="border-border-primary border-t">
         <Footer size="md">
           <Footer.Container>
             <Footer.Section>
@@ -135,9 +135,9 @@ export const Sizes: Story = {
             </Footer.Section>
           </Footer.Container>
         </Footer>
-      </div>
+      </section>
 
-      <div className="border-border-primary border-t">
+      <section aria-label="Footer, size lg" className="border-border-primary border-t">
         <Footer size="lg">
           <Footer.Container>
             <Footer.Section>
@@ -170,7 +170,7 @@ export const Sizes: Story = {
             </Footer.Section>
           </Footer.Container>
         </Footer>
-      </div>
+      </section>
     </div>
   ),
 }
@@ -178,7 +178,7 @@ export const Sizes: Story = {
 export const Layouts: Story = {
   render: () => (
     <div className="flex flex-col gap-400">
-      <div className="border-border-primary border-t">
+      <section aria-label="Footer layout 1" className="border-border-primary border-t">
         <Footer>
           <Footer.Container>
             <Footer.Section>
@@ -189,9 +189,9 @@ export const Layouts: Story = {
             </Footer.Section>
           </Footer.Container>
         </Footer>
-      </div>
+      </section>
 
-      <div className="border-border-primary border-t">
+      <section aria-label="Footer layout 2" className="border-border-primary border-t">
         <Footer>
           <Footer.Container>
             <div className="grid grid-cols-1 gap-300 md:grid-cols-3">
@@ -220,9 +220,9 @@ export const Layouts: Story = {
             </div>
           </Footer.Container>
         </Footer>
-      </div>
+      </section>
 
-      <div className="border-border-primary border-t">
+      <section aria-label="Footer layout 3" className="border-border-primary border-t">
         <Footer>
           <Footer.Container>
             <div className="flex flex-col gap-300">
@@ -264,7 +264,7 @@ export const Layouts: Story = {
             </div>
           </Footer.Container>
         </Footer>
-      </div>
+      </section>
     </div>
   ),
 }
@@ -348,11 +348,14 @@ export const N1ShopFooter: Story = {
         </Footer.Section>
       </Footer.Container>
       <Footer.Bottom className="bg-black">
-        <Footer.Text>2025 COPYRIGHT N Distribution s.r.o.</Footer.Text>
+        {/* The bottom bar is black in every theme, so its text stays white. */}
+        <Footer.Text className="text-white">
+          2025 COPYRIGHT N Distribution s.r.o.
+        </Footer.Text>
 
         <div className="flex items-center gap-100">
-          <Footer.Text>Tvorba eshopu:</Footer.Text>
-          <Link href="https://webrevolution.cz" className="underline">
+          <Footer.Text className="text-white">Tvorba eshopu:</Footer.Text>
+          <Link href="https://webrevolution.cz" className="text-white underline">
             Web Revolution
           </Link>
           <Image
@@ -383,35 +386,35 @@ export const TailwindVarianta1: Story = {
           </Footer.Text>
           {/* Social Icons */}
           <Footer.List className="flex-row justify-around">
-            <Footer.Link href="https://facebook.com" external>
+            <Footer.Link aria-label="Facebook" href="https://facebook.com" external>
               <Icon
                 icon="icon-[mdi--facebook]"
                 className="text-slate-400 hover:text-white"
                 size="lg"
               />
             </Footer.Link>
-            <Footer.Link href="https://instagram.com" external>
+            <Footer.Link aria-label="Instagram" href="https://instagram.com" external>
               <Icon
                 icon="icon-[mdi--instagram]"
                 className="text-slate-400 hover:text-white"
                 size="lg"
               />
             </Footer.Link>
-            <Footer.Link href="https://twitter.com" external>
+            <Footer.Link aria-label="X (Twitter)" href="https://twitter.com" external>
               <Icon
                 icon="icon-[mdi--twitter]"
                 className="text-slate-400 hover:text-white"
                 size="lg"
               />
             </Footer.Link>
-            <Footer.Link href="https://github.com" external>
+            <Footer.Link aria-label="GitHub" href="https://github.com" external>
               <Icon
                 icon="icon-[mdi--github]"
                 className="text-slate-400 hover:text-white"
                 size="lg"
               />
             </Footer.Link>
-            <Footer.Link href="https://youtube.com" external>
+            <Footer.Link aria-label="YouTube" href="https://youtube.com" external>
               <Icon
                 icon="icon-[mdi--youtube]"
                 className="text-slate-400 hover:text-white"
@@ -552,35 +555,35 @@ export const TailwindVarianta2: Story = {
 
         {/* Social Icons */}
         <div className="flex gap-200">
-          <Footer.Link href="https://facebook.com" external>
+          <Footer.Link aria-label="Facebook" href="https://facebook.com" external>
             <Icon
               icon="icon-[mdi--facebook]"
               className="text-gray-400 hover:text-white"
               size="lg"
             />
           </Footer.Link>
-          <Footer.Link href="https://instagram.com" external>
+          <Footer.Link aria-label="Instagram" href="https://instagram.com" external>
             <Icon
               icon="icon-[mdi--instagram]"
               className="text-gray-400 hover:text-white"
               size="lg"
             />
           </Footer.Link>
-          <Footer.Link href="https://twitter.com" external>
+          <Footer.Link aria-label="X (Twitter)" href="https://twitter.com" external>
             <Icon
               icon="icon-[mdi--twitter]"
               className="text-gray-400 hover:text-white"
               size="lg"
             />
           </Footer.Link>
-          <Footer.Link href="https://github.com" external>
+          <Footer.Link aria-label="GitHub" href="https://github.com" external>
             <Icon
               icon="icon-[mdi--github]"
               className="text-gray-400 hover:text-white"
               size="lg"
             />
           </Footer.Link>
-          <Footer.Link href="https://youtube.com" external>
+          <Footer.Link aria-label="YouTube" href="https://youtube.com" external>
             <Icon
               icon="icon-[mdi--youtube]"
               className="text-gray-400 hover:text-white"

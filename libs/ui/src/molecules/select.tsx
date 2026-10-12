@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.4
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,6 +25,12 @@ import { Button } from "../atoms/button"
 import { Icon, type IconProps } from "../atoms/icon"
 import { Label } from "../atoms/label"
 import { StatusText as StatusTextComponent } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
 
 export type SelectSize = "xs" | "sm" | "md" | "lg"
 
@@ -86,7 +92,7 @@ const selectVariants = tv({
     ],
     // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
     // its own size, glyph and neutral hover pill.
-    clearTrigger: ["absolute top-1/2 end-select-right -translate-y-1/2"],
+    clearTrigger: ["absolute end-select-right top-1/2 -translate-y-1/2"],
     content: [
       "popup-surface-base",
       "w-full",
@@ -127,7 +133,8 @@ const selectVariants = tv({
   variants: {
     size: {
       xs: {
-        trigger: "p-select-trigger-sm text-select-trigger-xs",
+        trigger:
+          "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-xs",
         content: "popup-size-xs text-select-item-xs",
         valueText: "text-select-value-xs",
         itemGroupLabel: "text-select-item-group-label-xs",
@@ -147,7 +154,8 @@ const selectVariants = tv({
         itemGroupLabel: "text-select-item-group-label-md",
       },
       lg: {
-        trigger: "p-select-trigger-md text-select-trigger-lg",
+        trigger:
+          "h-form-control-lg rounded-select-lg p-select-trigger-md text-select-trigger-lg",
         content: "popup-size-lg text-select-item-lg",
         valueText: "text-select-value-lg",
         itemGroupLabel: "text-select-item-group-label-lg",
@@ -164,7 +172,8 @@ type SelectContextValue = {
   size: SelectSize
   items: SelectItem[]
   validateStatus: "default" | "error" | "success" | "warning"
-}
+  statusTextId: string
+} & DescribedBy
 
 const SelectContext = createContext<SelectContextValue | null>(null)
 
@@ -261,9 +270,19 @@ export function Select({
 
   const api = select.connect(service, normalizeProps)
   const styles = selectVariants({ size })
+  const describedBy = useDescribedBy()
 
   return (
-    <SelectContext.Provider value={{ api, size, items, validateStatus }}>
+    <SelectContext.Provider
+      value={{
+        api,
+        size,
+        items,
+        validateStatus,
+        statusTextId: `${id}-status`,
+        ...describedBy,
+      }}
+    >
       {/* Hidden form select for native form submission */}
       <select {...api.getHiddenSelectProps()}>
         {items.map((item) => (
@@ -337,7 +356,12 @@ Select.Trigger = function SelectTrigger({
   ref,
   ...props
 }: SelectTriggerProps) {
-  const { api, size: contextSize, validateStatus } = useSelectContext()
+  const {
+    api,
+    size: contextSize,
+    validateStatus,
+    describedById,
+  } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
 
@@ -354,6 +378,10 @@ Select.Trigger = function SelectTrigger({
       {...api.getTriggerProps()}
       {...validationDataAttrs}
       {...props}
+      aria-describedby={joinDescribedBy(
+        props["aria-describedby"],
+        describedById
+      )}
     >
       {children}
       <Icon
@@ -647,8 +675,14 @@ Select.StatusText = function SelectStatusText({
   children,
   ...props
 }: SelectStatusTextProps) {
-  const { size: contextSize, validateStatus: contextValidateStatus } =
-    useSelectContext()
+  const {
+    size: contextSize,
+    validateStatus: contextValidateStatus,
+    statusTextId,
+    registerDescription,
+  } = useSelectContext()
+  const id = props.id ?? statusTextId
+  useRegisterDescription(id, registerDescription)
 
   const effectiveSize = sizeProp ?? contextSize
 
@@ -660,6 +694,7 @@ Select.StatusText = function SelectStatusText({
       size={effectiveSize === "xs" ? "sm" : effectiveSize}
       status={effectiveStatus}
       {...props}
+      id={id}
     >
       {children}
     </StatusTextComponent>

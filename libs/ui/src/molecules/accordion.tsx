@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -241,10 +241,12 @@ Accordion.Item = function AccordionItem({
 }
 
 // Header component (heading wrapper for the trigger)
-interface AccordionHeaderProps extends ComponentPropsWithoutRef<"header"> {
+type AccordionHeaderProps = ComponentPropsWithoutRef<"h3"> & {
   ref?: Ref<HTMLElement>
 }
 
+// APG accordion: each trigger sits in a heading. A bare <header> would be a
+// banner landmark, one per item. Pass aria-level to fit the page outline.
 Accordion.Header = function AccordionHeader({
   children,
   ref,

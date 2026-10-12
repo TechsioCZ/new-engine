@@ -6,7 +6,7 @@ description: >
   checked/defaultChecked, validation status, help text, required, disabled, and
   read-only state.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

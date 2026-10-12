@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { Button } from "../../src/atoms/button"
 import { Menu, type MenuItem } from '../../src/molecules/menu'
 
 const meta: Meta<typeof Menu> = {
@@ -140,9 +141,7 @@ export const CustomTrigger: Story = {
   args: {
     items: basicItems,
     customTrigger: (
-      <button className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
-        Custom Trigger
-      </button>
+      <Button size="sm">Custom Trigger</Button>
     ),
   },
 }

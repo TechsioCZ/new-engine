@@ -2,7 +2,7 @@
  * StatusText — @techsio/ui-kit atom.
  *
  * @component StatusText
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill status-text-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -80,6 +80,15 @@ export function StatusText({
   ...props
 }: StatusTextProps) {
   const resolvedIcon = icon ?? ICON_MAP[status]
+  // Validation feedback must reach assistive tech when it appears: errors
+  // interrupt (alert), warning/success are polite (status). Plain helper text
+  // stays silent — it is read through the control's aria-describedby.
+  const liveRole =
+    status === "error"
+      ? "alert"
+      : status === "warning" || status === "success"
+        ? "status"
+        : undefined
 
   const { base, icon: iconSlot } = statusTextVariants({
     status,
@@ -96,6 +105,7 @@ export function StatusText({
         className,
       })}
       ref={ref}
+      role={liveRole}
       {...props}
     >
       {showIcon && resolvedIcon && (

@@ -356,7 +356,7 @@ export const RegistrationForm: Story = {
 
 function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
   return (
-    <li className={`flex items-center gap-100 ${passed ? 'text-success' : 'text-fg-secondary'}`}>
+    <li className={`flex items-center gap-100 ${passed ? 'text-fg-accent-success' : 'text-fg-secondary'}`}>
       <span className={passed ? 'icon-[mdi--check-circle]' : 'icon-[mdi--circle-outline]'} />
       {label}
     </li>

@@ -5,7 +5,7 @@
 import figma from "figma"
 
 /*
- * `Table2` is a static assembly — it exposes no component properties, so the
+ * `DataTable` is a static assembly — it exposes no component properties, so the
  * snippet is the canonical composition rather than a mapped one. The feature
  * flags below are the ones the assembly actually shows: a toolbar, a sortable
  * header, a filter row and a pagination bar.

@@ -8,7 +8,7 @@ metadata:
   type: "core"
   library: "@techsio/ui-kit"
   component: "ActionIcon"
-  component_version: "1.0.0"
+  component_version: "1.1.0"
 requires:
   - ux-guidelines
 ---
@@ -61,6 +61,11 @@ where actions and feedback live). This section applies them to `ActionIcon`.
 
 An icon-only control has no visible text, so it **must** carry an accessible name — pass
 `aria-label` (or an equivalent labelling mechanism). Never ship an ActionIcon without one.
+
+Since v1.1.0 the type enforces it: `ActionIconProps` requires `aria-label` or
+`aria-labelledby`, so `<ActionIcon icon="…" />` without a name no longer compiles.
+When spreading Zag trigger props (typed with an optional `aria-label`), pass the
+name explicitly: `aria-label={triggerProps["aria-label"] ?? "Next slide"}`.
 
 ## Styling
 
