@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=3178-335
-// source=https://github.com/NMIT-WR/new-engine/blob/feat/cascade-select/libs/ui/src/molecules/cascade-select.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/cascade-select.tsx
 // component=CascadeSelect
 
 import figma from "figma"

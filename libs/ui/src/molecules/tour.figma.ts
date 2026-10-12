@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=3270-87
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/tour.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/tour.tsx
 // component=Tour
 
 import figma from "figma"

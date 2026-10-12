@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=3900-594
-// source=https://github.com/TechsioCZ/new-engine/blob/feat/ui-kit-cart-presentation/libs/ui/src/organisms/line-item.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/organisms/line-item.tsx
 // component=LineItem
 
 import figma from "figma"

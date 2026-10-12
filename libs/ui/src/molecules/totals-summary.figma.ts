@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=3899-92
-// source=https://github.com/TechsioCZ/new-engine/blob/feat/ui-kit-cart-presentation/libs/ui/src/molecules/totals-summary.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/totals-summary.tsx
 // component=TotalsSummary
 
 import figma from "figma"
