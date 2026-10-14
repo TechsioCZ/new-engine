@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Checkbox atom, including invalid and indeterminate states,
   while preferring form molecules for labeled form rows.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -69,6 +69,13 @@ invalid: boolean
 The component also accepts native checkbox input attributes.
 
 ## Core Patterns
+
+### Border width tokens
+
+`--border-width-checkbox` controls the normal border, including checked,
+indeterminate, and disabled states. Invalid checkboxes continue to use
+`--border-width-validation` instead. Override the existing tokens in the
+consumer's scope; do not add descendant border rules.
 
 ### Prefer FormCheckbox for labeled rows
 

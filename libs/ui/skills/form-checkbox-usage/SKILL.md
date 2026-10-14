@@ -5,7 +5,7 @@ description: >
   for labeled checkbox fields with Zag.js checked/indeterminate state, help
   text, validation status, required, disabled, and read-only props.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -82,6 +82,13 @@ name, value, required, disabled, readOnly
 ```
 
 ## Core Patterns
+
+### Border width tokens
+
+The visible control uses `--border-width-checkbox`, including checked,
+indeterminate, and disabled states. `validateStatus="error"` retains
+`--border-width-validation` precedence. The token inherits from the wrapper;
+`className` still belongs to that wrapper, not to the visible control.
 
 ### Use this for labeled checkbox UX
 

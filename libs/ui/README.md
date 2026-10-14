@@ -104,6 +104,36 @@ Our CSS token files use Tailwind’s `@theme` block to generate CSS variables, e
 
 ---
 
+### Component font-weight overrides
+
+Button and LinkButton use `--font-weight-button`, defaulting to
+`var(--font-weight-medium)`. Input uses `--font-weight-input` and
+`--font-weight-input-placeholder`, both defaulting independently to
+`var(--font-weight-normal)`. FormInput and NumericInput inherit the Input
+tokens. Changing the input weight does not change the placeholder weight.
+
+Override component tokens in the scope that needs them:
+
+```css
+.order-form {
+  --font-weight-button: var(--font-weight-bold);
+  --font-weight-input: var(--font-weight-medium);
+  --font-weight-input-placeholder: var(--font-weight-normal);
+}
+```
+
+Migration: CSS aliases resolve at their declaration scope. Global overrides
+of the referenced primitive at the root still work. A descendant scope that
+previously changed only `--font-weight-medium` or `--font-weight-normal` must
+now set the corresponding component token there. Other medium/normal text is
+unaffected by component token overrides. Explicit input/button weight classes
+continue to override the component default.
+
+These aliases are currently code-owned in `_button.css` and `_input.css`.
+When Figma exports the aliases, transfer ownership through the export pipeline
+and remove the duplicate bridge declarations. Do not edit generated
+`tokens/figma/variables.css` by hand.
+
 ## 5. Development Guidelines
 
 ### Component Development

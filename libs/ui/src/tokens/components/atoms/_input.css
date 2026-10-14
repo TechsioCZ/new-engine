@@ -4,11 +4,15 @@
  * This file only declares what Figma does not export:
  *   - `--spacing-form-field-gap` — used by the FormField molecule to space
  *     label, control, and helper text.
+ *   - `--font-weight-input` and `--font-weight-input-placeholder`.
+ *     Code-owned until the shared Figma library exports the same aliases.
  *
  * Color, border-width, padding, radius, text, ring, validation, and the
  * `--padding-input-with-button*` family are all owned by Figma.
  */
 
 @theme static {
+  --font-weight-input: var(--font-weight-normal);
+  --font-weight-input-placeholder: var(--font-weight-normal);
   --spacing-form-field-gap: var(--spacing-form-field);
 }

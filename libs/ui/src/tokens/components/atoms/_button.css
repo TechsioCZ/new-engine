@@ -7,9 +7,12 @@
  *     axes; this bridge composes them so the existing utility name keeps
  *     working without per-axis class churn.
  *   - The `token-icon-button-spinner` semantic icon alias.
+ *   - `--font-weight-button` (also used by LinkButton). Code-owned until
+ *     the shared Figma library exports the same alias.
  */
 
 @theme static {
+  --font-weight-button: var(--font-weight-medium);
   --padding-button-sm: var(--padding-button-y-sm) var(--padding-button-x-sm);
   --padding-button-md: var(--padding-button-y-md) var(--padding-button-x-md);
   --padding-button-lg: var(--padding-button-y-lg) var(--padding-button-x-lg);

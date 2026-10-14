@@ -2,7 +2,7 @@
  * Checkbox — @techsio/ui-kit atom.
  *
  * @component Checkbox
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,7 +16,7 @@ const checkboxVariants = tv({
   base: [
     "relative shrink-0 cursor-pointer appearance-none",
     "size-checkbox",
-    "rounded-checkbox border border-checkbox-border-base",
+    "border-(length:--border-width-checkbox) rounded-checkbox border-checkbox-border-base",
     "bg-checkbox-bg-base",
     "after:-translate-1/2 after:absolute after:top-1/2 after:left-1/2",
     "checked:bg-checkbox-bg-checked",

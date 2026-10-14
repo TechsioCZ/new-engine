@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Input atom, including valid size, variant, embedded button
   spacing, and token-first validation styling.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -69,6 +69,19 @@ disabled: native boolean
 ```
 
 ## Core Patterns
+
+### Component font weights
+
+`--font-weight-input` and `--font-weight-input-placeholder` independently
+control the input text and placeholder. Both default to
+`--font-weight-normal` (400); changing input weight does not change placeholder
+weight. These tokens also apply to Input-based FormInput and NumericInput.
+Explicit caller classes still override their respective defaults.
+
+Migration: inherited aliases resolve where declared. A descendant override of
+only `--font-weight-normal` no longer changes these weights there. Set the
+component tokens in that scope instead. Global primitive overrides at the
+alias declaration scope still apply.
 
 ### Prefer form molecules for fields
 

@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.3.4
+ * @componentVersion v0.4.0
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -18,7 +18,7 @@ export const buttonVariants = tv({
   base: [
     "relative",
     "inline-flex cursor-pointer items-center justify-center",
-    "font-medium",
+    "font-button",
     "transition duration-200 motion-reduce:transition-none",
     // Press feedback; the tap highlight is disabled globally.
     "motion-safe:not-disabled:active:scale-97",

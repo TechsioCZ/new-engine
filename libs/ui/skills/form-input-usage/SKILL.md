@@ -5,7 +5,7 @@ description: >
   labeled single-line fields with Label, Input, StatusText, validation status,
   help text, required, disabled, and size props.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -90,6 +90,13 @@ all Input props except where FormInput sets label/status behavior
 ```
 
 ## Core Patterns
+
+### Input classes and wrapper layout
+
+`FormInput` and `FormInputRaw` merge `className` into the native Input, after
+the existing `p-input-sm md:p-input-md` defaults. Responsive overrides must
+target the same breakpoint when needed. The wrapper does not receive this
+class. Put field-to-field layout on a parent; prefer Input tokens for visuals.
 
 ### Use for complete field rows
 
