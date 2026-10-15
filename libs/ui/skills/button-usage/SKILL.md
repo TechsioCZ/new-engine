@@ -9,7 +9,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "Button"
-  component_version: "0.3.4"
+  component_version: "0.4.0"
 requires:
   - component-usage-ux
   - app-token-overrides
@@ -94,6 +94,18 @@ iconSize: xs | sm | md | lg | xl | 2xl | current
 ```
 
 ## Core Patterns
+
+### Component font weight
+
+`--font-weight-button` controls Button and LinkButton, with a default alias to
+`--font-weight-medium` (500). Override it in the app's theme or local scope to
+change buttons without changing other medium-weight text. No weight prop is
+needed. Explicit caller classes such as `font-bold` still override the default.
+
+Migration: an inherited CSS alias resolves where it is declared. A descendant
+override of only `--font-weight-medium` no longer changes the default button
+weight there. Set `--font-weight-button` in that same scope instead. Global
+primitive overrides at the alias declaration scope still apply.
 
 ### Choose variant from action semantics
 

@@ -2,7 +2,7 @@
  * Input — @techsio/ui-kit atom.
  *
  * @component Input
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,10 +16,10 @@ import { tv } from "../utils"
 const inputVariants = tv({
   base: [
     "block w-full",
-    "font-normal",
+    "font-input",
     "bg-input-bg-base",
     "text-input-fg",
-    "placeholder:font-normal",
+    "placeholder:font-input-placeholder",
     "placeholder:text-input-fg-placeholder",
     "border-(length:--border-width-input) border-input-border-base",
     "rounded-input",

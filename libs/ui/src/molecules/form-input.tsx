@@ -2,7 +2,7 @@
  * FormInput — @techsio/ui-kit molecule.
  *
  * @component FormInput
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill form-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,6 +13,11 @@ import { type ReactNode, useId } from "react"
 import { Input, type InputProps } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import { tv } from "../utils"
+
+const formInputVariants = tv({
+  base: "p-input-sm md:p-input-md",
+})
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
@@ -32,6 +37,7 @@ export function FormInputRaw({
   size = "md",
   required,
   disabled,
+  className,
   ...props
 }: FormInputRawProps) {
   // An empty or missing id would leave the label pointing at nothing.
@@ -55,7 +61,7 @@ export function FormInputRaw({
         size={size}
         variant={validateStatus}
         {...props}
-        className="p-input-sm md:p-input-md"
+        className={formInputVariants({ className })}
       />
 
       {helpText}

@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,7 +21,7 @@ const checkboxVariants = tv({
     control: [
       "relative shrink-0 cursor-pointer",
       "size-checkbox",
-      "rounded-checkbox border border-checkbox-border-base",
+      "border-(length:--border-width-checkbox) rounded-checkbox border-checkbox-border-base",
       "bg-checkbox-bg-base",
       "flex items-center justify-center",
       "transition duration-200 motion-reduce:transition-none",

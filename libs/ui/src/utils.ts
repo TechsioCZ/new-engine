@@ -12,6 +12,10 @@ export const tv: TV = createTV({
   twMergeConfig: {
     theme: {
       text: [(value: string) => TEXT_SIZE_REGEX.test(value)],
+      "font-weight": ["button", "input", "input-placeholder"],
+    },
+    classGroups: {
+      p: [{ p: ["input-sm", "input-md", "input-lg"] }],
     },
   },
 })

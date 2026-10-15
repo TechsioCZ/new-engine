@@ -12,6 +12,24 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### FormInput v1.1.2
+- FormInput and FormInputRaw preserve the caller's input className and merge it after their existing responsive padding defaults. The wrapper, generated ids, labels, and validation associations are unchanged. Fixes #641.
+
+### Checkbox v1.0.3
+- The normal border uses the existing --border-width-checkbox token. Invalid styling still takes precedence through --border-width-validation. Fixes #642.
+
+### FormCheckbox v1.1.3
+- The visible control honors --border-width-checkbox, while error validation retains --border-width-validation precedence. Fixes #642.
+
+### Button v0.4.0
+- Button and LinkButton use --font-weight-button, aliased to --font-weight-medium by default. Adds independent component weight control without changing the default 500 weight. Implements #643.
+- Migration: scopes overriding only --font-weight-medium must now set --font-weight-button there. An inherited alias resolves at its declaration scope. Explicit font classes still override the component default.
+
+### Input v1.1.0
+- Input uses independent --font-weight-input and --font-weight-input-placeholder tokens, each defaulting to --font-weight-normal (400). Input-based FormInput and NumericInput inherit them. Implements #643.
+- Migration: scopes overriding only --font-weight-normal must now set the component weight tokens there. Input and placeholder weights remain independent.
+- New font-weight aliases are code-owned in the component CSS pending shared Figma library synchronization. Generated Figma token files are unchanged.
+
 ### Accordion v1.0.3
 - \`Accordion.Header\` props are typed as \`<h3>\` attributes (they were \`<header>\`), matching the heading it renders. No runtime change.
 
