@@ -2,7 +2,7 @@
  * SearchSuggestions - @techsio/ui-kit template.
  *
  * @component SearchSuggestions
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill search-suggestions-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */

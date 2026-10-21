@@ -6,7 +6,7 @@ description: >
   numeric compatibility or controlled string drafts, locale formatting, min/max/step, and token-first
   styling.
 metadata:
-  component_version: "1.3.1"
+  component_version: "1.3.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -335,10 +335,11 @@ including keyboard, wheel, blur clamping and an already-running hold/drag.
 A parent can still change a controlled value. Disabled wins and removes the
 input/actions from the tab order.
 
-`precision={0}` rounds numeric values to whole units (1.75 displays as 2).
-Precision limits maximum fraction digits; it does not force trailing zeros.
-Controlled string drafts remain authoritative while editing; use numeric
-values for immediate formatted display.
+`precision={0}` formats numeric initial/parent values as whole units (numeric
+1.75 displays as 2), but preserves typed fractional drafts for validation.
+Precision limits presentation digits; it does not validate integers or force
+trailing zeros. Controlled string drafts remain authoritative while editing;
+use numeric values for immediate formatted display.
 
 `NumericInput.StatusText` registers a stable unique message ID with the input.
 Multiple mounted messages are merged with caller `aria-describedby` IDs and
@@ -373,3 +374,28 @@ Disabled styling remains authoritative. Add associated actionable feedback with
 Nonfinite numeric `value`/`defaultValue` render as empty, never literal NaN or
 Infinity. The numeric callback still emits NaN when cleared; retain editable
 text with `onValueChange(({ value }) => ...)` and validate before committing.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
+
+## Native handlers and integer quantities
+
+Handlers on `NumericInput.Input` compose with the machine. Observational handlers
+retain typing, blur clamping and commit behavior; `preventDefault()` cancels the
+corresponding native action. `onValueCommit` reports the clamped blur value, not
+the preceding out-of-bounds draft. A rejected controlled edit restores the latest
+parent value even if the parent does not render again.
+
+`precision={0}`, `maximumFractionDigits: 0` and `step={1}` are not integer-domain
+validation. Fractional typed drafts remain visible for correction instead of
+being silently rounded. Before submitting whole-unit quantities, require a
+nonempty draft, `Number.isFinite(valueAsNumber)`, `Number.isInteger(valueAsNumber)`
+and the product's bounds. Reject fractions with actionable feedback; do not use
+`parseInt`, truncate the draft or rely on display formatting as consent.

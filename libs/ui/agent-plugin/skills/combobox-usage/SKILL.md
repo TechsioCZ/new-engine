@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.6.0"
+  component_version: "1.6.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -269,3 +269,25 @@ closed input removes the last selection. Read-only values remain visible without
 remove buttons; disabled buttons are not focusable. Do not add duplicate story/app
 chips around this built-in presentation. Labels resolve from the full collection
 or machine selection cache, not the filtered results.
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.
+
+The default query is the latest `defaultInputValue` when provided. With a
+controlled selection and replacement query, accepted/refused selections and
+external parent updates resolve text and selected-option ARIA from the
+authoritative value, not the proposed item or filtered results. Replacing an
+item's label without changing its key refreshes selected text too, including
+after reset; this is not a user edit and emits no value/query callback. An
+active search draft is preserved during collection updates. Without an explicit
+`defaultInputValue`, reset resolves the default selection's latest labels rather
+than its mount-time labels. An explicitly controlled `inputValue` remains
+independently parent-owned.

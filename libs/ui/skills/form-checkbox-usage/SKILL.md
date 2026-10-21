@@ -5,7 +5,7 @@ description: >
   for labeled checkbox fields with Zag.js checked/indeterminate state, help
   text, validation status, required, disabled, and read-only props.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.3.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -89,7 +89,7 @@ A rejected `onCheckedChange` proposal leaves native checked/mixed properties,
 validation and FormData consistent with the accepted value, even without a
 parent rerender. Reset restores the initial uncontrolled default after the
 native reset action; canceled resets leave state unchanged. Controlled parents
-retain ownership and may accept or reject the reset proposal.
+retain ownership; reset never proposes a value change.
 
 The label text slot fills the remaining row width and can wrap safely. Rich
 labels may use a flexible text column and an end-aligned, nonshrinking count
@@ -157,9 +157,9 @@ changes/reassociation. A canceled reset (native or React `onReset`) changes
 nothing; an accepted uncontrolled reset restores the initial default after
 cancellation/default-action handling settles. The parent still owns controlled
 `checked` and `indeterminate`; proposals rejected by the parent are restored,
-not persisted as DOM-only state. Reset must not simulate a click or steal focus. Do not treat a controlled reset
-proposal as an accepted parent-state change. App-owned controlled reset is an explicit state
-update, not an assumption that `form.reset()` will change React state.
+not persisted as DOM-only state. Reset must not simulate a click or steal focus. App-owned controlled reset is
+an explicit state update from the form's `onReset`, not an assumption that
+`form.reset()` will change React state.
 Nested disabled fieldsets and first-legend exceptions use native semantics;
 read-only stays focusable and submitted. Ref callbacks support React 19 cleanup.
 
@@ -224,3 +224,14 @@ rg -U -n "<label[\\s\\S]{0,240}<Checkbox|<FormCheckbox[^>]*onChange=|<FormCheckb
 rg -n "<input[^>]*type=\"checkbox\"" apps
 rg -n "<FormCheckbox[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.

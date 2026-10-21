@@ -176,26 +176,32 @@ export function nativeValueTarget(page, adapter) {
 
 /** One user value proposal per adapter; callback counts are asserted separately.
  * @param {Page} page @param {(typeof nativeFormAdapters)[number]} adapter
+ * @param {boolean} [restoreDefault] Propose the initial value from the changed value.
  */
-export async function editNativeValue(page, adapter) {
+export async function editNativeValue(page, adapter, restoreDefault = false) {
   const target = nativeValueTarget(page, adapter)
+  const label = restoreDefault ? "Alpha" : "Beta"
   switch (adapter.kind) {
     case "check":
       await target.focus()
       await target.press(" ")
       break
-    case "radio":
-      await target.focus()
-      await target.press("ArrowDown")
+    case "radio": {
+      const radio = restoreDefault
+        ? page.getByTestId("value-control").getByRole("radio").nth(1)
+        : target
+      await radio.focus()
+      await radio.press(restoreDefault ? "ArrowUp" : "ArrowDown")
       break
+    }
     case "rating":
     case "slider":
       await target.focus()
-      await target.press("ArrowRight")
+      await target.press(restoreDefault ? "ArrowLeft" : "ArrowRight")
       break
     case "number":
       await target.focus()
-      await target.press("ArrowUp")
+      await target.press(restoreDefault ? "ArrowDown" : "ArrowUp")
       break
     case "date":
       // Commit a calendar selection rather than inspect a still-focused segment
@@ -205,26 +211,43 @@ export async function editNativeValue(page, adapter) {
         .locator('[data-scope="date-picker"][data-part="trigger"]')
         .click()
       await page
-        .locator('[data-part="table-cell-trigger"][data-value="2026-08-21"]')
+        .locator(
+          `[data-part="table-cell-trigger"][data-value="2026-08-${restoreDefault ? "20" : "21"}"]`
+        )
         .click()
       break
     case "select":
       await target.click()
-      await page.getByRole("option", { name: "Beta", exact: true }).click()
+      await page
+        .getByRole("option", {
+          name: label,
+          exact: true,
+        })
+        .click()
       break
     case "cascade":
       await target.click()
-      await page.getByRole("treeitem", { name: "Beta", exact: true }).click()
+      await page
+        .getByRole("treeitem", {
+          name: label,
+          exact: true,
+        })
+        .click()
       break
     case "combobox":
-      await target.fill("Beta")
-      await page.getByRole("option", { name: "Beta", exact: true }).click()
+      await target.fill(label)
+      await page
+        .getByRole("option", {
+          name: label,
+          exact: true,
+        })
+        .click()
       break
     case "phone":
-      await target.fill("901123456")
+      await target.fill(restoreDefault ? "900123456" : "901123456")
       break
     default:
-      await target.fill("Beta")
+      await target.fill(label)
   }
   await page.keyboard.press("Tab")
 }
@@ -328,6 +351,11 @@ export async function assertNativeFormState(page, adapter, options = {}) {
   } else {
     accessibility = "editable"
   }
+  if (adapter.id === "form-checkbox" || adapter.id === "switch") {
+    await expect(
+      page.getByTestId("value-control").locator('[data-part="control"]')
+    ).toHaveAttribute("data-state", changed ? "checked" : "unchecked")
+  }
   await expect
     .poll(() => readNativeFormState(page, adapter), {
       message: `${adapter.id}: rendered value, accessibility, FormData and callback count must agree`,
@@ -343,6 +371,33 @@ export async function assertNativeFormState(page, adapter, options = {}) {
     })
 }
 
+/** Reset the real form; query callbacks are also value notifications.
+ * @param {Page} page @param {string} name
+ */
+async function resetNativeForm(page, name) {
+  const queryChanges = await page.getByTestId("query-count").textContent()
+  // Choice adapters additionally guarantee that Zag does not synthesize native
+  // input events during restoration. Public callback silence is checked for
+  // every adapter by assertNativeFormState, and query silence is checked here.
+  const choiceControl = await page
+    .getByTestId("value-control")
+    .locator(
+      '[data-scope="checkbox"], [data-scope="switch"], [data-scope="radio-group"], [data-scope="rating"], [data-scope="combobox"], input[type="checkbox"]'
+    )
+    .count()
+  const nativeEvents = await page
+    .getByTestId("native-event-count")
+    .textContent()
+  await page.getByRole("button", { name, exact: true }).click()
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 30)))
+  await expect(page.getByTestId("query-count")).toHaveText(queryChanges)
+  if (choiceControl) {
+    await expect(page.getByTestId("native-event-count")).toHaveText(
+      nativeEvents
+    )
+  }
+}
+
 /** @param {Page} page @param {(typeof nativeFormAdapters)[number]} adapter @param {string} cancellation @param {Record<string, string>} [options] */
 export async function checkNativeReset(
   page,
@@ -354,7 +409,7 @@ export async function checkNativeReset(
   await assertNativeFormState(page, adapter)
   await editNativeValue(page, adapter)
   await assertNativeFormState(page, adapter, { changed: true, callbacks: 1 })
-  await page.getByRole("button", { name: "Reset A", exact: true }).click()
+  await resetNativeForm(page, "Reset A")
   await expect(page.getByTestId("reset-count")).toHaveText("1")
   // Real native activation may flush microtasks between event listeners. Inspect
   // after the default action and deferred lifecycle reset (not dispatchEvent).
@@ -368,11 +423,32 @@ export async function checkNativeReset(
     // value again must not disappear as a duplicate input/change event.
     await editNativeValue(page, adapter)
     await assertNativeFormState(page, adapter, { changed: true, callbacks: 2 })
-    await page.getByRole("button", { name: "Reset A", exact: true }).click()
+    await resetNativeForm(page, "Reset A")
     await expect(page.getByTestId("reset-count")).toHaveText("2")
     await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 30)))
     await assertNativeFormState(page, adapter, { callbacks: 2 })
   }
+}
+
+/** @param {Page} page @param {boolean} changed @param {string[]} [labels] */
+async function assertComboboxSelection(
+  page,
+  changed,
+  labels = ["Alpha", "Beta"]
+) {
+  const root = page.getByTestId("value-control")
+  await root.locator('[data-part="trigger"]').click()
+  await expect(
+    page.getByRole("option", { name: labels[Number(changed)], exact: true })
+  ).toHaveAttribute("aria-selected", "true")
+  await expect(
+    page.getByRole("option", { name: labels[Number(!changed)], exact: true })
+  ).not.toHaveAttribute("aria-selected", "true")
+  await root.getByRole("combobox").press("Escape")
+  await expect(root.getByRole("combobox")).toHaveAttribute(
+    "aria-expanded",
+    "false"
+  )
 }
 
 /** @param {Page} page @param {(typeof nativeFormAdapters)[number]} adapter @param {string} authority @param {Record<string, string>} [options] */
@@ -386,6 +462,9 @@ export async function checkNativeAuthority(
   await editNativeValue(page, adapter)
   const changed = authority === "accept"
   await assertNativeFormState(page, adapter, { changed, callbacks: 1 })
+  if (adapter.kind === "combobox") {
+    await assertComboboxSelection(page, changed)
+  }
   // The controlled value must differ from the default to expose an illegal
   // native reset even when the parent refused the preceding user proposal.
   if (!changed) {
@@ -394,12 +473,87 @@ export async function checkNativeAuthority(
       .click()
     await assertNativeFormState(page, adapter, { changed: true, callbacks: 1 })
   }
-  await page.getByRole("button", { name: "Reset A", exact: true }).click()
+  await resetNativeForm(page, "Reset A")
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 30)))
   await assertNativeFormState(page, adapter, {
     changed: true,
     callbacks: 1,
   })
+  if (adapter.kind === "combobox") {
+    await assertComboboxSelection(page, true)
+  }
+  // The first real edit after reset must produce exactly one notification,
+  // including when React would otherwise suppress it using a stale tracker.
+  await editNativeValue(page, adapter, true)
+  await assertNativeFormState(page, adapter, {
+    changed: authority === "refuse",
+    callbacks: 2,
+  })
+  if (adapter.kind === "combobox") {
+    await assertComboboxSelection(page, authority === "refuse")
+  }
+  // Parent updates after reset, including a round trip to the reset value,
+  // remain authoritative and cannot emit unsolicited value notifications.
+  await page
+    .getByRole("button", { name: "Restore parent default", exact: true })
+    .click()
+  await assertNativeFormState(page, adapter, { callbacks: 2 })
+  await page
+    .getByRole("button", { name: "Set parent value", exact: true })
+    .click()
+  await assertNativeFormState(page, adapter, { changed: true, callbacks: 2 })
+  if (adapter.kind === "combobox") {
+    await assertComboboxSelection(page, true)
+  }
+}
+
+/** Collection labels can change independently of selected keys, even after reset.
+ * @param {Page} page @param {string} authority @param {Record<string, string>} [options]
+ */
+export async function checkComboboxCollectionLabels(
+  page,
+  authority,
+  options = {}
+) {
+  await openNativeFormFixture(page, "combobox", { ...options, authority })
+  const adapter = nativeFormAdapters.find((item) => item.id === "combobox")
+  const changed = authority !== "uncontrolled"
+  if (changed) {
+    await page
+      .getByRole("button", { name: "Set parent value", exact: true })
+      .click()
+  }
+  await assertNativeFormState(page, adapter, { changed })
+  // A parent value update may notify its derived query; label-only projection
+  // changes must not add a query notification of their own.
+  const queryChanges = await page.getByTestId("query-count").textContent()
+  const renamed = { ...adapter, visible: ["Renamed Alpha", "Renamed Beta"] }
+  await page
+    .getByRole("button", { name: "Toggle choice labels", exact: true })
+    .click()
+  await assertNativeFormState(page, renamed, { changed })
+  await assertComboboxSelection(page, changed, renamed.visible)
+  await resetNativeForm(page, "Reset A")
+  await assertNativeFormState(page, renamed, { changed })
+  await assertComboboxSelection(page, changed, renamed.visible)
+  // The reset snapshot must not freeze a selected label on later collection changes.
+  await page
+    .getByRole("button", { name: "Toggle choice labels", exact: true })
+    .click()
+  await assertNativeFormState(page, adapter, { changed })
+  await assertComboboxSelection(page, changed)
+  await expect(page.getByTestId("query-count")).toHaveText(queryChanges)
+  const input = page.getByTestId("value-control").getByRole("combobox")
+  await input.fill("Al")
+  const draftQueryChanges = await page.getByTestId("query-count").textContent()
+  // Change parent data without blurring the active query: blur independently
+  // commits/discards drafts and is not a collection-only update.
+  await page
+    .getByRole("button", { name: "Toggle choice labels", exact: true })
+    .evaluate((button) => button.click())
+  await expect(input).toBeFocused()
+  await expect(input).toHaveValue("Al")
+  await expect(page.getByTestId("query-count")).toHaveText(draftQueryChanges)
 }
 
 /** Calendar selection and segmented editing are independent mutation paths.
@@ -423,7 +577,7 @@ export async function checkNativeDateKeyboardAuthority(
   await assertNativeFormState(page, adapter, state)
   await page.getByRole("button", { name: "Reset B", exact: true }).focus()
   await assertNativeFormState(page, adapter, state)
-  await page.getByRole("button", { name: "Reset A", exact: true }).click()
+  await resetNativeForm(page, "Reset A")
   await expect(page.getByTestId("reset-count")).toHaveText("1")
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 30)))
   await assertNativeFormState(page, adapter, state)
@@ -509,14 +663,14 @@ export async function checkNativeOwnership(page, adapter, options = {}) {
     callbacks: 1,
     owner: "b",
   })
-  await page.getByRole("button", { name: "Reset A", exact: true }).click()
+  await resetNativeForm(page, "Reset A")
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 30)))
   await assertNativeFormState(page, adapter, {
     changed: true,
     callbacks: 1,
     owner: "b",
   })
-  await page.getByRole("button", { name: "Reset B", exact: true }).click()
+  await resetNativeForm(page, "Reset B")
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 30)))
   await assertNativeFormState(page, adapter, {
     callbacks: 1,
@@ -526,7 +680,7 @@ export async function checkNativeOwnership(page, adapter, options = {}) {
     .getByRole("button", { name: "Change form owner", exact: true })
     .click()
   await editNativeValue(page, adapter)
-  await page.getByRole("button", { name: "Reset B", exact: true }).click()
+  await resetNativeForm(page, "Reset B")
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 30)))
   await assertNativeFormState(page, adapter, {
     changed: true,
@@ -540,8 +694,8 @@ export async function checkNativeOwnership(page, adapter, options = {}) {
       message: `${adapter.id}: unmount removes form reset listeners`,
     })
     .toBe(0)
-  await page.getByRole("button", { name: "Reset A", exact: true }).click()
-  await page.getByRole("button", { name: "Reset B", exact: true }).click()
+  await resetNativeForm(page, "Reset A")
+  await resetNativeForm(page, "Reset B")
   await page
     .getByRole("button", { name: "Toggle control", exact: true })
     .click()
@@ -552,7 +706,7 @@ export async function checkNativeOwnership(page, adapter, options = {}) {
     .toBe(mountedListeners)
   await assertNativeFormState(page, adapter, { callbacks: 2 })
   await editNativeValue(page, adapter)
-  await page.getByRole("button", { name: "Reset A", exact: true }).click()
+  await resetNativeForm(page, "Reset A")
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 30)))
   await assertNativeFormState(page, adapter, {
     callbacks: 3,

@@ -2,7 +2,7 @@
  * FormInput — @techsio/ui-kit molecule.
  *
  * @component FormInput
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill form-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

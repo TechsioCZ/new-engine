@@ -5,7 +5,7 @@ description: >
   for labeled multi-line text fields with Textarea, Label, StatusText,
   validation status, help text, size, resize, required, and disabled props.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -180,3 +180,13 @@ error summary or another consumer must reference the control.
 ```tsx
 <FormTextarea label="Delivery instructions" name="instructions" />
 ```
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.

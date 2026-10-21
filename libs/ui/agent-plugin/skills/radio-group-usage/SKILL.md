@@ -6,7 +6,7 @@ description: >
   hidden inputs, controls, text, descriptions, validation status, variants, and
   sizes.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -91,7 +91,7 @@ value, including rejected pointer/Space/arrow interaction and external clearing.
 `form` is honored for reset ownership, including an external form or an explicit
 owner overriding an ancestor form. Uncontrolled reset restores the initial
 `defaultValue` (or no selection); canceled resets do nothing. Controlled reset
-proposals may be accepted or refused by the parent.
+silently preserves and re-syncs the latest parent value.
 
 Removing or disabling the focused option moves focus to the next enabled
 survivor, or the previous survivor if no next option remains. Background updates
@@ -225,3 +225,14 @@ rg -U -P -n "<input[^>]*type=\"radio\"|<RadioGroup\\.Item(?![\\s\\S]{0,300}<Radi
 rg -n "<RadioGroup[^>]*variant=\"(primary|outlined)\"|<RadioGroup[^>]*className=.*(border-|bg-|text-)" apps
 rg -n "<RadioGroup[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.

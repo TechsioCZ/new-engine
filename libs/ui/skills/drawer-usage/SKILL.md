@@ -5,7 +5,7 @@ description: >
   transient edge panels, modal or non-modal behavior, snap points, swipe
   gestures, multiple triggers, custom portals, controlled state, and stacks.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.0.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -254,3 +254,11 @@ At partial snap points, the panel retains its full machine-measured size while
 an inner visible viewport keeps Header and Footer onscreen. Body owns scrolling.
 Nested kit Menu, Popover and Tooltip portals remain inside the drawer's focus
 and accessibility scope.
+
+## Nested-popup focus return
+
+Deferred focus-trap activation preserves focus already inside the drawer or its
+nested popup. Closing restores the opener only after content and focus-trap
+teardown, without overriding intentional outside focus. Explicit `initialFocusEl`
+and `finalFocusEl` remain authoritative; `restoreFocus={false}` opts out of return.
+Do not add a separate timeout-based focus repair in the app.

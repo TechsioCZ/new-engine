@@ -2,7 +2,7 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

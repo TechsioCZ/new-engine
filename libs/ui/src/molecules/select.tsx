@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -45,11 +45,27 @@ import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
+// Zag dispatches a native change event from a watcher that runs after React
+// commits, outside the synchronous reset callback. Remember the reset projection.
+const selectResetValues = new WeakMap<object, string>()
+
 // Wrapper-owned state and native projections share one cancellation-safe lifecycle.
 const nativeSelectMachine: typeof selectMachine = {
   ...selectMachine,
   implementations: {
     ...selectMachine.implementations,
+    actions: {
+      ...selectMachine.implementations?.actions,
+      dispatchChangeEvent(params) {
+        const resetValue = selectResetValues.get(params.context)
+        selectResetValues.delete(params.context)
+        // Native form reset is silent; only user-driven values announce events.
+        if (resetValue === params.context.get("value").toString()) {
+          return
+        }
+        selectMachine.implementations?.actions?.dispatchChangeEvent?.(params)
+      },
+    },
     effects: {
       ...selectMachine.implementations?.effects,
       trackFormControlState() {
@@ -371,9 +387,15 @@ export function Select({
   const reset = useRef<() => void>(() => undefined)
   reset.current = () => {
     if (value === undefined) {
-      setInternalValue(
-        initialValue.current.filter((selected) => collection.has(selected))
+      const restoredValue = initialValue.current.filter((selected) =>
+        collection.has(selected)
       )
+      if (
+        restoredValue.toString() !== service.context.get("value").toString()
+      ) {
+        selectResetValues.set(service.context, restoredValue.toString())
+      }
+      setInternalValue(restoredValue)
     }
     const restored =
       value === undefined

@@ -5,7 +5,7 @@ description: >
   FormNumericInput for labeled numeric fields using NumericInput compound
   children, validation status, help text, and number-specific constraints.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.2.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -90,7 +90,9 @@ parts.
 
 ### Express domain constraints with props
 
-Use `min`, `max`, `step`, `precision`, and `locale`, not custom blur parsing.
+Use `min`, `max` and `step` for bounds/stepping, and `precision` and `locale`
+for presentation, not custom blur parsing. Integer-only business rules still
+require explicit app validation; formatting is not validation.
 
 ### Use validateStatus for errors
 
@@ -188,3 +190,21 @@ Caller-supplied `aria-errormessage` IDs are preserved independently of
 `validateStatus`, including when the caller supplies the invalid state. Clear
 caller-owned error IDs and invalid state together when removing that message;
 the wrapper only manages the lifecycle of its own generated error reference.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
+
+## Draft and native-handler ownership
+
+The NumericInput children retain composed native event handlers: observation
+does not replace machine typing/blur behavior, and `preventDefault()` cancels the
+matching action. Blur commits report the clamped value. Zero precision and
+`step={1}` do not validate whole-unit quantities; keep fractional drafts visible
+and validate nonempty, finite integer values in the app before saving.

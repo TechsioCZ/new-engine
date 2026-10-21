@@ -5,6 +5,7 @@ import { Checkbox, type CheckboxProps } from "../src/atoms/checkbox"
 import { Rating } from "../src/atoms/rating"
 import { getControlledChoiceInputProps } from "../src/internal/choice-control"
 import { FormCheckbox } from "../src/molecules/form-checkbox"
+import { ProductCard } from "../src/molecules/product-card"
 import { Switch } from "../src/molecules/switch"
 
 const INPUT_TAG = /<input\b[^>]*>/
@@ -132,4 +133,22 @@ it("separates aggregate display from focusable read-only form ratings", () => {
   expect(formValue).toContain('role="radiogroup"')
   expect(formValue).toContain('tabindex="0"')
   expect(formValue).toContain('name="saved"')
+})
+
+it("ProductCard accepts an aggregate rating without creating a form control", () => {
+  const html = renderToStaticMarkup(
+    h(ProductCard.Rating, {
+      rating: {
+        displayOnly: true,
+        value: 4.5,
+        name: "aggregate-score",
+        labelText: "Average product rating",
+      },
+    })
+  )
+  expect(html).toContain('role="img"')
+  expect(html).toContain('aria-label="Average product rating: 4.5 out of 5"')
+  expect(html).not.toContain("tabindex=")
+  expect(html).not.toContain("<input")
+  expect(html).not.toContain('role="radio"')
 })

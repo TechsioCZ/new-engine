@@ -128,6 +128,31 @@ Propagate it through Form* wrappers and every controlled/uncontrolled path.
   download or preview is allowed. Hide upload/replace/remove actions and prevent
   drop/paste mutations. This is the useful open-for-view exception.
 
+### Form reset
+
+Native form reset is **silent for every value control**: it never calls
+`onChange`, `onValueChange`, `onCheckedChange`, `onInputValueChange` or equivalent
+value-change callbacks and dispatches no native `input` or `change` events.
+This matches native inputs, which emit no input/change event on reset.
+
+- **Uncontrolled:** silently restore `defaultValue`/`defaultChecked` (Rating uses
+  the current scale/precision constraints). Combobox restores its default
+  selection and latest `defaultInputValue` when supplied.
+- **Controlled:** keep the latest parent value. After the browser's reset action,
+  re-sync visible text/selection, ARIA, the native input and FormData to that
+  authoritative value. An application that wants to change controlled state on
+  reset must handle the form's `onReset` explicitly.
+- Wait until native and React reset cancellation has settled. A canceled reset
+  changes nothing and emits no value notification. Follow the native control's
+  actual form owner, including external `form` associations and reassociation.
+- After restoring **either** ownership mode, assign the authoritative native
+  `.value`/`.checked` through `syncReactFormControl` in
+  `src/internal/form-control-lifecycle.ts`. Its React-wrapped setter also updates
+  React's value tracker; do not use prototype setters or dispatch synthetic
+  events. The next real user edit must emit exactly one normal notification.
+- Reset does not activate an input or move focus. Read-only values retain the
+  same ownership rules; disabled controls retain native submission semantics.
+
 ## 3. Canonical sizes
 
 The canonical **interactive control** sizes are `sm`, `md`, `lg`, in that

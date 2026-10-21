@@ -6,6 +6,7 @@ import { Tooltip } from "../src/atoms/tooltip"
 import {
   OverlayContainerProvider,
   OverlayPortal,
+  restoreFocusAfterOverlayClose,
 } from "../src/internal/overlay-portal"
 import { Popover } from "../src/molecules/popover"
 import { PopoverTemplate } from "../src/templates/popover"
@@ -185,6 +186,106 @@ test("unscoped portals respect document and shadow root environments", () => {
   )
   const fallback = observePortalTarget()
   expect(fallback.target).toBe(fallback.document.body)
+})
+
+function focusRestorationFixture() {
+  const frames = new Map<number, FrameRequestCallback>()
+  let sequence = 0
+  const doc = {
+    body: {},
+    activeElement: null as unknown,
+    defaultView: {
+      requestAnimationFrame: vi.fn((callback: FrameRequestCallback) => {
+        sequence += 1
+        frames.set(sequence, callback)
+        return sequence
+      }),
+      cancelAnimationFrame: vi.fn((id: number) => frames.delete(id)),
+    },
+  }
+  doc.activeElement = doc.body
+  const content = {
+    ownerDocument: doc,
+    isConnected: true,
+    hidden: false,
+    contains: (node: unknown) => node === content,
+  }
+  const target = {
+    isConnected: true,
+    matches: vi.fn(() => false),
+    closest: vi.fn(() => null),
+    focus: vi.fn(() => {
+      doc.activeElement = target
+    }),
+  }
+  const restore = () =>
+    restoreFocusAfterOverlayClose(
+      content as unknown as HTMLElement,
+      () => target as unknown as HTMLElement
+    )
+  const tick = () => {
+    const queued = [...frames.values()]
+    frames.clear()
+    for (const callback of queued) {
+      callback(0)
+    }
+  }
+  return { doc, content, target, restore, tick, frames }
+}
+
+test("overlay focus waits for actual unmount, then survives deferred cleanup", () => {
+  const { doc, content, target, restore, tick, frames } =
+    focusRestorationFixture()
+  restore()
+  tick()
+  tick()
+  expect(target.focus).not.toHaveBeenCalled()
+  content.isConnected = false
+  tick()
+  expect(doc.activeElement).toBe(target)
+  // A later focus-trap cleanup loses focus after the first successful RAF.
+  doc.activeElement = doc.body
+  tick()
+  expect(doc.activeElement).toBe(target)
+  tick()
+  expect(frames.size).toBe(0)
+})
+
+test("overlay focus does not steal intentional outside focus", () => {
+  const { doc, content, target, restore, tick, frames } =
+    focusRestorationFixture()
+  restore()
+  content.isConnected = false
+  doc.activeElement = {}
+  tick()
+  expect(target.focus).not.toHaveBeenCalled()
+  expect(frames.size).toBe(0)
+})
+
+test("overlay focus retries a temporarily unavailable trigger and can be cancelled", () => {
+  const { content, target, restore, tick, frames } = focusRestorationFixture()
+  content.hidden = true
+  target.isConnected = false
+  const cancel = restore()
+  tick()
+  expect(target.focus).not.toHaveBeenCalled()
+  target.isConnected = true
+  tick()
+  expect(target.focus).toHaveBeenCalledOnce()
+  cancel()
+  expect(frames.size).toBe(0)
+  tick()
+  expect(target.focus).toHaveBeenCalledOnce()
+})
+
+test("overlay focus retries are bounded when the parent refuses to close", () => {
+  const { target, restore, tick, frames } = focusRestorationFixture()
+  restore()
+  for (let frame = 0; frame < 40; frame++) {
+    tick()
+  }
+  expect(frames.size).toBe(0)
+  expect(target.focus).not.toHaveBeenCalled()
 })
 
 test("disabled client portals stay inline and never resolve or create a portal", () => {

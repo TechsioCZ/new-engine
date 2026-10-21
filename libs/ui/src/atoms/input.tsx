@@ -2,15 +2,26 @@
  * Input — @techsio/ui-kit atom.
  *
  * @component Input
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the input-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { type InputHTMLAttributes, type Ref, useId } from "react"
+import {
+  type InputHTMLAttributes,
+  type Ref,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
+import {
+  subscribeOwnerFormReset,
+  syncReactFormControl,
+} from "../internal/form-control-lifecycle"
 import { tv } from "../utils"
 
 const inputVariants = tv({
@@ -105,6 +116,42 @@ export function Input({
   ...props
 }: InputProps) {
   const generatedId = useId()
+  const currentValue = useRef({ value: props.value, checked: props.checked })
+  useLayoutEffect(() => {
+    currentValue.current = { value: props.value, checked: props.checked }
+  })
+  const inputRef = useMemo(
+    () => (input: HTMLInputElement | null) => {
+      const stopReset = input
+        ? subscribeOwnerFormReset(input, () => {
+            const { value, checked } = currentValue.current
+            if (input.type === "checkbox" || input.type === "radio") {
+              syncReactFormControl(input, checked ?? input.checked)
+            } else {
+              syncReactFormControl(
+                input,
+                value == null ? input.value : String(value)
+              )
+            }
+          })
+        : undefined
+      const cleanup = typeof ref === "function" ? ref(input) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = input
+      }
+      return () => {
+        stopReset?.()
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
   return (
     <input
       className={inputVariants({
@@ -119,7 +166,7 @@ export function Input({
       disabled={disabled}
       id={id || generatedId}
       readOnly={readOnly}
-      ref={ref}
+      ref={inputRef}
       {...props}
       aria-invalid={variant === "error" ? true : props["aria-invalid"]}
     />

@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.0
+ * @componentVersion v1.6.1
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,6 +28,7 @@ import {
   type Ref,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -40,7 +41,10 @@ import { Input } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
-import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import {
+  subscribeOwnerFormReset,
+  syncReactFormControl,
+} from "../internal/form-control-lifecycle"
 import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
@@ -605,9 +609,35 @@ export function Combobox<T = unknown>({
     null
   )
   const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
+  // Selection projection must not depend on the filtered popup collection.
+  const fullCollection = useMemo(
+    () =>
+      createComboboxCollection({
+        items: allItems,
+        itemToString: (item) => item.label,
+        itemToValue: (item) => item.value,
+      }),
+    [allItems]
+  )
+  const selectionCollection = useRef(fullCollection)
+  selectionCollection.current = fullCollection
   const initialValue = useRef(normalizeValue(defaultValue) ?? [])
   const resetting = useRef(false)
   const resetSelection = useRef<string[] | null>(null)
+  useLayoutEffect(() => {
+    const restored = resetSelection.current
+    const controlled = normalizeValue(value)
+    if (
+      restored &&
+      controlled &&
+      (restored.length !== controlled.length ||
+        restored.some((item, index) => item !== controlled[index]))
+    ) {
+      // External parent updates are not user proposals, but must release the
+      // reset query too (including a later round-trip back to the reset value).
+      resetSelection.current = null
+    }
+  }, [value])
   const coordinatedMachine = useMemo<typeof comboboxMachine>(() => {
     const syncSelectedItems =
       comboboxMachine.implementations?.actions?.syncSelectedItems
@@ -625,6 +655,9 @@ export function Combobox<T = unknown>({
               ...params,
               prop(key) {
                 const propValue = params.prop(key)
+                if (key === "collection") {
+                  return selectionCollection.current as typeof propValue
+                }
                 // Zag resolves this inside a microtask. Preserve the restored
                 // query while still refreshing its selected-item cache. A new
                 // edit or authoritative selection releases the reset snapshot.
@@ -722,6 +755,13 @@ export function Combobox<T = unknown>({
       }
       if (!(resetting.current || navigation || readOnly || disabled)) {
         onChange?.(selectedValue)
+        if (value !== undefined) {
+          // A refused proposal does not change Zag's value, so its value watcher
+          // never repairs the query written by selectItem/selectHighlightedItem.
+          // Resolve after React has accepted/refused the proposal, not from the
+          // proposed item or the filtered popup collection.
+          queueMicrotask(() => service.send({ type: "SELECTED_ITEMS.SYNC" }))
+        }
       }
     },
     onInputValueChange: ({ inputValue: newItemInputValue }) => {
@@ -749,6 +789,43 @@ export function Combobox<T = unknown>({
   })
 
   const api = connectCombobox(service, normalizeProps)
+  const previousSelectionCollection = useRef(fullCollection)
+  useLayoutEffect(() => {
+    const previous = previousSelectionCollection.current
+    previousSelectionCollection.current = fullCollection
+    if (
+      previous === fullCollection ||
+      navigation ||
+      selectionBehavior !== "replace" ||
+      inputValue !== undefined
+    ) {
+      return
+    }
+    const selected = service.context.get("value")
+    // Remote results may temporarily omit selected items. Keep their cached
+    // labels instead of replacing the query with a partial or empty projection.
+    if (selected.some((item) => !fullCollection.find(item))) {
+      return
+    }
+    const previousText = previous.stringifyMany(selected)
+    const nextText = fullCollection.stringifyMany(selected)
+    // Zag watches selected keys, not their labels. Refresh a projected label
+    // when only collection data changes, without discarding an active query.
+    if (
+      previousText === nextText ||
+      service.context.get("inputValue") !== previousText
+    ) {
+      return
+    }
+    resetSelection.current = null
+    resetting.current = true
+    try {
+      service.context.set("inputValue", nextText)
+    } finally {
+      resetting.current = false
+    }
+    service.send({ type: "SELECTED_ITEMS.SYNC" })
+  }, [fullCollection, inputValue, navigation, selectionBehavior, service])
   const initialQuery = useRef(service.context.initial("inputValue"))
   const reset = useRef<() => void>(() => undefined)
   reset.current = () => {
@@ -759,7 +836,9 @@ export function Combobox<T = unknown>({
       : (normalizeValue(value) ?? initialValue.current)
     const restoredQuery =
       inputValue ??
-      (value !== undefined && selectionBehavior === "replace" && !navigation
+      (selectionBehavior === "replace" &&
+      !navigation &&
+      (value !== undefined || defaultInputValue === undefined)
         ? restoredValue
             .map(
               (itemValue) =>
@@ -769,7 +848,7 @@ export function Combobox<T = unknown>({
                 itemValue
             )
             .join(", ")
-        : initialQuery.current)
+        : (defaultInputValue ?? initialQuery.current))
     // Direct restoration bypasses edit guards without emitting user callbacks.
     // Keep the snapshot through Zag's deferred selected-item synchronization.
     resetSelection.current = restoredValue
@@ -788,7 +867,7 @@ export function Combobox<T = unknown>({
     api.clearHighlightValue()
     setOptions(allItems)
     if (inputRef.current) {
-      inputRef.current.value = restoredQuery
+      syncReactFormControl(inputRef.current, restoredQuery)
     }
   }
   useEffect(() => {
@@ -929,6 +1008,7 @@ export function Combobox<T = unknown>({
           }
           aria-required={required || undefined}
           className={input({ className: inputProps.className })}
+          defaultValue={inputValue === undefined ? api.inputValue : undefined}
           disabled={disabled}
           name={undefined}
           onKeyDown={(event) => {
@@ -960,6 +1040,7 @@ export function Combobox<T = unknown>({
           ref={focusableRef}
           required={navigation && required}
           size={size}
+          value={inputValue}
         />
 
         <ComboboxClearTrigger

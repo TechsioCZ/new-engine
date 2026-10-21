@@ -202,6 +202,9 @@ function ProductDetailPage() {
                 <NumericInput
                   max={10}
                   min={1}
+                  step={1}
+                  precision={0}
+                  locale="en-US"
                   clampValueOnBlur={false}
                   onValueChange={(details) => setQuantity(details.value)}
                   value={quantity}
@@ -459,13 +462,28 @@ export const Default: Story = {
     const quantity = canvas.getByRole("spinbutton", { name: "Quantity" })
     await expect(quantity).toBeVisible()
     const purchase = canvas.getByRole("button", { name: "Add to cart" })
-    for (const draft of ["", "1.5", "0", "11"]) {
+    // Repeated zero-delay drafts cross queued Zag frames and parent updates.
+    // Neither integer nor fractional typing may rewind the native caret.
+    for (let run = 0; run < 10; run++) {
+      for (const draft of ["12", "1.5"]) {
+        await userEvent.clear(quantity)
+        await userEvent.type(quantity, draft, { delay: 0 })
+        await userEvent.tab()
+        await expect(quantity).toHaveValue(draft)
+        await expect(purchase).toBeDisabled()
+      }
+    }
+    for (const draft of ["", "1.5", "0", "11", "120", "212"]) {
       await userEvent.clear(quantity)
       if (draft) await userEvent.type(quantity, draft)
       await userEvent.tab()
       await expect(quantity).toHaveValue(draft)
       await expect(purchase).toBeDisabled()
       await expect(quantity).toHaveAttribute("aria-invalid", "true")
+      await expect(quantity).toHaveAccessibleDescription(
+        "Enter a whole number from 1 to 10 before adding to cart."
+      )
+      await expect(quantity).toHaveAttribute("aria-errormessage")
       purchase.click()
       await expect(canvas.getByText("Demo cart: 0 items")).toBeVisible()
     }

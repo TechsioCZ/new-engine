@@ -2,7 +2,7 @@
  * QuantityField — @techsio/ui-kit molecule.
  *
  * @component QuantityField
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill quantity-field-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */

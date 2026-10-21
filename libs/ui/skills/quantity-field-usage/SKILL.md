@@ -5,7 +5,7 @@ description: >
   for controlled quantity drafts with a visible unit, helper/error feedback,
   bounded stepping, accessible pending state and compact cart presentation.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -169,3 +169,21 @@ Inspect the public API and manual stories before selecting props. Verify clear
 and retype, rejected-draft retention, parent reset, boundaries and all pending/
 readOnly edit paths. Check the real input's label, descriptions and invalid state.
 Run narrow consumer checks; do not migrate an app while authoring the shared kit.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
+
+## Whole-unit validation
+
+`step={1}` and zero precision do not validate an integer quantity. Fractional
+drafts remain editable; the app must require a nonempty, finite, integer parsed
+value within its bounds before saving. Preserve an invalid draft with feedback
+rather than rounding or truncating it. Native handlers, clamped blur commits and
+controlled refusal follow NumericInput's contract.

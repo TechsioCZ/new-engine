@@ -5,7 +5,7 @@ description: >
   accessible rating capture or display using the Zag.js rating-group wrapper,
   supported value/count/allowHalf/readOnly/displayOnly/disabled props, and token styling.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.3.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -91,7 +91,7 @@ scale). Scores clamp to `0..count`; editable values round to the nearest whole
 or half star according to `allowHalf`. Read-only averages retain fractional
 precision. Uncontrolled initialization, runtime scale/precision changes and
 native reset share this policy. Each actual editable uncontrolled correction
-emits one `onChange`; reset restores the initial default under the **current**
+emits one `onChange`; reset emits none and restores the initial default under the **current**
 constraints. Canceled resets do not change the score. Controlled invalid values
 use a normalized display/submission projection without writing back to the
 parent; application state remains the parent's responsibility.
@@ -253,3 +253,14 @@ rg -P -n "<Rating(?![^>]*(name=|readOnly|labelText=))" apps
 rg -n "<Rating[^>]*disabled" apps
 rg -n "onHoverChange|allowHalf|count=" apps
 ```
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.

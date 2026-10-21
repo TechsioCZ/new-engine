@@ -6,7 +6,7 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.4.0"
+  component_version: "1.4.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -217,3 +217,13 @@ rg -n "showMarkers|markerCount|formatRangeText|onChangeEnd" apps
 
 
 Every multi-thumb slider needs distinct, contextual `aria-label` entries even when `label` is visible. Missing/duplicate names emit a warning. `getAriaValueText({value,index})` overrides spoken values per thumb and defaults to `formatValue(value)`; `formatRangeText` formats only the visible group summary. Inherited disabling follows native fieldset semantics, including disabled outer fieldsets and the first-legend exemption; dynamic changes update machine interactivity, thumb tab order and form submission together.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.

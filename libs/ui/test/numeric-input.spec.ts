@@ -8,6 +8,19 @@ async function openStory(page: Page, story: string) {
     { waitUntil: "domcontentloaded" }
   )
   await expect(page.getByRole("spinbutton").first()).toBeVisible()
+  await waitForStoryPlay(page)
+}
+
+// Stories with keyboard play functions must finish before tests send keys.
+async function waitForStoryPlay(page: Page) {
+  await page.waitForFunction(() => {
+    const preview = (
+      window as unknown as {
+        __STORYBOOK_PREVIEW__?: { currentRender?: { phase?: string } }
+      }
+    ).__STORYBOOK_PREVIEW__
+    return preview?.currentRender?.phase === "finished"
+  })
 }
 
 async function callbackCounts(page: Page) {
@@ -145,6 +158,7 @@ test("FormNumericInput preserves localized drafts, rejected overflow and parent 
     "/iframe.html?id=molecules-formnumericinput--controlled-draft&viewMode=story",
     { waitUntil: "domcontentloaded" }
   )
+  await waitForStoryPlay(page)
   const input = page.getByRole("spinbutton", { name: "Form draft quantity" })
   const draft = page.getByTestId("form-draft-value")
   const committed = page.getByTestId("form-committed-value")

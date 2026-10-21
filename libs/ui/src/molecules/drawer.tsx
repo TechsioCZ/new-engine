@@ -2,7 +2,7 @@
  * Drawer - @techsio/ui-kit molecule.
  *
  * @component Drawer
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.4
  * @skill drawer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -14,6 +14,9 @@ import {
   type ComponentPropsWithoutRef,
   type ReactNode,
   type Ref,
+  useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
 } from "react"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
@@ -37,7 +40,10 @@ import {
   type DrawerSize,
   drawerVariants,
 } from "../internal/molecules/drawer.styles"
-import { OverlayContainerProvider } from "../internal/overlay-portal"
+import {
+  OverlayContainerProvider,
+  restoreFocusAfterOverlayClose,
+} from "../internal/overlay-portal"
 
 export type {
   DrawerApi,
@@ -47,7 +53,64 @@ export type {
 } from "../internal/molecules/drawer.context"
 export type { DrawerSize } from "../internal/molecules/drawer.styles"
 
-export const useDrawer = useDrawerMachine
+function getDrawerQueryRoot(root: Node): Document | ShadowRoot {
+  return root.nodeType === 9 || root.nodeType === 11
+    ? (root as Document | ShadowRoot)
+    : (root.ownerDocument ?? document)
+}
+
+export function useDrawer(props: UseDrawerProps = {}): DrawerApi {
+  const contentRef = useRef<HTMLElement | null>(null)
+  const api = useDrawerMachine({
+    ...props,
+    initialFocusEl:
+      props.initialFocusEl ??
+      (props.role === "alertdialog"
+        ? undefined
+        : () => {
+            const content = contentRef.current
+            const active = content?.ownerDocument.activeElement
+            // Trap activation is deferred. Honor focus already moved into the
+            // drawer (including a nested popup) rather than reinitializing it.
+            return active && content?.contains(active)
+              ? (active as HTMLElement)
+              : null
+          }),
+  })
+  const previousOpen = useRef(api.open)
+  const triggerRef = useRef<HTMLElement | null>(null)
+  const cancelRestore = useRef<(() => void) | undefined>(undefined)
+
+  // Capture live nodes while mounted, then restore only after presence and the
+  // nested popup/focus-trap cleanup finish. The hook also covers RootProvider.
+  useLayoutEffect(() => {
+    if (api.open) {
+      cancelRestore.current?.()
+      const queryRoot = getDrawerQueryRoot(props.getRootNode?.() ?? document)
+      const contentId = api.getContentProps().id
+      const triggerId = api.getTriggerProps({
+        value: api.triggerValue ?? undefined,
+      }).id
+      contentRef.current = contentId
+        ? queryRoot.getElementById(contentId)
+        : null
+      triggerRef.current = triggerId
+        ? queryRoot.getElementById(triggerId)
+        : null
+    } else if (previousOpen.current && props.restoreFocus !== false) {
+      const content = contentRef.current
+      if (content) {
+        cancelRestore.current = restoreFocusAfterOverlayClose(
+          content,
+          () => props.finalFocusEl?.() ?? triggerRef.current
+        )
+      }
+    }
+    previousOpen.current = api.open
+  })
+  useEffect(() => () => cancelRestore.current?.(), [])
+  return api
+}
 
 export type DrawerPlacement = "bottom" | "end" | "start" | "top"
 

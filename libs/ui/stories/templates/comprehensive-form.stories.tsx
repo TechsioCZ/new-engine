@@ -889,9 +889,7 @@ export const ModalPopupContracts: Story = {
       await expect(modal).toBeVisible()
       await userEvent.keyboard("{Escape}")
       await waitFor(() => expect(modal).not.toBeInTheDocument())
-      // Drawer host-trigger restoration is tracked by the overlay owner; this
-      // regression owns popup containment and popup-to-input focus restoration.
-      if (host === "dialog") await waitFor(() => expect(trigger).toHaveFocus())
+      await waitFor(() => expect(trigger).toHaveFocus())
     }
   },
 }

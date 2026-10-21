@@ -13,6 +13,67 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Coherence pass
+- Align focus return, visible values and native form submission across controls. Native reset never calls value-change callbacks or dispatches native input/change events: uncontrolled controls restore defaults, controlled controls retain parent values, and React tracking is resynchronized for the next identical user edit.
+- Extend reset, controlled-refusal, nested-popup and displayOnly regression coverage; preserve authored Controls rows and harden typechecking, visual-tooling tests and large component-test reports.
+
+### NumericInput v1.3.2
+- Compose cancellable native handlers, preserve fractional drafts for domain validation, report clamped commits and restore controlled/reset authority without losing the next edit.
+
+### Rating v1.3.1
+- Suppress reset-driven native events and keep native tracking aligned with silent rating restoration; retain noninteractive displayOnly summaries.
+
+### Checkbox v1.2.2
+- Restore native checked state and React change tracking silently after form reset, including controlled and mixed values.
+
+### Textarea v1.0.4
+- Keep parent-owned text authoritative after reset and resynchronize React tracking without callbacks or native events.
+
+### Input v1.1.2
+- Preserve controlled native values on reset and resynchronize React tracking so the next identical edit notifies once.
+
+### FormTextarea v1.1.3
+- Inherit silent text restoration and post-reset React change tracking from Textarea.
+
+### FormCheckbox v1.3.1
+- Resynchronize native checked state and React tracking after silent reset through the shared choice lifecycle.
+
+### FormNumericInput v1.2.2
+- Inherit numeric draft, clamped-commit and silent-reset coherence, including native onChange after repeated edits.
+
+### Slider v1.4.1
+- Suppress reset-driven native input events while restoring defaults or parent-owned thumb values silently.
+
+### RadioCard v1.1.3
+- Inherit silent native radio reset and React tracker reconciliation from the shared radio machine.
+
+### DatePicker v1.3.3
+- Restore focus after keyboard calendar selection inside modal overlays and reconcile refused, blurred or reset segment drafts with authoritative date values.
+
+### Drawer v1.0.4
+- Preserve focus already inside nested popups during deferred trap activation and restore the opener after content and focus-trap teardown.
+
+### Combobox v1.6.1
+- Keep visible labels, selected-option ARIA and submitted keys aligned after refused selection, collection changes and silent reset while preserving active search drafts.
+
+### Switch v1.2.1
+- Keep controlled and uncontrolled reset projections silent and align React tracking for the next real toggle.
+
+### RadioGroup v1.1.3
+- Resynchronize native radio tracking after silent reset without duplicate or missing notifications on the next selection.
+
+### FormInput v1.1.4
+- Inherit controlled reset authority and React tracker reconciliation from Input without emitting reset callbacks or native events.
+
+### QuantityField v1.0.2
+- Preserve fractional quantity drafts for application integer validation and inherit authoritative, silent numeric resets.
+
+### Select v1.3.1
+- Restore native form defaults silently without dispatching change events; keep controlled selection authoritative.
+
+### SearchSuggestions v1.0.1
+- Inherit coherent query, selected-label and submitted-value restoration from Combobox without reset notifications.
+
 ### Wave 4 shared foundations and integration
 - Consolidate native form ownership, inherited disabling, cancellation-safe resets, choice event/ref composition and modal-aware portal ownership into shared internal modules without adding public helper exports.
 - Integrate cross-control native form and nested-overlay regression stories, maintained browser matrices, popup clipping checks and commerce workflow examples; document responsive compound-member contracts and complete public-import examples.

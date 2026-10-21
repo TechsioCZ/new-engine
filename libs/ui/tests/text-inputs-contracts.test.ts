@@ -9,9 +9,10 @@ import {
 } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import ts from "typescript"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { Label } from "../src/atoms/label"
 import { NumericInput } from "../src/atoms/numeric-input"
+import { syncReactFormControl } from "../src/internal/form-control-lifecycle"
 import { FormNumericInput } from "../src/molecules/form-numeric-input"
 
 const inputTag = /<input\b[^>]*>/
@@ -65,7 +66,47 @@ function exampleBody(code: string) {
   return `${withoutImport.slice(0, start)}\nreturn (${withoutImport.slice(start)});`
 }
 
+describe("native reset React tracker synchronization", () => {
+  it.each(["value", "checked"] as const)(
+    "assigns the restored %s through the instance setter even when unchanged",
+    (property) => {
+      const restored = property === "value" ? "Alpha" : false
+      const setter = vi.fn()
+      const dispatchEvent = vi.fn()
+      const input = Object.create(null, {
+        [property]: { get: () => restored, set: setter },
+        dispatchEvent: { value: dispatchEvent },
+      }) as HTMLInputElement
+      syncReactFormControl(input, restored)
+      expect(setter).toHaveBeenCalledExactlyOnceWith(restored)
+      expect(dispatchEvent).not.toHaveBeenCalled()
+    }
+  )
+
+  it("restores the authoritative parent value without synthesizing a change", () => {
+    const input = { value: "default", dispatchEvent: vi.fn() }
+    syncReactFormControl(input as unknown as HTMLInputElement, "parent")
+    expect(input.value).toBe("parent")
+    expect(input.dispatchEvent).not.toHaveBeenCalled()
+  })
+})
+
 describe("numeric field validation and nonfinite compatibility", () => {
+  it.each(["value", "defaultValue"] as const)(
+    "preserves a fractional %s string draft at integer precision",
+    (mode) => {
+      const html = renderToStaticMarkup(
+        h(
+          NumericInput,
+          { [mode]: "1.5", precision: 0, locale: "en-US", step: 1 },
+          h(NumericInput.Control, null, h(NumericInput.Input))
+        )
+      )
+      expect(html.match(inputTag)?.[0]).toContain('value="1.5"')
+      expect(html.match(inputTag)?.[0]).toContain('aria-valuenow="1.5"')
+    }
+  )
+
   it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
     "never renders nonfinite numeric value %s as editable text",
     (value) => {

@@ -2,15 +2,26 @@
  * Textarea — @techsio/ui-kit atom.
  *
  * @component Textarea
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.4
  * @skill textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the textarea-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { type Ref, type TextareaHTMLAttributes, useId } from "react"
+import {
+  type Ref,
+  type TextareaHTMLAttributes,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
+import {
+  subscribeOwnerFormReset,
+  syncReactFormControl,
+} from "../internal/form-control-lifecycle"
 import { tv } from "../utils"
 
 const textareaVariants = tv({
@@ -107,6 +118,39 @@ export function Textarea({
   ...props
 }: TextareaProps) {
   const generatedId = useId()
+  const currentValue = useRef(props.value)
+  useLayoutEffect(() => {
+    currentValue.current = props.value
+  })
+  const textareaRef = useMemo(
+    () => (textarea: HTMLTextAreaElement | null) => {
+      const stopReset = textarea
+        ? subscribeOwnerFormReset(textarea, () => {
+            syncReactFormControl(
+              textarea,
+              currentValue.current == null
+                ? textarea.value
+                : String(currentValue.current)
+            )
+          })
+        : undefined
+      const cleanup = typeof ref === "function" ? ref(textarea) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = textarea
+      }
+      return () => {
+        stopReset?.()
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
   return (
     <textarea
       className={textareaVariants({
@@ -118,7 +162,7 @@ export function Textarea({
       data-readonly={readOnly ? "" : undefined}
       id={id || generatedId}
       readOnly={readOnly}
-      ref={ref}
+      ref={textareaRef}
       {...props}
       aria-invalid={variant === "error" ? true : props["aria-invalid"]}
     />

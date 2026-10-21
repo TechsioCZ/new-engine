@@ -2,7 +2,7 @@
 name: search-suggestions-usage
 description: Use for grouped storefront search navigation with rich results and an all-results link, composed from the UI-kit Combobox.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -126,3 +126,18 @@ with linked helper text. `className`, `style` and ordinary div DOM props target
 the root. These are the same APIs as Combobox, preserved through this template.
 The Playground simulates application-owned external filtering; production apps
 still own request debounce, fetching and replacement of result groups.
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.
+
+Navigation mode has no submitted selection. Its query follows the same silent
+reset rule: restore the latest `defaultInputValue` when uncontrolled, or keep
+`inputValue` when controlled.

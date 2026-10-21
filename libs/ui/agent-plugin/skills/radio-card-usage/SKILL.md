@@ -5,7 +5,7 @@ description: >
   prominent single-choice cards with Zag.js radio behavior, label, item,
   hidden input, control, text, description, addon, indicator, and status text.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -93,7 +93,7 @@ value, including rejected pointer/Space/arrow changes and external clearing.
 Reset follows the actual native input's `form` owner, including external owners
 and explicit ownership overriding an ancestor. Uncontrolled reset restores the
 initial `defaultValue` (or no selection); canceled resets do nothing. Controlled
-parents keep ownership and may refuse a reset proposal.
+parents keep ownership; reset silently re-syncs their current value.
 
 When a focused option disappears or becomes disabled, focus moves to the next
 enabled survivor, then the previous survivor. This never changes the saved
@@ -231,3 +231,14 @@ rg -U -P -n "onClick=.*set.*(Plan|Method)|<RadioCard\\.Item(?![\\s\\S]{0,300}<Ra
 rg -n "<RadioCard[^>]*variant=\"(primary|outlined)\"|<RadioCard[^>]*className=.*(border-|bg-|p-)" apps
 rg -n "<RadioCard[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.

@@ -8,6 +8,7 @@ import {
   NumericInput,
   type NumericInputProps,
 } from "../../src/atoms/numeric-input"
+import { FormNumericInput } from "../../src/molecules/form-numeric-input"
 
 const draftChanged = fn()
 const draftCommitted = fn()
@@ -888,7 +889,7 @@ export const PrecisionZero: Story = {
     docs: {
       description: {
         story:
-          "Zero precision rounds fractional numeric values instead of silently ignoring the option.",
+          "Zero precision formats numeric initial values as whole units; typed fractional drafts remain available for application validation instead of being silently rounded.",
       },
     },
   },
@@ -1083,11 +1084,25 @@ export const ExternalOwnerReset: Story = {
     await new Promise(resolve => setTimeout(resolve, 30))
     await expect(input).toHaveValue("15")
     await expect(new FormData(oldOwner).get("quantity")).toBe("15")
+    // This refusing parent only observes with fn(); it does not rerender to
+    // repair the input. Repeated edits must still restore native authority.
+    const fixed = controlled as HTMLInputElement
+    for (const draft of ["7", "6"]) {
+      await userEvent.click(fixed)
+      fixed.setSelectionRange(0, fixed.value.length)
+      await userEvent.keyboard(draft)
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+      await expect(fixed).toHaveValue("9")
+      await expect(fixed).toHaveAttribute("aria-valuenow", "9")
+      await expect(new FormData(fixed.form!).get("fixed")).toBe("9")
+    }
+    await expect(trackResetDraft).toHaveBeenCalledTimes(2)
   },
 }
 
 
 const observedBlur = fn()
+const observedCommit = fn()
 const canceledBlur = fn()
 export const NativeEventComposition: Story = {
   parameters: {
@@ -1096,7 +1111,7 @@ export const NativeEventComposition: Story = {
   },
   render: () => (
     <div className="grid w-full max-w-sm gap-200">
-      <NumericInput defaultValue={2} min={0} max={10}>
+      <NumericInput defaultValue={2} min={0} max={10} onValueCommit={observedCommit}>
         <NumericInput.Control>
           <NumericInput.Input aria-label="Observed blur" onBlur={observedBlur} />
         </NumericInput.Control>
@@ -1111,6 +1126,7 @@ export const NativeEventComposition: Story = {
   ),
   play: async ({ canvasElement }) => {
     observedBlur.mockClear()
+    observedCommit.mockClear()
     canceledBlur.mockClear()
     const canvas = within(canvasElement)
     const observed = canvas.getByRole("spinbutton", { name: "Observed blur" })
@@ -1120,10 +1136,163 @@ export const NativeEventComposition: Story = {
     await userEvent.tab()
     await waitFor(() => expect(observed).toHaveValue("10"))
     await expect(observedBlur).toHaveBeenCalledTimes(1)
+    await expect(observedCommit).toHaveBeenCalledTimes(1)
+    await expect(observedCommit).toHaveBeenCalledWith({ value: "10", valueAsNumber: 10 })
     await userEvent.clear(canceled)
     await userEvent.type(canceled, "99")
     await userEvent.tab()
     await expect(canceled).toHaveValue("99")
     await expect(canceledBlur).toHaveBeenCalledTimes(1)
+  },
+}
+
+type ResetAuthority = "uncontrolled" | "accept" | "refuse"
+
+function NativeResetTrackerField({
+  wrapped,
+  authority,
+}: {
+  wrapped: boolean
+  authority: ResetAuthority
+}) {
+  const initialValue = wrapped ? 50 : 20
+  const [value, setValue] = useState(initialValue)
+  const [nativeChanges, setNativeChanges] = useState(0)
+  const [proposals, setProposals] = useState(0)
+  const label = `${wrapped ? "FormNumericInput" : "NumericInput"} ${authority}`
+  const fieldProps: NumericInputProps = {
+    name: "quantity",
+    defaultValue: initialValue,
+    value: authority === "uncontrolled" ? undefined : value,
+    locale: "en-US",
+    onValueChange: ({ valueAsNumber }) => {
+      setProposals((count) => count + 1)
+      if (authority === "accept") {
+        setValue(valueAsNumber)
+      }
+    },
+  }
+  const editor = (
+    <NumericInput.Control>
+      <NumericInput.Input
+        aria-label={label}
+        onChange={() => setNativeChanges((count) => count + 1)}
+      />
+    </NumericInput.Control>
+  )
+  return (
+    <form aria-label={label} className="grid gap-100">
+      {wrapped ? (
+        <FormNumericInput {...fieldProps} label={label}>
+          {editor}
+        </FormNumericInput>
+      ) : (
+        <NumericInput {...fieldProps}>{editor}</NumericInput>
+      )}
+      <output aria-label="Native changes">{nativeChanges}</output>
+      <output aria-label="Value proposals">{proposals}</output>
+      <Button type="reset" variant="secondary">Reset quantity</Button>
+      {authority !== "uncontrolled" && (
+        <Button onClick={() => setValue(60)} variant="secondary">
+          Update parent
+        </Button>
+      )}
+    </form>
+  )
+}
+
+export const NativeResetTracker: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: "Native Input onChange and machine value proposals remain independent: silent resets restore uncontrolled defaults or controlled authority, and the next identical user edit is still reported by React, including through FormNumericInput.",
+      },
+    },
+  },
+  render: () => (
+    <div className="grid w-full max-w-md gap-300">
+      {[false, true].flatMap((wrapped) =>
+        (["uncontrolled", "accept", "refuse"] as const).map((authority) => (
+          <NativeResetTrackerField
+            authority={authority}
+            key={`${wrapped}-${authority}`}
+            wrapped={wrapped}
+          />
+        ))
+      )}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const settle = () =>
+      new Promise<void>((resolve) => {
+        const view = canvasElement.ownerDocument.defaultView!
+        setTimeout(() => {
+          view.requestAnimationFrame(() => {
+            view.requestAnimationFrame(() => resolve())
+          })
+        }, 0)
+      })
+    for (const wrapped of [false, true]) {
+      for (const authority of ["uncontrolled", "accept", "refuse"] as const) {
+        const label = `${wrapped ? "FormNumericInput" : "NumericInput"} ${authority}`
+        const form = canvas.getByRole("form", { name: label }) as HTMLFormElement
+        const field = within(form)
+        const input = field.getByRole("spinbutton") as HTMLInputElement
+        const initial = wrapped ? "50" : "20"
+        const edit = async (draft: string) => {
+          await userEvent.click(input)
+          input.setSelectionRange(0, input.value.length)
+          // One real replacement edit, not clear()+type(): clearing would update
+          // the stale tracker first and hide the identical-post-reset regression.
+          await userEvent.keyboard(draft)
+          await settle()
+        }
+        const assertValue = async (expected: string) => {
+          await expect(input).toHaveValue(expected)
+          await expect(input).toHaveAttribute("aria-valuenow", expected)
+          await expect(new FormData(form).get("quantity")).toBe(expected)
+        }
+        await edit("7")
+        const assertCounts = async (count: number) => {
+          for (const channel of ["Native changes", "Value proposals"]) {
+            await expect(field.getByLabelText(channel)).toHaveTextContent(
+              new RegExp(`^${count}$`)
+            )
+          }
+        }
+        const reset = field.getByRole("button", { name: "Reset quantity" })
+        await assertCounts(1)
+        await assertValue(authority === "refuse" ? initial : "7")
+        await userEvent.click(reset)
+        await settle()
+        await assertValue(authority === "accept" ? "7" : initial)
+        await assertCounts(1)
+        const nextDraft = authority === "accept" ? "8" : "7"
+        await edit(nextDraft)
+        await assertCounts(2)
+        const authoritative = authority === "refuse" ? initial : nextDraft
+        await assertValue(authoritative)
+        // A canceled native reset must leave the current value and both counts.
+        form.addEventListener("reset", (event) => event.preventDefault(), {
+          once: true,
+        })
+        await userEvent.click(reset)
+        await settle()
+        await assertValue(authoritative)
+        await assertCounts(2)
+        if (authority !== "uncontrolled") {
+          await userEvent.click(
+            field.getByRole("button", { name: "Update parent" })
+          )
+          await settle()
+          await userEvent.click(reset)
+          await settle()
+          await assertValue("60")
+          await assertCounts(2)
+        }
+      }
+    }
   },
 }

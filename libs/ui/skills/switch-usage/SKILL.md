@@ -6,7 +6,7 @@ description: >
   checked/defaultChecked, validation status, help text, required, disabled, and
   read-only state.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -83,8 +83,8 @@ helpText, showHelpTextIcon
 A rejected `onCheckedChange` proposal does not change native submission or
 validity. Native reset restores the initial uncontrolled default after the
 browser reset action, including imperative `form.reset()` while focused.
-Canceled resets do not change state or emit reset proposals. Controlled parents
-retain ownership: a reset is a proposal, not permission to overwrite props.
+Canceled resets do not change state or emit value callbacks. Controlled parents
+retain ownership: reset silently re-syncs the native input to their checked value.
 The label shrinks and safely wraps long/localized words without shrinking the
 track. Enabled unchecked and invalid thumbs have a contrasting state-aware fill.
 
@@ -138,7 +138,7 @@ function Notifications() {
 
 Uncontrolled reset restores its initial default only after native/React reset
 cancellation has settled. Canceled resets do not change the value or emit a
-reset proposal. The actual native input owner is followed through external-form
+value callback. The actual native input owner is followed through external-form
 ID changes and reparenting; listeners/pending work are disposed on unmount.
 Controlled `checked` remains parent-owned even when a proposal is rejected;
 applications must explicitly update it when they want a reset. Do not reset by
@@ -204,3 +204,14 @@ rg -n "<Checkbox[\\s\\S]{0,120}(Enable|Disable|notifications|toggle)" apps -U
 rg -n "<Switch[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
 
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.

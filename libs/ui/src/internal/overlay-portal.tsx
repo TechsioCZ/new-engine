@@ -61,6 +61,50 @@ export function OverlayContainerProvider({
   )
 }
 
+/** @internal Wait for actual removal/hiding and focus-trap teardown, rather than
+ * racing a single animation frame against portal cleanup. Stop for intentional
+ * outside focus, and cancel on reopen/unmount through the returned disposer. */
+export function restoreFocusAfterOverlayClose(
+  content: HTMLElement,
+  getTarget: () => HTMLElement | null
+): () => void {
+  const doc = content.ownerDocument
+  const view = doc.defaultView
+  if (!view) {
+    return () => undefined
+  }
+  let frame = 0
+  let attempts = 0
+  let settled = 0
+  const restore = () => {
+    attempts += 1
+    const target = getTarget()
+    const active = doc.activeElement
+    if (active !== doc.body && active !== target && !content.contains(active)) {
+      return
+    }
+    if (
+      (!content.isConnected || content.hidden) &&
+      target?.isConnected &&
+      !target.matches(':disabled, [aria-disabled="true"]') &&
+      !target.closest('[hidden], [inert], [aria-hidden="true"]')
+    ) {
+      target.focus({ preventScroll: true })
+      settled = doc.activeElement === target ? settled + 1 : 0
+      // Keep checking briefly: deferred trap/dismissable cleanup can remove
+      // focus again after the first successful focus call.
+      if (settled >= 3) {
+        return
+      }
+    }
+    if (attempts < 30) {
+      frame = view.requestAnimationFrame(restore)
+    }
+  }
+  frame = view.requestAnimationFrame(restore)
+  return () => view.cancelAnimationFrame(frame)
+}
+
 /** @internal Uses React portals rather than moving React-owned DOM nodes. */
 export function OverlayPortal({
   children,

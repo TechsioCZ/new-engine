@@ -339,6 +339,100 @@ test("inferred Controls hide internals, edit strings as text and never serialize
   assert.equal(result.documented.control, false)
 })
 
+test("Controls preserve authored callback and JSX docs and normalized disabled editors", () => {
+  const element = {
+    $$typeof: Symbol.for("react.transitional.element"),
+    props: {},
+  }
+  const argTypes = {
+    onInputValueChange: {
+      control: { type: "text" },
+      description: "Receives the application-owned query.",
+      table: { disable: false, category: "Query" },
+    },
+    onValueChange: {
+      control: false,
+      description: "Proposes a numeric draft.",
+    },
+    onChange: { control: { type: "object" }, table: { disable: false } },
+    allResultsLink: {
+      control: { type: "object" },
+      description: "Application-owned full-results footer node.",
+    },
+    children: { control: { type: "object" }, table: { disable: false } },
+    disabledText: { control: { disable: true, type: "object" } },
+    disabledNode: { control: { disable: true }, description: "A JSX node." },
+    hiddenNode: {
+      description: "Intentionally hidden.",
+      table: { disable: true },
+    },
+    inferredNode: {},
+  }
+  const result = curateControls({
+    argTypes,
+    initialArgs: {
+      allResultsLink: element,
+      children: [element],
+      disabledText: "Do not infer a text editor",
+      disabledNode: element,
+      hiddenNode: element,
+      inferredNode: element,
+    },
+  })
+  for (const name of ["onInputValueChange", "onValueChange", "onChange"]) {
+    assert.equal(result[name].control, false)
+    assert.notEqual(result[name].table?.disable, true)
+    assert.equal(result[name].description, argTypes[name].description)
+  }
+  assert.deepEqual(
+    result.onInputValueChange.table,
+    argTypes.onInputValueChange.table
+  )
+  for (const name of ["allResultsLink", "children"]) {
+    assert.equal(result[name].control, false)
+    assert.equal(result[name].table.disable, false)
+  }
+  assert.equal(
+    result.allResultsLink.description,
+    argTypes.allResultsLink.description
+  )
+  for (const name of ["disabledText", "disabledNode"]) {
+    assert.deepEqual(result[name], argTypes[name])
+  }
+  for (const name of ["hiddenNode", "inferredNode"]) {
+    assert.equal(result[name].control, false)
+    assert.equal(result[name].table.disable, true)
+  }
+})
+
+test("the maintained CI gate covers Node regressions, TSX tests and portable references", () => {
+  const { scripts } = JSON.parse(read("../package.json"))
+  assert.match(scripts.test, /pnpm test:node/)
+  for (const file of [
+    "test/visual-tooling.test.mjs",
+    "test/token-utility-prefixes.test.mjs",
+    "../../.agents/skills/figma-token-binding/scripts/merge-figma-themes.test.mjs",
+    "scripts/*.node-test.mjs",
+  ]) {
+    assert.ok(scripts["test:node"].includes(file), `Missing Node gate: ${file}`)
+  }
+  assert.match(
+    read("../../../.github/workflows/ui-quality.yml"),
+    /pnpm --dir libs\/ui test\s/
+  )
+  const { include } = JSON.parse(read("../tsconfig.tests.json"))
+  for (const pattern of [
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "test/**/*.ts",
+    "test/**/*.tsx",
+  ]) {
+    assert.ok(include.includes(pattern), `Missing test typecheck: ${pattern}`)
+  }
+  const { files } = JSON.parse(read("../agent-plugin/package.json"))
+  assert.ok(files.includes("references"))
+})
+
 function themeRoot() {
   const classes = new Set(["app-shell"])
   const attributes = new Map()
@@ -625,9 +719,16 @@ test("native-form lifecycle matrix uses all maintained adapters without disablin
     assert.ok(spec.includes(`await ${helper}(page, adapter`))
   }
   assert.doesNotMatch(spec, /test\.(?:skip|fixme)|isMobile|browserName/)
+  // Theme expansion must reach the keyboard helper, not silently fall back to
+  // its default theme. Retain both controlled authority modes on every surface.
   assert.match(
     spec,
-    /await checkNativeDateKeyboardAuthority\(page, authority\)/
+    /for \(const theme of \[\s*\{ brand: "akros", mode: "light" \},\s*\{ brand: "base", mode: "light" \},\s*\{ brand: "base", mode: "dark" \},?\s*\]\)/
+  )
+  assert.match(spec, /for \(const authority of \["accept", "refuse"\]\)/)
+  assert.match(
+    spec,
+    /await checkNativeDateKeyboardAuthority\(\s*page,\s*authority,\s*theme\s*\)/
   )
   const nativeContracts = read("./native-form-contracts.mjs")
   assert.doesNotMatch(nativeContracts, /resetProposal|resetCallbacks/)

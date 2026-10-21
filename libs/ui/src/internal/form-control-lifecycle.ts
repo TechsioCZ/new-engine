@@ -116,6 +116,21 @@ function subscribeFormOwnership(control: HTMLElement, update: () => void) {
   }
 }
 
+/** Restore through React's instance setter, not the native prototype setter.
+ * Native reset bypasses React's value/checked tracker. Assign even when the DOM
+ * already matches, so the next identical user edit still produces onChange.
+ * This intentionally does not dispatch input/change events. */
+export function syncReactFormControl(
+  control: HTMLInputElement | HTMLTextAreaElement,
+  value: string | boolean = control.value
+): void {
+  if (typeof value === "boolean" && "checked" in control) {
+    control.checked = value
+  } else if (typeof value === "string") {
+    control.value = value
+  }
+}
+
 type ResetOptions = {
   /** Suppress nested machine proposals until the entire reset has settled. */
   onResetStart?: () => void

@@ -26,7 +26,11 @@ export const curateControls: ArgTypesEnhancer = (context) =>
         return [name, { ...definition, control: false }]
       }
       // Respect explicit per-story controls, including intentional control:false.
-      if (definition.control === false) {
+      if (
+        definition.control === false ||
+        (typeof definition.control === "object" &&
+          definition.control?.disable === true)
+      ) {
         return [name, definition]
       }
       const value = context.initialArgs[name]
@@ -40,12 +44,17 @@ export const curateControls: ArgTypesEnhancer = (context) =>
         return [name, { ...definition, control: { type: "text" } }]
       }
       if (value && typeof value === "object" && containsReactElement(value)) {
+        // JSX cannot be edited, but an authored API row is still useful Docs.
         return [
           name,
           {
             ...definition,
             control: false,
-            table: { ...definition.table, disable: true },
+            table: {
+              ...definition.table,
+              disable:
+                definition.table?.disable ?? !definition.description?.trim(),
+            },
           },
         ]
       }

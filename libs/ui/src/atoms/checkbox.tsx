@@ -2,7 +2,7 @@
  * Checkbox — @techsio/ui-kit atom.
  *
  * @component Checkbox
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,7 +17,10 @@ import {
   useRef,
 } from "react"
 import { useChoiceInputRef } from "../internal/choice-control"
-import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import {
+  subscribeOwnerFormReset,
+  syncReactFormControl,
+} from "../internal/form-control-lifecycle"
 import { tv } from "../utils"
 
 const checkboxVariants = tv({
@@ -112,7 +115,7 @@ export function Checkbox({
       // latest parent value without synthesizing a change or moving focus.
       // Assign even for uncontrolled inputs: native reset bypasses React's
       // checked tracker, otherwise the next identical activation loses onChange.
-      input.checked = currentValue.current.checked ?? input.checked
+      syncReactFormControl(input, currentValue.current.checked ?? input.checked)
       input.indeterminate = currentValue.current.indeterminate ?? false
     })
   }, [])

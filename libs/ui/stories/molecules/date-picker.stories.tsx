@@ -1562,6 +1562,8 @@ function FieldRegressionExample() {
 function NativeResetDates() {
   const id = useId()
   const [owner, setOwner] = useState("a")
+  const [changes, setChanges] = useState(0)
+  const recordChange = () => setChanges((count) => count + 1)
   const [controlled, setControlled] = useState<CalendarDate | null>(
     new CalendarDate(2026, 10, 25)
   )
@@ -1583,6 +1585,7 @@ function NativeResetDates() {
         name="date"
         form={form}
         defaultValue={dateRange[0]}
+        onValueChange={recordChange}
       />
       <TimedField
         label="Reset date time"
@@ -1590,6 +1593,7 @@ function NativeResetDates() {
         form={form}
         granularity="minute"
         defaultValue={timedRange[0]}
+        onValueChange={recordChange}
       />
       <DateRangeField
         label="Reset date range"
@@ -1597,6 +1601,7 @@ function NativeResetDates() {
         endName="end"
         form={form}
         defaultValue={dateRange}
+        onValueChange={recordChange}
       />
       <TimedRangeField
         label="Reset timed range"
@@ -1605,14 +1610,19 @@ function NativeResetDates() {
         form={form}
         granularity="minute"
         defaultValue={timedRange}
+        onValueChange={recordChange}
       />
       <DateOnlyField
         label="Controlled reset date"
         name="controlled"
         form={form}
         value={controlled}
-        onValueChange={({ value }) => setControlled(value)}
+        onValueChange={({ value }) => {
+          recordChange()
+          setControlled(value)
+        }}
       />
+      <output aria-label="Date reset proposals">{changes}</output>
       <Button
         variant="secondary"
         onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
@@ -1645,6 +1655,17 @@ export const NativeResetContracts: Story = {
     const snapshot = (form: HTMLFormElement) =>
       Array.from(new FormData(form).entries())
     const initial = snapshot(formA)
+    const segments = () =>
+      Array.from(
+        canvasElement.querySelectorAll<HTMLElement>("[data-granularity]"),
+        (root) =>
+          Array.from(root.querySelectorAll('[role="spinbutton"]'), (segment) => ({
+            text: segment.textContent,
+            value: segment.getAttribute("aria-valuenow"),
+          }))
+      )
+    const initialSegments = segments()
+    const changes = canvas.getByLabelText("Date reset proposals")
     for (const root of canvasElement.querySelectorAll<HTMLElement>(
       "[data-granularity]"
     )) {
@@ -1653,6 +1674,8 @@ export const NativeResetContracts: Story = {
       )
     }
     const cleared = snapshot(formA)
+    const clearedSegments = segments()
+    await expect(changes).toHaveTextContent(/^5$/)
     await expect(cleared.every(([, value]) => value === "")).toBe(true)
     formA.addEventListener("reset", (event) => event.preventDefault(), {
       once: true,
@@ -1660,12 +1683,16 @@ export const NativeResetContracts: Story = {
     formA.reset()
     await new Promise((resolve) => setTimeout(resolve, 20))
     await expect(snapshot(formA)).toEqual(cleared)
+    await expect(segments()).toEqual(clearedSegments)
+    await expect(changes).toHaveTextContent(/^5$/)
     await userEvent.click(
       canvas.getByRole("button", { name: "Move date owner" })
     )
     formA.reset()
     await new Promise((resolve) => setTimeout(resolve, 20))
     await expect(snapshot(formB)).toEqual(cleared)
+    await expect(segments()).toEqual(clearedSegments)
+    await expect(changes).toHaveTextContent(/^5$/)
     const timed =
       canvasElement.querySelectorAll<HTMLElement>("[data-granularity]")[3]!
     await userEvent.click(
@@ -1679,6 +1706,13 @@ export const NativeResetContracts: Story = {
       ).toBeVisible()
     )
     formB.reset()
+    await waitFor(() => expect(changes).toHaveTextContent(/^5$/))
+    await waitFor(() =>
+      expect(segments()).toEqual([
+        ...initialSegments.slice(0, 4),
+        clearedSegments[4],
+      ])
+    )
     await waitFor(() =>
       expect(snapshot(formB)).toEqual(
         initial.map(([name, value]) => [

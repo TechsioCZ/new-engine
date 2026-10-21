@@ -12,6 +12,7 @@ import {
   isEffectivelyDisabled,
   subscribeEffectiveDisabled,
   subscribeOwnerFormReset,
+  syncReactFormControl,
 } from "./form-control-lifecycle"
 
 /** @internal Keep React responsible for native restoration after rejected proposals. */
@@ -181,7 +182,19 @@ export function trackChoiceFormControl(
       stopReset()
       input = next
       stopReset = input
-        ? subscribeOwnerFormReset(input, onReset)
+        ? subscribeOwnerFormReset(input, () => {
+            onReset()
+            // Native reset and Zag's prototype setters bypass React's value
+            // tracker. Use the wrapped setters without synthetic input/change.
+            for (const nativeInput of root.querySelectorAll("input")) {
+              syncReactFormControl(
+                nativeInput,
+                nativeInput.type === "checkbox" || nativeInput.type === "radio"
+                  ? nativeInput.checked
+                  : nativeInput.value
+              )
+            }
+          })
         : () => undefined
     }
   }

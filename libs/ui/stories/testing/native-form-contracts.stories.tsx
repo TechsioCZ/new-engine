@@ -30,6 +30,11 @@ const choices = [
   { id: "beta", value: "beta", label: "Beta" },
 ]
 
+const renamedChoices = choices.map((item) => ({
+  ...item,
+  label: `Renamed ${item.label}`,
+}))
+
 const initialValues = {
   checkbox: false,
   "form-checkbox": false,
@@ -86,6 +91,8 @@ type AdapterProps = {
   value: Value
   form?: string
   onChange: (value: Value) => void
+  onQueryChange: () => void
+  renamedChoices: boolean
 }
 
 /** Only component-specific composition lives here; the lifecycle harness is shared. */
@@ -95,6 +102,8 @@ function ValueControl({
   value,
   form,
   onChange,
+  onQueryChange,
+  renamedChoices: useRenamedChoices,
 }: AdapterProps) {
   const controlled = authority !== "uncontrolled"
   const common = { name: "value", form }
@@ -270,10 +279,11 @@ function ValueControl({
           {...common}
           inputProps={{ form }}
           label="Contract value"
-          items={choices}
+          items={useRenamedChoices ? renamedChoices : choices}
           value={controlled ? (value as string[]) : undefined}
           defaultValue={["alpha"]}
           onChange={onChange}
+          onInputValueChange={onQueryChange}
         />
       )
     case "phone-input":
@@ -354,6 +364,9 @@ export function NativeFormFixture({
 }: FixtureProps) {
   const [value, setValue] = useState<Value>(initialValues[control])
   const [changes, setChanges] = useState(0)
+  const [queryChanges, setQueryChanges] = useState(0)
+  const [useRenamedChoices, setUseRenamedChoices] = useState(false)
+  const nativeEvents = useRef(0)
   const [resets, setResets] = useState(0)
   const [mounted, setMounted] = useState(true)
   const [generation, setGeneration] = useState(0)
@@ -362,6 +375,11 @@ export function NativeFormFixture({
   const [innerDisabled, setInnerDisabled] = useState(false)
   const fixture = useRef<HTMLDivElement>(null)
   const valueRoot = useRef<HTMLDivElement>(null)
+  const recordNativeEvent = () => {
+    nativeEvents.current += 1
+    const output = fixture.current?.querySelector('[data-testid="native-event-count"]')
+    if (output) output.textContent = String(nativeEvents.current)
+  }
 
   useEffect(() => {
     const root = fixture.current
@@ -399,6 +417,8 @@ export function NativeFormFixture({
           control={control}
           authority={authority}
           value={value}
+          renamedChoices={useRenamedChoices}
+          onQueryChange={() => setQueryChanges((count) => count + 1)}
           form={owner === "b" ? "native-contract-b" : undefined}
           onChange={(next) => {
             setChanges((count) => count + 1)
@@ -415,6 +435,8 @@ export function NativeFormFixture({
       tabIndex={-1}
       className="flex w-full max-w-sm flex-col gap-200"
       data-testid="native-form-fixture"
+      onInputCapture={recordNativeEvent}
+      onChangeCapture={recordNativeEvent}
       onResetCapture={(event) => {
         if (cancellation === "early-react") event.preventDefault()
       }}
@@ -454,11 +476,25 @@ export function NativeFormFixture({
         </Button>
       </form>
       <div className="flex flex-wrap gap-100">
+        {control === "combobox" && (
+          <Button
+            theme="outlined"
+            onClick={() => setUseRenamedChoices((current) => !current)}
+          >
+            Toggle choice labels
+          </Button>
+        )}
         <Button
           theme="outlined"
           onClick={() => setValue(changedValues[control])}
         >
           Set parent value
+        </Button>
+        <Button
+          theme="outlined"
+          onClick={() => setValue(initialValues[control])}
+        >
+          Restore parent default
         </Button>
         <Button
           theme="outlined"
@@ -497,6 +533,12 @@ export function NativeFormFixture({
       <output data-testid="change-count" aria-label="Value callback count">
         {changes}
       </output>
+      <output data-testid="native-event-count" aria-label="Native value event count">
+        {nativeEvents.current}
+      </output>
+      <output data-testid="query-count" aria-label="Query callback count">
+        {queryChanges}
+      </output>
       <output data-testid="reset-count" aria-label="Reset event count">
         {resets}
       </output>
@@ -517,7 +559,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Maintained native-form lifecycle fixtures compare rendered values, accessibility state, native submission and callback counts through the same component adapters.",
+          "Maintained native-form lifecycle fixtures compare rendered values, accessibility state, native submission and callback counts through the same component adapters. Reset is silent: uncontrolled values restore their default; controlled values stay parent-owned. The next user edit must notify exactly once.",
       },
     },
   },

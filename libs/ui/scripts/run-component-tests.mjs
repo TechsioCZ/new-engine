@@ -278,6 +278,8 @@ function main() {
       JSON.parse(
         run("docker", ["exec", containerName, "cat", `${reportRoot}/${name}`], {
           stdio: "pipe",
+          // Full-matrix JSON reports exceed spawnSync's 1 MiB default buffer.
+          maxBuffer: 512 * 1024 * 1024,
         }).stdout.toString()
       )
     )

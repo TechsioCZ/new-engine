@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,6 +23,7 @@ import {
   useMemo,
   useRef,
 } from "react"
+import { flushSync } from "react-dom"
 import {
   isSilentChoiceReset,
   mergeChoiceInputProps,
@@ -35,6 +36,7 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
+import { syncReactFormControl } from "../internal/form-control-lifecycle"
 import { tv } from "../utils"
 import { Button } from "./button"
 import type { IconType } from "./icon"
@@ -52,8 +54,25 @@ const guardValueAction =
     }
     action?.(params)
   }
+const defaultComputed = numberInput.machine.computed
 const readOnlySafeMachine: typeof numberInput.machine = {
   ...numberInput.machine,
+  computed: defaultComputed && {
+    ...defaultComputed,
+    formattedValue(params) {
+      const value = params.computed("valueAsNumber")
+      // Integer presentation is not integer validation. Keep a fractional draft
+      // available to the application instead of silently turning 1.5 into 2.
+      if (
+        Number.isFinite(value) &&
+        !Number.isInteger(value) &&
+        params.prop("formatOptions")?.maximumFractionDigits === 0
+      ) {
+        return params.context.get("value")
+      }
+      return defaultComputed.formattedValue(params)
+    },
+  },
   implementations: {
     ...numberInput.machine.implementations,
     effects: {
@@ -69,9 +88,8 @@ const readOnlySafeMachine: typeof numberInput.machine = {
               runSilentChoiceReset(context, () =>
                 context.set("value", context.initial("value"))
               )
-            } else {
-              action(["syncInputElement"])
             }
+            action(["syncInputElement"])
           },
           (disabled) => context.set("fieldsetDisabled", disabled)
         )
@@ -79,15 +97,74 @@ const readOnlySafeMachine: typeof numberInput.machine = {
     },
     actions: {
       ...valueActions,
+      syncInputElement(params) {
+        const { scope } = params
+        const input = scope.getById<HTMLInputElement>(
+          scope.ids?.input ?? `number-input:${scope.id}:input`
+        )
+        valueActions.syncInputElement?.(params)
+        // Zag writes through the native prototype in a frame, after React's
+        // batched reset update. Synchronize immediately after its actual write,
+        // not from the preceding context snapshot. Keep Zag's cursor handling.
+        input?.ownerDocument.defaultView?.requestAnimationFrame(() => {
+          if (input.isConnected) {
+            syncReactFormControl(input)
+          }
+        })
+      },
       increment: guardValueAction(valueActions.increment),
       decrement: guardValueAction(valueActions.decrement),
       incrementToMax: guardValueAction(valueActions.incrementToMax),
       decrementToMin: guardValueAction(valueActions.decrementToMin),
-      setValue: guardValueAction(valueActions.setValue),
+      setValue(params) {
+        // Zag handles INPUT.CHANGE in a microtask, outside React's native-event
+        // batch. Settle that update before the next keystroke or authority frame
+        // can observe the preceding value and overwrite a newer native draft.
+        flushSync(() => guardValueAction(valueActions.setValue)(params))
+        // A refusing parent need not render again. Check its latest decision
+        // after React's batch, without asking Zag to queue a stale value/cursor.
+        if (params.prop("value") !== undefined) {
+          const { scope } = params
+          const input = scope.getById<HTMLInputElement>(
+            scope.ids?.input ?? `number-input:${scope.id}:input`
+          )
+          input?.ownerDocument.defaultView?.requestAnimationFrame(() => {
+            const authoritativeValue = params.prop("value")
+            if (input.isConnected && authoritativeValue !== undefined) {
+              syncReactFormControl(input, authoritativeValue)
+            }
+          })
+        }
+      },
       setRawValue: guardValueAction(valueActions.setRawValue),
       clearValue: guardValueAction(valueActions.clearValue),
       setClampedValue: guardValueAction(valueActions.setClampedValue),
       setFormattedValue: guardValueAction(valueActions.setFormattedValue),
+      invokeOnValueCommit({ computed, prop, event }) {
+        let valueAsNumber = computed("valueAsNumber")
+        let value = computed("formattedValue")
+        // React batches the preceding clamp update. Zag's computed snapshot can
+        // still contain the pre-blur draft when this action runs in that batch.
+        if (
+          event.type === "INPUT.BLUR" &&
+          prop("clampValueOnBlur") &&
+          !prop("readOnly") &&
+          !computed("isDisabled") &&
+          Number.isFinite(valueAsNumber)
+        ) {
+          const clamped = Math.min(
+            prop("max"),
+            Math.max(prop("min"), valueAsNumber)
+          )
+          if (clamped !== valueAsNumber) {
+            valueAsNumber = clamped
+            value = prop("formatOptions")
+              ? computed("formatter").format(clamped)
+              : String(clamped)
+          }
+        }
+        prop("onValueCommit")?.({ value, valueAsNumber })
+      },
     },
   },
 }
@@ -169,6 +246,8 @@ const numericInputVariants = tv({
   },
 })
 
+const numericDraftPattern = /^[+-]?\d*(?:\.\d*)?$/
+
 // Context for sharing state between sub-components
 type NumericInputContextValue = {
   api: ReturnType<typeof numberInput.connect>
@@ -178,6 +257,7 @@ type NumericInputContextValue = {
   validateStatus: "default" | "error" | "success" | "warning"
   describedBy?: string
   controlledValue?: string
+  isValidInputDraft?: (value: string) => boolean
   readOnly?: boolean
   disabled?: boolean
   description: DescribedBy
@@ -314,6 +394,30 @@ export function NumericInput({
     },
   })
 
+  // With no formatOptions Zag parses via parseFloat, so validate dot decimals
+  // rather than applying a conflicting locale guard. Integer presentation must
+  // also admit fractional drafts: precision is not an application validator.
+  let isValidInputDraft: ((draft: string) => boolean) | undefined
+  if (!resolvedFormatOptions) {
+    isValidInputDraft = (draft) => numericDraftPattern.test(draft)
+  } else if (
+    resolvedFormatOptions.maximumFractionDigits === 0 &&
+    (!resolvedFormatOptions.style || resolvedFormatOptions.style === "decimal")
+  ) {
+    const separator = new Intl.NumberFormat(locale)
+      .formatToParts(1.1)
+      .find((part) => part.type === "decimal")?.value
+    if (separator) {
+      isValidInputDraft = (draft) => {
+        const integerDraft = draft.replace(separator, "")
+        return (
+          !integerDraft.includes(separator) &&
+          service.computed("parser").isValidPartialNumber(integerDraft)
+        )
+      }
+    }
+  }
+
   const api = numberInput.connect(service, normalizeProps)
   useEffect(() => {
     if (machineProps.readOnly || disabled) {
@@ -349,7 +453,8 @@ export function NumericInput({
         errorMessageId: ariaErrorMessage,
         readOnly: machineProps.readOnly,
         disabled: inputDisabled,
-        controlledValue: typeof value === "string" ? value : undefined,
+        controlledValue: value === undefined ? undefined : formatValue(value),
+        isValidInputDraft,
       }}
     >
       <div
@@ -423,6 +528,7 @@ NumericInput.Input = function NumericInputInput({
     size,
     describedBy,
     controlledValue,
+    isValidInputDraft,
     description,
     errors,
     errorMessageId,
@@ -512,10 +618,36 @@ NumericInput.Input = function NumericInputInput({
   const isInvalid =
     invalid || Boolean(errors.describedById) || props["aria-invalid"]
 
+  const machineInputProps = api.getInputProps()
+  const inputProps = mergeChoiceInputProps(props, {
+    ...machineInputProps,
+    onBeforeInput(event) {
+      if (!isValidInputDraft) {
+        machineInputProps.onBeforeInput?.(event)
+        return
+      }
+      const nativeEvent = event.nativeEvent as InputEvent
+      if (
+        nativeEvent.isComposing ||
+        nativeEvent.inputType?.startsWith("delete")
+      ) {
+        return
+      }
+      const input = event.currentTarget
+      const nextValue =
+        input.value.slice(0, input.selectionStart ?? 0) +
+        (nativeEvent.data ?? event.data ?? "") +
+        input.value.slice(input.selectionEnd ?? 0)
+      if (!isValidInputDraft(nextValue)) {
+        event.preventDefault()
+      }
+    },
+  })
+
   return (
     <Input
       ref={controlledValue === undefined ? ref : mergedRef}
-      {...mergeChoiceInputProps(props, api.getInputProps())}
+      {...inputProps}
       aria-describedby={ariaDescribedBy}
       aria-errormessage={errorId}
       aria-invalid={isInvalid || undefined}

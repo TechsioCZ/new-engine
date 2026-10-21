@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.4.0
+ * @componentVersion v1.4.1
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,11 +30,27 @@ import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { slugify, tv } from "../utils"
 
+// Zag dispatches native input events from a watcher that runs after React
+// commits, outside the synchronous reset guard. Remember the reset projection.
+const sliderResetValues = new WeakMap<object, string>()
+
 // Shared lifecycle replaces Zag's nearest-fieldset approximation and eager reset.
 const nativeSliderMachine: typeof sliderMachine = {
   ...sliderMachine,
   implementations: {
     ...sliderMachine.implementations,
+    actions: {
+      ...sliderMachine.implementations?.actions,
+      dispatchChangeEvent(params) {
+        const resetValue = sliderResetValues.get(params.context)
+        sliderResetValues.delete(params.context)
+        // Native form reset is silent; only user-driven values announce events.
+        if (resetValue === JSON.stringify(params.context.get("value"))) {
+          return
+        }
+        sliderMachine.implementations?.actions?.dispatchChangeEvent?.(params)
+      },
+    },
     effects: {
       ...sliderMachine.implementations?.effects,
       trackFormControlState() {
@@ -519,7 +535,14 @@ export function Slider({
     resetting.current = true
     try {
       if (!isControlled) {
-        service.context.set("value", service.context.initial("value"))
+        const initial = service.context.initial("value")
+        if (
+          JSON.stringify(initial) !==
+          JSON.stringify(service.context.get("value"))
+        ) {
+          sliderResetValues.set(service.context, JSON.stringify(initial))
+        }
+        service.context.set("value", initial)
       }
       // Reconcile native inputs even when controlled state did not rerender.
       const inputs =

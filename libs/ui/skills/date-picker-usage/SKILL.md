@@ -6,7 +6,7 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.3.2"
+  component_version: "1.3.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -416,3 +416,25 @@ rg -U -P -n '<DatePicker\.Root[^>]*name=(?![\s\S]{0,900}<DatePicker\.Calendar)' 
 ```
 
 All user-originated commits share inclusive min/max and availability validation. Date-only bounds include the whole boundary day; timed bounds compare exact date-times. Unavailable segment edits remain private invalid drafts with feedback; they do not alter accepted values or canonical form inputs. Calendar labels use the explicit field timezone, and localized numerals are normalized before parsing while display remains localized. Zoned values are converted to the field `timeZone` before calendar coordinates and popup clock drafts are derived; floating dates/times stay floating. Opening or cancelling preserves the accepted wire value; confirming a zoned draft emits the same instant in the field timezone (with that zone's offset and identifier).
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
+
+## Controlled edits and popup focus
+
+Keep `value` authoritative: a refused segmented edit restores its displayed date
+without another value proposal. Blur and native reset discard incomplete segment
+drafts without committing a new date. Controlled and uncontrolled resets retain
+the same serialized-value ownership as the visible segments.
+
+Keyboard selection that closes the calendar restores focus to its trigger after
+the popup and any focus trap finish closing, including inside Dialog or Drawer.
+Intentional focus outside the popup is preserved; do not add competing delayed
+focus handlers.

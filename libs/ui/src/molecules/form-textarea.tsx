@@ -2,7 +2,7 @@
  * FormTextarea — @techsio/ui-kit molecule.
  *
  * @component FormTextarea
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill form-textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

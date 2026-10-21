@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,7 +26,10 @@ import {
   useChoiceFocusRecovery,
 } from "../internal/choice-control"
 import { joinDescribedBy } from "../internal/described-by"
-import { isEffectivelyDisabled } from "../internal/form-control-lifecycle"
+import {
+  isEffectivelyDisabled,
+  syncReactFormControl,
+} from "../internal/form-control-lifecycle"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 import { Label } from "./label"
@@ -66,9 +69,13 @@ const guardRatingAction =
     action?.(params)
   }
 
+// The value watcher runs after React commits, outside runSilentChoiceReset's
+// synchronous callback guard. Remember the reset projection until that commit.
+const ratingResetValues = new WeakMap<object, number>()
+
 const ratingChoiceMachine: typeof machine = {
   ...machine,
-  watch({ track, action, prop, context }) {
+  watch({ track, action, prop, context, scope }) {
     track(
       [() => prop("count"), () => prop("allowHalf"), () => prop("readOnly")],
       () => {
@@ -88,7 +95,20 @@ const ratingChoiceMachine: typeof machine = {
         }
       }
     )
-    track([() => context.get("value")], () => action(["dispatchChangeEvent"]))
+    track([() => context.get("value")], () => {
+      const resetValue = ratingResetValues.get(context)
+      ratingResetValues.delete(context)
+      if (resetValue === context.get("value")) {
+        const input = scope.getById<HTMLInputElement>(
+          scope.ids?.hiddenInput ?? `rating:${scope.id}:input`
+        )
+        if (input) {
+          syncReactFormControl(input, String(resetValue))
+        }
+      } else {
+        action(["dispatchChangeEvent"])
+      }
+    })
   },
   implementations: {
     ...machine.implementations,
@@ -110,16 +130,15 @@ const ratingChoiceMachine: typeof machine = {
           root,
           () => {
             if (prop("value") === undefined) {
+              const restoredValue = normalizeRating(
+                context.initial("value"),
+                prop("count"),
+                !!prop("allowHalf"),
+                !!prop("readOnly")
+              )
+              ratingResetValues.set(context, restoredValue)
               runSilentChoiceReset(context, () =>
-                context.set(
-                  "value",
-                  normalizeRating(
-                    context.initial("value"),
-                    prop("count"),
-                    !!prop("allowHalf"),
-                    !!prop("readOnly")
-                  )
-                )
+                context.set("value", restoredValue)
               )
             } else {
               const input = root?.querySelector("input")

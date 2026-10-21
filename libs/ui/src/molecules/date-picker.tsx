@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -15,7 +15,6 @@ import type {
 import {
   connect as connectDateInput,
   type Api as DateInputApi,
-  machine as dateInputMachine,
 } from "@zag-js/date-input"
 import {
   connect as connectDatePicker,
@@ -66,6 +65,7 @@ import {
   normalizeDatePickerDigits,
   normalizeDatePickerTimeZone,
 } from "../internal/date-picker-dom"
+import { datePickerInputMachine } from "../internal/date-picker-input"
 import {
   type DescribedBy,
   joinDescribedBy,
@@ -73,7 +73,10 @@ import {
   useRegisterDescription,
 } from "../internal/described-by"
 import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
-import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import {
+  OverlayPortal as Portal,
+  restoreFocusAfterOverlayClose,
+} from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
@@ -659,6 +662,11 @@ export function DatePicker({
     DateValue[] | null
   >(null)
   const [nativeInvalid, setNativeInvalid] = useState(false)
+  const resetting = useRef(false)
+  const [inputSyncRevision, synchronizeInput] = useReducer(
+    (revision: number) => revision + 1,
+    0
+  )
   const [rangeInputDraft, setRangeInputDraft] = useState<DateValue[] | null>(
     null
   )
@@ -700,6 +708,17 @@ export function DatePicker({
   const previousAcceptedValue = useRef(acceptedValueKey)
   const previousOpen = useRef(resolvedOpen)
   const triggerElementRef = useRef<HTMLButtonElement>(null)
+  const focusRestoreContent = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    if (resolvedOpen) {
+      return
+    }
+    const content = focusRestoreContent.current
+    focusRestoreContent.current = null
+    return content
+      ? restoreFocusAfterOverlayClose(content, () => triggerElementRef.current)
+      : undefined
+  }, [resolvedOpen])
   const styles = datePickerVariants({ size, timed: isTimed })
   const descriptions = useDescribedBy()
   const errorDescriptions = useDescribedBy()
@@ -782,6 +801,7 @@ export function DatePicker({
   const commitValue = (nextValue: DatePickerPublicValue | null) => {
     if (
       interactionBlocked ||
+      resetting.current ||
       !candidateAllowed(nextValue) ||
       disabledProbeRef.current?.matches(":disabled")
     ) {
@@ -813,28 +833,22 @@ export function DatePicker({
       return
     }
 
-    const activeElement =
-      !nextOpen && typeof document !== "undefined"
-        ? document.activeElement
-        : null
-    const shouldRestoreFocus =
-      activeElement instanceof HTMLElement &&
-      Boolean(
-        activeElement.closest('[data-scope="date-picker"][data-part="content"]')
-      )
+    const activeElement = rootElementRef.current?.ownerDocument.activeElement
+    if (nextOpen) {
+      focusRestoreContent.current = null
+    } else {
+      // Selection and Zag's close notification can both request the same close.
+      // Keep the original content even if the second request sees BODY already.
+      focusRestoreContent.current =
+        activeElement?.closest<HTMLElement>(
+          '[data-scope="date-picker"][data-part="content"]'
+        ) ?? focusRestoreContent.current
+    }
 
     if (open === undefined) {
       setUncontrolledOpen(nextOpen)
     }
     onOpenChange?.({ open: nextOpen })
-
-    if (shouldRestoreFocus) {
-      requestAnimationFrame(() => {
-        if (document.activeElement === document.body) {
-          triggerElementRef.current?.focus({ preventScroll: true })
-        }
-      })
-    }
   }
 
   const draftValue = coordinator.draft
@@ -909,7 +923,7 @@ export function DatePicker({
   })
   const pickerApi = connectDatePicker(pickerService, normalizeProps)
 
-  const dateInputService = useMachine(dateInputMachine, {
+  const dateInputService = useMachine(datePickerInputMachine, {
     disabled,
     dir,
     granularity,
@@ -927,9 +941,13 @@ export function DatePicker({
     onValueChange: (details) => {
       if (
         interactionBlocked ||
+        resetting.current ||
         disabledProbeRef.current?.matches(":disabled")
       ) {
         return
+      }
+      if (value !== undefined) {
+        synchronizeInput()
       }
       if (selectionMode === "range") {
         dispatch({ type: "edit", value: details.value })
@@ -967,6 +985,15 @@ export function DatePicker({
     value: dateInputValues,
   })
   const dateInputApi = connectDateInput(dateInputService, normalizeProps)
+  // A refused controlled proposal does not change Zag's committed-value hash.
+  // Reconcile its separate editable display after the parent has accepted or
+  // refused, without VALUE.SET or another public change callback.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: synchronize only on a proposal/reset checkpoint; the service is recreated each render.
+  useLayoutEffect(() => {
+    if (inputSyncRevision) {
+      dateInputService.send({ type: "AUTHORITATIVE.SYNC" })
+    }
+  }, [inputSyncRevision])
   const reset = useRef<() => void>(() => undefined)
   reset.current = () => {
     if (value === undefined) {
@@ -977,6 +1004,27 @@ export function DatePicker({
     setNativeInvalid(false)
     dispatch({ type: "discard" })
     setUncontrolledOpen(false)
+    dateInputService.context.set("enteredKeys", "")
+    synchronizeInput()
+    const restoredValues = toDateValues(
+      value === undefined ? initialValue.current : value
+    ).map((date) => date.toString())
+    const probe = disabledProbeRef.current
+    if (probe) {
+      // Use the instance setter, including React's value tracker. No events:
+      // native reset restores defaults; it is not a user value proposal.
+      probe.value =
+        restoredValues.length === (selectionMode === "range" ? 2 : 1)
+          ? restoredValues.join("/")
+          : ""
+    }
+    rootElementRef.current
+      ?.querySelectorAll<HTMLInputElement>(
+        ':scope > input[data-scope="date-picker"][data-part="hidden-input"]'
+      )
+      .forEach((input, index) => {
+        input.value = restoredValues[index] ?? ""
+      })
     if (open) {
       onOpenChange?.({ open: false })
     }
@@ -985,7 +1033,14 @@ export function DatePicker({
   useEffect(() => {
     const input = disabledProbeRef.current
     return input
-      ? subscribeOwnerFormReset(input, () => reset.current())
+      ? subscribeOwnerFormReset(input, () => reset.current(), {
+          onResetStart: () => {
+            resetting.current = true
+          },
+          onResetEnd: () => {
+            resetting.current = false
+          },
+        })
       : undefined
   }, [])
 
@@ -1227,6 +1282,8 @@ function DatePickerFormValue({
     <>
       {names.map((name, index) => (
         <input
+          data-part="hidden-input"
+          data-scope="date-picker"
           disabled={disabled}
           form={form}
           key={name ?? index}

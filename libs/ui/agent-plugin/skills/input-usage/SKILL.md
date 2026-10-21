@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Input atom, including valid size, variant, embedded button
   spacing, and token-first validation styling.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -219,3 +219,13 @@ Override `--color-input-bg-readonly` and `--color-input-fg-readonly`
 to tune only this field's read-only surface and value. The default reference
 aliases follow `--color-form-control-readonly` and `--color-form-control-text`.
 These overrides also apply on hover/focus; disabled styling still wins.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
