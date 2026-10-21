@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -39,6 +39,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
@@ -56,7 +57,15 @@ import {
   type DatePickerDraftTimePart,
   datePickerCoordinatorReducer,
   getDatePickerDraftTimeParts,
+  isDatePickerCandidateAllowed,
 } from "../internal/date-picker-coordinator"
+import {
+  composeDatePickerRefs,
+  formatDatePickerCalendar,
+  getDatePickerCalendarDate,
+  normalizeDatePickerDigits,
+  normalizeDatePickerTimeZone,
+} from "../internal/date-picker-dom"
 import {
   type DescribedBy,
   joinDescribedBy,
@@ -177,6 +186,8 @@ export type DatePickerRootProps =
 
 export type DatePickerProps = DatePickerRootProps
 
+const DATE_PICKER_ASCII_DIGIT = /[0-9]/
+
 const DEFAULT_DATE_PICKER_MONTHS = { single: 1, range: 2 } as const
 
 const datePickerVariants = tv({
@@ -206,7 +217,7 @@ const datePickerVariants = tv({
       "date-picker-scrollbar-hidden flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-hidden outline-hidden",
       "data-disabled:overflow-hidden",
     ],
-    segmentGroup: "flex min-w-0 items-center",
+    segmentGroup: "flex min-w-max shrink-0 items-center",
     rangeSeparator:
       "shrink-0 px-date-picker-range-separator text-date-picker-range-separator-fg",
     segment: [
@@ -262,7 +273,7 @@ const datePickerVariants = tv({
     viewControl:
       "flex min-w-0 items-center justify-between gap-date-picker-calendar",
     navigationTrigger: [
-      "size-date-picker-navigation shrink-0 rounded-date-picker-day p-0",
+      "size-date-picker-navigation shrink-0 rounded-date-picker-day p-0 rtl:rotate-180",
       "text-date-picker-navigation-fg hover:bg-date-picker-navigation-bg-hover",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-date-picker-navigation-ring",
@@ -400,6 +411,17 @@ type DatePickerContextValue = {
   clearValue: () => void
   coordinator: DatePickerCoordinatorState
   dateInputApi: DateInputApi
+  dir: "ltr" | "rtl"
+  locale: string
+  timeZone: string
+  validationMessage?: string
+  validationMessageId: string
+  prepareSegmentDeletion: (text: string) => void
+  sendSegmentInput: (
+    index: 0 | 1,
+    segment: ReturnType<DateInputApi["getSegments"]>[number],
+    input: string
+  ) => void
   granularity: DatePickerGranularity
   hideTimeZone: boolean
   hourCycle: 12 | 24
@@ -435,17 +457,6 @@ function useDatePickerContext() {
   }
 
   return context
-}
-
-function setRefValue<T>(ref: Ref<T> | undefined, value: T | null) {
-  if (typeof ref === "function") {
-    ref(value)
-    return
-  }
-
-  if (ref) {
-    ref.current = value
-  }
 }
 
 function toCompleteDatePickerRange(
@@ -529,17 +540,63 @@ function navigateDatePickerPanelMonths(
   return next
 }
 
+function useDatePickerEnvironment(
+  explicitDisabled: boolean | undefined,
+  explicitDir: string | undefined,
+  ref: Ref<HTMLDivElement> | undefined
+) {
+  const rootElementRef = useRef<HTMLDivElement>(null)
+  const disabledProbeRef = useRef<HTMLInputElement>(null)
+  const [inheritedDisabled, setInheritedDisabled] = useState(false)
+  const [inheritedDir, setInheritedDir] = useState<"ltr" | "rtl">("ltr")
+  const disabled = Boolean(explicitDisabled || inheritedDisabled)
+  const dir =
+    explicitDir === "rtl" || explicitDir === "ltr" ? explicitDir : inheritedDir
+  const rootRef = useMemo(
+    () => composeDatePickerRefs(rootElementRef, ref),
+    [ref]
+  )
+  useLayoutEffect(() => {
+    const root = rootElementRef.current
+    const probe = disabledProbeRef.current
+    if (!(root && probe)) {
+      return
+    }
+    const update = () => {
+      setInheritedDisabled(probe.matches(":disabled"))
+      setInheritedDir(
+        root.ownerDocument.defaultView?.getComputedStyle(root).direction ===
+          "rtl"
+          ? "rtl"
+          : "ltr"
+      )
+    }
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(root.ownerDocument.documentElement, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["disabled", "dir"],
+      childList: true,
+    })
+    return () => observer.disconnect()
+  }, [])
+  return { rootElementRef, disabledProbeRef, rootRef, disabled, dir }
+}
+
 // biome-ignore lint/style/useUnifiedTypeSignatures: overloads preserve the granularity-discriminated public contract.
 export function DatePicker(props: DatePickerDayRootProps): ReactElement
 export function DatePicker(props: DatePickerTimedRootProps): ReactElement
 export function DatePicker(props: DatePickerDayRangeRootProps): ReactElement
 export function DatePicker(props: DatePickerTimedRangeRootProps): ReactElement
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: coordinates the four public day/time and single/range modes while keeping their commit boundary shared.
 export function DatePicker({
   children,
   className,
   defaultOpen = false,
   defaultValue,
-  disabled,
+  disabled: explicitDisabled,
+  dir: explicitDir,
   endName,
   flip = true,
   form,
@@ -552,8 +609,8 @@ export function DatePicker({
   isDateUnavailable,
   isTimeUnavailable,
   locale = "en-US",
-  max,
-  min,
+  max: maximum,
+  min: minimum,
   name,
   numOfMonths,
   offset = { mainAxis: 8, crossAxis: 0 },
@@ -578,16 +635,28 @@ export function DatePicker({
 }: DatePickerRootProps) {
   const generatedId = useId()
   const uniqueId = id ?? generatedId
+  const { rootElementRef, disabledProbeRef, rootRef, disabled, dir } =
+    useDatePickerEnvironment(explicitDisabled, explicitDir, ref)
   const isTimed = granularity !== "day"
+  const min = minimum && normalizeDatePickerTimeZone(minimum, timeZone)
+  const max = maximum && normalizeDatePickerTimeZone(maximum, timeZone)
   const resolvedHourCycle = resolveDatePickerHourCycle(locale, hourCycle)
   const [uncontrolledValue, setUncontrolledValue] =
     useState<DatePickerPublicValue | null>(() => defaultValue ?? null)
   const acceptedValue: DatePickerPublicValue | null =
     value === undefined ? uncontrolledValue : value
-  const acceptedValues = toDateValues(acceptedValue)
+  // Preserve the accepted wire value, but use one clock/zone for both machines
+  // and the popup draft. Normalize before taking a month/day from an instant.
+  const acceptedValues = toDateValues(acceptedValue).map((date) =>
+    normalizeDatePickerTimeZone(date, timeZone)
+  )
   const acceptedScalarValue = acceptedValues[0] ?? null
   const acceptedCandidate: DatePickerCandidate =
     selectionMode === "range" ? acceptedValues : acceptedScalarValue
+  const [segmentInputDraft, setSegmentInputDraft] = useState<
+    DateValue[] | null
+  >(null)
+  const [nativeInvalid, setNativeInvalid] = useState(false)
   const [rangeInputDraft, setRangeInputDraft] = useState<DateValue[] | null>(
     null
   )
@@ -612,8 +681,10 @@ export function DatePicker({
         : createDatePickerCoordinatorState()
   )
   const acceptedValueAsString = serializeDatePickerValue(acceptedValue)
-  const acceptedValuesAsString = acceptedValues.map((item) => item.toString())
-  const acceptedValueKey = JSON.stringify(acceptedValueAsString)
+  const acceptedValuesAsString = toDateValues(acceptedValue).map((item) =>
+    item.toString()
+  )
+  const acceptedValueKey = JSON.stringify([timeZone, acceptedValueAsString])
   useEffect(() => {
     if (interactionBlocked) {
       setUncontrolledOpen(false)
@@ -624,7 +695,6 @@ export function DatePicker({
       }
     }
   }, [interactionBlocked, open, onOpenChange])
-  const rootElementRef = useRef<HTMLDivElement>(null)
   const previousAcceptedValue = useRef(acceptedValueKey)
   const previousOpen = useRef(resolvedOpen)
   const triggerElementRef = useRef<HTMLButtonElement>(null)
@@ -632,6 +702,7 @@ export function DatePicker({
   const descriptions = useDescribedBy()
   const errorDescriptions = useDescribedBy()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the environment hook returns stable DOM refs; read current nodes only when the interaction mode changes.
   useLayoutEffect(() => {
     // The trigger is omitted in read-only mode. Restore popup focus to a
     // surviving value segment, but never steal focus from an external control.
@@ -691,15 +762,31 @@ export function DatePicker({
 
     previousAcceptedValue.current = acceptedValueKey
     setRangeInputDraft(null)
+    setSegmentInputDraft(null)
     if (usesPopupDraft && resolvedOpen) {
       dispatch({ type: "resync", value: acceptedCandidate })
     }
   }, [acceptedCandidate, acceptedValueKey, resolvedOpen, usesPopupDraft])
 
+  const candidateAllowed = (candidate: DatePickerCandidate) =>
+    isDatePickerCandidateAllowed(candidate, {
+      min,
+      max,
+      isTimeUnavailable,
+      isDateUnavailable: isDateUnavailable
+        ? (date) => isDateUnavailable(date, locale)
+        : undefined,
+    })
   const commitValue = (nextValue: DatePickerPublicValue | null) => {
-    if (interactionBlocked) {
+    if (
+      interactionBlocked ||
+      !candidateAllowed(nextValue) ||
+      disabledProbeRef.current?.matches(":disabled")
+    ) {
       return
     }
+    setSegmentInputDraft(null)
+    setNativeInvalid(false)
     if (value === undefined) {
       setUncontrolledValue(nextValue)
     }
@@ -756,12 +843,13 @@ export function DatePicker({
   const dateInputValues =
     selectionMode === "range" && !isTimedRangePopupOpen
       ? (rangeInputDraft ?? acceptedValues)
-      : acceptedValues
+      : (segmentInputDraft ?? acceptedValues)
   const resolvedNumOfMonths =
     numOfMonths ?? DEFAULT_DATE_PICKER_MONTHS[selectionMode]
 
   const pickerService = useMachine(datePickerMachine, {
     closeOnSelect: !isTimed,
+    dir,
     disabled,
     id: `${uniqueId}-calendar`,
     ids: {
@@ -821,6 +909,7 @@ export function DatePicker({
 
   const dateInputService = useMachine(dateInputMachine, {
     disabled,
+    dir,
     granularity,
     hideTimeZone,
     hourCycle,
@@ -834,6 +923,12 @@ export function DatePicker({
     max,
     min,
     onValueChange: (details) => {
+      if (
+        interactionBlocked ||
+        disabledProbeRef.current?.matches(":disabled")
+      ) {
+        return
+      }
       if (selectionMode === "range") {
         dispatch({ type: "edit", value: details.value })
         if (isTimedRangePopupOpen) {
@@ -855,7 +950,12 @@ export function DatePicker({
         return
       }
 
-      commitValue(details.value[0] ?? null)
+      const nextValue = details.value[0] ?? null
+      if (!candidateAllowed(nextValue)) {
+        setSegmentInputDraft(details.value)
+        return
+      }
+      commitValue(nextValue)
     },
     readOnly: readOnly || (isTimed && resolvedOpen),
     required,
@@ -866,11 +966,49 @@ export function DatePicker({
   })
   const dateInputApi = connectDateInput(dateInputService, normalizeProps)
 
+  useLayoutEffect(() => {
+    const probe = disabledProbeRef.current
+    if (!probe || readOnly || disabled) {
+      probe?.setCustomValidity("")
+      return
+    }
+    const count = selectionMode === "range" ? 2 : 1
+    const incomplete = Array.from({ length: count }, (_, index) =>
+      dateInputApi.getSegments({ index: index === 0 ? 0 : 1 })
+    )
+      .flat()
+      .some((segment) => segment.isEditable && segment.isPlaceholder)
+    const candidate =
+      selectionMode === "range"
+        ? (rangeInputDraft ?? acceptedValues)
+        : (segmentInputDraft?.[0] ?? acceptedScalarValue)
+    probe.setCustomValidity(
+      (required && incomplete) ||
+        !candidateAllowed(
+          Array.isArray(candidate) && candidate.length === 0 ? null : candidate
+        )
+        ? "Complete an available date and time."
+        : ""
+    )
+  })
+
   const canConfirm =
     !interactionBlocked &&
-    canConfirmDatePickerDraft(coordinator, isTimeUnavailable)
+    canConfirmDatePickerDraft(
+      coordinator,
+      isTimeUnavailable,
+      min,
+      max,
+      isDateUnavailable ? (date) => isDateUnavailable(date, locale) : undefined
+    )
   const submitDraft = () => {
-    if (!(canConfirm && coordinator.draft)) {
+    if (
+      !(
+        canConfirm &&
+        coordinator.draft &&
+        candidateAllowed(coordinator.draft.candidate)
+      )
+    ) {
       return
     }
 
@@ -896,12 +1034,32 @@ export function DatePicker({
     }
 
     setRangeInputDraft(null)
+    setSegmentInputDraft(null)
     if (isTimed && resolvedOpen) {
       dispatch({ type: "edit", value: null })
       return
     }
 
     commitValue(null)
+  }
+  const validationMessageId = `${uniqueId}-validation`
+  const invalidCandidate =
+    (segmentInputDraft !== null &&
+      !candidateAllowed(
+        selectionMode === "range"
+          ? segmentInputDraft
+          : (segmentInputDraft[0] ?? null)
+      )) ||
+    (rangeInputDraft !== null &&
+      rangeInputDraft.length === 2 &&
+      !candidateAllowed(rangeInputDraft)) ||
+    (coordinator.draft?.candidate != null &&
+      !candidateAllowed(coordinator.draft.candidate))
+  let validationMessage = nativeInvalid
+    ? "Complete every date and time segment before submitting."
+    : undefined
+  if (invalidCandidate) {
+    validationMessage = `Choose an available date and time${min ? ` on or after ${min.toString()}` : ""}${max ? ` on or before ${max.toString()}` : ""}.`
   }
   const rootProps = mergeProps(htmlProps, pickerApi.getRootProps())
 
@@ -913,6 +1071,27 @@ export function DatePicker({
         clearValue,
         coordinator,
         dateInputApi,
+        dir,
+        locale,
+        timeZone,
+        validationMessage,
+        validationMessageId,
+        prepareSegmentDeletion: (text) => {
+          const normalized = normalizeDatePickerDigits(text, locale)
+          if (normalized !== text) {
+            dateInputService.context.set("enteredKeys", normalized)
+          }
+        },
+        sendSegmentInput: (_index, segment, input) => {
+          if (
+            !(
+              interactionBlocked ||
+              disabledProbeRef.current?.matches(":disabled")
+            )
+          ) {
+            dateInputService.send({ type: "SEGMENT.INPUT", segment, input })
+          }
+        },
         granularity,
         hideTimeZone,
         hourCycle: resolvedHourCycle,
@@ -954,12 +1133,51 @@ export function DatePicker({
         className={styles.root({ className })}
         data-granularity={granularity}
         data-selection-mode={selectionMode}
-        ref={(node) => {
-          rootElementRef.current = node
-          setRefValue(ref, node)
-        }}
+        dir={explicitDir}
+        ref={rootRef}
       >
         {children}
+        {validationMessage && (
+          <StatusText id={validationMessageId} size={size} status="error">
+            {validationMessage}
+          </StatusText>
+        )}
+        <input
+          aria-hidden="true"
+          className="sr-only"
+          disabled={explicitDisabled}
+          form={form}
+          onChange={() => {
+            /* Validation-only proxy; editable segments own the value. */
+          }}
+          onFocus={() =>
+            rootElementRef.current
+              ?.querySelector<HTMLElement>('[role="spinbutton"]')
+              ?.focus()
+          }
+          onInvalid={(event) => {
+            event.preventDefault()
+            setNativeInvalid(true)
+            const root = rootElementRef.current
+            const incomplete = root?.querySelector<HTMLElement>(
+              '[role="spinbutton"][data-placeholder-shown]'
+            )
+            ;(
+              incomplete ??
+              root?.querySelector<HTMLElement>('[role="spinbutton"]')
+            )?.focus()
+          }}
+          readOnly={readOnly}
+          ref={disabledProbeRef}
+          required={required}
+          tabIndex={-1}
+          value={
+            acceptedValuesAsString.length ===
+            (selectionMode === "range" ? 2 : 1)
+              ? acceptedValuesAsString.join("/")
+              : ""
+          }
+        />
         <DatePickerFormValue
           disabled={disabled}
           form={form}
@@ -1039,7 +1257,8 @@ DatePicker.Control = function DatePickerControl({
   ref,
   ...props
 }: DatePickerControlProps) {
-  const { dateInputApi, pickerApi, styles } = useDatePickerContext()
+  const { dateInputApi, pickerApi, validationMessage, styles } =
+    useDatePickerContext()
   const controlProps = mergeProps(props, pickerApi.getControlProps())
   const { "data-invalid": _dataInvalid, ...dateInputControlProps } =
     dateInputApi.getControlProps()
@@ -1051,7 +1270,9 @@ DatePicker.Control = function DatePickerControl({
         className={styles.inputControl()}
         data-disabled={dateInputApi.disabled || undefined}
         data-readonly={pickerApi.readOnly || undefined}
-        data-validation={dateInputApi.invalid ? "error" : undefined}
+        data-validation={
+          dateInputApi.invalid || validationMessage ? "error" : undefined
+        }
       >
         {children}
       </div>
@@ -1079,6 +1300,11 @@ DatePicker.Segments = function DatePickerSegments({
 }: DatePickerSegmentsProps) {
   const {
     dateInputApi,
+    locale,
+    sendSegmentInput,
+    prepareSegmentDeletion,
+    validationMessage,
+    validationMessageId,
     required,
     selectionMode,
     styles,
@@ -1089,41 +1315,106 @@ DatePicker.Segments = function DatePickerSegments({
   const endDescriptorId = useId()
 
   const renderSegments = (index: 0 | 1) =>
-    dateInputApi.getSegments({ index }).map((segment, segmentIndex) => (
-      // biome-ignore lint/a11y/useAriaPropsSupportedByRole: Zag supplies role=spinbutton for every nonliteral segment; literal segments receive no aria-required.
-      <span
-        {...dateInputApi.getSegmentProps({ index, segment })}
-        aria-describedby={
-          segment.type === "literal"
-            ? undefined
-            : joinDescribedBy(
-                props["aria-describedby"],
-                descriptions.describedById
+    dateInputApi.getSegments({ index }).map((segment, segmentIndex) => {
+      if (segment.type === "literal") {
+        return (
+          <span
+            {...dateInputApi.getSegmentProps({ index, segment })}
+            className={styles.segment()}
+            // biome-ignore lint/suspicious/noArrayIndexKey: repeated localized literals are stable segment positions.
+            key={`literal-${segmentIndex}`}
+          >
+            {segment.text}
+          </span>
+        )
+      }
+      const hasError = Boolean(
+        validationMessage ||
+          dateInputApi.invalid ||
+          errorDescriptions.describedById
+      )
+      const errorIds = joinDescribedBy(
+        errorDescriptions.describedById,
+        validationMessage ? validationMessageId : undefined
+      )
+      return (
+        <span
+          role="spinbutton"
+          {...dateInputApi.getSegmentProps({ index, segment })}
+          aria-describedby={joinDescribedBy(
+            props["aria-describedby"],
+            descriptions.describedById,
+            validationMessage ? validationMessageId : undefined
+          )}
+          aria-errormessage={hasError ? errorIds : undefined}
+          aria-invalid={hasError || undefined}
+          aria-required={required || undefined}
+          className={styles.segment()}
+          // biome-ignore lint/suspicious/noArrayIndexKey: localized literal separators can repeat; their segment positions are stable within a locale.
+          key={`${segment.type}-${segmentIndex}`}
+          onBeforeInput={(event) => {
+            if (
+              dateInputApi.disabled ||
+              dateInputApi.getSegmentState({ index, segment }).readonly
+            ) {
+              event.preventDefault()
+              return
+            }
+            const native = event.nativeEvent as InputEvent
+            const data = native.data
+            if (
+              data &&
+              DATE_PICKER_ASCII_DIGIT.test(
+                normalizeDatePickerDigits(data, locale)
               )
-        }
-        aria-errormessage={
-          segment.type !== "literal" &&
-          (dateInputApi.invalid || errorDescriptions.describedById)
-            ? errorDescriptions.describedById
-            : undefined
-        }
-        aria-invalid={
-          segment.type === "literal"
-            ? undefined
-            : dateInputApi.invalid ||
-              Boolean(errorDescriptions.describedById) ||
-              undefined
-        }
-        aria-required={
-          required && segment.type !== "literal" ? true : undefined
-        }
-        className={styles.segment()}
-        // biome-ignore lint/suspicious/noArrayIndexKey: localized literal separators can repeat; their segment positions are stable within a locale.
-        key={`${segment.type}-${segmentIndex}`}
-      >
-        {segment.text}
-      </span>
-    ))
+            ) {
+              event.preventDefault()
+              for (const input of normalizeDatePickerDigits(data, locale)) {
+                sendSegmentInput(index, segment, input)
+              }
+              return
+            }
+            dateInputApi
+              .getSegmentProps({ index, segment })
+              .onBeforeInput?.(event)
+          }}
+          onFocus={(event) => {
+            dateInputApi.getSegmentProps({ index, segment }).onFocus?.(event)
+            event.currentTarget.scrollIntoView({
+              block: "nearest",
+              inline: "nearest",
+            })
+          }}
+          onKeyDown={(event) => {
+            if (
+              dateInputApi.disabled ||
+              dateInputApi.getSegmentState({ index, segment }).readonly
+            ) {
+              if (event.key !== "Tab") {
+                event.preventDefault()
+              }
+              return
+            }
+            if (event.key === "Backspace" || event.key === "Delete") {
+              prepareSegmentDeletion(segment.text)
+            }
+            dateInputApi.getSegmentProps({ index, segment }).onKeyDown?.(event)
+          }}
+          onPaste={(event) => {
+            if (
+              dateInputApi.disabled ||
+              dateInputApi.getSegmentState({ index, segment }).readonly
+            ) {
+              event.preventDefault()
+              return
+            }
+            dateInputApi.getSegmentProps({ index, segment }).onPaste?.(event)
+          }}
+        >
+          {segment.text}
+        </span>
+      )
+    })
 
   if (selectionMode === "range") {
     const visibleLabel = props["aria-label"]
@@ -1226,6 +1517,10 @@ DatePicker.Trigger = function DatePickerTrigger({
 }: DatePickerTriggerProps) {
   const { dateInputApi, pickerApi, styles, triggerElementRef } =
     useDatePickerContext()
+  const composedRef = useMemo(
+    () => composeDatePickerRefs(triggerElementRef, ref),
+    [triggerElementRef, ref]
+  )
   const triggerProps = mergeProps(props, pickerApi.getTriggerProps())
   if (pickerApi.readOnly) {
     return null
@@ -1238,10 +1533,7 @@ DatePicker.Trigger = function DatePickerTrigger({
       className={styles.trigger({ className })}
       icon={icon ?? (children ? undefined : "token-icon-date-picker-calendar")}
       iconSize={iconSize}
-      ref={(node) => {
-        triggerElementRef.current = node
-        setRefValue(ref, node)
-      }}
+      ref={composedRef}
       size={size}
       theme={theme}
       type={type}
@@ -1377,18 +1669,27 @@ DatePicker.Calendar = function DatePickerCalendar({
     min,
     numOfMonths,
     pickerApi,
+    locale,
+    timeZone,
     selectionMode,
     styles,
   } = useDatePickerContext()
+  const formatCalendar = (
+    date: DateValue,
+    options: Intl.DateTimeFormatOptions
+  ) => formatDatePickerCalendar(date, locale, timeZone, options)
   const createPanelMonths = () =>
     Array.from({ length: numOfMonths }, (_, index) =>
-      pickerApi.visibleRange.start.add({ months: index }).set({ day: 1 })
+      getDatePickerCalendarDate(pickerApi.visibleRange.start, timeZone)
+        .add({ months: index })
+        .set({ day: 1 })
     )
   const [panelMonths, setPanelMonths] = useState<DateValue[]>(createPanelMonths)
   const [activePanelIndex, setActivePanelIndex] = useState<number | null>(null)
-  const acceptedValueKey = JSON.stringify(
-    serializeDatePickerValue(acceptedValue)
-  )
+  const acceptedValueKey = JSON.stringify([
+    timeZone,
+    serializeDatePickerValue(acceptedValue),
+  ])
   const previousAcceptedValue = useRef(acceptedValueKey)
   const previousNumOfMonths = useRef(numOfMonths)
   const previousView = useRef(pickerApi.view)
@@ -1430,7 +1731,10 @@ DatePicker.Calendar = function DatePickerCalendar({
       return
     }
 
-    const selectedMonth = pickerApi.focusedValue.set({ day: 1 })
+    const selectedMonth = getDatePickerCalendarDate(
+      pickerApi.focusedValue,
+      timeZone
+    ).set({ day: 1 })
     setPanelMonths((current) =>
       current.map((month, index) =>
         index === activePanelIndex ? selectedMonth : month
@@ -1563,19 +1867,24 @@ DatePicker.Calendar = function DatePickerCalendar({
       <div {...viewProps} className={styles.view()} hidden={false}>
         <table
           {...pickerApi.getTableProps({ id: `panel-${index}`, view: "day" })}
+          aria-label={formatCalendar(month, { month: "long", year: "numeric" })}
           className={styles.table()}
         >
-          <thead {...pickerApi.getTableHeadProps({ view: "day" })}>
+          <thead
+            {...pickerApi.getTableHeadProps({ view: "day" })}
+            aria-hidden={undefined}
+          >
             <tr {...pickerApi.getTableRowProps({ view: "day" })}>
               {pickerApi.weekDays.map((weekDay) => (
                 <th
                   {...pickerApi.getTableHeaderProps({ view: "day" })}
+                  aria-label={weekDay.long}
                   className={styles.tableHeader()}
                   key={weekDay.value.toString()}
                   scope="col"
                 >
                   <abbr className="no-underline" title={weekDay.long}>
-                    {weekDay.short}
+                    {formatCalendar(weekDay.value, { weekday: "narrow" })}
                   </abbr>
                 </th>
               ))}
@@ -1620,11 +1929,12 @@ DatePicker.Calendar = function DatePickerCalendar({
                         }
                       )}
                       className={styles.dayTrigger()}
+                      id={`${pickerApi.getDayTableCellTriggerProps({ value: day, visibleRange }).id}-panel-${index}`}
                       size="current"
                       theme="unstyled"
                       type="button"
                     >
-                      {pickerApi.format(day, { day: "numeric" })}
+                      {formatCalendar(day, { day: "numeric" })}
                     </Button>
                   </td>
                 ))}
@@ -1786,11 +2096,11 @@ DatePicker.Calendar = function DatePickerCalendar({
   )
 
   const renderDayPanel = (month: DateValue, index: number) => {
-    const monthText = pickerApi.format(month, {
+    const monthText = formatCalendar(month, {
       month: "short",
       year: "numeric",
     })
-    const monthLabel = pickerApi.format(month, {
+    const monthLabel = formatCalendar(month, {
       month: "long",
       year: "numeric",
     })
@@ -1880,6 +2190,8 @@ DatePicker.TimeControl = function DatePickerTimeControl({
     pickerApi,
     selectionMode,
     setDraftTimePart,
+    validationMessage,
+    validationMessageId,
     styles,
   } = useDatePickerContext()
 
@@ -1925,6 +2237,7 @@ DatePicker.TimeControl = function DatePickerTimeControl({
           {accessibleLabel}
         </span>
         <div className={styles.timeFields()}>
+          {/* biome-ignore lint/complexity/noExcessiveCognitiveComplexity: each time part keeps bounded typing and keyboard adjustment together. */}
           {visibleParts.map(({ label, part }, partIndex) => {
             const hourMaximum = hourCycle === 12 ? 12 : 23
             const max = part === "hour" ? hourMaximum : 59
@@ -1940,6 +2253,13 @@ DatePicker.TimeControl = function DatePickerTimeControl({
                 <div className={styles.timeField()}>
                   <span className={styles.timeLabel()}>{label}</span>
                   <Input
+                    aria-describedby={
+                      validationMessage ? validationMessageId : undefined
+                    }
+                    aria-errormessage={
+                      validationMessage ? validationMessageId : undefined
+                    }
+                    aria-invalid={Boolean(validationMessage) || undefined}
                     aria-label={
                       selectionMode === "range"
                         ? `${accessibleLabel} ${label.toLowerCase()}`

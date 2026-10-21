@@ -2,7 +2,7 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -84,6 +84,7 @@ export function FormNumericInput({
         invalid={validateStatus === "error" || numericInputProps.invalid}
         required={required}
         size={size}
+        validateStatus={validateStatus}
       >
         {children}
       </NumericInput>

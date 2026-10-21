@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Slider, type SliderProps } from "../../src/molecules/slider"
@@ -75,6 +75,16 @@ const meta: Meta<typeof Slider> = {
       control: "boolean",
       description: "Show the current values alongside the slider.",
       table: { defaultValue: { summary: "false" } },
+    },
+    getAriaValueText: {
+      control: false,
+      description:
+        "Per-thumb spoken value formatter; defaults to formatValue. Numeric aria-valuenow is preserved.",
+    },
+    "aria-label": {
+      control: "object",
+      description:
+        "Distinct contextual names for every thumb, including when label is present.",
     },
     formatValue: {
       control: false,
@@ -161,6 +171,7 @@ const baseSliderProps: Partial<SliderProps> = {
   max: 100,
   step: 1,
   showValueText: true,
+  "aria-label": ["Lower range value", "Upper range value"],
 }
 
 export const Playground: Story = {
@@ -176,6 +187,7 @@ export const Playground: Story = {
     id: "playground-slider",
     label: "Price Range",
     defaultValue: [20, 80],
+    "aria-label": ["Minimum price", "Maximum price"],
     helpText: "Select your desired price range.",
   },
   render: (args) => (
@@ -211,6 +223,7 @@ export const Sizes: Story = {
               defaultValue={[25, 75]}
               showValueText
               helpText="Choose your preferred budget range."
+              aria-label={["Project budget minimum", "Project budget maximum"]}
             />
           </div>
         </VariantGroup>
@@ -396,6 +409,7 @@ export const VerticalOrientation: Story = {
             label="Volume (Small)"
             defaultValue={[20, 80]}
             helpText="Adjust volume"
+            aria-label={["Volume (Small) minimum", "Volume (Small) maximum"]}
           />
           <Slider
             {...baseSliderProps}
@@ -424,6 +438,10 @@ export const VerticalOrientation: Story = {
             label="Contrast (Large)"
             defaultValue={[40, 60]}
             helpText="Set contrast level"
+            aria-label={[
+              "Contrast (Large) minimum",
+              "Contrast (Large) maximum",
+            ]}
           />
         </div>
       </VariantContainer>
@@ -554,6 +572,10 @@ export const SingleVsMultiThumb: Story = {
           label="Double Thumb (Range)"
           defaultValue={[25, 75]}
           helpText="Two thumbs for range selection"
+          aria-label={[
+            "Double Thumb (Range) minimum",
+            "Double Thumb (Range) maximum",
+          ]}
         />
         <Slider
           {...baseSliderProps}
@@ -561,6 +583,11 @@ export const SingleVsMultiThumb: Story = {
           label="Triple Thumb (Multi-range)"
           defaultValue={[20, 50, 80]}
           helpText="Three thumbs for complex range selection"
+          aria-label={[
+            "Triple Thumb (Multi-range) minimum",
+            "Triple Thumb (Multi-range) middle threshold",
+            "Triple Thumb (Multi-range) maximum",
+          ]}
         />
       </div>
     </VariantContainer>
@@ -629,6 +656,10 @@ export const ThumbAlignment: Story = {
           label="Thumb Alignment: Center (default)"
           defaultValue={[25, 75]}
           helpText="Thumbs can go to track edges"
+          aria-label={[
+            "Thumb Alignment: Center (default) minimum",
+            "Thumb Alignment: Center (default) maximum",
+          ]}
         />
         <Slider
           {...baseSliderProps}
@@ -639,6 +670,10 @@ export const ThumbAlignment: Story = {
           label="Thumb Alignment: Contain"
           defaultValue={[25, 75]}
           helpText="Thumbs stay within track bounds"
+          aria-label={[
+            "Thumb Alignment: Contain minimum",
+            "Thumb Alignment: Contain maximum",
+          ]}
         />
       </div>
     </VariantContainer>
@@ -668,6 +703,10 @@ export const MinStepsBetweenThumbs: Story = {
             defaultValue={[45, 55]}
             minStepsBetweenThumbs={0}
             helpText="Thumbs can touch each other"
+            aria-label={[
+              "No Minimum Steps minimum",
+              "No Minimum Steps maximum",
+            ]}
           />
           <Slider
             {...baseSliderProps}
@@ -685,6 +724,10 @@ export const MinStepsBetweenThumbs: Story = {
             defaultValue={[20, 80]}
             minStepsBetweenThumbs={20}
             helpText="Enforces 20 unit minimum gap"
+            aria-label={[
+              "Minimum 20 Steps Between Thumbs minimum",
+              "Minimum 20 Steps Between Thumbs maximum",
+            ]}
           />
         </div>
       </VariantContainer>
@@ -711,6 +754,10 @@ export const RTLSupport: Story = {
           label="LTR Direction (English)"
           defaultValue={[20, 80]}
           helpText="Left to right direction"
+          aria-label={[
+            "LTR Direction (English) minimum",
+            "LTR Direction (English) maximum",
+          ]}
         />
         <Slider
           {...baseSliderProps}
@@ -719,6 +766,10 @@ export const RTLSupport: Story = {
           label="RTL Direction (العربية)"
           defaultValue={[20, 80]}
           helpText="Right to left direction"
+          aria-label={[
+            "RTL Direction (العربية) minimum",
+            "RTL Direction (العربية) maximum",
+          ]}
         />
       </div>
     </VariantContainer>
@@ -750,6 +801,7 @@ export const CustomFormatting: Story = {
             `Budget: $${start} - $${end}`
           }
           helpText="Select your price range"
+          aria-label={["Price Range minimum", "Price Range maximum"]}
         />
         <Slider
           {...baseSliderProps}
@@ -764,6 +816,7 @@ export const CustomFormatting: Story = {
             `${start}:00 - ${end}:00`
           }
           helpText="Select working hours"
+          aria-label={["Working Hours minimum", "Working Hours maximum"]}
         />
         <Slider
           {...baseSliderProps}
@@ -778,10 +831,21 @@ export const CustomFormatting: Story = {
             `${start}% to ${end}% off`
           }
           helpText="Set discount percentage range"
+          aria-label={["Discount Range minimum", "Discount Range maximum"]}
         />
       </div>
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const sliders = canvas.getAllByRole("slider")
+    const expected = ["$200", "$800", "9:00", "17:00", "10%", "50%"]
+    for (const [index, slider] of sliders.entries())
+      await expect(slider).toHaveAttribute("aria-valuetext", expected[index])
+    sliders[0]?.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(sliders[0]).toHaveAttribute("aria-valuetext", "$250")
+  },
 }
 
 export const AllVariants: Story = {
@@ -797,7 +861,12 @@ export const AllVariants: Story = {
     <VariantContainer>
       <VariantGroup title="States">
         <div className="w-full max-w-lg">
-          <Slider {...baseSliderProps} label="Normal" defaultValue={[20, 80]} />
+          <Slider
+            {...baseSliderProps}
+            label="Normal"
+            defaultValue={[20, 80]}
+            aria-label={["Normal minimum", "Normal maximum"]}
+          />
         </div>
         <div className="w-full max-w-lg">
           <Slider
@@ -805,6 +874,7 @@ export const AllVariants: Story = {
             label="Disabled"
             defaultValue={[20, 80]}
             disabled
+            aria-label={["Disabled minimum", "Disabled maximum"]}
           />
         </div>
         <div className="w-full max-w-lg">
@@ -813,6 +883,7 @@ export const AllVariants: Story = {
             label="Read-only"
             defaultValue={[20, 80]}
             readOnly
+            aria-label={["Read-only minimum", "Read-only maximum"]}
           />
         </div>
         <div className="w-full max-w-lg">
@@ -822,6 +893,7 @@ export const AllVariants: Story = {
             defaultValue={[20, 80]}
             validateStatus="error"
             helpText="Invalid range selected"
+            aria-label={["Error minimum", "Error maximum"]}
           />
         </div>
         <div className="w-full max-w-lg">
@@ -831,6 +903,7 @@ export const AllVariants: Story = {
             defaultValue={[40, 60]}
             validateStatus="success"
             helpText="Perfect range selected!"
+            aria-label={["Success minimum", "Success maximum"]}
           />
         </div>
         <div className="w-full max-w-lg">
@@ -840,6 +913,7 @@ export const AllVariants: Story = {
             defaultValue={[10, 90]}
             validateStatus="warning"
             helpText="Range is quite wide - consider narrowing it"
+            aria-label={["Warning minimum", "Warning maximum"]}
           />
         </div>
       </VariantGroup>
@@ -852,6 +926,7 @@ export const AllVariants: Story = {
             defaultValue={[25, 75]}
             showMarkers
             markerCount={5}
+            aria-label={["With Markers minimum", "With Markers maximum"]}
           />
         </div>
         <div className="w-full max-w-lg">
@@ -860,6 +935,7 @@ export const AllVariants: Story = {
             label="With Value Text"
             defaultValue={[30, 70]}
             showValueText
+            aria-label={["With Value Text minimum", "With Value Text maximum"]}
           />
         </div>
         <div className="w-full max-w-lg">
@@ -868,6 +944,10 @@ export const AllVariants: Story = {
             label="With Helper Text"
             defaultValue={[35, 65]}
             helpText="Adjust the range"
+            aria-label={[
+              "With Helper Text minimum",
+              "With Helper Text maximum",
+            ]}
           />
         </div>
       </VariantGroup>
@@ -885,6 +965,7 @@ export const AllVariants: Story = {
             {...baseSliderProps}
             label="Double Thumb"
             defaultValue={[25, 75]}
+            aria-label={["Double Thumb minimum", "Double Thumb maximum"]}
           />
         </div>
         <div className="w-full max-w-lg">
@@ -892,9 +973,146 @@ export const AllVariants: Story = {
             {...baseSliderProps}
             label="Triple Thumb"
             defaultValue={[20, 50, 80]}
+            aria-label={[
+              "Triple Thumb minimum",
+              "Triple Thumb middle threshold",
+              "Triple Thumb maximum",
+            ]}
           />
         </div>
       </VariantGroup>
     </VariantContainer>
   ),
+}
+
+function PrecisionExample() {
+  const [value, setValue] = useState([1.5])
+  return (
+    <form
+      className="flex max-w-md flex-col gap-300"
+      aria-label="Precision form"
+    >
+      <Slider
+        name="offset"
+        label="Fractional minimum"
+        min={0.5}
+        max={5.5}
+        step={1}
+        value={value}
+        onChange={setValue}
+        showValueText
+      />
+      <Slider
+        name="tiny"
+        label="Small step"
+        min={0}
+        max={0.000001}
+        step={0.0000001}
+        defaultValue={[0.0000005]}
+        showValueText
+        formatValue={(value) => `${value} metres`}
+      />
+      <Slider
+        name="negative"
+        label="Negative range"
+        aria-label={["Lower negative threshold", "Upper negative threshold"]}
+        min={-2.5}
+        max={2.5}
+        step={1}
+        defaultValue={[-1.5, 1.5]}
+        showValueText
+      />
+    </form>
+  )
+}
+export const Precision: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Fractional minima, negative offsets and exponent-form steps retain the same values in text, ARIA, callbacks and form submission.",
+      },
+    },
+  },
+  render: () => <PrecisionExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const form = canvas.getByRole("form", {
+      name: "Precision form",
+    }) as HTMLFormElement
+    const offset = canvas.getByRole("slider", { name: "Fractional minimum" })
+    await expect(offset).toHaveAttribute("aria-valuenow", "1.5")
+    await expect(
+      canvas.getByRole("slider", { name: "Small step" })
+    ).toHaveAttribute("aria-valuenow", "5e-7")
+    await expect(new FormData(form).get("offset")).toBe("1.5")
+    offset.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(offset).toHaveAttribute("aria-valuenow", "2.5")
+    await expect(new FormData(form).get("offset")).toBe("2.5")
+    await expect(
+      canvas.getByRole("slider", { name: "Small step" })
+    ).toHaveAttribute("aria-valuetext", "5e-7 metres")
+  },
+}
+
+function NativeFieldsetExample() {
+  const [disabled, setDisabled] = useState(true)
+  return (
+    <form className="flex w-full max-w-md flex-col gap-300" aria-label="Native slider form">
+      <fieldset disabled={disabled}>
+        <legend>
+          <Slider name="legend" label="Legend exception" defaultValue={[25]} />
+        </legend>
+        <fieldset>
+          <legend>Nested group</legend>
+          <Slider name="nested" label="Nested disabled slider" defaultValue={[25]} />
+        </fieldset>
+      </fieldset>
+      <Button type="button" onClick={() => setDisabled((value) => !value)}>
+        Toggle slider fieldset
+      </Button>
+    </form>
+  )
+}
+
+export const NativeFieldset: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story: "Native fieldset semantics include disabled ancestors, the first legend exemption, and reversible dynamic changes.",
+      },
+    },
+  },
+  render: () => <NativeFieldsetExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const form = canvas.getByRole("form", { name: "Native slider form" }) as HTMLFormElement
+    const legend = canvas.getByRole("slider", { name: "Legend exception" })
+    const nested = canvas.getByRole("slider", { name: "Nested disabled slider" })
+    await expect(legend).toHaveAttribute("tabindex", "0")
+    await expect(legend).not.toHaveAttribute("aria-disabled", "true")
+    await waitFor(() => expect(nested).not.toHaveAttribute("tabindex", "0"))
+    await expect(nested).toHaveAttribute("aria-disabled", "true")
+    await expect(new FormData(form).get("nested")).toBeNull()
+    legend.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(legend).toHaveAttribute("aria-valuenow", "26")
+    nested.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(nested).toHaveAttribute("aria-valuenow", "25")
+    await userEvent.click(canvas.getByRole("button", { name: "Toggle slider fieldset" }))
+    await waitFor(() => expect(nested).toHaveAttribute("tabindex", "0"))
+    nested.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(nested).toHaveAttribute("aria-valuenow", "26")
+    await expect(new FormData(form).get("nested")).toBe("26")
+    await userEvent.click(canvas.getByRole("button", { name: "Toggle slider fieldset" }))
+    await waitFor(() => expect(nested).not.toHaveAttribute("tabindex", "0"))
+    nested.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(nested).toHaveAttribute("aria-valuenow", "26")
+    await expect(new FormData(form).get("nested")).toBeNull()
+  },
 }

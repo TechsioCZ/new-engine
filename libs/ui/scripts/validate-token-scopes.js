@@ -33,9 +33,12 @@ function collect(file) {
 collect(path.join(root, "_tokens-base.css"))
 const scopes =
   ":where(:root, .light, .dark, .always-light, .always-dark, .reverse, [data-theme])"
-const declarations = (entries) =>
+const declarations = (entries, includeLiterals = false) =>
   [...entries]
-    .filter(([, value]) => DYNAMIC_VALUE.test(value))
+    .filter(
+      ([name, value]) =>
+        includeLiterals || corrections.has(name) || DYNAMIC_VALUE.test(value)
+    )
     .map(([name, value]) => `    ${name}: ${value};`)
     .join("\n")
 const corrections = new Map()
@@ -43,12 +46,15 @@ const brandCorrections = new Map()
 postcss
   .parse(readFileSync(path.join(root, "_foundation-overrides.css"), "utf8"))
   .walkDecls((decl) => {
+    if (!decl.prop.startsWith("--")) {
+      return
+    }
     const selector = decl.parent.selector
     if (selector?.startsWith("[data-theme=")) {
       const entries = brandCorrections.get(selector) ?? new Map()
       entries.set(decl.prop, decl.value)
       brandCorrections.set(selector, entries)
-    } else {
+    } else if (decl.parent.name === "theme" || selector?.includes(":root")) {
       corrections.set(decl.prop, decl.value)
     }
   })
@@ -70,7 +76,7 @@ brands.walkRules((rule) => {
     entries.set(name, value)
   }
   // Scope proximity, not distant ancestor selector order, chooses the brand.
-  result += `  @scope (${rule.selector}) to ([data-theme]) {\n    :where(:scope, .light, .dark, .always-light, .always-dark, .reverse) {\n${declarations(entries)}\n    }\n  }\n`
+  result += `  @scope (${rule.selector}) to ([data-theme]) {\n    :where(:scope, .light, .dark, .always-light, .always-dark, .reverse) {\n${declarations(entries, true)}\n    }\n  }\n`
 })
 result += "}\n"
 // Biome formats checked-in CSS. Compare syntax rather than whitespace.

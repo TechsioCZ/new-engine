@@ -8,7 +8,7 @@ description: >
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.4.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -294,7 +294,7 @@ text; `translations.pageSizeLabel` is the page-size select's accessible name
 - `enableSorting` (default `true`) — click header to sort; `meta.align: "end"` right-aligns numeric columns.
 - `enableGlobalFilter` — renders the toolbar search (`DataTable.GlobalSearch`).
 - `enableColumnFilters` — renders a per-column filter row. Pick the control with `meta.type` (`"string" | "int" | "number" | "boolean" | "enum" | "multiEnum" | "date" | "datetime" | "dateRange" | "time" | "custom"`), plus `meta.options` for the enum types. Columns get `filterFn: "typed"` by default, which dispatches on that same `meta.type`; set `filterFn: "conditional"` for the operator-based ("with conditions") comparator instead, or override the whole UI with `meta.renderFilter` / `renderHeaderFilter`. `meta.filterVariant` and `meta.filterOptions` are deprecated aliases kept for older columns: both still work — `filterVariant` is resolved to a `meta.type` (`text`→`string`, `number`/`range`→`number`, `select`→`enum`) and selects that type's control and matcher, and `filterOptions` is used when `options` is absent. Prefer `meta.type` / `meta.options` in new code.
-- `enableRowSelection` — injects a leading checkbox column; header checkbox toggles all.
+- `enableRowSelection` — injects a leading checkbox column; header checkbox toggles eligible loaded records (all client pages, but only the loaded response in manual server paging). Always supply stable `getRowId`.
   Constrain it with `selectionMode: "single" | "multiple"` (single replaces the
   selection), `maxSelectedRows: N` (a hard cap — unselected rows disable once it
   is reached, selected ones stay deselectable, and `onSelectionLimitReached`
@@ -310,13 +310,13 @@ text; `translations.pageSizeLabel` is the page-size select's accessible name
 - `enableExpanding` — the expand toggle lives in the trailing actions cell, so it never collides with the selection checkbox. Pair with `getSubRows` for tree rows, or with `renderExpandedRow` alone for master-detail (every row becomes expandable; narrow it with `getRowCanExpand`). The detail renders as one full-width cell spanning every column, containing a plain `div` — put any layout inside, no nested table cells.
 - `enablePagination` — renders `DataTable.Pagination` ("start–end of total" + page-size select + pager). Configure `pageSizeOptions`.
 - `enableVirtualization` + `maxHeight` — windowed rendering for large datasets (keeps native column alignment). Set `estimateRowHeight`.
-- `enableColumnResizing` — draggable column widths (`columnResizeMode: "onChange"`); widths are applied inline per cell.
+- `enableColumnResizing` — draggable column widths (`columnResizeMode: "onChange"`); the leaf colgroup carries inline widths, and only leaf headers offer resize/reset handles. Pointer/touch drags start from the rendered leaf width, including CSS-string widths such as `"20rem"`, and follow the table's RTL direction.
 - `enableInlineEdit` — type-driven row editing with an edit/save/cancel actions cell (see above).
 - `stickyActions` (default `true`) — pin the row-actions cell to the right edge.
 - `hideHeader` — render without the column header row(s).
 - `onReachEnd` + `maxHeight` — infinite scroll; called once when scrolled near the bottom.
 
-Server-driven data: set `manualSorting` / `manualFiltering` / `manualPagination` and supply `rowCount` (or `pageCount`) so pagination totals stay correct. Prefer `rowCount` — it makes the "start–end of total" label exact. With only `pageCount`, the total is derived as `pageCount * pageSize`, so every page is reachable but the figure is an upper bound on the last page.
+Server-driven data: set `manualSorting` / `manualFiltering` / `manualPagination` and supply `rowCount` (or `pageCount`) so pagination totals stay correct. Prefer `rowCount` — it makes the "start–end of total" label exact. With only `pageCount`, capacity is derived as `pageCount * pageSize` to keep every page reachable, but user-facing copy reports pages rather than an invented exact record total. Use `pageCount=-1` for unknown-total Previous/Next navigation. A settled `pageCount=0` response reports the exact empty range (`0–0 of 0`) through `rangeLabel`, not “Page 1 of 0”. During loading/refetch, pager destinations stay mounted and unavailable for activation; transient empty totals do not remove keyboard focus. If the settled response removes the focused page, focus moves to the new current page (or the remaining page-size control when no pages remain), unless the user has moved it elsewhere.
 
 ## Callbacks (for interaction tests + app wiring)
 
@@ -402,3 +402,58 @@ The bounded scroll surface is a keyboard-focusable named region. Its caption sup
 Default inline editors render sized StatusText errors with icons, aria-invalid and aria-errormessage on the actual control. Choice editors own their feedback through the widget API; custom editors receive error/errorId and must associate their focus target. Built-in editors reserve a size-dependent minimum value width so numeric values remain readable beside steppers; constrained fixed-layout cells scroll locally instead of covering adjacent fields.
 
 Sticky actions pin only when the table scroll container is at least 48rem wide. In narrower containers they scroll with the row, so Save/Cancel cannot cover a focused value editor. This is container-responsive, including narrow panels on desktop.
+
+## Record identity and selection scope
+
+Always provide a stable `getRowId={(record) => record.id}` for selection,
+editing and server paging. Never key identity by the returned page index.
+Select-all affects all eligible **loaded records** in the client row model,
+not only the current client-side page. In manual server paging it affects only
+the loaded response, not unseen server records. Cross-page selected IDs may be
+retained by a controlled owner. Already-selected records remain deselectable
+when `canSelectRow` changes; new ineligible selections are refused. Revalidate
+all bulk-action permissions on the server before execution, including unloaded IDs.
+
+## Widths, direction and windowing
+
+The leaf colgroup is the sizing authority, including grouped fixed layouts.
+Only leaf headers expose resize handles: resize/reset each leaf rather than a
+group. Pointer and keyboard resizing both follow the table's effective inherited
+direction. Frozen offsets use measured rendered widths, including CSS-string
+widths, and end-pinned leaves reserve the actual sticky actions width.
+Virtualization uses stable record/detail keys and measures every mounted row,
+including expanded detail rows; `estimateRowHeight` is an initial estimate only.
+Detail rows and footers are included in the accessible sequence. Client-paginated detail tables count expanded details on preceding pages.
+Manual-paginated detail tables use page-local structural indexes because prior
+pages' detail counts are unknown; flat paginated tables use absolute record indexes. Manual pages
+without `rowCount` report unknown `aria-rowcount=-1`.
+
+## Persistence and validation
+
+`onEditCommit` may return `void` or `Promise<void>`. Return/await persistence
+before applying local rows. The editor stays mounted while saving, duplicate
+submissions are blocked, and rejection keeps the draft with an error and retry.
+Localize `savePendingLabel` and `saveErrorLabel`; custom row actions receive
+`pending` and `error` alongside `commitEdit`. Do not close a controlled editor
+before its promise succeeds. Required date ranges need at least one endpoint
+(open-ended ranges are supported); completely empty optional ranges are valid.
+Populated bounds must be valid dates and the start must not follow the end.
+Both Save and Enter perform these checks. Localize `invalidRangeLabel`.
+
+## Server pagination ownership
+
+`rowCount` is an exact total; `pageCount` alone is capacity, never an exact record
+count. Without `rowCount`, default copy uses localized `pageLabel({page,pageCount})`
+rather than the exact `rangeLabel` contract. With `pageCount=-1`, the pager shows
+Previous/Next without fabricated last-page links; optionally set `hasNextPage`
+from the response. Localize `previousPageLabel` and `nextPageLabel`.
+Settled totals that invalidate a page request the last valid page once through
+`onPaginationChange` (or update uncontrolled state); page-size changes atomically
+reset to page zero. The parent owns fetching: mark transient responses `loading`
+and cancel/ignore stale requests so rowCount belongs to the current request.
+An invalid response shows a correction message, not a false empty-success state.
+`loadingMore` announces loading even when the first response has no rows.
+`renderEmpty` owns its own accessible feedback; the default empty live announcement
+is suppressed when custom content is supplied.
+
+If the combined frozen bands cannot fit their scroll container, pinning temporarily yields to horizontal scrolling so every column stays reachable; the requested pins resume when there is room.

@@ -70,3 +70,243 @@
     oklch(from var(--color-primary-500) 0.85 calc(c * 0.65) h)
   );
 }
+
+/* Wave 3: runtime corrections awaiting the matching Figma export. */
+@theme static {
+  --font-body: var(--font-sans);
+  --text-theme-toggle-label-size: var(--text-sm);
+  --gap-theme-toggle-group: var(--spacing-100);
+  --gap-theme-toggle-choice: var(--spacing-50);
+  --margin-theme-toggle-mode: var(--spacing-150);
+
+  /* Legacy width names remain aliases, never an independent primitive scale. */
+  --border-sm: var(--border-width-sm);
+  --border-md: var(--border-width-md);
+  --border-lg: var(--border-width-lg);
+  --border-width-form-control: var(--border-width-md);
+
+  /* Minimum geometry scales with actual typography (including text-only zoom). */
+  --height-form-control-sm: max(
+    2rem,
+    calc(
+      1lh +
+      var(--padding-button-y-sm) *
+      2 +
+      var(--border-width-form-control) *
+      2
+    )
+  );
+  --height-form-control-md: max(
+    2.75rem,
+    calc(
+      1lh +
+      var(--padding-button-y-md) *
+      2 +
+      var(--border-width-form-control) *
+      2
+    )
+  );
+  --height-form-control-lg: max(
+    3.5rem,
+    calc(
+      1lh +
+      var(--padding-button-y-lg) *
+      2 +
+      var(--border-width-form-control) *
+      2
+    )
+  );
+
+  /* Paired hover roles use the same on-solid foreground as their surface. */
+  --color-fg-on-primary-hover: var(--color-fg-on-primary-solid-neo);
+  --color-tree-view-fg-hover: var(--color-fg-on-primary-hover);
+  --color-tree-view-icon-hover: var(--color-fg-on-primary-hover);
+  --color-footer-interactive: var(--color-fg-primary);
+  --color-footer-link-fg-hover: var(--color-footer-interactive);
+  --color-footer-title-fg-hover: var(--color-footer-interactive);
+
+  /* Selection strokes and focus are not decorative brand fills. */
+  --color-selection-stroke: var(--color-fg-accent-primary);
+  --color-tabs-border-selected: var(--color-selection-stroke);
+  --color-tabs-indicator-bg: var(--color-selection-stroke);
+  --color-pagination-border-active: var(--color-selection-stroke);
+  --color-sidebar-focus: var(--color-ring-default);
+  --color-drawer-focus: var(--color-ring-default);
+  --color-sidebar-ring: var(--color-ring-default);
+  --color-drawer-ring: var(--color-ring-default);
+  --color-steps-ring: var(--color-ring-default);
+  --color-color-select-border: var(--color-form-control-border-hover);
+  --color-focus-contrast: light-dark(var(--color-white), var(--color-black));
+
+  /* Functional feedback text must pass on both base and raised surfaces. */
+  --color-fg-status-success: light-dark(
+    oklch(from var(--color-success-700) 0.42 c h),
+    var(--color-success-300)
+  );
+  --color-fg-status-warning: light-dark(
+    oklch(from var(--color-warning-700) 0.42 c h),
+    var(--color-warning-400)
+  );
+
+  /* Alpha belongs in the shared shadow primitives, not individual components. */
+  --color-shadow-1: light-dark(oklch(0 0 none / 0.16), oklch(0 0 none / 0.32));
+  --color-shadow-2: light-dark(oklch(0 0 none / 0.06), oklch(0 0 none / 0.16));
+  --color-shadow-3: light-dark(oklch(0 0 none / 0.1), oklch(0 0 none / 0.24));
+
+  /* Tailwind v4 does not consume the legacy duration namespace by itself. */
+  --transition-duration-header: var(--duration-header);
+  --text-status-text-sm--line-height: var(--line-height-status-text-sm);
+  --text-status-text-md--line-height: var(--line-height-status-text-md);
+  --text-status-text-lg--line-height: var(--line-height-status-text-lg);
+  --line-height-status-text-sm: 1.5;
+  --line-height-status-text-md: 1.5;
+  --line-height-status-text-lg: 1.5;
+  /* Keep the heading scale ordered at every viewport, not just desktop. */
+  --text-2xl: clamp(1.944rem, 1.771rem + 0.8651vw, 2.4414rem);
+}
+
+[data-theme="akros"] {
+  /* A real amber endpoint, distinct from destructive red. */
+  --color-warning-900: oklch(0.38 0.09 75);
+  /* Static feedback remains visible when motion is disabled. */
+  --color-bg-primary-active: oklch(
+    from var(--color-primary-600) calc(l - 0.08) c h
+  );
+  --color-bg-light-primary-active: var(--color-bg-primary-active);
+}
+
+/* Growing action boxes preserve wrapped/translated labels. Single-line inputs
+ * retain their native height utility and the same typography-aware minimum. */
+[class~="h-form-control-sm"]:is(button, a) {
+  height: auto;
+  min-height: var(--height-form-control-sm);
+}
+[class~="h-form-control-md"]:is(button, a) {
+  height: auto;
+  min-height: var(--height-form-control-md);
+}
+[class~="h-form-control-lg"]:is(button, a) {
+  height: auto;
+  min-height: var(--height-form-control-lg);
+}
+
+/* Two-tone focus: at least one edge contrasts with both bright fills and dark
+ * surfaces. Do not replace validation outlines while the control is resting. */
+:where(button, a, input, select, textarea, [tabindex], [data-part]):is(
+  :focus-visible,
+  [data-focus-visible]
+):not(:disabled, [data-disabled]) {
+  box-shadow:
+    0 0 0 calc(var(--default-ring-offset) + var(--default-ring-width) * 2)
+    var(--color-focus-contrast),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+/* Preserve pixel-true primitive names without rounding rem values. */
+@theme static {
+  --dimension-1: 0.0625rem;
+  --dimension-10: 0.625rem;
+  --dimension-110: 6.875rem;
+  --dimension-14: 0.875rem;
+  --dimension-18: 1.125rem;
+  --dimension-2: 0.125rem;
+  --dimension-22: 1.375rem;
+  --dimension-26: 1.625rem;
+  --dimension-30: 1.875rem;
+  --dimension-42: 2.625rem;
+  --dimension-46: 2.875rem;
+  --dimension-50: 3.125rem;
+  --dimension-54: 3.375rem;
+  --dimension-58: 3.625rem;
+  --dimension-6: 0.375rem;
+  --dimension-66: 4.125rem;
+  --dimension-70: 4.375rem;
+  --dimension-700: var(--dimension-70);
+  --dimension-74: 4.625rem;
+  --dimension-78: 4.875rem;
+  --dimension-82: 5.125rem;
+  --dimension-86: 5.375rem;
+  --dimension-90: 5.625rem;
+  --dimension-94: 5.875rem;
+  --dimension-98: 6.125rem;
+}
+
+/* The brand export is unlayered. These corrections must win there too. */
+:root,
+[data-theme] {
+  --color-shadow-1: light-dark(oklch(0 0 none / 0.16), oklch(0 0 none / 0.32));
+  --color-shadow-2: light-dark(oklch(0 0 none / 0.06), oklch(0 0 none / 0.16));
+  --color-shadow-3: light-dark(oklch(0 0 none / 0.1), oklch(0 0 none / 0.24));
+}
+
+/* Custom control paint needs explicit system colors. Scope selectors to Zag
+ * parts rather than class substrings so consumers can restyle the controls. */
+@media (forced-colors: active) {
+  [data-scope="switch"][data-part="control"] {
+    forced-color-adjust: none;
+    background-color: Canvas;
+    border-color: CanvasText;
+  }
+  [data-scope="switch"][data-part="thumb"] {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+    border: var(--border-width-sm) solid Canvas;
+  }
+  [data-scope="switch"][data-part="control"][data-state="checked"] {
+    background-color: Highlight;
+    border-color: Highlight;
+  }
+  [data-scope="switch"][data-part="thumb"][data-state="checked"] {
+    background-color: HighlightText;
+    border-color: HighlightText;
+  }
+  [data-scope="switch"]:is(
+    [data-part="control"],
+    [data-part="thumb"]
+  )[data-disabled] {
+    border-color: GrayText;
+  }
+  [data-scope="switch"][data-part="thumb"][data-disabled] {
+    background-color: GrayText;
+  }
+  [data-scope="switch"][data-part="control"][data-disabled] {
+    background-color: Canvas;
+  }
+  [data-scope="carousel"][data-part="indicator"] {
+    forced-color-adjust: none;
+    color: CanvasText;
+    background-color: Canvas;
+    border-color: CanvasText;
+  }
+  [data-scope="carousel"][data-part="indicator"] > span {
+    forced-color-adjust: none;
+    background-color: Canvas;
+  }
+  [data-scope="carousel"][data-part="indicator"][data-current] > span {
+    background-color: Highlight;
+  }
+}
+
+/* Business exports these roles unlayered; the contrast correction must apply
+ * at the same cascade level, not just in the default @theme. */
+:root,
+[data-theme] {
+  --color-fg-status-success: light-dark(
+    oklch(from var(--color-success-700) 0.42 c h),
+    var(--color-success-300)
+  );
+  --color-fg-status-warning: light-dark(
+    oklch(from var(--color-warning-700) 0.42 c h),
+    var(--color-warning-400)
+  );
+}
+
+/* Branch disclosure buttons are siblings of the selectable text surface. Bind
+ * their resting foreground to the paired hover role only inside that row, not
+ * on the branch ancestor (which would recolor unhovered descendant branches). */
+@media (hover: hover) and (pointer: fine) {
+  [data-scope="tree-view"][data-part="branch"]:not([data-disabled])
+    > .group:hover {
+    --color-tree-view-fg-base: var(--color-tree-view-fg-hover);
+  }
+}

@@ -2,14 +2,14 @@
  * Icon — @techsio/ui-kit atom.
  *
  * @component Icon
- * @componentVersion v1.1.2
+ * @componentVersion v1.2.0
  * @skill icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the icon-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { HTMLAttributes } from "react"
+import type { HTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
 
@@ -44,6 +44,7 @@ const iconVariants = tv({
 
 export type IconProps = Omit<HTMLAttributes<HTMLSpanElement>, "color"> &
   VariantProps<typeof iconVariants> & {
+    ref?: Ref<HTMLSpanElement>
     icon: IconType
     className?: string
     /**

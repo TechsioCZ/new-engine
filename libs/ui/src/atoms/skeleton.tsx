@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.0.4
+ * @componentVersion v1.0.5
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,6 +21,7 @@ import { tv } from "../utils"
 const skeletonVariants = tv({
   slots: {
     root: ["relative min-w-0 overflow-clip"],
+    shape: "relative min-w-0 overflow-clip",
     rectangle: "w-full",
     circle: ["rounded-full", "shrink-0"],
     textContainer: ["flex", "flex-col"],
@@ -61,13 +62,13 @@ const skeletonVariants = tv({
     },
     speed: {
       slow: {
-        root: "animate-skeleton-pulse-slow",
+        shape: "animate-skeleton-pulse-slow",
       },
       normal: {
-        root: "animate-skeleton-pulse-normal",
+        shape: "animate-skeleton-pulse-normal",
       },
       fast: {
-        root: "animate-skeleton-pulse-fast",
+        shape: "animate-skeleton-pulse-fast",
       },
     },
   },
@@ -159,7 +160,9 @@ export function Skeleton({
           ref={ref}
           {...props}
         >
-          {children}
+          <div aria-hidden="true" className="contents" inert>
+            {children}
+          </div>
         </div>
       )}
     </SkeletonContext.Provider>
@@ -201,7 +204,7 @@ Skeleton.Circle = function SkeletonCircle({
   return (
     <div
       {...a11yProps}
-      className={styles.root({
+      className={styles.shape({
         className: styles.circle({ className }),
       })}
       ref={ref}
@@ -266,9 +269,10 @@ Skeleton.Text = function SkeletonText({
 
         return (
           <div
-            className={styles.root({
+            className={styles.shape({
               className: styles.textLine({ className }),
             })}
+            // biome-ignore lint/suspicious/noArrayIndexKey: Fixed, stateless placeholder lines have no reorderable identity.
             key={`skeleton-text-${index}`}
             style={{ width }}
           />
@@ -313,11 +317,9 @@ Skeleton.Rectangle = function SkeletonRectangle({
   return (
     <div
       {...a11yProps}
-      className={styles.root({ className: styles.rectangle({ className }) })}
+      className={styles.shape({ className: styles.rectangle({ className }) })}
       ref={ref}
       {...props}
-    >
-      {children}
-    </div>
+    />
   )
 }

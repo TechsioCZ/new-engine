@@ -147,6 +147,20 @@ function RecordEditorPage({
     >
       <Toaster />
 
+      <div className="sticky top-700 z-10 flex flex-wrap items-center justify-between gap-150 rounded-lg border border-border-primary bg-surface p-150">
+        <span role="status" className="text-sm">
+          {dirty ? "Unsaved changes" : "All changes saved locally"}
+        </span>
+        <Button
+          disabled={!dirty}
+          icon="icon-[mdi--content-save-outline]"
+          onClick={save}
+          size="sm"
+          variant="primary"
+        >
+          Save
+        </Button>
+      </div>
       <PageHeader
         actions={
           <>
@@ -164,16 +178,6 @@ function RecordEditorPage({
               variant="secondary"
             >
               Back to list
-            </Button>
-
-            <Button
-              disabled={!dirty}
-              icon="icon-[mdi--content-save-outline]"
-              onClick={save}
-              size="sm"
-              variant="primary"
-            >
-              Save
             </Button>
           </>
         }

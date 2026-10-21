@@ -6,7 +6,7 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -67,6 +67,7 @@ where actions and feedback live). This section applies them to `Slider`.
 ```tsx
 <Slider
   label="Price range"
+  aria-label={["Minimum price", "Maximum price"]}
   defaultValue={[10, 100]}
   min={0}
   max={200}
@@ -167,3 +168,5 @@ rg -n "<Slider[^>]*className=.*(bg-|rounded-|h-|w-|text-)" apps
 rg -n "showMarkers|markerCount|formatRangeText|onChangeEnd" apps
 ```
 
+
+Every multi-thumb slider needs distinct, contextual `aria-label` entries even when `label` is visible. Missing/duplicate names emit a warning. `getAriaValueText({value,index})` overrides spoken values per thumb and defaults to `formatValue(value)`; `formatRangeText` formats only the visible group summary. Inherited disabling follows native fieldset semantics, including disabled outer fieldsets and the first-legend exemption; dynamic changes update machine interactivity, thumb tab order and form submission together.

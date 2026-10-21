@@ -27,12 +27,18 @@ import {
   SPACE_PREFIXES,
   WIDTH_PREFIXES,
 } from "./token-utility-prefixes.js"
+import {
+  conditionalScopes,
+  effectiveDefinitions,
+  entryApplies,
+  loadRuntimeInventory,
+  missingVariables,
+  referencedVariables,
+  tokenInventory,
+} from "./validate-token-graph.js"
 
 const ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..")
 
-const COMMENT_REGEX = /\/\*[\s\S]*?\*\//g
-const NON_NEWLINE_REGEX = /[^\n]/g
-const REQUIRED_REFERENCE_REGEX = /var\(\s*(--[\w-]+)\s*([,)])/g
 const TOKEN_DEFINITION_REGEX = /--([\w-]+)\s*:\s*([^;]+);/g
 const VAR_REFERENCE_REGEX = /var\(\s*(--[\w-]+)/g
 const TOKEN_REFERENCE_REGEX = /--[a-z0-9-]+/gi
@@ -93,6 +99,7 @@ const NEGATABLE_MARGIN = [...MARGIN_PREFIXES, ...negated(MARGIN_PREFIXES)]
 // shadow/ring colors and translate/negative spacing utilities.
 const UTILITY_PREFIXES = {
   ...SINGLE_PREFIX_NAMESPACES,
+  "border-width": ["border"],
   color: [...COLOR_PREFIXES, "inset-shadow", "inset-ring"],
   container: SIZING_PREFIXES,
   spacing: [
@@ -166,6 +173,9 @@ function tokenToUtilityClasses(tokenName) {
     return classes
   }
 
+  if (namespace === "border") {
+    return classes
+  }
   const prefixes =
     UTILITY_PREFIXES[namespace] || UTILITY_PREFIXES[primaryNamespace] || []
   for (const prefix of prefixes) {
@@ -214,7 +224,7 @@ function buildTokenIndices() {
     dependencyGraph: new Map(), // token -> Set<token>
     cssUsage: new Set(), // tokens referenced by var() outside definitions
   }
-  for (const file of globSync(CONFIG.tokenCssGlob, { cwd: ROOT })) {
+  for (const [file] of loadRuntimeInventory().files) {
     const abs = path.join(ROOT, file)
     if (!existsSync(abs)) {
       continue
@@ -341,43 +351,118 @@ const RUNTIME_TOKENS = new Set([
   "--left",
 ])
 
-export function findUndefinedReferences(files, externalTokens = new Set()) {
-  const definitions = new Set(externalTokens)
-  const references = []
-  for (const [file, raw] of files) {
-    const content = raw.replace(COMMENT_REGEX, (comment) =>
-      comment.replace(NON_NEWLINE_REGEX, " ")
-    )
-    for (const match of content.matchAll(TOKEN_DEFINITION_REGEX)) {
-      definitions.add(`--${match[1]}`)
+function reportCycles(definitions, add) {
+  const stack = [],
+    visited = new Set(),
+    visiting = new Set()
+  function visit(name) {
+    if (visiting.has(name)) {
+      add(definitions.get(name), name, "cycle", [
+        ...stack.slice(stack.indexOf(name)),
+        name,
+      ])
+      return
     }
-    for (const match of content.matchAll(REQUIRED_REFERENCE_REGEX)) {
-      // A CSS fallback explicitly permits an absent optional/runtime property.
-      if (match[2] === ",") {
-        continue
+    if (visited.has(name) || !definitions.has(name)) {
+      return
+    }
+    visiting.add(name)
+    stack.push(name)
+    // CSS substitutes variables BEFORE choosing a light-dark color. Fallback
+    // references also contribute cycle edges even if their primary is defined.
+    for (const dependency of referencedVariables(definitions.get(name).value)) {
+      visit(dependency)
+    }
+    stack.pop()
+    visiting.delete(name)
+    visited.add(name)
+  }
+  for (const name of definitions.keys()) {
+    visit(name)
+  }
+}
+
+function localScopeKey(entry) {
+  const utility = entry.ancestors.find(
+    (node) => node.type === "atrule" && node.name === "utility"
+  )?.params
+  return `${utility ?? ""}:${entry.selector}`
+}
+
+export function findUndefinedReferences(
+  files,
+  externalTokens = new Set(),
+  entrypoints = null
+) {
+  const inventory = tokenInventory(files, entrypoints ?? undefined)
+  const errors = []
+  const reported = new Set()
+  const locals = inventory.definitions.filter((entry) => !entry.global)
+  const byOwner = Map.groupBy(locals, (entry) => entry.owner)
+  const bySelector = Map.groupBy(locals, localScopeKey)
+  const external = (name) =>
+    externalTokens.has(name) ||
+    RUNTIME_TOKENS.has(name) ||
+    name.startsWith("--tw-")
+  for (const scope of conditionalScopes(inventory)) {
+    const definitions = effectiveDefinitions(inventory, scope)
+    const isDefined = (name) => definitions.has(name) || external(name)
+    const add = (entry, token, kind = "undefined", chain = null) => {
+      const key = `${entry.file}:${entry.line}:${token}:${kind}:${scope.brand}:${scope.mode}:${scope.conditions.join("|")}`
+      if (reported.has(key)) {
+        return
       }
-      references.push({
-        file,
-        token: match[1],
-        line: lineNumberAt(content, match.index),
+      reported.add(key)
+      errors.push({
+        file: entry.file,
+        line: entry.line,
+        token,
+        kind,
+        chain,
+        ...scope,
       })
     }
-  }
-  return references.filter(
-    ({ token }) =>
-      !(
-        definitions.has(token) ||
-        RUNTIME_TOKENS.has(token) ||
-        token.startsWith("--tw-")
+    for (const entry of definitions.values()) {
+      for (const token of missingVariables(entry.value, isDefined)) {
+        add(entry, token)
+      }
+    }
+    reportCycles(definitions, add)
+    for (const entries of bySelector.values()) {
+      const localDefinitions = new Map(
+        entries
+          .filter((entry) => entryApplies(entry, scope))
+          .map((entry) => [entry.name, entry])
       )
-  )
+      reportCycles(localDefinitions, add)
+    }
+    const consumers = [...inventory.consumers, ...locals].filter((entry) =>
+      entryApplies(entry, scope)
+    )
+    for (const entry of consumers) {
+      // Local aliases may supply the SAME element/utility, never a root or a
+      // sibling. Index by owner/selector instead of rescanning the whole graph.
+      const candidates = new Set([
+        ...(bySelector.get(localScopeKey(entry)) ?? []),
+        ...entry.ancestors.flatMap((owner) => byOwner.get(owner) ?? []),
+      ])
+      const local = [...candidates].filter((candidate) =>
+        entryApplies(candidate, scope)
+      )
+      const localNames = new Set(local.map((candidate) => candidate.name))
+      for (const token of missingVariables(
+        entry.value,
+        (name) => isDefined(name) || localNames.has(name)
+      )) {
+        add(entry, token)
+      }
+    }
+  }
+  return errors
 }
 
 function validateReferences() {
-  const files = globSync(CONFIG.tokenCssGlob, { cwd: ROOT }).map((file) => [
-    file,
-    readFileSync(path.join(ROOT, file), "utf8"),
-  ])
+  const files = loadRuntimeInventory().files
   // Tailwind provides primitive defaults (font-mono, container widths, etc.).
   const tailwind = readFileSync(
     path.join(ROOT, "node_modules/tailwindcss/theme.css"),
@@ -389,9 +474,22 @@ function validateReferences() {
       (match) => `--${match[1]}`
     )
   )
-  const missing = findUndefinedReferences(files, defaults)
-  for (const { file, token, line } of missing) {
-    console.error(`${file}:${line}: undefined var(${token})`)
+  const optionalTheme = "src/tokens/theme.css"
+  const missing = [
+    ...findUndefinedReferences(files, defaults),
+    ...findUndefinedReferences(
+      [
+        ...files,
+        [optionalTheme, readFileSync(path.join(ROOT, optionalTheme), "utf8")],
+      ],
+      defaults,
+      ["src/tokens/_tokens-base.css", optionalTheme]
+    ),
+  ]
+  for (const { file, token, line, kind, brand, mode, chain } of missing) {
+    console.error(
+      `${file}:${line}: ${kind} var(${token}) [${brand}/${mode}]${chain ? ` (${chain.join(" -> ")})` : ""}`
+    )
   }
   return missing.length === 0
 }

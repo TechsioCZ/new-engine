@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react"
 import { type MouseEvent, useState } from "react"
 import { fn } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { StatusText } from "../../src/atoms/status-text"
 import { Button } from "../../src/atoms/button"
 import { Drawer } from "../../src/molecules/drawer"
 import { VerticalNavigation } from "../../src/molecules/vertical-navigation"
@@ -144,15 +145,15 @@ const meta = {
       if: { arg: "tone", eq: "accent" },
       description: "Brand color for accent group backgrounds; does not change the current page",
     },
-    size: { control: "select", options: ["sm", "md", "lg"] },
+    size: { description: "Scales navigation row text and spacing for dense or touch-friendly layouts.", control: "select", options: ["sm", "md", "lg"] },
     tone: {
       control: "select",
       options: ["plain", "subtle", "accent"],
       description: "Appearance of nested groups, not their active state",
     },
-    indent: { control: "boolean" },
-    showGuide: { control: "boolean" },
-    dir: { control: "select", options: ["ltr", "rtl"] },
+    indent: { description: "Inset nested links to make the parent-child hierarchy visible.", control: "boolean" },
+    showGuide: { description: "Draw a logical-start guide beside nested groups.", control: "boolean" },
+    dir: { description: "Mirror logical indentation and disclosure placement for RTL navigation.", control: "select", options: ["ltr", "rtl"] },
   },
   args: {
     size: "md",
@@ -310,18 +311,19 @@ function SevenLevelsExample() {
 
 function ControlledExample() {
   const [open, setOpen] = useState(false)
-  const [rejectChanges, setRejectChanges] = useState(true)
+  const [rejectChanges, setRejectChanges] = useState(false)
+  const [message, setMessage] = useState("")
   const [changeCount, setChangeCount] = useState(0)
 
   return (
     <div className="flex flex-col gap-200" data-navigation-story="">
       <Button
         aria-pressed={rejectChanges}
-        onClick={() => setRejectChanges(!rejectChanges)}
+        onClick={() => { setRejectChanges(!rejectChanges); setMessage("") }}
         theme="outlined"
         size="sm"
       >
-        Reject changes
+        Reject changes: {rejectChanges ? "on" : "off"}
       </Button>
       <Button onClick={() => setOpen(true)} size="sm" theme="outlined">
         Reveal current page
@@ -335,6 +337,9 @@ function ControlledExample() {
               onOpenChange(details)
               if (!rejectChanges) {
                 setOpen(details.open)
+                setMessage("Expansion request accepted.")
+              } else {
+                setMessage("Expansion request intentionally rejected. Turn off Reject changes to allow it.")
               }
             }}
             open={open}
@@ -358,8 +363,9 @@ function ControlledExample() {
       <p className="text-fg-primary text-sm" data-testid="controlled-open-state">
         {open ? "Open" : "Closed"}
       </p>
-      <p className="sr-only" data-testid="open-change-count">
-        {changeCount}
+      <StatusText role="status">{message || "Changes are accepted by default. Turn on Reject changes to test parent-owned disclosure."}</StatusText>
+      <p className="text-sm text-fg-secondary" data-testid="open-change-count">
+        {changeCount} expansion proposals
       </p>
     </div>
   )

@@ -2,7 +2,7 @@
  * StatusText — @techsio/ui-kit atom.
  *
  * @component StatusText
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill status-text-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -33,13 +33,13 @@ const statusTextVariants = tv({
     },
     size: {
       sm: {
-        base: "gap-status-text-sm text-status-text-sm",
+        base: "status-text-leading-sm gap-status-text-sm text-status-text-sm",
       },
       md: {
-        base: "gap-status-text-md text-status-text-md",
+        base: "status-text-leading-md gap-status-text-md text-status-text-md",
       },
       lg: {
-        base: "gap-status-text-lg text-status-text-lg",
+        base: "status-text-leading-lg gap-status-text-lg text-status-text-lg",
       },
     },
   },

@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,7 +12,6 @@
 import {
   connect,
   type ItemProps,
-  machine,
   type ValueChangeDetails,
   type Props as ZagRadioGroupProps,
 } from "@zag-js/radio-group"
@@ -26,6 +25,10 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import {
+  getControlledChoiceInputProps,
+  useChoiceFocusRecovery,
+} from "../atoms/checkbox"
 import { Label } from "../atoms/label"
 import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import {
@@ -35,10 +38,17 @@ import {
   useRegisterDescription,
 } from "../internal/described-by"
 import { tv } from "../utils"
+import { radioChoiceMachine } from "./radio-group"
 
 const radioCardVariants = tv({
   slots: {
-    root: ["flex w-full flex-col"],
+    root: [
+      "flex w-full flex-col",
+      "focus-visible:outline-(style:--default-ring-style)",
+      "focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-radio-card-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
     item: [
       "radio-card-readonly relative flex min-w-0 flex-col overflow-clip",
       "cursor-pointer data-readonly:not-data-disabled:cursor-default",
@@ -381,7 +391,7 @@ export function RadioCard({
   const id = providedId || generatedId
   const invalid = validateStatus === "error"
 
-  const service = useMachine(machine, {
+  const service = useMachine(radioChoiceMachine, {
     ...machineProps,
     id,
     disabled,
@@ -397,6 +407,7 @@ export function RadioCard({
   })
 
   const api = connect(service, normalizeProps)
+  const focusRef = useChoiceFocusRecovery()
   const styles = radioCardVariants({
     size,
     variant,
@@ -428,7 +439,15 @@ export function RadioCard({
     >
       <div
         className={styles.root({ className })}
-        ref={ref}
+        ref={(node) => {
+          focusRef.current = node
+          if (typeof ref === "function") {
+            return ref(node)
+          }
+          if (ref) {
+            ref.current = node
+          }
+        }}
         {...api.getRootProps()}
         aria-describedby={joinDescribedBy(
           ariaDescribedByProp,
@@ -436,6 +455,7 @@ export function RadioCard({
         )}
         aria-errormessage={errors.describedById}
         aria-invalid={invalid || !!errors.describedById || undefined}
+        tabIndex={-1}
       >
         {children}
       </div>
@@ -541,9 +561,9 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
   const { itemProps, describedById: itemDescriptionId } =
     useRadioCardItemContext()
   const styles = radioCardVariants({ size, variant })
-  const hiddenInputProps = mergeProps(
-    props,
-    api.getItemHiddenInputProps(itemProps)
+  const hiddenInputProps = getControlledChoiceInputProps(
+    mergeProps(props, api.getItemHiddenInputProps(itemProps)),
+    api.getItemState(itemProps).checked
   )
 
   return (

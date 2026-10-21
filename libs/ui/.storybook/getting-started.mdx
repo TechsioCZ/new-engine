@@ -1,0 +1,115 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Guide/Getting Started" />
+
+# Getting started
+
+Use `@techsio/ui-kit` with React and React DOM 19.2 or newer and a Tailwind v4
+build pipeline. Import components through their public subpaths; there is no
+package-root barrel.
+
+```sh
+pnpm add @techsio/ui-kit react react-dom
+pnpm add -D tailwindcss @tailwindcss/postcss postcss
+```
+
+## Load styles once
+
+If the application does not already import Tailwind, use this global CSS entry:
+
+```css
+@import "@techsio/ui-kit/tokens-with-tailwind";
+```
+
+If the application already owns Tailwind, use the tokens-only entry instead:
+
+```css
+@import "tailwindcss";
+@import "@techsio/ui-kit/tokens";
+```
+
+Process this CSS with `@tailwindcss/postcss`; do not serve the unprocessed source
+as a plain stylesheet. Both entries register the package's shipped JavaScript
+with a stylesheet-relative `@source`, so Tailwind generates component utilities
+even when the installed package lives in `node_modules`. Do not import both
+entries or copy internal component class strings into your application.
+
+```js
+// postcss.config.mjs
+export default { plugins: { '@tailwindcss/postcss': {} } }
+```
+
+```tsx
+import { Button } from '@techsio/ui-kit/atoms/button'
+
+export function CheckoutAction() {
+  return <Button>Continue to checkout</Button>
+}
+```
+
+## Select a brand and mode
+
+Brand and mode are separate axes on the document root. Base uses no `data-theme`
+attribute. Use one concrete `light` or `dark` class, not both.
+
+- **Base:** no `data-theme` attribute; light and dark.
+- **Neo:** `data-theme="neo"`; light and dark.
+- **Business:** `data-theme="business"`; light only.
+- **Akros:** `data-theme="akros"`; light only.
+
+For a fixed Akros application, static document attributes are sufficient:
+
+```html
+<html lang="en" class="light" data-theme="akros">
+```
+
+## Optional persisted theme switching
+
+Use `AppThemeProvider` only when the application needs persisted brand/mode
+switching. `defaultBrand` and `defaultMode` are fallbacks, not overrides of a
+saved preference. A fixed-brand app should use static attributes instead of
+relying on `defaultBrand` to force Akros. The provider locks light-only brands to
+light; `useAppTheme()` exposes the available modes and a `mounted` hydration flag.
+
+```tsx
+'use client'
+
+import type { PropsWithChildren } from 'react'
+import { AppThemeProvider, BrandThemeScript } from '@techsio/ui-kit/theme/theme-provider'
+
+export function ThemeSetup({ children }: PropsWithChildren) {
+  return (
+    <>
+      <BrandThemeScript defaultBrand="akros" />
+      <AppThemeProvider defaultBrand="akros" defaultMode="light">
+        {children}
+      </AppThemeProvider>
+    </>
+  )
+}
+```
+
+Place `BrandThemeScript` before visible body content to apply the persisted brand
+before paint. The provider handles the mode pre-hydration script. For Next App
+Router layouts, put `ThemeSetup` inside the body and use
+`suppressHydrationWarning` on `html` because the scripts update root attributes.
+Gate theme-dependent labels/content on `mounted` to keep the server and first
+client markup consistent.
+
+## React Server Components
+
+Published modules that own hooks, context or DOM event handlers carry preserved
+`"use client"` boundaries. Compose compound members such as `Dialog.Trigger` and
+`Tabs.Content` inside an application client component; do not access static
+members of a client reference from a server page. Callbacks and render functions
+also belong inside that client wrapper. Ordinary server rendering is distinct
+from React Server Component boundary handling.
+
+## Customize through tokens
+
+Select a built-in brand before adding app-owned overrides. Import overrides
+after the kit CSS, use the same active theme scope or a descendant application
+scope, and override only the component/semantic tokens that need to differ.
+Generated Figma files are not application customization files. Contributor rules
+live in `libs/ui/AGENTS.md`; token setup details live in the
+`app-token-initialization` and `framework-consumer-integration` skills.

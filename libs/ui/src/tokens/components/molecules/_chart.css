@@ -37,14 +37,10 @@
    * renders at small sizes inside the SVG, so it wears primary ink rather than
    * the secondary tone.
    *
-   * Caveat on the contrast math: TanStack composites this color before it
-   * paints — tick/legend labels at fillOpacity 0.68, axis lines at
-   * strokeOpacity 0.28 (scene.js). So the *rendered* label is fg-primary at 68%
-   * over the surface, not fg-primary itself, and it does not reach the repo's
-   * 90 Lc gold gate on its own. Fixing that properly means compensating for the
-   * library opacity (or overriding it), not swapping this token — tracked in
-   * https://github.com/TechsioCZ/new-engine/issues/608 rather than silently
-   * claimed as passing. */
+   * Chart overrides upstream label opacity at the scene boundary. */
+  --text-chart-data: var(--text-sm);
+  --gap-chart-legend: var(--spacing-200);
+  --gap-chart-item: var(--spacing-100);
   --color-chart-fg: var(--color-fg-primary);
   --color-chart-tooltip-bg: var(--color-popup-bg);
   --color-chart-tooltip-fg: var(--color-chart-fg);

@@ -51,6 +51,7 @@ export const Playground: Story = {
 }
 export const Variants: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -75,6 +76,7 @@ export const Variants: Story = {
 }
 export const Sizes: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:

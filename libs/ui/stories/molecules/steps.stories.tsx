@@ -3,7 +3,6 @@ import { useEffect, useId, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Badge } from "../../src/atoms/badge"
-import { Button } from "../../src/atoms/button"
 import { Icon, type IconType } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
 import { Label } from "../../src/atoms/label"
@@ -57,7 +56,7 @@ async function expectResponsiveSteps(canvasElement: HTMLElement) {
   const viewportWidth = document.documentElement.clientWidth
   await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(viewportWidth)
   for (const element of canvasElement.querySelectorAll<HTMLElement>(
-    '[data-scope="steps"][role="tab"], [data-scope="steps"][role="tabpanel"]:not([hidden]), [data-part="navigation"] button'
+    '[data-scope="steps"][data-part="trigger"], [data-scope="steps"][role="region"]:not([hidden]), [data-part="navigation"] button'
   )) {
     const box = element.getBoundingClientRect()
     await expect(box.left).toBeGreaterThanOrEqual(0)
@@ -100,7 +99,7 @@ const meta: Meta<typeof Steps> = {
       table: { category: "Appearance", defaultValue: { summary: "md" } },
     },
     step: {
-      control: { type: "number", min: 0, max: demoSteps.length },
+      control: false,
       description: "Controlled active step index.",
       table: { category: "Behavior", defaultValue: { summary: "0" } },
     },
@@ -195,18 +194,10 @@ export const Playground: Story = {
                 <div className="flex flex-col gap-200">
                   <Badge variant="outline">{item.badge}</Badge>
                   <div className="flex flex-col gap-100">
-                    <p className="text-md font-semibold text-fg-primary">
+                    <h3 className="text-md font-semibold text-fg-primary">
                       {item.title}
-                    </p>
+                    </h3>
                     <p className="text-sm text-fg-secondary">{item.content}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-150">
-                    <Button size="sm" theme="solid" variant="primary">
-                      {item.actionLabel}
-                    </Button>
-                    <Button size="sm" theme="borderless" variant="secondary">
-                      View notes
-                    </Button>
                   </div>
                 </div>
               </Steps.Content>
@@ -214,9 +205,9 @@ export const Playground: Story = {
             <Steps.CompletedContent>
               <div className="flex flex-col gap-150">
                 <Badge variant="success">Complete</Badge>
-                <p className="text-md font-semibold text-fg-primary">
+                <h3 className="text-md font-semibold text-fg-primary">
                   Ready for handoff
-                </p>
+                </h3>
                 <p className="text-sm text-fg-secondary">{completedText}</p>
               </div>
             </Steps.CompletedContent>
@@ -231,39 +222,39 @@ export const Playground: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    const list = within(canvas.getByRole("tablist"))
-    const first = list.getByRole("tab", { name: "Brief" })
-    const second = list.getByRole("tab", { name: "Inputs" })
-    await expect(list.getAllByRole("tab")).toHaveLength(demoSteps.length)
-    await expect(first).toHaveAttribute("aria-selected", "true")
+    const list = within(canvas.getByRole("list"))
+    const first = list.getByRole("button", { name: "Brief" })
+    const second = list.getByRole("button", { name: "Inputs" })
+    await expect(list.getAllByRole("button")).toHaveLength(demoSteps.length)
     await expect(first).toHaveAttribute("aria-current", "step")
 
     await userEvent.click(second)
     await waitFor(() => {
-      expect(second).toHaveAttribute("aria-selected", "true")
       expect(second).toHaveAttribute("aria-current", "step")
       expect(first).not.toHaveAttribute("aria-current")
-      expect(canvas.getByRole("tabpanel", { name: "Inputs" })).toBeVisible()
+      expect(canvas.getByRole("region", { name: "Inputs" })).toBeVisible()
     })
 
     await userEvent.click(first)
     await waitFor(() => {
-      expect(first).toHaveAttribute("aria-selected", "true")
       expect(first).toHaveAttribute("aria-current", "step")
-      expect(second).toHaveAttribute("aria-selected", "false")
       expect(second).not.toHaveAttribute("aria-current")
-      expect(canvas.getByRole("tabpanel", { name: "Brief" })).toBeVisible()
+      expect(canvas.getByRole("region", { name: "Brief" })).toBeVisible()
     })
-    await userEvent.click(canvas.getByRole("tablist"))
-    await expect(canvasElement.ownerDocument.activeElement).toBe(
-      canvasElement.ownerDocument.body
-    )
+    for (const name of ["Inputs", "Review", "Workflow complete"]) {
+      await userEvent.click(canvas.getByRole("button", { name: "Continue" }))
+      await waitFor(() => expect(canvas.getByRole("region", { name })).toHaveFocus())
+    }
+    await expect(canvas.getByRole("button", { name: "Continue" })).toBeDisabled()
+    await userEvent.click(canvas.getByRole("button", { name: "Back" }))
+    await waitFor(() => expect(canvas.getByRole("region", { name: "Review" })).toHaveFocus())
   },
 }
 
 export const Variants: Story = {
   play: async ({ canvasElement }) => expectResponsiveSteps(canvasElement),
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -349,6 +340,7 @@ export const Variants: Story = {
 export const Sizes: Story = {
   play: async ({ canvasElement }) => expectResponsiveSteps(canvasElement),
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -468,6 +460,7 @@ export const Sizes: Story = {
 
 export const Basic: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -518,6 +511,7 @@ export const Basic: Story = {
 
 export const Controlled: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -573,6 +567,7 @@ export const Controlled: Story = {
 
 export const Validation: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -691,6 +686,7 @@ export const Validation: Story = {
 export const Vertical: Story = {
   play: async ({ canvasElement }) => expectResponsiveSteps(canvasElement),
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -742,6 +738,7 @@ export const Vertical: Story = {
 
 export const ProgressHorizontal: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -795,19 +792,19 @@ export const ProgressHorizontal: Story = {
       66.67,
       1
     )
-    const current = canvas.getByRole("tab", { name: /Review/ })
-    await expect(current).toHaveAttribute("aria-selected", "true")
+    const current = canvas.getByRole("button", { name: /Review/ })
     await expect(current).toHaveAttribute("aria-current", "step")
-    for (const tab of canvas.getAllByRole("tab")) {
+    for (const tab of canvas.getAllByRole("button")) {
       if (tab !== current) await expect(tab).not.toHaveAttribute("aria-current")
     }
-    await expect(canvas.getByRole("tabpanel", { name: /Review/ })).toBeVisible()
+    await expect(canvas.getByRole("region", { name: /Review/ })).toBeVisible()
     await expect(canvas.getByText(completedText)).not.toBeVisible()
   },
 }
 
 export const ProgressVertical: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -872,13 +869,12 @@ export const ProgressVertical: Story = {
       66.67,
       1
     )
-    const current = canvas.getByRole("tab", { name: /Review/ })
-    await expect(current).toHaveAttribute("aria-selected", "true")
+    const current = canvas.getByRole("button", { name: /Review/ })
     await expect(current).toHaveAttribute("aria-current", "step")
-    for (const tab of canvas.getAllByRole("tab")) {
+    for (const tab of canvas.getAllByRole("button")) {
       if (tab !== current) await expect(tab).not.toHaveAttribute("aria-current")
     }
-    await expect(canvas.getByRole("tabpanel", { name: /Review/ })).toBeVisible()
+    await expect(canvas.getByRole("region", { name: /Review/ })).toBeVisible()
     await expect(canvas.getByText(completedText)).not.toBeVisible()
   },
 }
@@ -886,6 +882,7 @@ export const ProgressVertical: Story = {
 export const Description: Story = {
   play: async ({ canvasElement }) => expectResponsiveSteps(canvasElement),
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -937,6 +934,7 @@ export const Description: Story = {
 
 export const WithIcon: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -993,6 +991,7 @@ export const WithIcon: Story = {
 
 export const Lines: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -1048,6 +1047,7 @@ export const Lines: Story = {
 
 export const Trigger: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:

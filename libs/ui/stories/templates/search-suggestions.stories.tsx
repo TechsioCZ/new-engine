@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Image } from "../../src/atoms/image"
 import { Link } from "../../src/atoms/link"
@@ -97,11 +97,11 @@ const meta = {
     placeholder: { control: "text" },
     size: { control: "select", options: ["sm", "md", "lg"] },
     disabled: { control: "boolean" },
-    readOnly: { control: "boolean" },
-    clearable: { control: "boolean" },
-    loading: { control: "boolean" },
+    readOnly: { description: 'Keep the saved query focusable and copyable without opening or editing suggestions.', control: "boolean" },
+    clearable: { description: 'Show a clear-query action when the query is nonempty (default true).', control: "boolean" },
+    loading: { description: 'Show a loading announcement instead of selectable results. The application owns fetching.', control: "boolean" },
     loadingMessage: { control: "text" },
-    noResultsMessage: { control: "text" },
+    noResultsMessage: { description: 'Empty-state copy; {inputValue} is replaced by the current query.', control: "text" },
     retryLabel: { control: "text" },
     groups: { control: false },
     resultSlot: { control: false },
@@ -126,14 +126,39 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+function FilteredCatalog(args: SearchSuggestionsProps<ProductDetails>) {
+  const [query, setQuery] = useState("")
+  const filteredGroups = args.groups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => item.label.toLowerCase().includes(query.toLowerCase())),
+  })).filter((group) => group.items.length > 0)
+  return <SearchSuggestions {...args} groups={filteredGroups} inputValue={query}
+    filterBehavior="external" onInputValueChange={(nextQuery) => {
+      setQuery(nextQuery)
+      args.onInputValueChange?.(nextQuery)
+    }} allResultsLink={filteredGroups.length ? args.allResultsLink : undefined} />
+}
+
 export const Playground: Story = {
+  render: (args) => <FilteredCatalog {...args} />,
   parameters: {
-    docs: {
-      description: {
-        story:
-          "Type a catalog query and explore sizes, state and result controls without navigating away.",
-      },
-    },
+    docs: { description: { story:
+      "Type to filter catalog suggestions; this demo simulates application-owned external filtering. Production apps own fetching, debounce and result updates. Navigation stays inside Storybook." } },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const input = canvas.getByRole("combobox", { name: "Search catalog" })
+    await userEvent.type(input, "zzzzunknown")
+    await waitFor(() => expect(body.queryAllByRole("option")).toHaveLength(0))
+    await expect(body.getByText('No results found for "zzzzunknown"')).toBeVisible()
+    await userEvent.clear(input)
+    await userEvent.type(input, "Footwear")
+    await waitFor(() => expect(body.getAllByRole("option")).toHaveLength(1))
+    await expect(body.getByRole("option", { name: "Footwear" })).toBeVisible()
+    await userEvent.clear(input)
+    await waitFor(() => expect(body.getAllByRole("option")).toHaveLength(3))
+    await userEvent.keyboard("{Escape}")
   },
 }
 

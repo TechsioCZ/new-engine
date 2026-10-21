@@ -6,7 +6,14 @@ import {
 } from "@internationalized/date"
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ComponentType, type ReactNode, useRef, useState } from "react"
-import { expect, fireEvent, fn, userEvent, waitFor, within } from "storybook/test"
+import {
+  expect,
+  fireEvent,
+  fn,
+  userEvent,
+  waitFor,
+  within,
+} from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import {
@@ -764,9 +771,12 @@ export const FeedbackAndReadOnly: Story = {
       "Choose an available date before continuing."
     )
     await userEvent.click(canvas.getByRole("button", { name: "Open calendar" }))
-    const day = await within(canvasElement.ownerDocument.body).findByRole("button", {
-      name: /Monday, August 31, 2026/,
-    })
+    const day = await within(canvasElement.ownerDocument.body).findByRole(
+      "button",
+      {
+        name: /Monday, August 31, 2026/,
+      }
+    )
     day.focus()
     await expect(day).toHaveFocus()
     // A programmatic parent update must not rely on the toggle taking focus.
@@ -824,14 +834,13 @@ export const DateOnlyCalendar: Story = {
     docs: {
       description: {
         story:
-          "Choose a delivery date from the open calendar, including muted days from neighboring months, to see a date-only field save the selection immediately.",
+          "Open the calendar and choose a delivery date, including muted days from neighboring months, to see a date-only field save the selection immediately.",
       },
     },
   },
   render: () => (
     <div className="w-full max-w-md">
       <DateOnlyField
-        defaultOpen
         id="date-picker-date-only-open"
         label="Delivery date"
         locale="en-US"
@@ -854,7 +863,6 @@ export const DateRangeCalendar: Story = {
   render: () => (
     <div className="w-full max-w-lg">
       <DateRangeField
-        defaultOpen
         defaultValue={[
           new CalendarDate(2026, 9, 5),
           new CalendarDate(2026, 9, 18),
@@ -906,7 +914,7 @@ export const ControlledDateRange: Story = {
 }
 
 function RejectingControlledRangeExample() {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [proposal, setProposal] = useState("No proposal yet")
   const hasCompleteProposal = useRef(false)
 
@@ -1008,7 +1016,6 @@ export const LocalizedUnavailableRange: Story = {
   render: () => (
     <div className="w-full max-w-lg">
       <DateRangeField
-        defaultOpen
         defaultValue={[
           new CalendarDate(2026, 9, 7),
           new CalendarDate(2026, 9, 18),
@@ -1075,7 +1082,6 @@ export const InitiallyOpenTimedDraft: Story = {
   render: () => (
     <div className="w-full max-w-md">
       <TimedField
-        defaultOpen
         defaultValue={new CalendarDateTime(2026, 8, 31, 14, 30)}
         granularity="minute"
         hourCycle={24}
@@ -1100,7 +1106,6 @@ export const InitiallyOpenDateTimeRange: Story = {
   render: () => (
     <div className="w-full max-w-lg">
       <TimedRangeField
-        defaultOpen
         defaultValue={[
           new CalendarDateTime(2026, 9, 5, 9, 30),
           new CalendarDateTime(2026, 9, 18, 17, 45),
@@ -1147,6 +1152,7 @@ export const ZonedDateTimeRange: Story = {
 }
 
 function ControlledTimedResyncExample() {
+  const [open, setOpen] = useState(false)
   const [value, setValue] = useState<DatePickerTimedValue | null>(
     new CalendarDateTime(2026, 8, 31, 14, 30)
   )
@@ -1157,9 +1163,9 @@ function ControlledTimedResyncExample() {
         granularity="minute"
         hourCycle={24}
         label="Externally synchronized appointment"
-        onOpenChange={() => undefined}
+        onOpenChange={({ open }) => setOpen(open)}
         onValueChange={({ value: nextValue }) => setValue(nextValue)}
-        open
+        open={open}
         value={value}
       />
       <Button
@@ -1184,7 +1190,7 @@ export const ControlledTimedResync: Story = {
     docs: {
       description: {
         story:
-          "Apply an external appointment value while its calendar is open to see an in-progress time draft resynchronize with the parent.",
+          "Open the calendar, then apply an external appointment value to see an in-progress time draft resynchronize with the parent.",
       },
     },
   },
@@ -1359,4 +1365,195 @@ export const TypedDateTimeValues: Story = {
       </VariantGroup>
     </VariantContainer>
   ),
+}
+
+export const FieldRegressions: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Focused regression fixtures for timezone labels, localized entry, availability, native validation and inherited disabling.",
+      },
+    },
+  },
+  render: () => <FieldRegressionExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const appointment = canvasElement.querySelector<HTMLInputElement>(
+      'input[name="appointment"]'
+    )!
+    const appointmentRoot = appointment.closest('[data-part="root"]')!
+    const hour = within(appointmentRoot as HTMLElement).getByRole(
+      "spinbutton",
+      { name: "Hour" }
+    )
+    hour.focus()
+    await userEvent.keyboard("{ArrowUp}")
+    await expect(appointment).toHaveValue("2026-08-31T16:30:00")
+    await expect(hour).toHaveAttribute("aria-invalid", "true")
+    await userEvent.keyboard("{ArrowDown}")
+    await userEvent.click(
+      within(appointmentRoot as HTMLElement).getByRole("button", {
+        name: "Open calendar",
+      })
+    )
+    const popupHour =
+      canvasElement.ownerDocument.querySelector<HTMLInputElement>(
+        '[data-scope="date-picker"][data-part="content"] input[aria-label="Hour"]'
+      )!
+    await userEvent.clear(popupHour)
+    await userEvent.type(popupHour, "23")
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(body.getByRole("button", { name: "Confirm" })).toBeDisabled()
+    await expect(popupHour).toHaveAttribute("aria-invalid", "true")
+    await expect(appointment).toHaveValue("2026-08-31T16:30:00")
+    await userEvent.click(body.getByRole("button", { name: "Cancel" }))
+    const midnight = canvasElement.querySelector<HTMLInputElement>('input[name="midnight"]')!
+    const midnightRoot = within(midnight.closest('[data-part="root"]') as HTMLElement)
+    await expect(midnight).toHaveValue("2026-03-01T00:30:00+01:00[Europe/Prague]")
+    await expect(midnightRoot.getByRole("spinbutton", { name: "Day" })).toHaveTextContent("28")
+    await expect(midnightRoot.getByRole("spinbutton", { name: "Hour" })).toHaveTextContent("23")
+    await userEvent.click(midnightRoot.getByRole("button", { name: "Open calendar" }))
+    await waitFor(() => expect(body.getByRole("grid", { name: "February 2026" })).toBeVisible())
+    const midnightPopup = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-part="content"]')!
+    await expect(within(midnightPopup).getByRole("spinbutton", { name: "Hour" })).toHaveValue(23)
+    await expect(within(midnightPopup).getByRole("spinbutton", { name: "Minute" })).toHaveValue(30)
+    await expect(midnight).toHaveValue("2026-03-01T00:30:00+01:00[Europe/Prague]")
+    const midnightMinute = within(midnightPopup).getByRole("spinbutton", { name: "Minute" })
+    await userEvent.clear(midnightMinute)
+    await userEvent.type(midnightMinute, "31")
+    await userEvent.click(body.getByRole("button", { name: "Confirm" }))
+    await expect(midnight).toHaveValue("2026-02-28T23:31:00+00:00[UTC]")
+    for (const [name, digits] of [
+      ["arabicDelivery", "١٢"],
+      ["persianDelivery", "۱۲"],
+    ] as const) {
+      const input = canvasElement.querySelector<HTMLInputElement>(
+        `input[name="${name}"]`
+      )!
+      const root = input.closest('[data-part="root"]')! as HTMLElement
+      const day = within(root).getByRole("spinbutton", { name: "Day" })
+      day.focus()
+      for (const digit of digits)
+        fireEvent(
+          day,
+          new InputEvent("textInput", {
+            bubbles: true,
+            cancelable: true,
+            data: digit,
+          })
+        )
+      await waitFor(() => expect(input).toHaveValue("2026-08-12"))
+      await userEvent.tab()
+      await expect(input).toHaveValue("2026-08-12")
+    }
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Toggle date fieldset" })
+    )
+    const inherited = canvasElement
+      .querySelector<HTMLInputElement>('input[name="fieldsetDate"]')!
+      .closest('[data-part="root"]')!
+    for (const segment of inherited.querySelectorAll('[role="spinbutton"]')) {
+      await expect(segment).not.toHaveAttribute("tabindex", "0")
+      await expect(segment).toHaveAttribute("contenteditable", "false")
+    }
+    await userEvent.click(canvas.getByRole("button", { name: "Submit dates" }))
+    const required = canvasElement
+      .querySelector<HTMLInputElement>('input[name="requiredDelivery"]')!
+      .closest('[data-part="root"]')!
+    await expect(required).toContainElement(
+      canvasElement.ownerDocument.activeElement as HTMLElement
+    )
+    await expect(
+      within(required as HTMLElement).getByText(
+        "Complete every date and time segment before submitting."
+      )
+    ).toBeVisible()
+  },
+}
+function FieldRegressionExample() {
+  const [disabled, setDisabled] = useState(false)
+  const [last, setLast] = useState("No change")
+  return (
+    <div className="flex w-full max-w-lg flex-col gap-300">
+      <form
+        aria-label="Date regression form"
+        onSubmit={(event) => event.preventDefault()}
+      >
+        <div className="flex flex-col gap-300">
+          <TimedField
+            label="Available appointment"
+            name="appointment"
+            granularity="minute"
+            hourCycle={24}
+            defaultValue={new CalendarDateTime(2026, 8, 31, 16, 30)}
+            min={new CalendarDateTime(2026, 8, 31, 10)}
+            max={new CalendarDateTime(2026, 8, 31, 17)}
+            isTimeUnavailable={(date) => date.hour >= 17}
+            onValueChange={(details) => setLast(details.valueAsString)}
+          />
+          <DateOnlyField
+            label="Required delivery"
+            name="requiredDelivery"
+            required
+          />
+          <DateOnlyField
+            label="Arabic delivery"
+            name="arabicDelivery"
+            locale="ar-EG"
+            dir="rtl"
+            defaultValue={new CalendarDate(2026, 8, 31)}
+          />
+          <DateOnlyField
+            label="Persian digits"
+            name="persianDelivery"
+            locale="fa-IR-u-ca-gregory"
+            dir="rtl"
+            defaultValue={new CalendarDate(2026, 8, 31)}
+          />
+          <TimedField
+            label="Cross-zone midnight"
+            name="midnight"
+            timeZone="UTC"
+            granularity="minute"
+            hourCycle={24}
+            defaultValue={parseZonedDateTime("2026-03-01T00:30[Europe/Prague]")}
+          />
+          <DateOnlyField
+            label="Prague calendar"
+            name="pragueDelivery"
+            locale="cs-CZ"
+            timeZone="Europe/Prague"
+            defaultValue={new CalendarDate(2026, 10, 2)}
+          />
+          <TimedRangeField
+            label="Zoned interval"
+            startName="start"
+            endName="end"
+            granularity="minute"
+            locale="en-GB"
+            defaultValue={[
+              parseZonedDateTime("2026-03-28T14:30[Europe/Prague]"),
+              parseZonedDateTime("2026-03-30T14:30[Europe/Prague]"),
+            ]}
+          />
+          <fieldset disabled={disabled} className="min-w-0">
+            <legend>Inherited state</legend>
+            <DateOnlyField
+              label="Fieldset delivery"
+              name="fieldsetDate"
+              defaultValue={new CalendarDate(2026, 8, 31)}
+              onValueChange={(details) => setLast(details.valueAsString)}
+            />
+          </fieldset>
+          <Button type="submit">Submit dates</Button>
+        </div>
+      </form>
+      <Button type="button" onClick={() => setDisabled((value) => !value)}>
+        Toggle date fieldset
+      </Button>
+      <output aria-label="Last accepted date">{last}</output>
+    </div>
+  )
 }

@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,9 +12,31 @@
 import { connect, machine } from "@zag-js/checkbox"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import { type ReactNode, useId } from "react"
+import {
+  getControlledChoiceInputProps,
+  trackChoiceFormControl,
+} from "../atoms/checkbox"
 import { StatusText } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
 import { tv } from "../utils"
+
+const checkboxChoiceMachine: typeof machine = {
+  ...machine,
+  implementations: {
+    ...machine.implementations,
+    effects: {
+      ...machine.implementations?.effects,
+      trackFormControlState({ scope, context }) {
+        const root = scope.getById(scope.ids?.root ?? `checkbox:${scope.id}`)
+        return trackChoiceFormControl(
+          root,
+          () => context.set("checked", context.initial("checked")),
+          (disabled) => context.set("fieldsetDisabled", disabled)
+        )
+      },
+    },
+  },
+}
 
 const checkboxVariants = tv({
   slots: {
@@ -52,7 +74,7 @@ const checkboxVariants = tv({
       "data-readonly:not-data-disabled:data-[state=indeterminate]:bg-checkbox-fg-readonly",
     ],
     label: [
-      "cursor-pointer select-none data-readonly:not-data-disabled:cursor-default data-readonly:select-text",
+      "wrap-anywhere min-w-0 flex-1 cursor-pointer select-none data-readonly:not-data-disabled:cursor-default data-readonly:select-text",
       "text-label-fg",
       "data-disabled:cursor-not-allowed",
       "data-disabled:text-label-fg-disabled",
@@ -135,7 +157,7 @@ export function FormCheckbox({
   const invalid = validateStatus === "error"
   const showIcon = validateStatus !== "default" || showHelpTextIcon
 
-  const service = useMachine(machine, {
+  const service = useMachine(checkboxChoiceMachine, {
     id: uniqueId,
     ids: id ? { hiddenInput: id } : undefined,
     name,
@@ -154,6 +176,11 @@ export function FormCheckbox({
   })
 
   const api = connect(service, normalizeProps)
+  const inputProps = getControlledChoiceInputProps(
+    api.getHiddenInputProps(),
+    api.checked,
+    api.indeterminate
+  )
 
   const styles = checkboxVariants({ size })
 
@@ -167,7 +194,7 @@ export function FormCheckbox({
         </div>
         <input
           className={styles.hiddenInput()}
-          {...api.getHiddenInputProps()}
+          {...inputProps}
           aria-checked={api.indeterminate ? "mixed" : api.checked}
           aria-describedby={describedBy}
           aria-errormessage={invalid && helpText ? helpTextId : undefined}

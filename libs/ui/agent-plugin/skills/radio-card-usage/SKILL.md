@@ -5,7 +5,7 @@ description: >
   prominent single-choice cards with Zag.js radio behavior, label, item,
   hidden input, control, text, description, addon, indicator, and status text.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -80,6 +80,22 @@ orientation, value/defaultValue, disabled, required, onValueChange
 ```
 
 ## Core Patterns
+
+### Native ownership and changing choices
+
+Controlled proposals leave all native radios synchronized with the accepted
+value, including rejected pointer/Space/arrow changes and external clearing.
+Reset follows the actual native input's `form` owner, including external owners
+and explicit ownership overriding an ancestor. Uncontrolled reset restores the
+initial `defaultValue` (or no selection); canceled resets do nothing. Controlled
+parents keep ownership and may refuse a reset proposal.
+
+When a focused option disappears or becomes disabled, focus moves to the next
+enabled survivor, then the previous survivor. This never changes the saved
+selection or steals focus from another control during background updates. If no
+enabled choices remain, the named radiogroup receives focus; retain its Label
+and provide an explanation of the empty/unavailable state.
+
 
 ### Associated feedback and read-only groups
 

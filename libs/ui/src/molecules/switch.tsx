@@ -2,7 +2,7 @@
  * Switch — @techsio/ui-kit molecule.
  *
  * @component Switch
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill switch-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,10 +13,32 @@ import { normalizeProps, useMachine } from "@zag-js/react"
 import { connect, machine } from "@zag-js/switch"
 import { type ReactNode, useId } from "react"
 import type { VariantProps } from "tailwind-variants"
+import {
+  getControlledChoiceInputProps,
+  trackChoiceFormControl,
+} from "../atoms/checkbox"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
 import { tv } from "../utils"
+
+const switchChoiceMachine: typeof machine = {
+  ...machine,
+  implementations: {
+    ...machine.implementations,
+    effects: {
+      ...machine.implementations?.effects,
+      trackFormControlState({ scope, context }) {
+        const root = scope.getById(scope.ids?.root ?? `switch:${scope.id}`)
+        return trackChoiceFormControl(
+          root,
+          () => context.set("checked", context.initial("checked")),
+          (disabled) => context.set("fieldsetDisabled", disabled)
+        )
+      },
+    },
+  },
+}
 
 const switchVariants = tv({
   slots: {
@@ -47,6 +69,8 @@ const switchVariants = tv({
     ],
     thumb: [
       "block aspect-square h-switch-thumb-height rounded-full bg-switch-thumb-bg",
+      "data-[state=unchecked]:bg-switch-thumb-bg-unchecked",
+      "switch-thumb-boundary data-invalid:not-data-readonly:not-data-disabled:data-[state=unchecked]:bg-switch-thumb-bg-invalid",
       "transform transition-transform duration-200 motion-reduce:transition-none",
       "data-[disabled]:bg-switch-thumb-bg-unavailable",
       "data-[state=checked]:translate-x-switch-translate-track",
@@ -54,7 +78,7 @@ const switchVariants = tv({
       "data-readonly:not-data-disabled:bg-switch-thumb-bg-readonly",
     ],
     label: [
-      "select-none data-readonly:select-text",
+      "wrap-anywhere min-w-0 flex-1 select-none data-readonly:select-text",
       "text-switch-label-fg",
       "data-[disabled]:text-switch-label-fg-disabled",
     ],
@@ -113,7 +137,7 @@ export function Switch({
   const helpTextId = useId()
   const invalid = validateStatus === "error"
 
-  const service = useMachine(machine, {
+  const service = useMachine(switchChoiceMachine, {
     id: uniqueId,
     ids: id ? { hiddenInput: id } : undefined,
     name,
@@ -133,6 +157,10 @@ export function Switch({
   })
 
   const api = connect(service, normalizeProps)
+  const inputProps = getControlledChoiceInputProps(
+    api.getHiddenInputProps(),
+    api.checked
+  )
 
   const { root, control, thumb, label, hiddenInput } = switchVariants({
     size,
@@ -148,7 +176,7 @@ export function Switch({
       >
         <input
           className={hiddenInput()}
-          {...api.getHiddenInputProps()}
+          {...inputProps}
           aria-checked={api.checked}
           aria-describedby={joinDescribedBy(
             ariaDescribedBy,

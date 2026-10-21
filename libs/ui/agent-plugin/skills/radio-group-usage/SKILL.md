@@ -6,7 +6,7 @@ description: >
   hidden inputs, controls, text, descriptions, validation status, variants, and
   sizes.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -78,6 +78,22 @@ value/defaultValue, disabled, required, readOnly, onValueChange
 ```
 
 ## Core Patterns
+
+### Native ownership and changing choices
+
+Controlled proposals leave every native radio synchronized with the accepted
+value, including rejected pointer/Space/arrow interaction and external clearing.
+`form` is honored for reset ownership, including an external form or an explicit
+owner overriding an ancestor form. Uncontrolled reset restores the initial
+`defaultValue` (or no selection); canceled resets do nothing. Controlled reset
+proposals may be accepted or refused by the parent.
+
+Removing or disabling the focused option moves focus to the next enabled
+survivor, or the previous survivor if no next option remains. Background updates
+do not steal focus and focus recovery does not change selection. If no enabled
+options remain, focus falls back to the named radiogroup; keep its Label mounted
+and explain the unavailable/empty choices nearby.
+
 
 ### Associated feedback and read-only groups
 

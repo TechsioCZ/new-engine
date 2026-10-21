@@ -34,9 +34,9 @@ Wrong:
 Correct:
 
 ```css
-@theme static {
-  --color-button-bg-primary: var(--color-surface);
-  --padding-button-md-x: var(--spacing-200);
+:root, [data-theme], .light, .dark, .always-light, .always-dark, .reverse {
+  --color-button-bg-primary-base: var(--color-surface);
+  --padding-button-x-md: var(--spacing-200);
   --font-weight-button: 700;
 }
 ```

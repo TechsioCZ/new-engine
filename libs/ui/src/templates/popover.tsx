@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit template.
  *
  * @component Popover
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.0
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,6 +19,8 @@ import {
 
 export type PopoverTemplateProps = Omit<PopoverRootProps, "children"> & {
   children: ReactNode
+  /** Accessible name when no visible title is supplied. */
+  "aria-label"?: string
   contentClassName?: string
   contentProps?: Omit<PopoverContentProps, "children" | "className" | "ref">
   contentRef?: Ref<HTMLDivElement>
@@ -37,6 +39,7 @@ export type PopoverTemplateProps = Omit<PopoverRootProps, "children"> & {
 }
 
 export function PopoverTemplate({
+  "aria-label": ariaLabel,
   children,
   contentClassName,
   contentProps,
@@ -52,6 +55,13 @@ export function PopoverTemplate({
   triggerRef,
   ...rootProps
 }: PopoverTemplateProps) {
+  const fallbackName =
+    typeof trigger === "string" ? trigger : "Additional details"
+  const unnamed = !(title || contentProps?.["aria-labelledby"])
+  const accessibleName =
+    contentProps?.["aria-label"] ??
+    ariaLabel ??
+    (unnamed ? fallbackName : undefined)
   return (
     <Popover.Root {...rootProps}>
       <Popover.Trigger
@@ -65,6 +75,7 @@ export function PopoverTemplate({
       <Popover.Positioner>
         <Popover.Content
           {...contentProps}
+          aria-label={accessibleName}
           className={contentClassName}
           ref={contentRef}
         >

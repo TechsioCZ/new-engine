@@ -5,7 +5,7 @@ description: >
   Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect
   ratio, object fit, and framework image adapters.
 metadata:
-  component_version: "1.3.1"
+  component_version: "1.3.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -174,3 +174,11 @@ rg -P -n "<Carousel\\.Slides(?![^>]*(imageAs|slides=))" apps
 ## Wave 2 contracts
 
 CarouselTemplate delegates indicators to Carousel.Indicators so they follow the machine’s pageSnapPoints, not the slide count. slidesPerPage > 1 and slidesPerMove therefore produce only valid page targets. The template’s size prop is a media-layout dimension (sm/md/lg, plus legacy full parent-fill), not a form-control height; name media-size examples explicitly.
+
+## Collection, keyboard and focus lifecycle
+
+Key slide data by stable IDs. The shared integration refreshes snapping and visibility observation when actual slide elements change, including equal-count replacements and shrinking collections. Offscreen slides stay inert. Inputs, textareas, inherited contenteditable regions and nested widgets retain their own editing keys; carousel navigation is scoped to its viewport, follows orientation/RTL and does not capture another carousel's events.
+
+When a transition would hide a focused slide, Carousel moves focus to the persistent, programmatically focusable viewport before applying inert. This works without controls and leaves successive navigation keys usable. Focus already outside the outgoing slide (including controls) is not moved. Applications own focus when they unmount the entire carousel or remove the focused element themselves; choose a surviving item or nearby heading after that commit.
+
+CarouselTemplate always supplies a pause/start control for boolean or configured autoplay, even when navigation is hidden, `showAutoplay=false`, or reduced motion suppresses automatic startup. `showAutoplay` may additionally show the control without autoplay. Compound compositions must still render Carousel.Autoplay whenever they enable automatic rotation. Reduced motion suppresses automatic startup without discarding an `autoplay={{ delay }}` configuration: an explicit Start uses that same interval. Switching to reduced motion pauses an already running carousel.

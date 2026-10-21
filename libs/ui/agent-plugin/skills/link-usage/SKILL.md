@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Link atom for inline or unstyled navigation, including
   external links and framework adapter usage.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -182,3 +182,9 @@ They use a readable foreground and visible keyboard focus. Canonical text sizes
 are sm/md/lg, default md; `size="current"` inherits paragraph typography for
 inline composition. Link is not a boxed control and does not set field height.
 Use LinkButton for prominent navigation, not manual button classes on Link.
+
+## React 19 refs
+
+Native Link accepts anchor object/callback refs. When `as` selects another
+intrinsic element or a custom adapter, its own ref contract is preserved;
+adapters without ref support do not gain a fabricated ref prop.

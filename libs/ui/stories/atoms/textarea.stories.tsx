@@ -48,7 +48,7 @@ const meta: Meta<typeof Textarea> = {
   component: Textarea,
   tags: ["autodocs"],
   parameters: {
-    layout: "centered",
+    layout: "padded",
     docs: {
       description: {
         component:
@@ -58,7 +58,7 @@ const meta: Meta<typeof Textarea> = {
   },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-md">
+      <div className="mx-auto w-full min-w-0 max-w-md">
         <Story />
       </div>
     ),
@@ -104,6 +104,7 @@ export const Playground: Story = {
 
 export const Variants: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -151,6 +152,7 @@ export const Variants: Story = {
 
 export const Sizes: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -188,6 +190,7 @@ export const Sizes: Story = {
 
 export const Disabled: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -211,6 +214,7 @@ export const Disabled: Story = {
 export const ReadOnly: Story = {
   name: "Read-only",
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -239,6 +243,7 @@ export const ReadOnly: Story = {
 
 export const AutoSizing: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:

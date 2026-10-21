@@ -75,16 +75,16 @@ const meta: Meta<typeof ColorSelect> = {
     colors: { control: "object" },
     size: { control: "select", options: ["sm", "md", "lg"] },
     radius: { control: "select", options: ["sm", "md", "lg", "full"] },
-    layout: { control: "select", options: ["list", "grid"] },
-    selectionMode: { control: "select", options: ["single", "multiple"] },
+    layout: { description: 'List stacks cells; grid uses responsive columns with wrapped captions.', control: "select", options: ["list", "grid"] },
+    selectionMode: { description: 'Single uses one radio tab stop and arrow navigation; multiple uses independently toggleable checkboxes.', control: "select", options: ["single", "multiple"] },
     label: { control: "text" },
     helpText: { control: "text" },
-    validateStatus: {
+    validateStatus: { description: 'Status for the linked helper; errors also mark each swatch invalid.',
       control: "select",
       options: ["default", "error", "warning", "success"],
     },
     disabled: { control: "boolean" },
-    readOnly: { control: "boolean" },
+    readOnly: { description: 'Preserve values and focus without allowing pointer or keyboard changes.', control: "boolean" },
   },
   args: {
     colors,
@@ -308,5 +308,29 @@ export const KeyboardNavigation: Story = {
     await expect(forest).toHaveFocus()
     await userEvent.keyboard("{Enter}")
     await expect(submit).not.toHaveBeenCalled()
+  },
+}
+
+export const LongCaptions: Story = {
+  args: { layout: "grid", colors: [
+    { color: "#ffffff", label: "UnbrokenLocalizedColorNameThatCannotWrapAtSpaces", count: 1000000 },
+    { color: "#c00040", label: "Weißaluminiumperleffekt", count: 0 },
+  ] },
+  render: (args) => <SelectionDemo {...args} />,
+  parameters: { docs: { description: { story:
+    "Long localized names and large/zero counts stay inside responsive grid cells; pale and saturated swatches preserve their exact product colors when selected." } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const radios = canvas.getAllByRole("radio")
+    for (const radio of radios) {
+      await userEvent.click(radio)
+      const fill = radio.querySelector("span")
+      if (!fill) throw new Error("Missing swatch fill")
+      await expect(getComputedStyle(fill).filter).toBe("none")
+      await expect(getComputedStyle(fill).opacity).toBe("1")
+      const cell = radio.parentElement
+      if (!cell) throw new Error("Missing swatch cell")
+      await expect(cell.scrollWidth).toBeLessThanOrEqual(cell.clientWidth + 1)
+    }
   },
 }

@@ -25,3 +25,15 @@
 @utility token-icon-status-text-error {
   @apply token-icon-error;
 }
+
+/* Read the public aliases on the message itself, so scoped application
+ * overrides do not freeze through an inherited intermediate alias. */
+@utility status-text-leading-sm {
+  line-height: var(--line-height-status-text-sm);
+}
+@utility status-text-leading-md {
+  line-height: var(--line-height-status-text-md);
+}
+@utility status-text-leading-lg {
+  line-height: var(--line-height-status-text-lg);
+}

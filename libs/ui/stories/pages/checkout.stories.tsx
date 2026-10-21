@@ -1,7 +1,8 @@
+import { cardExpiryValid } from "./page-models"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
@@ -260,6 +261,24 @@ const empty: CheckoutForm = {
 function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
   const [step, setStep] = useState(initialStep)
   const [placed, setPlaced] = useState(false)
+  const [billingSame, setBillingSame] = useState(true)
+  const [billing, setBilling] = useState({
+    firstName: "",
+    lastName: "",
+    street: "",
+    city: "",
+    zip: "",
+    country: "CZ",
+  })
+  const [expiryTouched, setExpiryTouched] = useState(false)
+  const [summaryOpen, setSummaryOpen] = useState(initialStep === 3)
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)")
+    const update = () => setSummaryOpen(media.matches || step === 3)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [step])
   const stepRegion = useRef<HTMLDivElement>(null)
   const editStep = (next: number) => {
     setStep(next)
@@ -288,6 +307,8 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
    * decisions that step owns are actually made.
    */
   const addressComplete =
+    (billingSame ||
+      Object.values(billing).every((value) => value.trim() !== "")) &&
     form.firstName.trim() !== "" &&
     form.lastName.trim() !== "" &&
     form.street.trim() !== "" &&
@@ -296,7 +317,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
   const paymentComplete =
     form.payment !== "card" ||
     (/^\d{16}$/.test(form.card.replace(/\s/g, "")) &&
-      /^\d{2}\/\d{2}$/.test(form.expiry) &&
+      cardExpiryValid(form.expiry) &&
       /^\d{3,4}$/.test(form.cvc))
   const stepComplete = [addressComplete, true, paymentComplete, form.terms]
   const delivery = deliveryOf(form.delivery)
@@ -339,10 +360,20 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
       </header>
 
       <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 items-start gap-350 p-250 lg:grid-cols-3">
+        <details
+          open={summaryOpen}
+          onToggle={(event) => setSummaryOpen(event.currentTarget.open)}
+          className="min-w-0 lg:sticky lg:top-250 lg:col-start-3 lg:row-start-1"
+        >
+          <summary className="cursor-pointer rounded-md border border-border-primary bg-surface p-150 font-semibold text-sm lg:hidden">
+            Order summary · {money(total)}
+          </summary>
+          <OrderSummary delivery={delivery} />
+        </details>
         <div
           ref={stepRegion}
           tabIndex={-1}
-          className="flex min-w-0 flex-col gap-250 lg:col-span-2"
+          className="flex min-w-0 flex-col gap-250 lg:col-span-2 lg:col-start-1 lg:row-start-1"
         >
           <Steps
             count={checkoutSteps.length}
@@ -440,9 +471,51 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                     </PhoneInput.StatusText>
                   </PhoneInput>
                   <FormCheckbox
-                    defaultChecked
+                    checked={billingSame}
+                    onCheckedChange={setBillingSame}
                     label="Billing address is the same"
                   />
+                  {!billingSame && (
+                    <fieldset className="flex flex-col gap-200">
+                      <legend className="font-semibold text-md">
+                        Billing address
+                      </legend>
+                      {(
+                        [
+                          ["firstName", "Billing first name"],
+                          ["lastName", "Billing surname"],
+                          ["street", "Billing street and number"],
+                          ["city", "Billing city"],
+                          ["zip", "Billing postcode"],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <FormInput
+                          key={key}
+                          id={`co-billing-${key}`}
+                          label={label}
+                          value={billing[key]}
+                          required
+                          onChange={(event) =>
+                            setBilling((current) => ({
+                              ...current,
+                              [key]: event.target.value,
+                            }))
+                          }
+                        />
+                      ))}
+                      <SelectTemplate
+                        label="Billing country"
+                        items={countryItems}
+                        value={[billing.country]}
+                        onValueChange={({ value }) =>
+                          setBilling((current) => ({
+                            ...current,
+                            country: value[0] ?? "CZ",
+                          }))
+                        }
+                      />
+                    </fieldset>
+                  )}
                 </div>
               </Steps.Content>
 
@@ -524,6 +597,17 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       <div className="grid grid-cols-1 gap-200 sm:grid-cols-2">
                         <FormInput
                           id="co-exp"
+                          onBlur={() => setExpiryTouched(true)}
+                          validateStatus={
+                            expiryTouched && !cardExpiryValid(form.expiry)
+                              ? "error"
+                              : "default"
+                          }
+                          helpText={
+                            expiryTouched && !cardExpiryValid(form.expiry)
+                              ? "Enter a valid MM/YY expiry, this month or later (month 01–12)."
+                              : "Valid through the end of the expiry month."
+                          }
                           label="Expiry"
                           onChange={(event) =>
                             set({ expiry: event.target.value })
@@ -569,6 +653,26 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                         variant="secondary"
                       >
                         Edit
+                      </Button>
+                    </div>
+                    <div className="flex items-start justify-between gap-150">
+                      <div className="flex flex-col gap-50">
+                        <span className="font-medium text-sm">
+                          Billing address
+                        </span>
+                        <span className="text-fg-secondary text-sm">
+                          {billingSame
+                            ? "Same as delivery address"
+                            : `${billing.firstName} ${billing.lastName} · ${billing.street}, ${billing.zip} ${billing.city}, ${billing.country}`}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        theme="borderless"
+                        variant="secondary"
+                        onClick={() => editStep(0)}
+                      >
+                        Edit billing address
                       </Button>
                     </div>
                     <div className="flex items-start justify-between gap-150">
@@ -655,8 +759,6 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
             </div>
           </Steps>
         </div>
-
-        <OrderSummary delivery={delivery} />
       </main>
     </div>
   )
@@ -698,6 +800,40 @@ export const ReviewStep: Story = {
         canvas.getByLabelText("First name", { exact: false })
       ).toHaveFocus()
     )
+    await userEvent.click(canvas.getByLabelText("Billing address is the same"))
+    const continueButton = canvas.getByRole("button", { name: "Continue" })
+    await expect(continueButton).toBeDisabled()
+    for (const [label, value] of [
+      ["Billing first name", "Ada"],
+      ["Billing surname", "Lovelace"],
+      ["Billing street and number", "Different 42"],
+      ["Billing city", "Brno"],
+      ["Billing postcode", "60200"],
+    ]) {
+      await userEvent.type(
+        canvas.getByLabelText(new RegExp(label ?? "")),
+        value ?? ""
+      )
+    }
+    await userEvent.click(continueButton)
+    await userEvent.click(canvas.getByRole("button", { name: "Continue" }))
+    const expiry = canvas.getByLabelText("Expiry", { exact: false })
+    await userEvent.clear(expiry)
+    await userEvent.type(expiry, "99/00")
+    await userEvent.tab()
+    await expect(expiry).toHaveAttribute("aria-invalid", "true")
+    await expect(
+      canvas.getByRole("button", { name: "Continue" })
+    ).toBeDisabled()
+    await userEvent.clear(expiry)
+    await userEvent.type(expiry, "12/39")
+    await userEvent.click(canvas.getByRole("button", { name: "Continue" }))
+    await expect(canvas.getByText(/Ada Lovelace · Different 42/)).toBeVisible()
+    const summary = canvas.getByRole("complementary", { name: "Order summary" })
+    const action = canvas.getByRole("button", { name: /Review demo payment/ })
+    await expect(
+      summary.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).not.toBe(0)
   },
 
   name: "Step 4 · Review",

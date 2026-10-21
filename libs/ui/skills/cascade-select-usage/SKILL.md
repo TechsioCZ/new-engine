@@ -6,7 +6,7 @@ description: >
   compound parts, parent or multiple selection, validation, and keyboard
   navigation.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -95,7 +95,7 @@ Supported props:
 
 ```text
 items: { label, value, children?, disabled? }[]
-size: xs | sm | md | lg
+size: sm | md | lg (default md; legacy xs remains a compatibility alias)
 validateStatus: default | error | success | warning
 value/defaultValue: string[][]
 highlightedValue/defaultHighlightedValue: string[]
@@ -128,6 +128,13 @@ is labeled by its column header and owned by its expanded parent item.
 A single selection still uses an array of paths. The Electronics → Phones
 value is `[["electronics", "phones"]]`, not `["phones"]`.
 
+Native `form.reset()` restores uncontrolled selections to `defaultValue` (or an
+empty selection) and resolves the labels and submitted paths against the current
+hierarchy. A removed default path stays empty instead of submitting stale values.
+The `form` prop also supports controls outside the associated form. Cancelled
+reset events leave the value unchanged; controlled values remain parent-owned.
+A native reset does not emit `onValueChange`.
+
 ### Choose parent selection deliberately
 
 Keep `allowParentSelection` false when only leaf choices are valid. Enable it
@@ -142,9 +149,12 @@ Conditionally render StatusText when guidance or validation text is available;
 unmounting it removes only its automatic description reference, leaving helper
 text and caller-provided descriptions linked. Keep persistent helper text at
 `status="default"` when the field becomes invalid, and render a separate
-`<CascadeSelect.StatusText showIcon>` for the error. Set
-`validateStatus="error"` on the root so the trigger exposes `aria-invalid`;
-put actionable correction text in the error rather than relying on border color.
+`<CascadeSelect.StatusText showIcon>` for an error inherited from root
+`validateStatus="error"`. An explicit `<CascadeSelect.StatusText status="error">`
+also marks the trigger invalid, even when the root status is default. Every
+mounted error ID joins `aria-errormessage`; changing its status or unmounting it
+removes that error association. Helper and caller-owned IDs remain intact.
+Put actionable correction text in the error rather than relying on border color.
 
 The **Accessible status text** story demonstrates this with a product form:
 saving an empty category reveals the error, selecting a leaf resolves it, and
@@ -173,7 +183,22 @@ Wrong:
 Correct:
 
 ```tsx
-<CascadeSelect items={categories} value={[["electronics", "phones"]]} />
+import { useState } from "react"
+import { CascadeSelect } from "@techsio/ui-kit/molecules/cascade-select"
+
+function CategoryField() {
+  const [value, setValue] = useState<string[][]>([["electronics", "phones"]])
+  return <CascadeSelect items={categories} value={value}
+    onValueChange={({ value }) => setValue(value)}>
+    <CascadeSelect.Label>Product category</CascadeSelect.Label>
+    <CascadeSelect.Control><CascadeSelect.Trigger>
+      <CascadeSelect.ValueText /><CascadeSelect.Indicator />
+    </CascadeSelect.Trigger></CascadeSelect.Control>
+    <CascadeSelect.Positioner><CascadeSelect.Content>
+      <CascadeSelect.Node />
+    </CascadeSelect.Content></CascadeSelect.Positioner>
+  </CascadeSelect>
+}
 ```
 
 Source: https://zagjs.com/components/react/cascade-select
@@ -186,10 +211,10 @@ Wrong:
 <button onClick={toggle}>{label}</button>
 ```
 
-Correct:
+Correct (prop-only fragment; retain the labeled compound anatomy from Setup):
 
 ```tsx
-<CascadeSelect items={categories}>{/* compound parts */}</CascadeSelect>
+<CascadeSelect items={categories}>{/* compound parts from Setup */}</CascadeSelect>
 ```
 
 Source: libs/ui/src/molecules/cascade-select.tsx
@@ -202,10 +227,10 @@ Wrong:
 <CascadeSelect.Trigger className="border-blue-500 bg-white px-4" />
 ```
 
-Correct:
+Correct (prop-only fragment; retain the labeled compound anatomy from Setup):
 
 ```tsx
-<CascadeSelect validateStatus="default">{/* compound parts */}</CascadeSelect>
+<CascadeSelect items={categories} validateStatus="default">{/* compound parts from Setup */}</CascadeSelect>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_cascade-select.css
@@ -223,3 +248,24 @@ rg -n '<button[^>]*onClick=.*(category|categories)' apps
 Popup content disables transitions and animations under
 `prefers-reduced-motion: reduce`, including discrete display transitions.
 The usual opening/closing interaction remains unchanged.
+
+## Authoritative hierarchy updates and feedback
+
+`items` is the full authoritative hierarchy. Resolve complete value paths, never a
+surviving ancestor prefix: removed paths clear with one `onValueChange` correction.
+Uncontrolled fields update themselves; controlled fields render/submit only the
+available subset while the owner applies the requested correction. Keep the full
+hierarchy during loading when selection must survive partial results. Existing
+selections that become disabled remain visible and submitted. Renaming/reordering
+refreshes nodes and navigation index paths without a selection-change callback;
+removed/disabled highlights clear so active descendants never reference old nodes.
+
+Every StatusText registers a description. Its effective error status (explicit
+status or root validateStatus) additionally registers an error ID on the invalid
+focusable trigger, merging caller error IDs. Registration cleans up on status
+changes and unmount; persistent helper descriptions remain linked.
+
+Read-only hierarchy fields keep the selected path, normal focus and native
+submission while suppressing opening (including open/defaultOpen), clear and
+indicator actions. Switching to read-only closes an already-open popup without
+committing a new path; read-only is not disabled.

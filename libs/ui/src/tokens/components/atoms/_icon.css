@@ -57,7 +57,10 @@
 }
 
 @utility token-icon-spinner {
-  @apply icon-[svg-spinners--ring-resize];
+  @apply icon-[mdi--loading];
+  @media (prefers-reduced-motion: no-preference) {
+    @apply animate-spin;
+  }
 }
 @utility token-icon-play {
   @apply icon-[mdi--play];
@@ -179,4 +182,38 @@
   --color-icon-fg-danger-safe: var(--color-icon-danger-safe);
   --color-icon-fg-success-safe: var(--color-icon-success-safe);
   --color-icon-fg-warning-safe: var(--color-icon-warning-safe);
+}
+
+/* Mask backgrounds are meaningful foreground paint. Preserve the system-mapped
+ * parent foreground, not the author's brand color, under Windows High Contrast.
+ * Pseudo-elements cover native checkbox check/mixed marks as well as icons. */
+@media (forced-colors: active) {
+  :where(span, i, svg):is([class*="token-icon-"], [class*="icon-["]) {
+    color: inherit !important;
+    forced-color-adjust: preserve-parent-color;
+    background-color: currentColor !important;
+  }
+  input[type="checkbox"]::after {
+    forced-color-adjust: none;
+    background-color: CanvasText !important;
+  }
+  input[type="checkbox"]:disabled::after {
+    background-color: GrayText !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(span, i, svg):is([class*="token-icon-"], [class*="icon-["]):is(
+    [data-disabled]:not([data-disabled="false"]),
+    [aria-disabled="true"]
+  ),
+  :is(
+      [data-disabled]:not([data-disabled="false"]),
+      [aria-disabled="true"],
+      :disabled
+    )
+    :where(span, i, svg):is([class*="token-icon-"], [class*="icon-["]) {
+    color: GrayText !important;
+    background-color: GrayText !important;
+  }
 }

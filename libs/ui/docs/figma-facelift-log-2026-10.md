@@ -418,3 +418,16 @@ VerticalNavigation: `group-bg-subtle` → `vertical-navigation/surface` and `gro
   popup-item padding, button typography and control-icon size. Align Medium
   to the shared md height/type rather than the legacy fixed 36px density.
   Mirror aliases, not copied literal values, and retain subordinate section labels.
+
+
+## Wave 3 foundations handoff — 2026-10-21
+
+Pending upstream token/export reconciliation; this entry records code-side bridges, not a claim that Figma has been edited.
+
+- Pair TreeView hover foreground/icons with the primary hover surface; make Footer hover text inherit readable text at nested scheme boundaries.
+- Selection strokes (Tabs and Pagination), Drawer/Sidebar focus, and ColorSelect boundaries use functional contrast roles rather than brand fills. Focus gains a two-tone indicator for bright controls on dark surfaces.
+- Restore alpha-bearing shared shadow primitives; separate Akros amber warning endpoint from destructive red and add a distinct static primary pressed surface. Both solid-primary and light-primary active aliases must use that darker pressed surface: primary-200/300/500 collapse in the Akros export, so substituting another collapsed stop does not provide static feedback. Regenerated scheme scopes must preserve the correction.
+- Keep status success/warning text readable on raised light surfaces, publish StatusText line-height aliases and retain the independent helper text scale.
+- Form-control minima grow with actual line height and padding; public border-width primitives own legacy width aliases. Effective radii remain 8/12/16px, baseline control minima 32/44/56px.
+- Preserve exact rem precision for pixel-named dimensions (2/6/10/14 etc.). `dimension-700` remains the legacy 70px spacing endpoint pending an upstream axis/consumer audit; do not reinterpret it as 700px.
+- The merger still needs token-aware whitespace/type validation before regeneration. Do not remove `_foundation-overrides.css` merely because a same-named Figma token exists; compare all six supported brand/mode combinations, nested scopes and app overrides first.

@@ -6,7 +6,7 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.3.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -282,9 +282,7 @@ null             -> empty string
 range null       -> two empty strings
 ```
 
-Do not add another hidden input with the same name. `required` and `invalid`
-communicate field state, but hidden-input native constraint validation is not
-part of the contract.
+Do not add another hidden input with the same name. An unnamed native validation proxy participates in required validation, including incomplete segments, and routes invalid-submission focus to the first editable/incomplete segment. Disabled and read-only fields are exempt. Application/server validation is still required.
 
 ### Preserve the accessible compound anatomy
 
@@ -406,3 +404,5 @@ rg -n '<DatePicker\.Root[^>]*selectionMode="range"[^>]*name=' apps
 rg -U -P -n '<DatePicker\.Root(?![\s\S]{0,900}<DatePicker\.Segments)' apps
 rg -U -P -n '<DatePicker\.Root[^>]*name=(?![\s\S]{0,900}<DatePicker\.Calendar)' apps
 ```
+
+All user-originated commits share inclusive min/max and availability validation. Date-only bounds include the whole boundary day; timed bounds compare exact date-times. Unavailable segment edits remain private invalid drafts with feedback; they do not alter accepted values or canonical form inputs. Calendar labels use the explicit field timezone, and localized numerals are normalized before parsing while display remains localized. Zoned values are converted to the field `timeZone` before calendar coordinates and popup clock drafts are derived; floating dates/times stay floating. Opening or cancelling preserves the accepted wire value; confirming a zoned draft emits the same instant in the field timezone (with that zone's offset and identifier).

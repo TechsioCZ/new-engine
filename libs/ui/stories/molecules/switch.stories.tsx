@@ -1,3 +1,5 @@
+import { checkSwitchThumbContrast } from "./switch-contrast"
+import { ChoiceContract, checkChoiceContract } from "./choice-contract"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useArgs } from "storybook/preview-api"
 import { expect, fn, userEvent, within } from "storybook/test"
@@ -210,4 +212,20 @@ export const RightToLeft: Story = {
       <Switch dir="rtl">Email notifications</Switch>
     </div>
   ),
+}
+
+export const NativeFormContract: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Rejected proposals preserve the submitted value; restoring defaults updates native, accessible and visible state together, including external form ownership." } } },
+  render: () => <ChoiceContract kind="switch" />,
+  play: async ({ canvasElement }) => checkChoiceContract(canvasElement),
+}
+
+export const ThumbVisibility: Story = {
+  parameters: describe("Enabled thumb boundaries remain distinguishable in checked, unchecked, invalid and read-only combinations, including hovered tracks."),
+  render: () => <div className="flex w-full max-w-md flex-col gap-200">
+    {[false, true].flatMap((checked) => [false, true].flatMap((readOnly) => [false, true].map((invalid) => <Switch key={`${checked}-${readOnly}-${invalid}`} checked={checked} readOnly={readOnly} validateStatus={invalid ? "error" : "default"}>
+      {checked ? "Enabled" : "Off"}{readOnly ? ", read-only" : ""}{invalid ? ", needs attention" : ""}
+    </Switch>)))}
+  </div>,
+  play: async ({ canvasElement }) => checkSwitchThumbContrast(canvasElement),
 }

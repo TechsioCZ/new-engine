@@ -6,7 +6,7 @@ description: >
   panels, progress, navigation triggers, linear flow, controlled step, and
   variants.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -69,12 +69,28 @@ where actions and feedback live). This section applies them to `Steps`.
 ## Setup
 
 ```tsx
-<Steps count={3} linear>
-  <Steps.List>
-    <Steps.Item index={0}><Steps.Trigger><Steps.Indicator /><Steps.Title>Cart</Steps.Title></Steps.Trigger><Steps.Separator /></Steps.Item>
+const stages = [
+  { title: "Cart", content: "Check products and quantities." },
+  { title: "Delivery", content: "Confirm the delivery address." },
+  { title: "Review", content: "Review the order before confirming." },
+]
+
+<Steps count={stages.length} linear>
+  <Steps.List aria-label="Checkout stages">
+    {stages.map((stage, index) => (
+      <Steps.Item key={stage.title} index={index}>
+        <Steps.Trigger><Steps.Indicator /><Steps.Title>{stage.title}</Steps.Title></Steps.Trigger>
+        <Steps.Separator />
+      </Steps.Item>
+    ))}
   </Steps.List>
-  <Steps.Panels><Steps.Content index={0}>Cart content</Steps.Content></Steps.Panels>
-  <Steps.Navigation><Steps.PrevTrigger>Back</Steps.PrevTrigger><Steps.NextTrigger>Next</Steps.NextTrigger></Steps.Navigation>
+  <Steps.Panels>
+    {stages.map((stage, index) => (
+      <Steps.Content key={stage.title} index={index}><h3>{stage.title}</h3>{stage.content}</Steps.Content>
+    ))}
+    <Steps.CompletedContent aria-label="Order confirmed"><h3>Order confirmed</h3>Your order is ready for processing.</Steps.CompletedContent>
+  </Steps.Panels>
+  <Steps.Navigation><Steps.PrevTrigger>Back</Steps.PrevTrigger><Steps.NextTrigger>Confirm and continue</Steps.NextTrigger></Steps.Navigation>
 </Steps>
 ```
 
@@ -115,9 +131,7 @@ Wrong:
 
 Correct:
 
-```tsx
-<Steps count={3}><Steps.Panels><Steps.Content index={0} /></Steps.Panels></Steps>
-```
+Use the complete Setup example: count, headers, panels and completion are derived together.
 
 Source: libs/ui/src/molecules/steps.tsx
 
@@ -132,7 +146,8 @@ Wrong:
 Correct:
 
 ```tsx
-<Steps count={3}><Steps.Item index={0} /></Steps>
+{/* Partial root-prop illustration; include the complete anatomy from Setup. */}
+<Steps count={stages.length}>{/* Setup list, panels and navigation */}</Steps>
 ```
 
 Source: https://zagjs.com/components/react/steps
@@ -173,3 +188,29 @@ Use sm/md/lg (default md) consistently across stages and navigation actions.
 
 Steps sizing controls the progress indicator and stage typography, not a boxed
 form-field height. Embedded Back/Continue buttons follow shared control heights.
+
+## Validation, semantics and dynamic workflows
+
+All Zag machine options are forwarded by both `Steps` and `useSteps`, including
+`isStepValid(index)`, `isStepSkippable(index)`, `onStepInvalid(details)`, `ids`,
+and `getRootNode`. Invalid forward transitions call `onStepInvalid` without
+advancing. A skippable current step bypasses validation; Next still advances one
+index, not over arbitrary steps. Back remains available. `linear` disables all
+header jumps so progression happens through Back/Next and validation.
+
+Steps is an ordered list of ordinary navigation buttons with `aria-current="step"`,
+not a tab widget. Use Tab/Shift+Tab and Enter/Space for available step jumps; use
+Tabs instead for peer views. Content uses labelled regions, and CompletedContent
+is a separate named region (`Workflow complete` by default). Supply `aria-label`
+or `aria-labelledby` for localized completion copy. Successful Back/Next button
+activation focuses the new content region after rendering, including completion.
+Cancel via the trigger's `onClick.preventDefault()` when the application owns
+focus; initial and unrelated externally controlled updates never move it.
+
+`useSteps` reconciles count changes without remounting surviving fields. An
+unfinished out-of-range step recovers to the last remaining step; an intentional
+completion follows the completion sentinel `count`. With zero steps the flow is
+complete and progress is 100%. Invalid controlled steps render a safe effective
+state and request correction once per invalid input/count pair via onStepChange;
+the owner must update its step and related data. Progress remains finite in
+0–100. Completion/reset through the API remains supported.

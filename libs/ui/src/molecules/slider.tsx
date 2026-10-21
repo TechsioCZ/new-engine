@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -14,12 +14,67 @@ import {
   connect as connectSlider,
   machine as sliderMachine,
 } from "@zag-js/slider"
-import { useId } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
 import { slugify, tv } from "../utils"
+
+// Zag observes only the closest fieldset. Native :disabled also accounts for
+// disabled outer fieldsets and the first-legend exception. The unnamed probe
+// never inherits the machine's disabled attribute, so enabling cannot latch.
+const createNativeSliderMachine = (
+  onDisabled: (disabled: boolean) => void
+): typeof sliderMachine => ({
+  ...sliderMachine,
+  implementations: {
+    ...sliderMachine.implementations,
+    effects: {
+      ...sliderMachine.implementations?.effects,
+      trackFormControlState({ scope, context }) {
+        const root = scope.getById(scope.ids?.root ?? `slider:${scope.id}`)
+        const probe = root?.querySelector<HTMLInputElement>(
+          '[data-part="disabled-probe"]'
+        )
+        if (!probe) {
+          return
+        }
+        let active = true
+        let form: HTMLFormElement | null = null
+        const reset = (event: Event) => {
+          // A microtask may run before a later native listener prevents reset.
+          setTimeout(() => {
+            if (active && !event.defaultPrevented) {
+              context.set("value", context.initial("value"))
+            }
+          })
+        }
+        const update = () => {
+          onDisabled(probe.matches(":disabled"))
+          if (form !== probe.form) {
+            form?.removeEventListener("reset", reset)
+            form = probe.form
+            form?.addEventListener("reset", reset)
+          }
+        }
+        update()
+        const observer = new MutationObserver(update)
+        observer.observe(probe.ownerDocument.documentElement, {
+          attributes: true,
+          attributeFilter: ["disabled", "form"],
+          childList: true,
+          subtree: true,
+        })
+        return () => {
+          active = false
+          observer.disconnect()
+          form?.removeEventListener("reset", reset)
+        }
+      },
+    },
+  },
+})
 
 const sliderVariants = tv({
   slots: {
@@ -123,7 +178,7 @@ export type SliderProps = VariantProps<typeof sliderVariants> & {
   name?: string
   label?: string
   /**
-   * One accessible name per thumb, for a slider with no visible `label`
+   * One distinct accessible name per thumb, including sliders with a visible `label`
    * (e.g. `["Minimum price", "Maximum price"]`).
    */
   "aria-label"?: string[]
@@ -149,6 +204,7 @@ export type SliderProps = VariantProps<typeof sliderVariants> & {
   showValueText?: boolean
   formatRangeText?: (values: number[]) => string
   formatValue?: (value: number) => string
+  getAriaValueText?: (details: { value: number; index: number }) => string
   className?: string
   onChange?: (values: number[]) => void
   onChangeEnd?: (values: number[]) => void
@@ -182,22 +238,23 @@ const countDecimals = (value: number) => {
     return 0
   }
 
-  const [, decimalPart = ""] = value.toString().split(".")
-  return decimalPart.length
-}
-
-const roundToStepPrecision = (value: number, step: number) => {
-  const precision = countDecimals(step)
-  if (precision <= 0) {
-    return Math.round(value)
-  }
-
-  return Number(value.toFixed(precision))
+  const [coefficient = "", exponent = "0"] = value
+    .toString()
+    .toLowerCase()
+    .split("e")
+  return Math.max(
+    0,
+    (coefficient.split(".")[1]?.length ?? 0) - Number(exponent)
+  )
 }
 
 const snapToStep = (value: number, min: number, step: number) => {
   const snappedValue = Math.round((value - min) / step) * step + min
-  return roundToStepPrecision(snappedValue, step)
+  const precision = Math.min(
+    100,
+    Math.max(countDecimals(min), countDecimals(step))
+  )
+  return Number(snappedValue.toFixed(precision))
 }
 
 const resolveThumbCount = (
@@ -381,12 +438,21 @@ export function Slider({
   markerCount = 5,
   showValueText = false,
   formatRangeText,
+  getAriaValueText,
   formatValue = (val: number) => val.toString(),
   className,
   onChange,
   onChangeEnd,
 }: SliderProps) {
   const generatedId = useId()
+  const disabledProbeRef = useRef<HTMLInputElement>(null)
+  const [inheritedDisabled, setInheritedDisabled] = useState(false)
+  const nativeSliderMachine = useMemo(
+    () => createNativeSliderMachine(setInheritedDisabled),
+    []
+  )
+  const interactionBlocked = () =>
+    disabled || readOnly || disabledProbeRef.current?.matches(":disabled")
   const uniqueId = id || generatedId
   const helpTextId = `${uniqueId}-help`
   const thumbCount = resolveThumbCount(value, defaultValue)
@@ -415,10 +481,28 @@ export function Slider({
     fallbackValues
   )
 
-  const service = useMachine(sliderMachine, {
+  useEffect(() => {
+    if (
+      !(
+        typeof process !== "undefined" && process.env?.NODE_ENV === "production"
+      ) &&
+      thumbCount > 1 &&
+      (ariaLabel?.length !== thumbCount ||
+        ariaLabel.some((thumbName) => !thumbName.trim()) ||
+        new Set(ariaLabel).size !== thumbCount)
+    ) {
+      console.warn(
+        "[Slider] Provide a distinct aria-label for every thumb, even with a visible label."
+      )
+    }
+  }, [ariaLabel, thumbCount])
+
+  const service = useMachine(nativeSliderMachine, {
     id: uniqueId,
     name,
     "aria-label": ariaLabel,
+    getAriaValueText:
+      getAriaValueText ?? (({ value: thumbValue }) => formatValue(thumbValue)),
     value: resolvedValue,
     defaultValue: resolvedDefaultValue,
     min: resolvedConfig.min,
@@ -427,17 +511,17 @@ export function Slider({
     thumbAlignment,
     step: resolvedConfig.step,
     minStepsBetweenThumbs: resolvedConfig.minStepsBetweenThumbs,
-    disabled,
+    disabled: disabled || inheritedDisabled,
     readOnly,
     dir,
     orientation,
     onValueChange: (details) => {
-      if (!(disabled || readOnly)) {
+      if (!interactionBlocked()) {
         onChange?.(details.value)
       }
     },
     onValueChangeEnd: (details) => {
-      if (!(disabled || readOnly)) {
+      if (!interactionBlocked()) {
         onChangeEnd?.(details.value)
       }
     },
@@ -464,7 +548,22 @@ export function Slider({
   })
 
   return (
-    <div className={root({ className })} {...api.getRootProps()}>
+    <div
+      className={root({ className })}
+      {...api.getRootProps()}
+      onKeyDownCapture={(event) => {
+        if (interactionBlocked()) {
+          event.stopPropagation()
+        }
+      }}
+      onPointerDownCapture={(event) => {
+        if (interactionBlocked()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+      }}
+    >
+      <input data-part="disabled-probe" ref={disabledProbeRef} type="hidden" />
       {(label || showValueText) && (
         <div className={header()}>
           <Label className={labelSlot()} size={size} {...api.getLabelProps()}>
@@ -565,7 +664,7 @@ export function Slider({
             aria-valuenow={api.value[index]}
             data-readonly={readOnly ? "" : undefined}
             role="slider"
-            tabIndex={disabled ? undefined : 0}
+            tabIndex={api.getThumbProps({ index }).tabIndex}
           >
             <input {...api.getHiddenInputProps({ index })} />
           </div>

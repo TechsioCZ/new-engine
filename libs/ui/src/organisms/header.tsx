@@ -2,14 +2,20 @@
  * Header — @techsio/ui-kit organism.
  *
  * @component Header
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill header-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the header-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { HTMLAttributes, ReactNode, Ref } from "react"
+import type {
+  ComponentProps,
+  HTMLAttributes,
+  ReactNode,
+  Ref,
+  RefObject,
+} from "react"
 import {
   createContext,
   useContext,
@@ -121,7 +127,7 @@ type HeaderContextValue = {
   toggleMobileMenu: () => void
   mobileMenuId: string
   setMobileMenuId: (id: string) => void
-  hamburgerRef?: Ref<HTMLButtonElement>
+  hamburgerRef?: RefObject<HTMLButtonElement | null>
 }
 
 export const HeaderContext = createContext<HeaderContextValue>({
@@ -133,45 +139,44 @@ export const HeaderContext = createContext<HeaderContextValue>({
 })
 
 // === TYPE DEFINITIONS ===
-export interface HeaderProps
-  extends HTMLAttributes<HTMLElement>,
-    VariantProps<typeof headerVariants> {
-  children: ReactNode
-  ref?: Ref<HTMLElement>
-}
+export type HeaderProps = HTMLAttributes<HTMLElement> &
+  VariantProps<typeof headerVariants> & {
+    children: ReactNode
+    ref?: Ref<HTMLElement>
+  }
 
-interface HeaderContainerProps extends HTMLAttributes<HTMLElement> {
+type HeaderContainerProps = HTMLAttributes<HTMLElement> & {
   children: ReactNode
   ref?: Ref<HTMLElement>
   position?: "start" | "center" | "end"
 }
 
-interface HeaderNavProps extends HTMLAttributes<HTMLElement> {
+type HeaderNavProps = HTMLAttributes<HTMLElement> & {
   children: ReactNode
   ref?: Ref<HTMLElement>
   size?: "sm" | "md" | "lg"
 }
 
-interface HeaderNavItemProps extends HTMLAttributes<HTMLDivElement> {
+type HeaderNavItemProps = HTMLAttributes<HTMLDivElement> & {
   active?: boolean
   children: ReactNode
   ref?: Ref<HTMLDivElement>
   size?: "sm" | "md" | "lg"
 }
 
-interface HeaderActionsProps extends HTMLAttributes<HTMLDivElement> {
+type HeaderActionsProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
   ref?: Ref<HTMLDivElement>
   size?: "sm" | "md" | "lg"
 }
 
-interface HeaderActionItemProps extends HTMLAttributes<HTMLDivElement> {
+type HeaderActionItemProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
   ref?: Ref<HTMLDivElement>
   size?: "sm" | "md" | "lg"
 }
 
-interface HeaderMobileProps extends HTMLAttributes<HTMLDivElement> {
+type HeaderMobileProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
   ref?: Ref<HTMLDivElement>
   position?: "left" | "right"
@@ -208,6 +213,42 @@ export function Header({
     ownerDocument?.addEventListener("keydown", handleEscape)
     return () => ownerDocument?.removeEventListener("keydown", handleEscape)
   }, [isMobileMenuOpen])
+  useEffect(() => {
+    const trigger = hamburgerRef.current
+    const header = trigger?.closest("header")
+    if (!(trigger && header)) {
+      return
+    }
+    let focusWasInMobile = false
+    const rememberFocus = (event: FocusEvent) => {
+      const panel = trigger.ownerDocument.getElementById(mobileMenuId)
+      focusWasInMobile =
+        event.target === trigger ||
+        (event.target instanceof Node && !!panel?.contains(event.target))
+    }
+    const reconcile = () => {
+      if (getComputedStyle(trigger).display !== "none") {
+        return
+      }
+      setIsMobileMenuOpen(false)
+      if (focusWasInMobile) {
+        header
+          .querySelector<HTMLElement>(
+            ".header-desktop a[href], .header-desktop button:not([disabled])"
+          )
+          ?.focus()
+        focusWasInMobile = false
+      }
+    }
+    trigger.ownerDocument.addEventListener("focusin", rememberFocus)
+    const observer = new ResizeObserver(reconcile)
+    observer.observe(header)
+    reconcile()
+    return () => {
+      observer.disconnect()
+      trigger.ownerDocument.removeEventListener("focusin", rememberFocus)
+    }
+  }, [mobileMenuId])
   const { root } = headerVariants({
     size,
     direction,
@@ -382,9 +423,11 @@ Header.ActionItem = function HeaderActionItem({
 
 Header.Hamburger = function HeaderHamburger({
   className,
-}: {
-  className?: string
-}) {
+  ref,
+  onClick,
+  "aria-label": ariaLabel = "Toggle mobile menu",
+  ...props
+}: ComponentProps<typeof Button>) {
   const {
     toggleMobileMenu,
     isMobileMenuOpen,
@@ -398,13 +441,29 @@ Header.Hamburger = function HeaderHamburger({
     <Button
       aria-controls={mobileMenuId}
       aria-expanded={isMobileMenuOpen}
-      aria-label="Toggle mobile menu"
+      {...props}
+      aria-label={ariaLabel}
       className={hamburger({ className })}
       icon={
         isMobileMenuOpen ? "token-icon-header-close" : "token-icon-header-menu"
       }
-      onClick={toggleMobileMenu}
-      ref={hamburgerRef}
+      onClick={(event) => {
+        onClick?.(event)
+        if (!event.defaultPrevented) {
+          toggleMobileMenu()
+        }
+      }}
+      ref={(node) => {
+        if (hamburgerRef) {
+          hamburgerRef.current = node
+        }
+        if (typeof ref === "function") {
+          return ref(node)
+        }
+        if (ref) {
+          ref.current = node
+        }
+      }}
       size="current"
       theme="unstyled"
       type="button"

@@ -222,7 +222,7 @@ Source: libs/ui/skills/_artifacts/domain_map.yaml
 ```sh
 bunx biome check --write libs/ui/src/atoms/action.tsx libs/ui/stories/atoms/action.stories.tsx
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+pnpm --dir libs/ui build
 ```
 
 Add Storybook/a11y/component visual checks when visuals or interactions change.
@@ -258,3 +258,31 @@ The canonical requirements are in `libs/ui/docs/component-contracts.md`.
   Content and Positioner, preserving `--layer-index`, not hard-coded z-50.
 - Do not use forwardRef or useCallback. Use type, not interface, for new props.
   For stories, follow storybook-authoring and the shared documentation contract.
+
+## Callback compatibility policy
+
+Native input `onChange` remains a native React event. New custom controls use
+`onValueChange({ value, ...metadata })`, `onCheckedChange({ checked })` and
+`onOpenChange({ open })` details envelopes. Use component-specific value types;
+never erase multiple-selection arrays or numeric drafts to force a common type.
+
+Existing names/payloads are compatibility contracts, not candidates for silent
+normalization:
+
+| Controls | Value callback | Payload |
+| --- | --- | --- |
+| Select, CascadeSelect, PhoneInput | onValueChange | Zag details, including value |
+| RadioGroup, RadioCard, Tabs | onValueChange | raw value (including documented null) |
+| Combobox, Rating, Slider, Accordion | onChange | raw value |
+| NumericInput | onChange and onValueChange | number and details respectively |
+| Switch, FormCheckbox | checked-change callback | documented boolean contract |
+
+Combobox's `onOpenChange` is boolean; Menu/Popover/Drawer use details. Retain these
+signatures. A future opt-in details facade must use a distinct, unoccupied name;
+renaming an occupied callback requires a major release and migration examples.
+NumericInput intentionally invokes both supplied value callbacks for the same
+machine notification; do not subscribe both to the same state setter unless
+that duplicate work is intended. Controlled parents may accept or refuse a
+notification, and external prop updates must remain authoritative. Add consumer
+type tests plus callback-count/state assertions for single/multiple values,
+clearing and numeric drafts before changing any existing notification path.

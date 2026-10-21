@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useRef, useState } from "react"
-import { fn } from "storybook/test"
+import { expect, fn, userEvent, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
 import { Input } from "../../src/atoms/input"
 import {
@@ -447,7 +447,7 @@ export const LongContent: Story = {
               ].map((section) => (
                 <p key={section}>
                   {section}. Read this guide at your own pace. The panel stays
-                  within the viewport and lets you scroll to its controls.
+                  within the viewport while its controls stay visible.
                 </p>
               ))}
             </div>
@@ -459,6 +459,18 @@ export const LongContent: Story = {
       <TourSurface />
     </Tour>
   ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Start tour" }))
+    const panel = await within(canvasElement.ownerDocument.body).findByRole("alertdialog", { name: "A guide with longer content" })
+    const description = panel.querySelector<HTMLElement>('[data-part="description"]')
+    if (!description) throw new Error("Missing tour description")
+    description.scrollTop = description.scrollHeight / 2
+    for (const control of within(panel).getAllByRole("button")) {
+      const rect = control.getBoundingClientRect()
+      await expect(rect.top).toBeGreaterThanOrEqual(0)
+      await expect(rect.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight)
+    }
+  },
 }
 
 function UnmountExample(props: Omit<TourRootProps, "children" | "steps">) {

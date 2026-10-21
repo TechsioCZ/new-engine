@@ -564,14 +564,14 @@ export const CaptionBottom: Story = {
 export const WithStickyColumn: Story = {
   parameters: { docs: { description: { story: "A sticky identity column keeps products recognizable while additional attributes scroll." } } },
   args: {
-    variant: 'line',
+    variant: 'striped',
     size: 'md',
+    interactive: true,
   },
   render: (args) => (
-    // max-w-150 resolves to the theme's --spacing-150 token, not 600px.
     <div
       aria-label="Products, sticky first column"
-      className="max-w-[600px] overflow-auto"
+      className="max-w-lg overflow-auto"
       role="region"
       tabIndex={0}
     >

@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit template.
  *
  * @component Carousel
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,8 +17,10 @@ import {
   type CarouselSlide,
 } from "../molecules/carousel"
 
-export interface CarouselTemplateProps<T extends ElementType>
-  extends Omit<CarouselRootProps<T>, "children" | "slideCount"> {
+export type CarouselTemplateProps<T extends ElementType> = Omit<
+  CarouselRootProps<T>,
+  "children" | "slideCount"
+> & {
   slides: CarouselSlide[]
   showControls?: boolean
   showIndicators?: boolean
@@ -85,7 +87,7 @@ export function CarouselTemplate<T extends ElementType>({
         </Carousel.Control>
       )}
 
-      {showAutoplay && <Carousel.Autoplay />}
+      {(Boolean(autoplay) || showAutoplay) && <Carousel.Autoplay />}
     </Carousel>
   )
 }

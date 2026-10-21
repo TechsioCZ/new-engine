@@ -1,3 +1,4 @@
+import { expect, fireEvent, userEvent, within } from "storybook/test"
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
@@ -116,7 +117,7 @@ function ContentListPage() {
         cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
-    [],
+    []
   )
 
   return (
@@ -162,6 +163,15 @@ function ArticleEditorPage() {
   const [metaDescription, setMetaDescription] = useState("")
   const [status, setStatus] = useState("draft")
   const [indexable, setIndexable] = useState(true)
+  const [body, setBody] = useState(
+    "Before every shift: check guards on power tools, wear eye protection and keep the floor clear of offcuts…"
+  )
+  const [publishAt, setPublishAt] = useState("")
+  const scheduleInvalid =
+    status === "scheduled" &&
+    (!publishAt ||
+      !Number.isFinite(new Date(publishAt).getTime()) ||
+      new Date(publishAt).getTime() <= Date.now())
   const [savedSnapshot, setSavedSnapshot] = useState<string>()
 
   const seoTitle = metaTitle || `${title} | Akros`
@@ -178,6 +188,7 @@ function ArticleEditorPage() {
             icon="icon-[mdi--content-save-outline]"
             disabled={
               !title.trim() ||
+              scheduleInvalid ||
               savedSnapshot ===
                 JSON.stringify({
                   title,
@@ -186,6 +197,8 @@ function ArticleEditorPage() {
                   metaDescription,
                   status,
                   indexable,
+                  body,
+                  publishAt,
                 })
             }
             onClick={() => {
@@ -197,7 +210,9 @@ function ArticleEditorPage() {
                   metaDescription,
                   status,
                   indexable,
-                }),
+                  body,
+                  publishAt,
+                })
               )
               toaster.create({
                 type: "success",
@@ -255,7 +270,8 @@ function ArticleEditorPage() {
                 value={slug}
               />
               <FormTextarea
-                defaultValue="Before every shift: check guards on power tools, wear eye protection and keep the floor clear of offcuts…"
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
                 id="article-body"
                 label="Text"
                 rows={12}
@@ -321,6 +337,14 @@ function ArticleEditorPage() {
             />
             <FormInput
               id="publish-at"
+              value={publishAt}
+              onChange={(event) => setPublishAt(event.target.value)}
+              validateStatus={scheduleInvalid ? "error" : "default"}
+              helpText={
+                scheduleInvalid
+                  ? "Choose a future publication date and time for a scheduled article."
+                  : "Local demo schedule; no website will be changed."
+              }
               label="Publish at"
               size="sm"
               type="datetime-local"
@@ -357,6 +381,24 @@ export const Default: Story = {
 }
 
 export const ArticleEditor: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const save = canvas.getByRole("button", { name: "Save demo draft" })
+    await userEvent.click(save)
+    const body = canvas.getByLabelText("Text")
+    const original = (body as HTMLTextAreaElement).value
+    await userEvent.type(body, " updated")
+    await expect(save).toBeEnabled()
+    await userEvent.clear(body)
+    await userEvent.type(body, original)
+    await expect(save).toBeDisabled()
+    fireEvent.change(canvas.getByLabelText("Publish at"), {
+      target: { value: "2027-12-15T10:30" },
+    })
+    await expect(save).toBeEnabled()
+    await userEvent.click(save)
+    await expect(save).toBeDisabled()
+  },
   name: "Article editor with SEO",
   parameters: {
     docs: {

@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.4.0"
+  component_version: "1.5.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -222,6 +222,9 @@ Selection mode submits item values, never the visible input label. With
 `new FormData(form).getAll(name)`. An empty selection submits an empty entry;
 disabled fields submit nothing. Navigation mode does not submit selection data.
 The visible text input intentionally has no name in selection mode.
+For a field outside its form, pass `inputProps={{ form: "order-form" }}`. That
+association applies to both the visible input and every named hidden selection,
+including empty, multiple and read-only values; disabled selections stay omitted.
 
 Read-only inputs preserve focus and text selection, suppress all opening even
 with open/defaultOpen, and omit clear/dropdown actions. Error help is linked
@@ -243,3 +246,21 @@ uses the selected value(s) for native form validity: arbitrary search text is no
 a selection, and an empty query does not invalidate a nonempty multiple selection.
 Native validation focuses the visible input. Navigation mode validates the query.
 Labels follow the canonical control size rather than a fixed medium size.
+
+## Input integration and selected values
+
+`ref` targets the focusable `HTMLInputElement` (including React 19 callback-ref
+cleanup). `inputProps` accepts native attributes and composed focus/blur/key events;
+value, disabled, readOnly, required, name and the machine input ID stay owned by the
+component. Caller descriptions merge with linked helper/selection descriptions.
+`className`, `style` and other div DOM attributes target the root. SearchSuggestions
+preserves the same API. `onChange` always emits `string[]`, even in single mode;
+scalar `value`/`defaultValue` inputs remain a convenience. A `string[]` React state
+setter can be passed directly.
+
+Multiple mode renders built-in selected tokens independently of the query. Each
+has a named Remove button that returns focus to the input; Backspace on the empty,
+closed input removes the last selection. Read-only values remain visible without
+remove buttons; disabled buttons are not focusable. Do not add duplicate story/app
+chips around this built-in presentation. Labels resolve from the full collection
+or machine selection cache, not the filtered results.

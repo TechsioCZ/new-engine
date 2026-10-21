@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or
   Iconify classes with the library's supported size and semantic color props.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -212,3 +212,7 @@ current sizes remain available for non-interactive composition.
 Explicit secondary and status colours also use readable semantic foregrounds,
 not decorative brand/status fills. Use colour=current to inherit a surrounding
 control label's already-contrasting foreground.
+
+## Ref and system accessibility
+
+`ref` accepts `Ref<HTMLSpanElement>` (nullable object or callback, including React 19 cleanup). Masked glyphs preserve the system foreground in forced colors; the shared loading glyph is static under reduced motion. Do not replace it with an intrinsically animated SVG.

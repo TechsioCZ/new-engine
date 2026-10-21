@@ -13,6 +13,7 @@
   --height-menu-separator: var(--size-menu-separator-height);
 
   --text-menu-xs: var(--text-xs);
+  --spacing-menu-viewport: var(--spacing-200);
 }
 
 /* Semantic tokens for menu icons */
@@ -26,4 +27,13 @@
 
 @utility token-icon-menu-check {
   @apply token-icon-check;
+}
+
+@utility menu-viewport {
+  /* Popper's max-content minimum must not outrank the viewport maximum. */
+  min-width: 0 !important;
+  max-width: min(
+    var(--available-width, 100vw),
+    calc(100vw - var(--spacing-menu-viewport) * 2)
+  );
 }

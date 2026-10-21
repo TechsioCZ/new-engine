@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,8 +11,11 @@
  */
 import {
   connect as connectFileUpload,
+  type FileChangeDetails,
+  type FileRejection,
   type Api as FileUploadApi,
   type ItemType as FileUploadItemType,
+  type Machine as FileUploadMachine,
   type Props as FileUploadMachineProps,
   machine as fileUploadMachine,
 } from "@zag-js/file-upload"
@@ -26,6 +29,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react"
@@ -96,6 +100,8 @@ const fileUploadStyles = tv({
 
 type FileUploadContextValue = {
   api: FileUploadApi
+  resetFiles: () => File[]
+  cancelPendingFiles: () => void
   required?: boolean
   invalid?: boolean
   size: "sm" | "md" | "lg"
@@ -176,7 +182,7 @@ export function FileUpload({
   defaultAcceptedFiles,
   dir = "ltr",
   directory,
-  disabled,
+  disabled: explicitDisabled,
   getRootNode,
   id,
   ids,
@@ -200,24 +206,248 @@ export function FileUpload({
   ...props
 }: FileUploadProps) {
   const generatedId = useId()
+  const probeRef = useRef<HTMLInputElement>(null)
+  const [inheritedDisabled, setInheritedDisabled] = useState(false)
+  const disabled = Boolean(explicitDisabled || inheritedDisabled)
+  const [processingError, setProcessingError] = useState<string>()
+  useLayoutEffect(() => {
+    const probe = probeRef.current
+    if (!probe) {
+      return
+    }
+    const update = () => setInheritedDisabled(probe.matches(":disabled"))
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(probe.ownerDocument.documentElement, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["disabled"],
+      childList: true,
+    })
+    return () => observer.disconnect()
+  }, [])
   // Keep the commit boundary controlled: Zag may finish an asynchronous
   // transform after the interaction that started it has become read-only.
-  const [localFiles, setLocalFiles] = useState<File[]>(
-    () => defaultAcceptedFiles ?? []
-  )
+  const committedFiles = useRef(acceptedFiles ?? defaultAcceptedFiles ?? [])
+  if (acceptedFiles !== undefined) {
+    committedFiles.current = acceptedFiles
+  }
+  const mutationProposal = useRef<File[] | undefined>(undefined)
   const interaction = useRef({
     blocked: Boolean(readOnly || disabled),
     epoch: 0,
+    selection: 0,
+    pending: new Set<symbol>(),
   })
   useLayoutEffect(() => {
     const blocked = Boolean(readOnly || disabled)
     if (interaction.current.blocked !== blocked) {
-      interaction.current = { blocked, epoch: interaction.current.epoch + 1 }
+      interaction.current.blocked = blocked
+      interaction.current.epoch += 1
+      interaction.current.pending.clear()
     }
   }, [readOnly, disabled])
-  const service = useMachine(fileUploadMachine, {
+  useEffect(
+    () => () => {
+      interaction.current.epoch += 1
+      interaction.current.pending.clear()
+    },
+    []
+  )
+  // Override only the async acceptance action: the upstream action validates
+  // before awaiting, then appends stale batches without checking current capacity.
+  const coordinatedMachine = useMemo<FileUploadMachine>(() => {
+    const actions = fileUploadMachine.implementations?.actions
+    if (!(actions?.setEventFiles && actions.clearFiles)) {
+      throw new Error("FileUpload machine actions unavailable")
+    }
+    const select = actions.setEventFiles
+    const clear = actions.clearFiles
+    const replace = actions.setFiles
+    const applyMutation = (
+      action: typeof clear,
+      params: Parameters<typeof clear>[0]
+    ) => {
+      mutationProposal.current = undefined
+      try {
+        action(params)
+      } finally {
+        mutationProposal.current = undefined
+      }
+    }
+    return {
+      ...fileUploadMachine,
+      implementations: {
+        ...fileUploadMachine.implementations,
+        actions: {
+          ...actions,
+          setFiles(params) {
+            // An explicit replacement supersedes every pending addition.
+            interaction.current.epoch += 1
+            interaction.current.pending.clear()
+            params.context.set("transforming", false)
+            setProcessingError(undefined)
+            if (replace) {
+              applyMutation(replace, params)
+            }
+          },
+          clearFiles(params) {
+            interaction.current.epoch += 1
+            interaction.current.pending.clear()
+            params.context.set("transforming", false)
+            setProcessingError(undefined)
+            applyMutation(clear, params)
+          },
+          removeFile(params) {
+            if (actions.removeFile) {
+              applyMutation(actions.removeFile, params)
+            }
+          },
+          clearRejectedFiles(params) {
+            if (actions.clearRejectedFiles) {
+              applyMutation(actions.clearRejectedFiles, params)
+            }
+          },
+          setEventFiles(params) {
+            if (
+              interaction.current.blocked ||
+              probeRef.current?.matches(":disabled")
+            ) {
+              return
+            }
+            const { context, prop } = params
+            const transform = prop("transformFiles")
+            const withoutTransform: typeof prop = (key) => {
+              const value = prop(key)
+              return key === "transformFiles"
+                ? (undefined as typeof value)
+                : value
+            }
+            const latestContext: typeof context = {
+              ...context,
+              get: (key) => {
+                const value = context.get(key)
+                return key === "acceptedFiles"
+                  ? (committedFiles.current as typeof value)
+                  : value
+              },
+              set: (key, next) => {
+                if (key === "acceptedFiles") {
+                  const value =
+                    typeof next === "function"
+                      ? next(committedFiles.current as never)
+                      : next
+                  context.set(key, value)
+                } else {
+                  context.set(key, next)
+                }
+              },
+            }
+            if (!transform) {
+              applyMutation(select, params)
+              return
+            }
+            const epoch = interaction.current.epoch
+            interaction.current.selection += 1
+            const selection = interaction.current.selection
+            const token = Symbol("file-batch")
+            // Run the machine's validator without publishing the provisional collection.
+            const provisional: FileChangeDetails = {
+              acceptedFiles: committedFiles.current,
+              rejectedFiles: context.get("rejectedFiles"),
+            }
+            const current = provisional.acceptedFiles
+            select({
+              ...params,
+              prop: withoutTransform,
+              context: {
+                ...context,
+                set(key, next) {
+                  if (key === "transforming") {
+                    return
+                  }
+                  const previous =
+                    key === "acceptedFiles"
+                      ? provisional.acceptedFiles
+                      : provisional.rejectedFiles
+                  const value =
+                    typeof next === "function" ? next(previous as never) : next
+                  if (key === "acceptedFiles") {
+                    provisional.acceptedFiles = value as File[]
+                  } else {
+                    provisional.rejectedFiles = value as FileRejection[]
+                  }
+                },
+              },
+            })
+            const files = provisional.acceptedFiles.filter(
+              (file) => !current.includes(file)
+            )
+            const fresh = () =>
+              !(
+                interaction.current.blocked ||
+                probeRef.current?.matches(":disabled")
+              ) &&
+              epoch === interaction.current.epoch &&
+              (params.computed("multiple") ||
+                selection === interaction.current.selection)
+            if (!files.length) {
+              if (fresh()) {
+                context.set("rejectedFiles", provisional.rejectedFiles)
+              }
+              return
+            }
+            interaction.current.pending.add(token)
+            context.set("transforming", true)
+            setProcessingError(undefined)
+            Promise.resolve()
+              .then(() => transform(files))
+              .then((transformed) => {
+                if (!fresh()) {
+                  return
+                }
+                // Re-run all constraints atomically against the latest collection.
+                applyMutation(
+                  (commitParams) => {
+                    select(commitParams)
+                    if (provisional.rejectedFiles.length) {
+                      context.set("rejectedFiles", [
+                        ...context.get("rejectedFiles"),
+                        ...provisional.rejectedFiles,
+                      ])
+                    }
+                  },
+                  {
+                    ...params,
+                    context: latestContext,
+                    event: { ...params.event, files: transformed },
+                    prop: withoutTransform,
+                  }
+                )
+              })
+              .catch(() => {
+                if (fresh()) {
+                  setProcessingError(
+                    "Files could not be processed. Choose the files again to retry."
+                  )
+                }
+              })
+              .finally(() => {
+                interaction.current.pending.delete(token)
+                context.set(
+                  "transforming",
+                  interaction.current.pending.size > 0
+                )
+              })
+          },
+        },
+      },
+    }
+  }, [])
+  const service = useMachine(coordinatedMachine, {
     accept,
-    acceptedFiles: acceptedFiles ?? localFiles,
+    acceptedFiles,
+    defaultAcceptedFiles,
     allowDrop,
     capture,
     dir,
@@ -234,6 +464,10 @@ export function FileUpload({
     name,
     onFileAccept: (details) => {
       if (!interaction.current.blocked) {
+        mutationProposal.current = details.files
+        if (acceptedFiles === undefined) {
+          committedFiles.current = details.files
+        }
         onFileAccept?.(details)
       }
     },
@@ -241,10 +475,11 @@ export function FileUpload({
       if (interaction.current.blocked) {
         return
       }
-      if (acceptedFiles === undefined) {
-        setLocalFiles(details.acceptedFiles)
-      }
-      onFileChange?.(details)
+      onFileChange?.({
+        ...details,
+        acceptedFiles:
+          mutationProposal.current ?? acceptedFiles ?? committedFiles.current,
+      })
     },
     onFileReject: (details) => {
       if (!interaction.current.blocked) {
@@ -254,25 +489,17 @@ export function FileUpload({
     preventDocumentDrop,
     readOnly,
     required,
-    transformFiles: transformFiles
-      ? async (files) => {
-          const epoch = interaction.current.epoch
-          const transformed = await transformFiles(files)
-          if (
-            interaction.current.blocked ||
-            interaction.current.epoch !== epoch
-          ) {
-            // Reject, rather than return an empty list: Zag would still commit
-            // the batch's rejected files after a fulfilled transformation.
-            throw new DOMException("File processing cancelled", "AbortError")
-          }
-          return transformed
-        }
-      : undefined,
+    transformFiles,
     translations,
     validate,
   })
+  useLayoutEffect(() => {
+    if (disabled || readOnly) {
+      service.context.set("transforming", false)
+    }
+  }, [disabled, readOnly, service])
   const api = connectFileUpload(service, normalizeProps)
+  committedFiles.current = api.acceptedFiles
   const styles = fileUploadStyles({ size })
   const descriptions = useDescribedBy()
   const errorDescriptions = useDescribedBy()
@@ -282,6 +509,16 @@ export function FileUpload({
     <FileUploadContext.Provider
       value={{
         api,
+        resetFiles: () => {
+          api.clearFiles()
+          api.setFiles(defaultAcceptedFiles ?? [])
+          return service.context.get("acceptedFiles")
+        },
+        cancelPendingFiles: () => {
+          interaction.current.epoch += 1
+          interaction.current.pending.clear()
+          service.context.set("transforming", false)
+        },
         required,
         invalid,
         styles,
@@ -301,7 +538,13 @@ export function FileUpload({
             : undefined
         }
       >
+        <input disabled={explicitDisabled} ref={probeRef} type="hidden" />
         {children}
+        {processingError && (
+          <FileUpload.StatusText size={size} status="error">
+            {processingError}
+          </FileUpload.StatusText>
+        )}
       </div>
     </FileUploadContext.Provider>
   )
@@ -461,52 +704,76 @@ FileUpload.HiddenInput = function FileUploadHiddenInput({
   ref,
   ...props
 }: FileUploadHiddenInputProps) {
-  const { api } = useFileUploadContext()
+  const { api, resetFiles, cancelPendingFiles } = useFileUploadContext()
   const inputProps = mergeProps(props, api.getHiddenInputProps())
-  const inputRef = useRef<HTMLInputElement>(null)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Blocking editing must also discard uncommitted native files while an async transform is pending.
-  useLayoutEffect(() => {
-    const input = inputRef.current
-    if (!input) {
-      return
-    }
-    const view = input.ownerDocument.defaultView
-    if (!(view && "DataTransfer" in view)) {
+  const submissionRef = useRef<HTMLInputElement>(null)
+  const syncSubmission = (files = api.acceptedFiles) => {
+    const input = submissionRef.current
+    const view = input?.ownerDocument.defaultView
+    if (!(input && view && "DataTransfer" in view)) {
       return
     }
     const transfer = new view.DataTransfer()
-    for (const file of api.acceptedFiles) {
+    for (const file of files) {
       transfer.items.add(file)
     }
     try {
       input.files = transfer.files
     } catch {
-      // Some host/test environments expose a getter-only FileList. Match
-      // Zag's best-effort synchronization without unmounting the whole field.
+      /* Getter-only test hosts. */
     }
-  }, [api.acceptedFiles, api.readOnly, api.disabled])
+  }
+  useLayoutEffect(syncSubmission)
+  useEffect(() => {
+    const form = submissionRef.current?.form
+    if (!form) {
+      return
+    }
+    const reset = (event: Event) => {
+      // Browser-dispatched events can flush microtasks between listeners. Wait
+      // until the entire dispatch finishes so later listeners can cancel reset.
+      setTimeout(() => {
+        if (!event.defaultPrevented) {
+          cancelPendingFiles()
+          syncSubmission(resetFiles())
+        }
+      })
+    }
+    form.addEventListener("reset", reset)
+    return () => form.removeEventListener("reset", reset)
+  })
 
   return (
-    <input
-      ref={(node) => {
-        inputRef.current = node
-        if (typeof ref === "function") {
-          return ref(node)
-        }
-        if (ref) {
-          ref.current = node
-        }
-      }}
-      {...inputProps}
-      disabled={api.disabled}
-      onClick={(event) => {
-        if (api.readOnly) {
+    <>
+      <input
+        {...inputProps}
+        disabled={api.disabled || api.readOnly}
+        name={undefined}
+        ref={ref}
+        required={false}
+      />
+      <input
+        aria-hidden="true"
+        disabled={api.disabled}
+        form={inputProps.form}
+        multiple
+        name={inputProps.name}
+        onInvalid={(event) => {
           event.preventDefault()
-          return
-        }
-        inputProps.onClick?.(event)
-      }}
-    />
+          event.currentTarget
+            .closest('[data-scope="file-upload"][data-part="root"]')
+            ?.querySelector<HTMLElement>(
+              '[data-part="dropzone"], [data-part="trigger"]'
+            )
+            ?.focus()
+        }}
+        ref={submissionRef}
+        required={inputProps.required && !api.readOnly}
+        style={inputProps.style}
+        tabIndex={-1}
+        type="file"
+      />
+    </>
   )
 }
 
@@ -868,6 +1135,7 @@ FileUpload.ClearTrigger = function FileUploadClearTrigger({
       tone="neutral"
       type="button"
       {...clearProps}
+      hidden={Boolean(clearProps.hidden) && !api.transforming}
     />
   )
 }

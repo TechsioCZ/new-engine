@@ -128,18 +128,18 @@ function MediaLibraryPage() {
 
   /* Bulk actions act on the selection, report, and clear it. */
   const updateSelected = (
-    change: (asset: (typeof assets)[number]) => (typeof assets)[number],
+    change: (asset: (typeof assets)[number]) => (typeof assets)[number]
   ) =>
     setLibrary((current) =>
       current.map((asset) =>
-        selected.includes(asset.id) ? change(asset) : asset,
-      ),
+        selected.includes(asset.id) ? change(asset) : asset
+      )
     )
   /* "All media" shows everything; a folder shows only what lives in it. */
   const visible = library.filter(
     (asset) =>
       (folder === "media-root" || asset.folder === folder) &&
-      (assetType === "all" || assetType === "image"),
+      (assetType === "all" || assetType === "image")
   )
   const pageAssets = visible.slice((page - 1) * pageSize, page * pageSize)
 
@@ -159,7 +159,7 @@ function MediaLibraryPage() {
     setSelected((current) =>
       current.includes(id)
         ? current.filter((entry) => entry !== id)
-        : [...current, id],
+        : [...current, id]
     )
 
   return (
@@ -269,8 +269,8 @@ function MediaLibraryPage() {
             <span className="text-fg-secondary text-sm">
               {`${visible.length} matching assets in this demo`}
             </span>
-            <div className="flex items-center gap-150">
-              <div className="w-2xs">
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-150 sm:w-auto">
+              <div className="w-full sm:w-2xs">
                 <SelectTemplate
                   value={[assetType]}
                   onValueChange={({ value }) => {
@@ -289,7 +289,7 @@ function MediaLibraryPage() {
                 onClick={() => setView("grid")}
                 icon="icon-[mdi--view-grid-outline]"
                 size="sm"
-                theme="solid"
+                theme={view === "grid" ? "solid" : "outlined"}
                 variant="secondary"
               />
               <Button
@@ -298,7 +298,7 @@ function MediaLibraryPage() {
                 onClick={() => setView("list")}
                 icon="icon-[mdi--view-list-outline]"
                 size="sm"
-                theme="outlined"
+                theme={view === "list" ? "solid" : "outlined"}
                 variant="secondary"
               />
             </div>
@@ -365,7 +365,7 @@ function MediaLibraryPage() {
                   onClick={() => {
                     const count = selected.length
                     setLibrary((current) =>
-                      current.filter((asset) => !selected.includes(asset.id)),
+                      current.filter((asset) => !selected.includes(asset.id))
                     )
                     setConfirmDelete(false)
                     bulkDone(`Deleted ${assetCount(count)}`)
@@ -410,13 +410,15 @@ function MediaLibraryPage() {
                 className={
                   view === "grid"
                     ? "flex flex-col gap-100 rounded-lg border border-border-primary bg-surface p-150"
-                    : "flex items-center gap-200 rounded-lg border border-border-primary bg-surface p-150"
+                    : "flex min-w-0 items-center gap-200 rounded-lg border border-border-primary bg-surface p-150"
                 }
                 key={asset.id}
               >
                 <div
                   className={
-                    view === "list" ? "relative w-3xs shrink-0" : "relative"
+                    view === "list"
+                      ? "relative w-1/3 max-w-3xs shrink-0"
+                      : "relative"
                   }
                 >
                   <Button
@@ -444,9 +446,11 @@ function MediaLibraryPage() {
                     />
                   </span>
                 </div>
-                <figcaption className="flex flex-col gap-50">
-                  <span className="truncate text-sm">{asset.name}</span>
-                  <span className="flex items-center gap-100 text-fg-secondary text-xs">
+                <figcaption className="flex min-w-0 flex-1 flex-col gap-50">
+                  <span className="truncate text-sm" title={asset.name}>
+                    {asset.name}
+                  </span>
+                  <span className="text-fg-secondary text-xs">
                     {asset.dimensions} · {asset.size}
                   </span>
                   {asset.tags.map((tag) => (
@@ -495,8 +499,27 @@ function MediaLibraryPage() {
               count={visible.length}
               page={page}
               onPageChange={setPage}
-              linkProps={{ onClick: (event) => event.preventDefault() }}
-              getPageUrl={() => "#media-page"}
+              linkProps={{
+                onClick: (event) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return
+                  const target = Number(
+                    new URL(event.currentTarget.href).hash.replace(
+                      "#media-page-",
+                      ""
+                    )
+                  )
+                  if (Number.isInteger(target) && target > 0) setPage(target)
+                  event.preventDefault()
+                },
+              }}
+              getPageUrl={({ page: target }) => `#media-page-${target}`}
               pageSize={pageSize}
               siblingCount={1}
             />
@@ -520,8 +543,8 @@ function MediaLibraryPage() {
                 if (id) {
                   setLibrary((current) =>
                     current.map((asset) =>
-                      asset.id === id ? { ...asset, alt: altDraft } : asset,
-                    ),
+                      asset.id === id ? { ...asset, alt: altDraft } : asset
+                    )
                   )
                 }
                 toaster.create({ type: "success", title: "Alt text saved" })
@@ -585,14 +608,40 @@ export const Default: Story = {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole("button", { name: "List view" }))
     await expect(
-      canvas.getByRole("button", { name: "List view" }),
+      canvas.getByRole("button", { name: "List view" })
     ).toHaveAttribute("aria-pressed", "true")
+    await expect(
+      canvas.getByRole("button", { name: "List view" }).className
+    ).toContain("bg-button-bg-secondary")
+    await expect(
+      canvas.getByRole("button", { name: "Grid view" }).className
+    ).not.toContain("bg-button-bg-secondary")
+    const checkListBounds = async () => {
+      for (const figure of canvasElement.querySelectorAll("figure")) {
+        const caption = figure.querySelector("figcaption")
+        await expect(figure.scrollWidth).toBeLessThanOrEqual(figure.clientWidth + 1)
+        if (caption) {
+          await expect(caption.getBoundingClientRect().right).toBeLessThanOrEqual(
+            figure.getBoundingClientRect().right
+          )
+          await expect(caption.clientWidth).toBeGreaterThan(0)
+        }
+      }
+    }
+    await checkListBounds()
     const before = window.location.href
     await userEvent.click(canvas.getByRole("link", { name: /page 2/i }))
     await expect(window.location.href).toBe(before)
     await expect(canvas.getByText("rangefinder-35.jpg")).toBeVisible()
+    await checkListBounds()
     await userEvent.click(canvas.getByRole("link", { name: /page 1/i }))
     await userEvent.click(canvas.getByRole("button", { name: "Grid view" }))
+    const bounds = canvas
+      .getByRole("button", { name: "List view" })
+      .getBoundingClientRect()
+    await expect(bounds.right).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.defaultView?.innerWidth ?? 1440
+    )
   },
 
   parameters: {

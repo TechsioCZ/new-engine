@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,7 +10,7 @@
  * the product-card-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
-  type ButtonHTMLAttributes,
+  type ComponentProps,
   type ComponentPropsWithoutRef,
   type ComponentPropsWithRef,
   createContext,
@@ -22,8 +22,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button as ButtonComponent } from "../atoms/button"
-import type { IconProps, IconType } from "../atoms/icon"
-import { Image } from "../atoms/image"
+import { Image, type ImageProps } from "../atoms/image"
 import { Rating as RatingComponent, type RatingProps } from "../atoms/rating"
 import { tv } from "../utils"
 
@@ -98,9 +97,14 @@ export type ProductCardProps = HTMLAttributes<HTMLDivElement> &
 
 type ProductCardImageProps<T extends ElementType = typeof Image> = {
   as?: T
-  ref?: ComponentPropsWithRef<T>["ref"]
+  ref?: T extends typeof Image
+    ? Ref<HTMLImageElement>
+    : ComponentPropsWithRef<NoInfer<T>>["ref"]
   className?: string
-} & Partial<ComponentPropsWithoutRef<T>>
+} & Omit<
+  T extends typeof Image ? ImageProps : ComponentPropsWithoutRef<NoInfer<T>>,
+  "as" | "className" | "ref"
+>
 
 type ProductCardNameProps = HTMLAttributes<HTMLHeadingElement> & {
   children: ReactNode
@@ -136,13 +140,11 @@ type ProductCardActionsProps = HTMLAttributes<HTMLDivElement> & {
   ref?: Ref<HTMLDivElement>
 }
 
-type ProductCardButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  children?: ReactNode
-  onClick?: () => void
+type ProductCardButtonProps = Omit<
+  ComponentProps<typeof ButtonComponent>,
+  "size" | "variant"
+> & {
   buttonVariant?: "cart" | "detail" | "wishlist" | "custom"
-  icon?: IconType
-  iconSize?: IconProps["size"]
-  ref?: Ref<HTMLButtonElement>
 }
 
 // === ROOT COMPONENT ===

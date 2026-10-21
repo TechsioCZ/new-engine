@@ -5,7 +5,7 @@ description: >
   compact status, category, discount, or metadata labels without duplicating
   token-backed color and spacing classes in JSX.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -222,3 +222,8 @@ The canonical comparison is sm/md/lg, default md. The existing xl size remains
 available for display-only composition; it is not a fourth form-control size.
 Badges are not interaction targets and therefore do not use field heights.
 Custom dynamic colours must retain readable text and a useful status label.
+
+## React 19 refs
+
+Both ordinary and dynamic Badge accept an object or callback `ref` to their
+rendered `HTMLSpanElement`, for measurement and anchored composition.

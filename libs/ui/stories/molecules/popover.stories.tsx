@@ -6,131 +6,52 @@ import { Icon } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
 import { Label } from "../../src/atoms/label"
 import { StatusText } from "../../src/atoms/status-text"
-import {
-  PopoverTemplate,
-  type PopoverTemplateProps,
-} from "../../src/templates/popover"
-
-type PopoverStoryArgs = PopoverTemplateProps
-
-function PopoverStory(args: PopoverStoryArgs) {
-  return <PopoverTemplate {...args} />
-}
+import { Popover } from "../../src/molecules/popover"
+import { PopoverTemplate } from "../../src/templates/popover"
 
 const meta = {
   title: "Molecules/Popover",
-  component: PopoverStory,
+  component: Popover,
   parameters: {
     layout: "centered",
-    docs: { description: { component: "Popover holds a short, interactive surface anchored to an action, such as delivery details or a quick edit. It dismisses without blocking the page. Use Tooltip for non-interactive hints, Menu for commands and Dialog for longer or modal tasks." } },
+    docs: { description: { component: "Popover composes Trigger, Positioner, Content, Title, Description, Arrow and CloseTrigger into an anchored interactive surface. Use it for short tasks, Tooltip for hints, Menu for commands, Dialog for longer modal tasks, or PopoverTemplate for a ready-made composition." } },
   },
   tags: ["autodocs"],
   argTypes: {
-    placement: {
-      control: "select",
-      options: [
-        "top",
-        "bottom",
-        "left",
-        "right",
-        "top-start",
-        "top-end",
-        "bottom-start",
-        "bottom-end",
-        "left-start",
-        "left-end",
-        "right-start",
-        "right-end",
-      ],
-      description: "Position of the popover relative to the trigger",
-      table: { defaultValue: { summary: "bottom" } },
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of the popover content area",
-      table: { defaultValue: { summary: "md" } },
-    },
-    shadow: {
-      control: "boolean",
-      description: "Whether to show shadow on the popover",
-      table: { defaultValue: { summary: "true" } },
-    },
-    border: {
-      control: "boolean",
-      description: "Whether to show border on the popover",
-      table: { defaultValue: { summary: "true" } },
-    },
-    showArrow: {
-      control: "boolean",
-      description: "Whether to show the arrow indicator",
-      table: { defaultValue: { summary: "true" } },
-    },
-    showCloseButton: {
-      control: "boolean",
-      description: "Whether to show the close button in the popover",
-      table: { defaultValue: { summary: "false" } },
-    },
-    modal: {
-      control: "boolean",
-      description: "Whether the popover behaves as a modal (traps focus)",
-      table: { defaultValue: { summary: "false" } },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Whether the trigger is disabled",
-      table: { defaultValue: { summary: "false" } },
-    },
-    title: {
-      control: "text",
-      description: "Optional title for the popover",
-    },
-    description: {
-      control: "text",
-      description: "Optional description text",
-    },
-    trigger: {
-      control: "text",
-      description: "Content of the trigger button",
-    },
-    id: {
-      table: { disable: true },
-    },
-    children: {
-      table: { disable: true },
-    },
+    placement: { control: "select", options: ["top", "bottom", "left", "right", "top-start", "top-end", "bottom-start", "bottom-end"] },
+    size: { control: "select", options: ["sm", "md", "lg"] },
+    shadow: { control: "boolean" },
+    border: { control: "boolean" },
+    modal: { control: "boolean" },
+    closeOnEscape: { control: "boolean" },
+    closeOnInteractOutside: { control: "boolean" },
+    id: { table: { disable: true } },
+    children: { control: false },
   },
-  args: {
-    placement: "bottom",
-    size: "md",
-    shadow: true,
-    border: true,
-    showArrow: true,
-    modal: false,
-    disabled: false,
-    trigger: "Delivery details",
-    title: "Delivery details",
-    description: "Standard delivery takes 2–4 business days.",
-    children: (
-      <div className="mt-200">
-        <p>We send a tracking link when your order leaves our warehouse.</p>
-      </div>
-    ),
-  },
-} satisfies Meta<typeof PopoverStory>
+  args: { placement: "bottom", size: "md", shadow: true, border: true, modal: false, children: null },
+  render: (args) => <Popover {...args}>
+    <Popover.Trigger>Delivery details</Popover.Trigger>
+    <Popover.Positioner><Popover.Content>
+      <Popover.Arrow /><Popover.CloseTrigger />
+      <Popover.Title>Delivery details</Popover.Title>
+      <Popover.Description>Standard delivery takes 2–4 business days.</Popover.Description>
+      <p className="mt-200">We send a tracking link when your order leaves our warehouse.</p>
+    </Popover.Content></Popover.Positioner>
+  </Popover>,
+} satisfies Meta<typeof Popover>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
-  parameters: { docs: { description: { story: "Explore placement, size, surface and arrow controls with realistic delivery information." } } },
+  parameters: { docs: { description: { story: "Explore placement, size, surface and dismissal controls with realistic delivery information." } } },
   args: {
     id: "playground-popover",
   },
 }
 
 export const Variants: Story = {
-  parameters: { docs: { description: { story: "Compare border, shadow and arrow choices without changing the content hierarchy." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Compare border, shadow and arrow choices without changing the content hierarchy." } } },
   args: {},
   render: () => (
     <div className="space-y-400">
@@ -203,38 +124,17 @@ export const Sizes: Story = {
 
 export const Disabled: Story = {
   name: "States",
-  parameters: { docs: { description: { story: "An unavailable trigger stays out of keyboard interaction and cannot open its panel." } } },
-  args: {
-    id: "disabled-popover",
-    trigger: "Disabled Popover",
-    disabled: true,
-    title: "Disabled State",
-    description: "This popover trigger is disabled and cannot be opened.",
-    children: (
-      <div className="mt-200">
-        <p>This content should not be accessible.</p>
-      </div>
-    ),
-  },
+  parameters: { controls: { disable: true }, docs: { description: { story: "An unavailable trigger cannot receive focus or open the panel." } } },
+  render: (args) => <Popover {...args}><Popover.Trigger disabled>Disabled Popover</Popover.Trigger><Popover.Positioner><Popover.Content><Popover.Title>Disabled State</Popover.Title></Popover.Content></Popover.Positioner></Popover>,
+  play: async ({ canvasElement }) => { await expect(within(canvasElement).getByRole("button", { name: "Disabled Popover" })).toBeDisabled() },
 }
 
 export const WithTitleAndDescription: Story = {
-  parameters: { docs: { description: { story: "A clear title names the panel while a short description provides context for its body content." } } },
-  args: {
-    id: "title-description-popover",
-    trigger: "Open popover",
-    title: "Delivery details",
-    description: "This is a helpful description that provides more context.",
-    children: (
-      <div className="mt-200">
-        <p>Additional content can go here.</p>
-      </div>
-    ),
-  },
+  parameters: { docs: { description: { story: "Title and Description parts provide the panel's accessible name and supporting context." } } },
 }
 
 export const Controlled: Story = {
-  parameters: { docs: { description: { story: "External actions and the trigger share one controlled open state and dismissal path." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "External actions and the trigger share one controlled open state and dismissal path." } } },
   args: {},
   render: () => {
     const [open, setOpen] = useState(false)
@@ -291,7 +191,7 @@ export const WithForm: Story = {
 }
 
 export const CustomTrigger: Story = {
-  parameters: { docs: { description: { story: "Compose the anchored panel with an alternative trigger while preserving its accessible name." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Compose the anchored panel with an alternative trigger while preserving its accessible name." } } },
   args: {},
   render: () => (
     <div className="flex flex-wrap gap-200">
@@ -346,29 +246,12 @@ export const CustomTrigger: Story = {
 }
 
 export const Modal: Story = {
-  parameters: { docs: { description: { story: "Use the modal option only when this short task needs focus containment; choose Dialog for longer tasks." } } },
-  args: {
-    id: "modal-popover",
-    trigger: "Open Modal Popover",
-    modal: true,
-    showCloseButton: true,
-    title: "Modal Popover",
-    description:
-      "This popover acts as a modal - it traps focus and blocks interactions outside.",
-    closeOnInteractOutside: false,
-    children: (
-      <div className="mt-200">
-        <p>Try clicking outside - it won't close!</p>
-        <p className="mt-100 text-sm">
-          Press Escape or use the close button to dismiss.
-        </p>
-      </div>
-    ),
-  },
+  parameters: { docs: { description: { story: "Use modal focus containment for a short anchored task; choose Dialog for longer workflows." } } },
+  args: { modal: true, closeOnInteractOutside: false },
 }
 
 export const AsyncContent: Story = {
-  parameters: { docs: { description: { story: "Loading and completion feedback remain inside the same anchored surface." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Loading and completion feedback remain inside the same anchored surface." } } },
   args: {},
   render: () => {
     const [loading, setLoading] = useState(false)
@@ -395,15 +278,15 @@ export const AsyncContent: Story = {
         }}
         trigger="Load Async Content"
       >
-        <div className="flex min-h-24 w-3xs items-center justify-center">
+        <div aria-busy={loading} className="flex min-h-24 w-3xs items-center justify-center">
           {loading ? (
             <div className="flex items-center gap-100">
               <Icon
-                className="animate-spin"
+                className="motion-safe:animate-spin"
                 icon="token-icon-spinner"
                 size="sm"
               />
-              <span>Loading...</span>
+              <StatusText role="status">Loading tracking details…</StatusText>
             </div>
           ) : data ? (
             <div className="text-center">
@@ -413,7 +296,7 @@ export const AsyncContent: Story = {
                 icon="token-icon-check"
                 size="lg"
               />
-              <p>{data}</p>
+              <StatusText status="success">{data}</StatusText>
             </div>
           ) : (
             <p>Waiting to load...</p>
@@ -422,10 +305,20 @@ export const AsyncContent: Story = {
       </PopoverTemplate>
     )
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole("button", { name: "Load Async Content" }))
+    const panel = await body.findByRole("dialog", { name: "Order tracking" })
+    await expect(within(panel).getByRole("status")).toHaveTextContent("Loading tracking details")
+    await waitFor(() => expect(within(panel).getByRole("status")).toHaveTextContent("Data loaded successfully!"), { timeout: 4000 })
+    await expect(panel.querySelector('[aria-busy="false"]')).toBeInTheDocument()
+  },
 }
 
+
 export const PositioningBehaviors: Story = {
-  parameters: { docs: { description: { story: "Flip keeps the panel inside the viewport; non-portalled bounded examples illustrate the clipping trade-off." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Flip keeps the panel inside the viewport; non-portalled bounded examples illustrate the clipping trade-off." } } },
   args: {},
   render: () => (
     <div className="grid justify-items-start gap-400 p-400">
@@ -500,7 +393,7 @@ export const PositioningBehaviors: Story = {
 }
 
 export const SameWidthDemo: Story = {
-  parameters: { docs: { description: { story: "Match a panel to its trigger when the content belongs to the same compact column." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Match a panel to its trigger when the content belongs to the same compact column." } } },
   args: {},
   render: () => (
     <div className="flex items-start gap-400">
@@ -528,7 +421,7 @@ export const SameWidthDemo: Story = {
 }
 
 export const EdgePositioning: Story = {
-  parameters: { docs: { description: { story: "Open panels near viewport edges to compare automatic collision handling." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Open panels near viewport edges to compare automatic collision handling." } } },
   args: {},
   render: () => (
     <div className="relative h-96 w-full border border-border border-dashed">
@@ -599,7 +492,7 @@ export const EdgePositioning: Story = {
 }
 
 export const OverflowPaddingDemo: Story = {
-  parameters: { docs: { description: { story: "Reserve breathing room between the floating panel and the viewport edge." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Reserve breathing room between the floating panel and the viewport edge." } } },
   args: {},
   render: () => (
     <div className="flex w-md flex-col gap-400">
@@ -645,7 +538,7 @@ export const OverflowPaddingDemo: Story = {
 }
 
 export const NestedPopovers: Story = {
-  parameters: { docs: { description: { story: "Nested panels dismiss one level at a time with Escape and restore focus to the original trigger." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Nested panels dismiss one level at a time with Escape and restore focus to the original trigger." } } },
   tags: ["ui-runtime-regression"],
   args: {},
   render: () => (
@@ -715,5 +608,37 @@ export const NestedPopovers: Story = {
     await userEvent.unhover(trigger)
     trigger.blur()
     await expect(trigger).not.toHaveFocus()
+  },
+}
+
+export const LongContent: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "A long attachment name and review list wrap and scroll within the available viewport without obscuring the close control." } } },
+  render: (args) => <Popover {...args}><Popover.Trigger>Review attachment</Popover.Trigger><Popover.Positioner><Popover.Content>
+    <Popover.Title>Attachment details</Popover.Title><Popover.CloseTrigger aria-label="Dismiss attachment details" size="sm" />
+    <p>{"Catalog-2026-" + "AB1234567890".repeat(30)}</p>
+    <div className="space-y-200">{Array.from({ length: 15 }, (_, index) => <p key={index}>Attachment {index + 1}: review availability and regional delivery information.</p>)}</div>
+  </Popover.Content></Popover.Positioner></Popover>,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Review attachment" }))
+    const panel = await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: "Attachment details" })
+    await waitFor(() => {
+      const rect = panel.getBoundingClientRect()
+      expect(rect.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight)
+    })
+    const close = within(panel).getByRole("button", { name: "Dismiss attachment details" })
+    const scrollViewport = panel.querySelector<HTMLElement>(".popover-scroll-viewport")
+    expect(scrollViewport).not.toBeNull()
+    for (const fraction of [0.5, 1]) {
+      if (scrollViewport) scrollViewport.scrollTop = scrollViewport.scrollHeight * fraction
+      await waitFor(() => {
+        expect(scrollViewport?.scrollTop).toBeGreaterThan(0)
+        const rect = close.getBoundingClientRect()
+        expect(rect.top).toBeGreaterThanOrEqual(0)
+        expect(rect.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight)
+      })
+      await expect(close).toBeVisible()
+    }
+    await userEvent.click(close)
+    await waitFor(() => expect(panel).not.toBeInTheDocument())
   },
 }

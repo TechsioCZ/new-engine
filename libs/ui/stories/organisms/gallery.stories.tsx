@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { Gallery, type GalleryItem } from "../../src/organisms/gallery"
 import { Carousel } from "../../src/molecules/carousel"
 
@@ -67,4 +67,30 @@ export const WithControls: Story = {
 export const SingleImage: Story = {
   args: { items: items.slice(0, 1) },
   parameters: { docs: { description: { story: "A single product image hides the redundant thumbnail rail while preserving a named media region." } } },
+}
+
+
+export const OverflowingRail: Story = {
+  parameters: { docs: { description: { story: "Sequential carousel navigation keeps the active thumbnail visible in a long rail without scrolling the whole page." } } },
+  args: { items: Array.from({ length: 16 }, (_, index) => ({ ...items[index % items.length]!, id: `view-${index}`, alt: `Sneaker view ${index + 1}` })) },
+  render: (args) => <Gallery {...args}>
+    <Gallery.Main><Gallery.Carousel>
+      <Gallery.Slides />
+      <Carousel.Control><Carousel.Previous /><Carousel.Next /></Carousel.Control>
+    </Gallery.Carousel></Gallery.Main>
+    <Gallery.Thumbnails />
+  </Gallery>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const next = canvas.getByRole("button", { name: /next/i })
+    for (let index = 0; index < 12; index++) await userEvent.click(next)
+    await waitFor(() => {
+      const active = canvasElement.querySelector('[aria-current="true"]')!
+      const rail = active.parentElement!.parentElement!
+      const item = active.getBoundingClientRect()
+      const bounds = rail.getBoundingClientRect()
+      expect(item.left).toBeGreaterThanOrEqual(bounds.left - 1)
+      expect(item.right).toBeLessThanOrEqual(bounds.right + 1)
+    })
+  },
 }

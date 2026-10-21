@@ -6,7 +6,7 @@ description: >
   portal, useToast, toast types, title, description, close trigger, and token
   styling.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -195,3 +195,10 @@ copy and a decorative status glyph/border on an opaque readable surface.
 
 Toast has no control-size prop: its width is a responsive **content width**,
 not a sm/md/lg axis. Embedded actions use canonical control sizes.
+
+The notification region follows the frontmost mounted kit modal so notification
+actions and the Alt+T shortcut remain inside its focus trap. Outside modals it
+portals to the document body. Its transparent native top-layer host keeps the
+notification placement viewport-relative even inside a translated or partial-snap
+Drawer. This host does not light-dismiss or consume Escape. Notification actors
+and timers survive modal changes; actions must stay visible before receiving focus.

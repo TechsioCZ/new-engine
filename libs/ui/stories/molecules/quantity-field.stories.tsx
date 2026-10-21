@@ -1,4 +1,4 @@
-﻿import type { Meta, StoryObj } from "@storybook/react"
+import type { Meta, StoryObj } from "@storybook/react"
 import { useRef, useState } from "react"
 import { expect, fn, userEvent, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
@@ -36,26 +36,89 @@ const meta: Meta<typeof QuantityField> = {
     onValueCommit: committed,
   },
   argTypes: {
-    label: { control: "text" },
-    unitLabel: { control: "text" },
-    helperText: { control: "text" },
-    error: { control: "text" },
-    size: { control: "select", options: ["sm", "md", "lg"] },
-    min: { control: "number" },
-    max: { control: "number" },
-    step: { control: "number" },
-    pending: { control: "boolean" },
-    pendingLabel: { control: "text" },
-    disabled: { control: "boolean" },
-    readOnly: { control: "boolean" },
-    hideLabel: { control: "boolean" },
-    locale: { control: "select", options: ["en-US", "cs-CZ"] },
-    value: { control: false },
+    label: {
+      description: "Visible accessible name for the quantity field.",
+      control: "text",
+    },
+    unitLabel: {
+      description:
+        "Unit displayed beside the draft and included in its description.",
+      control: "text",
+    },
+    helperText: {
+      description:
+        "Associated guidance explaining quantity constraints or saving.",
+      control: "text",
+    },
+    error: {
+      description:
+        "Actionable application validation; marks the input invalid.",
+      control: "text",
+    },
+    size: {
+      description:
+        "Canonical control, label and feedback size; defaults to md.",
+      control: "select",
+      options: ["sm", "md", "lg"],
+    },
+    min: {
+      description: "Lower stepping bound; typed underflow stays editable.",
+      control: "number",
+    },
+    max: {
+      description:
+        "Upper stepping bound; typed overflow is not silently clamped.",
+      control: "number",
+    },
+    step: {
+      description: "Increment/decrement amount within supplied bounds.",
+      control: "number",
+    },
+    pending: {
+      description: "Blocks editing while an application update is pending.",
+      control: "boolean",
+    },
+    pendingLabel: {
+      description: "Localized status text required while pending is true.",
+      control: "text",
+    },
+    disabled: {
+      description:
+        "Makes the quantity unavailable and removes editing tab stops.",
+      control: "boolean",
+    },
+    readOnly: {
+      description: "Keeps the value focusable and copyable but blocks editing.",
+      control: "boolean",
+    },
+    hideLabel: {
+      description:
+        "Hides only the visual label; the accessible name is retained.",
+      control: "boolean",
+    },
+    locale: {
+      description: "Locale for decimal parsing and numeric display.",
+      control: "select",
+      options: ["en-US", "cs-CZ"],
+    },
+    value: {
+      description:
+        "Application-controlled string draft, not the saved quantity.",
+      control: false,
+    },
     id: { control: false },
     name: { control: false },
     ref: { control: false },
-    onValueChange: { control: false },
-    onValueCommit: { control: false },
+    onValueChange: {
+      description:
+        "Receives full draft details; update value from details.value.",
+      control: false,
+    },
+    onValueCommit: {
+      description:
+        "Reports blur/Enter intent; the application still owns validation and persistence.",
+      control: false,
+    },
   },
 }
 export default meta

@@ -12,6 +12,154 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Wave 3 foundations and tooling
+- Preserve requested themes, first paint and live OS/brand changes; improve contrast, focus, pressed states, scoped aliases and cancellable native form reset infrastructure.
+- Validate active token graphs and executable utility usage; publish Tailwind utility discovery and selective React client boundaries. Require immutable-commit quality gates, exact reviewed visual baselines, and enforcing accessibility calibration. Improve standalone Docs themes, keyboard table scrolling, Controls, installation guidance and regression tooling.
+
+### Wave 3 reference pages
+- Repair responsive navigation and checkout, persisted catalog URLs, order accounting, shipping/payment validation, CMS/media/email/cart-sharing drafts and CRUD focus. Keep mobile matrices, variable references and media metadata locally contained.
+
+### Accordion v1.2.0
+- Keep long titles shrinkable with nonshrinking indicators; expose headingLevel on the template and correct Docs icon choices.
+
+### ActionIcon v1.1.2
+- Use a contrast-safe danger pressed pair and correct tone guidance and fixed-gallery Controls.
+
+### Badge v1.1.0
+- Support React 19 span refs for ordinary and dynamic badges; disable ineffective fixed-gallery Controls.
+
+### Breadcrumb v1.0.4
+- Inherit trail typography unless explicitly overridden and wrap long labels within bounded containers.
+
+### Button v0.6.0
+- Keep pending actions focusable with activation/submission guards, preserve native disabling, allow wrapped labels to grow, and add an internal composition styling opt-out.
+
+### Carousel v1.3.2
+- Observe keyed slides, isolate widget/editing keys, preserve interactive focus, and move outgoing-slide focus before inert. Always expose autoplay pause/start controls and preserve configured timing across reduced-motion suppression and explicit restart.
+
+### CascadeSelect v1.1.1
+- Reconcile paths, current nodes and highlights; complete read-only and linked-error behavior. Restore eligible defaults on uncancelled owner-form reset, including external forms, and document canonical sizes.
+
+### Chart v1.2.0
+- Add formatted dataset disclosure, empty/invalid-data feedback, stable seriesDomain colors, non-color line patterns, singleton markers, readable labels and Escape tooltip dismissal; normalize numeric polar domains across filtering.
+
+### Checkbox v1.2.0
+- Add canonical sm/md/lg sizing with md as the default, increasing default geometry from 16px to 24px; preserve authoritative mixed state after rejected activation.
+
+### ColorSelect v1.1.1
+- Preserve exact swatch fills in normal and forced colors; wrap captions and separate counts without clipping names.
+
+### Combobox v1.5.0
+- Add focusable refs, inputProps and root DOM passthrough, correctly typed array callbacks, and accessible per-selection removal; forward external form ownership to all submitted selections.
+
+### DataTable v1.4.0
+- Add unknown-total paging and localized status/validation labels; repair leaf widths, measured frozen offsets, virtual rows, detail/footer sequencing, async saves, DST-safe date filters, selection eligibility and RTL resizing. Correct empty server summaries, preserve busy pager focus, and resize from rendered widths.
+
+### DatePicker v1.3.1
+- Use timezone-consistent date-only calendar coordinates and bounds, preserve serialized values until confirmation, validate required/available commits, and handle inherited disabling, RTL, localized digits, React 19 ref cleanup and unique calendar identities.
+
+### Dialog v1.2.0
+- Expose shared modal-owned portal integration, align nested modal elevation, and bound long content while keeping dismissal and actions reachable.
+
+### Drawer v1.0.2
+- Keep partial-detent viewports and pinned footers usable, own descendant popups only while modal/open, and preserve touch-pointer interactions.
+
+### FacetFilterPanel v1.2.0
+- Add fallbackFocusEl and restore focus after controlled chip removal/reset; clarify filter ownership and pending/count semantics, and make rejected-dismissal examples recoverable.
+
+### FileUpload v1.1.1
+- Submit only committed files, coordinate async capacity/replacement, cancel stale batches at accepted clear/reset boundaries, preserve callback snapshots, and expose recoverable processing feedback; prevented resets retain pending transformations.
+
+### FormCheckbox v1.2.1
+- Keep native checked/mixed state authoritative after rejection and deferred or cancelled resets; stretch wrapping rich labels so counts remain aligned.
+
+### FormErrorSummary v1.2.0
+- Reveal native/custom hidden targets before focus, add async revealField support, preserve post-focus notification, and wrap long validation instructions.
+
+### FormNumericInput v1.2.1
+- Forward success/warning/error presentation into the compound numeric control.
+
+### Gallery v1.0.4
+- Keep active thumbnails visible, enforce single-image carousel pages, normalize fractional/nonfinite indexes, and repair compound usage guidance.
+
+### Header v1.2.0
+- Forward Hamburger button props, labels, handlers and refs; reconcile mobile-menu state and restore focus when transitioning to desktop.
+
+### Icon v1.2.0
+- Accept React 19 span refs, preserve system-color glyph paint, and use reduced-motion-safe CSS loading animation.
+
+### Image v1.2.0
+- Add adapter-aware refs and opt-in ImageWithFallback with neutral loading/error states, composed callbacks and source recovery; keep Image unwrapped. Reserve resilient media geometry from valid intrinsic dimensions and aspect overrides independently of delayed requests.
+
+### Link v1.2.0
+- Expose native and adapter-specific React 19 ref contracts without manufacturing ref support.
+
+### LinkButton v1.2.0
+- Derive refs from the selected adapter, keep disabled replacement spans out of adapter refs, and support independent internal composition styling.
+
+### Menu v1.3.0
+- Add native navigation items and disabled checkable options, inherit submenu policies, restore contextual focus, wrap long labels, and portal inside modal scopes.
+
+### NumericInput v1.3.0
+- Add success/warning/error validation presentation and render nonfinite numeric values as empty without changing legacy numeric callbacks; document string drafts and mobile-friendly callback contracts.
+
+### Pagination v1.1.1
+- Keep minimal selection visible, safely reconcile empty/shrinking collections and controlled corrections, preserve native modified/new-context links, and use RTL-aware glyphs.
+
+### PhoneInput v1.1.1
+- Preserve middle-edit positions and IME composition, synchronize native owner-form reset, retain consumer ref cleanup, and keep interaction surfaces and metadata readable.
+
+### Popover v1.1.0
+- Add explicit alternative template naming and useful untitled fallbacks; preserve close labels/sizes, own descendant portals, and bound scrolling inside persistent close/arrow chrome.
+
+### ProductCard v1.3.0
+- Preserve required image/adapter props and native refs; inherit Button loading/events/accessibility, forward complete badges, and add heading-contained native/router links with localized original/current price semantics.
+
+### RadioCard v1.1.1
+- Share corrected native radio/reset ownership, recover focus when cards disappear or disable, and provide a visible group fallback.
+
+### RadioGroup v1.1.1
+- Restore rejected native selections, follow actual form ownership during reset, and recover invalidated focused choices without changing selection.
+
+### Rating v1.2.1
+- Route accessible labels correctly, normalize scale/precision/reset targets, preserve fractional averages, and recover focus when stars disappear.
+
+### Select v1.2.1
+- Reconcile authoritative collections, prevent native fallback submission, compose cancellable consumer handlers, reserve logical clear-action space, and clarify template helper/trigger/indicator contracts.
+
+### Skeleton v1.0.5
+- Isolate loading descendants from interaction, withhold eventual Rectangle children, and give visible shapes one animation owner with local reduced-motion overrides.
+
+### Slider v1.3.0
+- Expose formatted per-thumb accessible values through getAriaValueText; preserve fractional step grids and effective native fieldset disabling, including first-legend exemptions and cancelled reset handling.
+
+### StatusText v1.1.1
+- Consume public line-height aliases directly while preserving first-line icon alignment and safe wrapping.
+
+### Steps v1.2.0
+- Forward complete machine options, reconcile dynamic counts/indices and bounded progress, use ordered workflow list semantics and matching refs, and focus accepted navigation destinations.
+
+### Switch v1.1.1
+- Repair rejected-change and imperative-reset synchronization; improve unchecked/invalid thumb contrast, forced-color boundaries and enlarged-label reflow.
+
+### Table v1.3.1
+- Isolate internal stacking and composite frozen-first-cell stripe, hover and selection surfaces without making ordinary body cells opaque.
+
+### Tabs v1.2.0
+- Add template tablistProps, recover dynamic enabled collections and focus without taking controlled ownership, compose handlers, scroll triggers locally, and keep vertical rails and long RTL labels contained.
+
+### Toast v1.1.1
+- Keep a stable manual top-layer notification host inside the active modal without restarting actors; preserve viewport-relative positioning and focus membership in partial Drawers, and synchronize timer demos with dismissal.
+
+### Tooltip v1.1.0
+- Forward the full Zag and positioning API, support custom portal roots, preserve content IDs and roles, and dismiss only the hint on Escape while yielding to unrelated focused popups and supporting shadow-root lookup.
+
+### Tour v1.0.7
+- Scroll long descriptions independently so titles, progress, close controls and actions remain reachable on mobile.
+
+### TreeView v1.1.0
+- Separate disclosure and eligible selection, add persistent selected styling and 24px disclosure targets, use constant logical indentation, and recover visible focus; disabled branches consistently disable descendants without mutating caller data.
+
 ### ActionIcon v1.1.1
 - Disabled actions suppress hover/pressed treatments; added complete public stories and documented embedded hit-area sizing.
 

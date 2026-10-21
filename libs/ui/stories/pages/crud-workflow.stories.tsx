@@ -1,3 +1,5 @@
+import { expect, userEvent, waitFor, within } from "storybook/test"
+import { normalizeProductDraft } from "./page-models"
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useRef, useState } from "react"
@@ -103,28 +105,33 @@ function toDraft(product: Product): ProductDraft {
 function ProductForm({
   draft,
   onChange,
+  errors,
 }: {
   draft: ProductDraft
+  errors: { name?: string; sku?: string }
   onChange: (patch: Partial<ProductDraft>) => void
 }) {
   return (
     <div className="flex flex-col gap-200 py-200">
       <FormInput
         id="product-name"
+        helpText={errors.name}
+        validateStatus={errors.name ? "error" : "default"}
         label="Product name"
         onChange={(event) => onChange({ name: event.target.value })}
         required
         value={draft.name}
       />
       <FormInput
-        helpText="Uppercase, dash-separated. Must be unique across the catalogue."
+        helpText={
+          errors.sku ??
+          "At least 3 characters, uppercase and dash-separated; must be unique. Outer spaces are trimmed on save."
+        }
         id="product-sku"
         label="SKU"
         onChange={(event) => onChange({ sku: event.target.value })}
         required
-        validateStatus={
-          draft.sku.length > 0 && draft.sku.length < 4 ? "error" : "default"
-        }
+        validateStatus={errors.sku ? "error" : "default"}
         value={draft.sku}
       />
       <SelectTemplate
@@ -209,13 +216,29 @@ function CrudPage() {
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null)
   /* Monotonic counter — deriving an id from row count reuses ids after a delete. */
   const nextId = useRef(1)
+  const [formErrors, setFormErrors] = useState<{ name?: string; sku?: string }>(
+    {}
+  )
+  const tableRef = useRef<HTMLDivElement>(null)
+  const createRef = useRef<HTMLButtonElement>(null)
+  const deleteFocus = useRef<HTMLElement | null>(null)
+  const deleteOrigin = useRef<HTMLElement | null>(null)
 
   const columns = useMemo<ColumnDef<Product, unknown>[]>(
     () => [
       {
         accessorKey: "name",
         header: "Product",
-        meta: { type: "string", editable: true, required: true, width: 240 },
+        meta: {
+          type: "string",
+          editable: true,
+          required: true,
+          width: 240,
+          validate: (value: unknown) =>
+            String(value).trim().length < 3
+              ? "Enter at least 3 characters after trimming."
+              : undefined,
+        },
         cell: (info) => (
           <span className="flex flex-col gap-50">
             <span className="font-medium">{info.getValue<string>()}</span>
@@ -285,43 +308,61 @@ function CrudPage() {
         cell: (info) => (info.getValue<boolean>() ? "Yes" : "—"),
       },
     ],
-    [],
+    []
   )
 
   const openCreate = () => {
+    setFormErrors({})
     setEditingId(null)
     setDraft(emptyDraft)
     setFormOpen(true)
   }
 
   const openEdit = (product: Product) => {
+    setFormErrors({})
     setEditingId(product.id)
     setDraft(toDraft(product))
     setFormOpen(true)
   }
 
   const submitForm = () => {
+    const { normalized, errors } = normalizeProductDraft(
+      draft,
+      rows,
+      editingId ?? undefined
+    )
+    setFormErrors(errors)
+    if (errors.name || errors.sku) {
+      document
+        .getElementById(errors.name ? "product-name" : "product-sku")
+        ?.focus()
+      return
+    }
     if (editingId) {
       setRows((current) =>
         current.map((row) =>
           row.id === editingId
-            ? { ...row, ...draft, status: draft.status as Product["status"] }
-            : row,
-        ),
+            ? {
+                ...row,
+                ...normalized,
+                status: normalized.status as Product["status"],
+              }
+            : row
+        )
       )
       toaster.create({
         type: "success",
         title: "Product saved",
-        description: draft.name,
+        description: normalized.name,
       })
     } else {
       const id = `sku-new-${nextId.current}`
       nextId.current += 1
       setRows((current) => [
         {
-          ...draft,
+          ...normalized,
           id,
-          status: draft.status as Product["status"],
+          status: normalized.status as Product["status"],
           updatedAt: new Date().toISOString().slice(0, 10),
         },
         ...current,
@@ -329,7 +370,7 @@ function CrudPage() {
       toaster.create({
         type: "success",
         title: "Product created",
-        description: `${draft.name} is now in the catalogue.`,
+        description: `${normalized.name} is now in the catalogue.`,
       })
     }
     setFormOpen(false)
@@ -340,6 +381,14 @@ function CrudPage() {
       return
     }
     const removed = pendingDelete
+    const actions = Array.from(
+      tableRef.current?.querySelectorAll<HTMLElement>(
+        'button[aria-label^="Delete"]'
+      ) ?? []
+    ).filter((element) => element.getClientRects().length > 0)
+    const originIndex = actions.indexOf(deleteOrigin.current as HTMLElement)
+    deleteFocus.current =
+      actions[originIndex + 1] ?? actions[originIndex - 1] ?? createRef.current
     setRows((current) => current.filter((row) => row.id !== removed.id))
     setPendingDelete(null)
     toaster.create({
@@ -361,6 +410,7 @@ function CrudPage() {
       <PageHeader
         actions={
           <Button
+            ref={createRef}
             icon="icon-[mdi--plus]"
             onClick={openCreate}
             size="sm"
@@ -380,6 +430,7 @@ function CrudPage() {
 
       <SectionCard flush>
         <DataTable
+          ref={tableRef}
           columns={columns}
           data={rows}
           enableColumnFilters
@@ -390,12 +441,21 @@ function CrudPage() {
           getRowId={(row) => row.id}
           getRowLabel={(row) => row.original.name}
           onEditCommit={({ rowId, draft: committed }) => {
+            const name =
+              typeof committed.name === "string"
+                ? committed.name.trim()
+                : undefined
+            if (name !== undefined && name.length < 3) return
+            const normalized = {
+              ...committed,
+              ...(name !== undefined ? { name } : {}),
+            }
             setRows((current) =>
               current.map((row) =>
                 row.id === rowId
-                  ? { ...row, ...(committed as Partial<Product>) }
-                  : row,
-              ),
+                  ? { ...row, ...(normalized as Partial<Product>) }
+                  : row
+              )
             )
             toaster.create({ type: "success", title: "Product saved" })
           }}
@@ -412,7 +472,11 @@ function CrudPage() {
               label: "Delete",
               icon: "icon-[mdi--delete-outline]",
               tone: "danger",
-              onAction: (row) => setPendingDelete(row.original),
+              onAction: (row) => {
+                deleteOrigin.current = document.activeElement as HTMLElement
+                deleteFocus.current = deleteOrigin.current
+                setPendingDelete(row.original)
+              },
             },
           ]}
           size="md"
@@ -431,11 +495,7 @@ function CrudPage() {
             >
               Cancel
             </Button>
-            <Button
-              disabled={draft.name.length === 0 || draft.sku.length < 4}
-              onClick={submitForm}
-              variant="primary"
-            >
+            <Button onClick={submitForm} variant="primary">
               {editingId ? "Save changes" : "Create product"}
             </Button>
           </>
@@ -454,6 +514,7 @@ function CrudPage() {
       >
         <ProductForm
           draft={draft}
+          errors={formErrors}
           onChange={(patch) =>
             setDraft((current) => ({ ...current, ...patch }))
           }
@@ -503,8 +564,14 @@ function CrudPage() {
         )}
       </Dialog>
 
-      {/* DELETE — blocking, names the record, destructive action on the right. */}
+      {/* DELETE — keep focus in the surviving table context, or the create action. */}
       <Dialog
+        finalFocusEl={() =>
+          deleteFocus.current?.isConnected &&
+          deleteFocus.current.getClientRects().length
+            ? deleteFocus.current
+            : createRef.current
+        }
         actions={
           <>
             <Button
@@ -540,6 +607,43 @@ function CrudPage() {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole("button", { name: "New product" }))
+    const dialog = within(body.getByRole("dialog"))
+    const name = dialog.getByLabelText(/Product name/)
+    const sku = dialog.getByLabelText(/SKU/)
+    await userEvent.type(name, "   ")
+    await userEvent.type(sku, "   ")
+    await userEvent.click(
+      dialog.getByRole("button", { name: "Create product" })
+    )
+    await expect(name).toHaveAttribute("aria-invalid", "true")
+    await userEvent.clear(name)
+    await userEvent.type(name, "Unique product")
+    await userEvent.clear(sku)
+    await userEvent.type(sku, " ts-core-blk ")
+    await userEvent.click(
+      dialog.getByRole("button", { name: "Create product" })
+    )
+    await expect(sku).toHaveAttribute("aria-invalid", "true")
+    await userEvent.click(dialog.getByRole("button", { name: "Cancel" }))
+    const trigger = canvas.getAllByRole("button", { name: /^Delete$/ })[0]
+    if (!trigger) throw new Error("Missing delete action")
+    trigger.focus()
+    await userEvent.keyboard("{Enter}")
+    await userEvent.click(body.getByRole("button", { name: "Cancel" }))
+    await waitFor(() => expect(trigger).toHaveFocus())
+    trigger.focus()
+    await userEvent.keyboard("{Enter}")
+    await userEvent.click(body.getByRole("button", { name: "Delete product" }))
+    await waitFor(() =>
+      expect(canvasElement.ownerDocument.activeElement).not.toBe(
+        canvasElement.ownerDocument.body
+      )
+    )
+  },
   parameters: {
     docs: {
       description: {

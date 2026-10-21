@@ -208,6 +208,7 @@ export function FieldSelect({
   ariaLabel,
   placeholder,
   disabled,
+  readOnly,
   size = "sm",
   invalid,
   error,
@@ -219,6 +220,7 @@ export function FieldSelect({
   ariaLabel?: string
   placeholder?: string
   disabled?: boolean
+  readOnly?: boolean
   size?: DataTableControlSize
   invalid?: boolean
   error?: string
@@ -239,6 +241,7 @@ export function FieldSelect({
         disabled={disabled}
         items={items}
         onValueChange={(d) => onChange(d.value[0] ?? "")}
+        readOnly={readOnly}
         size={size}
         validateStatus={invalid ? "error" : "default"}
         value={value === undefined ? undefined : [value]}
@@ -944,13 +947,6 @@ function matchNumber(cell: unknown, f: NumberFilterValue) {
   }
 }
 
-// `to` bounds (both the cell's and the filter's) are treated as date-only —
-// adding this makes an inclusive "to" mean the whole of that day, matching
-// how a date picker's end date is understood. A `to` holding a full
-// timestamp instead of a date-only value would shift the effective bound by
-// up to a day; there's no runtime signal to distinguish the two, so this is
-// a documented convention rather than something validated.
-const END_OF_DAY_MS = 24 * 60 * 60 * 1000 - 1
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
 
 /**
@@ -982,7 +978,12 @@ const endOfBound = (v: unknown): number | undefined => {
   if (t === undefined) {
     return
   }
-  return DATE_ONLY_RE.test(String(v)) ? t + END_OF_DAY_MS : t
+  if (!DATE_ONLY_RE.test(String(v))) {
+    return t
+  }
+  const nextMidnight = new Date(t)
+  nextMidnight.setDate(nextMidnight.getDate() + 1)
+  return nextMidnight.getTime() - 1
 }
 
 /** True when the cell's own {from,to} interval overlaps the filter interval. */

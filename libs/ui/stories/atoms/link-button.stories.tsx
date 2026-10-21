@@ -18,6 +18,7 @@ const meta = {
     },
   },
   argTypes: {
+    composition: { table: { disable: true } },
     children: { control: "text" },
     size: { control: "select", options: ["sm", "md", "lg"] },
     variant: {

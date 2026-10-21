@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import type { ComponentProps } from "react"
-import { useId, useState } from "react"
+import { useId, useMemo, useRef, useState } from "react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
@@ -64,6 +64,7 @@ const limitedCountries = countries
 const czechCountries = countries.filter((item) => item.value === "CZ")
 const trackPhoneValueChange = fn()
 const trackNativeFormSubmit = fn()
+const trackPhoneRef = fn()
 
 const meta: Meta<typeof PhoneInput> = {
   title: "Molecules/PhoneInput",
@@ -289,8 +290,12 @@ export const ReadOnly: Story = {
     await expect(input).toHaveAttribute("readonly")
     await expect(getComputedStyle(input).cursor).toBe("text")
     const trigger = canvas.getByRole("combobox")
-    for (const id of (trigger.getAttribute("aria-labelledby") ?? "").split(/\s+/).filter(Boolean)) {
-      await expect(canvasElement.ownerDocument.getElementById(id)).not.toBeNull()
+    for (const id of (trigger.getAttribute("aria-labelledby") ?? "")
+      .split(/\s+/)
+      .filter(Boolean)) {
+      await expect(
+        canvasElement.ownerDocument.getElementById(id)
+      ).not.toBeNull()
     }
   },
 }
@@ -421,13 +426,6 @@ export const WithDefaultValue: Story = {
   },
   render: (args) => <PhoneInputExample {...args} />,
 }
-
-
-
-
-
-
-
 
 export const DisabledAndReadOnly: Story = {
   parameters: {
@@ -601,6 +599,28 @@ export const Controlled: Story = {
       </div>
     )
   },
+  play: async ({ canvasElement }) => {
+    trackPhoneValueChange.mockClear()
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("textbox", {
+      name: "Controlled phone",
+    }) as HTMLInputElement
+    await userEvent.type(input, "900123456")
+    await waitFor(() => expect(input).toHaveValue("900 123 456"))
+    await expect(trackPhoneValueChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        country: "SK",
+        e164: "+421900123456",
+        isValid: true,
+      })
+    )
+    input.setSelectionRange(4, 5)
+    await userEvent.keyboard("{Backspace}8")
+    await waitFor(() => expect(input).toHaveValue("900 823 456"))
+    await expect(trackPhoneValueChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ e164: "+421900823456" })
+    )
+  },
 }
 
 export const AsyncControlledValue: Story = {
@@ -625,6 +645,7 @@ export const AsyncControlledValue: Story = {
               : "Load a saved profile phone into the controlled input."
           }
           label="Profile phone"
+          name="profilePhone"
           value={value}
           onValueChange={(nextDetails) => {
             args.onValueChange?.(nextDetails)
@@ -636,6 +657,25 @@ export const AsyncControlledValue: Story = {
         </Button>
       </div>
     )
+  },
+  play: async ({ canvasElement }) => {
+    trackPhoneValueChange.mockClear()
+    const canvas = within(canvasElement)
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Load profile phone" })
+    )
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("textbox", { name: "Profile phone" })
+      ).toHaveValue("777 123 456")
+    )
+    await expect(
+      canvas.getByRole("combobox", { name: "Czechia (+420)" })
+    ).toBeVisible()
+    await expect(
+      canvasElement.querySelector('input[name="profilePhone"]')
+    ).toHaveValue("+420777123456")
+    await expect(trackPhoneValueChange).not.toHaveBeenCalled()
   },
 }
 
@@ -656,8 +696,9 @@ export const PasteInternationalNumber: Story = {
         <PhoneInputExample
           {...args}
           defaultCountry="SK"
-          helpText="Apply an international value and the country syncs from it."
+          helpText="Paste an international number; its country prefix syncs automatically."
           label="International paste"
+          name="internationalPhone"
           value={value}
           onValueChange={(nextDetails) => {
             args.onValueChange?.(nextDetails)
@@ -665,9 +706,32 @@ export const PasteInternationalNumber: Story = {
           }}
         />
         <Button onClick={() => setValue("+420777123456")} type="button">
-          Paste Czech number
+          Load Czech number
         </Button>
       </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    trackPhoneValueChange.mockClear()
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("textbox", { name: "International paste" })
+    await userEvent.click(input)
+    await userEvent.paste("+420777123456")
+    await waitFor(() => expect(input).toHaveValue("777 123 456"))
+    await expect(
+      canvas.getByRole("combobox", { name: "Czechia (+420)" })
+    ).toBeVisible()
+    await expect(
+      canvasElement.querySelector('input[name="internationalPhone"]')
+    ).toHaveValue("+420777123456")
+    await expect(trackPhoneValueChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        country: "CZ",
+        callingCode: "420",
+        nationalNumber: "777123456",
+        e164: "+420777123456",
+        isValid: true,
+      })
     )
   },
 }
@@ -767,7 +831,7 @@ export const NativeFormValue: Story = {
           helpText="Submit to inspect the hidden E.164 form value."
           label="Native form phone"
           name="phone"
-          nativeValidation
+          nativeValidation={args.nativeValidation ?? true}
           nativeValidationMessage="Enter a valid delivery phone number."
           required
         />
@@ -777,5 +841,398 @@ export const NativeFormValue: Story = {
         </div>
       </form>
     )
+  },
+  play: async ({ canvasElement }) => {
+    trackNativeFormSubmit.mockClear()
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("textbox", {
+      name: /Native form phone/,
+    }) as HTMLInputElement
+    const submit = canvas.getByRole("button", { name: "Submit" })
+    await userEvent.click(submit)
+    await expect(trackNativeFormSubmit).not.toHaveBeenCalled()
+    await expect(input.validity.valueMissing).toBe(true)
+    await userEvent.type(input, "12")
+    await waitFor(() => expect(input.validity.customError).toBe(true))
+    await userEvent.click(submit)
+    await expect(trackNativeFormSubmit).not.toHaveBeenCalled()
+    await userEvent.clear(input)
+    await userEvent.type(input, "900123456")
+    await waitFor(() => expect(input.validity.valid).toBe(true))
+    await expect(new FormData(input.form as HTMLFormElement).get("phone")).toBe(
+      "+421900123456"
+    )
+    await userEvent.click(submit)
+    await expect(trackNativeFormSubmit).toHaveBeenCalledTimes(1)
+    await expect(trackNativeFormSubmit).toHaveBeenLastCalledWith(
+      "+421900123456"
+    )
+    input.form?.reset()
+    await waitFor(() => expect(input).toHaveValue(""))
+    await expect(new FormData(input.form as HTMLFormElement).get("phone")).toBe(
+      ""
+    )
+    await expect(input.validity.customError).toBe(false)
+  },
+}
+
+export const NativeDraftSubmission: Story = {
+  ...NativeFormValue,
+  args: { nativeValidation: false },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Custom/server validation can submit an invalid draft unchanged when native phone validation is disabled.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    trackNativeFormSubmit.mockClear()
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("textbox", {
+      name: /Native form phone/,
+    }) as HTMLInputElement
+    await userEvent.type(input, "12")
+    await expect(input.validity.customError).toBe(false)
+    await expect(new FormData(input.form as HTMLFormElement).get("phone")).toBe(
+      "12"
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Submit" }))
+    await expect(trackNativeFormSubmit).toHaveBeenCalledTimes(1)
+    await expect(trackNativeFormSubmit).toHaveBeenLastCalledWith("12")
+  },
+}
+
+export const ExternalFormReset: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "An externally associated form resets the default number and country together; canceled resets preserve edits.",
+      },
+    },
+  },
+  render(args) {
+    const formId = useId()
+    const [cancelReset, setCancelReset] = useState(false)
+    return (
+      <div className="grid w-full max-w-sm gap-200">
+        <form
+          id={formId}
+          onReset={(event) => {
+            if (cancelReset) event.preventDefault()
+          }}
+        />
+        <PhoneInputExample
+          {...args}
+          form={formId}
+          name="phone"
+          defaultCountry="SK"
+          defaultValue="+421900123456"
+          label="External form phone"
+        />
+        <Button form={formId} type="reset">
+          Reset phone
+        </Button>
+        <Button theme="outlined" onClick={() => setCancelReset(!cancelReset)}>
+          Cancel reset: {cancelReset ? "on" : "off"}
+        </Button>
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("textbox", {
+      name: "External form phone",
+    }) as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.paste("+420777123456")
+    await expect(
+      canvas.getByRole("combobox", { name: "Czechia (+420)" })
+    ).toBeVisible()
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Cancel reset: off" })
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Reset phone" }))
+    await expect(input).toHaveValue("777 123 456")
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Cancel reset: on" })
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Reset phone" }))
+    await waitFor(() => expect(input).toHaveValue("900 123 456"))
+    await expect(
+      canvas.getByRole("combobox", { name: "Slovakia (+421)" })
+    ).toBeVisible()
+    await expect(new FormData(input.form as HTMLFormElement).get("phone")).toBe(
+      "+421900123456"
+    )
+  },
+}
+
+export const RefLifecycle: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Consumer refs retain React 19 cleanup on replacement/unmount without detaching on ordinary rerenders.",
+      },
+    },
+  },
+  render(args) {
+    const [version, setVersion] = useState(0)
+    const [shown, setShown] = useState(true)
+    const [revision, setRevision] = useState(0)
+    const objectRef = useRef<HTMLInputElement>(null)
+    const refs = useMemo(
+      () => [
+        (node: HTMLInputElement | null) => {
+          trackPhoneRef(node ? "A:attach" : "A:null")
+          return () => trackPhoneRef("A:cleanup")
+        },
+        (node: HTMLInputElement | null) => {
+          trackPhoneRef(node ? "B:attach" : "B:null")
+          return () => trackPhoneRef("B:cleanup")
+        },
+        (node: HTMLInputElement | null) => {
+          trackPhoneRef(node ? "legacy:attach" : "legacy:null")
+        },
+      ],
+      []
+    )
+    return (
+      <div className="grid w-full max-w-sm gap-200">
+        {shown && (
+          <PhoneInput {...args} data-revision={revision}>
+            <PhoneInput.Label>Ref phone</PhoneInput.Label>
+            <PhoneInput.Control>
+              <PhoneInput.Input
+                ref={version === 3 ? objectRef : refs[version]}
+              />
+            </PhoneInput.Control>
+          </PhoneInput>
+        )}
+        <Button onClick={() => setRevision(revision + 1)}>Rerender</Button>
+        <Button onClick={() => setVersion(Math.min(version + 1, 3))}>
+          Replace ref
+        </Button>
+        <Button onClick={() => setShown(false)}>Unmount input</Button>
+        <Button onClick={() => setShown(true)}>Mount input</Button>
+        <Button
+          onClick={() =>
+            trackPhoneRef(
+              objectRef.current === null ? "object:cleared" : "object:attached"
+            )
+          }
+        >
+          Inspect object ref
+        </Button>
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    trackPhoneRef.mockClear()
+    await userEvent.click(canvas.getByRole("button", { name: "Rerender" }))
+    await expect(trackPhoneRef).not.toHaveBeenCalled()
+    await userEvent.click(canvas.getByRole("button", { name: "Replace ref" }))
+    await expect(trackPhoneRef.mock.calls.map(([event]) => event)).toEqual([
+      "A:cleanup",
+      "B:attach",
+    ])
+    await userEvent.click(canvas.getByRole("button", { name: "Unmount input" }))
+    await expect(trackPhoneRef).toHaveBeenLastCalledWith("B:cleanup")
+    await userEvent.click(canvas.getByRole("button", { name: "Mount input" }))
+    await expect(trackPhoneRef).toHaveBeenLastCalledWith("B:attach")
+    await userEvent.click(canvas.getByRole("button", { name: "Replace ref" }))
+    await expect(trackPhoneRef).toHaveBeenCalledWith("B:cleanup")
+    await userEvent.click(canvas.getByRole("button", { name: "Replace ref" }))
+    await expect(trackPhoneRef).toHaveBeenCalledWith("legacy:null")
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Inspect object ref" })
+    )
+    await expect(trackPhoneRef).toHaveBeenLastCalledWith("object:attached")
+    await userEvent.click(canvas.getByRole("button", { name: "Unmount input" }))
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Inspect object ref" })
+    )
+    await expect(trackPhoneRef).toHaveBeenLastCalledWith("object:cleared")
+  },
+}
+
+const editingCountries: PhoneInputCountry[] = [
+  { value: "SK", label: "Slovakia" },
+  { value: "CZ", label: "Czechia" },
+  { value: "DE", label: "Germany" },
+  { value: "GB", label: "United Kingdom" },
+  { value: "US", label: "United States" },
+  { value: "CA", label: "Canada" },
+]
+const editingNumbers = [
+  ["SK", "900123456", "+421900823456"],
+  ["CZ", "777123456", "+420777823456"],
+  ["DE", "15123456789", "+4915183456789"],
+  ["GB", "7700900123", "+447708900123"],
+  ["US", "2025550123", "+12028550123"],
+  ["CA", "4165550123", "+14168550123"],
+] as const
+
+function EditingPhone({
+  country,
+  number,
+  controlled,
+}: {
+  country: NonNullable<ComponentProps<typeof PhoneInput>["country"]>
+  number: string
+  controlled: boolean
+}) {
+  const [value, setValue] = useState(number)
+  const name = `${country} ${controlled ? "controlled" : "uncontrolled"}`
+  return (
+    <form onSubmit={(event) => event.preventDefault()}>
+      <PhoneInputExample
+        countries={editingCountries}
+        defaultCountry={country}
+        defaultValue={number}
+        name="phone"
+        label={name}
+        value={controlled ? value : undefined}
+        onValueChange={(details) => setValue(details.value)}
+        helpText="Edit a middle digit without changing the rest of the number."
+      />
+    </form>
+  )
+}
+
+export const EditingPositions: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Controlled and uncontrolled formatting preserves middle edits across European and North American number patterns.",
+      },
+    },
+  },
+  render: () => (
+    <div className="grid w-full max-w-md gap-300">
+      {editingNumbers.flatMap(([country, number]) =>
+        [false, true].map((controlled) => (
+          <EditingPhone
+            key={`${country}-${controlled}`}
+            country={country}
+            number={number}
+            controlled={controlled}
+          />
+        ))
+      )}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const [country, , expected] of editingNumbers) {
+      for (const controlled of [false, true]) {
+        const input = canvas.getByRole("textbox", {
+          name: `${country} ${controlled ? "controlled" : "uncontrolled"}`,
+        }) as HTMLInputElement
+        await userEvent.click(input)
+        const digits = [...input.value.matchAll(/\d/g)]
+        const offset = digits[3]?.index ?? 0
+        input.setSelectionRange(offset, offset + 1)
+        await userEvent.keyboard("{Backspace}8")
+        await waitFor(() =>
+          expect(new FormData(input.form as HTMLFormElement).get("phone")).toBe(
+            expected
+          )
+        )
+        await expect(input.selectionStart).toBeLessThan(input.value.length)
+      }
+    }
+  },
+}
+
+function ResetOwnershipPhone({
+  controlValue,
+  controlCountry,
+}: {
+  controlValue: boolean
+  controlCountry: boolean
+}) {
+  const [value, setValue] = useState("900123456")
+  const [country, setCountry] = useState<"SK" | "CZ">("SK")
+  const label = `Reset ${controlValue ? "controlled" : "default"} value / ${controlCountry ? "controlled" : "default"} country`
+  return (
+    <form className="grid gap-100" onSubmit={(event) => event.preventDefault()}>
+      <PhoneInputExample
+        label={label}
+        countries={countries}
+        defaultCountry="SK"
+        defaultValue="900123456"
+        name="phone"
+        country={controlCountry ? country : undefined}
+        value={controlValue ? value : undefined}
+        onValueChange={(details) => setValue(details.value)}
+        onCountryChange={(details) => {
+          if (details.country === "SK" || details.country === "CZ")
+            setCountry(details.country)
+        }}
+      />
+      <Button type="reset">Reset {label}</Button>
+    </form>
+  )
+}
+
+export const ResetOwnership: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Native reset restores only uncontrolled defaults and leaves independently controlled values and countries with the parent.",
+      },
+    },
+  },
+  render: () => (
+    <div className="grid w-full max-w-md gap-300">
+      {[false, true].flatMap((controlValue) =>
+        [false, true].map((controlCountry) => (
+          <ResetOwnershipPhone
+            key={`${controlValue}-${controlCountry}`}
+            controlValue={controlValue}
+            controlCountry={controlCountry}
+          />
+        ))
+      )}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const controlValue of [false, true]) {
+      for (const controlCountry of [false, true]) {
+        const label = `Reset ${controlValue ? "controlled" : "default"} value / ${controlCountry ? "controlled" : "default"} country`
+        const input = canvas.getByRole("textbox", {
+          name: label,
+        }) as HTMLInputElement
+        await userEvent.clear(input)
+        await userEvent.paste("+420777123456")
+        input.form?.reset()
+        const formCanvas = within(input.form as HTMLFormElement)
+        await waitFor(() =>
+          expect(
+            formCanvas.getByRole("combobox", {
+              name: controlCountry ? "Czechia (+420)" : "Slovakia (+421)",
+            })
+          ).toBeVisible()
+        )
+        const expectedValue = controlValue
+          ? controlCountry
+            ? "777 123 456"
+            : "777123456"
+          : "900 123 456"
+        await waitFor(() => expect(input).toHaveValue(expectedValue))
+      }
+    }
   },
 }

@@ -1,3 +1,4 @@
+import { ChoiceContract, checkChoiceContract, DynamicRadioChoices, checkDynamicRadioChoices } from "./choice-contract"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { useArgs } from "storybook/preview-api"
@@ -372,4 +373,16 @@ function textContrast(element: HTMLElement) {
   const a = luminance(foreground)
   const b = luminance(background)
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+
+export const NativeFormContract: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Rejected proposals preserve the submitted value; restoring defaults updates native, accessible and visible state together, including external form ownership." } } },
+  render: () => <ChoiceContract kind="radio-card" />,
+  play: async ({ canvasElement }) => checkChoiceContract(canvasElement),
+}
+
+export const ChangingOptions: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Removing a focused delivery method moves focus to the next available method without silently changing the saved selection." } } },
+  render: () => <DynamicRadioChoices kind="radio-card" />,
+  play: async ({ canvasElement }) => checkDynamicRadioChoices(canvasElement),
 }

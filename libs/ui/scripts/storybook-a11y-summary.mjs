@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs"
 import path from "node:path"
+import { calibrationIds } from "../.storybook/a11y-policy.mjs"
 
 const NEWLINE_REGEX = /\r?\n/
 const JSON_EXTENSION_REGEX = /\.json$/i
@@ -162,12 +163,15 @@ function summarizeReport(report) {
   const groupStats = new Map()
   const storyRows = []
 
-  const totalStories = report.length
+  const productReport = report.filter(
+    (story) => !calibrationIds.includes(story?.storyId)
+  )
+  const totalStories = productReport.length
   let storiesWithViolations = 0
   let totalViolations = 0
   let apcaViolations = 0
 
-  for (const story of report) {
+  for (const story of productReport) {
     const title = story?.title ?? "Unknown"
     const name = story?.name ?? story?.storyId ?? "Unknown"
     const violations = story?.results?.violations ?? []
@@ -220,6 +224,9 @@ function collectViolations(report) {
   const entries = []
 
   for (const story of report) {
+    if (calibrationIds.includes(story?.storyId)) {
+      continue
+    }
     const title = story?.title ?? "Unknown"
     const name = story?.name ?? story?.storyId ?? "Unknown"
     const storyKey = `${title} / ${name}`

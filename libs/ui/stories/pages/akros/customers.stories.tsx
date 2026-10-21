@@ -1,3 +1,4 @@
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
@@ -92,7 +93,7 @@ function duplicatesOf(customer: AkCustomer, all: AkCustomer[]) {
   return all.filter(
     (entry) =>
       entry.duplicateGroup === customer.duplicateGroup &&
-      entry.id !== customer.id,
+      entry.id !== customer.id
   )
 }
 
@@ -111,7 +112,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
   const history = akOrders.filter((order) => order.email === selected?.email)
   const carts = akCarts.filter(
     (cart) =>
-      cart.customer === selected?.name || cart.customer === selected?.company,
+      cart.customer === selected?.name || cart.customer === selected?.company
   )
 
   const columns = useMemo<ColumnDef<AkCustomer, unknown>[]>(
@@ -156,7 +157,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
         cell: (info) => czk.format(info.getValue<number>()),
       },
     ],
-    [],
+    []
   )
 
   if (!selected) {
@@ -175,8 +176,8 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
               dic: `CZ${ico}`,
               priceList,
             }
-          : entry,
-      ),
+          : entry
+      )
     )
     setUpgrading(false)
     toaster.create({
@@ -205,6 +206,13 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
             enableColumnFilters
             enableGlobalFilter
             enableSorting
+            enableRowSelection
+            selectionMode="single"
+            rowSelection={{ [selectedId]: true }}
+            onRowSelectionChange={(selection) => {
+              const id = Object.keys(selection).find((key) => selection[key])
+              if (id) setSelectedId(id)
+            }}
             getRowId={(row) => row.id}
             getRowLabel={(row) => row.original.company ?? row.original.name}
             onRowClick={(row) => setSelectedId(row.original.id)}
@@ -262,10 +270,23 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
               <StatCard
                 label="Average order"
                 value={czk.format(
-                  Math.round(selected.revenue / selected.orders),
+                  Math.round(selected.revenue / selected.orders)
                 )}
               />
-              <StatCard label="Last order" value={selected.lastOrder} />
+              <StatCard
+                compact
+                label="Last order"
+                value={
+                  <time dateTime={selected.lastOrder}>
+                    {new Intl.DateTimeFormat("cs-CZ", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      timeZone: "UTC",
+                    }).format(new Date(`${selected.lastOrder}T00:00:00Z`))}
+                  </time>
+                }
+              />
             </StatRow>
           </SectionCard>
 
@@ -481,7 +502,7 @@ function DuplicatesPage() {
                 <Button
                   onClick={() => {
                     setGroups((current) =>
-                      current.filter(([id]) => id !== group),
+                      current.filter(([id]) => id !== group)
                     )
                     toaster.create({
                       type: "info",
@@ -498,7 +519,7 @@ function DuplicatesPage() {
                   icon="icon-[mdi--merge]"
                   onClick={() => {
                     setGroups((current) =>
-                      current.filter(([id]) => id !== group),
+                      current.filter(([id]) => id !== group)
                     )
                     toaster.create({
                       type: "success",
@@ -555,6 +576,26 @@ function DuplicatesPage() {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const table = canvas.getByRole("table")
+    await expect(table.querySelectorAll('[aria-selected="true"]')).toHaveLength(
+      1
+    )
+    const radios = within(table).getAllByRole("checkbox")
+    const second = radios[1]
+    if (!second) throw new Error("Missing second customer selection")
+    second.focus()
+    await userEvent.keyboard(" ")
+    await waitFor(() =>
+      expect(table.querySelectorAll('[aria-selected="true"]')).toHaveLength(1)
+    )
+    await expect(second).toBeChecked()
+    await userEvent.click(canvas.getByRole("heading", { name: "Customers" }))
+    await expect(table.querySelectorAll('[aria-selected="true"]')).toHaveLength(
+      1
+    )
+  },
   parameters: {
     docs: {
       description: {

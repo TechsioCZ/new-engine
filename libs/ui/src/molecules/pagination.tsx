@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,8 +19,12 @@ import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ElementType,
   type HTMLAttributes,
+  type MouseEvent,
   type ReactNode,
+  useEffect,
   useId,
+  useRef,
+  useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Icon } from "../atoms/icon"
@@ -79,7 +83,7 @@ export const paginationVariants = tv({
       minimal: {
         link: [
           "border-transparent",
-          "data-selected:text-pagination-fg-minimal-active",
+          "data-selected:decoration-(length:--text-decoration-thickness-pagination-marker) data-selected:underline-offset-(length:--text-underline-offset-pagination-marker) data-selected:text-pagination-fg-minimal-active data-selected:underline",
           "hover:text-pagination-fg-minimal-active",
         ],
       },
@@ -215,6 +219,77 @@ function hasHref(
   return triggerProps.href != null
 }
 
+function usePaginationPage({
+  page,
+  defaultPage = 1,
+  count,
+  pageSize = 10,
+  onChange,
+  onPageChange,
+}: PaginationBaseProps) {
+  const safeCount = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0
+  const safePageSize = Number.isFinite(pageSize)
+    ? Math.max(1, Math.floor(pageSize))
+    : 10
+  const totalPages = Math.ceil(safeCount / safePageSize)
+  const [uncontrolledPage, setUncontrolledPage] = useState(defaultPage)
+  const previousPageSize = useRef(safePageSize)
+  const correction = useRef<string | null>(null)
+  const requestedPage = page ?? uncontrolledPage
+  const validPage =
+    Number.isInteger(requestedPage) &&
+    requestedPage >= 1 &&
+    requestedPage <= Math.max(1, totalPages)
+  const effectivePage = validPage
+    ? requestedPage
+    : Math.min(
+        Math.max(
+          1,
+          Number.isFinite(requestedPage) ? Math.floor(requestedPage) : 1
+        ),
+        Math.max(1, totalPages)
+      )
+  const pendingCorrection = page !== undefined && !validPage
+
+  useEffect(() => {
+    // Zag historically resets an invalid uncontrolled page on pageSize changes.
+    const resized = previousPageSize.current !== safePageSize
+    previousPageSize.current = safePageSize
+    if (validPage) {
+      correction.current = null
+      return
+    }
+    const next = page === undefined && resized ? 1 : effectivePage
+    if (page === undefined) {
+      setUncontrolledPage(next)
+    }
+    const key = `${requestedPage}:${next}:${totalPages}`
+    if (correction.current !== key) {
+      correction.current = key
+      onChange?.(next)
+      onPageChange?.(next)
+    }
+  }, [
+    effectivePage,
+    onChange,
+    onPageChange,
+    page,
+    requestedPage,
+    safePageSize,
+    totalPages,
+    validPage,
+  ])
+
+  return {
+    safeCount,
+    safePageSize,
+    totalPages,
+    effectivePage,
+    pendingCorrection,
+    setUncontrolledPage,
+  }
+}
+
 export function Pagination<T extends ElementType = "a">({
   page,
   defaultPage = 1,
@@ -239,18 +314,37 @@ export function Pagination<T extends ElementType = "a">({
 }: PaginationProps<T>) {
   const uniqueId = useId()
 
-  const service = useMachine(paginationMachine, {
-    id: uniqueId,
+  const {
+    safeCount,
+    safePageSize,
+    totalPages,
+    effectivePage,
+    pendingCorrection,
+    setUncontrolledPage,
+  } = usePaginationPage({
+    page,
+    defaultPage,
     count,
     pageSize,
+    onChange,
+    onPageChange,
+  })
+
+  const service = useMachine(paginationMachine, {
+    id: uniqueId,
+    count: safeCount,
+    pageSize: safePageSize,
     siblingCount,
     boundaryCount,
-    page,
+    page: effectivePage,
     dir,
     defaultPage,
     type: "link",
     getPageUrl,
     onPageChange: (details) => {
+      if (page === undefined) {
+        setUncontrolledPage(details.page)
+      }
       onChange?.(details.page)
       onPageChange?.(details.page)
     },
@@ -279,10 +373,46 @@ export function Pagination<T extends ElementType = "a">({
 
   const getTriggerButtonProps = (
     triggerProps: PaginationTriggerProps,
-    overrides: Record<string, unknown> = {}
+    overrides: Record<string, unknown> = {},
+    destination = effectivePage
   ) => {
-    const isNavigable = hasHref(triggerProps)
-    const baseTriggerProps = mergeProps(triggerProps, {
+    const isNavigable =
+      totalPages > 0 &&
+      !pendingCorrection &&
+      destination >= 1 &&
+      destination <= totalPages &&
+      hasHref(triggerProps) &&
+      triggerProps["data-disabled"] == null
+    const { onClick: machineClick, href, ...restTriggerProps } = triggerProps
+    const consumerClick = sharedLinkProps?.onClick as
+      | ((event: MouseEvent<HTMLAnchorElement>) => void)
+      | undefined
+    const target = sharedLinkProps?.target
+    const baseTriggerProps = mergeProps(restTriggerProps, {
+      href: isNavigable ? href : undefined,
+      onClick: isNavigable
+        ? (event: MouseEvent<HTMLAnchorElement>) => {
+            consumerClick?.(event)
+            const contextTarget =
+              event.currentTarget.getAttribute("target") ?? target
+            if (
+              event.defaultPrevented ||
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey ||
+              (contextTarget && contextTarget !== "_self")
+            ) {
+              return
+            }
+            ;(
+              machineClick as
+                | ((event: MouseEvent<HTMLAnchorElement>) => void)
+                | undefined
+            )?.(event)
+          }
+        : undefined,
       className: link(),
       size: "current" as const,
       theme: "borderless" as const,
@@ -290,7 +420,7 @@ export function Pagination<T extends ElementType = "a">({
     })
 
     return mergeProps(
-      isNavigable ? sharedLinkProps : undefined,
+      isNavigable ? { ...sharedLinkProps, onClick: undefined } : undefined,
       baseTriggerProps,
       {
         ...(isNavigable && linkAs ? { as: linkAs } : {}),
@@ -311,78 +441,102 @@ export function Pagination<T extends ElementType = "a">({
 
   return (
     <nav className={base({ className })} {...rootProps}>
-      <ul className={list()}>
-        {showPrevNext && (
-          <li className={item()}>
-            <LinkButton
-              {...getTriggerButtonProps(prevTriggerProps, {
-                icon: "token-icon-pagination-prev",
-              })}
-            />
-          </li>
-        )}
-        {compact ? (
-          <li className={item()}>
-            <span className={compactText()} data-part="compact-text">
-              {compactLabel?.({
-                page: api.page,
-                totalPages: api.totalPages,
-              }) ?? `${api.page} of ${api.totalPages}`}
-            </span>
-          </li>
-        ) : (
-          api.pages.map((paginationPage, index) => {
-            if (paginationPage.type === "page") {
+      {pendingCorrection ? (
+        <span role="status">
+          Page unavailable. Choose a page within the current results.
+        </span>
+      ) : (
+        <ul className={list()}>
+          {showPrevNext && (
+            <li className={item()}>
+              <LinkButton
+                {...getTriggerButtonProps(
+                  prevTriggerProps,
+                  {
+                    icon:
+                      dir === "rtl"
+                        ? "token-icon-pagination-next"
+                        : "token-icon-pagination-prev",
+                  },
+                  effectivePage - 1
+                )}
+              />
+            </li>
+          )}
+          {compact ? (
+            <li className={item()}>
+              <span className={compactText()} data-part="compact-text">
+                {compactLabel?.({
+                  page: totalPages === 0 ? 0 : effectivePage,
+                  totalPages,
+                }) ??
+                  `${totalPages === 0 ? 0 : effectivePage} of ${totalPages}`}
+              </span>
+            </li>
+          ) : (
+            api.pages.map((paginationPage, index) => {
+              if (paginationPage.type === "page") {
+                return (
+                  <li className={item()} key={paginationPage.value}>
+                    <LinkButton
+                      {...getTriggerButtonProps(
+                        api.getItemProps(paginationPage) as Record<
+                          string,
+                          unknown
+                        >
+                      )}
+                    >
+                      {paginationPage.value}
+                    </LinkButton>
+                  </li>
+                )
+              }
+
+              const previousPage = api.pages[index - 1]
+              const nextPage = api.pages[index + 1]
+              const previousPageValue =
+                previousPage?.type === "page" ? previousPage.value : "start"
+              const nextPageValue =
+                nextPage?.type === "page" ? nextPage.value : "end"
+
               return (
-                <li className={item()} key={paginationPage.value}>
-                  <LinkButton
-                    {...getTriggerButtonProps(
-                      api.getItemProps(paginationPage) as Record<
-                        string,
-                        unknown
-                      >
-                    )}
+                <li
+                  className={item()}
+                  key={`ellipsis-${previousPageValue}-${nextPageValue}`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={ellipsis()}
+                    {...api.getEllipsisProps({ index })}
                   >
-                    {paginationPage.value}
-                  </LinkButton>
+                    <Icon
+                      icon="token-icon-pagination-ellipsis"
+                      size="current"
+                    />
+                  </span>
                 </li>
               )
-            }
+            })
+          )}
 
-            const previousPage = api.pages[index - 1]
-            const nextPage = api.pages[index + 1]
-            const previousPageValue =
-              previousPage?.type === "page" ? previousPage.value : "start"
-            const nextPageValue =
-              nextPage?.type === "page" ? nextPage.value : "end"
-
-            return (
-              <li
-                className={item()}
-                key={`ellipsis-${previousPageValue}-${nextPageValue}`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={ellipsis()}
-                  {...api.getEllipsisProps({ index })}
-                >
-                  <Icon icon="token-icon-pagination-ellipsis" size="current" />
-                </span>
-              </li>
-            )
-          })
-        )}
-
-        {showPrevNext && (
-          <li className={item()}>
-            <LinkButton
-              {...getTriggerButtonProps(nextTriggerProps, {
-                icon: "token-icon-pagination-next",
-              })}
-            />
-          </li>
-        )}
-      </ul>
+          {showPrevNext && (
+            <li className={item()}>
+              <LinkButton
+                {...getTriggerButtonProps(
+                  nextTriggerProps,
+                  {
+                    icon:
+                      dir === "rtl"
+                        ? "token-icon-pagination-prev"
+                        : "token-icon-pagination-next",
+                  },
+                  effectivePage + 1
+                )}
+              />
+            </li>
+          )}
+        </ul>
+      )}
     </nav>
   )
 }

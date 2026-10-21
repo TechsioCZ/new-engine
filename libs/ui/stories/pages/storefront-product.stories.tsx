@@ -58,7 +58,8 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
-const sizeOptions = ["38", "39", "40", "41", "42", "43", "44"]
+const sizeOptions =
+  storefrontProducts.find((product) => product.id === "sf-2")?.sizes ?? []
 
 function ProductDetailPage() {
   const toaster = useToast()
@@ -182,8 +183,8 @@ function ProductDetailPage() {
               </StatusText>
             </div>
 
-            <div className="flex flex-wrap items-end gap-150">
-              <div className="w-3xs">
+            <div className="grid grid-cols-1 items-end gap-150 sm:flex sm:flex-wrap">
+              <div className="w-full sm:w-3xs">
                 <NumericInput
                   max={10}
                   min={1}
@@ -200,7 +201,7 @@ function ProductDetailPage() {
                 </NumericInput>
               </div>
               <Button
-                className="flex-1 whitespace-nowrap"
+                className="w-full sm:w-auto sm:flex-1"
                 icon="icon-[mdi--cart-outline]"
                 onClick={() => {
                   setCartCount((count) => count + quantity)
@@ -215,12 +216,15 @@ function ProductDetailPage() {
                 Add to cart
               </Button>
               <Button
+                className="justify-self-start"
                 aria-label={
                   wishlisted ? "Remove from wishlist" : "Add to wishlist"
                 }
                 aria-pressed={wishlisted}
                 onClick={() => setWishlisted((value) => !value)}
-                icon="icon-[mdi--heart-outline]"
+                icon={
+                  wishlisted ? "icon-[mdi--heart]" : "icon-[mdi--heart-outline]"
+                }
                 theme="outlined"
                 variant="secondary"
               />
@@ -421,6 +425,16 @@ export const Default: Story = {
     )
     await expect(dialog).toBeVisible()
     await userEvent.keyboard("{Escape}")
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Add to wishlist" })
+    )
+    const saved = canvas.getByRole("button", { name: "Remove from wishlist" })
+    await expect(saved).toHaveAttribute("aria-pressed", "true")
+    await expect(saved.innerHTML).toContain("mdi--heart]")
+    await userEvent.click(saved)
+    await expect(
+      canvas.getByRole("button", { name: "Add to wishlist" })
+    ).toHaveAttribute("aria-pressed", "false")
     const related = canvas.getByRole("region", { name: "Related products" })
     const slides = related.querySelector<HTMLElement>(
       '[data-part="item-group"]'
@@ -430,6 +444,11 @@ export const Default: Story = {
     )!
     await expect(controls.getBoundingClientRect().top).toBeGreaterThanOrEqual(
       slides.getBoundingClientRect().bottom
+    )
+    await expect(
+      canvasElement.ownerDocument.documentElement.scrollWidth
+    ).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.defaultView?.innerWidth ?? 1440
     )
   },
 

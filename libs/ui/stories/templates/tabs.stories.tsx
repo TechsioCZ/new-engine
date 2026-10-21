@@ -17,6 +17,7 @@ const meta: Meta<typeof TabsTemplate> = {
     },
   },
   tags: ["autodocs"],
+  args: { tablistProps: { "aria-label": "Product information" } },
   decorators: [
     (Story) => (
       <div className="mx-auto w-full max-w-2xl">
@@ -25,6 +26,7 @@ const meta: Meta<typeof TabsTemplate> = {
     ),
   ],
   argTypes: {
+    tablistProps: { control: false, description: "Props on the tablist; prefer aria-labelledby pointing to a visible heading." },
     items: {
       control: "object",
       description:
@@ -203,6 +205,7 @@ export const Variants: Story = {
             defaultValue="tab1"
             items={defaultItems}
             variant={variant}
+            tablistProps={{ "aria-label": `${variant} product information` }}
             showIndicator
           />
         </VariantGroup>
@@ -224,13 +227,14 @@ export const Sizes: Story = {
     <div className="flex w-full max-w-2xl flex-col gap-300">
       {(["sm", "md", "lg"] as const).map((size) => (
         <section key={size}>
-          <h3 className="mb-150 font-semibold">
+          <h3 id={`tabs-size-${size}`} className="mb-150 font-semibold">
             {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
           </h3>
           <TabsTemplate
             defaultValue="tab1"
             items={defaultItems}
             size={size}
+            tablistProps={{ "aria-labelledby": `tabs-size-${size}` }}
             variant="line"
             showIndicator
           />

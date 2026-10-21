@@ -15,7 +15,7 @@ const meta: Meta<typeof AccordionTemplate> = {
     },
   },
   tags: ["autodocs"],
-  args: { onChange: fn() },
+  args: { onChange: fn(), indicatorIcon: "token-icon-accordion-chevron" },
   decorators: [
     (Story) => (
       <div className="w-full max-w-lg">
@@ -24,6 +24,12 @@ const meta: Meta<typeof AccordionTemplate> = {
     ),
   ],
   argTypes: {
+    indicatorIcon: {
+      control: "select",
+      options: ["token-icon-accordion-chevron", "token-icon-plus"],
+      description: "Choose a compiled disclosure glyph; the target size is unchanged.",
+    },
+    headingLevel: { control: "select", options: [1, 2, 3, 4, 5, 6], description: "Heading depth in the surrounding page outline; defaults to 3." },
     items: {
       control: "object",
       description:

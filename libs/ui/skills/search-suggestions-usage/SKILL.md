@@ -117,3 +117,13 @@ sm/md/lg, default md; popup layers and reduced-motion behavior follow Combobox.
 The Storybook demos intercept navigation; consumers still supply their router
 through navigate or use native anchor navigation. Figma-sync handoff should
 include the immutable-query and validation states.
+
+## Focusable input integration
+
+`ref` targets the actual `HTMLInputElement`, including React 19 callback-ref
+cleanup; `inputProps` forwards native input attributes and composed focus/blur
+handlers without replacing machine value/editability. Input descriptions merge
+with linked helper text. `className`, `style` and ordinary div DOM props target
+the root. These are the same APIs as Combobox, preserved through this template.
+The Playground simulates application-owned external filtering; production apps
+still own request debounce, fetching and replacement of result groups.

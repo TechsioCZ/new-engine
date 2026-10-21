@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { expect, fn, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { CarouselTemplate } from "../../src/templates/carousel"
 
 const travelSlides = [
@@ -63,12 +63,17 @@ const meta: Meta<typeof CarouselTemplate> = {
     showIndicators: { control: "boolean" },
     showAutoplay: {
       control: "boolean",
-      description: "Keep this enabled whenever automatic rotation is enabled.",
+      description:
+        "Show the rotation toggle even without autoplay; autoplay always includes it.",
     },
     loop: { control: "boolean" },
     autoplay: { control: "boolean" },
     allowMouseDrag: { control: "boolean" },
-    slidesPerPage: { control: { type: "number", min: 1, max: 3, step: 1 }, description: "Visible slides per snap page; indicators follow the actual pages." },
+    slidesPerPage: {
+      control: { type: "number", min: 1, max: 3, step: 1 },
+      description:
+        "Visible slides per snap page; indicators follow the actual pages.",
+    },
     onPageChange: { control: false },
   },
   args: {
@@ -87,12 +92,7 @@ const meta: Meta<typeof CarouselTemplate> = {
     slidesPerPage: 1,
     onPageChange: fn(),
   },
-  render: (args) => (
-    <CarouselTemplate
-      {...args}
-      showAutoplay={Boolean(args.autoplay) || args.showAutoplay}
-    />
-  ),
+  render: (args) => <CarouselTemplate {...args} />,
 }
 
 export default meta
@@ -147,17 +147,90 @@ export const Autoplay: Story = {
 }
 
 export const MediaSizes: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "Carousel sm/md/lg describe media dimensions, not form-control heights; full is a parent-fill layout option." } } },
-  render: (args) => <div className="flex flex-col gap-400">{(["sm", "md", "lg"] as const).map((size) => <section key={size}>
-    <h2>{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
-    <CarouselTemplate {...args} size={size} width="100%" />
-  </section>)}</div>,
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Carousel sm/md/lg describe media dimensions, not form-control heights; full is a parent-fill layout option.",
+      },
+    },
+  },
+  render: (args) => (
+    <div className="flex flex-col gap-400">
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <section key={size}>
+          <h2>
+            {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
+          </h2>
+          <CarouselTemplate {...args} size={size} width="100%" />
+        </section>
+      ))}
+    </div>
+  ),
 }
 export const MultipleSlides: Story = {
   args: { slidesPerPage: 2, loop: false },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(canvas.getAllByRole("button", { name: /Go to slide/ })).toHaveLength(2)
+    await expect(
+      canvas.getAllByRole("button", { name: /Go to slide/ })
+    ).toHaveLength(2)
   },
-  parameters: { docs: { description: { story: "Two visible slides share each snap page, so only valid page indicators are rendered." } } },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Two visible slides share each snap page, so only valid page indicators are rendered.",
+      },
+    },
+  },
+}
+
+export const AutoplayWithoutNavigation: Story = {
+  args: {
+    autoplay: { delay: 800 },
+    showControls: false,
+    showIndicators: false,
+    showAutoplay: false,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Autoplay always includes its own pause/start control even when other navigation is hidden; reduced motion leaves playback stopped until explicitly started.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const toggle = canvasElement.querySelector('[data-part="autoplay-trigger"]')
+    await expect(toggle).toBeVisible()
+    await expect(toggle).toHaveAccessibleName()
+    if (!toggle) throw new Error("Autoplay control is required")
+    await userEvent.hover(toggle)
+    await waitFor(() =>
+      expect(toggle).toHaveAccessibleName("Start slide rotation")
+    )
+    const visibleSlide = () =>
+      canvasElement.querySelector('[data-part="item"]:not([inert])')
+        ?.getAttribute("data-index")
+    const before = visibleSlide()
+    await userEvent.click(toggle, { skipHover: true })
+    await waitFor(() =>
+      expect(toggle).toHaveAccessibleName("Stop slide rotation")
+    )
+    // 800 ms configuration must survive an explicit restart under reduced
+    // motion too; Zag's default four-second interval would miss this deadline.
+    await waitFor(
+      () => {
+        expect(visibleSlide()).toBeTruthy()
+        expect(visibleSlide()).not.toBe(before)
+      },
+      { timeout: 1800 }
+    )
+    await userEvent.click(toggle, { skipHover: true })
+    await waitFor(() =>
+      expect(toggle).toHaveAccessibleName("Start slide rotation")
+    )
+  },
 }

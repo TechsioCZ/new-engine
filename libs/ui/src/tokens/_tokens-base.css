@@ -85,3 +85,6 @@
   background-color: var(--color-base) !important;
   color: var(--color-fg-primary) !important;
 }
+
+/* Tailwind excludes node_modules by default. Register shipped component utilities relative to this CSS. */
+@source "../../dist/**/*.js";

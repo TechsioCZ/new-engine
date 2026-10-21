@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
 import { expect, userEvent, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
 import { Link } from "../../src/atoms/link"
@@ -23,10 +24,10 @@ function StoreHeader(props: React.ComponentProps<typeof Header>) {
           <Header.ActionItem><Button theme="outlined" size={props.size}>Account</Button></Header.ActionItem>
         </Header.Actions>
       </Header.Desktop>
+      <Header.Hamburger />
       <Header.Mobile>
         <Navigation label="Mobile navigation" />
       </Header.Mobile>
-      <Header.Hamburger />
     </Header>
   )
 }
@@ -85,5 +86,34 @@ export const NarrowContainer: Story = {
     await expect(trigger).toHaveAttribute("aria-expanded", "false")
     await expect(navigation).not.toBeVisible()
     await expect(trigger).toHaveFocus()
+  },
+}
+
+
+export const LocalizedHamburger: Story = {
+  parameters: { docs: { description: { story: "Hamburger forwards localized labels, refs and consumer click handlers, including default prevention that cancels toggling." } } },
+  render: () => {
+    const [allowOpening, setAllowOpening] = useState(false)
+    return <div className="max-w-sm">
+      <Header>
+        <Header.Hamburger aria-label="Otevřít nabídku" data-custom="menu"
+          ref={(node) => { node?.setAttribute("data-ref-attached", "true") }}
+          onClick={(event) => { if (!allowOpening) event.preventDefault() }} />
+        <Header.Mobile><Navigation label="Mobile navigation" /></Header.Mobile>
+      </Header>
+      <Button theme="outlined" onClick={() => setAllowOpening(true)}>Allow menu opening</Button>
+    </div>
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const trigger = canvas.getByRole("button", { name: "Otevřít nabídku" })
+    await expect(trigger).toHaveAttribute("data-custom", "menu")
+    await expect(trigger).toHaveAttribute("data-ref-attached", "true")
+    await userEvent.click(trigger)
+    await expect(trigger).toHaveAttribute("aria-expanded", "false")
+    await userEvent.click(canvas.getByRole("button", { name: "Allow menu opening" }))
+    await userEvent.click(trigger)
+    await expect(trigger).toHaveAttribute("aria-expanded", "true")
+    await userEvent.keyboard("{Escape}")
   },
 }

@@ -1,0 +1,17 @@
+/* Code-owned pressed pair; hand off the aliases to Figma before export.
+ * Opposite danger endpoints stay distinct in every brand and color scheme.
+ * Use explicit foreground paint so simultaneous hover cannot leak its tone. */
+@theme static {
+  --color-action-icon-danger-active: light-dark(
+    var(--color-danger-100),
+    var(--color-danger-900)
+  );
+  --color-action-icon-on-danger-active: light-dark(
+    var(--color-danger-900),
+    var(--color-danger-100)
+  );
+  --color-action-icon-bg-danger-active: var(--color-action-icon-danger-active);
+  --color-action-icon-fg-danger-active: var(
+    --color-action-icon-on-danger-active
+  );
+}

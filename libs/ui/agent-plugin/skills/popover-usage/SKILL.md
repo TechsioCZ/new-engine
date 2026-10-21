@@ -5,7 +5,7 @@ description: >
   anchored non-blocking content using Zag.js compound parts, placement,
   portalling, close behavior, arrow, title, description, and close trigger.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -167,3 +167,14 @@ for a visible heading. For intentionally heading-free content, pass
 `aria-label` to `Popover.Content` (template: `contentProps={{ "aria-label":
 "Delivery information" }}`). A named trigger does not automatically name
 the dialog.
+
+The template accepts `aria-label` for panels without a visible title. Prefer a
+specific task name; `contentProps["aria-label"]` / `aria-labelledby` can also
+supply it. A plain-text trigger is the fallback name, otherwise the fallback is
+“Additional details”. The icon-only close trigger preserves a caller's
+`aria-label` and `sm`/`md`/`lg` size. Long panels scroll their inner content
+viewport, not the whole surface. The close action and arrow stay outside that
+scroller; close remains visible at every scroll position, with inline clearance
+for its hit area. Content refs and ARIA props still target the dialog surface.
+A modal Popover owns descendant popup portals, including when nested inside
+Dialog or Drawer, so menus remain in its accessible tree and focus scope.

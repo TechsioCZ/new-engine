@@ -1,4 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { useId, useState } from "react"
+import { expect, userEvent, within } from "storybook/test"
+import { Input } from "../../src/atoms/input"
+import { Label } from "../../src/atoms/label"
+import { StatusText } from "../../src/atoms/status-text"
 import { Button } from "../../src/atoms/button"
 import {
   PopoverTemplate,
@@ -77,22 +82,32 @@ export const Sizes: Story = {
   render: () => <div className="flex flex-wrap gap-400">{([["sm", "Small (sm)"], ["md", "Medium (md)"], ["lg", "Large (lg)"]] as const).map(([size, label]) => <section key={size} className="space-y-200"><h3 className="font-semibold text-sm">{label}</h3><PopoverTemplate title="Delivery details" trigger="Delivery details" size={size}><p>Standard delivery takes 2–4 business days.</p></PopoverTemplate></section>)}</div>,
 }
 export const WithCloseButton: Story = {
-  parameters: { docs: { description: { story: "An explicit close action helps dismiss a short panel without relying on clicking outside." } } },
-  args: {
-    children: (
-      <div className="space-y-200">
-        <p className="text-sm">
-          Use the close trigger when the content has form-like interaction.
-        </p>
-        <Button size="sm" variant="secondary">
-          Action
-        </Button>
-      </div>
-    ),
-    showCloseButton: true,
-    title: "Interactive content",
-    trigger: "Open form popover",
+  parameters: { controls: { disable: true }, docs: { description: { story: "A short delivery-contact form saves locally and offers both Cancel and a persistent close control." } } },
+  render: () => {
+    const id = useId()
+    const [open, setOpen] = useState(false)
+    const [saved, setSaved] = useState(false)
+    return <div className="space-y-200"><PopoverTemplate title="Delivery contact" trigger="Edit delivery contact" showCloseButton open={open} onOpenChange={({ open }) => setOpen(open)}>
+      <form className="space-y-200" onSubmit={(event) => { event.preventDefault(); setSaved(true); setOpen(false) }}>
+        <Label htmlFor={id} size="sm" required>Full name</Label><Input id={id} size="sm" defaultValue="Mara Nováková" required />
+        <div className="flex justify-end gap-100"><Button size="sm" variant="secondary" onClick={() => setOpen(false)}>Cancel</Button><Button size="sm" type="submit">Save contact</Button></div>
+      </form>
+    </PopoverTemplate>{saved && <StatusText status="success">Delivery contact saved for this preview.</StatusText>}</div>
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole("button", { name: "Edit delivery contact" }))
+    const panel = await body.findByRole("dialog", { name: "Delivery contact" })
+    await userEvent.click(within(panel).getByRole("button", { name: "Save contact" }))
+    await expect(await canvas.findByRole("status")).toHaveTextContent("Delivery contact saved")
+  },
+}
+
+export const States: Story = {
+  parameters: { docs: { description: { story: "A disabled template trigger cannot open or enter the keyboard tab order." } } },
+  args: { disabled: true, trigger: "Delivery details unavailable" },
+  play: async ({ canvasElement }) => { await expect(within(canvasElement).getByRole("button", { name: "Delivery details unavailable" })).toBeDisabled() },
 }
 
 export const WithoutArrow: Story = {

@@ -19,6 +19,7 @@
   --width-popover-max: 32rem;
   --spacing-popover-close: var(--spacing-100);
   --spacing-popover-viewport: var(--spacing-200);
+  --spacing-popover-close-clearance: var(--spacing-600);
   --font-weight-popover-title: var(--font-weight-semibold);
 }
 
@@ -28,5 +29,22 @@
     var(--available-width, 100vw),
     calc(100vw - var(--spacing-popover-viewport) * 2)
   );
+  max-height: min(
+    var(--available-height, 100svh),
+    calc(100svh - var(--spacing-popover-viewport) * 2)
+  );
+  min-height: 0;
   overflow-wrap: anywhere;
+
+  &:has([data-scope="popover"][data-part="close-trigger"]) {
+    padding-inline-end: var(--spacing-popover-close-clearance);
+  }
+}
+
+/* Only task content scrolls; close and arrow chrome remain on the surface. */
+@utility popover-scroll-viewport {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }

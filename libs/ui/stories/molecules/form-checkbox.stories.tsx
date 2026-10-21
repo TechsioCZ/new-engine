@@ -1,3 +1,4 @@
+import { ChoiceContract, checkChoiceContract } from "./choice-contract"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Button } from "../../src/atoms/button"
@@ -261,5 +262,24 @@ export const MixedStateUpdates: Story = {
     await userEvent.click(update)
     await expect(input).toBePartiallyChecked()
     await expect(input).toHaveAttribute("aria-checked", "mixed")
+  },
+}
+
+export const NativeFormContract: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Rejected proposals preserve the submitted value; restoring defaults updates native, accessible and visible state together, including external form ownership." } } },
+  render: () => <ChoiceContract kind="checkbox" />,
+  play: async ({ canvasElement }) => checkChoiceContract(canvasElement),
+}
+
+export const RichLabels: Story = {
+  parameters: describe("Stretching text slots align end-column counts while longer choice labels wrap without squeezing the control."),
+  render: () => <div className="flex w-full max-w-xs flex-col gap-200">
+    {[["Cotton", "18"], ["Long-staple organic linen for lightweight summer layers", "1099"]].map(([label, count]) => <FormCheckbox key={label} label={<span className="flex min-w-0 flex-1 justify-between gap-150"><span className="min-w-0">{label}</span><span className="shrink-0 text-end tabular-nums" data-choice-count>{count}</span></span>} />)}
+  </div>,
+  play: async ({ canvasElement }) => {
+    const counts = Array.from(canvasElement.querySelectorAll("[data-choice-count]"))
+    const [first, second] = counts
+    if (!first || !second) throw new Error("Missing aligned label counts")
+    await expect(Math.abs(first.getBoundingClientRect().right - second.getBoundingClientRect().right)).toBeLessThan(1)
   },
 }

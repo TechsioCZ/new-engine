@@ -150,6 +150,7 @@ export const ContextMenu: Story = {
       ).toBeVisible()
     })
     await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(trigger).toHaveFocus())
   },
 }
 export const CustomTrigger: Story = {
@@ -312,5 +313,55 @@ export const ScrollableMenu: Story = {
           "Long command lists scroll inside the opaque popup rather than extending beyond the viewport.",
       },
     },
+  },
+}
+
+export const NavigationAndDisabledOptions: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Native link items reach the navigation callback while disabled checkable rows remain unchanged and out of keyboard highlighting." } } },
+  render: () => {
+    const [result, setResult] = useState("No navigation yet")
+    return <div className="space-y-200"><Menu triggerText="Account commands" navigate={(value) => setResult(`Opened ${value} in this preview`)} items={[
+      { type: "link", value: "orders", label: "Order history", href: "#orders" },
+      { type: "checkbox", value: "locked", label: "Locked preference", checked: false, disabled: true },
+      { type: "radio", name: "view", value: "locked-view", label: "Unavailable view", checked: false, disabled: true },
+      { type: "action", value: "done", label: "Done" },
+    ]} /><p role="status">{result}</p></div>
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const trigger = canvas.getByRole("button", { name: "Account commands" })
+    await userEvent.click(trigger)
+    await waitFor(async () => expect(await body.findByRole("menu")).toHaveFocus())
+    const link = await body.findByRole("menuitem", { name: "Order history" })
+    await expect(link.tagName).toBe("A")
+    await expect(body.getByRole("menuitemcheckbox")).toHaveAttribute("aria-disabled", "true")
+    await expect(body.getByRole("menuitemradio")).toHaveAttribute("aria-disabled", "true")
+    await userEvent.keyboard("{Home}{Enter}")
+    await expect(canvas.getByRole("status")).toHaveTextContent("Opened orders in this preview")
+  },
+}
+
+export const LongLabels: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Long command labels wrap inside the phone viewport instead of widening the page or hiding their meaning." } } },
+  args: { triggerText: "File commands", items: [{ type: "action", value: "download", label: "Download the complete catalog including archived products and regional delivery exceptions" }, { type: "action", value: "reference", label: "AKROS-2026-" + "AB1234567890".repeat(8) }] },
+}
+
+export const SubmenuKeyboardPolicy: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "A root's disabled looping and typeahead policies apply recursively to submenu commands." } } },
+  args: { triggerText: "Keyboard policy", loopFocus: false, typeahead: false, items: [{ type: "submenu", value: "actions", label: "More commands", items: [{ type: "action", value: "alpha", label: "Alpha command" }, { type: "action", value: "bravo", label: "Bravo command" }] }] },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Keyboard policy" }))
+    await waitFor(async () => expect(await body.findByRole("menu")).toHaveFocus())
+    await userEvent.keyboard("{Home}{ArrowRight}")
+    const first = await body.findByRole("menuitem", { name: "Alpha command" })
+    const second = body.getByRole("menuitem", { name: "Bravo command" })
+    await waitFor(() => expect(first).toHaveAttribute("data-highlighted"))
+    await userEvent.keyboard("b")
+    await expect(first).toHaveAttribute("data-highlighted")
+    await userEvent.keyboard("{End}{ArrowDown}")
+    await expect(second).toHaveAttribute("data-highlighted")
+    await userEvent.keyboard("{Escape}{Escape}")
   },
 }

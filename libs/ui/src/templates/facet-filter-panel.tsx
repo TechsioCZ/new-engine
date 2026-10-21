@@ -2,12 +2,12 @@
  * FacetFilterPanel - @techsio/ui-kit template.
  *
  * @component FacetFilterPanel
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill facet-filter-panel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
 import type { ReactNode } from "react"
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react"
 import { Button } from "../atoms/button"
 import { StatusText } from "../atoms/status-text"
 import { Accordion } from "../molecules/accordion"
@@ -47,7 +47,7 @@ const facetFilterPanelStyles = tv({
     triggerCount:
       "inline-flex min-w-facet-filter-panel-count items-center justify-center rounded-facet-filter-panel-count bg-facet-filter-panel-count-bg px-facet-filter-panel-count text-facet-filter-panel-count text-facet-filter-panel-count-fg",
     activeRoot:
-      "border-b-(length:--border-width-facet-filter-panel) flex flex-col gap-facet-filter-panel-active border-facet-filter-panel-border pb-facet-filter-panel-active",
+      "border-b-(length:--border-width-facet-filter-panel) flex flex-col gap-facet-filter-panel-active border-facet-filter-panel-border pb-facet-filter-panel-active data-empty:border-0 data-empty:pb-0",
     activeHeader:
       "flex flex-wrap items-center justify-between gap-facet-filter-panel-active",
     activeTitle:
@@ -148,6 +148,7 @@ export type FacetFilterActiveFiltersProps = {
   readOnly?: boolean
   className?: string
   onRemove?: (id: string) => void
+  fallbackFocusEl?: () => HTMLElement | null
   onReset?: () => void
 }
 
@@ -485,54 +486,125 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
   className,
   onRemove,
   onReset,
+  fallbackFocusEl,
 }: FacetFilterActiveFiltersProps) {
   const styles = facetFilterPanelStyles()
 
-  if (items.length === 0) {
-    return null
+  const sectionRef = useRef<HTMLElement>(null)
+  const pendingFocus = useRef<{
+    action: HTMLElement
+    ids: string[]
+    index: number
+  } | null>(null)
+  const itemKey = JSON.stringify(items.map((item) => item.id))
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reconcile only after the controlled item identities change.
+  useLayoutEffect(() => {
+    const pending = pendingFocus.current
+    const section = sectionRef.current
+    if (!(pending && section)) {
+      return
+    }
+    const document = section.ownerDocument
+    if (
+      document.activeElement !== document.body &&
+      document.activeElement !== pending.action
+    ) {
+      pendingFocus.current = null
+      return
+    }
+    if (pending.action.isConnected) {
+      return
+    }
+    const buttons = Array.from(
+      section.querySelectorAll<HTMLButtonElement>(
+        "[data-filter-id]:not(:disabled)"
+      )
+    )
+    const nextIds = [
+      ...pending.ids.slice(pending.index + 1),
+      ...pending.ids.slice(0, pending.index).reverse(),
+    ]
+    const target =
+      nextIds
+        .map((id) => buttons.find((button) => button.dataset.filterId === id))
+        .find(Boolean) ??
+      buttons[0] ??
+      fallbackFocusEl?.() ??
+      section.parentElement?.querySelector<HTMLElement>(
+        '[data-scope="accordion"][data-part="item-trigger"]:not(:disabled), [role="slider"]:not([aria-disabled="true"])'
+      ) ??
+      section
+    target.focus({ preventScroll: true })
+    pendingFocus.current = null
+  }, [itemKey, fallbackFocusEl])
+  const trackFocus = (action: HTMLElement, index: number) => {
+    if (action.ownerDocument.activeElement === action) {
+      pendingFocus.current = {
+        action,
+        ids: items.map((item) => item.id),
+        index,
+      }
+    }
   }
 
   return (
-    <section className={styles.activeRoot({ className })}>
-      <div className={styles.activeHeader()}>
-        <h3 className={styles.activeTitle()}>{label}</h3>
-        {!readOnly && (
-          <Button
-            disabled={disabled}
-            onClick={onReset}
-            size="sm"
-            theme="borderless"
-            type="button"
-            variant="primary"
-          >
-            {resetLabel}
-          </Button>
-        )}
-      </div>
-      <div className={styles.activeList()}>
-        {items.map((item) =>
-          readOnly ? (
-            <span className={styles.optionText()} key={item.id}>
-              {item.label}
-            </span>
-          ) : (
-            <Button
-              aria-label={item.removeLabel}
-              disabled={disabled}
-              icon="token-icon-close"
-              iconPosition="right"
-              key={item.id}
-              onClick={() => onRemove?.(item.id)}
-              size="sm"
-              theme="outlined"
-              type="button"
-              variant="primary"
-            >
-              {item.label}
-            </Button>
-          )
-        )}
-      </div>
+    <section
+      aria-label={typeof label === "string" ? label : "Active filters"}
+      className={styles.activeRoot({ className })}
+      data-empty={items.length === 0 ? "" : undefined}
+      ref={sectionRef}
+      tabIndex={-1}
+    >
+      {items.length > 0 && (
+        <>
+          <div className={styles.activeHeader()}>
+            <h3 className={styles.activeTitle()}>{label}</h3>
+            {!readOnly && (
+              <Button
+                disabled={disabled}
+                onClick={(event) => {
+                  trackFocus(event.currentTarget, -1)
+                  onReset?.()
+                }}
+                size="sm"
+                theme="borderless"
+                type="button"
+                variant="primary"
+              >
+                {resetLabel}
+              </Button>
+            )}
+          </div>
+          <div className={styles.activeList()}>
+            {items.map((item) =>
+              readOnly ? (
+                <span className={styles.optionText()} key={item.id}>
+                  {item.label}
+                </span>
+              ) : (
+                <Button
+                  aria-label={item.removeLabel}
+                  data-filter-id={item.id}
+                  disabled={disabled}
+                  icon="token-icon-close"
+                  iconPosition="right"
+                  key={item.id}
+                  onClick={(event) => {
+                    trackFocus(event.currentTarget, items.indexOf(item))
+                    onRemove?.(item.id)
+                  }}
+                  size="sm"
+                  theme="outlined"
+                  type="button"
+                  variant="primary"
+                >
+                  {item.label}
+                </Button>
+              )
+            )}
+          </div>
+        </>
+      )}
     </section>
   )
 }

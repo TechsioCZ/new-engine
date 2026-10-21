@@ -4,7 +4,8 @@
     ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
     "Segoe UI Symbol", "Noto Color Emoji";
 
-  /* Primitive Typography Tokens - Utopia fluid typography */
+  /* Fallback Utopia typography. Figma overrides sm/md/lg (0.88/1.25/1.5rem);
+   * the runtime bridge restores ordered fluid headings. See THEME-FLOW.md. */
   --text-xs: clamp(
     0.7813rem,
     0.7747rem +

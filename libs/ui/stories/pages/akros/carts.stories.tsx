@@ -103,6 +103,11 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
   )
   const [selectedId, setSelectedId] = useState(initialId)
   const [dialog, setDialog] = useState<CartDialog>(null)
+  const [shareDrafts, setShareDrafts] = useState<
+    Record<string, { recipient: string; message: string }>
+  >({})
+  const [shareDraft, setShareDraft] = useState({ recipient: "", message: "" })
+  const [shareInvalid, setShareInvalid] = useState(false)
   const [name, setName] = useState("")
   const [merge, setMerge] = useState(true)
   const [liveCarts, setLiveCarts] = useState<
@@ -246,7 +251,17 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
               <Button
                 disabled={readOnly}
                 icon="icon-[mdi--share-variant-outline]"
-                onClick={() => setDialog("share")}
+                onClick={() => {
+                  setShareInvalid(false)
+                  setShareDraft(
+                    shareDrafts[cart.id] ?? {
+                      recipient,
+                      message:
+                        "Dobrý den, posíláme košík připravený podle naší domluvy.",
+                    }
+                  )
+                  setDialog("share")
+                }}
                 size="sm"
                 variant="primary"
               >
@@ -434,6 +449,22 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             <Button
               icon="icon-[mdi--email-fast-outline]"
               onClick={() => {
+                if (
+                  !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                    shareDraft.recipient.trim()
+                  )
+                ) {
+                  setShareInvalid(true)
+                  document.getElementById("share-to")?.focus()
+                  return
+                }
+                setShareDrafts((current) => ({
+                  ...current,
+                  [cart.id]: {
+                    ...shareDraft,
+                    recipient: shareDraft.recipient.trim(),
+                  },
+                }))
                 updateCart({ state: "shared" })
                 setDialog(null)
                 toaster.create({
@@ -486,14 +517,32 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             </Button>
           </div>
           <FormInput
-            defaultValue={recipient}
+            value={shareDraft.recipient}
+            onChange={(event) =>
+              setShareDraft((current) => ({
+                ...current,
+                recipient: event.target.value,
+              }))
+            }
+            validateStatus={shareInvalid ? "error" : "default"}
+            helpText={
+              shareInvalid
+                ? "Enter a recipient email address, for example name@example.com."
+                : "Saved in this local demo only; no email is sent."
+            }
             id="share-to"
             key={cart.id}
             label="Recipient"
             type="email"
           />
           <FormTextarea
-            defaultValue="Dobrý den, posíláme košík připravený podle naší domluvy."
+            value={shareDraft.message}
+            onChange={(event) =>
+              setShareDraft((current) => ({
+                ...current,
+                message: event.target.value,
+              }))
+            }
             id="share-message"
             label="Message"
             rows={3}
@@ -508,6 +557,30 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole("button", { name: "Share" }))
+    const recipient = body.getByLabelText("Recipient")
+    await userEvent.clear(recipient)
+    await userEvent.type(recipient, "saved@example.com")
+    await userEvent.clear(body.getByLabelText("Message"))
+    await userEvent.type(body.getByLabelText("Message"), "Saved share message")
+    await userEvent.click(
+      body.getByRole("button", { name: "Save share draft" })
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Share" }))
+    await expect(body.getByLabelText("Recipient")).toHaveValue(
+      "saved@example.com"
+    )
+    await expect(body.getByLabelText("Message")).toHaveValue(
+      "Saved share message"
+    )
+    await userEvent.clear(body.getByLabelText("Message"))
+    await userEvent.type(body.getByLabelText("Message"), "Cancelled message")
+    await userEvent.keyboard("{Escape}")
+    await userEvent.click(canvas.getByRole("button", { name: "Share" }))
+    await expect(body.getByLabelText("Message")).toHaveValue(
+      "Saved share message"
+    )
+    await userEvent.keyboard("{Escape}")
     await userEvent.click(
       canvas.getByRole("button", { name: "Load to customer" })
     )

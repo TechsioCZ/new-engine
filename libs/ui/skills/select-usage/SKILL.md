@@ -6,7 +6,7 @@ description: >
   trigger, value text, clear trigger, item groups, item indicators, validation
   status, size, and multiple mode.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -114,7 +114,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Select items={[{ label: "Czechia", value: "CZ" }]} />
+import { SelectTemplate } from "@techsio/ui-kit/templates/select"
+
+<SelectTemplate label="Country" items={[{ label: "Czechia", value: "CZ" }]} />
 ```
 
 Source: libs/ui/src/molecules/select.tsx
@@ -130,7 +132,14 @@ Wrong:
 Correct:
 
 ```tsx
-<Select value={["CZ"]} items={items} />
+import { useState } from "react"
+import { SelectTemplate } from "@techsio/ui-kit/templates/select"
+
+function CountryField() {
+  const [value, setValue] = useState<string[]>(["CZ"])
+  return <SelectTemplate label="Country" items={[{ label: "Czechia", value: "CZ" }]}
+    value={value} onValueChange={({ value }) => setValue(value)} />
+}
 ```
 
 Source: https://zagjs.com/components/react/select
@@ -146,7 +155,10 @@ Wrong:
 Correct:
 
 ```tsx
-<Select validateStatus="error"><Select.Trigger /></Select>
+import { SelectTemplate } from "@techsio/ui-kit/templates/select"
+
+<SelectTemplate label="Country" items={[{ label: "Czechia", value: "CZ" }]}
+  validateStatus="error" helpText="Choose a delivery country before continuing." />
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_select.css
@@ -181,3 +193,17 @@ are sm/md/lg (default md); xs remains a compatibility alias, not a canonical siz
 `SelectTemplate` also accepts `helpText` and `triggerProps` for accessible naming
 and caller descriptions. Its `valueText` supports a static summary or render
 function. Visual/API changes need a Figma-sync handoff once this pass stabilizes.
+
+## Authoritative collection updates
+
+`items` is the complete authoritative collection, not a filtered page. Removing
+values prunes the effective selection without choosing a replacement, shows the
+placeholder when empty, and updates native submission/required validity together.
+Uncontrolled fields update themselves and emit `onValueChange` once; controlled
+fields emit the same correction request and safely render/submit the available
+subset until their owner applies it. Keep the full collection while loading if
+selections must survive a partial fetch. Renames/reordering refresh labels;
+becoming disabled retains an existing selection and its submission. Removed or
+disabled highlights clear. The native single-select has an explicit empty option.
+Trigger, Content and Item callbacks run consumer-first; `preventDefault()` cancels
+the machine action, while observational callbacks leave keyboard behavior intact.

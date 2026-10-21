@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.6
+ * @componentVersion v1.0.7
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -48,11 +48,12 @@ const tourStyles = tv({
       "tour-layer tour-content tour-border relative flex flex-col gap-tour-content rounded-tour bg-tour-bg p-tour text-tour-fg shadow-tour outline-hidden",
     arrow: "tour-arrow",
     arrowTip: "bg-tour-arrow-bg",
-    title: "pe-tour-title font-tour-title text-tour-title-size",
-    description: "text-tour-body-size text-tour-description-fg",
-    progressText: "text-tour-progress-fg text-tour-progress-size",
+    title: "shrink-0 pe-tour-title font-tour-title text-tour-title-size",
+    description:
+      "min-h-0 overflow-y-auto overscroll-contain text-tour-body-size text-tour-description-fg",
+    progressText: "shrink-0 text-tour-progress-fg text-tour-progress-size",
     actions:
-      "flex flex-wrap items-center justify-end gap-tour-actions pt-tour-actions",
+      "flex shrink-0 flex-wrap items-center justify-end gap-tour-actions pt-tour-actions",
     closeTrigger: "absolute end-tour-close top-tour-close",
   },
 })

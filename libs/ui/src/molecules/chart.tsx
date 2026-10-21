@@ -2,7 +2,7 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.1.1
+ * @componentVersion v1.2.0
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -32,12 +32,14 @@ import {
   type ChartTooltipInput,
   type ChartValue,
   colorLegend,
+  colorLegendItems,
   type DomChartDefinition,
   d3Curve,
   dot,
   group,
   lineY,
   type RenderChartSvgOptions,
+  type SceneNode,
   stack,
 } from "@tanstack/charts"
 import { polar, radialArc } from "@tanstack/charts/polar"
@@ -49,7 +51,7 @@ import { renderChartSvg } from "@tanstack/charts/svg"
 import { tooltip as chartTooltip } from "@tanstack/charts/tooltip"
 import { scaleUtc } from "d3-scale"
 import { curveMonotoneX, type PieArcDatum, pie } from "d3-shape"
-import { useMemo } from "react"
+import { useMemo, useRef, useState } from "react"
 import { usePrefersReducedMotion } from "../internal/reduced-motion"
 import { tv } from "../utils"
 
@@ -85,6 +87,8 @@ export type ChartProps<TDatum> = {
    * order. Without it the chart renders a single series in series-1.
    */
   series?: ChartAccessor<TDatum, string | number>
+  /** Stable identity order across filters and remounts; use the full unfiltered domain. */
+  seriesDomain?: readonly (string | number)[]
   /**
    * Multi-series layout: stacked (true) or side-by-side/overlapping (false).
    * Defaults to true for "area" and false for "bar"/"bar-horizontal".
@@ -127,6 +131,10 @@ export type ChartProps<TDatum> = {
   /** Longer accessible description. */
   ariaDescription?: string
   className?: string
+  /** Localized labels for the always-available data alternative and fallback states. */
+  dataTableLabel?: string
+  emptyLabel?: string
+  invalidLabel?: string
   /** Fires with the source row of the selected point, or null on deselect. */
   onSelect?: (datum: TDatum | null) => void
 }
@@ -135,6 +143,13 @@ const chartVariants = tv({
   slots: {
     root: "chart-base block w-full text-chart-fg",
     tooltip: "chart-tooltip popup-layer!",
+    alternative: "overflow-auto text-chart-data text-chart-fg",
+    summary:
+      "cursor-pointer rounded-chart-tooltip focus-visible:outline-chart-fg",
+    cell: "border-chart-tooltip-border border-b p-chart-tooltip text-start",
+    legend: "flex flex-wrap gap-chart-legend text-chart-data text-chart-fg",
+    legendItem: "inline-flex items-center gap-chart-item",
+    fallback: "p-chart-tooltip text-chart-data text-chart-fg",
   },
 })
 
@@ -170,6 +185,8 @@ type BuildConfig<TDatum> = {
   x: ChartAccessor<TDatum, string | number | Date>
   y: ChartAccessor<TDatum, number>
   series?: ChartAccessor<TDatum, string | number>
+  /** Stable identity order across filters and remounts; use the full unfiltered domain. */
+  seriesDomain?: readonly (string | number)[]
   stacked?: boolean
   points: boolean
   smooth: boolean
@@ -189,13 +206,14 @@ type ResolvedBuild<TDatum> = {
   getX: (datum: TDatum) => string | number | Date
   getY: (datum: TDatum) => number
   getSeries?: (datum: TDatum) => string | number
+  seriesDomain?: readonly (string | number)[]
   stacked?: boolean
   points: boolean
   curve?: ReturnType<typeof d3Curve>
   grid: boolean
   xLabel?: string
   yLabel?: string
-  valueTicks?: { format: (value: number) => string }
+  valueTicks?: { format?: (value: number) => string }
   valueAxis: ChartAxisOptions<number>
   xAxis: ChartAxisOptions<ChartValue>
   bandAxis: ChartAxisOptions<ChartValue>
@@ -219,7 +237,9 @@ type ResolvedBuild<TDatum> = {
 
 /** TanStack's categorical palette is six entries wide and indexes it modulo its
  * length, so a 7th distinct series silently repaints as series-1. */
+const READABLE_TICK_LABELS = { fontSize: 14, opacity: 1 }
 const MAX_SERIES = 6
+const LINE_DASHES = ["", "8 4", "2 4", "8 4 2 4", "12 4", "4 4"]
 
 type TooltipPoint = {
   xValue: unknown
@@ -246,14 +266,22 @@ function resolveXAxis<TDatum>(
 ): ChartAxisOptions<ChartValue> {
   const values = data.map(getX)
   if (values.length > 0 && values.every((value) => value instanceof Date)) {
-    return { scale: () => scaleUtc(), nice: true, axis: { label: xLabel } }
+    return {
+      scale: () => scaleUtc(),
+      nice: true,
+      axis: { label: xLabel, tickLabels: READABLE_TICK_LABELS },
+    }
   }
   if (values.length > 0 && values.every((value) => typeof value === "number")) {
-    return { scale: scaleLinear, nice: true, axis: { label: xLabel } }
+    return {
+      scale: scaleLinear,
+      nice: true,
+      axis: { label: xLabel, tickLabels: READABLE_TICK_LABELS },
+    }
   }
   return {
     scale: () => scalePoint<string | number | Date>().padding(0.1),
-    axis: { label: xLabel },
+    axis: { label: xLabel, tickLabels: READABLE_TICK_LABELS },
   }
 }
 
@@ -267,7 +295,7 @@ function resolveBuild<TDatum>(
   const isPolar = config.type === "pie" || config.type === "donut"
   const showLegend = config.legend ?? (config.series != null || isPolar)
   const { formatValue } = config
-  const valueTicks = formatValue ? { format: formatValue } : undefined
+  const valueTicks = { format: formatValue }
 
   warnOnSeriesOverflow(config.data, isPolar ? getX : getSeries)
 
@@ -364,7 +392,11 @@ function resolveBuild<TDatum>(
     scale: scaleLinear,
     nice: true,
     grid: config.grid,
-    axis: { label: config.yLabel, ticks: valueTicks },
+    axis: {
+      label: config.yLabel,
+      ticks: valueTicks,
+      tickLabels: READABLE_TICK_LABELS,
+    },
   }
 
   const xAxis = resolveXAxis(config.data, getX, config.xLabel)
@@ -374,6 +406,7 @@ function resolveBuild<TDatum>(
     getX,
     getY,
     getSeries,
+    seriesDomain: config.seriesDomain,
     stacked: config.stacked,
     points: config.points,
     curve: config.smooth ? d3Curve(curveMonotoneX) : undefined,
@@ -385,14 +418,26 @@ function resolveBuild<TDatum>(
     xAxis,
     bandAxis: {
       scale: () => scaleBand<string | number | Date>().padding(0.3),
-      axis: { label: config.xLabel },
+      axis: {
+        label: config.xLabel,
+        tickLabels: READABLE_TICK_LABELS,
+      },
     },
     tooltipFor,
     polarTooltip,
     shared: {
-      color: showLegend
-        ? { legend: colorLegend({ label: config.legendLabel }) }
-        : undefined,
+      color: {
+        domain: config.seriesDomain,
+        legend:
+          showLegend && config.type !== "line"
+            ? colorLegend({
+                label: config.legendLabel,
+                items: colorLegendItems({
+                  label: { fontSize: 14, fillOpacity: 1 },
+                }),
+              })
+            : undefined,
+      },
       svgAnimation: config.animate,
     },
   }
@@ -435,18 +480,25 @@ function buildLine<TDatum>(
   build: ResolvedBuild<TDatum>
 ): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
+  const identities = getSeries ? [...new Set(data.map(getSeries))] : [undefined]
   return {
-    marks: [
-      lineY(data, {
+    marks: identities.map((identity) => {
+      const rows = getSeries
+        ? data.filter((row) => getSeries(row) === identity)
+        : data
+      const index =
+        identity == null ? 0 : (build.seriesDomain?.indexOf(identity) ?? 0)
+      return lineY(rows, {
         x: getX,
         y: getY,
         z: getSeries,
         color: getSeries,
-        points: build.points,
+        points: build.points || rows.length === 1,
         curve: build.curve,
+        strokeDasharray: LINE_DASHES[index % LINE_DASHES.length],
         stroke: getSeries == null ? SERIES_1_PAINT : undefined,
-      }),
-    ],
+      })
+    }),
     scales: { x: build.xAxis, y: build.valueAxis },
     ...build.shared,
     tooltip: build.tooltipFor("y"),
@@ -516,7 +568,11 @@ function buildBars<TDatum>(
           scale: scaleLinear,
           nice: true,
           grid: build.grid,
-          axis: { label: build.yLabel, ticks: build.valueTicks },
+          axis: {
+            label: build.yLabel,
+            ticks: build.valueTicks,
+            tickLabels: READABLE_TICK_LABELS,
+          },
         },
         y: build.bandAxis,
       },
@@ -678,7 +734,165 @@ function renderCartesianChartSvg(
     )
     return { ...node, children }
   })
-  return renderChartSvg({ ...scene, nodes }, options)
+  return renderReadableChartSvg({ ...scene, nodes }, options)
+}
+
+function renderReadableChartSvg(
+  scene: ChartScene,
+  options: RenderChartSvgOptions
+) {
+  const readable = (node: SceneNode): SceneNode => {
+    if (node.kind === "group") {
+      return { ...node, children: node.children.map(readable) }
+    }
+    if (node.kind === "label") {
+      return {
+        ...node,
+        fontSize: Math.max(READABLE_TICK_LABELS.fontSize, node.fontSize ?? 0),
+        style: { ...node.style, fillOpacity: 1, opacity: 1 },
+      }
+    }
+    return node
+  }
+  return renderChartSvg({ ...scene, nodes: scene.nodes.map(readable) }, options)
+}
+
+function useStableSeriesDomain<TDatum>(
+  data: readonly TDatum[],
+  getIdentity: ((datum: TDatum) => string | number) | undefined,
+  domain?: readonly (string | number)[]
+) {
+  const seenIdentities = useRef<(string | number)[]>([])
+  for (const datum of data) {
+    const identity = getIdentity?.(datum)
+    if (identity != null && !seenIdentities.current.includes(identity)) {
+      seenIdentities.current.push(identity)
+    }
+  }
+  return domain ?? seenIdentities.current
+}
+
+function filterChartData<TDatum>(
+  data: readonly TDatum[],
+  x: ChartProps<TDatum>["x"],
+  y: ChartProps<TDatum>["y"]
+) {
+  const getX = toAccessor(x)
+  const getY = toAccessor(y)
+  return data.filter((datum) => {
+    const category = getX(datum)
+    return (
+      Number.isFinite(getY(datum)) &&
+      (typeof category !== "number" || Number.isFinite(category)) &&
+      (!(category instanceof Date) || Number.isFinite(category.getTime()))
+    )
+  })
+}
+function invalidPolarData<TDatum>(
+  data: readonly TDatum[],
+  validData: readonly TDatum[],
+  getY: (datum: TDatum) => number
+) {
+  const total = validData.reduce((sum, datum) => sum + getY(datum), 0)
+  return (
+    validData.length !== data.length ||
+    validData.some((datum) => getY(datum) < 0) ||
+    (validData.length > 0 && (!Number.isFinite(total) || total <= 0))
+  )
+}
+
+function ChartDataAlternative<TDatum>({
+  data,
+  x,
+  y,
+  series,
+  xLabel,
+  yLabel,
+  legendLabel,
+  formatValue,
+  ariaLabel,
+  dataTableLabel,
+}: ChartProps<TDatum>) {
+  const { alternative, summary, cell } = chartVariants()
+  const getX = toAccessor(x)
+  const getY = toAccessor(y)
+  const getSeries = series == null ? undefined : toAccessor(series)
+  const occurrences = new Map<string, number>()
+  return (
+    <details className={alternative()}>
+      <summary className={summary()}>{dataTableLabel}</summary>
+      <table>
+        <caption>{ariaLabel}</caption>
+        <thead>
+          <tr>
+            {getSeries && (
+              <th className={cell()} scope="col">
+                {legendLabel ??
+                  (typeof series === "string" ? series : "Series")}
+              </th>
+            )}
+            <th className={cell()} scope="col">
+              {xLabel ?? (typeof x === "string" ? x : "Category")}
+            </th>
+            <th className={cell()} scope="col">
+              {yLabel ?? (typeof y === "string" ? y : "Value")}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((datum) => {
+            const identity = `${String(getX(datum))}:${getSeries?.(datum) ?? ""}`
+            const occurrence = occurrences.get(identity) ?? 0
+            occurrences.set(identity, occurrence + 1)
+            return (
+              <tr key={`${identity}:${occurrence}`}>
+                {getSeries && <td className={cell()}>{getSeries(datum)}</td>}
+                <td className={cell()}>{String(getX(datum))}</td>
+                <td className={cell()}>
+                  {formatValue ? formatValue(getY(datum)) : String(getY(datum))}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </details>
+  )
+}
+
+function ChartLineLegend({
+  identities,
+  domain,
+  label,
+}: {
+  identities: (string | number)[]
+  domain: readonly (string | number)[]
+  label?: string
+}) {
+  const { legend, legendItem } = chartVariants()
+  return (
+    <ul aria-label={label} className={legend()}>
+      {identities.map((identity) => {
+        const index = Math.max(0, domain.indexOf(identity))
+        return (
+          <li className={legendItem()} key={identity}>
+            <svg aria-hidden="true" height="12" viewBox="0 0 32 12" width="32">
+              <line
+                stroke={`var(--color-chart-series-${(index % MAX_SERIES) + 1})`}
+                strokeDasharray={LINE_DASHES[index % LINE_DASHES.length]}
+                strokeWidth="2"
+                x1="0"
+                x2="32"
+                y1="6"
+                y2="6"
+              />
+            </svg>
+            {identity}
+          </li>
+        )
+      })}
+    </ul>
+  )
 }
 
 export function Chart<TDatum>({
@@ -687,6 +901,7 @@ export function Chart<TDatum>({
   x,
   y,
   series,
+  seriesDomain,
   stacked,
   points = false,
   smooth = false,
@@ -704,21 +919,40 @@ export function Chart<TDatum>({
   ariaLabel,
   ariaDescription,
   className,
+  dataTableLabel = "View chart data",
+  emptyLabel = "No data to display.",
+  invalidLabel = "Pie and donut values must be finite, non-negative numbers with a positive total.",
   onSelect,
 }: ChartProps<TDatum>) {
-  const { root, tooltip: tooltipSlot } = chartVariants()
+  const { root, tooltip: tooltipSlot, fallback } = chartVariants()
   const tooltipClassName = tooltipSlot()
   const prefersReducedMotion = usePrefersReducedMotion()
   const shouldAnimate = animate ?? !prefersReducedMotion
 
+  const [dismissed, setDismissed] = useState(false)
+  const getX = toAccessor(x)
+  const getY = toAccessor(y)
+  const getSeries = series == null ? undefined : toAccessor(series)
+  const isPolar = type === "pie" || type === "donut"
+  const validData = useMemo(() => filterChartData(data, x, y), [data, x, y])
+  const invalidPolar = isPolar && invalidPolarData(data, validData, getY)
+  const stableDomain = useStableSeriesDomain(
+    validData,
+    isPolar ? (datum) => String(getX(datum)) : getSeries,
+    // Polar marks use display labels as identities; normalize the explicit
+    // domain too so numeric categories keep their slots after filtering.
+    isPolar ? seriesDomain?.map(String) : seriesDomain
+  )
+  const domainKey = JSON.stringify(stableDomain)
   const definition = useMemo(
     () =>
       buildChartDefinition({
         type,
-        data,
+        data: invalidPolar ? [] : validData,
         x,
         y,
         series,
+        seriesDomain: JSON.parse(domainKey) as (string | number)[],
         stacked,
         points,
         smooth,
@@ -729,12 +963,15 @@ export function Chart<TDatum>({
         yLabel,
         formatValue,
         animate: shouldAnimate,
-        showTooltip: tooltip,
+        showTooltip: tooltip && !dismissed,
         tooltipClassName,
       }),
     [
       type,
-      data,
+      validData,
+      invalidPolar,
+      domainKey,
+      dismissed,
       x,
       y,
       series,
@@ -753,8 +990,6 @@ export function Chart<TDatum>({
     ]
   )
 
-  const isPolar = type === "pie" || type === "donut"
-
   const handleSelect = onSelect
     ? (point: ChartPoint<TDatum> | null) => {
         if (point == null) {
@@ -771,16 +1006,67 @@ export function Chart<TDatum>({
     : undefined
 
   return (
-    <TanstackChart
-      ariaDescription={ariaDescription}
-      ariaLabel={ariaLabel}
-      aspectRatio={height == null ? (aspectRatio ?? 16 / 9) : undefined}
+    <div
       className={root({ className })}
-      definition={definition}
-      height={height}
-      initialWidth={initialWidth}
-      onSelect={handleSelect}
-      renderSvg={isPolar ? undefined : renderCartesianChartSvg}
-    />
+      onKeyDownCapture={(event) => {
+        if (event.key === "Escape") {
+          setDismissed(true)
+        } else if (
+          [
+            "ArrowLeft",
+            "ArrowRight",
+            "ArrowUp",
+            "ArrowDown",
+            "Home",
+            "End",
+          ].includes(event.key)
+        ) {
+          setDismissed(false)
+        }
+      }}
+      onPointerMoveCapture={() => {
+        if (dismissed) {
+          setDismissed(false)
+        }
+      }}
+    >
+      {invalidPolar || validData.length === 0 ? (
+        <p className={fallback()} role="status">
+          {invalidPolar ? invalidLabel : emptyLabel}
+        </p>
+      ) : (
+        <TanstackChart
+          ariaDescription={ariaDescription}
+          ariaLabel={ariaLabel}
+          aspectRatio={height == null ? (aspectRatio ?? 16 / 9) : undefined}
+          definition={definition}
+          height={height}
+          initialWidth={initialWidth}
+          onSelect={handleSelect}
+          renderSvg={isPolar ? renderReadableChartSvg : renderCartesianChartSvg}
+        />
+      )}
+      {type === "line" && getSeries && legend !== false && !invalidPolar && (
+        <ChartLineLegend
+          domain={stableDomain}
+          identities={[...new Set(validData.map(getSeries))]}
+          label={legendLabel}
+        />
+      )}
+      {validData.length > 0 && !invalidPolar && (
+        <ChartDataAlternative
+          ariaLabel={ariaLabel}
+          data={validData}
+          dataTableLabel={dataTableLabel}
+          formatValue={formatValue}
+          legendLabel={legendLabel}
+          series={series}
+          x={x}
+          xLabel={xLabel}
+          y={y}
+          yLabel={yLabel}
+        />
+      )}
+    </div>
   )
 }

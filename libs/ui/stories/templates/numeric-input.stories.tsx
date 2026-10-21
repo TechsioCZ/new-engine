@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react"
 import { useEffect, useId, useState } from "react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { Label } from "../../src/atoms/label"
+import { StatusText } from "../../src/atoms/status-text"
 import { NumericInputTemplate } from "../../src/templates/numeric-input"
 
 const meta: Meta<typeof NumericInputTemplate> = {
@@ -12,8 +13,17 @@ const meta: Meta<typeof NumericInputTemplate> = {
     layout: "centered",
     docs: {
       description: {
-        component:
-          "NumericInputTemplate is a ready-to-use number editor with optional adjustment buttons. Use it for compact standalone quantities; choose FormNumericInput for labeled fields with validation or NumericInput for custom anatomy.",
+        component: `NumericInputTemplate is a ready-to-use number editor with optional adjustment buttons. Use it for compact standalone quantities; choose FormNumericInput for labeled fields with validation or NumericInput for custom anatomy.
+
+### Values and callbacks
+
+\`value\` and \`defaultValue\` accept \`number | string\`. Playground's numeric Controls demonstrate compatibility mode. For editable empty/partial drafts, retain string state as shown in Controlled Draft.
+
+- \`onChange\` receives a number for numeric compatibility; clearing can emit NaN. Never stringify it back into an editable draft.
+- \`onValueChange\` receives details: \`details.value\` is the editable string; \`details.valueAsNumber\` is parsed numeric data and may be NaN.
+- \`onValueCommit\` receives details on blur/Enter confirmation, not persistence. The application still validates and saves.
+
+\`clampValueOnBlur\` defaults to true; pass false to retain out-of-range drafts. Zag can normalize incomplete fragments on blur/Enter. See [NumericInput's draft guidance](?path=/docs/atoms-numericinput--docs) for the underlying compound API.`,
       },
     },
   },
@@ -24,14 +34,16 @@ const meta: Meta<typeof NumericInputTemplate> = {
     ref: { control: false, table: { disable: true } },
     value: {
       control: "number",
-      description: "Current value",
+      description:
+        "Controlled number or string draft. Numeric Controls demonstrate compatibility mode; use onValueChange/details.value to preserve editable text.",
       table: {
         category: "Value",
       },
     },
     defaultValue: {
       control: "number",
-      description: "Default value",
+      description:
+        "Initial uncontrolled number or string. String drafts are supported; numeric Controls demonstrate the numeric mode.",
       table: {
         category: "Value",
       },
@@ -150,10 +162,20 @@ const meta: Meta<typeof NumericInputTemplate> = {
         category: "Behavior",
       },
     },
+    onValueChange: {
+      control: false,
+      description:
+        "Full Zag details: details.value preserves the string draft; details.valueAsNumber is parsed data and can be NaN. See NumericInput usage guidance for draft and commit policies.",
+      table: { category: "Events", disable: false },
+    },
     onChange: {
       action: "changed",
+      control: false,
+      description:
+        "Numeric compatibility callback (value: number) => void; clearing can emit NaN. Do not convert this back into an editable draft.",
       table: {
         category: "Events",
+        disable: false,
       },
     },
   },
@@ -197,9 +219,9 @@ export const Playground: Story = {
     return (
       <NumericInputTemplate
         {...args}
-        onChange={(next) => {
-          setValue(next)
-          args.onChange?.(next)
+        onValueChange={(details) => {
+          setValue(details.value)
+          args.onValueChange?.(details)
         }}
         value={value}
       />
@@ -225,6 +247,7 @@ export const Playground: Story = {
 
 export const Sizes: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -265,6 +288,85 @@ export const Sizes: Story = {
     }
   },
 }
+export const States: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compare editable, unavailable, read-only and invalid quantities, including the outward-disabled stepper at each bound.",
+      },
+    },
+  },
+  render() {
+    const id = useId()
+    return (
+      <div className="flex w-full max-w-md flex-col gap-300">
+        {(
+          [
+            { label: "Editable quantity", value: 3 },
+            { label: "Unavailable quantity", value: 3, disabled: true },
+            { label: "Read-only quantity", value: 3, readOnly: true },
+            { label: "Invalid quantity", value: 12, invalid: true },
+            { label: "Minimum quantity", value: 1 },
+            { label: "Maximum quantity", value: 10 },
+          ] as const
+        ).map((item, index) => {
+          const inputId = `${id}-${index}`
+          const invalid = "invalid" in item && item.invalid
+          return (
+            <div key={item.label} className="flex flex-col gap-form-field-gap">
+              <Label htmlFor={inputId}>{item.label}</Label>
+              <NumericInputTemplate
+                id={inputId}
+                defaultValue={item.value}
+                disabled={"disabled" in item && item.disabled}
+                readOnly={"readOnly" in item && item.readOnly}
+                invalid={invalid}
+                describedBy={`${inputId}-help`}
+                aria-errormessage={invalid ? `${inputId}-help` : undefined}
+                min={1}
+                max={10}
+                clampValueOnBlur={false}
+              />
+              <StatusText
+                id={`${inputId}-help`}
+                status={invalid ? "error" : "default"}
+              >
+                {invalid
+                  ? "Enter a quantity between 1 and 10 before ordering."
+                  : "Order 1–10 pieces; only the outward stepper stops at a limit."}
+              </StatusText>
+            </div>
+          )
+        })}
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const invalid = canvas.getByRole("spinbutton", { name: "Invalid quantity" })
+    await expect(invalid).toHaveAttribute("aria-invalid", "true")
+    await expect(invalid).toHaveAccessibleDescription(
+      "Enter a quantity between 1 and 10 before ordering."
+    )
+    await expect(invalid.getAttribute("aria-errormessage")).toBeTruthy()
+    for (const [label, outward, inward] of [
+      ["Minimum quantity", "decrement-trigger", "increment-trigger"],
+      ["Maximum quantity", "increment-trigger", "decrement-trigger"],
+    ]) {
+      const input = canvas.getByRole("spinbutton", { name: label })
+      const control = input.parentElement
+      await expect(
+        control?.querySelector(`[data-part="${outward}"]`)
+      ).toBeDisabled()
+      await expect(
+        control?.querySelector(`[data-part="${inward}"]`)
+      ).not.toBeDisabled()
+    }
+  },
+}
+
 export const Disabled: Story = {
   parameters: {
     docs: {
@@ -323,6 +425,7 @@ export const Default: Story = {
 
 export const WithExternalLabel: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -353,5 +456,79 @@ export const WithExternalLabel: Story = {
     await expect(input).toHaveFocus()
     await userEvent.keyboard("{ArrowUp}")
     await waitFor(() => expect(input).toHaveAttribute("aria-valuenow", "4"))
+  },
+}
+
+export const ControlledDraft: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "String state and onValueChange preserve clearing and continued editing while focused; clampValueOnBlur=false retains overflow, while Zag may normalize partial fragments on blur/Enter.",
+      },
+    },
+  },
+  render() {
+    const [draft, setDraft] = useState("2")
+    return (
+      <div className="flex flex-col gap-100">
+        <NumericInputTemplate
+          aria-label="Quantity draft"
+          value={draft}
+          onValueChange={({ value }) => setDraft(value)}
+          clampValueOnBlur={false}
+          formatOptions={{ maximumFractionDigits: 2 }}
+          locale="en-US"
+        />
+        <StatusText>Draft: {draft || "(empty)"}</StatusText>
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("spinbutton", { name: "Quantity draft" })
+    await userEvent.clear(input)
+    await waitFor(() => expect(input).toHaveValue(""))
+    await expect(canvas.getByText("Draft: (empty)")).toBeVisible()
+    await userEvent.type(input, "3.")
+    await waitFor(() => expect(input).toHaveValue("3."))
+    await userEvent.type(input, "5")
+    await waitFor(() => expect(input).toHaveValue("3.5"))
+  },
+}
+
+export const NumericCompatibility: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Existing numeric callback consumers can clear and retype without exposing NaN/Infinity as text; new draft forms should use onValueChange instead.",
+      },
+    },
+  },
+  render() {
+    const [value, setValue] = useState(2)
+    return (
+      <NumericInputTemplate
+        aria-label="Numeric compatibility quantity"
+        value={value}
+        onChange={setValue}
+        min={1}
+        max={10}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("spinbutton", {
+      name: "Numeric compatibility quantity",
+    })
+    await userEvent.clear(input)
+    await waitFor(() => expect(input).toHaveValue(""))
+    await userEvent.type(input, "4")
+    await waitFor(() => expect(input).toHaveValue("4"))
+    await userEvent.tab()
+    await expect(input).toHaveValue("4")
   },
 }

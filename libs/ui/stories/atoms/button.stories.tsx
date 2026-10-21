@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
-import { expect, fn } from "storybook/test"
+import { expect, fn, userEvent, within } from "storybook/test"
+import { useState } from "react"
+import { Input } from "../../src/atoms/input"
+import { StatusText } from "../../src/atoms/status-text"
 import { iconLabels, iconOptions } from "../helpers/icon-options"
 
 const meta: Meta<typeof Button> = {
@@ -9,6 +12,7 @@ const meta: Meta<typeof Button> = {
   component: Button,
   tags: ["autodocs"],
   argTypes: {
+    composition: { table: { disable: true } },
     variant: {
       control: "select",
       options: ["primary", "secondary", "tertiary", "warning", "danger"],
@@ -151,6 +155,7 @@ export const Playground: Story = {
 
 export const Variants: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -233,6 +238,7 @@ export const Variants: Story = {
 
 export const Sizes: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -258,6 +264,7 @@ export const Sizes: Story = {
 
 export const States: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -298,6 +305,7 @@ export const States: Story = {
 
 export const AllVariants: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -340,6 +348,7 @@ export const AllVariants: Story = {
 
 export const IconButtons: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -364,4 +373,105 @@ export const IconButtons: Story = {
       </VariantGroup>
     </VariantContainer>
   ),
+}
+
+function PendingActionExample() {
+  const [pending, setPending] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+  const [result, setResult] = useState<"default" | "success" | "error">(
+    "default"
+  )
+  return (
+    <form
+      className="flex w-xs max-w-full flex-col gap-200"
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (pending) return
+        setPending(true)
+        setAttempts((value) => value + 1)
+        setResult("default")
+      }}
+    >
+      <Input aria-label="Project name" defaultValue="Autumn collection" />
+      <Button type="submit" isLoading={pending} loadingText="Saving changes…">
+        Save changes
+      </Button>
+      <p>
+        Save attempts: <output data-testid="save-attempts">{attempts}</output>
+      </p>
+      <div className="flex flex-wrap gap-150">
+        <Button
+          theme="outlined"
+          onClick={() => {
+            setPending(false)
+            setResult("success")
+          }}
+        >
+          Complete save
+        </Button>
+        <Button
+          theme="outlined"
+          onClick={() => {
+            setPending(false)
+            setResult("error")
+          }}
+        >
+          Fail save
+        </Button>
+        <Button
+          type="reset"
+          isLoading={pending}
+          loadingText="Reset unavailable while saving"
+          theme="outlined"
+        >
+          Reset project name
+        </Button>
+      </div>
+      <StatusText status={result}>
+        {pending
+          ? "Saving your changes."
+          : result === "success"
+            ? "Changes saved."
+            : result === "error"
+              ? "Changes could not be saved. Try Save changes again."
+              : "Start a save, then complete or fail it to inspect focus and retry."}
+      </StatusText>
+    </form>
+  )
+}
+
+export const PendingAction: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Pending submission retains focus and suppresses repeat activation; completion or failure allows a retry without stealing focus.",
+      },
+    },
+  },
+  render: () => <PendingActionExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const save = canvas.getByRole("button", { name: "Save changes" })
+    save.focus()
+    await userEvent.keyboard("{Enter}")
+    await expect(save).toHaveFocus()
+    await expect(save).toHaveAttribute("aria-busy", "true")
+    await expect(save).not.toBeDisabled()
+    await userEvent.keyboard("{Enter} ")
+    await userEvent.click(save)
+    await expect(canvas.getByTestId("save-attempts")).toHaveTextContent("1")
+    const fail = canvas.getByRole("button", { name: "Fail save" })
+    await userEvent.click(fail)
+    await expect(fail).toHaveFocus()
+    await expect(save).not.toHaveAttribute("aria-busy")
+    await userEvent.click(save)
+    await expect(save).toHaveFocus()
+    await expect(canvas.getByTestId("save-attempts")).toHaveTextContent("2")
+    const complete = canvas.getByRole("button", { name: "Complete save" })
+    await userEvent.click(complete)
+    await expect(complete).toHaveFocus()
+    await expect(canvas.getByText("Changes saved.")).toBeVisible()
+  },
 }

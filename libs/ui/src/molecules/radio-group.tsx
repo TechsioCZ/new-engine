@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,7 +16,7 @@ import {
   type Props as ZagRadioGroupProps,
   type ItemProps as ZagRadioItemProps,
 } from "@zag-js/radio-group"
-import { normalizeProps, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -26,6 +26,11 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import {
+  getControlledChoiceInputProps,
+  trackChoiceFormControl,
+  useChoiceFocusRecovery,
+} from "../atoms/checkbox"
 import { Label } from "../atoms/label"
 import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import {
@@ -36,9 +41,34 @@ import {
 } from "../internal/described-by"
 import { tv } from "../utils"
 
+/** @internal One reset integration for both radio compositions. */
+export const radioChoiceMachine: typeof machine = {
+  ...machine,
+  implementations: {
+    ...machine.implementations,
+    effects: {
+      ...machine.implementations?.effects,
+      trackFormControlState({ scope, context }) {
+        const root = scope.getById(scope.ids?.root ?? `radio-group:${scope.id}`)
+        return trackChoiceFormControl(
+          root,
+          () => context.set("value", context.initial("value")),
+          (disabled) => context.set("fieldsetDisabled", disabled)
+        )
+      },
+    },
+  },
+}
+
 const radioGroupVariants = tv({
   slots: {
-    root: ["flex w-full flex-col"],
+    root: [
+      "flex w-full flex-col",
+      "focus-visible:outline-(style:--default-ring-style)",
+      "focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-radio-group-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
     itemGroup: [
       "relative flex",
       "data-[orientation=horizontal]:flex-row",
@@ -252,7 +282,7 @@ export function RadioGroup({
   const id = providedId || generatedId
   const invalid = validateStatus === "error"
 
-  const service = useMachine(machine, {
+  const service = useMachine(radioChoiceMachine, {
     ...machineProps,
     id,
     disabled,
@@ -268,6 +298,7 @@ export function RadioGroup({
   })
 
   const api = connect(service, normalizeProps)
+  const focusRef = useChoiceFocusRecovery()
   const styles = radioGroupVariants({ size, variant })
   const describedBy = useDescribedBy()
   const errors = useDescribedBy()
@@ -292,7 +323,15 @@ export function RadioGroup({
     >
       <div
         className={styles.root({ className })}
-        ref={ref}
+        ref={(node) => {
+          focusRef.current = node
+          if (typeof ref === "function") {
+            return ref(node)
+          }
+          if (ref) {
+            ref.current = node
+          }
+        }}
         {...api.getRootProps()}
         aria-describedby={joinDescribedBy(
           ariaDescribedByProp,
@@ -300,6 +339,7 @@ export function RadioGroup({
         )}
         aria-errormessage={errors.describedById}
         aria-invalid={invalid || !!errors.describedById || undefined}
+        tabIndex={-1}
       >
         {children}
       </div>
@@ -430,13 +470,16 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
   const { itemProps, describedById: itemDescriptionId } =
     useRadioGroupItemContext()
   const styles = radioGroupVariants({ size, variant })
+  const inputProps = getControlledChoiceInputProps(
+    mergeProps(props, api.getItemHiddenInputProps(itemProps)),
+    api.getItemState(itemProps).checked
+  )
 
   return (
     <input
       className={styles.hiddenInput({ className })}
       ref={ref}
-      {...api.getItemHiddenInputProps(itemProps)}
-      {...props}
+      {...inputProps}
       aria-describedby={joinDescribedBy(
         props["aria-describedby"],
         callerDescribedBy,

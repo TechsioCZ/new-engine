@@ -9,13 +9,52 @@ async function openStory(page: Page, storyId: string) {
 }
 
 test.describe("Drawer behavior", () => {
-  test.beforeEach(async ({ page }, testInfo) => {
-    // biome-ignore lint/suspicious/noSkippedTests: Run shared behavior coverage once, not per visual device.
-    test.skip(
-      testInfo.project.name !== "desktop",
-      "Drawer interactions are covered once on desktop"
-    )
+  test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" })
+  })
+
+  test("keeps close actions in the visible detent and accepts touch dragging", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 740 })
+    await openStory(page, "molecules-drawer--snap-points-and-swipe")
+    await page.getByRole("button", { name: "Open snap drawer" }).click()
+    const dialog = page.getByRole("dialog", { name: "Product filters" })
+    for (const detent of ["25%", "50%", "100%"]) {
+      await dialog.getByRole("button", { name: detent, exact: true }).click()
+      const close = dialog.getByRole("button", { name: "Close", exact: true })
+      await expect(close).toBeInViewport()
+    }
+    const grabber = dialog.locator('[data-part="grabber"]')
+    await grabber.evaluate(async (element) => {
+      const rect = element.getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top + rect.height / 2
+      const dispatch = (target: EventTarget, type: string, clientY: number) =>
+        target.dispatchEvent(
+          new PointerEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            pointerId: 7,
+            pointerType: "touch",
+            isPrimary: true,
+            buttons: type === "pointerup" ? 0 : 1,
+            button: 0,
+            clientX: x,
+            clientY,
+          })
+        )
+      dispatch(element, "pointerdown", y)
+      for (let step = 1; step <= 12; step++) {
+        dispatch(element, "pointermove", y + step * 20)
+        await new Promise((resolve) => setTimeout(resolve, 20))
+      }
+      dispatch(element, "pointerup", y + 240)
+    })
+    await expect(dialog.getByText("Active height: 0.5")).toBeVisible()
+    await expect(
+      dialog.getByRole("button", { name: "Close", exact: true })
+    ).toBeInViewport()
   })
 
   test("opens, closes with Escape, and restores trigger focus", async ({

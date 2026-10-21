@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,7 +10,12 @@
  * the select-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
-import * as select from "@zag-js/select"
+import {
+  connect as connectSelect,
+  collection as createSelectCollection,
+  machine as selectMachine,
+  type Props as ZagSelectProps,
+} from "@zag-js/select"
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -19,6 +24,9 @@ import {
   useContext,
   useEffect,
   useId,
+  useMemo,
+  useRef,
+  useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
@@ -56,7 +64,10 @@ export type SelectItem = {
 const selectVariants = tv({
   slots: {
     root: ["relative", "flex flex-col gap-select", "w-full"],
-    control: ["relative flex items-center justify-between", "w-full"],
+    control: [
+      "select-clear-gutter relative flex items-center justify-between",
+      "w-full",
+    ],
     // Zag sets `min-width: max-content` inline, so this resolves to
     // max(trigger width, content width) — the panel is never narrower than
     // the control that opened it.
@@ -128,7 +139,7 @@ const selectVariants = tv({
       "font-medium text-popup-item-fg-muted",
     ],
     valueText: [
-      "flex-grow truncate font-normal",
+      "min-w-0 flex-1 truncate font-normal",
       "data-[placeholder]:font-normal data-[placeholder]:text-select-placeholder",
     ],
   },
@@ -170,7 +181,7 @@ const selectVariants = tv({
 })
 
 type SelectContextValue = {
-  api: ReturnType<typeof select.connect>
+  api: ReturnType<typeof connectSelect>
   size: SelectSize
   items: SelectItem[]
   validateStatus: "default" | "error" | "success" | "warning"
@@ -207,7 +218,8 @@ function useSelectItemContext() {
 
 // === ROOT COMPONENT ===
 export type SelectProps = VariantProps<typeof selectVariants> &
-  Omit<select.Props, "collection" | "id" | "invalid"> & {
+  Omit<ZagSelectProps, "collection" | "id" | "invalid"> & {
+    /** Authoritative options; removed values are cleared, not replaced implicitly. */
     items: SelectItem[]
     id?: string
     className?: string
@@ -247,18 +259,29 @@ export function Select({
   // Derive invalid from validateStatus for Zag.js accessibility
   const invalid = validateStatus === "error"
 
-  const collection = select.collection({
-    items,
-    itemToString: (item) =>
-      item.displayValue ??
-      (typeof item.label === "string" || typeof item.label === "number"
-        ? String(item.label)
-        : item.value),
-    itemToValue: (item) => item.value,
-    isItemDisabled: (item) => !!item.disabled,
-  })
+  const [internalValue, setInternalValue] = useState(defaultValue ?? [])
+  const requestedValue = value ?? internalValue
+  const effectiveValue = requestedValue.filter((selected) =>
+    items.some((item) => item.value === selected)
+  )
+  const reconciliation = useRef<string | null>(null)
 
-  const service = useMachine(select.machine, {
+  const collection = useMemo(
+    () =>
+      createSelectCollection({
+        items,
+        itemToString: (item) =>
+          item.displayValue ??
+          (typeof item.label === "string" || typeof item.label === "number"
+            ? String(item.label)
+            : item.value),
+        itemToValue: (item) => item.value,
+        isItemDisabled: (item) => !!item.disabled,
+      }),
+    [items]
+  )
+
+  const service = useMachine(selectMachine, {
     ...machineProps,
     id,
     open: readOnly || disabled ? false : machineProps.open,
@@ -274,9 +297,20 @@ export function Select({
     closeOnSelect,
     loopFocus,
     defaultValue,
-    value,
+    value: effectiveValue,
+    highlightedValue:
+      machineProps.highlightedValue &&
+      (!collection.has(machineProps.highlightedValue) ||
+        collection.getItemDisabled(
+          collection.find(machineProps.highlightedValue)
+        ))
+        ? null
+        : machineProps.highlightedValue,
     onValueChange: (details) => {
       if (!(readOnly || disabled)) {
+        if (value === undefined) {
+          setInternalValue(details.value)
+        }
         onValueChange?.(details)
       }
     },
@@ -284,7 +318,40 @@ export function Select({
     onHighlightChange,
   })
 
-  const api = select.connect(service, normalizeProps)
+  // Collection updates are parent-owned changes, including while read-only.
+  // Request controlled correction once; never select an arbitrary replacement.
+  useEffect(() => {
+    if (effectiveValue.length === requestedValue.length) {
+      reconciliation.current = null
+      return
+    }
+    const key = JSON.stringify([requestedValue, effectiveValue])
+    if (reconciliation.current === key) {
+      return
+    }
+    reconciliation.current = key
+    if (value === undefined) {
+      setInternalValue(effectiveValue)
+    }
+    onValueChange?.({
+      value: effectiveValue,
+      items: collection.findMany(effectiveValue),
+    })
+  }, [collection, effectiveValue, requestedValue, value, onValueChange])
+
+  const api = connectSelect(service, normalizeProps)
+  useEffect(() => {
+    const highlighted = service.context.get("highlightedValue")
+    if (
+      highlighted &&
+      (!collection.has(highlighted) ||
+        collection.getItemDisabled(collection.find(highlighted)))
+    ) {
+      service.send({ type: "HIGHLIGHTED_VALUE.CLEAR" })
+    }
+  }, [collection, service])
+  const { defaultValue: _nativeDefaultValue, ...hiddenSelectProps } =
+    api.getHiddenSelectProps()
   const styles = selectVariants({ size })
   const describedBy = useDescribedBy()
   const errors = useDescribedBy()
@@ -305,7 +372,7 @@ export function Select({
     >
       {/* Hidden form select for native form submission */}
       <select
-        {...api.getHiddenSelectProps()}
+        {...hiddenSelectProps}
         onChange={(event) => {
           if (readOnly || disabled) {
             event.preventDefault()
@@ -314,7 +381,11 @@ export function Select({
             }
             return
           }
-          api.getHiddenSelectProps().onChange?.(event)
+          if (!multiple && event.currentTarget.value === "") {
+            api.setValue([])
+          } else {
+            api.getHiddenSelectProps().onChange?.(event)
+          }
         }}
         onInput={(event) => {
           if (readOnly || disabled) {
@@ -324,11 +395,21 @@ export function Select({
             }
             return
           }
-          api.getHiddenSelectProps().onInput?.(event)
+          if (!multiple && event.currentTarget.value === "") {
+            api.setValue([])
+          } else {
+            api.getHiddenSelectProps().onInput?.(event)
+          }
         }}
+        value={multiple ? effectiveValue : (effectiveValue[0] ?? "")}
       >
+        {!multiple && <option value="" />}
         {items.map((item) => (
-          <option disabled={item.disabled} key={item.value} value={item.value}>
+          <option
+            disabled={item.disabled && !effectiveValue.includes(item.value)}
+            key={item.value}
+            value={item.value}
+          >
             {item.displayValue ??
               (typeof item.label === "string" || typeof item.label === "number"
                 ? String(item.label)
@@ -361,7 +442,10 @@ Select.Label = function SelectLabel({ children, ...props }: SelectLabelProps) {
   const { api, size } = useSelectContext()
 
   return (
-    <Label size={toControlSize(size)} {...api.getLabelProps()} {...props}>
+    <Label
+      size={toControlSize(size)}
+      {...mergeProps(api.getLabelProps(), props)}
+    >
       {children}
     </Label>
   )
@@ -383,9 +467,9 @@ Select.Control = function SelectControl({
   return (
     <div
       className={styles.control({ className })}
+      data-size={toControlSize(size)}
       ref={ref}
-      {...api.getControlProps()}
-      {...props}
+      {...mergeProps(api.getControlProps(), props)}
     >
       {children}
     </div>
@@ -429,7 +513,7 @@ Select.Trigger = function SelectTrigger({
       ref={ref}
       size="current"
       theme="unstyled"
-      {...mergeProps(props, api.getTriggerProps())}
+      {...mergeProps(api.getTriggerProps(), props)}
       disabled={disabled || props.disabled}
       {...validationDataAttrs}
       aria-describedby={joinDescribedBy(
@@ -437,9 +521,10 @@ Select.Trigger = function SelectTrigger({
         describedById,
         readOnly && !disabled ? readOnlyId : undefined
       )}
-      aria-errormessage={
+      aria-errormessage={joinDescribedBy(
+        props["aria-errormessage"],
         validateStatus === "error" ? errors.describedById : undefined
-      }
+      )}
       aria-invalid={
         validateStatus === "error" || props["aria-invalid"] || undefined
       }
@@ -448,7 +533,7 @@ Select.Trigger = function SelectTrigger({
       {children}
       {!readOnly && (
         <Icon
-          className={`${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+          className={`shrink-0 ${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
             api.open ? "rotate-180" : "rotate-none"
           }`}
           icon="token-icon-select-indicator"
@@ -509,6 +594,7 @@ Select.ValueText = function SelectValueText({
 
   return (
     <span
+      {...api.getValueTextProps()}
       className={styles.valueText({ className })}
       data-placeholder={!hasValue || undefined}
       ref={ref}
@@ -541,7 +627,7 @@ Select.ClearTrigger = function SelectClearTrigger({
       ref={ref}
       size={toControlSize(size)}
       tone="neutral"
-      {...mergeProps(props, api.getClearTriggerProps())}
+      {...mergeProps(api.getClearTriggerProps(), props)}
       aria-label={props["aria-label"] ?? "Clear selection"}
       disabled={disabled || props.disabled}
       type="button"
@@ -590,11 +676,17 @@ Select.Content = function SelectContent({
   const styles = selectVariants({ size })
 
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Zag supplies role=listbox and tabIndex; the consumer handler must run before its keyboard action.
     <ul
       className={styles.content({ className })}
       ref={ref}
-      {...api.getContentProps()}
-      {...props}
+      {...mergeProps(api.getContentProps(), props)}
+      onKeyDown={(event) => {
+        props.onKeyDown?.(event)
+        if (!event.defaultPrevented) {
+          api.getContentProps().onKeyDown?.(event)
+        }
+      }}
     >
       {children}
     </ul>
@@ -620,8 +712,7 @@ Select.ItemGroup = function SelectItemGroup({
     <div
       className={styles.itemGroup({ className })}
       ref={ref}
-      {...api.getItemGroupProps({ id })}
-      {...props}
+      {...mergeProps(api.getItemGroupProps({ id }), props)}
     >
       {children}
     </div>
@@ -647,8 +738,7 @@ Select.ItemGroupLabel = function SelectItemGroupLabel({
     <div
       className={styles.itemGroupLabel({ className })}
       ref={ref}
-      {...api.getItemGroupLabelProps({ htmlFor })}
-      {...props}
+      {...mergeProps(api.getItemGroupLabelProps({ htmlFor }), props)}
     >
       {children}
     </div>
@@ -678,8 +768,7 @@ Select.Item = function SelectItem({
       <li
         className={styles.item({ className })}
         ref={ref}
-        {...api.getItemProps({ item })}
-        {...props}
+        {...mergeProps(api.getItemProps({ item }), props)}
       >
         {children}
       </li>
@@ -705,8 +794,7 @@ Select.ItemText = function SelectItemText({
     <span
       className={styles.itemText({ className })}
       ref={ref}
-      {...api.getItemTextProps({ item })}
-      {...props}
+      {...mergeProps(api.getItemTextProps({ item }), props)}
     >
       {children || item.label}
     </span>
@@ -732,8 +820,7 @@ Select.ItemIndicator = function SelectItemIndicator({
     <span
       className={styles.itemIndicator({ className })}
       ref={ref}
-      {...api.getItemIndicatorProps({ item })}
-      {...props}
+      {...mergeProps(api.getItemIndicatorProps({ item }), props)}
     >
       <Icon icon="token-icon-select-check" size={iconSize} />
     </span>

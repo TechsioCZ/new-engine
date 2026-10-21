@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit template.
  *
  * @component Select
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -33,13 +33,16 @@ type SelectTemplateValueTextProps = Omit<
 }
 
 export type SelectTemplateProps = Omit<SelectProps, "children"> & {
+  /** StatusText below the field, linked to its trigger; follows validateStatus. */
   helpText?: ReactNode
+  /** DOM attributes and events for the focusable trigger. */
   triggerProps?: ComponentPropsWithoutRef<"button">
   label?: ReactNode
   labelProps?: SelectTemplateLabelProps
   placeholder?: string
   valueText?: ReactNode | ((items: SelectItem[]) => ReactNode)
   valueTextProps?: SelectTemplateValueTextProps
+  /** Show selected-option checkmarks (default true), not the trigger chevron. */
   showIndicator?: boolean
   renderItem?: (item: SelectItem) => ReactNode
   ref?: Ref<HTMLDivElement>

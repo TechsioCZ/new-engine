@@ -1,6 +1,7 @@
 import { DocsContainer } from "@storybook/addon-docs/blocks"
 import { type ComponentProps, useEffect, useState } from "react"
 import { themes } from "storybook/theming"
+import { AccessibleDocsContent } from "./docs-accessibility"
 import "./docs.css"
 
 type DocsContainerProps = ComponentProps<typeof DocsContainer>
@@ -36,7 +37,7 @@ export function ThemedDocsContainer({
   }, [])
   return (
     <DocsContainer {...props} theme={dark ? themes.dark : themes.light}>
-      {children}
+      <AccessibleDocsContent>{children}</AccessibleDocsContent>
     </DocsContainer>
   )
 }

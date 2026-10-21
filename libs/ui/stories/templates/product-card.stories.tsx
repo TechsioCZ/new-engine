@@ -1,6 +1,9 @@
-import { expect, fn, within } from "storybook/test"
+import { expect, fn, userEvent, within } from "storybook/test"
 import type { Meta, StoryObj } from "@storybook/react"
-import { ProductCardTemplate } from "../../src/templates/product-card"
+import {
+  ProductCardTemplate,
+  type ProductCardTemplateProps,
+} from "../../src/templates/product-card"
 
 const productImages = {
   tshirt: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400",
@@ -12,18 +15,15 @@ const productImages = {
   backpack: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400",
 }
 
-const meta: Meta<typeof ProductCardTemplate> = {
+const meta: Meta<ProductCardTemplateProps> = {
   title: "Templates/ProductCardTemplate",
   component: ProductCardTemplate,
   parameters: {
     layout: "centered",
     docs: {
       description: {
-        component: `
-          A ready-to-use catalog card for comparing product images, prices, stock and aggregate ratings.
-          Use this props-based template for standard product lists; use the compound ProductCard when you need a custom buy box or media composition.
-          Aggregate ratings are static accessible summaries, not form controls.
-        `,
+        component:
+          "A ready-to-use catalog card for comparing product images, prices, stock and aggregate ratings. Use this props-based template for standard product lists; use the compound ProductCard when you need a custom buy box or media composition. Aggregate ratings are static accessible summaries, not form controls.",
       },
     },
   },
@@ -137,14 +137,14 @@ const meta: Meta<typeof ProductCardTemplate> = {
 }
 
 export default meta
-type Story = StoryObj<typeof ProductCardTemplate>
+type Story = StoryObj<ProductCardTemplateProps>
 
 export const Playground: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.queryByRole("radiogroup")).not.toBeInTheDocument()
     await expect(
-      canvas.getByRole("img", { name: "4.5 out of 5 stars" }),
+      canvas.getByRole("img", { name: "4.5 out of 5 stars" })
     ).toBeVisible()
   },
 
@@ -152,7 +152,7 @@ export const Playground: Story = {
     docs: {
       description: {
         story:
-          "Adjust the controls to explore product card using realistic content and immediately visible results.",
+          "Edit the card content to compare badges, sale prices and static aggregate ratings; action callbacks are local Storybook events.",
       },
     },
   },
@@ -192,7 +192,7 @@ export const Default: Story = {
     docs: {
       description: {
         story:
-          "Compare default in product card to choose a suitable presentation for real product content.",
+          "Show a basic catalog card with one current price and an add-to-cart action without requiring ratings or badges.",
       },
     },
   },
@@ -214,7 +214,7 @@ export const OnSale: Story = {
     docs: {
       description: {
         story:
-          "Compare on sale in product card to choose a suitable presentation for real product content.",
+          "Compare a labeled previous price with the current sale amount while keeping promotion badges and aggregate reviews distinct.",
       },
     },
   },
@@ -244,7 +244,7 @@ export const OutOfStock: Story = {
     docs: {
       description: {
         story:
-          "Compare out of stock in product card to choose a suitable presentation for real product content.",
+          "Use an explicit unavailable-stock message and a Notify Me action instead of suggesting an unavailable product can be added to the cart.",
       },
     },
   },
@@ -267,5 +267,76 @@ export const OutOfStock: Story = {
     },
     showActions: true,
     cartButtonText: "Notify Me",
+  },
+}
+
+const badgeHover = fn()
+export const LinkedSaleCard: Story = {
+  args: {
+    name: "Montážní sada M8",
+    href: "#montazni-sada-m8",
+    showActions: false,
+    price: "249 Kč",
+    originalPrice: "299 Kč",
+    currentPriceLabel: "Aktuální cena",
+    originalPriceLabel: "Původní cena",
+    linkProps: { onClick: (event) => event.preventDefault() },
+    badges: [
+      {
+        key: "stock",
+        variant: "info",
+        children: "Skladem",
+        size: "lg",
+        title: "Stock status",
+        "aria-label": "Available now",
+        className: "commerce-standard-badge",
+        style: { opacity: 0.9 },
+        onMouseEnter: badgeHover,
+      },
+      {
+        key: "offer",
+        variant: "dynamic",
+        children: "Akce",
+        size: "lg",
+        bgColor: "var(--color-primary)",
+        borderColor: "var(--color-primary)",
+        fgColor: "var(--color-primary-fg)",
+        "aria-label": "Special offer",
+        title: "Offer details",
+        className: "commerce-dynamic-badge",
+        style: { opacity: 0.9 },
+        onMouseEnter: badgeHover,
+      },
+    ],
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A product-name link remains reachable without action buttons, sale prices have localized meanings, and standard and dynamic badges retain their supplied attributes; navigation is intercepted in this demo.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const link = canvas.getByRole("link", { name: "Montážní sada M8" })
+    await expect(link).toHaveAttribute("href", "#montazni-sada-m8")
+    link.focus()
+    await expect(link).toHaveFocus()
+    await userEvent.keyboard("{Enter}")
+    await expect(canvas.queryByRole("button")).not.toBeInTheDocument()
+    await expect(canvas.getByText("Původní cena:")).toBeInTheDocument()
+    await expect(canvas.getByText("Aktuální cena:")).toBeInTheDocument()
+    badgeHover.mockClear()
+    for (const label of ["Available now", "Special offer"]) {
+      const badge = canvas.getByLabelText(label)
+      await expect(badge).toHaveStyle({ opacity: "0.9" })
+      await expect(badge.className).toContain("lg")
+      await expect(badge.className).toContain("commerce-")
+      await expect(badge).toHaveAttribute("title")
+      await userEvent.hover(badge)
+      await userEvent.unhover(badge)
+    }
+    await expect(badgeHover).toHaveBeenCalledTimes(2)
   },
 }

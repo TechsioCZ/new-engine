@@ -337,3 +337,22 @@ export const AccessibleMeaning: Story = {
     ).toHaveLength(1)
   },
 }
+
+
+export const LoadingMotion: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "The shared loading glyph uses CSS rotation only when motion is allowed; reduced motion keeps a meaningful static glyph instead of an animated SVG mask." } } },
+  render: () => <Icon icon="token-icon-spinner" label="Loading order details" size="md" />,
+  play: async ({ canvasElement }) => {
+    const icon = within(canvasElement).getByRole("img", { name: "Loading order details" })
+    const view = canvasElement.ownerDocument.defaultView
+    if (!view) throw new Error("Icon checks need a rendered document")
+    const style = view.getComputedStyle(icon)
+    await expect(style.maskImage).not.toBe("none")
+    await expect(decodeURIComponent(style.maskImage)).not.toMatch(/<animate(?:Transform)?\b/)
+    if (view.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      await expect(style.animationName).toBe("none")
+    } else {
+      await expect(style.animationName).toBe("spin")
+    }
+  },
+}

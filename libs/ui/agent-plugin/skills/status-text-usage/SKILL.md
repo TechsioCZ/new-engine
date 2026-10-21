@@ -5,7 +5,7 @@ description: >
   for inline validation, success, warning, or default status messages with
   default-on state icons and size/alignment props.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -206,3 +206,7 @@ Override role/ARIA if a parent already owns announcements.
 Feedback uses a deliberately quieter 12/14/16px sm/md/lg scale. Match the
 field size prop rather than choosing a smaller helper size to compensate
 for typography. Icons inherit this message scale and stay on its first line.
+
+## Typography overrides
+
+`--line-height-status-text-sm/md/lg` controls the corresponding message line height through the registered text utility. The default is 1.5; a length override is supported. The decorative icon frame stays aligned to the first line.

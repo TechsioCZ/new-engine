@@ -33,3 +33,28 @@
     animation: none;
   }
 }
+
+/* The clear action is a sibling button; reserve its hit target before the chevron. */
+@utility select-clear-gutter {
+  --select-clear-size: var(--size-icon-control-md);
+  --select-trigger-padding: var(--padding-select-trigger-md);
+  --select-chevron-size: var(--text-icon-control-md);
+  &[data-size="sm"] {
+    --select-clear-size: var(--size-icon-control-sm);
+    --select-trigger-padding: var(--padding-select-trigger-sm);
+    --select-chevron-size: var(--text-icon-control-sm);
+  }
+  &[data-size="lg"] {
+    --select-clear-size: var(--size-icon-control-lg);
+    --select-chevron-size: var(--text-icon-control-lg);
+  }
+  [data-part="clear-trigger"] {
+    inset-inline-end: calc(
+      var(--select-trigger-padding) +
+      var(--select-chevron-size)
+    );
+  }
+  &:has([data-part="clear-trigger"]:not([hidden])) [data-part="value-text"] {
+    margin-inline-end: var(--select-clear-size);
+  }
+}

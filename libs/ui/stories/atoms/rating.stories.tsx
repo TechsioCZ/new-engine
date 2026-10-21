@@ -1,6 +1,8 @@
+import { useId, useState } from "react"
+import { Button } from "../../src/atoms/button"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useArgs } from "storybook/preview-api"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Rating } from "../../src/atoms/rating"
 const describe = (story: string) => ({ docs: { description: { story } } })
@@ -263,5 +265,57 @@ export const TenPointScale: Story = {
       await expect(bounds.width).toBeGreaterThanOrEqual(24)
       await expect(bounds.height).toBeGreaterThanOrEqual(24)
     }
+  },
+}
+
+export const ExternalLabel: Story = {
+  parameters: describe("An external label names the actual radiogroup instead of only its generic wrapper."),
+  render: function ExternalLabel() {
+    const id = useId()
+    return <div className="flex flex-col gap-150"><span id={id}>Rate delivery speed</span><Rating aria-labelledby={id} name="delivery-score" defaultValue={3} /></div>
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole("radiogroup")).toHaveAccessibleName("Rate delivery speed")
+  },
+}
+
+export const ChangingScale: Story = {
+  parameters: describe("Changing the scale clamps scores and recovers removed-star focus; reset restores the original default using the current precision."),
+  render: function ChangingScale() {
+    const [count, setCount] = useState(5)
+    const [allowHalf, setAllowHalf] = useState(true)
+    const [changes, setChanges] = useState(0)
+    return <form aria-label="Delivery review" className="flex w-full max-w-md flex-col gap-200" onSubmit={(event) => event.preventDefault()}>
+      <Rating name="score" labelText="Rate your delivery" defaultValue={4.5} count={count} allowHalf={allowHalf} onChange={() => setChanges((value) => value + 1)} />
+      <p className="text-sm text-fg-secondary">Score changes: {changes}</p>
+      <div className="flex flex-wrap gap-150">
+        <Button variant="secondary" onClick={() => setTimeout(() => setCount(3), 100)}>Use three stars after focus moves</Button>
+        <Button variant="secondary" onClick={() => setAllowHalf(false)}>Use whole stars</Button>
+        <Button variant="secondary" type="reset">Restore original score</Button>
+      </div>
+    </form>
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const form = canvas.getByRole("form", { name: "Delivery review" }) as HTMLFormElement
+    await userEvent.click(canvas.getByRole("button", { name: "Use three stars after focus moves" }))
+    canvas.getAllByRole("radio")[4]?.focus()
+    await waitFor(() => expect(canvas.getAllByRole("radio")).toHaveLength(3))
+    await waitFor(() => expect(new FormData(form).get("score")).toBe("3"))
+    await expect(canvas.getByRole("radio", { checked: true })).toHaveFocus()
+    await expect(canvas.getByText("Score changes: 1")).toBeVisible()
+    await userEvent.click(canvas.getByRole("button", { name: "Use whole stars" }))
+    const selected = canvas.getByRole("radio", { checked: true })
+    selected.focus()
+    await userEvent.keyboard("{ArrowLeft}")
+    await expect(new FormData(form).get("score")).toBe("2")
+    await userEvent.click(canvas.getByRole("button", { name: "Restore original score" }))
+    await waitFor(() => expect(new FormData(form).get("score")).toBe("3"))
+    canvas.getByRole("radio", { checked: true }).focus()
+    await userEvent.keyboard("{ArrowLeft}")
+    form.reset()
+    await waitFor(() => expect(new FormData(form).get("score")).toBe("3"))
+    await expect(canvas.getByRole("radio", { checked: true })).toHaveAttribute("tabindex", "0")
+    await expect(canvas.getByText("Score changes: 5")).toBeVisible()
   },
 }

@@ -579,7 +579,7 @@ function NonModalDrawerExample() {
   const [refreshes, setRefreshes] = useState(0)
 
   return (
-    <div className="flex flex-col items-center gap-150">
+    <div className="flex min-h-svh flex-col items-start gap-150 p-300">
       <Button onClick={() => setRefreshes((count) => count + 1)}>
         Refresh results
       </Button>
@@ -589,7 +589,7 @@ function NonModalDrawerExample() {
       <Drawer
         closeOnInteractOutside={false}
         modal={false}
-        placement="end"
+        placement="bottom"
         preventScroll={false}
         size="sm"
         trapFocus={false}
@@ -611,6 +611,7 @@ function NonModalDrawerExample() {
 
 export const NonModal: Story = {
   parameters: {
+    layout: "fullscreen",
     docs: {
       description: {
         story:

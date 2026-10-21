@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useEffect, useId, useRef, useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
 import { StatusText } from "../../src/atoms/status-text"
 import { FormInput } from "../../src/molecules/form-input"
@@ -136,6 +136,28 @@ export const WithForm: Story = {
     },
   },
   render: () => <FormErrorSummaryExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "Save email" }))
+    await expect(
+      canvas.getByRole("alert", { name: "There is a problem" })
+    ).toHaveFocus()
+    await userEvent.tab()
+    await expect(
+      canvas.getByRole("link", { name: "Enter a valid email address." })
+    ).toHaveFocus()
+    await userEvent.keyboard("{Enter}")
+    const email = canvas.getByRole("textbox", { name: /Email address/ })
+    await expect(email).toHaveFocus()
+    await userEvent.type(email, "alex@example.com")
+    await userEvent.click(canvas.getByRole("button", { name: "Save email" }))
+    await expect(canvas.queryByRole("alert")).not.toBeInTheDocument()
+    await expect(email).not.toHaveAttribute("aria-invalid", "true")
+    await expect(email).not.toHaveAttribute("aria-errormessage")
+    await expect(
+      canvas.getByText("Email saved locally. No data was sent.")
+    ).toBeVisible()
+  },
 }
 function FormErrorSummaryExample() {
   const id = useId()
@@ -204,5 +226,95 @@ function FormErrorSummaryExample() {
         <Button type="submit">Save email</Button>
       </div>
     </form>
+  )
+}
+
+export const DisclosedTarget: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Keyboard activation reveals nested native disclosures before focusing the invalid field.",
+      },
+    },
+  },
+  render: () => <DisclosedSummary />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    canvas.getByRole("link", { name: "Enter a contact email." }).focus()
+    await userEvent.keyboard("{Enter}")
+    await expect(
+      canvas.getByRole("textbox", { name: /Contact email/ })
+    ).toHaveFocus()
+    for (const disclosure of canvasElement.querySelectorAll("details"))
+      await expect(disclosure).toHaveAttribute("open")
+    await userEvent.tab()
+    await expect(canvas.getByRole("button", { name: "Continue" })).toHaveFocus()
+  },
+}
+function DisclosedSummary() {
+  const id = useId()
+  return (
+    <div className="flex max-w-md flex-col gap-200">
+      <FormErrorSummary
+        errors={[
+          { id: "email", label: "Enter a contact email.", targetId: id },
+        ]}
+      />
+      <details>
+        <summary>Contact details</summary>
+        <details>
+          <summary>Email details</summary>
+          <FormInput id={id} label="Contact email" />
+          <Button type="button">Continue</Button>
+        </details>
+      </details>
+    </div>
+  )
+}
+
+export const AsyncReveal: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A custom reveal promise waits until a conditionally rendered field is mounted before focus moves.",
+      },
+    },
+  },
+  render: () => <AsyncSummary />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    canvas.getByRole("link", { name: "Enter your account name." }).focus()
+    await userEvent.keyboard("{Enter}")
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("textbox", { name: "Account name" })
+      ).toHaveFocus()
+    )
+  },
+}
+function AsyncSummary() {
+  const id = useId()
+  const [shown, setShown] = useState(false)
+  return (
+    <div className="flex max-w-md flex-col gap-200">
+      <FormErrorSummary
+        errors={[
+          { id: "account", label: "Enter your account name.", targetId: id },
+        ]}
+        revealField={async () => {
+          setShown(true)
+          await new Promise<void>((resolve) => {
+            const mounted = () => {
+              if (document.getElementById(id)) resolve()
+              else requestAnimationFrame(mounted)
+            }
+            requestAnimationFrame(mounted)
+          })
+        }}
+      />
+      {shown && <FormInput id={id} label="Account name" />}
+    </div>
   )
 }

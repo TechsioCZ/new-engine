@@ -317,6 +317,11 @@ export const PauseResumeExample: Story = {
                   description: "I will close in 5 seconds unless paused",
                   type: "info",
                   duration: 5000,
+                  onStatusChange({ status }) {
+                    if (status === "dismissing" || status === "unmounted") {
+                      setToastId((current) => current === id ? null : current)
+                    }
+                  },
                 })
                 setToastId(id)
                 setIsPaused(false)
@@ -352,6 +357,16 @@ export const PauseResumeExample: Story = {
         </div>
       </VariantContainer>
     )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole("button", { name: "Create Timed Toast (5s)" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Pause Timer" }))
+    await expect(canvas.getByText("Paused", { exact: true })).toBeVisible()
+    await userEvent.click(body.getByRole("button", { name: "Close notification" }))
+    await waitFor(() => expect(canvas.queryByRole("button", { name: "Resume Timer" })).toBeNull())
+    await expect(canvas.queryByText("Timer is currently:")).toBeNull()
   },
 }
 

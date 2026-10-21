@@ -2,7 +2,7 @@
  * FormErrorSummary — @techsio/ui-kit molecule.
  *
  * @component FormErrorSummary
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill form-error-summary-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,6 +22,7 @@ export type FormErrorSummaryProps = {
   title?: string
   errors: FormErrorSummaryError[]
   onFieldFocus?: (targetId: string) => void
+  revealField?: (targetId: string) => void | Promise<void>
   className?: string
   ref?: Ref<HTMLDivElement>
 }
@@ -29,7 +30,7 @@ export type FormErrorSummaryProps = {
 const formErrorSummaryVariants = tv({
   slots: {
     root: [
-      "flex flex-col gap-100",
+      "wrap-anywhere flex min-w-0 flex-col gap-100",
       "rounded-form-control",
       "border-(length:--border-width-validation)",
       "border-form-error-summary-border",
@@ -40,7 +41,7 @@ const formErrorSummaryVariants = tv({
     title: ["text-label-md", "font-medium", "text-form-error-summary-fg"],
     list: ["m-0", "flex list-none flex-col gap-100 p-0"],
     link: [
-      "text-form-error-summary-fg",
+      "wrap-anywhere text-form-error-summary-fg",
       "underline",
       "underline-offset-4",
       "focus-visible:form-error-summary-focus-ring",
@@ -52,6 +53,7 @@ export function FormErrorSummary({
   title = "There is a problem",
   errors,
   onFieldFocus,
+  revealField,
   className,
   ref,
 }: FormErrorSummaryProps) {
@@ -79,16 +81,37 @@ export function FormErrorSummary({
             <a
               className={styles.link()}
               href={`#${error.targetId}`}
-              onClick={(event) => {
-                const target = event.currentTarget.ownerDocument.getElementById(
-                  error.targetId
-                )
-                if (target) {
-                  event.preventDefault()
-                  target.focus()
-                  target.scrollIntoView({ block: "nearest" })
+              onClick={async (event) => {
+                const document = event.currentTarget.ownerDocument
+                if (!(revealField || document.getElementById(error.targetId))) {
+                  return
                 }
-                onFieldFocus?.(error.targetId)
+                event.preventDefault()
+                // Custom reveal promises resolve after the field is mounted.
+                try {
+                  await revealField?.(error.targetId)
+                } catch {
+                  // The application owns reveal-error feedback; keep the link focused.
+                  return
+                }
+                const target = document.getElementById(error.targetId)
+                if (!target) {
+                  return
+                }
+                for (
+                  let ancestor = target.parentElement;
+                  ancestor;
+                  ancestor = ancestor.parentElement
+                ) {
+                  if (ancestor instanceof HTMLDetailsElement) {
+                    ancestor.open = true
+                  }
+                }
+                target.focus()
+                target.scrollIntoView({ block: "nearest" })
+                if (document.activeElement === target) {
+                  onFieldFocus?.(error.targetId)
+                }
               }}
             >
               {error.label}

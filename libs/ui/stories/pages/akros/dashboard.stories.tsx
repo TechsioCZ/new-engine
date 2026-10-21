@@ -1,12 +1,10 @@
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
 
 import { Skeleton } from "../../../src/atoms/skeleton"
 import { Chart } from "../../../src/molecules/chart"
 import { Tabs } from "../../../src/molecules/tabs"
 import { Table } from "../../../src/organisms/table"
-import { SelectTemplate } from "../../../src/templates/select"
 import { PageHeader, SectionCard, StatCard, StatRow } from "../shell"
 import {
   akOrders,
@@ -48,7 +46,7 @@ const meta: Meta = {
           "orders, visits / traffic, one main statistics chart and customer statistics.",
           "",
           "**How it is built** — `AdminShell`, `PageHeader`, `StatCard`, `Chart`,",
-          "`Tabs`, `Table`, `SelectTemplate`, `Skeleton`, `Button`. No custom widgets.",
+          "`Tabs`, `Table`, `Skeleton`, `Button`. No custom widgets.",
           "",
           "**Pattern rules**",
           "- Alerts first: unpaid Comgate orders and failed ABRA transfers are the two",
@@ -57,7 +55,7 @@ const meta: Meta = {
           "  are three scales, so they are three tabs of one chart, never dual axes.",
           "- Customer statistics are a share (B2C new / returning / B2B) and use a donut;",
           "  traffic sources are a ranking and use horizontal bars.",
-          "- The period select scopes every widget on the page at once.",
+          "- This is a fixed 1–14 September 2026 snapshot, not an interactive reporting filter.",
         ]),
       },
     },
@@ -67,13 +65,6 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
-const periods = [
-  { label: "Last 14 days", value: "14d" },
-  { label: "Last 30 days", value: "30d" },
-  { label: "This month", value: "month" },
-  { label: "This year", value: "year" },
-]
-
 const unpaidOnline = akOrders.filter(
   (order) =>
     order.paymentMethod === "comgate" &&
@@ -82,26 +73,11 @@ const unpaidOnline = akOrders.filter(
 const abraFailed = akOrders.filter((order) => order.abra === "error")
 
 function HomePage({ loading }: { loading?: boolean }) {
-  const [period, setPeriod] = useState("14d")
-
   return (
     <AkrosShell selected="home">
       <PageHeader
-        actions={
-          <SelectTemplate
-            items={periods}
-            label="Period"
-            onValueChange={(details) => {
-              const [next] = details.value
-              if (next) {
-                setPeriod(next)
-              }
-            }}
-            size="sm"
-            value={[period]}
-          />
-        }
-        description="Monday 14 September 2026 · every figure below follows the selected period."
+        actions={null}
+        description="Fixed demo snapshot · 1–14 September 2026. Comparisons use the preceding 14 days; operational alerts and latest orders are current as of 14 September."
         title="Overview"
       />
 

@@ -2,9 +2,12 @@ import type { Meta, StoryObj } from '@storybook/react'
 
 const meta: Meta = {
   title: 'Overview/APCA Contrast Test',
-  tags: ['autodocs'],
+  tags: ['diagnostic', '!autodocs'],
   parameters: {
     layout: 'centered',
+    // The runner asserts these known calibration IDs separately, without
+    // adding expected violations to the product report. Keep them executable.
+    a11yDiagnostic: true,
     docs: { description: { component: 'Diagnostic fixtures for the contrast reporter, intentionally including low-contrast text. These fixed colors test the reporter, not the selected brand; use Color Palette for active theme tokens.' } },
     a11y: {
       context: '#apca-test-root',

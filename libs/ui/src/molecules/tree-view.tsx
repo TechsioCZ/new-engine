@@ -2,14 +2,14 @@
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.0
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the tree-view-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { normalizeProps, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   connect as connectTree,
   collection as createTreeCollection,
@@ -26,7 +26,11 @@ import {
   type MouseEvent,
   type ReactNode,
   useContext,
+  useEffect,
   useId,
+  useMemo,
+  useRef,
+  useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Icon, type IconType } from "../atoms/icon"
@@ -46,9 +50,71 @@ export type TreeNode = {
   [key: string]: unknown
 }
 
+// A disabled branch makes its entire subtree unavailable, even if a controlled
+// owner keeps it expanded. Give Zag and every compound part the same policy.
+function inheritDisabledState(
+  nodes: TreeNode[],
+  parentDisabled = false
+): TreeNode[] {
+  return nodes.map((node) => {
+    const disabled = parentDisabled || Boolean(node.disabled)
+    return {
+      ...node,
+      ...(disabled ? { disabled: true } : {}),
+      ...(node.children
+        ? { children: inheritDisabledState(node.children, disabled) }
+        : {}),
+    }
+  })
+}
+
+function canSelectNode(
+  node: TreeNode,
+  behavior: "all" | "leaf-only" | "custom"
+) {
+  if (node.disabled) {
+    return false
+  }
+  if (behavior === "leaf-only" && node.children?.length) {
+    return false
+  }
+  return behavior !== "custom" || node.selectable !== false
+}
+
+function recoverTreeFocus(
+  root: HTMLElement,
+  previous: HTMLElement | null,
+  api: TreeApi,
+  target: string | null
+) {
+  if (!previous) {
+    return false
+  }
+  const unavailable =
+    !previous.isConnected ||
+    Boolean(
+      previous.closest(
+        '[hidden], [data-disabled], [data-part="branch-content"][data-state="closed"]'
+      )
+    )
+  if (!unavailable) {
+    return false
+  }
+  const active = root.ownerDocument.activeElement
+  if (active !== root.ownerDocument.body && !root.contains(active)) {
+    return true
+  }
+  if (target) {
+    api.focus(target)
+  } else {
+    root.querySelector<HTMLElement>('[data-part="tree"]')?.focus()
+  }
+  return true
+}
+
 const treeViewVariants = tv({
   slots: {
-    root: "relative rounded-tree-view bg-tree-view-root-bg",
+    root: "relative min-w-0 rounded-tree-view bg-tree-view-root-bg text-tree-view-fg-base",
     label: ["font-tree-view-label text-tree-view-label-fg"],
     tree: [
       "bg-tree-view-bg",
@@ -70,13 +136,15 @@ const treeViewVariants = tv({
       "has-focus-visible:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    branchControl: ["flex-1"],
-    branchText: ["flex-1"],
+    branchControl: ["min-w-0 flex-1"],
+    branchText: ["wrap-anywhere min-w-0 flex-1"],
     branchIndicator: [
-      "group-hover:text-tree-view-fg-hover",
-      "data-[state=open]:token-icon-tree-indicator-open cursor-pointer hover:scale-125",
+      "flex min-h-tree-view-target min-w-tree-view-target shrink-0 cursor-pointer items-center justify-center self-stretch text-tree-view-fg-base",
+      "focus-visible:outline focus-visible:outline-tree-view-ring",
+      "data-disabled:cursor-not-allowed",
       "transition duration-200 motion-reduce:transition-none",
     ],
+    indicatorIcon: "data-[state=open]:token-icon-tree-indicator-open",
     branchContent: ["relative", "data-[state=closed]:hidden"],
     indentGuide: [
       "absolute inset-s-1 inset-y-0",
@@ -85,14 +153,13 @@ const treeViewVariants = tv({
     ],
     item: [
       "hover:bg-tree-view-node-bg-hover hover:text-tree-view-fg-hover",
-      "data-selected:hover:bg-tree-view-node-bg-hover",
-      "data-selected:hover:text-tree-view-fg-hover",
+
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-tree-view-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    itemText: ["flex-1"],
+    itemText: ["wrap-anywhere min-w-0 flex-1"],
     nodeIcon: [
       "hover:text-tree-view-icon-hover",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -105,7 +172,7 @@ const treeViewVariants = tv({
       class: [
         "relative",
         // get --depth from zag-js api
-        "ms-[calc(var(--depth)*var(--tree-indent-per-level))]",
+        "ms-tree-view-level",
         "data-[depth=1]:ms-0",
       ],
     },
@@ -114,9 +181,9 @@ const treeViewVariants = tv({
       class: [
         "flex items-center gap-tree-view-icon p-tree-view-node-padding",
         "cursor-pointer",
-        "data-selected:text-tree-view-fg-selected",
+        "tree-view-selection data-selected:bg-tree-view-node-bg-selected data-selected:text-tree-view-node-fg-selected",
+        "data-selected:group-hover:text-tree-view-node-fg-selected data-selected:hover:bg-tree-view-node-bg-selected data-selected:hover:text-tree-view-node-fg-selected",
         "group-hover:text-tree-view-fg-hover",
-        "data-selected:group-hover:text-tree-view-fg-hover",
       ],
     },
   ],
@@ -186,14 +253,13 @@ function useTreeViewNodeContext() {
   return context
 }
 
-interface TreeViewRootProps
-  extends VariantProps<typeof treeViewVariants>,
-    Omit<TreeProps, "id" | "size">,
-    Omit<ComponentPropsWithoutRef<"div">, "onChange" | "dir"> {
-  id?: string
-  data: TreeNode[]
-  selectionBehavior?: "all" | "leaf-only" | "custom"
-}
+type TreeViewRootProps = VariantProps<typeof treeViewVariants> &
+  Omit<TreeProps, "id" | "size"> &
+  Omit<ComponentPropsWithoutRef<"div">, "onChange" | "dir"> & {
+    id?: string
+    data: TreeNode[]
+    selectionBehavior?: "all" | "leaf-only" | "custom"
+  }
 
 export function TreeView({
   data,
@@ -205,28 +271,188 @@ export function TreeView({
 }: TreeViewRootProps) {
   const generatedId = useId()
   const [machineProps, rootProps] = splitTreeProps(props)
-  const collection = createTreeCollection<TreeNode>({
-    nodeToValue: (node) => node.id,
-    nodeToString: (node) => node.name,
-    rootNode: { id: "ROOT", name: "", children: data },
-  })
+  const collection = useMemo(
+    () =>
+      createTreeCollection<TreeNode>({
+        nodeToValue: (node) => node.id,
+        nodeToString: (node) => node.name,
+        rootNode: {
+          id: "ROOT",
+          name: "",
+          children: inheritDisabledState(data),
+        },
+      }),
+    [data]
+  )
+  const nodes = new Map<string, { node: TreeNode; parents: string[] }>()
+  const visit = (items: TreeNode[], parents: string[] = []) => {
+    for (const node of items) {
+      nodes.set(node.id, { node, parents })
+      if (node.children) {
+        visit(node.children, [...parents, node.id])
+      }
+    }
+  }
+  visit(collection.rootNode.children ?? [])
+  const allowed = (value: string) => {
+    const node = nodes.get(value)?.node
+    return Boolean(node && canSelectNode(node, selectionBehavior))
+  }
+  const filterSelection = (values: string[]) =>
+    [...new Set(values)].filter(allowed)
+  const [selection, setSelection] = useState(
+    () => machineProps.defaultSelectedValue ?? []
+  )
+  const [focus, setFocus] = useState<string | null>(
+    () => machineProps.defaultFocusedValue ?? null
+  )
+  const rootElement = useRef<HTMLDivElement | null>(null)
+  const lastFocused = useRef<HTMLElement | null>(null)
+  const previousNodes = useRef(nodes)
+  const recovery = useRef<string | null>(null)
+  const selectionRecovery = useRef<string | null>(null)
+  const expanded = machineProps.expandedValue
+  const [localExpanded, setLocalExpanded] = useState(
+    () => machineProps.defaultExpandedValue ?? []
+  )
+  const expandedValues = expanded ?? localExpanded
+  const visible = [...nodes.entries()].filter(
+    ([, entry]) =>
+      !entry.node.disabled &&
+      entry.parents.every((parent) => expandedValues.includes(parent))
+  )
+  const requestedFocus =
+    machineProps.focusedValue === undefined ? focus : machineProps.focusedValue
+  const previousParents = requestedFocus
+    ? (previousNodes.current.get(requestedFocus)?.parents ?? [])
+    : []
+  const visibleIds = visible.map(([value]) => value)
+  const previousIds = [...previousNodes.current.keys()]
+  const previousIndex = requestedFocus
+    ? previousIds.indexOf(requestedFocus)
+    : -1
+  const neighbors = [
+    ...previousIds.slice(previousIndex + 1),
+    ...previousIds.slice(0, Math.max(0, previousIndex)).reverse(),
+  ]
+  const focusTarget =
+    requestedFocus && visibleIds.includes(requestedFocus)
+      ? requestedFocus
+      : ([...previousParents]
+          .reverse()
+          .find((value) => visibleIds.includes(value)) ??
+        neighbors.find((value) => visibleIds.includes(value)) ??
+        visibleIds[0] ??
+        null)
+  const selectedValue = filterSelection(machineProps.selectedValue ?? selection)
+
   const service = useMachine(treeMachine, {
     expandOnClick: true,
     typeahead: true,
     ...machineProps,
     id: machineProps.id ?? generatedId,
     collection,
+    selectedValue,
+    focusedValue: focusTarget,
+    onSelectionChange: (details) => {
+      const selected = filterSelection(details.selectedValue)
+      if (machineProps.selectedValue === undefined) {
+        setSelection(selected)
+      }
+      machineProps.onSelectionChange?.({
+        ...details,
+        selectedValue: selected,
+        selectedNodes: selected
+          .map((value) => nodes.get(value)?.node)
+          .filter((node): node is TreeNode => Boolean(node)),
+      })
+    },
+    onExpandedChange: (details) => {
+      if (expanded === undefined) {
+        setLocalExpanded(details.expandedValue)
+      }
+      machineProps.onExpandedChange?.(details)
+    },
+    onFocusChange: (details) => {
+      if (machineProps.focusedValue === undefined) {
+        setFocus(details.focusedValue)
+      }
+      machineProps.onFocusChange?.(details)
+    },
   })
 
   const api = connectTree(service, normalizeProps)
   const styles = treeViewVariants({ size })
 
+  useEffect(() => {
+    const requestedSelection = machineProps.selectedValue ?? selection
+    const selectionKey = JSON.stringify([requestedSelection, selectedValue])
+    if (requestedSelection.join("\0") === selectedValue.join("\0")) {
+      selectionRecovery.current = null
+    } else {
+      if (machineProps.selectedValue === undefined) {
+        setSelection(selectedValue)
+      }
+      if (selectionRecovery.current !== selectionKey) {
+        selectionRecovery.current = selectionKey
+        machineProps.onSelectionChange?.({
+          focusedValue: focusTarget,
+          selectedValue,
+          selectedNodes: selectedValue
+            .map((value) => nodes.get(value)?.node)
+            .filter((node): node is TreeNode => Boolean(node)),
+        })
+      }
+    }
+  })
+
+  useEffect(() => {
+    const root = rootElement.current
+    if (!root) {
+      return
+    }
+    const key = `${requestedFocus}:${focusTarget}`
+    if (requestedFocus !== focusTarget && recovery.current !== key) {
+      recovery.current = key
+      if (machineProps.focusedValue === undefined) {
+        setFocus(focusTarget)
+      }
+      machineProps.onFocusChange?.({
+        focusedValue: focusTarget,
+        focusedNode: focusTarget
+          ? (nodes.get(focusTarget)?.node ?? null)
+          : null,
+      })
+    } else if (requestedFocus === focusTarget) {
+      recovery.current = null
+    }
+    if (recoverTreeFocus(root, lastFocused.current, api, focusTarget)) {
+      lastFocused.current = null
+    }
+    if (requestedFocus === focusTarget || requestedFocus == null) {
+      previousNodes.current = nodes
+    }
+  })
+
   return (
     <TreeViewContext.Provider value={{ api, size, styles, selectionBehavior }}>
       <div
         className={styles.root({ className })}
-        {...api.getRootProps()}
-        {...rootProps}
+        {...mergeProps(rootProps, api.getRootProps())}
+        onBlurCapture={(event) => {
+          rootProps.onBlurCapture?.(event)
+          if (
+            event.relatedTarget &&
+            !event.currentTarget.contains(event.relatedTarget as Node)
+          ) {
+            lastFocused.current = null
+          }
+        }}
+        onFocusCapture={(event) => {
+          rootProps.onFocusCapture?.(event)
+          lastFocused.current = event.target as HTMLElement
+        }}
+        ref={rootElement}
       >
         {children}
       </div>
@@ -234,7 +460,7 @@ export function TreeView({
   )
 }
 
-interface TreeViewLabelProps extends ComponentPropsWithoutRef<"h3"> {}
+type TreeViewLabelProps = ComponentPropsWithoutRef<"h3">
 
 TreeView.Label = function TreeViewLabel({
   children,
@@ -254,20 +480,60 @@ TreeView.Label = function TreeViewLabel({
   )
 }
 
-interface TreeViewTreeProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewTreeProps = ComponentPropsWithoutRef<"div">
 
 TreeView.Tree = function TreeViewTree({
   children,
   className,
   ...props
 }: TreeViewTreeProps) {
-  const { api, styles } = useTreeViewContext()
+  const { api, styles, selectionBehavior } = useTreeViewContext()
 
   return (
     <div
       className={styles.tree({ className })}
-      {...api.getTreeProps()}
-      {...props}
+      {...mergeProps(props, api.getTreeProps())}
+      onKeyDown={(event) => {
+        props.onKeyDown?.(event)
+        if (event.defaultPrevented) {
+          return
+        }
+        // Zag currently supports Meta+A only. Match native Ctrl+A too.
+        if (
+          (event.metaKey || event.ctrlKey) &&
+          event.key.toLowerCase() === "a"
+        ) {
+          event.preventDefault()
+          if (api.getTreeProps()["aria-multiselectable"]) {
+            api.select()
+          }
+          return
+        }
+        const target = (event.target as HTMLElement).closest<HTMLElement>(
+          '[data-part="branch-control"]'
+        )
+        const branch = target?.dataset.value
+          ? (api.collection.findNode(target.dataset.value) as
+              | TreeNode
+              | undefined)
+          : undefined
+        if (
+          branch &&
+          !branch.disabled &&
+          !canSelectNode(branch, selectionBehavior ?? "all") &&
+          (event.key === "Enter" || event.key === " ")
+        ) {
+          event.preventDefault()
+          if (api.expandedValue.includes(branch.id)) {
+            api.collapse([branch.id])
+          } else {
+            api.expand([branch.id])
+          }
+          return
+        }
+        api.getTreeProps().onKeyDown?.(event)
+      }}
+      role="tree"
     >
       {children}
     </div>
@@ -286,19 +552,21 @@ TreeView.NodeProvider = function TreeViewNodeProvider({
   children,
 }: TreeViewNodeProviderProps) {
   const { api } = useTreeViewContext()
-  const nodeProps = { node, indexPath }
+  const collectionNode =
+    (api.collection.findNode(node.id) as TreeNode | undefined) ?? node
+  const nodeProps = { node: collectionNode, indexPath }
   const nodeState = api.getNodeState(nodeProps)
 
   return (
     <TreeViewNodeContext.Provider
-      value={{ node, indexPath, nodeProps, nodeState }}
+      value={{ node: collectionNode, indexPath, nodeProps, nodeState }}
     >
       {children}
     </TreeViewNodeContext.Provider>
   )
 }
 
-interface TreeViewBranchProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewBranchProps = ComponentPropsWithoutRef<"div">
 
 TreeView.Branch = function TreeViewBranch({
   children,
@@ -319,7 +587,7 @@ TreeView.Branch = function TreeViewBranch({
   )
 }
 
-interface TreeViewBranchTriggerProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewBranchTriggerProps = ComponentPropsWithoutRef<"div">
 
 TreeView.BranchTrigger = function TreeViewBranchTrigger({
   children,
@@ -335,7 +603,7 @@ TreeView.BranchTrigger = function TreeViewBranchTrigger({
   )
 }
 
-interface TreeViewBranchControlProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewBranchControlProps = ComponentPropsWithoutRef<"div">
 
 TreeView.BranchControl = function TreeViewBranchControl({
   children,
@@ -345,46 +613,35 @@ TreeView.BranchControl = function TreeViewBranchControl({
   const { api, styles, selectionBehavior } = useTreeViewContext()
   const { node, nodeProps, nodeState } = useTreeViewNodeContext()
 
-  const isSelectable = (() => {
-    switch (selectionBehavior) {
-      case "all":
-        return true
-      case "leaf-only":
-        return false
-      case "custom":
-        return node.selectable !== false
-      default:
-        return true
-    }
-  })()
-
   const controlProps = api.getBranchControlProps(nodeProps)
-
-  const finalProps = isSelectable
-    ? controlProps
-    : {
-        ...controlProps,
-        onClick: (e: MouseEvent<HTMLDivElement>) => {
-          e.preventDefault()
-          e.stopPropagation()
-          // Allow toggle on click for non-selectable branches
-          if (!nodeState.disabled) {
-            if (nodeState.expanded) {
-              api.collapse([node.id])
-            } else {
-              api.expand([node.id])
-            }
-          }
-        },
-        "aria-selected": undefined,
-        "data-disabled": !isSelectable || nodeState.disabled || undefined,
+  const isSelectable =
+    selectionBehavior !== "leaf-only" &&
+    (selectionBehavior !== "custom" || node.selectable !== false)
+  const finalProps = {
+    ...mergeProps(props, controlProps),
+    onClick: (event: MouseEvent<HTMLDivElement>) => {
+      props.onClick?.(event)
+      if (event.defaultPrevented || nodeState.disabled) {
+        return
       }
+      if (isSelectable) {
+        controlProps.onClick?.(event)
+      } else {
+        event.stopPropagation()
+        if (nodeState.expanded) {
+          api.collapse([node.id])
+        } else {
+          api.expand([node.id])
+        }
+      }
+    },
+  }
 
   return (
     <div
       className={styles.branchControl({ className })}
       {...finalProps}
-      {...props}
+      tabIndex={nodeState.disabled ? -1 : controlProps.tabIndex}
     >
       {children}
     </div>
@@ -425,29 +682,40 @@ TreeView.BranchIndicator = function TreeViewBranchIndicator({
   const { api, styles } = useTreeViewContext()
   const { node, nodeProps, nodeState } = useTreeViewNodeContext()
 
-  const handleToggle = (id: string) => {
-    if (nodeState.expanded) {
-      api.collapse([id])
-    } else {
-      api.expand([id])
-    }
-  }
-
   return (
-    <Icon
-      className={styles.branchIndicator({ className })}
-      icon={icon}
+    <button
       {...api.getBranchIndicatorProps(nodeProps)}
-      onClick={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        handleToggle(node.id)
+      aria-expanded={nodeState.expanded}
+      aria-hidden={undefined}
+      aria-label={`${nodeState.expanded ? "Collapse" : "Expand"} ${node.name}`}
+      className={styles.branchIndicator({ className })}
+      disabled={nodeState.disabled}
+      onClick={(event) => {
+        event.stopPropagation()
+        if (nodeState.disabled) {
+          return
+        }
+        if (nodeState.expanded) {
+          api.collapse([node.id])
+        } else {
+          api.expand([node.id])
+        }
       }}
-    />
+      onMouseDown={(event) => event.preventDefault()}
+      tabIndex={-1}
+      type="button"
+    >
+      <Icon
+        className={styles.indicatorIcon()}
+        data-state={nodeState.expanded ? "open" : "closed"}
+        icon={icon}
+        size="current"
+      />
+    </button>
   )
 }
 
-interface TreeViewBranchContentProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewBranchContentProps = ComponentPropsWithoutRef<"div">
 
 TreeView.BranchContent = function TreeViewBranchContent({
   children,
@@ -486,7 +754,7 @@ TreeView.IndentGuide = function TreeViewIndentGuide({
   )
 }
 
-interface TreeViewItemProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewItemProps = ComponentPropsWithoutRef<"div">
 
 TreeView.Item = function TreeViewItem({
   children,
@@ -496,38 +764,29 @@ TreeView.Item = function TreeViewItem({
   const { api, styles, selectionBehavior } = useTreeViewContext()
   const { node, nodeProps, nodeState } = useTreeViewNodeContext()
 
-  const isSelectable = (() => {
-    switch (selectionBehavior) {
-      case "all":
-      case "leaf-only":
-        return true
-      case "custom":
-        return node.selectable !== false
-      default:
-        return true
-    }
-  })()
-
+  const isSelectable =
+    selectionBehavior !== "custom" || node.selectable !== false
   const itemProps = api.getItemProps(nodeProps)
-
-  const finalProps = isSelectable
-    ? itemProps
-    : {
-        ...itemProps,
-        onClick: (e: MouseEvent<HTMLDivElement>) => {
-          e.preventDefault()
-          e.stopPropagation()
-        },
-        "aria-selected": undefined,
-        "data-disabled": !isSelectable || nodeState.disabled || undefined,
+  const finalProps = {
+    ...mergeProps(props, itemProps),
+    onClick: (event: MouseEvent<HTMLDivElement>) => {
+      props.onClick?.(event)
+      if (!event.defaultPrevented && isSelectable) {
+        itemProps.onClick?.(event)
       }
+    },
+  }
 
   return (
     <div
       className={styles.item({ className })}
       {...finalProps}
+      aria-selected={
+        isSelectable && !nodeState.disabled ? nodeState.selected : undefined
+      }
       data-selected={nodeState.selected || undefined}
-      {...props}
+      role="treeitem"
+      tabIndex={nodeState.disabled ? -1 : itemProps.tabIndex}
     >
       {children}
     </div>
@@ -556,7 +815,7 @@ TreeView.ItemText = function TreeViewItemText({
   )
 }
 
-interface TreeViewNodeIconProps extends ComponentPropsWithoutRef<"span"> {
+type TreeViewNodeIconProps = ComponentPropsWithoutRef<"span"> & {
   icon?: IconType
 }
 

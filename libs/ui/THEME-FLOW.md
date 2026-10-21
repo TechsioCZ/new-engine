@@ -153,7 +153,7 @@ flowchart LR
     B --> C["3. 🍒 In new-engine repo:<br/><code>git cherry-pick &lt;export-commit&gt;</code><br/>(resolve conflict with <code>--theirs</code><br/>for the two per-theme files)"]
     C --> D["4. 🛠️ <code>node .agents/skills/figma-token-binding/<br/>scripts/merge-figma-themes.mjs</code><br/>→ regenerates single<br/><code>tokens/figma/variables.css</code>"]
     D --> E["5. ✅ <code>pnpm dev</code><br/>picks it up via HMR"]
-    D --> F["6. 🧹 Optional housekeeping:<br/>strip any per-component<br/>declarations now also<br/>exported by Figma<br/>(byte-verify in Storybook)"]
+    D --> F["6. Review alias ownership:<br/>retain runtime bridges until<br/>equivalent replacement is verified<br/>in every supported brand/mode<br/>and public override test"]
 
     classDef manual fill:#fee2e2,stroke:#dc2626,color:#000
     classDef auto fill:#d1fae5,stroke:#059669,color:#000
@@ -184,9 +184,9 @@ about and compute with:
 
 **Consistency rule:** components in one family share input tokens. The form
 family (input, select, combobox, numeric-input, textarea, search-form,
-phone-input) inherits `border-width 2`, `radius sm/md/lg = 4/8/12`, heights
-`32/44/72` from the shared `form-control` collection — never fork these
-per component.
+phone-input) inherits `border-width 2`, `radius sm/md/lg = 8/12/16px`, minimum heights
+`32/44/56px` (growing with typography via the runtime bridge) from the shared `form-control` collection — never fork these
+per component. The earlier values in `_base.css` and `_typography.css` are fallback primitives; the imported Figma layer and documented bridge determine the effective scale. Exported body `text-sm/md/lg` is currently 0.88/1.25/1.5rem; StatusText uses the independent 12/14/16px helper scale.
 
 **Primitive names are pixel-true** (`dimension/16` = 16px). To change a
 value, re-alias consumers to the correct primitive and delete the wrong
@@ -244,3 +244,23 @@ A truly brand-specific page can opt into `parameters.brandLock: "akros"`
 and must state that lock in its Docs description. Light-only mode remains
 locked by the registry, consistently with applications. Docs theme follows
 the resolved root scheme, not a separate hardcoded light theme.
+
+
+## Requested preference, effective appearance and CSP
+
+`useAppTheme().mode` is the persisted **request** (`light`, `dark` or `system`).
+`resolvedMode` is reactive to OS appearance and constrained by the active brand;
+Akros and Business always resolve to light without overwriting that request.
+Switching back to base/Neo restores the saved dark/system preference. Brand
+storage events update other tabs without echo writes.
+
+`AppThemeProvider` owns the root class and color-scheme. Its better-themes layer
+only persists the requested mode and writes `data-requested-mode`; its bootstrap
+can no longer override brand-constrained appearance. Do not add another provider
+that independently paints a `light`/`dark` class.
+
+For nonce-based CSP, pass the response nonce to `AppThemeProvider nonce={nonce}`.
+It applies to both bootstraps. If the application renders `BrandThemeScript`
+earlier in head/body, pass the same `nonce`, `defaultBrand` and `defaultMode` there.
+No `unsafe-inline` is needed for theme scripts. Scope any style policy separately
+for your rendering framework; do not weaken the script policy for theming.

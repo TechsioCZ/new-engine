@@ -2,6 +2,10 @@ import { statSync } from "node:fs"
 import { access, glob, readFile } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import {
+  hasClientDirective,
+  needsClientBoundary,
+} from "../test/visual-rsc-boundaries.mjs"
 import { validateCompoundDeclarations } from "./validate-compound-declarations.mjs"
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
@@ -88,3 +92,30 @@ const { checkedComponents, checkedMembers } =
 console.log(
   `Validated ${checkedMembers} public component members across ${checkedComponents} components from emitted declarations.`
 )
+
+// A source-only directive check misses transformations that strip the prologue.
+for (const [subpath, target] of publicRuntimeTargets) {
+  const sourceStem = resolve(
+    packageRoot,
+    target.replace(/^\.\/dist\//, "src/").replace(/\.js$/, "")
+  )
+  const sourcePath = await Promise.all(
+    [".tsx", ".ts"].map(async (extension) => {
+      try {
+        await access(`${sourceStem}${extension}`)
+        return `${sourceStem}${extension}`
+      } catch {
+        return null
+      }
+    })
+  ).then((paths) => paths.find(Boolean))
+  if (!sourcePath) {
+    continue
+  }
+  if (
+    needsClientBoundary(await readFile(sourcePath, "utf8")) &&
+    !hasClientDirective(await readFile(resolve(packageRoot, target), "utf8"))
+  ) {
+    throw new Error(`${subpath} is missing its emitted React client boundary`)
+  }
+}

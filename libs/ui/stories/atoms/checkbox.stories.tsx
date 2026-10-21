@@ -45,6 +45,7 @@ const meta = {
     },
   },
   argTypes: {
+    size: { control: "select", options: ["sm", "md", "lg"] },
     checked: {
       control: "boolean",
       description: "Controlled selection; update it in onChange.",
@@ -67,6 +68,7 @@ const meta = {
     },
   },
   args: {
+    size: "md",
     "aria-label": "Select Alpine daypack",
     checked: false,
     indeterminate: false,
@@ -128,6 +130,29 @@ export const Playground: Story = {
     await expect(checkbox).not.toBePartiallyChecked()
     await userEvent.keyboard(" ")
     await expect(checkbox).not.toBeChecked()
+  },
+}
+
+export const Sizes: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "Small, medium and large use the same checkbox geometry as labeled form rows; choose small explicitly for dense tables." } },
+  },
+  render: () => <VariantContainer>
+    {(["sm", "md", "lg"] as const).map((size, index) => <VariantGroup key={size} title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}>
+      <Checkbox size={size} aria-label="Select Alpine daypack" defaultChecked />
+      <Checkbox size={size} aria-label="Select all products" indeterminate />
+    </VariantGroup>)}
+  </VariantContainer>,
+  play: async ({ canvasElement }) => {
+    const inputs = within(canvasElement).getAllByRole("checkbox")
+    for (let index = 2; index < inputs.length; index += 2) {
+      const current = inputs[index]
+      const previous = inputs[index - 2]
+      if (!current || !previous) throw new Error("Missing size target")
+      await expect(current.getBoundingClientRect().width).toBeGreaterThan(previous.getBoundingClientRect().width)
+    }
+    for (const input of inputs.filter((_, index) => index % 2)) await expect(input).toBePartiallyChecked()
   },
 }
 

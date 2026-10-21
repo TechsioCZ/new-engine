@@ -308,7 +308,8 @@ export function SectionCard({
 
 type StatCardProps = {
   label: string
-  value: string
+  value: ReactNode
+  compact?: boolean
   /** Signed change vs. the previous period, already formatted. */
   delta?: string
   trend?: "up" | "down" | "flat"
@@ -320,6 +321,7 @@ type StatCardProps = {
 export function StatCard({
   label,
   value,
+  compact = false,
   delta,
   trend = "flat",
   icon,
@@ -332,13 +334,21 @@ export function StatCard({
   const trendVariant = trendVariants[trend]
 
   return (
-    <div className="flex flex-1 flex-col gap-100 rounded-lg border border-border-primary bg-surface p-200">
+    <div className="flex min-w-0 flex-1 basis-3xs flex-col gap-100 rounded-lg border border-border-primary bg-surface p-200">
       <div className="flex items-center gap-100 text-fg-secondary">
         {icon && <Icon icon={icon} size="sm" />}
         <span className="text-sm">{label}</span>
       </div>
       <div className="flex flex-wrap items-baseline gap-150">
-        <span className="font-semibold text-xl">{value}</span>
+        <span
+          className={
+            compact
+              ? "whitespace-nowrap font-semibold text-md"
+              : "font-semibold text-xl"
+          }
+        >
+          {value}
+        </span>
         {delta && (
           <Badge size="sm" variant={trendVariant}>
             {delta}

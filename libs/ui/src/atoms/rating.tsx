@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -15,8 +15,76 @@ import { type HTMLAttributes, type ReactNode, useId } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { joinDescribedBy } from "../internal/described-by"
 import { tv } from "../utils"
+import { trackChoiceFormControl, useChoiceFocusRecovery } from "./checkbox"
 import { Label } from "./label"
 import { StatusText } from "./status-text"
+
+/** Clamp editable scores to their scale and precision; display averages retain fractions. */
+function normalizeRating(
+  value: number,
+  count: number,
+  allowHalf: boolean,
+  readOnly: boolean
+) {
+  const bounded = Math.max(
+    0,
+    Math.min(count, Number.isFinite(value) ? value : 0)
+  )
+  if (readOnly) {
+    return bounded
+  }
+  const step = allowHalf ? 2 : 1
+  return Math.round(bounded * step) / step
+}
+
+const ratingChoiceMachine: typeof machine = {
+  ...machine,
+  watch({ track, action, prop, context }) {
+    track(
+      [() => prop("count"), () => prop("allowHalf"), () => prop("readOnly")],
+      () => {
+        action(["clearHoveredValue"])
+        // Controlled values are normalized projections, never unsolicited parent writes.
+        if (prop("value") !== undefined) {
+          return
+        }
+        const value = normalizeRating(
+          context.get("value"),
+          prop("count"),
+          !!prop("allowHalf"),
+          !!prop("readOnly")
+        )
+        if (value !== context.get("value")) {
+          context.set("value", value)
+        }
+      }
+    )
+    track([() => context.get("value")], () => action(["dispatchChangeEvent"]))
+  },
+  implementations: {
+    ...machine.implementations,
+    effects: {
+      ...machine.implementations?.effects,
+      trackFormControlState({ scope, context, prop }) {
+        const root = scope.getById(scope.ids?.root ?? `rating:${scope.id}`)
+        return trackChoiceFormControl(
+          root,
+          () =>
+            context.set(
+              "value",
+              normalizeRating(
+                context.initial("value"),
+                prop("count"),
+                !!prop("allowHalf"),
+                !!prop("readOnly")
+              )
+            ),
+          (disabled) => context.set("fieldsetDisabled", disabled)
+        )
+      },
+    },
+  },
+}
 
 const rating = tv({
   slots: {
@@ -98,6 +166,8 @@ export function Rating({
   size = "md",
   className,
   "aria-describedby": ariaDescribedBy,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: RatingProps) {
   const generatedId = useId()
@@ -112,11 +182,23 @@ export function Rating({
   )
   const errorMessageId = invalid && helpText ? helpTextId : undefined
   const interactive = !(readOnly || disabled)
-  const service = useMachine(machine, {
+  const normalizedCount = Number.isFinite(count)
+    ? Math.max(1, Math.floor(count))
+    : 5
+  const focusRef = useChoiceFocusRecovery('[role="radio"]')
+  const service = useMachine(ratingChoiceMachine, {
     id,
-    count,
-    value,
-    defaultValue,
+    count: normalizedCount,
+    value:
+      value === undefined
+        ? undefined
+        : normalizeRating(value, normalizedCount, allowHalf, readOnly),
+    defaultValue: normalizeRating(
+      defaultValue,
+      normalizedCount,
+      allowHalf,
+      readOnly
+    ),
     disabled,
     readOnly: readOnly && !disabled,
     allowHalf,
@@ -151,20 +233,26 @@ export function Rating({
         labelText={labelText}
         size={size}
       />
-      <input {...api.getHiddenInputProps()} />
+      <input
+        {...api.getHiddenInputProps()}
+        defaultValue={undefined}
+        value={api.value}
+      />
       <div
         className={styles.control()}
         {...getRatingControlProps(
           api,
           isDisplay,
           labelText,
-          props["aria-label"]
+          ariaLabel,
+          ariaLabelledBy
         )}
         aria-describedby={describedBy}
         aria-errormessage={errorMessageId}
         aria-invalid={invalid || undefined}
         data-disabled={disabled ? "" : undefined}
         data-readonly={isDisplay ? "" : undefined}
+        ref={focusRef}
       >
         <RatingItems
           api={api}
@@ -181,7 +269,7 @@ export function Rating({
         data-disabled={disabled ? "" : undefined}
         id={scoreId}
       >
-        {Math.max(0, api.value)} / {count}
+        {Math.max(0, api.value)} / {normalizedCount}
       </span>
       {helpText && (
         <StatusText id={helpTextId} size={size} status={validateStatus}>
@@ -225,21 +313,26 @@ function getRatingControlProps(
   api: RatingApi,
   isDisplay: boolean,
   labelText?: string,
-  ariaLabel?: string
+  ariaLabel?: string,
+  ariaLabelledBy?: string
 ): HTMLAttributes<HTMLDivElement> {
   if (isDisplay) {
     const label = labelText ?? ariaLabel
     return {
       role: "img",
+      "aria-labelledby": ariaLabelledBy,
       "aria-label": `${label ? `${label}: ` : ""}${Math.max(0, api.value)} out of ${api.count}`,
       tabIndex: 0,
       "aria-description": "Read-only rating",
     }
   }
+  const visibleLabelId =
+    labelText && !ariaLabel ? api.getLabelProps().id : undefined
   return {
     ...api.getControlProps(),
-    "aria-label": ariaLabel ?? (labelText ? undefined : "Rating"),
-    "aria-labelledby": labelText ? api.getLabelProps().id : undefined,
+    "aria-label":
+      ariaLabel ?? (labelText || ariaLabelledBy ? undefined : "Rating"),
+    "aria-labelledby": ariaLabelledBy ?? visibleLabelId,
   }
 }
 
@@ -265,9 +358,11 @@ function RatingItems({
       {api.items.map((index) => {
         const itemProps = api.getItemProps({ index })
         const checked = api.value > 0 && Math.ceil(api.value) === index
+        const tabIndex = index === Math.max(1, Math.ceil(api.value)) ? 0 : -1
         const focusableProps = {
           ...itemProps,
           "aria-checked": checked,
+          tabIndex: itemProps["aria-disabled"] ? undefined : tabIndex,
           "aria-label": checked
             ? (translations?.ratingValueText?.(api.value) ??
               `${api.value} stars`)

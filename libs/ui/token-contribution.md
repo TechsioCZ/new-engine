@@ -1,14 +1,16 @@
+Naming authority: [AGENTS.md](./AGENTS.md#naming-rules). Reference aliases may omit color roles; derived component colors must include `bg`, `fg` or `border`.
+
 ## 🚀 QUICK REFERENCE
 
 ### Essential Rules
-1. **All colors need suffixes**: `-bg`, `-fg`, `-border` (never just `--color-button`)
+1. **Derived component colors need roles**: `-bg`, `-fg`, `-border`; reference aliases such as `--color-button-primary` are valid
 2. **Two-layer strategy**: Reference layer → Derived tokens
 3. **No abbreviations**: `button` not `btn`, `product-card` not `pc`
 4. **Follow the pattern**: `--[prefix]-[component]-[part?]-[property]-[state?]`
 
 ### Validation
 ```bash
-pnpm validate:tokens        # Check token naming compliance
+pnpm validate:tokens        # Check active token definitions, aliases and utility usage
 pnpm check:unused-tokens    # Find unused tokens
 ```
 
@@ -70,12 +72,21 @@ Required Prefixes
 | --color-   | ALL colors                                     | --color-button-bg-primary |
 | --spacing- | Spacing including width/height needing max/min | --spacing-button-padding  |
 | --text-    | Font sizes only                                | --text-button-lg          |
-| --border-  | Border properties                              | --border-button-width     |
+| --border-width- | Border widths (legacy border shapes are compatibility-only) | --border-width-button |
 | --radius-  | Border radius                                  | --radius-button-sm        |
 | --shadow-  | Box shadows                                    | --shadow-button-focus     |
 | --opacity- | Transparency values                            | --opacity-button-disabled |
 
-Required Suffixes for Colors
+Pixel-named dimension primitives preserve exact `px / 16` rem precision: for
+example, `--dimension-2: 0.125rem` and `--dimension-70: 4.375rem`. Do not round
+them to two decimal places. The sole legacy naming exception is
+`--dimension-700`, retained as an alias of `--dimension-70` (70px at the default
+16px root), **not** a 700px primitive. New consumers use `--dimension-70`; do
+not repurpose or remove the legacy name without a consumer migration. Exporter
+validation must allowlist that compatibility alias explicitly and reject other
+pixel-name/value mismatches.
+
+Required Role Segments for Derived Component Colors (reference aliases may omit them)
 
 | SUFFIX    | USAGE                  | FORBIDDEN                 |
 |-----------|------------------------|---------------------------|
@@ -97,7 +108,7 @@ Component Naming Rules
 /* ❌ FORBIDDEN */
 --color-btn-primary           /* Use 'button' not 'btn' */
 --color-pc-bg                 /* Use 'product-card' not 'pc' */
---color-button                /* Missing -bg suffix */
+--color-button                /* Missing role if used as a derived token; permitted as a reference alias */
 --color-button-text           /* Use -fg not -text */
 
 ---
@@ -302,7 +313,7 @@ State-Based Styling
 
 Mandatory Checks
 
-1. All colors MUST have explicit suffix (-bg, -fg, -border)
+1. Derived component colors MUST include an explicit role (-bg, -fg, -border); reference aliases may omit it
 2. No abbreviations except universally known (no btn, pc, etc.)
 3. Reference layer before derived colors
 4. Consistent section ordering
@@ -311,7 +322,7 @@ Mandatory Checks
 Forbidden Patterns
 
 /* ❌ FORBIDDEN */
---color-button:                          /* Missing suffix */
+--color-button:                          /* Invalid only when used as a derived color */
 --color-btn-primary:                     /* Abbreviation */
 --color-button-text:                     /* Use -fg not -text */
 --color-button-primary: #3b82f6;         /* Hardcoded value */

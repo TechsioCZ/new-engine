@@ -2,14 +2,14 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the toast-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { normalizeProps, useMachine } from "@zag-js/react"
 import * as toast from "@zag-js/toast"
 import {
   createContext,
@@ -18,12 +18,15 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useState,
 } from "react"
+import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { tv } from "../utils"
+import { useActiveModalContainer } from "./dialog"
 
 // Toast Item Variants
 const toastVariants = tv({
@@ -44,7 +47,8 @@ const toastVariants = tv({
       "will-change-[translate,opacity,scale]",
       "transition-[translate,scale,opacity] duration-400 motion-reduce:transition-none",
     ],
-    group: "relative flex flex-col",
+    group: "pointer-events-auto relative flex flex-col",
+    viewport: "toast-notification-viewport",
     header: "relative flex items-start gap-toast-content text-toast-title-size",
     iconFrame: "flex h-toast-title-line shrink-0 items-center",
     icon: [
@@ -231,29 +235,53 @@ const scopedGroupMachine: typeof toast.group.machine = {
 
 export function Toaster({ store = toaster }: ToastContainerProps = {}) {
   const groupId = useId()
+  const modalContainer = useActiveModalContainer()
+  const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
+    // Own the portal target, not React's children. Reparenting this stable host
+    // preserves toast actors, remaining timers and lifecycle callbacks.
+    const host = document.createElement("div")
+    host.setAttribute("data-live-announcer", "")
+    host.popover = "manual"
+    host.className = toastVariants().viewport()
+    document.body.appendChild(host)
+    setPortalHost(host)
+    return () => host.remove()
+  }, [])
+  useLayoutEffect(() => {
+    if (portalHost) {
+      const parent = modalContainer ?? portalHost.ownerDocument.body
+      parent.appendChild(portalHost)
+      // Keep DOM membership in the focus scope, but escape transformed drawer
+      // containing blocks. Manual popovers do not light-dismiss or consume Escape.
+      portalHost.showPopover()
+    }
+  }, [modalContainer, portalHost])
   const service = useMachine(scopedGroupMachine, {
     id: groupId,
     store,
   })
   const api = toast.group.connect(service, normalizeProps)
   const { group } = toastVariants()
-  return (
-    <Portal>
-      <div
-        className={group()}
-        {...api.getGroupProps()}
-        id={`toast-group:${groupId}`}
-      >
-        {api.getToasts().map((notification, index) => (
-          <Toast
-            actor={notification}
-            index={index}
-            key={notification.id}
-            parent={service}
-          />
-        ))}
-      </div>
-    </Portal>
+  if (!portalHost) {
+    return null
+  }
+  return createPortal(
+    <div
+      className={group()}
+      {...api.getGroupProps()}
+      id={`toast-group:${groupId}`}
+    >
+      {api.getToasts().map((notification, index) => (
+        <Toast
+          actor={notification}
+          index={index}
+          key={notification.id}
+          parent={service}
+        />
+      ))}
+    </div>,
+    portalHost
   )
 }
 

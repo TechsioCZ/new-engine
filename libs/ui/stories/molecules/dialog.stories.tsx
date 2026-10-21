@@ -3,6 +3,12 @@ import { useId, useRef, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
+import { Tooltip } from "../../src/atoms/tooltip"
+import { Drawer } from "../../src/molecules/drawer"
+import { Menu } from "../../src/molecules/menu"
+import { ToastProvider, useToast } from "../../src/molecules/toast"
+import { SelectTemplate } from "../../src/templates/select"
+import { Combobox } from "../../src/molecules/combobox"
 import { StatusText } from "../../src/atoms/status-text"
 import { Dialog, type DialogProps } from "../../src/molecules/dialog"
 import { FormInput } from "../../src/molecules/form-input"
@@ -545,4 +551,75 @@ export const BehaviorTests: Story = {
       />
     </div>
   ),
+}
+
+function OverlayControls() {
+  const toast = useToast()
+  const [notificationStatus, setNotificationStatus] = useState("No catalog changes yet.")
+  return <div className="space-y-200">
+    <Tooltip content="Only this hint closes first." openDelay={0} closeDelay={0} closeOnClick={false} closeOnPointerDown={false} ids={{ content: "overlay-hint" }} positioning={{ placement: "top", gutter: 12 }}><Button variant="secondary">Explain action</Button></Tooltip>
+    <Menu triggerText="Nested commands" items={[{ type: "action", value: "duplicate", label: "Duplicate catalog" }]} />
+    <SelectTemplate size="sm" label="Shipping method" placeholder="Choose shipping" items={[{ value: "standard", label: "Standard delivery" }, { value: "express", label: "Express delivery" }]} />
+    <Combobox size="sm" label="Destination" items={[{ id: "cz", value: "cz", label: "Czech Republic" }, { id: "sk", value: "sk", label: "Slovakia" }]} />
+    <Button variant="secondary" onClick={() => { setNotificationStatus("Catalog updated for this preview."); toast.create({ title: "Catalog updated", duration: Infinity, action: { label: "Undo", onClick: () => setNotificationStatus("Catalog update undone.") } }) }}>Notify</Button>
+    <StatusText role="status">{notificationStatus}</StatusText>
+    <Dialog title="Nested confirmation" triggerText="Open nested dialog" description="The child backdrop sits above its parent panel."><p>Press Escape to return to the host.</p></Dialog>
+    <Drawer size="sm"><Drawer.Trigger>Open nested drawer</Drawer.Trigger><Drawer.Portal><Drawer.Backdrop /><Drawer.Positioner><Drawer.Content><Drawer.Header><Drawer.Title>Nested drawer</Drawer.Title></Drawer.Header><Drawer.Body>Press Escape to return to the host.</Drawer.Body><Drawer.Footer><Drawer.CloseTrigger>Close nested drawer</Drawer.CloseTrigger></Drawer.Footer></Drawer.Content></Drawer.Positioner></Drawer.Portal></Drawer>
+  </div>
+}
+
+export const NestedOverlays: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Nested popup commands, hints and notifications preserve a modal's accessible tree and focus scope without cascading Escape dismissal." } } },
+  render: () => <ToastProvider><div className="flex flex-wrap gap-200">
+    <Dialog title="Dialog overlay host" triggerText="Open dialog host"><OverlayControls /></Dialog>
+    <Drawer><Drawer.Trigger>Open drawer host</Drawer.Trigger><Drawer.Portal><Drawer.Backdrop /><Drawer.Positioner><Drawer.Content><Drawer.Header><Drawer.Title>Drawer overlay host</Drawer.Title></Drawer.Header><Drawer.Body><OverlayControls /></Drawer.Body><Drawer.Footer><Drawer.CloseTrigger>Close host</Drawer.CloseTrigger></Drawer.Footer></Drawer.Content></Drawer.Positioner></Drawer.Portal></Drawer>
+  </div></ToastProvider>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    for (const host of ["dialog", "drawer"]) {
+      await userEvent.click(canvas.getByRole("button", { name: `Open ${host} host` }))
+      const modal = await body.findByRole("dialog", { name: `${host === "dialog" ? "Dialog" : "Drawer"} overlay host` })
+      await waitFor(() => expect(modal.contains(canvasElement.ownerDocument.activeElement)).toBe(true))
+      const hintTrigger = within(modal).getByRole("button", { name: "Explain action" })
+      await userEvent.keyboard("{Tab}")
+      hintTrigger.focus()
+      await expect(await body.findByRole("tooltip")).toHaveAttribute("id", "overlay-hint")
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() => expect(body.queryByRole("tooltip")).toBeNull())
+      await expect(modal).toBeVisible()
+      await userEvent.click(within(modal).getByRole("button", { name: "Nested commands" }))
+      await waitFor(async () => expect(await body.findByRole("menuitem", { name: "Duplicate catalog" })).toBeVisible())
+      await userEvent.keyboard("{Escape}")
+      await expect(modal).toBeVisible()
+      for (const [triggerName, childName] of [["Open nested dialog", "Nested confirmation"], ["Open nested drawer", "Nested drawer"]]) {
+        const childTrigger = within(modal).getByRole("button", { name: triggerName })
+        await userEvent.click(childTrigger)
+        const child = await body.findByRole("dialog", { name: childName })
+        await waitFor(() => expect(child.contains(canvasElement.ownerDocument.activeElement)).toBe(true))
+        const focused = canvasElement.ownerDocument.activeElement as HTMLElement
+        await expect(focused).toBeVisible()
+        await userEvent.keyboard("{Escape}")
+        await waitFor(() => expect(child).not.toBeInTheDocument())
+        await waitFor(() => expect(childTrigger).toHaveFocus())
+      }
+      await userEvent.click(within(modal).getByRole("button", { name: "Notify" }))
+      const undo = await body.findByRole("button", { name: "Undo" })
+      undo.focus()
+      await expect(undo).toHaveFocus()
+      await userEvent.click(body.getByRole("button", { name: "Close notification" }))
+      await waitFor(() => expect(body.queryByRole("button", { name: "Undo" })).toBeNull())
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() => expect(modal).not.toBeInTheDocument())
+    }
+  },
+}
+
+export const LongContent: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "A long review scrolls inside a viewport-bounded panel while its dismissal and publishing actions remain reachable." } } },
+  render: () => {
+    const [open, setOpen] = useState(false)
+    const [published, setPublished] = useState(false)
+    return <div className="space-y-200"><Dialog title="Review catalog" triggerText="Review long catalog" open={open} onOpenChange={({open}) => setOpen(open)} actions={<Button onClick={() => {setPublished(true);setOpen(false)}}>Publish changes</Button>}><div className="space-y-200">{Array.from({ length: 24 }, (_, index) => <p key={index}>Review product {index + 1}: confirm its availability and delivery details before publishing.</p>)}</div></Dialog>{published && <StatusText status="success">Catalog published for this preview.</StatusText>}</div>
+  },
 }

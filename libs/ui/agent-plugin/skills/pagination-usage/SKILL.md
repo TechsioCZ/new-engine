@@ -5,7 +5,7 @@ description: >
   link-based paginated navigation with Zag.js pagination, getPageUrl,
   LinkButton, NextLink adapters, compact mode, variants, and sizes.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -162,3 +162,16 @@ The sm/md/lg scale uses shared field heights, default md; the list may wrap on
 narrow surfaces. Prefer compact mode where horizontal space is very limited.
 Controlled page usage must update page in onPageChange; examples suppress browser
 navigation while updating local page state.
+
+## Bounds and native link activation
+
+Zero results display no numbered pages (compact shows `0 of 0`); both directions
+are noninteractive placeholders without hrefs or tab stops. Count reductions
+clamp an uncontrolled page and notify callbacks once. A controlled invalid page
+requests a correction once per invalid-input/bounds pair and shows a pending
+status without destinations/current-page claims until the owner accepts it.
+Keep result data, page and URL aligned. An invalid uncontrolled page resets to 1
+on pageSize changes. Modified, auxiliary or new-context link activation preserves
+native navigation without changing the original paginator; ordinary primary
+click/Enter activation changes it. RTL swaps only arrow glyphs, not arithmetic.
+Minimal selection has a persistent underline separate from keyboard focus.

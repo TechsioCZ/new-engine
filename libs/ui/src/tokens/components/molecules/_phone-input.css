@@ -8,6 +8,11 @@
  */
 
 @theme static {
+  /* Neutral interaction surfaces keep secondary prefixes/placeholders legible. */
+  --color-phone-input-interaction-surface: var(--color-form-control-bg);
+  --color-phone-input-bg-interaction: var(
+    --color-phone-input-interaction-surface
+  );
   --width-phone-input-trigger: max-content;
   --spacing-phone-input-country-trigger: var(--spacing-50);
   --border-phone-input-trigger: 0;
@@ -15,12 +20,21 @@
 }
 
 @utility phone-input-focus {
-  &:has(:focus-within) {
-    border-color: var(--color-phone-input-border-focus);
-    background: var(--color-phone-input-bg-focus);
+  &:has(:focus-visible) {
+    &:not([data-validation]) {
+      border-color: var(--color-phone-input-border-focus);
+    }
+    background: var(--color-phone-input-bg-interaction);
     outline-style: var(--default-ring-style);
     outline-width: var(--default-ring-width);
     outline-color: var(--color-phone-input-ring);
     outline-offset: var(--default-ring-offset);
+  }
+}
+
+/* Scope to the actual Select item state, including custom country compositions. */
+@utility phone-input-item-meta {
+  [data-part="item"]:is([data-state="checked"], [data-highlighted]) & {
+    color: inherit;
   }
 }

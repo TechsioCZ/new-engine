@@ -10,6 +10,7 @@
 import fs, { globSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
+import ts from "typescript"
 import {
   COLOR_PREFIXES,
   GAP_PREFIXES,
@@ -22,6 +23,10 @@ import {
   SPACE_PREFIXES,
   WIDTH_PREFIXES,
 } from "./token-utility-prefixes.js"
+import {
+  loadRuntimeInventory,
+  missingVariables,
+} from "./validate-token-graph.js"
 
 const ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..")
 
@@ -39,9 +44,14 @@ const NAMESPACE_MAPPINGS = {
     ...GAP_PREFIXES,
     ...SPACE_PREFIXES,
     ...SIZING_PREFIXES,
+    "size",
     ...INSET,
   ],
   ...SINGLE_PREFIX_NAMESPACES,
+  "border-width": ["border"],
+  size: ["size"],
+  "transition-duration": ["duration"],
+  leading: ["leading"],
   shadow: ["shadow", "drop-shadow", "inset-shadow"],
   blur: ["blur"],
 }
@@ -60,8 +70,10 @@ const IGNORE_PATTERNS = [
   // Standard spacing (without custom tokens)
   /^(p|m|gap|w|h|max-w|min-w|max-h|min-h|top|right|bottom|left|inset|space)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit|end)$/,
 
+  /^size-(full|min|max|fit|auto|px|\d+)$/,
+
   // Fractional dimensions compile to percentages without theme tokens.
-  /^(w|h|min-w|max-w|min-h|max-h)-(0|[1-9]\d*)\/[1-9]\d*$/,
+  /^(w|h|min-w|max-w|min-h|max-h|size)-(0|[1-9]\d*)\/[1-9]\d*$/,
 
   // Margin/padding with directional prefixes
   /^(ml|mr|mt|mb|mx|my|ms|me|pl|pr|pt|pb|px|py|ps|pe)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit)$/,
@@ -81,6 +93,9 @@ const IGNORE_PATTERNS = [
   /^rounded-(s|e|t|r|b|l|ss|se|ee|es|tl|tr|br|bl)-(none|sm|md|lg|xl|2xl|3xl|full)$/,
   /^border-(0|2|4|8|t|r|b|l|s|e|x|y|color)$/,
   /^border-(collapse|separate)$/,
+  /^border-(t|r|b|l|s|e|x|y)-(0|2|4|8)$/,
+  /^border-spacing(?:-[xy])?-(0|px|\d+(?:\.\d+)?)$/,
+  /^decoration-(auto|from-font|\d+)$/,
   /^shadow-(sm|md|lg|xl|2xl|inner|none)$/,
   /^opacity-(0|5|10|20|25|30|40|50|60|70|75|80|90|95|100)$/,
 
@@ -92,7 +107,8 @@ const IGNORE_PATTERNS = [
   /^(sm|md|lg|xl|2xl):/,
 
   // Transform & animation
-  /^(transform|rotate|scale|translate|skew|transition|duration|ease|delay|animate)-.+$/,
+  /^(transform|rotate|scale|translate|skew|transition|ease|delay|animate)-.+$/,
+  /^duration-\d+$/,
 
   // Special edge cases
   /^max-h-\(--available-height\)$/, // Dynamic height references
@@ -100,7 +116,10 @@ const IGNORE_PATTERNS = [
   /^left-(1\/2)$/, // Fractional positioning
 
   // Misc utilities
-  /^(sr-only|not-sr-only|pointer-events|select|resize|appearance|cursor|outline|ring)-.+$/,
+  /^(sr-only|not-sr-only|pointer-events|select|resize|appearance|cursor)-.+$/,
+  /^(outline|ring)(?:-(none|hidden|solid|dashed|dotted|double|inset|current|transparent|inherit|0|1|2|4|8))?$/,
+  /^outline-offset-\d+$/,
+  /^ring-offset-\d+$/,
 ]
 
 // Precompute prefix helpers for mapping
@@ -111,6 +130,9 @@ const KNOWN_PREFIXES = Object.values(NAMESPACE_MAPPINGS)
 const PREFIX_TO_NAMESPACES = (() => {
   const map = new Map()
   for (const [ns, prefixes] of Object.entries(NAMESPACE_MAPPINGS)) {
+    if (ns === "border") {
+      continue
+    }
     for (const p of prefixes) {
       if (!map.has(p)) {
         map.set(p, [])
@@ -122,20 +144,17 @@ const PREFIX_TO_NAMESPACES = (() => {
 })()
 
 const CLASS_STRING_REGEX = /\S+/g
-const CLASS_NAME_PROP_REGEX = /className\s*=\s*["']([^"']+)["']/g
-const CLASS_NAME_ARRAY_REGEX = /className\s*[:=]\s*(?:\{)?\s*\[([^\]]+)\]/g
-const CLASS_NAME_TEMPLATE_REGEX = /className\s*=\s*`([^`]+)`/g
-const QUOTED_STRING_REGEX = /['"`]([^'"`]+)['"`]/g
-const TEMPLATE_INTERPOLATION_REGEX = /\$\{[^}]+\}/
-const TV_CONFIG_REGEX = /tv\s*\(\s*\{[\s\S]*?\}\s*\)/g
-const TV_SLOT_REGEX = /\[\s*['"`]([^'"`]+)['"`]/g
-const TV_VARIANT_REGEX = /:\s*\{\s*[^}]*['"`]([^'"`]+)['"`]/g
-const CLASS_HELPER_REGEX = /(?:clsx|cn)\s*\(\s*([^)]+)\)/g
-const POSSIBLE_CLASS_STRING_REGEX =
-  /['"`]([^'"`]*(?:bg-|text-|border-|p-|m-|w-|h-|flex|grid|rounded)[^'"`]*)['"`]/g
-const TAILWIND_CLASS_VALUE_REGEX = /^[a-z-\s:[\]()]+$/i
-const CLASS_MODIFIER_REGEX = /^(?:[a-z-]+:|data-\[[^\]]+\]:)/i
-const TOKEN_DEFINITION_REGEX = /--([a-z][a-z0-9-]*)\s*:/g
+const CLASS_PROPERTIES = new Set(["class", "className"])
+const CLASS_HELPERS = new Set(["cn", "clsx", "twMerge", "cx"])
+const PAINT_ATTRIBUTES = new Set([
+  "style",
+  "fill",
+  "stroke",
+  "color",
+  "width",
+  "height",
+  "backgroundColor",
+])
 const INLINE_TOKEN_REGEX = /["'](--[a-z][a-z0-9-]*)["']\s*:/gi
 const ARBITRARY_VAR_TOKEN_REGEX = /var\(\s*(--[a-z][a-z0-9-]*)/gi
 const ARBITRARY_KEY_TOKEN_REGEX = /[:=]\s*(--[a-z][a-z0-9-]*)/gi
@@ -155,7 +174,17 @@ const EXTERNAL_TOKENS = new Set([
   "--available-height",
   "--available-width",
   "--height",
+  "--width",
+  // Zag Tabs/Toast establish these numeric/geometry inputs on their parts.
+  "--x",
+  "--y",
+  "--scale",
+  "--opacity",
   "--border-width-badge-dynamic",
+  // Shared popup-size-* utilities establish these inherited runtime inputs.
+  "--popup-item-x",
+  "--popup-item-y",
+  "--popup-item-gap",
 ])
 
 function addClasses(classes, classString) {
@@ -164,24 +193,203 @@ function addClasses(classes, classString) {
   }
 }
 
-function addMatchedClasses(classes, matches) {
-  for (const match of matches) {
-    addClasses(classes, match[1])
-  }
+function propertyName(node) {
+  return node?.name &&
+    (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name))
+    ? node.name.text
+    : null
 }
 
-function addNestedQuotedClasses(classes, matches) {
-  for (const match of matches) {
-    addMatchedClasses(classes, match[1].matchAll(QUOTED_STRING_REGEX))
+/** Parse executable consumers, not comments, prose, property names or types.
+ * Resolve local constants only when they are reached from a class/paint sink. */
+export function extractSourceConsumers(content) {
+  const source = ts.createSourceFile(
+    "consumer.tsx",
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  )
+  const declarations = new Map()
+  function index(node) {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+      const entries = declarations.get(node.name.text) ?? []
+      entries.push(node)
+      declarations.set(node.name.text, entries)
+    }
+    ts.forEachChild(node, index)
   }
+  index(source)
+  const classes = new Set(),
+    paint = new Set()
+  function binding(identifier) {
+    // Lexical ancestors distinguish same-named constants in separate functions.
+    for (let scope = identifier.parent; scope; scope = scope.parent) {
+      for (const declaration of declarations.get(identifier.text) ?? []) {
+        let owner = declaration.parent
+        while (owner && !ts.isBlock(owner) && !ts.isSourceFile(owner)) {
+          owner = owner.parent
+        }
+        if (owner === scope) {
+          return declaration.initializer
+        }
+      }
+    }
+    return null
+  }
+  function collect(node, output, seen = new Set()) {
+    if (!node || seen.has(node)) {
+      return
+    }
+    const next = new Set(seen).add(node)
+    const child = (value) => collect(value, output, next)
+    switch (node.kind) {
+      case ts.SyntaxKind.StringLiteral:
+      case ts.SyntaxKind.NoSubstitutionTemplateLiteral:
+        output.add(node.text)
+        break
+      case ts.SyntaxKind.TemplateExpression:
+        output.add(node.head.text)
+        for (const span of node.templateSpans) {
+          child(span.expression)
+          output.add(span.literal.text)
+        }
+        break
+      case ts.SyntaxKind.Identifier:
+        child(binding(node))
+        break
+      case ts.SyntaxKind.ConditionalExpression:
+        child(node.whenTrue)
+        child(node.whenFalse)
+        break
+      case ts.SyntaxKind.PropertyAssignment:
+        child(node.initializer)
+        break
+      case ts.SyntaxKind.ShorthandPropertyAssignment:
+        child(node.name)
+        break
+      case ts.SyntaxKind.CallExpression:
+        node.arguments.forEach(child)
+        break
+      case ts.SyntaxKind.ObjectLiteralExpression:
+        for (const prop of node.properties) {
+          // clsx({ "bg-example": enabled }) uses class names as keys.
+          if (ts.isPropertyAssignment(prop) && ts.isStringLiteral(prop.name)) {
+            output.add(prop.name.text)
+          }
+          child(prop)
+        }
+        break
+      case ts.SyntaxKind.ArrayLiteralExpression:
+        node.elements.forEach(child)
+        break
+      case ts.SyntaxKind.BinaryExpression:
+        child(node.left)
+        child(node.right)
+        break
+      case ts.SyntaxKind.ParenthesizedExpression:
+      case ts.SyntaxKind.AsExpression:
+      case ts.SyntaxKind.SatisfiesExpression:
+      case ts.SyntaxKind.NonNullExpression:
+      case ts.SyntaxKind.JsxExpression:
+      case ts.SyntaxKind.SpreadElement:
+      case ts.SyntaxKind.SpreadAssignment:
+      case ts.SyntaxKind.ElementAccessExpression:
+      case ts.SyntaxKind.PropertyAccessExpression:
+        // Dynamic lookup may select any entry in a local class/style map.
+        child(node.expression)
+        break
+      default:
+        break
+    }
+  }
+  function collectCompound(node) {
+    if (!ts.isArrayLiteralExpression(node)) {
+      return
+    }
+    for (const variant of node.elements) {
+      if (!ts.isObjectLiteralExpression(variant)) {
+        continue
+      }
+      for (const field of variant.properties) {
+        if (CLASS_PROPERTIES.has(propertyName(field))) {
+          collect(field, classes)
+        }
+      }
+    }
+  }
+  function collectRecipe(config) {
+    if (!(config && ts.isObjectLiteralExpression(config))) {
+      return
+    }
+    for (const prop of config.properties) {
+      const key = propertyName(prop)
+      if (["base", "slots", "variants"].includes(key)) {
+        collect(prop, classes)
+      }
+      if (
+        ["compoundSlots", "compoundVariants"].includes(key) &&
+        ts.isPropertyAssignment(prop)
+      ) {
+        collectCompound(prop.initializer)
+      }
+    }
+  }
+  function collectCall(node) {
+    if (!ts.isIdentifier(node.expression)) {
+      return
+    }
+    if (CLASS_HELPERS.has(node.expression.text)) {
+      for (const arg of node.arguments) {
+        collect(arg, classes)
+      }
+    }
+    if (node.expression.text === "tv") {
+      collectRecipe(node.arguments[0])
+    }
+  }
+  function visit(node) {
+    const name = propertyName(node)
+    if (ts.isJsxAttribute(node) || ts.isPropertyAssignment(node)) {
+      if (CLASS_PROPERTIES.has(name)) {
+        collect(node.initializer, classes)
+      }
+      if (
+        (ts.isJsxAttribute(node) && PAINT_ATTRIBUTES.has(name)) ||
+        name === "style"
+      ) {
+        collect(node.initializer, paint)
+      }
+    }
+    if (ts.isCallExpression(node)) {
+      collectCall(node)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+  return { classes, paint }
 }
 
 function stripClassModifiers(className) {
-  let baseClass = className
-  while (CLASS_MODIFIER_REGEX.test(baseClass)) {
-    baseClass = baseClass.replace(CLASS_MODIFIER_REGEX, "")
+  let depth = 0,
+    last = 0
+  for (let index = 0; index < className.length; index += 1) {
+    const char = className[index]
+    if (char === "\\") {
+      index += 1
+      continue
+    }
+    if (char === "[" || char === "(") {
+      depth += 1
+    }
+    if (char === "]" || char === ")") {
+      depth -= 1
+    }
+    if (char === ":" && depth === 0) {
+      last = index + 1
+    }
   }
-  return baseClass
+  return className.slice(last).replace(/^!|!$/g, "")
 }
 
 /**
@@ -189,31 +397,10 @@ function stripClassModifiers(className) {
  */
 function extractTailwindClasses(content) {
   const classes = new Set()
-
-  addMatchedClasses(classes, content.matchAll(CLASS_NAME_PROP_REGEX))
-  addNestedQuotedClasses(classes, content.matchAll(CLASS_NAME_ARRAY_REGEX))
-
-  for (const match of content.matchAll(CLASS_NAME_TEMPLATE_REGEX)) {
-    for (const staticPart of match[1].split(TEMPLATE_INTERPOLATION_REGEX)) {
-      addClasses(classes, staticPart)
-    }
+  for (const value of extractSourceConsumers(content).classes) {
+    addClasses(classes, value)
   }
-
-  for (const match of content.matchAll(TV_CONFIG_REGEX)) {
-    addMatchedClasses(classes, match[0].matchAll(TV_SLOT_REGEX))
-    addMatchedClasses(classes, match[0].matchAll(TV_VARIANT_REGEX))
-  }
-
-  addNestedQuotedClasses(classes, content.matchAll(CLASS_HELPER_REGEX))
-
-  const possibleClassStrings = content.matchAll(POSSIBLE_CLASS_STRING_REGEX)
-  for (const match of possibleClassStrings) {
-    if (TAILWIND_CLASS_VALUE_REGEX.test(match[1])) {
-      addClasses(classes, match[1])
-    }
-  }
-
-  return Array.from(classes).filter((cls) => cls.length > 0)
+  return [...classes]
 }
 
 /**
@@ -254,17 +441,11 @@ function mapClassToPossibleTokens(className) {
  * Load defined tokens and component sources for one validation pass
  */
 function loadTokenUsageInputs() {
-  const tokens = new Set()
-  const tokenFiles = globSync("src/tokens/**/*.css", { cwd: ROOT })
-
-  for (const file of tokenFiles) {
-    const content = fs.readFileSync(path.join(ROOT, file), "utf8")
-    // Match CSS custom properties defined in tokens
-    const tokenMatches = content.matchAll(TOKEN_DEFINITION_REGEX)
-    for (const match of tokenMatches) {
-      tokens.add(`--${match[1]}`)
-    }
-  }
+  const inventory = loadRuntimeInventory()
+  const tokens = new Set(inventory.registrations)
+  const runtimeTokens = new Set(
+    inventory.definitions.map((entry) => entry.name)
+  )
 
   const componentSources = new Map()
 
@@ -283,11 +464,11 @@ function loadTokenUsageInputs() {
     componentSources.set(file, content)
     // style={{ '--var': value }} or object entries '--var': value
     for (const m of content.matchAll(INLINE_TOKEN_REGEX)) {
-      tokens.add(m[1])
+      runtimeTokens.add(m[1])
     }
   }
 
-  return { definedTokens: tokens, componentSources }
+  return { definedTokens: tokens, runtimeTokens, componentSources, inventory }
 }
 
 /**
@@ -316,16 +497,22 @@ function extractTokensFromArbitraryUtility(className) {
   return Array.from(tokens)
 }
 
-function findMissingTokens(className, definedTokens) {
+function findMissingTokens(
+  className,
+  definedTokens,
+  runtimeTokens = definedTokens
+) {
   const arbitraryTokens = extractTokensFromArbitraryUtility(className)
   if (arbitraryTokens.length > 0) {
-    const governedTokens = arbitraryTokens.filter(
-      (token) => !EXTERNAL_TOKENS.has(token)
-    )
-    const hasDefinedToken = governedTokens.some((token) =>
-      definedTokens.has(token)
-    )
-    return governedTokens.length === 0 || hasDefinedToken ? [] : governedTokens
+    const isDefined = (token) =>
+      runtimeTokens.has(token) || EXTERNAL_TOKENS.has(token)
+    const missing = missingVariables(className.replaceAll("_", " "), isDefined)
+    const shorthand = [
+      ...className.matchAll(/(?:^|[:=-])\((?:[\w-]+:)?(--[\w-]+)\)/g),
+    ]
+      .map((match) => match[1])
+      .filter((token) => !isDefined(token))
+    return [...new Set([...missing, ...shorthand])]
   }
 
   if (shouldIgnoreClass(className)) {
@@ -339,12 +526,16 @@ function findMissingTokens(className, definedTokens) {
   return possibleTokens.length === 0 || hasMatchingToken ? [] : possibleTokens
 }
 
-function collectFileErrors(content, definedTokens) {
+function collectFileErrors(content, definedTokens, runtimeTokens) {
   const contentLines = content.split("\n")
   const fileErrors = []
 
   for (const className of extractTailwindClasses(content)) {
-    const expectedTokens = findMissingTokens(className, definedTokens)
+    const expectedTokens = findMissingTokens(
+      className,
+      definedTokens,
+      runtimeTokens
+    )
     if (expectedTokens.length > 0) {
       fileErrors.push({
         className,
@@ -377,14 +568,15 @@ function reportErrors(errorsByFile, totalErrors) {
 function validateTokenUsage() {
   console.log("🔍 Validating token usage in components...\n")
 
-  const { definedTokens, componentSources } = loadTokenUsageInputs()
+  const { definedTokens, runtimeTokens, componentSources } =
+    loadTokenUsageInputs()
   console.log(`📋 Found ${definedTokens.size} defined tokens`)
 
   const errorsByFile = new Map()
   let totalErrors = 0
 
   for (const [file, content] of componentSources) {
-    const fileErrors = collectFileErrors(content, definedTokens)
+    const fileErrors = collectFileErrors(content, definedTokens, runtimeTokens)
     if (fileErrors.length > 0) {
       errorsByFile.set(file, fileErrors)
       totalErrors += fileErrors.length
@@ -419,8 +611,11 @@ if (
 }
 
 export {
+  collectFileErrors,
   extractTailwindClasses,
+  extractTokensFromArbitraryUtility,
   findMissingTokens,
   mapClassToPossibleTokens,
+  stripClassModifiers,
   validateTokenUsage,
 }

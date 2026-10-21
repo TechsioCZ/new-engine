@@ -140,7 +140,7 @@ Source: libs/ui/src/tokens/components/atoms/_textarea.css
 
 ```sh
 rg -U -n "<Label[\\s\\S]{0,240}<Textarea|<textarea\\b|<FormTextarea[^>]*variant=" apps
-rg -P -n "<FormTextarea(?![^>]*id=)|<FormTextarea(?![^>]*label=)" apps
+rg -P -n "<FormTextarea(?![^>]*label=)" apps
 rg -n "<FormTextarea[^>]*className=.*(border-|bg-|text-|p-|px-|py-)" apps
 ```
 
@@ -165,3 +165,13 @@ Caller-supplied `aria-errormessage` IDs are preserved independently of
 `validateStatus`, including when the caller supplies the invalid state. Clear
 caller-owned error IDs and invalid state together when removing that message;
 the wrapper only manages the lifecycle of its own generated error reference.
+
+### Generated IDs
+
+Omitting `id` generates a stable, unique control ID and associates the label
+and feedback automatically. Supply a unique explicit ID only when an external
+error summary or another consumer must reference the control.
+
+```tsx
+<FormTextarea label="Delivery instructions" name="instructions" />
+```

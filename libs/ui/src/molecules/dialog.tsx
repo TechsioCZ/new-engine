@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,26 +13,115 @@ import {
   connect as connectDialog,
   machine as dialogMachine,
 } from "@zag-js/dialog"
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type ReactNode, useId } from "react"
+import {
+  normalizeProps,
+  Portal,
+  type PortalProps,
+  useMachine,
+} from "@zag-js/react"
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useId,
+  useLayoutEffect,
+  useState,
+  useSyncExternalStore,
+} from "react"
+import { createPortal } from "react-dom"
 import { tv, type VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 
+// Internal overlay integration: popup portals belong to their nearest modal,
+// while the application notification region follows the frontmost modal.
+const OverlayContainerContext = createContext<HTMLElement | null>(null)
+const modalContainers: HTMLElement[] = []
+const modalListeners = new Set<() => void>()
+const subscribeToModals = (listener: () => void) => {
+  modalListeners.add(listener)
+  return () => {
+    modalListeners.delete(listener)
+  }
+}
+const getActiveModal = () => modalContainers.at(-1) ?? null
+const getServerModal = () => null
+
+/** @internal Shared by overlay primitives; not a replacement for a modal trap. */
+export function useActiveModalContainer() {
+  return useSyncExternalStore(subscribeToModals, getActiveModal, getServerModal)
+}
+
+/** @internal Keeps portalled descendants inside the owning modal's ARIA/focus scope. */
+export function OverlayContainerProvider({
+  container,
+  children,
+}: {
+  container: HTMLElement | null
+  children: ReactNode
+}) {
+  const inheritedContainer = useContext(OverlayContainerContext)
+  useLayoutEffect(() => {
+    if (!container) {
+      return
+    }
+    modalContainers.push(container)
+    for (const listener of modalListeners) {
+      listener()
+    }
+    return () => {
+      const index = modalContainers.indexOf(container)
+      if (index !== -1) {
+        modalContainers.splice(index, 1)
+      }
+      for (const listener of modalListeners) {
+        listener()
+      }
+    }
+  }, [container])
+  return (
+    <OverlayContainerContext.Provider value={container ?? inheritedContainer}>
+      {children}
+    </OverlayContainerContext.Provider>
+  )
+}
+
+/** @internal Uses React portals rather than moving React-owned DOM nodes. */
+export function OverlayPortal({
+  children,
+  ...props
+}: PortalProps & { children: ReactNode }) {
+  const container = useContext(OverlayContainerContext)
+  if (typeof document === "undefined" || props.disabled) {
+    return <>{children}</>
+  }
+  const root = props.getRootNode?.()
+  const doc =
+    root?.nodeType === 9
+      ? (root as Document)
+      : (root?.ownerDocument ?? document)
+  const target =
+    props.container?.current ??
+    container ??
+    (root?.nodeType === 11 ? (root as DocumentFragment) : doc.body)
+  return createPortal(children, target)
+}
+
 const dialogVariants = tv({
   slots: {
-    backdrop: ["inset-0 z-(--z-dialog-backdrop)"],
-    positioner: ["inset-0 z-(--z-dialog-positioner) flex"],
+    backdrop: ["dialog-backdrop-layer inset-0"],
+    positioner: ["dialog-positioner-layer inset-0 flex"],
     content: [
       "relative flex min-w-0 max-w-full flex-col gap-dialog-content p-dialog-content",
       "bg-dialog-content-bg text-dialog-content-fg",
       "border-(length:--border-width-dialog) border-dialog-content-border",
       "shadow-dialog-panel",
-      "overflow-y-auto",
+
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-dialog-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
+    scrollViewport: "flex min-h-0 flex-col gap-dialog-content overflow-y-auto",
     title: [
       "dialog-heading-typography break-words pe-dialog-title-safe font-dialog-title text-dialog-title-fg",
     ],
@@ -250,6 +339,9 @@ export function Dialog({
   const generatedId = useId()
   const uniqueId = id || generatedId
   const isModal = modal ?? behavior !== "modeless"
+  const [contentElement, setContentElement] = useState<HTMLDivElement | null>(
+    null
+  )
 
   const service = useMachine(dialogMachine, {
     id: uniqueId,
@@ -272,6 +364,7 @@ export function Dialog({
     backdrop,
     positioner,
     content,
+    scrollViewport,
     trigger: triggerSlot,
     title: titleSlot,
     description: descriptionSlot,
@@ -288,29 +381,40 @@ export function Dialog({
     <>
       {isModal && <div className={backdrop()} {...api.getBackdropProps()} />}
       <div className={positioner()} {...api.getPositionerProps()}>
-        <div className={content({ className })} {...api.getContentProps()}>
-          {!hideCloseButton && (
-            <ActionIcon
-              className={closeTrigger()}
-              icon="token-icon-dialog-close"
-              size="md"
-              tone="neutral"
-              {...api.getCloseTriggerProps()}
-              aria-label="Close dialog"
-            />
-          )}
-          {title && (
-            <h2 className={titleSlot()} {...api.getTitleProps()}>
-              {title}
-            </h2>
-          )}
-          {description && (
-            <div className={descriptionSlot()} {...api.getDescriptionProps()}>
-              {description}
+        <div
+          className={content({ className })}
+          {...api.getContentProps()}
+          ref={setContentElement}
+        >
+          <OverlayContainerProvider container={isModal ? contentElement : null}>
+            {!hideCloseButton && (
+              <ActionIcon
+                className={closeTrigger()}
+                icon="token-icon-dialog-close"
+                size="md"
+                tone="neutral"
+                {...api.getCloseTriggerProps()}
+                aria-label="Close dialog"
+              />
+            )}
+            <div className={scrollViewport()}>
+              {title && (
+                <h2 className={titleSlot()} {...api.getTitleProps()}>
+                  {title}
+                </h2>
+              )}
+              {description && (
+                <div
+                  className={descriptionSlot()}
+                  {...api.getDescriptionProps()}
+                >
+                  {description}
+                </div>
+              )}
+              {children}
             </div>
-          )}
-          {children}
-          {actions && <div className={actionsSlot()}>{actions}</div>}
+            {actions && <div className={actionsSlot()}>{actions}</div>}
+          </OverlayContainerProvider>
         </div>
       </div>
     </>

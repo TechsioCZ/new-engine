@@ -20,16 +20,17 @@ const meta: Meta<typeof Accordion> = {
     },
   },
   argTypes: {
-    size: { control: "inline-radio", options: ["sm", "md", "lg"] },
-    shadow: { control: "inline-radio", options: ["none", "sm", "md"] },
+    size: { description: "Scales trigger text, spacing and indicators together.", control: "inline-radio", options: ["sm", "md", "lg"] },
+    shadow: { description: "Elevation around the disclosure group; none suits embedded sections.", control: "inline-radio", options: ["none", "sm", "md"] },
     variant: {
+      description: "Default uses a surface; borderless removes dividers; child inherits the surrounding surface.",
       control: "inline-radio",
       options: ["default", "borderless", "child"],
     },
-    multiple: { control: "boolean" },
-    collapsible: { control: "boolean" },
-    disabled: { control: "boolean" },
-    dir: { control: "inline-radio", options: ["ltr", "rtl"] },
+    multiple: { description: "Allow several answers to stay open independently.", control: "boolean" },
+    collapsible: { description: "Allow every answer to close, including the last open panel.", control: "boolean" },
+    disabled: { description: "Make all disclosure triggers unavailable.", control: "boolean" },
+    dir: { description: "Mirror the logical layout and keyboard direction for right-to-left content.", control: "inline-radio", options: ["ltr", "rtl"] },
   },
   args: {
     size: "md",

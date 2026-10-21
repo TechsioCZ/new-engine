@@ -109,7 +109,19 @@ Correct:
 @import "@techsio/ui-kit/tokens-with-tailwind";
 ```
 
-UI-kit component classes need the token CSS loaded in the app.
+Process this global CSS with Tailwind v4 (`@tailwindcss/postcss`); loading the
+unprocessed stylesheet is not enough. Both public token entries register
+`../../dist/**/*.js` relative to the packaged CSS with `@source`, so dependency
+utilities are generated even under node_modules. Do not copy internal class
+strings into app source. If the app already imports Tailwind, use this instead:
+
+```css
+@import "tailwindcss";
+@import "@techsio/ui-kit/tokens";
+```
+
+Choose one recipe, not both. See README and Storybook Guide/Getting Started for
+installation, the PostCSS config, and the packed-consumer smoke check.
 
 Source: libs/ui/package.json
 
@@ -166,3 +178,20 @@ rg -n 'as=\\{Next(Link|Image)\\}|from "next/(link|image)"' apps/<app>
 rg -n '@techsio/ui-kit/tokens' apps/<app>
 ```
 
+
+## RSC and compound composition
+
+Published hook/context/event-owning modules are client boundaries; emitted
+prologues are checked during package validation. Keep compound static-member
+composition (`Tabs.Trigger`, `Dialog.Content`, etc.) inside a consuming app's
+`'use client'` module, not a server page accessing members of a client reference.
+Nonserializable callbacks/render functions also belong inside that boundary.
+Plain SSR and a Next App Router build validate different contracts; do not claim
+RSC compatibility from a successful renderToString or Node react-server import.
+
+For fixed Akros use `<html className="light" data-theme="akros">`. For optional
+persisted theme switching import AppThemeProvider/BrandThemeScript from
+`@techsio/ui-kit/theme/theme-provider`; defaults are saved-preference fallbacks,
+not forced brand settings. Place the brand script before visible body content,
+use suppressHydrationWarning on the Next root html, and gate theme-dependent UI
+on useAppTheme().mounted. Base/Neo support light+dark; Business/Akros light only.

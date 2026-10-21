@@ -1,3 +1,5 @@
+@import "./_action-icon.css";
+
 /*
  * Button — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
@@ -46,4 +48,19 @@
 @utility button-current-size {
   font-size: inherit;
   line-height: inherit;
+}
+
+/* Text-bearing actions grow with wrapped/localized labels, unlike icon buttons.
+ * The shared canonical heights remain minimum geometry, not clipping boxes. */
+@utility button-size-sm {
+  height: auto;
+  min-height: var(--height-form-control-sm);
+}
+@utility button-size-md {
+  height: auto;
+  min-height: var(--height-form-control-md);
+}
+@utility button-size-lg {
+  height: auto;
+  min-height: var(--height-form-control-lg);
 }

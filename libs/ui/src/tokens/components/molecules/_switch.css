@@ -7,6 +7,10 @@
     var(--spacing-switch-track-width) -
     var(--spacing-switch-track-height)
   );
+  --color-switch-thumb-contrast: var(--color-fg-primary);
+  --color-switch-danger-ink: var(--color-black);
+  --color-switch-thumb-bg-unchecked: var(--color-switch-thumb-contrast);
+  --color-switch-thumb-bg-invalid: var(--color-switch-danger-ink);
   --color-switch-unavailable: var(--color-fg-disabled);
   --color-switch-readonly: var(--color-form-control-fg-readonly);
   --color-switch-thumb-bg-unavailable: var(--color-switch-unavailable);
@@ -48,4 +52,13 @@
     var(--border-width-switch) *
     2
   );
+}
+
+/* Preserve the moving boundary in system color palettes without changing travel. */
+@utility switch-thumb-boundary {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    background-color: ButtonText !important;
+    outline: var(--border-width-switch) solid Canvas;
+  }
 }

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useId, useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { StatusText } from "../../src/atoms/status-text"
@@ -9,6 +9,8 @@ import {
   type SelectItem,
   type SelectProps,
 } from "../../src/molecules/select"
+
+import { SelectTemplate } from "../../src/templates/select"
 
 const countries: SelectItem[] = [
   { label: "United States", value: "us" },
@@ -71,16 +73,16 @@ const meta: Meta<typeof Select> = {
     ref: { control: false, table: { disable: true } },
     id: { control: false, table: { disable: true } },
     size: { control: "select", options: ["sm", "md", "lg"] },
-    validateStatus: {
+    validateStatus: { description: 'Style the field and linked StatusText; error sets aria-invalid and associates mounted error messages.',
       control: "select",
       options: ["default", "error", "warning", "success"],
     },
     disabled: { control: "boolean" },
-    readOnly: { control: "boolean" },
-    multiple: { control: "boolean" },
-    closeOnSelect: { control: "boolean" },
-    loopFocus: { control: "boolean" },
-    items: { control: "object" },
+    readOnly: { description: 'Keep the selected value focusable and submitted, but prevent opening, clearing and selection.', control: "boolean" },
+    multiple: { description: 'Select several values; value/defaultValue and onValueChange always use string arrays. Default false.', control: "boolean" },
+    closeOnSelect: { description: 'Close the popup after selection (default true); set false to keep browsing, especially in multiple mode.', control: "boolean" },
+    loopFocus: { description: 'Wrap arrow-key navigation at the first/last option (default true).', control: "boolean" },
+    items: { description: 'Authoritative options. Removed selections clear with a change notification; controlled parents should apply the correction.', control: "object" },
     children: { control: false },
   },
   args: {
@@ -143,12 +145,21 @@ export const Sizes: Story = {
     </VariantContainer>
   ),
   parameters: {
+    controls: { exclude: ["size"] },
     docs: {
       description: {
         story:
           "Small, medium and large use the same country, copy and field anatomy so the canonical scale is easy to compare.",
       },
     },
+  },
+  play: async ({ canvasElement }) => {
+    for (const control of canvasElement.querySelectorAll('[data-scope="select"][data-part="control"]')) {
+      const value = control.querySelector('[data-part="value-text"]')?.getBoundingClientRect()
+      const clear = control.querySelector('[data-part="clear-trigger"]')?.getBoundingClientRect()
+      if (!value || !clear) throw new Error("Missing value or clear action")
+      await expect(value.right).toBeLessThanOrEqual(clear.x)
+    }
   },
 }
 
@@ -518,5 +529,92 @@ export const KeyboardTypeahead: Story = {
     trigger.focus()
     await userEvent.keyboard("g")
     await expect(trigger).toHaveTextContent("Germany")
+  },
+}
+
+function ChangingCountries() {
+  const [removed, setRemoved] = useState(false)
+  const [value, setValue] = useState(["a"])
+  const [changes, setChanges] = useState(0)
+  const items = removed ? [{ label: "Beta renamed", value: "b" }] : [
+    { label: "Alpha", value: "a" }, { label: "Beta", value: "b" },
+  ]
+  return <form className="flex flex-col gap-200" onSubmit={(event) => event.preventDefault()}>
+    <CountrySelect items={items} name="uncontrolled" required defaultValue={["a"]}
+      onValueChange={() => setChanges((count) => count + 1)} />
+    <SelectTemplate label="Controlled country" items={items} name="controlled" required
+      value={value} onValueChange={({ value: next }) => setValue(next)} />
+    <SelectTemplate label="Multiple countries" items={items} name="multiple" multiple
+      defaultValue={["a", "b"]} />
+    <Button variant="secondary" onClick={() => setRemoved(true)}>Replace countries</Button>
+    <output aria-label="Collection changes">{changes}</output>
+  </form>
+}
+
+export const CollectionUpdates: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "Replace the authoritative options while open: removed values clear once, valid multiple values survive with refreshed labels, and native forms never invent a replacement." } } },
+  render: () => <ChangingCountries />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole("combobox", { name: "Country" }))
+    const replace = canvas.getByRole("button", { name: "Replace countries" })
+    // Keyboard focus remains owned by the open listbox while the application updates data.
+    replace.click()
+    await waitFor(() => expect(canvas.getByRole("status", { name: "Collection changes" })).toHaveTextContent("1"))
+    const form = canvasElement.querySelector("form")
+    if (!form) throw new Error("Missing collection form")
+    await expect(new FormData(form).get("uncontrolled")).toBe("")
+    await expect(new FormData(form).get("controlled")).toBe("")
+    await expect(new FormData(form).getAll("multiple")).toEqual(["b"])
+    await expect(form.querySelector<HTMLSelectElement>('select[name="uncontrolled"]')?.checkValidity()).toBe(false)
+    await expect(canvas.getByRole("combobox", { name: "Country" })).toHaveTextContent("Select a country")
+    await expect(canvas.getByRole("combobox", { name: "Multiple countries" })).toHaveTextContent("Beta renamed")
+    for (const node of canvasElement.ownerDocument.querySelectorAll("[aria-activedescendant]")) {
+      await expect(canvasElement.ownerDocument.getElementById(node.getAttribute("aria-activedescendant") ?? "")).not.toBeNull()
+    }
+    await userEvent.keyboard("{Escape}")
+    await expect(body.queryByRole("listbox")).toBeNull()
+  },
+}
+
+function ObservedCountry() {
+  const [clicks, setClicks] = useState(0)
+  const [keys, setKeys] = useState(0)
+  const [cancel, setCancel] = useState(false)
+  return <div className="flex flex-col gap-200">
+    <Select items={countries}>
+      <Select.Label>Observed country</Select.Label>
+      <Select.Control><Select.Trigger onClick={(event) => { setClicks((n) => n + 1); if (cancel) event.preventDefault() }}>
+        <Select.ValueText />
+      </Select.Trigger></Select.Control>
+      <Select.Positioner><Select.Content onKeyDown={(event) => { setKeys((n) => n + 1); if (cancel || event.key === "Home") event.preventDefault() }}>
+        {countries.map((item) => <Select.Item key={item.value} item={item}><Select.ItemText /><Select.ItemIndicator /></Select.Item>)}
+      </Select.Content></Select.Positioner>
+    </Select>
+    <Button variant="secondary" onClick={() => setCancel((next) => !next)}>Toggle cancellation</Button>
+    <output aria-label="Observed events">{clicks} clicks, {keys} keys</output>
+  </div>
+}
+
+export const ComposedEvents: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "Consumer click and key observers preserve machine opening/navigation; preventDefault explicitly cancels a machine action." } } },
+  render: () => <ObservedCountry />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const trigger = canvas.getByRole("combobox", { name: "Observed country" })
+    await userEvent.click(trigger)
+    await expect(trigger).toHaveAttribute("aria-expanded", "true")
+    await waitFor(() => expect(body.getByRole("listbox")).toHaveFocus())
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{Home}{Enter}")
+    await waitFor(() => expect(trigger).toHaveTextContent("Canada"))
+    await expect(canvas.getByRole("status", { name: "Observed events" })).toHaveTextContent("1 clicks, 4 keys")
+    await userEvent.click(canvas.getByRole("button", { name: "Toggle cancellation" }))
+    await userEvent.click(trigger)
+    await expect(trigger).toHaveAttribute("aria-expanded", "false")
+    await expect(body.queryByRole("listbox")).toBeNull()
   },
 }

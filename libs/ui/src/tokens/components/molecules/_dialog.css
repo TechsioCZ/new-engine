@@ -2,7 +2,7 @@
  * Dialog — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
  * Kept here:
- *   - `--container-dialog-center-h-max` — 80svh runtime viewport unit
+ *   - `--height-dialog-center-h-max` — 80svh runtime viewport unit
  *     (Figma's -center-max-h is a fixed size; svh can't be modelled).
  *   - `--container-dialog-center-w-max` — kept alongside for symmetry
  *     with the h-max name the TSX consumes.
@@ -10,7 +10,10 @@
  */
 
 @theme static {
-  --container-dialog-center-h-max: 80svh;
+  --height-dialog-center-h-max: min(
+    80svh,
+    calc(100svh - var(--spacing-dialog-viewport-gutter) * 2)
+  );
   --container-dialog-center-w-max: var(--container-dialog-center-max-w);
 
   /* Reference layer: space around the panel and reserved for its close action. */
@@ -25,8 +28,8 @@
   --padding-dialog-positioner: var(--spacing-dialog-viewport-gutter);
   --padding-dialog-title-safe: var(--spacing-dialog-close-clearance);
 
-  --z-dialog-backdrop: 10;
-  --z-dialog-positioner: 20;
+  --z-dialog-backdrop: 49;
+  --z-dialog-positioner: 50;
 }
 
 /* Semantic tokens for dialog icons */
@@ -41,4 +44,12 @@
 
 @utility dialog-copy-typography {
   font-size: var(--text-dialog-copy-size);
+}
+
+@utility dialog-backdrop-layer {
+  z-index: calc(var(--z-dialog-backdrop) + var(--layer-index, 0) * 2);
+}
+
+@utility dialog-positioner-layer {
+  z-index: calc(var(--z-dialog-positioner) + var(--layer-index, 0) * 2);
 }

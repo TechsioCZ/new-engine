@@ -1,3 +1,5 @@
+import { expect, userEvent, within } from "storybook/test"
+import { parcelComplete } from "../page-models"
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ReactNode, useMemo, useState } from "react"
@@ -72,7 +74,7 @@ type Story = StoryObj
 function withSaleUnit(product: AkProduct, saleUnit: number): AkProduct {
   const minQty = Math.max(
     saleUnit,
-    Math.ceil(product.minQty / saleUnit) * saleUnit,
+    Math.ceil(product.minQty / saleUnit) * saleUnit
   )
   return { ...product, saleUnit, minQty }
 }
@@ -102,7 +104,7 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
   const [view, setView] = useState(initialView)
 
   const incomplete = products.filter(
-    (product) => missingCmsFields(product).length > 0,
+    (product) => missingCmsFields(product).length > 0
   )
   const rows = view === "incomplete" ? incomplete : products
 
@@ -158,7 +160,7 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
         meta: { type: "date", width: 130 },
       },
     ],
-    [],
+    []
   )
 
   return (
@@ -248,8 +250,8 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
                       current.map((product) =>
                         product.id === rowId
                           ? withSaleUnit(product, Number(draft.saleUnit))
-                          : product,
-                      ),
+                          : product
+                      )
                     )
                     toaster.create({
                       type: "success",
@@ -295,7 +297,14 @@ function DimensionInput({
 }) {
   return (
     <FormNumericInput
-      helpText={unit}
+      helpText={
+        Number.isFinite(value) && value > 0
+          ? unit
+          : `Enter a finite, positive ${label.toLowerCase()} in ${unit} to resolve carrier eligibility.`
+      }
+      validateStatus={
+        Number.isFinite(value) && value > 0 ? "default" : "warning"
+      }
       id={id}
       label={label}
       min={0}
@@ -324,15 +333,28 @@ function ProductEditorPage({ productId }: { productId: string }) {
   const [width, setWidth] = useState(product?.width ?? 0)
   const [height, setHeight] = useState(product?.height ?? 0)
   const [weight, setWeight] = useState(product?.weight ?? 0)
+  const [description, setDescription] = useState(
+    product?.hasDescription
+      ? "Countersunk wood screw with a Torx drive and zinc plating for indoor use."
+      : ""
+  )
+  const [images, setImages] = useState<File[]>([])
+  const [savedImages, setSavedImages] = useState<File[]>([])
+  const [savedRecord, setSavedRecord] = useState(product)
   const [savedSnapshot, setSavedSnapshot] = useState<string>()
 
   if (!product) {
     return null
   }
 
-  const minQtyInvalid = minQty < saleUnit || minQty % saleUnit !== 0
+  const minQtyInvalid =
+    !Number.isFinite(saleUnit) ||
+    saleUnit <= 0 ||
+    !Number.isFinite(minQty) ||
+    minQty < saleUnit ||
+    minQty % saleUnit !== 0
   const longest = Math.max(length, width, height)
-  const hasDimensions = longest > 0 && weight > 0
+  const hasDimensions = parcelComplete([length, width, height, weight])
   const fits = shippingMethods.map((method) => ({
     method,
     fits:
@@ -350,18 +372,33 @@ function ProductEditorPage({ productId }: { productId: string }) {
           <Button
             disabled={
               minQtyInvalid ||
-              savedSnapshot ===
-                JSON.stringify({
-                  saleUnit,
-                  minQty,
-                  length,
-                  width,
-                  height,
-                  weight,
-                })
+              (images.length === savedImages.length &&
+                images.every((file, index) => file === savedImages[index]) &&
+                savedSnapshot ===
+                  JSON.stringify({
+                    saleUnit,
+                    minQty,
+                    length,
+                    width,
+                    height,
+                    weight,
+                    description,
+                  }))
             }
             icon="icon-[mdi--content-save-outline]"
             onClick={() => {
+              setSavedImages([...images])
+              setSavedRecord({
+                ...product,
+                saleUnit,
+                minQty,
+                length,
+                width,
+                height,
+                weight,
+                hasDescription: Boolean(description.trim()),
+                hasImage: images.length > 0 || product.hasImage,
+              })
               setSavedSnapshot(
                 JSON.stringify({
                   saleUnit,
@@ -370,7 +407,8 @@ function ProductEditorPage({ productId }: { productId: string }) {
                   width,
                   height,
                   weight,
-                }),
+                  description,
+                })
               )
               toaster.create({
                 type: "success",
@@ -382,7 +420,7 @@ function ProductEditorPage({ productId }: { productId: string }) {
             size="sm"
             variant="primary"
           >
-            Save
+            Save draft
           </Button>
         }
         breadcrumb={[
@@ -391,7 +429,19 @@ function ProductEditorPage({ productId }: { productId: string }) {
           { label: product.code },
         ]}
         description={product.category}
-        meta={<CompletenessBadge product={product} />}
+        meta={
+          <CompletenessBadge
+            product={{
+              ...product,
+              length,
+              width,
+              height,
+              weight,
+              hasDescription: Boolean(description.trim()),
+              hasImage: images.length > 0 || product.hasImage,
+            }}
+          />
+        }
         title={product.name}
       />
 
@@ -515,7 +565,9 @@ function ProductEditorPage({ productId }: { productId: string }) {
               ) : (
                 <p className="text-fg-secondary text-sm">
                   Enter the dimensions and weight to see which carriers can take
-                  this parcel. Until then only courier delivery is offered.
+                  this parcel. Eligibility remains unresolved until all four
+                  measurements are finite and positive. Incomplete drafts can
+                  still be saved.
                 </p>
               )}
             </div>
@@ -533,11 +585,8 @@ function ProductEditorPage({ productId }: { productId: string }) {
                 value="description"
               >
                 <FormTextarea
-                  defaultValue={
-                    product.hasDescription
-                      ? "Countersunk wood screw with a Torx drive and zinc plating for indoor use."
-                      : ""
-                  }
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
                   helpText="Shown on the product page and sent to the product feeds."
                   id="description"
                   label="Description"
@@ -548,7 +597,12 @@ function ProductEditorPage({ productId }: { productId: string }) {
                 className="flex flex-col gap-200 p-250"
                 value="images"
               >
-                <FileUpload accept="image/*" maxFiles={8}>
+                <FileUpload
+                  accept="image/*"
+                  maxFiles={8}
+                  acceptedFiles={images}
+                  onFileChange={({ acceptedFiles }) => setImages(acceptedFiles)}
+                >
                   <FileUpload.Label>Product images</FileUpload.Label>
                   <FileUpload.HiddenInput />
                   <FileUpload.Dropzone>
@@ -556,12 +610,29 @@ function ProductEditorPage({ productId }: { productId: string }) {
                       <Icon icon="icon-[mdi--image-plus-outline]" size="xl" />
                       <span className="text-sm">Drop images here</span>
                       <span className="text-fg-secondary text-xs">
-                        JPG or PNG, up to 8 images. The first one is the main
-                        image.
+                        Images, up to 8 files. The first one is the main image.
                       </span>
                     </span>
                   </FileUpload.Dropzone>
                   <FileUpload.Trigger>Choose images</FileUpload.Trigger>
+                  <FileUpload.Context>
+                    {(api) => (
+                      <FileUpload.ItemGroup type="accepted">
+                        {api.acceptedFiles.map((file, index) => (
+                          <FileUpload.Item
+                            file={file}
+                            key={`${file.name}-${file.lastModified}-${index}`}
+                          >
+                            <FileUpload.ItemPreview>
+                              <FileUpload.ItemPreviewImage />
+                            </FileUpload.ItemPreview>
+                            <FileUpload.ItemName />
+                            <FileUpload.ItemDeleteTrigger />
+                          </FileUpload.Item>
+                        ))}
+                      </FileUpload.ItemGroup>
+                    )}
+                  </FileUpload.Context>
                 </FileUpload>
               </Tabs.Content>
             </Tabs>
@@ -599,7 +670,10 @@ function ProductEditorPage({ productId }: { productId: string }) {
                 },
                 {
                   term: "In feeds",
-                  value: product.hasImage ? "Yes" : "No — missing image",
+                  value:
+                    savedRecord && missingCmsFields(savedRecord).length === 0
+                      ? "Eligible in saved demo record"
+                      : "No — complete and save image and description",
                 },
               ]}
             />
@@ -651,6 +725,34 @@ export const EditorSoldPerTen: Story = {
 }
 
 export const EditorMissingDimensions: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const save = canvas.getByRole("button", { name: "Save draft" })
+    await userEvent.click(save)
+    await userEvent.type(
+      canvas.getByRole("textbox", { name: "Description" }),
+      "A complete description"
+    )
+    await expect(save).toBeEnabled()
+    await userEvent.click(save)
+    await userEvent.click(canvas.getByRole("tab", { name: "Images" }))
+    const input =
+      canvasElement.querySelector<HTMLInputElement>('input[type="file"]')!
+    await userEvent.upload(
+      input,
+      new File(
+        [
+          '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="black"/></svg>',
+        ],
+        "product.svg",
+        { type: "image/svg+xml" }
+      )
+    )
+    await expect(save).toBeEnabled()
+    await userEvent.click(save)
+    await expect(save).toBeDisabled()
+    await userEvent.click(canvas.getByRole("tab", { name: "Description" }))
+  },
   name: "Product editor — missing dimensions",
   parameters: {
     docs: {

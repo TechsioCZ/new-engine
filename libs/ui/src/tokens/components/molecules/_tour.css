@@ -55,7 +55,7 @@
   max-width: calc(100vw - var(--spacing-tour-viewport) * 2);
   max-height: calc(100svh - var(--spacing-tour-viewport) * 2);
   overflow-wrap: anywhere;
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
 }
 

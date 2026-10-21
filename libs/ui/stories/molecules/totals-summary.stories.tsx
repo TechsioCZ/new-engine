@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { type ComponentProps, useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { type ComponentProps, useLayoutEffect, useRef, useState } from "react"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { StatusText } from "../../src/atoms/status-text"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
@@ -111,7 +111,7 @@ export const Playground: Story = {
     docs: {
       description: {
         story:
-          "Adjust the controls to explore totals summary using realistic content and immediately visible results.",
+          "Edit application-prepared rows and totals, then open the local recap; this presentation component does not calculate prices or submit an order.",
       },
     },
   },
@@ -128,7 +128,7 @@ export const Partial: Story = {
     docs: {
       description: {
         story:
-          "Compare partial in totals summary to choose a suitable presentation for real product content.",
+          "Keep unselected shipping and payment explicit and label the amount as a subtotal rather than implying these unresolved fees are free.",
       },
     },
   },
@@ -152,7 +152,7 @@ export const Complete: Story = {
     docs: {
       description: {
         story:
-          "Compare complete in totals summary to choose a suitable presentation for real product content.",
+          "Show the final tax-inclusive total with selected shipping and payment, then open a local-only recap.",
       },
     },
   },
@@ -170,7 +170,7 @@ export const Discounted: Story = {
     docs: {
       description: {
         story:
-          "Compare discounted in totals summary to choose a suitable presentation for real product content.",
+          "Present a valid promotion as its own negative row so shoppers can distinguish the reduction from fees and the final total.",
       },
     },
   },
@@ -201,7 +201,7 @@ export const Pending: Story = {
     docs: {
       description: {
         story:
-          "Compare pending in totals summary to choose a suitable presentation for real product content.",
+          "Retain last-known amounts while an update is pending and block checkout; completion and announcements belong to the application.",
       },
     },
   },
@@ -220,7 +220,7 @@ export const CustomRows: Story = {
     docs: {
       description: {
         story:
-          "Compare custom rows in totals summary to choose a suitable presentation for real product content.",
+          "Supply tax and refundable-deposit rows without a prescribed fee schema; the application prepares every displayed amount.",
       },
     },
   },
@@ -248,4 +248,173 @@ export const CustomRows: Story = {
       </VariantGroup>
     </VariantContainer>
   ),
+}
+
+function PendingFocusExample() {
+  const [pending, setPending] = useState(false)
+  const [outcome, setOutcome] = useState(
+    "Ready to update. This demo sends no requests."
+  )
+  const [removed, setRemoved] = useState(false)
+  const statusRef = useRef<HTMLDivElement>(null)
+  const initiator = useRef<HTMLButtonElement | null>(null)
+  const shouldRestore = useRef(false)
+  const complete = (failed: boolean) => {
+    // Completion may arrive after the user has moved elsewhere: do not steal focus.
+    shouldRestore.current = document.activeElement === statusRef.current
+    setOutcome(
+      failed ? "Update failed. Retry the update." : "Summary updated locally."
+    )
+    setPending(false)
+  }
+  useLayoutEffect(() => {
+    const target = initiator.current
+    if (
+      !pending &&
+      shouldRestore.current &&
+      target?.isConnected &&
+      !target.disabled &&
+      document.activeElement === statusRef.current
+    )
+      target.focus()
+    shouldRestore.current = false
+  }, [pending])
+  return (
+    <div className="flex w-full max-w-md flex-col gap-200">
+      <div
+        ref={statusRef}
+        tabIndex={-1}
+        className="rounded-md border border-border-primary p-200 focus-visible:outline"
+      >
+        <StatusText role="status">
+          {pending ? "Updating the summary locally…" : outcome}
+        </StatusText>
+      </div>
+      <TotalsSummary
+        rows={completeRows}
+        totalLabel="Total including tax"
+        totalValue="1 587 Kč"
+        {...(pending
+          ? { pending: true, pendingLabel: "Updating summary" }
+          : { pending: false })}
+        actions={
+          !removed && (
+            <Button
+              onClick={(event) => {
+                initiator.current = event.currentTarget
+                statusRef.current?.focus()
+                setPending(true)
+              }}
+            >
+              {outcome.startsWith("Update failed")
+                ? "Retry update"
+                : "Update summary"}
+            </Button>
+          )
+        }
+      />
+      <div className="flex flex-wrap gap-200">
+        <Button
+          variant="secondary"
+          onClick={() => {
+            if (pending) complete(false)
+            else setOutcome("Start an update before simulating its completion.")
+          }}
+        >
+          Simulate success
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            if (pending) complete(true)
+            else setOutcome("Start an update before simulating a failure.")
+          }}
+        >
+          Simulate failure
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            if (!pending) {
+              setOutcome(
+                "Start an update before removing its initiating action."
+              )
+              return
+            }
+            setRemoved(true)
+            setOutcome(
+              "Action removed. Focus stays at the current stable destination."
+            )
+            setPending(false)
+          }}
+        >
+          Remove initiating action
+        </Button>
+      </div>
+      <Button
+        variant="secondary"
+        onClick={() =>
+          setOutcome(
+            "You moved to another action; completion must not move focus back."
+          )
+        }
+      >
+        Another action
+      </Button>
+    </div>
+  )
+}
+
+export const PendingFocusLifecycle: Story = {
+  render: () => <PendingFocusExample />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Start a simulated update to hand focus to a stable status before actions become inert; completion restores only a surviving initiator when the user has not moved elsewhere.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const start = canvas.getByRole("button", { name: "Update summary" })
+    await userEvent.click(start)
+    const status = canvas
+      .getByText("Updating the summary locally…")
+      .closest("[tabindex]")
+    await expect(status).toHaveFocus()
+    // Emulate asynchronous completion without moving the user's focus onto the simulation controls.
+    canvas.getByRole("button", { name: "Simulate failure" }).click()
+    await waitFor(() =>
+      expect(canvas.getByRole("button", { name: "Retry update" })).toHaveFocus()
+    )
+    await userEvent.keyboard("{Enter}")
+    await expect(status).toHaveFocus()
+    canvas.getByRole("button", { name: "Simulate success" }).click()
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("button", { name: "Update summary" })
+      ).toHaveFocus()
+    )
+    await userEvent.keyboard("{Enter}")
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Another action" })
+    )
+    canvas.getByRole("button", { name: "Simulate success" }).click()
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("button", { name: "Another action" })
+      ).toHaveFocus()
+    )
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Update summary" })
+    )
+    canvas.getByRole("button", { name: "Remove initiating action" }).click()
+    await waitFor(() =>
+      expect(
+        canvas.queryByRole("button", { name: "Update summary" })
+      ).not.toBeInTheDocument()
+    )
+    await expect(status).toHaveFocus()
+  },
 }

@@ -27,13 +27,31 @@ layout containers, radius, shadows, feedback states, component-specific tokens?
 ```
 
 Then create the smallest app token layer that expresses those differences.
+Process CSS with Tailwind v4's PostCSS plugin. If the app does not already import
+Tailwind, use only `@techsio/ui-kit/tokens-with-tailwind` instead of the two
+imports below. Both public CSS entries register shipped package JavaScript via
+package-relative `@source`; no app-side copying of component classes is needed.
+Select built-in brands with data-theme (base has no attribute) and .light/.dark.
+Akros and Business are light-only; start fixed Akros with
+`<html class="light" data-theme="akros">`. AppThemeProvider defaults do not
+force a brand over persisted preferences. Import app-owned overrides after kit
+CSS with a matching theme selector or descendant scope; do not edit generated
+Figma mappings or invent library brands folders.
+Read [App Token Overrides](../app-token-overrides/SKILL.md) for the active token chain and scope rules.
+`--color-primary` and `--color-button-bg-primary` are legacy aliases, not the shipped Button surface sources.
+Set base, hover, active and both on-solid foreground roles together, and measure contrast.
 
 ```css
+@import "tailwindcss";
 @import "@techsio/ui-kit/tokens";
 
-@theme static {
-  --color-primary: var(--brand-primary);
-  --color-secondary: var(--brand-secondary);
+:root, [data-theme], .light, .dark, .always-light, .always-dark, .reverse {
+  --color-bg-primary-base: var(--brand-primary);
+  --color-bg-primary-hover: var(--brand-primary-hover);
+  --color-bg-primary-active: var(--brand-primary-active);
+  --color-fg-on-primary-solid: var(--brand-on-primary);
+  --color-fg-on-primary-solid-neo: var(--brand-on-primary);
+  --color-bg-secondary-base: var(--brand-secondary);
   --container-xl: 1200px;
 }
 ```
@@ -43,8 +61,8 @@ Then create the smallest app token layer that expresses those differences.
 ### Initialize broad layers before component overrides
 
 ```css
-@theme static {
-  --color-primary: var(--brand-green);
+:root, [data-theme], .light, .dark, .always-light, .always-dark, .reverse {
+  --color-bg-primary-base: var(--brand-green);
   --text-md: 1rem;
   --spacing-100: 0.5rem;
 }
@@ -64,8 +82,8 @@ Do not ask the maintainer to manually define every component token.
 ### Keep component override files sparse
 
 ```css
-@theme static {
-  --color-button-bg-primary: var(--color-primary);
+:root, [data-theme], .light, .dark, .always-light, .always-dark, .reverse {
+  --color-button-bg-primary-base: var(--color-bg-primary-base);
 }
 ```
 
@@ -78,8 +96,8 @@ Do not copy every UI-kit component token into the app.
 Wrong:
 
 ```css
-@theme static {
-  --color-button-bg-primary: #009869;
+:root, [data-theme], .light, .dark, .always-light, .always-dark, .reverse {
+  --color-button-bg-primary-base: #009869;
   --color-input-border: #009869;
   --color-badge-bg-success: #009869;
 }
@@ -88,8 +106,8 @@ Wrong:
 Correct:
 
 ```css
-@theme static {
-  --color-primary: var(--brand-green);
+:root, [data-theme], .light, .dark, .always-light, .always-dark, .reverse {
+  --color-bg-primary-base: var(--brand-green);
 }
 ```
 
@@ -112,8 +130,8 @@ Wrong:
 Correct:
 
 ```css
-@theme static {
-  --color-button-bg-primary: var(--color-primary);
+:root, [data-theme], .light, .dark, .always-light, .always-dark, .reverse {
+  --color-button-bg-primary-base: var(--color-bg-primary-base);
   --radius-button-md: var(--radius-full);
   --padding-button-md: var(--spacing-100) var(--spacing-250);
 }

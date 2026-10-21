@@ -157,7 +157,7 @@ Source: libs/ui/src/molecules/form-input.tsx
 
 ```sh
 rg -U -n "<Label[\\s\\S]{0,240}<Input|<FormInput[^>]*variant=|<FormInput[^>]*className=.*(mb-|mt-|gap-|border-|text-)" apps
-rg -P -n "<FormInput(?![^>]*id=)|<FormInput(?![^>]*label=)" apps
+rg -P -n "<FormInput(?![^>]*label=)" apps
 rg -n "<FormInput[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
 
@@ -182,3 +182,13 @@ Caller-supplied `aria-errormessage` IDs are preserved independently of
 `validateStatus`, including when the caller supplies the invalid state. Clear
 caller-owned error IDs and invalid state together when removing that message;
 the wrapper only manages the lifecycle of its own generated error reference.
+
+### Generated IDs
+
+Omitting `id` generates a stable, unique control ID and associates the label
+and feedback automatically. Supply a unique explicit ID only when an external
+error summary or another consumer must reference the control.
+
+```tsx
+<FormInput label="Email" name="email" type="email" />
+```

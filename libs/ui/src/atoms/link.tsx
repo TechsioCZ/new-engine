@@ -2,14 +2,14 @@
  * Link — @techsio/ui-kit atom.
  *
  * @component Link
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill link-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the link-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react"
+import type { ComponentPropsWithRef, ElementType, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
 
@@ -38,12 +38,12 @@ export type BaseLinkProps = VariantProps<typeof linkVariants> & {
 }
 
 export type NativeLinkProps = BaseLinkProps &
-  Omit<ComponentPropsWithoutRef<"a">, keyof BaseLinkProps> & {
+  Omit<ComponentPropsWithRef<"a">, keyof BaseLinkProps> & {
     as?: never
   }
 
 export type LinkProps<T extends ElementType = "a"> = BaseLinkProps &
-  Omit<ComponentPropsWithoutRef<T>, keyof BaseLinkProps> & {
+  Omit<ComponentPropsWithRef<T>, keyof BaseLinkProps> & {
     as?: T
   }
 

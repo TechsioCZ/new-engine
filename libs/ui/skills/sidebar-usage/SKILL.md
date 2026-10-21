@@ -325,3 +325,5 @@ rg -n -- "--breakpoint-sidebar-desktop|--spacing-sidebar-offset" apps
 ## Wave 2 contracts
 
 Sidebar dimensions describe panel widths and collapse modes (rail/content), not canonical form-control sizes. Demo dashboard content uses content-start so metric cards retain their natural content height rather than stretching to the viewport. For a simple global site bar, use Header instead.
+
+Sidebar focus uses the semantic `--color-ring` through its component-local `--color-sidebar-focus` and `--color-sidebar-ring` aliases; do not replace it with a decorative brand accent.

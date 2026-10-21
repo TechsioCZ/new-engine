@@ -43,3 +43,7 @@
     outline-offset: calc(-1 * var(--default-ring-width));
   }
 }
+
+@theme static {
+  --spacing-tabs-rail-offset: var(--border-width-tabs);
+}

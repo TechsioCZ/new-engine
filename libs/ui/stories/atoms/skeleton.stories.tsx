@@ -616,3 +616,97 @@ export const ReducedMotion: Story = {
     </div>
   ),
 }
+
+function InteractionIsolationExample() {
+  const [loaded, setLoaded] = useState(false)
+  const [activations, setActivations] = useState(0)
+  return (
+    <div className="flex flex-col gap-200">
+      <Button onClick={() => setLoaded((value) => !value)}>
+        Toggle loading
+      </Button>
+      <Skeleton
+        isLoaded={loaded}
+        aria-label="Loading project details"
+        speed="slow"
+        data-testid="skeleton-group"
+      >
+        <Button onClick={() => setActivations((value) => value + 1)}>
+          Root action
+        </Button>
+        <Skeleton.Rectangle
+          data-testid="group-rectangle"
+          className="h-20 w-xs"
+          speed="fast"
+        >
+          <Button onClick={() => setActivations((value) => value + 1)}>
+            Rectangle action
+          </Button>
+        </Skeleton.Rectangle>
+      </Skeleton>
+      <Skeleton.Rectangle
+        isLoaded={loaded}
+        aria-label="Loading summary"
+        data-testid="standalone-rectangle"
+        className="h-20 w-xs"
+        speed="fast"
+      >
+        <Button onClick={() => setActivations((value) => value + 1)}>
+          Standalone action
+        </Button>
+      </Skeleton.Rectangle>
+      <Button onClick={() => setActivations((value) => value + 1)}>
+        After placeholders
+      </Button>
+      <output data-testid="placeholder-activations">{activations}</output>
+    </div>
+  )
+}
+
+export const InteractionIsolation: Story = {
+  tags: ["!dev", "!autodocs"],
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Loading placeholders cannot receive keyboard interaction, while loaded content becomes operable without residual loading semantics.",
+      },
+    },
+  },
+  render: () => <InteractionIsolationExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const toggle = canvas.getByRole("button", { name: "Toggle loading" })
+    toggle.focus()
+    await userEvent.tab()
+    await expect(
+      canvas.getByRole("button", { name: "After placeholders" })
+    ).toHaveFocus()
+    await userEvent.tab({ shift: true })
+    await expect(toggle).toHaveFocus()
+    await expect(
+      canvas.queryByRole("button", { name: "Rectangle action" })
+    ).toBeNull()
+    await expect(
+      canvas.getByTestId("placeholder-activations")
+    ).toHaveTextContent("0")
+    await userEvent.click(toggle)
+    await expect(
+      canvasElement.querySelector("[inert], [aria-busy], [aria-hidden=true]")
+    ).toBeNull()
+    await userEvent.tab()
+    await expect(
+      canvas.getByRole("button", { name: "Root action" })
+    ).toHaveFocus()
+    await userEvent.keyboard("{Enter}")
+    await userEvent.tab()
+    await expect(
+      canvas.getByRole("button", { name: "Rectangle action" })
+    ).toHaveFocus()
+    await userEvent.keyboard(" ")
+    await expect(
+      canvas.getByTestId("placeholder-activations")
+    ).toHaveTextContent("2")
+  },
+}

@@ -5,7 +5,7 @@ description: >
   tooltip/dialog/floating steps, target resolution, interactive wait effects,
   imperative control, shared action buttons, cleanup and app-owned onboarding policy.
 metadata:
-  component_version: "1.0.6"
+  component_version: "1.0.7"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -246,3 +246,6 @@ token aliases before publication or after changing shared atom templates.
 ## Wave 2 contracts
 
 Tour panels follow target placement and content rather than a sm/md/lg form-control size. Keep tours optional and dismissible; prefer persistent inline instructions for information required to finish a task.
+
+Long step descriptions scroll independently. The step title, progress, close
+control and action row remain outside that scroll area and stay reachable.

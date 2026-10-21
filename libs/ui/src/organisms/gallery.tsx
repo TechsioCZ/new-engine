@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.4
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,6 +19,7 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -118,7 +119,7 @@ export type GalleryRenderThumbnailParams = {
 
 type GalleryCarouselProps<T extends ElementType = typeof Image> = Omit<
   CarouselRootProps<T>,
-  "children" | "slideCount" | "page"
+  "children" | "slideCount" | "page" | "slidesPerPage" | "slidesPerMove"
 >
 
 export type GalleryProps<T extends ElementType = typeof Image> = VariantProps<
@@ -162,16 +163,10 @@ function useGalleryContext() {
 }
 
 function clampPage(page: number, maxPage: number) {
-  if (Number.isNaN(page)) {
-    return 0
+  if (!Number.isFinite(page)) {
+    return page === Number.POSITIVE_INFINITY ? maxPage : 0
   }
-  if (page < 0) {
-    return 0
-  }
-  if (page > maxPage) {
-    return maxPage
-  }
-  return page
+  return Math.min(maxPage, Math.max(0, Math.trunc(page)))
 }
 
 function getDefaultThumbnailAriaLabel({
@@ -280,6 +275,39 @@ Gallery.Thumbnails = function GalleryThumbnails({
 }: GalleryThumbnailsProps) {
   const { items, page, setPage, showThumbnails, styles } = useGalleryContext()
 
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: selected state changes DOM aria-current before this visibility check.
+  useEffect(() => {
+    const rail = scrollAreaRef.current
+    const active = rail?.querySelector<HTMLElement>('[aria-current="true"]')
+    if (!(rail && active)) {
+      return
+    }
+    const reveal = () => {
+      const bounds = rail.getBoundingClientRect()
+      const item = active.getBoundingClientRect()
+      let left = 0
+      let top = 0
+      if (item.left < bounds.left) {
+        left = item.left - bounds.left
+      } else if (item.right > bounds.right) {
+        left = item.right - bounds.right
+      }
+      if (item.top < bounds.top) {
+        top = item.top - bounds.top
+      } else if (item.bottom > bounds.bottom) {
+        top = item.bottom - bounds.bottom
+      }
+      if (left || top) {
+        rail.scrollBy({ left, top, behavior: "instant" })
+      }
+    }
+    reveal()
+    const observer = new ResizeObserver(reveal)
+    observer.observe(rail)
+    return () => observer.disconnect()
+  }, [page, showThumbnails])
+
   if (!showThumbnails) {
     return null
   }
@@ -318,6 +346,7 @@ Gallery.Thumbnails = function GalleryThumbnails({
         className={styles.thumbnailsScrollArea({
           className: scrollAreaClassName,
         })}
+        ref={scrollAreaRef}
       >
         <div className={styles.thumbnailsList({ className: listClassName })}>
           {thumbnails}
@@ -432,7 +461,7 @@ Gallery.Thumbnail = function GalleryThumbnail<
 
 type GalleryCarouselComponentProps<T extends ElementType = typeof Image> = Omit<
   CarouselRootProps<T>,
-  "children" | "slideCount" | "page"
+  "children" | "slideCount" | "page" | "slidesPerPage" | "slidesPerMove"
 > & {
   children?: ReactNode
 }
@@ -466,6 +495,8 @@ Gallery.Carousel = function GalleryCarousel<
       onPageChange={handlePageChange}
       page={page}
       slideCount={items.length}
+      slidesPerMove={1}
+      slidesPerPage={1}
     >
       {children ?? <Gallery.Slides />}
     </Carousel>

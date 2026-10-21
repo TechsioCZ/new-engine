@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,24 +10,39 @@
  * the menu-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import * as menu from "@zag-js/menu"
-import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   cloneElement,
   isValidElement,
   type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
   type ReactElement,
   type ReactNode,
   useEffect,
   useId,
+  useRef,
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { Icon, type IconType } from "../atoms/icon"
+import { OverlayPortal as Portal } from "./dialog"
 
 type ActionMenuItem = {
   type: "action"
   value: string
   label: string
+  icon?: IconType
+  disabled?: boolean
+}
+
+type LinkMenuItem = {
+  type: "link"
+  value: string
+  label: string
+  href: string
+  target?: string
+  rel?: string
   icon?: IconType
   disabled?: boolean
 }
@@ -38,6 +53,7 @@ type RadioMenuItem = {
   label: string
   name: string // radio group name
   checked: boolean
+  disabled?: boolean
 }
 
 type CheckboxMenuItem = {
@@ -45,6 +61,7 @@ type CheckboxMenuItem = {
   value: string
   label: string
   checked: boolean
+  disabled?: boolean
 }
 
 type SeparatorMenuItem = {
@@ -63,6 +80,7 @@ type SubmenuMenuItem = {
 
 export type MenuItem =
   | ActionMenuItem
+  | LinkMenuItem
   | RadioMenuItem
   | CheckboxMenuItem
   | SeparatorMenuItem
@@ -72,13 +90,12 @@ export type MenuItem =
 const menuVariants = tv({
   slots: {
     trigger: "",
-    // Zag sets `min-width: max-content` inline, so this resolves to
-    // max(trigger width, content width) — the panel is never narrower than
-    // the control that opened it.
-    positioner: ["popup-layer isolate w-(--reference-width)"],
+    // Override Popper's max-content minimum at narrow viewport boundaries;
+    // retain the trigger width when it fits and wrap full command labels.
+    positioner: ["popup-layer menu-viewport isolate w-(--reference-width)"],
     content: [
       "popup-surface-base popup-layer",
-      "w-full",
+      "w-full min-w-0",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
@@ -110,7 +127,7 @@ const menuVariants = tv({
       "h-menu-separator",
       "bg-menu-separator-bg",
     ],
-    itemText: ["min-w-0 flex-grow truncate"],
+    itemText: ["wrap-anywhere min-w-0 flex-grow whitespace-normal"],
     // Trailing, always rendered (empty when unchecked) so toggling a row
     // never reflows its label.
     // Same reasoning as optionItem: the glyph sits on the bare panel, not on
@@ -231,6 +248,7 @@ function renderMenuItem(
           type: menuItem.type,
           value: menuItem.value,
           checked: menuItem.checked,
+          disabled: menuItem.disabled,
           onCheckedChange: (checked) => {
             onCheckedChange?.(menuItem, checked)
           },
@@ -240,6 +258,32 @@ function renderMenuItem(
         <span className={itemIndicator()}>
           {menuItem.checked && <Icon icon="token-icon-check" size="current" />}
         </span>
+      </li>
+    )
+  }
+
+  if (menuItem.type === "link") {
+    return (
+      <li key={menuItem.value} role="none">
+        <a
+          {...api.getItemProps({
+            value: menuItem.value,
+            valueText: menuItem.label,
+            disabled: menuItem.disabled,
+          })}
+          className={itemSlot()}
+          href={menuItem.disabled ? undefined : menuItem.href}
+          rel={
+            menuItem.rel ??
+            (menuItem.target === "_blank" ? "noopener noreferrer" : undefined)
+          }
+          target={menuItem.target}
+        >
+          {menuItem.icon && (
+            <Icon className={itemIcon()} icon={menuItem.icon} />
+          )}
+          <span className={itemText()}>{menuItem.label}</span>
+        </a>
       </li>
     )
   }
@@ -283,6 +327,9 @@ function SubmenuItem({
   const submenuService = useMachine(menu.machine, {
     id: useId(),
     dir: parentService.prop("dir"),
+    loopFocus: parentService.prop("loopFocus"),
+    typeahead: parentService.prop("typeahead"),
+    navigate: parentService.prop("navigate"),
     positioning: { overlap: true, fitViewport: true },
     closeOnSelect,
     onSelect,
@@ -419,6 +466,21 @@ export function Menu({
   onCheckedChange,
 }: MenuProps) {
   const generatedId = useId()
+  const contextInvoker = useRef<HTMLElement | null>(null)
+  const restoreContextFocus = useRef(false)
+  const contextMenuWasOpen = useRef(false)
+
+  useEffect(() => {
+    if (!contextMenu) {
+      return
+    }
+    const wasOpen = contextMenuWasOpen.current
+    contextMenuWasOpen.current = api.open
+    if (wasOpen && !api.open && restoreContextFocus.current) {
+      contextInvoker.current?.focus({ preventScroll: true })
+      restoreContextFocus.current = false
+    }
+  })
 
   const service = useMachine(menu.machine, {
     id: id || generatedId,
@@ -434,12 +496,26 @@ export function Menu({
     defaultOpen,
     composite,
     navigate: navigate ? (details) => navigate(details.value) : undefined,
-    onSelect,
+    onSelect(details) {
+      restoreContextFocus.current = true
+      onSelect?.(details)
+    },
     onOpenChange,
-    onEscapeKeyDown,
-    onPointerDownOutside,
+    onEscapeKeyDown(event) {
+      onEscapeKeyDown?.(event)
+      if (!event.defaultPrevented) {
+        restoreContextFocus.current = true
+      }
+    },
+    onPointerDownOutside(event) {
+      restoreContextFocus.current = false
+      onPointerDownOutside?.(event)
+    },
     onInteractOutside,
-    onFocusOutside,
+    onFocusOutside(event) {
+      restoreContextFocus.current = false
+      onFocusOutside?.(event)
+    },
     onHighlightChange,
     "aria-label": ariaLabel,
   })
@@ -463,6 +539,15 @@ export function Menu({
     ? mergeProps(api.getContextTriggerProps(), {
         "aria-haspopup": "menu",
         "aria-expanded": api.open,
+        tabIndex: 0,
+        onPointerDown(event: PointerEvent<HTMLElement>) {
+          contextInvoker.current = event.currentTarget
+          restoreContextFocus.current = true
+        },
+        onContextMenu(event: MouseEvent<HTMLElement>) {
+          contextInvoker.current = event.currentTarget
+          restoreContextFocus.current = true
+        },
         onKeyDown(event: KeyboardEvent<HTMLElement>) {
           if (
             event.key === "ContextMenu" ||

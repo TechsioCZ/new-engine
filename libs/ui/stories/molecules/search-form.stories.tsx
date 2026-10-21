@@ -109,6 +109,7 @@ export const Sizes: Story = {
     </VariantContainer>
   ),
   parameters: {
+    controls: { exclude: ["size", "defaultValue"] },
     docs: {
       description: {
         story:

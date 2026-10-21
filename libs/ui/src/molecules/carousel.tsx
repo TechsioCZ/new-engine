@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -31,6 +31,192 @@ import { Image } from "../atoms/image"
 import { usePrefersReducedMotion } from "../internal/reduced-motion"
 import { tv } from "../utils"
 
+/** Local integration fixes for Zag 1.45: observe current nodes and leave widget keys alone. */
+const carouselMachine: typeof machine = {
+  ...machine,
+  implementations: {
+    ...machine.implementations,
+    effects: {
+      ...machine.implementations?.effects,
+      trackSlideIntersections({ scope, context, prop, send }) {
+        const group = scope.getById(
+          scope.ids?.itemGroup ?? `carousel:${scope.id}:item-group`
+        )
+        if (!group) {
+          return
+        }
+        const win = scope.getWin()
+        let items = new Set<HTMLElement>()
+        let frame = 0
+        const currentItems = () =>
+          Array.from(
+            group.querySelectorAll<HTMLElement>(
+              '[data-scope="carousel"][data-part="item"]'
+            )
+          ).filter((item) => item.closest('[data-part="item-group"]') === group)
+        const updateVisibility = () => {
+          const viewport = group.getBoundingClientRect()
+          const configuredThreshold = prop("inViewThreshold") ?? 0.6
+          const threshold = Array.isArray(configuredThreshold)
+            ? Math.min(...configuredThreshold)
+            : configuredThreshold
+          const visible = [...items].filter((item) => {
+            const rect = item.getBoundingClientRect()
+            const width = Math.max(
+              0,
+              Math.min(rect.right, viewport.right) -
+                Math.max(rect.left, viewport.left)
+            )
+            const height = Math.max(
+              0,
+              Math.min(rect.bottom, viewport.bottom) -
+                Math.max(rect.top, viewport.top)
+            )
+            return (
+              width > 0 &&
+              height > 0 &&
+              rect.width > 0 &&
+              rect.height > 0 &&
+              (width * height) / (rect.width * rect.height) >= threshold
+            )
+          })
+          // Move focus before React applies inert; never steal focus from controls or other content.
+          const active = group.ownerDocument.activeElement
+          if (
+            [...items].some(
+              (item) => item.contains(active) && !visible.includes(item)
+            )
+          ) {
+            group.focus({ preventScroll: true })
+          }
+          const indexes = visible.map((item) => Number(item.dataset.index))
+          if (indexes.join(",") !== context.get("slidesInView").join(",")) {
+            context.set("slidesInView", indexes)
+          }
+        }
+        const schedule = () => {
+          win.cancelAnimationFrame(frame)
+          frame = win.requestAnimationFrame(updateVisibility)
+        }
+        const observer = new win.IntersectionObserver(
+          (entries) => {
+            if (
+              entries.some(
+                (entry) =>
+                  items.has(entry.target as HTMLElement) &&
+                  group.contains(entry.target)
+              )
+            ) {
+              updateVisibility()
+            }
+          },
+          { root: group, threshold: prop("inViewThreshold") }
+        )
+        const resize = new win.ResizeObserver(schedule)
+        resize.observe(group)
+        const refresh = () => {
+          const next = new Set(currentItems())
+          for (const item of items) {
+            if (!next.has(item)) {
+              observer.unobserve(item)
+              resize.unobserve(item)
+            }
+          }
+          for (const item of next) {
+            if (!items.has(item)) {
+              observer.observe(item)
+              resize.observe(item)
+            }
+          }
+          items = next
+          // Refresh snapping after React commits, including equal-length keyed replacements.
+          send({ type: "SNAP.REFRESH", src: "slide.identity" })
+          send({ type: "PAGE.SCROLL", instant: true })
+          schedule()
+        }
+        const mutations = new win.MutationObserver(refresh)
+        mutations.observe(group, { childList: true, subtree: true })
+        group.addEventListener("scroll", schedule, { passive: true })
+        refresh()
+        return () => {
+          observer.disconnect()
+          resize.disconnect()
+          mutations.disconnect()
+          group.removeEventListener("scroll", schedule)
+          win.cancelAnimationFrame(frame)
+          items.clear()
+        }
+      },
+      trackKeyboardScroll({ scope, send, context, prop }) {
+        const group = scope.getById(
+          scope.ids?.itemGroup ?? `carousel:${scope.id}:item-group`
+        )
+        if (!group) {
+          return
+        }
+        const horizontal = prop("orientation") === "horizontal"
+        const forward = prop("dir") === "rtl" ? "ArrowLeft" : "ArrowRight"
+        const backward = prop("dir") === "rtl" ? "ArrowRight" : "ArrowLeft"
+        const next = horizontal ? forward : "ArrowDown"
+        const previous = horizontal ? backward : "ArrowUp"
+        const onKeyDown = (event: KeyboardEvent) => {
+          const target = event.target
+          if (
+            !(
+              target instanceof scope.getWin().HTMLElement &&
+              group.contains(target)
+            )
+          ) {
+            return
+          }
+          if (target.closest('[data-part="item-group"]') !== group) {
+            return
+          }
+          if (
+            [
+              event.defaultPrevented,
+              event.altKey,
+              event.ctrlKey,
+              event.metaKey,
+              event.shiftKey,
+            ].some(Boolean)
+          ) {
+            return
+          }
+          if (
+            target.isContentEditable ||
+            target.closest(
+              'input, textarea, select, [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"], [role="listbox"], [role="tree"], [role="grid"], [role="radiogroup"], [role="tablist"], [role="menu"], [role="menubar"]'
+            )
+          ) {
+            return
+          }
+          if (event.key === next) {
+            event.preventDefault()
+            send({ type: "PAGE.NEXT" })
+          } else if (event.key === previous) {
+            event.preventDefault()
+            send({ type: "PAGE.PREV" })
+          } else if (event.key === "Home" || event.key === "End") {
+            event.preventDefault()
+            send({
+              type: "PAGE.SET",
+              index:
+                event.key === "Home"
+                  ? 0
+                  : context.get("pageSnapPoints").length - 1,
+            })
+          }
+        }
+        const win = scope.getWin()
+        win.addEventListener("keydown", onKeyDown, { capture: true })
+        return () =>
+          win.removeEventListener("keydown", onKeyDown, { capture: true })
+      },
+    },
+  },
+}
+
 type CarouselImageComponent<T extends ElementType = typeof Image> =
   T extends typeof Image
     ? typeof Image
@@ -54,7 +240,7 @@ const carouselVariants = tv({
       "rounded-carousel",
     ],
     slideGroup: [
-      "overflow-hidden rounded-carousel",
+      "focus-visible:carousel-focus-ring overflow-hidden rounded-carousel",
       "scrollbar-none",
       "data-dragging:cursor-grabbing",
       "min-h-0 min-w-0",
@@ -312,10 +498,37 @@ export function Carousel<T extends ElementType = typeof Image>({
   // Autoplay is JS-driven, so motion-reduce: classes cannot stop it. Users who
   // prefer reduced motion get a still carousel; the play control still works.
   const prefersReducedMotion = usePrefersReducedMotion()
-  const service = useMachine(machine, {
+  // Keep configuration separate from automatic startup: explicit Play must use
+  // the caller's delay even when reduced motion prevented the initial rotation.
+  const motionAwareMachine: typeof machine = {
+    ...carouselMachine,
+    initialState: (params) =>
+      prefersReducedMotion ? "idle" : carouselMachine.initialState(params),
+    watch(params) {
+      carouselMachine.watch?.({
+        ...params,
+        send(event) {
+          if (prefersReducedMotion && event.type === "AUTOPLAY.START") {
+            return
+          }
+          params.send(event)
+        },
+      })
+      params.track([() => prefersReducedMotion], () => {
+        params.send({
+          type:
+            !prefersReducedMotion && params.prop("autoplay")
+              ? "AUTOPLAY.START"
+              : "AUTOPLAY.PAUSE",
+          src: "motion.preference.change",
+        })
+      })
+    },
+  }
+  const service = useMachine(motionAwareMachine, {
     id: id ?? fallbackId,
     slideCount,
-    autoplay: prefersReducedMotion ? false : autoplay,
+    autoplay,
     orientation,
     allowMouseDrag,
     loop,
@@ -398,8 +611,27 @@ Carousel.Slides = function CarouselSlides({
     ? (resolvedImageAs as ElementType)
     : Image
 
+  const groupProps = api.getItemGroupProps()
   return (
-    <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions lint/a11y/noStaticElementInteractions: Zag owns this focusable scroll viewport; only forward drag events outside descendant controls.
+    <div
+      {...groupProps}
+      className={slideGroup({ className })}
+      onMouseDown={(event) => {
+        const target = event.target as HTMLElement
+        // Zag checks only the exact target: a span inside an editor/button is
+        // not itself focusable. Preserve its ancestor's native focus/selection.
+        if (
+          target.isContentEditable ||
+          target.closest(
+            'input, textarea, select, button, a[href], [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"], [role="listbox"], [role="tree"], [role="grid"], [role="radiogroup"], [role="tablist"], [role="menu"], [role="menubar"]'
+          )
+        ) {
+          return
+        }
+        groupProps.onMouseDown?.(event)
+      }}
+    >
       {slides.map((slide, index) => (
         <Carousel.Slide index={index} key={slide.id}>
           {slide.content ??

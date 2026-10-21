@@ -1,6 +1,7 @@
 import { DemoBoundary } from "./demo-boundary"
+import { PRICE_MAX, initialListing, listingUrl, pageFromUrl } from "./catalog-state"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import { Accordion } from "../../src/molecules/accordion"
@@ -79,11 +80,13 @@ function StorefrontHeader() {
             Northwind
           </span>
           <Header.Nav>
-            {storefrontNav.map((item) => (
-              <Header.NavItem active={item.id === "footwear"} key={item.id}>
-                {item.label}
-              </Header.NavItem>
-            ))}
+            {[{ id: "catalog", label: "Catalog" }, ...storefrontNav].map(
+              (item) => (
+                <Header.NavItem active={item.id === "catalog"} key={item.id}>
+                  {item.label}
+                </Header.NavItem>
+              )
+            )}
           </Header.Nav>
         </Header.Container>
         <Header.Container position="end">
@@ -107,11 +110,13 @@ function StorefrontHeader() {
       <Header.Hamburger />
       <Header.Mobile position="right">
         <Header.Nav>
-          {storefrontNav.map((item) => (
-            <Header.NavItem active={item.id === "footwear"} key={item.id}>
-              {item.label}
-            </Header.NavItem>
-          ))}
+          {[{ id: "catalog", label: "Catalog" }, ...storefrontNav].map(
+            (item) => (
+              <Header.NavItem active={item.id === "catalog"} key={item.id}>
+                {item.label}
+              </Header.NavItem>
+            )
+          )}
         </Header.Nav>
       </Header.Mobile>
     </Header>
@@ -172,32 +177,10 @@ function StorefrontFooter() {
   )
 }
 
-/* The fixture tops out at 1 299 €, so the slider must reach it. */
-const PRICE_MAX = 1300
 const PAGE_SIZE = 4
 const priceOf = (value: string) => Number(value.replace(/[^\d]/g, ""))
-
-/*
- * Page links keep the current query (Storybook needs its own `id` param) and
- * the page is read back from `?page=` on load, so a followed link lands on
- * the page it names.
- */
-function pageUrl(target: number) {
-  if (typeof window === "undefined") {
-    return `?page=${target}`
-  }
-  const params = new URLSearchParams(window.location.search)
-  params.set("page", String(target))
-  return `?${params.toString()}`
-}
-
-function pageFromUrl() {
-  if (typeof window === "undefined") {
-    return 1
-  }
-  const value = Number(new URLSearchParams(window.location.search).get("page"))
-  return Number.isInteger(value) && value > 0 ? value : 1
-}
+const locationSearch = () =>
+  typeof window === "undefined" ? "" : window.location.search
 
 function FacetPanel({
   brands,
@@ -302,7 +285,7 @@ function FacetPanel({
             onColorClick={(color) =>
               onColorChange(
                 colorFacets.find((facet) => facet.color === color)?.label ??
-                  color,
+                  color
               )
             }
             selectionMode="multiple"
@@ -363,7 +346,7 @@ function ProductGrid({ products }: { products: StorefrontProduct[] }) {
                     type: "success",
                     title: "Added to cart",
                     description: product.name,
-                  },
+                  }
             )
           }
           onViewDetails={() =>
@@ -384,24 +367,27 @@ function ProductGrid({ products }: { products: StorefrontProduct[] }) {
 }
 
 function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
-  const [brands, setBrands] = useState<string[]>(["northwind"])
-  const [sizes, setSizes] = useState<string[]>(["M"])
-  const [colors, setColors] = useState<string[]>([])
+  const [initial] = useState(() => initialListing(locationSearch()))
+  const [brands, setBrands] = useState<string[]>(initial.brands)
+  const [sizes, setSizes] = useState<string[]>(initial.sizes)
+  const [colors, setColors] = useState<string[]>(initial.colors)
   const [drawer, setDrawer] = useState(false)
-  const [price, setPrice] = useState<number[]>([0, PRICE_MAX])
-  const [sort, setSort] = useState("relevance")
-  const [page, setPage] = useState(pageFromUrl)
+  const [price, setPrice] = useState<number[]>(initial.price)
+  const [sort, setSort] = useState(initial.sort)
+  const [page, setPage] = useState(() => pageFromUrl(locationSearch()))
 
   const toggle = (
     list: string[],
     setList: (next: string[]) => void,
-    value: string,
-  ) =>
+    value: string
+  ) => {
+    setPage(1)
     setList(
       list.includes(value)
         ? list.filter((entry) => entry !== value)
-        : [...list, value],
+        : [...list, value]
     )
+  }
 
   const brandLabelOf = (product: StorefrontProduct) =>
     brandFacets.find((facet) => facet.label === product.brand)?.value
@@ -439,8 +425,16 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
   const currentPage = Math.min(page, pageCount)
   const pageProducts = sortedProducts.slice(
     (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+    currentPage * PAGE_SIZE
   )
+
+  useEffect(() => {
+    window.history.replaceState(
+      window.history.state,
+      "",
+      listingUrl(currentPage, { brands, sizes, colors, price, sort }, locationSearch())
+    )
+  }, [currentPage, brands, sizes, colors, price, sort])
 
   const activeChips = [
     ...brands.map((value) => ({
@@ -492,18 +486,15 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
 
       <main className="mx-auto flex w-full max-w-max-w flex-1 flex-col gap-250 p-250">
         <BreadcrumbTemplate
-          items={[
-            { label: "Home", href: "#" },
-            { label: "Men", href: "#" },
-            { label: "Footwear" },
-          ]}
+          items={[{ label: "Home", href: "#" }, { label: "Catalog" }]}
           size="sm"
         />
 
         <div className="flex flex-col gap-100">
-          <h1 className="font-semibold text-xl">Footwear</h1>
+          <h1 className="font-semibold text-xl">Catalog</h1>
           <p className="max-w-prose text-fg-secondary text-sm">
-            Trainers, boots and everything between — restocked weekly.
+            Clothing, footwear and everyday essentials — explore the full
+            collection.
           </p>
         </div>
 
@@ -517,6 +508,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
                 <h2 className="font-semibold text-sm">Filters</h2>
                 <Button
                   onClick={() => {
+                    setPage(1)
                     setBrands([])
                     setSizes([])
                     setColors([])
@@ -592,8 +584,29 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
               {pageCount > 1 && (
                 <Pagination
                   count={sortedProducts.length}
-                  linkProps={{ onClick: (event) => event.preventDefault() }}
-                  getPageUrl={({ page: target }) => pageUrl(target)}
+                  linkProps={{
+                    onClick: (event) => {
+                      if (
+                        event.button !== 0 ||
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey
+                      )
+                        return
+                      const target = Number(
+                        new URL(event.currentTarget.href).searchParams.get(
+                          "page"
+                        )
+                      )
+                      if (Number.isInteger(target) && target > 0)
+                        setPage(target)
+                      event.preventDefault()
+                    },
+                  }}
+                  getPageUrl={({ page: target }) =>
+                    listingUrl(target, { brands, sizes, colors, price, sort }, locationSearch())
+                  }
                   onPageChange={setPage}
                   page={currentPage}
                   pageSize={PAGE_SIZE}
@@ -621,6 +634,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
             <Button
               block
               onClick={() => {
+                setPage(1)
                 setBrands([])
                 setSizes([])
                 setColors([])

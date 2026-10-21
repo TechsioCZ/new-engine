@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
 import { Chart, type ChartType } from "../../src/molecules/chart"
 
 /* ── Sample data ─────────────────────────────────────────────────────────── */
@@ -157,7 +158,8 @@ export const Playground: Story = {
   parameters: { docs: { description: { story: "Use the controls to explore the component in a realistic layout without leaving the preview." } } },
   render: (args) => (
     <div className="mx-auto w-full max-w-3xl">
-      <Chart {...args} />
+      <p>Online revenue more than doubled from January to June; compare channels and exact values in the data table.</p>
+      <Chart {...args} ariaDescription={args.ariaDescription ?? "Monthly revenue in euros by sales channel, January to June. Expand View chart data for every value."} seriesDomain={CHANNELS} />
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -567,8 +569,10 @@ export const Minimal: Story = {
     controls: { disable: true }, docs: { description: { story: "A restrained chart removes optional decoration while preserving enough context to understand the values." } } },
   render: () => (
     <div className="mx-auto w-full max-w-3xl">
+      <p>Online revenue rose from €42,000 in January to €93,000 in June, with a brief dip in April.</p>
       <Chart
         animate={false}
+        ariaDescription="Monthly online revenue in euros, January to June. Expand View chart data for all six values."
         ariaLabel="Monthly online revenue, minimal"
         data={onlineRevenue}
         grid={false}
@@ -581,4 +585,38 @@ export const Minimal: Story = {
       />
     </div>
   ),
+}
+
+
+export const DataAvailability: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Empty and invalid datasets show clear feedback instead of empty axes or a misleading pie, while a singleton trend retains a visible point." } } },
+  render: () => <div className="flex flex-col gap-400">
+    <Chart x="month" y="revenue" data={[] as { month: string; revenue: number }[]} ariaLabel="Empty revenue" />
+    <Chart x="month" y="revenue" data={[{ month: "Jan", revenue: -10 }]} type="pie" ariaLabel="Invalid composition" />
+    <Chart x="month" y="revenue" data={[{ month: "Jan", revenue: 42 }]} ariaLabel="January revenue" />
+  </div>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText("No data to display.")).toBeVisible()
+    await expect(canvas.getByText(/Pie and donut values/)).toBeVisible()
+    await expect(canvasElement.querySelector("circle")).not.toBeNull()
+  },
+}
+
+export const StableFilteredSeries: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Filtering the first channel preserves the remaining channels' colors, line patterns and data-table identities." } } },
+  render: () => {
+    const [showOnline, setShowOnline] = useState(true)
+    return <div className="flex flex-col gap-200">
+      <Button theme="outlined" onClick={() => setShowOnline((current) => !current)}>Toggle Online channel</Button>
+      <Chart data={showOnline ? revenueByChannel : revenueByChannel.filter((row) => row.channel !== "Online")}
+        x="month" y="revenue" series="channel" seriesDomain={CHANNELS} ariaLabel="Revenue by channel" height={300} animate={false} />
+    </div>
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const retailBefore = canvasElement.querySelector('line[stroke-dasharray="8 4"]')?.getAttribute("stroke")
+    await userEvent.click(canvas.getByRole("button", { name: "Toggle Online channel" }))
+    await expect(canvasElement.querySelector('line[stroke-dasharray="8 4"]')?.getAttribute("stroke")).toBe(retailBefore)
+  },
 }

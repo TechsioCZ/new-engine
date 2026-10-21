@@ -5,7 +5,7 @@ description: >
   FormNumericInput for labeled numeric fields using NumericInput compound
   children, validation status, help text, and number-specific constraints.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -89,7 +89,9 @@ Use `min`, `max`, `step`, `precision`, and `locale`, not custom blur parsing.
 
 ### Use validateStatus for errors
 
-FormNumericInput maps `validateStatus="error"` to `invalid` on NumericInput.
+FormNumericInput forwards all validation states to NumericInput. Error sets
+`invalid`; success/warning retain their status borders without `aria-invalid`.
+Explicit `invalid` takes precedence, and disabled visuals remain authoritative.
 
 ## Common Mistakes
 
@@ -120,7 +122,11 @@ Wrong:
 Correct:
 
 ```tsx
-<FormNumericInput id="qty" label="Quantity" min={1} />
+<FormNumericInput id="qty" label="Quantity" min={1}>
+  <NumericInput.Control>
+    <NumericInput.Input />
+  </NumericInput.Control>
+</FormNumericInput>
 ```
 
 Source: libs/ui/src/atoms/numeric-input.tsx
@@ -131,11 +137,32 @@ String values are supported when the parent must preserve empty or rejected
 drafts. Use onValueChange for text updates; the legacy onChange still receives
 a number (or NaN when cleared). Numeric values provide immediate formatting.
 
+```tsx
+const [draft, setDraft] = useState("1")
+
+<FormNumericInput
+  label="Quantity"
+  value={draft}
+  onValueChange={({ value }) => setDraft(value)}
+  min={1}
+  max={10}
+  clampValueOnBlur={false}
+>
+  <NumericInput.Control>
+    <NumericInput.Input />
+  </NumericInput.Control>
+</FormNumericInput>
+```
+
+Use `clampValueOnBlur={false}` to retain out-of-range drafts; validate the
+nonempty, finite, in-range number before saving. Blur/Enter commit callbacks do
+not save automatically.
+
 ## Validation Commands
 
 ```sh
-rg -U -P -n "type=\"number\"|<FormNumericInput[^>]*value=\"|<FormNumericInput(?![\\s\\S]{0,500}<NumericInput\\.Input)" apps
-rg -P -n "<FormNumericInput(?![^>]*id=)|<FormNumericInput(?![^>]*label=)" apps
+rg -U -P -n "type=\"number\"|<FormNumericInput(?![\\s\\S]{0,500}<NumericInput\\.Input)" apps
+rg -P -n "<FormNumericInput(?![^>]*label=)" apps
 rg -n "<FormNumericInput[^>]*className=.*(border-|text-|px-|py-|gap-)" apps
 ```
 

@@ -111,6 +111,20 @@ export const Sizes: Story = {
       ))}
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const messages = canvasElement.querySelectorAll<HTMLElement>("[data-status=success]")
+    const view = canvasElement.ownerDocument.defaultView
+    if (!view) throw new Error("StatusText size checks need a rendered document")
+    for (const [index, size] of (["sm", "md", "lg"] as const).entries()) {
+      const message = messages[index]
+      if (!message) throw new Error(`Missing ${size} StatusText example`)
+      const height = `${64 + index * 16}px`
+      message.style.setProperty(`--line-height-status-text-${size}`, height)
+      await expect(view.getComputedStyle(message).lineHeight).toBe(height)
+      await expect(message.firstElementChild?.getBoundingClientRect().height).toBe(64 + index * 16)
+      message.style.removeProperty(`--line-height-status-text-${size}`)
+    }
+  },
 }
 
 function ValidationField() {
@@ -161,15 +175,16 @@ export const FormValidationContext: Story = {
 export const LongText: Story = {
   name: "Wrapping messages",
   parameters: {
+    layout: "fullscreen",
     controls: { disable: true },
     docs: { description: { story: "Long messages wrap in their own text column with the icon aligned to the first line, including at narrow mobile widths." } },
   },
   render: () => (
-    <div className="flex w-xs max-w-full flex-col gap-200">
+    <div className="w-full min-w-0 p-200"><div className="flex w-full max-w-xs flex-col gap-200">
       <StatusText status="error">Choose a delivery address before continuing, or add a new address in your account settings.</StatusText>
       <StatusText status="warning">Changing your delivery address may change shipping costs and the estimated delivery date.</StatusText>
       <StatusText status="success">Your delivery address has been saved and will be used for future orders.</StatusText>
-    </div>
+    </div></div>
   ),
 }
 

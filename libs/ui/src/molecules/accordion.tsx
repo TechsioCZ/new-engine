@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,14 +26,16 @@ import { tv } from "../utils"
 const accordionVariants = tv({
   slots: {
     root: [
-      "flex w-full flex-col",
+      "flex w-full min-w-0 max-w-full flex-col",
       "rounded-accordion bg-accordion-bg",
       "transition duration-200 motion-reduce:transition-none",
     ],
-    item: "",
-    title: "grid min-w-0 place-items-start text-start",
+    item: "min-w-0 max-w-full",
+    heading: "min-w-0 max-w-full",
+    indicator: "shrink-0",
+    title: "wrap-anywhere grid min-w-0 max-w-full place-items-start text-start",
     titleTrigger: [
-      "relative flex w-full cursor-pointer items-center justify-between",
+      "wrap-anywhere relative flex w-full min-w-0 max-w-full cursor-pointer items-center justify-between",
       "rounded-none",
       "gap-accordion-trigger font-accordion-trigger",
       "bg-accordion-title-bg text-accordion-title-fg",
@@ -270,7 +272,7 @@ Accordion.Header = function AccordionHeader({
   }, [ref])
 
   return (
-    <h3 className={className} ref={headingRef} {...props}>
+    <h3 className={styles.heading({ className })} ref={headingRef} {...props}>
       <button
         className={styles.titleTrigger()}
         type="button"
@@ -332,7 +334,7 @@ Accordion.Indicator = function AccordionIndicator({
   const isExpanded = api.value.includes(value)
 
   return (
-    <span className={className} ref={ref} {...props}>
+    <span className={styles.indicator({ className })} ref={ref} {...props}>
       <Icon
         className={styles.icon()}
         data-state={isExpanded ? "expanded" : "collapsed"}

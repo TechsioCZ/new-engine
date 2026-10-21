@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -69,7 +69,7 @@ const numericInputVariants = tv({
   slots: {
     root: ["relative flex flex-col"],
     container: [
-      "group form-control-base numeric-input-readonly relative flex",
+      "group form-control-base numeric-input-validation numeric-input-readonly relative flex",
       "border-numeric-input-border",
       "min-w-0 items-center overflow-clip",
       "hover:border-numeric-input-border-hover",
@@ -77,9 +77,6 @@ const numericInputVariants = tv({
       "data-disabled:bg-numeric-input-bg-disabled",
       "data-disabled:border-numeric-input-border-disabled",
       "data-disabled:text-numeric-input-fg-disabled",
-      "data-invalid:bg-numeric-input-bg-invalid",
-      "data-invalid:border-(length:--border-width-validation)",
-      "data-invalid:border-numeric-input-border-invalid",
       "text-numeric-input-fg",
       "has-[input:not(:disabled):hover]:bg-numeric-input-input-bg-hover",
       "has-[input:focus]:bg-numeric-input-input-bg-focus",
@@ -151,6 +148,7 @@ type NumericInputContextValue = {
   size?: "sm" | "md" | "lg"
   styles: ReturnType<typeof numericInputVariants>
   invalid?: boolean
+  validateStatus: "default" | "error" | "success" | "warning"
   describedBy?: string
   controlledValue?: string
   readOnly?: boolean
@@ -186,6 +184,7 @@ export type NumericInputProps = Omit<
     size?: "sm" | "md" | "lg"
     value?: number | string
     defaultValue?: number | string
+    validateStatus?: "default" | "error" | "success" | "warning"
     onChange?: (value: number) => void
     precision?: number
     children?: ReactNode
@@ -201,6 +200,7 @@ export function NumericInput({
   value,
   defaultValue,
   onChange,
+  validateStatus = "default",
   dir = "ltr",
   describedBy,
   "aria-describedby": ariaDescribedBy,
@@ -229,6 +229,7 @@ export function NumericInput({
     focusInputOnChange = true,
   } = machineProps
   const invalid =
+    validateStatus === "error" ||
     machineInvalid ||
     (ariaInvalid !== undefined &&
       ariaInvalid !== false &&
@@ -246,6 +247,9 @@ export function NumericInput({
         }
 
   const formatValue = (inputValue: number | string) => {
+    if (typeof inputValue === "number" && !Number.isFinite(inputValue)) {
+      return ""
+    }
     if (typeof inputValue === "string" || !resolvedFormatOptions) {
       return String(inputValue)
     }
@@ -307,6 +311,8 @@ export function NumericInput({
         size,
         styles,
         invalid: invalid || Boolean(errors.describedById),
+        validateStatus:
+          invalid || errors.describedById ? "error" : validateStatus,
         describedBy: joinDescribedBy(describedBy, ariaDescribedBy),
         description,
         errors,
@@ -347,7 +353,8 @@ NumericInput.Control = function NumericInputControl({
   className,
   ...props
 }: NumericInputControlProps) {
-  const { api, styles, invalid, readOnly, disabled } = useNumericInputContext()
+  const { api, styles, invalid, readOnly, disabled, validateStatus } =
+    useNumericInputContext()
 
   return (
     <div
@@ -358,6 +365,9 @@ NumericInput.Control = function NumericInputControl({
       data-disabled={disabled ? "" : undefined}
       data-invalid={invalid || undefined}
       data-readonly={readOnly ? "" : undefined}
+      data-validation={
+        validateStatus === "default" ? undefined : validateStatus
+      }
     >
       {children}
     </div>

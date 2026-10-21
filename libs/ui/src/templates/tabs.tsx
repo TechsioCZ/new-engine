@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit template.
  *
  * @component Tabs
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,6 +21,7 @@ export type TabItem = {
 }
 
 export type TabsTemplateProps = Omit<TabsProps, "children" | "ref"> & {
+  tablistProps?: React.ComponentPropsWithoutRef<typeof Tabs.List>
   items: TabItem[]
   showIndicator?: boolean
   ref?: Ref<HTMLDivElement>
@@ -28,6 +29,7 @@ export type TabsTemplateProps = Omit<TabsProps, "children" | "ref"> & {
 
 export function TabsTemplate({
   items,
+  tablistProps,
   showIndicator = false,
   variant = "default",
   size = "md",
@@ -55,7 +57,7 @@ export function TabsTemplate({
       variant={variant}
       {...tabsProps}
     >
-      <Tabs.List>
+      <Tabs.List {...tablistProps}>
         {items.map((item) => (
           <Tabs.Trigger
             disabled={item.disabled}

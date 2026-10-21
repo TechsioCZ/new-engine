@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
@@ -316,38 +316,8 @@ export const MultipleSelection: Story = {
   render: () => {
     const [selectedValues, setSelectedValues] = useState<string[]>([])
 
-    const selectedCountries = countries.filter((c) =>
-      selectedValues.includes(c.value)
-    )
-
-    const removeCountry = (valueToRemove: string) => {
-      setSelectedValues((prev) => prev.filter((v) => v !== valueToRemove))
-    }
-
     return (
       <div className="mx-auto w-full max-w-sm space-y-200">
-        {selectedCountries.length > 0 && (
-          <div className="flex flex-wrap gap-100">
-            {selectedCountries.map((country) => (
-              <span
-                key={country.value}
-                className="inline-flex items-center gap-50 rounded-full bg-surface px-150 py-50 text-sm"
-              >
-                {country.label}
-                <Button
-                  type="button"
-                  size="current"
-                  theme="unstyled"
-                  onClick={() => removeCountry(country.value)}
-                  className="bg-surface"
-                  aria-label={`Remove ${country.label}`}
-                >
-                  <Icon icon="icon-[mdi--close]" />
-                </Button>
-              </span>
-            ))}
-          </div>
-        )}
         <Combobox
           label="Select countries"
           placeholder="Choose countries..."
@@ -357,9 +327,7 @@ export const MultipleSelection: Story = {
           selectionBehavior="clear"
           closeOnSelect={false}
           helpText="Choose all applicable countries; Austria and France are not available yet."
-          onChange={(value) => {
-            setSelectedValues(Array.isArray(value) ? value : [value])
-          }}
+          onChange={setSelectedValues}
         />
       </div>
     )
@@ -723,5 +691,112 @@ export const RequiredSelection: Story = {
     await userEvent.click(within(multiple.parentElement as HTMLElement).getByRole("button", { name: "Clear value" }))
     await waitFor(() => expect(multiple.checkValidity()).toBe(false))
     await expect(new FormData(form).getAll("countries")).toEqual([""])
+  },
+}
+
+function IntegratedMultiple() {
+  const input = useRef<HTMLInputElement>(null)
+  const [blurred, setBlurred] = useState(false)
+  const [values, setValues] = useState(["cz", "sk", "de"])
+  return <div className="flex flex-col gap-200">
+    <span id="selection-external-hint">Available delivery regions.</span>
+    <Combobox label="Delivery countries" items={countries} multiple value={values}
+      onChange={setValues} selectionBehavior="clear" ref={input}
+      inputProps={{ onBlur: () => setBlurred(true), "aria-describedby": "selection-external-hint" }} />
+    <Button variant="secondary" onClick={() => input.current?.focus()}>Focus countries</Button>
+    <output aria-label="Touched field">{blurred ? "Touched" : "Untouched"}</output>
+  </div>
+}
+
+export const IndividualRemoval: Story = {
+  render: () => <IntegratedMultiple />,
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "Built-in selected tokens support individual keyboard removal, empty-query Backspace and focus/blur integration through the actual input ref." } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("combobox", { name: "Delivery countries" })
+    const remove = canvas.getByRole("button", { name: "Remove Slovakia" })
+    remove.focus()
+    await userEvent.keyboard("{Enter}")
+    await waitFor(() => expect(canvas.queryByRole("button", { name: "Remove Slovakia" })).toBeNull())
+    await expect(input).toHaveFocus()
+    await userEvent.keyboard("{Escape}{Backspace}")
+    await waitFor(() => expect(canvas.queryByRole("button", { name: "Remove Germany" })).toBeNull())
+    await userEvent.type(input, "zzzzunknown")
+    await expect(canvas.getByRole("button", { name: "Remove Czech Republic" })).toBeVisible()
+    await userEvent.keyboard("{Escape}")
+    await userEvent.click(canvas.getByRole("button", { name: "Focus countries" }))
+    await expect(input).toHaveFocus()
+    await expect(canvas.getByRole("status", { name: "Touched field" })).toHaveTextContent("Touched")
+    await expect(input).toHaveAttribute("aria-describedby", expect.stringContaining("selection-external-hint"))
+  },
+}
+
+function FocusableRefLifecycle() {
+  const [mounted, setMounted] = useState(true)
+  const [mounts, setMounts] = useState(0)
+  const [cleanups, setCleanups] = useState(0)
+  const [inputRef] = useState(() => (node: HTMLInputElement | null) => {
+    if (!node) return
+    setMounts((count) => count + 1)
+    return () => setCleanups((count) => count + 1)
+  })
+  return <div className="flex flex-col gap-200">
+    {mounted && <Combobox label="Registered country" items={countries} ref={inputRef} />}
+    <Button variant="secondary" onClick={() => setMounted((next) => !next)}>{mounted ? "Hide field" : "Show field"}</Button>
+    <output aria-label="Ref lifecycle">{mounts} mounts, {cleanups} cleanups</output>
+  </div>
+}
+
+export const InputRefLifecycle: Story = {
+  render: () => <FocusableRefLifecycle />,
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "React 19 callback refs receive the real focusable input and their cleanup runs exactly once on unmount, not on ordinary field rerenders." } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const counts = canvas.getByRole("status", { name: "Ref lifecycle" })
+    await waitFor(() => expect(counts).toHaveTextContent("1 mounts, 0 cleanups"))
+    await userEvent.type(canvas.getByRole("combobox", { name: "Registered country" }), "Czech")
+    await expect(counts).toHaveTextContent("1 mounts, 0 cleanups")
+    await userEvent.keyboard("{Escape}")
+    await userEvent.click(canvas.getByRole("button", { name: "Hide field" }))
+    await waitFor(() => expect(counts).toHaveTextContent("1 mounts, 1 cleanups"))
+    await userEvent.click(canvas.getByRole("button", { name: "Show field" }))
+    await waitFor(() => expect(counts).toHaveTextContent("2 mounts, 1 cleanups"))
+  },
+}
+
+function ExternallyAssociatedCountries() {
+  const id = useId()
+  return <div className="flex w-full max-w-sm flex-col gap-200">
+    <form id={id} aria-label="External order" onSubmit={(event) => event.preventDefault()} />
+    <Combobox items={countries} label="Single country" name="single" defaultValue="cz" inputProps={{ form: id }} />
+    <Combobox items={countries} label="Multiple countries" name="multiple" multiple defaultValue={["cz", "de"]} inputProps={{ form: id }} />
+    <Combobox items={countries} label="Read-only country" name="readonly" defaultValue="cz" readOnly inputProps={{ form: id }} />
+    <Combobox items={countries} label="Disabled country" name="disabled" defaultValue="cz" disabled inputProps={{ form: id }} />
+    <Combobox items={countries} label="Empty country" name="empty" inputProps={{ form: id }} />
+  </div>
+}
+
+export const ExternalFormAssociation: Story = {
+  render: () => <ExternallyAssociatedCountries />,
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "Fields outside their form submit selected item values through inputProps.form, including multiple and read-only selections but excluding disabled fields." } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const form = canvas.getByRole("form", { name: "External order" }) as HTMLFormElement
+    const input = canvas.getByRole("combobox", { name: "Single country" }) as HTMLInputElement
+    await expect(input.form).toBe(form)
+    await expect(new FormData(form).getAll("single")).toEqual(["cz"])
+    await expect(new FormData(form).getAll("multiple")).toEqual(["cz", "de"])
+    await expect(new FormData(form).getAll("readonly")).toEqual(["cz"])
+    await expect(new FormData(form).getAll("disabled")).toEqual([])
+    await expect(new FormData(form).getAll("empty")).toEqual([""])
+    await userEvent.clear(input)
+    await userEvent.type(input, "Germany")
+    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole("option", { name: "Germany" }))
+    await waitFor(() => expect(new FormData(form).getAll("single")).toEqual(["de"]))
+    await userEvent.click(within(input.parentElement as HTMLElement).getByRole("button", { name: "Clear value" }))
+    await waitFor(() => expect(new FormData(form).getAll("single")).toEqual([""]))
   },
 }

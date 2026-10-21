@@ -1,3 +1,5 @@
+import { useEffect } from "react"
+import { useArgs } from "storybook/preview-api"
 import { expect, within } from "storybook/test"
 import type { Meta, StoryObj } from "@storybook/react"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
@@ -19,6 +21,7 @@ const meta: Meta<typeof PriceBlock> = {
     },
   },
   tags: ["autodocs"],
+  argTypes: { ref: { control: false, table: { disable: true } } },
 }
 
 export default meta
@@ -26,6 +29,7 @@ type Story = Omit<StoryObj<typeof meta>, "args"> & {
   args?: Partial<PriceBlockProps>
 }
 type PlaygroundArgs = {
+  hasAmount: boolean
   state: PriceBlockProps["state"]
   amountLabel: string
   originalLabel: string
@@ -43,7 +47,8 @@ export const Playground: StoryObj<PlaygroundArgs> = {
   parameters: {
     docs: {
       description: {
-        story: "Switch between all five price states and edit the labels to verify the exact price, on-request or loading presentation your shoppers will receive.",
+        story:
+          "Switch between all five price states and edit the labels to verify the exact price, on-request or loading presentation your shoppers will receive.",
       },
     },
   },
@@ -55,12 +60,13 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       await expect(canvas.getByText(args.label)).toBeVisible()
     else
       await expect(
-        canvas.getByText(args.amountLabel, { exact: true }),
+        canvas.getByText(args.amountLabel, { exact: true })
       ).toBeVisible()
   },
 
   args: {
     state: "discounted",
+    hasAmount: true,
     amountLabel: "249 Kč",
     originalLabel: "299 Kč",
     originalSrLabel: "Původní cena",
@@ -77,7 +83,15 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       control: "select",
       options: ["known", "from", "discounted", "on-request", "pending"],
     },
-    amountLabel: { control: "text" },
+    hasAmount: { control: false, table: { disable: true } },
+    amountLabel: {
+      control: "text",
+      if: { arg: "hasAmount" },
+      description:
+        "Application-formatted current amount for known, from and discounted states.",
+    },
+    taxLabel: { control: "text", if: { arg: "hasAmount" } },
+    unitLabel: { control: "text", if: { arg: "hasAmount" } },
     originalLabel: { control: "text", if: { arg: "state", eq: "discounted" } },
     originalSrLabel: {
       control: "text",
@@ -87,8 +101,23 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     prefix: { control: "text", if: { arg: "state", eq: "from" } },
     label: { control: "text", if: { arg: "state", eq: "on-request" } },
     detail: { control: "text", if: { arg: "state", eq: "on-request" } },
-    pendingLabel: { control: "text", if: { arg: "state", eq: "pending" } },
+    pendingLabel: {
+      control: "text",
+      if: { arg: "state", eq: "pending" },
+      description:
+        "Screen-reader-only loading text; the visible skeleton is decorative.",
+    },
   },
+  decorators: [
+    (Story, context) => {
+      const [args, updateArgs] = useArgs<PlaygroundArgs>()
+      const hasAmount = ["known", "from", "discounted"].includes(args.state)
+      useEffect(() => {
+        if (args.hasAmount !== hasAmount) updateArgs({ hasAmount })
+      }, [args.hasAmount, hasAmount, updateArgs])
+      return <Story args={{ ...context.args, hasAmount }} />
+    },
+  ],
   render: (args) => {
     if (args.state === "pending")
       return <PriceBlock state="pending" pendingLabel={args.pendingLabel} />
@@ -126,7 +155,7 @@ export const States: Story = {
     docs: {
       description: {
         story:
-          "Compare states in price block to choose a suitable presentation for real product content.",
+          "Compare known, starting, discounted, on-request and loading prices without treating an unavailable amount as zero.",
       },
     },
   },
@@ -171,7 +200,7 @@ export const LongContent: Story = {
     docs: {
       description: {
         story:
-          "Compare long content in price block to choose a suitable presentation for real product content.",
+          "Check how long localized amounts, tax labels and sales copy wrap in a narrow buy box without truncating price context.",
       },
     },
   },

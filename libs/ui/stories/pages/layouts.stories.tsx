@@ -1,7 +1,7 @@
 import { DemoMenu } from "./demo-boundary"
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { fn } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { useMemo, useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
@@ -223,7 +223,7 @@ function useContentColumns(): ColumnDef<ContentEntry, unknown>[] {
         cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
-    [],
+    []
   )
 }
 
@@ -389,6 +389,32 @@ export const SidebarLeft: Story = {
 }
 
 export const SidebarRight: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const menu = canvas.queryByRole("button", { name: "Menu" })
+    if (!menu) {
+      await expect(
+        canvas.getByRole("navigation", { name: "Main" })
+      ).toBeVisible()
+      return
+    }
+    menu.focus()
+    await userEvent.keyboard("{Enter}")
+    const body = within(canvasElement.ownerDocument.body)
+    const dialog = within(body.getByRole("dialog", { name: "Navigation" }))
+    await expect(
+      dialog.getByRole("button", { name: "Customers" })
+    ).toBeVisible()
+    await userEvent.click(dialog.getByRole("button", { name: "Customers" }))
+    await waitFor(() => expect(menu).toHaveFocus())
+    const account = canvas.getByRole("button", { name: "Account" })
+    const bounds = account.getBoundingClientRect()
+    await expect(bounds.right).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.defaultView?.innerWidth ?? 390
+    )
+    await userEvent.click(account)
+    await userEvent.keyboard("{Escape}")
+  },
   name: "2 · Sidebar right",
   parameters: {
     docs: {
@@ -410,12 +436,13 @@ export const SidebarRight: Story = {
                 aria-label="Account"
                 customTrigger={
                   <Button
+                    aria-label="Account"
                     icon="icon-[mdi--account-circle-outline]"
                     size="sm"
                     theme="borderless"
                     variant="secondary"
                   >
-                    Nora Kessler
+                    <span className="hidden sm:inline">Nora Kessler</span>
                   </Button>
                 }
                 items={accountMenu}

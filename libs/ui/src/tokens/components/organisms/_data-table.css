@@ -117,8 +117,7 @@
   }
 }
 
-/* A pinned action column can consume most of a phone-sized viewport. Keep
- * every value reachable: narrow containers scroll actions with the records. */
+/* End-pinned columns reserve this actions column's measured width. */
 @utility data-table-actions-sticky {
   inset-inline-end: 0;
   @container data-table (width < 48rem) {

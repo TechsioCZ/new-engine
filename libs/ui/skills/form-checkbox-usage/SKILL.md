@@ -5,7 +5,7 @@ description: >
   for labeled checkbox fields with Zag.js checked/indeterminate state, help
   text, validation status, required, disabled, and read-only props.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -82,6 +82,19 @@ name, value, required, disabled, readOnly
 ```
 
 ## Core Patterns
+
+### Controlled proposals, reset and rich labels
+
+A rejected `onCheckedChange` proposal leaves native checked/mixed properties,
+validation and FormData consistent with the accepted value, even without a
+parent rerender. Reset restores the initial uncontrolled default after the
+native reset action; canceled resets leave state unchanged. Controlled parents
+retain ownership and may accept or reject the reset proposal.
+
+The label text slot fills the remaining row width and can wrap safely. Rich
+labels may use a flexible text column and an end-aligned, nonshrinking count
+without depending on the label's intrinsic text width.
+
 
 ### Feedback, sizes and read-only values
 

@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Checkbox atom, including invalid and indeterminate states,
   while preferring form molecules for labeled form rows.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -78,6 +78,14 @@ The component also accepts native checkbox input attributes.
 
 ## Core Patterns
 
+### Canonical sizing
+
+`size="sm" | "md" | "lg"` uses the same box dimensions as FormCheckbox, with
+`md` as the default. The default is now 24px rather than the legacy 16px atom;
+use `sm` explicitly for dense table/list selection (18px). Numeric native
+`size` is not supported. Both checkmarks and mixed dashes scale with the box.
+
+
 ### Native read-only behavior
 
 `readOnly` preserves the native checkbox focus target and submitted value while
@@ -96,10 +104,12 @@ consumer's scope; do not add descendant border rules.
 ### Prefer FormCheckbox for labeled rows
 
 ```tsx
+import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
+
 <FormCheckbox
   name="newsletter"
   label="Send me product updates"
-  helperText="You can unsubscribe anytime."
+  helpText="You can unsubscribe anytime."
 />
 ```
 
@@ -136,7 +146,7 @@ controls use the same disabled surface and icon treatment as disabled checked
 controls. Mixed selection is a horizontal dash, not a dot or checkmark, even
 when the native checked value is also true. The visual mixed state does not
 change the native checked value or form submission semantics. Corners remain
-squarish even when a theme's general small radius would make a 16px control
+squarish even when a theme's general small radius would make a small control
 circular; override `--radius-checkbox-control` for an intentional scoped shape.
 Explain why unavailable controls cannot be changed.
 

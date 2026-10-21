@@ -5,7 +5,7 @@ description: >
   for a focusable error summary that links to invalid fields, without depending
   on a specific form library.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -73,7 +73,6 @@ import { FormErrorSummary } from "@techsio/ui-kit/molecules/form-error-summary"
     { id: "name", label: "Enter your name", targetId: "name-field" },
     { id: "email", label: "Enter a valid email", targetId: "email-field" },
   ]}
-  onFieldFocus={(targetId) => document.getElementById(targetId)?.focus()}
 />
 ```
 
@@ -82,6 +81,7 @@ Supported props:
 ```text
 title?: string
 errors: { id: string; label: string; targetId: string }[]
+revealField?: (targetId: string) => void | Promise<void>
 onFieldFocus?: (targetId: string) => void
 className
 ```
@@ -91,7 +91,7 @@ className
 ### Link by field id
 
 `targetId` must match the `id` prop of the corresponding `Form*` component. The
-summary renders `<a href="#targetId">`, so focus and scroll are native.
+summary renders a real fragment link, reveals closed native `details` ancestors and focuses/scrolls the target without changing the page URL. For a custom accordion, tab or conditionally mounted field, provide `revealField(targetId): void | Promise<void>`; resolve only after the target mounts. The summary resolves the element after this hook and calls `onFieldFocus` only after successful focus.
 
 ### Keep it form-library-agnostic
 

@@ -1,3 +1,4 @@
+import { orderAmounts } from "./page-models"
 import { expect, userEvent, within } from "storybook/test"
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
@@ -137,7 +138,7 @@ const timeline: {
     id: "ev-3",
     icon: "icon-[mdi--credit-card-check-outline]",
     title: "Payment captured",
-    detail: "Card ending 4242 · payment captured",
+    detail: `Card ending 4242 · payment captured: ${currency.format(orders[0]?.total ?? 0)}`,
     at: "11 Sep, 09:42",
   },
   {
@@ -158,13 +159,10 @@ function OrderDetailPage() {
 
   const [order] = orders
   const lines = orderLines.filter((line) => line.orderId === order?.id)
-  const subtotal = lines.reduce(
-    (sum, line) => sum + line.qty * line.unitPrice,
-    0
-  )
-
-  const tax = Math.round(subtotal * 0.21 * 100) / 100
-  const total = subtotal + tax
+  const amounts = orderAmounts(lines)
+  const subtotal = amounts.subtotalMinor / 100
+  const tax = amounts.taxMinor / 100
+  const total = amounts.capturedMinor / 100
   if (!order) {
     return null
   }
@@ -426,7 +424,7 @@ function OrderDetailPage() {
                 <dd className="text-sm">Free</dd>
               </div>
               <div className="flex items-center justify-between gap-150">
-                <dt className="text-fg-secondary text-sm">Tax (21%)</dt>
+                <dt className="text-fg-secondary text-sm">Tax added (21%)</dt>
                 <dd className="text-sm">{currency.format(tax)}</dd>
               </div>
               <div className="flex items-center justify-between gap-150 border-border-primary border-t pt-100">
@@ -526,7 +524,7 @@ export const Default: Story = {
     const dialog = body.getByRole("alertdialog")
     await expect(
       within(dialog).getByRole("button", { name: /^Refund / })
-    ).toHaveTextContent("100")
+    ).toHaveTextContent(currency.format(100.43))
     await userEvent.click(
       within(dialog).getByRole("button", { name: /^Refund / })
     )

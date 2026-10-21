@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -15,9 +15,11 @@ import {
   type ComponentPropsWithoutRef,
   createContext,
   type Ref,
+  type RefObject,
   useContext,
   useEffect,
   useId,
+  useRef,
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -37,7 +39,7 @@ const tabsVariants = tv({
       "relative flex min-w-0 max-w-full",
       "bg-tabs-list-bg",
       "data-[orientation=horizontal]:flex-row data-[orientation=horizontal]:overflow-x-auto",
-      "data-[orientation=vertical]:flex-col",
+      "data-[orientation=vertical]:w-max data-[orientation=vertical]:shrink-0 data-[orientation=vertical]:flex-col",
     ],
     trigger: [
       "relative flex shrink-0 items-center justify-center",
@@ -56,10 +58,10 @@ const tabsVariants = tv({
       "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
       "data-[orientation=vertical]:h-(--height) data-[orientation=horizontal]:w-(--width)",
       "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
-      "data-[orientation=vertical]:inset-s-0 data-[orientation=horizontal]:bottom-0",
+      "data-[orientation=vertical]:-start-tabs-rail-offset data-[orientation=horizontal]:bottom-0",
     ],
     content: [
-      "min-w-0 max-w-full text-tabs-content-fg",
+      "wrap-anywhere min-w-0 max-w-full text-tabs-content-fg data-[orientation=vertical]:flex-1",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-tabs-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -72,7 +74,7 @@ const tabsVariants = tv({
         indicator: "hidden",
       },
       line: {
-        list: "border-b-(length:--border-width-tabs) border-tabs-border-base",
+        list: "data-[orientation=horizontal]:border-b-(length:--border-width-tabs) data-[orientation=vertical]:border-s-(length:--border-width-tabs) border-tabs-border-base",
         indicator: "",
       },
       solid: {
@@ -158,6 +160,118 @@ function useTabsContext() {
   return context
 }
 
+function enabledNeighbor(
+  enabled: HTMLButtonElement[],
+  previous: string[],
+  value: string | null
+) {
+  const index = previous.indexOf(value ?? "")
+  const neighbors = [
+    ...previous.slice(Math.max(0, index + 1)),
+    ...previous.slice(0, Math.max(0, index)).reverse(),
+  ]
+  return (
+    neighbors
+      .map((candidate) =>
+        enabled.find((trigger) => trigger.dataset.value === candidate)
+      )
+      .find(Boolean) ?? enabled[0]
+  )
+}
+
+function restoreOwnedTabFocus(
+  root: HTMLElement,
+  previous: HTMLElement | null,
+  target?: HTMLElement
+) {
+  if (!previous) {
+    return false
+  }
+  const unavailable =
+    !previous.isConnected ||
+    previous.matches(":disabled") ||
+    Boolean(previous.closest('[data-part="content"][hidden]'))
+  if (!unavailable) {
+    return false
+  }
+  const active = root.ownerDocument.activeElement
+  if (active === root.ownerDocument.body || root.contains(active)) {
+    target?.focus()
+  }
+  return true
+}
+
+function tabEntry(
+  root: HTMLElement,
+  enabled: HTMLButtonElement[],
+  focusedValue: string | null,
+  target?: HTMLButtonElement
+) {
+  const focused = enabled.find(
+    (trigger) => trigger.dataset.value === focusedValue
+  )
+  const ownsTriggerFocus = enabled.includes(
+    root.ownerDocument.activeElement as HTMLButtonElement
+  )
+  return ownsTriggerFocus ? (focused ?? target) : (target ?? focused)
+}
+
+function reconcileTabSelection(
+  api: TabsContextValue["api"],
+  selected: HTMLButtonElement | undefined,
+  target: HTMLButtonElement | undefined,
+  controlled: boolean,
+  request: RefObject<string | null>
+) {
+  if (selected) {
+    request.current = null
+    return
+  }
+  if (!target) {
+    if (!controlled && api.value) {
+      api.clearValue()
+    }
+    return
+  }
+  const next = target.dataset.value
+  if (next == null) {
+    return
+  }
+  const key = `${api.value ?? ""}:${next}`
+  if (request.current === key) {
+    return
+  }
+  request.current = key
+  api.setValue(next)
+}
+
+function reconcileTabFocus(
+  root: HTMLElement,
+  triggers: HTMLButtonElement[],
+  enabled: HTMLButtonElement[],
+  previous: string[],
+  api: TabsContextValue["api"],
+  target: HTMLButtonElement | undefined,
+  lastFocused: RefObject<HTMLElement | null>,
+  setFocused: (value: string | null) => void
+) {
+  const focused = enabled.find(
+    (trigger) => trigger.dataset.value === api.focusedValue
+  )
+  const replacement =
+    focused ?? enabledNeighbor(enabled, previous, api.focusedValue) ?? target
+  if (!focused && replacement) {
+    setFocused(replacement.dataset.value ?? null)
+  }
+  const entryTarget = tabEntry(root, enabled, api.focusedValue, target)
+  for (const trigger of triggers) {
+    trigger.tabIndex = trigger === entryTarget ? 0 : -1
+  }
+  if (restoreOwnedTabFocus(root, lastFocused.current, replacement)) {
+    lastFocused.current = null
+  }
+}
+
 // Root component
 export type TabsProps = VariantProps<typeof tabsVariants> &
   Omit<ComponentPropsWithoutRef<"div">, "onChange"> & {
@@ -193,6 +307,11 @@ export function Tabs({
   const generatedId = useId()
   const uniqueId = id || generatedId
 
+  const rootElement = useRef<HTMLDivElement | null>(null)
+  const previousValues = useRef<string[]>([])
+  const lastFocused = useRef<HTMLElement | null>(null)
+  const recoveryRequest = useRef<string | null>(null)
+
   const service = useMachine(tabs.machine, {
     id: uniqueId,
     value,
@@ -202,7 +321,9 @@ export function Tabs({
     activationMode,
     loopFocus,
     onValueChange: ({ value: nextValue }) => {
-      onValueChange?.(nextValue)
+      if (nextValue != null) {
+        onValueChange?.(nextValue)
+      }
     },
   })
 
@@ -211,6 +332,68 @@ export function Tabs({
   const [contentValues, setContentValues] = useState<ReadonlySet<string>>(
     () => new Set()
   )
+
+  // Observe the rendered collection, including compound consumers and async items.
+  // A removed selection recovers to the next surviving neighbor, then previous.
+  useEffect(() => {
+    const root = rootElement.current
+    if (!root) {
+      return
+    }
+    const reconcile = () => {
+      const triggers = Array.from(
+        root.querySelectorAll<HTMLButtonElement>(
+          '[data-scope="tabs"][data-part="trigger"]'
+        )
+      ).filter(
+        (trigger) =>
+          trigger.closest('[data-scope="tabs"][data-part="root"]') === root
+      )
+      const enabled = triggers.filter((trigger) => !trigger.disabled)
+      const values = triggers.map((trigger) => trigger.dataset.value ?? "")
+      const selected = enabled.find(
+        (trigger) => trigger.dataset.value === api.value
+      )
+      const fallback = enabledNeighbor(
+        enabled,
+        previousValues.current,
+        api.value
+      )
+      const target = selected ?? fallback
+      reconcileTabSelection(
+        api,
+        selected,
+        target,
+        value !== undefined,
+        recoveryRequest
+      )
+      // Controlled owners may reject recovery. Never remove keyboard entry.
+      reconcileTabFocus(
+        root,
+        triggers,
+        enabled,
+        previousValues.current,
+        api,
+        target,
+        lastFocused,
+        (next) => service.context.set("focusedValue", next)
+      )
+      // Keep the pre-removal order until the proposed replacement commits.
+      // MutationObserver may run again before Zag flushes setValue.
+      if (selected || api.value == null) {
+        previousValues.current = values
+      }
+    }
+    reconcile()
+    const observer = new MutationObserver(reconcile)
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["disabled", "hidden"],
+    })
+    return () => observer.disconnect()
+  })
 
   return (
     <TabsContext.Provider
@@ -227,9 +410,29 @@ export function Tabs({
     >
       <div
         className={styles.root({ className })}
-        ref={ref}
-        {...api.getRootProps()}
-        {...props}
+        {...mergeProps(props, api.getRootProps())}
+        onBlurCapture={(event) => {
+          props.onBlurCapture?.(event)
+          if (
+            event.relatedTarget &&
+            !event.currentTarget.contains(event.relatedTarget as Node)
+          ) {
+            lastFocused.current = null
+          }
+        }}
+        onFocusCapture={(event) => {
+          props.onFocusCapture?.(event)
+          lastFocused.current = event.target as HTMLElement
+        }}
+        ref={(node) => {
+          rootElement.current = node
+          if (typeof ref === "function") {
+            return ref(node)
+          }
+          if (ref) {
+            ref.current = node
+          }
+        }}
       >
         {children}
       </div>
@@ -254,8 +457,8 @@ Tabs.List = function TabsList({
     <div
       className={styles.list({ className })}
       ref={ref}
-      {...api.getListProps()}
-      {...props}
+      {...mergeProps(api.getListProps(), props)}
+      role="tablist"
     >
       {children}
     </div>
@@ -281,9 +484,29 @@ Tabs.Trigger = function TabsTrigger({
 }: TabsTriggerProps) {
   const { api, contentValues, styles } = useTabsContext()
   const triggerProps = mergeProps(
-    props,
-    api.getTriggerProps({ value, disabled })
+    api.getTriggerProps({ value, disabled }),
+    props
   )
+
+  const triggerElement = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => {
+    const trigger = triggerElement.current
+    const list = trigger?.closest<HTMLElement>('[data-part="list"]')
+    if (
+      !(trigger && list) ||
+      (api.value !== value && api.focusedValue !== value)
+    ) {
+      return
+    }
+    const row = trigger.getBoundingClientRect()
+    const viewport = list.getBoundingClientRect()
+    // Scroll only the strip, never the page or surrounding panel.
+    if (row.left < viewport.left) {
+      list.scrollLeft += row.left - viewport.left
+    } else if (row.right > viewport.right) {
+      list.scrollLeft += row.right - viewport.right
+    }
+  }, [api.value, api.focusedValue, value])
 
   return (
     <Button
@@ -293,7 +516,15 @@ Tabs.Trigger = function TabsTrigger({
       }
       className={styles.trigger({ className })}
       data-disabled={disabled ? "" : undefined}
-      ref={ref}
+      ref={(node) => {
+        triggerElement.current = node
+        if (typeof ref === "function") {
+          return ref(node)
+        }
+        if (ref) {
+          ref.current = node
+        }
+      }}
       size={size}
       theme={theme}
       type={type}

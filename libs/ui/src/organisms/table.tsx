@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -20,7 +20,7 @@ import { tv } from "../utils"
 
 const tableVariants = tv({
   slots: {
-    root: ["w-full border-collapse", "bg-table-bg text-table-fg"],
+    root: ["isolate w-full border-collapse", "bg-table-bg text-table-fg"],
     caption: ["text-table-caption-fg", "text-start font-table-caption"],
     header: ["bg-table-header-bg", "font-table-header text-table-header-fg"],
     body: "",
@@ -57,13 +57,13 @@ const tableVariants = tv({
         root: "border-(length:--border-table-width) rounded-table border-table-border shadow-table-outline",
       },
       striped: {
-        row: "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary",
+        row: "table-row-striped odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary",
       },
     },
     interactive: {
       true: {
         row: [
-          "cursor-pointer hover:bg-table-row-bg-hover",
+          "table-row-interactive cursor-pointer hover:bg-table-row-bg-hover",
           "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
           "focus-visible:-outline-offset-(length:--default-ring-width) focus-visible:outline-table-ring",
         ],
@@ -102,8 +102,7 @@ const tableVariants = tv({
           /* The sticky cell paints its own background to stay opaque over
            * scrolled content, which would otherwise hide the row's selected
            * fill behind it — mirror that state here via the row's `group`. */
-          "bg-table-bg group-data-[selected=true]:bg-table-row-bg-selected",
-          "group-data-[selected=true]:text-table-row-fg-selected",
+          "first:table-frozen-cell",
         ],
       },
     },

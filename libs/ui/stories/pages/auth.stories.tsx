@@ -228,10 +228,10 @@ export const WithError: Story = {
     await userEvent.type(password, "northwind-demo")
     await userEvent.click(canvas.getByRole("button", { name: "Sign in" }))
     await expect(
-      canvas.getByRole("heading", { name: "Demo workspace" }),
+      canvas.getByRole("heading", { name: "Demo workspace" })
     ).toBeVisible()
     await userEvent.click(
-      canvas.getByRole("button", { name: "Sign out of demo" }),
+      canvas.getByRole("button", { name: "Sign out of demo" })
     )
   },
 
@@ -254,6 +254,30 @@ export const WithError: Story = {
 }
 
 export const TwoFactor: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const code = canvas.getByLabelText(/Verification code/)
+    await userEvent.type(code, "000000{Enter}")
+    await expect(code).toHaveAttribute("aria-invalid", "true")
+    await userEvent.clear(code)
+    await userEvent.type(code, "123456{Enter}")
+    await expect(
+      canvas.getByRole("button", { name: "Demo verified" })
+    ).toBeDisabled()
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Use a recovery code" })
+    )
+    await userEvent.type(
+      canvas.getByLabelText(/Recovery code/),
+      "demo-recovery{Enter}"
+    )
+    await expect(
+      canvas.getByRole("button", { name: "Demo verified" })
+    ).toBeDisabled()
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Use authenticator code" })
+    )
+  },
   parameters: {
     docs: {
       description: {
@@ -275,7 +299,15 @@ export const TwoFactor: Story = {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-350 bg-base p-250 text-fg-primary">
         <Brand environment="Admin" />
-        <div className="flex w-full max-w-md flex-col gap-250">
+        <form
+          className="flex w-full max-w-md flex-col gap-250"
+          onSubmit={(event) => {
+            event.preventDefault()
+            const valid = code === (recovery ? "demo-recovery" : "123456")
+            setInvalid(!valid)
+            setVerified(valid)
+          }}
+        >
           <div className="flex flex-col gap-100">
             <h1 className="font-semibold text-xl">Enter your code</h1>
             <p className="text-fg-secondary text-sm">
@@ -306,11 +338,7 @@ export const TwoFactor: Story = {
             disabled={
               verified || (recovery ? !code.trim() : !/^\d{6}$/.test(code))
             }
-            onClick={() => {
-              const valid = code === (recovery ? "demo-recovery" : "123456")
-              setInvalid(!valid)
-              setVerified(valid)
-            }}
+            type="submit"
             variant="primary"
           >
             {verified ? "Demo verified" : "Verify"}
@@ -353,7 +381,7 @@ export const TwoFactor: Story = {
               Reset demo code
             </Button>
           </div>
-        </div>
+        </form>
       </div>
     )
   },

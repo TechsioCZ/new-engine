@@ -130,6 +130,7 @@ export const Playground: Story = {
 // All variants showcase
 export const AllVariants: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -229,6 +230,7 @@ export const AllVariants: Story = {
 // Sizes showcase
 export const Sizes: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -265,6 +267,7 @@ export const Sizes: Story = {
 // Vertical orientation
 export const DisabledTabs: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -304,6 +307,7 @@ export const DisabledTabs: Story = {
 // Controlled state
 export const VerticalOrientation: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -364,6 +368,7 @@ export const VerticalOrientation: Story = {
 // Fitted tabs
 export const Controlled: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -406,6 +411,7 @@ export const Controlled: Story = {
 // Justify options
 export const FittedTabs: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -467,6 +473,7 @@ export const FittedTabs: Story = {
 // Disabled tabs
 export const JustifyOptions: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -548,6 +555,7 @@ export const JustifyOptions: Story = {
 // With icons
 export const WithIcons: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -596,6 +604,7 @@ export const WithIcons: Story = {
 // With badges
 export const WithBadges: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -648,6 +657,7 @@ export const WithBadges: Story = {
 // RTL support
 export const RTLSupport: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -680,6 +690,7 @@ export const RTLSupport: Story = {
 
 export const SectionedContent: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -716,6 +727,7 @@ export const SectionedContent: Story = {
 
 export const ScrollableAlignment: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:

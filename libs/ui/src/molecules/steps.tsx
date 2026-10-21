@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,6 +13,7 @@ import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   connect as connectSteps,
   type Props as StepsMachineProps,
+  splitProps as splitStepsProps,
   machine as stepsMachine,
   type Api as ZagStepsApi,
   type ItemState as ZagStepsItemState,
@@ -25,6 +26,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useRef,
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -191,7 +193,7 @@ const stepsVariants = tv({
   },
 })
 
-type StepsApi = ZagStepsApi
+type StepsApi = ZagStepsApi & { linear?: boolean }
 type StepsOrientation = "horizontal" | "vertical"
 type StepsSize = NonNullable<VariantProps<typeof stepsVariants>["size"]>
 type StepsItemState = ZagStepsItemState
@@ -201,6 +203,7 @@ type StepsContextValue = {
   orientation: StepsOrientation
   size?: StepsSize
   styles: ReturnType<typeof stepsVariants>
+  requestNavigationFocus: (source: HTMLButtonElement) => void
 } & StepsContentRegistry
 
 /*
@@ -294,15 +297,131 @@ export type StepsStoreProps = Omit<StepsMachineProps, "id"> & {
   id?: string
 }
 
-export function useSteps({ id, ...props }: StepsStoreProps) {
+export function useSteps({
+  id,
+  count = 1,
+  step,
+  defaultStep = 0,
+  onStepChange,
+  ...props
+}: StepsStoreProps): StepsApi {
   const generatedId = useId()
+  const safeCount = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0
+  const [local, setLocal] = useState({
+    value: defaultStep,
+    completed: defaultStep === safeCount,
+  })
+  const rawStep = step ?? local.value
+  const previous = useRef({
+    count: safeCount,
+    value: rawStep,
+    completed: rawStep === safeCount,
+  })
+  const correction = useRef<string | null>(null)
+  let completed = local.completed
+  if (step !== undefined) {
+    completed =
+      previous.current.value === rawStep
+        ? previous.current.completed
+        : rawStep === safeCount
+  }
+  const effectiveStep =
+    safeCount === 0 || completed
+      ? safeCount
+      : Math.min(
+          Math.max(0, Number.isFinite(rawStep) ? Math.floor(rawStep) : 0),
+          safeCount - 1
+        )
+
+  useEffect(() => {
+    previous.current = { count: safeCount, value: rawStep, completed }
+    if (rawStep === effectiveStep) {
+      correction.current = null
+      return
+    }
+    if (step === undefined) {
+      setLocal({ value: effectiveStep, completed })
+    }
+    const key = `${rawStep}:${effectiveStep}:${safeCount}`
+    if (correction.current !== key) {
+      correction.current = key
+      onStepChange?.({ step: effectiveStep })
+    }
+  }, [completed, effectiveStep, onStepChange, rawStep, safeCount, step])
 
   const service = useMachine(stepsMachine, {
-    id: id ?? generatedId,
     ...props,
+    id: id ?? generatedId,
+    count: safeCount,
+    step: effectiveStep,
+    onStepChange: (details) => {
+      if (step === undefined) {
+        setLocal({ value: details.step, completed: details.step === safeCount })
+      }
+      onStepChange?.(details)
+    },
   })
+  const api = connectSteps(service, normalizeProps)
+  const percent =
+    safeCount === 0
+      ? 100
+      : Math.min(100, Math.max(0, (effectiveStep / safeCount) * 100))
+  return {
+    ...api,
+    linear: props.linear ?? false,
+    percent,
+    getRootProps: () => ({
+      ...api.getRootProps(),
+      style: { ...api.getRootProps().style, "--percent": `${percent}%` },
+    }),
+    getProgressProps: () => ({
+      ...api.getProgressProps(),
+      "aria-valuemin": 0,
+      "aria-valuemax": 100,
+      "aria-valuenow": percent,
+      "aria-valuetext": `${Math.round(percent)}%`,
+    }),
+  }
+}
 
-  return connectSteps(service, normalizeProps)
+// Only an accepted navigation-button transition moves focus. Initial renders,
+// external updates and tab/step-header activation never steal focus.
+function useNavigationFocus(api: StepsApi) {
+  const pending = useRef<{ source: HTMLButtonElement; value: number } | null>(
+    null
+  )
+  useEffect(() => {
+    const request = pending.current
+    if (!request || request.value === api.value) {
+      return
+    }
+    pending.current = null
+    const root = request.source.closest(
+      '[data-scope="steps"][data-part="root"]'
+    )
+    const active = request.source.ownerDocument.activeElement
+    if (
+      active !== request.source &&
+      active !== request.source.ownerDocument.body
+    ) {
+      return
+    }
+    root
+      ?.querySelector<HTMLElement>(
+        '[data-part="content"]:not([hidden]), [data-part="completed-content"]:not([hidden])'
+      )
+      ?.focus()
+  }, [api.value])
+  return (source: HTMLButtonElement) => {
+    pending.current = { source, value: api.value }
+    // Synchronous accepted updates commit before this frame. Rejected proposals
+    // must not cause a later unrelated controlled update to steal focus.
+    requestAnimationFrame(() => {
+      if (pending.current?.source === source) {
+        pending.current = null
+      }
+    })
+  }
 }
 
 type StepsRootSharedProps = VariantProps<typeof stepsVariants> &
@@ -316,40 +435,37 @@ export type StepsProps = StepsRootSharedProps &
   }
 
 export function Steps({
-  id,
-  count = 1,
-  defaultStep,
-  dir = "ltr",
-  linear = false,
-  onStepChange,
-  onStepComplete,
-  orientation = "horizontal",
   size,
-  step,
   variant,
   children,
   className,
   ref,
   ...props
 }: StepsProps) {
+  const [machineProps, elementProps] = splitStepsProps(props)
   const api = useSteps({
-    count,
-    defaultStep,
-    dir,
-    id,
-    linear,
-    onStepChange,
-    onStepComplete,
-    orientation,
-    step,
+    count: 1,
+    dir: "ltr",
+    linear: false,
+    orientation: "horizontal",
+    ...machineProps,
   })
+  const orientation = machineProps.orientation ?? "horizontal"
+  const requestNavigationFocus = useNavigationFocus(api)
   const styles = stepsVariants({ size, variant })
-  const rootProps = mergeProps(props, api.getRootProps())
+  const rootProps = mergeProps(elementProps, api.getRootProps())
   const contentRegistry = useStepsContentRegistry()
 
   return (
     <StepsContext.Provider
-      value={{ api, orientation, size, styles, ...contentRegistry }}
+      value={{
+        api,
+        orientation,
+        size,
+        styles,
+        requestNavigationFocus,
+        ...contentRegistry,
+      }}
     >
       <div className={styles.root({ className })} ref={ref} {...rootProps}>
         {children}
@@ -372,6 +488,7 @@ Steps.RootProvider = function StepsRootProvider({
   ...props
 }: StepsRootProviderProps) {
   const styles = stepsVariants({ size, variant })
+  const requestNavigationFocus = useNavigationFocus(value)
   const resolvedOrientation = getOrientationFromApi(value)
   const rootProps = mergeProps(props, value.getRootProps())
   const contentRegistry = useStepsContentRegistry()
@@ -380,6 +497,7 @@ Steps.RootProvider = function StepsRootProvider({
     <StepsContext.Provider
       value={{
         api: value,
+        requestNavigationFocus,
         orientation: resolvedOrientation,
         size,
         styles,
@@ -393,8 +511,8 @@ Steps.RootProvider = function StepsRootProvider({
   )
 }
 
-type StepsListProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+type StepsListProps = ComponentPropsWithoutRef<"ol"> & {
+  ref?: Ref<HTMLOListElement>
 }
 
 Steps.List = function StepsList({
@@ -404,12 +522,19 @@ Steps.List = function StepsList({
   ...props
 }: StepsListProps) {
   const { api, styles } = useStepsContext()
-  const listProps = mergeProps(props, api.getListProps())
+  const {
+    role: _tablistRole,
+    "aria-owns": _owns,
+    "aria-orientation": _orientation,
+    ...machineListProps
+  } = api.getListProps()
+  // Safari needs an explicit list role when the reset removes list styling.
+  const listProps = mergeProps(props, machineListProps, { role: "list" })
 
   return (
-    <div className={styles.list({ className })} ref={ref} {...listProps}>
+    <ol className={styles.list({ className })} ref={ref} {...listProps}>
       {children}
-    </div>
+    </ol>
   )
 }
 
@@ -461,9 +586,9 @@ Steps.Navigation = function StepsNavigation({
   )
 }
 
-type StepsItemProps = ComponentPropsWithoutRef<"div"> & {
+type StepsItemProps = ComponentPropsWithoutRef<"li"> & {
   index: number
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLLIElement>
 }
 
 Steps.Item = function StepsItem({
@@ -485,14 +610,14 @@ Steps.Item = function StepsItem({
 
   return (
     <StepsItemContext.Provider value={{ ariaCurrent, index, state }}>
-      <div
+      <li
         className={styles.item({ className })}
         ref={ref}
         {...itemProps}
-        role={props.role ?? "presentation"}
+        role={props.role ?? "listitem"}
       >
         {children}
-      </div>
+      </li>
     </StepsItemContext.Provider>
   )
 }
@@ -518,6 +643,8 @@ Steps.Trigger = function StepsTrigger({
   const {
     onClick: onTriggerClick,
     disabled: machineDisabled,
+    role: _tabRole,
+    "aria-selected": _selected,
     ...restTriggerProps
   } = triggerProps as typeof triggerProps & {
     disabled?: boolean
@@ -525,7 +652,7 @@ Steps.Trigger = function StepsTrigger({
   }
   const { onClick, ...restProps } = props
   const buttonProps = mergeProps(restProps, restTriggerProps)
-  const isDisabled = Boolean(machineDisabled || disabled)
+  const isDisabled = Boolean(machineDisabled || disabled || api.linear)
 
   return (
     <Button
@@ -547,6 +674,7 @@ Steps.Trigger = function StepsTrigger({
           onTriggerClick?.(event)
         }
       }}
+      tabIndex={isDisabled ? -1 : 0}
     >
       {children}
     </Button>
@@ -744,13 +872,21 @@ Steps.Content = function StepsContent({
   ...props
 }: StepsContentProps) {
   const { api, styles } = useStepsContext()
-  const contentProps = mergeProps(props, api.getContentProps({ index }))
+  const { role: _tabpanelRole, ...machineContentProps } = api.getContentProps({
+    index,
+  })
+  const contentProps = mergeProps(props, machineContentProps)
   useRegisterStepsContent(index)
 
   return (
-    <div className={styles.content({ className })} ref={ref} {...contentProps}>
+    <section
+      className={styles.content({ className })}
+      ref={ref}
+      {...contentProps}
+      tabIndex={-1}
+    >
       {children}
-    </div>
+    </section>
   )
 }
 
@@ -799,20 +935,28 @@ Steps.CompletedContent = function StepsCompletedContent({
   ...props
 }: StepsCompletedContentProps) {
   const { api, styles } = useStepsContext()
-  const contentProps = mergeProps(
-    props,
-    api.getContentProps({ index: api.count })
-  )
+  const {
+    "aria-labelledby": _triggerLabel,
+    role: _tabPanelRole,
+    ...machineContentProps
+  } = api.getContentProps({ index: api.count })
+  const contentProps = mergeProps(machineContentProps, props)
 
   return (
-    <div
+    <section
       className={styles.completedContent({ className })}
       ref={ref}
       {...contentProps}
+      aria-label={
+        props["aria-label"] ??
+        (props["aria-labelledby"] ? undefined : "Workflow complete")
+      }
       data-complete={api.isCompleted || undefined}
+      data-part="completed-content"
+      tabIndex={-1}
     >
       {children}
-    </div>
+    </section>
   )
 }
 
@@ -828,7 +972,12 @@ Steps.PrevTrigger = function StepsPrevTrigger({
   variant = "secondary",
   ...props
 }: StepsControlProps) {
-  const { api, styles, size: rootSize } = useStepsContext()
+  const {
+    api,
+    styles,
+    size: rootSize,
+    requestNavigationFocus,
+  } = useStepsContext()
   const {
     onClick: onPrevTriggerClick,
     disabled: prevTriggerDisabled,
@@ -850,6 +999,7 @@ Steps.PrevTrigger = function StepsPrevTrigger({
       onClick={(event) => {
         onClick?.(event)
         if (!event.defaultPrevented) {
+          requestNavigationFocus(event.currentTarget)
           onPrevTriggerClick?.(event)
         }
       }}
@@ -865,7 +1015,12 @@ Steps.NextTrigger = function StepsNextTrigger({
   variant = "primary",
   ...props
 }: StepsControlProps) {
-  const { api, styles, size: rootSize } = useStepsContext()
+  const {
+    api,
+    styles,
+    size: rootSize,
+    requestNavigationFocus,
+  } = useStepsContext()
   const {
     onClick: onNextTriggerClick,
     disabled: nextTriggerDisabled,
@@ -887,6 +1042,7 @@ Steps.NextTrigger = function StepsNextTrigger({
       onClick={(event) => {
         onClick?.(event)
         if (!event.defaultPrevented) {
+          requestNavigationFocus(event.currentTarget)
           onNextTriggerClick?.(event)
         }
       }}

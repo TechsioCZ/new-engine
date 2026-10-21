@@ -47,8 +47,8 @@ function DemoProductButton(props: ComponentProps<typeof ProductCard.Button>) {
     <ProductCard.Button
       {...props}
       aria-pressed={wishlist ? selected : undefined}
-      onClick={() => {
-        props.onClick?.()
+      onClick={(event) => {
+        props.onClick?.(event)
         const next = !selected
         setSelected(next)
         if (!wishlist && props.buttonVariant !== "detail") setCount(count + 1)
@@ -125,7 +125,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     docs: {
       description: {
         story:
-          "Adjust the controls to explore product card using realistic content and immediately visible results.",
+          "Configure a catalog card’s layout, badges, availability, rating and action, then try the action for local-only feedback.",
       },
     },
   },
@@ -274,7 +274,7 @@ export const Badges: Story = {
     docs: {
       description: {
         story:
-          "Compare badges in product card to choose a suitable presentation for real product content.",
+          "Product badges distinguish a new arrival, limited stock, a sale and an eco-friendly option without replacing the product name or price.",
       },
     },
   },
@@ -316,7 +316,7 @@ export const BadgesWithCustomColors: Story = {
     docs: {
       description: {
         story:
-          "Compare badges with custom colors in product card to choose a suitable presentation for real product content.",
+          "Dynamic badges accept application-supplied colors for campaign labels while keeping the card’s ordinary product and action slots.",
       },
     },
   },
@@ -375,7 +375,7 @@ export const StockStates: Story = {
     docs: {
       description: {
         story:
-          "Compare stock states in product card to choose a suitable presentation for real product content.",
+          "Available, limited-stock and unavailable products pair explicit stock copy with an appropriate purchase or detail action.",
       },
     },
   },
@@ -446,7 +446,7 @@ export const AllButtonVariants: Story = {
     docs: {
       description: {
         story:
-          "Compare all button variants in product card to choose a suitable presentation for real product content.",
+          "Cart, detail, wishlist and custom actions retain distinct purposes and report their result locally instead of navigating or purchasing.",
       },
     },
   },
@@ -531,7 +531,7 @@ export const LayoutVariants: Story = {
     docs: {
       description: {
         story:
-          "Compare layout variants in product card to choose a suitable presentation for real product content.",
+          "Column cards prioritize imagery in a catalog grid, while row cards keep product details together in a compact listing.",
       },
     },
   },
@@ -584,11 +584,19 @@ export const LayoutVariants: Story = {
 }
 
 export const CustomComposition: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText("$1,329", { selector: "p" })).toHaveTextContent(
+      "Current price $1,329"
+    )
+    const previous = canvas.getByText("$1,899", { exact: false, selector: "del" })
+    await expect(previous).toHaveTextContent("Original price $1,899")
+  },
   parameters: {
     docs: {
       description: {
         story:
-          "Compare custom composition in product card to choose a suitable presentation for real product content.",
+          "A sale camera combines labeled current and original prices, campaign badges and separate purchase and detail actions using compound slots.",
       },
     },
   },
@@ -604,9 +612,13 @@ export const CustomComposition: Story = {
 
       <ProductCard.Name>Professional DSLR Camera</ProductCard.Name>
 
-      <div className="flex items-baseline gap-100">
-        <span className="text-100 text-fg-primary line-through">$1,899</span>
-        <ProductCard.Price>$1,329</ProductCard.Price>
+      <div className="flex flex-wrap items-baseline gap-100">
+        <del className="text-100 text-fg-primary">
+          <span className="sr-only">Original price </span>$1,899
+        </del>
+        <ProductCard.Price>
+          <span className="sr-only">Current price </span>$1,329
+        </ProductCard.Price>
       </div>
 
       <div className="flex items-center gap-100">
@@ -644,7 +656,7 @@ export const WithQuantityInput: Story = {
     docs: {
       description: {
         story:
-          "Compare with quantity input in product card to choose a suitable presentation for real product content.",
+          "A quantity stepper sits beside the purchase action so shoppers can choose an amount without leaving the product card.",
       },
     },
   },
@@ -699,7 +711,7 @@ export const MinimalCard: Story = {
     docs: {
       description: {
         story:
-          "Compare minimal card in product card to choose a suitable presentation for real product content.",
+          "A compact discovery card shows only the product name, image and price when purchase controls would distract from browsing.",
       },
     },
   },
@@ -716,11 +728,19 @@ export const MinimalCard: Story = {
 }
 
 export const ComplexCard: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText("$2,449", { selector: "p" })).toHaveTextContent(
+      "Current price $2,449"
+    )
+    const previous = canvas.getByText("$3,499", { exact: false, selector: "del" })
+    await expect(previous).toHaveTextContent("Original price $3,499")
+  },
   parameters: {
     docs: {
       description: {
         story:
-          "Compare complex card in product card to choose a suitable presentation for real product content.",
+          "A camera bundle keeps sale pricing, reviews, shipping, scarcity and quantity controls readable together in one responsive card.",
       },
     },
   },
@@ -754,9 +774,13 @@ export const ComplexCard: Story = {
       </div>
 
       <div className="mb-200 flex flex-col gap-100">
-        <div className="flex items-baseline gap-100">
-          <span className="text-fg-muted line-through">$3,499</span>
-          <ProductCard.Price>$2,449</ProductCard.Price>
+        <div className="flex flex-wrap items-baseline gap-100">
+          <del className="text-fg-muted">
+            <span className="sr-only">Original price </span>$3,499
+          </del>
+          <ProductCard.Price>
+            <span className="sr-only">Current price </span>$2,449
+          </ProductCard.Price>
           <Badge variant="danger">Save $1,050</Badge>
         </div>
         <span className="text-50 text-success-fg">Free shipping included</span>
@@ -767,8 +791,14 @@ export const ComplexCard: Story = {
       </ProductCard.Stock>
 
       <ProductCard.Actions>
-        <div className="mb-100 flex items-center gap-100">
-          <NumericInput id="product-quantity" defaultValue={1} min={1} max={10}>
+        <div className="mb-100 flex flex-col gap-100 sm:flex-row sm:items-center">
+          <NumericInput
+            className="min-w-0 flex-1"
+            id="product-quantity"
+            defaultValue={1}
+            min={1}
+            max={10}
+          >
             <NumericInput.Control>
               <NumericInput.Input aria-label="Quantity" />
               <NumericInput.TriggerContainer>
@@ -819,7 +849,7 @@ export const ActionLayouts: Story = {
     docs: {
       description: {
         story:
-          "Compare action layouts in product card to choose a suitable presentation for real product content.",
+          "Full-width, split and grouped actions demonstrate how to keep one purchase action prominent alongside secondary product tasks.",
       },
     },
   },

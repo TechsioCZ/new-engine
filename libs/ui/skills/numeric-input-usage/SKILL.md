@@ -6,7 +6,7 @@ description: >
   numeric compatibility or controlled string drafts, locale formatting, min/max/step, and token-first
   styling.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -70,7 +70,7 @@ import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 
 <NumericInput id="quantity" name="quantity" defaultValue={1} min={1} step={1}>
   <NumericInput.Control>
-    <NumericInput.Input />
+    <NumericInput.Input aria-label="Quantity" />
     <NumericInput.TriggerContainer>
       <NumericInput.IncrementTrigger />
       <NumericInput.DecrementTrigger />
@@ -107,7 +107,7 @@ input (not the root), so an unlabelled template still has a name:
 ```tsx
 <NumericInput defaultValue={50} min={0} max={100}>
   <NumericInput.Control>
-    <NumericInput.Input />
+    <NumericInput.Input aria-label="Quantity" />
     <NumericInput.TriggerContainer>
       <NumericInput.IncrementTrigger />
       <NumericInput.DecrementTrigger />
@@ -133,7 +133,11 @@ confirmation and does not persist anything by itself.
 ```tsx
 const [quantity, setQuantity] = useState(1)
 
-<NumericInput value={quantity} onChange={setQuantity} min={1} />
+<NumericInput value={quantity} onChange={setQuantity} min={1}>
+  <NumericInput.Control>
+    <NumericInput.Input aria-label="Quantity" />
+  </NumericInput.Control>
+</NumericInput>
 ```
 
 ### Use locale and precision deliberately
@@ -144,7 +148,11 @@ const [quantity, setQuantity] = useState(1)
   locale="cs-CZ"
   precision={1}
   step={0.1}
-/>
+>
+  <NumericInput.Control>
+    <NumericInput.Input aria-label="Weight (kg)" />
+  </NumericInput.Control>
+</NumericInput>
 ```
 
 Use `formatOptions` for localized decimal parsing as well as display options.
@@ -162,7 +170,7 @@ beyond them. Zag may normalize incomplete fragments at blur/Enter.
 ```tsx
 <NumericInput id="stock" describedBy="stock-help" invalid>
   <NumericInput.Control>
-    <NumericInput.Input />
+    <NumericInput.Input aria-label="Quantity" />
   </NumericInput.Control>
 </NumericInput>
 ```
@@ -190,7 +198,11 @@ const [draft, setDraft] = useState("10")
   value={draft}
   onValueChange={({ value }) => setDraft(value)}
   clampValueOnBlur={false}
-/>
+>
+  <NumericInput.Control>
+    <NumericInput.Input aria-label="Quantity draft" />
+  </NumericInput.Control>
+</NumericInput>
 ```
 
 Legacy numeric callers can continue with `value={quantity}` and `onChange`.
@@ -215,7 +227,7 @@ Correct:
 ```tsx
 <NumericInput defaultValue={1}>
   <NumericInput.Control>
-    <NumericInput.Input />
+    <NumericInput.Input aria-label="Quantity" />
     <NumericInput.TriggerContainer>
       <NumericInput.IncrementTrigger />
       <NumericInput.DecrementTrigger />
@@ -233,7 +245,7 @@ Wrong:
 ```tsx
 <NumericInput className="w-24 text-sm">
   <NumericInput.Control className="border-red-500 px-2">
-    <NumericInput.Input />
+    <NumericInput.Input aria-label="Quantity" />
   </NumericInput.Control>
 </NumericInput>
 ```
@@ -243,7 +255,7 @@ Correct:
 ```tsx
 <NumericInput size="sm" invalid>
   <NumericInput.Control>
-    <NumericInput.Input />
+    <NumericInput.Input aria-label="Quantity" />
   </NumericInput.Control>
 </NumericInput>
 ```
@@ -261,7 +273,11 @@ Wrong:
 Correct for a quantity:
 
 ```tsx
-<NumericInput defaultValue={1} min={1} step={1} />
+<NumericInput defaultValue={1} min={1} step={1}>
+  <NumericInput.Control>
+    <NumericInput.Input aria-label="Order quantity" />
+  </NumericInput.Control>
+</NumericInput>
 ```
 
 Use min/max/step to express domain constraints, not custom blur handlers.
@@ -309,3 +325,16 @@ These overrides also apply on hover/focus; disabled styling still wins.
 The NumericInput aliases style both the compound control and its nested input;
 FormNumericInput and NumericInputTemplate inherit them. Root `aria-invalid`
 reaches the focusable input, alongside the legacy `invalid` machine prop.
+
+### Validation presentation
+
+`validateStatus="default" | "error" | "success" | "warning"` styles the
+compound control. Error (including explicit `invalid` or a mounted error part)
+takes precedence; success/warning do not set `aria-invalid`. Status borders
+persist through hover/focus, with an independent keyboard focus outline.
+Disabled styling remains authoritative. Add associated actionable feedback with
+`NumericInput.StatusText` or use FormNumericInput.
+
+Nonfinite numeric `value`/`defaultValue` render as empty, never literal NaN or
+Infinity. The numeric callback still emits NaN when cleared; retain editable
+text with `onValueChange(({ value }) => ...)` and validate before committing.

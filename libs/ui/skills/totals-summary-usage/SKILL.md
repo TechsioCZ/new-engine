@@ -80,3 +80,9 @@ and CustomRows demonstrates tax and deposit rows without a fixed schema.
 TotalsSummary has no interactive sm/md/lg size axis: its type hierarchy follows order-summary content, not form-control height. Use supplied rows and total strings for all calculations. Pending retains values and descriptions but makes the actions subtree inert. Use PriceBlock for a single item's price.
 
 Place the summary in a shrinkable full-width container with a max-width, rather than a fixed-width centered canvas. Mobile checks must include document overflow, not just the summary’s content box.
+
+## Application-owned pending focus
+
+Before setting pending, capture the initiating control and focus a meaningful stable status or heading outside the soon-to-be-inert actions. Keep that destination mounted outside the busy summary, with a visible focus indicator. On completion or recoverable failure, restore the captured target after React commits only if it is still connected/enabled and focus is still at the managed destination. If the user moved elsewhere, do not restore. Removal and navigation need an application-selected next-item, error or destination policy, not a disconnected initiator. Never remove inert merely to preserve focus.
+
+PendingFocusLifecycle demonstrates success, failure/retry, user-moved focus and a removed initiator with local-only completion controls. The same policy applies to LineItem quantity/actions. CartPresentation owns remove/undo focus: next item, previous item, then the empty-cart restore action; undo returns to the restored item. Invalid quantity drafts keep last-valid amounts only with explicit visible quantity context beside both line price and totals and an associated field description; checkout remains blocked until corrected.

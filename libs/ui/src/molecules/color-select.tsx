@@ -2,7 +2,7 @@
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -24,8 +24,10 @@ import { tv } from "../utils"
 const colorSelectVariants = tv({
   slots: {
     root: "grid gap-color-select-md",
-    group: ["form-control-readonly grid place-items-start"],
-    cell: "grid",
+    group: [
+      "form-control-readonly grid min-w-0 items-start justify-items-stretch",
+    ],
+    cell: "grid w-full min-w-0 justify-items-center",
     atom: [
       "form-control-readonly form-control-disabled relative cursor-pointer p-color-select-atom",
       "disabled:cursor-not-allowed",
@@ -37,11 +39,7 @@ const colorSelectVariants = tv({
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[selected=true]:border-color-select-border-selected data-[selected=true]:shadow-none",
     ],
-    color: [
-      "absolute inset-0",
-      "size-full",
-      "data-[selected=true]:brightness-75",
-    ],
+    color: ["absolute inset-0", "size-full forced-color-adjust-none"],
     icon: [
       "absolute inset-0 hidden size-full items-center justify-center",
       "text-color-select-fg-check drop-shadow-sm",
@@ -50,9 +48,9 @@ const colorSelectVariants = tv({
     ],
     checkBadge:
       "flex size-color-select-check items-center justify-center rounded-full bg-color-select-check-bg text-color-select-check-fg",
-    labelContainer: ["text-center"],
-    labelText: ["text-color-select-label-fg"],
-    countText: ["text-color-select-label-fg"],
+    labelContainer: ["wrap-anywhere w-full min-w-0 max-w-full text-center"],
+    labelText: ["block text-color-select-label-fg"],
+    countText: ["block text-color-select-label-fg"],
   },
   variants: {
     radius: {

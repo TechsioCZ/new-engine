@@ -174,6 +174,9 @@ const navigationData: TreeNode[] = [
   },
 ]
 
+// README is enabled but deliberately excluded only in custom selection mode.
+const playgroundData = fileSystemData.map((node) => node.id === "readme" || node.name === "README.md" ? { ...node, selectable: false } : node)
+
 export const Playground: Story = {
   args: {
     size: 'md',
@@ -186,12 +189,12 @@ export const Playground: Story = {
   render: (args) => (
     <TreeView
       {...args}
-      data={fileSystemData}
+      data={playgroundData}
       className="w-full max-w-md"
     >
       <TreeView.Label>File Explorer</TreeView.Label>
       <TreeView.Tree>
-        {fileSystemData.map((node, index) => (
+        {playgroundData.map((node, index) => (
           <TreeView.Node
             key={node.id}
             node={node}
@@ -206,7 +209,7 @@ export const Playground: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Interactive TreeView with all controls. Try different sizes, selection modes, and behaviors.',
+        story: 'README.md is enabled: all permits its selection while custom excludes it; utils demonstrates a separate disabled branch. Explore these behaviors and density with Controls.',
       },
     },
   },
@@ -504,12 +507,12 @@ export const CustomStyling: Story = {
               <TreeView.NodeProvider node={node} indexPath={indexPath}>
                 {node.children ? (
                   <TreeView.Branch className='data-disabled:opacity-40'>
-                    <TreeView.BranchTrigger className="hover:bg-primary/10 rounded-sm transition-colors">
+                    <TreeView.BranchTrigger className="rounded-sm transition-colors">
                       <TreeView.BranchControl>
-                        <span className="text-primary">
+                        <span>
                           <TreeView.NodeIcon />
                         </span>
-                        <TreeView.BranchText className="font-semibold text-fg-primary" />
+                        <TreeView.BranchText className="font-semibold" />
                       </TreeView.BranchControl>
                       <TreeView.BranchIndicator className="text-secondary" />
                     </TreeView.BranchTrigger>
@@ -526,11 +529,11 @@ export const CustomStyling: Story = {
                     </TreeView.BranchContent>
                   </TreeView.Branch>
                 ) : (
-                  <TreeView.Item className="hover:bg-secondary/10 rounded-sm transition-colors ml-sm">
-                    <span className="text-secondary">
+                  <TreeView.Item className="rounded-sm transition-colors ml-sm">
+                    <span>
                       <TreeView.NodeIcon />
                     </span>
-                    <TreeView.ItemText className="text-fg-secondary" />
+                    <TreeView.ItemText className="" />
                   </TreeView.Item>
                 )}
               </TreeView.NodeProvider>
@@ -740,7 +743,7 @@ export const ExpandVsSelectionTest: Story = {
             </div>
             <div className="bg-surface rounded-sm p-100 h-48 overflow-y-auto font-mono text-xs">
               {logs.length === 0 ? (
-                <div className="text-fg-secondary">Waiting for interaction...</div>
+                <div className="">Waiting for interaction...</div>
               ) : (
                 logs.map((log, index) => (
                   <div
@@ -863,7 +866,7 @@ export const WithHoverEvents: Story = {
           </div>
           <div className="h-48 w-full max-w-md overflow-auto rounded-sm bg-surface p-100 font-mono text-xs wrap-anywhere">
             {logs.length === 0 ? (
-              <div className="text-fg-secondary">Hover over nodes to see events...</div>
+              <div className="">Hover over nodes to see events...</div>
             ) : (
               logs.map((log, index) => (
                 <div

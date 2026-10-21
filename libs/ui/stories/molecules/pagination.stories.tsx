@@ -87,7 +87,7 @@ const meta: Meta<typeof Pagination> = {
       defaultValue: 1,
     },
     count: {
-      control: { type: "number", min: 1 },
+      control: { type: "number", min: 0 },
       description: "Total number of items",
       defaultValue: 100,
     },
@@ -171,6 +171,7 @@ export const Playground: Story = {
 
 export const StyleVariants: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -222,6 +223,7 @@ export const Sizes: Story = {
     }
   },
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -253,6 +255,7 @@ export const Sizes: Story = {
 
 export const Default: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -265,6 +268,7 @@ export const Default: Story = {
 
 export const CompactMode: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -297,6 +301,7 @@ export const CompactMode: Story = {
 
 export const EdgeCases: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -393,6 +398,7 @@ export const EdgeCases: Story = {
 
 export const CustomLinkComponent: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -426,6 +432,7 @@ export const CustomLinkComponent: Story = {
 
 export const RealWorldScenarios: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:

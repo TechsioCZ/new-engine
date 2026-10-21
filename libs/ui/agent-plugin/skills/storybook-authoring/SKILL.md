@@ -213,7 +213,7 @@ Source: libs/ui/AGENTS.md
 
 ```sh
 bunx biome check --write libs/ui/stories/atoms/button.stories.tsx
-bunx nx run ui:build
+pnpm --dir libs/ui build
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y
 ```
@@ -244,3 +244,44 @@ See `libs/ui/docs/component-contracts.md` for the source of truth.
   During the shared overhaul never start another Storybook server/build or local
   browser; use the assigned shared-browser runner for visual review in
   base/light, base/dark and Akros/light.
+
+## Compound member API and copyable source
+
+Every public compound member needs a named reference section. Register
+`subcomponents` only when Storybook extracts accurate member tables; otherwise
+supply explicit API tables. Document required matching values/items, nesting
+and context, rendered element/ref target, disabled behavior, and label/help
+ownership. Link common DOM props rather than duplicating exhaustive lists.
+Verify representative required-part rows in the rendered Docs, not just source
+metadata. Metadata must identify the public root, never a private story helper.
+
+Private demo wrappers may remain internal, but primary Docs source must be a
+complete runnable example with public subpath imports, required data/state and
+all local helper definitions. Use explicit `parameters.docs.source.code` when
+automatic serialization loses compound anatomy or turns callbacks into empty
+functions. Hotkeys examples include store initialization, registration and
+teardown; Pagination URL builders return real strings. Compile the exact source
+shown by Copy code against public exports and verify the copied browser output.
+
+Curate controls explicitly: text editors for strings; no ref/id/callback
+editors or serialized React elements. Use `control: false` for legitimate public
+props that still belong in API documentation, and `table.disable` for internal
+rows. The global enhancer is a safety net, not a substitute for meaningful
+per-story args and named composition examples.
+
+## Standalone Docs and shared browser contracts
+
+Standalone MDX has no Canvas decorator. Keep Docs registered through `DocsTheme`
+so first-load and live Storybook globals reach the same root theme resolver as
+Canvas. Do not parse URL globals or rely on an embedded story to initialize the
+page. Verify Akros/light and base/light/dark directly, then switch globals
+without navigation. Light-only brands must remain light. API tables that overflow
+at 390px need a named focusable scroll region and working arrow-key scrolling.
+
+Maintained shared contracts live in `test/visual-shared.spec.mjs` and
+`test/visual-popups.spec.mjs`, discovered by the Docker component suite. Popup
+checkpoints capture the whole page, not `#storybook-root`; the capture helper
+checks every visible positioner/content surface against the actual PNG bounds,
+including hierarchical and calendar surfaces. Checkpoint attachments are evidence,
+not approved screenshot baselines. Run them through the serial Docker wrapper
+when the shared overhaul browser rules apply.

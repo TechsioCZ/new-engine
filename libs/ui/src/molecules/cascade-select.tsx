@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -35,6 +35,8 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
+  useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
@@ -193,35 +195,37 @@ export const cascadeSelectVariants = tv({
 
 type CascadeSelectApi = ZagCascadeSelectApi<PropTypes, CascadeSelectItem>
 
-const pathsMatch = (
-  api: CascadeSelectApi,
-  selectedItems: CascadeSelectItem[][]
-) =>
-  selectedItems.length === api.value.length &&
-  selectedItems.every(
-    (items, pathIndex) =>
-      items.length === api.value[pathIndex]?.length &&
-      items.every(
-        (item, itemIndex) =>
-          api.collection.getNodeValue(item) ===
-          api.value[pathIndex]?.[itemIndex]
-      )
-  )
-
-// Zag 1.41.2 initializes value from defaultValue before it initializes
-// selectedItems. Keep the compatibility path local to value rendering.
-const resolveSelectedItems = (api: CascadeSelectApi) => {
-  if (pathsMatch(api, api.selectedItems)) {
-    return api.selectedItems
-  }
-
-  return api.value.map((valuePath) => {
+// A path must resolve in full; a surviving ancestor is not the selected leaf.
+const resolveSelectedItems = (api: CascadeSelectApi) =>
+  api.value.map((valuePath) => {
     const indexPath = api.collection.getIndexPath(valuePath)
-
     return indexPath
       .map((_, index) => api.collection.at(indexPath.slice(0, index + 1)))
       .filter((item): item is CascadeSelectItem => item !== undefined)
   })
+
+function resolvePath(items: CascadeSelectItem[], path: string[]) {
+  const nodes: CascadeSelectItem[] = []
+  const indices: number[] = []
+  let children = items
+  for (const value of path) {
+    const index = children.findIndex((candidate) => candidate.value === value)
+    if (index === -1) {
+      break
+    }
+    const node = children[index]
+    if (!node) {
+      break
+    }
+    nodes.push(node)
+    indices.push(index)
+    children = node.children ?? []
+  }
+  return {
+    nodes,
+    indices,
+    complete: path.length > 0 && nodes.length === path.length,
+  }
 }
 
 const formatSelectedItems = (
@@ -250,6 +254,7 @@ type CascadeSelectContextValue = {
   required: boolean
   size: CascadeSelectSize
   validateStatus: CascadeSelectValidateStatus
+  errors: DescribedBy
 } & DescribedBy
 
 const CascadeSelectContext = createContext<CascadeSelectContextValue | null>(
@@ -294,6 +299,7 @@ export type CascadeSelectProps = VariantProps<typeof cascadeSelectVariants> &
     children: ReactNode
     className?: string
     id?: string
+    /** Complete authoritative hierarchy; removed paths request value reconciliation. */
     items: CascadeSelectItem[]
     ref?: Ref<HTMLDivElement>
     validateStatus?: CascadeSelectValidateStatus
@@ -313,6 +319,16 @@ export function CascadeSelect({
   const generatedId = useId()
   const id = providedId || generatedId
   const descriptions = useDescribedBy()
+  const errors = useDescribedBy()
+  const hiddenInputRef = useRef<HTMLInputElement>(null)
+  const [internalValue, setInternalValue] = useState(
+    machineProps.defaultValue ?? []
+  )
+  const requestedValue = machineProps.value ?? internalValue
+  const effectiveValue = requestedValue.filter(
+    (path) => resolvePath(items, path).complete
+  )
+  const reconciliation = useRef<string | null>(null)
   const collection = useMemo(
     () =>
       createCascadeSelectCollection<CascadeSelectItem>({
@@ -328,11 +344,47 @@ export function CascadeSelect({
       }),
     [items]
   )
+  const [internalHighlight, setInternalHighlight] = useState<string[]>(
+    machineProps.defaultHighlightedValue ?? []
+  )
+  const controlledHighlight = machineProps.highlightedValue ?? internalHighlight
+  const resolvedHighlight = resolvePath(items, controlledHighlight ?? [])
+  const effectiveHighlight =
+    resolvedHighlight.complete &&
+    !resolvedHighlight.nodes.some((node) => node.disabled)
+      ? controlledHighlight
+      : []
+  const highlightReconciliation = useRef<string | null>(null)
   const service = useMachine(cascadeSelectMachine, {
     ...machineProps,
     collection,
+    open:
+      machineProps.readOnly || machineProps.disabled
+        ? false
+        : machineProps.open,
+    defaultOpen:
+      machineProps.readOnly || machineProps.disabled
+        ? false
+        : machineProps.defaultOpen,
+    value: effectiveValue,
+    highlightedValue: effectiveHighlight,
+    onHighlightChange: (details) => {
+      if (machineProps.highlightedValue === undefined) {
+        setInternalHighlight(details.highlightedValue ?? [])
+      }
+      machineProps.onHighlightChange?.(details)
+    },
+    onValueChange: (details) => {
+      if (machineProps.readOnly || machineProps.disabled) {
+        return
+      }
+      if (machineProps.value === undefined) {
+        setInternalValue(details.value)
+      }
+      machineProps.onValueChange?.(details)
+    },
     id,
-    invalid: validateStatus === "error",
+    invalid: validateStatus === "error" || Boolean(errors.describedById),
     positioning: {
       fitViewport: true,
       placement: "bottom-start",
@@ -344,6 +396,88 @@ export function CascadeSelect({
     service as ZagCascadeSelectService<CascadeSelectItem>,
     normalizeProps
   )
+  useEffect(() => {
+    if (effectiveValue.length === requestedValue.length) {
+      reconciliation.current = null
+      return
+    }
+    const key = JSON.stringify([requestedValue, effectiveValue])
+    if (reconciliation.current === key) {
+      return
+    }
+    reconciliation.current = key
+    if (machineProps.value === undefined) {
+      setInternalValue(effectiveValue)
+    }
+    machineProps.onValueChange?.({
+      value: effectiveValue,
+      items: effectiveValue.map((path) => resolvePath(items, path).nodes),
+    })
+  }, [
+    effectiveValue,
+    requestedValue,
+    items,
+    machineProps.value,
+    machineProps.onValueChange,
+  ])
+
+  // Zag resets its bindable context directly, without onValueChange. Keep the
+  // wrapper-owned uncontrolled value in sync with the actual associated form.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Rebind when the native form association changes.
+  useEffect(() => {
+    const form = hiddenInputRef.current?.form
+    if (!form || machineProps.value !== undefined) {
+      return
+    }
+    let active = true
+    const onReset = (event: Event) => {
+      queueMicrotask(() => {
+        if (active && !event.defaultPrevented) {
+          setInternalValue(
+            (machineProps.defaultValue ?? []).filter(
+              (path) => resolvePath(items, path).complete
+            )
+          )
+        }
+      })
+    }
+    form.addEventListener("reset", onReset)
+    return () => {
+      active = false
+      form.removeEventListener("reset", onReset)
+    }
+  }, [items, machineProps.form, machineProps.value, machineProps.defaultValue])
+
+  // Zag caches nodes and index paths but does not watch collection replacement.
+  // Refresh metadata without emitting a value-change event for a rename/reorder.
+  const valueKey = JSON.stringify(effectiveValue)
+  const highlightKey = JSON.stringify(controlledHighlight)
+  useEffect(() => {
+    const paths = JSON.parse(valueKey) as string[][]
+    service.context.set(
+      "valueIndexPath",
+      paths.map((path) => resolvePath(items, path).indices)
+    )
+    service.context.set(
+      "selectedItems",
+      paths.map((path) => resolvePath(items, path).nodes)
+    )
+    const highlighted = JSON.parse(highlightKey) as string[]
+    const resolved = resolvePath(items, highlighted)
+    if (
+      highlighted.length &&
+      (!resolved.complete || resolved.nodes.some((node) => node.disabled))
+    ) {
+      if (highlightReconciliation.current !== highlightKey) {
+        highlightReconciliation.current = highlightKey
+        service.send({ type: "HIGHLIGHTED_VALUE.CLEAR" })
+      }
+    } else {
+      highlightReconciliation.current = null
+      service.context.set("highlightedIndexPath", resolved.indices)
+      service.context.set("highlightedItems", resolved.nodes)
+    }
+  }, [items, service, valueKey, highlightKey])
   const styles = cascadeSelectVariants({ size })
 
   return (
@@ -356,6 +490,7 @@ export function CascadeSelect({
         required,
         size,
         ...descriptions,
+        errors,
         validateStatus,
       }}
     >
@@ -364,7 +499,7 @@ export function CascadeSelect({
         className={styles.root({ className })}
         ref={ref}
       >
-        <input {...api.getHiddenInputProps()} />
+        <input {...api.getHiddenInputProps()} ref={hiddenInputRef} />
         {children}
       </div>
     </CascadeSelectContext.Provider>
@@ -423,14 +558,23 @@ CascadeSelect.Trigger = function CascadeSelectTrigger({
   ref,
   ...props
 }: CascadeSelectTriggerProps) {
-  const { api, describedById, readOnly, required, size, validateStatus } =
-    useCascadeSelectContext()
+  const {
+    api,
+    describedById,
+    errors,
+    readOnly,
+    required,
+    size,
+    validateStatus,
+  } = useCascadeSelectContext()
+  const invalid = validateStatus === "error" || Boolean(errors.describedById)
+  const effectiveStatus = invalid ? "error" : validateStatus
   const styles = cascadeSelectVariants({ size })
   const triggerProps = mergeProps(
     api.getTriggerProps(),
     {
       "aria-haspopup": "tree",
-      "aria-invalid": validateStatus === "error" || undefined,
+      "aria-invalid": invalid || undefined,
       "aria-required": required || undefined,
       "aria-readonly": readOnly || undefined,
     },
@@ -445,9 +589,14 @@ CascadeSelect.Trigger = function CascadeSelectTrigger({
     <Button
       {...triggerProps}
       aria-describedby={ariaDescribedBy}
+      aria-errormessage={joinDescribedBy(
+        props["aria-errormessage"],
+        errors.describedById
+      )}
+      aria-invalid={invalid || props["aria-invalid"] || undefined}
       className={styles.trigger({ className })}
       data-validation={
-        validateStatus === "default" ? undefined : validateStatus
+        effectiveStatus === "default" ? undefined : effectiveStatus
       }
       ref={ref}
       size="current"
@@ -476,10 +625,7 @@ CascadeSelect.ValueText = function CascadeSelectValueText({
   const styles = cascadeSelectVariants({ size })
   const selectedItems = resolveSelectedItems(api)
   const valueText =
-    selectedItems === api.selectedItems
-      ? api.valueAsString
-      : (formatValue?.(selectedItems) ??
-        formatSelectedItems(api, selectedItems))
+    formatValue?.(selectedItems) ?? formatSelectedItems(api, selectedItems)
   const hasValue = api.hasSelectedItems
 
   let content: ReactNode = hasValue ? valueText : placeholder
@@ -518,8 +664,12 @@ CascadeSelect.Indicator = function CascadeSelectIndicator({
   ref,
   ...props
 }: CascadeSelectIndicatorProps) {
-  const { api, size } = useCascadeSelectContext()
+  const { api, size, readOnly } = useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
+
+  if (readOnly) {
+    return null
+  }
 
   return (
     <span
@@ -549,8 +699,12 @@ CascadeSelect.ClearTrigger = function CascadeSelectClearTrigger({
   ref,
   ...props
 }: CascadeSelectClearTriggerProps) {
-  const { api, size } = useCascadeSelectContext()
+  const { api, size, readOnly } = useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
+
+  if (readOnly) {
+    return null
+  }
 
   return (
     <ActionIcon
@@ -841,9 +995,14 @@ function CascadeSelectTreeNode({
   const styles = cascadeSelectVariants({ size })
   const headingId = useId()
   const nodeProps = { indexPath, item: node, value }
-  const nodeState = api.getItemState(nodeProps)
   const children = api.collection.getNodeChildren(node)
-  const highlightedChild = nodeState.highlightedChild
+  // Resolve by value identity during render, not a cached pre-reorder index.
+  const highlightedIndex = children.findIndex(
+    (child) =>
+      api.collection.getNodeValue(child) ===
+      api.highlightedValue?.[indexPath.length]
+  )
+  const highlightedChild = children[highlightedIndex]
 
   return (
     <>
@@ -883,7 +1042,7 @@ function CascadeSelectTreeNode({
 
       {highlightedChild && api.collection.isBranchNode(highlightedChild) && (
         <CascadeSelectTreeNode
-          indexPath={[...indexPath, nodeState.highlightedIndex]}
+          indexPath={[...indexPath, highlightedIndex]}
           key={api.collection.getNodeValue(highlightedChild)}
           node={highlightedChild}
           rootLabel={rootLabel}
@@ -931,11 +1090,17 @@ CascadeSelect.StatusText = function CascadeSelectStatusText({
   status: statusProp,
   ...props
 }: CascadeSelectStatusTextProps) {
-  const { registerDescription, size, validateStatus } =
+  const { registerDescription, errors, size, validateStatus } =
     useCascadeSelectContext()
   const generatedId = useId()
   const id = providedId || generatedId
   const effectiveSize = sizeProp ?? size
+  const effectiveStatus = statusProp ?? validateStatus
+  useEffect(
+    () =>
+      effectiveStatus === "error" ? errors.registerDescription(id) : undefined,
+    [effectiveStatus, errors.registerDescription, id]
+  )
 
   useRegisterDescription(id, registerDescription)
 
@@ -945,7 +1110,7 @@ CascadeSelect.StatusText = function CascadeSelectStatusText({
       {...props}
       id={id}
       size={effectiveSize === "xs" ? "sm" : effectiveSize}
-      status={statusProp ?? validateStatus}
+      status={effectiveStatus}
     />
   )
 }

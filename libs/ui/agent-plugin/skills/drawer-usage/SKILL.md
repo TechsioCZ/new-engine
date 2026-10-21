@@ -5,7 +5,7 @@ description: >
   transient edge panels, modal or non-modal behavior, snap points, swipe
   gestures, multiple triggers, custom portals, controlled state, and stacks.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -239,3 +239,8 @@ rg -n "<Drawer[^>]*swipeDirection=|modal=\{false\}" apps
 rg -U -n "open[\s\S]{0,120}<Drawer\.Portal" apps
 rg -n "<Drawer\.Content[^>]*className=.*(bg-|w-|h-|rounded-|shadow-)" apps
 ```
+
+At partial snap points, the panel retains its full machine-measured size while
+an inner visible viewport keeps Header and Footer onscreen. Body owns scrolling.
+Nested kit Menu, Popover and Tooltip portals remain inside the drawer's focus
+and accessibility scope.

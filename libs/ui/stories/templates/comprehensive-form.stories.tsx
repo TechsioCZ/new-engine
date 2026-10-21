@@ -349,20 +349,70 @@ export const Playground: Story = {
   render: (args) => <EnquiryForm {...args} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    const slider = canvas.getByRole("slider")
-    await userEvent.click(slider)
-    await userEvent.keyboard("{End}")
-    await expect(slider).toHaveAttribute("aria-valuenow", "100")
-    await userEvent.click(canvas.getByRole("button", { name: "Send enquiry" }))
+    await expect(canvas.getByRole("slider")).toHaveAttribute(
+      "aria-valuenow",
+      "25"
+    )
+    await expect(canvas.queryByRole("alert")).not.toBeInTheDocument()
+    await expect(
+      canvas.getByRole("textbox", { name: /Full name/ })
+    ).not.toHaveFocus()
+  },
+}
+export const ValidationWorkflow: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Keyboard regression for invalid submission, every summary target, partial correction and successful local submission.",
+      },
+    },
+  },
+  render: (args) => <EnquiryForm {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const submit = canvas.getByRole("button", { name: "Send enquiry" })
+    await userEvent.click(submit)
     await expect(
       canvas.getByRole("alert", { name: "There is a problem" })
     ).toHaveFocus()
-    await userEvent.click(
-      canvas.getByRole("link", { name: "Enter your full name." })
+    for (const link of canvas.getAllByRole("link")) {
+      link.focus()
+      await userEvent.keyboard("{Enter}")
+      const target = canvasElement.ownerDocument.getElementById(
+        link.getAttribute("href")!.slice(1)
+      )
+      await expect(target).toHaveFocus()
+    }
+    await userEvent.type(
+      canvas.getByRole("textbox", { name: /Full name/ }),
+      "Alex Morgan"
     )
+    await userEvent.click(submit)
     await expect(
-      canvas.getByRole("textbox", { name: /Full name/ })
-    ).toHaveFocus()
+      canvas.queryByRole("link", { name: "Enter your full name." })
+    ).not.toBeInTheDocument()
+    await userEvent.type(
+      canvas.getByRole("textbox", { name: /Email/ }),
+      "alex@example.com"
+    )
+    await userEvent.type(
+      canvas.getByRole("textbox", { name: /project/i }),
+      "Office supplies for our new team."
+    )
+    await userEvent.click(canvas.getByRole("checkbox", { name: /contact/i }))
+    await userEvent.click(submit)
+    await expect(
+      canvas.queryByRole("alert", { name: "There is a problem" })
+    ).not.toBeInTheDocument()
+    await expect(
+      canvas.getByText(/Enquiry prepared for Alex Morgan/)
+    ).toBeVisible()
+    for (const field of canvasElement.querySelectorAll(
+      '[aria-invalid="true"], [aria-errormessage]'
+    ))
+      await expect(field).not.toBeInTheDocument()
   },
 }
 export const Sizes: Story = {

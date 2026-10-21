@@ -2,7 +2,7 @@
  * Drawer - @techsio/ui-kit molecule.
  *
  * @component Drawer
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill drawer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -10,7 +10,12 @@
 
 import type * as drawer from "@zag-js/drawer"
 import { mergeProps, Portal, type PortalProps } from "@zag-js/react"
-import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
+import {
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+  type Ref,
+  useState,
+} from "react"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
@@ -32,6 +37,7 @@ import {
   type DrawerSize,
   drawerVariants,
 } from "../internal/molecules/drawer.styles"
+import { OverlayContainerProvider } from "./dialog"
 
 export type {
   DrawerApi,
@@ -232,13 +238,18 @@ export type DrawerContentProps = Omit<
   }
 
 Drawer.Content = function DrawerContent({
+  children,
   className,
   draggable = true,
   ref,
   ...props
 }: DrawerContentProps) {
   const { api, presence, styles } = useDrawerContext()
-  const composedRef = useComposedRefs(presence.ref, ref)
+  const [contentElement, setContentElement] = useState<HTMLDivElement | null>(
+    null
+  )
+  const externalRef = useComposedRefs(ref, setContentElement)
+  const composedRef = useComposedRefs(presence.ref, externalRef)
 
   if (presence.unmounted) {
     return null
@@ -255,7 +266,15 @@ Drawer.Content = function DrawerContent({
       {...mergedProps}
       className={styles.content({ className })}
       ref={composedRef}
-    />
+    >
+      <OverlayContainerProvider
+        container={
+          api.open && mergedProps["aria-modal"] === true ? contentElement : null
+        }
+      >
+        <div className="drawer-visible-viewport">{children}</div>
+      </OverlayContainerProvider>
+    </div>
   )
 }
 
@@ -295,7 +314,9 @@ Drawer.Footer = function DrawerFooter({
   const { styles } = useDrawerContext()
   return (
     <div
-      className={styles.footer({ className: ["flex-wrap", className] })}
+      className={styles.footer({
+        className: ["drawer-visible-footer flex-wrap", className],
+      })}
       ref={ref}
       {...props}
     />

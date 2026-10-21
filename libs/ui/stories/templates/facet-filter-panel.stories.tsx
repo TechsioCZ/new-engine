@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { expect, fn, userEvent, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
 import {
@@ -81,20 +81,26 @@ function ActiveFiltersDemo({
   ...props
 }: FacetFilterActiveFiltersProps) {
   const [items, setItems] = useState(initialItems)
-
+  const results = useRef<HTMLHeadingElement>(null)
   return (
-    <FacetFilterPanel.ActiveFilters
-      {...props}
-      items={items}
-      onRemove={(id) => {
-        setItems((current) => current.filter((item) => item.id !== id))
-        onRemove?.(id)
-      }}
-      onReset={() => {
-        setItems([])
-        onReset?.()
-      }}
-    />
+    <div className="flex flex-col gap-200">
+      <FacetFilterPanel.ActiveFilters
+        {...props}
+        fallbackFocusEl={() => results.current}
+        items={items}
+        onRemove={(id) => {
+          setItems((current) => current.filter((item) => item.id !== id))
+          onRemove?.(id)
+        }}
+        onReset={() => {
+          setItems([])
+          onReset?.()
+        }}
+      />
+      <h2 tabIndex={-1} ref={results}>
+        Filtered results
+      </h2>
+    </div>
   )
 }
 
@@ -268,39 +274,105 @@ const meta: Meta<typeof FacetFilterPanel> = {
     docs: {
       description: {
         component:
-          "A controlled filter panel combining grouped options, active filters and numeric ranges in an inline sidebar or drawer. Use it to refine a collection of results; use standalone Select or Checkbox controls for simple single-field filtering. Control sizes are sm/md/lg; drawerSize is a separate panel-width axis.",
+          "A controlled filter panel combining grouped options, active filters and numeric ranges in an inline sidebar or drawer. Use it to refine a collection of results; use standalone Select or Checkbox controls for simple single-field filtering. Control sizes are sm/md/lg; drawerSize is a separate panel-width axis.\n\n### Integration contract\nThe application owns selectedValues, each range group’s value and activeFilters. Apply onOptionChange({groupId,value,checked}), onRangeChange/onRangeChangeEnd({groupId,value}), onRemoveFilter(id) and onReset to that shared state; callbacks do not mutate these props. count is informational (including zero); only disabled prevents choosing an option. pending marks results as busy and blocks value-changing controls until the application supplies the next state. Choose inline or drawer in your application’s responsive layout; the component does not choose a breakpoint. The Playground’s source is a copyable controlled example with selection, ranges and chips kept in sync.",
       },
     },
   },
   argTypes: {
     presentation: {
+      description:
+        "Application-selected inline sidebar or modal drawer; not an automatic responsive breakpoint.",
       control: "select",
       options: ["inline", "drawer"],
     },
     drawerPlacement: {
+      description: "Logical layout choice for the drawer edge.",
       control: "select",
       options: ["left", "right"],
     },
     drawerSize: {
+      description: "Drawer width, separate from the sm/md/lg control density.",
       control: "select",
       options: ["xs", "sm", "md", "lg", "xl", "full"],
     },
-    disabled: { control: "boolean" },
-    readOnly: { control: "boolean" },
-    size: { control: "select", options: ["sm", "md", "lg"] },
-    pending: { control: "boolean" },
-    drawerOpen: { control: false },
-    defaultDrawerOpen: { control: false },
-    groups: { control: false },
-    selectedValues: { control: false },
-    activeFilters: { control: false },
-    onExpandedGroupsChange: { control: false, table: { category: "Events" } },
-    onOptionChange: { control: false, table: { category: "Events" } },
-    onRangeChange: { control: false, table: { category: "Events" } },
-    onRangeChangeEnd: { control: false, table: { category: "Events" } },
-    onRemoveFilter: { control: false, table: { category: "Events" } },
-    onReset: { control: false, table: { category: "Events" } },
-    onDrawerOpenChange: { control: false, table: { category: "Events" } },
+    disabled: { description: "Blocks all filter changes.", control: "boolean" },
+    readOnly: {
+      description: "Keeps selections inspectable without changes.",
+      control: "boolean",
+    },
+    size: {
+      description: "Canonical size shared by filter controls.",
+      control: "select",
+      options: ["sm", "md", "lg"],
+    },
+    pending: {
+      description:
+        "Announces pending results and blocks value changes until new state arrives.",
+      control: "boolean",
+    },
+    drawerOpen: {
+      description: "Controlled drawer state; onDrawerOpenChange is a request.",
+      control: false,
+    },
+    defaultDrawerOpen: {
+      description: "Initial drawer state for uncontrolled compositions.",
+      control: false,
+    },
+    groups: {
+      description:
+        "Option groups and controlled range values; counts are informational, not disabling.",
+      control: false,
+    },
+    selectedValues: {
+      description:
+        "Application-owned selected option values keyed by group id.",
+      control: false,
+    },
+    activeFilters: {
+      description:
+        "Application-owned chips synchronized with selections and ranges.",
+      control: false,
+    },
+    onExpandedGroupsChange: {
+      description: "Receives the next array of expanded group ids.",
+      control: false,
+      table: { category: "Events" },
+    },
+    onOptionChange: {
+      description:
+        "Apply {groupId, value, checked} to selectedValues and activeFilters.",
+      control: false,
+      table: { category: "Events" },
+    },
+    onRangeChange: {
+      description:
+        "Apply {groupId, value} to the matching range and chip state while editing.",
+      control: false,
+      table: { category: "Events" },
+    },
+    onRangeChangeEnd: {
+      description:
+        "Commit or fetch results for {groupId, value} after range editing.",
+      control: false,
+      table: { category: "Events" },
+    },
+    onRemoveFilter: {
+      description:
+        "Remove the chip id and update its matching selection or range.",
+      control: false,
+      table: { category: "Events" },
+    },
+    onReset: {
+      description: "Reset selections, ranges and activeFilters together.",
+      control: false,
+      table: { category: "Events" },
+    },
+    onDrawerOpenChange: {
+      description:
+        "Accept or reject the requested open boolean by updating drawerOpen.",
+      control: false,
+      table: { category: "Events" },
+    },
   },
   args: {
     title: "Filters",
@@ -404,6 +476,19 @@ export const ActiveFilters: Story = {
           "Active selections provide clear removal actions and a single reset without changing navigation.",
       },
     },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const first = canvas.getByRole("button", { name: "Remove Linen" })
+    first.focus()
+    await userEvent.keyboard("{Enter}")
+    await expect(
+      canvas.getByRole("button", { name: "Remove In stock" })
+    ).toHaveFocus()
+    await userEvent.keyboard("{Enter}")
+    await expect(
+      canvas.getByRole("heading", { name: "Filtered results" })
+    ).toHaveFocus()
   },
   args: {
     activeFilters: [
@@ -618,11 +703,22 @@ function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
       <FacetFilterPanel
         {...args}
         drawerOpen={drawerOpen}
+        title={
+          <span>
+            {args.title}
+            <span className="block font-normal text-sm" role="status">
+              {closeRequests
+                ? "Close was declined once. Press Escape or Close again to leave."
+                : "The first close request is declined for this demo; a second request will close it."}
+            </span>
+          </span>
+        }
         onDrawerOpenChange={(open) => {
           if (open) {
             setDrawerOpen(true)
           } else {
             setCloseRequests((current) => current + 1)
+            if (closeRequests > 0) setDrawerOpen(false)
           }
           args.onDrawerOpenChange?.(open)
         }}
@@ -636,7 +732,7 @@ export const RejectedDrawerClose: Story = {
     docs: {
       description: {
         story:
-          "A controlled parent can reject drawer dismissal without silently losing its open state.",
+          "A controlled parent rejects the first dismissal and explains inside the dialog that Escape or Close again will leave safely.",
       },
     },
   },
@@ -644,6 +740,22 @@ export const RejectedDrawerClose: Story = {
     presentation: "drawer",
   },
   render: (args) => <RejectedDrawerCloseExample {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const trigger = canvas.getByRole("button", { name: "Filters" })
+    await userEvent.click(trigger)
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.keyboard("{Escape}")
+    await expect(body.getByRole("dialog")).toBeVisible()
+    await expect(
+      body.getByText(
+        "Close was declined once. Press Escape or Close again to leave."
+      )
+    ).toBeVisible()
+    await userEvent.keyboard("{Escape}")
+    await expect(body.queryByRole("dialog")).not.toBeInTheDocument()
+    await expect(trigger).toHaveFocus()
+  },
 }
 
 export const DrawerOpen: Story = {

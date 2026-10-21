@@ -11,7 +11,7 @@
  * the plain elements here are layout containers only.
  */
 import type { ReactNode } from "react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Button } from "../../src/atoms/button"
 import { Icon, type IconType } from "../../src/atoms/icon"
@@ -245,11 +245,11 @@ export function Brand({
   environment = "Production",
 }: BrandProps) {
   return (
-    <div className="flex items-center gap-150">
+    <div className="flex min-w-0 items-center gap-150">
       <span className="flex size-icon-control-lg items-center justify-center rounded-md bg-overlay text-fg-primary">
         <Icon icon="icon-[mdi--hexagon-multiple-outline]" size="md" />
       </span>
-      <span className="flex min-w-0 flex-col">
+      <span className="sr-only sm:not-sr-only sm:flex sm:min-w-0 sm:flex-col">
         <span className="truncate font-semibold text-sm">{workspace}</span>
         <span className="text-fg-secondary text-xs">{environment}</span>
       </span>
@@ -426,21 +426,62 @@ export function TopNav({
   selected: string
   onSelect: (id: string) => void
 }) {
+  const [open, setOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
   return (
-    <nav aria-label="Main" className="flex items-center gap-50">
-      {items.map((item) => (
-        <Button
-          aria-current={item.id === selected ? "page" : undefined}
-          className={item.id === selected ? "text-fg-primary" : undefined}
-          key={item.id}
-          onClick={() => onSelect(item.id)}
-          size="sm"
-          theme="borderless"
-          variant={item.id === selected ? "primary" : "secondary"}
-        >
-          {item.label}
-        </Button>
-      ))}
-    </nav>
+    <>
+      <Button
+        className="lg:hidden"
+        icon="icon-[mdi--menu]"
+        onClick={() => setOpen(true)}
+        ref={trigger}
+        size="sm"
+        theme="borderless"
+        variant="secondary"
+      >
+        Menu
+      </Button>
+      <Dialog
+        customTrigger
+        finalFocusEl={() => trigger.current}
+        onOpenChange={(details) => setOpen(details.open)}
+        open={open}
+        placement="left"
+        size="xs"
+        title="Navigation"
+      >
+        <nav aria-label="Mobile main" className="flex flex-col gap-100">
+          {items.map((item) => (
+            <Button
+              aria-current={item.id === selected ? "page" : undefined}
+              key={item.id}
+              onClick={() => {
+                onSelect(item.id)
+                setOpen(false)
+              }}
+              theme="borderless"
+              variant={item.id === selected ? "primary" : "secondary"}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </nav>
+      </Dialog>
+      <nav aria-label="Main" className="hidden items-center gap-50 lg:flex">
+        {items.map((item) => (
+          <Button
+            aria-current={item.id === selected ? "page" : undefined}
+            className={item.id === selected ? "text-fg-primary" : undefined}
+            key={item.id}
+            onClick={() => onSelect(item.id)}
+            size="sm"
+            theme="borderless"
+            variant={item.id === selected ? "primary" : "secondary"}
+          >
+            {item.label}
+          </Button>
+        ))}
+      </nav>
+    </>
   )
 }

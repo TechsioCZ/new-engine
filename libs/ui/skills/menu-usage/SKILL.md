@@ -5,7 +5,7 @@ description: >
   action, radio, checkbox, separator, or submenu items using the Zag.js menu
   wrapper, Button trigger, icons, and supported open/highlight/select props.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -178,3 +178,10 @@ For radio commands, clear the previous checked item in the same name group.
 Nested popups may overlap their parent when necessary on narrow viewports; their
 positioning is capped to the available viewport so flipped submenus do not clip
 commands off-screen.
+
+Navigation items use `{ type: "link", value, label, href, target?, rel?, disabled? }`.
+They render native anchors so keyboard navigation and the optional `navigate`
+callback work; `navigate` receives the item value. Checkboxes and radio items
+also accept `disabled`. Submenus inherit direction, focus looping, typeahead,
+and navigation from the root. Escape or selection restores context-menu focus
+to its invoker; clicking or focusing outside does not steal focus back.

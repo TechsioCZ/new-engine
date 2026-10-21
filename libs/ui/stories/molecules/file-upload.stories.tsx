@@ -134,16 +134,12 @@ function createImageFile(name = "product.png") {
 
 const transformFiles = fn((files: File[]) => Promise.resolve(files))
 
-const validateImage: NonNullable<FileUploadProps["validate"]> = (file) =>
-  file.name === "profile.png" ? ["IMAGE_REQUIRES_ALT_TEXT"] : null
-
 function getValidationErrorMessage(error: string) {
   const messages: Record<string, string> = {
     FILE_EXISTS: "This file has already been selected.",
     FILE_INVALID_TYPE: "This file type is not accepted.",
-    FILE_TOO_LARGE: "This file is larger than the maximum size.",
+    FILE_TOO_LARGE: "This file is too large. Choose a smaller file.",
     FILE_TOO_SMALL: "This file is smaller than the minimum size.",
-    IMAGE_REQUIRES_ALT_TEXT: "Add alternative text before uploading.",
     TOO_MANY_FILES: "The maximum number of files would be exceeded.",
   }
 
@@ -425,23 +421,27 @@ export const ReadOnly: Story = {
   },
   name: "Read-only",
   render: () => (
-    <form aria-label="Read-only documents" className="w-full max-w-md" onSubmit={(event) => event.preventDefault()}>
-    <FileUpload
-      readOnly
-      name="attachments"
-      defaultAcceptedFiles={[createPdfFile("project-brief.pdf")]}
+    <form
+      aria-label="Read-only documents"
       className="w-full max-w-md"
+      onSubmit={(event) => event.preventDefault()}
     >
-      <FileUpload.Label>Project documents</FileUpload.Label>
-      <FileUpload.HiddenInput />
-      <FileUpload.Dropzone>Read-only project documents</FileUpload.Dropzone>
-      <FileUpload.Trigger>Select files</FileUpload.Trigger>
-      <FileItems />
-      <FileUpload.StatusText>
-        These documents are available for inspection; uploading and removing are
-        unavailable.
-      </FileUpload.StatusText>
-    </FileUpload>
+      <FileUpload
+        readOnly
+        name="attachments"
+        defaultAcceptedFiles={[createPdfFile("project-brief.pdf")]}
+        className="w-full max-w-md"
+      >
+        <FileUpload.Label>Project documents</FileUpload.Label>
+        <FileUpload.HiddenInput />
+        <FileUpload.Dropzone>Read-only project documents</FileUpload.Dropzone>
+        <FileUpload.Trigger>Select files</FileUpload.Trigger>
+        <FileItems />
+        <FileUpload.StatusText>
+          These documents are available for inspection; uploading and removing
+          are unavailable.
+        </FileUpload.StatusText>
+      </FileUpload>
     </form>
   ),
   play: async ({ canvasElement }) => {
@@ -457,7 +457,9 @@ export const ReadOnly: Story = {
     await userEvent.keyboard("{Enter} ")
     await expect(zone).toHaveFocus()
     await expect(canvas.getByText("project-brief.pdf")).toBeVisible()
-    const form = canvas.getByRole<HTMLFormElement>("form", { name: "Read-only documents" })
+    const form = canvas.getByRole<HTMLFormElement>("form", {
+      name: "Read-only documents",
+    })
     const file = new FormData(form).get("attachments")
     await expect(file).toBeInstanceOf(File)
     await expect((file as File).name).toBe("project-brief.pdf")
@@ -951,7 +953,7 @@ export const RejectedFiles: Story = {
     docs: {
       description: {
         story:
-          "Custom validation rejects a profile photo that needs alternative text and explains how to correct the problem.",
+          "A file-size limit rejects an oversized photo, then accepts a smaller replacement so recovery is actionable.",
       },
     },
   },
@@ -961,11 +963,14 @@ export const RejectedFiles: Story = {
       accept={{ "image/*": [".png", ".jpg"] }}
       className="w-full max-w-md"
       onFileReject={args.onFileReject}
-      validate={validateImage}
+      maxFileSize={100}
     >
       <FileUpload.Label>Profile photo</FileUpload.Label>
       <FileUpload.HiddenInput />
       <FileUpload.Trigger>Select image</FileUpload.Trigger>
+      <FileUpload.StatusText>
+        Choose an image no larger than 100 bytes.
+      </FileUpload.StatusText>
       <FileItems />
       <FileItems type="rejected" />
     </FileUpload>
@@ -974,13 +979,21 @@ export const RejectedFiles: Story = {
     const canvas = within(canvasElement)
     await userEvent.upload(
       canvas.getByLabelText("Profile photo"),
-      createImageFile("profile.png")
+      new File([new Uint8Array(101)], "profile.png", { type: "image/png" })
     )
     await expect(canvas.getByText("profile.png")).toBeVisible()
     await expect(
-      canvas.getByText("Add alternative text before uploading.")
+      canvas.getByText("This file is too large. Choose a smaller file.")
     ).toBeVisible()
     await expect(args.onFileReject).toHaveBeenCalled()
+    await userEvent.upload(
+      canvas.getByLabelText("Profile photo"),
+      new File(["small image"], "smaller.png", { type: "image/png" })
+    )
+    await expect(await canvas.findByText("smaller.png")).toBeVisible()
+    await expect(
+      canvas.queryByText("This file is too large. Choose a smaller file.")
+    ).not.toBeInTheDocument()
   },
 }
 
@@ -1278,23 +1291,27 @@ export const Form: Story = {
     const canvas = within(canvasElement)
     const input = canvas.getByLabelText<HTMLInputElement>(/Required attachment/)
     await expect(canvas.getByText("*")).toBeVisible()
-    await expect(input).toHaveAttribute("name", "attachments")
-    await expect(input).toBeRequired()
+    const committed = canvasElement.querySelector<HTMLInputElement>(
+      'input[name="attachments"]'
+    )!
+    await expect(input).not.toHaveAttribute("name")
+    await expect(committed).toBeRequired()
+    await expect(input).not.toBeRequired()
     await userEvent.upload(input, createPdfFile("signed.pdf"))
-    await expect(input.files).toHaveLength(1)
-    await expect(input.files?.[0]?.name).toBe("signed.pdf")
+    await waitFor(() => expect(committed.files).toHaveLength(1))
+    await expect(committed.files?.[0]?.name).toBe("signed.pdf")
     fireEvent.submit(canvas.getByRole("form", { name: "File upload form" }))
     await expect(onFormSubmit).toHaveBeenCalledTimes(1)
     await expect(onFormSubmit.mock.calls[0]?.[0]).toBeInstanceOf(FormData)
   },
 }
 
-
 export const PendingTransformation: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Pending file processing is discarded when the field becomes read-only or disabled, even if editing is restored before processing finishes.",
+        story:
+          "Pending file processing is discarded when the field becomes read-only or disabled, even if editing is restored before processing finishes.",
       },
     },
   },
@@ -1309,41 +1326,293 @@ export const PendingTransformation: Story = {
           disabled={disabled}
           maxFiles={3}
           defaultAcceptedFiles={[createPdfFile("project-brief.pdf")]}
-          transformFiles={(files) => new Promise((resolve) => {
-            complete.current = () => resolve(files)
-          })}
+          transformFiles={(files) =>
+            new Promise((resolve) => {
+              complete.current = () => resolve(files)
+            })
+          }
         >
           <FileUpload.Label>Project attachments</FileUpload.Label>
           <FileUpload.HiddenInput />
           <FileUpload.Trigger>Choose attachment</FileUpload.Trigger>
           <FileItems />
           <FileUpload.Context>
-            {(api) => <FileUpload.StatusText>{api.transforming ? "Processing attachment…" : "Ready to choose an attachment."}</FileUpload.StatusText>}
+            {(api) => (
+              <FileUpload.StatusText>
+                {api.transforming
+                  ? "Processing attachment…"
+                  : "Ready to choose an attachment."}
+              </FileUpload.StatusText>
+            )}
           </FileUpload.Context>
         </FileUpload>
-        <Button theme="outlined" onClick={() => setReadOnly((value) => !value)}>Toggle read-only</Button>
-        <Button theme="outlined" onClick={() => setDisabled((value) => !value)}>Toggle disabled</Button>
+        <Button theme="outlined" onClick={() => setReadOnly((value) => !value)}>
+          Toggle read-only
+        </Button>
+        <Button theme="outlined" onClick={() => setDisabled((value) => !value)}>
+          Toggle disabled
+        </Button>
         <Button onClick={() => complete.current?.()}>Finish processing</Button>
       </div>
     )
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    const input = canvas.getByLabelText<HTMLInputElement>("Project attachments", { selector: "input" })
+    const input = canvas.getByLabelText<HTMLInputElement>(
+      "Project attachments",
+      { selector: "input" }
+    )
     for (const state of ["read-only", "disabled"]) {
       // Also cover re-enabling before a stale transform completes.
       for (const restoreBeforeFinish of [false, true]) {
         const name = `pending-${state}-${restoreBeforeFinish}.pdf`
         await userEvent.upload(input, createPdfFile(name))
         await canvas.findByText("Processing attachment…")
-        await userEvent.click(canvas.getByRole("button", { name: `Toggle ${state}` }))
-        if (restoreBeforeFinish) await userEvent.click(canvas.getByRole("button", { name: `Toggle ${state}` }))
-        await userEvent.click(canvas.getByRole("button", { name: "Finish processing" }))
+        await userEvent.click(
+          canvas.getByRole("button", { name: `Toggle ${state}` })
+        )
+        if (restoreBeforeFinish)
+          await userEvent.click(
+            canvas.getByRole("button", { name: `Toggle ${state}` })
+          )
+        await userEvent.click(
+          canvas.getByRole("button", { name: "Finish processing" })
+        )
         await canvas.findByText("Ready to choose an attachment.")
         await expect(canvas.queryByText(name)).not.toBeInTheDocument()
         await expect(canvas.getByText("project-brief.pdf")).toBeVisible()
-        if (!restoreBeforeFinish) await userEvent.click(canvas.getByRole("button", { name: `Toggle ${state}` }))
+        if (!restoreBeforeFinish)
+          await userEvent.click(
+            canvas.getByRole("button", { name: `Toggle ${state}` })
+          )
       }
     }
+  },
+}
+
+export const BatchRegressions: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Deferred batches exercise reverse completion, capacity, cancellation, failure and committed native form submission.",
+      },
+    },
+  },
+  render: () => <BatchRegressionExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const form = canvas.getByRole("form", {
+      name: "Batch form",
+    }) as HTMLFormElement
+    const picker = canvas.getByLabelText<HTMLInputElement>(/Batch attachments/)
+    const files = (names: string[]) =>
+      names.map((name) => new File(["small"], name, { type: "text/plain" }))
+    const names = () =>
+      new FormData(form)
+        .getAll("attachments")
+        .map((file) => (file as File).name)
+        .filter(Boolean)
+    await userEvent.upload(picker, files(["one.txt", "two.txt"]))
+    await canvas.findByText("Processing batches")
+    await expect(names()).toEqual([])
+    await expect(form.checkValidity()).toBe(false)
+    await userEvent.upload(picker, files(["three.txt", "four.txt"]))
+    await userEvent.click(canvas.getByRole("button", { name: "Finish newest" }))
+    await waitFor(() => expect(names()).toEqual(["three.txt", "four.txt"]))
+    await expect(canvas.getByText("Processing batches")).toBeVisible()
+    await userEvent.click(canvas.getByRole("button", { name: "Finish oldest" }))
+    await canvas.findByText("Batches settled")
+    await expect(names()).toEqual(["three.txt", "four.txt"])
+    await expect(
+      canvas.getAllByText("The maximum number of files would be exceeded.")
+    ).toHaveLength(2)
+    await userEvent.click(canvas.getByRole("button", { name: "Clear via API" }))
+    await userEvent.upload(picker, files(["late.txt"]))
+    await canvas.findByText("Processing batches")
+    await userEvent.click(canvas.getByRole("button", { name: "Clear files" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Finish oldest" }))
+    await canvas.findByText("Batches settled")
+    await expect(names()).toEqual([])
+    await expect(canvas.queryByText("late.txt")).not.toBeInTheDocument()
+    await userEvent.upload(picker, files(["failure.txt"]))
+    await canvas.findByText("Processing batches")
+    await userEvent.click(canvas.getByRole("button", { name: "Fail oldest" }))
+    await expect(
+      await canvas.findByText(
+        "Files could not be processed. Choose the files again to retry."
+      )
+    ).toBeVisible()
+    await expect(names()).toEqual([])
+    await userEvent.upload(picker, files(["good.txt"]))
+    await canvas.findByText("Processing batches")
+    await userEvent.click(canvas.getByRole("button", { name: "Finish oldest" }))
+    await waitFor(() => expect(names()).toEqual(["good.txt"]))
+    await userEvent.upload(
+      picker,
+      new File([new Uint8Array(101)], "too-large.txt", { type: "text/plain" })
+    )
+    await expect(names()).toEqual(["good.txt"])
+    await expect(
+      canvas.getByText("This file is too large. Choose a smaller file.")
+    ).toBeVisible()
+    await userEvent.upload(picker, files(["reset-pending.txt"]))
+    await canvas.findByText("Processing batches")
+    await userEvent.click(canvas.getByRole("button", { name: "Reset attachments" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Finish oldest" }))
+    await canvas.findByText("Batches settled")
+    await expect(names()).toEqual([])
+    await expect(canvas.queryByText("reset-pending.txt")).not.toBeInTheDocument()
+    await userEvent.upload(picker, files(["preserve-pending.txt"]))
+    await canvas.findByText("Processing batches")
+    // A later listener can cancel reset: neither the batch nor its epoch changes.
+    form.addEventListener("reset", (event) => event.preventDefault(), { once: true })
+    await userEvent.click(canvas.getByRole("button", { name: "Reset attachments" }))
+    await expect(canvas.getByText("Processing batches")).toBeVisible()
+    await userEvent.click(canvas.getByRole("button", { name: "Finish oldest" }))
+    await canvas.findByText("Batches settled")
+    await waitFor(() => expect(names()).toEqual(["preserve-pending.txt"]))
+    await userEvent.click(canvas.getByRole("button", { name: "Reset attachments" }))
+    await waitFor(() => expect(names()).toEqual([]))
+  },
+}
+function BatchRegressionExample({ maxFiles = 3 }: { maxFiles?: number } = {}) {
+  const pending = useRef<
+    Array<{
+      files: File[]
+      resolve: (files: File[]) => void
+      reject: (error: Error) => void
+    }>
+  >([])
+  const [readOnly, setReadOnly] = useState(false)
+  const [disabled, setDisabled] = useState(false)
+  const [controlled, setControlled] = useState(false)
+  return (
+    <div className="flex w-full max-w-md flex-col gap-200">
+      <form
+        aria-label="Batch form"
+        onSubmit={(event) => event.preventDefault()}
+      >
+        <fieldset disabled={disabled}>
+          <legend>Attachments</legend>
+          <FileUpload
+            name="attachments"
+            maxFiles={maxFiles}
+            required
+            readOnly={readOnly}
+            acceptedFiles={controlled ? [] : undefined}
+            maxFileSize={100}
+            transformFiles={(files) =>
+              new Promise((resolve, reject) => {
+                pending.current.push({ files, resolve, reject })
+              })
+            }
+          >
+            <FileUpload.Label>Batch attachments</FileUpload.Label>
+            <FileUpload.HiddenInput />
+            <FileUpload.Trigger>Select files</FileUpload.Trigger>
+            <FileUpload.Context>
+              {(api) => (
+                <>
+                  <Button type="button" onClick={() => api.clearFiles()}>
+                    Clear via API
+                  </Button>
+                  <FileUpload.StatusText>
+                    {api.transforming
+                      ? "Processing batches"
+                      : "Batches settled"}
+                  </FileUpload.StatusText>
+                </>
+              )}
+            </FileUpload.Context>
+            <FileUpload.ClearTrigger />
+            <FileItems />
+            <FileItems type="rejected" />
+          </FileUpload>
+        </fieldset>
+        <Button type="submit">Submit attachments</Button>
+        <Button type="reset" theme="outlined">Reset attachments</Button>
+      </form>
+      <Button
+        type="button"
+        onClick={() => {
+          const batch = pending.current.shift()
+          batch?.resolve(batch.files)
+        }}
+      >
+        Finish oldest
+      </Button>
+      <Button
+        type="button"
+        onClick={() => {
+          const batch = pending.current.pop()
+          batch?.resolve(batch.files)
+        }}
+      >
+        Finish newest
+      </Button>
+      <Button
+        type="button"
+        onClick={() =>
+          pending.current.shift()?.reject(new Error("Processing failed"))
+        }
+      >
+        Fail oldest
+      </Button>
+      <Button type="button" onClick={() => setReadOnly((value) => !value)}>
+        Toggle batch read-only
+      </Button>
+      <Button type="button" onClick={() => setDisabled((value) => !value)}>
+        Toggle batch fieldset
+      </Button>
+      <Button type="button" onClick={() => setControlled((value) => !value)}>
+        Toggle rejected controlled state
+      </Button>
+    </div>
+  )
+}
+
+export const ReplacementRegressions: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Single-file replacement is latest-request-wins, including when the controlled parent declines a proposal.",
+      },
+    },
+  },
+  render: () => <BatchRegressionExample maxFiles={1} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const picker = canvas.getByLabelText<HTMLInputElement>(/Batch attachments/)
+    const form = canvas.getByRole("form", {
+      name: "Batch form",
+    }) as HTMLFormElement
+    const names = () =>
+      new FormData(form)
+        .getAll("attachments")
+        .map((file) => (file as File).name)
+        .filter(Boolean)
+    await userEvent.upload(picker, new File(["old"], "old.txt"))
+    await canvas.findByText("Processing batches")
+    await userEvent.upload(picker, new File(["new"], "new.txt"))
+    await userEvent.click(canvas.getByRole("button", { name: "Finish newest" }))
+    await waitFor(() => expect(names()).toEqual(["new.txt"]))
+    await userEvent.click(canvas.getByRole("button", { name: "Finish oldest" }))
+    await canvas.findByText("Batches settled")
+    await expect(names()).toEqual(["new.txt"])
+    await expect(canvas.queryByText("old.txt")).not.toBeInTheDocument()
+    await userEvent.click(canvas.getByRole("button", { name: "Clear via API" }))
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Toggle rejected controlled state" })
+    )
+    await userEvent.upload(picker, new File(["controlled"], "declined.txt"))
+    await canvas.findByText("Processing batches")
+    await userEvent.click(canvas.getByRole("button", { name: "Finish oldest" }))
+    await canvas.findByText("Batches settled")
+    await expect(names()).toEqual([])
+    await expect(canvas.queryByText("declined.txt")).not.toBeInTheDocument()
   },
 }

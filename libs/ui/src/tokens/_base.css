@@ -1,5 +1,5 @@
 @theme static {
-  /* Radius */
+  /* Fallback radius scale. Effective exported radii are 8/12/16px; see THEME-FLOW.md. */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -14,8 +14,9 @@
   --offset-shadow-3: 1px 1px 20px 0px;
 
   --shadow-primary:
-    var(--offset-shadow-1) var(--color-shadow-1), var(--offset-shadow-2)
-    var(--color-shadow-2), var(--offset-shadow-3) var(--color-shadow-3);
+    var(--offset-shadow-1) var(--color-shadow-1),
+    var(--offset-shadow-2) var(--color-shadow-2),
+    var(--offset-shadow-3) var(--color-shadow-3);
 
   /* Motion — strong ease-out for UI feedback, ease-in-out for on-screen
    * movement. Never ease-in: it delays the response the user is waiting for. */

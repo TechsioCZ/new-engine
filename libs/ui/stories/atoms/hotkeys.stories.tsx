@@ -24,6 +24,8 @@ function PlaygroundExample({
   size,
 }: HotkeysProps) {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
   function openExample() {
@@ -39,7 +41,9 @@ function PlaygroundExample({
     store,
     hotkey,
     action: openExample,
+    enabled: !open,
     options: {
+      target: getTarget,
       preventDefault: true,
       requireReset: true,
       stopPropagation: true,
@@ -48,10 +52,10 @@ function PlaygroundExample({
   const registrations = useHotkeyRegistrations({ store })
 
   return (
-    <div className="flex flex-col items-start gap-200">
+    <div className="flex flex-col items-start gap-200" ref={demo}>
       <p>
-        Press the shortcut or use the button. Both open the same dialog, while
-        the keycap adapts to the selected platform.
+        Focus this example’s button, then press the shortcut or activate it.
+        Both open one dialog, while the keycap adapts to the selected platform.
       </p>
       <Button onClick={openExample} ref={trigger}>
         Open example
@@ -87,6 +91,8 @@ function PlaygroundExample({
 
 function FormFieldsTechnicalExample() {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [count, setCount] = useState(0)
   const [enableWhileTyping, setEnableWhileTyping] = useState(true)
 
@@ -100,6 +106,7 @@ function FormFieldsTechnicalExample() {
     hotkey: "mod+S",
     action: () => setCount((value) => value + 1),
     options: {
+      target: getTarget,
       enableOnFormTags: enableWhileTyping,
       preventDefault: true,
       requireReset: true,
@@ -107,11 +114,11 @@ function FormFieldsTechnicalExample() {
   })
 
   return (
-    <div className="flex flex-col gap-200">
+    <div className="flex flex-col gap-200" ref={demo}>
       <p>
-        Write a note, then press the save shortcut. The saved count increases
-        without leaving the input. Use the checkbox to pause saving while
-        typing.
+        Focus a control in this example, write a note, then press the save
+        shortcut. The saved count increases without leaving the input. Use the
+        checkbox to pause saving while typing.
       </p>
       <Button onClick={() => setCount((value) => value + 1)}>Save</Button>
       <Hotkeys hotkey="mod+S" />
@@ -256,6 +263,8 @@ export const TokenClassOverride: Story = {
 
 function PlatformsExample() {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [count, setCount] = useState(0)
   useEffect(() => {
     store.init({ target: document })
@@ -268,13 +277,14 @@ function PlatformsExample() {
     store,
     hotkey: "mod+S",
     action: save,
-    options: { preventDefault: true, requireReset: true },
+    options: { target: getTarget, preventDefault: true, requireReset: true },
   })
   return (
-    <div className="flex flex-col gap-300">
+    <div className="flex flex-col gap-300" ref={demo}>
       <p>
-        Save with the button or the shortcut shown on it. Below are previews of
-        the same shortcut on each platform; your keyboard uses your actual OS.
+        Focus this example’s Save button, then use the button or the shortcut
+        shown on it. Below are previews of the same shortcut on each platform;
+        your keyboard uses your actual OS.
       </p>
       <Button onClick={save}>
         Save <Hotkeys aria-hidden="true" hotkey="mod+S" />
@@ -312,6 +322,8 @@ export const Platforms: Story = {
 
 function CompoundExample() {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [bold, setBold] = useState(false)
   useEffect(() => {
     store.init({ target: document })
@@ -324,13 +336,14 @@ function CompoundExample() {
     store,
     hotkey: "Control+B",
     action: toggleBold,
-    options: { preventDefault: true, requireReset: true },
+    options: { target: getTarget, preventDefault: true, requireReset: true },
   })
   return (
-    <div className="flex flex-col items-start gap-200">
+    <div className="flex flex-col items-start gap-200" ref={demo}>
       <p>
-        Press Control+B or click Bold to change the sample text. The shortcut
-        uses individual Root, Key and Separator parts with explicit labels.
+        Focus this example’s Bold button, then press Control+B or click Bold to
+        change the sample text. The shortcut uses individual Root, Key and
+        Separator parts with explicit labels.
       </p>
       <Button aria-pressed={bold} onClick={toggleBold} theme="outlined">
         Bold
@@ -382,6 +395,8 @@ export const FormFields: Story = {
 
 function FormFieldsExample() {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [draft, setDraft] = useState("")
   const [savedNote, setSavedNote] = useState("")
 
@@ -398,14 +413,19 @@ function FormFieldsExample() {
     store,
     hotkey: "mod+S",
     action: saveNote,
-    options: { preventDefault: true, requireReset: true },
+    options: {
+      target: getTarget,
+      enableOnFormTags: true,
+      preventDefault: true,
+      requireReset: true,
+    },
   })
 
   return (
-    <div className="flex flex-col gap-200">
+    <div className="flex flex-col gap-200" ref={demo}>
       <p>
-        Type a note, then press the shortcut or click Save. The saved note
-        appears below the editor.
+        Focus the note field or Save button, type a note, then press the
+        shortcut or click Save. The saved note appears below the editor.
       </p>
       <Input
         aria-label="Note"

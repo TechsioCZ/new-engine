@@ -7,6 +7,7 @@
  * the DataTable column `meta.type` declarations stay honest.
  */
 import type { TreeNode } from "../../src/molecules/tree-view"
+import { orderAmounts } from "./page-models"
 
 /* ------------------------------------------------------------------ nav --- */
 
@@ -443,6 +444,28 @@ export const channelOptions = [
   { label: "Retail POS", value: "Retail POS" },
 ]
 
+const capturedOrderLines: OrderLine[] = [
+  {
+    id: "ln-1",
+    orderId: "ord-5001",
+    product: "Core cotton tee",
+    sku: "TS-CORE-BLK",
+    qty: 2,
+    unitPrice: 29,
+  },
+  {
+    id: "ln-2",
+    orderId: "ord-5001",
+    product: "Logo cap",
+    sku: "AC-CAP-BLK",
+    qty: 1,
+    unitPrice: 25,
+  },
+]
+
+/** Exclusive 21% tax, free delivery; capture and refund ceiling share this model. */
+export const orderPayment = orderAmounts(capturedOrderLines)
+
 export const orders: Order[] = [
   {
     id: "ord-5001",
@@ -451,7 +474,7 @@ export const orders: Order[] = [
     email: "marta.n@example.com",
     channel: "Web",
     items: 3,
-    total: 248,
+    total: orderPayment.capturedMinor / 100,
     status: "paid",
     placedAt: "2026-09-11",
   },
@@ -544,22 +567,7 @@ export type OrderLine = {
 }
 
 export const orderLines: OrderLine[] = [
-  {
-    id: "ln-1",
-    orderId: "ord-5001",
-    product: "Core cotton tee",
-    sku: "TS-CORE-BLK",
-    qty: 2,
-    unitPrice: 29,
-  },
-  {
-    id: "ln-2",
-    orderId: "ord-5001",
-    product: "Logo cap",
-    sku: "AC-CAP-BLK",
-    qty: 1,
-    unitPrice: 25,
-  },
+  ...capturedOrderLines,
   {
     id: "ln-3",
     orderId: "ord-5002",
@@ -781,7 +789,8 @@ export const revenueByChannel: RevenuePoint[] = [
 export const currency = new Intl.NumberFormat("en-GB", {
   style: "currency",
   currency: "EUR",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 })
 
 export const compactNumber = new Intl.NumberFormat("en-GB", {
@@ -881,7 +890,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 542,
     stock: "limited-stock",
     stockLabel: "Only 3 left",
-    sizes: ["M", "L", "XL"],
+    sizes: ["38", "39", "40", "41", "42", "43", "44"],
     colors: ["Black", "Rust"],
     badge: { label: "−22%", variant: "danger" },
   },
@@ -895,7 +904,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 64,
     stock: "in-stock",
     stockLabel: "In stock",
-    sizes: ["S", "M"],
+    sizes: [],
     colors: ["Navy", "Sand"],
   },
   {
@@ -908,7 +917,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 311,
     stock: "in-stock",
     stockLabel: "In stock",
-    sizes: ["M"],
+    sizes: [],
     colors: ["Black"],
     badge: { label: "Staff pick", variant: "info" },
   },
@@ -922,7 +931,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 23,
     stock: "out-of-stock",
     stockLabel: "Out of stock",
-    sizes: ["M"],
+    sizes: [],
     colors: ["Black", "Olive"],
   },
   {
@@ -935,7 +944,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 187,
     stock: "in-stock",
     stockLabel: "In stock",
-    sizes: ["S", "M", "L"],
+    sizes: [],
     colors: ["Navy", "Olive"],
   },
   {
@@ -963,7 +972,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     reviewCount: 58,
     stock: "in-stock",
     stockLabel: "In stock",
-    sizes: ["M", "L"],
+    sizes: [],
     colors: ["Rust", "Navy"],
   },
 ]
@@ -972,22 +981,7 @@ export const productGallery = [
   {
     id: "pg-main",
     src: storefrontImages.shoes,
-    alt: "Runner low, three-quarter view",
-  },
-  {
-    id: "pg-2",
-    src: storefrontImages.tshirt,
-    alt: "Runner low, styled with a tee",
-  },
-  {
-    id: "pg-3",
-    src: storefrontImages.backpack,
-    alt: "Runner low, packed for travel",
-  },
-  {
-    id: "pg-4",
-    src: storefrontImages.jacket,
-    alt: "Runner low, outdoor setting",
+    alt: "Runner low, red knit upper and white sole, three-quarter view",
   },
 ]
 
@@ -1008,7 +1002,9 @@ export const brandFacets = [
   { label: "Lumen", value: "lumen", count: 4 },
 ]
 
-export const sizeFacets = ["XS", "S", "M", "L", "XL", "XXL"]
+export const sizeFacets = [
+  ...new Set(storefrontProducts.flatMap((product) => product.sizes)),
+]
 
 export const colorFacets = [
   { id: "black", color: "#111827", label: "Black", count: 24 },

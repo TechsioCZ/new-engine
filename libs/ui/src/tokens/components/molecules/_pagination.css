@@ -34,3 +34,8 @@
 @utility token-icon-pagination-ellipsis {
   @apply token-icon-ellipsis-horizontal;
 }
+
+@theme static {
+  --text-underline-offset-pagination-marker: var(--spacing-50);
+  --text-decoration-thickness-pagination-marker: var(--border-width-pagination);
+}

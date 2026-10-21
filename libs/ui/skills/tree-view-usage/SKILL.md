@@ -6,7 +6,7 @@ description: >
   item parts, selection behavior, icons, indentation, expansion, selection, and
   keyboard/typeahead support.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -162,3 +162,24 @@ rg -U -P -n "<TreeView(?![\\s\\S]{0,500}<TreeView\\.Tree)" apps
 TreeView splits all Zag machine props from DOM props using tree.splitProps. ids, defaultFocusedValue, getRootNode and machine callbacks configure the machine and are never serialized onto the root element. defaultFocusedValue determines the initial roving-tabindex node; custom ids address the actual tree parts. Canonical sizes are sm/md/lg (default md).
 
 Custom tree examples must include TreeView.Label (or an explicitly associated accessible label). Use full-width, max-width bounded wrappers and stack comparison panels on narrow viewports; an activity log should wrap long node identifiers instead of widening the page.
+
+## Selection and disclosure are independent
+
+One central selection predicate applies to pointer, keyboard, range/select-all
+and controlled/default selections: disabled nodes and all descendants of a
+disabled branch cannot be selected or focused, even when controlled expansion
+keeps them visible. Disabled state is inherited without mutating caller data, and a
+newly disabled subtree recovers owned focus to an enabled visible node. Leaf-only
+excludes branches; custom excludes selectable:false nodes. Nonselectability is
+not disability: branches retain arrow/Enter/Space disclosure and normal roving
+focus. Ctrl/Cmd+A selects only eligible nodes. Selected rows retain a filled
+surface and underline after blur and on hover; their descendants are not filled.
+Expansion indicators have a separate 24px-minimum hit target; the glyph remains
+compact. Each recursively nested level adds one logical indent unit.
+
+Collapse and data removal recover a hidden/removed focused descendant to its
+visible ancestor or first enabled visible node. DOM focus only follows when
+the tree owned it. Controlled focusedValue owners receive a correction request
+and should accept it; an enabled visible keyboard entry is retained meanwhile.
+Consumer handlers compose with machine handlers; preventDefault intentionally
+cancels selection/navigation, while logging alone does not replace it.

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ComponentProps, type FormEvent, useId, useState } from "react"
-import { fn } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import {
@@ -247,8 +247,8 @@ const meta = {
   argTypes: {
     size: {
       control: "select",
-      options: ["xs", "sm", "md", "lg"],
-      description: "Size of the cascade select.",
+      options: ["sm", "md", "lg"],
+      description: "Canonical field sizes: sm for dense forms, md by default, lg for prominent controls. The legacy xs prop remains a compatibility alias.",
       table: { defaultValue: { summary: "md" } },
     },
     validateStatus: {
@@ -342,21 +342,13 @@ export const Sizes: Story = {
     docs: {
       description: {
         story:
-          "Compare the four control sizes to choose a density that fits the surrounding form.",
+          "Compare the three canonical sizes with identical category copy to choose a density that fits the surrounding form.",
       },
     },
   },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Extra small">
-        <CascadeSelectField
-          items={productCategories}
-          label="Product category"
-          placeholder="Choose a category"
-          size="xs"
-        />
-      </VariantGroup>
-      <VariantGroup title="Small">
+      <VariantGroup title="Small (sm)">
         <CascadeSelectField
           items={productCategories}
           label="Product category"
@@ -364,7 +356,7 @@ export const Sizes: Story = {
           size="sm"
         />
       </VariantGroup>
-      <VariantGroup title="Medium">
+      <VariantGroup title="Medium (md)">
         <CascadeSelectField
           items={productCategories}
           label="Product category"
@@ -372,7 +364,7 @@ export const Sizes: Story = {
           size="md"
         />
       </VariantGroup>
-      <VariantGroup title="Large">
+      <VariantGroup title="Large (lg)">
         <CascadeSelectField
           items={productCategories}
           label="Product category"
@@ -414,6 +406,7 @@ export const States: Story = {
       </VariantGroup>
       <VariantGroup title="Read-only">
         <CascadeSelectField
+          defaultOpen
           defaultValue={[["electronics", "phones"]]}
           items={productCategories}
           label="Product category"
@@ -450,6 +443,18 @@ export const States: Story = {
       </VariantGroup>
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const locked = canvas.getAllByRole("combobox").find((node) => node.getAttribute("aria-readonly") === "true")
+    if (!locked) throw new Error("Missing read-only category")
+    await userEvent.click(locked)
+    await userEvent.keyboard("{ArrowDown}{Enter}{Backspace}")
+    await expect(locked).toHaveTextContent("Electronics / Phones")
+    await expect(locked).toHaveAttribute("aria-expanded", "false")
+    await expect(locked).not.toBeDisabled()
+    await expect(locked.parentElement?.querySelector('[data-part="clear-trigger"]')).toBeNull()
+    await expect(locked.querySelector('[data-part="indicator"]')).toBeNull()
+  },
 }
 
 export const OpenHierarchy: Story = {
@@ -617,4 +622,168 @@ export const CustomValueFormatting: Story = {
       statusText="The trigger displays only the final category."
     />
   ),
+}
+
+const changingHierarchy: CascadeSelectItem[] = [
+  { label: "Alpha", value: "a", children: [{ label: "Alpha leaf", value: "leaf" }] },
+  { label: "Beta", value: "b", children: [{ label: "Beta leaf", value: "leaf" }] },
+]
+function ChangingHierarchy() {
+  const [phase, setPhase] = useState(0)
+  const [changes, setChanges] = useState(0)
+  const [value, setValue] = useState([["a", "leaf"]])
+  const items = phase === 0 ? changingHierarchy : [
+    { label: "Beta renamed", value: "b", children: [{ label: "Beta leaf renamed", value: "leaf" }] },
+    ...(phase === 1 ? changingHierarchy.slice(0, 1) : []),
+  ]
+  return <form className="flex flex-col gap-200" onSubmit={(event) => event.preventDefault()}>
+    <CascadeSelectField label="Uncontrolled category" name="uncontrolled" items={items}
+      defaultValue={[["a", "leaf"]]} onValueChange={() => setChanges((n) => n + 1)} />
+    <CascadeSelectField label="Controlled category" name="controlled" items={items}
+      value={value} onValueChange={({ value: next }) => setValue(next)} />
+    <CascadeSelectField label="Multiple categories" name="multiple" multiple items={items}
+      defaultValue={[["a", "leaf"], ["b", "leaf"]]} />
+    <Button variant="secondary" onClick={() => setPhase(1)}>Rename and reorder categories</Button>
+    <Button variant="secondary" onClick={() => setPhase(2)}>Remove Alpha</Button>
+    <output aria-label="Hierarchy changes">{changes}</output>
+  </form>
+}
+
+export const CollectionUpdates: Story = {
+  render: () => <ChangingHierarchy />,
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "Rename and reorder an open hierarchy without stale child columns, then remove an ancestor to reconcile complete paths and native submission." } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("combobox", { name: "Multiple categories" }))
+    await waitFor(() => expect(within(canvasElement.ownerDocument.body).getByRole("treeitem", { name: "Beta leaf" })).toBeVisible())
+    canvas.getByRole("button", { name: "Rename and reorder categories" }).click()
+    await waitFor(() => expect(canvas.getByRole("combobox", { name: "Multiple categories" })).toHaveTextContent("Alpha leaf, Beta leaf renamed"))
+    await expect(within(canvasElement.ownerDocument.body).getByRole("treeitem", { name: "Beta leaf renamed" })).toBeVisible()
+    await expect(canvas.getByRole("status", { name: "Hierarchy changes" })).toHaveTextContent("0")
+    canvas.getByRole("button", { name: "Remove Alpha" }).click()
+    await waitFor(() => expect(canvas.getByRole("status", { name: "Hierarchy changes" })).toHaveTextContent("1"))
+    const form = canvasElement.querySelector("form")
+    if (!form) throw new Error("Missing hierarchy form")
+    await expect(new FormData(form).get("uncontrolled")).toBe("")
+    await expect(new FormData(form).get("controlled")).toBe("")
+    await expect(new FormData(form).get("multiple")).toBe("b,leaf")
+    await expect(canvas.getByRole("combobox", { name: "Multiple categories" })).toHaveTextContent("Beta leaf renamed")
+    for (const node of canvasElement.ownerDocument.querySelectorAll("[aria-activedescendant]")) {
+      await expect(canvasElement.ownerDocument.getElementById(node.getAttribute("aria-activedescendant") ?? "")).not.toBeNull()
+    }
+    await userEvent.keyboard("{Escape}")
+    form.reset()
+    await waitFor(() => expect(new FormData(form).get("multiple")).toBe("b,leaf"))
+    await expect(new FormData(form).get("uncontrolled")).toBe("")
+    await expect(canvas.getByRole("status", { name: "Hierarchy changes" })).toHaveTextContent("1")
+  },
+}
+
+function CascadeErrorRegistry() {
+  const [phase, setPhase] = useState(0)
+  const id = useId()
+  return <div className="flex flex-col gap-200">
+    <span id={`${id}-caller`}>Caller validation guidance.</span>
+    <CascadeSelect items={productCategories}>
+      <CascadeSelect.Label>Category with feedback</CascadeSelect.Label>
+      <CascadeSelect.Control><CascadeSelect.Trigger aria-errormessage={`${id}-caller`}>
+        <CascadeSelect.ValueText />
+      </CascadeSelect.Trigger></CascadeSelect.Control>
+      <CascadeSelect.StatusText id={`${id}-hint`} status="default">Choose the most specific category.</CascadeSelect.StatusText>
+      {phase > 0 && <CascadeSelect.StatusText id={`${id}-first`} status={phase === 3 ? "default" : "error"}>Choose a category before saving.</CascadeSelect.StatusText>}
+      {phase > 0 && phase < 3 && <CascadeSelect.StatusText id={`${id}-second`} status={phase === 1 ? "error" : "default"}>Choose a leaf category for this product.</CascadeSelect.StatusText>}
+    </CascadeSelect>
+    <Button variant="secondary" onClick={() => setPhase(1)}>Show errors</Button>
+    <Button variant="secondary" onClick={() => setPhase(2)}>Convert error to helper</Button>
+    <Button variant="secondary" onClick={() => setPhase(3)}>Convert remaining error to helper</Button>
+    <Button variant="secondary" onClick={() => setPhase(0)}>Clear errors</Button>
+  </div>
+}
+
+export const ErrorAssociations: Story = {
+  render: () => <CascadeErrorRegistry />,
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "Explicit errors mark a default-status root invalid and clean up on status changes or unmount while preserving helper and caller-owned IDs." } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const trigger = canvas.getByRole("combobox", { name: "Category with feedback" })
+    await userEvent.click(canvas.getByRole("button", { name: "Show errors" }))
+    await waitFor(() => expect(trigger.getAttribute("aria-errormessage")?.split(" ")).toHaveLength(3))
+    await expect(trigger).toHaveAttribute("aria-invalid", "true")
+    await expect(trigger).toHaveAttribute("data-validation", "error")
+    await userEvent.click(canvas.getByRole("button", { name: "Convert error to helper" }))
+    await waitFor(() => expect(trigger.getAttribute("aria-errormessage")?.split(" ")).toHaveLength(2))
+    await expect(trigger.getAttribute("aria-describedby")?.split(" ")).toHaveLength(3)
+    await expect(trigger).toHaveAttribute("aria-invalid", "true")
+    await userEvent.click(canvas.getByRole("button", { name: "Convert remaining error to helper" }))
+    await waitFor(() => expect(trigger).not.toHaveAttribute("aria-invalid", "true"))
+    await expect(trigger).not.toHaveAttribute("data-validation", "error")
+    await expect(trigger.getAttribute("aria-errormessage")?.split(" ")).toHaveLength(1)
+    await expect(trigger.getAttribute("aria-describedby")?.split(" ")).toHaveLength(2)
+    await userEvent.click(canvas.getByRole("button", { name: "Show errors" }))
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-invalid", "true"))
+    await userEvent.click(canvas.getByRole("button", { name: "Clear errors" }))
+    await waitFor(() => expect(trigger.getAttribute("aria-describedby")?.split(" ")).toHaveLength(1))
+    await expect(trigger).not.toHaveAttribute("aria-invalid", "true")
+    await expect(trigger.getAttribute("aria-errormessage")?.split(" ")).toHaveLength(1)
+  },
+}
+
+function ResettableCategories() {
+  const formId = useId()
+  return <div className="flex flex-col gap-300">
+    <form id={formId} aria-label="Resettable categories" className="flex flex-col gap-200"
+      onSubmit={(event) => event.preventDefault()}>
+      <CascadeSelectField items={productCategories} label="Initially empty category" name="empty" />
+      <CascadeSelectField items={productCategories} label="Default category" name="default"
+        defaultValue={[["home", "furniture"]]} />
+      <CascadeSelectField items={productCategories} label="Multiple categories" name="multiple" multiple
+        defaultValue={[["home", "furniture"]]} />
+      <CascadeSelectField items={productCategories} label="Controlled category" name="controlled"
+        defaultValue={[["electronics", "phones"]]} value={[["home", "furniture"]]} />
+      <Button type="reset" variant="secondary">Reset categories</Button>
+    </form>
+    <CascadeSelectField items={productCategories} label="Externally associated category" name="external"
+      form={formId} defaultValue={[["home", "furniture"]]} />
+    <form aria-label="Cancelled reset" className="flex flex-col gap-200"
+      onReset={(event) => event.preventDefault()} onSubmit={(event) => event.preventDefault()}>
+      <CascadeSelectField items={productCategories} label="Category with cancelled reset" name="cancelled"
+        defaultValue={[["home", "furniture"]]} />
+      <Button type="reset" variant="secondary">Cancel reset</Button>
+    </form>
+  </div>
+}
+
+export const NativeFormReset: Story = {
+  render: () => <ResettableCategories />,
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "Native resets restore empty, default and multiple paths through the associated form, preserve controlled values, and honor cancelled reset events." } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    for (const name of ["Initially empty category", "Default category", "Multiple categories", "Externally associated category", "Category with cancelled reset"]) {
+      await userEvent.click(canvas.getByRole("combobox", { name }))
+      await userEvent.click(await body.findByRole("treeitem", { name: "Electronics" }))
+      await userEvent.click(await body.findByRole("treeitem", { name: "Phones" }))
+      await userEvent.keyboard("{Escape}")
+    }
+    const form = canvas.getByRole("form", { name: "Resettable categories" }) as HTMLFormElement
+    await expect(new FormData(form).get("empty")).toBe("electronics,phones")
+    await expect(new FormData(form).get("external")).toBe("electronics,phones")
+    await userEvent.click(canvas.getByRole("button", { name: "Reset categories" }))
+    await waitFor(() => expect(new FormData(form).get("empty")).toBe(""))
+    for (const field of ["default", "multiple", "controlled", "external"]) {
+      await expect(new FormData(form).get(field)).toBe("home,furniture")
+    }
+    await expect(canvas.getByRole("combobox", { name: "Initially empty category" })).toHaveTextContent("Choose an option")
+    for (const name of ["Default category", "Controlled category", "Externally associated category"]) {
+      await expect(canvas.getByRole("combobox", { name })).toHaveTextContent("Home & garden / Furniture")
+    }
+    await expect(canvas.getByRole("combobox", { name: "Multiple categories" })).toHaveTextContent("Furniture")
+    await userEvent.click(canvas.getByRole("button", { name: "Cancel reset" }))
+    await expect(canvas.getByRole("combobox", { name: "Category with cancelled reset" })).toHaveTextContent("Electronics / Phones")
+    const cancelled = canvas.getByRole("form", { name: "Cancelled reset" }) as HTMLFormElement
+    await expect(new FormData(cancelled).get("cancelled")).toBe("electronics,phones")
+  },
 }

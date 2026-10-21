@@ -5,7 +5,7 @@ description: >
   modal dialogs, alert dialogs, drawers, actions, focus management, placement,
   size, and close behavior backed by Zag.js.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -171,3 +171,8 @@ rg -n "role=\"dialog\"|fixed inset-0|alertdialog|<Dialog[^>]*className=.*(w-|h-|
 rg -U -n "<Popover[\\s\\S]{0,300}(Delete|Remove|danger)" apps
 rg -n "<Dialog[^>]*role=\"(modal|drawer)\"" apps
 ```
+
+Nested kit Menu, Popover and Tooltip portals stay inside the owning modal's
+focus and accessibility scope. Dialog and Drawer share managed modal depth, so
+a nested modal backdrop sits above its parent panel. Centered dialogs have a
+viewport-relative height cap with scrolling for excess content.

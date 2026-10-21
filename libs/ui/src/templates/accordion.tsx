@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit template.
  *
  * @component Accordion
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,10 +23,13 @@ export type AccordionTemplateProps = Omit<AccordionProps, "children"> & {
   items: AccordionItem[]
   showIndicator?: boolean
   indicatorIcon?: IconType
+  /** Heading depth within the surrounding page outline; defaults to 3. */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6
 }
 
 export function AccordionTemplate({
   items,
+  headingLevel = 3,
   showIndicator = true,
   indicatorIcon = "token-icon-accordion-chevron",
   variant = "default",
@@ -61,7 +64,7 @@ export function AccordionTemplate({
           key={item.value}
           value={item.value}
         >
-          <Accordion.Header>
+          <Accordion.Header aria-level={headingLevel}>
             <Accordion.Title>{item.title}</Accordion.Title>
             {showIndicator && <Accordion.Indicator icon={indicatorIcon} />}
           </Accordion.Header>

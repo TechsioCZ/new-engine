@@ -242,7 +242,7 @@ export const Playground: Story = {
     docs: {
       description: {
         story:
-          "Adjust the controls to explore akros product card using realistic content and immediately visible results.",
+          "Upravte cenu, dostupnost a nákupní akci montážní sady; odkaz otevře místní detail a přidání pouze potvrdí výsledek v ukázce.",
       },
     },
   },
@@ -259,7 +259,7 @@ export const States: Story = {
     docs: {
       description: {
         story:
-          "Compare states in akros product card to choose a suitable presentation for real product content.",
+          "Karty rozlišují běžný nákup, probíhající přidání, nedostupnou akci a výběr variant, aby další krok odpovídal stavu produktu.",
       },
     },
     controls: { disable: true },
@@ -384,7 +384,7 @@ export const PriceStates: Story = {
     docs: {
       description: {
         story:
-          "Compare price states in akros product card to choose a suitable presentation for real product content.",
+          "Známá cena, cena od, sleva, cena na dotaz a načítání ukazují všechny větve PriceBlock bez vymyšlené nulové ceny.",
       },
     },
     controls: { disable: true },
@@ -463,7 +463,7 @@ export const AvailabilityStates: Story = {
     docs: {
       description: {
         story:
-          "Compare availability states in akros product card to choose a suitable presentation for real product content.",
+          "Dostupnost používá konkrétní skladové popisky a doplňující informace, takže stav produktu není sdělen pouze barvou.",
       },
     },
     controls: { disable: true },
@@ -493,7 +493,7 @@ export const LongContent: Story = {
     docs: {
       description: {
         story:
-          "Compare long content in akros product card to choose a suitable presentation for real product content.",
+          "Dlouhý název, popis a informace o dostupnosti se zalamují uvnitř karty, aby zůstaly čitelné i v úzkém katalogu.",
       },
     },
   },
@@ -526,7 +526,7 @@ export const ResponsiveCatalog: Story = {
     docs: {
       description: {
         story:
-          "Compare responsive catalog in akros product card to choose a suitable presentation for real product content.",
+          "Responzivní katalog zachovává srovnatelné ceny, skladovost a nákupní akce při přechodu z více sloupců na mobilní zobrazení.",
       },
     },
     controls: { disable: true },

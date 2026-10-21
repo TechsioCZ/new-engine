@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.4.0
+ * @componentVersion v1.5.0
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,13 +17,16 @@ import {
   type Props as ZagComboboxProps,
 } from "@zag-js/combobox"
 import {
+  mergeProps,
   normalizeProps,
   Portal,
   type PropTypes,
   useMachine,
 } from "@zag-js/react"
 import {
+  type ComponentPropsWithoutRef,
   type ReactNode,
+  type Ref,
   useEffect,
   useId,
   useMemo,
@@ -130,6 +133,11 @@ const comboboxVariants = tv({
       "data-[validation=success]:text-combobox-success-fg",
       "data-[validation=warning]:text-combobox-warning-fg",
     ],
+    selectedList: ["m-0 flex min-w-0 list-none flex-wrap gap-combobox-sm p-0"],
+    selectedItem: [
+      "flex min-w-0 max-w-full items-center rounded-combobox-sm border border-combobox-footer-border bg-combobox-bg-base ps-combobox-input-sm",
+    ],
+    selectedLabel: ["wrap-anywhere min-w-0 text-combobox-status-fg"],
     multiple: [],
   },
   compoundSlots: [
@@ -193,10 +201,29 @@ export type ComboboxItemGroup<T = unknown> = {
 }
 
 export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
+  Omit<
+    ComponentPropsWithoutRef<"div">,
+    "onChange" | "defaultValue" | "children"
+  > &
   (
     | { items: ComboboxItem<T>[]; groups?: never }
     | { items?: never; groups: ComboboxItemGroup<T>[] }
   ) & {
+    /** Ref to the focusable input, not the wrapper. Supports React 19 cleanup. */
+    ref?: Ref<HTMLInputElement>
+    /** Native input attributes/events; machine-owned value and editability remain authoritative. */
+    inputProps?: Omit<
+      ComponentPropsWithoutRef<"input">,
+      | "size"
+      | "value"
+      | "defaultValue"
+      | "name"
+      | "disabled"
+      | "readOnly"
+      | "required"
+      | "id"
+      | "children"
+    >
     id?: string
     name?: string
     "aria-label"?: string
@@ -226,7 +253,8 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
     triggerIcon?: IconType
     triggerIconSize?: IconProps["size"]
     clearIcon?: IconType
-    onChange?: (value: string | string[]) => void
+    /** Always emits an array, including single selection and clearing ([]). */
+    onChange?: (value: string[]) => void
     onInputValueChange?: (value: string) => void
     onOpenChange?: (open: boolean) => void
     inputBehavior?: "autohighlight" | "autocomplete" | "none"
@@ -552,6 +580,10 @@ export function Combobox<T = unknown>({
   navigate,
   footer,
   portalled = true,
+  ref,
+  inputProps = {},
+  className,
+  ...rootProps
 }: ComboboxProps<T>) {
   const generatedId = useId()
   const uniqueId = id || generatedId
@@ -565,6 +597,26 @@ export function Combobox<T = unknown>({
   )
 
   const inputRef = useRef<HTMLInputElement>(null)
+  const focusableRef = useMemo(
+    () => (node: HTMLInputElement | null) => {
+      inputRef.current = node
+      const cleanup = typeof ref === "function" ? ref(node) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = node
+      }
+      return () => {
+        inputRef.current = null
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
   const [focusVisible, setFocusVisible] = useState(false)
   const [options, setOptions] = useState(allItems)
   useEffect(() => {
@@ -641,6 +693,13 @@ export function Combobox<T = unknown>({
   })
 
   const api = connectCombobox(service, normalizeProps)
+  useEffect(() => {
+    inputRef.current?.setCustomValidity(
+      !navigation && required && api.value.length === 0
+        ? "Select an option from the suggestions."
+        : ""
+    )
+  }, [navigation, required, api.value.length])
   const selectedText = api.value
     .map(
       (selectedValue) =>
@@ -706,8 +765,8 @@ export function Combobox<T = unknown>({
 
   return (
     <div
-      {...api.getRootProps()}
-      className={root()}
+      {...mergeProps(api.getRootProps(), rootProps)}
+      className={root({ className })}
       data-mode={mode}
       data-status={state}
     >
@@ -734,37 +793,66 @@ export function Combobox<T = unknown>({
         onPointerDownCapture={() => setFocusVisible(false)}
       >
         <Input
-          className={input()}
-          {...api.getInputProps()}
+          {...mergeProps(api.getInputProps(), inputProps)}
           aria-controls={api.open ? listId : undefined}
           aria-describedby={joinDescribedBy(
             ariaDescribedBy,
+            inputProps["aria-describedby"],
             helpText ? helpTextId : undefined,
             multiple && api.value.length ? selectedTextId : undefined
           )}
           aria-errormessage={
-            helpText && validateStatus === "error" ? helpTextId : undefined
+            validateStatus === "error"
+              ? joinDescribedBy(
+                  inputProps["aria-errormessage"],
+                  helpText ? helpTextId : undefined
+                )
+              : inputProps["aria-errormessage"]
           }
-          aria-invalid={validateStatus === "error" || undefined}
-          aria-label={ariaLabel}
+          aria-invalid={
+            validateStatus === "error" ||
+            inputProps["aria-invalid"] ||
+            undefined
+          }
+          aria-label={ariaLabel ?? inputProps["aria-label"]}
           aria-labelledby={
             ariaLabelledBy ??
-            (label ? api.getInputProps()["aria-labelledby"] : undefined)
+            inputProps["aria-labelledby"] ??
+            (label && !(ariaLabel ?? inputProps["aria-label"])
+              ? api.getInputProps()["aria-labelledby"]
+              : undefined)
           }
           aria-required={required || undefined}
+          className={input({ className: inputProps.className })}
+          disabled={disabled}
           name={undefined}
-          placeholder={placeholder}
-          ref={(node) => {
-            inputRef.current = node
-            // Selection validity is independent of the transient query. Keep
-            // the focusable input as the native validation target, not a hidden
-            // input (which browsers exclude from constraint validation).
-            node?.setCustomValidity(
-              !navigation && required && api.value.length === 0
-                ? "Select an option from the suggestions."
-                : ""
-            )
+          onKeyDown={(event) => {
+            inputProps.onKeyDown?.(event)
+            if (event.defaultPrevented) {
+              return
+            }
+            if (
+              !navigation &&
+              multiple &&
+              !disabled &&
+              !readOnly &&
+              !api.open &&
+              !api.inputValue &&
+              event.key === "Backspace" &&
+              !event.nativeEvent.isComposing
+            ) {
+              const lastValue = api.value.at(-1)
+              if (lastValue) {
+                event.preventDefault()
+                api.clearValue(lastValue)
+              }
+              return
+            }
+            api.getInputProps().onKeyDown?.(event)
           }}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          ref={focusableRef}
           required={navigation && required}
           size={size}
         />
@@ -801,6 +889,7 @@ export function Combobox<T = unknown>({
         (api.value.length ? api.value : [""]).map((selectedValue) => (
           <input
             disabled={disabled}
+            form={inputProps.form}
             key={selectedValue}
             name={name}
             type="hidden"
@@ -852,9 +941,42 @@ export function Combobox<T = unknown>({
       </Portal>
 
       {multiple && !navigation && api.value.length > 0 && (
-        <StatusText id={selectedTextId} size={size}>
-          Selected: {selectedText}
-        </StatusText>
+        <div>
+          <StatusText className="sr-only" id={selectedTextId} size={size}>
+            Selected: {selectedText}
+          </StatusText>
+          <ul aria-label="Selected values" className={styles.selectedList()}>
+            {api.value.map((selectedValue) => {
+              const selectedLabel =
+                allItems.find((item) => item.value === selectedValue)?.label ??
+                api.selectedItems.find((item) => item.value === selectedValue)
+                  ?.label ??
+                selectedValue
+              return (
+                <li className={styles.selectedItem()} key={selectedValue}>
+                  <span className={styles.selectedLabel()}>
+                    {selectedLabel}
+                  </span>
+                  {!readOnly && (
+                    <ActionIcon
+                      aria-label={`Remove ${selectedLabel}`}
+                      disabled={disabled}
+                      icon="token-icon-combobox-clear"
+                      onClick={() => {
+                        if (disabled || readOnly) {
+                          return
+                        }
+                        api.clearValue(selectedValue)
+                        api.focus()
+                      }}
+                      size={size ?? "md"}
+                    />
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       )}
 
       {helpText && (

@@ -226,3 +226,12 @@ pnpm.cmd -C libs/ui test:components hotkeys.spec.ts --project=desktop --grep "de
 `size="sm" | "md" | "lg"` scales keycap typography; default md. These are
 non-interactive display sizes, not button hit areas. Compound Key parts inherit
 the root typography. Formatting or changing size does not register a shortcut.
+
+## Docs and multiple mounted examples
+
+Independently mounted demos must not all listen globally. Give each command a
+stable focus target through `options.target` and instruct the user to focus a
+control in that example first. Duplicate Docs canvases then cannot both react
+to one key press. Suspend an example's commands with `enabled: !open` while its
+modal owns focus. Dialog itself supplies no implicit shortcut priority; scope
+names on independent stores do not create exclusivity.

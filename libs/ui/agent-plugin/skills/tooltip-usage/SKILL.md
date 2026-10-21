@@ -5,7 +5,7 @@ description: >
   supplemental hover/focus help using the Zag.js tooltip wrapper, supported
   timing, placement, interaction, controlled state, and token styling props.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -184,7 +184,8 @@ Correct:
 ```tsx
 <FormInput
   type="password"
-  helperText="Password must contain 12 characters."
+  label="Password"
+  helpText="Password must contain 12 characters."
 />
 ```
 
@@ -207,3 +208,11 @@ including Zag’s managed layer index. The opaque fill, arrow and soft shadow
 follow the active theme. Keep tooltip content non-interactive; use Popover
 for buttons, links or inputs. Existing `interactive` permits pointer travel
 onto the hint, not keyboard focusable content. Essential help stays visible.
+
+Tooltip forwards all Zag machine options, including `ids`, `getRootNode`, and
+trigger-value callbacks. Positioning options may be supplied at the top level
+for compatibility or in `positioning`; nested options take precedence.
+Escape closes an open tooltip without also dismissing its parent modal. A
+focused managed popup outside the hint's owning scope takes priority: opening a
+Menu after a hint means the first Escape closes the Menu, not the older hint.
+The next Escape can dismiss the hint while leaving the modal open.

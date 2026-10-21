@@ -2,7 +2,7 @@
  * LinkButton — @techsio/ui-kit atom.
  *
  * @component LinkButton
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill link-button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,11 +10,10 @@
  * the link-button-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type {
-  ComponentPropsWithoutRef,
+  ComponentPropsWithRef,
   ElementType,
   MouseEvent,
   ReactNode,
-  Ref,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
@@ -30,7 +29,7 @@ const linkButton = tv({
 })
 
 type LinkButtonHref<T extends ElementType> =
-  ComponentPropsWithoutRef<T> extends { href?: infer H } ? H : string
+  ComponentPropsWithRef<T> extends { href?: infer H } ? H : string
 
 export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
   typeof linkButton
@@ -43,10 +42,9 @@ export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
   disabled?: boolean
   uppercase?: boolean
   as?: T
-  ref?: Ref<HTMLAnchorElement>
 } & Omit<
-    ComponentPropsWithoutRef<T>,
-    "as" | "ref" | "children" | keyof VariantProps<typeof linkButton>
+    ComponentPropsWithRef<T>,
+    "as" | "children" | keyof VariantProps<typeof linkButton>
   >
 
 export function LinkButton<T extends ElementType = "a">({
@@ -63,6 +61,7 @@ export function LinkButton<T extends ElementType = "a">({
   uppercase,
   className,
   disabled,
+  composition,
   ref,
   onClick,
   tabIndex,
@@ -84,6 +83,7 @@ export function LinkButton<T extends ElementType = "a">({
         size,
         block,
         uppercase,
+        composition,
         className,
       })}
       data-disabled={disabled ? "" : undefined}
@@ -97,7 +97,7 @@ export function LinkButton<T extends ElementType = "a">({
 
         handleClick?.(e)
       }}
-      ref={ref}
+      ref={disabled ? undefined : ref}
       role={disabled ? "link" : props.role}
       tabIndex={disabled ? -1 : tabIndex}
     >

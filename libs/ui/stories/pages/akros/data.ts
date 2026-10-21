@@ -9,6 +9,7 @@
  */
 import type { TreeNode } from "../../../src/molecules/tree-view"
 import { createFixtureDateFormatter } from "../data"
+import { parcelComplete } from "../page-models"
 
 export const czk = new Intl.NumberFormat("cs-CZ", {
   style: "currency",
@@ -887,7 +888,14 @@ export function missingCmsFields(product: AkProduct): string[] {
   if (!product.hasDescription) {
     missing.push("description")
   }
-  if (product.length === undefined || product.weight === undefined) {
+  if (
+    !parcelComplete([
+      product.length,
+      product.width,
+      product.height,
+      product.weight,
+    ])
+  ) {
     missing.push("shipping dimensions")
   }
   return missing
@@ -1411,6 +1419,7 @@ export const emailTemplates: EmailTemplate[] = [
 ]
 
 export const emailVariables = [
+  { token: "{{cart.name}}", sample: "Workshop supplies" },
   { token: "{{customer.first_name}}", sample: "Jana" },
   { token: "{{order.number}}", sample: "2026-10431" },
   { token: "{{order.total}}", sample: "2 486 Kč" },

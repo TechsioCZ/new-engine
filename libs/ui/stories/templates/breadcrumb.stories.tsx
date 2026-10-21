@@ -1,3 +1,4 @@
+import type { ComponentPropsWithoutRef } from "react"
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
@@ -67,6 +68,7 @@ A ready-to-use location trail driven by an array of ancestor pages. The last ite
     ),
   ],
   argTypes: {
+    linkAs: { control: false, description: "Routing adapter component; pass a real component forwarding href, events and ref, not a JSON object." },
     ref: { control: false, table: { disable: true } },
     items: {
       control: "object",
@@ -276,5 +278,21 @@ export const CollapsedCurrentAncestor: Story = {
     await expect(current).toHaveLength(1)
     await expect(current[0]).toHaveTextContent("Tools")
     await expect(within(canvasElement).queryByText("Cordless drills")).not.toBeInTheDocument()
+  },
+}
+
+function DemoBreadcrumbAdapter({ href, ...props }: ComponentPropsWithoutRef<"a">) {
+  return <a {...props} href={href} data-routing-adapter="" />
+}
+
+export const RoutingAdapter: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Pass a real routing component forwarding href and events; adapter selection is deliberately not a JSON Docs control." } } },
+  args: { items: defaultItems, linkAs: DemoBreadcrumbAdapter },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const links = canvas.getAllByRole("link")
+    for (const link of links) await expect(link).toHaveAttribute("data-routing-adapter")
+    await userEvent.click(links[0]!)
+    await expect(canvas.getByText("Smartphones")).toBeVisible()
   },
 }

@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit template.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.4
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -148,7 +148,7 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
                   size={item.iconSize ?? iconSize}
                 />
               )}
-              {item.label}
+              <span className="wrap-anywhere min-w-0">{item.label}</span>
             </>
           )
 
@@ -164,7 +164,6 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
                       | undefined)}
                     as={linkAs}
                     href={item.href || "#"}
-                    size="current"
                   >
                     {itemContent}
                   </BreadcrumbTemplateLink>
