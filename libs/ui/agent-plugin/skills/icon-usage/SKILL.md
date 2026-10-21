@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or
   Iconify classes with the library's supported size and semantic color props.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -34,7 +34,7 @@ where actions and feedback live). This section applies them to `Icon`.
 | Need | Use instead |
 | --- | --- |
 | A clickable icon | ActionIcon (with `aria-label`) or Button with `icon` |
-| An icon that carries meaning without text | Icon + visually hidden text, or text instead |
+| An icon that carries meaning without text | Icon with `label`, or visible status text |
 
 **Do**
 
@@ -59,6 +59,19 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 
 <Icon icon="token-icon-status-text-success" size="md" color="success" />
 ```
+
+The component defaults to `size="current"` and `color="current"`, inheriting
+surrounding text. Choose an explicit size for standalone glyphs; the Playground
+uses a recognizable Home icon at `lg` (the system's 24px step), not an error icon.
+The Sizes story shows `current`, `xs`, `sm`, `md`, `lg`, `xl` and `2xl` with names.
+Explicit color props consume `--color-icon-fg-*` component aliases, so app token
+overrides work without changing every icon call site.
+
+The Storybook Gallery searches the curated common token glyphs and Iconify
+examples by visible name, class name or category. Each result shows its exact
+class for copying; clearing the search returns keyboard focus to the search field.
+The gallery is not an exhaustive catalog of every component's private icon aliases. Iconify class names must be statically present in source
+so the CSS generator can include them.
 
 Supported props:
 

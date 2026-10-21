@@ -158,3 +158,30 @@ bottom-right, consistently across the app.
 [ ] Empty, loading and error states exist for every list and async section
 [ ] The component matches its intent (see component-selection)
 ```
+
+## Shared control contracts
+
+`libs/ui/docs/component-contracts.md` defines the implementation contract.
+
+- Inline field guidance uses StatusText. Errors, warnings and success always
+  retain their default decorative icon; neutral help has no icon by default.
+  Write the meaning in text and associate every message with the focusable
+  control through aria-describedby; errors also use aria-invalid and
+  aria-errormessage. Multiline copy starts beside the first-line icon and wraps
+  in the text column, not below the icon.
+- Read-only means value visible, focusable and copyable, not editable. Keep
+  normal contrast and focus rings, with a subtle surface; use text/default
+  cursors, never not-allowed or disabled dimming. All value-holding controls
+  must support it, including choice controls and uploads. Hide/inert clear,
+  stepper, dropdown, calendar and remove actions. Text selection, copy, reveal,
+  file preview/download can remain. Pickers do not open by default; any explicit
+  open-for-view exception cannot commit changes. Disabled is unavailable and
+  removed from tab order, with disabled visuals and not-allowed cursor.
+- Canonical interactive sizes are sm/md/lg, default md. Dense layouts choose sm;
+  do not shrink the entire type scale or introduce xs controls ad hoc.
+- Floating panels are opaque, bordered and elevated above underlying surfaces;
+  hover tint and checked selection must remain visually distinct.
+- Documentation uses realistic copy, one primary per surface, no navigations
+  away, and one ordered Small (sm)/Medium (md)/Large (lg) Sizes matrix. Every
+  story explains what/why, and every component has an autodocs description
+  explaining when to choose it over alternatives.

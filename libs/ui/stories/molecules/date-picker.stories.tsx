@@ -231,7 +231,7 @@ function DatePickerPlaygroundScenario({
 	valueKind,
 }: DatePickerPlaygroundArgs) {
 	const [committedValue, setCommittedValue] = useState(
-		"No value has been committed during this test.",
+		"Choose a date to see the saved form value.",
 	)
 	const hasInitialValue = initialValue === "preset"
 	const min = useDateBounds ? PLAYGROUND_MIN_DATE : undefined
@@ -332,27 +332,15 @@ function DatePickerPlaygroundScenario({
 			)
 	}
 
-	const modeDescription = `${selectionMode} · ${
-		granularity === "day" ? "date only" : `date and time to ${granularity}`
-	} · ${resolvedNumOfMonths} ${resolvedNumOfMonths === 1 ? "month" : "months"}`
+	const modeDescription = `${selectionMode === "range" ? "Date range" : "A single date"}${
+		granularity === "day" ? "" : ` with ${granularity} precision`
+	} · ${resolvedNumOfMonths} ${resolvedNumOfMonths === 1 ? "calendar month" : "calendar months"}`
 
 	return (
 		<div className="w-lg max-w-full space-y-200">
-			<div className="space-y-50 text-fg-primary">
-				<strong className="block font-medium">Active test scenario</strong>
-				<p data-testid="date-picker-playground-scenario">{modeDescription}</p>
-				<p>
-					Unavailable-date mode blocks day 23. Unavailable-time mode blocks
-					13:xx and disables Confirm.
-				</p>
-			</div>
-			<output
-				aria-live="polite"
-				className="block text-fg-primary"
-				data-testid="date-picker-playground-committed-value"
-			>
-				Last committed value: {committedValue}
-			</output>
+			<p className="text-fg-secondary" data-testid="date-picker-playground-scenario">
+				{modeDescription}. Type into the date segments or open the calendar to choose.
+			</p>
 			<div
 				className={
 					selectionMode === "range" ? "w-lg max-w-full" : "w-md max-w-full"
@@ -360,6 +348,20 @@ function DatePickerPlaygroundScenario({
 			>
 				{field}
 			</div>
+			{useDateBounds || useUnavailableDate || useUnavailableTime ? (
+				<p className="text-fg-secondary text-sm">
+					{useDateBounds ? "Available from 20 August to 10 October 2026. " : ""}
+					{useUnavailableDate ? "The 23rd of each month is unavailable. " : ""}
+					{useUnavailableTime && granularity !== "day" ? "Appointments between 13:00 and 13:59 are unavailable." : ""}
+				</p>
+			) : null}
+			<output
+				aria-live="polite"
+				className="block text-fg-secondary text-sm"
+				data-testid="date-picker-playground-committed-value"
+			>
+				Last committed value: {committedValue}
+			</output>
 		</div>
 	)
 }
@@ -387,20 +389,11 @@ const meta = {
 	tags: ["autodocs", "date-picker"],
 	parameters: {
 		layout: "centered",
-		controls: {
-			include: [
-				"size",
-				"locale",
-				"disabled",
-				"readOnly",
-				"invalid",
-				"required",
-			],
-		},
+		controls: { disable: true },
 		docs: {
 			description: {
 				component:
-					"One locale-aware compound DatePicker for single dates, date-time values, date ranges, and date-time ranges. The sidebar is curated around consumer-visible patterns; controlled-state, form-serialization, and value-kind fixtures remain test-only. Date-only values commit when complete, while timed values use an explicit Cancel/Confirm transaction.",
+					"A locale-aware field for typing a date or choosing it from a calendar, with optional date ranges and time entry; use it for delivery dates and appointments, formatted text for read-only dates, and preset choices for relative periods such as Last 7 days.",
 			},
 		},
 	},
@@ -608,6 +601,7 @@ export const Playground: StoryObj<DatePickerPlaygroundArgs> = {
 	parameters: {
 		layout: "padded",
 		controls: {
+			disable: false,
 			expanded: true,
 			include: [
 				"selectionMode",
@@ -638,7 +632,7 @@ export const Playground: StoryObj<DatePickerPlaygroundArgs> = {
 		docs: {
 			description: {
 				story:
-					"Start in Scenario to choose single or range selection and date or timed granularity. The remaining control groups cover appearance, state, availability, and popup behavior. The canvas reports the active setup and last committed public value so a tester can verify each contract without switching stories.",
+					"Try typing a delivery date or choosing it from the calendar, then use Controls to compare date ranges, time precision, field sizes, and unavailable dates for your form.",
 			},
 		},
 	},
@@ -655,7 +649,7 @@ export const Sizes: Story = {
 		docs: {
 			description: {
 				story:
-					"Compare the supported field densities. Open a field or use Playground to inspect the matching calendar density.",
+					"Compare small, medium, and large fields to choose a density that matches the surrounding form controls.",
 			},
 		},
 	},
@@ -687,7 +681,7 @@ export const States: Story = {
 		docs: {
 			description: {
 				story:
-					"Check disabled, read-only, invalid, and required field presentation and interaction affordances.",
+					"Compare disabled, read-only, invalid, and required fields to see which interactions remain available in each state.",
 			},
 		},
 	},
@@ -708,13 +702,13 @@ export const States: Story = {
 }
 
 export const DateOnlyCalendar: Story = {
-	name: "Single Date",
+	name: "Single date",
 	parameters: {
 		layout: "padded",
 		docs: {
 			description: {
 				story:
-					"The standard calendar flow. Verify month/year navigation, keyboard focus, and immediate commit after choosing a day.",
+					"Choose a delivery date from the open calendar, including muted days from neighboring months, to see a date-only field save the selection immediately.",
 			},
 		},
 	},
@@ -723,7 +717,7 @@ export const DateOnlyCalendar: Story = {
 			<DateOnlyField
 				defaultOpen
 				id="date-picker-date-only-open"
-				label="Choose a calendar date"
+				label="Delivery date"
 				locale="en-US"
 			/>
 		</div>
@@ -731,13 +725,13 @@ export const DateOnlyCalendar: Story = {
 }
 
 export const DateRangeCalendar: Story = {
-	name: "Date Range",
+	name: "Date range",
 	parameters: {
 		layout: "padded",
 		docs: {
 			description: {
 				story:
-					"The two-panel range flow. Verify aligned weeks, independent panel navigation, and the highlighted start-to-end interval.",
+					"Choose the start and end of a reporting period across two independently navigable calendars to see how the selected interval stays highlighted.",
 			},
 		},
 	},
@@ -781,8 +775,9 @@ function ControlledRangeExample() {
 }
 
 export const ControlledDateRange: Story = {
+	name: "Controlled date range",
 	tags: ["!dev"],
-	parameters: { layout: "padded" },
+	parameters: { layout: "padded", docs: { description: { story: "Edit a reporting period whose accepted value is owned by the parent to see how a controlled range updates." } } },
 	render: () => <ControlledRangeExample />,
 }
 
@@ -816,8 +811,9 @@ function RejectingControlledRangeExample() {
 }
 
 export const RejectingControlledDateRange: Story = {
+	name: "Rejected range changes",
 	tags: ["!dev"],
-	parameters: { layout: "padded" },
+	parameters: { layout: "padded", docs: { description: { story: "Choose a complete range that the parent deliberately rejects to verify that the accepted form value remains unchanged." } } },
 	render: () => <RejectingControlledRangeExample />,
 }
 
@@ -852,19 +848,20 @@ function RangeFormSerializationExample() {
 }
 
 export const RangeFormSerialization: Story = {
+	name: "Date range form values",
 	tags: ["!dev"],
-	parameters: { layout: "padded" },
+	parameters: { layout: "padded", docs: { description: { story: "Submit a reporting period to inspect its two named form values and understand how range endpoints are serialized." } } },
 	render: () => <RangeFormSerializationExample />,
 }
 
 export const LocalizedUnavailableRange: Story = {
-	name: "Constraints And Localization",
+	name: "Date limits and Czech locale",
 	parameters: {
 		layout: "padded",
 		docs: {
 			description: {
 				story:
-					"A Czech, Monday-first range with min/max bounds and an unavailable date. Focus on localized labels and disabled-day treatment.",
+					"Choose a reporting period in a Czech, Monday-first calendar to see how date limits and unavailable days prevent impossible bookings.",
 			},
 		},
 	},
@@ -889,10 +886,11 @@ export const LocalizedUnavailableRange: Story = {
 }
 
 export const TransactionalTimeGranularities: Story = {
-	tags: ["!dev"],
+	name: "Time precision and keyboard editing",
+	parameters: { docs: { description: { story: "Compare hour, minute, and second precision, using typing, ArrowUp/ArrowDown, and Home/End to edit the time before confirming an appointment." } } },
 	render: () => (
 		<VariantContainer>
-			<VariantGroup fullWidth title="Transactional timed modes">
+			<VariantGroup fullWidth title="Choose the time precision your task needs">
 				<TimedField
 					defaultValue={new CalendarDateTime(2026, 8, 31, 14)}
 					granularity="hour"
@@ -917,13 +915,13 @@ export const TransactionalTimeGranularities: Story = {
 }
 
 export const InitiallyOpenTimedDraft: Story = {
-	name: "Date And Time",
+	name: "Date and time",
 	parameters: {
 		layout: "padded",
 		docs: {
 			description: {
 				story:
-					"The common date-time flow. Time is edited in one compact row; date and time remain a private draft until Confirm, while Cancel restores the accepted value.",
+					"Schedule an appointment by choosing a date and editing its time, then use Confirm to save both together or Cancel to keep the previous appointment.",
 			},
 		},
 	},
@@ -935,20 +933,20 @@ export const InitiallyOpenTimedDraft: Story = {
 				granularity="minute"
 				hourCycle={24}
 				id="date-picker-timed-draft-open"
-				label="Edit the private draft, then confirm"
+				label="Appointment"
 			/>
 		</div>
 	),
 }
 
 export const InitiallyOpenDateTimeRange: Story = {
-	name: "Date And Time Range",
+	name: "Date and time range",
 	parameters: {
 		layout: "padded",
 		docs: {
 			description: {
 				story:
-					"A range with separate start and end times committed by one Confirm action. Verify both calendar panels and both compact time groups.",
+					"Set a reporting interval with separate start and end times, then save both endpoints together so a partially edited range never becomes the accepted value.",
 			},
 		},
 	},
@@ -973,8 +971,9 @@ export const InitiallyOpenDateTimeRange: Story = {
 }
 
 export const ZonedDateTimeRange: Story = {
+	name: "Time zone and daylight saving",
 	tags: ["!dev"],
-	parameters: { layout: "padded" },
+	parameters: { layout: "padded", docs: { description: { story: "Edit a Prague reporting interval spanning a daylight-saving change to see each endpoint retain its correct time-zone offset." } } },
 	render: () => (
 		<div className="w-lg max-w-full">
 			<TimedRangeField
@@ -1025,8 +1024,9 @@ function ControlledTimedResyncExample() {
 }
 
 export const ControlledTimedResync: Story = {
+	name: "External appointment updates",
 	tags: ["!dev"],
-	parameters: { layout: "padded" },
+	parameters: { layout: "padded", docs: { description: { story: "Apply an external appointment value while its calendar is open to see an in-progress time draft resynchronize with the parent." } } },
 	render: () => <ControlledTimedResyncExample />,
 }
 
@@ -1069,7 +1069,9 @@ function ControlledDateOnlyField({
 }
 
 export const ControlledParentBehaviors: Story = {
+	name: "Parent-controlled date changes",
 	tags: ["!dev"],
+	parameters: { docs: { description: { story: "Compare parents that accept, reject, delay, or adjust a date change to understand which value the field displays." } } },
 	render: () => (
 		<VariantContainer>
 			<VariantGroup
@@ -1113,7 +1115,9 @@ function FormSerializationExample() {
 }
 
 export const ClearAndFormSerialization: Story = {
+	name: "Clear and submit a date",
 	tags: ["!dev"],
+	parameters: { docs: { description: { story: "Clear or submit a delivery date to inspect the canonical form value without confusing it with localized display text." } } },
 	render: () => <FormSerializationExample />,
 }
 
@@ -1122,7 +1126,7 @@ export const LocalesAndLongLabels: Story = {
 		docs: {
 			description: {
 				story:
-					"Compare Czech and English field formatting, week starts, and resilience to a long production-style label.",
+					"Compare Czech and English date order, week starts, and a long delivery label to design a field that works across locales.",
 			},
 		},
 	},
@@ -1151,7 +1155,9 @@ const PRAGUE_VALUE: DatePickerTimedValue = parseZonedDateTime(
 )
 
 export const TypedDateTimeValues: Story = {
+	name: "Local and zoned appointments",
 	tags: ["!dev"],
+	parameters: { docs: { description: { story: "Compare a local appointment with one explicitly tied to Prague to choose whether the time zone belongs in your domain value." } } },
 	render: () => (
 		<VariantContainer>
 			<VariantGroup fullWidth title="Canonical date-time value kinds">

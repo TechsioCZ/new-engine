@@ -218,3 +218,29 @@ pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y
 ```
 
+
+## Shared documentation contract (required)
+
+See `libs/ui/docs/component-contracts.md` for the source of truth.
+
+- Every component needs `tags: ["autodocs"]` and a component description saying
+  what it is, when to choose it, and when to choose an alternative.
+- Every exported story needs a clear name and one sentence in
+  `parameters.docs.description.story` explaining what it demonstrates and why.
+- Exactly one Sizes story demonstrates Small (sm), Medium (md), Large (lg), in
+  that order, with identical realistic copy/value. No separate size stories or
+  xs/current fourth size; document compatibility escapes in prose. Content-width
+  sizing axes and non-control exceptions must be explained explicitly.
+- Playground args/controls must visibly affect the example. Use kit components,
+  realistic copy and token layout classes. No foreign-component showcase, raw
+  code content above the demo, navigation away, real network mutations or form
+  reloads. Model behavior locally; use Docs source panels for code.
+- Keep one primary action per surface; secondary Cancel then primary Save/Create
+  at form end. Separate destructive actions. Do not style every action primary.
+- Validation uses StatusText with default state icons, associated message IDs
+  and meaningful non-color copy. States stories distinguish editable, read-only
+  (focus/copy allowed, no edits) and disabled (not focusable).
+- Test fixed behavior through story play assertions/existing behavior harness.
+  During the shared overhaul never start another Storybook server/build or local
+  browser; use the assigned shared-browser runner for visual review in
+  base/light, base/dark and Akros/light.

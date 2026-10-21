@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit template.
  *
  * @component Accordion
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.0
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,15 +12,14 @@
 import type { IconType } from "../atoms/icon"
 import { Accordion, type AccordionProps } from "../molecules/accordion"
 
-export interface AccordionItem {
+export type AccordionItem = {
   value: string
   title: string
   content: React.ReactNode
   disabled?: boolean
 }
 
-export interface AccordionTemplateProps
-  extends Omit<AccordionProps, "children"> {
+export type AccordionTemplateProps = Omit<AccordionProps, "children"> & {
   items: AccordionItem[]
   showIndicator?: boolean
   indicatorIcon?: IconType

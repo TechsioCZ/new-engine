@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import { VariantContainer } from '../../.storybook/decorator'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
@@ -22,8 +22,18 @@ const countries: ComboboxItem[] = [
 const meta: Meta<typeof Combobox> = {
   title: 'Molecules/Combobox',
   component: Combobox,
+  render: (args) => (
+    <div className="mx-auto w-full max-w-sm">
+      <Combobox {...args} />
+    </div>
+  ),
   parameters: {
-    layout: 'centered',
+    layout: 'padded',
+    docs: {
+      description: {
+        component: 'Combobox combines a text input with a keyboard-operable list of suggestions for choosing from long or searchable lists; use Select for short lists that do not need filtering, or SearchSuggestions for catalog navigation.',
+      },
+    },
   },
   tags: ['autodocs'],
   argTypes: {
@@ -84,6 +94,11 @@ const meta: Meta<typeof Combobox> = {
       description: 'Close dropdown on selection',
       table: { defaultValue: { summary: 'true' } },
     },
+    inputBehavior: {
+      control: 'select',
+      options: ['autohighlight', 'autocomplete', 'none'],
+      description: 'How typing interacts with the highlighted suggestion',
+    },
     selectionBehavior: {
       control: 'select',
       options: ['replace', 'clear', 'preserve'],
@@ -97,11 +112,23 @@ export default meta
 type Story = StoryObj<typeof Combobox>
 
 export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: 'Explore searchable country selection with working controls; Austria and France demonstrate unavailable options.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className="mx-auto w-full max-w-sm">
+      <Combobox {...args} />
+    </div>
+  ),
   args: {
-    label: 'Select Country',
+    label: 'Select country',
     placeholder: 'Choose a country...',
     items: countries,
-    helpText: 'Select your country of residence',
+    helpText: 'Choose your country of residence; Austria and France are not available yet.',
     size: 'md',
     validateStatus: 'default',
     showHelpTextIcon: true,
@@ -112,18 +139,133 @@ export const Playground: Story = {
     clearable: true,
     closeOnSelect: true,
     selectionBehavior: 'replace',
+    inputBehavior: 'autocomplete',
+    onChange: fn(),
+    onInputValueChange: fn(),
+    onOpenChange: fn(),
   },
 }
 
+export const Sizes: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: 'Compare small, medium, and large controls to choose a density that matches the surrounding form.',
+      },
+    },
+  },
+  render: () => (
+    <div className="mx-auto w-full max-w-sm"><VariantContainer>
+      <Combobox
+        label="Small size"
+        placeholder="Select country"
+        items={countries}
+        helpText="Small combobox variant"
+        size="sm"
+      />
+      <Combobox
+        label="Medium size"
+        placeholder="Select country"
+        items={countries}
+        helpText="Medium combobox variant (default)"
+        size="md"
+      />
+      <Combobox
+        label="Large size"
+        placeholder="Select country"
+        items={countries}
+        helpText="Large combobox variant"
+        size="lg"
+      />
+    </VariantContainer></div>
+  ),
+}
+
+export const ValidationStates: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: 'Pair each validation treatment with a clear message so the result is understandable without relying on color.',
+      },
+    },
+  },
+  render: () => (
+    <div className="mx-auto w-full max-w-sm"><VariantContainer>
+      <Combobox
+        label="Default state"
+        placeholder="Select country"
+        items={countries}
+        closeOnSelect
+        helpText="Default state without validation"
+      />
+      <Combobox
+        label="Error state"
+        placeholder="Select country"
+        items={countries}
+        validateStatus="error"
+        helpText="Please select a valid country"
+      />
+      <Combobox
+        label="Success state"
+        placeholder="Select country"
+        items={countries}
+        validateStatus="success"
+        helpText="Your choice is valid"
+      />
+      <Combobox
+        label="Warning state"
+        placeholder="Select country"
+        items={countries}
+        validateStatus="warning"
+        helpText="This country may require additional verification"
+      />
+    </VariantContainer></div>
+  ),
+}
+
+export const States: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: 'Distinguish a locked field from a readable saved value so users understand why a country cannot be edited.' } },
+  },
+  render: () => (
+    <div className="mx-auto grid w-full max-w-sm gap-300">
+      <Combobox
+        label="Delivery country"
+        items={countries}
+        disabled
+        helpText="Choose a delivery method before selecting a country."
+      />
+      <Combobox
+        label="Billing country"
+        items={countries}
+        defaultValue="cz"
+        readOnly
+        helpText="Billing country is managed in your organization settings."
+      />
+    </div>
+  ),
+}
+
 export const ControlledStringValue: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: 'Keep a country selection in application state and clear it externally to demonstrate scalar value normalization.',
+      },
+    },
+  },
   tags: ['ui-runtime-regression'],
   render: () => {
     const [value, setValue] = useState('cz')
 
     return (
-      <div className="grid w-sm gap-150">
+      <div className="mx-auto grid w-full max-w-sm gap-150">
         <Combobox
-          label="Controlled Country"
+          label="Controlled country"
           placeholder="Choose a country..."
           items={countries}
           value={value}
@@ -143,7 +285,7 @@ export const ControlledStringValue: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    const input = canvas.getByRole('combobox', { name: 'Controlled Country' })
+    const input = canvas.getByRole('combobox', { name: 'Controlled country' })
 
     await waitFor(() => expect(input).toHaveValue('Czech Republic'))
     await expect(
@@ -158,42 +300,15 @@ export const ControlledStringValue: Story = {
   },
 }
 
-export const ValidationStates: Story = {
-  render: () => (
-    <VariantContainer>
-      <Combobox
-        label="Default State"
-        placeholder="Select country"
-        items={countries}
-        closeOnSelect
-        helpText="Default state without validation"
-      />
-      <Combobox
-        label="Error State"
-        placeholder="Select country"
-        items={countries}
-        validateStatus="error"
-        helpText="Please select a valid country"
-      />
-      <Combobox
-        label="Success State"
-        placeholder="Select country"
-        items={countries}
-        validateStatus="success"
-        helpText="Your choice is valid"
-      />
-      <Combobox
-        label="Warning State"
-        placeholder="Select country"
-        items={countries}
-        validateStatus="warning"
-        helpText="This country may require additional verification"
-      />
-    </VariantContainer>
-  ),
-}
-
 export const MultipleSelection: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: 'Choose several countries and remove them using named buttons so every selected value stays visible and keyboard removable.',
+      },
+    },
+  },
   render: () => {
     const [selectedValues, setSelectedValues] = useState<string[]>([])
 
@@ -206,13 +321,13 @@ export const MultipleSelection: Story = {
     }
 
     return (
-      <div className="w-80 space-y-4">
+      <div className="mx-auto w-full max-w-sm space-y-200">
         {selectedCountries.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-100">
             {selectedCountries.map((country) => (
               <span
                 key={country.value}
-                className="inline-flex items-center gap-50 rounded-full bg-surface p-150 py-50 text-sm"
+                className="inline-flex items-center gap-50 rounded-full bg-surface px-150 py-50 text-sm"
               >
                 {country.label}
                 <Button
@@ -223,20 +338,21 @@ export const MultipleSelection: Story = {
                   className="bg-surface"
                   aria-label={`Remove ${country.label}`}
                 >
-                  <Icon icon="icon-[mdi--close]"/>
+                  <Icon icon="icon-[mdi--close]" />
                 </Button>
               </span>
             ))}
           </div>
         )}
         <Combobox
-          label="Select Countries"
+          label="Select countries"
           placeholder="Choose countries..."
           items={countries}
           value={selectedValues}
           multiple
           selectionBehavior="clear"
           closeOnSelect={false}
+          helpText="Choose all applicable countries; Austria and France are not available yet."
           onChange={(value) => {
             setSelectedValues(Array.isArray(value) ? value : [value])
           }}
@@ -246,35 +362,16 @@ export const MultipleSelection: Story = {
   },
 }
 
-export const Sizes: Story = {
-  render: () => (
-    <VariantContainer>
-      <Combobox
-        label="Small Size"
-        placeholder="Select country"
-        items={countries}
-        helpText="Small combobox variant"
-        size="sm"
-      />
-      <Combobox
-        label="Medium Size"
-        placeholder="Select country"
-        items={countries}
-        helpText="Medium combobox variant (default)"
-        size="md"
-      />
-      <Combobox
-        label="Large Size"
-        placeholder="Select country"
-        items={countries}
-        helpText="Large combobox variant"
-        size="lg"
-      />
-    </VariantContainer>
-  ),
-}
-
 export const ComplexStory: Story = {
+  name: 'Selection validation',
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: 'Select a country to see contextual validation feedback change as eligibility rules are applied.',
+      },
+    },
+  },
   render: () => {
     const [selectedCountryValue, setSelectedCountryValue] = useState<
       string | null
@@ -299,9 +396,9 @@ export const ComplexStory: Story = {
             : 'Select your country of residence'
 
     return (
-      <div className="w-72 space-y-8">
+      <div className="mx-auto w-full max-w-sm space-y-300">
         <Combobox
-          label="Select Country (Dynamic Validation)"
+          label="Country of residence"
           placeholder="Choose a country..."
           items={countries}
           onChange={(value) => {
@@ -311,9 +408,9 @@ export const ComplexStory: Story = {
           validateStatus={validateStatus}
           helpText={dynamicHelpText}
         />
-        <div className="text-sm ">
+        <div className="text-sm">
           Try selecting different countries to see validation states change:
-          <ul className="mt-2 ml-5 list-disc">
+          <ul className="mt-100 ms-250 list-disc">
             <li>USA - error</li>
             <li>Slovakia - warning</li>
             <li>Czech Republic - success</li>
@@ -325,8 +422,15 @@ export const ComplexStory: Story = {
 }
 
 export const Grouped: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: 'Organize countries by region so a longer list is easier to scan while preserving keyboard navigation.',
+      },
+    },
+  },
   args: {
-    label: 'Select Country',
+    label: 'Select country',
     placeholder: 'Choose a country...',
     defaultOpen: true,
     groups: [
@@ -349,27 +453,41 @@ export const Grouped: Story = {
 }
 
 export const ExternalFiltering: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: 'Simulate a debounced remote search with loading feedback and cancellation of stale queries.',
+      },
+    },
+  },
   render: () => <ExternalFilteringExample />,
 }
 
 function ExternalFilteringExample() {
+  const [query, setQuery] = useState('')
   const [results, setResults] = useState<ComboboxItem[]>(countries)
   const [loading, setLoading] = useState(false)
 
-  const handleInput = (value: string) => {
-    setLoading(true)
-    setTimeout(() => {
+  useEffect(() => {
+    const timeout = setTimeout(() => {
       setResults(
-        countries.filter((c) =>
-          c.label.toLowerCase().includes(value.toLowerCase())
+        countries.filter((country) =>
+          country.label.toLowerCase().includes(query.toLowerCase())
         )
       )
       setLoading(false)
     }, 500)
+    return () => clearTimeout(timeout)
+  }, [query])
+
+  const handleInput = (value: string) => {
+    setQuery(value)
+    setLoading(true)
   }
 
   return (
-    <div className="w-xs">
+    <div className="mx-auto w-full max-w-sm">
       <Combobox
         label="Search country (external)"
         placeholder="Type to search..."
@@ -383,6 +501,13 @@ function ExternalFilteringExample() {
 }
 
 export const Loading: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: 'Replace pending suggestions with a loading announcement so users cannot select stale results.',
+      },
+    },
+  },
   args: {
     label: 'Loading results',
     placeholder: 'Searching...',
@@ -393,6 +518,13 @@ export const Loading: Story = {
 }
 
 export const LoadingWithSelection: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: 'Preserve the current country label while fresh suggestions load without exposing stale options to keyboard selection.',
+      },
+    },
+  },
   args: {
     label: 'Loading with selection',
     items: countries.slice(0, 2),
@@ -403,11 +535,19 @@ export const LoadingWithSelection: Story = {
 }
 
 export const ErrorRetry: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: 'Keep search failure and retry feedback next to the field so users can recover without leaving the form.',
+      },
+    },
+  },
   render: () => {
     const [retryCount, setRetryCount] = useState(0)
 
     return (
-      <div className="w-xs">
+      <div className="mx-auto w-full max-w-sm">
         {retryCount > 0 && (
           <p className="mb-200 text-status-text-sm text-fg-secondary">
             Retried {retryCount} time(s)
@@ -433,17 +573,31 @@ const richCountries: ComboboxItem<{ subtitle: string }>[] = [
 ]
 
 export const RichItem: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: 'Show a country icon and secondary region label with state-aware foregrounds that remain readable when selected or highlighted.',
+      },
+    },
+  },
   render: () => (
-    <div className="w-xs">
+    <div className="mx-auto w-full max-w-sm">
       <Combobox
         label="Country with details"
         placeholder="Select a country..."
         items={richCountries}
         defaultOpen
+        defaultValue="cz"
+        closeOnSelect={false}
+        helpText="Type to filter, or use the arrow keys to compare countries."
         renderItem={(item) => (
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span>{item.label}</span>
-            <span className="text-status-text-sm text-fg-secondary">{item.data?.subtitle}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-150">
+            <Icon icon="icon-[mdi--earth]" size="md" />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate">{item.label}</span>
+              <span className="text-combobox-item-fg-secondary text-sm">{item.data?.subtitle}</span>
+            </div>
           </div>
         )}
       />

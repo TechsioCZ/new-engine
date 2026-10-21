@@ -7,13 +7,13 @@
  */
 @theme static {
   /* Reference layer */
-  --color-date-picker-surface: var(--color-fill-overlay);
+  --color-date-picker-surface: var(--color-popup-bg);
   --color-date-picker-fill: var(--color-form-control-bg);
   --color-date-picker-fill-hover: var(--color-form-control-bg-hover);
   --color-date-picker-fill-active: var(--color-form-control-bg-focus);
   --color-date-picker-accent: var(--color-bg-primary-base);
   --color-date-picker-accent-hover: var(--color-bg-primary-hover);
-  --color-date-picker-accent-foreground: var(--color-fg-light);
+  --color-date-picker-accent-foreground: var(--color-fg-on-primary-solid-neo);
   --color-date-picker-text: var(--color-fg-primary);
   --color-date-picker-text-muted: var(--color-fg-secondary);
   --color-date-picker-placeholder: var(--color-form-control-fg-placeholder);
@@ -70,9 +70,9 @@
   --color-date-picker-trigger-fg: var(--color-date-picker-text);
   --color-date-picker-trigger-fg-disabled: var(--color-date-picker-disabled);
   --color-date-picker-trigger-ring: var(--color-date-picker-ring);
-  --color-date-picker-content-bg: var(--color-date-picker-surface);
+  --color-date-picker-content-bg: var(--color-popup-bg);
   --color-date-picker-content-fg: var(--color-date-picker-text);
-  --color-date-picker-content-border: var(--color-date-picker-border);
+  --color-date-picker-content-border: var(--color-popup-border);
   --color-date-picker-navigation-bg-hover: var(--color-date-picker-fill-hover);
   --color-date-picker-navigation-fg: var(--color-date-picker-text);
   --color-date-picker-navigation-fg-disabled: var(--color-date-picker-disabled);
@@ -117,7 +117,7 @@
   --radius-date-picker-content: var(--radius-popover);
   --radius-date-picker-day: var(--radius-button-sm);
   --radius-date-picker-time: var(--radius-form-control-sm);
-  --shadow-date-picker-content: var(--shadow-popover);
+  --shadow-date-picker-content: var(--shadow-popup);
 
   --gap-date-picker-root: var(--spacing-form-field-gap);
   --gap-date-picker-control: var(--spacing-100);
@@ -222,4 +222,9 @@
     margin: 0;
     appearance: none;
   }
+}
+
+/* Set the content layer too: Zag copies it onto its floating positioner. */
+@utility date-picker-popup-layer {
+  z-index: calc(var(--z-popup) + var(--layer-index, 0));
 }

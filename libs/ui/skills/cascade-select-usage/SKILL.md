@@ -6,7 +6,7 @@ description: >
   compound parts, parent or multiple selection, validation, and keyboard
   navigation.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -110,7 +110,18 @@ name, form, formatValue, onValueChange, onOpenChange, onHighlightChange
 
 Use Label, Control, Trigger, ValueText, Positioner, Content, and Node. Node is
 the default recursive renderer built from the public List, Item, ItemText,
-ItemIndicator, and BranchIndicator parts.
+ItemIndicator, and BranchIndicator parts. It renders separate columns with
+numbered headers and a persistent marker on the expanded ancestor path.
+Set `<CascadeSelect.Node rootLabel="Categories" />` to name the first column
+(default: `Options`); subsequent headers use the expanded parent's label.
+The marker means "this branch is open", not "this value is selected" — selected
+values have a checkmark.
+
+The trigger is a combobox with a tree popup. Arrow keys traverse levels,
+Enter selects a value, and Escape closes the popup. On narrow screens the
+columns scroll horizontally, and the active option scrolls into view as the
+user traverses levels. Each visible child group
+is labeled by its column header and owned by its expanded parent item.
 
 ### Treat each selected value as a complete path
 
@@ -128,7 +139,20 @@ only when selecting a whole branch is meaningful.
 the trigger's `aria-describedby` while mounted. You can provide a custom `id`;
 existing `aria-describedby` references on `CascadeSelect.Trigger` are preserved.
 Conditionally render StatusText when guidance or validation text is available;
-unmounting it removes its automatic description reference.
+unmounting it removes only its automatic description reference, leaving helper
+text and caller-provided descriptions linked. Keep persistent helper text at
+`status="default"` when the field becomes invalid, and render a separate
+`<CascadeSelect.StatusText showIcon>` for the error. Set
+`validateStatus="error"` on the root so the trigger exposes `aria-invalid`;
+put actionable correction text in the error rather than relying on border color.
+
+The **Accessible status text** story demonstrates this with a product form:
+saving an empty category reveals the error, selecting a leaf resolves it, and
+saving again confirms success. The helper remains associated throughout.
+Use `noValidate` on forms that present their own inline validation: keep
+`required` on CascadeSelect for its accessible required state, validate the
+selected path on submit, and show a linked error instead of relying on a native
+validation bubble for the hidden form input.
 
 ### Let Select and popup tokens define appearance
 

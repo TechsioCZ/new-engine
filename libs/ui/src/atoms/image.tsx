@@ -2,7 +2,7 @@
  * Image — @techsio/ui-kit atom.
  *
  * @component Image
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill image-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -14,6 +14,7 @@ import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
 
 const imageVariants = tv({
+  base: "block max-w-full object-cover",
   variants: {
     size: {
       sm: "size-image-sm",

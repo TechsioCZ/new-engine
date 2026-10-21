@@ -5,7 +5,7 @@ description: >
   select, validate, preview, and manage local File objects through the Zag.js
   compound API, including accepted/rejected files and native form behavior.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -183,6 +183,21 @@ raw Zag rejection errors in application-appropriate copy.
 
 `FileUpload.ClearTrigger` clears both accepted and rejected files. Use
 `api.clearRejectedFiles()` when an action should clear only rejected files.
+
+### Name drop zones and explain their states
+
+A clickable Dropzone takes its accessible name from `FileUpload.Label`; override
+with `aria-label` or `aria-labelledby` when a different name is needed. Enter
+and Space open the native picker without scrolling the page. With
+`disableClick`, Dropzone is a group rather than an application-mode region;
+include a separate `FileUpload.Trigger` for keyboard browsing.
+
+Connect requirements and validation copy with `aria-describedby`. Explain
+rejection with text and an icon, not just a red border. Accepted means selected
+locally, not uploaded. Disabled controls need a visible reason. The Drop zone
+states story deliberately separates labelled static previews from its interactive
+selector; `data-dragging` in a preview is only a visual fixture, not a public
+machine-state control.
 
 ### Preserve controlled Zag state
 

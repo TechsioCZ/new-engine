@@ -5,7 +5,7 @@ description: >
   transient edge panels, modal or non-modal behavior, snap points, swipe
   gestures, multiple triggers, custom portals, controlled state, and stacks.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -51,7 +51,7 @@ where actions and feedback live). This section applies them to `Drawer`.
 **Do**
 
 - Open from the edge that matches the content's origin: navigation start, cart/filters/details end.
-- Keep a visible title and close button; footer actions bottom-right like dialogs.
+- Keep a visible title and close button; footer actions bottom-right like dialogs. Footer actions wrap on narrow screens so fixed-height buttons retain legible, single-line labels.
 - Return focus to the trigger on close; preserve page scroll.
 
 **Don't**
@@ -151,6 +151,15 @@ grabber.
 Give each `Drawer.Trigger` a stable `value`. Read `api.triggerValue` through
 `Drawer.Context` or control it with `triggerValue` and
 `onTriggerValueChange`.
+
+An Edit trigger must open labelled editable fields, not a read-only summary.
+Keep a draft per open session, persist it only after valid submission, and reset
+it when reopening after Cancel. Put a neutral
+`<Drawer.CloseTrigger size="md" theme="outlined" variant="tertiary">Cancel</Drawer.CloseTrigger>`
+before the primary Save changes action; a footer submit button can target the
+body form with `form={formId}`. Use `draggable={false}` on editable content to
+avoid competing with text selection, and show a persistent saved confirmation
+outside the panel.
 
 ### Coordinate nested drawers with Stack
 

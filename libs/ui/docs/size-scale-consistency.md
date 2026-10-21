@@ -1,5 +1,11 @@
 # Size-scale consistency across overlay and form components
 
+> **Current contract:** [Component contracts](component-contracts.md#3-canonical-sizes)
+> standardizes interactive controls on sm/md/lg (default md), retains existing
+> xs/current compatibility escapes, and keeps the current typography scale.
+> Dense interfaces choose sm explicitly. The audit below remains historical;
+> its proposed global md shrink is not the selected approach.
+
 Findings from building `DataTable`, where form controls, a Menu and a Select sit
 side by side in one dense filter strip and the size mismatch became obvious.
 This is a plan, not something the DataTable branch changes.

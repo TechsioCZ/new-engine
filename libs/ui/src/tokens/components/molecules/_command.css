@@ -31,6 +31,7 @@
   /* TYPOGRAPHY */
   --text-command-md: var(--text-sm);
   --font-weight-command-group-label: var(--font-weight-medium);
+  --font-weight-command-item-highlighted: var(--font-weight-semibold);
 
   /* BORDERS & RADIUS */
   --border-width-command: var(--border-width-popup);

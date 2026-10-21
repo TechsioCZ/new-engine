@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.3.4
+ * @componentVersion v1.3.5
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,9 +13,15 @@ import {
   machine as comboboxMachine,
   connect as connectCombobox,
   collection as createComboboxCollection,
+  type Api as ZagComboboxApi,
   type Props as ZagComboboxProps,
 } from "@zag-js/combobox"
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
+import {
+  normalizeProps,
+  Portal,
+  type PropTypes,
+  useMachine,
+} from "@zag-js/react"
 import { type ReactNode, useEffect, useId, useMemo, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
@@ -88,20 +94,15 @@ const comboboxVariants = tv({
     ],
     itemText: ["min-w-0 flex-grow truncate"],
     item: [
-      "popup-item-base",
-      "hover:bg-popup-item-bg-hover",
-      "data-highlighted:bg-popup-item-bg-hover",
-      "data-[state=checked]:bg-popup-item-bg-selected",
-      "data-[state=checked]:text-popup-item-fg-selected",
-      "data-disabled:cursor-not-allowed data-disabled:text-popup-item-fg-disabled",
+      "combobox-item-base",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     // Matches Select: absolutely positioned in the reserved end gutter, so a
     // checked option never shifts its label.
     itemIndicator: [
-      "-translate-y-1/2 absolute end-(--popup-item-x) top-1/2",
+      "absolute end-(--popup-item-x) top-1/2 -translate-y-1/2",
       "flex items-center justify-center",
-      "size-(--size-popup-indicator) text-popup-item-fg-selected",
+      "size-(--size-popup-indicator) text-current",
     ],
     emptyState: [
       "px-(--popup-item-x) py-(--popup-item-y)",
@@ -231,6 +232,266 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
     portalled?: boolean
   }
 
+type ComboboxApi<T> = ZagComboboxApi<PropTypes, ComboboxItem<T>>
+type ComboboxStyles = ReturnType<typeof comboboxVariants>
+type ComboboxOptionProps<T> = Pick<
+  ComboboxProps<T>,
+  "disabled" | "readOnly" | "navigate" | "renderItem"
+> & {
+  api: ComboboxApi<T>
+  item: ComboboxItem<T>
+  navigation: boolean
+  styles: ComboboxStyles
+}
+
+function ComboboxOption<T>({
+  api,
+  item,
+  navigation,
+  disabled,
+  readOnly,
+  navigate,
+  renderItem,
+  styles,
+}: ComboboxOptionProps<T>) {
+  const { item: itemSlot, itemText, itemIndicator } = styles
+  const itemProps = api.getItemProps({ item })
+  const itemContent = renderItem ? (
+    renderItem(item)
+  ) : (
+    <span className={itemText()}>{item.label}</span>
+  )
+
+  if (navigation) {
+    const blocked = disabled || readOnly || item.disabled || !item.href
+    return (
+      <a
+        {...itemProps}
+        aria-label={item.label}
+        className={itemSlot()}
+        href={blocked ? undefined : item.href}
+        onClick={(event) => {
+          if (blocked) {
+            event.preventDefault()
+            return
+          }
+          itemProps.onClick?.(event)
+          if (
+            navigate &&
+            !event.defaultPrevented &&
+            event.button === 0 &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey
+          ) {
+            event.preventDefault()
+            navigate({
+              node: event.currentTarget,
+              href: event.currentTarget.href,
+              value: item.value,
+            })
+          }
+        }}
+      >
+        {itemContent}
+      </a>
+    )
+  }
+
+  return (
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: Zag supplies role="option"; focus stays on the input via aria-activedescendant.
+    <div {...itemProps} aria-label={item.label} className={itemSlot()}>
+      {itemContent}
+      <span
+        {...api.getItemIndicatorProps({ item })}
+        className={itemIndicator()}
+      >
+        <Icon icon="token-icon-check" size="current" />
+      </span>
+    </div>
+  )
+}
+
+type ComboboxOptionsProps<T> = Omit<ComboboxOptionProps<T>, "item"> & {
+  groups?: ComboboxItemGroup<T>[]
+}
+
+function ComboboxOptions<T>({
+  groups,
+  ...optionProps
+}: ComboboxOptionsProps<T>) {
+  const { api, styles } = optionProps
+  const renderOption = (item: ComboboxItem<T>) => (
+    <ComboboxOption {...optionProps} item={item} key={item.value} />
+  )
+  if (!groups) {
+    return api.collection.items.map(renderOption)
+  }
+
+  const visibleValues = new Set(api.collection.items.map((item) => item.value))
+  return groups.map((group) => {
+    const groupItems = group.items.filter((item) =>
+      visibleValues.has(item.value)
+    )
+    if (groupItems.length === 0) {
+      return null
+    }
+    const groupProps = api.getItemGroupProps({ id: group.id })
+    return (
+      // biome-ignore lint/a11y/useAriaPropsSupportedByRole: Zag supplies the listbox option group role.
+      <div
+        {...groupProps}
+        aria-labelledby={
+          group.label ? groupProps["aria-labelledby"] : undefined
+        }
+        key={group.id}
+      >
+        {group.label && (
+          <div
+            {...api.getItemGroupLabelProps({ htmlFor: group.id })}
+            className={styles.groupLabel()}
+          >
+            {group.label}
+          </div>
+        )}
+        {groupItems.map(renderOption)}
+      </div>
+    )
+  })
+}
+
+function normalizeValue(value: ComboboxProps["value"]) {
+  if (typeof value === "string") {
+    return value ? [value] : []
+  }
+  return value
+}
+
+function getResultsState({
+  loading,
+  error,
+  hasOptions,
+  inputValue,
+}: {
+  loading: boolean
+  error: ReactNode
+  hasOptions: boolean
+  inputValue: string
+}) {
+  if (loading) {
+    return "loading"
+  }
+  if (error) {
+    return "error"
+  }
+  if (hasOptions) {
+    return "results"
+  }
+  return inputValue ? "empty" : "idle"
+}
+
+function ComboboxClearTrigger<T>({
+  api,
+  navigation,
+  clearable,
+  clearIcon,
+  size,
+  disabled,
+  readOnly,
+}: Pick<ComboboxProps<T>, "clearable" | "size" | "disabled" | "readOnly"> & {
+  api: ComboboxApi<T>
+  clearIcon: IconType
+  navigation: boolean
+}) {
+  const hasValue = navigation ? Boolean(api.inputValue) : api.value.length > 0
+  if (!(clearable && hasValue)) {
+    return null
+  }
+  return (
+    <ActionIcon
+      icon={clearIcon}
+      size={size ?? "md"}
+      tone="neutral"
+      {...api.getClearTriggerProps()}
+      aria-label={api.getClearTriggerProps()["aria-label"] ?? "Clear value"}
+      disabled={disabled || readOnly}
+      hidden={false}
+      onClick={(event) => {
+        if (navigation) {
+          if (disabled || readOnly) {
+            return
+          }
+          api.setInputValue("")
+          api.focus()
+        } else {
+          api.getClearTriggerProps().onClick?.(event)
+        }
+      }}
+    />
+  )
+}
+
+function ComboboxStatus({
+  state,
+  styles,
+  loadingMessage,
+  error,
+  onRetry,
+  disabled,
+  readOnly,
+  retryLabel,
+  noResultsMessage,
+  inputValue,
+}: Pick<
+  ComboboxProps,
+  | "loadingMessage"
+  | "error"
+  | "onRetry"
+  | "disabled"
+  | "readOnly"
+  | "retryLabel"
+> & {
+  state: ReturnType<typeof getResultsState>
+  styles: ComboboxStyles
+  noResultsMessage: string
+  inputValue: string
+}) {
+  if (state === "loading") {
+    return (
+      <div className={styles.status()} role="status">
+        <Icon icon="token-icon-spinner" size="current" />
+        <span>{loadingMessage}</span>
+      </div>
+    )
+  }
+  if (state === "error") {
+    return (
+      <div className={styles.status()} role="alert">
+        <span className="min-w-0 flex-1">{error}</span>
+        {onRetry && (
+          <Button
+            disabled={disabled || readOnly}
+            onClick={onRetry}
+            size="sm"
+            variant="secondary"
+          >
+            {retryLabel}
+          </Button>
+        )}
+      </div>
+    )
+  }
+  if (state === "empty") {
+    return (
+      <div className={styles.emptyState()} role="status">
+        {noResultsMessage.replace("{inputValue}", inputValue)}
+      </div>
+    )
+  }
+  return null
+}
+
 export function Combobox<T = unknown>({
   id,
   name,
@@ -303,17 +564,6 @@ export function Combobox<T = unknown>({
       ),
   })
 
-  let normalizedValue = value
-  if (typeof normalizedValue === "string") {
-    normalizedValue = normalizedValue ? [normalizedValue] : []
-  }
-  let normalizedDefaultValue = defaultValue
-  if (typeof normalizedDefaultValue === "string") {
-    normalizedDefaultValue = normalizedDefaultValue
-      ? [normalizedDefaultValue]
-      : []
-  }
-
   const service = useMachine(comboboxMachine, {
     id: uniqueId,
     name: navigation ? undefined : name,
@@ -342,12 +592,14 @@ export function Combobox<T = unknown>({
       input: `${uniqueId}-input`,
       control: `${uniqueId}-control`,
     },
-    value: navigation ? [] : normalizedValue,
-    defaultValue: navigation ? undefined : normalizedDefaultValue,
+    value: navigation ? [] : normalizeValue(value),
+    defaultValue: navigation ? undefined : normalizeValue(defaultValue),
     multiple: !navigation && multiple,
     inputValue,
     onValueChange: ({ value: selectedValue }) => {
-      if (!navigation) onChange?.(selectedValue)
+      if (!navigation) {
+        onChange?.(selectedValue)
+      }
     },
     onInputValueChange: ({ inputValue: newItemInputValue }) => {
       if (filterBehavior === "local") {
@@ -358,14 +610,27 @@ export function Combobox<T = unknown>({
       }
       onInputValueChange?.(newItemInputValue)
     },
-    onOpenChange: ({ open }) => {
-      setOptions(allItems)
-      onOpenChange?.(open)
+    onOpenChange: ({ open: nextOpen, reason }) => {
+      // Zag opens after notifying the first input change. Do not overwrite
+      // that freshly filtered collection; explicit reopening restores choices.
+      if (reason !== "input-change") {
+        setOptions(allItems)
+      }
+      onOpenChange?.(nextOpen)
     },
   })
 
   const api = connectCombobox(service, normalizeProps)
+  // The inner list owns listbox semantics; the outer surface is only the
+  // dismissal boundary and also contains statuses and retry/footer actions.
+  const {
+    role: _contentRole,
+    tabIndex: _contentTabIndex,
+    "aria-labelledby": _contentLabel,
+    ...contentProps
+  } = api.getContentProps()
 
+  const styles = comboboxVariants({ size })
   const {
     root,
     label: labelStyles,
@@ -375,89 +640,16 @@ export function Combobox<T = unknown>({
     positioner,
     content,
     list,
-    groupLabel,
     footer: footerSlot,
-    item: itemSlot,
-    itemText,
-    itemIndicator,
-    emptyState,
-    status: statusSlot,
     triggerIndicator,
-  } = comboboxVariants({ size })
+  } = styles
 
-  const hasOptions = api.collection.size > 0
-  const showEmptyState =
-    !(resultsHidden || hasOptions) && Boolean(api.inputValue)
-  let state = "idle"
-  if (loading) state = "loading"
-  else if (error) state = "error"
-  else if (hasOptions) state = "results"
-  else if (showEmptyState) state = "empty"
-  const visibleValues = new Set(collection.items.map((item) => item.value))
-
-  const renderOption = (item: ComboboxItem<T>) => {
-    const itemProps = api.getItemProps({ item })
-    const itemContent = renderItem ? (
-      renderItem(item)
-    ) : (
-      <span className={itemText()}>{item.label}</span>
-    )
-
-    if (navigation) {
-      const blocked = disabled || readOnly || item.disabled || !item.href
-      return (
-        <a
-          {...itemProps}
-          aria-label={item.label}
-          className={itemSlot()}
-          href={blocked ? undefined : item.href}
-          key={item.value}
-          onClick={(event) => {
-            if (blocked) {
-              event.preventDefault()
-              return
-            }
-            itemProps.onClick?.(event)
-            if (
-              navigate &&
-              !event.defaultPrevented &&
-              event.button === 0 &&
-              !event.metaKey &&
-              !event.ctrlKey &&
-              !event.shiftKey &&
-              !event.altKey
-            ) {
-              event.preventDefault()
-              navigate({
-                node: event.currentTarget,
-                href: event.currentTarget.href,
-                value: item.value,
-              })
-            }
-          }}
-        >
-          {itemContent}
-        </a>
-      )
-    }
-
-    return (
-      <div
-        {...itemProps}
-        aria-label={item.label}
-        className={itemSlot()}
-        key={item.value}
-      >
-        {itemContent}
-        <span
-          {...api.getItemIndicatorProps({ item })}
-          className={itemIndicator()}
-        >
-          <Icon icon="token-icon-check" size="current" />
-        </span>
-      </div>
-    )
-  }
+  const state = getResultsState({
+    loading,
+    error,
+    hasOptions: api.collection.size > 0,
+    inputValue: api.inputValue,
+  })
 
   return (
     <div
@@ -492,29 +684,15 @@ export function Combobox<T = unknown>({
           size={size}
         />
 
-        {clearable &&
-          (navigation ? Boolean(api.inputValue) : api.value.length > 0) && (
-            <ActionIcon
-              icon={clearIcon}
-              size={size ?? "md"}
-              tone="neutral"
-              {...api.getClearTriggerProps()}
-              aria-label={
-                api.getClearTriggerProps()["aria-label"] ?? "Clear value"
-              }
-              disabled={disabled || readOnly}
-              hidden={false}
-              onClick={(event) => {
-                if (navigation) {
-                  if (disabled || readOnly) return
-                  api.setInputValue("")
-                  api.focus()
-                } else {
-                  api.getClearTriggerProps().onClick?.(event)
-                }
-              }}
-            />
-          )}
+        <ComboboxClearTrigger
+          api={api}
+          clearable={clearable}
+          clearIcon={clearIcon}
+          disabled={disabled}
+          navigation={navigation}
+          readOnly={readOnly}
+          size={size}
+        />
 
         <Button
           {...api.getTriggerProps()}
@@ -534,78 +712,37 @@ export function Combobox<T = unknown>({
 
       <Portal disabled={!portalled}>
         <div {...api.getPositionerProps()} className={positioner()}>
-          <div
-            {...api.getContentProps()}
-            aria-labelledby={undefined}
-            className={content()}
-            data-status={state}
-            role={undefined}
-            tabIndex={undefined}
-          >
-            {loading ? (
-              <div className={statusSlot()} role="status">
-                <Icon icon="token-icon-spinner" size="current" />
-                <span>{loadingMessage}</span>
-              </div>
-            ) : error ? (
-              <div className={statusSlot()} role="alert">
-                <span className="min-w-0 flex-1">{error}</span>
-                {onRetry && (
-                  <Button
-                    disabled={disabled || readOnly}
-                    onClick={onRetry}
-                    size="sm"
-                    variant="secondary"
-                  >
-                    {retryLabel}
-                  </Button>
-                )}
-              </div>
-            ) : showEmptyState ? (
-              <div className={emptyState()} role="status">
-                {noResultsMessage.replace("{inputValue}", api.inputValue)}
-              </div>
-            ) : null}
+          <div {...contentProps} className={content()} data-status={state}>
+            <ComboboxStatus
+              disabled={disabled}
+              error={error}
+              inputValue={api.inputValue}
+              loadingMessage={loadingMessage}
+              noResultsMessage={noResultsMessage}
+              onRetry={onRetry}
+              readOnly={readOnly}
+              retryLabel={retryLabel}
+              state={state}
+              styles={styles}
+            />
             <div
               {...api.getListProps()}
               aria-busy={loading || undefined}
               className={list()}
               id={listId}
             >
-              {!resultsHidden &&
-                (groups
-                  ? groups.map((group) => {
-                      const groupItems = group.items.filter((item) =>
-                        visibleValues.has(item.value)
-                      )
-                      if (groupItems.length === 0) return null
-                      return (
-                        <div
-                          {...api.getItemGroupProps({ id: group.id })}
-                          aria-labelledby={
-                            group.label
-                              ? api.getItemGroupProps({ id: group.id })[
-                                  "aria-labelledby"
-                                ]
-                              : undefined
-                          }
-                          key={group.id}
-                        >
-                          {group.label && (
-                            <div
-                              {...api.getItemGroupLabelProps({
-                                htmlFor: group.id,
-                              })}
-                              className={groupLabel()}
-                            >
-                              {group.label}
-                            </div>
-                          )}
-                          {groupItems.map(renderOption)}
-                        </div>
-                      )
-                    })
-                  : collection.items.map(renderOption))}
+              {!resultsHidden && (
+                <ComboboxOptions
+                  api={api}
+                  disabled={disabled}
+                  groups={groups}
+                  navigate={navigate}
+                  navigation={navigation}
+                  readOnly={readOnly}
+                  renderItem={renderItem}
+                  styles={styles}
+                />
+              )}
             </div>
             {footer && (
               <div className={footerSlot()} data-part="footer">

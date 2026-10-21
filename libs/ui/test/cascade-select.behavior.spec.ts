@@ -70,20 +70,29 @@ test.describe("CascadeSelect browser behavior", () => {
     const triggers = page.locator(cascadeTriggerSelector)
     const descriptions = [
       "Choose a leaf category.",
-      "",
+      "Category selection is unavailable while the catalog is syncing.",
       "This saved value cannot be changed.",
       "Choose a category before continuing.",
       "Category is available.",
       "This category requires manual review.",
     ]
-    const statusIds = []
+    await expect(triggers.nth(1)).toBeDisabled()
+    await expect(triggers.nth(2)).toHaveAttribute("aria-readonly", "true")
+    await triggers.nth(2).click()
+    await expect(triggers.nth(2)).toHaveAttribute("aria-expanded", "false")
+    await expect(triggers.nth(3)).toHaveAttribute("aria-invalid", "true")
+    await expect(triggers.nth(3)).toHaveAttribute("aria-required", "true")
+
+    const statusIds: string[] = []
     for (const [index, description] of descriptions.entries()) {
       const trigger = triggers.nth(index)
       await expect(trigger).toHaveAccessibleDescription(description)
       if (description) {
         const statusId = await trigger.getAttribute("aria-describedby")
         expect(statusId).toBeTruthy()
-        statusIds.push(statusId)
+        if (statusId) {
+          statusIds.push(statusId)
+        }
       } else {
         await expect(trigger).not.toHaveAttribute("aria-describedby")
       }
@@ -91,56 +100,151 @@ test.describe("CascadeSelect browser behavior", () => {
     expect(new Set(statusIds).size).toBe(statusIds.length)
   })
 
-  test("updates custom status IDs and removes unmounted descriptions without losing caller descriptions", async ({
+  test("links persistent guidance and an icon-backed error, then removes only the resolved error", async ({
     page,
   }) => {
     await openStory(page, stories.accessibleStatusText)
 
     const trigger = page.locator(cascadeTriggerSelector)
-    const guidance = "Your category determines the available products."
-    const error = "Choose a category before continuing."
-    const descriptionId = await page
-      .getByText(guidance, { exact: true })
-      .getAttribute("id")
-    const statusText = page.getByText(error, { exact: true }).locator("..")
-    await expect(statusText).toHaveAttribute("id")
-    const generatedId = await statusText.getAttribute("id")
-    await expect(trigger).toHaveAttribute(
-      "aria-describedby",
-      `${descriptionId} ${generatedId}`
+    const introduction =
+      "Choose where customers will find this product in the catalog."
+    const guidance =
+      "Select a department, then choose its most specific category."
+    const error = "Choose a category before saving the product."
+    const initialIds = await trigger.getAttribute("aria-describedby")
+    await expect(trigger).toHaveAccessibleDescription(
+      `${introduction} ${guidance}`
     )
-    await expect(trigger).toHaveAccessibleDescription(`${guidance} ${error}`)
+    await expect(trigger).not.toHaveAttribute("aria-invalid", "true")
 
-    await page.getByRole("button", { name: "Toggle custom status ID" }).click()
-    await expect(statusText).toHaveAttribute("id", `${descriptionId}-status`)
+    await page.getByRole("button", { name: "Save product" }).click()
+    const errorText = page.getByRole("alert")
+    await expect(errorText).toHaveText(error)
+    await expect(
+      errorText.locator(".token-icon-status-text-error")
+    ).toBeVisible()
+    await expect(trigger).toHaveAttribute("aria-invalid", "true")
+    await expect(trigger).toHaveAccessibleDescription(
+      `${introduction} ${guidance} ${error}`
+    )
+    const errorId = await errorText.getAttribute("id")
+    expect(errorId).toBeTruthy()
     await expect(trigger).toHaveAttribute(
       "aria-describedby",
-      `${descriptionId} ${descriptionId}-status`
+      `${initialIds} ${errorId}`
     )
 
-    await page.getByRole("button", { name: "Toggle custom status ID" }).click()
-    await expect(statusText).toHaveAttribute("id", generatedId ?? "")
-    await expect(trigger).toHaveAttribute(
-      "aria-describedby",
-      `${descriptionId} ${generatedId}`
+    await trigger.click()
+    await page
+      .locator(`${cascadeItemSelector}[data-value="electronics"]`)
+      .click()
+    await page.getByText("Phones", { exact: true }).click()
+    await expect(errorText).toHaveCount(0)
+    await expect(trigger).not.toHaveAttribute("aria-invalid", "true")
+    await expect(trigger).toHaveAccessibleDescription(
+      `${introduction} ${guidance}`
     )
+    await expect(trigger).toHaveAttribute("aria-describedby", initialIds ?? "")
+    await expect(page.locator("output")).toHaveCount(0)
+    await page.getByRole("button", { name: "Save product" }).click()
+    await expect(page.locator("output")).toHaveText("Product category saved.")
 
-    await page.getByRole("button", { name: "Toggle status text" }).click()
-    await expect(statusText).toHaveCount(0)
-    await expect(trigger).toHaveAttribute(
-      "aria-describedby",
-      descriptionId ?? ""
+    await page.getByRole("button", { name: "Clear selection" }).click()
+    await expect(trigger).toHaveAccessibleDescription(
+      `${introduction} ${guidance} ${error}`
     )
-    await expect(trigger).toHaveAccessibleDescription(guidance)
+    await expect(page.locator("output")).toHaveCount(0)
+  })
 
-    await page.getByRole("button", { name: "Toggle status text" }).click()
-    await expect(trigger).toHaveAccessibleDescription(`${guidance} ${error}`)
-    const remountedId = await statusText.getAttribute("id")
-    expect(remountedId).toBeTruthy()
-    await expect(trigger).toHaveAttribute(
-      "aria-describedby",
-      `${descriptionId} ${remountedId}`
+  test("labels distinct columns and keeps the ancestor path marked during keyboard navigation", async ({
+    page,
+  }) => {
+    await openStory(page, stories.openHierarchy)
+    const columns = page.locator(
+      '[data-scope="cascade-select"][data-part="column"]'
     )
+    await expect(columns).toHaveCount(2)
+    await expect(
+      columns.nth(0).locator('[data-part="column-header"]')
+    ).toHaveText("1Categories")
+    await expect(
+      columns.nth(1).locator('[data-part="column-header"]')
+    ).toHaveText("2Electronics")
+    await expect(columns.nth(0).getByRole("group")).toHaveAccessibleName(
+      "Categories"
+    )
+    await expect(columns.nth(1).getByRole("group")).toHaveAccessibleName(
+      "Electronics"
+    )
+    const headerSize = await columns
+      .nth(0)
+      .locator('[data-part="column-header"]')
+      .evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize))
+    const itemSize = await columns
+      .nth(0)
+      .getByRole("treeitem")
+      .first()
+      .evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize))
+    expect(headerSize).toBeLessThan(itemSize)
+    const border = await columns
+      .nth(1)
+      .evaluate((el) => getComputedStyle(el).borderInlineStartWidth)
+    expect(Number.parseFloat(border)).toBeGreaterThan(0)
+    const ancestor = page.locator(
+      `${cascadeItemSelector}[data-value="electronics"]`
+    )
+    await expect(ancestor).toHaveAttribute("data-active-path", "")
+    await page.locator(cascadeContentSelector).focus()
+    await page.keyboard.press("ArrowRight")
+    await expect(ancestor).toHaveAttribute("data-active-path", "")
+    const marker = await ancestor.evaluate(
+      (el) => getComputedStyle(el).borderInlineStartColor
+    )
+    expect(marker).not.toBe("rgba(0, 0, 0, 0)")
+    const first = await columns.nth(0).boundingBox()
+    const second = await columns.nth(1).boundingBox()
+    expect(first).not.toBeNull()
+    expect(second).not.toBeNull()
+    if (first && second) {
+      expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(1)
+      expect(second.x).toBeGreaterThanOrEqual(first.x + first.width - 1)
+    }
+  })
+
+  test("exposes a named tree and only references mounted child groups", async ({
+    page,
+  }) => {
+    await openStory(page, stories.playground)
+    const trigger = page.locator(cascadeTriggerSelector)
+    await expect(trigger).toHaveAttribute("aria-haspopup", "tree")
+    await trigger.click()
+    const tree = page.getByRole("tree", { name: "Product category" })
+    await expect(tree).toBeVisible()
+    await expect(tree).not.toHaveAttribute("aria-activedescendant")
+    const electronics = tree.getByRole("treeitem", {
+      name: "Electronics",
+      exact: true,
+    })
+    await expect(electronics).toHaveAttribute("aria-level", "1")
+    await expect(electronics).toHaveAttribute("aria-expanded", "false")
+    await expect(electronics).not.toHaveAttribute("aria-owns")
+    await expect(electronics).not.toHaveAttribute("aria-controls")
+
+    await electronics.click()
+    await expect(electronics).toHaveAttribute("aria-expanded", "true")
+    const childGroup = page.getByRole("group", { name: "Electronics" })
+    const groupId = await childGroup.getAttribute("id")
+    expect(groupId).toBeTruthy()
+    await expect(electronics).toHaveAttribute("aria-owns", groupId ?? "")
+    await expect(electronics).toHaveAttribute("aria-controls", groupId ?? "")
+    const phone = tree.getByRole("treeitem", { name: "Phones", exact: true })
+    await expect(phone).toHaveAttribute("aria-level", "2")
+    await expect(phone).toHaveAttribute("aria-selected", "false")
+    await expect(phone).not.toHaveAttribute("aria-expanded")
+
+    await page.keyboard.press("Escape")
+    await expect(trigger).toHaveAttribute("aria-expanded", "false")
+    await expect(trigger).toBeFocused()
   })
 
   test("matches the shared Select trigger presentation", async ({ page }) => {
@@ -210,6 +314,7 @@ test.describe("CascadeSelect browser behavior", () => {
   test("keeps the popup anchored while adding a hierarchy level", async ({
     page,
   }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Desktop anchoring needs a desktop viewport.
     test.skip(
       testInfo.project.name !== "desktop",
       "This assertion covers constrained desktop placement."
@@ -223,7 +328,9 @@ test.describe("CascadeSelect browser behavior", () => {
     await page.waitForTimeout(300)
     const initialBox = await content.boundingBox()
 
-    await page.getByText("Electronics", { exact: true }).click()
+    await page
+      .locator(`${cascadeItemSelector}[data-value="electronics"]`)
+      .click()
     await expect(
       page.locator('[data-scope="cascade-select"][data-part="list"]')
     ).toHaveCount(2)
@@ -243,7 +350,9 @@ test.describe("CascadeSelect browser behavior", () => {
 
     const trigger = page.locator(cascadeTriggerSelector)
     await trigger.click()
-    await page.getByText("Electronics", { exact: true }).click()
+    await page
+      .locator(`${cascadeItemSelector}[data-value="electronics"]`)
+      .click()
 
     const electronics = page
       .locator(cascadeItemSelector)
@@ -276,6 +385,7 @@ test.describe("CascadeSelect browser behavior", () => {
     await page.keyboard.press("ArrowDown")
     await page.keyboard.press("Enter")
     await expect(trigger).toHaveAttribute("aria-expanded", "true")
+    await expect(page.locator(cascadeContentSelector)).toBeFocused()
     await expect(
       page.locator(`${cascadeItemSelector}[data-highlighted]`)
     ).toContainText("Electronics")
@@ -289,6 +399,37 @@ test.describe("CascadeSelect browser behavior", () => {
     await page.keyboard.press("Enter")
     await expect(trigger).toHaveAttribute("aria-expanded", "false")
     await expect(trigger).toContainText("Electronics / Phones")
+  })
+
+  test("scrolls the keyboard cursor into view when columns overflow", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await openStory(page, stories.playground)
+    await page.locator(cascadeTriggerSelector).focus()
+    await page.keyboard.press("ArrowDown")
+    await page.keyboard.press("Enter")
+    const content = page.locator(cascadeContentSelector)
+    await expect(content).toBeFocused()
+    await page.keyboard.press("ArrowRight")
+    await expect(
+      page.locator('[data-scope="cascade-select"][data-part="list"]')
+    ).toHaveCount(2)
+    await page.keyboard.press("ArrowDown")
+    const phone = page.getByRole("treeitem", { name: "Phones", exact: true })
+    await expect(phone).toHaveAttribute("data-highlighted", "")
+    await expect
+      .poll(async () => {
+        const viewport = await content.boundingBox()
+        const item = await phone.boundingBox()
+        return Boolean(
+          viewport &&
+            item &&
+            item.x >= viewport.x &&
+            item.x + item.width <= viewport.x + viewport.width
+        )
+      })
+      .toBe(true)
   })
 
   test("reflects controlled updates in the trigger", async ({ page }) => {
@@ -322,10 +463,21 @@ test.describe("CascadeSelect browser behavior", () => {
   }) => {
     await openStory(page, stories.withinForm)
 
+    await page.getByRole("button", { name: "Save category" }).click()
+    await expect(page.getByRole("alert")).toHaveText(
+      "Choose a category before saving."
+    )
+    await expect(page.locator(cascadeTriggerSelector)).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    )
+    await expect(page.locator("output")).toHaveCount(0)
     await page.locator(cascadeTriggerSelector).click()
-    await page.getByText("Electronics", { exact: true }).click()
+    await page
+      .locator(`${cascadeItemSelector}[data-value="electronics"]`)
+      .click()
     await page.getByText("Phones", { exact: true }).click()
-    await page.getByRole("button", { name: "Submit" }).click()
+    await page.getByRole("button", { name: "Save category" }).click()
 
     await expect(page.locator("output")).toHaveText(
       "Submitted value: electronics,phones"
@@ -362,7 +514,9 @@ test.describe("CascadeSelect browser behavior", () => {
   test("uses the logical item edge in RTL", async ({ page }) => {
     await openStory(page, stories.playground, "dir:rtl")
     await page.locator(cascadeTriggerSelector).click()
-    await page.getByText("Electronics", { exact: true }).click()
+    await page
+      .locator(`${cascadeItemSelector}[data-value="electronics"]`)
+      .click()
 
     const electronics = page
       .locator(cascadeItemSelector)

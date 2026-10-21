@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.1.2
+ * @componentVersion v1.2.0
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -26,14 +26,15 @@ import {
 import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
 import type {
   ComponentPropsWithoutRef,
+  KeyboardEvent,
   MouseEvent,
   ReactElement,
   ReactNode,
   Ref,
 } from "react"
 import {
-  Fragment,
   createContext,
+  Fragment,
   useContext,
   useEffect,
   useId,
@@ -168,6 +169,8 @@ export type DatePickerRootProps =
 
 export type DatePickerProps = DatePickerRootProps
 
+const DEFAULT_DATE_PICKER_MONTHS = { single: 1, range: 2 } as const
+
 const datePickerVariants = tv({
   slots: {
     root: "relative flex w-full flex-col gap-date-picker-root",
@@ -229,9 +232,9 @@ const datePickerVariants = tv({
       "disabled:cursor-not-allowed disabled:text-date-picker-trigger-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    positioner: "isolate z-(--z-index)",
+    positioner: "date-picker-popup-layer isolate",
     content: [
-      "flex max-h-(--available-height) w-date-picker-content max-w-date-picker-viewport flex-col overflow-hidden",
+      "date-picker-popup-layer flex max-h-(--available-height) w-date-picker-content max-w-date-picker-viewport flex-col overflow-hidden",
       "data-[selection-mode=range]:w-date-picker-content-range",
       "border-(length:--border-width-date-picker-content) border-date-picker-content-border",
       "rounded-date-picker-content bg-date-picker-content-bg text-date-picker-content-fg shadow-date-picker-content",
@@ -285,9 +288,9 @@ const datePickerVariants = tv({
       "data-in-hover-range:rounded-none data-in-hover-range:bg-date-picker-day-bg-range-hover",
       "data-range-start:rounded-date-picker-day data-range-start:rounded-e-none",
       "data-range-end:rounded-date-picker-day data-range-end:rounded-s-none",
-      "data-range-start:bg-date-picker-day-bg-selected data-range-end:bg-date-picker-day-bg-selected",
-      "data-range-start:text-date-picker-day-fg-selected data-range-end:text-date-picker-day-fg-selected",
-      "data-selected:bg-date-picker-day-bg-selected data-selected:text-date-picker-day-fg-selected",
+      "data-range-end:bg-date-picker-day-bg-selected data-range-start:bg-date-picker-day-bg-selected",
+      "data-range-end:text-date-picker-day-fg-selected data-range-start:text-date-picker-day-fg-selected",
+      "data-selected:bg-date-picker-day-bg-selected data-selected:font-date-picker-view data-selected:text-date-picker-day-fg-selected",
       "data-selected:hover:bg-date-picker-day-bg-selected-hover",
       "data-unavailable:text-date-picker-day-fg-unavailable data-unavailable:line-through",
       "data-outside-range:opacity-date-picker-outside",
@@ -302,7 +305,7 @@ const datePickerVariants = tv({
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-date-picker-day-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "data-selected:bg-date-picker-day-bg-selected data-selected:text-date-picker-day-fg-selected",
+      "data-selected:bg-date-picker-day-bg-selected data-selected:font-date-picker-view data-selected:text-date-picker-day-fg-selected",
       "data-disabled:pointer-events-none data-disabled:cursor-not-allowed data-disabled:opacity-date-picker-disabled",
     ],
     timeControl: [
@@ -313,10 +316,10 @@ const datePickerVariants = tv({
     timeGroup: [
       "flex min-w-0 items-center gap-date-picker-time",
       "data-[index=1]:border-date-picker-time-border data-[index=1]:border-t data-[index=1]:pt-date-picker-time",
-      "sm:data-[index=1]:border-s sm:data-[index=1]:border-t-0 sm:data-[index=1]:pt-0 sm:data-[index=1]:ps-date-picker-time",
+      "sm:data-[index=1]:border-s sm:data-[index=1]:border-t-0 sm:data-[index=1]:ps-date-picker-time sm:data-[index=1]:pt-0",
     ],
     timeGroupLabel:
-      "shrink-0 font-date-picker-view text-date-picker-time-label-fg text-date-picker-time-label",
+      "shrink-0 font-date-picker-view text-date-picker-time-label text-date-picker-time-label-fg",
     timeFields: "flex min-w-0 items-center gap-date-picker-indicator",
     timeField: "w-date-picker-time-field shrink-0",
     timeLabel: "sr-only",
@@ -324,7 +327,7 @@ const datePickerVariants = tv({
     timeInput:
       "token-date-picker-time-input px-date-picker-time-input text-center tabular-nums",
     dayPeriod: [
-      "h-date-picker-time-field border-(length:--border-width-date-picker-time) rounded-date-picker-time text-date-picker-sm",
+      "border-(length:--border-width-date-picker-time) h-date-picker-time-field rounded-date-picker-time text-date-picker-sm",
       "border-date-picker-time-border bg-date-picker-time-bg px-date-picker-calendar-cell text-date-picker-time-fg",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-date-picker-time-ring",
@@ -475,6 +478,47 @@ function serializeDatePickerValue(
   return value?.toString() ?? ""
 }
 
+function resolveDatePickerHourCycle(locale: string, hourCycle?: 12 | 24) {
+  return (
+    hourCycle ??
+    (new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions()
+      .hour12
+      ? 12
+      : 24)
+  )
+}
+
+function navigateDatePickerPanelMonths(
+  current: DateValue[],
+  index: number,
+  day: DateValue
+) {
+  const selectedMonth = day.set({ day: 1 })
+  const next = [...current]
+  next[index] = selectedMonth
+  for (let i = index - 1; i >= 0; i--) {
+    const neighbor = next[i + 1]
+    const month = next[i]
+    if (!(neighbor && month)) {
+      continue
+    }
+    if (month.compare(neighbor) >= 0) {
+      next[i] = neighbor.subtract({ months: 1 })
+    }
+  }
+  for (let i = index + 1; i < next.length; i++) {
+    const neighbor = next[i - 1]
+    const month = next[i]
+    if (!(neighbor && month)) {
+      continue
+    }
+    if (month.compare(neighbor) <= 0) {
+      next[i] = neighbor.add({ months: 1 })
+    }
+  }
+  return next
+}
+
 // biome-ignore lint/style/useUnifiedTypeSignatures: overloads preserve the granularity-discriminated public contract.
 export function DatePicker(props: DatePickerDayRootProps): ReactElement
 export function DatePicker(props: DatePickerTimedRootProps): ReactElement
@@ -525,12 +569,7 @@ export function DatePicker({
   const generatedId = useId()
   const uniqueId = id ?? generatedId
   const isTimed = granularity !== "day"
-  const resolvedHourCycle =
-    hourCycle ??
-    (new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions()
-      .hour12
-      ? 12
-      : 24)
+  const resolvedHourCycle = resolveDatePickerHourCycle(locale, hourCycle)
   const [uncontrolledValue, setUncontrolledValue] =
     useState<DatePickerPublicValue | null>(() => defaultValue ?? null)
   const acceptedValue: DatePickerPublicValue | null =
@@ -666,7 +705,8 @@ export function DatePicker({
     selectionMode === "range" && !isTimedRangePopupOpen
       ? (rangeInputDraft ?? acceptedValues)
       : acceptedValues
-  const resolvedNumOfMonths = numOfMonths ?? (selectionMode === "range" ? 2 : 1)
+  const resolvedNumOfMonths =
+    numOfMonths ?? DEFAULT_DATE_PICKER_MONTHS[selectionMode]
 
   const pickerService = useMachine(datePickerMachine, {
     closeOnSelect: !isTimed,
@@ -708,6 +748,7 @@ export function DatePicker({
     },
     open: resolvedOpen,
     openOnClick: false,
+    outsideDaySelectable: true,
     positioning: {
       flip,
       gutter,
@@ -974,12 +1015,14 @@ DatePicker.Segments = function DatePickerSegments({
 
   const renderSegments = (index: 0 | 1) =>
     dateInputApi.getSegments({ index }).map((segment, segmentIndex) => (
+      // biome-ignore lint/a11y/useAriaPropsSupportedByRole: Zag supplies role=spinbutton for every nonliteral segment; literal segments receive no aria-required.
       <span
         {...dateInputApi.getSegmentProps({ index, segment })}
         aria-required={
           required && segment.type !== "literal" ? true : undefined
         }
         className={styles.segment()}
+        // biome-ignore lint/suspicious/noArrayIndexKey: localized literal separators can repeat; their segment positions are stable within a locale.
         key={`${segment.type}-${segmentIndex}`}
       >
         {segment.text}
@@ -1249,6 +1292,7 @@ DatePicker.Calendar = function DatePickerCalendar({
   const focusedMonthKey = `${pickerApi.focusedValue.year}-${pickerApi.focusedValue.month}`
   const visibleRangeStartKey = pickerApi.visibleRange.start.toString()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the month signature and count are the complete reset key; the Zag facade and helper are recreated on every render.
   useEffect(() => {
     if (selectionMode !== "single") {
       return
@@ -1257,6 +1301,7 @@ DatePicker.Calendar = function DatePickerCalendar({
     setPanelMonths(createPanelMonths())
   }, [numOfMonths, selectionMode, visibleRangeStartKey])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the accepted value or panel count changes, not when Zag recreates its methods.
   useEffect(() => {
     if (
       previousAcceptedValue.current === acceptedValueKey &&
@@ -1272,6 +1317,7 @@ DatePicker.Calendar = function DatePickerCalendar({
     pickerApi.setView("day")
   }, [acceptedValueKey, numOfMonths])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: focusedMonthKey tracks the selected month without depending on unstable DateValue methods.
   useEffect(() => {
     const returnedToDay =
       previousView.current !== "day" && pickerApi.view === "day"
@@ -1358,21 +1404,19 @@ DatePicker.Calendar = function DatePickerCalendar({
     const disabled =
       pickerApi.disabled || !nextMonth || !canShowPanelMonth(index, nextMonth)
     const isYearJump = Math.abs(months) === 12
+    const yearIcon = isPrevious
+      ? "token-icon-date-picker-previous-year"
+      : "token-icon-date-picker-next-year"
+    const monthIcon = isPrevious
+      ? "token-icon-date-picker-previous"
+      : "token-icon-date-picker-next"
 
     return (
       <Button
         {...machineProps}
         className={styles.navigationTrigger()}
         disabled={disabled}
-        icon={
-          isYearJump
-            ? isPrevious
-              ? "token-icon-date-picker-previous-year"
-              : "token-icon-date-picker-next-year"
-            : isPrevious
-              ? "token-icon-date-picker-previous"
-              : "token-icon-date-picker-next"
-        }
+        icon={isYearJump ? yearIcon : monthIcon}
         iconSize="current"
         id={`${machineProps.id}-${index}-${Math.abs(months)}`}
         onClick={() => movePanel(index, months)}
@@ -1389,6 +1433,28 @@ DatePicker.Calendar = function DatePickerCalendar({
       start: month,
     }
     const viewProps = pickerApi.getViewProps({ view: "day" })
+    const synchronizeRangeDay = (day: DateValue) => {
+      const state = pickerApi.getDayTableCellState({ value: day, visibleRange })
+      if (
+        selectionMode !== "range" ||
+        !state.selectable ||
+        pickerApi.readOnly
+      ) {
+        return
+      }
+
+      // Zag resets an existing range without updating its focused date. Keep
+      // arrow navigation and the roving tab stop anchored to the activated day.
+      pickerApi.setFocusedValue(day)
+
+      if (state.outsideRange) {
+        // Keep independently navigable panels ordered when a month moves onto
+        // its neighbor; pointer and keyboard activation follow the same rule.
+        setPanelMonths((current) =>
+          navigateDatePickerPanelMonths(current, index, day)
+        )
+      }
+    }
 
     return (
       <div {...viewProps} className={styles.view()} hidden={false}>
@@ -1405,7 +1471,9 @@ DatePicker.Calendar = function DatePickerCalendar({
                   key={weekDay.value.toString()}
                   scope="col"
                 >
-                  <abbr title={weekDay.long}>{weekDay.short}</abbr>
+                  <abbr className="no-underline" title={weekDay.long}>
+                    {weekDay.short}
+                  </abbr>
                 </th>
               ))}
             </tr>
@@ -1426,10 +1494,28 @@ DatePicker.Calendar = function DatePickerCalendar({
                     key={day.toString()}
                   >
                     <Button
-                      {...pickerApi.getDayTableCellTriggerProps({
-                        value: day,
-                        visibleRange,
-                      })}
+                      {...mergeProps(
+                        pickerApi.getDayTableCellTriggerProps({
+                          value: day,
+                          visibleRange,
+                        }),
+                        {
+                          onClick: () => synchronizeRangeDay(day),
+                          onKeyDown: (
+                            event: KeyboardEvent<HTMLButtonElement>
+                          ) => {
+                            if (
+                              event.key === "Enter" &&
+                              !event.defaultPrevented
+                            ) {
+                              // Activate this button, not Zag's potentially stale
+                              // focusedValue after focus moved programmatically.
+                              event.preventDefault()
+                              event.currentTarget.click()
+                            }
+                          },
+                        }
+                      )}
                       className={styles.dayTrigger()}
                       size="current"
                       theme="unstyled"
@@ -1725,6 +1811,7 @@ DatePicker.TimeControl = function DatePickerTimeControl({
         : null
 
     return (
+      // biome-ignore lint/a11y/useSemanticElements: this labelled control group has no native fieldset layout; its children are individually labelled inputs.
       <div
         aria-label={accessibleLabel}
         className={styles.timeGroup()}
@@ -1775,6 +1862,37 @@ DatePicker.TimeControl = function DatePickerTimeControl({
                       ) {
                         setDraftTimePart(part, parsedValue, index)
                       }
+                    }}
+                    onKeyDown={(event) => {
+                      if (isDisabled) {
+                        return
+                      }
+                      const current = timeParts[part]
+                      let next: number
+                      switch (event.key) {
+                        case "ArrowUp":
+                          next =
+                            current == null || current >= max
+                              ? min
+                              : current + 1
+                          break
+                        case "ArrowDown":
+                          next =
+                            current == null || current <= min
+                              ? max
+                              : current - 1
+                          break
+                        case "Home":
+                          next = min
+                          break
+                        case "End":
+                          next = max
+                          break
+                        default:
+                          return
+                      }
+                      event.preventDefault()
+                      setDraftTimePart(part, next, index)
                     }}
                     placeholder="--"
                     readOnly={pickerApi.readOnly}
@@ -1829,7 +1947,8 @@ DatePicker.TimeControl = function DatePickerTimeControl({
     <div
       {...props}
       aria-label={
-        selectionMode === "single" ? (props["aria-label"] ?? "Time") : undefined
+        props["aria-label"] ??
+        (selectionMode === "single" ? "Time" : "Start and end times")
       }
       className={styles.timeControl({ className })}
       data-granularity={granularity}
@@ -1838,7 +1957,7 @@ DatePicker.TimeControl = function DatePickerTimeControl({
       data-scope="date-picker"
       data-selection-mode={selectionMode}
       ref={ref}
-      role={selectionMode === "single" ? "group" : undefined}
+      role="group"
     >
       {renderTimeGroup(0, selectionMode === "range" ? startLabel : "Time")}
       {selectionMode === "range" ? renderTimeGroup(1, endLabel) : null}

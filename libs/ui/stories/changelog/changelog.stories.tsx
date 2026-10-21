@@ -12,6 +12,71 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Checkbox v1.0.4
+- Fix mixed-state dash rendering, checked-mask conflicts and disabled styling; retain visible keyboard focus and distinguish rounded checkboxes from radios.
+- Complete accessible Docs and selection examples, with one live Playground synchronized to Controls.
+
+### Icon v1.1.1
+- Route explicit colors through component tokens; add a searchable named gallery, full size scale and accessible examples with a recognizable Home default.
+
+### Image v1.1.0
+- Default to block display, container-bounded width and cover fitting; document sizing, aspect ratios, shapes and framework image adapters.
+
+### StatusText v1.1.0
+- Show decorative error, warning and success icons by default; align icons to the first line and keep wrapped messages in their own text column.
+- Preserve showIcon and align overrides, expose data-status, and demonstrate correctly associated field feedback.
+
+### Accordion v1.1.0
+- Separate semibold triggers from inset, regular-weight panel text with comfortable spacing and dividers across sizes and themes.
+- Give triggers their own styling and focus treatment, correct disabled states, and document realistic keyboard-operable compositions.
+
+### AvailabilityStatus v1.0.1
+- Clarify visible settled labels versus screen-reader-only loading descriptions; repair all-state Playground controls and retain a separate static gallery. Runtime behavior and the public API are unchanged.
+
+### Breadcrumb v1.0.2
+- Use component-owned focus tokens without changing keyboard appearance; keep demo links inside Storybook and clarify hierarchy and current-page examples.
+
+### Carousel v1.3.0
+- Add automatic vertical and RTL navigation, visible minimal controls, genuinely disabled boundary and single-page arrows, and hover/focus autoplay pause.
+- Place standard vertical navigation beside the clipped slide viewport so short images cannot hide controls; preserve RTL-aware placement and inherited image adapters.
+- Improve current-page semantics and indicator focus; make demos responsive, disclose public composition and cover navigation regressions.
+
+### CascadeSelect v1.1.0
+- Add numbered, divided hierarchy columns, a persistent expanded-path marker and configurable rootLabel.
+- Correct tree relationships, read-only and validation semantics; retain linked helper/error descriptions and scroll active options into view on narrow screens.
+- Explain category selection and form validation with realistic, accessible examples.
+
+### Combobox v1.3.5
+- Preserve first-character filtering regardless of how the popup opens, and keep rich-option foregrounds readable in selected and highlighted states.
+- Expand behavior and contrast regressions, improve responsive documentation, and simplify internal rendering without changing the public API.
+
+### Command v1.1.0
+- Add a semibold highlighted-command cue that does not depend on color; explain command palettes and improve action, dialog and shortcut examples.
+- Isolate Docs shortcuts to their owning preview so independent palettes do not compete; cover modal accessibility, Save ownership and focus restoration.
+
+### DatePicker v1.2.0
+- Allow valid neighboring-month day selection with range-panel navigation while preserving keyboard focus and the correct range endpoint.
+- Add wrapping ArrowUp/ArrowDown and Home/End editing to time inputs without changing Confirm/Cancel transactions.
+- Use opaque shared popup surfaces, readable selected-day foregrounds and explicit layering; clarify examples and expand calendar/time regressions.
+
+### Dialog v1.1.0
+- Add aria-label support, correct centered widths and modeless defaults, and improve viewport gutters, title clearance, typography and elevation.
+- Wrap actions on narrow screens and demonstrate safe destructive focus, neutral Cancel actions and working forms; keep Drawer examples in Drawer Docs.
+
+### Drawer v1.0.1
+- Wrap footer actions on narrow screens to avoid clipped labels; replace multiple-trigger summaries with validated editable profiles and Save/Cancel feedback.
+- Cover persisted saves, cancelled drafts, focus restoration and responsive footer behavior.
+
+### FileUpload v1.0.3
+- Correct accessible drop-zone names, Space-key handling and non-clickable group semantics; prevent disabled/read-only hover feedback and improve typography.
+- Explain selection versus uploading, document five static states and an interactive selector, and show icon-backed, associated rejection feedback.
+
+### Shared foundations — wave 1
+- Distinguish read-only surfaces from disabled fields while preserving focus, text selection and contrast; hide explicitly marked mutation affordances.
+- Keep floating panels opaque with shared elevation and readable checked-row foregrounds; distinguish Akros hover from filled selection.
+- Stabilize description registration and deduplicate aria-describedby IDs; document canonical control sizes and shared accessibility, popup and Storybook contracts.
+- Enable autodocs and component guidance for Menu and Comprehensive Form; improve Accordion, Breadcrumb and Carousel template examples.
+
 ### FormInput v1.1.2
 - FormInput and FormInputRaw preserve the caller's input className and merge it after their existing responsive padding defaults. The wrapper, generated ids, labels, and validation associations are unchanged. Fixes #641.
 

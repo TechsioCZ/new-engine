@@ -2,7 +2,7 @@
  * Drawer - @techsio/ui-kit molecule.
  *
  * @component Drawer
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill drawer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -293,7 +293,13 @@ Drawer.Footer = function DrawerFooter({
   ...props
 }: DrawerFooterProps) {
   const { styles } = useDrawerContext()
-  return <div className={styles.footer({ className })} ref={ref} {...props} />
+  return (
+    <div
+      className={styles.footer({ className: ["flex-wrap", className] })}
+      ref={ref}
+      {...props}
+    />
+  )
 }
 
 export type DrawerTitleProps = ComponentPropsWithoutRef<"h2"> & {

@@ -158,3 +158,24 @@ pnpm --dir libs/ui test:components
 Run only commands relevant to the changed area unless the maintainer asks for
 a full readiness pass.
 
+
+## Shared-contract review (required)
+
+Check `libs/ui/docs/component-contracts.md` alongside API/token matching:
+
+- StatusText icons default on for error/warning/success, decorative ARIA,
+  multiline first-line alignment, unique message IDs and merged descriptions.
+- Every value control has true readOnly behavior (typing, keyboard, clear,
+  steppers, triggers, chips, paste/drop, controlled/uncontrolled); focus and copy
+  remain available. Disabled removes tab stops. CSS-only inertness is a failure.
+- Canonical size controls/stories use sm/md/lg and one consistently labeled Sizes
+  story, with compatibility exceptions documented rather than removed silently.
+- Popup Content and Positioner agree on popup-layer, use opaque surfaces and
+  border/shadow aliases, and preserve nested --layer-index.
+- All components have autodocs plus a useful component description; every story
+  has a what/why description and working controls, realistic content and action
+  hierarchy, no navigation away or foreign-component demo.
+- Review base/light, base/dark and Akros/light. During the shared overhaul do not
+  run Storybook builds/servers or launch browsers. Use the supplied ds-page
+  runner; Playwright suites require Docker and its serial lock. Ignore the
+  generic Storybook-build recommendation above when this restriction applies.

@@ -1,292 +1,167 @@
-import type { ComponentPropsWithoutRef } from "react"
 import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+import { expect, userEvent, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Input } from "../../src/atoms/input"
+import { Label } from "../../src/atoms/label"
 import { StatusText } from "../../src/atoms/status-text"
-import type { IconType } from "../../src/atoms/icon"
 import { iconLabels, iconOptions } from "../helpers/icon-options"
 
-const LONG_TEXT =
-  "Your password must contain at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*)."
-
-const iconControlOptions: (IconType | undefined)[] = [
-  undefined,
-  "token-icon-status-text-error",
-  "token-icon-status-text-success",
-  "token-icon-status-text-warning",
-  ...iconOptions.filter((option): option is IconType => Boolean(option)),
-]
-
-const iconControlLabels: Record<string, string> = {
-  ...iconLabels,
-  "token-icon-status-text-error": "Status Error",
-  "token-icon-status-text-success": "Status Success",
-  "token-icon-status-text-warning": "Status Warning",
-}
-
-const meta: Meta<typeof StatusText> = {
+const meta = {
   title: "Atoms/StatusText",
   component: StatusText,
+  tags: ["autodocs"],
   parameters: {
     layout: "centered",
     docs: {
       description: {
         component:
-          "StatusText component for displaying validation and status messages with appropriate icons and colors. Supports error, success, warning, and default states.",
+          "StatusText is inline guidance or feedback for a nearby field or section. Error, warning and success messages include decorative icons by default; neutral helper text has none. Associate field messages through aria-describedby (and aria-errormessage for errors). Use Toast for transient action confirmations, Badge for short labels and FormErrorSummary for a list of submission errors.",
       },
     },
   },
-  tags: ["autodocs"],
   argTypes: {
+    ref: { control: false, table: { disable: true } },
     status: {
       control: "select",
       options: ["default", "error", "success", "warning"],
-      description: "Status type that determines color and icon",
+      description: "Message meaning; error, warning and success have default icons.",
     },
     size: {
       control: "select",
       options: ["sm", "md", "lg"],
-      description: "Text size",
+      description: "Match the size of the associated control.",
     },
     align: {
       control: "select",
-      options: ["center", "start"],
-      description:
-        "Align icon for multi-line text (centered or aligned to the first line)",
+      options: ["start", "center"],
+      description: "First-line alignment by default; center is for short single-line messages.",
     },
     showIcon: {
       control: "boolean",
-      description: "Whether to display status icon",
+      description: "Defaults to true; do not disable state icons on form validation messages.",
     },
     icon: {
-      control: {
-        type: "select",
-        labels: iconControlLabels,
-      },
-      options: iconControlOptions,
-      description: "Override the default status icon",
+      control: { type: "select", labels: iconLabels },
+      options: iconOptions,
+      description: "Optional decorative icon override; neutral help has no icon unless supplied.",
     },
-    children: {
-      control: "text",
-      description: "Status text content",
-    },
+    children: { control: "text", description: "A concise message, including a next step for errors." },
   },
-}
+  args: {
+    status: "error",
+    size: "md",
+    align: "start",
+    showIcon: true,
+    children: "Enter a valid email address, such as mara@example.com.",
+  },
+} satisfies Meta<typeof StatusText>
 
 export default meta
-type Story = StoryObj<typeof StatusText>
-type PlaygroundArgs = ComponentPropsWithoutRef<typeof StatusText> & {
-  useLongText?: boolean
-}
+type Story = StoryObj<typeof meta>
 
-export const Playground: StoryObj<PlaygroundArgs> = {
-  args: {
-    children: "This is default status text",
-    status: "default",
-    align: "center",
-    showIcon: false,
-    icon: undefined,
-    useLongText: false,
+export const Playground: Story = {
+  parameters: {
+    docs: { description: { story: "Change the status, size and message to see how inline feedback stays readable without relying on color." } },
   },
-  argTypes: {
-    useLongText: {
-      control: "boolean",
-      description: "Use a multi-line example text",
-    },
-  },
-  render: (args) => {
-    const { children, useLongText, ...statusArgs } = args
-    const content = useLongText ? LONG_TEXT : children
-
-    return (
-      <div className="w-md">
-        <StatusText {...statusArgs}>{content}</StatusText>
-      </div>
-    )
-  },
+  render: (args) => <div className="w-md max-w-full"><StatusText {...args} /></div>,
 }
 
 export const AllStatuses: Story = {
+  name: "Status meanings",
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "Error, success and warning use distinct icons automatically, while neutral guidance stays quiet and icon-free." } },
+  },
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="Status Variants - With Icons">
-        <div className="flex flex-col gap-4">
-          <StatusText status="error" showIcon>
-            Invalid email format
-          </StatusText>
-          <StatusText status="success" showIcon>
-            Username is available
-          </StatusText>
-          <StatusText status="warning" showIcon>
-            Password is weak
-          </StatusText>
-          <StatusText status="default" showIcon={false}>
-            This is helper text
-          </StatusText>
-        </div>
-      </VariantGroup>
-
-      <VariantGroup title="Status Variants - Without Icons">
-        <div className="flex flex-col gap-4">
-          <StatusText status="error" showIcon={false}>
-            Invalid email format
-          </StatusText>
-          <StatusText status="success" showIcon={false}>
-            Username is available
-          </StatusText>
-          <StatusText status="warning" showIcon={false}>
-            Password is weak
-          </StatusText>
-          <StatusText status="default" showIcon={false}>
-            This is helper text
-          </StatusText>
-        </div>
-      </VariantGroup>
-    </VariantContainer>
+    <div className="flex w-md max-w-full flex-col gap-200">
+      <StatusText status="error">Enter an email address to receive order updates.</StatusText>
+      <StatusText status="success">Email address verified.</StatusText>
+      <StatusText status="warning">Delivery may take two additional business days.</StatusText>
+      <StatusText>We only send updates about this order.</StatusText>
+    </div>
   ),
+  play: async ({ canvasElement }) => {
+    for (const status of ["error", "warning", "success"]) {
+      const message = canvasElement.querySelector(`[data-status="${status}"]`)
+      await expect(message?.querySelector('[aria-hidden="true"]')).not.toBeNull()
+    }
+    await expect(canvasElement.querySelector('[data-status="default"] [aria-hidden="true"]')).toBeNull()
+  },
 }
 
 export const Sizes: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "The canonical Small (sm), Medium (md) and Large (lg) sizes use the same message so text and icon proportions can be compared." } },
+  },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Small">
-        <div className="flex flex-col gap-4">
-          <StatusText status="error" showIcon size="sm">
-            Small error message
-          </StatusText>
-          <StatusText status="success" showIcon size="sm">
-            Small success message
-          </StatusText>
-          <StatusText status="warning" showIcon size="sm">
-            Small warning message
-          </StatusText>
-        </div>
-      </VariantGroup>
-
-      <VariantGroup title="Medium (Default)">
-        <div className="flex flex-col gap-4">
-          <StatusText status="error" showIcon size="md">
-            Medium error message
-          </StatusText>
-          <StatusText status="success" showIcon size="md">
-            Medium success message
-          </StatusText>
-          <StatusText status="warning" showIcon size="md">
-            Medium warning message
-          </StatusText>
-        </div>
-      </VariantGroup>
-
-      <VariantGroup title="Large">
-        <div className="flex flex-col gap-4">
-          <StatusText status="error" showIcon size="lg">
-            Large error message
-          </StatusText>
-          <StatusText status="success" showIcon size="lg">
-            Large success message
-          </StatusText>
-          <StatusText status="warning" showIcon size="lg">
-            Large warning message
-          </StatusText>
-        </div>
-      </VariantGroup>
+      {([['sm', 'Small (sm)'], ['md', 'Medium (md)'], ['lg', 'Large (lg)']] as const).map(([size, label]) => (
+        <VariantGroup key={size} title={label}>
+          <StatusText size={size} status="success">Email address verified.</StatusText>
+        </VariantGroup>
+      ))}
     </VariantContainer>
   ),
 }
 
-export const FormValidationContext: Story = {
-  render: () => (
-    <div className="flex w-full max-w-md flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm" htmlFor="email">
-          Email
-        </label>
-        <input
-          className="rounded border border-red-500 px-3 py-2"
-          id="email"
-          placeholder="your@email.com"
-          type="email"
-        />
-        <StatusText status="error" showIcon>
-          Please enter a valid email address
-        </StatusText>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm" htmlFor="username">
-          Username
-        </label>
-        <input
-          className="rounded border border-green-500 px-3 py-2"
-          id="username"
-          placeholder="johndoe"
-          type="text"
-        />
-        <StatusText status="success" showIcon>
-          Username is available
-        </StatusText>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm" htmlFor="password">
-          Password
-        </label>
-        <input
-          className="rounded border border-yellow-500 px-3 py-2"
-          id="password"
-          placeholder="••••••••"
-          type="password"
-        />
-        <StatusText status="warning" showIcon>
-          Consider using a stronger password
-        </StatusText>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm" htmlFor="phone">
-          Phone (Optional)
-        </label>
-        <input
-          className="rounded border border-gray-300 px-3 py-2"
-          id="phone"
-          placeholder="+1 (555) 123-4567"
-          type="tel"
-        />
-        <StatusText status="default" showIcon={false}>
-          We'll use this for account recovery
-        </StatusText>
-      </div>
+function ValidationField() {
+  const [valid, setValid] = useState(false)
+  return (
+    <div className="flex w-md max-w-full flex-col gap-100">
+      <Label htmlFor="status-text-email" required>Email address</Label>
+      <Input
+        aria-describedby="status-text-email-hint status-text-email-message"
+        aria-errormessage={valid ? undefined : "status-text-email-message"}
+        aria-invalid={!valid}
+        defaultValue="mara@"
+        id="status-text-email"
+        onBlur={(event) => setValid(event.currentTarget.validity.valid)}
+        required
+        type="email"
+        variant={valid ? "success" : "error"}
+      />
+      <StatusText id="status-text-email-hint" size="sm">We only send updates about this order.</StatusText>
+      <StatusText id="status-text-email-message" size="sm" status={valid ? "success" : "error"}>
+        {valid ? "Email address verified." : "Enter a valid email address, such as mara@example.com."}
+      </StatusText>
     </div>
-  ),
+  )
+}
+
+export const FormValidationContext: Story = {
+  name: "Associated field feedback",
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "Edit the email and leave the field to see associated validation feedback update without losing the permanent helper description." } },
+  },
+  render: () => <ValidationField />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const field = canvas.getByRole("textbox", { name: /email address/i })
+    await expect(field).toHaveAttribute("aria-invalid", "true")
+    await expect(field).toHaveAccessibleDescription(/We only send updates.*Enter a valid email address/)
+    await userEvent.clear(field)
+    await userEvent.type(field, "mara@example.com")
+    await userEvent.tab()
+    await expect(field).toHaveAttribute("aria-invalid", "false")
+    await expect(field).not.toHaveAttribute("aria-errormessage")
+    await expect(field).toHaveAccessibleDescription(/We only send updates.*Email address verified/)
+  },
 }
 
 export const LongText: Story = {
+  name: "Wrapping messages",
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "Long messages wrap in their own text column with the icon aligned to the first line, including at narrow mobile widths." } },
+  },
   render: () => (
-    <div className="w-80">
-      <VariantContainer>
-        <VariantGroup title="Long Error Message">
-          <StatusText align="start" status="error" showIcon>
-            Your password must contain at least 8 characters, including one
-            uppercase letter, one lowercase letter, one number, and one special
-            character (!@#$%^&*).
-          </StatusText>
-        </VariantGroup>
-
-        <VariantGroup title="Long Success Message">
-          <StatusText align="start" status="success" showIcon>
-            Your account has been successfully created! We've sent a
-            confirmation email to your address. Please check your inbox and
-            click the verification link.
-          </StatusText>
-        </VariantGroup>
-
-        <VariantGroup title="Long Warning Message">
-          <StatusText align="start" status="warning" showIcon>
-            This action cannot be undone. Please make sure you have backed up
-            your data before proceeding. We recommend downloading a copy of your
-            information first.
-          </StatusText>
-        </VariantGroup>
-      </VariantContainer>
+    <div className="flex w-xs max-w-full flex-col gap-200">
+      <StatusText status="error">Choose a delivery address before continuing, or add a new address in your account settings.</StatusText>
+      <StatusText status="warning">Changing your delivery address may change shipping costs and the estimated delivery date.</StatusText>
+      <StatusText status="success">Your delivery address has been saved and will be used for future orders.</StatusText>
     </div>
   ),
 }

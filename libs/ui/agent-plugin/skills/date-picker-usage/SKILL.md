@@ -6,7 +6,7 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -210,6 +210,21 @@ floating `CalendarDateTime` into a zoned value.
 Date-only range selection commits after the second valid endpoint. The first
 endpoint stays private and the popup remains open. `numOfMonths` defaults to
 two in range mode and one in single mode.
+
+### Select neighboring-month days
+
+Muted days at the beginning or end of a calendar grid remain selectable and
+navigate that panel to the selected month. They obey the same `min`, `max`,
+`isDateUnavailable`, disabled, and read-only rules as other days. Muted does not
+mean disabled; unavailable days also have a strike-through.
+
+### Edit popup times with the keyboard
+
+Hour, minute, and second inputs accept typing. ArrowUp/ArrowDown increment or
+decrement by one and wrap within the field (0–23 or 1–12 hours, 0–59 minutes
+and seconds); Home/End select the field minimum/maximum. Wrapping does not
+change the calendar date or AM/PM. Select AM/PM separately in 12-hour mode.
+Keyboard edits remain drafts until Confirm, just like pointer edits.
 
 ### Treat timed popups as transactions
 

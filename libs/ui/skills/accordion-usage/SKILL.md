@@ -5,7 +5,7 @@ description: >
   collapsible sections using the Zag.js-backed compound anatomy, supported
   variant, shadow, size, value, multiple, and collapsible props.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -99,7 +99,7 @@ collapsible, multiple, disabled, dir, onChange
 Use `Accordion.Item`, `Accordion.Header`, `Accordion.Content`, and optional
 `Accordion.Indicator`, `Accordion.Title`, `Accordion.Subtitle`.
 
-`Accordion.Header` is a `role="heading"` (level 3 by default). Set
+`Accordion.Header` renders an `h3` (level 3 by default). Set
 `aria-level` so it fits the page outline, e.g. `<Accordion.Header aria-level={2}>`
 directly under a page `h1`. Do not wrap it in another heading or `<header>`.
 
@@ -109,8 +109,25 @@ directly under a page `h1`. Do not wrap it in another heading or `<header>`.
 single open section -> multiple=false
 FAQ-style independent sections -> multiple=true
 must keep one section open -> collapsible=false
-nested accordion -> variant=child
+inherited surrounding surface -> variant=child (avoid nested accordions)
 ```
+
+### Preserve content hierarchy
+
+Triggers use semibold text; panel copy uses regular-weight secondary text,
+smaller type at medium/large sizes, a divider, and additional inline inset.
+This hierarchy is built into all variants and themes, including `child`;
+do not add muted-text classes to every panel to obtain the default treatment.
+Small panels have vertical padding too. Long titles wrap without moving the
+indicator out of the trigger. Trigger padding belongs to Header's button,
+not Title, so custom header layouts retain the same hit area. The trigger is a
+native button with accordion-owned typography and keyboard focus styling;
+Button token overrides do not alter its heading weight or add press scaling.
+
+The `--color-accordion-panel-fg`, `--font-weight-accordion-trigger`,
+`--font-weight-accordion-panel`, `--text-accordion-panel-*`, and
+`--padding-accordion-panel-*` aliases provide scoped consumer overrides.
+Keep interactive controls inside Content, never inside the Header button.
 
 ### Let tokens own visual state
 

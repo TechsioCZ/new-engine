@@ -2,7 +2,7 @@
  * Icon — @techsio/ui-kit atom.
  *
  * @component Icon
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,11 +29,11 @@ const iconVariants = tv({
     },
     color: {
       current: "text-current",
-      primary: "text-primary",
-      secondary: "text-secondary",
-      danger: "text-danger",
-      success: "text-success",
-      warning: "text-warning",
+      primary: "text-icon-fg-primary",
+      secondary: "text-icon-fg-secondary",
+      danger: "text-icon-fg-danger",
+      success: "text-icon-fg-success",
+      warning: "text-icon-fg-warning",
     },
   },
   defaultVariants: {

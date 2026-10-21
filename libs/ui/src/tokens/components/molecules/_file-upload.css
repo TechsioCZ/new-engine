@@ -25,6 +25,10 @@
   --spacing-file-upload-dropzone-base: var(--container-2xs);
 
   /* Derived color layer */
+  --color-file-upload-dropzone-fg: var(--color-file-upload-content);
+  --color-file-upload-dropzone-disabled-fg: var(
+    --color-file-upload-disabled-content
+  );
   --color-file-upload-dropzone-bg: var(--color-file-upload-surface);
   --color-file-upload-dropzone-hover-bg: var(--color-file-upload-surface-hover);
   --color-file-upload-dropzone-dragging-bg: var(
@@ -125,4 +129,12 @@
 
 @utility token-icon-file-upload-clear {
   @apply token-icon-close;
+}
+
+@utility file-upload-label-typography {
+  font-size: var(--text-file-upload-label);
+}
+
+@utility file-upload-item-size-typography {
+  font-size: var(--text-file-upload-item-size);
 }

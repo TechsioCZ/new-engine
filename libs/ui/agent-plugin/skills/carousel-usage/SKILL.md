@@ -5,7 +5,7 @@ description: >
   Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect
   ratio, object fit, and framework image adapters.
 metadata:
-  component_version: "1.2.3"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -52,9 +52,12 @@ where actions and feedback live). This section applies them to `Carousel`.
 
 **Copy and states**
 
-- Controls labelled `Previous slide` / `Next slide`; indicators `Go to slide 2 of 5`.
+- Controls labelled `Previous slide` / `Next slide`; indicators `Go to slide 2`. Use Zag's `translations` prop for localized control labels.
 - Prev / next / autoplay are `ActionIcon`s sized from the carousel `size` (`sm` → 24 px, `md` → 32 px, `lg` / `full` → 40 px). Don't restyle them with `Button` classes.
-- `autoplay` does not start when the user prefers reduced motion; always render `Carousel.Autoplay` with it so they can start rotation themselves.
+- `autoplay` does not start when the user prefers reduced motion; always render `Carousel.Autoplay` with it so they can start rotation themselves. Hovering the carousel or focusing its slide/navigation content stops rotation; it does not restart on mouse leave or blur. The rotation toggle remains explicitly operable.
+- Vertical orientation automatically uses up/down arrows and a vertical indicator group. Standard bottom/side controls occupy a separate trailing column; top controls occupy a leading column (both respect RTL). The rail can make the carousel taller than a short image viewport, so every target stays visible without covering the image. `controlPosition="unset"` keeps controls in flow below the viewport. Horizontal RTL carousels reverse the arrow icons.
+- `Carousel.Control controls="minimal"` places two opaque, bordered arrows over opposite ends of the viewport (top/bottom when vertical). Render only `Carousel.Previous` and `Carousel.Next` inside this layout; use standard controls when indicators are needed. No consumer color overrides are required over photography.
+- With `loop={false}`, the previous/next button at the corresponding boundary is natively disabled and exposes `aria-disabled`. Both buttons are disabled if there is only one navigable page, including when looping is enabled.
 - Give every carousel an `aria-label` ("Product photos") — several unnamed carousels on one page are indistinguishable regions.
 - Off-screen slides are `inert`; never rely on focusing content inside a hidden slide.
 - `Carousel.Indicator` is a 24 px target with an 8 px dot inside (`--size-carousel-indicator`, `--size-carousel-indicator-dot`). Passing `children` replaces the dot (e.g. numbered indicators); keep the button at least 24 px.
@@ -78,7 +81,9 @@ size: sm | md | lg | full
 aspectRatio: square | landscape | portrait | wide | none
 objectFit: cover | contain | fill | none
 controlPosition: top | bottom | side | unset on Carousel.Control
-orientation, loop, autoplay, allowMouseDrag, slidesPerPage, slidesPerMove
+controls: standard | minimal on Carousel.Control (not the root)
+orientation, dir, loop, autoplay, allowMouseDrag, slidesPerPage, slidesPerMove
+width, height: optional viewport dimensions; vertical aspectRatio="none" needs an explicit height
 ```
 
 ## Core Patterns

@@ -5,7 +5,9 @@ import { Menu, type MenuItem } from '../../src/molecules/menu'
 const meta: Meta<typeof Menu> = {
   title: 'Molecules/Menu',
   component: Menu,
+  tags: ["autodocs"],
   parameters: {
+    docs: { description: { component: "An accessible popup menu for actions and commands related to the current context. Use Select for choosing a form value and navigation components for persistent page navigation; Menu supports keyboard movement, disabled actions, groups, and context-menu triggers." } },
     layout: 'centered',
   },
   argTypes: {

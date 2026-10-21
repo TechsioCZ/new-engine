@@ -70,11 +70,11 @@ function CascadeSelectField({
         </CascadeSelect.Control>
         <CascadeSelect.Positioner>
           <CascadeSelect.Content>
-            <CascadeSelect.Node />
+            <CascadeSelect.Node rootLabel="Categories" />
           </CascadeSelect.Content>
         </CascadeSelect.Positioner>
         {statusText && (
-          <CascadeSelect.StatusText id={statusTextId}>
+          <CascadeSelect.StatusText id={statusTextId} showIcon>
             {statusText}
           </CascadeSelect.StatusText>
         )}
@@ -123,18 +123,29 @@ function CascadeSelectWithinForm() {
   }
 
   return (
-    <form className="flex w-xs flex-col gap-200" onSubmit={handleSubmit}>
+    <form
+      className="flex w-xs flex-col gap-200"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <CascadeSelectField
         items={productCategories}
         label="Product category"
         name="category"
+        onValueChange={() => setSubmittedValue(null)}
         placeholder="Choose a category"
         required
+        statusText={
+          submittedValue === ""
+            ? "Choose a category before saving."
+            : "Select a department, then a category."
+        }
+        validateStatus={submittedValue === "" ? "error" : "default"}
       />
-      <Button type="submit">Submit</Button>
-      {submittedValue !== null && (
+      <Button type="submit">Save category</Button>
+      {submittedValue && (
         <output aria-live="polite" className="text-sm">
-          Submitted value: {submittedValue || "None"}
+          Submitted value: {submittedValue}
         </output>
       )}
     </form>
@@ -143,29 +154,75 @@ function CascadeSelectWithinForm() {
 
 function CascadeSelectWithStatusText() {
   const descriptionId = useId()
-  const [showStatusText, setShowStatusText] = useState(true)
-  const [useCustomId, setUseCustomId] = useState(false)
+  const [value, setValue] = useState<string[][]>([])
+  const [attemptedSave, setAttemptedSave] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const hasError = attemptedSave && value.length === 0
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setAttemptedSave(true)
+    setSaved(value.length > 0)
+  }
 
   return (
-    <div className="flex w-xs flex-col gap-200">
-      <p id={descriptionId}>Your category determines the available products.</p>
-      <CascadeSelectField
-        describedBy={descriptionId}
+    <form
+      className="flex w-xs flex-col gap-200"
+      noValidate
+      onSubmit={handleSubmit}
+    >
+      <div className="flex flex-col gap-100">
+        <h2 className="font-semibold text-fg-primary text-lg">
+          Categorize a product
+        </h2>
+        <p className="text-fg-secondary text-sm" id={descriptionId}>
+          Choose where customers will find this product in the catalog.
+        </p>
+        <p className="text-fg-secondary text-sm">
+          Try saving without a category to see the validation error, then
+          choose a category and save again.
+        </p>
+      </div>
+      <CascadeSelect
         items={productCategories}
-        label="Product category"
-        statusText={
-          showStatusText ? "Choose a category before continuing." : undefined
-        }
-        statusTextId={useCustomId ? `${descriptionId}-status` : undefined}
-        validateStatus={showStatusText ? "error" : "default"}
-      />
-      <Button onClick={() => setShowStatusText((show) => !show)} size="sm">
-        Toggle status text
-      </Button>
-      <Button onClick={() => setUseCustomId((custom) => !custom)} size="sm">
-        Toggle custom status ID
-      </Button>
-    </div>
+        name="category"
+        onValueChange={(details) => {
+          setValue(details.value)
+          setSaved(false)
+        }}
+        required
+        validateStatus={hasError ? "error" : "default"}
+        value={value}
+      >
+        <CascadeSelect.Label>Product category</CascadeSelect.Label>
+        <CascadeSelect.Control>
+          <CascadeSelect.Trigger aria-describedby={descriptionId}>
+            <CascadeSelect.ValueText placeholder="Choose a category" />
+            <CascadeSelect.Indicator />
+          </CascadeSelect.Trigger>
+          <CascadeSelect.ClearTrigger />
+        </CascadeSelect.Control>
+        <CascadeSelect.Positioner>
+          <CascadeSelect.Content>
+            <CascadeSelect.Node rootLabel="Categories" />
+          </CascadeSelect.Content>
+        </CascadeSelect.Positioner>
+        <CascadeSelect.StatusText status="default">
+          Select a department, then choose its most specific category.
+        </CascadeSelect.StatusText>
+        {hasError && (
+          <CascadeSelect.StatusText id={`${descriptionId}-error`} showIcon>
+            Choose a category before saving the product.
+          </CascadeSelect.StatusText>
+        )}
+      </CascadeSelect>
+      <Button type="submit">Save product</Button>
+      {saved && (
+        <output aria-live="polite" className="text-fg-primary text-sm">
+          Product category saved.
+        </output>
+      )}
+    </form>
   )
 }
 
@@ -182,7 +239,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "A hierarchical select built with Zag.js. Each selected value is represented by its complete path.",
+          "Choose a form value from a hierarchy using connected, labeled columns. Use Select for flat options, Combobox for searchable flat options, and TreeView for hierarchical navigation; CascadeSelect stores each selection as its complete path.",
       },
     },
   },
@@ -261,6 +318,14 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Explore sizes, validation and selection behavior for a product category using the live controls.",
+      },
+    },
+  },
   render: (args) => (
     <CascadeSelectField
       {...args}
@@ -272,6 +337,15 @@ export const Playground: Story = {
 }
 
 export const Sizes: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compare the four control sizes to choose a density that fits the surrounding form.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Extra small">
@@ -311,6 +385,15 @@ export const Sizes: Story = {
 }
 
 export const States: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compare helper text, disabled and read-only fields, and icon-backed validation feedback without relying on color alone.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Default">
@@ -326,6 +409,7 @@ export const States: Story = {
           items={productCategories}
           label="Product category"
           placeholder="Selection unavailable"
+          statusText="Category selection is unavailable while the catalog is syncing."
         />
       </VariantGroup>
       <VariantGroup title="Read-only">
@@ -369,6 +453,15 @@ export const States: Story = {
 }
 
 export const OpenHierarchy: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Connected columns have numbered level headers, dividers and an active-path marker so the expanded branch remains easy to follow.",
+      },
+    },
+  },
   render: () => (
     <CascadeSelectField
       defaultHighlightedValue={["electronics"]}
@@ -381,6 +474,15 @@ export const OpenHierarchy: Story = {
 }
 
 export const NavigationModes: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compare click and hover branch expansion while retaining keyboard navigation in both modes.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Click">
@@ -404,6 +506,15 @@ export const NavigationModes: Story = {
 }
 
 export const MultipleSelection: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Select several complete category paths while keeping the hierarchy open for additional choices.",
+      },
+    },
+  },
   render: () => (
     <CascadeSelectField
       closeOnSelect={false}
@@ -421,6 +532,15 @@ export const MultipleSelection: Story = {
 }
 
 export const ParentSelection: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Allow a whole department to be selected when a branch is a valid catalog scope.",
+      },
+    },
+  },
   render: () => (
     <CascadeSelectField
       allowParentSelection
@@ -434,19 +554,38 @@ export const ParentSelection: Story = {
 }
 
 export const Controlled: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Use external actions to replace or clear the selected path in a controlled form field.",
+      },
+    },
+  },
   render: () => <ControlledCascadeSelect />,
 }
 
 export const WithinForm: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Save a category using a native form to inspect how the complete selected path is serialized.",
+      },
+    },
+  },
   render: () => <CascadeSelectWithinForm />,
 }
 
 export const AccessibleStatusText: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
-          "StatusText automatically describes the trigger while mounted. Custom status IDs and additional trigger descriptions are preserved.",
+          "Save without choosing a category to reveal an icon-backed validation error; the trigger references both persistent helper text and the temporary error through aria-describedby, preserving its additional description as the error is resolved.",
       },
     },
   },
@@ -454,6 +593,15 @@ export const AccessibleStatusText: Story = {
 }
 
 export const CustomValueFormatting: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Display only the final category in the trigger when the full path is not needed in a compact form.",
+      },
+    },
+  },
   render: () => (
     <CascadeSelectField
       defaultValue={[["home", "furniture"]]}

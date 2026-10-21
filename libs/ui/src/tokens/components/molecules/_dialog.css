@@ -13,6 +13,18 @@
   --container-dialog-center-h-max: 80svh;
   --container-dialog-center-w-max: var(--container-dialog-center-max-w);
 
+  /* Reference layer: space around the panel and reserved for its close action. */
+  --spacing-dialog-viewport-gutter: var(--spacing-200);
+  --spacing-dialog-close-clearance: var(--spacing-500);
+  --shadow-dialog-elevation: var(--shadow-xl);
+
+  /* Derived layer */
+  --shadow-dialog-panel: var(--shadow-dialog-elevation);
+  --text-dialog-heading-size: var(--text-md);
+  --text-dialog-copy-size: var(--text-base);
+  --padding-dialog-positioner: var(--spacing-dialog-viewport-gutter);
+  --padding-dialog-title-safe: var(--spacing-dialog-close-clearance);
+
   --z-dialog-backdrop: 10;
   --z-dialog-positioner: 20;
 }
@@ -20,4 +32,13 @@
 /* Semantic tokens for dialog icons */
 @utility token-icon-dialog-close {
   @apply token-icon-close;
+}
+
+/* Explicit utilities keep type size independent of text-color class merging. */
+@utility dialog-heading-typography {
+  font-size: var(--text-dialog-heading-size);
+}
+
+@utility dialog-copy-typography {
+  font-size: var(--text-dialog-copy-size);
 }

@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Checkbox atom, including invalid and indeterminate states,
   while preferring form molecules for labeled form rows.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.0.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -64,7 +64,7 @@ where actions and feedback live). This section applies them to `Checkbox`.
 ```tsx
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 
-<Checkbox name="acceptTerms" required />
+<Checkbox name="selectedProducts" value="TS-2048" aria-label="Select Alpine daypack" />
 ```
 
 Supported component-specific props:
@@ -101,7 +101,7 @@ Do not manually recreate label/help/error layout when the molecule exists.
 
 ```tsx
 <Checkbox
-  checked={someSelected}
+  checked={allSelected}
   indeterminate={someSelected && !allSelected}
   aria-label="Select all visible rows"
 />
@@ -115,7 +115,22 @@ Do not manually recreate label/help/error layout when the molecule exists.
 <Checkbox invalid aria-describedby="terms-error" />
 ```
 
-`invalid` maps to `aria-invalid` and `data-invalid`.
+`invalid` maps to `aria-invalid` and `data-invalid`. Associate a visible error
+with `aria-describedby`; a red border alone does not explain the problem.
+
+### Controlled and uncontrolled selection
+
+Use `checked` plus `onChange` for controlled selection, or `defaultChecked` for
+an uncontrolled initial value. Do not supply both. For select-all, compute
+`checked={allSelected}` and `indeterminate={someSelected && !allSelected}`;
+Space or click selects the whole partially selected group. Disabled mixed
+controls use the same disabled surface and icon treatment as disabled checked
+controls. Mixed selection is a horizontal dash, not a dot or checkmark, even
+when the native checked value is also true. The visual mixed state does not
+change the native checked value or form submission semantics. Corners remain
+squarish even when a theme's general small radius would make a 16px control
+circular; override `--radius-checkbox-control` for an intentional scoped shape.
+Explain why unavailable controls cannot be changed.
 
 ## Common Mistakes
 

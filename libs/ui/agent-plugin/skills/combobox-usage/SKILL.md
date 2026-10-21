@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.3.4"
+  component_version: "1.3.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -124,6 +124,33 @@ collection from `items` and handles disabled options.
 For external filtering, keep the last `items` while `loading` or `error` is
 shown if the selected value still needs its label. The status replaces the
 option list, and keyboard navigation is unavailable until results return.
+
+### Filtering and opening
+
+Local filtering is case-insensitive and matches labels, including disabled
+options. The first typed character filters immediately, whether the popup was
+closed or was opened by its trigger or arrow keys. Clearing the query restores
+all options; explicitly reopening the popup also restores choices after selection.
+External filtering bypasses this behavior and displays the supplied items.
+
+### Rich option foregrounds
+
+Let the main label, decorative icons, and selection indicator inherit the row's
+color. Use `text-combobox-item-fg-secondary` for secondary text in `renderItem`.
+This token becomes the paired foreground on highlighted and checked surfaces;
+`text-fg-secondary` or a fixed icon color will not adapt to a selected row.
+Keep custom content non-interactive and identify the option with `item.label`.
+
+```tsx
+renderItem={(item) => (
+  <div className="flex min-w-0 flex-col">
+    <span>{item.label}</span>
+    <span className="text-combobox-item-fg-secondary text-sm">
+      {item.data?.subtitle}
+    </span>
+  </div>
+)}
+```
 
 ### Use validation props, not border classes
 

@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.0
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,15 +29,12 @@ import {
 import {
   type ComponentPropsWithoutRef,
   createContext,
-  type Dispatch,
   type ReactNode,
   type Ref,
-  type SetStateAction,
   useContext,
   useEffect,
   useId,
   useMemo,
-  useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
@@ -45,6 +42,12 @@ import { Button } from "../atoms/button"
 import { Icon, type IconProps } from "../atoms/icon"
 import { Label } from "../atoms/label"
 import { StatusText, type StatusTextProps } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
 import { tv } from "../utils"
 
 export type CascadeSelectSize = "xs" | "sm" | "md" | "lg"
@@ -106,9 +109,9 @@ export const cascadeSelectVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     clearTrigger:
-      "-translate-y-1/2 absolute end-cascade-select-right top-1/2 data-readonly:hidden",
+      "absolute end-cascade-select-right top-1/2 -translate-y-1/2 data-readonly:hidden",
     content: [
-      "popup-surface-base flex w-max min-w-(--reference-width) max-w-(--available-width) overflow-x-auto",
+      "popup-surface-base flex w-max min-w-(--reference-width) max-w-(--available-width) overflow-x-auto p-0",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
@@ -116,9 +119,19 @@ export const cascadeSelectVariants = tv({
       "data-[state=open]:scale-100 data-[state=open]:opacity-100",
       "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
-    list: "min-w-cascade-select-column grow basis-0",
+    column: [
+      "flex min-w-cascade-select-column flex-1 shrink-0 basis-0 flex-col",
+      "cascade-select-column-divider bg-cascade-select-column-bg",
+    ],
+    columnHeader:
+      "flex items-center gap-cascade-select-header border-cascade-select-column-border border-b bg-cascade-select-header-bg p-cascade-select-header font-cascade-select-header text-cascade-select-header-fg text-cascade-select-header-size",
+    columnStep:
+      "flex size-cascade-select-step shrink-0 items-center justify-center rounded-full bg-cascade-select-step-bg text-cascade-select-step-fg",
+    list: "p-cascade-select-column",
     item: [
-      "popup-item-base",
+      "popup-item-base cascade-select-item-path",
+      "data-active-path:font-cascade-select-path",
+      "data-active-path:data-[state=unchecked]:bg-cascade-select-path-bg",
       "hover:bg-popup-item-bg-hover",
       "data-highlighted:bg-popup-item-bg-hover",
       "data-[state=checked]:bg-popup-item-bg-selected",
@@ -128,11 +141,11 @@ export const cascadeSelectVariants = tv({
     ],
     itemText: "min-w-0 flex-grow truncate",
     branchIndicator: [
-      "last:-me-(--size-popup-indicator) flex size-(--size-popup-indicator) shrink-0 items-center justify-center",
+      "flex size-(--size-popup-indicator) shrink-0 items-center justify-center last:-me-(--size-popup-indicator)",
       "rtl:rotate-180",
     ],
     itemIndicator: [
-      "last:-me-(--size-popup-indicator) flex size-(--size-popup-indicator) shrink-0 items-center justify-center",
+      "flex size-(--size-popup-indicator) shrink-0 items-center justify-center last:-me-(--size-popup-indicator)",
       "text-popup-item-fg-selected",
     ],
     valueText: [
@@ -232,12 +245,12 @@ const formatSelectedItems = (
 type CascadeSelectContextValue = {
   api: CascadeSelectApi
   formatValue?: (selectedItems: CascadeSelectItem[][]) => string
+  getRootNode?: ZagCascadeSelectProps<CascadeSelectItem>["getRootNode"]
+  readOnly: boolean
   required: boolean
   size: CascadeSelectSize
-  statusTextIds: string[]
-  setStatusTextIds: Dispatch<SetStateAction<string[]>>
   validateStatus: CascadeSelectValidateStatus
-}
+} & DescribedBy
 
 const CascadeSelectContext = createContext<CascadeSelectContextValue | null>(
   null
@@ -299,7 +312,7 @@ export function CascadeSelect({
 }: CascadeSelectProps) {
   const generatedId = useId()
   const id = providedId || generatedId
-  const [statusTextIds, setStatusTextIds] = useState<string[]>([])
+  const descriptions = useDescribedBy()
   const collection = useMemo(
     () =>
       createCascadeSelectCollection<CascadeSelectItem>({
@@ -338,10 +351,11 @@ export function CascadeSelect({
       value={{
         api,
         formatValue: machineProps.formatValue,
+        getRootNode: machineProps.getRootNode,
+        readOnly: machineProps.readOnly ?? false,
         required,
         size,
-        statusTextIds,
-        setStatusTextIds,
+        ...descriptions,
         validateStatus,
       }}
     >
@@ -409,13 +423,23 @@ CascadeSelect.Trigger = function CascadeSelectTrigger({
   ref,
   ...props
 }: CascadeSelectTriggerProps) {
-  const { api, size, statusTextIds, validateStatus } = useCascadeSelectContext()
+  const { api, describedById, readOnly, required, size, validateStatus } =
+    useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
-  const triggerProps = mergeProps(api.getTriggerProps(), props)
-  const ariaDescribedBy =
-    [triggerProps["aria-describedby"], ...statusTextIds]
-      .filter(Boolean)
-      .join(" ") || undefined
+  const triggerProps = mergeProps(
+    api.getTriggerProps(),
+    {
+      "aria-haspopup": "tree",
+      "aria-invalid": validateStatus === "error" || undefined,
+      "aria-required": required || undefined,
+      "aria-readonly": readOnly || undefined,
+    },
+    props
+  )
+  const ariaDescribedBy = joinDescribedBy(
+    triggerProps["aria-describedby"],
+    describedById
+  )
 
   return (
     <Button
@@ -573,12 +597,49 @@ CascadeSelect.Content = function CascadeSelectContent({
   ref,
   ...props
 }: CascadeSelectContentProps) {
-  const { api, size } = useCascadeSelectContext()
+  const { api, getRootNode, size } = useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
+  const contentProps = api.getContentProps()
+  const highlightedId = api.highlightedValue.length
+    ? contentProps["aria-activedescendant"]
+    : undefined
+
+  useEffect(() => {
+    if (!(api.open && highlightedId)) {
+      return
+    }
+    // Zag scrolls within each list, but columns overflow the shared surface.
+    // Keep the actual keyboard cursor visible in narrow viewports too.
+    const root = getRootNode?.() ?? document
+    const scope =
+      root.nodeType === Node.DOCUMENT_NODE ||
+      root.nodeType === Node.DOCUMENT_FRAGMENT_NODE
+        ? (root as Document | DocumentFragment)
+        : (root.ownerDocument ?? document)
+    const view = scope.ownerDocument?.defaultView ?? window
+    // Placement and Zag's per-list scrolling settle in the next frame.
+    let frame = view.requestAnimationFrame(() => {
+      frame = view.requestAnimationFrame(() => {
+        scope.getElementById(highlightedId)?.scrollIntoView({
+          block: "nearest",
+          inline: "nearest",
+          behavior: "instant",
+        })
+      })
+    })
+    return () => view.cancelAnimationFrame(frame)
+  }, [api.open, getRootNode, highlightedId])
 
   return (
     <div
-      {...mergeProps(api.getContentProps(), props)}
+      {...mergeProps(
+        {
+          ...contentProps,
+          role: "tree",
+          "aria-activedescendant": highlightedId,
+        },
+        props
+      )}
       className={styles.content({ className })}
       ref={ref}
     />
@@ -609,7 +670,10 @@ CascadeSelect.List = function CascadeSelectList({
 
   return (
     <ul
-      {...mergeProps(api.getListProps(itemProps), props)}
+      {...mergeProps(
+        { ...api.getListProps(itemProps), "aria-level": undefined },
+        props
+      )}
       className={styles.list({ className })}
       ref={ref}
     />
@@ -637,12 +701,33 @@ CascadeSelect.Item = function CascadeSelectItemPart({
   const styles = cascadeSelectVariants({ size })
   const itemProps = { indexPath, item, value }
   const itemState = api.getItemState(itemProps)
+  const connectedProps = api.getItemProps(itemProps)
+  const expanded = itemState.hasChildren && itemState.highlighted
 
   return (
     <CascadeSelectItemContext.Provider value={{ itemProps, itemState }}>
       <li
-        {...mergeProps(api.getItemProps(itemProps), props)}
+        {...mergeProps(
+          {
+            ...connectedProps,
+            "aria-label": item.label,
+            "aria-level": itemState.depth,
+            "aria-selected": itemState.selected,
+            "aria-expanded": itemState.hasChildren ? expanded : undefined,
+            // Child groups are mounted only for the active path. Never point
+            // assistive technology at a group that is not in the DOM.
+            "aria-controls": expanded
+              ? connectedProps["aria-controls"]
+              : undefined,
+            "aria-owns": expanded ? connectedProps["aria-owns"] : undefined,
+            "aria-haspopup": undefined,
+          },
+          props
+        )}
         className={styles.item({ className })}
+        data-active-path={
+          itemState.hasChildren && itemState.highlighted ? "" : undefined
+        }
         ref={ref}
       >
         {children}
@@ -742,15 +827,19 @@ CascadeSelect.ItemIndicator = function CascadeSelectItemIndicator({
 type CascadeSelectTreeNodeProps = {
   indexPath: number[]
   node: CascadeSelectItem
+  rootLabel: string
   value: string[]
 }
 
 function CascadeSelectTreeNode({
   indexPath,
   node,
+  rootLabel,
   value,
 }: CascadeSelectTreeNodeProps) {
-  const { api } = useCascadeSelectContext()
+  const { api, size } = useCascadeSelectContext()
+  const styles = cascadeSelectVariants({ size })
+  const headingId = useId()
   const nodeProps = { indexPath, item: node, value }
   const nodeState = api.getItemState(nodeProps)
   const children = api.collection.getNodeChildren(node)
@@ -758,28 +847,46 @@ function CascadeSelectTreeNode({
 
   return (
     <>
-      <CascadeSelect.List {...nodeProps}>
-        {children.map((item, index) => {
-          const itemValue = api.collection.getNodeValue(item)
-          const itemProps = {
-            indexPath: [...indexPath, index],
-            item,
-            value: [...value, itemValue],
-          }
-          return (
-            <CascadeSelect.Item {...itemProps} key={itemValue}>
-              <CascadeSelect.ItemText key="text" />
-              <CascadeSelect.ItemIndicator key="item-indicator" />
-              <CascadeSelect.BranchIndicator key="branch-indicator" />
-            </CascadeSelect.Item>
-          )
-        })}
-      </CascadeSelect.List>
+      <div
+        className={styles.column()}
+        data-depth={indexPath.length}
+        data-part="column"
+        data-scope="cascade-select"
+        dir={api.getListProps(nodeProps).dir}
+      >
+        <div className={styles.columnHeader()} data-part="column-header">
+          <span aria-hidden="true" className={styles.columnStep()}>
+            {indexPath.length + 1}
+          </span>
+          <span id={headingId}>
+            {indexPath.length === 0 ? rootLabel : node.label}
+          </span>
+        </div>
+        <CascadeSelect.List {...nodeProps} aria-labelledby={headingId}>
+          {children.map((item, index) => {
+            const itemValue = api.collection.getNodeValue(item)
+            const itemProps = {
+              indexPath: [...indexPath, index],
+              item,
+              value: [...value, itemValue],
+            }
+            return (
+              <CascadeSelect.Item {...itemProps} key={itemValue}>
+                <CascadeSelect.ItemText key="text" />
+                <CascadeSelect.ItemIndicator key="item-indicator" />
+                <CascadeSelect.BranchIndicator key="branch-indicator" />
+              </CascadeSelect.Item>
+            )
+          })}
+        </CascadeSelect.List>
+      </div>
 
       {highlightedChild && api.collection.isBranchNode(highlightedChild) && (
         <CascadeSelectTreeNode
           indexPath={[...indexPath, nodeState.highlightedIndex]}
+          key={api.collection.getNodeValue(highlightedChild)}
           node={highlightedChild}
+          rootLabel={rootLabel}
           value={[...value, api.collection.getNodeValue(highlightedChild)]}
         />
       )}
@@ -790,12 +897,15 @@ function CascadeSelectTreeNode({
 type CascadeSelectNodeProps = {
   indexPath?: number[]
   node?: CascadeSelectItem
+  /** Heading for the first column; subsequent columns use the parent label. */
+  rootLabel?: string
   value?: string[]
 }
 
 CascadeSelect.Node = function CascadeSelectNode({
   indexPath = [],
   node,
+  rootLabel = "Options",
   value = [],
 }: CascadeSelectNodeProps) {
   const { api } = useCascadeSelectContext()
@@ -804,6 +914,7 @@ CascadeSelect.Node = function CascadeSelectNode({
     <CascadeSelectTreeNode
       indexPath={indexPath}
       node={node ?? api.collection.rootNode}
+      rootLabel={rootLabel}
       value={value}
     />
   )
@@ -820,19 +931,17 @@ CascadeSelect.StatusText = function CascadeSelectStatusText({
   status: statusProp,
   ...props
 }: CascadeSelectStatusTextProps) {
-  const { setStatusTextIds, size, validateStatus } = useCascadeSelectContext()
+  const { registerDescription, size, validateStatus } =
+    useCascadeSelectContext()
   const generatedId = useId()
   const id = providedId || generatedId
   const effectiveSize = sizeProp ?? size
 
-  useEffect(() => {
-    setStatusTextIds((ids) => [...ids, id])
-    return () =>
-      setStatusTextIds((ids) => ids.filter((statusId) => statusId !== id))
-  }, [id, setStatusTextIds])
+  useRegisterDescription(id, registerDescription)
 
   return (
     <StatusText
+      align="start"
       {...props}
       id={id}
       size={effectiveSize === "xs" ? "sm" : effectiveSize}

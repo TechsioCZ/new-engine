@@ -13,7 +13,9 @@ import {Slider} from '../../src/molecules/slider'
 
 const meta: Meta = {
   title: 'Templates/Comprehensive Form',
+  tags: ["autodocs"],
   parameters: {
+    docs: { description: { component: "A reference composition of form controls for comparing shared sizing and validation states across an entire form. Use this template as an integration and consistency check; use individual form-field molecules when building focused production forms." } },
     layout: 'centered',
   },
   argTypes: {

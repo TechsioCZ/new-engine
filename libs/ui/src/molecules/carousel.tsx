@@ -2,14 +2,18 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.2.3
+ * @componentVersion v1.3.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the carousel-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as carousel from "@zag-js/carousel"
+import {
+  type Props as CarouselMachineProps,
+  connect,
+  machine,
+} from "@zag-js/carousel"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
@@ -20,11 +24,12 @@ import {
   useContext,
   useId,
 } from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import type { IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
 import { usePrefersReducedMotion } from "../internal/reduced-motion"
+import { tv } from "../utils"
 
 type CarouselImageComponent<T extends ElementType = typeof Image> =
   T extends typeof Image
@@ -39,23 +44,26 @@ type CarouselImageComponent<T extends ElementType = typeof Image> =
 
 const carouselVariants = tv({
   slots: {
-    wrapper: ["relative w-fit"],
-    root: ["relative overflow-hidden", "rounded-carousel"],
+    wrapper: ["relative w-full"],
+    root: ["carousel-side-layout relative w-full", "rounded-carousel"],
     control: [
-      "flex gap-carousel-control p-carousel-control",
+      "flex items-center gap-carousel-control p-carousel-control",
+      "data-[orientation=vertical]:flex-col",
+      "border border-carousel-control-border shadow-carousel-control",
       "bg-carousel-control-bg",
       "rounded-carousel",
     ],
     slideGroup: [
-      "overflow-hidden",
+      "overflow-hidden rounded-carousel",
       "scrollbar-none",
       "data-dragging:cursor-grabbing",
-      "data-[orientation=vertical]:h-full",
+      "min-h-0 min-w-0",
     ],
     slide: [
       "relative shrink-0",
       "flex items-center justify-center",
       "overflow-hidden",
+      "min-h-0 min-w-0",
       "data-[orientation=vertical]:size-full",
     ],
     /*
@@ -64,15 +72,20 @@ const carouselVariants = tv({
      * can. The defaults match ActionIcon's neutral tone.
      */
     prevTrigger: [
-      "bg-carousel-trigger-bg-base text-carousel-trigger-fg-base",
-      "hover:bg-carousel-trigger-bg-hover hover:text-carousel-trigger-fg-hover",
+      "border border-carousel-trigger-border bg-carousel-navigation-bg text-carousel-trigger-fg-base shadow-carousel-navigation",
+      "data-disabled:cursor-not-allowed data-disabled:text-carousel-trigger-fg-disabled",
+      "data-disabled:hover:bg-carousel-navigation-bg data-disabled:hover:text-carousel-trigger-fg-disabled",
+      "hover:bg-carousel-navigation-bg-hover hover:text-carousel-trigger-fg-hover",
     ],
     nextTrigger: [
-      "bg-carousel-trigger-bg-base text-carousel-trigger-fg-base",
-      "hover:bg-carousel-trigger-bg-hover hover:text-carousel-trigger-fg-hover",
+      "border border-carousel-trigger-border bg-carousel-navigation-bg text-carousel-trigger-fg-base shadow-carousel-navigation",
+      "data-disabled:cursor-not-allowed data-disabled:text-carousel-trigger-fg-disabled",
+      "data-disabled:hover:bg-carousel-navigation-bg data-disabled:hover:text-carousel-trigger-fg-disabled",
+      "hover:bg-carousel-navigation-bg-hover hover:text-carousel-trigger-fg-hover",
     ],
     indicatorGroup: [
-      "flex w-full items-center justify-center gap-carousel-indicator",
+      "flex items-center justify-center gap-carousel-indicator",
+      "data-[orientation=vertical]:flex-col",
     ],
     /*
      * The indicator button is the 24 px hit area (WCAG 2.2 target size); the
@@ -85,22 +98,19 @@ const carouselVariants = tv({
       "rounded-carousel-indicator border border-carousel-indicator-border-base",
       "data-current:border-carousel-indicator-border-active",
       "text-carousel-trigger-fg-base",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-carousel-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "focus-visible:carousel-focus-ring",
     ],
     indicatorDot: [
       "size-carousel-indicator-dot rounded-carousel-indicator",
       "bg-carousel-indicator-bg-base",
-      "group-data-current:bg-carousel-indicator-bg-active",
+      "group-data-current:scale-125 group-data-current:bg-carousel-indicator-bg-active",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     autoplayTrigger: [
-      "absolute top-carousel-trigger-top right-carousel-trigger-right z-50",
-      // Sits over the slide image, so it needs the opaque control surface.
-      "bg-carousel-control-bg",
+      "absolute top-carousel-trigger-top right-carousel-trigger-right",
+      "border border-carousel-trigger-border bg-carousel-navigation-bg text-carousel-trigger-fg-base shadow-carousel-navigation",
+      "hover:bg-carousel-navigation-bg-hover hover:text-carousel-trigger-fg-hover",
     ],
-    spacer: ["flex-1"],
   },
   variants: {
     objectFit: {
@@ -119,75 +129,40 @@ const carouselVariants = tv({
     },
     controlPosition: {
       side: {
-        control: "flex-col items-center justify-between",
+        control:
+          "absolute top-1/2 right-carousel-control-inset -translate-y-1/2 flex-col",
       },
       top: {
-        control: "absolute top-0 left-1/2 -translate-x-1/2",
+        control:
+          "absolute top-carousel-control-inset left-1/2 -translate-x-1/2",
       },
       bottom: {
-        control: "absolute bottom-0 left-1/2 -translate-x-1/2",
+        control:
+          "absolute bottom-carousel-control-inset left-1/2 -translate-x-1/2",
       },
       unset: {},
     },
-    aspectRatio: {
-      square: {
-        slideGroup: "data-[orientation=vertical]:aspect-square",
-        slide: "data-[orientation=horizontal]:aspect-square",
-      },
-      landscape: {
-        slideGroup: "data-[orientation=vertical]:aspect-video",
-        slide: "data-[orientation=horizontal]:aspect-video",
-      },
-      portrait: {
-        slideGroup: "data-[orientation=vertical]:aspect-portrait",
-        slide: "data-[orientation=horizontal]:aspect-portrait",
-      },
-      wide: {
-        slideGroup: "data-[orientation=vertical]:aspect-wide",
-        slide: "data-[orientation=horizontal]:aspect-wide",
-      },
-      none: {
-        slideGroup: "",
-        slide: "",
+    controls: {
+      standard: {},
+      minimal: {
+        control: [
+          "pointer-events-none absolute inset-0 justify-between rounded-none border-0 bg-transparent shadow-none",
+          "*:pointer-events-auto",
+        ],
       },
     },
+    aspectRatio: {
+      square: { slideGroup: "aspect-square" },
+      landscape: { slideGroup: "aspect-video" },
+      portrait: { slideGroup: "aspect-portrait" },
+      wide: { slideGroup: "aspect-wide" },
+      none: { slideGroup: "data-[orientation=vertical]:h-full" },
+    },
     size: {
-      sm: {
-        root: [
-          "data-[orientation=horizontal]:max-w-carousel-root-sm",
-          "data-[orientation=vertical]:max-h-carousel-root-sm",
-        ],
-        slide: [
-          "data-[orientation=horizontal]:max-w-carousel-root-sm",
-          "data-[orientation=vertical]:max-h-carousel-root-sm",
-        ],
-      },
-      md: {
-        root: [
-          "data-[orientation=horizontal]:max-w-carousel-root-md",
-          "data-[orientation=vertical]:max-h-carousel-root-md",
-        ],
-        slide: [
-          "data-[orientation=horizontal]:max-w-carousel-root-md",
-          "data-[orientation=vertical]:max-h-carousel-root-md",
-        ],
-      },
-      lg: {
-        root: [
-          "data-[orientation=horizontal]:max-w-carousel-root-lg",
-          "data-[orientation=vertical]:max-h-carousel-root-lg",
-        ],
-        slide: [
-          "data-[orientation=horizontal]:max-w-carousel-root-lg",
-          "data-[orientation=vertical]:max-h-carousel-root-lg",
-        ],
-      },
-      full: {
-        root: [
-          "data-[orientation=horizontal]:w-full",
-          "data-[orientation=vertical]:h-full",
-        ],
-      },
+      sm: { wrapper: "max-w-carousel-root-sm" },
+      md: { wrapper: "max-w-carousel-root-md" },
+      lg: { wrapper: "max-w-carousel-root-lg" },
+      full: {},
     },
   },
   defaultVariants: {
@@ -195,11 +170,15 @@ const carouselVariants = tv({
     objectFit: "cover",
     size: "md",
     controlPosition: "bottom",
+    controls: "standard",
   },
 })
 
 type CarouselContextValue = {
-  api: ReturnType<typeof carousel.connect>
+  api: ReturnType<typeof connect>
+  orientation: "horizontal" | "vertical"
+  dir: "ltr" | "rtl"
+  imageAs?: ElementType
   size?: "sm" | "md" | "lg" | "full"
   objectFit?: "cover" | "contain" | "fill" | "none"
   aspectRatio?: "square" | "landscape" | "portrait" | "wide" | "none"
@@ -238,9 +217,9 @@ type CarouselDimension = CSSProperties["width"]
 
 export type CarouselRootProps<T extends ElementType = typeof Image> = Omit<
   VariantProps<typeof carouselVariants>,
-  "controlPosition"
+  "controlPosition" | "controls"
 > &
-  Omit<carousel.Props, "id" | "size"> & {
+  Omit<CarouselMachineProps, "id" | "size"> & {
     id?: string
     className?: string
     children: ReactNode
@@ -297,6 +276,8 @@ type CarouselControlProps = {
   children: ReactNode
   className?: string
   controlPosition?: "top" | "bottom" | "side" | "unset"
+  /** Minimal controls span the viewport; render only Previous and Next inside. */
+  controls?: "standard" | "minimal"
 }
 
 export function Carousel<T extends ElementType = typeof Image>({
@@ -322,6 +303,7 @@ export function Carousel<T extends ElementType = typeof Image>({
   children,
   width,
   height,
+  imageAs,
   onPageChange,
   "aria-label": ariaLabel,
   ...props
@@ -330,7 +312,7 @@ export function Carousel<T extends ElementType = typeof Image>({
   // Autoplay is JS-driven, so motion-reduce: classes cannot stop it. Users who
   // prefer reduced motion get a still carousel; the play control still works.
   const prefersReducedMotion = usePrefersReducedMotion()
-  const service = useMachine(carousel.machine, {
+  const service = useMachine(machine, {
     id: id ?? fallbackId,
     slideCount,
     autoplay: prefersReducedMotion ? false : autoplay,
@@ -347,7 +329,7 @@ export function Carousel<T extends ElementType = typeof Image>({
     ...props,
   })
 
-  const api = carousel.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
   const { wrapper, root } = carouselVariants({ size, objectFit, aspectRatio })
   const rootProps = api.getRootProps()
   const resolvedRootStyle = {
@@ -361,16 +343,31 @@ export function Carousel<T extends ElementType = typeof Image>({
   }
 
   return (
-    <CarouselContext.Provider value={{ api, size, objectFit, aspectRatio }}>
+    <CarouselContext.Provider
+      value={{ api, size, objectFit, aspectRatio, orientation, dir, imageAs }}
+    >
       <div className={wrapper()} style={resolvedWrapperStyle}>
-        <div
+        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Pause rotation on region hover/focus without making the region itself a control. */}
+        <section
           {...rootProps}
           aria-label={ariaLabel}
           className={root({ className })}
+          onFocusCapture={(event) => {
+            // Do not pause before the rotation toggle handles its own click.
+            if (
+              (event.target as HTMLElement).closest(
+                '[data-part="autoplay-trigger"]'
+              )
+            ) {
+              return
+            }
+            api.pause()
+          }}
+          onMouseEnter={() => api.pause()}
           style={resolvedRootStyle}
         >
           {children}
-        </div>
+        </section>
       </div>
     </CarouselContext.Provider>
   )
@@ -387,6 +384,7 @@ Carousel.Slides = function CarouselSlides({
     size: contextSize,
     objectFit,
     aspectRatio,
+    imageAs: contextImageAs,
   } = useCarouselContext()
   const size = overrideSize ?? contextSize
   const { slideGroup } = carouselVariants({
@@ -394,16 +392,17 @@ Carousel.Slides = function CarouselSlides({
     objectFit,
     aspectRatio,
   })
-  const hasCustomImageComponent = imageAs && imageAs !== Image
+  const resolvedImageAs = imageAs ?? contextImageAs
+  const hasCustomImageComponent = resolvedImageAs && resolvedImageAs !== Image
   const CustomImageComponent = hasCustomImageComponent
-    ? (imageAs as ElementType)
+    ? (resolvedImageAs as ElementType)
     : Image
 
   return (
     <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
       {slides.map((slide, index) => (
         <Carousel.Slide index={index} key={slide.id}>
-          {slide.content ||
+          {slide.content ??
             (hasCustomImageComponent ? (
               <CustomImageComponent
                 alt={slide.alt || ""}
@@ -461,38 +460,61 @@ Carousel.Slide = function CarouselSlideRoot({
 
 Carousel.Previous = function CarouselPrevious({
   className,
-  icon = "token-icon-carousel-prev" as IconType,
+  icon,
 }: CarouselPreviousProps) {
-  const { api, size } = useCarouselContext()
+  const { api, size, orientation, dir } = useCarouselContext()
   const { prevTrigger } = carouselVariants()
   const triggerProps = api.getPrevTriggerProps()
+  const disabled = !api.canScrollPrev || api.pageSnapPoints.length <= 1
+  let resolvedIcon = icon
+  if (!resolvedIcon || resolvedIcon === "token-icon-carousel-prev") {
+    resolvedIcon =
+      dir === "rtl" ? "token-icon-carousel-next" : "token-icon-carousel-prev"
+    if (orientation === "vertical") {
+      resolvedIcon = "token-icon-carousel-prev-vertical"
+    }
+  }
 
   return (
     <ActionIcon
       className={prevTrigger({ className })}
       size={toTriggerSize(size)}
       {...triggerProps}
+      aria-disabled={disabled}
       aria-label={triggerProps["aria-label"] ?? "Previous slide"}
-      icon={icon}
+      data-disabled={disabled ? "" : undefined}
+      disabled={disabled}
+      icon={resolvedIcon}
+      onClick={disabled ? undefined : triggerProps.onClick}
     />
   )
 }
 
-Carousel.Next = function CarouselNext({
-  className,
-  icon = "token-icon-carousel-next" as IconType,
-}: CarouselNextProps) {
-  const { api, size } = useCarouselContext()
+Carousel.Next = function CarouselNext({ className, icon }: CarouselNextProps) {
+  const { api, size, orientation, dir } = useCarouselContext()
   const { nextTrigger } = carouselVariants()
   const triggerProps = api.getNextTriggerProps()
+  const disabled = !api.canScrollNext || api.pageSnapPoints.length <= 1
+  let resolvedIcon = icon
+  if (!resolvedIcon || resolvedIcon === "token-icon-carousel-next") {
+    resolvedIcon =
+      dir === "rtl" ? "token-icon-carousel-prev" : "token-icon-carousel-next"
+    if (orientation === "vertical") {
+      resolvedIcon = "token-icon-carousel-next-vertical"
+    }
+  }
 
   return (
     <ActionIcon
       className={nextTrigger({ className })}
       size={toTriggerSize(size)}
       {...triggerProps}
+      aria-disabled={disabled}
       aria-label={triggerProps["aria-label"] ?? "Next slide"}
-      icon={icon}
+      data-disabled={disabled ? "" : undefined}
+      disabled={disabled}
+      icon={resolvedIcon}
+      onClick={disabled ? undefined : triggerProps.onClick}
     />
   )
 }
@@ -521,8 +543,8 @@ Carousel.Indicators = function CarouselIndicators({
       className={indicatorGroup({ className })}
       {...api.getIndicatorGroupProps()}
     >
-      {api.pageSnapPoints.map((_, index) => (
-        <Carousel.Indicator index={index} key={`indicator-${index}`} />
+      {api.pageSnapPoints.map((snapPoint, index) => (
+        <Carousel.Indicator index={index} key={snapPoint} />
       ))}
     </div>
   )
@@ -541,6 +563,7 @@ Carousel.Indicator = function CarouselIndicator({
       className={indicator({ className })}
       type="button"
       {...api.getIndicatorProps({ index })}
+      aria-current={index === api.page ? "true" : undefined}
     >
       {children ?? <span aria-hidden="true" className={indicatorDot()} />}
     </button>
@@ -574,12 +597,30 @@ Carousel.Control = function CarouselControl({
   children,
   className,
   controlPosition,
+  controls,
 }: CarouselControlProps) {
-  const { api } = useCarouselContext()
-  const { control } = carouselVariants({ controlPosition })
+  const { api, orientation } = useCarouselContext()
+  // Standard vertical controls occupy their own grid column: the rail must not
+  // be constrained by a short image's aspect ratio or cover its content.
+  const sideLayout =
+    orientation === "vertical" &&
+    controls !== "minimal" &&
+    controlPosition !== "unset"
+  const { control } = carouselVariants({
+    controlPosition:
+      controls === "minimal" || sideLayout ? "unset" : controlPosition,
+    controls,
+  })
 
   return (
-    <div className={control({ className })} {...api.getControlProps()}>
+    <div
+      className={control({ className })}
+      {...api.getControlProps()}
+      data-carousel-layout={sideLayout ? "side" : undefined}
+      data-carousel-leading={
+        sideLayout && controlPosition === "top" ? "" : undefined
+      }
+    >
       {children}
     </div>
   )

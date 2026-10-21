@@ -10,6 +10,12 @@
  * `color/fg/secondary` semantic instead of overriding here.
  */
 
+/* The icon inherits the message font size and sits in a first-line-height
+ * frame. No pixel offsets: sm/md/lg and custom line heights stay aligned. */
+@theme static {
+  --height-status-text-icon-line: 1lh;
+}
+
 @utility token-icon-status-text-success {
   @apply token-icon-success;
 }

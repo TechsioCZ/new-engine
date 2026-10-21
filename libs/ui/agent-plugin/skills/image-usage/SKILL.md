@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Image or a
   framework image adapter such as NextImage through the Image atom's as prop.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -56,7 +56,7 @@ where actions and feedback live). This section applies them to `Image`.
 import NextImage from "next/image"
 import { Image } from "@techsio/ui-kit/atoms/image"
 
-<Image as={NextImage} src="/product.jpg" alt="Ceramic bowl" size="full" />
+<Image as={NextImage} src="/product.jpg" alt="Ceramic bowl" width={960} height={640} size="full" />
 ```
 
 Supported props:
@@ -78,6 +78,8 @@ size: sm | md | lg | full | custom
   src={product.image}
   alt={product.title}
   size="full"
+  width={960}
+  height={640}
 />
 ```
 
@@ -92,6 +94,26 @@ provide image behavior when available.
 
 Use `size="custom"` only when layout constraints must come from the parent or
 component token overrides.
+
+### Aspect, fit, and shape
+
+Image renders as a block, stays within its container, and uses `object-cover`
+by default so fixed square slots crop rather than stretch. `full` keeps the
+source aspect ratio unless the consumer deliberately constrains the slot.
+Use `size="custom"` with token utilities when the layout owns the aspect ratio:
+
+```tsx
+<Image src={product.image} alt={product.title} size="custom"
+  className="w-full aspect-video rounded-lg object-contain" />
+```
+
+Use `object-cover` for an immersive crop and `object-contain` when the complete
+product must remain visible. `rounded-none`, `rounded-lg`, and `rounded-full`
+control shape. Width/height reserve intrinsic space and are forwarded through
+`as`; framework adapters must forward `className`, `src`, `alt`, and sizing props.
+NextImage also requires its own width/height or fill contract; the UI-kit size
+prop alone does not satisfy it. The Storybook adapter is a dependency-free
+stand-in, not a claim that Next.js optimization runs in Storybook.
 
 ### Keep alt text meaningful
 

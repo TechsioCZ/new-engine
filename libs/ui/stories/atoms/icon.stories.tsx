@@ -1,166 +1,344 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Icon, type IconType } from '../../src/atoms/icon'
-import { iconLabels, iconOptions } from '../helpers/icon-options'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useId, useRef, useState } from "react"
+import { expect, userEvent, within } from "storybook/test"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { Icon } from "../../src/atoms/icon"
+import { Input } from "../../src/atoms/input"
+import { Label } from "../../src/atoms/label"
+import { iconCatalog, iconLabels } from "../helpers/icon-options"
 
-const tokenIconOptions: IconType[] = [
-  'token-icon-error',
-  'token-icon-success',
-  'token-icon-warning',
-  'token-icon-info',
-  'token-icon-input-error',
-  'token-icon-input-success',
-  'token-icon-input-warning',
-  'token-icon-input-info',
-]
-
-const iconControlOptions: IconType[] = [
-  ...tokenIconOptions,
-  ...iconOptions.filter((option): option is IconType => Boolean(option)),
-]
-
-const iconControlLabels: Record<string, string> = {
-  ...iconLabels,
-  'token-icon-error': 'Token Error',
-  'token-icon-success': 'Token Success',
-  'token-icon-warning': 'Token Warning',
-  'token-icon-info': 'Token Info',
-  'token-icon-input-error': 'Token Input Error',
-  'token-icon-input-success': 'Token Input Success',
-  'token-icon-input-warning': 'Token Input Warning',
-  'token-icon-input-info': 'Token Input Info',
-}
-
-const meta: Meta<typeof Icon> = {
-  title: 'Atoms/Icon',
+const meta = {
+  title: "Atoms/Icon",
   component: Icon,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
+    docs: {
+      description: {
+        component:
+          "Icon is a lightweight glyph for navigation, actions and status. Prefer the named token icons for consistent meaning across the product; use an Iconify class when no token fits. Icons inherit text size and color by default. Keep icons beside text decorative, or supply label for a meaningful standalone image. Use ActionIcon or Button—not Icon—for clickable actions. Browse the searchable Gallery for names and copyable class names.",
+      },
+    },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     icon: {
-      control: {
-        type: 'select',
-        labels: iconControlLabels,
-      },
-      options: iconControlOptions,
-      description: 'Icon token or inline icon class',
+      control: { type: "select", labels: iconLabels },
+      options: iconCatalog.map(({ icon }) => icon),
+      description: "Named token glyph or statically declared Iconify class.",
     },
     size: {
-      control: 'select',
-      options: ['current', 'xs', 'sm', 'md', 'lg', 'xl', '2xl'],
-      description: 'Size token for the icon',
-      table: {
-        defaultValue: { summary: 'current' },
-      },
+      control: "select",
+      options: ["current", "xs", "sm", "md", "lg", "xl", "2xl"],
+      description: "System size scale; current inherits surrounding text size.",
+      table: { defaultValue: { summary: "current" } },
     },
     color: {
-      control: 'select',
-      options: ['current', 'primary', 'secondary', 'success', 'danger', 'warning'],
-      description: 'Color token for the icon',
-      table: {
-        defaultValue: { summary: 'current' },
-      },
+      control: "select",
+      options: [
+        "current",
+        "primary",
+        "secondary",
+        "success",
+        "danger",
+        "warning",
+      ],
+      description:
+        "Component color alias; current inherits surrounding text color.",
+    },
+    label: {
+      control: "text",
+      description:
+        "Accessible name for a meaningful standalone icon; omit beside text.",
     },
   },
   args: {
-    icon: 'token-icon-error',
-    size: 'md',
-    color: 'current',
+    icon: "token-icon-home",
+    size: "lg",
+    color: "current",
+    label: "Home",
+  },
+} satisfies Meta<typeof Icon>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A recognizable Home glyph at a comfortable large size; use Controls to explore icons, size, color and its accessible name.",
+      },
+    },
   },
 }
 
-export default meta
-type Story = StoryObj<typeof Icon>
-
-export const Playground: Story = {
-  render: (args) => <Icon {...args} />,
-}
-
-// Sizes
 export const Sizes: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "The same Home glyph across the complete system size scale, including inherited text size and 2xl, makes relative sizing easy to compare.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Sizes">
-        <Icon icon="token-icon-error" size="xs" />
-        <Icon icon="token-icon-error" size="sm" />
-        <Icon icon="token-icon-error" size="md" />
-        <Icon icon="token-icon-error" size="lg" />
-        <Icon icon="token-icon-error" size="xl" />
+      <VariantGroup title="System icon sizes">
+        {(["current", "xs", "sm", "md", "lg", "xl", "2xl"] as const).map(
+          (size) => (
+            <div
+              className="flex flex-col items-center gap-150 p-150"
+              key={size}
+            >
+              <div className="flex h-600 items-center justify-center">
+                <Icon icon="token-icon-home" size={size} />
+              </div>
+              <span className="font-medium text-fg-primary text-sm">
+                {size}
+              </span>
+            </div>
+          )
+        )}
       </VariantGroup>
     </VariantContainer>
   ),
 }
 
-// Colors
 export const Colors: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Labeled color aliases show theme-aware icon accents without relying on color alone to communicate meaning.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Colors">
-        <Icon icon="token-icon-error" color="current" />
-        <Icon icon="token-icon-error" color="primary" />
-        <Icon icon="token-icon-error" color="secondary" />
-        <Icon icon="token-icon-error" color="success" />
-        <Icon icon="token-icon-error" color="danger" />
-        <Icon icon="token-icon-error" color="warning" />
+      <VariantGroup title="Theme-aware colors">
+        {(
+          [
+            "current",
+            "primary",
+            "secondary",
+            "success",
+            "danger",
+            "warning",
+          ] as const
+        ).map((color) => (
+          <div className="flex flex-col items-center gap-150 p-150" key={color}>
+            <Icon icon="token-icon-home" size="lg" color={color} />
+            <span className="text-fg-primary text-sm">{color}</span>
+          </div>
+        ))}
       </VariantGroup>
     </VariantContainer>
   ),
 }
 
-// Semantic tokens
+function IconGallery({
+  entries = iconCatalog,
+}: {
+  entries?: typeof iconCatalog
+}) {
+  const [query, setQuery] = useState("")
+  const searchRef = useRef<HTMLInputElement>(null)
+  const searchId = useId()
+  const resultsId = useId()
+  const search = query.trim().toLocaleLowerCase()
+  const matches = entries.filter(({ label, icon, category }) =>
+    `${label} ${icon} ${category}`.toLocaleLowerCase().includes(search)
+  )
+  const categories = [...new Set(matches.map(({ category }) => category))]
+
+  return (
+    <div className="flex w-full max-w-4xl flex-col gap-300">
+      <div className="flex flex-col gap-100">
+        <Label htmlFor={searchId}>Find an icon</Label>
+        <div className="flex items-center gap-150">
+          <Input
+            ref={searchRef}
+            id={searchId}
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search home, navigation, token-icon…"
+            aria-describedby={resultsId}
+          />
+          {query && (
+            <Button
+              className="shrink-0 whitespace-nowrap"
+              theme="outlined"
+              onClick={() => {
+                setQuery("")
+                searchRef.current?.focus()
+              }}
+            >
+              Clear search
+            </Button>
+          )}
+        </div>
+        <output
+          id={resultsId}
+          className="text-fg-secondary text-sm"
+          aria-live="polite"
+        >
+          {matches.length} {matches.length === 1 ? "icon" : "icons"} found
+        </output>
+      </div>
+      {categories.map((category) => (
+        <section
+          className="flex flex-col gap-150"
+          key={category}
+          aria-label={category}
+        >
+          <h3 className="font-semibold text-fg-primary text-md">{category}</h3>
+          <ul className="grid grid-cols-1 gap-150 sm:grid-cols-2 lg:grid-cols-3">
+            {matches
+              .filter((entry) => entry.category === category)
+              .map(({ icon, label }) => (
+                <li
+                  className="flex min-w-0 items-center gap-200 rounded-md border border-border-primary bg-bg-primary p-200"
+                  key={icon}
+                >
+                  <Icon icon={icon} size="lg" />
+                  <div className="min-w-0">
+                    <p className="font-medium text-fg-primary text-sm">
+                      {label}
+                    </p>
+                    <code className="block break-all text-fg-secondary text-xs">
+                      {icon}
+                    </code>
+                  </div>
+                </li>
+              ))}
+          </ul>
+        </section>
+      ))}
+      {matches.length === 0 && (
+        <div className="rounded-md border border-border-primary p-300 text-center">
+          <p className="font-medium">No icons match “{query}”</p>
+          <p className="mt-100 text-fg-secondary text-sm">
+            Try a name like “home”, a category like “actions”, or clear the
+            search.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export const Gallery: Story = {
+  parameters: {
+    layout: "padded",
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Search named token glyphs and curated Iconify examples by name, class or category to find a consistent icon for your interface.",
+      },
+    },
+  },
+  render: () => <IconGallery />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const search = canvas.getByRole("searchbox", { name: "Find an icon" })
+    await userEvent.type(search, "token-icon-home")
+    await expect(canvas.getAllByRole("listitem")).toHaveLength(1)
+    await expect(canvas.getByText("Home", { exact: true })).toBeVisible()
+    await userEvent.clear(search)
+    await userEvent.type(search, "no-such-glyph")
+    await expect(canvas.queryAllByRole("listitem")).toHaveLength(0)
+    await expect(
+      canvas.getByText("No icons match “no-such-glyph”")
+    ).toBeVisible()
+    await userEvent.click(canvas.getByRole("button", { name: "Clear search" }))
+    await expect(canvas.getAllByRole("listitem")).toHaveLength(
+      iconCatalog.length
+    )
+    await expect(search).toHaveFocus()
+  },
+}
+
 export const SemanticTokens: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    layout: "padded",
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Status token aliases give error, success, warning and information a stable name so themes can choose the right glyph.",
+      },
+    },
+  },
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="Semantic Icons">
-        <div className="flex items-center gap-4">
-          <Icon icon="token-icon-error" size="md" />
-          <span>token-icon-error</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Icon icon="token-icon-success" size="md" />
-          <span>token-icon-success</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Icon icon="token-icon-warning" size="md" />
-          <span>token-icon-warning</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Icon icon="token-icon-info" size="md" />
-          <span>token-icon-info</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Icon icon="icon-[mdi-light--check-circle]" size="md" />
-          <span>token-icon-check-circle</span>
-        </div>
-      </VariantGroup>
-    </VariantContainer>
+    <IconGallery
+      entries={iconCatalog.filter(({ category }) => category === "Status")}
+    />
   ),
 }
 
-// Component tokens
 export const ComponentTokens: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    layout: "padded",
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Form-control aliases reuse shared status and direction glyphs, keeping validation and steppers consistent across components.",
+      },
+    },
+  },
+  render: () => (
+    <IconGallery
+      entries={iconCatalog.filter(
+        ({ category }) => category === "Form controls"
+      )}
+    />
+  ),
+}
+
+export const AccessibleMeaning: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Use a label for a meaningful standalone image, but leave the same glyph decorative when adjacent text already conveys its meaning.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Component Tokens">
-        <div className="flex items-center gap-4">
-          <Icon icon="token-icon-input-error" size="md" />
-          <span>token-icon-input-error</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Icon icon="token-icon-input-success" size="md" />
-          <span>token-icon-input-success</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Icon icon="token-icon-input-warning" size="md" />
-          <span>token-icon-input-warning</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Icon icon="token-icon-input-info" size="md" />
-          <span>token-icon-input-info</span>
-        </div>
+      <VariantGroup title="Standalone image">
+        <Icon
+          icon="token-icon-check-circle"
+          size="lg"
+          color="success"
+          label="In stock"
+        />
+      </VariantGroup>
+      <VariantGroup title="Decorative beside text">
+        <span className="inline-flex items-center gap-100">
+          <Icon icon="token-icon-check-circle" size="lg" color="success" />
+          In stock
+        </span>
       </VariantGroup>
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getAllByRole("img", { name: "In stock" })).toHaveLength(
+      1
+    )
+    await expect(
+      canvasElement.querySelectorAll('[aria-hidden="true"]')
+    ).toHaveLength(1)
+  },
 }

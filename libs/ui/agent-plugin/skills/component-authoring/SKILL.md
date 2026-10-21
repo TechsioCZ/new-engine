@@ -227,3 +227,34 @@ bunx nx run ui:build
 
 Add Storybook/a11y/component visual checks when visuals or interactions change.
 
+
+## Shared component contracts (required)
+
+The canonical requirements are in `libs/ui/docs/component-contracts.md`.
+
+- Below-control messages use StatusText. Error/warning/success icons are on by
+  default; never disable them for validation. Neutral helper text has no default
+  icon. Give each message an ID; merge `aria-describedby` on the focusable part,
+  add `aria-invalid` and `aria-errormessage` for errors, and remove stale IDs.
+  Compound parts use `useDescribedBy`, `useRegisterDescription`, and
+  `joinDescribedBy` from `src/internal/described-by.ts`.
+- Every value-holding form control supports `readOnly`, including controlled
+  and uncontrolled usage. Preserve focus, selection/copy, full-contrast text
+  and visible focus. Set native `readOnly` or supported `aria-readonly`, plus
+  `data-readonly` on the value surface. Gate all mutation handlers/machine paths.
+- `form-control-base` includes `form-control-readonly`/`form-control-disabled`;
+  otherwise opt into the readonly utility or alias component tokens to
+  `--color-form-control-{bg,fg}-readonly`. Hide value-changing descendants with
+  `data-readonly-affordance` or omit them. CSS is not behavior enforcement.
+  No disabled cursor/dimming, no pointer-events:none on readonly text. Disabled
+  wins when both states apply and must remove all tab stops.
+- Interactive size variants are sm/md/lg, default md; preserve existing xs/current
+  compatibility escapes without teaching them as canonical. Use
+  `h-form-control-sm/md/lg` for single-line heights, `popup-size-sm/md/lg` for
+  option rows. Icon/Badge/Label and content-width exceptions are documented in
+  the contracts; do not shrink global typography to solve a dense UI.
+- Floating list panels use `popup-surface-base`; rich panels alias their surface
+  tokens to the opaque popup background/border/shadow. Apply `popup-layer` on
+  Content and Positioner, preserving `--layer-index`, not hard-coded z-50.
+- Do not use forwardRef or useCallback. Use type, not interface, for new props.
+  For stories, follow storybook-authoring and the shared documentation contract.

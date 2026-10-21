@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -39,17 +39,17 @@ const fileUploadStyles = tv({
   slots: {
     root: "flex w-full flex-col items-start gap-file-upload-root",
     label: [
-      "font-file-upload-label text-file-upload-label text-file-upload-label-fg",
+      "file-upload-label-typography font-file-upload-label text-file-upload-label-fg",
       "data-disabled:text-file-upload-label-disabled-fg",
     ],
     dropzone: [
       "flex min-h-file-upload-dropzone-min-height w-full cursor-pointer flex-col items-center justify-center gap-file-upload-dropzone",
       "file-upload-dropzone-border-dashed file-upload-dropzone-border-width rounded-file-upload-dropzone border-file-upload-dropzone-border bg-file-upload-dropzone-bg p-file-upload-dropzone",
-      "transition-colors hover:bg-file-upload-dropzone-hover-bg motion-reduce:transition-none",
-      "focus-visible:file-upload-focus",
+      "transition-colors not-data-disabled:not-data-readonly:hover:bg-file-upload-dropzone-hover-bg motion-reduce:transition-none",
+      "focus-visible:file-upload-focus text-file-upload-dropzone-fg",
       "data-dragging:file-upload-dropzone-border-solid data-dragging:border-file-upload-dropzone-dragging-border data-dragging:bg-file-upload-dropzone-dragging-bg",
       "data-invalid:border-file-upload-dropzone-invalid-border",
-      "data-disabled:cursor-not-allowed data-disabled:border-file-upload-dropzone-disabled-border data-disabled:bg-file-upload-dropzone-disabled-bg",
+      "data-disabled:cursor-not-allowed data-disabled:border-file-upload-dropzone-disabled-border data-disabled:bg-file-upload-dropzone-disabled-bg data-disabled:text-file-upload-dropzone-disabled-fg",
       "data-readonly:cursor-default",
     ],
     trigger: "",
@@ -70,7 +70,7 @@ const fileUploadStyles = tv({
       "data-disabled:text-file-upload-item-disabled-fg",
     ],
     itemSizeText: [
-      "text-file-upload-item-size text-file-upload-item-size-fg",
+      "file-upload-item-size-typography text-file-upload-item-size-fg",
       "data-disabled:text-file-upload-item-disabled-fg",
     ],
     itemDeleteTrigger: "",
@@ -265,6 +265,8 @@ export type FileUploadDropzoneProps = ComponentPropsWithoutRef<"div"> & {
 }
 
 FileUpload.Dropzone = function FileUploadDropzone({
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   children,
   className,
   disableClick,
@@ -283,6 +285,10 @@ FileUpload.Dropzone = function FileUploadDropzone({
     props,
     machineDropzoneProps,
     {
+      role: disableClick ? "group" : "button",
+      "aria-label": ariaLabel ?? machineDropzoneProps["aria-label"],
+      "aria-labelledby":
+        ariaLabelledBy ?? (ariaLabel ? undefined : api.getLabelProps().id),
       onClick(event) {
         onClick?.(event)
 
@@ -295,6 +301,16 @@ FileUpload.Dropzone = function FileUploadDropzone({
 
         if (!event.defaultPrevented) {
           onMachineKeyDown?.(event)
+          // A div with button semantics must not scroll the page on Space.
+          if (
+            event.key === " " &&
+            event.target === event.currentTarget &&
+            !disableClick &&
+            !api.disabled &&
+            !api.readOnly
+          ) {
+            event.preventDefault()
+          }
         }
       },
     }

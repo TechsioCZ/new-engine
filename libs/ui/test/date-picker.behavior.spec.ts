@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test"
+import { expect, type Locator, type Page, test } from "@playwright/test"
 
 const stories = {
   clearAndForm: "molecules-datepicker--clear-and-form-serialization",
@@ -49,7 +49,7 @@ function hiddenValue(root: Locator) {
   return root.locator('input[type="hidden"]')
 }
 
-async function getControlStyles(control: Locator) {
+function getControlStyles(control: Locator) {
   return control.evaluate((node) => {
     const styles = getComputedStyle(node)
 
@@ -91,10 +91,9 @@ test.describe("DatePicker browser behavior", () => {
     )
     const inputs = page.locator("input")
     await expect(inputs.first()).toBeVisible()
-    const inputFontSizes = await inputs
-      .evaluateAll((nodes) =>
-        nodes.slice(0, 3).map((node) => getComputedStyle(node).fontSize)
-      )
+    const inputFontSizes = await inputs.evaluateAll((nodes) =>
+      nodes.slice(0, 3).map((node) => getComputedStyle(node).fontSize)
+    )
     const inputPlaceholderColor = await inputs
       .first()
       .evaluate((node) => getComputedStyle(node, "::placeholder").color)
@@ -180,7 +179,9 @@ test.describe("DatePicker browser behavior", () => {
     ).toHaveAttribute("aria-required", "true")
   })
 
-  test("keeps the calendar heading compact and accessible", async ({ page }) => {
+  test("keeps the calendar heading compact and accessible", async ({
+    page,
+  }) => {
     await openStory(page, stories.dateOnlyOpen)
 
     const viewTrigger = page.locator(
@@ -319,16 +320,260 @@ test.describe("DatePicker browser behavior", () => {
         content.evaluate((node) => {
           const rect = node.getBoundingClientRect()
           return !(
-            4 >= rect.left &&
-            4 <= rect.right &&
-            4 >= rect.top &&
-            4 <= rect.bottom
+            rect.left <= 4 &&
+            rect.right >= 4 &&
+            rect.top <= 4 &&
+            rect.bottom >= 4
           )
         })
       )
       .toBe(true)
     await page.mouse.click(4, 4)
     await expect(content).toHaveCount(0)
+  })
+
+  for (const [direction, value, heading] of [
+    ["previous", "2026-07-31", "Jul 2026"],
+    ["next", "2026-09-01", "Sep 2026"],
+  ] as const) {
+    test(`selects a visible ${direction}-month day and navigates the timed draft`, async ({
+      page,
+    }) => {
+      await openStory(page, stories.timedOpen)
+      const hidden = hiddenValue(page.locator(pickerRootSelector).first())
+      const outsideDay = page.locator(
+        `${contentSelector} [data-part="table-cell-trigger"][data-value^="${value}"]`
+      )
+      await expect(outsideDay).toHaveAttribute("data-outside-range")
+      await expect(outsideDay).not.toHaveAttribute("data-disabled")
+      await outsideDay.click()
+      await expect(
+        page.locator(`${contentSelector} [data-part="view-trigger"]`)
+      ).toHaveText(heading)
+      await expect(hidden).toHaveValue("2026-08-31T14:30:00")
+      await page.getByRole("button", { name: "Confirm", exact: true }).click()
+      await expect(hidden).toHaveValue(`${value}T14:30:00`)
+    })
+  }
+
+  test("commits an adjacent-month date immediately and reopens in that month", async ({
+    page,
+  }) => {
+    await openStory(page, stories.playground, "defaultOpen:true;locale:en-US")
+    const root = page.locator(pickerRootSelector).first()
+    await page
+      .locator(
+        `${contentSelector} [data-part="table-cell-trigger"][data-value="2026-09-01"]`
+      )
+      .click()
+    await expect(hiddenValue(root)).toHaveValue("2026-09-01")
+    await expect(page.locator(contentSelector)).toHaveCount(0)
+    await root.getByRole("button", { name: "Open calendar" }).click()
+    await expect(
+      page.locator(`${contentSelector} [data-part="view-trigger"]`)
+    ).toHaveText("Sep 2026")
+  })
+
+  test("navigates a range panel when starting on an adjacent-month day", async ({
+    page,
+  }) => {
+    await openStory(page, stories.dateRangeOpen)
+    const panels = page.locator(
+      '[data-selection-mode="range"][data-view="day"] > [data-index]'
+    )
+    const previousDay = panels
+      .first()
+      .locator('[data-part="table-cell-trigger"][data-value="2026-08-31"]')
+    await expect(previousDay).not.toHaveAttribute("data-disabled")
+    await previousDay.click()
+    await expect(panels.first()).toContainText("Aug 2026")
+    await expect(panels.last()).toContainText("Oct 2026")
+    await panels
+      .last()
+      .locator('[data-part="table-cell-trigger"][data-value="2026-10-10"]')
+      .click()
+    const hidden = hiddenValue(page.locator(pickerRootSelector).first())
+    await expect(hidden.nth(0)).toHaveValue("2026-08-31")
+    await expect(hidden.nth(1)).toHaveValue("2026-10-10")
+  })
+
+  for (const scenario of [
+    {
+      direction: "previous",
+      start: "2026-08-31",
+      end: "2026-08-30",
+      headings: ["Aug 2026", "Oct 2026"],
+      arrow: "ArrowLeft",
+    },
+    {
+      direction: "next",
+      start: "2026-10-01",
+      end: "2026-10-02",
+      headings: ["Oct 2026", "Nov 2026"],
+      arrow: "ArrowRight",
+    },
+  ] as const) {
+    for (const activation of ["pointer", "Enter"] as const) {
+      test(`keeps range keyboard focus after ${activation} activation of a ${scenario.direction}-month start`, async ({
+        page,
+      }) => {
+        await openStory(page, stories.dateRangeOpen)
+        const content = page.locator(contentSelector)
+        const panels = content.locator('[data-part="calendar"] > [data-index]')
+        const adjacentDay = panels
+          .first()
+          .locator(
+            `[data-part="table-cell-trigger"][data-value="${scenario.start}"]`
+          )
+        await expect(adjacentDay).toHaveAttribute("data-outside-range")
+        if (activation === "pointer") {
+          await adjacentDay.click()
+        } else {
+          await adjacentDay.focus()
+          await page.keyboard.press("Enter")
+        }
+
+        await expect(panels.locator('[data-part="view-trigger"]')).toHaveText([
+          ...scenario.headings,
+        ])
+        const tabStop = content.locator(
+          '[data-part="table-cell-trigger"][tabindex="0"]'
+        )
+        await expect(tabStop).toHaveCount(1)
+        await expect(tabStop).toHaveAttribute("data-value", scenario.start)
+        await expect(tabStop).toBeFocused()
+        const hidden = hiddenValue(page.locator(pickerRootSelector).first())
+        await expect(hidden.nth(0)).toHaveValue("2026-09-05")
+        await expect(hidden.nth(1)).toHaveValue("2026-09-18")
+
+        await page.keyboard.press(scenario.arrow)
+        await expect(tabStop).toHaveCount(1)
+        await expect(tabStop).toHaveAttribute("data-value", scenario.end)
+        await expect(tabStop).toBeFocused()
+        await page.keyboard.press("Enter")
+        await expect(hidden.nth(0)).toHaveValue(
+          scenario.direction === "previous" ? scenario.end : scenario.start
+        )
+        await expect(hidden.nth(1)).toHaveValue(
+          scenario.direction === "previous" ? scenario.start : scenario.end
+        )
+        await expect(content).toHaveCount(0)
+      })
+    }
+  }
+
+  test("keeps adjacent-month dates subject to bounds and availability", async ({
+    page,
+  }) => {
+    await openStory(page, stories.localizedUnavailableRange)
+    for (const value of ["2026-08-31", "2026-11-01", "2026-09-14"]) {
+      const day = page
+        .locator(
+          `${contentSelector} [data-part="table-cell-trigger"][data-value^="${value}"]`
+        )
+        .first()
+      await expect(day).toHaveAttribute("data-disabled")
+      await expect(day).toHaveAttribute("aria-disabled", "true")
+    }
+    await expect(
+      page
+        .locator(
+          `${contentSelector} [data-part="table-cell-trigger"][data-value="2026-09-30"]`
+        )
+        .last()
+    ).not.toHaveAttribute("data-disabled")
+  })
+
+  for (const globals of [
+    "brand:akros",
+    "brand:base;mode:light",
+    "brand:base;mode:dark",
+  ]) {
+    test(`provides an opaque elevated popup in ${globals}`, async ({
+      page,
+    }) => {
+      await openStory(page, `${stories.timedOpen}&globals=${globals}`)
+      const surface = await page.locator(contentSelector).evaluate((node) => {
+        const style = getComputedStyle(node)
+        const canvas = document.createElement("canvas")
+        const context = canvas.getContext("2d")
+        if (!(context && node.parentElement)) {
+          throw new Error("Expected a canvas context and floating positioner")
+        }
+        context.fillStyle = style.backgroundColor
+        context.fillRect(0, 0, 1, 1)
+        return {
+          alpha: context.getImageData(0, 0, 1, 1).data[3],
+          border: Number.parseFloat(style.borderTopWidth),
+          shadow: style.boxShadow,
+          z: Number(getComputedStyle(node.parentElement).zIndex),
+        }
+      })
+      expect(surface.alpha).toBe(255)
+      expect(surface.border).toBeGreaterThan(0)
+      expect(surface.shadow).not.toBe("none")
+      expect(surface.z).toBeGreaterThanOrEqual(50)
+    })
+  }
+
+  test("edits popup time using arrows, Home, End and typing without committing early", async ({
+    page,
+  }) => {
+    await openStory(
+      page,
+      stories.playground,
+      "granularity:second;defaultOpen:true;hourCycle:24"
+    )
+    const hidden = hiddenValue(page.locator(pickerRootSelector).first())
+    const content = page.locator(contentSelector)
+    for (const [label, min, max] of [
+      ["Hour", "0", "23"],
+      ["Minute", "0", "59"],
+      ["Second", "0", "59"],
+    ] as const) {
+      const input = content.getByRole("spinbutton", {
+        name: label,
+        exact: true,
+      })
+      await input.press("End")
+      await expect(input).toHaveValue(max)
+      await input.press("ArrowUp")
+      await expect(input).toHaveValue(min)
+      await input.press("ArrowDown")
+      await expect(input).toHaveValue(max)
+      await input.press("Home")
+      await expect(input).toHaveValue(min)
+      await input.fill("12")
+      await expect(input).toHaveValue("12")
+      await input.press("ArrowUp")
+      await expect(input).toHaveValue("13")
+      await input.press("ArrowDown")
+      await expect(input).toHaveValue("12")
+    }
+    await expect(hidden).toHaveValue("2026-08-31T14:30:45")
+    await content.getByRole("button", { name: "Confirm", exact: true }).click()
+    await expect(hidden).toHaveValue("2026-08-31T12:12:12")
+  })
+
+  test("wraps 12-hour time independently of the day period and cancels keyboard edits", async ({
+    page,
+  }) => {
+    await openStory(page, stories.timedVariants)
+    const root = pickerByLabel(page, "Appointment hour")
+    await root.getByRole("button", { name: "Open calendar" }).click()
+    const content = page.locator(contentSelector)
+    const hour = content.getByRole("spinbutton", { name: "Hour", exact: true })
+    await hour.press("End")
+    await expect(hour).toHaveValue("12")
+    await hour.press("ArrowUp")
+    await expect(hour).toHaveValue("1")
+    await hour.press("ArrowDown")
+    await expect(hour).toHaveValue("12")
+    await hour.press("Home")
+    await expect(hour).toHaveValue("1")
+    await expect(content.getByLabel("Day period")).toHaveValue("12")
+    await content.getByRole("button", { name: "Cancel", exact: true }).click()
+    await expect(hiddenValue(root)).toHaveValue("2026-08-31T14:00:00")
   })
 
   test("commits date-only selection immediately and owns one scalar hidden value", async ({

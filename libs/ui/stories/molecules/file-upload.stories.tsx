@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useId, useState } from "react"
 import {
   expect,
   fireEvent,
@@ -26,6 +26,7 @@ const meta = {
   parameters: {
     layout: "centered",
     controls: {
+      disable: true,
       include: [
         "accept",
         "allowDrop",
@@ -41,7 +42,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "A compound file selector built on Zag.js. It owns browser file selection, validation, drag and drop, and file-list state; uploading files to a server remains an application concern.",
+          "FileUpload lets people choose, validate, and remove local attachments using a keyboard-accessible picker or drop zone; use it for documents and images, not as an upload-progress indicator, because sending files to a server remains an application concern.",
       },
     },
   },
@@ -245,7 +246,7 @@ function FileItems({
                 <div className="flex min-w-0 flex-1 flex-col gap-50">
                   <FileUpload.ItemName />
                   {errors.map((error) => (
-                    <StatusText key={error} size="sm" status="error">
+                    <StatusText key={error} showIcon size="sm" status="error">
                       {getValidationErrorMessage(error)}
                     </StatusText>
                   ))}
@@ -263,15 +264,19 @@ function FileItems({
 
 function DropzoneContent({
   detail = "PNG or JPG",
-  title = "Drop files here",
+  detailId,
+  title = "Drag files here or browse",
 }: {
   detail?: string
+  detailId?: string
   title?: string
 }) {
   return (
     <>
       <strong>{title}</strong>
-      <span className="text-center text-fg-primary text-md">{detail}</span>
+      <span className="text-center text-sm" id={detailId}>
+        {detail}
+      </span>
     </>
   )
 }
@@ -296,6 +301,8 @@ function PlaygroundFileUpload({
   minFileSize,
   ...props
 }: FileUploadProps) {
+  const requirementsId = useId()
+  const feedbackId = useId()
   return (
     <FileUpload
       {...props}
@@ -309,8 +316,9 @@ function PlaygroundFileUpload({
     >
       <FileUpload.Label>Attachments</FileUpload.Label>
       <FileUpload.HiddenInput />
-      <FileUpload.Dropzone>
+      <FileUpload.Dropzone aria-describedby={`${requirementsId} ${feedbackId}`}>
         <DropzoneContent
+          detailId={requirementsId}
           detail={formatFileRequirements({
             accept,
             maxFileSize,
@@ -329,16 +337,19 @@ function PlaygroundFileUpload({
           const hasFiles =
             api.acceptedFiles.length > 0 || api.rejectedFiles.length > 0
 
-          return hasFiles ? (
+          return (
             <StatusText
+              id={feedbackId}
+              role="status"
               showIcon={api.rejectedFiles.length > 0}
               size="sm"
               status={api.rejectedFiles.length > 0 ? "error" : "default"}
             >
-              {api.acceptedFiles.length} accepted, {api.rejectedFiles.length}{" "}
-              rejected, {api.remainingFiles} remaining
+              {hasFiles
+                ? `${api.acceptedFiles.length} accepted, ${api.rejectedFiles.length} rejected, ${api.remainingFiles} remaining`
+                : "No files selected."}
             </StatusText>
-          ) : undefined
+          )
         }}
       </FileUpload.Context>
       <FileItems />
@@ -348,10 +359,27 @@ function PlaygroundFileUpload({
 }
 
 export const Playground: Story = {
+  parameters: {
+    controls: { disable: false },
+    docs: {
+      description: {
+        story:
+          "Choose or drop images to try live validation, accepted and rejected file lists, removal, and the controls that change file requirements.",
+      },
+    },
+  },
   render: (args) => <PlaygroundFileUpload {...args} />,
 }
 
 export const States: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Disabled, read-only, invalid, and required selectors explain availability, validation, and native form requirements without relying on color alone.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup fullWidth title="Disabled">
@@ -399,14 +427,20 @@ export const States: Story = {
     await Promise.all(hiddenInputs.map((input) => expect(input).toBeDisabled()))
     await expect(canvas.getByText("invoice.pdf")).toBeInTheDocument()
     await expect(canvas.getByText("Select a supported document.")).toBeVisible()
-    await expect(
-      canvas.getByLabelText(/Required attachments/)
-    ).toBeRequired()
+    await expect(canvas.getByLabelText(/Required attachments/)).toBeRequired()
     await expect(canvas.getByText("*")).toBeVisible()
   },
 }
 
 export const Basic: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A compact file-picker button adds an attachment without taking the space of a drop zone.",
+      },
+    },
+  },
   render: () => <StandardFileUpload />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -417,6 +451,14 @@ export const Basic: Story = {
 }
 
 export const AcceptedFiles: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A PDF-only selector demonstrates MIME restrictions and acceptance events for document attachments.",
+      },
+    },
+  },
   args: { onFileAccept: fn() },
   render: (args) => (
     <FileUpload
@@ -443,6 +485,14 @@ export const AcceptedFiles: Story = {
 }
 
 export const Multiple: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Selecting up to three supporting documents demonstrates multi-file selection and the preprocessing callback.",
+      },
+    },
+  },
   render: () => (
     <FileUpload
       className="w-full max-w-md"
@@ -474,7 +524,14 @@ export const Dropzone: Story = {
   },
   parameters: {
     controls: {
+      disable: false,
       include: ["allowDrop"],
+    },
+    docs: {
+      description: {
+        story:
+          "A product-image drop zone remains keyboard browsable when drag and drop is disabled through Controls.",
+      },
     },
   },
   render: (args) => (
@@ -501,8 +558,8 @@ export const Dropzone: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    const input = canvas.getByLabelText("Product images")
-    const dropzone = canvas.getByRole("button", { name: "dropzone" })
+    const input = canvas.getByLabelText("Product images", { selector: "input" })
+    const dropzone = canvas.getByRole("button", { name: "Product images" })
     const openFilePicker = spyOn(input, "click").mockImplementation(
       () => undefined
     )
@@ -519,66 +576,195 @@ export const Dropzone: Story = {
 }
 
 export const DropzoneStates: Story = {
+  name: "Drop zone states",
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Labelled, non-interactive previews explain idle, drag-over, accepted, rejected, and disabled states alongside a working image selector; server upload progress belongs to the application.",
+      },
+    },
+  },
   render: () => (
-    <VariantContainer>
-      <VariantGroup fullWidth title="Keyboard focus">
-        <FileUpload className="w-full max-w-md">
-          <FileUpload.Label>Focused dropzone</FileUpload.Label>
-          <FileUpload.HiddenInput />
-          <FileUpload.Dropzone>
-            <DropzoneContent
-              detail="The focus ring remains visible for review"
-              title="Focus via keyboard"
-            />
-          </FileUpload.Dropzone>
-        </FileUpload>
-      </VariantGroup>
-      <VariantGroup fullWidth title="Dragging">
-        <FileUpload className="w-full max-w-md">
-          <FileUpload.Label>Dragging over dropzone</FileUpload.Label>
-          <FileUpload.HiddenInput />
-          <FileUpload.Dropzone>
-            <DropzoneContent
-              detail="The active drop target uses the shared accent"
-              title="Release to add files"
-            />
-          </FileUpload.Dropzone>
-        </FileUpload>
-      </VariantGroup>
-    </VariantContainer>
+    <div className="flex w-full max-w-3xl flex-col gap-300">
+      <p className="text-fg-secondary text-sm">
+        The first five examples are static previews, not upload targets. Try
+        choosing or dropping files in the interactive example below.
+      </p>
+      <div className="grid grid-cols-1 gap-300 md:grid-cols-2">
+        <StaticDropzone state="idle" />
+        <StaticDropzone state="dragging" />
+        <StaticDropzone state="accepted" />
+        <StaticDropzone state="rejected" />
+        <StaticDropzone state="disabled" />
+      </div>
+      <section
+        aria-label="Interactive file selection"
+        className="flex flex-col gap-150"
+      >
+        <h3 className="font-semibold">Try it: choose, drop, or remove files</h3>
+        <p className="text-fg-secondary text-sm">
+          Choose a PNG or JPG to see acceptance. Drop a PDF to see the rejection
+          reason. Use Tab then Enter or Space to browse without a mouse.
+        </p>
+        <PlaygroundFileUpload
+          accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+          allowDrop
+          maxFileSize={5 * 1024 * 1024}
+          maxFiles={3}
+        />
+      </section>
+      <p className="text-fg-secondary text-sm">
+        Selecting a file does not upload it. FileUpload has no server-upload or
+        progress API; the application sends accepted files and displays its own
+        transfer progress.
+      </p>
+    </div>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const focusedDropzone = canvas
-      .getByText("Focus via keyboard")
-      .closest<HTMLElement>('[data-part="dropzone"]')
-    const draggingDropzone = canvas
-      .getByText("Release to add files")
-      .closest<HTMLElement>('[data-part="dropzone"]')
-
-    if (!(focusedDropzone && draggingDropzone)) {
-      throw new Error("FileUpload dropzone state fixtures are missing")
-    }
-
-    focusedDropzone.focus()
-    await expect(focusedDropzone).toHaveFocus()
-
-    const dataTransfer = new DataTransfer()
-    dataTransfer.items.add(createImageFile("dragging.png"))
-    draggingDropzone.dispatchEvent(
-      new DragEvent("dragover", {
-        bubbles: true,
-        cancelable: true,
-        dataTransfer,
+    const interactive = within(
+      within(canvasElement).getByRole("region", {
+        name: "Interactive file selection",
       })
     )
-    await waitFor(() =>
-      expect(draggingDropzone).toHaveAttribute("data-dragging")
+    const input = interactive.getByLabelText("Attachments", {
+      selector: "input",
+    })
+    const browse = interactive.getByRole("button", { name: "Attachments" })
+    const openFilePicker = spyOn(input, "click").mockImplementation(
+      () => undefined
     )
+    try {
+      browse.focus()
+      await userEvent.keyboard("{Enter} ")
+      await waitFor(() => expect(openFilePicker).toHaveBeenCalledTimes(2))
+    } finally {
+      openFilePicker.mockRestore()
+    }
+    await userEvent.upload(input, createImageFile("accepted.png"))
+    await expect(interactive.getByText("accepted.png")).toBeVisible()
+    const dataTransfer = new DataTransfer()
+    dataTransfer.items.add(createPdfFile("report.pdf"))
+    // Synthetic DataTransfer items have no filesystem entry; model a real file drag.
+    const items = Array.from(dataTransfer.items)
+    Object.defineProperty(items[0], "webkitGetAsEntry", {
+      value: () => ({ isFile: true, isDirectory: false }),
+    })
+    Object.defineProperty(dataTransfer, "items", { value: items })
+    fireEvent.dragOver(browse, { dataTransfer })
+    await waitFor(() => expect(browse).toHaveAttribute("data-dragging"))
+    fireEvent.drop(browse, { dataTransfer })
+    await expect(
+      await interactive.findByText("This file type is not accepted.")
+    ).toBeVisible()
+    await expect(interactive.getByText("accepted.png")).toBeVisible()
   },
 }
 
+type StaticDropzoneState =
+  | "idle"
+  | "dragging"
+  | "accepted"
+  | "rejected"
+  | "disabled"
+
+const staticDropzoneCopy = {
+  idle: {
+    label: "Idle",
+    title: "Drag images here or browse",
+    detail: "PNG or JPG, up to 5 MB each",
+  },
+  dragging: {
+    label: "Drag-over",
+    title: "Release to add images",
+    detail: "A solid border highlights the active drop target",
+  },
+  accepted: {
+    label: "Accepted",
+    title: "Image ready",
+    detail: "product-front.png has been selected, not uploaded",
+  },
+  rejected: {
+    label: "Rejected / error",
+    title: "Choose a supported image",
+    detail: "PNG or JPG, up to 5 MB each",
+  },
+  disabled: {
+    label: "Disabled",
+    title: "Image selection unavailable",
+    detail: "You need editor access to add product images",
+  },
+} satisfies Record<
+  StaticDropzoneState,
+  { label: string; title: string; detail: string }
+>
+
+function StaticDropzone({ state }: { state: StaticDropzoneState }) {
+  const { label, title, detail } = staticDropzoneCopy[state]
+  return (
+    <section
+      aria-label={`${label} static preview`}
+      className="flex flex-col gap-150"
+    >
+      <h3 className="font-semibold">
+        {label}{" "}
+        <span className="font-normal text-fg-secondary text-sm">
+          — static preview
+        </span>
+      </h3>
+      <FileUpload
+        allowDrop={false}
+        disabled={state === "disabled"}
+        invalid={state === "rejected"}
+        readOnly={state !== "disabled"}
+      >
+        <FileUpload.Label className="sr-only">{label} example</FileUpload.Label>
+        <FileUpload.HiddenInput />
+        <FileUpload.Dropzone
+          data-dragging={state === "dragging" ? "" : undefined}
+        >
+          <Icon
+            icon={
+              state === "accepted"
+                ? "token-icon-status-text-success"
+                : state === "rejected"
+                  ? "token-icon-status-text-error"
+                  : "token-icon-file-upload-trigger"
+            }
+            size="lg"
+          />
+          <DropzoneContent title={title} detail={detail} />
+        </FileUpload.Dropzone>
+        {state === "accepted" && (
+          <StatusText role="note" size="sm" showIcon status="success">
+            product-front.png is ready to upload.
+          </StatusText>
+        )}
+        {state === "rejected" && (
+          <StatusText role="note" size="sm" showIcon status="error">
+            report.pdf is not supported. Choose a PNG or JPG.
+          </StatusText>
+        )}
+        {state === "disabled" && (
+          <StatusText size="sm">
+            Editor access is required to add product images.
+          </StatusText>
+        )}
+      </FileUpload>
+    </section>
+  )
+}
+
 export const ConditionalDropzone: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The drop zone disappears at the two-file limit and returns when a selected file is removed.",
+      },
+    },
+  },
   render: () => (
     <FileUpload className="w-full max-w-md" maxFiles={2}>
       <FileUpload.Label>Evidence</FileUpload.Label>
@@ -603,15 +789,23 @@ export const ConditionalDropzone: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await userEvent.upload(canvas.getByLabelText("Evidence"), [
-      createTextFile("one.txt"),
-      createTextFile("two.txt"),
-    ])
+    await userEvent.upload(
+      canvas.getByLabelText("Evidence", { selector: "input" }),
+      [createTextFile("one.txt"), createTextFile("two.txt")]
+    )
     await expect(canvas.getByText("Maximum file count reached.")).toBeVisible()
   },
 }
 
 export const CustomPreview: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A file-type icon demonstrates custom previews, replacement, and removal without requiring an image thumbnail.",
+      },
+    },
+  },
   render: () => (
     <FileUpload
       accept={{ "image/*": [".png"] }}
@@ -659,6 +853,14 @@ export const CustomPreview: Story = {
 }
 
 export const RejectedFiles: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Custom validation rejects a profile photo that needs alternative text and explains how to correct the problem.",
+      },
+    },
+  },
   args: { onFileReject: fn() },
   render: (args) => (
     <FileUpload
@@ -689,6 +891,14 @@ export const RejectedFiles: Story = {
 }
 
 export const Directory: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Folder selection collects project files where the browser supports directory picking.",
+      },
+    },
+  },
   render: () => (
     <FileUpload className="w-full max-w-md" directory maxFiles={20}>
       <FileUpload.Label>Project folder</FileUpload.Label>
@@ -703,6 +913,14 @@ export const Directory: Story = {
 }
 
 export const MediaCapture: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A receipt-photo picker offers camera capture on supported devices and falls back to normal file selection.",
+      },
+    },
+  },
   render: () => (
     <FileUpload
       accept={{ "image/*": [] }}
@@ -721,6 +939,14 @@ export const MediaCapture: Story = {
 }
 
 export const ProgrammaticOpen: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A custom Browse documents button opens the native file picker through the context API.",
+      },
+    },
+  },
   render: () => (
     <FileUpload className="w-full max-w-md">
       <FileUpload.Label>Documents</FileUpload.Label>
@@ -743,6 +969,14 @@ export const ProgrammaticOpen: Story = {
 }
 
 export const InputLike: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A read-only filename field pairs with a picker button for compact attachment forms.",
+      },
+    },
+  },
   render: () => (
     <FileUpload className="w-full max-w-md">
       <FileUpload.Label>Attachment</FileUpload.Label>
@@ -766,6 +1000,14 @@ export const InputLike: Story = {
 }
 
 export const Clearable: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A prefilled document list supports removing one attachment or clearing the entire selection.",
+      },
+    },
+  },
   render: () => (
     <FileUpload
       accept={{ "application/pdf": [".pdf"] }}
@@ -809,6 +1051,14 @@ export const Clearable: Story = {
 }
 
 export const Clipboard: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Pasting clipboard files into the text field adds them to the selection when supported by the browser.",
+      },
+    },
+  },
   render: () => (
     <FileUpload className="w-full max-w-md" maxFiles={4}>
       <FileUpload.Label>Clipboard attachments</FileUpload.Label>
@@ -845,15 +1095,21 @@ function ControlledExample({
       <FileUpload.Label>Controlled files</FileUpload.Label>
       <FileUpload.HiddenInput />
       <FileUpload.Trigger>Select files</FileUpload.Trigger>
-      <StatusText size="sm">
-        {files.length} of 2 files selected
-      </StatusText>
+      <StatusText size="sm">{files.length} of 2 files selected</StatusText>
       <FileItems />
     </FileUpload>
   )
 }
 
 export const Controlled: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Application-owned file state stays synchronized with selection, removal, and the visible file count.",
+      },
+    },
+  },
   args: { onFileChange: fn() },
   render: (args) => <ControlledExample onFileChange={args.onFileChange} />,
   play: async ({ args, canvasElement }) => {
@@ -862,9 +1118,7 @@ export const Controlled: Story = {
       canvas.getByLabelText("Controlled files"),
       createTextFile("controlled.txt")
     )
-    await expect(
-      await canvas.findByText("1 of 2 files selected")
-    ).toBeVisible()
+    await expect(await canvas.findByText("1 of 2 files selected")).toBeVisible()
     await expect(args.onFileChange).toHaveBeenCalled()
   },
 }
@@ -893,13 +1147,19 @@ function FormExample() {
 }
 
 export const Form: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A required attachment participates in native form validation and FormData without a separate file-state model.",
+      },
+    },
+  },
   render: () => <FormExample />,
   play: async ({ canvasElement }) => {
     onFormSubmit.mockClear()
     const canvas = within(canvasElement)
-    const input = canvas.getByLabelText<HTMLInputElement>(
-      /Required attachment/
-    )
+    const input = canvas.getByLabelText<HTMLInputElement>(/Required attachment/)
     await expect(canvas.getByText("*")).toBeVisible()
     await expect(input).toHaveAttribute("name", "attachments")
     await expect(input).toBeRequired()

@@ -9,7 +9,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "AvailabilityStatus"
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
   sources: "libs/ui/src/molecules/availability-status.tsx libs/ui/src/tokens/components/molecules/_availability-status.css libs/ui/stories/molecules/availability-status.stories.tsx libs/ui/docs/price-availability-figma-handoff.md"
 ---
@@ -62,10 +62,39 @@ pending
 Resolve inventory, backorders and business rules before rendering. Keep
 `unknown` explicit; do not map it to `available` or `unavailable`.
 
-### Supply localized copy
+### Choose visible copy or a loading description
 
-The application owns `label`, `detail` and `pendingLabel`. Delivery copy is
-optional detail and is never derived from the status.
+The application owns all localized copy; changing `status` changes the visual
+presentation and default icon, **not** the text or delivery promise.
+
+| Prop | When to supply it | What users receive |
+| --- | --- | --- |
+| `label` | Required for `available`, `limited`, `preorder`, `unavailable`, `unknown` | Visible summary, such as “In stock” or “Availability unknown” |
+| `detail` | Optional for those same settled statuses | Visible supporting information, such as an application-resolved delivery estimate |
+| `pendingLabel` | Required only for `pending` | Screen-reader-only description of the decorative loading skeleton, such as “Checking availability” |
+
+`pendingLabel` is not a second visible label, not a tooltip, and does not create
+a live region. Pending does not accept `label`, `detail`, `icon` or `showIcon`.
+The discriminated union keeps these two presentations mutually exclusive:
+
+```tsx
+isLoading ? (
+  <AvailabilityStatus status="pending" pendingLabel="Checking availability" />
+) : (
+  <AvailabilityStatus status="available" label="In stock" detail="Ready to dispatch within one business day." />
+)
+```
+
+Use `unknown` when the lookup has finished but availability cannot be determined;
+use `pending` only while the lookup is still in progress. Delivery copy is never
+derived from the status.
+
+The Storybook Playground supports all six statuses and shows only relevant
+controls. It keeps both text values when switching between settled and pending,
+so `pendingLabel` is immediately editable after selecting `pending`. Its default
+“Checking availability” copy and loading-description fallback are demo-only:
+applications must always provide their own `pendingLabel`. The static **All
+states** story is a comparison gallery, not another controls-driven example.
 
 ### Prefer the default decorative icon
 

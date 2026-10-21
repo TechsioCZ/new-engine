@@ -2,7 +2,7 @@
  * Checkbox — @techsio/ui-kit atom.
  *
  * @component Checkbox
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.4
  * @skill checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,16 +16,17 @@ const checkboxVariants = tv({
   base: [
     "relative shrink-0 cursor-pointer appearance-none",
     "size-checkbox",
-    "border-(length:--border-width-checkbox) rounded-checkbox border-checkbox-border-base",
+    "border-(length:--border-width-checkbox) rounded-checkbox-control border-checkbox-border-base",
     "bg-checkbox-bg-base",
     "after:-translate-1/2 after:absolute after:top-1/2 after:left-1/2",
     "checked:bg-checkbox-bg-checked",
     "checked:border-checkbox-border-checked",
-    "checked:after:token-icon-checkbox",
+    "checked:not-indeterminate:after:token-icon-checkbox",
     "checked:text-checkbox-fg-checked",
     "indeterminate:bg-checkbox-bg-indeterminate",
     "indeterminate:border-checkbox-border-indeterminate",
-    "indeterminate:after:size-checkbox-indeterminate-icon",
+    "indeterminate:after:w-checkbox-indeterminate-icon",
+    "indeterminate:after:h-checkbox-indeterminate-stroke",
     "indeterminate:after:rounded-full",
     "indeterminate:after:bg-checkbox-fg-indeterminate",
     "disabled:cursor-not-allowed",
@@ -35,16 +36,17 @@ const checkboxVariants = tv({
     "disabled:checked:bg-checkbox-bg-disabled",
     "disabled:checked:text-checkbox-fg-disabled",
     "disabled:checked:border-checkbox-border-disabled",
+    "disabled:indeterminate:bg-checkbox-bg-disabled",
+    "disabled:indeterminate:border-checkbox-border-disabled",
+    "disabled:indeterminate:after:bg-checkbox-fg-disabled",
     "transition duration-200 motion-reduce:transition-none",
-    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-    "focus-visible:outline-checkbox-ring-focus",
-    "focus-visible:outline-offset-(length:--default-ring-offset)",
+    "focus-visible:checkbox-focus-outline",
     "data-invalid:border-(length:--border-width-validation)",
     "data-invalid:border-checkbox-border-error",
   ],
 })
 
-export interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
+export type CheckboxProps = InputHTMLAttributes<HTMLInputElement> & {
   ref?: Ref<HTMLInputElement>
   indeterminate?: boolean
   invalid?: boolean

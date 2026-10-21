@@ -20,6 +20,73 @@
   --padding-carousel-trigger: 0 0;
 
   --aspect-carousel-indicator: var(--aspect-square);
+
+  /* Opaque navigation stays legible over both light and dark photography. */
+  --color-carousel-surface: var(--color-fill-surface);
+  --color-carousel-surface-hover: var(--color-fill-hover);
+  --color-carousel-outline: var(--color-border-primary);
+  --color-carousel-disabled: var(--color-fg-disabled);
+  --color-carousel-navigation-bg: var(--color-carousel-surface);
+  --color-carousel-navigation-bg-hover: var(--color-carousel-surface-hover);
+  --color-carousel-trigger-border: var(--color-carousel-outline);
+  --color-carousel-control-border: var(--color-carousel-outline);
+  --color-carousel-trigger-fg-disabled: var(--color-carousel-disabled);
+  --spacing-carousel-control-inset: var(--spacing-100);
+  --shadow-carousel-control: var(--shadow-sm);
+  --shadow-carousel-navigation: var(--shadow-sm);
+  --outline-width-carousel-focus: var(--default-ring-width);
+  --outline-offset-carousel-focus: var(--default-ring-offset);
+}
+
+/* Let the rail establish its own minimum height instead of clipping buttons
+ * inside the image viewport. Logical grid order also respects RTL direction. */
+@utility carousel-side-layout {
+  &:has(> [data-carousel-layout="side"]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "slides navigation";
+    align-items: center;
+    gap: var(--spacing-carousel-control);
+
+    & > [data-part="item-group"] {
+      grid-area: slides;
+    }
+
+    & > [data-carousel-layout="side"] {
+      grid-area: navigation;
+    }
+
+    & > [data-part="autoplay-trigger"] {
+      position: relative;
+      inset: auto;
+      grid-area: slides;
+      align-self: start;
+      justify-self: end;
+      margin: var(--spacing-carousel-control-inset);
+    }
+  }
+
+  &:has(> [data-carousel-leading]) {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "navigation slides";
+  }
+}
+
+/* One utility keeps tailwind-merge from treating named outline utilities as
+ * competing color classes and dropping the indicator's focus ring. */
+@utility carousel-focus-ring {
+  outline-style: var(--default-ring-style);
+  outline-width: var(--outline-width-carousel-focus);
+  outline-color: var(--color-carousel-ring);
+  outline-offset: var(--outline-offset-carousel-focus);
+}
+
+@utility token-icon-carousel-prev-vertical {
+  @apply token-icon-chevron-up;
+}
+
+@utility token-icon-carousel-next-vertical {
+  @apply token-icon-chevron-down;
 }
 
 @utility token-icon-carousel-prev {

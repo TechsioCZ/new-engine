@@ -5,7 +5,7 @@ description: >
   page hierarchy navigation with Link/NextLink adapters, current page state,
   separators, ellipsis, icons, size, and underline variant.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -97,6 +97,20 @@ the same page.
 
 In Next apps, pass `as={NextLink}` to `Breadcrumb.Link` instead of wrapping or
 restyling anchors.
+
+### Keep demos local without changing production links
+
+Breadcrumb links are real anchors with real destinations. The molecule and
+BreadcrumbTemplate Storybook stories prevent default link activation in their
+demo decorator and log the destination; this also covers keyboard activation
+and destinations edited in Controls. That suppression is documentation-only.
+Do not copy it into application navigation or replace real routes with `#`.
+
+Use BreadcrumbTemplate when an array of page data is enough; use the compound
+Breadcrumb molecule when individual slots need custom content or styling.
+The template's `maxItems` counts visible page items, not the decorative
+ellipsis: `0` shows all, `1` shows the last, and larger limits preserve the root
+and the trailing pages. Keep the current page in that visible trailing segment.
 
 ### Use separators and ellipsis components
 

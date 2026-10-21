@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -42,9 +42,7 @@ const BreadcrumbVariants = tv({
       "no-underline",
       "cursor-pointer",
       "hover:text-breadcrumb-item-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-breadcrumb-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "focus-visible:breadcrumb-focus",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     currentLink: [

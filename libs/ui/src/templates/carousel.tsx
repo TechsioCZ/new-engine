@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit template.
  *
  * @component Carousel
- * @componentVersion v1.2.3
+ * @componentVersion v1.3.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -73,10 +73,7 @@ export function CarouselTemplate<T extends ElementType>({
       width={width}
       {...carouselProps}
     >
-      <Carousel.Slides
-        imageAs={imageAs}
-        slides={slides}
-      />
+      <Carousel.Slides imageAs={imageAs} slides={slides} />
 
       {(showControls || showIndicators) && (
         <Carousel.Control>
