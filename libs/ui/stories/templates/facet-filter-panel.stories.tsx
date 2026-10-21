@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { fn } from "storybook/test"
+import { expect, fn, userEvent, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
 import {
   FacetFilterPanel,
@@ -52,7 +52,11 @@ const baseGroups: FacetFilterGroup[] = [
 
 type PanelDemoProps = FacetFilterPanelProps
 
-function findOption(groups: readonly FacetFilterGroup[], groupId: string, value: string) {
+function findOption(
+  groups: readonly FacetFilterGroup[],
+  groupId: string,
+  value: string
+) {
   const group = groups.find(
     (candidate) => candidate.type === "options" && candidate.id === groupId
   )
@@ -113,12 +117,13 @@ function PanelDemo({
   const [drawerOpen, setDrawerOpen] = useState(
     initialDrawerOpen ?? defaultDrawerOpen ?? false
   )
-  const [rangeValues, setRangeValues] = useState(() =>
-    Object.fromEntries(
-      groups
-        .filter((group) => group.type === "range")
-        .map((group) => [group.id, [...group.value]])
-    ) as Record<string, [number, number]>
+  const [rangeValues, setRangeValues] = useState(
+    () =>
+      Object.fromEntries(
+        groups
+          .filter((group) => group.type === "range")
+          .map((group) => [group.id, [...group.value]])
+      ) as Record<string, [number, number]>
   )
 
   const renderedGroups = groups.map((group) =>
@@ -259,7 +264,13 @@ const meta: Meta<typeof FacetFilterPanel> = {
   component: FacetFilterPanel,
   tags: ["autodocs"],
   parameters: {
-    layout: "centered",
+    layout: "padded",
+    docs: {
+      description: {
+        component:
+          "A controlled filter panel combining grouped options, active filters and numeric ranges in an inline sidebar or drawer. Use it to refine a collection of results; use standalone Select or Checkbox controls for simple single-field filtering. Control sizes are sm/md/lg; drawerSize is a separate panel-width axis.",
+      },
+    },
   },
   argTypes: {
     presentation: {
@@ -275,6 +286,8 @@ const meta: Meta<typeof FacetFilterPanel> = {
       options: ["xs", "sm", "md", "lg", "xl", "full"],
     },
     disabled: { control: "boolean" },
+    readOnly: { control: "boolean" },
+    size: { control: "select", options: ["sm", "md", "lg"] },
     pending: { control: "boolean" },
     drawerOpen: { control: false },
     defaultDrawerOpen: { control: false },
@@ -313,14 +326,51 @@ export default meta
 type Story = StoryObj<typeof FacetFilterPanel>
 
 export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Try the live controls and change the available options to find the right configuration for your form.",
+      },
+    },
+  },
   render: (args) => (
-    <div className="w-sm max-w-full">
+    <div className="w-full max-w-sm">
       <PanelDemo {...args} />
     </div>
   ),
 }
 
+export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare Small (sm), Medium (md), and Large (lg) with identical copy and values to choose the right form density.",
+      },
+    },
+  },
+  render: (args) => (
+    <div className="flex w-full flex-col gap-300">
+      {(["sm", "md", "lg"] as const).map((size, index) => (
+        <section key={size} className="w-full max-w-sm">
+          <h2>{["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}</h2>
+          <PanelDemo {...args} size={size} />
+        </section>
+      ))}
+    </div>
+  ),
+}
+
 export const Selected: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Selected filters can be removed individually or cleared together while the option and range values stay synchronized.",
+      },
+    },
+  },
   args: {
     selectedValues: {
       material: ["linen"],
@@ -347,6 +397,14 @@ export const Selected: Story = {
 }
 
 export const ActiveFilters: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Active selections provide clear removal actions and a single reset without changing navigation.",
+      },
+    },
+  },
   args: {
     activeFilters: [
       { id: "linen", label: "Linen", removeLabel: "Remove Linen" },
@@ -368,6 +426,14 @@ export const ActiveFilters: Story = {
 }
 
 export const EmptyAndOptionAvailability: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Empty groups explain their lack of options, while zero result counts remain distinct from disabled choices.",
+      },
+    },
+  },
   args: {
     groups: [
       {
@@ -396,6 +462,14 @@ export const EmptyAndOptionAvailability: Story = {
 }
 
 export const Disabled: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Unavailable controls retain their visible values but cannot receive keyboard focus or change.",
+      },
+    },
+  },
   args: {
     disabled: true,
     selectedValues: { material: ["cotton"] },
@@ -414,7 +488,44 @@ export const Disabled: Story = {
   ),
 }
 
+export const ReadOnly: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Read-only values remain focusable and legible while pointer, keyboard and other editing paths are blocked.",
+      },
+    },
+  },
+  name: "Read-only",
+  args: { ...Selected.args, readOnly: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const minimum = canvas.getByRole("slider", { name: "Minimum price" })
+    const value = minimum.getAttribute("aria-valuenow")
+    minimum.focus()
+    await userEvent.keyboard("{End}{ArrowRight}")
+    await expect(minimum).toHaveAttribute("aria-valuenow", value ?? "0")
+    await expect(
+      canvas.queryByRole("button", { name: "Clear filters" })
+    ).not.toBeInTheDocument()
+  },
+  render: (args) => (
+    <div className="w-full max-w-sm">
+      <PanelDemo {...args} />
+    </div>
+  ),
+}
+
 export const Pending: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Pending state explains that results are updating while preventing duplicate filter changes.",
+      },
+    },
+  },
   args: {
     pending: true,
     selectedValues: { material: ["wool"] },
@@ -434,6 +545,14 @@ export const Pending: Story = {
 }
 
 export const Overflow: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Expand a long option group on demand rather than crowding the filter panel with every choice.",
+      },
+    },
+  },
   args: {
     groups: baseGroups.filter(
       (group) => group.type === "options" && group.id === "material"
@@ -447,6 +566,14 @@ export const Overflow: Story = {
 }
 
 export const NarrowLayout: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Option labels, counts and range controls remain usable in a narrow filter sidebar.",
+      },
+    },
+  },
   render: (args) => (
     <div className="w-xs max-w-full">
       <PanelDemo {...args} />
@@ -468,6 +595,14 @@ function AsyncGroupsExample(args: FacetFilterPanelProps) {
 }
 
 export const AsyncGroups: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Groups arriving after mount expand by default so newly available filters are discoverable.",
+      },
+    },
+  },
   render: (args) => <AsyncGroupsExample {...args} />,
 }
 
@@ -477,7 +612,9 @@ function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
 
   return (
     <>
-      <p className="text-fg-secondary text-sm">Close requests: {closeRequests}</p>
+      <p className="text-fg-secondary text-sm">
+        Close requests: {closeRequests}
+      </p>
       <FacetFilterPanel
         {...args}
         drawerOpen={drawerOpen}
@@ -495,6 +632,14 @@ function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
 }
 
 export const RejectedDrawerClose: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A controlled parent can reject drawer dismissal without silently losing its open state.",
+      },
+    },
+  },
   args: {
     presentation: "drawer",
   },
@@ -502,6 +647,14 @@ export const RejectedDrawerClose: Story = {
 }
 
 export const DrawerOpen: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "An initially open drawer exposes the same controlled filters while retaining modal focus management.",
+      },
+    },
+  },
   args: {
     presentation: "drawer",
     drawerOpen: true,

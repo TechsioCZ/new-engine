@@ -1,5 +1,7 @@
+import { expect, userEvent, waitFor, within } from "storybook/test"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useId, useRef, useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
@@ -11,17 +13,18 @@ import { PhoneInput } from "../../src/molecules/phone-input"
 import { RadioCard } from "../../src/molecules/radio-card"
 import { SearchForm } from "../../src/molecules/search-form"
 import { Steps } from "../../src/molecules/steps"
-import { Toaster, useToast } from "../../src/molecules/toast"
+import { Toaster } from "../../src/molecules/toast"
 import { SelectTemplate } from "../../src/templates/select"
 import { storefrontProducts } from "./data"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/Storefront/Checkout",
   parameters: {
@@ -113,6 +116,9 @@ const totalFor = (delivery: DeliveryOption) =>
   SUBTOTAL - DISCOUNT + delivery.price
 
 function OrderSummary({ delivery }: { delivery: DeliveryOption }) {
+  const [code, setCode] = useState("")
+  const [codeError, setCodeError] = useState(false)
+  const codeErrorId = useId()
   return (
     <aside
       aria-label="Order summary"
@@ -145,14 +151,36 @@ function OrderSummary({ delivery }: { delivery: DeliveryOption }) {
         ))}
       </ul>
 
-      <SearchForm size="sm">
+      <SearchForm
+        size="sm"
+        validateStatus={codeError ? "error" : "default"}
+        value={code}
+        onValueChange={(value) => {
+          setCode(value)
+          setCodeError(false)
+        }}
+        onSubmit={(event) => {
+          event.preventDefault()
+          setCodeError(true)
+        }}
+      >
         <SearchForm.Control>
           <SearchForm.Input
             aria-label="Discount code"
+            aria-invalid={codeError || undefined}
+            aria-describedby={codeError ? codeErrorId : undefined}
+            aria-errormessage={codeError ? codeErrorId : undefined}
             placeholder="Discount code"
           />
           <SearchForm.Button>Apply</SearchForm.Button>
         </SearchForm.Control>
+        {codeError && (
+          <SearchForm.StatusText id={codeErrorId} status="error" size="sm">
+            {code.trim()
+              ? "This code is not valid for this demo basket. Check the code or continue without it."
+              : "Enter a discount code before applying it."}
+          </SearchForm.StatusText>
+        )}
       </SearchForm>
 
       <dl className="flex flex-col gap-100">
@@ -230,8 +258,22 @@ const empty: CheckoutForm = {
 }
 
 function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
-  const toaster = useToast()
   const [step, setStep] = useState(initialStep)
+  const [placed, setPlaced] = useState(false)
+  const stepRegion = useRef<HTMLDivElement>(null)
+  const editStep = (next: number) => {
+    setStep(next)
+    requestAnimationFrame(() => {
+      const panel = stepRegion.current?.querySelector<HTMLElement>(
+        '[role="tabpanel"]:not([hidden]), [data-part="content"][data-state="open"]'
+      )
+      const target = panel?.querySelector<HTMLElement>(
+        'input:not([type="hidden"]), button, [tabindex="0"]'
+      )
+      if (target) target.focus()
+      else stepRegion.current?.focus()
+    })
+  }
   /* A review-step story starts from a filled basket; step 1 starts empty. */
   const [form, setForm] = useState<CheckoutForm>(
     initialStep > 0 ? prefilled : empty
@@ -261,6 +303,26 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
   const total = totalFor(delivery)
   const canContinue = stepComplete[step] ?? true
 
+  if (placed)
+    return (
+      <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center gap-250 bg-base p-250 text-fg-primary">
+        <h1 className="font-semibold text-xl">Demo order NW-10242</h1>
+        <StatusText status="success">
+          Order saved locally for review. No payment was taken and no
+          confirmation email was sent.
+        </StatusText>
+        <dl>
+          <dt>Delivery</dt>
+          <dd>{delivery.label}</dd>
+          <dt>Total</dt>
+          <dd>{money(total)}</dd>
+        </dl>
+        <Button variant="secondary" onClick={() => setPlaced(false)}>
+          Back to review
+        </Button>
+      </div>
+    )
+
   return (
     <div className="flex min-h-screen flex-col bg-base text-fg-primary">
       <Toaster />
@@ -277,7 +339,11 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
       </header>
 
       <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 items-start gap-350 p-250 lg:grid-cols-3">
-        <div className="flex flex-col gap-250 lg:col-span-2">
+        <div
+          ref={stepRegion}
+          tabIndex={-1}
+          className="flex min-w-0 flex-col gap-250 lg:col-span-2"
+        >
           <Steps
             count={checkoutSteps.length}
             linear
@@ -288,9 +354,11 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
             <Steps.List>
               {checkoutSteps.map((entry, index) => (
                 <Steps.Item index={index} key={entry.title}>
-                  <Steps.Trigger>
+                  <Steps.Trigger
+                    aria-label={`${entry.title} — ${entry.description}`}
+                  >
                     <Steps.Indicator />
-                    <Steps.ItemText>
+                    <Steps.ItemText className="hidden sm:flex">
                       <Steps.Title>{entry.title}</Steps.Title>
                       <Steps.Description>{entry.description}</Steps.Description>
                     </Steps.ItemText>
@@ -299,6 +367,10 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                 </Steps.Item>
               ))}
             </Steps.List>
+            <p className="font-medium text-sm sm:hidden" aria-live="polite">
+              Step {step + 1} of {checkoutSteps.length}:{" "}
+              {checkoutSteps[step]?.title} — {checkoutSteps[step]?.description}
+            </p>
 
             <Steps.Panels>
               <Steps.Content index={0}>
@@ -491,7 +563,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                         </span>
                       </div>
                       <Button
-                        onClick={() => setStep(0)}
+                        onClick={() => editStep(0)}
                         size="sm"
                         theme="borderless"
                         variant="secondary"
@@ -507,7 +579,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                         </span>
                       </div>
                       <Button
-                        onClick={() => setStep(1)}
+                        onClick={() => editStep(1)}
                         size="sm"
                         theme="borderless"
                         variant="secondary"
@@ -525,7 +597,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                         </span>
                       </div>
                       <Button
-                        onClick={() => setStep(2)}
+                        onClick={() => editStep(2)}
                         size="sm"
                         theme="borderless"
                         variant="secondary"
@@ -558,18 +630,12 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                 <Button
                   disabled={!canContinue}
                   icon="icon-[mdi--lock-outline]"
-                  onClick={() =>
-                    toaster.create({
-                      type: "success",
-                      title: "Order placed",
-                      description: "Confirmation sent to marta.n@example.com",
-                    })
-                  }
+                  onClick={() => setPlaced(true)}
                   variant="primary"
                 >
                   {form.payment === "card"
-                    ? `Pay ${money(total)}`
-                    : `Place order · ${money(total)}`}
+                    ? `Review demo payment · ${money(total)}`
+                    : `Save demo order · ${money(total)}`}
                 </Button>
               ) : (
                 <Button
@@ -597,11 +663,43 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
 }
 
 export const AddressStep: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Complete a locally modeled checkout with editable review decisions and an accessible discount-code error, without making a payment.",
+      },
+    },
+  },
+
   name: "Step 1 · Address",
   render: () => <CheckoutPage />,
 }
 
 export const ReviewStep: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const code = canvas.getByRole("searchbox", { name: "Discount code" })
+    await userEvent.type(code, "INVALID")
+    await userEvent.click(canvas.getByRole("button", { name: "Apply" }))
+    await expect(code).toHaveAttribute("aria-invalid", "true")
+    await expect(code).toHaveAttribute(
+      "aria-errormessage",
+      code.getAttribute("aria-describedby")!
+    )
+    await expect(code).toHaveAccessibleDescription(
+      "This code is not valid for this demo basket. Check the code or continue without it."
+    )
+    await userEvent.clear(code)
+    await expect(code).not.toHaveAttribute("aria-invalid", "true")
+    await userEvent.click(canvas.getAllByRole("button", { name: "Edit" })[0]!)
+    await waitFor(() =>
+      expect(
+        canvas.getByLabelText("First name", { exact: false })
+      ).toHaveFocus()
+    )
+  },
+
   name: "Step 4 · Review",
   parameters: {
     docs: {

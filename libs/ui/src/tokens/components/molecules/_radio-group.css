@@ -6,6 +6,14 @@
  */
 
 @theme static {
+  --color-radio-group-on-primary: var(--color-fg-on-primary-solid-neo);
+  --color-radio-group-choice: var(--color-fg-primary);
+  --color-radio-group-border-choice-selected: var(--color-radio-group-choice);
+  --color-radio-group-border-solid-selected: var(
+    --color-radio-group-on-primary
+  );
+  --color-radio-group-fg-solid-selected: var(--color-radio-group-on-primary);
+  --color-radio-group-fg-choice-selected: var(--color-radio-group-choice);
   --radio-group-item-grid: min-content minmax(0, 1fr);
 }
 

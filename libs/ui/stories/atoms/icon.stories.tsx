@@ -80,28 +80,23 @@ export const Sizes: Story = {
     docs: {
       description: {
         story:
-          "The same Home glyph across the complete system size scale, including inherited text size and 2xl, makes relative sizing easy to compare.",
+          "Compare the same Home glyph at Small (sm), Medium (md) and Large (lg). Icon also supports xs, xl, 2xl and current for decorative and inline composition, not independent touch targets.",
       },
     },
   },
   render: () => (
     <VariantContainer>
       <VariantGroup title="System icon sizes">
-        {(["current", "xs", "sm", "md", "lg", "xl", "2xl"] as const).map(
-          (size) => (
-            <div
-              className="flex flex-col items-center gap-150 p-150"
-              key={size}
-            >
-              <div className="flex h-600 items-center justify-center">
-                <Icon icon="token-icon-home" size={size} />
-              </div>
-              <span className="font-medium text-fg-primary text-sm">
-                {size}
-              </span>
+        {(["sm", "md", "lg"] as const).map((size) => (
+          <div className="flex flex-col items-center gap-150 p-150" key={size}>
+            <div className="flex h-600 items-center justify-center">
+              <Icon icon="token-icon-home" size={size} />
             </div>
-          )
-        )}
+            <span className="font-medium text-fg-primary text-sm">
+              {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
+            </span>
+          </div>
+        ))}
       </VariantGroup>
     </VariantContainer>
   ),

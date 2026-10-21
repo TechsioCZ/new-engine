@@ -5,7 +5,7 @@ description: >
   Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect
   ratio, object fit, and framework image adapters.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.3.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -160,3 +160,7 @@ rg -P -n "setSlide|setIndex|<img\\b|<Carousel(?![^>]*slideCount=)" apps
 rg -n "<Carousel[^>]*className=.*(aspect-|object-|w-|h-|rounded-|overflow-)" apps
 rg -P -n "<Carousel\\.Slides(?![^>]*(imageAs|slides=))" apps
 ```
+
+## Wave 2 contracts
+
+CarouselTemplate delegates indicators to Carousel.Indicators so they follow the machine’s pageSnapPoints, not the slide count. slidesPerPage > 1 and slidesPerMove therefore produce only valid page targets. The template’s size prop is a media-layout dimension (sm/md/lg, plus legacy full parent-fill), not a form-control height; name media-size examples explicitly.

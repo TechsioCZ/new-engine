@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.2.4
+ * @componentVersion v1.3.0
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -80,6 +80,7 @@ import { Button, type ButtonProps } from "../atoms/button"
 import { Checkbox } from "../atoms/checkbox"
 import { Icon, type IconType } from "../atoms/icon"
 import { Skeleton } from "../atoms/skeleton"
+import { StatusText } from "../atoms/status-text"
 import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
 import { SearchForm } from "../molecules/search-form"
@@ -177,7 +178,7 @@ const dataTableVariants = tv({
      * and stay pinned to the trailing edge. */
     toolbarSearch: ["min-w-0 flex-1"],
     toolbarActions: ["flex shrink-0 items-center gap-data-table-toolbar"],
-    scroll: ["relative w-full overflow-auto"],
+    scroll: ["@container/data-table relative w-full overflow-auto"],
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
     sortButton: [
       "inline-flex items-center gap-100 whitespace-nowrap",
@@ -212,12 +213,7 @@ const dataTableVariants = tv({
     filterControl: [
       "flex flex-wrap items-center gap-data-table-filter-control",
     ],
-    editorControl: ["flex flex-col gap-data-table-editor"],
-    // `-fg`, not the bare semantic: `--color-danger` is the fill/surface red,
-    // while AGENTS.md pins status *text* to `--color-<semantic>-fg`, which is
-    // the contrast-checked foreground. The bare token rendered the validation
-    // message at surface red on the table background.
-    editorError: ["text-data-table-editor-error-fg text-data-table-sm"],
+    editorControl: ["data-table-editor flex flex-col gap-data-table-editor"],
     actionsCell: ["flex items-center justify-end gap-100"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
@@ -755,6 +751,8 @@ function useDataTableContext<T extends RowData>() {
 /* ── Props ───────────────────────────────────────────────────────────────── */
 
 export type DataTableTranslations = {
+  /** Accessible name of the keyboard-scrollable region when no caption is present. */
+  scrollLabel?: string
   searchPlaceholder?: string
   /** Accessible name of the global search input. */
   searchLabel?: string
@@ -783,6 +781,7 @@ export type DataTableTranslations = {
 }
 
 const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
+  scrollLabel: "Scrollable records",
   searchPlaceholder: "Search…",
   searchLabel: "Search",
   clearSearchLabel: "Clear search",
@@ -800,7 +799,7 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   operatorLabels: {},
   editingLabel: "Editing a row — other table controls are locked",
   rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
-  requiredLabel: "Required",
+  requiredLabel: "Enter a value before saving this row.",
 }
 
 export type DataTableProps<T extends RowData> = {
@@ -1217,6 +1216,8 @@ function renderCellContent<T extends RowData>({
   editor,
   editorError,
   editorErrorId,
+  size,
+  tableLayout,
   isDragCol,
   rowLabel,
 }: {
@@ -1229,6 +1230,8 @@ function renderCellContent<T extends RowData>({
   editor?: ReactNode
   editorError?: string
   editorErrorId?: string
+  size: DataTableControlSize
+  tableLayout: "auto" | "fixed"
   isDragCol: boolean
 }) {
   if (isDragCol && enableRowReorder && dnd) {
@@ -1246,16 +1249,18 @@ function renderCellContent<T extends RowData>({
   }
   if (editor) {
     return (
-      <div className={styles.editorControl()} data-editor-control="">
-        {editor}
+      <div
+        className={styles.editorControl()}
+        data-editor-control=""
+        data-layout={tableLayout}
+      >
+        <div className="data-table-editor-value" data-size={size}>
+          {editor}
+        </div>
         {editorError ? (
-          <span
-            className={styles.editorError()}
-            id={editorErrorId}
-            role="alert"
-          >
+          <StatusText id={editorErrorId} size={size} status="error">
             {editorError}
-          </span>
+          </StatusText>
         ) : null}
       </div>
     )
@@ -1294,6 +1299,7 @@ function DataTableBodyCell<T extends RowData>({
   editor,
   editorError,
   editorErrorId,
+  size,
   indentColumnId,
   rowLabel,
 }: {
@@ -1308,9 +1314,11 @@ function DataTableBodyCell<T extends RowData>({
   editor?: ReactNode
   editorError?: string
   editorErrorId?: string
+  size: DataTableControlSize
   indentColumnId?: string
   rowLabel: string
 }) {
+  const tableLayout = useContext(FieldTableLayoutContext)
   const column = cell.column
   const pinned = column.getIsPinned()
   const isDragCol = column.id === DRAG_COLUMN_ID
@@ -1341,6 +1349,8 @@ function DataTableBodyCell<T extends RowData>({
         editor,
         editorError,
         editorErrorId,
+        size,
+        tableLayout,
         isDragCol,
         rowLabel,
       })}
@@ -1792,7 +1802,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const styles = dataTableVariants({ outlined })
   const generatedId = useId()
   const instanceId = idProp ?? generatedId
-  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const scrollRef = useRef<HTMLElement | null>(null)
   const reachedEndRef = useRef(false)
   // Row count at the last `onReachEnd`, so a request that brings back
   // nothing doesn't immediately ask again. Written by every path that fires
@@ -2904,6 +2914,36 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     return renderer?.(ctx) ?? null
   }
 
+  const handleColumnResizeKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    column: Column<T, unknown>
+  ) => {
+    if (["Enter", "Home"].includes(event.key)) {
+      event.preventDefault()
+      column.resetSize()
+      return
+    }
+    const direction = (
+      { ArrowLeft: -1, ArrowRight: 1 } as Record<string, number>
+    )[event.key]
+    if (!direction) {
+      return
+    }
+    event.preventDefault()
+    const delta = (event.shiftKey ? 50 : 10) * direction
+    const min = column.columnDef.minSize ?? 20
+    const max = column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER
+    // Unresized columns may be auto-sized by native table layout, so
+    // TanStack's default model width need not match the visible width.
+    const renderedSize = event.currentTarget
+      .closest("th")
+      ?.getBoundingClientRect().width
+    const currentSize =
+      columnSizing[column.id] ?? renderedSize ?? column.getSize()
+    const nextSize = Math.min(max, Math.max(min, currentSize + delta))
+    table.setColumnSizing((current) => ({ ...current, [column.id]: nextSize }))
+  }
+
   const renderHeaderCell = (
     header: Header<T, unknown>,
     groupIndex: number,
@@ -2969,9 +3009,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         </div>
         {enableColumnResizing && column.getCanResize() ? (
           <button
+            aria-description="Use Left and Right arrows to resize; Shift changes by 50 pixels. Enter resets the width."
             aria-label={`Resize ${columnLabel(column)}`}
             className={styles.resizeHandle()}
             onDoubleClick={() => column.resetSize()}
+            onKeyDown={(event) => handleColumnResizeKeyDown(event, column)}
             onMouseDown={header.getResizeHandler()}
             onTouchStart={header.getResizeHandler()}
             type="button"
@@ -3020,7 +3062,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           })}
           {hasActionsColumn && groupIndex === 0 && (
             <Table.ColumnHeader
-              className={stickyActions ? "sticky inset-e-0" : undefined}
+              className={
+                stickyActions ? "data-table-actions-sticky sticky" : undefined
+              }
               numeric
               rowSpan={table.getHeaderGroups().length}
               style={{
@@ -3078,7 +3122,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <td
               className={
                 stickyActions
-                  ? `${styles.filterCell()} sticky inset-e-0 bg-data-table-filter-row-bg`
+                  ? `${styles.filterCell()} data-table-actions-sticky sticky bg-data-table-filter-row-bg`
                   : styles.filterCell()
               }
               style={{
@@ -3087,7 +3131,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   ? { position: "sticky", top: headerHeight }
                   : undefined),
                 // Gated on `stickyActions` (which is what applies the
-                // `sticky inset-e-0` class), not on `stickyHeader`. Pinned filter
+                // `data-table-actions-sticky sticky` class), not on `stickyHeader`. Pinned filter
                 // cells take `zIndex: pinnedHeaderCell` from
                 // `getPinningStyles` unconditionally, so when the header was
                 // not sticky this cell had no level at all and an end-pinned
@@ -3150,26 +3194,25 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return (
         <>
           <Button
-            aria-label="Save row"
-            icon="token-icon-check"
-            onClick={(e) => {
-              e.stopPropagation()
-              commitEdit()
-            }}
-            size="sm"
-            theme="borderless"
-            variant="primary"
-          />
-          <Button
             aria-label="Cancel edit"
             icon="token-icon-close"
-            onClick={(e) => {
-              e.stopPropagation()
+            onClick={(event) => {
+              event.stopPropagation()
               cancelEdit()
             }}
-            size="sm"
-            theme="borderless"
+            size={size}
+            theme="outlined"
             variant="secondary"
+          />
+          <Button
+            aria-label="Save row"
+            icon="token-icon-check"
+            onClick={(event) => {
+              event.stopPropagation()
+              commitEdit()
+            }}
+            size={size}
+            variant="primary"
           />
         </>
       )
@@ -3232,7 +3275,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       // Composites the row tint over an opaque surface, like pinned cells —
       // `bg-inherit` alone was transparent on striped/selected rows.
       className={
-        stickyActions ? "data-table-frozen-cell sticky inset-e-0" : undefined
+        stickyActions
+          ? "data-table-frozen-cell data-table-actions-sticky sticky"
+          : undefined
       }
       numeric
       style={
@@ -3322,6 +3367,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         return null
       }
       const column = cell.column as Column<T, unknown>
+      const meta = column.columnDef.meta
+      const type = resolveColumnType(meta)
+      const ownsFeedback =
+        !(meta?.renderEditor || editorRenderers?.[type]) &&
+        (type === "boolean" || type === "enum" || type === "multiEnum")
       return (
         <DataTableBodyCell
           cell={cell}
@@ -3329,7 +3379,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           dnd={dnd}
           editor={renderCellEditor(row, column)}
           editorError={
-            editingRowId === row.id
+            editingRowId === row.id && !ownsFeedback
               ? editErrors[column.id] || undefined
               : undefined
           }
@@ -3340,6 +3390,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           key={cell.id}
           row={row}
           rowLabel={rowLabel}
+          size={size}
           span={span}
           styles={styles}
         />
@@ -3480,7 +3531,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         <Table.Row aria-hidden="true" key={rowKey}>
           {leafColumns.map((column) => (
             <Table.Cell key={`${rowKey}-${column.id}`}>
-              <Skeleton.Text noOfLines={1} size={size} />
+              <Skeleton.Text
+                className="data-table-skeleton"
+                noOfLines={1}
+                size={size}
+              />
             </Table.Cell>
           ))}
           {hasActionsColumn && (
@@ -3489,7 +3544,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "data-table-frozen-cell sticky inset-e-0"
+                  ? "data-table-frozen-cell data-table-actions-sticky sticky"
                   : undefined
               }
               numeric
@@ -3499,7 +3554,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   : undefined
               }
             >
-              <Skeleton.Text noOfLines={1} size={size} />
+              <Skeleton.Text
+                className="data-table-skeleton"
+                noOfLines={1}
+                size={size}
+              />
             </Table.Cell>
           )}
         </Table.Row>
@@ -3554,7 +3613,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       {bodyState === "rows" && (
         <>
           {paddingTop > 0 && (
-            <tr>
+            <tr aria-hidden="true" tabIndex={-1}>
               <td
                 colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
                 style={{ height: paddingTop }}
@@ -3564,7 +3623,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           {bodyRows}
           {loadingMore && skeletonRows(1, "skeleton-more")}
           {paddingBottom > 0 && (
-            <tr>
+            <tr aria-hidden="true" tabIndex={-1}>
               <td
                 colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
                 style={{ height: paddingBottom }}
@@ -3595,7 +3654,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "sticky inset-e-0 bg-data-table-footer-bg"
+                  ? "data-table-actions-sticky sticky bg-data-table-footer-bg"
                   : undefined
               }
               numeric
@@ -3626,7 +3685,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         {...slotProps?.root}
         style={{ tableLayout, ...slotProps?.root?.style }}
       >
-        {caption && <Table.Caption>{caption}</Table.Caption>}
+        {caption && (
+          <Table.Caption id={`${instanceId}-caption`}>{caption}</Table.Caption>
+        )}
         {headerContent}
         {bodyContent}
         {footerContent}
@@ -3695,14 +3756,20 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               </div>
             </DataTable.Toolbar>
           ))}
-        <div
-          className={styles.scroll()}
+        <section
+          aria-label={caption ? undefined : translations.scrollLabel}
+          aria-labelledby={caption ? `${instanceId}-caption` : undefined}
+          className={styles.scroll({
+            className: "focus-visible:data-table-scroll-focus",
+          })}
           onScroll={handleScroll}
           ref={scrollRef}
           style={maxHeight ? { maxHeight } : undefined}
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: Scroll regions need keyboard focus to reveal offscreen records.
+          tabIndex={0}
         >
           {scrollBody}
-        </div>
+        </section>
         {enablePagination && <DataTable.Pagination />}
       </div>
     </DataTableContext.Provider>

@@ -1,11 +1,13 @@
 import { expect, type Locator, type Page, test } from "@playwright/test"
 
+const dragHandleLabel = /^Drag to reorder /
+
 async function openStory(page: Page, story: string) {
   await page.goto(
     `/iframe.html?id=organisms-datatable--${story}&viewMode=story`,
     { waitUntil: "domcontentloaded" }
   )
-  await expect(page.getByLabel(/^Drag to reorder /).first()).toBeVisible()
+  await expect(page.getByLabel(dragHandleLabel).first()).toBeVisible()
 }
 
 // Real pointer drag: the table's PointerSensor activates after 5px of movement,
@@ -35,14 +37,18 @@ type StoryPreview = {
 // Storybook keeps the story's fn() spies on the rendered story's args.
 function callbackCalls(page: Page, name: string) {
   return page.evaluate((arg) => {
-    const preview = (window as unknown as { __STORYBOOK_PREVIEW__: StoryPreview })
-      .__STORYBOOK_PREVIEW__
-    const calls = preview.currentRender.story.initialArgs[arg]?.mock?.calls ?? []
+    const preview = (
+      window as unknown as { __STORYBOOK_PREVIEW__: StoryPreview }
+    ).__STORYBOOK_PREVIEW__
+    const calls =
+      preview.currentRender.story.initialArgs[arg]?.mock?.calls ?? []
     return calls.map(([details]) => details)
   }, name)
 }
 
+// biome-ignore lint/correctness/noEmptyPattern: Playwright requires fixture destructuring even when only testInfo is used.
 test.beforeEach(({}, testInfo) => {
+  // biome-ignore lint/suspicious/noSkippedTests: Pointer-only drag checks run in the desktop project; touch has separate coverage.
   test.skip(
     testInfo.project.name !== "desktop",
     "Mouse drags need a mouse pointer; the mobile project emulates touch"
@@ -67,31 +73,35 @@ test("mouse drag reorders columns through the drag handle", async ({
     page.getByLabel("Drag to reorder Last name")
   )
 
-  await expect.poll(() => headers(page)).toEqual([
-    "Last name",
-    "First name",
-    "Email",
-    "Role",
-    "Status",
-    "Age",
-    "Visits",
-  ])
-  await expect.poll(() => callbackCalls(page, "onColumnReorder")).toEqual([
-    {
-      from: 0,
-      to: 1,
-      columnId: "firstName",
-      order: [
-        "lastName",
-        "firstName",
-        "email",
-        "role",
-        "status",
-        "age",
-        "visits",
-      ],
-    },
-  ])
+  await expect
+    .poll(() => headers(page))
+    .toEqual([
+      "Last name",
+      "First name",
+      "Email",
+      "Role",
+      "Status",
+      "Age",
+      "Visits",
+    ])
+  await expect
+    .poll(() => callbackCalls(page, "onColumnReorder"))
+    .toEqual([
+      {
+        from: 0,
+        to: 1,
+        columnId: "firstName",
+        order: [
+          "lastName",
+          "firstName",
+          "email",
+          "role",
+          "status",
+          "age",
+          "visits",
+        ],
+      },
+    ])
 })
 
 test("mouse drag reorders rows through the drag handle", async ({ page }) => {

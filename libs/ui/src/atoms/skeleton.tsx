@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.4
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -78,7 +78,7 @@ const skeletonVariants = tv({
   },
 })
 
-interface SkeletonContextValue {
+type SkeletonContextValue = {
   isLoaded: boolean
   variant?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
@@ -129,8 +129,7 @@ function useSkeletonA11yProps(ariaHidden?: boolean | "true" | "false") {
   return LOADING_STATUS_PROPS
 }
 
-interface SkeletonRootProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonRootProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   isLoaded?: boolean
   variant?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
@@ -152,7 +151,7 @@ export function Skeleton({
   return (
     <SkeletonContext.Provider value={{ isLoaded, variant, speed }}>
       {isLoaded ? (
-        <>{children}</>
+        children
       ) : (
         <div
           {...LOADING_STATUS_PROPS}
@@ -167,8 +166,7 @@ export function Skeleton({
   )
 }
 
-interface SkeletonCircleProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonCircleProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   size?: "sm" | "md" | "lg" | "xl"
   speed?: "slow" | "normal" | "fast"
   isLoaded?: boolean
@@ -212,8 +210,7 @@ Skeleton.Circle = function SkeletonCircle({
   )
 }
 
-interface SkeletonTextProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonTextProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   noOfLines?: number
   size?: "sm" | "md" | "lg" | "xl"
   speed?: "slow" | "normal" | "fast"
@@ -252,7 +249,9 @@ Skeleton.Text = function SkeletonText({
   }
 
   // Guard against invalid values (negative, NaN, Infinity)
-  const lineCount = Number.isFinite(noOfLines) ? Math.max(1, noOfLines) : 1
+  const lineCount = Number.isFinite(noOfLines)
+    ? Math.max(1, Math.floor(noOfLines))
+    : 1
 
   return (
     <div
@@ -279,8 +278,10 @@ Skeleton.Text = function SkeletonText({
   )
 }
 
-interface SkeletonRectangleProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonRectangleProps = Omit<
+  ComponentPropsWithoutRef<"div">,
+  "children"
+> & {
   speed?: "slow" | "normal" | "fast"
   isLoaded?: boolean
   variant?: "primary" | "secondary"

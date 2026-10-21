@@ -6,7 +6,7 @@ description: >
   item parts, selection behavior, icons, indentation, expansion, selection, and
   keyboard/typeahead support.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -156,3 +156,9 @@ rg -U -n "<ul[\\s\\S]{0,400}(children|nodes|tree)|<TreeView\\.Item[^>]*className
 rg -n "id: String\\(index\\)|id: index|selectionBehavior=\"(branches|leaves)\"" apps
 rg -U -P -n "<TreeView(?![\\s\\S]{0,500}<TreeView\\.Tree)" apps
 ```
+
+## Wave 2 contracts
+
+TreeView splits all Zag machine props from DOM props using tree.splitProps. ids, defaultFocusedValue, getRootNode and machine callbacks configure the machine and are never serialized onto the root element. defaultFocusedValue determines the initial roving-tabindex node; custom ids address the actual tree parts. Canonical sizes are sm/md/lg (default md).
+
+Custom tree examples must include TreeView.Label (or an explicitly associated accessible label). Use full-width, max-width bounded wrappers and stack comparison panels on narrow viewports; an activity log should wrap long node identifiers instead of widening the page.

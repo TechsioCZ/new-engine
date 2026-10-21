@@ -1,148 +1,155 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Button } from '../../src/atoms/button'
-import {
-  Slider,
-  type SliderProps,
-} from '../../src/molecules/slider'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+import { expect, userEvent, within } from "storybook/test"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { Slider, type SliderProps } from "../../src/molecules/slider"
 
 const meta: Meta<typeof Slider> = {
-  title: 'Molecules/Slider',
+  title: "Molecules/Slider",
   component: Slider,
   parameters: {
-    layout: 'centered',
+    layout: "padded",
+    docs: {
+      description: {
+        component:
+          "A keyboard-accessible single-value or multi-thumb range control for approximate numeric choices. Use for budgets, thresholds and ranges; use NumericInput or QuantityField when users need an exact typed value. Each thumb can have its own accessible name.",
+      },
+    },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     value: {
-      control: 'object',
-      description: 'Current values of the slider (for controlled component). Example: [20, 80]',
+      control: "object",
+      description:
+        "Current values of the slider (for controlled component). Example: [20, 80]",
     },
     defaultValue: {
-      control: 'object',
-      description: 'Default values of the slider (for uncontrolled component). Example: [25, 75]',
+      control: "object",
+      description:
+        "Default values of the slider (for uncontrolled component). Example: [25, 75]",
     },
     min: {
-      control: 'number',
-      description: 'Minimum value of the slider.',
-      table: { defaultValue: { summary: '0' } },
+      control: "number",
+      description: "Minimum value of the slider.",
+      table: { defaultValue: { summary: "0" } },
     },
     max: {
-      control: 'number',
-      description: 'Maximum value of the slider.',
-      table: { defaultValue: { summary: '100' } },
+      control: "number",
+      description: "Maximum value of the slider.",
+      table: { defaultValue: { summary: "100" } },
     },
     step: {
-      control: 'number',
-      description: 'Step value for incrementing/decrementing.',
-      table: { defaultValue: { summary: '1' } },
+      control: "number",
+      description: "Step value for incrementing/decrementing.",
+      table: { defaultValue: { summary: "1" } },
     },
     minStepsBetweenThumbs: {
-      control: 'number',
-      description: 'Minimum steps required between thumbs.',
-      table: { defaultValue: { summary: '0' } },
+      control: "number",
+      description: "Minimum steps required between thumbs.",
+      table: { defaultValue: { summary: "0" } },
     },
     orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical'],
-      description: 'Orientation of the slider.',
-      table: { defaultValue: { summary: 'horizontal' } },
+      control: "select",
+      options: ["horizontal", "vertical"],
+      description: "Orientation of the slider.",
+      table: { defaultValue: { summary: "horizontal" } },
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of the slider.',
-      table: { defaultValue: { summary: 'md' } },
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size of the slider.",
+      table: { defaultValue: { summary: "md" } },
     },
     disabled: {
-      control: 'boolean',
-      description: 'Whether the slider is disabled.',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Whether the slider is disabled.",
+      table: { defaultValue: { summary: "false" } },
     },
     readOnly: {
-      control: 'boolean',
-      description: 'Whether the slider is read-only.',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Whether the slider is read-only.",
+      table: { defaultValue: { summary: "false" } },
     },
     showValueText: {
-      control: 'boolean',
-      description: 'Show the current values alongside the slider.',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Show the current values alongside the slider.",
+      table: { defaultValue: { summary: "false" } },
     },
     formatValue: {
       control: false,
-      description: 'Function to format the displayed value text.',
+      description: "Function to format the displayed value text.",
     },
     showMarkers: {
-      control: 'boolean',
-      description: 'Show step markers on the track.',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Show step markers on the track.",
+      table: { defaultValue: { summary: "false" } },
     },
     markerCount: {
-      control: 'number',
-      description: 'Number of markers to display (if showMarkers is true).',
-      table: { defaultValue: { summary: '5' } },
+      control: "number",
+      description: "Number of markers to display (if showMarkers is true).",
+      table: { defaultValue: { summary: "5" } },
     },
     label: {
-      control: 'text',
-      description: 'Label text displayed above the slider.',
+      control: "text",
+      description: "Label text displayed above the slider.",
     },
     validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status that affects slider styling and help text display.',
-      table: { defaultValue: { summary: 'default' } },
+      control: "select",
+      options: ["default", "error", "success", "warning"],
+      description:
+        "Validation status that affects slider styling and help text display.",
+      table: { defaultValue: { summary: "default" } },
     },
     helpText: {
-      control: 'text',
-      description: 'Help text displayed below the slider.',
+      control: "text",
+      description: "Help text displayed below the slider.",
     },
     origin: {
-      control: 'select',
-      options: ['start', 'center', 'end'],
-      description: 'Origin point for the slider range.',
-      table: { defaultValue: { summary: 'start' } },
+      control: "select",
+      options: ["start", "center", "end"],
+      description: "Origin point for the slider range.",
+      table: { defaultValue: { summary: "start" } },
     },
     thumbAlignment: {
-      control: 'select',
-      options: ['center', 'contain'],
-      description: 'Alignment of slider thumbs relative to the track.',
-      table: { defaultValue: { summary: 'center' } },
+      control: "select",
+      options: ["center", "contain"],
+      description: "Alignment of slider thumbs relative to the track.",
+      table: { defaultValue: { summary: "center" } },
     },
     dir: {
-      control: 'select',
-      options: ['ltr', 'rtl'],
-      description: 'Text direction of the slider.',
-      table: { defaultValue: { summary: 'ltr' } },
+      control: "select",
+      options: ["ltr", "rtl"],
+      description: "Text direction of the slider.",
+      table: { defaultValue: { summary: "ltr" } },
     },
     formatRangeText: {
       control: false,
-      description: 'Function to format the range text display.',
+      description: "Function to format the range text display.",
     },
     onChange: {
-      action: 'changed',
-      description: 'Callback when the value changes.',
+      action: "changed",
+      description: "Callback when the value changes.",
     },
     onChangeEnd: {
-      action: 'changeEnded',
-      description: 'Callback when the value change is committed.',
+      action: "changeEnded",
+      description: "Callback when the value change is committed.",
     },
   },
   args: {
     min: 0,
     max: 100,
     step: 1,
-    orientation: 'horizontal',
-    size: 'md',
+    orientation: "horizontal",
+    size: "md",
     disabled: false,
     readOnly: false,
     showValueText: true,
     showMarkers: false,
-    validateStatus: 'default',
-    origin: 'start',
-    thumbAlignment: 'center',
-    dir: 'ltr',
+    validateStatus: "default",
+    origin: "start",
+    thumbAlignment: "center",
+    dir: "ltr",
   },
 }
 
@@ -157,32 +164,157 @@ const baseSliderProps: Partial<SliderProps> = {
 }
 
 export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Try the live controls and change the available options to find the right configuration for your form.",
+      },
+    },
+  },
   args: {
-    id: 'playground-slider',
-    label: 'Price Range',
+    id: "playground-slider",
+    label: "Price Range",
     defaultValue: [20, 80],
-    helpText: 'Select your desired price range.',
+    helpText: "Select your desired price range.",
   },
   render: (args) => (
-    <div className="min-w-sm h-96">
+    <div className="w-full max-w-sm">
       <Slider {...args} />
     </div>
   ),
 }
 
+export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare Small (sm), Medium (md), and Large (lg) with identical copy and values to choose the right form density.",
+      },
+    },
+  },
+  render: (args) => (
+    <VariantContainer>
+      {(["sm", "md", "lg"] as const).map((size, index) => (
+        <VariantGroup
+          fullWidth
+          key={size}
+          title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}
+        >
+          <div className="w-full max-w-sm">
+            <Slider
+              {...args}
+              id={undefined}
+              size={size}
+              label="Project budget"
+              defaultValue={[25, 75]}
+              showValueText
+              helpText="Choose your preferred budget range."
+            />
+          </div>
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+}
+
 export const Disabled: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Unavailable controls retain their visible values but cannot receive keyboard focus or change.",
+      },
+    },
+  },
   args: {
     ...Playground.args,
-    id: 'disabled-slider',
+    id: "disabled-slider",
     disabled: true,
   },
 }
 
-export const WithValidation: Story = {
+export const ReadOnly: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Read-only values remain focusable and legible while pointer, keyboard and other editing paths are blocked.",
+      },
+    },
+  },
+  name: "Read-only",
   args: {
     ...Playground.args,
-    id: 'validation-slider',
-    label: 'Quantity',
+    id: "readonly-slider",
+    readOnly: true,
+    defaultValue: [25],
+    showValueText: true,
+  },
+  render: (args) => (
+    <div className="w-full max-w-sm">
+      <Slider {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const thumb = canvas.getByRole("slider")
+    await userEvent.click(thumb)
+    await userEvent.keyboard("{ArrowRight}{End}{Home}")
+    await expect(thumb).toHaveAttribute("aria-valuenow", "25")
+    await expect(thumb).toHaveAttribute("aria-readonly", "true")
+    await expect(thumb).toHaveFocus()
+  },
+}
+
+export const FeedbackAssociation: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "An invalid single-value slider exposes its current value and links each thumb to the visible error message.",
+      },
+    },
+  },
+  args: {
+    label: "Project budget",
+    defaultValue: [25],
+    showValueText: true,
+    validateStatus: "error",
+    helpText: "Choose a budget of at least 50 before continuing.",
+    showMarkers: true,
+  },
+  render: (args) => (
+    <div className="w-full max-w-sm">
+      <Slider {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const thumb = canvas.getByRole("slider")
+    await expect(thumb).toHaveAttribute("aria-invalid", "true")
+    await expect(thumb).toHaveAccessibleDescription(
+      "Choose a budget of at least 50 before continuing."
+    )
+    await expect(thumb.getAttribute("aria-errormessage")).toBeTruthy()
+    await expect(canvas.getByRole("status")).toHaveTextContent("25")
+  },
+}
+
+export const WithValidation: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Move the slider to compare actionable error feedback with successful validation.",
+      },
+    },
+  },
+  args: {
+    ...Playground.args,
+    id: "validation-slider",
+    label: "Quantity",
   },
   render: (args) => {
     const [value, setValue] = useState([30])
@@ -193,11 +325,11 @@ export const WithValidation: Story = {
         <Slider
           {...args}
           value={value}
-          validateStatus={currentValue < 50 ? 'error' : 'success'}
+          validateStatus={currentValue < 50 ? "error" : "success"}
           helpText={
             currentValue < 50
-              ? 'The selected value must be at least 50.'
-              : 'Great! Value is within acceptable range.'
+              ? "The selected value must be at least 50."
+              : "Great! Value is within acceptable range."
           }
           onChange={setValue}
         />
@@ -207,21 +339,29 @@ export const WithValidation: Story = {
 }
 
 export const WithMarkers: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Tick labels reserve their own space so the scale and helper text remain readable together.",
+      },
+    },
+  },
   args: {
     ...baseSliderProps,
-    id: 'markers-slider',
-    label: 'Temperature Range (°C)',
+    id: "markers-slider",
+    label: "Temperature Range (°C)",
     defaultValue: [10, 30],
     min: -20,
     max: 50,
     step: 0.5,
     showMarkers: true,
     markerCount: 5,
-    helpText: 'Adjust the temperature using the slider with markers.',
+    helpText: "Adjust the temperature using the slider with markers.",
     formatValue: (value) => `${value}°C`,
   },
   render: (args) => (
-    <div className="min-w-sm">
+    <div className="w-full max-w-sm">
       <Slider {...args} />
     </div>
   ),
@@ -229,7 +369,13 @@ export const WithMarkers: Story = {
 
 export const VerticalOrientation: Story = {
   parameters: {
-    layout: 'padded',
+    docs: {
+      description: {
+        story:
+          "Vertical tracks provide a compact adjustment axis while retaining named, keyboard-operable thumbs.",
+      },
+    },
+    layout: "padded",
   },
 
   render: () => {
@@ -240,9 +386,10 @@ export const VerticalOrientation: Story = {
     }
     return (
       <VariantContainer>
-        <div className="grid h-96 w-4xl grid-cols-3 gap-600">
+        <div className="grid w-full max-w-4xl grid-cols-1 gap-600 sm:grid-cols-3">
           <Slider
             {...baseSliderProps}
+            className="data-[orientation=vertical]:h-96"
             id="vertical-sm"
             orientation="vertical"
             size="sm"
@@ -252,6 +399,7 @@ export const VerticalOrientation: Story = {
           />
           <Slider
             {...baseSliderProps}
+            className="data-[orientation=vertical]:h-96"
             id="vertical-md"
             orientation="vertical"
             size="md"
@@ -260,15 +408,16 @@ export const VerticalOrientation: Story = {
             markerCount={5}
             value={values}
             onChange={handleChange}
-            validateStatus={currentValue > 50 ? 'warning' : 'default'}
+            validateStatus={currentValue > 50 ? "warning" : "default"}
             helpText={
               currentValue > 50
-                ? 'Brightness is getting high - consider reducing it'
-                : 'Current brightness level is fine'
+                ? "Brightness is getting high - consider reducing it"
+                : "Current brightness level is fine"
             }
           />
           <Slider
             {...baseSliderProps}
+            className="data-[orientation=vertical]:h-96"
             id="vertical-lg"
             orientation="vertical"
             size="lg"
@@ -283,11 +432,19 @@ export const VerticalOrientation: Story = {
 }
 
 export const Controlled: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Application-owned state stays in sync with user changes and authoritative updates from the parent.",
+      },
+    },
+  },
   args: {
     ...baseSliderProps,
-    id: 'controlled-slider',
-    label: 'Controlled Slider',
-    helpText: 'Values are managed by component state.',
+    id: "controlled-slider",
+    label: "Controlled Slider",
+    helpText: "Values are managed by component state.",
   },
   render: (args) => {
     const [values, setValues] = useState<number[]>([30, 70])
@@ -307,13 +464,11 @@ export const Controlled: Story = {
     }
 
     return (
-      <div className="min-w-sm">
+      <div className="w-full max-w-sm">
         <Slider {...args} value={values} onChange={handleChange} />
         <div className="mt-400 rounded border bg-surface-secondary p-200">
-          <p className="text-fg-secondary text-sm">
-            Component State:
-          </p>
-          <p className="font-mono text-lg">[{values.join(', ')}]</p>
+          <p className="text-fg-secondary text-sm">Component State:</p>
+          <p className="font-mono text-lg">[{values.join(", ")}]</p>
           <div>
             <Button size="sm" onClick={handleRandom}>
               Random
@@ -326,17 +481,25 @@ export const Controlled: Story = {
 }
 
 export const DynamicBoundsControlled: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Changing bounds normalizes controlled values so each thumb remains inside the permitted range.",
+      },
+    },
+  },
   args: {
     ...baseSliderProps,
-    id: 'dynamic-bounds-controlled-slider',
-    label: 'Dynamic Bounds (Controlled)',
+    id: "dynamic-bounds-controlled-slider",
+    label: "Dynamic Bounds (Controlled)",
   },
   render: (args) => {
     const [bounds, setBounds] = useState({ min: 0, max: 100 })
     const [values, setValues] = useState<number[]>([20, 80])
 
     return (
-      <div className="min-w-sm space-y-400">
+      <div className="w-full max-w-sm space-y-400">
         <Slider
           {...args}
           min={bounds.min}
@@ -346,10 +509,7 @@ export const DynamicBoundsControlled: Story = {
           helpText={`Bounds: ${bounds.min} - ${bounds.max}`}
         />
         <div className="flex flex-wrap gap-200">
-          <Button
-            size="sm"
-            onClick={() => setBounds({ min: 0, max: 30 })}
-          >
+          <Button size="sm" onClick={() => setBounds({ min: 0, max: 30 })}>
             Shrink max to 30
           </Button>
           <Button
@@ -362,7 +522,7 @@ export const DynamicBoundsControlled: Story = {
         </div>
         <div className="rounded border bg-surface-secondary p-200 text-sm">
           <p className="text-fg-secondary">Values (controlled):</p>
-          <p className="font-mono">[{values.join(', ')}]</p>
+          <p className="font-mono">[{values.join(", ")}]</p>
         </div>
       </div>
     )
@@ -370,6 +530,14 @@ export const DynamicBoundsControlled: Story = {
 }
 
 export const SingleVsMultiThumb: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Single, double and triple thumbs display every current value rather than assuming a two-value range.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <div className="grid w-full min-w-xs gap-600">
@@ -400,6 +568,14 @@ export const SingleVsMultiThumb: Story = {
 }
 
 export const Origin: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Start, center and end origins change which part of a track represents the selected amount.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <div className="grid w-full min-w-xs gap-600">
@@ -433,6 +609,14 @@ export const Origin: Story = {
 }
 
 export const ThumbAlignment: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare contained and centered thumbs when aligning track endpoints with surrounding content.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <div className="grid w-full min-w-xs gap-600">
@@ -462,6 +646,14 @@ export const ThumbAlignment: Story = {
 }
 
 export const MinStepsBetweenThumbs: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A minimum step gap keeps range endpoints apart while preserving keyboard adjustment at either end.",
+      },
+    },
+  },
   render: () => {
     const [values, setValues] = useState<number[]>([30, 70])
     const [minValue = 0, maxValue = minValue] = values
@@ -501,6 +693,14 @@ export const MinStepsBetweenThumbs: Story = {
 }
 
 export const RTLSupport: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Right-to-left layout mirrors the track direction without losing the current value or accessible label.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <div className="grid w-full min-w-xs gap-600">
@@ -526,6 +726,14 @@ export const RTLSupport: Story = {
 }
 
 export const CustomFormatting: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Localized units and range summaries make raw numeric values meaningful for budgets and discounts.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <div className="grid w-full min-w-xs gap-600">
@@ -577,44 +785,21 @@ export const CustomFormatting: Story = {
 }
 
 export const AllVariants: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare interaction states and useful slider features without repeating the canonical size matrix.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Sizes">
-        <div className="w-lg min-w-xs">
-          <Slider
-            {...baseSliderProps}
-            size="sm"
-            label="Small"
-            defaultValue={[25, 75]}
-          />
-        </div>
-        <div className="w-lg min-w-xs">
-          <Slider
-            {...baseSliderProps}
-            size="md"
-            label="Medium (default)"
-            defaultValue={[30, 70]}
-          />
-        </div>
-        <div className="w-lg min-w-xs">
-          <Slider
-            {...baseSliderProps}
-            size="lg"
-            label="Large"
-            defaultValue={[35, 65]}
-          />
-        </div>
-      </VariantGroup>
-
       <VariantGroup title="States">
-        <div className="w-lg min-w-xs">
-          <Slider
-            {...baseSliderProps}
-            label="Normal"
-            defaultValue={[20, 80]}
-          />
+        <div className="w-full max-w-lg">
+          <Slider {...baseSliderProps} label="Normal" defaultValue={[20, 80]} />
         </div>
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="Disabled"
@@ -622,7 +807,7 @@ export const AllVariants: Story = {
             disabled
           />
         </div>
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="Read-only"
@@ -630,7 +815,7 @@ export const AllVariants: Story = {
             readOnly
           />
         </div>
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="Error"
@@ -639,7 +824,7 @@ export const AllVariants: Story = {
             helpText="Invalid range selected"
           />
         </div>
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="Success"
@@ -648,7 +833,7 @@ export const AllVariants: Story = {
             helpText="Perfect range selected!"
           />
         </div>
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="Warning"
@@ -660,7 +845,7 @@ export const AllVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Features">
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="With Markers"
@@ -669,7 +854,7 @@ export const AllVariants: Story = {
             markerCount={5}
           />
         </div>
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="With Value Text"
@@ -677,7 +862,7 @@ export const AllVariants: Story = {
             showValueText
           />
         </div>
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="With Helper Text"
@@ -688,21 +873,21 @@ export const AllVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Thumb Variations">
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="Single Thumb"
             defaultValue={[50]}
           />
         </div>
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="Double Thumb"
             defaultValue={[25, 75]}
           />
         </div>
-        <div className="w-lg min-w-xs">
+        <div className="w-full max-w-lg">
           <Slider
             {...baseSliderProps}
             label="Triple Thumb"

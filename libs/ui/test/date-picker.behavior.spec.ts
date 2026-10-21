@@ -24,7 +24,8 @@ const stories = {
 } as const
 
 const inputStories = {
-  allVariants: "atoms-input--all-variants",
+  sizes: "atoms-input--sizes",
+  variants: "atoms-input--variants",
 } as const
 
 const pickerRootSelector = '[data-scope="date-picker"][data-part="root"]'
@@ -85,10 +86,9 @@ test.describe("DatePicker browser behavior", () => {
       nodes.map((node) => getComputedStyle(node).fontSize)
     )
 
-    await page.goto(
-      `/iframe.html?id=${inputStories.allVariants}&viewMode=story`,
-      { waitUntil: "domcontentloaded" }
-    )
+    await page.goto(`/iframe.html?id=${inputStories.sizes}&viewMode=story`, {
+      waitUntil: "domcontentloaded",
+    })
     const inputs = page.locator("input")
     await expect(inputs.first()).toBeVisible()
     const inputFontSizes = await inputs.evaluateAll((nodes) =>
@@ -99,7 +99,12 @@ test.describe("DatePicker browser behavior", () => {
       .evaluate((node) => getComputedStyle(node, "::placeholder").color)
     expect(datePickerFontSizes).toEqual(inputFontSizes)
 
-    const inputError = inputs.nth(4)
+    await page.goto(`/iframe.html?id=${inputStories.variants}&viewMode=story`, {
+      waitUntil: "domcontentloaded",
+    })
+    const inputError = page.getByRole("textbox", {
+      name: "Contact name — error",
+    })
     await inputError.evaluate((node) => {
       node.style.transition = "none"
     })

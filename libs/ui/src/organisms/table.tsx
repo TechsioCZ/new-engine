@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.2.2
+ * @componentVersion v1.3.0
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,7 +12,7 @@
 import {
   type ComponentPropsWithoutRef,
   createContext,
-  type RefObject,
+  type Ref,
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -62,7 +62,11 @@ const tableVariants = tv({
     },
     interactive: {
       true: {
-        row: "cursor-pointer hover:bg-table-row-bg-hover",
+        row: [
+          "cursor-pointer hover:bg-table-row-bg-hover",
+          "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+          "focus-visible:-outline-offset-(length:--default-ring-width) focus-visible:outline-table-ring",
+        ],
       },
     },
     size: {
@@ -156,7 +160,7 @@ function useTableContext() {
 interface TableProps
   extends VariantProps<typeof tableVariants>,
     ComponentPropsWithoutRef<"table"> {
-  ref?: RefObject<HTMLTableElement>
+  ref?: Ref<HTMLTableElement>
 }
 
 export function Table({
@@ -204,7 +208,7 @@ export function Table({
 
 // Caption component
 interface TableCaptionProps extends ComponentPropsWithoutRef<"caption"> {
-  ref?: RefObject<HTMLTableCaptionElement>
+  ref?: Ref<HTMLTableCaptionElement>
 }
 
 Table.Caption = function TableCaption({
@@ -224,7 +228,7 @@ Table.Caption = function TableCaption({
 
 // Header component
 interface TableHeaderProps extends ComponentPropsWithoutRef<"thead"> {
-  ref?: RefObject<HTMLTableSectionElement>
+  ref?: Ref<HTMLTableSectionElement>
 }
 
 Table.Header = function TableHeader({
@@ -244,7 +248,7 @@ Table.Header = function TableHeader({
 
 // Body component
 interface TableBodyProps extends ComponentPropsWithoutRef<"tbody"> {
-  ref?: RefObject<HTMLTableSectionElement>
+  ref?: Ref<HTMLTableSectionElement>
 }
 
 Table.Body = function TableBody({
@@ -264,7 +268,7 @@ Table.Body = function TableBody({
 
 // Footer component
 interface TableFooterProps extends ComponentPropsWithoutRef<"tfoot"> {
-  ref?: RefObject<HTMLTableSectionElement>
+  ref?: Ref<HTMLTableSectionElement>
 }
 
 Table.Footer = function TableFooter({
@@ -284,7 +288,7 @@ Table.Footer = function TableFooter({
 
 // Row component
 interface TableRowProps extends ComponentPropsWithoutRef<"tr"> {
-  ref?: RefObject<HTMLTableRowElement>
+  ref?: Ref<HTMLTableRowElement>
   selected?: boolean
 }
 
@@ -293,15 +297,34 @@ Table.Row = function TableRow({
   ref,
   className,
   selected,
+  onClick,
+  onKeyDown,
+  tabIndex,
   ...props
 }: TableRowProps) {
-  const { styles } = useTableContext()
+  const { styles, interactive } = useTableContext()
+  const actionable = Boolean(interactive && onClick)
 
   return (
     <tr
+      aria-selected={selected}
       className={styles.row({ className })}
       data-selected={selected}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        onKeyDown?.(event)
+        if (
+          !event.defaultPrevented &&
+          actionable &&
+          event.target === event.currentTarget &&
+          (event.key === "Enter" || event.key === " ")
+        ) {
+          event.preventDefault()
+          event.currentTarget.click()
+        }
+      }}
       ref={ref}
+      tabIndex={tabIndex ?? (actionable ? 0 : undefined)}
       {...props}
     >
       {children}
@@ -320,7 +343,7 @@ export type TableAlign = "start" | "center" | "end"
 // `align` is a deprecated HTML attribute typed as a bare string on th/td;
 // omitting it lets the typed prop above take the name.
 type TableColumnHeaderProps = Omit<ComponentPropsWithoutRef<"th">, "align"> & {
-  ref?: RefObject<HTMLTableCellElement>
+  ref?: Ref<HTMLTableCellElement>
   numeric?: boolean
   align?: TableAlign
 }
@@ -351,7 +374,7 @@ Table.ColumnHeader = function TableColumnHeader({
 
 // Cell component
 type TableCellProps = Omit<ComponentPropsWithoutRef<"td">, "align"> & {
-  ref?: RefObject<HTMLTableCellElement>
+  ref?: Ref<HTMLTableCellElement>
   numeric?: boolean
   align?: TableAlign
 }

@@ -7,6 +7,11 @@
  */
 
 @theme static {
+  --text-slider-sm: var(--text-sm);
+  --text-slider-md: var(--text-md);
+  --text-slider-lg: var(--text-lg);
+  --spacing-slider-control: var(--height-form-control-md);
+  --spacing-slider-marker-label: var(--spacing-50);
   --spacing-slider-track-sm: var(--size-slider-track-sm);
   --spacing-slider-track-md: var(--size-slider-track-md);
   --spacing-slider-track-lg: var(--size-slider-track-lg);

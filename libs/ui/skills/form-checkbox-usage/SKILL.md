@@ -5,7 +5,7 @@ description: >
   for labeled checkbox fields with Zag.js checked/indeterminate state, help
   text, validation status, required, disabled, and read-only props.
 metadata:
-  component_version: "1.1.3"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -83,6 +83,17 @@ name, value, required, disabled, readOnly
 
 ## Core Patterns
 
+### Feedback, sizes and read-only values
+
+`size="sm" | "md" | "lg"` scales the visible box as well as its label and feedback.
+Indeterminate selection uses a horizontal dash, including in disabled states.
+`readOnly` preserves focus and form submission, blocks pointer and Space changes,
+and uses a full-contrast neutral surface; `disabled` takes priority.
+`aria-describedby` merges caller IDs with the helper ID. Error feedback also sets
+`aria-invalid` and `aria-errormessage` on the native input. Validation icons are
+always present; `showHelpTextIcon` only controls optional neutral-help icons.
+
+
 ### Border width tokens
 
 The visible control uses `--border-width-checkbox`, including checked,
@@ -154,6 +165,10 @@ Correct:
 ```
 
 Source: libs/ui/src/tokens/components/atoms/_checkbox.css
+
+## State consistency
+
+`indeterminate` synchronizes both the native input property and `aria-checked="mixed"` on mount and subsequent renders, including disabled inputs. The visible dash and assistive-technology state always describe the same value.
 
 ## Validation Commands
 

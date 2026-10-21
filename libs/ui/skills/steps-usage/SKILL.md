@@ -6,7 +6,7 @@ description: >
   panels, progress, navigation triggers, linear flow, controlled step, and
   variants.
 metadata:
-  component_version: "1.0.5"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -24,6 +24,11 @@ sources:
 ---
 
 # @techsio/ui-kit Steps Usage
+
+On narrow surfaces, horizontal triggers put their number above the label and
+wrap longer copy. Vertical workflows stack the step list above panels and
+navigation; their supplementary progress track becomes horizontal. From the
+small breakpoint upward, vertical workflows use the side-by-side layout.
 
 Use Steps for wizard/progress workflows. Use Tabs for peer panels, and
 Pagination for page navigation.
@@ -155,3 +160,16 @@ rg -P -n "setStep|<Steps\\b(?!\\.)(?![^>]*count=)|<Steps\\.Progress[^>]*classNam
 rg -P -n "<Steps\\.Item(?![^>]*index=)|<Steps\\.Content(?![^>]*index=)" apps
 rg -n "<Steps\\.NextTrigger|<Steps\\.PrevTrigger|linear" apps
 ```
+
+## Validation belongs to the owning workflow
+
+Steps exposes progression, not form validation. Keep editable values in local or
+form state; prevent the NextTrigger default action when validation fails and
+gate controlled onStepChange too, so direct step activation cannot bypass it.
+Render StatusText feedback with stable IDs connected to the input through
+aria-describedby and, for errors, aria-invalid and aria-errormessage. Clear the
+error as values are corrected and allow progress after successful validation.
+Use sm/md/lg (default md) consistently across stages and navigation actions.
+
+Steps sizing controls the progress indicator and stage typography, not a boxed
+form-field height. Embedded Back/Continue buttons follow shared control heights.

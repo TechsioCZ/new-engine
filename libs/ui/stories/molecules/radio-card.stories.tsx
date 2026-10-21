@@ -1,370 +1,375 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { fn } from "storybook/test"
+import { useState } from "react"
+import { useArgs } from "storybook/preview-api"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { Button } from "../../src/atoms/button"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
-import { Badge } from "../../src/atoms/badge"
-import { Icon, type IconType } from "../../src/atoms/icon"
 import { RadioCard, type RadioCardProps } from "../../src/molecules/radio-card"
+const describe = (story: string) => ({ docs: { description: { story } } })
 
-type RadioCardOption = {
-  value: string
-  title: string
-  description?: string
-  addon?: string
-  icon?: IconType
-  disabled?: boolean
-  badge?: string
-}
-
-const frameworkOptions: RadioCardOption[] = [
+const deliveryOptions = [
   {
-    value: "next",
-    title: "Next.js",
-    description: "SSR, routing and server actions in one stack.",
-    addon: "Recommended for full-stack apps",
-    icon: "token-icon-check",
-    badge: "Full stack",
+    value: "standard",
+    label: "Standard delivery",
+    description: "Arrives in 3–5 business days.",
+    price: "Free",
   },
   {
-    value: "vite",
-    title: "Vite",
-    description: "Fast local iteration for app shells and dashboards.",
-    addon: "Great for SPAs",
-    icon: "token-icon-save",
-    badge: "Fast",
+    value: "express",
+    label: "Express delivery",
+    description: "Arrives the next business day.",
+    price: "€8.90",
   },
   {
-    value: "astro",
-    title: "Astro",
-    description: "Lean output for mostly static and content-led pages.",
-    addon: "Best for content sites",
-    icon: "token-icon-folder",
-    badge: "Content",
-    disabled: true,
+    value: "pickup",
+    label: "Store pickup",
+    description: "Available after the store confirms your order.",
+    price: "Free",
   },
 ]
 
-const paymentOptions: RadioCardOption[] = [
-  {
-    value: "paypal",
-    title: "Approval flow",
-    description: "Manual review before deploy.",
-    icon: "token-icon-info",
-  },
-  {
-    value: "card",
-    title: "Instant publish",
-    description: "Push immediately after validation.",
-    icon: "token-icon-success",
-  },
-  {
-    value: "bank",
-    title: "Copy assets",
-    description: "Reuse a previous configuration.",
-    icon: "token-icon-copy",
-  },
-]
-
-type BasicRadioCardProps = Omit<RadioCardProps, "children">
-
-function BasicRadioCard({
-  align = "start",
-  justify = "between",
-  itemOrientation = "horizontal",
-  ...args
-}: BasicRadioCardProps) {
+function DeliveryOptions({
+  helpText = "Choose how you would like to receive your order.",
+  ...props
+}: Omit<RadioCardProps, "children"> & { helpText?: string }) {
   return (
-    <RadioCard
-      align={align}
-      justify={justify}
-      itemOrientation={itemOrientation}
-      {...args}
-    >
-      <RadioCard.Label>Choose your stack</RadioCard.Label>
-      <div className="grid w-full gap-150 md:grid-cols-3">
-        {frameworkOptions.map((option) => (
-          <RadioCard.Item
-            disabled={option.disabled}
-            key={option.value}
-            value={option.value}
-          >
+    <RadioCard {...props}>
+      <RadioCard.Label>Delivery method</RadioCard.Label>
+      <div
+        className={
+          props.orientation === "vertical"
+            ? "grid w-full gap-150"
+            : "grid w-full gap-150 md:grid-cols-3"
+        }
+      >
+        {deliveryOptions.map((option) => (
+          <RadioCard.Item key={option.value} value={option.value}>
             <RadioCard.ItemHiddenInput />
             <RadioCard.ItemControl>
               <RadioCard.ItemContent>
-                <div className="flex items-center gap-100">
-                  <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
-                  {option.badge ? (
-                    <Badge
-                      //className="w-max border-current"
-                      //variant="outline"
-                      variant="dynamic"
-                      bgColor="#4b5563"
-                      fgColor="#fff"
-                      borderColor="transparent"
-
-                    >
-                      {option.badge}
-                    </Badge>
-                  ) : null}
-                </div>
-                {option.description ? (
-                  <RadioCard.ItemDescription>
-                    {option.description}
-                  </RadioCard.ItemDescription>
-                ) : null}
+                <RadioCard.ItemText>{option.label}</RadioCard.ItemText>
+                <RadioCard.ItemDescription>
+                  {option.description}
+                </RadioCard.ItemDescription>
               </RadioCard.ItemContent>
               <RadioCard.ItemIndicator />
             </RadioCard.ItemControl>
+            <RadioCard.ItemAddon>{option.price}</RadioCard.ItemAddon>
           </RadioCard.Item>
         ))}
       </div>
-      <RadioCard.StatusText>
-        Pick the option that matches the delivery target.
-      </RadioCard.StatusText>
+      <RadioCard.StatusText>{helpText}</RadioCard.StatusText>
     </RadioCard>
   )
 }
-
 const meta: Meta<typeof RadioCard> = {
   title: "Molecules/RadioCard",
   component: RadioCard,
+  tags: ["autodocs"],
   parameters: {
-    layout: "centered",
+    layout: "padded",
     docs: {
       description: {
         component:
-          "A compound radio-card component built on Zag radio-group semantics. It preserves form participation and accessibility, while exposing card-first slots for richer content and optional add-ons.",
+          "Rich single-choice cards for a short set of options with descriptions or prices. Use RadioGroup for compact text options, Select for long lists, and FormCheckbox for independent choices.",
       },
     },
   },
-  tags: ["autodocs"],
   argTypes: {
-    size: {
-      control: { type: "select" },
-      options: ["sm", "md", "lg"],
-      description: "Size of the card content and spacing.",
-      table: { defaultValue: { summary: "md" } },
-    },
+    id: { table: { disable: true } },
+    ref: { table: { disable: true } },
+    size: { control: "select", options: ["sm", "md", "lg"] },
     variant: {
-      control: { type: "select" },
+      control: "inline-radio",
       options: ["outline", "subtle", "solid"],
-      description: "Visual treatment of the selected card state.",
-      table: { defaultValue: { summary: "outline" } },
+    },
+    value: {
+      control: "select",
+      options: ["standard", "express", "pickup", null],
+    },
+    defaultValue: { control: false },
+    onValueChange: { control: false },
+    disabled: { control: "boolean" },
+    readOnly: { control: "boolean" },
+    required: { control: "boolean" },
+    validateStatus: {
+      control: "select",
+      options: ["default", "error", "warning", "success"],
     },
     orientation: {
-      control: { type: "inline-radio" },
+      control: "inline-radio",
       options: ["horizontal", "vertical"],
-      description: "Keyboard and navigation orientation for the radio group.",
-      table: { defaultValue: { summary: "horizontal" } },
     },
     itemOrientation: {
-      control: { type: "inline-radio" },
+      control: "inline-radio",
       options: ["horizontal", "vertical"],
-      description: "Content flow inside each card.",
-      table: { defaultValue: { summary: "horizontal" } },
     },
-    align: {
-      control: { type: "select" },
-      options: ["start", "center", "end"],
-      description: "Cross-axis alignment for card content.",
-      table: { defaultValue: { summary: "start" } },
-    },
+    align: { control: "select", options: ["start", "center", "end"] },
     justify: {
-      control: { type: "select" },
+      control: "select",
       options: ["start", "center", "end", "between"],
-      description: "Main-axis distribution inside each card.",
-      table: { defaultValue: { summary: "between" } },
-    },
-    validateStatus: {
-      control: { type: "select" },
-      options: ["default", "error", "success", "warning"],
-      description: "Validation state reflected in helper text and a11y.",
-      table: { defaultValue: { summary: "default" } },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Disable the entire radio-card group.",
-      table: { defaultValue: { summary: "false" } },
-    },
-    readOnly: {
-      control: "boolean",
-      description: "Make the radio-card group read-only.",
-      table: { defaultValue: { summary: "false" } },
-    },
-    required: {
-      control: "boolean",
-      description: "Mark the field as required.",
-      table: { defaultValue: { summary: "false" } },
-    },
-    defaultValue: {
-      control: { type: "select" },
-      options: ["next", "vite", "astro", null],
-      description: "Initial selected value for uncontrolled usage.",
-    },
-    onValueChange: {
-      description: "Called when the selected value changes.",
     },
   },
   args: {
+    value: "standard",
     size: "md",
     variant: "outline",
     orientation: "horizontal",
-    itemOrientation: "horizontal",
-    align: "start",
-    justify: "between",
-    validateStatus: "default",
     disabled: false,
     readOnly: false,
-    required: false,
-    defaultValue: "next",
+    validateStatus: "default",
     onValueChange: fn(),
   },
 }
-
 export default meta
-
-type Story = StoryObj<typeof meta>
-
+type Story = StoryObj<typeof RadioCard>
 export const Playground: Story = {
-  render: (args) => <BasicRadioCard {...args} />,
+  parameters: describe(
+    "Select a delivery method and use controls to inspect variants, sizing and validation."
+  ),
+  render: function Playground(args) {
+    const [, updateArgs] = useArgs()
+    return (
+      <DeliveryOptions
+        {...args}
+        onValueChange={(value) => {
+          args.onValueChange?.(value)
+          updateArgs({ value })
+        }}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("radio", {
+      name: "Standard delivery",
+    })
+    await expect(input).toHaveAccessibleDescription(
+      "Choose how you would like to receive your order. Arrives in 3–5 business days. Free"
+    )
+  },
 }
-
 export const Variants: Story = {
+  parameters: describe(
+    "Outline, subtle and solid treatments preserve a clear checked mark and readable option content."
+  ),
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Variants" fullWidth>
-        <BasicRadioCard defaultValue="next" variant="outline" />
-        <BasicRadioCard defaultValue="next" variant="subtle" />
-        <BasicRadioCard defaultValue="next" variant="solid" />
-      </VariantGroup>
+      {(["outline", "subtle", "solid"] as const).map((variant) => (
+        <VariantGroup key={variant} title={variant} fullWidth>
+          <DeliveryOptions variant={variant} defaultValue="standard" />
+        </VariantGroup>
+      ))}
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    for (const card of canvasElement.querySelectorAll<HTMLElement>(
+      '[data-part="item"][data-state="checked"]'
+    )) {
+      for (const hovered of [false, true]) {
+        if (hovered) await userEvent.hover(card)
+        await waitFor(async () => {
+          for (const text of card.querySelectorAll<HTMLElement>(
+            '[data-part="item-text"], [data-part="item-description"], [data-part="item-addon"]'
+          )) {
+            await expect(textContrast(text)).toBeGreaterThanOrEqual(4.5)
+          }
+        })
+        if (hovered) await userEvent.unhover(card)
+      }
+    }
+  },
 }
-
 export const Sizes: Story = {
+  parameters: describe(
+    "Small, medium and large scale identical delivery choices, descriptions and guidance together."
+  ),
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Sizes" fullWidth>
-        <BasicRadioCard defaultValue="next" size="sm" />
-        <BasicRadioCard defaultValue="next" size="md" />
-        <BasicRadioCard defaultValue="next" size="lg" />
-      </VariantGroup>
+      {(["sm", "md", "lg"] as const).map((size, index) => (
+        <VariantGroup
+          key={size}
+          title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}
+          fullWidth
+        >
+          <DeliveryOptions size={size} defaultValue="standard" />
+        </VariantGroup>
+      ))}
     </VariantContainer>
   ),
 }
-
 export const States: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Validation" fullWidth>
-        <BasicRadioCard defaultValue={null} required validateStatus="error" />
-        <BasicRadioCard defaultValue="vite" validateStatus="success" />
-        <BasicRadioCard defaultValue="next" validateStatus="warning" />
-      </VariantGroup>
-      <VariantGroup title="Interactivity" fullWidth>
-        <BasicRadioCard defaultValue="next" disabled />
-        <BasicRadioCard defaultValue="vite" readOnly />
-      </VariantGroup>
-    </VariantContainer>
+  parameters: describe(
+    "Actionable feedback includes status icons and is associated with every focusable radio input."
   ),
-}
-
-export const Centered: Story = {
   render: () => (
-    <RadioCard
-      align="center"
-      defaultValue="card"
-      justify="center"
-      itemOrientation="vertical"
-      size="md"
-      variant="outline"
-    >
-      <RadioCard.Label>Publish mode</RadioCard.Label>
-      <div className="grid w-full gap-150 md:grid-cols-3">
-        {paymentOptions.map((option) => (
-          <RadioCard.Item key={option.value} value={option.value}>
+    <div className="flex flex-col gap-300">
+      <DeliveryOptions
+        required
+        validateStatus="error"
+        helpText="Select a delivery method before continuing."
+      />
+      <DeliveryOptions
+        defaultValue="express"
+        validateStatus="warning"
+        helpText="Express delivery is unavailable on public holidays."
+      />
+      <DeliveryOptions
+        defaultValue="standard"
+        validateStatus="success"
+        helpText="Your delivery preference is saved."
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getAllByRole("radio")[0]
+    if (!input) throw new Error("Missing radio regression target")
+    await expect(input).toHaveAttribute("aria-invalid", "true")
+    const id = input.getAttribute("aria-errormessage")
+    await expect(id).toBeTruthy()
+    await expect(input.getAttribute("aria-describedby")?.split(" ")).toContain(
+      id
+    )
+  },
+}
+export const Disabled: Story = {
+  parameters: describe(
+    "An unavailable delivery group retains its selected value and removes all native input tab stops."
+  ),
+  render: () => (
+    <DeliveryOptions
+      disabled
+      defaultValue="standard"
+      helpText="Delivery is not available until you add an address."
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    for (const input of within(canvasElement).getAllByRole("radio"))
+      await expect(input).toBeDisabled()
+  },
+}
+export const ReadOnly: Story = {
+  name: "Read-only",
+  parameters: describe(
+    "Controlled and uncontrolled read-only groups preserve focus and form values while rejecting clicks, Space and arrow selection."
+  ),
+  render: () => (
+    <div className="flex flex-col gap-300">
+      <DeliveryOptions
+        name="saved-delivery"
+        readOnly
+        defaultValue="standard"
+        helpText="The delivery method cannot change after dispatch."
+      />
+      <DeliveryOptions
+        name="controlled-delivery"
+        readOnly
+        value="standard"
+        helpText="The delivery method cannot change after dispatch."
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const input of canvas.getAllByRole("radio", {
+      name: "Standard delivery",
+    })) {
+      await expect(input).not.toBeDisabled()
+      input.focus()
+      await expect(input).toHaveFocus()
+      await userEvent.keyboard("{ArrowRight} ")
+      await expect(input).toBeChecked()
+    }
+    for (const input of canvas.getAllByRole("radio", {
+      name: "Express delivery",
+    })) {
+      await userEvent.click(input)
+      await expect(input).not.toBeChecked()
+    }
+  },
+}
+export const MultipleDescriptions: Story = {
+  parameters: describe(
+    "Several mounted helper and error messages receive unique IDs, merge with caller descriptions and clean up when validation clears."
+  ),
+  render: function FeedbackDemo() {
+    const [invalid, setInvalid] = useState(true)
+    return (
+      <div className="flex flex-col gap-200">
+        <p id="delivery-context">Delivery for order TS-2048.</p>
+        <RadioCard
+          aria-describedby="delivery-context"
+          validateStatus={invalid ? "error" : "default"}
+          defaultValue="standard"
+        >
+          <RadioCard.Label>Delivery method</RadioCard.Label>
+
+          <RadioCard.Item value="standard">
             <RadioCard.ItemHiddenInput />
             <RadioCard.ItemControl>
-              <Icon
-                className="text-fg-secondary"
-                icon={option.icon ?? "token-icon-info"}
-                size="xl"
-              />
-              <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
+              <RadioCard.ItemText>Standard delivery</RadioCard.ItemText>
               <RadioCard.ItemIndicator />
             </RadioCard.ItemControl>
           </RadioCard.Item>
-        ))}
+
+          <RadioCard.StatusText status="default">
+            Your address determines available delivery methods.
+          </RadioCard.StatusText>
+          {invalid && (
+            <RadioCard.StatusText>
+              Select an available delivery method before continuing.
+            </RadioCard.StatusText>
+          )}
+        </RadioCard>
+        <Button theme="outlined" size="sm" onClick={() => setInvalid(false)}>
+          Clear validation
+        </Button>
       </div>
-      <RadioCard.StatusText>
-        Centered content works well for icon-led choices.
-      </RadioCard.StatusText>
-    </RadioCard>
-  ),
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("radio")
+    const errorId = input.getAttribute("aria-errormessage")
+    await expect(errorId).toBeTruthy()
+    const descriptions =
+      input.getAttribute("aria-describedby")?.split(" ") ?? []
+    await expect(new Set(descriptions).size).toBe(3)
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Clear validation" })
+    )
+    await waitFor(() => expect(input).not.toHaveAttribute("aria-errormessage"))
+    await expect(input).not.toHaveAttribute("aria-invalid")
+    await expect(input.getAttribute("aria-describedby")).not.toContain(errorId)
+  },
 }
 
-export const WithAddon: Story = {
-  render: () => (
-    <RadioCard defaultValue="vite" size="md" variant="outline">
-      <RadioCard.Label>Preferred frontend setup</RadioCard.Label>
-      <div className="grid w-full gap-150 md:grid-cols-3">
-        {frameworkOptions.map((option) => (
-          <RadioCard.Item
-            disabled={option.disabled}
-            key={option.value}
-            value={option.value}
-          >
-            <RadioCard.ItemHiddenInput />
-            <RadioCard.ItemControl>
-              <RadioCard.ItemContent>
-                <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
-                {option.description ? (
-                  <RadioCard.ItemDescription>
-                    {option.description}
-                  </RadioCard.ItemDescription>
-                ) : null}
-              </RadioCard.ItemContent>
-              <RadioCard.ItemIndicator />
-            </RadioCard.ItemControl>
-            <RadioCard.ItemAddon>{option.addon}</RadioCard.ItemAddon>
-          </RadioCard.Item>
-        ))}
-      </div>
-      <RadioCard.StatusText>
-        Add-ons are useful for pricing, limits or rollout notes.
-      </RadioCard.StatusText>
-    </RadioCard>
-  ),
-}
-
-export const WithoutIndicator: Story = {
-  render: () => (
-    <RadioCard
-      align="center"
-      defaultValue="card"
-      justify="center"
-      itemOrientation="vertical"
-      size="md"
-      variant="outline"
-    >
-      <RadioCard.Label>Publish mode</RadioCard.Label>
-      <div className="grid w-full gap-150 md:grid-cols-3">
-        {paymentOptions.map((option) => (
-          <RadioCard.Item key={option.value} value={option.value}>
-            <RadioCard.ItemHiddenInput />
-            <RadioCard.ItemControl>
-              <Icon
-                className="text-fg-secondary"
-                icon={option.icon ?? "token-icon-info"}
-                size="xl"
-              />
-              <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
-            </RadioCard.ItemControl>
-          </RadioCard.Item>
-        ))}
-      </div>
-      <RadioCard.StatusText>
-        Omitting the indicator still works when the card surface carries the state.
-      </RadioCard.StatusText>
-    </RadioCard>
-  ),
+// Resolve theme colors (including color-mix/oklch) in the browser's sRGB canvas.
+function textContrast(element: HTMLElement) {
+  const context = document.createElement("canvas").getContext("2d")
+  if (!context) throw new Error("Canvas color resolution is unavailable")
+  context.fillStyle = "white"
+  context.fillRect(0, 0, 1, 1)
+  const ancestors: Element[] = []
+  for (let node: Element | null = element; node; node = node.parentElement)
+    ancestors.unshift(node)
+  for (const node of ancestors) {
+    context.fillStyle = getComputedStyle(node).backgroundColor
+    context.fillRect(0, 0, 1, 1)
+  }
+  const background = context.getImageData(0, 0, 1, 1).data
+  context.fillStyle = getComputedStyle(element).color
+  context.fillRect(0, 0, 1, 1)
+  const foreground = context.getImageData(0, 0, 1, 1).data
+  const luminance = (color: Uint8ClampedArray) =>
+    Array.from(color)
+      .slice(0, 3)
+      .reduce((sum, channel, index) => {
+        const value = channel / 255
+        const linear =
+          value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+        return sum + linear * ([0.2126, 0.7152, 0.0722][index] ?? 0)
+      }, 0)
+  const a = luminance(foreground)
+  const b = luminance(background)
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
 }

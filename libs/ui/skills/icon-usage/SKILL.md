@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or
   Iconify classes with the library's supported size and semantic color props.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -70,7 +70,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 The component defaults to `size="current"` and `color="current"`, inheriting
 surrounding text. Choose an explicit size for standalone glyphs; the Playground
 uses a recognizable Home icon at `lg` (the system's 24px step), not an error icon.
-The Sizes story shows `current`, `xs`, `sm`, `md`, `lg`, `xl` and `2xl` with names.
+The Sizes story compares Small (`sm`), Medium (`md`) and Large (`lg`) in that order with the same icon. The `current`, `xs`, `xl` and `2xl` API sizes remain available for inherited, compact or decorative contexts; they are not canonical control sizes.
 Explicit color props consume `--color-icon-fg-*` component aliases, so app token
 overrides work without changing every icon call site.
 
@@ -207,3 +207,15 @@ rg -n "<Button[^>]*>\\s*<Icon" apps
 rg -P -n "<Button(?![^>]*aria-label)[^>]*icon=" apps
 rg -P -n "icon=\"(?!token-icon-|icon-\\[)" apps
 ```
+
+## Meaningful primary colour
+
+`color="primary"` uses the contrast-safe semantic accent foreground, not the
+brand's decorative fill colour. For decoration that intentionally uses a tint,
+apply an application token class and keep the glyph hidden from assistive
+technology. Canonical comparison sizes are sm/md/lg. The existing xs/xl/2xl and
+current sizes remain available for non-interactive composition.
+
+Explicit secondary and status colours also use readable semantic foregrounds,
+not decorative brand/status fills. Use colour=current to inherit a surrounding
+control label's already-contrasting foreground.

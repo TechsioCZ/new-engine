@@ -5,7 +5,7 @@ description: >
   for product summaries with image adapter, name, price, stock, badges,
   rating, actions, and card button variants.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -149,3 +149,11 @@ rg -U -n "<img\\b[\\s\\S]{0,500}<h3|<ProductCard[^>]*className=.*(rounded-|borde
 rg -n "status=\"(available|sold-out|low-stock)\"|buttonVariant=\"(primary|danger)\"" apps
 rg -P -n "<ProductCard\\.Image(?![^>]*as=\\{?NextImage)" apps
 ```
+
+## Shared contracts
+
+Aggregate ratings in ProductCardTemplate and ProductCard.Rating with `rating.readOnly=true` are static accessible summaries, not editable controls or tab stops. An explicitly interactive ProductCard.Rating keeps the underlying Rating API; supply a meaningful label/name and use the standalone Rating story for form-capture guidance. Card images use a consistent 4:3 aspect ratio in column layouts. Detail and wishlist actions keep their own hover/pressed colors rather than inheriting primary Button pressed styling.
+
+ProductCard is a content layout, not a single interactive field: it has no root sm/md/lg axis. Its actions use Button's canonical sm height and explicit action-specific foreground/background tokens. Images reserve a consistent aspect ratio; names reserve two text lines for row-to-row comparison. Public media/layout changes need a Figma-sync follow-up.
+
+Keep custom row/grid demos responsive with standard grid utilities and constrain their parent width. Every demo action must update local state or give explicit local-only feedback; wishlist buttons expose their toggle through aria-pressed.

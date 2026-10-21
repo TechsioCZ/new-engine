@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,11 +10,15 @@
  * the slider-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { normalizeProps, useMachine } from "@zag-js/react"
-import * as slider from "@zag-js/slider"
+import {
+  connect as connectSlider,
+  machine as sliderMachine,
+} from "@zag-js/slider"
 import { useId } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import { joinDescribedBy } from "../internal/described-by"
 import { slugify, tv } from "../utils"
 
 const sliderVariants = tv({
@@ -25,14 +29,15 @@ const sliderVariants = tv({
       "data-disabled:cursor-not-allowed",
     ],
     header: ["flex items-center justify-between"],
-    value: ["text-slider-value-size"],
+    value: ["tabular-nums"],
     label: ["block font-medium"],
     control: [
-      "relative grid place-items-center",
+      "relative grid min-h-slider-control place-items-center",
+      "data-markers:mb-slider-marker-label",
       "data-[orientation=vertical]:h-full data-[orientation=vertical]:grid-rows-1",
     ],
     track: [
-      "flex-1 rounded-slider-track bg-slider-track-bg",
+      "form-control-readonly flex-1 rounded-slider-track bg-slider-track-bg",
       "data-[orientation=horizontal]:w-full",
       "data-[orientation=vertical]:h-full",
       "data-disabled:bg-slider-track-bg-disabled",
@@ -52,7 +57,7 @@ const sliderVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     thumb: [
-      "flex items-center justify-center",
+      "form-control-readonly flex items-center justify-center",
       "rounded-slider-thumb bg-slider-thumb-bg",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-slider-ring",
@@ -62,7 +67,7 @@ const sliderVariants = tv({
       "border-(length:--border-width-slider) border-slider-border",
       "data-disabled:border-slider-border-disabled",
       "hover:bg-slider-thumb-bg-hover",
-      "cursor-grab data-disabled:cursor-not-allowed data-dragging:cursor-grabbing",
+      "cursor-grab data-disabled:cursor-not-allowed data-dragging:cursor-grabbing data-readonly:cursor-default",
       "shadow-slider-thumb",
     ],
     markerGroup: ["relative flex h-full items-center"],
@@ -86,18 +91,21 @@ const sliderVariants = tv({
   variants: {
     size: {
       sm: {
+        root: "text-slider-sm",
         track: [
           "h-slider-track-sm data-[orientation=vertical]:w-slider-track-sm",
         ],
         thumb: ["w-slider-thumb-sm", "h-slider-thumb-sm"],
       },
       md: {
+        root: "text-slider-md",
         track: [
           "h-slider-track-md data-[orientation=vertical]:w-slider-track-md",
         ],
         thumb: ["w-slider-thumb-md", "h-slider-thumb-md"],
       },
       lg: {
+        root: "text-slider-lg",
         track: [
           "h-slider-track-lg data-[orientation=vertical]:w-slider-track-lg",
         ],
@@ -119,6 +127,8 @@ export type SliderProps = VariantProps<typeof sliderVariants> & {
    * (e.g. `["Minimum price", "Maximum price"]`).
    */
   "aria-label"?: string[]
+  "aria-describedby"?: string
+  "aria-errormessage"?: string
   validateStatus?: "default" | "error" | "success" | "warning"
   helpText?: string
   showHelpTextIcon?: boolean
@@ -349,6 +359,8 @@ export function Slider({
   name,
   label,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
+  "aria-errormessage": ariaErrorMessage,
   validateStatus,
   helpText,
   showHelpTextIcon = true,
@@ -403,7 +415,7 @@ export function Slider({
     fallbackValues
   )
 
-  const service = useMachine(slider.machine, {
+  const service = useMachine(sliderMachine, {
     id: uniqueId,
     name,
     "aria-label": ariaLabel,
@@ -419,11 +431,19 @@ export function Slider({
     readOnly,
     dir,
     orientation,
-    onValueChange: (details) => onChange?.(details.value),
-    onValueChangeEnd: (details) => onChangeEnd?.(details.value),
+    onValueChange: (details) => {
+      if (!(disabled || readOnly)) {
+        onChange?.(details.value)
+      }
+    },
+    onValueChangeEnd: (details) => {
+      if (!(disabled || readOnly)) {
+        onChangeEnd?.(details.value)
+      }
+    },
   })
 
-  const api = slider.connect(service, normalizeProps)
+  const api = connectSlider(service, normalizeProps)
 
   const {
     root,
@@ -447,31 +467,33 @@ export function Slider({
     <div className={root({ className })} {...api.getRootProps()}>
       {(label || showValueText) && (
         <div className={header()}>
-          <Label className={labelSlot()} {...api.getLabelProps()}>
+          <Label className={labelSlot()} size={size} {...api.getLabelProps()}>
             {label}
           </Label>
           {showValueText && (
             <output className={valueSlot()} {...api.getValueTextProps()}>
               <b>
                 {formatRangeText
-                  ? formatRangeText(api.value || valueTextValues)
-                  : api.value &&
-                      api.value.length === 2 &&
-                      api.value[0] !== undefined &&
-                      api.value[1] !== undefined
-                    ? `${formatValue(api.value[0])} - ${formatValue(api.value[1])}`
-                    : ""}
+                  ? formatRangeText(api.value ?? valueTextValues)
+                  : (api.value ?? valueTextValues).map(formatValue).join(" – ")}
               </b>{" "}
             </output>
           )}
         </div>
       )}
 
-      <div className={control()} {...api.getControlProps()}>
+      <div
+        className={control()}
+        {...api.getControlProps()}
+        data-markers={
+          showMarkers && orientation === "horizontal" ? "" : undefined
+        }
+      >
         <div
           className={track()}
           {...api.getTrackProps()}
           data-invalid={validateStatus === "error"}
+          data-readonly={readOnly ? "" : undefined}
         >
           <div
             className={range()}
@@ -519,10 +541,31 @@ export function Slider({
         {api.value.map((_, index) => (
           <div
             className={thumb()}
+            // biome-ignore lint/suspicious/noArrayIndexKey: thumb indices are stable value positions, not reorderable items.
             key={`thumb-${index}`}
             {...api.getThumbProps({ index })}
             // The thumb is the focusable slider; link the help/error text to it.
-            aria-describedby={helpText ? helpTextId : undefined}
+            aria-describedby={joinDescribedBy(
+              ariaDescribedBy,
+              helpText ? helpTextId : undefined
+            )}
+            aria-errormessage={
+              validateStatus === "error"
+                ? joinDescribedBy(
+                    ariaErrorMessage,
+                    helpText ? helpTextId : undefined
+                  )
+                : undefined
+            }
+            aria-invalid={validateStatus === "error" || undefined}
+            aria-labelledby={
+              ariaLabel?.[index] ? undefined : api.getLabelProps().id
+            }
+            aria-readonly={readOnly || undefined}
+            aria-valuenow={api.value[index]}
+            data-readonly={readOnly ? "" : undefined}
+            role="slider"
+            tabIndex={disabled ? undefined : 0}
           >
             <input {...api.getHiddenInputProps({ index })} />
           </div>
@@ -531,7 +574,11 @@ export function Slider({
       {helpText && (
         <StatusText
           id={helpTextId}
-          showIcon={showHelpTextIcon}
+          showIcon={
+            validateStatus && validateStatus !== "default"
+              ? true
+              : showHelpTextIcon
+          }
           size={size}
           status={validateStatus}
         >

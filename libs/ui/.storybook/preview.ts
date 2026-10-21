@@ -6,9 +6,11 @@ import {
   brandKeys,
   brandSupportsDark,
   getBrand,
+  isBrandKey,
   type ModeSetting,
 } from "../src/theme/theme-config"
 import "../src/tokens/index.css"
+import { ThemedDocsContainer } from "./docs-container"
 
 const brandItems = brandKeys().map((key) => ({
   value: key,
@@ -22,7 +24,11 @@ const brandItems = brandKeys().map((key) => ({
  * Light-only brands are forced to light regardless of the Mode toolbar.
  */
 const withTheme: Decorator = (Story, context) => {
-  const brand = context.globals.brand as BrandKey
+  const requestedBrand = context.parameters.brandLock ?? context.globals.brand
+  const brand: BrandKey =
+    typeof requestedBrand === "string" && isBrandKey(requestedBrand)
+      ? requestedBrand
+      : "base"
   const modeSetting = context.globals.mode as ModeSetting
 
   useEffect(() => {
@@ -47,6 +53,7 @@ const withTheme: Decorator = (Story, context) => {
 
 const preview: Preview = {
   parameters: {
+    docs: { container: ThemedDocsContainer },
     backgrounds: { disable: true },
     controls: {
       matchers: {

@@ -2,7 +2,7 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,9 +11,18 @@
  */
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as toast from "@zag-js/toast"
-import { type ReactNode, useId } from "react"
+import {
+  createContext,
+  type PropsWithChildren,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useId,
+  useState,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
+import { Button } from "../atoms/button"
 import { tv } from "../utils"
 
 // Toast Item Variants
@@ -21,12 +30,12 @@ const toastVariants = tv({
   slots: {
     root: [
       "relative flex flex-col rounded-toast-root",
-      "border-(length:--border-width-toast) bg-toast-bg shadow-lg",
-      "w-toast-width min-w-0 overflow-clip p-toast-root",
-      "data-[type=error]:border-toast-error-border data-[type=error]:bg-toast-error-bg",
-      "data-[type=success]:border-toast-success-border data-[type=success]:bg-toast-success-bg",
-      "data-[type=info]:border-toast-info-border data-[type=info]:bg-toast-info-bg",
-      "data-[type=warning]:border-toast-warning-border data-[type=warning]:bg-toast-warning-bg",
+      "border-(length:--border-width-toast) bg-toast-bg-surface shadow-lg",
+      "toast-responsive-width min-w-0 p-toast-root",
+      "data-[type=error]:border-toast-border-error data-[type=error]:bg-toast-bg-surface",
+      "data-[type=success]:border-toast-border-success data-[type=success]:bg-toast-bg-surface",
+      "data-[type=info]:border-toast-border-info data-[type=info]:bg-toast-bg-surface",
+      "data-[type=warning]:border-toast-border-warning data-[type=warning]:bg-toast-bg-surface",
 
       // required styles by zag-js
       "translate-x-(--x) translate-y-(--y)",
@@ -36,29 +45,33 @@ const toastVariants = tv({
       "transition-[translate,scale,opacity] duration-400 motion-reduce:transition-none",
     ],
     group: "relative flex flex-col",
-    header: "relative flex items-center gap-toast-content",
+    header: "relative flex items-start gap-toast-content text-toast-title-size",
+    iconFrame: "flex h-toast-title-line shrink-0 items-center",
     icon: [
       "flex-shrink-0 text-toast-icon",
-      "data-[type=error]:token-icon-toast-error data-[type=error]:text-toast-error-icon",
-      "data-[type=success]:token-icon-toast-success data-[type=success]:text-toast-success-icon",
-      "data-[type=info]:token-icon-toast-info data-[type=info]:text-toast-info-icon",
-      "data-[type=warning]:token-icon-toast-warning data-[type=warning]:text-toast-warning-icon",
+      "data-[type=loading]:token-icon-spinner data-[type=loading]:text-toast-fg-readable",
+      "data-[type=error]:token-icon-toast-error data-[type=error]:text-toast-fg-error",
+      "data-[type=success]:token-icon-toast-success data-[type=success]:text-toast-fg-success",
+      "data-[type=info]:token-icon-toast-info data-[type=info]:text-toast-fg-info",
+      "data-[type=warning]:token-icon-toast-warning data-[type=warning]:text-toast-fg-warning",
     ],
     title: [
-      "font-toast-title text-toast-fg text-toast-title",
-      "data-[type=error]:text-toast-error-title",
-      "data-[type=success]:text-toast-success-title",
-      "data-[type=info]:text-toast-info-title",
-      "data-[type=warning]:text-toast-warning-title",
+      "min-w-0 flex-1 break-words font-toast-title text-toast-fg-readable text-toast-title-size",
+      "data-[type=error]:text-toast-fg-readable",
+      "data-[type=success]:text-toast-fg-readable",
+      "data-[type=info]:text-toast-fg-readable",
+      "data-[type=warning]:text-toast-fg-readable",
     ],
-    description: ["mt-toast-description text-toast-description text-toast-fg"],
+    description: [
+      "mt-toast-description break-words text-toast-description-size text-toast-fg-readable",
+    ],
     // Positioning only — ActionIcon owns size, glyph and neutral hover pill.
-    closeButton: ["ms-auto"],
+    closeButton: ["ms-auto self-start"],
   },
 })
 
 // Toast Item Component
-interface ToastProps {
+type ToastProps = {
   actor: toast.Options<ReactNode>
   index: number
   parent: toast.GroupService
@@ -74,68 +87,170 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
   }
   const service = useMachine(toast.machine, composedProps)
   const api = toast.connect(service, normalizeProps)
+  const rootProps = api.getRootProps()
+  const onKeyDown = rootProps.onKeyDown
+  rootProps.onKeyDown = (event) => {
+    // Zag dismisses on Escape regardless of closable. Keep unfinished
+    // progress visible; programmatic completion/removal still works.
+    if (event.key === "Escape" && !api.closable) {
+      return
+    }
+    onKeyDown?.(event)
+  }
 
-  const { root, header, icon, title, description, closeButton } =
+  const { root, header, iconFrame, icon, title, description, closeButton } =
     toastVariants()
 
   return (
-    <div className={root()} {...api.getRootProps()}>
+    <div className={root()} {...rootProps}>
       <span {...api.getGhostBeforeProps()} />
-      <div className={header()} {...api.getTitleProps()}>
-        <span className={icon()} data-type={api.type} />
-        <div className={title()} data-type={api.type}>
-          {api.type === "loading" ? "loading..." : api.title}
+      <div className={header()}>
+        <span aria-hidden="true" className={iconFrame()}>
+          <span className={icon()} data-type={api.type} />
+        </span>
+        <div className={title()} {...api.getTitleProps()} data-type={api.type}>
+          {api.title}
         </div>
-        <ActionIcon
-          className={closeButton()}
-          icon="token-icon-toast-close"
+        {api.closable && (
+          <ActionIcon
+            className={closeButton()}
+            icon="token-icon-toast-close"
+            size="sm"
+            tone="neutral"
+            {...api.getCloseTriggerProps()}
+            aria-label="Close notification"
+          />
+        )}
+      </div>
+      {api.description && (
+        <div
+          className={description()}
+          {...api.getDescriptionProps()}
+          data-type={api.type}
+        >
+          {api.description}
+        </div>
+      )}
+      {actor.action && (
+        <Button
+          className="mt-toast-description self-start"
           size="sm"
-          tone="neutral"
-          {...api.getCloseTriggerProps()}
-          aria-label="Close notification"
-        />
-      </div>
-      <div
-        className={description()}
-        {...api.getDescriptionProps()}
-        data-type={api.type}
-      >
-        {api.description}
-      </div>
+          theme="outlined"
+          variant="secondary"
+          {...api.getActionTriggerProps()}
+        >
+          {actor.action.label}
+        </Button>
+      )}
       <span {...api.getGhostAfterProps()} />
     </div>
   )
 }
 
 // Toast Group Component
-export interface ToastContainerProps
-  extends VariantProps<typeof toastVariants> {
-  placement?: toast.Placement
-  gap?: number
-  offsets?: string
-  overlap?: boolean
-  max?: number
+// Preserve the legacy exported configuration shape; runtime configuration lives
+// on the store supplied to Toaster (or createToaster), not on each notification.
+export type ToastContainerProps = Pick<
+  toast.StoreProps,
+  "placement" | "gap" | "offsets" | "overlap" | "max"
+> &
+  VariantProps<typeof toastVariants> & {
+    store?: toast.Store<ReactNode>
+  }
+
+/** Create one store per application or isolated preview, not per notification. */
+export function createToaster(options: toast.StoreProps = {}) {
+  return toast.createStore<ReactNode>({
+    placement: "bottom-end",
+    gap: 16,
+    offsets: "24px",
+    ...options,
+  })
+}
+
+const ToastContext = createContext<toast.Store<ReactNode> | null>(null)
+
+/** Scope useToast and its single Toaster to an isolated application surface. */
+export function ToastProvider({ children }: PropsWithChildren) {
+  const [store] = useState(() => createToaster())
+  useEffect(() => () => store.remove(), [store])
+  return (
+    <ToastContext.Provider value={store}>
+      {children}
+      <Toaster store={store} />
+    </ToastContext.Provider>
+  )
 }
 
 // Create the global toast store
-export const toaster = toast.createStore({
-  placement: "bottom-end",
-  gap: 16,
-  offsets: "24px",
-})
+export const toaster = createToaster()
 
-export function Toaster() {
-  const service = useMachine(toast.group.machine, {
-    id: useId(),
-    store: toaster,
+// Zag 1.x uses a placement-only region ID. Namespace both the rendered ID
+// and the two region lookups so separate stores can coexist in Docs without
+// breaking notification keyboard focus or dismissable-layer membership.
+const scopedGroupMachine: typeof toast.group.machine = {
+  ...toast.group.machine,
+  implementations: {
+    ...toast.group.machine.implementations,
+    actions: {
+      ...toast.group.machine.implementations?.actions,
+      focusRegionEl(params) {
+        if (params.context.get("toasts").length === 0) {
+          return
+        }
+        toast.group.machine.implementations?.actions?.focusRegionEl?.({
+          ...params,
+          scope: {
+            ...params.scope,
+            getById: (id) =>
+              params.scope.getById(
+                id.startsWith("toast-group:")
+                  ? `toast-group:${params.scope.id}`
+                  : id
+              ),
+          },
+        })
+      },
+      setDismissableBranch(params) {
+        toast.group.machine.implementations?.actions?.setDismissableBranch?.({
+          ...params,
+          scope: {
+            ...params.scope,
+            getById: (id) =>
+              params.scope.getById(
+                id.startsWith("toast-group:")
+                  ? `toast-group:${params.scope.id}`
+                  : id
+              ),
+          },
+        })
+      },
+    },
+  },
+}
+
+export function Toaster({ store = toaster }: ToastContainerProps = {}) {
+  const groupId = useId()
+  const service = useMachine(scopedGroupMachine, {
+    id: groupId,
+    store,
   })
   const api = toast.group.connect(service, normalizeProps)
   const { group } = toastVariants()
   return (
     <Portal>
-      <div className={group()} {...api.getGroupProps()}>
-        {api.getToasts().map((toast, index) => (
-          <Toast actor={toast} index={index} key={toast.id} parent={service} />
+      <div
+        className={group()}
+        {...api.getGroupProps()}
+        id={`toast-group:${groupId}`}
+      >
+        {api.getToasts().map((notification, index) => (
+          <Toast
+            actor={notification}
+            index={index}
+            key={notification.id}
+            parent={service}
+          />
         ))}
       </div>
     </Portal>
@@ -144,5 +259,5 @@ export function Toaster() {
 
 // Hook for using toaster in components
 export function useToast() {
-  return toaster
+  return useContext(ToastContext) ?? toaster
 }

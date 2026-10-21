@@ -2,13 +2,14 @@
  * PhoneInput — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
  * Kept here (Figma can't model these):
- *   - `--width-phone-input-trigger` — ch unit (12ch).
+ *   - `--width-phone-input-trigger` — intrinsic compact prefix width.
  *   - `--border-phone-input-trigger` — 0 (borderless trigger).
  *   - `--spacing-phone-input-country-flag` — 0 (min-width reset).
  */
 
 @theme static {
-  --width-phone-input-trigger: 12ch;
+  --width-phone-input-trigger: max-content;
+  --spacing-phone-input-country-trigger: var(--spacing-50);
   --border-phone-input-trigger: 0;
   --spacing-phone-input-country-flag: 0;
 }

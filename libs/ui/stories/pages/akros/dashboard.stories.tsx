@@ -1,6 +1,7 @@
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { Button } from "../../../src/atoms/button"
+
 import { Skeleton } from "../../../src/atoms/skeleton"
 import { Chart } from "../../../src/molecules/chart"
 import { Tabs } from "../../../src/molecules/tabs"
@@ -27,10 +28,18 @@ import {
 } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Home — statistics",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -102,11 +111,7 @@ function HomePage({ loading }: { loading?: boolean }) {
       >
         <div className="flex flex-col gap-150">
           <Notice
-            action={
-              <Button size="sm" theme="outlined" variant="secondary">
-                Open unpaid orders
-              </Button>
-            }
+            action={null}
             title={`${unpaidOnline.length} Comgate orders are not paid`}
             tone="danger"
           >
@@ -114,11 +119,7 @@ function HomePage({ loading }: { loading?: boolean }) {
             switch the payment method or cancel.
           </Notice>
           <Notice
-            action={
-              <Button size="sm" theme="outlined" variant="secondary">
-                Review transfers
-              </Button>
-            }
+            action={null}
             title={`${abraFailed.length} order could not be transferred to ABRA`}
             tone="warning"
           >
@@ -239,11 +240,7 @@ function HomePage({ loading }: { loading?: boolean }) {
         </SectionCard>
 
         <SectionCard
-          actions={
-            <Button size="sm" theme="borderless" variant="secondary">
-              Customers
-            </Button>
-          }
+          actions={null}
           description="Customers who ordered in the period."
           title="Customer statistics"
         >
@@ -264,57 +261,65 @@ function HomePage({ loading }: { loading?: boolean }) {
         </SectionCard>
       </div>
 
-      <SectionCard
-        actions={
-          <Button size="sm" theme="borderless" variant="secondary">
-            All orders
-          </Button>
-        }
-        flush
-        title="Latest orders"
-      >
-        <Table size="sm" variant="line">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Order</Table.ColumnHeader>
-              <Table.ColumnHeader>Customer</Table.ColumnHeader>
-              <Table.ColumnHeader>State</Table.ColumnHeader>
-              <Table.ColumnHeader>Payment</Table.ColumnHeader>
-              <Table.ColumnHeader align="end">Total</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {akOrders.slice(0, 5).map((order) => (
-              <Table.Row key={order.id}>
-                <Table.Cell>
-                  <span className="flex flex-col gap-50">
-                    <span className="font-medium">{order.number}</span>
-                    <span className="text-fg-secondary text-xs">
-                      {formatDate(order.placedAt)}
-                    </span>
-                  </span>
-                </Table.Cell>
-                <Table.Cell>{order.company ?? order.customer}</Table.Cell>
-                <Table.Cell>
-                  <OrderStateBadge state={order.state} />
-                </Table.Cell>
-                <Table.Cell>
-                  <PaymentCell
-                    method={order.paymentMethod}
-                    state={order.payment}
-                  />
-                </Table.Cell>
-                <Table.Cell align="end">{czk.format(order.total)}</Table.Cell>
+      <SectionCard actions={null} flush title="Latest orders">
+        <div
+          className="w-full min-w-0 overflow-x-auto"
+          role="region"
+          aria-label="Scrollable records"
+          tabIndex={0}
+        >
+          <Table size="sm" variant="line">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Order</Table.ColumnHeader>
+                <Table.ColumnHeader>Customer</Table.ColumnHeader>
+                <Table.ColumnHeader>State</Table.ColumnHeader>
+                <Table.ColumnHeader>Payment</Table.ColumnHeader>
+                <Table.ColumnHeader align="end">Total</Table.ColumnHeader>
               </Table.Row>
-            ))}
-          </Table.Body>
-        </Table>
+            </Table.Header>
+            <Table.Body>
+              {akOrders.slice(0, 5).map((order) => (
+                <Table.Row key={order.id}>
+                  <Table.Cell>
+                    <span className="flex flex-col gap-50">
+                      <span className="font-medium">{order.number}</span>
+                      <span className="text-fg-secondary text-xs">
+                        {formatDate(order.placedAt)}
+                      </span>
+                    </span>
+                  </Table.Cell>
+                  <Table.Cell>{order.company ?? order.customer}</Table.Cell>
+                  <Table.Cell>
+                    <OrderStateBadge state={order.state} />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <PaymentCell
+                      method={order.paymentMethod}
+                      state={order.payment}
+                    />
+                  </Table.Cell>
+                  <Table.Cell align="end">{czk.format(order.total)}</Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
+        </div>
       </SectionCard>
     </AkrosShell>
   )
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in dashboard to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   render: () => <HomePage />,
 }
 

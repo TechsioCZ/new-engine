@@ -8,7 +8,7 @@ metadata:
   type: "core"
   library: "@techsio/ui-kit"
   component: "ActionIcon"
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   requires: "ux-guidelines"
 ---
 
@@ -70,3 +70,11 @@ name explicitly: `aria-label={triggerProps["aria-label"] ?? "Next slide"}`.
 
 Use the component's own token classes; do not reach for semantic tokens or arbitrary Tailwind
 values in app code. Size and variant are props, not ad-hoc classes.
+
+## Interaction and sizing contract
+
+Sizes sm/md/lg use the shared **icon-control hit area**, not the full boxed-field
+height: they are supporting actions embedded in fields and toolbars. Default md;
+prefer lg for standalone touch actions. Disabled actions do not take hover or
+pressed treatments and are removed from keyboard tab order. Every instance must
+have `aria-label` or `aria-labelledby`; a glyph alone is not a name.

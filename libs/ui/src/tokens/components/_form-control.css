@@ -112,8 +112,55 @@
       user-select: text;
     }
 
-    &:is(input, textarea),
-    & :where(input, textarea, [contenteditable]) {
+    &:is(
+        input:not(
+          [type="checkbox"],
+          [type="radio"],
+          [type="range"],
+          [type="color"],
+          [type="file"],
+          [type="button"],
+          [type="submit"],
+          [type="reset"],
+          [type="hidden"],
+          [type="image"]
+        ),
+        textarea,
+        [contenteditable]
+      ),
+    &:is(
+        input:not(
+          [type="checkbox"],
+          [type="radio"],
+          [type="range"],
+          [type="color"],
+          [type="file"],
+          [type="button"],
+          [type="submit"],
+          [type="reset"],
+          [type="hidden"],
+          [type="image"]
+        ),
+        textarea,
+        [contenteditable]
+      ):is(:hover, :focus, :focus-within),
+    &
+      :where(
+        input:not(
+          [type="checkbox"],
+          [type="radio"],
+          [type="range"],
+          [type="color"],
+          [type="file"],
+          [type="button"],
+          [type="submit"],
+          [type="reset"],
+          [type="hidden"],
+          [type="image"]
+        ),
+        textarea,
+        [contenteditable]
+      ) {
       cursor: text;
       user-select: text;
     }

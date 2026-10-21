@@ -1,3 +1,5 @@
+import { expect, userEvent, within } from "storybook/test"
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Button } from "../../../src/atoms/button"
@@ -33,10 +35,18 @@ import {
 } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Order detail",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -163,11 +173,11 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
     }))
     toaster.create({
       type: "success",
-      title: "Queued for ABRA",
+      title: "Queued for ABRA in the local demo",
       description:
         order.payment === "paid"
-          ? "The order is sent with the next transfer run."
-          : "Sent as unpaid — ABRA will expect payment on delivery or by invoice.",
+          ? "The local queue is updated; no ABRA request was sent."
+          : "The local unpaid queue is updated; no ABRA request was sent.",
     })
   }
 
@@ -230,15 +240,15 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                 icon="icon-[mdi--email-sync-outline]"
                 onClick={() =>
                   toaster.create({
-                    type: "success",
-                    title: "New payment link sent",
-                    description: order.email,
+                    type: "info",
+                    title: "Payment-link delivery preview",
+                    description: `Recipient: ${order.email}. No link or email was generated in this demo.`,
                   })
                 }
                 size="sm"
                 variant="primary"
               >
-                Send new payment link
+                Preview payment-link delivery
               </Button>
               <Button
                 onClick={() => setSwitching(true)}
@@ -293,45 +303,55 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
       )}
 
       <div className="grid grid-cols-1 items-start gap-250 xl:grid-cols-3">
-        <div className="flex flex-col gap-250 xl:col-span-2">
+        <div className="flex min-w-0 flex-col gap-250 xl:col-span-2">
           <SectionCard flush title="Items">
-            <Table size="sm" variant="line">
-              <Table.Header>
-                <Table.Row>
-                  <Table.ColumnHeader>Product</Table.ColumnHeader>
-                  <Table.ColumnHeader>ABRA code</Table.ColumnHeader>
-                  <Table.ColumnHeader align="end">Quantity</Table.ColumnHeader>
-                  <Table.ColumnHeader align="end">
-                    Unit price
-                  </Table.ColumnHeader>
-                  <Table.ColumnHeader align="end">Total</Table.ColumnHeader>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {akOrderLines.map((line) => (
-                  <Table.Row key={line.code}>
-                    <Table.Cell>{line.name}</Table.Cell>
-                    <Table.Cell>{line.code}</Table.Cell>
-                    <Table.Cell align="end">
-                      <span className="flex flex-col items-end gap-50">
-                        <span>{line.qty} pcs</span>
-                        {line.saleUnit > 1 && (
-                          <span className="text-fg-secondary text-xs">
-                            {line.qty / line.saleUnit} × pack of {line.saleUnit}
-                          </span>
-                        )}
-                      </span>
-                    </Table.Cell>
-                    <Table.Cell align="end">
-                      {czkUnit.format(line.unitPrice)}
-                    </Table.Cell>
-                    <Table.Cell align="end">
-                      {czk.format(line.qty * line.unitPrice)}
-                    </Table.Cell>
+            <div
+              className="w-full min-w-0 overflow-x-auto"
+              role="region"
+              aria-label="Scrollable records"
+              tabIndex={0}
+            >
+              <Table size="sm" variant="line">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Product</Table.ColumnHeader>
+                    <Table.ColumnHeader>ABRA code</Table.ColumnHeader>
+                    <Table.ColumnHeader align="end">
+                      Quantity
+                    </Table.ColumnHeader>
+                    <Table.ColumnHeader align="end">
+                      Unit price
+                    </Table.ColumnHeader>
+                    <Table.ColumnHeader align="end">Total</Table.ColumnHeader>
                   </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
+                </Table.Header>
+                <Table.Body>
+                  {akOrderLines.map((line) => (
+                    <Table.Row key={line.code}>
+                      <Table.Cell>{line.name}</Table.Cell>
+                      <Table.Cell>{line.code}</Table.Cell>
+                      <Table.Cell align="end">
+                        <span className="flex flex-col items-end gap-50">
+                          <span>{line.qty} pcs</span>
+                          {line.saleUnit > 1 && (
+                            <span className="text-fg-secondary text-xs">
+                              {line.qty / line.saleUnit} × pack of{" "}
+                              {line.saleUnit}
+                            </span>
+                          )}
+                        </span>
+                      </Table.Cell>
+                      <Table.Cell align="end">
+                        {czkUnit.format(line.unitPrice)}
+                      </Table.Cell>
+                      <Table.Cell align="end">
+                        {czk.format(line.qty * line.unitPrice)}
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
           </SectionCard>
 
           <SectionCard
@@ -395,19 +415,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
             )}
           </SectionCard>
 
-          <SectionCard
-            actions={
-              <Button
-                icon="icon-[mdi--map-marker-outline]"
-                size="sm"
-                theme="borderless"
-                variant="secondary"
-              >
-                Change point
-              </Button>
-            }
-            title="Shipping"
-          >
+          <SectionCard actions={null} title="Shipping">
             <ShippingCell carrier={order.carrier} />
             <DetailList
               items={[
@@ -437,14 +445,6 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                 { term: "Phone", value: order.phone },
               ]}
             />
-            <Button
-              icon="icon-[mdi--account-arrow-right-outline]"
-              size="sm"
-              theme="borderless"
-              variant="secondary"
-            >
-              Open customer
-            </Button>
           </SectionCard>
 
           <SectionCard
@@ -487,6 +487,10 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                 setOrder((current) => ({
                   ...current,
                   paymentMethod: newMethod,
+                  total:
+                    current.total -
+                    (current.paymentMethod === "cod" ? 39 : 0) +
+                    (newMethod === "cod" ? 39 : 0),
                   payment: "unpaid",
                   transactionId: undefined,
                   state: "processing",
@@ -494,7 +498,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                 toaster.create({
                   type: "success",
                   title: "Payment method changed",
-                  description: `${paymentMethodLabels[newMethod]} — the customer has been notified. The order can now go to ABRA.`,
+                  description: `${paymentMethodLabels[newMethod]} — the local order was updated. No customer notification was sent.`,
                 })
               }}
               variant="primary"
@@ -577,6 +581,22 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
 }
 
 export const UnpaidComgate: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Change payment method" })
+    )
+    const body = within(canvasElement.ownerDocument.body)
+    const dialog = body.getByRole("dialog")
+    await userEvent.click(
+      within(dialog).getByText("Cash on delivery", { exact: true })
+    )
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Change method" })
+    )
+    await expect(canvas.getByText(/2\s525\sKč/)).toBeVisible()
+  },
+
   name: "Unpaid Comgate order",
   parameters: {
     docs: {

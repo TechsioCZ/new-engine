@@ -6,11 +6,17 @@ import assert from "node:assert/strict"
 const EMAIL_LABEL = /email address/i
 
 export default async function verifyFoundations({ page, sb, shot }) {
+  const index = await (
+    await page.request.get(
+      `${new URL(sb("atoms-statustext--all-statuses")).origin}/index.json`
+    )
+  ).json()
   const results = []
   const errors = []
   page.on("pageerror", (error) => errors.push(error.message))
 
   async function open(story, brand, mode) {
+    assert.ok(index.entries[story], `Story exists: ${story}`)
     console.error(`foundations: ${brand}/${mode}/${story}`)
     await page.goto(sb(story, { brand, mode }))
     await page.locator("#storybook-root > *").first().waitFor()
@@ -144,7 +150,7 @@ export default async function verifyFoundations({ page, sb, shot }) {
     for (const story of [
       "molecules-select--playground",
       "molecules-combobox--playground",
-      "molecules-menu--default",
+      "molecules-menu--playground",
       "molecules-popover--playground",
       "molecules-datepicker--playground",
     ]) {

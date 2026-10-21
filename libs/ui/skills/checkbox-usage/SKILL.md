@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Checkbox atom, including invalid and indeterminate states,
   while preferring form molecules for labeled form rows.
 metadata:
-  component_version: "1.0.4"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -77,6 +77,14 @@ invalid: boolean
 The component also accepts native checkbox input attributes.
 
 ## Core Patterns
+
+### Native read-only behavior
+
+`readOnly` preserves the native checkbox focus target and submitted value while
+blocking pointer and Space toggles. It exposes `aria-readonly` and a neutral,
+full-contrast value surface. Disabled takes precedence. Use FormCheckbox for
+automatically associated inline help and validation.
+
 
 ### Border width tokens
 
@@ -202,6 +210,10 @@ Correct:
 ```
 
 or use `FormCheckbox` with a visible label.
+
+## State consistency
+
+Read-only controls do not invoke `onChange` or mutation click handlers. Controlled application state stays unchanged after both pointer/Space activation and unrelated parent rerenders; parents may still intentionally replace the controlled value.
 
 ## Validation Commands
 

@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit template.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -103,7 +103,16 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
   ref,
   ...breadcrumbProps
 }: BreadcrumbTemplateProps<T>) {
-  const displayItems = getDisplayItems(items, maxItems)
+  const explicitCurrentIndex = items.findIndex((item) => item.isCurrent)
+  // A breadcrumb describes the path *to* the current page, never its descendants.
+  // Trim before collapsing, otherwise a hidden current ancestor becomes a false
+  // current descendant (and two different pages can be announced as current).
+  const pathItems =
+    explicitCurrentIndex < 0 ? items : items.slice(0, explicitCurrentIndex + 1)
+  const itemLimit = Number.isFinite(maxItems)
+    ? Math.max(0, Math.floor(maxItems))
+    : 0
+  const displayItems = getDisplayItems(pathItems, itemLimit)
   const hasExplicitCurrent = displayItems.some(
     (item) => item !== "ellipsis" && item.isCurrent
   )
@@ -155,6 +164,7 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
                       | undefined)}
                     as={linkAs}
                     href={item.href || "#"}
+                    size="current"
                   >
                     {itemContent}
                   </BreadcrumbTemplateLink>

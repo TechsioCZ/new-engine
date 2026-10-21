@@ -1,5 +1,7 @@
+import { expect, userEvent, within } from "storybook/test"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useId, useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
@@ -7,16 +9,17 @@ import { Link } from "../../src/atoms/link"
 import { StatusText } from "../../src/atoms/status-text"
 import { FormCheckbox } from "../../src/molecules/form-checkbox"
 import { FormInput } from "../../src/molecules/form-input"
-import { Toaster, useToast } from "../../src/molecules/toast"
+import { Toaster } from "../../src/molecules/toast"
 import { Brand } from "./frame"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/System/Sign in",
   parameters: {
@@ -47,81 +50,162 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
-function SignInForm({ error }: { error?: boolean }) {
-  const toaster = useToast()
+function SignInForm({ error = false }: { error?: boolean }) {
+  const id = useId()
+  const [failed, setFailed] = useState(error)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [recovery, setRecovery] = useState(false)
+  const [recoveryRequested, setRecoveryRequested] = useState(false)
+  const [signedIn, setSignedIn] = useState(false)
+  const errorId = `${id}-error`
+
+  if (signedIn)
+    return (
+      <section className="flex w-full max-w-md flex-col gap-200">
+        <h1 className="font-semibold text-xl">Demo workspace</h1>
+        <StatusText status="success">
+          Local demo session opened for {email}. No account service was
+          contacted.
+        </StatusText>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setSignedIn(false)
+            setPassword("")
+          }}
+        >
+          Sign out of demo
+        </Button>
+      </section>
+    )
 
   return (
     <div className="flex w-full max-w-md flex-col gap-250">
       <div className="flex flex-col gap-100">
-        <h1 className="font-semibold text-xl">Sign in</h1>
+        <h1 className="font-semibold text-xl">
+          {recovery ? "Recover access" : "Sign in"}
+        </h1>
         <p className="text-fg-secondary text-sm">
-          Use your Northwind Commerce workspace account.
+          Local prototype. Use demo@northwind.example and the password
+          northwind-demo; never enter real credentials.
         </p>
       </div>
-
-      {error && (
-        <StatusText showIcon status="error">
+      {failed && !recovery && (
+        <StatusText id={errorId} status="error">
           We couldn't sign you in with those details. Check them and try again,
           or reset your password.
         </StatusText>
       )}
-
       <form
         className="flex flex-col gap-200"
         onSubmit={(event) => {
           event.preventDefault()
-          toaster.create({ type: "info", title: "Checking credentials…" })
+          if (recovery) {
+            setRecoveryRequested(true)
+            return
+          }
+          if (
+            email === "demo@northwind.example" &&
+            password === "northwind-demo"
+          ) {
+            setFailed(false)
+            setSignedIn(true)
+          } else setFailed(true)
         }}
       >
         <FormInput
           autoComplete="email"
-          id="auth-email"
+          id={`${id}-email`}
           label="Work email"
           required
           type="email"
-          validateStatus={error ? "error" : "default"}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          validateStatus={failed && !recovery ? "error" : "default"}
+          aria-describedby={failed && !recovery ? errorId : undefined}
+          aria-errormessage={failed && !recovery ? errorId : undefined}
         />
-        <FormInput
-          autoComplete="current-password"
-          id="auth-password"
-          label="Password"
-          required
-          type="password"
-          validateStatus={error ? "error" : "default"}
-        />
-        <div className="flex items-center justify-between gap-150">
-          <FormCheckbox label="Keep me signed in" size="sm" />
-          <Link href="#">Forgot password?</Link>
-        </div>
+        {!recovery && (
+          <FormInput
+            autoComplete="current-password"
+            id={`${id}-password`}
+            label="Password"
+            required
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            validateStatus={failed ? "error" : "default"}
+            aria-describedby={failed ? errorId : undefined}
+            aria-errormessage={failed ? errorId : undefined}
+          />
+        )}
+        {!recovery && (
+          <div className="flex items-center justify-between gap-150">
+            <FormCheckbox label="Keep me signed in" size="sm" />
+            <Link
+              href="#recovery"
+              onClick={(event) => {
+                event.preventDefault()
+                setRecovery(true)
+              }}
+            >
+              Forgot password?
+            </Link>
+          </div>
+        )}
         <Button block type="submit" variant="primary">
-          Sign in
+          {recovery ? "Show demo recovery instructions" : "Sign in"}
         </Button>
       </form>
-
-      <div className="flex items-center gap-150">
-        <span className="h-px flex-1 bg-border-primary" />
-        <span className="text-fg-secondary text-xs">or</span>
-        <span className="h-px flex-1 bg-border-primary" />
-      </div>
-
-      <div className="flex flex-col gap-150">
-        <Button block icon="icon-[mdi--microsoft]" theme="outlined" variant="secondary">
-          Continue with Microsoft Entra
+      {recoveryRequested && recovery && (
+        <StatusText role="status">
+          No email was sent. In this prototype, return to sign in with
+          demo@northwind.example and northwind-demo.
+        </StatusText>
+      )}
+      {recovery ? (
+        <Button
+          variant="secondary"
+          theme="outlined"
+          onClick={() => {
+            setRecovery(false)
+            setRecoveryRequested(false)
+            setFailed(false)
+          }}
+        >
+          Back to sign in
         </Button>
-        <Button block icon="icon-[mdi--email-outline]" theme="outlined" variant="secondary">
-          Email me a sign-in link
+      ) : (
+        <Button
+          variant="secondary"
+          theme="outlined"
+          onClick={() => {
+            setRecovery(true)
+            setRecoveryRequested(false)
+          }}
+        >
+          Recover account access
         </Button>
-      </div>
-
+      )}
       <p className="text-fg-secondary text-xs">
-        By signing in you accept the acceptable-use policy. Sessions expire after
-        12 hours of inactivity.
+        This story demonstrates validation and local session state, not a
+        production authentication service.
       </p>
     </div>
   )
 }
 
 export const Centered: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Explore a local sign-in or account-recovery flow with explicit demo credentials and no external authentication requests.",
+      },
+    },
+  },
+
   name: "Centered",
   render: () => (
     <div className="flex min-h-screen flex-col items-center justify-center gap-350 bg-base p-250 text-fg-primary">
@@ -133,6 +217,24 @@ export const Centered: Story = {
 }
 
 export const WithError: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const email = canvas.getByLabelText("Work email", { exact: false })
+    const password = canvas.getByLabelText("Password", { exact: false })
+    await expect(email).toHaveAttribute("aria-invalid", "true")
+    await expect(email).toHaveAccessibleDescription(/couldn't sign you in/)
+    await expect(password).toHaveAccessibleDescription(/couldn't sign you in/)
+    await userEvent.type(email, "demo@northwind.example")
+    await userEvent.type(password, "northwind-demo")
+    await userEvent.click(canvas.getByRole("button", { name: "Sign in" }))
+    await expect(
+      canvas.getByRole("heading", { name: "Demo workspace" }),
+    ).toBeVisible()
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Sign out of demo" }),
+    )
+  },
+
   name: "Failed attempt",
   parameters: {
     docs: {
@@ -152,9 +254,23 @@ export const WithError: Story = {
 }
 
 export const TwoFactor: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Explore a local sign-in or account-recovery flow with explicit demo credentials and no external authentication requests.",
+      },
+    },
+  },
+
   name: "Two-factor step",
   render: function Render() {
     const [code, setCode] = useState("")
+    const [recovery, setRecovery] = useState(false)
+    const [verified, setVerified] = useState(false)
+    const [invalid, setInvalid] = useState(false)
+    const [resent, setResent] = useState(false)
+    const id = useId()
 
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-350 bg-base p-250 text-fg-primary">
@@ -163,33 +279,78 @@ export const TwoFactor: Story = {
           <div className="flex flex-col gap-100">
             <h1 className="font-semibold text-xl">Enter your code</h1>
             <p className="text-fg-secondary text-sm">
-              We sent a six-digit code to the authenticator app on your device.
-              It expires in 5 minutes.
+              Use the local demo code 123456. No message or code has been sent
+              to a device.
             </p>
           </div>
           <FormInput
             autoComplete="one-time-code"
-            helpText="Six digits, no spaces."
-            id="auth-otp"
-            inputMode="numeric"
-            label="Verification code"
+            helpText={
+              invalid
+                ? "The demo code did not match. Use 123456, or recovery code demo-recovery."
+                : recovery
+                  ? "Demo recovery code: demo-recovery"
+                  : "Six digits, no spaces. Demo code: 123456"
+            }
+            validateStatus={invalid ? "error" : "default"}
+            id={`${id}-otp`}
+            inputMode={recovery ? "text" : "numeric"}
+            label={recovery ? "Recovery code" : "Verification code"}
             onChange={(event) => setCode(event.target.value)}
             required
             value={code}
           />
-          <FormCheckbox
-            label="Trust this device for 30 days"
-            size="sm"
-          />
-          <Button block disabled={!/^\d{6}$/.test(code)} variant="primary">
-            Verify
+          <FormCheckbox label="Trust this device for 30 days" size="sm" />
+          <Button
+            block
+            disabled={
+              verified || (recovery ? !code.trim() : !/^\d{6}$/.test(code))
+            }
+            onClick={() => {
+              const valid = code === (recovery ? "demo-recovery" : "123456")
+              setInvalid(!valid)
+              setVerified(valid)
+            }}
+            variant="primary"
+          >
+            {verified ? "Demo verified" : "Verify"}
           </Button>
+          {verified && (
+            <StatusText status="success">
+              Local verification complete. No real session was created.
+            </StatusText>
+          )}
+          {resent && (
+            <StatusText role="status">
+              Demo code reset to 123456. No SMS or email was sent.
+            </StatusText>
+          )}
           <div className="flex items-center justify-between gap-150">
-            <Button size="sm" theme="borderless" variant="secondary">
-              Use a recovery code
+            <Button
+              onClick={() => {
+                setRecovery((value) => !value)
+                setCode("")
+                setInvalid(false)
+                setVerified(false)
+              }}
+              size="sm"
+              theme="borderless"
+              variant="secondary"
+            >
+              {recovery ? "Use authenticator code" : "Use a recovery code"}
             </Button>
-            <Button size="sm" theme="borderless" variant="secondary">
-              Resend code
+            <Button
+              onClick={() => {
+                setResent(true)
+                setCode("")
+                setInvalid(false)
+                setVerified(false)
+              }}
+              size="sm"
+              theme="borderless"
+              variant="secondary"
+            >
+              Reset demo code
             </Button>
           </div>
         </div>

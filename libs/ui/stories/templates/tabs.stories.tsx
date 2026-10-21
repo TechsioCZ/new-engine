@@ -1,89 +1,95 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { TabsTemplate } from '../../src/templates/tabs'
+import { useEffect, useState } from "react"
+import { expect, within } from "storybook/test"
+import type { Meta, StoryObj } from "@storybook/react"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { TabsTemplate, type TabsTemplateProps } from "../../src/templates/tabs"
 
 const meta: Meta<typeof TabsTemplate> = {
-  title: 'Templates/TabsTemplate',
+  title: "Templates/TabsTemplate",
   component: TabsTemplate,
   parameters: {
-    layout: 'centered',
+    layout: "padded",
     docs: {
       description: {
-        component: `
-          A ready-to-use tabs template with props-based API.
-          This template provides a simplified interface for the Tabs compound component,
-          making it ideal for Storybook controls and rapid prototyping.
-
-          Part of the templates layer in atomic design architecture.
-        `,
+        component:
+          "A ready-to-use tabbed content template with an items-based API. Use it for a straightforward set of peer content panels; choose compound Tabs for custom trigger layouts, and headings or accordions instead of nested tabs. The first enabled item is selected by default.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
+  decorators: [
+    (Story) => (
+      <div className="mx-auto w-full max-w-2xl">
+        <Story />
+      </div>
+    ),
+  ],
   argTypes: {
     items: {
-      control: 'object',
-      description: 'Array of tab items with value, label, content, and optional disabled state',
+      control: "object",
+      description:
+        "Array of tab items with value, label, content, and optional disabled state",
       table: {
-        category: 'Content',
+        category: "Content",
       },
     },
     variant: {
-      control: 'select',
-      options: ['default', 'line', 'solid', 'outline'],
-      description: 'Visual style variant',
+      control: "select",
+      options: ["default", "line", "solid", "outline"],
+      description: "Visual style variant",
       table: {
-        category: 'Appearance',
+        category: "Appearance",
       },
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size variant',
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size variant",
       table: {
-        category: 'Appearance',
+        category: "Appearance",
       },
     },
     fitted: {
-      control: 'boolean',
-      description: 'Make tabs fill container width',
+      control: "boolean",
+      description: "Make tabs fill container width",
       table: {
-        category: 'Layout',
+        category: "Layout",
       },
     },
     justify: {
-      control: 'select',
-      options: ['start', 'center', 'end'],
-      description: 'Horizontal alignment of tabs',
+      control: "select",
+      options: ["start", "center", "end"],
+      description: "Horizontal alignment of tabs",
       table: {
-        category: 'Layout',
+        category: "Layout",
       },
     },
     orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical'],
-      description: 'Tab orientation',
+      control: "select",
+      options: ["horizontal", "vertical"],
+      description: "Tab orientation",
       table: {
-        category: 'Layout',
+        category: "Layout",
       },
     },
     showIndicator: {
-      control: 'boolean',
-      description: 'Show visual indicator for active tab',
+      control: "boolean",
+      description: "Show visual indicator for active tab",
       table: {
-        category: 'Appearance',
+        category: "Appearance",
       },
     },
     defaultValue: {
-      control: 'text',
-      description: 'Default active tab value',
+      control: "text",
+      description: "Default active tab value",
       table: {
-        category: 'State',
+        category: "State",
       },
     },
     onValueChange: {
-      action: 'value-changed',
+      action: "value-changed",
       table: {
-        category: 'Events',
+        category: "Events",
       },
     },
   },
@@ -94,20 +100,21 @@ type Story = StoryObj<typeof TabsTemplate>
 
 const defaultItems = [
   {
-    value: 'tab1',
-    label: 'Overview',
+    value: "tab1",
+    label: "Overview",
     content: (
       <div className="p-400">
         <h3 className="text-lg font-semibold mb-200">Overview</h3>
         <p className="text-fg-muted">
-          This is the overview tab content. It contains general information about the product or feature.
+          This is the overview tab content. It contains general information
+          about the product or feature.
         </p>
       </div>
     ),
   },
   {
-    value: 'tab2',
-    label: 'Details',
+    value: "tab2",
+    label: "Details",
     content: (
       <div className="p-400">
         <h3 className="text-lg font-semibold mb-200">Details</h3>
@@ -118,8 +125,8 @@ const defaultItems = [
     ),
   },
   {
-    value: 'tab3',
-    label: 'Reviews',
+    value: "tab3",
+    label: "Reviews",
     content: (
       <div className="p-400">
         <h3 className="text-lg font-semibold mb-200">Reviews</h3>
@@ -131,35 +138,150 @@ const defaultItems = [
   },
 ]
 
-export const Default: Story = {
-  args: {
-    items: defaultItems,
-    variant: 'default',
-    size: 'md',
-    fitted: false,
-    justify: 'start',
-    orientation: 'horizontal',
-    showIndicator: false,
-  },
+function InteractiveTabs(args: TabsTemplateProps) {
+  const [value, setValue] = useState(args.defaultValue)
+  useEffect(() => {
+    setValue(args.defaultValue)
+  }, [args.defaultValue])
+  return (
+    <TabsTemplate
+      {...args}
+      value={value}
+      onValueChange={(next) => {
+        setValue(next)
+        args.onValueChange?.(next)
+      }}
+    />
+  )
 }
 
 export const Playground: Story = {
-  name: '🎮 Interactive Playground',
+  render: (args) => <InteractiveTabs {...args} />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Explore the items-based tab API with a selected first panel and visible appearance controls.",
+      },
+    },
+  },
+  name: "Playground",
   args: {
     items: [
       ...defaultItems,
       {
-        value: 'tab4',
-        label: 'Disabled',
+        value: "tab4",
+        label: "Disabled",
         content: <div className="p-400">This tab is disabled</div>,
         disabled: true,
       },
     ],
-    variant: 'line',
-    size: 'md',
+    defaultValue: "tab1",
+    variant: "line",
+    size: "md",
     fitted: false,
-    justify: 'start',
-    orientation: 'horizontal',
+    justify: "start",
+    orientation: "horizontal",
     showIndicator: true,
+  },
+}
+
+export const Variants: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Default, line, solid and outline treatments switch the same peer panels. Default underlines the selected label; line adds a track, while solid and outline emphasize the selected trigger.",
+      },
+    },
+  },
+  render: () => (
+    <VariantContainer>
+      {(["default", "line", "solid", "outline"] as const).map((variant) => (
+        <VariantGroup fullWidth key={variant} title={variant}>
+          <TabsTemplate
+            defaultValue="tab1"
+            items={defaultItems}
+            variant={variant}
+            showIndicator
+          />
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+}
+
+export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The same tab items use Small (sm), Medium (md) and Large (lg) sizing.",
+      },
+    },
+  },
+  render: () => (
+    <div className="flex w-full max-w-2xl flex-col gap-300">
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <section key={size}>
+          <h3 className="mb-150 font-semibold">
+            {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
+          </h3>
+          <TabsTemplate
+            defaultValue="tab1"
+            items={defaultItems}
+            size={size}
+            variant="line"
+            showIndicator
+          />
+        </section>
+      ))}
+    </div>
+  ),
+}
+
+export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The first enabled panel is selected immediately rather than leaving an empty tab surface.",
+      },
+    },
+  },
+  args: {
+    items: defaultItems,
+    defaultValue: "tab1",
+    variant: "default",
+    size: "md",
+    fitted: false,
+    justify: "start",
+    orientation: "horizontal",
+    showIndicator: false,
+  },
+}
+
+export const FirstEnabledTab: Story = {
+  args: {
+    items: defaultItems.map((item, index) => ({
+      ...item,
+      disabled: index === 0,
+    })),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "When the first item is unavailable, the template selects the first enabled panel automatically.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByRole("tab", { name: "Details" })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    )
+    await expect(canvas.getByRole("tabpanel")).toBeVisible()
   },
 }

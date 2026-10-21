@@ -11,8 +11,17 @@ const TRAILING_DASHES_REGEX = /-+$/
 export const tv: TV = createTV({
   twMergeConfig: {
     theme: {
-      text: [(value: string) => TEXT_SIZE_REGEX.test(value)],
-      "font-weight": ["button", "input", "input-placeholder"],
+      text: [
+        "popover-description",
+        (value: string) => TEXT_SIZE_REGEX.test(value),
+      ],
+      "font-weight": [
+        "button",
+        "input",
+        "input-placeholder",
+        "label",
+        "popover-title",
+      ],
     },
     classGroups: {
       p: [{ p: ["input-sm", "input-md", "input-lg"] }],

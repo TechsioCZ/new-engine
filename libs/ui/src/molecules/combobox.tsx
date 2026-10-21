@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.3.5
+ * @componentVersion v1.4.0
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,7 +22,14 @@ import {
   type PropTypes,
   useMachine,
 } from "@zag-js/react"
-import { type ReactNode, useEffect, useId, useMemo, useState } from "react"
+import {
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
@@ -30,12 +37,13 @@ import { Icon, type IconProps, type IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import { joinDescribedBy } from "../internal/described-by"
 import { tv } from "../utils"
 
 const comboboxVariants = tv({
   slots: {
     root: ["relative flex w-full flex-col"],
-    label: ["block font-label text-label-md"],
+    label: ["block font-label"],
     control: [
       "form-control-base relative flex w-full min-w-0 items-center overflow-clip",
       "bg-combobox-bg-base",
@@ -70,12 +78,12 @@ const comboboxVariants = tv({
     // Zag sets `min-width: max-content` inline, so this resolves to
     // max(trigger width, content width) — the panel is never narrower than
     // the control that opened it.
-    positioner: ["isolate w-(--reference-width)"],
+    positioner: ["popup-layer isolate w-(--reference-width)"],
     content: [
-      "popup-surface-base",
+      "popup-surface-base popup-layer",
       "w-full",
       "flex flex-col overflow-hidden",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale] motion-reduce:transition-none motion-reduce:duration-0",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
       "data-[state=open]:starting:scale-98 data-[state=open]:starting:opacity-0",
@@ -191,6 +199,9 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
   ) & {
     id?: string
     name?: string
+    "aria-label"?: string
+    "aria-labelledby"?: string
+    "aria-describedby"?: string
     label?: string
     placeholder?: string
     disabled?: boolean
@@ -405,7 +416,7 @@ function ComboboxClearTrigger<T>({
   navigation: boolean
 }) {
   const hasValue = navigation ? Boolean(api.inputValue) : api.value.length > 0
-  if (!(clearable && hasValue)) {
+  if (readOnly || !(clearable && hasValue)) {
     return null
   }
   return (
@@ -492,9 +503,13 @@ function ComboboxStatus({
   return null
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: The root coordinates the Zag selection, navigation and field contracts.
 export function Combobox<T = unknown>({
   id,
   name,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
   label,
   size,
   placeholder = "Select option",
@@ -542,12 +557,15 @@ export function Combobox<T = unknown>({
   const uniqueId = id || generatedId
   const listId = `${uniqueId}-listbox`
   const helpTextId = `${uniqueId}-help`
+  const selectedTextId = `${uniqueId}-selected`
   const navigation = mode === "navigation"
   const allItems = useMemo(
     () => (groups ? groups.flatMap((group) => group.items) : (items ?? [])),
     [groups, items]
   )
 
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [focusVisible, setFocusVisible] = useState(false)
   const [options, setOptions] = useState(allItems)
   useEffect(() => {
     setOptions(allItems)
@@ -574,8 +592,8 @@ export function Combobox<T = unknown>({
     selectionBehavior: navigation ? "preserve" : selectionBehavior,
     allowCustomValue: !navigation && allowCustomValue,
     autoFocus,
-    open,
-    defaultOpen,
+    open: readOnly || disabled ? false : open,
+    defaultOpen: readOnly || disabled ? false : defaultOpen,
     inputBehavior,
     loopFocus,
     navigate,
@@ -597,7 +615,7 @@ export function Combobox<T = unknown>({
     multiple: !navigation && multiple,
     inputValue,
     onValueChange: ({ value: selectedValue }) => {
-      if (!navigation) {
+      if (!(navigation || readOnly || disabled)) {
         onChange?.(selectedValue)
       }
     },
@@ -608,7 +626,9 @@ export function Combobox<T = unknown>({
         )
         setOptions(filtered)
       }
-      onInputValueChange?.(newItemInputValue)
+      if (!(readOnly || disabled)) {
+        onInputValueChange?.(newItemInputValue)
+      }
     },
     onOpenChange: ({ open: nextOpen, reason }) => {
       // Zag opens after notifying the first input change. Do not overwrite
@@ -621,6 +641,39 @@ export function Combobox<T = unknown>({
   })
 
   const api = connectCombobox(service, normalizeProps)
+  const selectedText = api.value
+    .map(
+      (selectedValue) =>
+        allItems.find((item) => item.value === selectedValue)?.label ??
+        api.selectedItems.find((item) => item.value === selectedValue)?.label ??
+        selectedValue
+    )
+    .join(", ")
+
+  useEffect(() => {
+    if (readOnly && !navigation) {
+      // Closing the popup alone leaves its uncommitted search in the input.
+      // Resolve from selected items, including those outside the filtered list.
+      if (service.context.get("inputValue") !== selectedText) {
+        service.send({ type: "INPUT_VALUE.SET", value: selectedText })
+      }
+      // Ask a controlled query's owner to discard its draft too. The surface
+      // still reflects the selection if that owner cannot update immediately.
+      if (inputValue !== undefined && inputValue !== selectedText) {
+        onInputValueChange?.(selectedText)
+      }
+      if (inputRef.current) {
+        inputRef.current.value = selectedText
+      }
+    }
+  }, [
+    readOnly,
+    navigation,
+    selectedText,
+    service,
+    inputValue,
+    onInputValueChange,
+  ])
   // The inner list owns listbox semantics; the outer surface is only the
   // dismissal boundary and also contains statuses and retry/footer actions.
   const {
@@ -671,16 +724,48 @@ export function Combobox<T = unknown>({
       <div
         className={control()}
         {...api.getControlProps()}
+        data-focus-visible={focusVisible ? "" : undefined}
         data-validation={validateStatus}
+        onBlurCapture={() => setFocusVisible(false)}
+        onFocusCapture={(event) =>
+          setFocusVisible(event.target.matches(":focus-visible"))
+        }
+        onKeyDownCapture={() => setFocusVisible(true)}
+        onPointerDownCapture={() => setFocusVisible(false)}
       >
         <Input
           className={input()}
           {...api.getInputProps()}
           aria-controls={api.open ? listId : undefined}
-          aria-describedby={helpText ? helpTextId : undefined}
-          name={navigation ? undefined : name}
+          aria-describedby={joinDescribedBy(
+            ariaDescribedBy,
+            helpText ? helpTextId : undefined,
+            multiple && api.value.length ? selectedTextId : undefined
+          )}
+          aria-errormessage={
+            helpText && validateStatus === "error" ? helpTextId : undefined
+          }
+          aria-invalid={validateStatus === "error" || undefined}
+          aria-label={ariaLabel}
+          aria-labelledby={
+            ariaLabelledBy ??
+            (label ? api.getInputProps()["aria-labelledby"] : undefined)
+          }
+          aria-required={required || undefined}
+          name={undefined}
           placeholder={placeholder}
-          required={required}
+          ref={(node) => {
+            inputRef.current = node
+            // Selection validity is independent of the transient query. Keep
+            // the focusable input as the native validation target, not a hidden
+            // input (which browsers exclude from constraint validation).
+            node?.setCustomValidity(
+              !navigation && required && api.value.length === 0
+                ? "Select an option from the suggestions."
+                : ""
+            )
+          }}
+          required={navigation && required}
           size={size}
         />
 
@@ -694,21 +779,34 @@ export function Combobox<T = unknown>({
           size={size}
         />
 
-        <Button
-          {...api.getTriggerProps()}
-          aria-controls={api.open ? listId : undefined}
-          aria-haspopup="listbox"
-          className={trigger()}
-          size="current"
-          theme="unstyled"
-        >
-          <Icon
-            className={triggerIndicator()}
-            icon={triggerIcon}
-            size={triggerIconSize ?? "current"}
-          />
-        </Button>
+        {!readOnly && (
+          <Button
+            {...api.getTriggerProps()}
+            aria-controls={api.open ? listId : undefined}
+            aria-haspopup="listbox"
+            className={trigger()}
+            size="current"
+            theme="unstyled"
+          >
+            <Icon
+              className={triggerIndicator()}
+              icon={triggerIcon}
+              size={triggerIconSize ?? "current"}
+            />
+          </Button>
+        )}
       </div>
+      {!navigation &&
+        name &&
+        (api.value.length ? api.value : [""]).map((selectedValue) => (
+          <input
+            disabled={disabled}
+            key={selectedValue}
+            name={name}
+            type="hidden"
+            value={selectedValue}
+          />
+        ))}
 
       <Portal disabled={!portalled}>
         <div {...api.getPositionerProps()} className={positioner()}>
@@ -752,6 +850,12 @@ export function Combobox<T = unknown>({
           </div>
         </div>
       </Portal>
+
+      {multiple && !navigation && api.value.length > 0 && (
+        <StatusText id={selectedTextId} size={size}>
+          Selected: {selectedText}
+        </StatusText>
+      )}
 
       {helpText && (
         <StatusText

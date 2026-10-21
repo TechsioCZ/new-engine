@@ -6,7 +6,7 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -20,6 +20,23 @@ Use DatePicker when a user should type a locale-aware date in segments or pick
 it from a calendar. Set `granularity` to `hour`, `minute`, or `second` when the
 same field must also collect a time. Use separate domain controls when date and
 time have independent lifecycles.
+
+## Shared field contract
+
+Use canonical `sm`, `md` (default), and `lg`. Compose `DatePicker.StatusText`
+under the root to associate helper/error text with every focusable date segment.
+Each message gets a unique ID; caller segment descriptions are preserved, errors
+set `aria-invalid` and `aria-errormessage`, and non-neutral feedback has an icon.
+
+Read-only preserves focusable, copyable date segments and submitted values while
+hiding calendar/clear actions and preventing all commits. Activating read-only or
+disabled while a calendar is open closes it and discards its draft. Read-only is
+not a calendar browsing mode. Popup positioner and content use the shared layer.
+Footer actions keep secondary Cancel before primary Confirm.
+
+If read-only is enabled while the calendar owns focus, the popup closes without
+committing its draft and focus returns to a surviving date segment. Focus already
+moved to another control is not stolen.
 
 ## UX/UI guidelines
 

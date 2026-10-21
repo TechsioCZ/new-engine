@@ -210,6 +210,8 @@ export function FieldSelect({
   disabled,
   size = "sm",
   invalid,
+  error,
+  errorId,
   onChange,
 }: {
   items: SelectItem[]
@@ -219,6 +221,8 @@ export function FieldSelect({
   disabled?: boolean
   size?: DataTableControlSize
   invalid?: boolean
+  error?: string
+  errorId?: string
   onChange: (value: string) => void
 }) {
   const tableLayout = useContext(FieldTableLayoutContext)
@@ -252,6 +256,11 @@ export function FieldSelect({
             <Select.ValueText placeholder={placeholder} />
           </Select.Trigger>
         </Select.Control>
+        {error ? (
+          <Select.StatusText id={errorId} status="error">
+            {error}
+          </Select.StatusText>
+        ) : null}
         <Select.Positioner>
           <Select.Content>
             {items.map((item) => (
@@ -610,6 +619,7 @@ function dateLikeEditor(
   }) => (
     <Input
       aria-describedby={error ? errorId : undefined}
+      aria-errormessage={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
       aria-label={`Edit ${columnLabel(column)}`}
       disabled={disabled}
@@ -639,6 +649,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
   }) => (
     <Input
       aria-describedby={error ? errorId : undefined}
+      aria-errormessage={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
       aria-label={`Edit ${columnLabel(column)}`}
       disabled={disabled}
@@ -694,6 +705,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     >
       <NumericInput.Control>
         <NumericInput.Input
+          aria-errormessage={error ? errorId : undefined}
           aria-invalid={error ? true : undefined}
           aria-label={`Edit ${columnLabel(column)}`}
         />
@@ -705,42 +717,36 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     </NumericInput>
   ),
 
-  /*
-   * The three editors below deliberately omit `editorKeyHandlers`, unlike
-   * every Input/NumericInput-based one:
-   *
-   * - `Switch`, `FieldSelect` and `Combobox` all expose closed prop surfaces
-   *   (no `onKeyDown`, no rest spread), so the handlers cannot be forwarded
-   *   without widening those components' public props.
-   * - For the two dropdowns, Enter and Escape already belong to the Zag
-   *   select/combobox machines — Enter picks the highlighted option, Escape
-   *   closes the popup. Intercepting them here would break option selection
-   *   rather than add a commit shortcut.
-   *
-   * Committing these cells therefore goes through the row's Save action.
-   */
-  boolean: ({ column, value, setValue, disabled, error }) => (
-    // No `aria-describedby`/`aria-invalid` here: `Switch`'s prop surface is
-    // closed, so those attributes never reach the DOM and only read as
-    // though the error were wired up. `validateStatus` is the supported
-    // channel and does drive the underlying invalid state. Associating the
-    // error text itself needs `Switch`/`Combobox` to accept `describedBy`
-    // (as `NumericInput` already does) — a change to those components,
-    // versioned separately from this organism.
+  // Choice widgets own their feedback so each message is associated through
+  // the widget's supported compound/hidden-input API, not a wrapper div.
+  boolean: ({ column, value, setValue, disabled, error, size }) => (
     <Switch
       checked={Boolean(value)}
       disabled={disabled}
+      helpText={error}
       onCheckedChange={setValue}
+      size={size}
       validateStatus={error ? "error" : "default"}
     >
       <span className="sr-only">{`Edit ${columnLabel(column)}`}</span>
     </Switch>
   ),
 
-  enum: ({ column, value, setValue, disabled, options, error, size }) => (
+  enum: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    options,
+    error,
+    errorId,
+    size,
+  }) => (
     <FieldSelect
       ariaLabel={`Edit ${columnLabel(column)}`}
       disabled={disabled}
+      error={error}
+      errorId={errorId}
       invalid={!!error}
       items={toSelectItems(options)}
       onChange={setValue}
@@ -751,7 +757,9 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
 
   multiEnum: ({ column, value, setValue, disabled, options, error, size }) => (
     <Combobox
+      aria-label={`Edit ${columnLabel(column)}`}
       disabled={disabled}
+      helpText={error}
       // See the multiEnum filter above: re-mapping breaks `Combobox`'s
       // filtered-list state on every unrelated re-render.
       items={options}
@@ -786,6 +794,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
       <>
         <Input
           aria-describedby={error ? errorId : undefined}
+          aria-errormessage={error ? errorId : undefined}
           aria-invalid={error ? true : undefined}
           aria-label={`Edit ${columnLabel(column)} from`}
           disabled={disabled}
@@ -797,6 +806,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
         />
         <Input
           aria-describedby={error ? errorId : undefined}
+          aria-errormessage={error ? errorId : undefined}
           aria-invalid={error ? true : undefined}
           aria-label={`Edit ${columnLabel(column)} to`}
           disabled={disabled}

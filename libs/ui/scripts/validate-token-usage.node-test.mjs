@@ -3,6 +3,8 @@ import { describe, it } from "node:test"
 import { compile } from "tailwindcss"
 import { findMissingTokens } from "./validate-token-usage.js"
 
+const WHITESPACE = /\s+/g
+
 describe("fractional dimension utilities", () => {
   for (const [prefix, property] of [
     ["w", "width"],
@@ -15,7 +17,9 @@ describe("fractional dimension utilities", () => {
     it(`accepts token-free ${prefix} fractions supported by Tailwind`, async () => {
       const compiler = await compile("@tailwind utilities;")
       const css = compiler.build([`${prefix}-4/5`])
-      assert.ok(css.includes(`${property}: calc(4/5 * 100%);`))
+      assert.ok(
+        css.replace(WHITESPACE, "").includes(`${property}:calc(4/5*100%);`)
+      )
       assert.deepEqual(findMissingTokens(`${prefix}-4/5`, new Set()), [])
     })
   }
@@ -54,4 +58,15 @@ describe("fractional dimension utilities", () => {
       []
     )
   })
+})
+
+it("accepts decoration-current without inventing a --color-current token", async () => {
+  const compiler = await compile("@tailwind utilities;")
+  assert.ok(
+    compiler
+      .build(["decoration-current"])
+      .toLowerCase()
+      .includes("currentcolor")
+  )
+  assert.deepEqual(findMissingTokens("decoration-current", new Set()), [])
 })

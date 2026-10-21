@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
+import { expect, userEvent, within } from 'storybook/test'
 import { Badge } from '../../src/atoms/badge'
 import { Button } from '../../src/atoms/button'
 import { TreeView, type TreeNode } from '../../src/molecules/tree-view'
@@ -8,10 +9,11 @@ const meta: Meta<typeof TreeView> = {
   title: 'Molecules/TreeView',
   component: TreeView,
   parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
     layout: 'centered',
     docs: {
       description: {
-        component: `A compound tree view component built with Zag.js. Provides flexible composition for creating file explorers, navigation menus, and hierarchical data displays.
+        component: `A compound tree view component built with Zag.js. Provides flexible composition for creating file explorers, navigation menus, and hierarchical data displays. Use VerticalNavigation for ordinary nested links without a tree-widget interaction model, or CascadeSelect to select a hierarchical form value.
 
 ## Keyboard Navigation
 
@@ -183,14 +185,9 @@ export const Playground: Story = {
   },
   render: (args) => (
     <TreeView
+      {...args}
       data={fileSystemData}
-      className="w-md"
-      size={args.size}
-      selectionMode={args.selectionMode}
-      selectionBehavior={args.selectionBehavior}
-      expandOnClick={args.expandOnClick}
-      typeahead={args.typeahead}
-      dir={args.dir}
+      className="w-full max-w-md"
     >
       <TreeView.Label>File Explorer</TreeView.Label>
       <TreeView.Tree>
@@ -215,9 +212,48 @@ export const Playground: Story = {
   },
 }
 
+export const Sizes: Story = {
+  render: () => (
+    <div className="flex flex-col gap-300">
+        <TreeView data={fileSystemData} size="sm" className="w-full max-w-md" selectionMode="single">
+          <h3>Small (sm)</h3><TreeView.Label>Project files</TreeView.Label>
+          <TreeView.Tree>
+            {fileSystemData.map((node, index) => (
+              <TreeView.Node key={node.id} node={node} indexPath={[index]} />
+            ))}
+          </TreeView.Tree>
+        </TreeView>
+        <TreeView data={fileSystemData} size="md" className="w-full max-w-md" selectionMode="single">
+          <h3>Medium (md)</h3><TreeView.Label>Project files</TreeView.Label>
+          <TreeView.Tree>
+            {fileSystemData.map((node, index) => (
+              <TreeView.Node key={node.id} node={node} indexPath={[index]} />
+            ))}
+          </TreeView.Tree>
+        </TreeView>
+        <TreeView data={fileSystemData} size="lg" className="w-full max-w-md" selectionMode="single">
+          <h3>Large (lg)</h3><TreeView.Label>Project files</TreeView.Label>
+          <TreeView.Tree>
+            {fileSystemData.map((node, index) => (
+              <TreeView.Node key={node.id} node={node} indexPath={[index]} />
+            ))}
+          </TreeView.Tree>
+        </TreeView>
+    </div>
+  ),
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: 'TreeView supports three size variants: sm, md, and lg. Choose the appropriate size based on your UI density requirements.',
+      },
+    },
+  },
+}
+
 export const CustomComposition: Story = {
   render: () => (
-      <TreeView data={fileSystemData} className='w-md' selectionMode="multiple">
+      <TreeView data={fileSystemData} className="w-full max-w-md" selectionMode="multiple">
         <TreeView.Label>Project Structure</TreeView.Label>
         <TreeView.Tree>
           {fileSystemData.map((node, index) => {
@@ -273,6 +309,7 @@ export const CustomComposition: Story = {
       </TreeView>
   ),
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story: 'Full compound pattern example showing how to customize node rendering. This adds Badges for child counts and file types, demonstrating the flexibility of the compound component pattern.',
@@ -298,47 +335,10 @@ export const Minimal: Story = {
       </TreeView>
   ),
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story: 'Minimal TreeView without icons or indent guides, ideal for navigation menus or simple hierarchical lists.',
-      },
-    },
-  },
-}
-
-export const Sizes: Story = {
-  render: () => (
-    <div className="flex flex-col gap-300">
-        <TreeView data={fileSystemData} size="sm" className='w-md' selectionMode="single">
-          <TreeView.Label>Small Size</TreeView.Label>
-          <TreeView.Tree>
-            {fileSystemData.map((node, index) => (
-              <TreeView.Node key={node.id} node={node} indexPath={[index]} />
-            ))}
-          </TreeView.Tree>
-        </TreeView>
-        <TreeView data={fileSystemData} size="md" className='w-md' selectionMode="single">
-          <TreeView.Label>Medium Size (Default)</TreeView.Label>
-          <TreeView.Tree>
-            {fileSystemData.map((node, index) => (
-              <TreeView.Node key={node.id} node={node} indexPath={[index]} />
-            ))}
-          </TreeView.Tree>
-        </TreeView>
-        <TreeView data={fileSystemData} size="lg" className='w-md' selectionMode="single">
-          <TreeView.Label>Large Size</TreeView.Label>
-          <TreeView.Tree>
-            {fileSystemData.map((node, index) => (
-              <TreeView.Node key={node.id} node={node} indexPath={[index]} />
-            ))}
-          </TreeView.Tree>
-        </TreeView>
-    </div>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'TreeView supports three size variants: sm, md, and lg. Choose the appropriate size based on your UI density requirements.',
       },
     },
   },
@@ -348,7 +348,7 @@ export const SelectionBehaviors: Story = {
   render: () => (
     <div className="flex flex-col gap-300">
         <TreeView
-          className='w-md'
+          className="w-full max-w-md"
           data={fileSystemData}
           selectionMode="multiple"
           selectionBehavior="all"
@@ -361,7 +361,7 @@ export const SelectionBehaviors: Story = {
           </TreeView.Tree>
         </TreeView>
         <TreeView
-          className='w-md'
+          className="w-full max-w-md"
           data={fileSystemData}
           selectionMode="multiple"
           selectionBehavior="leaf-only"
@@ -374,7 +374,7 @@ export const SelectionBehaviors: Story = {
           </TreeView.Tree>
         </TreeView>
         <TreeView
-          className='w-md'
+          className="w-full max-w-md"
           data={navigationData}
           selectionMode="single"
           selectionBehavior="custom"
@@ -389,6 +389,7 @@ export const SelectionBehaviors: Story = {
     </div>
   ),
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story: 'TreeView supports three selectionBehavior modes: "all" (both branches and leaves selectable), "leaf-only" (only leaf nodes selectable, branches just expand/collapse), and "custom" (individual nodes control selectability via selectable property).',
@@ -404,9 +405,9 @@ export const Controlled: Story = {
       const [selected, setSelected] = useState<string[]>(['button.tsx'])
 
       return (
-        <div className="flex gap-300">
+        <div className="flex min-w-0 flex-col gap-300 md:flex-row">
             <TreeView
-              className='w-md'
+              className="w-full max-w-md"
               data={fileSystemData}
               selectionMode="multiple"
               expandedValue={expanded}
@@ -482,6 +483,7 @@ export const Controlled: Story = {
     return <ControlledExample />
   },
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story: 'Demonstrates controlled TreeView state with external controls. Use expandedValue/selectedValue props with callbacks to manage state externally, enabling integration with forms or other UI controls.',
@@ -492,11 +494,11 @@ export const Controlled: Story = {
 
 export const CustomStyling: Story = {
   render: () => (
-      <TreeView data={fileSystemData} selectionMode="single" className="w-lg bg-gradient-to-br from-surface to-surface-secondary rounded-lg">
-        <h2 className="text-lg font-bold mb-md bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          🎨 Styled File Explorer
-        </h2>
-        <TreeView.Tree className="bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+      <TreeView data={fileSystemData} selectionMode="single" className="w-full max-w-lg min-w-0 rounded-lg bg-surface">
+        <TreeView.Label className="mb-200 font-semibold text-fg-primary">
+          Project files
+        </TreeView.Label>
+        <TreeView.Tree className="bg-surface">
           {fileSystemData.map((node, index) => {
             const CustomNode = ({ node, indexPath }: { node: TreeNode; indexPath: number[] }) => (
               <TreeView.NodeProvider node={node} indexPath={indexPath}>
@@ -540,6 +542,7 @@ export const CustomStyling: Story = {
       </TreeView>
   ),
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story: 'Advanced styling example showing how to apply custom Tailwind classes to TreeView components for theming. Use className props on any sub-component to customize appearance.',
@@ -555,7 +558,7 @@ export const DefaultExpanded: Story = {
         selectionMode="single"
         defaultExpandedValue={['src', 'components', 'atoms']}
         defaultSelectedValue={['button.tsx']}
-        className='w-md'
+        className="w-full max-w-md"
       >
         <TreeView.Label>With Default State</TreeView.Label>
         <TreeView.Tree>
@@ -566,6 +569,7 @@ export const DefaultExpanded: Story = {
       </TreeView>
   ),
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story: 'Shows how to use defaultExpandedValue and defaultSelectedValue props to set initial tree state without managing state yourself. Useful for uncontrolled components.',
@@ -581,8 +585,8 @@ export const SelectionModes: Story = {
       const [multiSelected, setMultiSelected] = useState<string[]>(['button.tsx', 'dialog.tsx', 'helpers.ts'])
 
       return (
-        <div className="flex gap-300">
-          <div className="flex-1">
+        <div className="flex min-w-0 flex-col gap-300 md:flex-row">
+          <div className="min-w-0 flex-1">
             <TreeView
               data={fileSystemData}
               selectionMode="single"
@@ -609,7 +613,7 @@ export const SelectionModes: Story = {
             </div>
           </div>
 
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <TreeView
               data={fileSystemData}
               selectionMode="multiple"
@@ -642,6 +646,7 @@ export const SelectionModes: Story = {
     return <SelectionModesExample />
   },
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story: 'Demonstrates the difference between single and multiple selection modes. In single mode, only one item can be selected at a time. In multiple mode, use Ctrl+Click (Cmd+Click on Mac) to select multiple items.',
@@ -677,8 +682,8 @@ export const ExpandVsSelectionTest: Story = {
             </ul>
           </div>
 
-          <div className="flex gap-300">
-            <div className="flex-1">
+          <div className="flex min-w-0 flex-col gap-300 md:flex-row">
+            <div className="min-w-0 flex-1">
               <TreeView
                 data={fileSystemData}
                 selectionMode="single"
@@ -700,7 +705,7 @@ export const ExpandVsSelectionTest: Story = {
               </TreeView>
             </div>
 
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <TreeView
                 data={fileSystemData}
                 selectionMode="single"
@@ -755,6 +760,7 @@ export const ExpandVsSelectionTest: Story = {
     return <InteractiveTest />
   },
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story: 'Interactive test to understand the difference between expand/collapse and selection. The chevron arrow should only expand/collapse branches, while clicking on the node text should select it. When expandOnClick is true, clicking on a branch node will also expand it.',
@@ -827,7 +833,7 @@ export const WithHoverEvents: Story = {
     return (
       <div className="flex flex-col gap-400">
         <TreeView
-          className="w-3xs border-t-2 border-t-overlay p-200"
+          className="w-full max-w-3xs border-t-2 border-t-overlay p-200"
           data={treeData}
           selectionMode="single"
           size='sm'
@@ -848,14 +854,14 @@ export const WithHoverEvents: Story = {
           </TreeView.Tree>
         </TreeView>
 
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-col mb-200">
             <h3 className="font-semibold">Hover Events Log</h3>
             <Button size="sm" onClick={() => setLogs([])}>
               Clear
             </Button>
           </div>
-          <div className="bg-surface w-md rounded-sm p-100 h-48 overflow-y-auto font-mono text-xs">
+          <div className="h-48 w-full max-w-md overflow-auto rounded-sm bg-surface p-100 font-mono text-xs wrap-anywhere">
             {logs.length === 0 ? (
               <div className="text-fg-secondary">Hover over nodes to see events...</div>
             ) : (
@@ -880,11 +886,32 @@ export const WithHoverEvents: Story = {
     )
   },
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
           'Test story for onNodeHover and onNodeLeave callbacks. Hover over any node (branch or leaf) to see events being logged. This demonstrates that callbacks work for all levels of the tree.',
       },
     },
+  },
+}
+
+export const MachineProps: Story = {
+  args: { defaultFocusedValue: "README.md", ids: { tree: "project-file-tree" } },
+  parameters: { docs: { description: { story: "Custom Zag IDs and initial focus reach the tree machine without leaking object-valued attributes onto the DOM." } } },
+  render: (args) => <TreeView {...args} data={fileSystemData}>
+    <TreeView.Label>Project files</TreeView.Label>
+    <TreeView.Tree>{fileSystemData.map((node, index) => <TreeView.Node key={node.id} node={node} indexPath={[index]} />)}</TreeView.Tree>
+  </TreeView>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const tree = canvas.getByRole("tree")
+    await expect(tree).toHaveAttribute("id", "project-file-tree")
+    await expect(canvasElement.querySelector("[ids], [defaultfocusedvalue]")).toBeNull()
+    const focused = canvas.getByRole("treeitem", { name: "README.md" })
+    await expect(focused).toHaveAttribute("tabindex", "0")
+    focused.focus()
+    await userEvent.keyboard("{Enter}")
+    await expect(focused).toHaveAttribute("aria-selected", "true")
   },
 }

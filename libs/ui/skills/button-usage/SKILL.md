@@ -9,7 +9,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "Button"
-  component_version: "0.4.0"
+  component_version: "0.5.0"
 requires:
   - component-usage-ux
   - app-token-overrides
@@ -236,3 +236,11 @@ rg -n "<Button[^>]*onClick=.*router\\.push" apps
 rg -n "isLoading|loadingText" apps
 ```
 
+## Shared action contracts
+
+Canonical sizes are `sm`, `md` (default), and `lg`; `current` is only an embedded
+composition escape hatch. Icons inherit the button text size unless `iconSize`
+is supplied. Buttons default to `type="button"`; use `type="submit"` explicitly
+for a form submission. Loading sets `aria-busy` and prevents repeat activation.
+Borderless hover/pressed states use readable neutral text on their interaction
+surface; warning labels do not depend on colour alone.

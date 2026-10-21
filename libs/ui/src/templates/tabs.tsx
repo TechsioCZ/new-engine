@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit template.
  *
  * @component Tabs
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.0
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,14 +13,14 @@ import type * as React from "react"
 import type { Ref } from "react"
 import { Tabs, type TabsProps } from "../molecules/tabs"
 
-export interface TabItem {
+export type TabItem = {
   value: string
   label: string
   content: React.ReactNode
   disabled?: boolean
 }
 
-export interface TabsTemplateProps extends Omit<TabsProps, "children" | "ref"> {
+export type TabsTemplateProps = Omit<TabsProps, "children" | "ref"> & {
   items: TabItem[]
   showIndicator?: boolean
   ref?: Ref<HTMLDivElement>
@@ -44,7 +44,7 @@ export function TabsTemplate({
   return (
     <Tabs
       className={className}
-      defaultValue={defaultValue}
+      defaultValue={defaultValue ?? items.find((item) => !item.disabled)?.value}
       fitted={fitted}
       justify={justify}
       onValueChange={onValueChange}

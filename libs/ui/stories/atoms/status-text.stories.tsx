@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { useId, useState } from "react"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { useDescribedBy, useRegisterDescription, joinDescribedBy, type DescribedBy } from "../../src/internal/described-by"
 import { Input } from "../../src/atoms/input"
 import { Label } from "../../src/atoms/label"
 import { StatusText } from "../../src/atoms/status-text"
@@ -68,7 +70,7 @@ export const Playground: Story = {
 }
 
 export const AllStatuses: Story = {
-  name: "Status meanings",
+  name: "Variants",
   parameters: {
     controls: { disable: true },
     docs: { description: { story: "Error, success and warning use distinct icons automatically, while neutral guidance stays quiet and icon-free." } },
@@ -90,6 +92,11 @@ export const AllStatuses: Story = {
   },
 }
 
+function FeedbackSize({ size }: { size: "sm" | "md" | "lg" }) {
+  const id = useId()
+  return <div className="grid w-xs max-w-full gap-100"><Label htmlFor={id} size={size}>Email address</Label><Input aria-describedby={`${id}-message`} defaultValue="mara@example.com" id={id} size={size} /><StatusText id={`${id}-message`} size={size} status="success">Email address verified.</StatusText></div>
+}
+
 export const Sizes: Story = {
   parameters: {
     controls: { disable: true },
@@ -99,7 +106,7 @@ export const Sizes: Story = {
     <VariantContainer>
       {([['sm', 'Small (sm)'], ['md', 'Medium (md)'], ['lg', 'Large (lg)']] as const).map(([size, label]) => (
         <VariantGroup key={size} title={label}>
-          <StatusText size={size} status="success">Email address verified.</StatusText>
+          <FeedbackSize size={size} />
         </VariantGroup>
       ))}
     </VariantContainer>
@@ -122,8 +129,8 @@ function ValidationField() {
         type="email"
         variant={valid ? "success" : "error"}
       />
-      <StatusText id="status-text-email-hint" size="sm">We only send updates about this order.</StatusText>
-      <StatusText id="status-text-email-message" size="sm" status={valid ? "success" : "error"}>
+      <StatusText id="status-text-email-hint" size="md">We only send updates about this order.</StatusText>
+      <StatusText id="status-text-email-message" size="md" status={valid ? "success" : "error"}>
         {valid ? "Email address verified." : "Enter a valid email address, such as mara@example.com."}
       </StatusText>
     </div>
@@ -164,4 +171,31 @@ export const LongText: Story = {
       <StatusText status="success">Your delivery address has been saved and will be used for future orders.</StatusText>
     </div>
   ),
+}
+
+function RegisteredFeedback({ id, register, error = false }: { id: string; register: DescribedBy["registerDescription"]; error?: boolean }) {
+  useRegisterDescription(id, register)
+  return <StatusText id={id} status={error ? "error" : "default"}>{error ? "Enter a valid email address." : "We only send order updates."}</StatusText>
+}
+
+function DescriptionLifecycleDemo() {
+  const id = useId()
+  const [showError, setShowError] = useState(true)
+  const { describedById, registerDescription } = useDescribedBy()
+  return <div className="grid w-xs max-w-full gap-100"><Label htmlFor={id}>Email address</Label><Input id={id} aria-describedby={joinDescribedBy(`${id}-external`, describedById)} aria-invalid={showError || undefined} aria-errormessage={showError ? `${id}-error` : undefined} defaultValue="mara@" /><span className="sr-only" id={`${id}-external`}>Billing contact.</span><RegisteredFeedback id={`${id}-hint`} register={registerDescription} />{showError && <RegisteredFeedback error id={`${id}-error`} register={registerDescription} />}<Button variant="secondary" size="sm" onClick={() => setShowError(!showError)}>{showError ? "Clear validation" : "Show validation"}</Button></div>
+}
+
+export const DescriptionLifecycle: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Mounted helper and error messages register independently; clearing an error removes only its ID and retains the caller description and hint." } } },
+  render: () => <DescriptionLifecycleDemo />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const field = canvas.getByRole("textbox", { name: "Email address" })
+    await waitFor(() => expect(field).toHaveAccessibleDescription("Billing contact. We only send order updates. Enter a valid email address."))
+    await userEvent.click(canvas.getByRole("button", { name: "Clear validation" }))
+    await waitFor(() => expect(field).toHaveAccessibleDescription("Billing contact. We only send order updates."))
+    await expect(field).not.toHaveAttribute("aria-errormessage")
+    await userEvent.click(canvas.getByRole("button", { name: "Show validation" }))
+    await waitFor(() => expect(field).toHaveAccessibleDescription("Billing contact. We only send order updates. Enter a valid email address."))
+  },
 }

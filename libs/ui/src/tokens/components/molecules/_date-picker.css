@@ -37,7 +37,9 @@
   --color-date-picker-control-bg: var(--color-date-picker-fill);
   --color-date-picker-control-bg-hover: var(--color-date-picker-fill-hover);
   --color-date-picker-control-bg-focus: var(--color-date-picker-fill-active);
-  --color-date-picker-control-bg-readonly: var(--color-date-picker-fill);
+  --color-date-picker-control-bg-readonly: var(
+    --color-form-control-bg-readonly
+  );
   --color-date-picker-control-bg-disabled: var(
     --color-form-control-bg-disabled
   );

@@ -1,339 +1,359 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { fn } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { useArgs } from "storybook/preview-api"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import {
   RadioGroup,
   type RadioGroupProps,
 } from "../../src/molecules/radio-group"
+const describe = (story: string) => ({ docs: { description: { story } } })
 
-type RadioOption = {
-  value: string
-  label: string
-  description?: string
-  disabled?: boolean
-}
-
-const shippingOptions: RadioOption[] = [
+const deliveryOptions = [
   {
     value: "standard",
-    label: "Standard shipping",
-    description: "Delivers in 3-5 business days.",
+    label: "Standard delivery",
+    description: "Arrives in 3–5 business days.",
+    price: "Free",
   },
   {
     value: "express",
-    label: "Express shipping",
-    description: "Delivers next business day.",
+    label: "Express delivery",
+    description: "Arrives the next business day.",
+    price: "€8.90",
   },
   {
     value: "pickup",
     label: "Store pickup",
-    description: "Ready in 2 hours.",
-    disabled: true,
+    description: "Available after the store confirms your order.",
+    price: "Free",
   },
 ]
 
-const planOptions: RadioOption[] = [
-  {
-    value: "starter",
-    label: "Starter",
-    description: "Best for new projects and quick prototypes.",
-  },
-  {
-    value: "growth",
-    label: "Growth",
-    description: "Adds team features and faster support.",
-  },
-  {
-    value: "scale",
-    label: "Scale",
-    description: "Priority onboarding and dedicated success manager.",
-  },
-]
-
-type BasicRadioGroupProps = Omit<RadioGroupProps, "children"> & {
-  label?: string
-  statusText?: string
-}
-
-function BasicRadioGroup({
-  label = "Shipping method",
-  statusText = "Choose one delivery option for the order.",
-  ...args
-}: BasicRadioGroupProps) {
+function DeliveryOptions({
+  helpText = "Choose how you would like to receive your order.",
+  ...props
+}: Omit<RadioGroupProps, "children"> & { helpText?: string }) {
   return (
-    <RadioGroup {...args}>
-      <RadioGroup.Label>{label}</RadioGroup.Label>
+    <RadioGroup {...props}>
+      <RadioGroup.Label>Delivery method</RadioGroup.Label>
       <RadioGroup.ItemGroup>
-        {shippingOptions.map((option) => (
-          <RadioGroup.Item
-            disabled={option.disabled}
-            key={option.value}
-            value={option.value}
-          >
-            <RadioGroup.ItemHiddenInput />
-            <RadioGroup.ItemControl />
-            <RadioGroup.ItemContent>
-              <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
-            </RadioGroup.ItemContent>
-            {option.description && (
-              <RadioGroup.ItemDescription>
-                {option.description}
-              </RadioGroup.ItemDescription>
-            )}
-          </RadioGroup.Item>
-        ))}
-      </RadioGroup.ItemGroup>
-      <RadioGroup.StatusText>{statusText}</RadioGroup.StatusText>
-    </RadioGroup>
-  )
-}
-
-const meta: Meta<typeof RadioGroup> = {
-  title: "Molecules/RadioGroup",
-  component: RadioGroup,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "A compound radio-group component built with Zag.js. It supports controlled/uncontrolled state, form submission, validation, visual variants, horizontal or vertical layouts, and rich item content.",
-      },
-    },
-  },
-  tags: ["autodocs"],
-  argTypes: {
-    size: {
-      control: { type: "select" },
-      options: ["sm", "md", "lg"],
-      description: "Size of the radio group content.",
-      table: { defaultValue: { summary: "md" } },
-    },
-    variant: {
-      control: { type: "inline-radio" },
-      options: ["outline", "subtle", "solid"],
-      description: "Visual treatment for the radio control.",
-      table: { defaultValue: { summary: "outline" } },
-    },
-    orientation: {
-      control: { type: "inline-radio" },
-      options: ["vertical", "horizontal"],
-      description: "Layout orientation for radio items.",
-      table: { defaultValue: { summary: "vertical" } },
-    },
-    validateStatus: {
-      control: { type: "select" },
-      options: ["default", "error", "success", "warning"],
-      description: "Validation state shown in helper text and accessibility.",
-      table: { defaultValue: { summary: "default" } },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Disable the entire radio group.",
-      table: { defaultValue: { summary: "false" } },
-    },
-    readOnly: {
-      control: "boolean",
-      description: "Make the radio group read-only.",
-      table: { defaultValue: { summary: "false" } },
-    },
-    required: {
-      control: "boolean",
-      description: "Mark the field as required.",
-      table: { defaultValue: { summary: "false" } },
-    },
-    defaultValue: {
-      control: { type: "select" },
-      options: ["standard", "express", "pickup", null],
-      description: "Initial selected value for uncontrolled usage.",
-    },
-    onValueChange: {
-      description: "Called when the selected value changes.",
-    },
-  },
-  args: {
-    size: "md",
-    variant: "outline",
-    orientation: "vertical",
-    validateStatus: "default",
-    disabled: false,
-    readOnly: false,
-    required: false,
-    defaultValue: "standard",
-    onValueChange: fn(),
-  },
-}
-
-export default meta
-
-type Story = StoryObj<typeof meta>
-
-export const Playground: Story = {
-  render: (args) => <BasicRadioGroup {...args} />,
-}
-
-export const Variants: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Variants" fullWidth>
-        <BasicRadioGroup defaultValue="standard" variant="outline" />
-        <BasicRadioGroup defaultValue="standard" variant="subtle" />
-        <BasicRadioGroup defaultValue="standard" variant="solid" />
-      </VariantGroup>
-    </VariantContainer>
-  ),
-}
-
-export const Sizes: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Sizes" fullWidth>
-        <BasicRadioGroup defaultValue="standard" size="sm" />
-        <BasicRadioGroup defaultValue="standard" size="md" />
-        <BasicRadioGroup defaultValue="standard" size="lg" />
-      </VariantGroup>
-    </VariantContainer>
-  ),
-}
-
-export const States: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Validation" fullWidth>
-        <BasicRadioGroup
-          defaultValue={null}
-          label="Required delivery option"
-          statusText="Select one delivery option before continuing."
-          validateStatus="error"
-          required
-        />
-        <BasicRadioGroup
-          defaultValue="express"
-          label="Saved delivery option"
-          statusText="Your delivery preference has been saved."
-          validateStatus="success"
-        />
-        <BasicRadioGroup
-          defaultValue="standard"
-          label="Review delivery option"
-          statusText="Double-check the selected delivery option."
-          validateStatus="warning"
-        />
-      </VariantGroup>
-      <VariantGroup title="Interactivity" fullWidth>
-        <BasicRadioGroup
-          defaultValue="standard"
-          disabled
-          label="Disabled delivery option"
-          statusText="Delivery options are temporarily unavailable."
-        />
-        <BasicRadioGroup
-          defaultValue="express"
-          label="Read-only delivery option"
-          readOnly
-          statusText="The selected delivery option is locked."
-        />
-      </VariantGroup>
-    </VariantContainer>
-  ),
-}
-
-export const Orientations: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Vertical" fullWidth>
-        <BasicRadioGroup defaultValue="standard" orientation="vertical" />
-      </VariantGroup>
-      <VariantGroup title="Horizontal" fullWidth>
-        <BasicRadioGroup defaultValue="standard" orientation="horizontal" />
-      </VariantGroup>
-    </VariantContainer>
-  ),
-}
-
-export const Controlled: Story = {
-  render: () => {
-    const [value, setValue] = useState<string | null>("growth")
-
-    return (
-      <div className="flex w-md flex-col gap-250">
-        <RadioGroup
-          onValueChange={setValue}
-          orientation="vertical"
-          size="md"
-          value={value}
-        >
-          <RadioGroup.Label>Plan selection</RadioGroup.Label>
-          <RadioGroup.ItemGroup>
-            {planOptions.map((option) => (
-              <RadioGroup.Item key={option.value} value={option.value}>
-                <RadioGroup.ItemHiddenInput />
-                <RadioGroup.ItemControl />
-                <RadioGroup.ItemContent>
-                  <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
-                </RadioGroup.ItemContent>
-                {option.description && (
-                  <RadioGroup.ItemDescription>
-                    {option.description}
-                  </RadioGroup.ItemDescription>
-                )}
-              </RadioGroup.Item>
-            ))}
-          </RadioGroup.ItemGroup>
-          <RadioGroup.StatusText>
-            Selection syncs with external state.
-          </RadioGroup.StatusText>
-        </RadioGroup>
-
-        <div className="flex items-center gap-150">
-          <Button onClick={() => setValue("starter")} size="sm" theme="outlined">
-            Set Starter
-          </Button>
-          <Button onClick={() => setValue("scale")} size="sm" theme="outlined">
-            Set Scale
-          </Button>
-          <Button onClick={() => setValue(null)} size="sm" theme="borderless">
-            Clear
-          </Button>
-        </div>
-
-        <div className="text-fg-secondary text-sm">
-          Current value: {value ?? "none"}
-        </div>
-      </div>
-    )
-  },
-}
-
-export const RichContent: Story = {
-  render: () => (
-    <RadioGroup defaultValue="growth" size="md" validateStatus="default">
-      <RadioGroup.Label>Choose a plan</RadioGroup.Label>
-      <RadioGroup.ItemGroup>
-        {planOptions.map((option) => (
+        {deliveryOptions.map((option) => (
           <RadioGroup.Item key={option.value} value={option.value}>
             <RadioGroup.ItemHiddenInput />
             <RadioGroup.ItemControl />
             <RadioGroup.ItemContent>
-              <div className="flex items-center gap-100">
-                <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
-                <span className="rounded-full bg-fill-base px-100 py-50 text-fg-secondary text-xs">
-                  {option.value === "growth" ? "Popular" : "Available"}
-                </span>
-              </div>
-            </RadioGroup.ItemContent>
-            {option.description && (
+              <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
               <RadioGroup.ItemDescription>
                 {option.description}
               </RadioGroup.ItemDescription>
-            )}
+            </RadioGroup.ItemContent>
           </RadioGroup.Item>
         ))}
       </RadioGroup.ItemGroup>
-      <RadioGroup.StatusText>
-        Compound API lets you add metadata next to each option.
-      </RadioGroup.StatusText>
+      <RadioGroup.StatusText>{helpText}</RadioGroup.StatusText>
     </RadioGroup>
+  )
+}
+const meta: Meta<typeof RadioGroup> = {
+  title: "Molecules/RadioGroup",
+  component: RadioGroup,
+  tags: ["autodocs"],
+  parameters: {
+    layout: "padded",
+    docs: {
+      description: {
+        component:
+          "A labeled group of mutually exclusive options for a short, visible set of choices. Use RadioCard for prominent rich options, Select for long lists, and FormCheckbox when several choices may be selected.",
+      },
+    },
+  },
+  argTypes: {
+    id: { table: { disable: true } },
+    ref: { table: { disable: true } },
+    size: { control: "select", options: ["sm", "md", "lg"] },
+    variant: {
+      control: "inline-radio",
+      options: ["outline", "subtle", "solid"],
+    },
+    value: {
+      control: "select",
+      options: ["standard", "express", "pickup", null],
+    },
+    defaultValue: { control: false },
+    onValueChange: { control: false },
+    disabled: { control: "boolean" },
+    readOnly: { control: "boolean" },
+    required: { control: "boolean" },
+    validateStatus: {
+      control: "select",
+      options: ["default", "error", "warning", "success"],
+    },
+    orientation: {
+      control: "inline-radio",
+      options: ["horizontal", "vertical"],
+    },
+  },
+  args: {
+    value: "standard",
+    size: "md",
+    variant: "outline",
+    orientation: "vertical",
+    disabled: false,
+    readOnly: false,
+    validateStatus: "default",
+    onValueChange: fn(),
+  },
+}
+export default meta
+type Story = StoryObj<typeof RadioGroup>
+export const Playground: Story = {
+  parameters: describe(
+    "Select a delivery method and use controls to inspect variants, sizing and validation."
   ),
+  render: function Playground(args) {
+    const [, updateArgs] = useArgs()
+    return (
+      <DeliveryOptions
+        {...args}
+        onValueChange={(value) => {
+          args.onValueChange?.(value)
+          updateArgs({ value })
+        }}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("radio", {
+      name: "Standard delivery",
+    })
+    await expect(input).toHaveAccessibleDescription(
+      "Choose how you would like to receive your order. Arrives in 3–5 business days."
+    )
+  },
+}
+export const Variants: Story = {
+  parameters: describe(
+    "Outline, subtle and solid treatments preserve a clear checked mark and readable option content."
+  ),
+  render: () => (
+    <VariantContainer>
+      {(["outline", "subtle", "solid"] as const).map((variant) => (
+        <VariantGroup key={variant} title={variant} fullWidth>
+          <DeliveryOptions variant={variant} defaultValue="standard" />
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const control of canvasElement.querySelectorAll<HTMLElement>(
+      '[data-part="item-control"][data-state="checked"]'
+    )) {
+      for (const hovered of [false, true]) {
+        if (hovered) await userEvent.hover(control)
+        await waitFor(async () => {
+          await expect(indicatorContrast(control)).toBeGreaterThanOrEqual(3)
+        })
+        if (hovered) await userEvent.unhover(control)
+      }
+    }
+  },
+}
+export const Sizes: Story = {
+  parameters: describe(
+    "Small, medium and large scale identical delivery choices, descriptions and guidance together."
+  ),
+  render: () => (
+    <VariantContainer>
+      {(["sm", "md", "lg"] as const).map((size, index) => (
+        <VariantGroup
+          key={size}
+          title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}
+          fullWidth
+        >
+          <DeliveryOptions size={size} defaultValue="standard" />
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+}
+export const States: Story = {
+  parameters: describe(
+    "Actionable feedback includes status icons and is associated with every focusable radio input."
+  ),
+  render: () => (
+    <div className="flex flex-col gap-300">
+      <DeliveryOptions
+        required
+        validateStatus="error"
+        helpText="Select a delivery method before continuing."
+      />
+      <DeliveryOptions
+        defaultValue="express"
+        validateStatus="warning"
+        helpText="Express delivery is unavailable on public holidays."
+      />
+      <DeliveryOptions
+        defaultValue="standard"
+        validateStatus="success"
+        helpText="Your delivery preference is saved."
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getAllByRole("radio")[0]
+    if (!input) throw new Error("Missing radio regression target")
+    await expect(input).toHaveAttribute("aria-invalid", "true")
+    const id = input.getAttribute("aria-errormessage")
+    await expect(id).toBeTruthy()
+    await expect(input.getAttribute("aria-describedby")?.split(" ")).toContain(
+      id
+    )
+  },
+}
+export const Disabled: Story = {
+  parameters: describe(
+    "An unavailable delivery group retains its selected value and removes all native input tab stops."
+  ),
+  render: () => (
+    <DeliveryOptions
+      disabled
+      defaultValue="standard"
+      helpText="Delivery is not available until you add an address."
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    for (const input of within(canvasElement).getAllByRole("radio"))
+      await expect(input).toBeDisabled()
+  },
+}
+export const ReadOnly: Story = {
+  name: "Read-only",
+  parameters: describe(
+    "Controlled and uncontrolled read-only groups preserve focus and form values while rejecting clicks, Space and arrow selection."
+  ),
+  render: () => (
+    <div className="flex flex-col gap-300">
+      <DeliveryOptions
+        name="saved-delivery"
+        readOnly
+        defaultValue="standard"
+        helpText="The delivery method cannot change after dispatch."
+      />
+      <DeliveryOptions
+        name="controlled-delivery"
+        readOnly
+        value="standard"
+        helpText="The delivery method cannot change after dispatch."
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const input of canvas.getAllByRole("radio", {
+      name: "Standard delivery",
+    })) {
+      await expect(input).not.toBeDisabled()
+      input.focus()
+      await expect(input).toHaveFocus()
+      await userEvent.keyboard("{ArrowRight} ")
+      await expect(input).toBeChecked()
+    }
+    for (const input of canvas.getAllByRole("radio", {
+      name: "Express delivery",
+    })) {
+      await userEvent.click(input)
+      await expect(input).not.toBeChecked()
+    }
+  },
+}
+export const MultipleDescriptions: Story = {
+  parameters: describe(
+    "Several mounted helper and error messages receive unique IDs, merge with caller descriptions and clean up when validation clears."
+  ),
+  render: function FeedbackDemo() {
+    const [invalid, setInvalid] = useState(true)
+    return (
+      <div className="flex flex-col gap-200">
+        <p id="delivery-context">Delivery for order TS-2048.</p>
+        <RadioGroup
+          aria-describedby="delivery-context"
+          validateStatus={invalid ? "error" : "default"}
+          defaultValue="standard"
+        >
+          <RadioGroup.Label>Delivery method</RadioGroup.Label>
+          <RadioGroup.ItemGroup>
+            <RadioGroup.Item value="standard">
+              <RadioGroup.ItemHiddenInput />
+              <RadioGroup.ItemControl />
+              <RadioGroup.ItemText>Standard delivery</RadioGroup.ItemText>
+            </RadioGroup.Item>
+          </RadioGroup.ItemGroup>
+          <RadioGroup.StatusText status="default">
+            Your address determines available delivery methods.
+          </RadioGroup.StatusText>
+          {invalid && (
+            <RadioGroup.StatusText>
+              Select an available delivery method before continuing.
+            </RadioGroup.StatusText>
+          )}
+        </RadioGroup>
+        <Button theme="outlined" size="sm" onClick={() => setInvalid(false)}>
+          Clear validation
+        </Button>
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("radio")
+    const errorId = input.getAttribute("aria-errormessage")
+    await expect(errorId).toBeTruthy()
+    const descriptions =
+      input.getAttribute("aria-describedby")?.split(" ") ?? []
+    await expect(new Set(descriptions).size).toBe(3)
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Clear validation" })
+    )
+    await waitFor(() => expect(input).not.toHaveAttribute("aria-errormessage"))
+    await expect(input).not.toHaveAttribute("aria-invalid")
+    await expect(input.getAttribute("aria-describedby")).not.toContain(errorId)
+  },
+}
+
+function indicatorContrast(control: HTMLElement) {
+  const indicator = control.querySelector("span")
+  const context = document.createElement("canvas").getContext("2d")
+  if (!indicator || !context) throw new Error("Missing radio contrast target")
+  context.fillStyle = "white"
+  context.fillRect(0, 0, 1, 1)
+  const ancestors: Element[] = []
+  for (let node: Element | null = control; node; node = node.parentElement) {
+    ancestors.unshift(node)
+  }
+  for (const node of ancestors) {
+    context.fillStyle = getComputedStyle(node).backgroundColor
+    context.fillRect(0, 0, 1, 1)
+  }
+  const backgroundColor = context.getImageData(0, 0, 1, 1).data
+  context.fillStyle = getComputedStyle(indicator).color
+  context.fillRect(0, 0, 1, 1)
+  const foregroundColor = context.getImageData(0, 0, 1, 1).data
+  const luminance = (channels: Uint8ClampedArray) => {
+    return Array.from(channels)
+      .slice(0, 3)
+      .reduce((sum, channel, index) => {
+        const value = channel / 255
+        const linear =
+          value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+        return sum + linear * ([0.2126, 0.7152, 0.0722][index] ?? 0)
+      }, 0)
+  }
+  const foreground = luminance(foregroundColor)
+  const background = luminance(backgroundColor)
+  return (
+    (Math.max(foreground, background) + 0.05) /
+    (Math.min(foreground, background) + 0.05)
+  )
 }

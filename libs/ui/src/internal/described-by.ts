@@ -22,8 +22,8 @@ export function useDescribedBy(): DescribedBy {
   // and removing one must not unlink the other. Entries are counted so two
   // messages sharing the default id stay registered until both unmount.
   const [ids, setIds] = useState<readonly string[]>([])
-  // A stable state initializer avoids re-registering on every render without
-  // useCallback. The setter is stable and every update reads the current list.
+  // A stable state initializer avoids re-registering on every render.
+  // The setter is stable and every update reads the current list.
   const [registerDescription] = useState(() => (id: string) => {
     setIds((current) => [...current, id])
     return () =>

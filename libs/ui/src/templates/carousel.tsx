@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit template.
  *
  * @component Carousel
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -79,13 +79,7 @@ export function CarouselTemplate<T extends ElementType>({
         <Carousel.Control>
           {showControls && <Carousel.Previous icon={prevIcon} />}
           {showControls && showIndicators && <div className="flex-1" />}
-          {showIndicators && (
-            <Carousel.Indicators>
-              {slides.map((slide, index) => (
-                <Carousel.Indicator index={index} key={slide.id} />
-              ))}
-            </Carousel.Indicators>
-          )}
+          {showIndicators && <Carousel.Indicators />}
           {showControls && showIndicators && <div className="flex-1" />}
           {showControls && <Carousel.Next icon={nextIcon} />}
         </Carousel.Control>

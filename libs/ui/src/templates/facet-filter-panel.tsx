@@ -2,13 +2,14 @@
  * FacetFilterPanel - @techsio/ui-kit template.
  *
  * @component FacetFilterPanel
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill facet-filter-panel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
 import type { ReactNode } from "react"
 import { useEffect, useId, useRef, useState } from "react"
 import { Button } from "../atoms/button"
+import { StatusText } from "../atoms/status-text"
 import { Accordion } from "../molecules/accordion"
 import { Dialog } from "../molecules/dialog"
 import { FormCheckbox } from "../molecules/form-checkbox"
@@ -83,6 +84,7 @@ export type FacetFilterRangeGroup = FacetFilterGroupBase & {
   step?: number
   minStepsBetweenThumbs?: number
   value: readonly [number, number]
+  "aria-label"?: [string, string]
   formatValue?: (value: number) => string
   formatRangeText?: (values: number[]) => string
 }
@@ -113,6 +115,8 @@ export type FacetFilterPanelProps = {
   activeFilters?: readonly FacetFilterActiveItem[]
   presentation?: "inline" | "drawer"
   disabled?: boolean
+  readOnly?: boolean
+  size?: "sm" | "md" | "lg"
   pending?: boolean
   pendingLabel?: ReactNode
   activeFiltersLabel?: ReactNode
@@ -141,6 +145,7 @@ export type FacetFilterActiveFiltersProps = {
   label?: ReactNode
   resetLabel?: ReactNode
   disabled?: boolean
+  readOnly?: boolean
   className?: string
   onRemove?: (id: string) => void
   onReset?: () => void
@@ -150,6 +155,8 @@ type FacetFilterOptionsProps = {
   group: FacetFilterOptionsGroup
   selectedValues: readonly string[]
   disabled: boolean
+  readOnly: boolean
+  size: "sm" | "md" | "lg"
   showMoreLabel: (hiddenCount: number) => ReactNode
   showLessLabel: ReactNode
   onOptionChange?: (details: FacetFilterOptionChangeDetails) => void
@@ -164,6 +171,8 @@ function FacetFilterOptions({
   group,
   selectedValues,
   disabled,
+  readOnly,
+  size,
   showMoreLabel,
   showLessLabel,
   onOptionChange,
@@ -194,9 +203,9 @@ function FacetFilterOptions({
               label={
                 <span className={styles.optionLabel()}>
                   <span className={styles.optionText()}>{option.label}</span>
-                  {option.count !== undefined ? (
+                  {option.count === undefined ? null : (
                     <span className={styles.optionCount()}>{option.count}</span>
-                  ) : null}
+                  )}
                 </span>
               }
               name={group.id}
@@ -207,6 +216,8 @@ function FacetFilterOptions({
                   checked,
                 })
               }
+              readOnly={readOnly}
+              size={size}
               value={option.value}
             />
           </li>
@@ -238,6 +249,8 @@ function FacetFilterPanelContent({
   selectedValues = {},
   activeFilters = [],
   disabled = false,
+  readOnly = false,
+  size = "md",
   pending = false,
   pendingLabel,
   activeFiltersLabel = "Active filters",
@@ -291,9 +304,9 @@ function FacetFilterPanelContent({
       ) : null}
 
       {pending && pendingLabel ? (
-        <output aria-live="polite" className={styles.pending()}>
+        <StatusText className={styles.pending()} role="status" size={size}>
           {pendingLabel}
-        </output>
+        </StatusText>
       ) : null}
 
       <FacetFilterPanel.ActiveFilters
@@ -302,6 +315,7 @@ function FacetFilterPanelContent({
         label={activeFiltersLabel}
         onRemove={onRemoveFilter}
         onReset={onReset}
+        readOnly={readOnly}
         resetLabel={resetLabel}
       />
 
@@ -323,6 +337,12 @@ function FacetFilterPanelContent({
             return (
               <section className={styles.rangeGroup()} key={group.id}>
                 <Slider
+                  aria-label={
+                    group["aria-label"] ?? [
+                      `Minimum ${group.label.toLocaleLowerCase()}`,
+                      `Maximum ${group.label.toLocaleLowerCase()}`,
+                    ]
+                  }
                   disabled={interactionDisabled || group.disabled}
                   formatRangeText={group.formatRangeText}
                   formatValue={group.formatValue}
@@ -331,18 +351,22 @@ function FacetFilterPanelContent({
                   min={group.min}
                   minStepsBetweenThumbs={group.minStepsBetweenThumbs}
                   onChange={(value) =>
+                    !readOnly &&
                     onRangeChange?.({
                       groupId: group.id,
                       value: toRangeTuple(value, group),
                     })
                   }
                   onChangeEnd={(value) =>
+                    !readOnly &&
                     onRangeChangeEnd?.({
                       groupId: group.id,
                       value: toRangeTuple(value, group),
                     })
                   }
+                  readOnly={readOnly}
                   showValueText
+                  size={size}
                   step={group.step}
                   value={[...group.value]}
                 />
@@ -365,9 +389,11 @@ function FacetFilterPanelContent({
                   disabled={interactionDisabled || Boolean(group.disabled)}
                   group={group}
                   onOptionChange={onOptionChange}
+                  readOnly={readOnly}
                   selectedValues={selectedValues[group.id] ?? []}
                   showLessLabel={showLessLabel}
                   showMoreLabel={showMoreLabel}
+                  size={size}
                 />
               </Accordion.Content>
             </Accordion.Item>
@@ -455,6 +481,7 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
   label = "Active filters",
   resetLabel = "Clear filters",
   disabled = false,
+  readOnly = false,
   className,
   onRemove,
   onReset,
@@ -469,34 +496,42 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
     <section className={styles.activeRoot({ className })}>
       <div className={styles.activeHeader()}>
         <h3 className={styles.activeTitle()}>{label}</h3>
-        <Button
-          disabled={disabled}
-          onClick={onReset}
-          size="sm"
-          theme="borderless"
-          type="button"
-          variant="primary"
-        >
-          {resetLabel}
-        </Button>
-      </div>
-      <div className={styles.activeList()}>
-        {items.map((item) => (
+        {!readOnly && (
           <Button
-            aria-label={item.removeLabel}
             disabled={disabled}
-            icon="token-icon-close"
-            iconPosition="right"
-            key={item.id}
-            onClick={() => onRemove?.(item.id)}
+            onClick={onReset}
             size="sm"
-            theme="outlined"
+            theme="borderless"
             type="button"
             variant="primary"
           >
-            {item.label}
+            {resetLabel}
           </Button>
-        ))}
+        )}
+      </div>
+      <div className={styles.activeList()}>
+        {items.map((item) =>
+          readOnly ? (
+            <span className={styles.optionText()} key={item.id}>
+              {item.label}
+            </span>
+          ) : (
+            <Button
+              aria-label={item.removeLabel}
+              disabled={disabled}
+              icon="token-icon-close"
+              iconPosition="right"
+              key={item.id}
+              onClick={() => onRemove?.(item.id)}
+              size="sm"
+              theme="outlined"
+              type="button"
+              variant="primary"
+            >
+              {item.label}
+            </Button>
+          )
+        )}
       </div>
     </section>
   )

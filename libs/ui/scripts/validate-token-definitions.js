@@ -9,6 +9,7 @@
  * - Optional --profile timings
  */
 
+import { execFileSync } from "node:child_process"
 import { existsSync, globSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { performance } from "node:perf_hooks"
@@ -29,6 +30,9 @@ import {
 
 const ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..")
 
+const COMMENT_REGEX = /\/\*[\s\S]*?\*\//g
+const NON_NEWLINE_REGEX = /[^\n]/g
+const REQUIRED_REFERENCE_REGEX = /var\(\s*(--[\w-]+)\s*([,)])/g
 const TOKEN_DEFINITION_REGEX = /--([\w-]+)\s*:\s*([^;]+);/g
 const VAR_REFERENCE_REGEX = /var\(\s*(--[\w-]+)/g
 const TOKEN_REFERENCE_REGEX = /--[a-z0-9-]+/gi
@@ -69,7 +73,7 @@ const CONFIG = {
   ],
 
   // Token CSS glob
-  tokenCssGlob: "src/tokens/components/**/*.css",
+  tokenCssGlob: "src/tokens/**/*.css",
 }
 
 function isWhitelisted(tokenName) {
@@ -210,7 +214,7 @@ function buildTokenIndices() {
     dependencyGraph: new Map(), // token -> Set<token>
     cssUsage: new Set(), // tokens referenced by var() outside definitions
   }
-  for (const file of globSync(CONFIG.tokenCssGlob)) {
+  for (const file of globSync(CONFIG.tokenCssGlob, { cwd: ROOT })) {
     const abs = path.join(ROOT, file)
     if (!existsSync(abs)) {
       continue
@@ -269,7 +273,7 @@ function buildComponentUsage(classToTokens, knownTokens) {
   for (const file of files) {
     let content
     try {
-      content = readFileSync(file, "utf8")
+      content = readFileSync(path.join(ROOT, file), "utf8")
     } catch {
       continue // ignore missing or unreadable files
     }
@@ -320,6 +324,78 @@ function reportUnusedTokens(unusedTokens) {
   )
 }
 
+// Zag/Floating UI supply these at runtime, not through the token graph.
+const RUNTIME_TOKENS = new Set([
+  "--available-height",
+  "--available-width",
+  "--reference-width",
+  "--reference-height",
+  "--transform-origin",
+  "--arrow-x",
+  "--arrow-y",
+  "--x",
+  "--y",
+  "--height",
+  "--width",
+  "--top",
+  "--left",
+])
+
+export function findUndefinedReferences(files, externalTokens = new Set()) {
+  const definitions = new Set(externalTokens)
+  const references = []
+  for (const [file, raw] of files) {
+    const content = raw.replace(COMMENT_REGEX, (comment) =>
+      comment.replace(NON_NEWLINE_REGEX, " ")
+    )
+    for (const match of content.matchAll(TOKEN_DEFINITION_REGEX)) {
+      definitions.add(`--${match[1]}`)
+    }
+    for (const match of content.matchAll(REQUIRED_REFERENCE_REGEX)) {
+      // A CSS fallback explicitly permits an absent optional/runtime property.
+      if (match[2] === ",") {
+        continue
+      }
+      references.push({
+        file,
+        token: match[1],
+        line: lineNumberAt(content, match.index),
+      })
+    }
+  }
+  return references.filter(
+    ({ token }) =>
+      !(
+        definitions.has(token) ||
+        RUNTIME_TOKENS.has(token) ||
+        token.startsWith("--tw-")
+      )
+  )
+}
+
+function validateReferences() {
+  const files = globSync(CONFIG.tokenCssGlob, { cwd: ROOT }).map((file) => [
+    file,
+    readFileSync(path.join(ROOT, file), "utf8"),
+  ])
+  // Tailwind provides primitive defaults (font-mono, container widths, etc.).
+  const tailwind = readFileSync(
+    path.join(ROOT, "node_modules/tailwindcss/theme.css"),
+    "utf8"
+  )
+  const defaults = new Set(
+    Array.from(
+      tailwind.matchAll(TOKEN_DEFINITION_REGEX),
+      (match) => `--${match[1]}`
+    )
+  )
+  const missing = findUndefinedReferences(files, defaults)
+  for (const { file, token, line } of missing) {
+    console.error(`${file}:${line}: undefined var(${token})`)
+  }
+  return missing.length === 0
+}
+
 function validateTokenDefinitions({
   profile = false,
   failOnUnused = false,
@@ -339,6 +415,14 @@ function validateTokenDefinitions({
     }
   }
   console.log("🔍 Analyzing token definitions and usage...")
+  if (!validateReferences()) {
+    return false
+  }
+  execFileSync(
+    process.execPath,
+    [fileURLToPath(new URL("./validate-token-scopes.js", import.meta.url))],
+    { stdio: "inherit" }
+  )
 
   // 1) Token indices
   const { defs, dependencyGraph, cssUsage } = timed("tokens", buildTokenIndices)

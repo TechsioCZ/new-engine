@@ -1,118 +1,125 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Button } from '../../src/atoms/button'
-import { fn } from 'storybook/test'
-import { iconLabels, iconOptions } from '../helpers/icon-options'
+import type { Meta, StoryObj } from "@storybook/react"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { expect, fn } from "storybook/test"
+import { iconLabels, iconOptions } from "../helpers/icon-options"
 
 const meta: Meta<typeof Button> = {
-  title: 'Atoms/Button',
+  title: "Atoms/Button",
   component: Button,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     variant: {
-      control: 'select',
-      options: ['primary', 'secondary', 'tertiary', 'warning', 'danger'],
-      description: 'Controls the semantic style of the button',
+      control: "select",
+      options: ["primary", "secondary", "tertiary", "warning", "danger"],
+      description: "Controls the semantic style of the button",
       table: {
-        defaultValue: { summary: 'primary' },
+        defaultValue: { summary: "primary" },
       },
     },
     theme: {
-      control: 'select',
-      options: ['solid', 'light', 'outlined', 'borderless', 'unstyled'],
-      description: 'Controls the visual weight/theme of the button',
+      control: "select",
+      options: ["solid", "light", "outlined", "borderless", "unstyled"],
+      description: "Controls the visual weight/theme of the button",
       table: {
-        defaultValue: { summary: 'solid' },
+        defaultValue: { summary: "solid" },
       },
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'current'],
-      description: 'Controls the size of the button',
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Controls the size of the button",
       table: {
-        defaultValue: { summary: 'md' },
+        defaultValue: { summary: "md" },
       },
     },
     type: {
-      control: 'radio',
-      options: ['button', 'submit', 'reset'],
-      description: 'The HTML type of the button',
+      control: "radio",
+      options: ["button", "submit", "reset"],
+      description: "The HTML type of the button",
       table: {
-        defaultValue: { summary: 'button' },
+        defaultValue: { summary: "button" },
       },
     },
     block: {
-      control: 'boolean',
-      description: 'Whether the button should take up the full width of its container',
+      control: "boolean",
+      description:
+        "Whether the button should take up the full width of its container",
       table: {
-        defaultValue: { summary: 'false' },
+        defaultValue: { summary: "false" },
       },
     },
     uppercase: {
-      control: 'boolean',
-      description: 'Whether the button text should be uppercase',
+      control: "boolean",
+      description: "Whether the button text should be uppercase",
       table: {
-        defaultValue: { summary: 'false' },
+        defaultValue: { summary: "false" },
       },
     },
     disabled: {
-      control: 'boolean',
-      description: 'Whether the button is disabled',
+      control: "boolean",
+      description: "Whether the button is disabled",
       table: {
-        defaultValue: { summary: 'false' },
+        defaultValue: { summary: "false" },
       },
     },
     isLoading: {
-      control: 'boolean',
-      description: 'Whether the button is in a loading state',
+      control: "boolean",
+      description: "Whether the button is in a loading state",
       table: {
-        defaultValue: { summary: 'false' },
+        defaultValue: { summary: "false" },
       },
     },
     loadingText: {
-      control: 'text',
-      description: 'Text to display when isLoading is true',
+      control: "text",
+      description: "Text to display when isLoading is true",
     },
     icon: {
       control: {
-        type: 'select',
+        type: "select",
         labels: iconLabels,
       },
       options: iconOptions,
-      description: 'Icon to display in the button',
+      description: "Icon to display in the button",
     },
     iconPosition: {
-      control: 'radio',
-      options: ['left', 'right'],
-      description: 'Position of the icon relative to the text',
+      control: "radio",
+      options: ["left", "right"],
+      description: "Position of the icon relative to the text",
       table: {
-        defaultValue: { summary: 'left' },
+        defaultValue: { summary: "left" },
       },
     },
     children: {
-      control: 'text',
-      description: 'Content of the button',
+      control: "text",
+      description: "Content of the button",
     },
     onClick: {
-      description: 'Click handler',
+      description: "Click handler",
     },
   },
   args: {
-    variant: 'primary',
-    theme: 'solid',
-    size: 'md',
-    type: 'button',
+    variant: "primary",
+    theme: "solid",
+    size: "md",
+    type: "button",
     block: false,
     uppercase: false,
     disabled: false,
     isLoading: false,
-    loadingText: 'Loading...',
-    children: 'Button',
-    iconPosition: 'left',
+    loadingText: "Loading...",
+    children: "Save changes",
+    iconPosition: "left",
     onClick: fn(),
   },
   parameters: {
-    layout: 'centered',
+    docs: {
+      description: {
+        component:
+          "A native action button with semantic hierarchy, loading feedback and visible keyboard focus. Use it for commands or form submission; choose Link or LinkButton for navigation.",
+      },
+    },
+    layout: "centered",
   },
 }
 
@@ -120,13 +127,37 @@ export default meta
 type Story = StoryObj<typeof Button>
 
 export const Playground: Story = {
-  render: (args) => 
-  <div className='w-md'>
-    <Button {...args} />
-  </div>
+  parameters: {
+    layout: "padded",
+    docs: {
+      description: {
+        story:
+          "Try semantic variants, visual weight, sizing and loading feedback with live controls.",
+      },
+    },
+  },
+  render: (args) => (
+    <div className="w-md max-w-full">
+      <Button {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      document.documentElement.clientWidth
+    )
+  },
 }
 
 export const Variants: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare semantic action roles and visual treatments to choose one primary action per surface.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Solid themes">
@@ -201,32 +232,44 @@ export const Variants: Story = {
 }
 
 export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The same Save changes action uses Small (sm), Medium (md) and Large (lg) shared control heights.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="sizes">
-        <Button size="sm">Small</Button>
-        <Button size="md">Medium</Button>
-        <Button size="lg">Large</Button>
-      </VariantGroup>
-
-      <VariantGroup title="Block buttons" fullWidth>
-        <Button block>Block Button</Button>
-        <Button block variant="secondary">
-          Block Secondary
-        </Button>
-      </VariantGroup>
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <VariantGroup
+          key={size}
+          title={
+            { sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]
+          }
+        >
+          <Button size={size}>Save changes</Button>
+        </VariantGroup>
+      ))}
     </VariantContainer>
   ),
 }
 
 export const States: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Loading and disabled buttons retain a clear label while preventing repeated activation.",
+      },
+    },
+  },
   render: () => {
     return (
       <VariantContainer>
         <VariantGroup title="Disabled states">
-          <Button disabled>
-            Solid
-          </Button>
+          <Button disabled>Solid</Button>
           <Button variant="secondary" theme="light" disabled>
             Light
           </Button>
@@ -254,118 +297,56 @@ export const States: Story = {
 }
 
 export const AllVariants: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare every semantic variant and visual treatment, including genuine light treatments and pressed feedback.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Primary buttons">
-        <Button variant="primary">BUTTON</Button>
-        <Button variant="primary" size="sm">
-          SMALL
-        </Button>
-        <Button variant="primary" size="md">
-          DEFAULT
-        </Button>
-        <Button variant="primary" size="lg">
-          LARGE
-        </Button>
-        <Button variant="primary" disabled>
-          DISABLED
-        </Button>
-      </VariantGroup>
-
-      <VariantGroup title="Secondary buttons">
-        <Button variant="secondary">BUTTON</Button>
-        <Button variant="secondary" size="sm">
-          SMALL
-        </Button>
-        <Button variant="secondary" size="md">
-          DEFAULT
-        </Button>
-        <Button variant="secondary" size="lg">
-          LARGE
-        </Button>
-        <Button variant="secondary" disabled>
-          DISABLED
-        </Button>
-      </VariantGroup>
-
-      <VariantGroup title="Tertiary buttons">
-        <Button variant="tertiary">BUTTON</Button>
-        <Button variant="tertiary" size="sm">
-          SMALL
-        </Button>
-        <Button variant="tertiary" size="md">
-          DEFAULT
-        </Button>
-        <Button variant="tertiary" size="lg">
-          LARGE
-        </Button>
-        <Button variant="tertiary" disabled>
-          DISABLED
-        </Button>
-      </VariantGroup>
-
-      <VariantGroup title="Warning buttons">
-        <Button variant="warning">WARNING</Button>
-        <Button variant="warning" size="sm">
-          SMALL
-        </Button>
-        <Button variant="warning" size="md">
-          DEFAULT
-        </Button>
-        <Button variant="warning" size="lg">
-          LARGE
-        </Button>
-        <Button variant="warning" disabled>
-          DISABLED
-        </Button>
-      </VariantGroup>
-
-      <VariantGroup title="Danger buttons">
-        <Button variant="danger">DANGER</Button>
-        <Button variant="danger" size="sm">
-          SMALL
-        </Button>
-        <Button variant="danger" size="md">
-          DEFAULT
-        </Button>
-        <Button variant="danger" size="lg">
-          LARGE
-        </Button>
-        <Button variant="danger" disabled>
-          DISABLED
-        </Button>
-      </VariantGroup>
-
-      <VariantGroup title="Light variants">
-        <Button variant="primary">PRIMARY LIGHT</Button>
-        <Button variant="secondary">SECONDARY LIGHT</Button>
-        <Button variant="tertiary">TERTIARY LIGHT</Button>
-        <Button variant="warning">WARNING LIGHT</Button>
-        <Button variant="danger">DANGER LIGHT</Button>
-      </VariantGroup>
-
-      <VariantGroup title="Full width buttons" fullWidth>
-        <Button variant="primary" block>
-          PRIMARY
-        </Button>
-        <Button variant="secondary" block>
-          SECONDARY
-        </Button>
-        <Button variant="tertiary" block>
-          TERTIARY
-        </Button>
-        <Button variant="warning" block>
-          WARNING
-        </Button>
-        <Button variant="danger" block>
-          DANGER
-        </Button>
-      </VariantGroup>
+      {(["solid", "light", "outlined", "borderless", "unstyled"] as const).map(
+        (theme) => (
+          <VariantGroup key={theme} title={`${theme} variants`}>
+            {(
+              ["primary", "secondary", "tertiary", "warning", "danger"] as const
+            ).map((variant) => (
+              <Button
+                data-variant={variant}
+                data-theme-treatment={theme}
+                key={variant}
+                theme={theme}
+                variant={variant}
+              >
+                {variant === "danger"
+                  ? "Delete project"
+                  : variant === "warning"
+                    ? "Review warning"
+                    : variant === "secondary"
+                      ? "View activity"
+                      : variant === "tertiary"
+                        ? "Explore details"
+                        : "Save changes"}
+              </Button>
+            ))}
+          </VariantGroup>
+        )
+      )}
     </VariantContainer>
   ),
 }
 
 export const IconButtons: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Icons reinforce visible action labels; icon-only actions require an accessible name.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Icon buttons">

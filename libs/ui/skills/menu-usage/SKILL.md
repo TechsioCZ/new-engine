@@ -5,7 +5,7 @@ description: >
   action, radio, checkbox, separator, or submenu items using the Zag.js menu
   wrapper, Button trigger, icons, and supported open/highlight/select props.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -158,3 +158,23 @@ rg -n "<Menu[^>]*className=.*(bg-|text-|rounded-|p-|shadow-)" apps
 rg -n "customTrigger=|type: \"submenu\"|onCheckedChange" apps
 ```
 
+## Popup and trigger contracts
+
+Canonical sizes are sm/md/lg (default md). Legacy xs is retained only for
+compatibility. The trigger and popup rows follow the root size. Popup Content and
+Positioner use the shared opaque popup surface and managed elevation.
+
+`contextMenu` uses right-click/long press or Shift+F10/ContextMenu on the focusable
+trigger, not left-click. A custom trigger must be a named interactive element;
+its event handlers are composed with Zag behavior, including preventDefault.
+Boolean customTrigger values fall back to the named built-in trigger rather than
+producing an empty button. className is applied to the trigger. Disabled submenus
+remain unavailable commands and do not mount a child machine. RTL direction
+propagates to nested menus and mirrors their directional glyphs.
+
+Checkbox/radio items are controlled: update the items array in onCheckedChange.
+For radio commands, clear the previous checked item in the same name group.
+
+Nested popups may overlap their parent when necessary on narrow viewports; their
+positioning is capped to the available viewport so flipped submenus do not clip
+commands off-screen.

@@ -1,3 +1,4 @@
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ReactNode, useMemo, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -24,10 +25,18 @@ import {
 import { AbraOwned, AkrosShell, akrosDocs, Notice } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Products",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -63,7 +72,7 @@ type Story = StoryObj
 function withSaleUnit(product: AkProduct, saleUnit: number): AkProduct {
   const minQty = Math.max(
     saleUnit,
-    Math.ceil(product.minQty / saleUnit) * saleUnit
+    Math.ceil(product.minQty / saleUnit) * saleUnit,
   )
   return { ...product, saleUnit, minQty }
 }
@@ -93,7 +102,7 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
   const [view, setView] = useState(initialView)
 
   const incomplete = products.filter(
-    (product) => missingCmsFields(product).length > 0
+    (product) => missingCmsFields(product).length > 0,
   )
   const rows = view === "incomplete" ? incomplete : products
 
@@ -149,7 +158,7 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
         meta: { type: "date", width: 130 },
       },
     ],
-    []
+    [],
   )
 
   return (
@@ -163,16 +172,16 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
             onClick={() =>
               toaster.create({
                 type: "info",
-                title: "ABRA import started",
+                title: "ABRA import preview",
                 description:
-                  "Prices, stock and the category tree refresh in a few minutes.",
+                  "A production import refreshes prices, stock and categories. This demo did not contact ABRA.",
               })
             }
             size="sm"
             theme="outlined"
             variant="secondary"
           >
-            Import from ABRA
+            About ABRA import
           </Button>
         }
         breadcrumb={[
@@ -239,8 +248,8 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
                       current.map((product) =>
                         product.id === rowId
                           ? withSaleUnit(product, Number(draft.saleUnit))
-                          : product
-                      )
+                          : product,
+                      ),
                     )
                     toaster.create({
                       type: "success",
@@ -315,6 +324,7 @@ function ProductEditorPage({ productId }: { productId: string }) {
   const [width, setWidth] = useState(product?.width ?? 0)
   const [height, setHeight] = useState(product?.height ?? 0)
   const [weight, setWeight] = useState(product?.weight ?? 0)
+  const [savedSnapshot, setSavedSnapshot] = useState<string>()
 
   if (!product) {
     return null
@@ -338,15 +348,37 @@ function ProductEditorPage({ productId }: { productId: string }) {
       <PageHeader
         actions={
           <Button
-            disabled={minQtyInvalid}
+            disabled={
+              minQtyInvalid ||
+              savedSnapshot ===
+                JSON.stringify({
+                  saleUnit,
+                  minQty,
+                  length,
+                  width,
+                  height,
+                  weight,
+                })
+            }
             icon="icon-[mdi--content-save-outline]"
-            onClick={() =>
+            onClick={() => {
+              setSavedSnapshot(
+                JSON.stringify({
+                  saleUnit,
+                  minQty,
+                  length,
+                  width,
+                  height,
+                  weight,
+                }),
+              )
               toaster.create({
                 type: "success",
-                title: "Product saved",
-                description: "CMS fields updated. ABRA fields are untouched.",
+                title: "Product draft saved locally",
+                description:
+                  "This demo retained your values; no CMS or ABRA request was sent.",
               })
-            }
+            }}
             size="sm"
             variant="primary"
           >
@@ -461,7 +493,9 @@ function ProductEditorPage({ productId }: { productId: string }) {
                       key={method.id}
                     >
                       <Icon
-                        className={ok ? "text-fg-accent-success" : "text-fg-secondary"}
+                        className={
+                          ok ? "text-fg-accent-success" : "text-fg-secondary"
+                        }
                         icon={
                           ok
                             ? "icon-[mdi--check-circle-outline]"
@@ -577,6 +611,15 @@ function ProductEditorPage({ productId }: { productId: string }) {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in products to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Product list",
   render: () => <ProductsPage />,
 }

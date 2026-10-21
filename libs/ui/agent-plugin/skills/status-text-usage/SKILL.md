@@ -200,3 +200,9 @@ extra icon wrappers are needed. Match sm/md/lg to the associated control.
 Errors default to role=alert; warning/success use role=status; neutral help has no
 live role. Validate on blur/submit and avoid duplicate enclosing live regions.
 Override role/ARIA if a parent already owns announcements.
+
+## Secondary feedback scale
+
+Feedback uses a deliberately quieter 12/14/16px sm/md/lg scale. Match the
+field size prop rather than choosing a smaller helper size to compensate
+for typography. Icons inherit this message scale and stay on its first line.

@@ -6,7 +6,7 @@ description: >
   triggers, content, indicator, orientation, activation mode, variants, fitted,
   and justify props.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -157,3 +157,18 @@ rg -n "setTab|<Tabs\\.Trigger[^>]*className=.*(bg-|text-|border-|data-\\[selecte
 rg -P -n "<Tabs\\.Trigger(?![^>]*value=)|<Tabs\\.Content(?![^>]*value=)" apps
 rg -n "<Tabs[^>]*variant=\"(primary|underline)\"" apps
 ```
+
+## Template default selection
+
+TabsTemplate selects the first enabled item when defaultValue is omitted. An
+explicit value/defaultValue still takes precedence. Keep trigger values matched
+to content and give every tab list a contextual accessible name where needed.
+Canonical sizes are sm/md/lg (default md). Use headings within panels rather than
+nested tabs, as shown by the sectioned-content story.
+
+Horizontal lists scroll within their available width on narrow surfaces. Trigger
+focus rings are inset so the scroll viewport cannot clip them. Content and root
+containers keep min-width zero; callers should constrain fixed demonstration
+widths with max-w-full. Center/end justification falls back to start when tabs
+overflow, keeping the first tab reachable. Line indicators stay inside the
+scrollport; default tabs underline the selected label even without an Indicator.

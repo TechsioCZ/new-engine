@@ -5,7 +5,7 @@ description: >
   for controlled quantity drafts with a visible unit, helper/error feedback,
   bounded stepping, accessible pending state and compact cart presentation.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -28,6 +28,15 @@ sources:
 Use QuantityField for product, cart and repeat-order quantities that need a
 visible unit, instructions, errors and an update-in-progress state. It is a
 presentation molecule over the kit's existing NumericInput engine.
+
+## Shared field contract
+
+Canonical sizes are `sm`, `md` (default), and `lg`. Helper, unit, pending and error
+IDs are merged on the native numeric input. Errors include their status icon and
+set both `aria-invalid` and `aria-errormessage`. Read-only keeps text selectable
+with a text cursor and focusable, guards value/commit callbacks, and omits step
+buttons; disabled and pending remain unavailable states rather than read-only
+shortcuts.
 
 ## UX/UI guidelines
 

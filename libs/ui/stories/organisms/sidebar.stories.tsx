@@ -213,7 +213,7 @@ function DashboardHeader({
 
 function DashboardContent({ title }: { title: string }) {
   return (
-    <div className="grid min-h-screen gap-300 bg-base p-300">
+    <div className="grid min-h-screen content-start gap-300 bg-base p-300">
       <section aria-labelledby="dashboard-heading" className="grid gap-100">
         <h1 className="text-fg-primary" id="dashboard-heading">
           {title}
@@ -261,11 +261,12 @@ const meta = {
   component: Sidebar,
   tags: ["autodocs"],
   parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
     layout: "fullscreen",
     docs: {
       description: {
         component:
-          "A responsive application shell with independently controlled logical start and end panels.",
+          "A responsive application shell with independently controlled logical start and end panels. Use it for persistent application navigation; choose Header for a compact site bar and Drawer for a standalone temporary overlay. Panel sizes (rail/content) are width/layout roles, not sm/md/lg form-control heights.",
       },
     },
   },
@@ -297,6 +298,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
+  parameters: { docs: { description: { story: "Use the controls to explore the component in a realistic layout without leaving the preview." } } },
   args: {
     expanded: ["start"],
   },
@@ -356,6 +358,8 @@ function ControlledOffcanvasExample() {
 }
 
 export const ControlledOffcanvas: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "Control the panel from application state while preserving separate desktop expansion and mobile overlay behavior." } } },
   name: "State - Controlled offcanvas",
   args: {},
   render: () => <ControlledOffcanvasExample />,
@@ -445,6 +449,7 @@ export const BreakpointFocusTransfer: Story = {
   name: "State - Breakpoint focus transfer",
   args: {},
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -456,6 +461,7 @@ export const BreakpointFocusTransfer: Story = {
 }
 
 export const IconCollapseSidebar07: Story = {
+  parameters: { docs: { description: { story: "An icon-collapse rail keeps frequent destinations available when the full navigation labels are hidden." } } },
   name: "Sidebar 07 - Icon collapse",
   args: {
     defaultExpanded: [],
@@ -593,6 +599,7 @@ function TwoPanePanel() {
 }
 
 export const TwoPaneSidebar09: Story = {
+  parameters: { docs: { description: { story: "Separate workspace selection from contextual destinations when a single navigation panel would mix unrelated levels." } } },
   name: "Sidebar 09 - Two physical panes",
   render: (args) => (
     <Sidebar {...args}>
@@ -603,6 +610,7 @@ export const TwoPaneSidebar09: Story = {
 }
 
 export const RightSidebar14: Story = {
+  parameters: { docs: { description: { story: "A logical end panel holds supporting context without displacing the main navigation at the start edge." } } },
   name: "Sidebar 14 - Right",
   args: {
     defaultExpanded: ["end"],
@@ -640,6 +648,7 @@ function DualSidebarHeader() {
 }
 
 export const LeftAndRightSidebar15: Story = {
+  parameters: { docs: { description: { story: "Independent start and end panels keep primary navigation and supporting details under separate controls." } } },
   name: "Sidebar 15 - Left and right",
   args: {
     defaultExpanded: ["start", "end"],
@@ -661,6 +670,7 @@ export const LeftAndRightSidebar15: Story = {
 }
 
 export const LogicalEdgesRtl: Story = {
+  parameters: { docs: { description: { story: "Logical start and end panels mirror correctly for right-to-left layouts without reversing the content hierarchy." } } },
   name: "RTL - Logical edges",
   args: {
     defaultExpanded: ["start", "end"],
@@ -695,6 +705,7 @@ const stickyHeaderStyle: CSSProperties = {
 }
 
 export const StickySiteHeaderSidebar16: Story = {
+  parameters: { docs: { description: { story: "A shared site header remains above the sidebar shell without covering its panel controls or page content." } } },
   name: "Sidebar 16 - Sticky full-width header",
   render: (args) => (
     <Sidebar {...args} className="flex-col" style={sidebarOffsetStyle}>

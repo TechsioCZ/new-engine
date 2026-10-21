@@ -1,3 +1,5 @@
+import { expect, userEvent, within } from "storybook/test"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Badge } from "../../src/atoms/badge"
@@ -10,17 +12,33 @@ import { Steps } from "../../src/molecules/steps"
 import { Tabs } from "../../src/molecules/tabs"
 import { Toaster, useToast } from "../../src/molecules/toast"
 import { Table } from "../../src/organisms/table"
-import { adminNav, currency, orderLines, orders, storefrontProducts, formatDate } from "./data"
-import { Brand, Frame, GlobalSearch, NavList, Panel, TopBar } from "./frame"
+import {
+  adminNav,
+  currency,
+  orderLines,
+  orders,
+  storefrontProducts,
+  formatDate,
+} from "./data"
+import {
+  Brand,
+  Frame,
+  GlobalSearch,
+  NavDrawer,
+  NavList,
+  Panel,
+  TopBar,
+} from "./frame"
 import { DetailList, PageHeader, SectionCard, StatusBadge } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/E-commerce/Order detail",
   parameters: {
@@ -61,25 +79,81 @@ const fulfilmentSteps = [
 ]
 
 const orderMenu: MenuItem[] = [
-  { type: "action", value: "invoice", label: "Download invoice", icon: "icon-[mdi--file-pdf-box]" },
-  { type: "action", value: "resend", label: "Resend confirmation", icon: "icon-[mdi--email-sync-outline]" },
-  { type: "action", value: "note", label: "Add internal note", icon: "icon-[mdi--note-plus-outline]" },
+  {
+    type: "action",
+    value: "invoice",
+    label: "Download invoice",
+    icon: "icon-[mdi--file-pdf-box]",
+  },
+  {
+    type: "action",
+    value: "resend",
+    label: "Resend confirmation",
+    icon: "icon-[mdi--email-sync-outline]",
+  },
+  {
+    type: "action",
+    value: "note",
+    label: "Add internal note",
+    icon: "icon-[mdi--note-plus-outline]",
+  },
   { type: "separator", id: "danger" },
-  { type: "action", value: "refund", label: "Refund order", icon: "icon-[mdi--cash-refund]" },
-  { type: "action", value: "cancel", label: "Cancel order", icon: "icon-[mdi--close-circle-outline]" },
+  {
+    type: "action",
+    value: "refund",
+    label: "Refund order",
+    icon: "icon-[mdi--cash-refund]",
+  },
+  {
+    type: "action",
+    value: "cancel",
+    label: "Cancel order",
+    icon: "icon-[mdi--close-circle-outline]",
+  },
 ]
 
-const timeline: { id: string; icon: IconType; title: string; detail: string; at: string }[] = [
-  { id: "ev-1", icon: "icon-[mdi--package-variant-closed]", title: "Items picked", detail: "Warehouse Prague · picked by T. Dvořák", at: "11 Sep, 11:10" },
-  { id: "ev-2", icon: "icon-[mdi--email-check-outline]", title: "Confirmation sent", detail: "marta.n@example.com · opened", at: "11 Sep, 09:44" },
-  { id: "ev-3", icon: "icon-[mdi--credit-card-check-outline]", title: "Payment captured", detail: "Card ending 4242 · 248 €", at: "11 Sep, 09:42" },
-  { id: "ev-4", icon: "icon-[mdi--cart-outline]", title: "Order placed", detail: "Web · session from Prague, CZ", at: "11 Sep, 09:41" },
+const timeline: {
+  id: string
+  icon: IconType
+  title: string
+  detail: string
+  at: string
+}[] = [
+  {
+    id: "ev-1",
+    icon: "icon-[mdi--package-variant-closed]",
+    title: "Items picked",
+    detail: "Warehouse Prague · picked by T. Dvořák",
+    at: "11 Sep, 11:10",
+  },
+  {
+    id: "ev-2",
+    icon: "icon-[mdi--email-check-outline]",
+    title: "Confirmation sent",
+    detail: "marta.n@example.com · opened",
+    at: "11 Sep, 09:44",
+  },
+  {
+    id: "ev-3",
+    icon: "icon-[mdi--credit-card-check-outline]",
+    title: "Payment captured",
+    detail: "Card ending 4242 · payment captured",
+    at: "11 Sep, 09:42",
+  },
+  {
+    id: "ev-4",
+    icon: "icon-[mdi--cart-outline]",
+    title: "Order placed",
+    detail: "Web · session from Prague, CZ",
+    at: "11 Sep, 09:41",
+  },
 ]
 
 function OrderDetailPage() {
   const toaster = useToast()
   const [nav, setNav] = useState("sales-orders")
   const [refunding, setRefunding] = useState(false)
+  const [refunded, setRefunded] = useState(false)
   const [step, setStep] = useState(2)
 
   const [order] = orders
@@ -89,6 +163,8 @@ function OrderDetailPage() {
     0
   )
 
+  const tax = Math.round(subtotal * 0.21 * 100) / 100
+  const total = subtotal + tax
   if (!order) {
     return null
   }
@@ -106,7 +182,12 @@ function OrderDetailPage() {
           />
         </Panel>
       }
-      top={<TopBar center={<GlobalSearch placeholder="Search orders…" />} />}
+      top={
+        <TopBar
+          center={<GlobalSearch placeholder="Search orders…" />}
+          start={<NavDrawer nav={adminNav} onSelect={setNav} selected={nav} />}
+        />
+      }
     >
       <Toaster />
 
@@ -125,7 +206,14 @@ function OrderDetailPage() {
                   More
                 </Button>
               }
-              items={orderMenu}
+              items={orderMenu.filter(
+                (item) =>
+                  !(
+                    refunded &&
+                    item.type === "action" &&
+                    item.value === "refund"
+                  )
+              )}
               onSelect={({ value }) => {
                 if (value === "refund") {
                   setRefunding(true)
@@ -162,8 +250,8 @@ function OrderDetailPage() {
                         : "Fulfilment created",
                     description:
                       next === fulfilmentSteps.length - 1
-                        ? "The customer has been notified."
-                        : "Carrier label generated.",
+                        ? "Fulfilment updated locally. No notification was sent."
+                        : "Fulfilment updated locally. No carrier label was generated.",
                   })
                 }}
                 size="sm"
@@ -183,7 +271,7 @@ function OrderDetailPage() {
         description={`Placed ${formatDate(order.placedAt)} · ${order.channel} · ${order.items} items`}
         meta={
           <>
-            <StatusBadge status={order.status} />
+            <StatusBadge status={refunded ? "refunded" : order.status} />
             <Badge size="sm" variant="outline">
               Prepaid
             </Badge>
@@ -193,7 +281,12 @@ function OrderDetailPage() {
       />
 
       <SectionCard title="Fulfilment">
-        <Steps count={fulfilmentSteps.length} size="sm" step={step} variant="solid">
+        <Steps
+          count={fulfilmentSteps.length}
+          size="sm"
+          step={step}
+          variant="solid"
+        >
           <Steps.List>
             {fulfilmentSteps.map((entry, index) => (
               <Steps.Item index={index} key={entry.title}>
@@ -231,12 +324,13 @@ function OrderDetailPage() {
                       <Table.Cell>
                         <span className="flex items-center gap-150">
                           <Image
-                            alt={line.product}
+                            alt=""
                             className="size-icon-control-lg rounded-md object-cover"
                             size="custom"
                             src={
-                              storefrontProducts[index % storefrontProducts.length]
-                                ?.image ?? ""
+                              storefrontProducts[
+                                index % storefrontProducts.length
+                              ]?.image ?? ""
                             }
                           />
                           {line.product}
@@ -275,12 +369,16 @@ function OrderDetailPage() {
                       </span>
                       <div className="flex min-w-0 flex-col gap-50">
                         <div className="flex flex-wrap items-baseline gap-150">
-                          <span className="font-medium text-sm">{event.title}</span>
+                          <span className="font-medium text-sm">
+                            {event.title}
+                          </span>
                           <span className="text-fg-secondary text-xs">
                             {event.at}
                           </span>
                         </div>
-                        <p className="text-fg-secondary text-sm">{event.detail}</p>
+                        <p className="text-fg-secondary text-sm">
+                          {event.detail}
+                        </p>
                       </div>
                     </li>
                   ))}
@@ -294,21 +392,23 @@ function OrderDetailPage() {
                 </p>
               </Tabs.Content>
 
-              <Tabs.Content className="flex flex-col gap-150 p-250" value="documents">
-                {["Invoice 2026-10241.pdf", "Delivery note 10241.pdf"].map((file) => (
-                  <div
-                    className="flex items-center justify-between gap-150 rounded-md border border-border-primary p-150"
-                    key={file}
-                  >
-                    <span className="flex items-center gap-150 text-sm">
-                      <Icon icon="icon-[mdi--file-pdf-box]" size="md" />
-                      {file}
-                    </span>
-                    <Button size="sm" theme="borderless" variant="secondary">
-                      Download
-                    </Button>
-                  </div>
-                ))}
+              <Tabs.Content
+                className="flex flex-col gap-150 p-250"
+                value="documents"
+              >
+                {["Invoice 2026-10241.pdf", "Delivery note 10241.pdf"].map(
+                  (file) => (
+                    <div
+                      className="flex items-center justify-between gap-150 rounded-md border border-border-primary p-150"
+                      key={file}
+                    >
+                      <span className="flex items-center gap-150 text-sm">
+                        <Icon icon="icon-[mdi--file-pdf-box]" size="md" />
+                        {file}
+                      </span>
+                    </div>
+                  )
+                )}
               </Tabs.Content>
             </Tabs>
           </SectionCard>
@@ -327,35 +427,31 @@ function OrderDetailPage() {
               </div>
               <div className="flex items-center justify-between gap-150">
                 <dt className="text-fg-secondary text-sm">Tax (21%)</dt>
-                <dd className="text-sm">{currency.format(subtotal * 0.21)}</dd>
+                <dd className="text-sm">{currency.format(tax)}</dd>
               </div>
               <div className="flex items-center justify-between gap-150 border-border-primary border-t pt-100">
-                <dt className="font-semibold text-sm">Paid</dt>
+                <dt className="font-semibold text-sm">
+                  {refunded ? "Refunded" : "Paid"}
+                </dt>
                 <dd className="font-semibold text-md">
-                  {currency.format(order.total)}
+                  {currency.format(total)}
                 </dd>
               </div>
             </dl>
             <Button
               block
               icon="icon-[mdi--cash-refund]"
+              disabled={refunded}
               onClick={() => setRefunding(true)}
               size="sm"
               theme="outlined"
               variant="danger"
             >
-              Refund
+              {refunded ? "Refunded" : "Refund"}
             </Button>
           </SectionCard>
 
-          <SectionCard
-            actions={
-              <Button size="sm" theme="borderless" variant="secondary">
-                Open in CRM
-              </Button>
-            }
-            title="Customer"
-          >
+          <SectionCard actions={null} title="Customer">
             <DetailList
               items={[
                 { term: "Name", value: order.customer },
@@ -396,20 +492,22 @@ function OrderDetailPage() {
             <Button
               onClick={() => {
                 setRefunding(false)
+                setRefunded(true)
                 toaster.create({
                   type: "success",
-                  title: "Refund issued",
-                  description: `${currency.format(order.total)} returned to the original card.`,
+                  title: "Demo refund recorded",
+                  description:
+                    "This local demo order is now refunded. No payment provider was contacted.",
                 })
               }}
               variant="danger"
             >
-              {`Refund ${currency.format(order.total)}`}
+              {`Refund ${currency.format(total)}`}
             </Button>
           </>
         }
         customTrigger
-        description={`${currency.format(order.total)} will be returned to the card ending 4242. Refunds cannot be reversed, and the fulfilment must be cancelled separately.`}
+        description={`Record a local demo refund of ${currency.format(total)}. No real card will be refunded; production refunds need a payment provider and separate fulfilment cancellation.`}
         onOpenChange={(details) => setRefunding(details.open)}
         open={refunding}
         role="alertdialog"
@@ -421,6 +519,32 @@ function OrderDetailPage() {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "Refund" }))
+    const body = within(canvasElement.ownerDocument.body)
+    const dialog = body.getByRole("alertdialog")
+    await expect(
+      within(dialog).getByRole("button", { name: /^Refund / })
+    ).toHaveTextContent("100")
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: /^Refund / })
+    )
+    await expect(
+      canvas.getByRole("button", { name: "Refunded" })
+    ).toBeDisabled()
+    await expect(canvas.getAllByText("Refunded").length).toBeGreaterThan(0)
+  },
+
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Inspect a locally modeled order and its payment or fulfilment decisions while keeping navigation available.",
+      },
+    },
+  },
+
   name: "Single record",
   render: () => <OrderDetailPage />,
 }

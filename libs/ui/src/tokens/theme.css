@@ -33,6 +33,11 @@
     var(--color-brand-blue),
     var(--color-brand-blue-dark)
   );
+  /* Current Figma semantic surface sources (legacy --color-primary above is
+   * retained for older consumers). */
+  --color-bg-primary-base: var(--color-primary);
+  --color-bg-primary-hover: oklch(from var(--color-primary) calc(l - 0.06) c h);
+  --color-bg-primary-active: oklch(from var(--color-primary) calc(l - 0.1) c h);
   --color-secondary: var(--color-brand-green);
   --color-tertiary: var(--color-brand-coral);
   --color-info: light-dark(oklch(58% 0.14 210), oklch(77% 0.13 210));

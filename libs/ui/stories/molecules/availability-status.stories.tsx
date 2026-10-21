@@ -128,17 +128,17 @@ export const Playground: Story = {
     await expect(root).toHaveAttribute("data-status", args.status)
     if (args.status === "pending") {
       await expect(
-        canvas.getByText(args.pendingLabel ?? "Checking availability")
+        canvas.getByText(args.pendingLabel ?? "Checking availability"),
       ).toHaveClass("sr-only")
       await expect(root?.querySelector('[aria-busy="true"]')).toHaveAttribute(
         "aria-hidden",
-        "true"
+        "true",
       )
       await expect(
-        root?.querySelector(".text-availability-status-label-size")
+        root?.querySelector(".text-availability-status-label-size"),
       ).toBeNull()
       await expect(
-        root?.querySelector(".text-availability-status-detail-size")
+        root?.querySelector(".text-availability-status-detail-size"),
       ).toBeNull()
     } else {
       await expect(canvas.getByText(args.label ?? "In stock")).toBeVisible()
@@ -146,12 +146,12 @@ export const Playground: Story = {
         await expect(canvas.getByText(args.detail)).toBeVisible()
       }
       await expect(root?.querySelectorAll('[aria-hidden="true"]')).toHaveLength(
-        args.showIcon === false ? 0 : 1
+        args.showIcon === false ? 0 : 1,
       )
       if (args.icon && args.showIcon !== false) {
         await expect(root?.querySelector('[aria-hidden="true"]')).toHaveClass(
           args.icon,
-          { exact: false }
+          { exact: false },
         )
       }
     }

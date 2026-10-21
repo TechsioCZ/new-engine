@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.5
+ * @componentVersion v1.0.6
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -503,7 +503,7 @@ Tour.ActionTrigger = function TourActionTrigger({
     <Button
       {...mergeProps(props, machineProps)}
       aria-label={
-        props["aria-label"] ?? (children != null ? undefined : machineLabel)
+        props["aria-label"] ?? (children == null ? machineLabel : undefined)
       }
       disabled={disabled || machineDisabled}
       onClick={(event) => {

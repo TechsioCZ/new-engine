@@ -1,3 +1,4 @@
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -28,10 +29,18 @@ import {
 import { AkrosShell, akrosDocs } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Shipping & payment",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -120,7 +129,7 @@ function ShippingEditor({
   const [draft, setDraft] = useState(method)
   const set = <K extends keyof ShippingMethod>(
     key: K,
-    value: ShippingMethod[K]
+    value: ShippingMethod[K],
   ) => setDraft((current) => ({ ...current, [key]: value }))
 
   return (
@@ -232,11 +241,11 @@ function ShippingEditor({
                     "payments",
                     checked
                       ? [...draft.payments, payment]
-                      : draft.payments.filter((entry) => entry !== payment)
+                      : draft.payments.filter((entry) => entry !== payment),
                   )
                 }
               />
-            )
+            ),
           )}
         </section>
 
@@ -270,8 +279,8 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
   const toggleShipping = (id: string, enabled: boolean) => {
     setShipping((current) =>
       current.map((method) =>
-        method.id === id ? { ...method, enabled } : method
-      )
+        method.id === id ? { ...method, enabled } : method,
+      ),
     )
     toaster.create({
       type: enabled ? "success" : "info",
@@ -390,8 +399,8 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
               current.map((entry) =>
                 entry.id === info.row.original.id
                   ? { ...entry, enabled: checked }
-                  : entry
-              )
+                  : entry,
+              ),
             )
             toaster.create({
               type: "info",
@@ -412,11 +421,7 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
       <Toaster />
 
       <PageHeader
-        actions={
-          <Button icon="icon-[mdi--plus]" size="sm" variant="primary">
-            New method
-          </Button>
-        }
+        actions={null}
         breadcrumb={[
           { label: "Home", href: "#" },
           { label: "Settings", href: "#" },
@@ -513,11 +518,11 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
                                       payments: checked
                                         ? [...entry.payments, payment.id]
                                         : entry.payments.filter(
-                                            (p) => p !== payment.id
+                                            (p) => p !== payment.id,
                                           ),
                                     }
-                                  : entry
-                              )
+                                  : entry,
+                              ),
                             )
                           }}
                         />
@@ -537,7 +542,7 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
           onClose={() => setEditing(undefined)}
           onSave={(next) => {
             setShipping((current) =>
-              current.map((method) => (method.id === next.id ? next : method))
+              current.map((method) => (method.id === next.id ? next : method)),
             )
             setEditing(undefined)
             toaster.create({ type: "success", title: `${next.name} saved` })
@@ -549,6 +554,15 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in shipping payments to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Shipping & payment methods",
   render: () => <ShippingPaymentsPage />,
 }

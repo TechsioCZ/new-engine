@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Input atom, including valid size, variant, embedded button
   spacing, and token-first validation styling.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -74,6 +74,7 @@ size: sm | md | lg
 withButtonInside: false | right | left
 hideSearchClear: boolean
 disabled: native boolean
+readOnly: native boolean (focusable, selectable, immutable)
 ```
 
 ## Core Patterns
@@ -98,7 +99,7 @@ alias declaration scope still apply.
   name="email"
   label="Email"
   type="email"
-  helperText="We will send the receipt here."
+  helpText="We will send the receipt here."
 />
 ```
 
@@ -187,7 +188,7 @@ Wrong:
 Correct:
 
 ```tsx
-<FormInput id="email" label="Email" errorText="Required" variant="error" />
+<FormInput id="email" label="Email" helpText="Enter your email address." validateStatus="error" />
 ```
 
 Use the form molecule when it exists.
@@ -200,3 +201,24 @@ rg -n "<Input[^>]*className=.*(border-|bg-|text-|placeholder:|px-|py-)" apps
 rg -U -n "<Label[\\s\\S]{0,240}<Input" apps
 rg -n "withButtonInside|hideSearchClear" apps
 ```
+
+## Read-only, search clear and validation
+
+`readOnly` keeps the value focusable, selectable and included in form submission,
+with full-contrast text and a subtle read-only surface. Disabled wins when both
+props are set. Native edits, paste and drop cannot change a read-only value;
+the native search clear is hidden in this state. `hideSearchClear={false}`
+otherwise preserves the browser search cancel button and is not a DOM prop.
+A stable unique input ID is generated when no nonempty `id` is supplied.
+
+For bare validation, render StatusText with a unique ID; merge it into
+`aria-describedby` and use `aria-errormessage` plus `aria-invalid` for errors.
+State icons remain enabled. Use FormInput to handle this association for you.
+
+
+### Component-specific read-only colors
+
+Override `--color-input-bg-readonly` and `--color-input-fg-readonly`
+to tune only this field's read-only surface and value. The default reference
+aliases follow `--color-form-control-readonly` and `--color-form-control-text`.
+These overrides also apply on hover/focus; disabled styling still wins.

@@ -15,3 +15,4 @@ node-compile-cache
 
 # Ignore generated accessibility reports from storybook (a11y)
 a11y-report/
+/unused-tokens-report.md

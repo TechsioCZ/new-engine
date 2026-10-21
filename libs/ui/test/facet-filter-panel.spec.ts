@@ -190,3 +190,20 @@ test("drawer closes with Escape, restores focus and retains values", async ({
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole("checkbox", { name: /Linen/ })).toBeChecked()
 })
+
+test("price thumbs have distinct names and read-only filters cannot change", async ({
+  page,
+}) => {
+  await openStory(page, "templates-facetfilterpanel--read-only")
+  const minimum = page.getByRole("slider", { name: "Minimum price" })
+  const maximum = page.getByRole("slider", { name: "Maximum price" })
+  await expect(minimum).toHaveAttribute("aria-readonly", "true")
+  const value = await minimum.getAttribute("aria-valuenow")
+  await minimum.focus()
+  await minimum.press("End")
+  await expect(minimum).toHaveAttribute("aria-valuenow", value ?? "0")
+  await expect(maximum).toBeVisible()
+  await expect(page.getByRole("button", { name: "Clear filters" })).toHaveCount(
+    0
+  )
+})

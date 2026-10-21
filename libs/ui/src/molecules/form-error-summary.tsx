@@ -2,14 +2,14 @@
  * FormErrorSummary — @techsio/ui-kit molecule.
  *
  * @component FormErrorSummary
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill form-error-summary-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the form-error-summary-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { Ref } from "react"
+import { type Ref, useId } from "react"
 import { tv } from "../utils"
 
 export type FormErrorSummaryError = {
@@ -35,6 +35,7 @@ const formErrorSummaryVariants = tv({
       "border-form-error-summary-border",
       "bg-form-error-summary-bg",
       "p-300",
+      "focus-visible:form-error-summary-focus-ring",
     ],
     title: ["text-label-md", "font-medium", "text-form-error-summary-fg"],
     list: ["m-0", "flex list-none flex-col gap-100 p-0"],
@@ -54,6 +55,7 @@ export function FormErrorSummary({
   className,
   ref,
 }: FormErrorSummaryProps) {
+  const titleId = useId()
   if (errors.length === 0) {
     return null
   }
@@ -61,15 +63,33 @@ export function FormErrorSummary({
   const styles = formErrorSummaryVariants()
 
   return (
-    <div className={styles.root({ className })} ref={ref} role="alert">
-      <h2 className={styles.title()}>{title}</h2>
+    <div
+      aria-labelledby={titleId}
+      className={styles.root({ className })}
+      ref={ref}
+      role="alert"
+      tabIndex={-1}
+    >
+      <h2 className={styles.title()} id={titleId}>
+        {title}
+      </h2>
       <ul className={styles.list()}>
         {errors.map((error) => (
           <li key={error.id}>
             <a
               className={styles.link()}
               href={`#${error.targetId}`}
-              onClick={() => onFieldFocus?.(error.targetId)}
+              onClick={(event) => {
+                const target = event.currentTarget.ownerDocument.getElementById(
+                  error.targetId
+                )
+                if (target) {
+                  event.preventDefault()
+                  target.focus()
+                  target.scrollIntoView({ block: "nearest" })
+                }
+                onFieldFocus?.(error.targetId)
+              }}
             >
               {error.label}
             </a>

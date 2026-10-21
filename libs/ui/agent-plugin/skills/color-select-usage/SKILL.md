@@ -5,7 +5,7 @@ description: >
   for choosing color swatches with supported layout, size, radius, disabled
   state, selected state, labels, counts, and single/multiple roles.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -144,3 +144,31 @@ rg -n "<ColorSelect[^>]*colors=|selectionMode=|onColorClick=" apps
 rg -n "<ColorSelect[^>]*size=\"(xs|xl)\"|radius=\"(none|circle)\"" apps
 ```
 
+
+## Field contracts
+
+Canonical sizes are sm/md/lg, default md. `full` remains a compatibility
+fill-container sizing mode. Swatch targets use shared form-control heights and matching component width
+aliases (32/44/56px in the standard scale). The visible label follows the size.
+Provide `label` (default `Color`), `aria-label` or `aria-labelledby` to name the
+group; each product color should also have a human-readable label.
+
+Single selection uses one radio tab stop. Arrow keys move focus and selection,
+skipping unavailable colors; Home/End select the first/last enabled swatch.
+Horizontal navigation respects RTL. Multiple selection uses independent
+checkbox tab stops. `colors[].selected` remains controlled by the consumer;
+`onColorClick` must select (not toggle off) a radio value, and may toggle in
+multiple mode. Swatch buttons never submit a surrounding form.
+
+`readOnly` retains contrast, focus and selected state but blocks clicks and
+keyboard mutation. `disabled` wins and removes the tab stops. `helpText` with
+`validateStatus` renders a linked StatusText with the state icon and error ARIA
+attributes on each swatch. Caller description IDs are preserved. An optional
+`name` submits each selected color as a separate hidden form entry, excluding
+disabled colors. Figma-sync handoff is required for the updated sizing/states.
+
+The selected checkmark uses a paired foreground/background badge so its contrast
+does not depend on an arbitrary product swatch color.
+
+Swatch captions and counts follow the component typography tokens for each size
+(`--text-color-select-sm`, `-md`, `-lg`); they do not inherit fixed body text.

@@ -144,3 +144,7 @@ dynamically and needs an announcement.
 rg -n "<AvailabilityStatus[^>]*(quantity=|inventory=|inStock=)" apps
 rg -n "status=\"unavailable\"[^>]*label=\".*(unknown|neznám)" apps
 ```
+
+## Shared documentation contract
+
+AvailabilityStatus is display-only and has no form-control size or disabled/readOnly state. Its status label and decorative icon communicate meaning together. Use StatusText for below-field validation instead; use one parent live region when a group of price and availability values loads together.

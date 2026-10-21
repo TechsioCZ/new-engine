@@ -21,11 +21,11 @@ pnpm check:unused-tokens    # Find unused tokens
 
 @theme static {
   /* Reference layer first */
-  --color-button-primary: var(--color-primary);
+  --color-button-primary: var(--color-bg-primary-base);
   --color-button-secondary: var(--color-secondary);
   
   /* Then derived tokens */
-  --color-button-bg-primary: var(--color-button-primary);
+  --color-button-bg-primary-base: var(--color-button-primary);
   --color-button-fg-primary: var(--color-fg-reverse);
   
   /* Spacing - separate single and composite */
@@ -178,7 +178,7 @@ Derived Colors
 
 /* === DERIVED COLORS === */
 /* Background colors - using reference layer */
---color-button-bg-primary: var(--color-button-primary);
+--color-button-bg-primary-base: var(--color-button-primary);
 --color-button-bg-secondary: var(--color-button-secondary);
 --color-button-bg-danger: var(--color-button-danger);
 
@@ -319,8 +319,8 @@ Forbidden Patterns
 --spacing-component: 1rem;               /* Use semantic token */
 
 /* ✅ CORRECT */
---color-button-bg-primary:               /* Explicit suffix */
---color-button-primary: var(--color-primary); /* Reference layer */
+--color-button-bg-primary-base:               /* Explicit suffix */
+--color-button-primary: var(--color-bg-primary-base); /* Reference layer */
 --color-button-fg-primary:               /* Use -fg for text */
 --spacing-button-padding: var(--spacing-200); /* Semantic reference */
 
@@ -352,3 +352,22 @@ Required Section Order
 9. /* === BORDERS & RADIUS === */
 10. /* === SHADOWS === */
 11. /* === FOCUS RINGS === */
+## Runtime validation and customization
+
+Run validators from any working directory; they resolve the package from
+their script URL. Definition validation scans primitive, shared, component,
+merged Figma and brand CSS and rejects undefined `var()` references.
+Optional fallbacks and documented Zag/Floating UI properties are allowed.
+Regenerate nested scheme aliases with
+`node scripts/validate-token-scopes.js --write` after alias changes.
+
+`check-unused-tokens.js` writes the report to stdout by default. An explicit
+`--output=/absolute/path/unused-tokens-report.md` opts into a file. Never
+write reports into the package as a side effect of a read-only check.
+
+Current primary surfaces use `--color-bg-primary-base`, `-hover`, `-active`;
+the legacy `--color-primary` is not the Figma-backed Button source. Keep
+component exceptions on the exact shipped token (for example
+`--color-button-bg-primary-base`). Font weights use `--font-weight-*`,
+font families use `--font-*`. Duration values must carry real CSS time units;
+ordinal Figma steps require the documented runtime bridge, not `1ms/2ms/3ms`.

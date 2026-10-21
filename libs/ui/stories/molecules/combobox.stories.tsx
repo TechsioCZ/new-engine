@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useEffect, useState } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
-import { VariantContainer } from '../../.storybook/decorator'
+import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
 import { Button } from '../../src/atoms/button'
 import { Icon } from '../../src/atoms/icon'
@@ -28,6 +28,7 @@ const meta: Meta<typeof Combobox> = {
     </div>
   ),
   parameters: {
+    controls: { include: ["label", "placeholder", "helpText", "size", "validateStatus", "showHelpTextIcon", "disabled", "readOnly", "required", "multiple", "clearable", "closeOnSelect", "inputBehavior", "selectionBehavior"] },
     layout: 'padded',
     docs: {
       description: {
@@ -37,6 +38,7 @@ const meta: Meta<typeof Combobox> = {
   },
   tags: ['autodocs'],
   argTypes: {
+    id: { control: false, table: { disable: true } },
     // Text inputs
     label: { control: 'text', description: 'Label text' },
     placeholder: { control: 'text', description: 'Placeholder text' },
@@ -156,30 +158,32 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <div className="mx-auto w-full max-w-sm"><VariantContainer>
-      <Combobox
-        label="Small size"
-        placeholder="Select country"
-        items={countries}
-        helpText="Small combobox variant"
-        size="sm"
-      />
-      <Combobox
-        label="Medium size"
-        placeholder="Select country"
-        items={countries}
-        helpText="Medium combobox variant (default)"
-        size="md"
-      />
-      <Combobox
-        label="Large size"
-        placeholder="Select country"
-        items={countries}
-        helpText="Large combobox variant"
-        size="lg"
-      />
-    </VariantContainer></div>
+    <div className="mx-auto w-full max-w-sm">
+      <VariantContainer>
+        {(["sm", "md", "lg"] as const).map((size, index) => (
+          <VariantGroup key={size} title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? "Medium (md)"} fullWidth>
+            <Combobox
+              label="Country"
+              placeholder="Select country"
+              items={countries}
+              helpText="Choose your country of residence."
+              defaultValue="cz"
+              size={size}
+            />
+          </VariantGroup>
+        ))}
+      </VariantContainer>
+    </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const fonts = canvas.getAllByText("Country", { exact: true }).map((label) =>
+      Number.parseFloat(getComputedStyle(label).fontSize)
+    )
+    await expect(fonts).toHaveLength(3)
+    await expect(fonts[0]).toBeLessThan(fonts[1] ?? 0)
+    await expect(fonts[1]).toBeLessThan(fonts[2] ?? 0)
+  },
 }
 
 export const ValidationStates: Story = {
@@ -603,4 +607,121 @@ export const RichItem: Story = {
       />
     </div>
   ),
+}
+
+
+export const NativeFormValues: Story = {
+  parameters: { docs: { description: { story: "Single and multiple selections submit their item values, including read-only fields, while disabled fields submit nothing." } } },
+  render: () => (
+    <div className="mx-auto flex w-full max-w-sm flex-col gap-300">
+      <form aria-label="Single selection" onSubmit={(event) => event.preventDefault()}>
+        <Combobox items={countries} label="Country" name="country" defaultValue="us" />
+      </form>
+      <form aria-label="Multiple selection" onSubmit={(event) => event.preventDefault()}>
+        <Combobox items={countries} label="Delivery countries" name="country" multiple defaultValue={["us", "de"]} />
+      </form>
+      <form aria-label="Read-only selection" onSubmit={(event) => event.preventDefault()}>
+        <Combobox items={countries} label="Saved countries" name="country" multiple defaultValue={["us", "de"]} readOnly />
+      </form>
+      <form aria-label="Disabled selection" onSubmit={(event) => event.preventDefault()}>
+        <Combobox items={countries} label="Unavailable country" name="country" defaultValue="us" disabled />
+      </form>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(new FormData(canvas.getByRole("form", { name: "Single selection" }) as HTMLFormElement).getAll("country")).toEqual(["us"])
+    await expect(new FormData(canvas.getByRole("form", { name: "Multiple selection" }) as HTMLFormElement).getAll("country")).toEqual(["us", "de"])
+    await expect(new FormData(canvas.getByRole("form", { name: "Read-only selection" }) as HTMLFormElement).getAll("country")).toEqual(["us", "de"])
+    await expect(new FormData(canvas.getByRole("form", { name: "Disabled selection" }) as HTMLFormElement).getAll("country")).toEqual([])
+  },
+}
+
+export const Disabled: Story = {
+  args: { items: countries, label: "Country", defaultValue: "us", disabled: true, helpText: "Country selection is unavailable while the address is syncing." },
+  parameters: { docs: { description: { story: "A disabled country field cannot receive focus or participate in form submission." } } },
+}
+
+export const ReadOnly: Story = {
+  name: "Read-only",
+  args: { items: countries, label: "Country", defaultValue: "us", readOnly: true, defaultOpen: true, helpText: "This saved delivery country cannot be changed." },
+  parameters: { docs: { description: { story: "A read-only country remains focusable and copyable without opening suggestions or showing mutation affordances." } } },
+}
+
+export const ReadOnlyTransition: Story = {
+  name: "Read-only transition",
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "Lock an in-progress country search to discard the draft and preserve the selected, submitted country, including with a controlled query." } },
+  },
+  render: () => {
+    const [readOnly, setReadOnly] = useState(false)
+    const [query, setQuery] = useState("Czech Republic")
+    return (
+      <form className="mx-auto grid w-full max-w-sm gap-150" aria-label="Saved delivery countries" onSubmit={(event) => event.preventDefault()}>
+        <Button variant="secondary" onPointerDown={(event) => event.preventDefault()} onClick={() => setReadOnly((current) => !current)}>{readOnly ? "Unlock countries" : "Lock countries"}</Button>
+        <Combobox inputBehavior="none" items={countries} label="Delivery country" name="country" defaultValue="cz" readOnly={readOnly} />
+        <Combobox inputBehavior="none" items={countries} label="Controlled delivery country" name="controlledCountry" value="cz" inputValue={query} onInputValueChange={setQuery} readOnly={readOnly} />
+      </form>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("combobox", { name: "Delivery country" })
+    const controlled = canvas.getByRole("combobox", { name: "Controlled delivery country" })
+    const form = canvas.getByRole("form") as HTMLFormElement
+    for (const target of [input, controlled]) {
+      await userEvent.clear(target)
+      await userEvent.type(target, "Germ")
+      await expect(target).toHaveValue("Germ")
+      await userEvent.click(canvas.getByRole("button", { name: "Lock countries" }))
+      await waitFor(() => expect(target).toHaveValue("Czech Republic"))
+      await expect(target).toHaveAttribute("readonly")
+      await expect(new FormData(form).getAll("country")).toEqual(["cz"])
+      await expect(new FormData(form).getAll("controlledCountry")).toEqual(["cz"])
+      await waitFor(() => expect(within(document.body).queryByRole("listbox")).toBeNull())
+      await expect(canvas.queryByRole("button", { name: "Clear value" })).toBeNull()
+      await userEvent.click(canvas.getByRole("button", { name: "Unlock countries" }))
+      await waitFor(() => expect(target).toHaveValue("Czech Republic"))
+    }
+  },
+}
+
+export const RequiredSelection: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "Native required validation checks selected countries rather than search text, allowing selected multiple values even when the query is empty." } },
+  },
+  render: () => (
+    <form className="mx-auto grid w-full max-w-sm gap-150" aria-label="Required delivery countries" onSubmit={(event) => event.preventDefault()}>
+      <Combobox inputBehavior="none" items={countries} label="Required country" name="country" required />
+      <Combobox inputBehavior="none" items={countries} label="Required countries" name="countries" multiple selectionBehavior="clear" required />
+    </form>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(document.body)
+    const single = canvas.getByRole("combobox", { name: /^Required country/ }) as HTMLInputElement
+    const multiple = canvas.getByRole("combobox", { name: /^Required countries/ }) as HTMLInputElement
+    const form = canvas.getByRole("form") as HTMLFormElement
+    await expect(single.checkValidity()).toBe(false)
+    await userEvent.type(single, "Not a country")
+    await expect(single.checkValidity()).toBe(false)
+    await expect(new FormData(form).get("country")).toBe("")
+    await userEvent.clear(single)
+    await userEvent.type(single, "Czech")
+    await userEvent.click(await body.findByRole("option", { name: "Czech Republic" }))
+    await waitFor(() => expect(single.checkValidity()).toBe(true))
+    for (const country of ["Czech Republic", "Germany"]) {
+      await userEvent.type(multiple, country)
+      await userEvent.click(await body.findByRole("option", { name: country }))
+      await waitFor(() => expect(multiple).toHaveValue(""))
+    }
+    await expect(new FormData(form).getAll("countries")).toEqual(["cz", "de"])
+    await expect(multiple.checkValidity()).toBe(true)
+    await expect(form.checkValidity()).toBe(true)
+    await userEvent.click(within(multiple.parentElement as HTMLElement).getByRole("button", { name: "Clear value" }))
+    await waitFor(() => expect(multiple.checkValidity()).toBe(false))
+    await expect(new FormData(form).getAll("countries")).toEqual([""])
+  },
 }

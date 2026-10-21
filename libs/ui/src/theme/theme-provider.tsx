@@ -198,17 +198,13 @@ export function BrandThemeScript({
 }: {
   defaultBrand?: BrandKey
 }) {
-  const attrByBrand: Record<string, string | undefined> = {}
+  const attrByBrand: Record<string, string | null> = {}
   for (const key of brandKeys()) {
-    attrByBrand[key] = brandAttr(key)
+    attrByBrand[key] = brandAttr(key) ?? null
   }
   // Validates the stored key against known brands before falling back to the
   // default, so a stale/invalid value can't slip through as "no brand".
-  const script = `(function(){try{var d=${JSON.stringify(
-    defaultBrand
-  )};var m=${JSON.stringify(attrByBrand)};var k=localStorage.getItem(${JSON.stringify(
-    BRAND_STORAGE_KEY
-  )});if(!k||!Object.prototype.hasOwnProperty.call(m,k)){k=d;}var a=m[k];var e=document.documentElement;if(a){e.setAttribute('data-theme',a);}else{e.removeAttribute('data-theme');}}catch(e){}})();`
+  const script = `(function(){var d=${JSON.stringify(defaultBrand)};var m=${JSON.stringify(attrByBrand)};var k=d;try{var s=localStorage.getItem(${JSON.stringify(BRAND_STORAGE_KEY)});if(s&&Object.prototype.hasOwnProperty.call(m,s)){k=s;}}catch(e){}var a=m[k];var e=document.documentElement;if(a){e.setAttribute('data-theme',a);}else{e.removeAttribute('data-theme');}})();`
 
   return (
     <script

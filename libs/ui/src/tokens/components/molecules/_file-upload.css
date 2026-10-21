@@ -1,10 +1,13 @@
 /*
  * FileUpload — supplementary runtime tokens until a File Upload collection is
  * available in Figma. The visual contract intentionally has one default style
- * with no public size or variant axis.
+ * with canonical typography and action sizes.
  */
 
 @theme static {
+  --text-file-upload-sm: var(--text-sm);
+  --text-file-upload-md: var(--text-md);
+  --text-file-upload-lg: var(--text-lg);
   /* Reference layer */
   --color-file-upload-surface: var(--color-fill-surface);
   --color-file-upload-item-surface: var(--color-base);

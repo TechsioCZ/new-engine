@@ -6,7 +6,7 @@ description: >
   checked/defaultChecked, validation status, help text, required, disabled, and
   read-only state.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -69,6 +69,17 @@ helpText, showHelpTextIcon
 ```
 
 ## Core Patterns
+
+### Sizes, semantics and read-only values
+
+Use `size="sm" | "md" | "lg"` (default `md`) to scale the track, label and feedback.
+The native input has `role="switch"` and reflects `aria-checked`; `dir="rtl"`
+mirrors the thumb travel inside the track. `readOnly` preserves focus and form
+submission but prevents pointer and Space changes; disabled takes priority.
+`aria-describedby` merges caller IDs with inline guidance. Errors set
+`aria-invalid` and `aria-errormessage` on the input. Validation always keeps its
+status icon; `showHelpTextIcon` only changes optional neutral-help icons.
+
 
 ### Use for settings
 

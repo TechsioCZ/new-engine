@@ -1,3 +1,4 @@
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -11,10 +12,18 @@ import { type AkCategory, akCategories, count } from "./data"
 import { AbraOwned, AkrosShell, akrosDocs, Notice } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Categories",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -47,7 +56,7 @@ function flatten(categories: AkCategory[], path: string[] = []) {
     (category): { category: AkCategory; path: string[] }[] => [
       { category, path: [...path, category.name] },
       ...flatten(category.children ?? [], [...path, category.name]),
-    ]
+    ],
   )
 }
 
@@ -88,7 +97,7 @@ function CategoriesPage() {
           : {
               ...item,
               children: item.children ? update(item.children) : undefined,
-            }
+            },
       )
     setCategories(update)
   }
@@ -243,6 +252,15 @@ function CategoriesPage() {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in categories to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "ABRA tree & images",
   render: () => <CategoriesPage />,
 }

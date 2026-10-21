@@ -8,7 +8,7 @@ description: >
   data/x/y/series channels, with token-driven series colors, legend, tooltip,
   value formatting and selection callbacks.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -164,3 +164,9 @@ Never combine two value scales in one chart — render two charts instead.
   centroid within the library's fixed 48px radius, so parts of a large slice
   are not interactive — another reason to prefer `bar-horizontal` when the
   chart needs `onSelect`.
+
+## Wave 2 contracts
+
+Chart height/aspectRatio describe the visualization canvas, not sm/md/lg form-control sizes. Use a table when readers need exact records rather than a visual pattern, and keep the plot’s accessible label and multi-series legend meaningful.
+
+Inspection tooltips use opaque shared popup surface/border/shadow aliases and the managed popup layer. The library creates a single positioned tooltip element, so that element carries popup-layer; its important utility overrides the upstream inline z-index.

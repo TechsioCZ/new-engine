@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.0
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,27 +27,27 @@ import { tv } from "../utils"
 const tabsVariants = tv({
   slots: {
     root: [
-      "flex w-full",
+      "flex w-full min-w-0 max-w-full",
       "data-[orientation=horizontal]:flex-col",
       "data-[orientation=vertical]:flex-row",
       "bg-tabs-bg",
       "rounded-tabs",
     ],
     list: [
-      "relative flex",
+      "relative flex min-w-0 max-w-full",
       "bg-tabs-list-bg",
-      "data-[orientation=horizontal]:flex-row",
+      "data-[orientation=horizontal]:flex-row data-[orientation=horizontal]:overflow-x-auto",
       "data-[orientation=vertical]:flex-col",
     ],
     trigger: [
-      "relative flex items-center justify-center",
+      "relative flex shrink-0 items-center justify-center",
       "text-tabs-trigger-fg-base",
       "rounded-tabs-trigger",
       "cursor-pointer",
-      "hover:bg-tabs-trigger-bg-hover",
+      "not-data-disabled:hover:bg-tabs-trigger-bg-hover",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-tabs-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "tabs-trigger-focus",
       "data-[selected]:text-tabs-trigger-fg-selected",
       "data-[disabled]:cursor-not-allowed data-[disabled]:text-tabs-trigger-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -59,7 +59,7 @@ const tabsVariants = tv({
       "data-[orientation=vertical]:inset-s-0 data-[orientation=horizontal]:bottom-0",
     ],
     content: [
-      "text-tabs-content-fg",
+      "min-w-0 max-w-full text-tabs-content-fg",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-tabs-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -68,13 +68,12 @@ const tabsVariants = tv({
   variants: {
     variant: {
       default: {
-        list: "",
+        trigger: "tabs-trigger-selected",
         indicator: "hidden",
       },
       line: {
         list: "border-b-(length:--border-width-tabs) border-tabs-border-base",
-        indicator:
-          "data-[orientation=horizontal]:-bottom-(--border-width-tabs)",
+        indicator: "",
       },
       solid: {
         trigger:
@@ -115,10 +114,10 @@ const tabsVariants = tv({
         list: "justify-start",
       },
       center: {
-        list: "justify-center",
+        list: "tabs-list-center",
       },
       end: {
-        list: "justify-end",
+        list: "tabs-list-end",
       },
     },
   },
@@ -160,19 +159,18 @@ function useTabsContext() {
 }
 
 // Root component
-export interface TabsProps
-  extends VariantProps<typeof tabsVariants>,
-    Omit<ComponentPropsWithoutRef<"div">, "onChange"> {
-  id?: string
-  defaultValue?: string
-  value?: string
-  orientation?: "horizontal" | "vertical"
-  dir?: "ltr" | "rtl"
-  activationMode?: "automatic" | "manual"
-  loopFocus?: boolean
-  onValueChange?: (value: string) => void
-  ref?: Ref<HTMLDivElement>
-}
+export type TabsProps = VariantProps<typeof tabsVariants> &
+  Omit<ComponentPropsWithoutRef<"div">, "onChange"> & {
+    id?: string
+    defaultValue?: string
+    value?: string
+    orientation?: "horizontal" | "vertical"
+    dir?: "ltr" | "rtl"
+    activationMode?: "automatic" | "manual"
+    loopFocus?: boolean
+    onValueChange?: (value: string) => void
+    ref?: Ref<HTMLDivElement>
+  }
 
 export function Tabs({
   id,
@@ -240,7 +238,7 @@ export function Tabs({
 }
 
 // List component
-interface TabsListProps extends ComponentPropsWithoutRef<"div"> {
+type TabsListProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -294,7 +292,7 @@ Tabs.Trigger = function TabsTrigger({
         contentValues.has(value) ? triggerProps["aria-controls"] : undefined
       }
       className={styles.trigger({ className })}
-      data-disabled={disabled || undefined}
+      data-disabled={disabled ? "" : undefined}
       ref={ref}
       size={size}
       theme={theme}
@@ -306,7 +304,7 @@ Tabs.Trigger = function TabsTrigger({
 }
 
 // Content component
-interface TabsContentProps extends ComponentPropsWithoutRef<"div"> {
+type TabsContentProps = ComponentPropsWithoutRef<"div"> & {
   value: string
   ref?: Ref<HTMLDivElement>
 }
@@ -342,7 +340,7 @@ Tabs.Content = function TabsContent({
 }
 
 // Indicator component
-interface TabsIndicatorProps extends ComponentPropsWithoutRef<"div"> {
+type TabsIndicatorProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 

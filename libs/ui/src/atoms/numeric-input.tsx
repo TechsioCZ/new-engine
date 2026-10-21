@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.1.3
+ * @componentVersion v1.2.0
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,16 +23,53 @@ import {
   useMemo,
   useRef,
 } from "react"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
 import { tv } from "../utils"
 import { Button } from "./button"
 import type { IconType } from "./icon"
 import { Input } from "./input"
+import { StatusText, type StatusTextProps } from "./status-text"
+
+// Zag guards native keys but not all machine actions (notably blur clamping,
+// wheel and an already-running press). Enforce immutability at the value boundary.
+const valueActions = numberInput.machine.implementations?.actions ?? {}
+const guardValueAction =
+  (action: typeof valueActions.increment) =>
+  (params: Parameters<NonNullable<typeof valueActions.increment>>[0]) => {
+    if (params.prop("readOnly") || params.computed("isDisabled")) {
+      return
+    }
+    action?.(params)
+  }
+const readOnlySafeMachine: typeof numberInput.machine = {
+  ...numberInput.machine,
+  implementations: {
+    ...numberInput.machine.implementations,
+    actions: {
+      ...valueActions,
+      increment: guardValueAction(valueActions.increment),
+      decrement: guardValueAction(valueActions.decrement),
+      incrementToMax: guardValueAction(valueActions.incrementToMax),
+      decrementToMin: guardValueAction(valueActions.decrementToMin),
+      setValue: guardValueAction(valueActions.setValue),
+      setRawValue: guardValueAction(valueActions.setRawValue),
+      clearValue: guardValueAction(valueActions.clearValue),
+      setClampedValue: guardValueAction(valueActions.setClampedValue),
+      setFormattedValue: guardValueAction(valueActions.setFormattedValue),
+    },
+  },
+}
 
 const numericInputVariants = tv({
   slots: {
-    root: ["relative flex"],
+    root: ["relative flex flex-col"],
     container: [
-      "group form-control-base relative flex",
+      "group form-control-base numeric-input-readonly relative flex",
       "border-numeric-input-border",
       "min-w-0 items-center overflow-clip",
       "hover:border-numeric-input-border-hover",
@@ -64,20 +101,20 @@ const numericInputVariants = tv({
     // Subtle divider from the input instead of a gray fill block; the gap-px
     // shows the field behind it as a hairline between the two arrows.
     triggerContainer: [
-      "flex flex-col gap-px self-stretch",
+      "flex flex-row self-stretch",
       "border-numeric-input-border border-s",
     ],
     // Unified neutral icon-control treatment: transparent base (matches the
     // field, no "disabled" gray), neutral arrows, subtle neutral hover pill —
     // no blue arrow-on-gray. Glyph size is kept per NumericInput's own scale.
     trigger: [
-      "flex flex-1 place-items-center",
+      "flex min-h-numeric-input-trigger-min min-w-numeric-input-trigger-min flex-1 place-items-center",
       "px-numeric-input-trigger-x py-numeric-input-trigger-y",
-      "bg-transparent hover:bg-icon-control-bg-hover active:bg-icon-control-bg-active",
-      "text-icon-control-fg",
+      "bg-transparent hover:bg-numeric-input-trigger-bg-hover active:bg-numeric-input-trigger-bg-active",
+      "text-numeric-input-trigger-fg",
       "cursor-pointer",
       "transition-colors duration-200 motion-reduce:transition-none",
-      "disabled:cursor-not-allowed disabled:text-icon-control-fg-disabled",
+      "disabled:cursor-not-allowed disabled:text-numeric-input-trigger-fg-disabled",
     ],
     scrubber: "absolute inset-0 cursor-ew-resize",
   },
@@ -116,6 +153,11 @@ type NumericInputContextValue = {
   invalid?: boolean
   describedBy?: string
   controlledValue?: string
+  readOnly?: boolean
+  disabled?: boolean
+  description: DescribedBy
+  errors: DescribedBy
+  errorMessageId?: string
 }
 
 const triggerIconSizes = { sm: "xs", md: "sm", lg: "md" } as const
@@ -161,6 +203,9 @@ export function NumericInput({
   onChange,
   dir = "ltr",
   describedBy,
+  "aria-describedby": ariaDescribedBy,
+  "aria-errormessage": ariaErrorMessage,
+  "aria-invalid": ariaInvalid,
   precision,
   children,
   ref,
@@ -169,10 +214,12 @@ export function NumericInput({
   ...props
 }: NumericInputProps) {
   const generatedId = useId()
+  const description = useDescribedBy()
+  const errors = useDescribedBy()
   const [machineProps, elementProps] = numberInput.splitProps(props)
   const {
     formatOptions,
-    invalid,
+    invalid: machineInvalid,
     disabled = false,
     required = false,
     step = 1,
@@ -181,9 +228,22 @@ export function NumericInput({
     spinOnPress = true,
     focusInputOnChange = true,
   } = machineProps
-  const resolvedFormatOptions = precision
-    ? { ...(formatOptions ?? {}), maximumFractionDigits: precision }
-    : formatOptions
+  const invalid =
+    machineInvalid ||
+    (ariaInvalid !== undefined &&
+      ariaInvalid !== false &&
+      ariaInvalid !== "false")
+  const resolvedFormatOptions =
+    precision === undefined
+      ? formatOptions
+      : {
+          ...(formatOptions ?? {}),
+          minimumFractionDigits: Math.min(
+            formatOptions?.minimumFractionDigits ?? 0,
+            precision
+          ),
+          maximumFractionDigits: precision,
+        }
 
   const formatValue = (inputValue: number | string) => {
     if (typeof inputValue === "string" || !resolvedFormatOptions) {
@@ -194,8 +254,9 @@ export function NumericInput({
     )
   }
 
-  const service = useMachine(numberInput.machine, {
+  const service = useMachine(readOnlySafeMachine, {
     ...machineProps,
+    invalid,
     disabled,
     required,
     step,
@@ -209,9 +270,9 @@ export function NumericInput({
       : machineProps.ids,
     dir,
     locale,
-    value: value !== undefined ? formatValue(value) : undefined,
+    value: value === undefined ? undefined : formatValue(value),
     defaultValue:
-      defaultValue !== undefined ? formatValue(defaultValue) : undefined,
+      defaultValue === undefined ? undefined : formatValue(defaultValue),
     formatOptions: resolvedFormatOptions,
     onValueChange: (details) => {
       onChange?.(details.valueAsNumber)
@@ -220,6 +281,13 @@ export function NumericInput({
   })
 
   const api = numberInput.connect(service, normalizeProps)
+  useEffect(() => {
+    if (machineProps.readOnly || disabled) {
+      // End an in-progress hold/drag when the parent locks the value.
+      service.send({ type: "TRIGGER.PRESS_UP" })
+      service.send({ type: "SCRUBBER.POINTER_UP" })
+    }
+  }, [machineProps.readOnly, disabled, service])
   useEffect(() => {
     // React's autoFocus runs before the parent machine starts. Reconcile that
     // existing DOM focus so typing and arrow keys work without refocusing.
@@ -238,8 +306,13 @@ export function NumericInput({
         api,
         size,
         styles,
-        invalid,
-        describedBy,
+        invalid: invalid || Boolean(errors.describedById),
+        describedBy: joinDescribedBy(describedBy, ariaDescribedBy),
+        description,
+        errors,
+        errorMessageId: ariaErrorMessage,
+        readOnly: machineProps.readOnly,
+        disabled: inputDisabled,
         controlledValue: typeof value === "string" ? value : undefined,
       }}
     >
@@ -264,7 +337,7 @@ export function NumericInput({
 }
 
 // Control component (wrapper for input + triggers)
-interface NumericInputControlProps extends ComponentPropsWithoutRef<"div"> {
+type NumericInputControlProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -274,7 +347,7 @@ NumericInput.Control = function NumericInputControl({
   className,
   ...props
 }: NumericInputControlProps) {
-  const { api, styles, invalid } = useNumericInputContext()
+  const { api, styles, invalid, readOnly, disabled } = useNumericInputContext()
 
   return (
     <div
@@ -282,7 +355,9 @@ NumericInput.Control = function NumericInputControl({
       ref={ref}
       {...api.getControlProps()}
       {...props}
+      data-disabled={disabled ? "" : undefined}
       data-invalid={invalid || undefined}
+      data-readonly={readOnly ? "" : undefined}
     >
       {children}
     </div>
@@ -290,8 +365,10 @@ NumericInput.Control = function NumericInputControl({
 }
 
 // Input component
-interface NumericInputInputProps
-  extends Omit<ComponentPropsWithoutRef<"input">, "size"> {
+type NumericInputInputProps = Omit<
+  ComponentPropsWithoutRef<"input">,
+  "size"
+> & {
   ref?: Ref<HTMLInputElement>
 }
 
@@ -300,7 +377,19 @@ NumericInput.Input = function NumericInputInput({
   className,
   ...props
 }: NumericInputInputProps) {
-  const { api, styles, describedBy, controlledValue } = useNumericInputContext()
+  const {
+    api,
+    styles,
+    size,
+    describedBy,
+    controlledValue,
+    description,
+    errors,
+    errorMessageId,
+    invalid,
+    readOnly,
+    disabled,
+  } = useNumericInputContext()
   const inputRef = useRef<HTMLInputElement>(null)
   const mergedRef = useMemo(
     () => (node: HTMLInputElement | null) => {
@@ -370,9 +459,18 @@ NumericInput.Input = function NumericInputInput({
     }
   }, [api, controlledValue])
 
-  const ariaDescribedBy =
-    [props["aria-describedby"], describedBy].filter(Boolean).join(" ") ||
-    undefined
+  const ariaDescribedBy = joinDescribedBy(
+    props["aria-describedby"],
+    describedBy,
+    description.describedById
+  )
+  const errorId = joinDescribedBy(
+    props["aria-errormessage"],
+    errorMessageId,
+    errors.describedById
+  )
+  const isInvalid =
+    invalid || Boolean(errors.describedById) || props["aria-invalid"]
 
   return (
     <Input
@@ -380,14 +478,21 @@ NumericInput.Input = function NumericInputInput({
       {...api.getInputProps()}
       {...props}
       aria-describedby={ariaDescribedBy}
+      aria-errormessage={errorId}
+      aria-invalid={isInvalid || undefined}
       className={styles.input({ className })}
+      disabled={disabled || props.disabled}
+      readOnly={readOnly || props.readOnly}
+      size={size}
     />
   )
 }
 
 // Increment Trigger component
-interface NumericInputIncrementTriggerProps
-  extends Omit<ComponentPropsWithoutRef<"button">, "children"> {
+type NumericInputIncrementTriggerProps = Omit<
+  ComponentPropsWithoutRef<"button">,
+  "children"
+> & {
   // === Button styling ===
   variant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
   theme?: "solid" | "light" | "borderless" | "outlined"
@@ -426,8 +531,11 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   children,
   ...props
 }: NumericInputIncrementTriggerProps) {
-  const { api, styles, size } = useNumericInputContext()
+  const { api, styles, size, readOnly, disabled } = useNumericInputContext()
   const resolvedIconSize = iconSize ?? triggerIconSizes[size ?? "md"]
+  if (readOnly) {
+    return null
+  }
 
   return (
     <Button
@@ -445,6 +553,10 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
       variant={variant}
       {...api.getIncrementTriggerProps()}
       {...props}
+      data-readonly-affordance=""
+      disabled={
+        api.getIncrementTriggerProps().disabled || disabled || props.disabled
+      }
     >
       {children}
     </Button>
@@ -452,8 +564,10 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
 }
 
 // Decrement Trigger component
-interface NumericInputDecrementTriggerProps
-  extends Omit<ComponentPropsWithoutRef<"button">, "children"> {
+type NumericInputDecrementTriggerProps = Omit<
+  ComponentPropsWithoutRef<"button">,
+  "children"
+> & {
   // === Button styling ===
   variant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
   theme?: "solid" | "light" | "borderless" | "outlined"
@@ -492,8 +606,11 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   children,
   ...props
 }: NumericInputDecrementTriggerProps) {
-  const { api, styles, size } = useNumericInputContext()
+  const { api, styles, size, readOnly, disabled } = useNumericInputContext()
   const resolvedIconSize = iconSize ?? triggerIconSizes[size ?? "md"]
+  if (readOnly) {
+    return null
+  }
 
   return (
     <Button
@@ -511,6 +628,10 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
       variant={variant}
       {...api.getDecrementTriggerProps()}
       {...props}
+      data-readonly-affordance=""
+      disabled={
+        api.getDecrementTriggerProps().disabled || disabled || props.disabled
+      }
     >
       {children}
     </Button>
@@ -518,7 +639,7 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
 }
 
 // Scrubber component (for drag-to-change functionality)
-interface NumericInputScrubberProps extends ComponentPropsWithoutRef<"div"> {
+type NumericInputScrubberProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -527,7 +648,10 @@ NumericInput.Scrubber = function NumericInputScrubber({
   className,
   ...props
 }: NumericInputScrubberProps) {
-  const { api, styles } = useNumericInputContext()
+  const { api, styles, readOnly, disabled } = useNumericInputContext()
+  if (readOnly || disabled) {
+    return null
+  }
 
   return (
     <div
@@ -540,8 +664,7 @@ NumericInput.Scrubber = function NumericInputScrubber({
 }
 
 // Trigger Container component (wrapper for increment/decrement triggers)
-interface NumericInputTriggerContainerProps
-  extends ComponentPropsWithoutRef<"div"> {
+type NumericInputTriggerContainerProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -551,7 +674,10 @@ NumericInput.TriggerContainer = function NumericInputTriggerContainer({
   className,
   ...props
 }: NumericInputTriggerContainerProps) {
-  const { styles } = useNumericInputContext()
+  const { styles, readOnly } = useNumericInputContext()
+  if (readOnly) {
+    return null
+  }
 
   return (
     <div
@@ -561,6 +687,36 @@ NumericInput.TriggerContainer = function NumericInputTriggerContainer({
     >
       {children}
     </div>
+  )
+}
+
+const ignoreDescription: DescribedBy["registerDescription"] = () => () => {
+  // A neutral message never registers an error reference.
+}
+
+NumericInput.StatusText = function NumericInputStatusText({
+  id,
+  status = "default",
+  size,
+  showIcon,
+  ...props
+}: StatusTextProps) {
+  const generatedId = useId()
+  const messageId = id || generatedId
+  const { size: fieldSize, description, errors } = useNumericInputContext()
+  useRegisterDescription(messageId, description.registerDescription)
+  useRegisterDescription(
+    messageId,
+    status === "error" ? errors.registerDescription : ignoreDescription
+  )
+  return (
+    <StatusText
+      {...props}
+      id={messageId}
+      showIcon={status !== "default" || showIcon}
+      size={size ?? fieldSize}
+      status={status}
+    />
   )
 }
 

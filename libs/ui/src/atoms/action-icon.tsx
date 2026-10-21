@@ -2,7 +2,7 @@
  * ActionIcon — @techsio/ui-kit atom.
  *
  * @component ActionIcon
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill action-icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -41,12 +41,12 @@ const actionIconVariants = tv({
     },
     tone: {
       neutral: [
-        "hover:bg-icon-control-bg-hover",
-        "active:bg-icon-control-bg-active",
+        "not-disabled:hover:bg-icon-control-bg-hover",
+        "not-disabled:active:bg-icon-control-bg-active",
       ],
       danger: [
-        "hover:bg-icon-control-bg-danger-hover hover:text-icon-control-fg-danger-hover",
-        "active:bg-icon-control-bg-danger-active",
+        "not-disabled:hover:bg-icon-control-bg-danger-hover not-disabled:hover:text-icon-control-fg-danger-hover",
+        "not-disabled:active:bg-icon-control-bg-danger-active",
       ],
     },
   },

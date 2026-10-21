@@ -2,7 +2,7 @@
  * Tooltip — @techsio/ui-kit atom.
  *
  * @component Tooltip
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill tooltip-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,7 +10,12 @@
  * the tooltip-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import * as tooltip from "@zag-js/tooltip"
+import {
+  connect,
+  machine,
+  type PositioningOptions,
+  type Props as TooltipMachineProps,
+} from "@zag-js/tooltip"
 import {
   Children,
   cloneElement,
@@ -21,18 +26,22 @@ import {
   type Ref,
   useId,
 } from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
+import { joinDescribedBy } from "../internal/described-by"
+import { tv } from "../utils"
 
 const tooltipVariants = tv({
   slots: {
     trigger: ["inline-flex"],
     content: [
-      "[--arrow-size:var(--tooltip-arrow-size)]",
-      "[--arrow-background:var(--tooltip-arrow-background)]",
+      "tooltip-surface",
+      "popup-layer",
+      "text-tooltip-fg",
+      "shadow-tooltip",
       "bg-tooltip-bg",
       "rounded-tooltip",
     ],
-    positioner: ["relative"],
+    positioner: ["relative", "popup-layer"],
     arrow: "",
   },
   variants: {
@@ -61,15 +70,14 @@ const tooltipVariants = tv({
   },
 })
 
-export interface TooltipProps
-  extends VariantProps<typeof tooltipVariants>,
-    Partial<tooltip.Props>,
-    Partial<tooltip.PositioningOptions> {
-  ref?: Ref<HTMLSpanElement>
-  content: ReactNode
-  children: ReactNode
-  className?: string
-}
+export type TooltipProps = VariantProps<typeof tooltipVariants> &
+  Partial<TooltipMachineProps> &
+  Partial<PositioningOptions> & {
+    ref?: Ref<HTMLSpanElement>
+    content: ReactNode
+    children: ReactNode
+    className?: string
+  }
 
 function describeTooltipChildren(
   children: ReactNode,
@@ -93,11 +101,11 @@ function describeTooltipChildren(
       )
     }
 
-    const ids = [child.props["aria-describedby"], describedBy].flatMap(
-      (value) => value?.split(/\s+/).filter(Boolean) ?? []
-    )
     const props = {
-      "aria-describedby": [...new Set(ids)].join(" ") || undefined,
+      "aria-describedby": joinDescribedBy(
+        child.props["aria-describedby"],
+        describedBy
+      ),
     }
 
     return typeof child.type === "string" && child.props.children !== undefined
@@ -144,7 +152,7 @@ export function Tooltip({
   const generatedId = useId()
   const id = MRAId || generatedId
 
-  const service = useMachine(tooltip.machine, {
+  const service = useMachine(machine, {
     id,
     dir,
     open,
@@ -173,7 +181,7 @@ export function Tooltip({
     },
   })
 
-  const api = tooltip.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
   // Zag types trigger props for a button; the inline trigger is a span wrapper.
   const triggerProps =
     api.getTriggerProps() as unknown as HTMLAttributes<HTMLSpanElement>

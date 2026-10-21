@@ -5,7 +5,7 @@ description: >
   labeled single-line fields with Label, Input, StatusText, validation status,
   help text, required, disabled, and size props.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -74,7 +74,7 @@ import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 Supported props:
 
 ```text
-id: required
+id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
@@ -85,10 +85,10 @@ all Input props except where FormInput sets label/status behavior
 
 ### Input classes and wrapper layout
 
-`FormInput` and `FormInputRaw` merge `className` into the native Input, after
-the existing `p-input-sm md:p-input-md` defaults. Responsive overrides must
-target the same breakpoint when needed. The wrapper does not receive this
-class. Put field-to-field layout on a parent; prefer Input tokens for visuals.
+`FormInput` and `FormInputRaw` merge `className` into the native Input after
+its selected sm/md/lg size classes. Padding follows size, never the viewport;
+sm remains compact at desktop widths. The wrapper does not receive this class.
+Put field-to-field layout on a parent; prefer Input tokens for visuals.
 
 ### Use for complete field rows
 
@@ -160,3 +160,25 @@ rg -U -n "<Label[\\s\\S]{0,240}<Input|<FormInput[^>]*variant=|<FormInput[^>]*cla
 rg -P -n "<FormInput(?![^>]*id=)|<FormInput(?![^>]*label=)" apps
 rg -n "<FormInput[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Read-only and feedback contracts
+
+Use `readOnly` for visible, focusable, copyable values that must not change.
+The value keeps full contrast and a subtle surface; disabled wins when both
+are set. Canonical sizes are sm/md/lg, default md, including labels and feedback.
+
+`helpText` renders StatusText with a stable unique ID, merged with caller
+`aria-describedby`. Errors also set `aria-invalid` and `aria-errormessage`;
+the internally generated error reference disappears when wrapper validation clears. Error/warning/success
+icons always remain enabled; `showHelpTextIcon` only customizes neutral help.
+Validate on blur/submit and use actionable copy rather than color alone.
+
+The legacy Raw export also associates plain helper copy and precomposed
+StatusText elements. Existing StatusText IDs are retained; plain copy receives
+the same default status icons and ARIA wiring as the standard entry point.
+
+
+Caller-supplied `aria-errormessage` IDs are preserved independently of
+`validateStatus`, including when the caller supplies the invalid state. Clear
+caller-owned error IDs and invalid state together when removing that message;
+the wrapper only manages the lifecycle of its own generated error reference.

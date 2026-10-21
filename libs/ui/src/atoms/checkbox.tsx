@@ -2,7 +2,7 @@
  * Checkbox — @techsio/ui-kit atom.
  *
  * @component Checkbox
- * @componentVersion v1.0.4
+ * @componentVersion v1.1.0
  * @skill checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -14,7 +14,9 @@ import { tv } from "../utils"
 
 const checkboxVariants = tv({
   base: [
-    "relative shrink-0 cursor-pointer appearance-none",
+    "form-control-readonly relative shrink-0 cursor-pointer appearance-none",
+    "data-readonly:checked:text-checkbox-fg-readonly",
+    "data-readonly:indeterminate:after:bg-checkbox-fg-readonly",
     "size-checkbox",
     "border-(length:--border-width-checkbox) rounded-checkbox-control border-checkbox-border-base",
     "bg-checkbox-bg-base",
@@ -57,6 +59,10 @@ export function Checkbox({
   indeterminate,
   invalid,
   ref,
+  readOnly = false,
+  onClick,
+  onChange,
+  onKeyDown,
   ...props
 }: CheckboxProps) {
   const setIndeterminate = (node: HTMLInputElement | null) => {
@@ -79,6 +85,28 @@ export function Checkbox({
       ref={setIndeterminate}
       type="checkbox"
       {...props}
+      aria-readonly={(readOnly && !props.disabled) || undefined}
+      data-readonly={readOnly && !props.disabled ? "" : undefined}
+      onChange={(event) => {
+        if (!(readOnly || props.disabled)) {
+          onChange?.(event)
+        }
+      }}
+      onClick={(event) => {
+        if (readOnly) {
+          event.preventDefault()
+          return
+        }
+        onClick?.(event)
+      }}
+      onKeyDown={(event) => {
+        if (readOnly && event.key === " ") {
+          event.preventDefault()
+          return
+        }
+        onKeyDown?.(event)
+      }}
+      readOnly={readOnly}
     />
   )
 }

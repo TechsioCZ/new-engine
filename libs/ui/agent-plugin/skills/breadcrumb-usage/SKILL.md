@@ -5,7 +5,7 @@ description: >
   page hierarchy navigation with Link/NextLink adapters, current page state,
   separators, ellipsis, icons, size, and underline variant.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -166,3 +166,9 @@ rg -P -n "<nav[^>]*breadcrumb|/ <span|<Breadcrumb\\.Link(?![^>]*as=)" apps
 rg -P -n "<Breadcrumb\\.Link(?![^>]*as=\\{?NextLink)" apps
 rg -n "<Breadcrumb[^>]*className=.*(gap-|text-|px-|py-)" apps
 ```
+
+## Wave 2 contracts
+
+An explicit isCurrent item terminates the location path: descendant entries after it are not rendered. This happens before maxItems collapse, keeping exactly one current-page marker visible instead of silently making a descendant current. maxItems counts page entries; ellipsis is additional. Canonical sizes are sm/md/lg (default md).
+
+BreadcrumbTemplate sets ancestor links to size="current" so the inherited breadcrumb size matches the current-page text at sm, md and lg. Its link adapter must forward className for this inheritance to apply.

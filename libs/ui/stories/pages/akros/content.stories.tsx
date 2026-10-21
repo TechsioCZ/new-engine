@@ -1,3 +1,4 @@
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -15,10 +16,18 @@ import { type AkContent, akContent, formatDate } from "./data"
 import { AkrosShell, akrosDocs } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Pages & blog",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -107,31 +116,13 @@ function ContentListPage() {
         cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
-    []
+    [],
   )
 
   return (
     <AkrosShell expanded={["marketing"]} selected="content">
       <PageHeader
-        actions={
-          <>
-            <Button
-              icon="icon-[mdi--file-plus-outline]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              New page
-            </Button>
-            <Button
-              icon="icon-[mdi--pencil-plus-outline]"
-              size="sm"
-              variant="primary"
-            >
-              New article
-            </Button>
-          </>
-        }
+        actions={<></>}
         breadcrumb={[
           { label: "Home", href: "#" },
           { label: "Marketing", href: "#" },
@@ -171,6 +162,7 @@ function ArticleEditorPage() {
   const [metaDescription, setMetaDescription] = useState("")
   const [status, setStatus] = useState("draft")
   const [indexable, setIndexable] = useState(true)
+  const [savedSnapshot, setSavedSnapshot] = useState<string>()
 
   const seoTitle = metaTitle || `${title} | Akros`
   const titleTooLong = seoTitle.length > 60
@@ -184,17 +176,40 @@ function ArticleEditorPage() {
         actions={
           <Button
             icon="icon-[mdi--content-save-outline]"
-            onClick={() =>
+            disabled={
+              !title.trim() ||
+              savedSnapshot ===
+                JSON.stringify({
+                  title,
+                  slug,
+                  metaTitle,
+                  metaDescription,
+                  status,
+                  indexable,
+                })
+            }
+            onClick={() => {
+              setSavedSnapshot(
+                JSON.stringify({
+                  title,
+                  slug,
+                  metaTitle,
+                  metaDescription,
+                  status,
+                  indexable,
+                }),
+              )
               toaster.create({
                 type: "success",
-                title:
-                  status === "published" ? "Article published" : "Draft saved",
+                title: "Article draft saved locally",
+                description:
+                  "Your selected publication state was retained in this demo only; no website was changed.",
               })
-            }
+            }}
             size="sm"
             variant="primary"
           >
-            {status === "published" ? "Publish" : "Save"}
+            Save demo draft
           </Button>
         }
         breadcrumb={[
@@ -328,6 +343,15 @@ function ArticleEditorPage() {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in content to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Pages & articles",
   render: () => <ContentListPage />,
 }

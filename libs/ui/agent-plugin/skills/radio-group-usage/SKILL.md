@@ -6,7 +6,7 @@ description: >
   hidden inputs, controls, text, descriptions, validation status, variants, and
   sizes.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -78,6 +78,20 @@ value/defaultValue, disabled, required, readOnly, onValueChange
 ```
 
 ## Core Patterns
+
+### Associated feedback and read-only groups
+
+Every mounted `ItemDescription` and `StatusText` has a unique ID and registers
+with its item or group. Each native input merges these IDs and caller/root
+`aria-describedby`; error messages also populate `aria-errormessage` and invalid
+state. Multiple messages and conditional unmounts are supported.
+`readOnly` keeps native inputs enabled for focus and submission while preventing
+pointer, Space and arrow-key selection. Disabled takes priority. Read-only
+controls use the shared neutral surface, not disabled styling. Validation status
+icons remain present. Solid indicator and border colors use the same on-primary
+pairing as solid option text, including the hover surface; do not substitute a
+fixed white foreground. Sizes remain `sm`, `md`, `lg` with `md` as default.
+
 
 ### Use item group for options
 

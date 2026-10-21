@@ -5,7 +5,7 @@ description: >
   tooltip/dialog/floating steps, target resolution, interactive wait effects,
   imperative control, shared action buttons, cleanup and app-owned onboarding policy.
 metadata:
-  component_version: "1.0.5"
+  component_version: "1.0.6"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -253,3 +253,7 @@ shared Button variant/state changes can restore legacy token bindings, and
 the existing ActionIcon set covers only default/hover. Do not claim complete
 visual/state parity or published Code Connect. Revalidate nested controls and
 token aliases before publication or after changing shared atom templates.
+
+## Wave 2 contracts
+
+Tour panels follow target placement and content rather than a sm/md/lg form-control size. Keep tours optional and dismissible; prefer persistent inline instructions for information required to finish a task.

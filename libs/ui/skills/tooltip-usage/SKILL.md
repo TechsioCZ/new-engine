@@ -5,7 +5,7 @@ description: >
   supplemental hover/focus help using the Zag.js tooltip wrapper, supported
   timing, placement, interaction, controlled state, and token styling props.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -206,3 +206,12 @@ rg -n "<Tooltip[^>]*className=.*(bg-|text-|rounded-|px-|py-)" apps
 rg -U -n "<Tooltip[\\s\\S]{0,240}<button\\b" apps
 rg -n "openDelay|closeDelay|placement|interactive|closeOn" apps
 ```
+
+## Surface bounds and content
+
+Hints wrap even unbroken references and are capped at 22rem or the viewport
+minus the shared edge spacing. Content and positioner share popup-layer,
+including Zag’s managed layer index. The opaque fill, arrow and soft shadow
+follow the active theme. Keep tooltip content non-interactive; use Popover
+for buttons, links or inputs. Existing `interactive` permits pointer travel
+onto the hint, not keyboard focusable content. Essential help stays visible.

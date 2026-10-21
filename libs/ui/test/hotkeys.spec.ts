@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 const hotkeysColorClass = /text-hotkeys-key-fg/
-const hotkeysSizeClass = /text-hotkeys-sm/
+const hotkeysSizeClass = /text-hotkeys-md/
 
 test("Playground shortcut opens the visible action and prevents browser defaults", async ({
   page,
@@ -337,6 +337,7 @@ test("development StrictMode replays owner effects without losing registrations 
   const mode = await page
     .getByTestId("hotkeys-strict-mode-host")
     .getAttribute("data-react-mode")
+  // biome-ignore lint/suspicious/noSkippedTests: React production intentionally has no StrictMode effect replay.
   test.skip(
     mode === "production",
     "StrictMode effect replay is development-only"
@@ -349,4 +350,21 @@ test("development StrictMode replays owner effects without losing registrations 
   await expect(page.getByTestId("hotkeys-registry-size")).toHaveText("1")
   await page.keyboard.press("Control+j")
   await expect(page.getByTestId("hotkeys-shared-count")).toHaveText("1")
+})
+
+test("canonical display sizes preserve the same shortcut", async ({ page }) => {
+  await page.goto("/iframe.html?id=atoms-hotkeys--sizes&viewMode=story")
+  const roots = page.locator('[data-scope="hotkeys"][data-part="root"]')
+  await expect(roots).toHaveCount(3)
+  for (const [index, size] of ["sm", "md", "lg"].entries()) {
+    await expect(roots.nth(index)).toHaveClass(
+      new RegExp(`text-hotkeys-${size}`)
+    )
+  }
+  await expect(roots.nth(0)).toHaveText(
+    (await roots.nth(1).textContent()) ?? ""
+  )
+  await expect(roots.nth(1)).toHaveText(
+    (await roots.nth(2).textContent()) ?? ""
+  )
 })

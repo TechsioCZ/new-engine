@@ -5,7 +5,7 @@ description: >
   to present prepared cart or checkout rows, unresolved fees, discounts,
   a labeled total and actions blocked while updating.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -67,3 +67,9 @@ Playground exposes labels, rows, total and pending controls. Partial preserves
 unselected fees, Complete shows final fees and an action, Discounted shows a
 negative discount, Pending retains amounts and blocks the checkout action,
 and CustomRows demonstrates tax and deposit rows without a fixed schema.
+
+## Display contract
+
+TotalsSummary has no interactive sm/md/lg size axis: its type hierarchy follows order-summary content, not form-control height. Use supplied rows and total strings for all calculations. Pending retains values and descriptions but makes the actions subtree inert. Use PriceBlock for a single item's price.
+
+Place the summary in a shrinkable full-width container with a max-width, rather than a fixed-width centered canvas. Mobile checks must include document overflow, not just the summary’s content box.

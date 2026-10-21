@@ -1,11 +1,28 @@
-/*
- * Rating — runtime tokens fully come from libs/ui/src/tokens/figma/variables.css.
- * Only the semantic glyph aliases remain here.
- */
-
+/* Filled versus outlined stars communicates the value without color alone. */
+@theme static {
+  --color-rating-ink: var(--color-fg-primary);
+  --color-rating-paper: var(--color-fill-surface);
+  --color-rating-fg-selected: var(--color-rating-ink);
+  --color-rating-fg-empty: color-mix(
+    in oklab,
+    var(--color-rating-ink) 50%,
+    var(--color-rating-paper)
+  );
+  --spacing-rating-target: var(--dimension-32);
+  --text-rating-value: var(--text-label-sm);
+}
 @utility token-icon-rating {
+  @apply icon-[mdi--star-outline];
+}
+@utility token-icon-rating-selected {
   @apply token-icon-star;
 }
 @utility token-icon-rating-half {
-  @apply token-icon-star-half;
+  @apply icon-[mdi--star-half-full];
+}
+
+@utility rating-focus-outline {
+  outline: var(--default-ring-width) var(--default-ring-style)
+    var(--color-rating-ring);
+  outline-offset: var(--default-ring-offset);
 }

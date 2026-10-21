@@ -69,11 +69,11 @@ const meta: Meta<typeof PhoneInput> = {
   title: "Molecules/PhoneInput",
   component: PhoneInput,
   parameters: {
-    layout: "centered",
+    layout: "padded",
     docs: {
       description: {
         component: `
-A compound phone input for international checkout and account forms.
+A compound phone input for international checkout and account forms. Use FormInput for other textual identifiers; use a separate country Select only when it represents an independent address field.
 
 It keeps the visible input ergonomic for users, emits formatted phone details through \`onValueChange\`, and submits E.164 through the hidden \`name\` input once the number is valid. Invalid draft values are either blocked by \`nativeValidation\` or submitted as typed for custom/server validation. The \`value\` prop is the visible draft value; use \`details.e164\` for the canonical phone number.
 
@@ -154,7 +154,7 @@ function PhoneInputExample({
   label?: string
 }) {
   return (
-    <div className="w-2xs max-w-full">
+    <div className="w-full max-w-2xs">
       <PhoneInput {...props}>
         <PhoneInput.Label>{label}</PhoneInput.Label>
         <PhoneInput.Control>
@@ -208,10 +208,138 @@ function PhoneInputDetailsPanel({
 }
 
 export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Try the live controls and change the available options to find the right configuration for your form.",
+      },
+    },
+  },
   render: (args) => <PhoneInputExample {...args} />,
 }
 
+export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare Small (sm), Medium (md), and Large (lg) with identical copy and values to choose the right form density.",
+      },
+    },
+  },
+  render: (args) => (
+    <VariantContainer>
+      <VariantGroup fullWidth title="Sizes">
+        {(["sm", "md", "lg"] as const).map((size, index) => (
+          <VariantGroup
+            key={size}
+            fullWidth
+            title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}
+          >
+            <PhoneInputExample
+              {...args}
+              defaultValue="+421900123456"
+              helpText="We will use this number for delivery updates."
+              label="Phone number"
+              size={size}
+            />
+          </VariantGroup>
+        ))}
+      </VariantGroup>
+    </VariantContainer>
+  ),
+}
+
+export const Disabled: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Unavailable controls retain their visible values but cannot receive keyboard focus or change.",
+      },
+    },
+  },
+  args: { disabled: true, defaultValue: "+421900123456" },
+  render: (args) => <PhoneInputExample {...args} />,
+}
+
+export const ReadOnly: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Read-only values remain focusable and legible while pointer, keyboard and other editing paths are blocked.",
+      },
+    },
+  },
+  name: "Read-only",
+  args: { readOnly: true, defaultValue: "+421900123456" },
+  render: (args) => <PhoneInputExample {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("textbox", {
+      name: "Phone number",
+    }) as HTMLInputElement
+    const value = input.value
+    await userEvent.click(input)
+    await userEvent.keyboard("123{Backspace}")
+    await expect(input).toHaveValue(value)
+    await expect(input).toHaveFocus()
+    await expect(input).toHaveAttribute("readonly")
+    await expect(getComputedStyle(input).cursor).toBe("text")
+    const trigger = canvas.getByRole("combobox")
+    for (const id of (trigger.getAttribute("aria-labelledby") ?? "").split(/\s+/).filter(Boolean)) {
+      await expect(canvasElement.ownerDocument.getElementById(id)).not.toBeNull()
+    }
+  },
+}
+
+export const ValidationStates: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Error, warning and success messages include readable text and a status icon associated with the field.",
+      },
+    },
+  },
+  render: (args) => (
+    <VariantContainer>
+      <VariantGroup fullWidth title="Validation">
+        <PhoneInputExample
+          {...args}
+          helpText="This phone number is required."
+          label="Error"
+          validateStatus="error"
+        />
+        <PhoneInputExample
+          {...args}
+          defaultValue="+421900123456"
+          helpText="Phone number looks valid."
+          label="Success"
+          validateStatus="success"
+        />
+        <PhoneInputExample
+          {...args}
+          helpText="Double-check the country prefix."
+          label="Warning"
+          validateStatus="warning"
+        />
+      </VariantGroup>
+    </VariantContainer>
+  ),
+}
+
 export const AccessibleCountryNames: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Distinct country-picker names distinguish billing and delivery fields, including a caller-provided accessible label.",
+      },
+    },
+  },
   tags: ["ui-semantic-regression"],
   render: (args) => {
     const billingCountryLabelId = useId()
@@ -280,59 +408,36 @@ export const AccessibleCountryNames: Story = {
 }
 
 export const WithDefaultValue: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A prefilled international number is formatted for reading while retaining its canonical E.164 form value.",
+      },
+    },
+  },
   args: {
     defaultValue: "+421900123456",
   },
   render: (args) => <PhoneInputExample {...args} />,
 }
 
-export const Sizes: Story = {
-  render: (args) => (
-    <VariantContainer>
-      <VariantGroup fullWidth title="Sizes">
-        {(["sm", "md", "lg"] as const).map((size) => (
-          <PhoneInputExample
-            {...args}
-            helpText={`${size.toUpperCase()} phone input`}
-            key={size}
-            label={`Phone number ${size}`}
-            size={size}
-          />
-        ))}
-      </VariantGroup>
-    </VariantContainer>
-  ),
-}
 
-export const ValidationStates: Story = {
-  render: (args) => (
-    <VariantContainer>
-      <VariantGroup fullWidth title="Validation">
-        <PhoneInputExample
-          {...args}
-          helpText="This phone number is required."
-          label="Error"
-          validateStatus="error"
-        />
-        <PhoneInputExample
-          {...args}
-          defaultValue="+421900123456"
-          helpText="Phone number looks valid."
-          label="Success"
-          validateStatus="success"
-        />
-        <PhoneInputExample
-          {...args}
-          helpText="Double-check the country prefix."
-          label="Warning"
-          validateStatus="warning"
-        />
-      </VariantGroup>
-    </VariantContainer>
-  ),
-}
+
+
+
+
+
 
 export const DisabledAndReadOnly: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare unavailable fields with read-only values that remain available for focus and copying.",
+      },
+    },
+  },
   render: (args) => (
     <VariantContainer>
       <VariantGroup fullWidth title="Interactivity">
@@ -357,6 +462,14 @@ export const DisabledAndReadOnly: Story = {
 }
 
 export const CountryDisplayVariants: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Choose a flag, calling code or custom country display without changing the phone-entry behavior.",
+      },
+    },
+  },
   render: (args) => (
     <VariantContainer>
       <VariantGroup fullWidth title="Default">
@@ -367,7 +480,7 @@ export const CountryDisplayVariants: Story = {
         />
       </VariantGroup>
       <VariantGroup fullWidth title="No flags">
-        <div className="w-2xs max-w-full">
+        <div className="w-full max-w-2xs">
           <PhoneInput {...args}>
             <PhoneInput.Label>Calling code only</PhoneInput.Label>
             <PhoneInput.Control>
@@ -394,13 +507,16 @@ export const CountryDisplayVariants: Story = {
         </div>
       </VariantGroup>
       <VariantGroup fullWidth title="Flag only trigger">
-        <div className="w-2xs max-w-full">
+        <div className="w-full max-w-2xs">
           <PhoneInput {...args}>
             <PhoneInput.Label>Compact country trigger</PhoneInput.Label>
             <PhoneInput.Control>
               <PhoneInput.CountrySelect>
                 <PhoneInput.CountryControl>
-                  <PhoneInput.CountryTrigger aria-label="Select country" className="max-w-fit">
+                  <PhoneInput.CountryTrigger
+                    aria-label="Select country"
+                    className="max-w-fit"
+                  >
                     <PhoneInput.CountryValue>
                       <PhoneInput.CountryFlag />
                     </PhoneInput.CountryValue>
@@ -425,8 +541,16 @@ export const CountryDisplayVariants: Story = {
 }
 
 export const FixedCountry: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A phone field without a country picker suits a workflow that only accepts one known country.",
+      },
+    },
+  },
   render: (args) => (
-    <div className="w-2xs max-w-full">
+    <div className="w-full max-w-2xs">
       <PhoneInput {...args} countries={czechCountries} defaultCountry="CZ">
         <PhoneInput.Label>Czech phone number</PhoneInput.Label>
         <PhoneInput.Control>
@@ -445,13 +569,22 @@ export const FixedCountry: Story = {
 }
 
 export const Controlled: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Application-owned state stays in sync with user changes and authoritative updates from the parent.",
+      },
+    },
+  },
   render: (args) => {
     const [value, setValue] = useState("")
-    const [details, setDetails] =
-      useState<PhoneInputValueChangeDetails | null>(null)
+    const [details, setDetails] = useState<PhoneInputValueChangeDetails | null>(
+      null
+    )
 
     return (
-      <div className="grid w-sm max-w-full gap-200">
+      <div className="grid w-full max-w-sm gap-200">
         <PhoneInputExample
           {...args}
           helpText={details?.isValid ? "Valid phone number" : "Keep typing"}
@@ -471,11 +604,19 @@ export const Controlled: Story = {
 }
 
 export const AsyncControlledValue: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A parent can load an international number after mount and synchronize both its country and displayed number.",
+      },
+    },
+  },
   render: (args) => {
     const [value, setValue] = useState("")
 
     return (
-      <div className="grid w-sm max-w-full gap-200">
+      <div className="grid w-full max-w-sm gap-200">
         <PhoneInputExample
           {...args}
           helpText={
@@ -499,11 +640,19 @@ export const AsyncControlledValue: Story = {
 }
 
 export const PasteInternationalNumber: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "An international number updates its country prefix instead of duplicating that prefix in the national-number field.",
+      },
+    },
+  },
   render: (args) => {
     const [value, setValue] = useState("")
 
     return (
-      <div className="grid w-sm max-w-full gap-200">
+      <div className="grid w-full max-w-sm gap-200">
         <PhoneInputExample
           {...args}
           defaultCountry="SK"
@@ -524,6 +673,14 @@ export const PasteInternationalNumber: Story = {
 }
 
 export const LimitedCountries: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Limit destinations to supported countries while visibly distinguishing unavailable choices.",
+      },
+    },
+  },
   render: (args) => (
     <PhoneInputExample
       {...args}
@@ -535,8 +692,16 @@ export const LimitedCountries: Story = {
 }
 
 export const CustomCountryList: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Customize the country list content while retaining selection semantics and keyboard navigation.",
+      },
+    },
+  },
   render: (args) => (
-    <div className="w-sm max-w-full">
+    <div className="w-full max-w-sm">
       <PhoneInput {...args}>
         <PhoneInput.Label>Delivery phone</PhoneInput.Label>
         <PhoneInput.Control>
@@ -575,12 +740,20 @@ export const CustomCountryList: Story = {
 }
 
 export const NativeFormValue: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Submit locally to inspect the E.164 hidden value and native phone validation without leaving the demo.",
+      },
+    },
+  },
   render: (args) => {
     const [submittedValue, setSubmittedValue] = useState("None")
 
     return (
       <form
-        className="grid w-sm max-w-full gap-200"
+        className="grid w-full max-w-sm gap-200"
         onSubmit={(event) => {
           event.preventDefault()
           const formData = new FormData(event.currentTarget)

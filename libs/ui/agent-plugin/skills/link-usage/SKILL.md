@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Link atom for inline or unstyled navigation, including
   external links and framework adapter usage.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -174,3 +174,11 @@ rg -P -n "<Link[^>]*href=\"https?://(?![^>]*external)" apps
 rg -n "function .*Link|const .*Link" apps
 rg -n "<LinkButton|<Link\\b" apps
 ```
+
+## Navigation appearance and sizes
+
+Links are underlined in every theme, so navigation never relies on colour alone.
+They use a readable foreground and visible keyboard focus. Canonical text sizes
+are sm/md/lg, default md; `size="current"` inherits paragraph typography for
+inline composition. Link is not a boxed control and does not set field height.
+Use LinkButton for prominent navigation, not manual button classes on Link.

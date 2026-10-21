@@ -47,7 +47,9 @@ test("legacy numeric and Zag callbacks each fire once, including NaN on clear", 
   })
   await openStory(page, "callback-compatibility")
   const input = page.getByRole("spinbutton", { name: "Callback quantity" })
-  await expect(input).toHaveAttribute("form", "numeric-callback-form")
+  const formId = await page.locator("form").getAttribute("id")
+  expect(formId).toBeTruthy()
+  await expect(input).toHaveAttribute("form", formId ?? "")
   await expect(input).toHaveAttribute("name", "callbackQuantity")
   await expect(
     page.getByRole("button", { name: "Increase callback quantity" })
@@ -88,7 +90,7 @@ test("numeric controlled and uncontrolled consumers keep legacy defaults", async
   await expect(controlled).toHaveValue("42")
   await controlled.press("ArrowUp")
   await expect(controlled).toHaveValue("43")
-  await openStory(page, "all-sizes")
+  await openStory(page, "sizes")
   const uncontrolled = page.getByRole("spinbutton", { name: "Small (sm)" })
   await expect(uncontrolled).toHaveValue("10")
   await uncontrolled.press("ArrowDown")
@@ -198,4 +200,38 @@ test("FormNumericInput preserves localized drafts, rejected overflow and parent 
   await expect(input).toHaveAccessibleDescription(
     "Zadejte požadované množství. Desetinná čísla oddělujte čárkou."
   )
+})
+
+test("zero precision rounds and canonical steppers meet the minimum hit target", async ({
+  page,
+}) => {
+  await openStory(page, "precision-zero")
+  await expect(
+    page.getByRole("spinbutton", { name: "Whole units" })
+  ).toHaveValue("2")
+  await openStory(page, "sizes")
+  for (const trigger of await page.getByRole("button").all()) {
+    const box = await trigger.boundingBox()
+    expect(box?.width).toBeGreaterThanOrEqual(24)
+    expect(box?.height).toBeGreaterThanOrEqual(24)
+  }
+})
+
+test("read-only values stay focusable and cannot be typed, stepped, wheeled or clamped", async ({
+  page,
+}) => {
+  await openStory(page, "read-only")
+  const input = page.getByRole("spinbutton")
+  await input.focus()
+  await expect(input).toBeFocused()
+  await input.press("ArrowUp")
+  await input.press("ArrowDown")
+  await input.press("Home")
+  await input.press("End")
+  await input.press("Backspace")
+  await input.press("7")
+  await input.dispatchEvent("wheel", { deltaY: -100, bubbles: true })
+  await input.press("Tab")
+  await expect(input).toHaveValue("42")
+  await expect(page.getByRole("button")).toHaveCount(0)
 })

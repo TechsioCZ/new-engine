@@ -2,7 +2,7 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -134,7 +134,7 @@ export type ChartProps<TDatum> = {
 const chartVariants = tv({
   slots: {
     root: "chart-base block w-full text-chart-fg",
-    tooltip: "chart-tooltip",
+    tooltip: "chart-tooltip popup-layer!",
   },
 })
 

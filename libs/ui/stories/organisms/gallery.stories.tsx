@@ -1,398 +1,70 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { type ReactNode } from 'react'
-import { Badge } from '../../src/atoms/badge'
-import { StatusText } from '../../src/atoms/status-text'
-import { Gallery, type GalleryItem } from '../../src/organisms/gallery'
-import { GalleryTemplate } from '../../src/templates/gallery'
+import type { Meta, StoryObj } from "@storybook/react"
+import { expect, userEvent, within } from "storybook/test"
+import { Gallery, type GalleryItem } from "../../src/organisms/gallery"
+import { Carousel } from "../../src/molecules/carousel"
 
-const shoes1 = new URL('../../assets/gallery/shoes-1.avif', import.meta.url).href
-const shoes2 = new URL('../../assets/gallery/shoes-2.avif', import.meta.url).href
-const shoes3 = new URL('../../assets/gallery/shoes-3.avif', import.meta.url).href
-const shoes4 = new URL('../../assets/gallery/shoes-4.avif', import.meta.url).href
-const watch1 = new URL('../../assets/gallery/watch-1.avif', import.meta.url).href
-const watch2 = new URL('../../assets/gallery/watch-2.avif', import.meta.url).href
-const watch3 = new URL('../../assets/gallery/watch-3.avif', import.meta.url).href
-const watch4 = new URL('../../assets/gallery/watch-4.avif', import.meta.url).href
-
-const sneakerItems: GalleryItem[] = [
-  {
-    id: 'sneaker-1',
-    src: shoes1,
-    alt: 'Pastel sneaker hero shot',
-  },
-  {
-    id: 'sneaker-2',
-    src: shoes2,
-    alt: 'Sneaker detail side profile',
-  },
-  {
-    id: 'sneaker-3',
-    src: shoes3,
-    alt: 'Red sneaker product variant',
-  },
-  {
-    id: 'sneaker-4',
-    src: shoes4,
-    alt: 'Sneaker lifestyle frame',
-  },
+const items: GalleryItem[] = [
+  { id: "front", src: new URL("../../assets/gallery/shoes-1.avif", import.meta.url).href, alt: "Pastel sneaker, front view" },
+  { id: "side", src: new URL("../../assets/gallery/shoes-2.avif", import.meta.url).href, alt: "Pastel sneaker, side view" },
+  { id: "red", src: new URL("../../assets/gallery/shoes-3.avif", import.meta.url).href, alt: "Red sneaker, side view" },
+  { id: "detail", src: new URL("../../assets/gallery/shoes-4.avif", import.meta.url).href, alt: "Sneaker sole detail" },
 ]
-
-const watchItems: GalleryItem[] = [
-  {
-    id: 'watch-1',
-    src: watch1,
-    alt: 'Watch front product shot',
-  },
-  {
-    id: 'watch-2',
-    src: watch2,
-    alt: 'Watch on wrist',
-  },
-  {
-    id: 'watch-3',
-    src: watch3,
-    alt: 'Macro watch close-up',
-  },
-  {
-    id: 'watch-4',
-    src: watch4,
-    alt: 'Watch flatlay',
-  },
-]
-
-const chakraItems: GalleryItem[] = [
-  ...sneakerItems,
-  ...watchItems,
-  {
-    id: 'chakra-9',
-    src: shoes2,
-    alt: 'Sneaker sole detail',
-  },
-  {
-    id: 'chakra-10',
-    src: shoes3,
-    alt: 'Sneaker side detail',
-  },
-]
-
-const overlayControlsClassName =
-  'pointer-events-none absolute inset-x-100 top-1/2 z-20 flex -translate-y-1/2 items-center justify-between bg-transparent p-0'
-const overlayArrowClassName =
-  'pointer-events-auto rounded-full border border-border-primary bg-base text-fg-primary shadow-sm hover:bg-overlay'
-
-type StoryFrameProps = {
-  children: ReactNode
-  mobile?: boolean
-}
-
-function StoryFrame({ children, mobile = false }: StoryFrameProps) {
-  return (
-    <div className="w-full bg-base p-400">
-      <div
-        className={
-          mobile
-            ? 'mx-auto w-full max-w-sm'
-            : 'mx-auto w-full max-w-lg'
-        }
-      >
-        <div className="rounded-lg border border-border-primary bg-surface p-250">
-          {children}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-type StoryHeaderProps = {
-  label: string
-  title: string
-  note: string
-}
-
-function StoryHeader({ label, title, note }: StoryHeaderProps) {
-  return (
-    <div className="mb-250 flex flex-col gap-100">
-      <div className="flex flex-wrap items-center gap-100">
-        <Badge variant="outline">{label}</Badge>
-        <StatusText size="sm" status="default">
-          {note}
-        </StatusText>
-      </div>
-      <div className="text-md font-semibold text-fg-primary">{title}</div>
-    </div>
-  )
-}
-
-const meta = {
-  title: 'Organisms/Gallery',
-  component: GalleryTemplate,
-  tags: ['autodocs'],
+const meta: Meta<typeof Gallery> = {
+  title: "Organisms/Gallery", component: Gallery, tags: ["autodocs"],
   parameters: {
-    layout: 'fullscreen',
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
+    layout: "padded",
+    docs: { description: { component: "Gallery is a compound product-media viewer that synchronizes a main carousel and thumbnail rail. Compose Gallery.Main, Gallery.Carousel and Gallery.Thumbnails for custom layouts; choose GalleryTemplate for a ready-made props-only layout, or Carousel for slides without thumbnails. thumbnailSize is a media dimension in pixels, not a form-control size; carouselProps configures the nested carousel's media sizing." } },
   },
   argTypes: {
-    orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical'],
-    },
-    aspectRatio: {
-      control: 'select',
-      options: ['square', 'portrait', 'landscape', 'wide', 'none'],
-    },
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'full'],
-    },
-    objectFit: {
-      control: 'select',
-      options: ['cover', 'contain', 'fill', 'none'],
-    },
-    carouselWidth: {
-      control: 'number',
-    },
-    carouselHeight: {
-      control: 'number',
-    },
-    fitParent: {
-      control: 'boolean',
-    },
-    thumbnailSize: {
-      control: 'number',
-    },
-    showThumbnails: {
-      control: 'boolean',
-    },
-    showControls: {
-      control: 'boolean',
-    },
-    showIndicators: {
-      control: 'boolean',
-    },
-    showAutoplay: {
-      control: 'boolean',
-    },
+    items: { control: "object" },
+    orientation: { control: "select", options: ["horizontal", "vertical"] },
+    thumbnailSize: { control: { type: "number", min: 32, max: 120, step: 4 } },
+    showThumbnails: { control: "boolean" },
+    hideThumbnailsWhenSingle: { control: "boolean" },
+    carouselProps: { control: "object" },
+    value: { control: false }, children: { control: false, table: { disable: true } },
+    onValueChange: { control: false },
   },
   args: {
-    items: sneakerItems,
-    orientation: 'horizontal',
-    aspectRatio: 'square',
-    size: 'full',
-    objectFit: 'cover',
-    fitParent: true,
-    thumbnailSize: 72,
-    showThumbnails: true,
+    items, orientation: "horizontal", thumbnailSize: 64,
+    showThumbnails: true, hideThumbnailsWhenSingle: true,
+    carouselProps: { width: "100%", size: "full", aspectRatio: "square", objectFit: "contain", "aria-label": "Workshop sneaker views" },
   },
-} satisfies Meta<typeof GalleryTemplate>
-
+  decorators: [(Story) => <div className="mx-auto w-full max-w-lg"><Story /></div>],
+  render: (args) => <Gallery {...args}>
+    <Gallery.Main><Gallery.Carousel><Gallery.Slides /></Gallery.Carousel></Gallery.Main>
+    <Gallery.Thumbnails />
+  </Gallery>,
+} satisfies Meta<typeof Gallery>
 export default meta
-
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
-  render: (args) => (
-    <StoryFrame>
-      <GalleryTemplate
-        {...args}
-        mainClassName="overflow-hidden rounded-md border border-border-primary bg-base"
-        thumbnailsClassName="rounded-md border border-border-primary bg-base px-100"
-        thumbnailsListClassName="gap-100 py-100"
-      />
-    </StoryFrame>
-  ),
+  parameters: { docs: { description: { story: "Change the real Gallery props and select a thumbnail to keep the main product view in sync." } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByRole("region", { name: "Workshop sneaker views" })).toBeInTheDocument()
+    const thumbnail = canvas.getByRole("button", { name: "Show slide 2" })
+    await userEvent.click(thumbnail)
+    await expect(thumbnail).toHaveAttribute("aria-current", "true")
+  },
 }
-
-export const SimpleHorizontal: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Simple"
-        note="Desktop default"
-        title="Horizontal thumbnail rail under main image"
-      />
-      <GalleryTemplate
-        items={sneakerItems}
-        orientation="horizontal"
-        aspectRatio="square"
-        objectFit="cover"
-        fitParent
-        thumbnailSize={72}
-        mainClassName="overflow-hidden rounded-md border border-border-primary bg-base"
-        thumbnailsClassName="rounded-md border border-border-primary bg-base px-100"
-        thumbnailsListClassName="gap-100 py-100"
-      />
-    </StoryFrame>
-  ),
+export const VerticalRail: Story = {
+  args: { orientation: "vertical" },
+  parameters: { docs: { description: { story: "A vertical thumbnail rail saves horizontal space on desktop and reflows below the image on mobile." } } },
 }
-
-export const SimpleVertical: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Simple"
-        note="Thumb rail on side"
-        title="Vertical rail for fast image scanning"
-      />
-      <Gallery
-        items={watchItems}
-        orientation="vertical"
-        thumbnailSize={68}
-        carouselProps={{
-          aspectRatio: 'square',
-          objectFit: 'cover',
-          size: 'full',
-          width: 384,
-          height: 384,
-        }}
-      >
-        <Gallery.Thumbnails
-          className="rounded-md border border-border-primary bg-base p-100"
-          listClassName="gap-100"
-        />
-        <Gallery.Main className="overflow-hidden rounded-md border border-border-primary bg-base">
-          <Gallery.Carousel className="flex flex-row overflow-visible" orientation="vertical">
-            <Gallery.Slides />
-          </Gallery.Carousel>
-        </Gallery.Main>
-      </Gallery>
-    </StoryFrame>
-  ),
+export const WithControls: Story = {
+  parameters: { docs: { description: { story: "Add carousel controls inside the main viewer when thumbnails alone are not enough for sequential browsing." } } },
+  render: (args) => <Gallery {...args}>
+    <Gallery.Main><Gallery.Carousel>
+      <Gallery.Slides />
+      <Carousel.Control><Carousel.Previous /><Carousel.Indicators /><Carousel.Next /></Carousel.Control>
+    </Gallery.Carousel></Gallery.Main>
+    <Gallery.Thumbnails />
+  </Gallery>,
 }
-
-export const CompoundPattern: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Compound"
-        note="Custom thumbnail renderer"
-        title="Custom active thumbnail chrome with unchanged gallery behavior"
-      />
-      <Gallery
-        className="rounded-md bg-base"
-        items={sneakerItems}
-        orientation="vertical"
-        thumbnailSize={74}
-        carouselProps={{
-          aspectRatio: 'square',
-          objectFit: 'cover',
-          size: 'full', 
-        }}
-      >
-        <Gallery.Thumbnails
-          listClassName="gap-100"
-          renderThumbnail={({ defaultThumbnail, isActive, index }) => (
-            <div
-              className={
-                isActive
-                  ? 'relative rounded-sm border border-info p-50'
-                  : 'relative rounded-sm border border-border-primary p-50'
-              }
-            >
-              {defaultThumbnail}
-              <Badge
-                className="pointer-events-none absolute right-50 bottom-50"
-                variant={isActive ? 'info' : 'outline'}
-              >
-                {String(index + 1)}
-              </Badge>
-            </div>
-          )}
-        />
-        <Gallery.Main className="overflow-hidden rounded-md border border-border-primary bg-base">
-          <Gallery.Carousel>
-            <Gallery.Slides />
-          </Gallery.Carousel>
-        </Gallery.Main>
-      </Gallery>
-    </StoryFrame>
-  ),
-}
-
-export const MobileSimple: Story = {
-  render: () => (
-    <StoryFrame mobile>
-      <StoryHeader
-        label="Mobile"
-        note="Compact layout"
-        title="Vertical gallery tuned for mobile product card"
-      />
-      <GalleryTemplate
-        items={sneakerItems}
-        orientation="vertical"
-        aspectRatio="square"
-        objectFit="cover"
-        fitParent
-        thumbnailSize={60}
-        mainClassName="overflow-hidden rounded-md border border-border-primary bg-base"
-        thumbnailsClassName="rounded-md border border-border-primary bg-base p-100"
-        thumbnailsListClassName="gap-100"
-      />
-    </StoryFrame>
-  ),
-}
-
-export const VerticalWithArrows: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Chakra style"
-        note="Vertical rail"
-        title="Classic product gallery with side thumbnails"
-      />
-      <GalleryTemplate
-        items={chakraItems}
-        orientation="vertical"
-        aspectRatio="square"
-        objectFit="cover"
-        fitParent
-        thumbnailSize={64}
-        showControls
-        controlsClassName={overlayControlsClassName}
-        previousTriggerClassName={overlayArrowClassName}
-        nextTriggerClassName={overlayArrowClassName}
-        mainClassName="overflow-hidden rounded-md border border-border-primary bg-base"
-        thumbnailsClassName="rounded-md border border-border-primary bg-base p-100"
-        thumbnailsListClassName="gap-100"
-      />
-    </StoryFrame>
-  ),
-}
-
-export const HorizontalWithArrows: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Chakra style"
-        note="Horizontal rail"
-        title="Focus-first gallery with highlighted active thumbnail"
-      />
-      <GalleryTemplate
-        items={chakraItems}
-        orientation="horizontal"
-        aspectRatio="square"
-        objectFit="cover"
-        fitParent
-        thumbnailSize={72}
-        showControls
-        controlsClassName={overlayControlsClassName}
-        previousTriggerClassName={overlayArrowClassName}
-        nextTriggerClassName={overlayArrowClassName}
-        thumbnailsClassName="rounded-md border border-border-primary bg-base px-100"
-        thumbnailsListClassName="gap-100 py-100"
-        renderThumbnail={({ defaultThumbnail, isActive, index }) => (
-          <div
-            className={
-              isActive
-                ? 'rounded-sm border border-info bg-info-light p-50'
-                : 'rounded-sm border border-border-primary bg-base p-50'
-            }
-          >
-            {defaultThumbnail}
-            <div className="mt-50 text-center text-xs text-fg-secondary">
-              {index + 1}
-            </div>
-          </div>
-        )}
-      />
-    </StoryFrame>
-  ),
+export const SingleImage: Story = {
+  args: { items: items.slice(0, 1) },
+  parameters: { docs: { description: { story: "A single product image hides the redundant thumbnail rail while preserving a named media region." } } },
 }

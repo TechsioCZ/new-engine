@@ -6,7 +6,7 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -25,6 +25,19 @@ sources:
 
 Use Slider for bounded numeric adjustment. Use NumericInput when exact typed
 entry is required.
+
+## Shared field contract
+
+Canonical sizes are `sm`, `md` (default), and `lg`. `showValueText` formats every
+thumb count: one value, a two-value range, or an ordered list of several values.
+Pass one `aria-label` per thumb (for example `Minimum price` and `Maximum price`);
+these explicit names take precedence over the shared visible label.
+
+`helpText` has a stable message ID merged with caller `aria-describedby` on each
+focusable thumb. Error status sets `aria-invalid` and `aria-errormessage` on the
+thumbs; non-neutral feedback always includes a status icon. Markers reserve a
+separate line above help text. `readOnly` keeps thumbs focusable, full contrast
+and immutable by pointer and keyboard; `disabled` removes their normal tab stops.
 
 ## UX/UI guidelines
 

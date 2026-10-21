@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Chart, type ChartType } from "../../src/molecules/chart"
 
@@ -79,6 +79,8 @@ const meta: Meta<typeof Chart<RevenuePoint>> = {
   title: "Molecules/Chart",
   component: Chart,
   parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
+    docs: { description: { component: "Chart visualizes trends, comparisons and distributions with accessible labels, legends and keyboard inspection. Use line charts for change over time and bars for category comparisons; use Table when exact values matter more than patterns. Chart height and aspectRatio are media layout dimensions, not sm/md/lg form-control sizes." } },
     layout: "padded",
   },
   tags: ["autodocs", "chart-regression"],
@@ -152,6 +154,7 @@ type Story = StoryObj<typeof meta>
 /* ── Stories ─────────────────────────────────────────────────────────────── */
 
 export const Playground: Story = {
+  parameters: { docs: { description: { story: "Use the controls to explore the component in a realistic layout without leaving the preview." } } },
   render: (args) => (
     <div className="mx-auto w-full max-w-3xl">
       <Chart {...args} />
@@ -164,6 +167,8 @@ export const Playground: Story = {
 
 /** Every value of the `type` prop, driven by the channel that fits it. */
 export const Types: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "Choose a chart form that matches the data question: trends over time, category comparisons or distributions." } } },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Line">
@@ -253,6 +258,8 @@ export const Types: Story = {
 
 /** One series: painted with `--color-chart-series-1`, no legend box. */
 export const SingleSeries: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "A single series can rely on its title rather than a redundant legend." } } },
   render: () => (
     <div className="mx-auto w-full max-w-3xl">
       <Chart
@@ -271,6 +278,8 @@ export const SingleSeries: Story = {
 
 /** `stacked` flips bars between side-by-side groups and stacked segments. */
 export const Stacking: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "Stack related measures only when the total and each contribution are meaningful together." } } },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Grouped bars (stacked=false)">
@@ -318,6 +327,7 @@ export const Stacking: Story = {
 
 /** Selecting a mark reports the original source row through `onSelect`. */
 export const Interactive: Story = {
+  parameters: { docs: { description: { story: "Inspect individual marks and use the legend to focus on the series relevant to the question." } } },
   args: {
     onSelect: fn(),
   },
@@ -348,7 +358,12 @@ export const Interactive: Story = {
       name: "Monthly revenue by sales channel",
     })
     chart.focus()
-    await userEvent.keyboard("[Home][Enter]")
+    await userEvent.keyboard("[Home]")
+    await waitFor(() => expect(canvasElement.querySelector(".chart-tooltip")).toBeVisible())
+    const tooltip = canvasElement.querySelector(".chart-tooltip") as HTMLElement
+    await expect(tooltip).toHaveClass("popup-layer!")
+    await expect(Number.parseInt(getComputedStyle(tooltip).zIndex, 10)).toBeGreaterThanOrEqual(60)
+    await userEvent.keyboard("[Enter]")
     await expect(args.onSelect).toHaveBeenCalledWith(revenueByChannel[0])
     await expect(
       canvas.getByText("Selected: Online — Jan (42k €)")
@@ -366,12 +381,13 @@ export const Interactive: Story = {
     ).toBeInTheDocument()
     chart.blur()
     await expect(chart).not.toHaveFocus()
-    await expect(canvas.queryByRole("tooltip")).not.toBeInTheDocument()
+    await expect(canvasElement.querySelector(".chart-tooltip")).not.toBeVisible()
   },
 }
 
 /** Polar interaction must report the source row rather than d3's arc wrapper. */
 export const PolarSelection: Story = {
+  parameters: { docs: { description: { story: "Accessible segment selection lets a circular chart expose the chosen category beyond its color." } } },
   args: {
     type: "pie",
     data: onlineRevenue,
@@ -454,6 +470,8 @@ const pointerChartTypes = ["pie", "donut", "line"] as const
 
 /** The test-runner postVisit hook checks these marks with native browser input. */
 export const PointerSelection: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "Pointer selection produces the same record-level feedback as keyboard mark activation." } } },
   render: function PointerSelectionStory() {
     const emptySelection: PointerSelectionState = {
       selected: null,
@@ -526,6 +544,8 @@ const signupSeries: SignupPoint[] = [
 
 /** Date x values ride a UTC time scale, so uneven gaps keep their spacing. */
 export const TimeSeries: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "A temporal scale preserves actual time spacing rather than treating dates as unrelated categories." } } },
   render: () => (
     <div className="mx-auto w-full max-w-3xl">
       <Chart
@@ -543,6 +563,8 @@ export const TimeSeries: Story = {
 
 /** Chart chrome switched off for embedding in dense dashboard tiles. */
 export const Minimal: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "A restrained chart removes optional decoration while preserving enough context to understand the values." } } },
   render: () => (
     <div className="mx-auto w-full max-w-3xl">
       <Chart

@@ -25,6 +25,20 @@
   --width-steps-separator: var(--size-steps-separator-width);
 }
 
+/* The range follows the responsive orientation of its supplementary track. */
+@utility steps-progress-range {
+  &[data-orientation="horizontal"] {
+    width: var(--percent, 0%);
+  }
+  &[data-orientation="vertical"] {
+    height: var(--percent, 0%);
+    @variant max-sm {
+      width: var(--percent, 0%);
+      height: 100%;
+    }
+  }
+}
+
 @utility token-icon-steps-check {
   @apply token-icon-check;
 }

@@ -217,3 +217,9 @@ rg -n '<CascadeSelect\b[^>]*(value|defaultValue)=\{\["' apps
 rg -n '<CascadeSelect\.Trigger[^>]*className=.*(border-|bg-|p[xy]?-|text-)' apps
 rg -n '<button[^>]*onClick=.*(category|categories)' apps
 ```
+
+## Reduced motion
+
+Popup content disables transitions and animations under
+`prefers-reduced-motion: reduce`, including discrete display transitions.
+The usual opening/closing interaction remains unchanged.

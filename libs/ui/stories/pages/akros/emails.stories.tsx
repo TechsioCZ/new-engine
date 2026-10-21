@@ -1,3 +1,4 @@
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -12,14 +13,27 @@ import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
 import { Table } from "../../../src/organisms/table"
 import { PageHeader, SectionCard } from "../shell"
-import { type EmailTemplate, emailTemplates, emailVariables, formatDate } from "./data"
+import {
+  type EmailTemplate,
+  emailTemplates,
+  emailVariables,
+  formatDate,
+} from "./data"
 import { AkrosShell, akrosDocs } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Customer emails",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -73,7 +87,7 @@ const defaultBody = [
 function render(text: string) {
   return emailVariables.reduce(
     (result, variable) => result.split(variable.token).join(variable.sample),
-    text
+    text,
   )
 }
 
@@ -87,7 +101,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
   const [subject, setSubject] = useState(editing?.subject ?? "")
   const [savedBodies, setSavedBodies] = useState(bodies)
   const [body, setBody] = useState(
-    editingId ? (bodies[editingId] ?? defaultBody) : defaultBody
+    editingId ? (bodies[editingId] ?? defaultBody) : defaultBody,
   )
 
   const open = (template: EmailTemplate) => {
@@ -134,8 +148,8 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                 current.map((template) =>
                   template.id === info.row.original.id
                     ? { ...template, enabled: checked }
-                    : template
-                )
+                    : template,
+                ),
               )
             }
           >
@@ -150,7 +164,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
         cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
-    []
+    [],
   )
 
   return (
@@ -197,14 +211,15 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                 onClick={() =>
                   toaster.create({
                     type: "info",
-                    title: "Test email sent",
-                    description: "To nora.kessler@akros.cz with sample data.",
+                    title: "Test delivery preview",
+                    description:
+                      "Sample recipient: nora.kessler@akros.cz. No email was sent from this demo.",
                   })
                 }
                 theme="outlined"
                 variant="secondary"
               >
-                Send test to me
+                Preview test delivery
               </Button>
               <Button
                 onClick={() => {
@@ -212,8 +227,8 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                     current.map((template) =>
                       template.id === editing.id
                         ? { ...template, subject, updatedAt: "2026-09-14" }
-                        : template
-                    )
+                        : template,
+                    ),
                   )
                   setSavedBodies((current) => ({
                     ...current,
@@ -313,6 +328,15 @@ function EmailsPage({ initialId }: { initialId?: string }) {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in emails to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Email notifications",
   render: () => <EmailsPage />,
 }

@@ -1,3 +1,4 @@
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Button } from "../../src/atoms/button"
@@ -26,12 +27,13 @@ import {
 } from "./data"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/Storefront/Category listing",
   parameters: {
@@ -97,25 +99,6 @@ function StorefrontHeader() {
                 </SearchForm.Control>
               </SearchForm>
             </Header.ActionItem>
-            <Header.ActionItem>
-              <Button
-                icon="icon-[mdi--account-outline]"
-                size="sm"
-                theme="borderless"
-                variant="secondary"
-              >
-                Account
-              </Button>
-            </Header.ActionItem>
-            <Header.ActionItem>
-              <Button
-                icon="icon-[mdi--cart-outline]"
-                size="sm"
-                variant="primary"
-              >
-                Cart · 2
-              </Button>
-            </Header.ActionItem>
           </Header.Actions>
         </Header.Container>
       </Header.Desktop>
@@ -130,29 +113,6 @@ function StorefrontHeader() {
             </Header.NavItem>
           ))}
         </Header.Nav>
-        <Header.Actions>
-          <Header.ActionItem>
-            <Button
-              block
-              icon="icon-[mdi--account-outline]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              Account
-            </Button>
-          </Header.ActionItem>
-          <Header.ActionItem>
-            <Button
-              block
-              icon="icon-[mdi--cart-outline]"
-              size="sm"
-              variant="primary"
-            >
-              Cart · 2
-            </Button>
-          </Header.ActionItem>
-        </Header.Actions>
       </Header.Mobile>
     </Header>
   )
@@ -342,7 +302,7 @@ function FacetPanel({
             onColorClick={(color) =>
               onColorChange(
                 colorFacets.find((facet) => facet.color === color)?.label ??
-                  color
+                  color,
               )
             }
             selectionMode="multiple"
@@ -403,7 +363,7 @@ function ProductGrid({ products }: { products: StorefrontProduct[] }) {
                     type: "success",
                     title: "Added to cart",
                     description: product.name,
-                  }
+                  },
             )
           }
           onViewDetails={() =>
@@ -435,12 +395,12 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
   const toggle = (
     list: string[],
     setList: (next: string[]) => void,
-    value: string
+    value: string,
   ) =>
     setList(
       list.includes(value)
         ? list.filter((entry) => entry !== value)
-        : [...list, value]
+        : [...list, value],
     )
 
   const brandLabelOf = (product: StorefrontProduct) =>
@@ -479,7 +439,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
   const currentPage = Math.min(page, pageCount)
   const pageProducts = sortedProducts.slice(
     (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
+    currentPage * PAGE_SIZE,
   )
 
   const activeChips = [
@@ -632,6 +592,7 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
               {pageCount > 1 && (
                 <Pagination
                   count={sortedProducts.length}
+                  linkProps={{ onClick: (event) => event.preventDefault() }}
                   getPageUrl={({ page: target }) => pageUrl(target)}
                   onPageChange={setPage}
                   page={currentPage}
@@ -681,6 +642,15 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
 }
 
 export const FilterRail: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare filter rail in storefront category to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Filter rail (desktop)",
   render: () => <CategoryPage />,
 }

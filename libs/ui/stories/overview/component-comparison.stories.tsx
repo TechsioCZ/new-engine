@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useId, useState } from 'react'
+import { expect, within } from 'storybook/test'
 import { Badge } from '../../src/atoms/badge'
 import { Button } from '../../src/atoms/button'
 import { Checkbox } from '../../src/atoms/checkbox'
@@ -47,8 +48,9 @@ const meta: Meta = {
   title: 'Overview/Component Comparison',
   parameters: {
     layout: 'fullscreen',
+    docs: { description: { component: 'Compare the same active-brand tokens across representative kit components. Use individual component Docs for API guidance and interaction details.' } },
   },
-  tags: ['comparison'],
+  tags: ['autodocs', 'comparison'],
 }
 
 export default meta
@@ -69,7 +71,7 @@ function ComponentCard({
 }: ComponentCardProps) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border p-300 ${className ?? ''}`}
+      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border p-200 sm:p-300 ${className ?? ''}`}
     >
       <div className="text-fg-secondary text-sm font-semibold">{title}</div>
       <div className={bodyClassName ?? 'flex flex-wrap items-center gap-200'}>
@@ -276,10 +278,11 @@ function ToastPreview() {
 
 function ComponentComparison() {
   const [currentStep, setCurrentStep] = useState(1)
+  const id = useId()
 
   return (
     <div className="min-h-screen bg-base text-fg-primary">
-      <div className="mx-auto flex max-w-5xl flex-col gap-700 p-600">
+      <div className="mx-auto flex max-w-5xl flex-col gap-700 p-200 md:p-600">
         <header className="flex flex-col gap-100">
           <h1 className="text-xl font-semibold">Component Comparison</h1>
           <p className="text-fg-secondary text-sm">
@@ -328,9 +331,10 @@ function ComponentComparison() {
             </Label>
           </ComponentCard>
           <ComponentCard title="NumericInput" bodyClassName="w-full max-w-xs">
+            <Label htmlFor={`${id}-quantity`} size="md">Order quantity</Label>
             <NumericInput defaultValue={12} size="md">
               <NumericInput.Control>
-                <NumericInput.Input />
+                <NumericInput.Input id={`${id}-quantity`} />
                 <NumericInput.TriggerContainer>
                   <NumericInput.IncrementTrigger />
                   <NumericInput.DecrementTrigger />
@@ -386,9 +390,10 @@ function ComponentComparison() {
               title={`NumericInput — ${size}`}
               bodyClassName="flex flex-wrap items-center gap-50"
             >
+              <Label htmlFor={`${id}-quantity-${size}`} size={size}>Quantity ({size})</Label>
               <NumericInput defaultValue={1} size={size}>
                 <NumericInput.Control>
-                  <NumericInput.Input />
+                  <NumericInput.Input id={`${id}-quantity-${size}`} />
                   <NumericInput.TriggerContainer>
                     <NumericInput.IncrementTrigger />
                     <NumericInput.DecrementTrigger />
@@ -506,17 +511,18 @@ function ComponentComparison() {
           <ComponentCard
             title="Carousel"
             className="md:col-span-2"
-            bodyClassName="w-fit"
+            bodyClassName="min-w-0 w-full"
           >
-            <div className="mx-auto w-fit">
+            <div className="mx-auto w-full max-w-md">
               <Carousel
+                aria-label="Landscape photos"
                 aspectRatio="landscape"
-                className="w-md"
+                className="w-full min-w-0"
                 size="md"
                 slideCount={carouselSlides.length}
               >
                 <Carousel.Slides
-                  className="w-md"
+                  className="w-full"
                   slides={carouselSlides}
                 />
                 <Carousel.Control
@@ -778,16 +784,16 @@ function ComponentComparison() {
         <Section title="Organisms" gridClassName="grid grid-cols-1 gap-300">
           <ComponentCard title="Header" bodyClassName="w-full">
             <div className="mx-auto w-full max-w-5xl">
-              <Header>
-                <Header.Nav>
+              <Header className="flex-wrap">
+                <Header.Nav className="flex-wrap">
                   <Header.NavItem active>
-                    <Link href="#">Home</Link>
+                    <Link href="#" onClick={(event) => event.preventDefault()}>Home</Link>
                   </Header.NavItem>
                   <Header.NavItem>
-                    <Link href="#">Docs</Link>
+                    <Link href="#" onClick={(event) => event.preventDefault()}>Docs</Link>
                   </Header.NavItem>
                   <Header.NavItem>
-                    <Link href="#">Pricing</Link>
+                    <Link href="#" onClick={(event) => event.preventDefault()}>Pricing</Link>
                   </Header.NavItem>
                 </Header.Nav>
                 <Header.Actions>
@@ -806,17 +812,17 @@ function ComponentComparison() {
                 <Footer.Container>
                   <Footer.Section>
                     <Footer.Title>Company</Footer.Title>
-                    <Footer.Link href="#">About</Footer.Link>
-                    <Footer.Link href="#">Team</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>About</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Team</Footer.Link>
                   </Footer.Section>
                   <Footer.Section>
                     <Footer.Title>Resources</Footer.Title>
-                    <Footer.Link href="#">Docs</Footer.Link>
-                    <Footer.Link href="#">Support</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Docs</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Support</Footer.Link>
                   </Footer.Section>
                   <Footer.Section>
                     <Footer.Title>Legal</Footer.Title>
-                    <Footer.Link href="#">Privacy</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Privacy</Footer.Link>
                     <Footer.Text>2026 Company</Footer.Text>
                   </Footer.Section>
                 </Footer.Container>
@@ -856,5 +862,18 @@ function ComponentComparison() {
 }
 
 export const SideBySide: Story = {
+  parameters: { docs: { description: { story: "Compare control proportions, surfaces and feedback in the selected brand and mode without leaving the preview." } } },
   render: () => <ComponentComparison />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const name of ["Order quantity", "Quantity (sm)", "Quantity (md)"]) {
+      await expect(canvas.getByRole("spinbutton", { name })).toHaveAccessibleName(name)
+    }
+    const carousel = canvas.getByRole("region", { name: "Landscape photos" })
+    const rect = carousel.getBoundingClientRect()
+    const viewport = canvasElement.ownerDocument.documentElement.clientWidth
+    await expect(rect.left).toBeGreaterThanOrEqual(0)
+    await expect(rect.right).toBeLessThanOrEqual(viewport)
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(viewport)
+  },
 }

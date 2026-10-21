@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit LinkButton, including framework link adapters, href, disabled
   state, icons, and Button-compatible variants/themes/sizes.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -194,3 +194,11 @@ rg -n "<LinkButton[^>]*className=.*(bg-|text-|px-|py-|rounded-|border-)" apps
 rg -n "function .*LinkButton|const .*LinkButton" apps
 ```
 
+## Canonical and disabled navigation
+
+Default size is md. Use sm/md/lg for ordinary navigation; current remains an
+explicit embedded-composition escape hatch. Disabled LinkButton removes href,
+sets aria-disabled and tabindex=-1, and blocks click callbacks/navigation. The
+shared unavailable treatment applies to anchor data attributes as well as native
+buttons, including hover and pressed states. Disabled destinations render a static span, bypassing routing adapters that
+require an href; enabled adapters must forward native link and ARIA props.

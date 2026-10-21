@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { fn } from "storybook/test"
+import { expect, fn, within } from "storybook/test"
 import { CarouselTemplate } from "../../src/templates/carousel"
 
 const travelSlides = [
@@ -25,6 +25,7 @@ const meta: Meta<typeof CarouselTemplate> = {
   component: CarouselTemplate,
   tags: ["autodocs"],
   parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
     layout: "padded",
     docs: {
       description: {
@@ -67,7 +68,7 @@ const meta: Meta<typeof CarouselTemplate> = {
     loop: { control: "boolean" },
     autoplay: { control: "boolean" },
     allowMouseDrag: { control: "boolean" },
-    slidesPerPage: { control: false, table: { disable: true } },
+    slidesPerPage: { control: { type: "number", min: 1, max: 3, step: 1 }, description: "Visible slides per snap page; indicators follow the actual pages." },
     onPageChange: { control: false },
   },
   args: {
@@ -143,4 +144,20 @@ export const Autoplay: Story = {
       },
     },
   },
+}
+
+export const MediaSizes: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Carousel sm/md/lg describe media dimensions, not form-control heights; full is a parent-fill layout option." } } },
+  render: (args) => <div className="flex flex-col gap-400">{(["sm", "md", "lg"] as const).map((size) => <section key={size}>
+    <h2>{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
+    <CarouselTemplate {...args} size={size} width="100%" />
+  </section>)}</div>,
+}
+export const MultipleSlides: Story = {
+  args: { slidesPerPage: 2, loop: false },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getAllByRole("button", { name: /Go to slide/ })).toHaveLength(2)
+  },
+  parameters: { docs: { description: { story: "Two visible slides share each snap page, so only valid page indicators are rendered." } } },
 }

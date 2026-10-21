@@ -4,7 +4,7 @@ description: >
   Use for nested page or category links with independently expandable and
   styled subgroups, standalone or inside Sidebar or Drawer.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -114,8 +114,10 @@ can use a full-width BranchTrigger containing its label and BranchIndicator.
 
 ## Independent subgroup styling
 
-Root size is sm or md (default md), with optional dir="rtl". Both use compact
-navigation typography, smaller section labels and flat subgroup surfaces.
+Root size is sm, md (default), or lg, with optional dir="rtl". Canonical control
+heights, typography, padding and indicator tokens scale together. Use sm for dense
+navigation and lg for prominent/touch-friendly navigation; section labels stay
+subordinate and subgroup surfaces stay flat.
 BranchContent and Group accept tone: plain (default), subtle, accent.
 With tone="accent", variant="primary" (default) or variant="secondary" selects
 the brand color for that surface. Plain and subtle stay neutral regardless of
@@ -159,3 +161,7 @@ Storybook includes Playground, Variants, Sizes, States, SevenLevels,
 Controlled, WithinDrawer, WithinSidebar, RTL and AkrosCatalog.
 Figma component creation and Code Connect are deferred until anatomy/tokens
 are approved; there are no invented Figma node mappings.
+
+## Wave 2 contracts
+
+Exactly one Sizes story compares Small (sm), Medium (md), and Large (lg), in that order, with identical categories. Navigation size is distinct from Sidebar panel width.

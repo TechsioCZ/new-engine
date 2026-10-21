@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.3.5"
+  component_version: "1.4.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -222,3 +222,32 @@ rg -n "<datalist|role=\"listbox\"|<Combobox[^>]*multiple[^>]*value=\"" apps
 rg -n "<Combobox[^>]*className=.*(bg-|text-|border-|p-|px-|py-)" apps
 rg -n "<Combobox[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Submission and immutable fields
+
+Selection mode submits item values, never the visible input label. With
+`multiple`, each selected value uses a separate entry under `name`, so read
+`new FormData(form).getAll(name)`. An empty selection submits an empty entry;
+disabled fields submit nothing. Navigation mode does not submit selection data.
+The visible text input intentionally has no name in selection mode.
+
+Read-only inputs preserve focus and text selection, suppress all opening even
+with open/defaultOpen, and omit clear/dropdown actions. Error help is linked
+with aria-errormessage. Keyboard focus on the input activates the control ring.
+Popup transitions respect reduced motion. Visual/state updates need a Figma-sync
+handoff after stabilization.
+
+Caller aria-label, aria-labelledby and aria-describedby are forwarded to the
+input; caller descriptions merge with linked help and the multiple-selection
+summary. Multiple selections expose every selected label below the control so
+read-only multi-value fields remain inspectable even when the query is empty.
+
+When selection mode becomes read-only, any uncommitted query is discarded and
+the selected labels are restored, including when the query is controlled.
+For a controlled query, `onInputValueChange` also reports the restored label(s)
+so unlocking cannot resurrect the discarded draft. Navigation mode retains its
+search query instead. `required` in selection mode
+uses the selected value(s) for native form validity: arbitrary search text is not
+a selection, and an empty query does not invalidate a nonempty multiple selection.
+Native validation focuses the visible input. Navigation mode validates the query.
+Labels follow the canonical control size rather than a fixed medium size.

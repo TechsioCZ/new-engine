@@ -17,6 +17,8 @@
 
   /* TYPOGRAPHY */
   --text-hotkeys-sm: var(--text-xs);
+  --text-hotkeys-md: var(--text-sm);
+  --text-hotkeys-lg: var(--text-md);
   --font-weight-hotkeys: var(--font-weight-medium);
 
   /* BORDERS & RADIUS */

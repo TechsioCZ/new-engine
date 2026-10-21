@@ -72,3 +72,56 @@
     var(--dt-row-tint, transparent)
   );
 }
+
+@theme static {
+  --color-data-table-skeleton: var(--color-border-secondary);
+  --color-data-table-skeleton-bg: var(--color-data-table-skeleton);
+}
+@utility data-table-skeleton {
+  background-color: var(--color-data-table-skeleton-bg);
+}
+
+@theme static {
+  --color-data-table-focus: var(--color-ring);
+  --color-data-table-scroll-ring: var(--color-data-table-focus);
+}
+@utility data-table-scroll-focus {
+  outline-style: var(--default-ring-style);
+  outline-width: var(--default-ring-width);
+  outline-color: var(--color-data-table-scroll-ring);
+  outline-offset: calc(-1 * var(--default-ring-width));
+}
+
+@theme static {
+  /* Reserve room for values, padding and steppers, not just control chrome. */
+  --spacing-data-table-editor-sm: calc(var(--height-form-control-sm) * 4);
+  --spacing-data-table-editor-md: calc(var(--height-form-control-md) * 4);
+  --spacing-data-table-editor-lg: calc(var(--height-form-control-lg) * 4);
+}
+
+@utility data-table-editor {
+  /* Fixed-width tables scroll a constrained editor rather than hiding values
+   * or painting over the adjacent cell. Auto layout reserves its full width. */
+  &[data-layout="fixed"] {
+    overflow-x: auto;
+  }
+}
+
+@utility data-table-editor-value {
+  min-width: var(--spacing-data-table-editor-md);
+  &[data-size="sm"] {
+    min-width: var(--spacing-data-table-editor-sm);
+  }
+  &[data-size="lg"] {
+    min-width: var(--spacing-data-table-editor-lg);
+  }
+}
+
+/* A pinned action column can consume most of a phone-sized viewport. Keep
+ * every value reachable: narrow containers scroll actions with the records. */
+@utility data-table-actions-sticky {
+  inset-inline-end: 0;
+  @container data-table (width < 48rem) {
+    inset-inline-end: auto;
+  }
+}

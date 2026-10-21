@@ -1,251 +1,213 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { Switch } from '../../src/molecules/switch'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useArgs } from "storybook/preview-api"
+import { expect, fn, userEvent, within } from "storybook/test"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Switch } from "../../src/molecules/switch"
+const describe = (story: string) => ({ docs: { description: { story } } })
 
 const meta: Meta<typeof Switch> = {
-  title: 'Molecules/Switch',
+  title: "Molecules/Switch",
   component: Switch,
+  tags: ["autodocs"],
   parameters: {
-    layout: 'centered',
+    layout: "centered",
+    docs: {
+      description: {
+        component:
+          "An accessible on/off switch for settings that apply immediately, with a labeled value and inline guidance. Use FormCheckbox for consent or choices saved with a form, and RadioGroup for more than two options.",
+      },
+    },
   },
-  tags: ['autodocs'],
   argTypes: {
-    checked: {
-      control: 'boolean',
-      description: 'Checked state of the switch',
-    },
-    defaultChecked: {
-      control: 'boolean',
-      description: 'Default checked state (uncontrolled component)',
-    },
-    disabled: {
-      control: 'boolean',
-      description: 'Disabled state of the switch',
-    },
-    readOnly: {
-      control: 'boolean',
-      description: 'Read-only state',
-    },
-    required: {
-      control: 'boolean',
-      description: 'Marks switch as required',
-    },
+    id: { table: { disable: true } },
+    size: { control: "select", options: ["sm", "md", "lg"] },
+    checked: { control: "boolean" },
+    disabled: { control: "boolean" },
+    readOnly: { control: "boolean" },
+    required: { control: "boolean" },
     validateStatus: {
-      control: { type: 'select' },
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status of the switch',
+      control: "select",
+      options: ["default", "error", "warning", "success"],
     },
-    helpText: {
-      control: 'text',
-      description: 'Help text displayed below the switch',
-    },
+    helpText: { control: "text" },
+    children: { control: "text" },
+    defaultChecked: { control: false },
+    onCheckedChange: { control: false },
     showHelpTextIcon: {
-      control: 'boolean',
-      description: 'Whether to show an icon with the help text',
+      control: false,
+      description:
+        "Compatibility prop; validation always includes its status icon.",
     },
-    children: {
-      control: 'text',
-      description: 'Label text for the switch',
-    },
-    onCheckedChange: { action: 'changed' },
+    dir: { control: "inline-radio", options: ["ltr", "rtl"] },
   },
   args: {
-    checked: undefined,
-    defaultChecked: false,
+    children: "Email notifications",
+    helpText: "Receive account activity updates by email.",
+    checked: false,
+    size: "md",
     disabled: false,
     readOnly: false,
-    required: false,
+    validateStatus: "default",
+    onCheckedChange: fn(),
   },
 }
-
 export default meta
 type Story = StoryObj<typeof Switch>
 
-// Basic stories
-export const Default: Story = {
-  args: {
-    children: 'Default switch',
+export const Playground: Story = {
+  parameters: describe(
+    "Change the setting and controls to inspect its value, size and accessible inline feedback."
+  ),
+  render: function Playground(args) {
+    const [, updateArgs] = useArgs()
+    return (
+      <Switch
+        {...args}
+        onCheckedChange={(checked) => {
+          args.onCheckedChange?.(checked)
+          updateArgs({ checked })
+        }}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("switch")
+    await expect(input).toHaveAccessibleName("Email notifications")
+    await expect(input).toHaveAccessibleDescription(
+      "Receive account activity updates by email."
+    )
   },
 }
-
-// With help text
-export const WithHelpText: Story = {
-  args: {
-    children: 'Marketing emails',
-    helpText: 'Receive updates about new products and promotions',
-  },
-}
-
-// With validation states
-export const WithValidation: Story = {
+export const Sizes: Story = {
+  parameters: describe(
+    "Small, medium and large keep identical copy while scaling the control, label and guidance together."
+  ),
   render: () => (
-    <div className="space-y-6">
-      <Switch validateStatus="error" helpText="This setting is required for security reasons">
-        Error state
-      </Switch>
-      <Switch validateStatus="success" helpText="Two-factor authentication is enabled" defaultChecked>
-        Success state
-      </Switch>
-      <Switch validateStatus="warning" helpText="Consider enabling this for better security">
-        Warning state
-      </Switch>
-      <Switch helpText="This is a default help text">
-        Default state
-      </Switch>
-    </div>
+    <VariantContainer>
+      {(["sm", "md", "lg"] as const).map((size, index) => (
+        <VariantGroup
+          key={size}
+          title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}
+        >
+          <Switch
+            size={size}
+            children="Email notifications"
+            helpText="Receive account activity updates by email."
+            defaultChecked
+          />
+        </VariantGroup>
+      ))}
+    </VariantContainer>
   ),
 }
-
-// All states showcase
-export const AllStates: Story = {
-  render: () => {
-    return (
-      <div className="space-y-6">
-        <div className="grid gap-4">
-          <Switch>Default switch</Switch>
-
-          <Switch defaultChecked>Checked switch</Switch>
-
-          <Switch disabled>Disabled switch</Switch>
-
-          <Switch disabled defaultChecked>
-            Disabled checked
-          </Switch>
-
-          <Switch validateStatus="error" helpText="Error state">Error switch</Switch>
-
-          <Switch required>Required switch</Switch>
-
-          <Switch readOnly defaultChecked>
-            Read-only switch
-          </Switch>
-        </div>
-      </div>
+export const States: Story = {
+  parameters: describe(
+    "Neutral guidance and actionable error, warning and success messages communicate state with text and icons."
+  ),
+  render: () => (
+    <div className="flex flex-col gap-250">
+      <Switch
+        children="Email notifications"
+        helpText="Receive account activity updates by email."
+      />
+      <Switch
+        children="Email notifications"
+        validateStatus="error"
+        helpText="Turn on email notifications to receive security alerts."
+      />
+      <Switch
+        children="Email notifications"
+        validateStatus="warning"
+        helpText="Review this preference before continuing."
+      />
+      <Switch
+        children="Email notifications"
+        validateStatus="success"
+        helpText="Your notification preference is saved."
+        defaultChecked
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getAllByRole("switch")[1]
+    if (!input) throw new Error("Missing switch regression target")
+    await expect(input).toHaveAttribute("aria-invalid", "true")
+    const errorId = input.getAttribute("aria-errormessage")
+    await expect(errorId).toBeTruthy()
+    await expect(input.getAttribute("aria-describedby")?.split(" ")).toContain(
+      errorId
     )
   },
 }
-
-// With descriptions
-export const WithDescriptions: Story = {
-  render: () => {
-    return (
-      <div className="space-y-6">
-        <Switch helpText="Get notified when someone mentions you">
-          Push notifications
-        </Switch>
-
-        <Switch
-          defaultChecked
-          helpText="Automatically save your work every 5 minutes"
-        >
-          Auto-save
-        </Switch>
-
-        <Switch
-          disabled
-          helpText="Contact your administrator to enable this feature"
-        >
-          Advanced settings
-        </Switch>
-
-        <Switch validateStatus="error" helpText="You must enable this for compliance">
-          Data encryption
-        </Switch>
-      </div>
-    )
+export const Disabled: Story = {
+  parameters: describe(
+    "Unavailable values remain visible, including checked values, but cannot receive keyboard focus."
+  ),
+  render: () => (
+    <div className="flex flex-col gap-250">
+      <Switch
+        children="Email notifications"
+        disabled
+        helpText="Your administrator manages this preference."
+      />
+      <Switch
+        children="Email notifications"
+        disabled
+        defaultChecked
+        helpText="Your administrator manages this preference."
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const input of within(canvasElement).getAllByRole("switch"))
+      await expect(input).toBeDisabled()
   },
 }
-
-// Controlled switch example
-export const ControlledSwitch: Story = {
-  render: () => {
-    const [isChecked, setIsChecked] = useState(false)
-
-    const handleChange = (checked: boolean) => {
-      setIsChecked(checked)
+export const ReadOnly: Story = {
+  name: "Read-only",
+  parameters: describe(
+    "Controlled and uncontrolled read-only values stay focusable and full contrast without accepting pointer or keyboard edits."
+  ),
+  render: () => (
+    <div className="flex flex-col gap-250">
+      <Switch
+        name="uncontrolled-preference"
+        children="Email notifications"
+        readOnly
+        defaultChecked
+        helpText="This preference is locked by your account policy."
+      />
+      <Switch
+        name="controlled-preference"
+        children="Email notifications"
+        readOnly
+        checked
+        helpText="This preference is locked by your account policy."
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const input of within(canvasElement).getAllByRole("switch")) {
+      await expect(input).not.toBeDisabled()
+      input.focus()
+      await expect(input).toHaveFocus()
+      await userEvent.keyboard(" ")
+      await userEvent.click(input)
+      await expect(input).toBeChecked()
     }
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <Switch checked={isChecked} onCheckedChange={handleChange}>
-            Controlled switch
-          </Switch>
-          <span className="text-sm">Status: {isChecked ? 'ON' : 'OFF'}</span>
-        </div>
-        <button
-          onClick={() => setIsChecked((prev) => !prev)}
-          className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
-        >
-          Toggle switch
-        </button>
-      </div>
-    )
   },
 }
 
-// Settings panel example
-export const SettingsPanel: Story = {
-  render: () => {
-    const [settings, setSettings] = useState({
-      notifications: true,
-      marketing: false,
-      analytics: true,
-      security: true,
-    })
-
-    const handleSettingChange =
-      (key: keyof typeof settings) => (checked: boolean) => {
-        setSettings((prev) => ({ ...prev, [key]: checked }))
-      }
-
-    return (
-      <div className="w-96 rounded-lg border p-6">
-        <h3 className="mb-6 font-semibold text-lg">Privacy Settings</h3>
-
-        <div className="space-y-6">
-          <Switch
-            checked={settings.notifications}
-            onCheckedChange={handleSettingChange('notifications')}
-            helpText="Receive important updates about your account"
-          >
-            Email notifications
-          </Switch>
-
-          <Switch
-            checked={settings.marketing}
-            onCheckedChange={handleSettingChange('marketing')}
-            helpText="Get tips and updates about new features"
-          >
-            Marketing communications
-          </Switch>
-
-          <Switch
-            checked={settings.analytics}
-            onCheckedChange={handleSettingChange('analytics')}
-            helpText="Help us improve by sharing anonymous usage data"
-          >
-            Usage analytics
-          </Switch>
-
-          <Switch
-            checked={settings.security}
-            onCheckedChange={handleSettingChange('security')}
-            validateStatus={settings.security ? 'success' : 'error'}
-            helpText={
-              !settings.security
-                ? 'Required for account security'
-                : 'Enhanced security is enabled'
-            }
-          >
-            Two-factor authentication
-          </Switch>
-        </div>
-
-        <div className="mt-6 rounded bg-gray-100/30 p-3 text-sm">
-          Current settings: {JSON.stringify(settings, null, 2)}
-        </div>
-      </div>
-    )
-  },
+export const RightToLeft: Story = {
+  parameters: describe(
+    "Checked and unchecked thumbs remain inside their tracks in right-to-left layouts."
+  ),
+  render: () => (
+    <div dir="rtl" className="flex flex-col gap-250">
+      <Switch dir="rtl" defaultChecked>
+        Email notifications
+      </Switch>
+      <Switch dir="rtl">Email notifications</Switch>
+    </div>
+  ),
 }

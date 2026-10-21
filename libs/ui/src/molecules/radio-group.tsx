@@ -2,14 +2,20 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.0.2
+ * @componentVersion v1.1.0
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the radio-group-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as zagRadioGroup from "@zag-js/radio-group"
+import {
+  connect,
+  machine,
+  type ValueChangeDetails,
+  type Props as ZagRadioGroupProps,
+  type ItemProps as ZagRadioItemProps,
+} from "@zag-js/radio-group"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
@@ -43,14 +49,15 @@ const radioGroupVariants = tv({
       "grid grid-cols-(--radio-group-item-grid) items-start",
       "cursor-pointer select-none",
       "data-disabled:cursor-not-allowed",
-      "data-readonly:cursor-default",
+      "data-readonly:not-data-disabled:cursor-default data-readonly:select-text",
     ],
     itemControl: [
-      "row-start-1 self-center",
+      "form-control-readonly form-control-disabled row-start-1 self-center",
       "inline-grid shrink-0 place-items-center rounded-radio-group-control",
       "border-(length:--border-width-radio-group)",
       "border-radio-group-item-border-base",
       "bg-radio-group-item-bg",
+      "data-readonly:not-data-disabled:data-[state=checked]:border-radio-group-border-choice-selected",
       "transition-colors duration-200 motion-reduce:transition-none",
       "data-hover:bg-radio-group-item-bg-hover",
       "data-hover:border-radio-group-item-border-hover",
@@ -69,6 +76,7 @@ const radioGroupVariants = tv({
       "token-icon-radio-group-checked",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
       "data-[state=checked]:opacity-100",
+      "data-readonly:not-data-disabled:text-radio-group-fg-choice-selected",
       "data-disabled:data-[state=checked]:text-radio-group-item-indicator-disabled",
     ],
     itemText: [
@@ -86,29 +94,29 @@ const radioGroupVariants = tv({
       outline: {
         itemControl: [
           "data-[state=checked]:bg-radio-group-item-bg-outline-checked",
-          "data-[state=checked]:border-radio-group-item-border-outline-checked",
+          "data-[state=checked]:border-radio-group-border-choice-selected",
           "data-hover:data-[state=checked]:bg-radio-group-item-bg-outline-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-border-outline-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-border-choice-selected",
         ],
-        itemIndicator: "text-radio-group-item-indicator-outline",
+        itemIndicator: "text-radio-group-fg-choice-selected",
       },
       subtle: {
         itemControl: [
           "data-[state=checked]:bg-radio-group-item-bg-subtle-checked",
-          "data-[state=checked]:border-radio-group-item-border-subtle-checked",
+          "data-[state=checked]:border-radio-group-border-choice-selected",
           "data-hover:data-[state=checked]:bg-radio-group-item-bg-subtle-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-border-subtle-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-border-choice-selected",
         ],
-        itemIndicator: "text-radio-group-item-indicator-subtle",
+        itemIndicator: "text-radio-group-fg-choice-selected",
       },
       solid: {
         itemControl: [
           "data-[state=checked]:bg-radio-group-item-bg-solid-checked",
-          "data-[state=checked]:border-radio-group-item-border-solid-checked",
+          "data-[state=checked]:border-radio-group-border-solid-selected",
           "data-hover:data-[state=checked]:bg-radio-group-item-bg-solid-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-border-solid-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-border-solid-selected",
         ],
-        itemIndicator: "text-radio-group-item-indicator-solid",
+        itemIndicator: "text-radio-group-fg-solid-selected",
       },
     },
     size: {
@@ -164,7 +172,11 @@ type RadioGroupSize = NonNullable<
 type RadioGroupValidateStatus = "default" | "error" | "success" | "warning"
 
 type RadioGroupContextValue = {
-  api: ReturnType<typeof zagRadioGroup.connect>
+  readOnly: boolean
+  callerDescribedBy?: string
+  errorMessageId?: string
+  registerError: DescribedBy["registerDescription"]
+  api: ReturnType<typeof connect>
   variant: RadioGroupVariant
   size: RadioGroupSize
   orientation: "horizontal" | "vertical"
@@ -173,6 +185,8 @@ type RadioGroupContextValue = {
   validateStatus: RadioGroupValidateStatus
   statusTextId: string
 } & DescribedBy
+
+const ignoreDescription = () => () => undefined
 
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null)
 
@@ -185,8 +199,8 @@ function useRadioGroupContext() {
 }
 
 type RadioGroupItemContextValue = {
-  itemProps: zagRadioGroup.ItemProps
-}
+  itemProps: ZagRadioItemProps
+} & DescribedBy
 
 const RadioGroupItemContext = createContext<RadioGroupItemContextValue | null>(
   null
@@ -203,12 +217,13 @@ function useRadioGroupItemContext() {
 }
 
 type RadioGroupMachineProps = Omit<
-  zagRadioGroup.Props,
+  ZagRadioGroupProps,
   "id" | "invalid" | "onValueChange"
 >
 
 export type RadioGroupProps = VariantProps<typeof radioGroupVariants> &
   RadioGroupMachineProps & {
+    "aria-describedby"?: string
     id?: string
     children: ReactNode
     className?: string
@@ -218,8 +233,10 @@ export type RadioGroupProps = VariantProps<typeof radioGroupVariants> &
   }
 
 export function RadioGroup({
+  "aria-describedby": ariaDescribedByProp,
   id: providedId,
   disabled = false,
+  readOnly = false,
   required = false,
   orientation = "vertical",
   validateStatus = "default",
@@ -235,26 +252,35 @@ export function RadioGroup({
   const id = providedId || generatedId
   const invalid = validateStatus === "error"
 
-  const service = useMachine(zagRadioGroup.machine, {
+  const service = useMachine(machine, {
     ...machineProps,
     id,
     disabled,
+    readOnly: readOnly && !disabled,
     required,
     orientation,
     invalid,
-    onValueChange: ({ value: nextValue }: zagRadioGroup.ValueChangeDetails) => {
-      onValueChange?.(nextValue)
+    onValueChange: ({ value: nextValue }: ValueChangeDetails) => {
+      if (!(readOnly || disabled)) {
+        onValueChange?.(nextValue)
+      }
     },
   })
 
-  const api = zagRadioGroup.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
   const styles = radioGroupVariants({ size, variant })
   const describedBy = useDescribedBy()
+  const errors = useDescribedBy()
 
   return (
     <RadioGroupContext.Provider
       value={{
         api,
+        readOnly: readOnly && !disabled,
+        callerDescribedBy: ariaDescribedByProp,
+        errorMessageId: errors.describedById,
+        registerError: errors.registerDescription,
+        ...describedBy,
         variant,
         size,
         orientation,
@@ -262,14 +288,18 @@ export function RadioGroup({
         required,
         validateStatus,
         statusTextId: `${id}-status`,
-        ...describedBy,
       }}
     >
       <div
         className={styles.root({ className })}
         ref={ref}
         {...api.getRootProps()}
-        aria-describedby={joinDescribedBy(describedBy.describedById)}
+        aria-describedby={joinDescribedBy(
+          ariaDescribedByProp,
+          describedBy.describedById
+        )}
+        aria-errormessage={errors.describedById}
+        aria-invalid={invalid || !!errors.describedById || undefined}
       >
         {children}
       </div>
@@ -342,7 +372,7 @@ export type RadioGroupItemProps = Omit<
   ComponentPropsWithoutRef<"label">,
   "value"
 > &
-  zagRadioGroup.ItemProps & {
+  ZagRadioItemProps & {
     ref?: Ref<HTMLLabelElement>
   }
 
@@ -358,9 +388,10 @@ RadioGroup.Item = function RadioGroupItem({
   const { api, size, variant } = useRadioGroupContext()
   const styles = radioGroupVariants({ size, variant })
   const itemProps = { value, disabled, invalid }
+  const descriptions = useDescribedBy()
 
   return (
-    <RadioGroupItemContext.Provider value={{ itemProps }}>
+    <RadioGroupItemContext.Provider value={{ itemProps, ...descriptions }}>
       {/* biome-ignore lint/a11y/noLabelWithoutControl: The compound hidden input is rendered by children and shares these Zag item props. */}
       <label
         className={styles.item({ className })}
@@ -386,8 +417,18 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
   ref,
   ...props
 }: RadioGroupItemHiddenInputProps) {
-  const { api, size, variant } = useRadioGroupContext()
-  const { itemProps } = useRadioGroupItemContext()
+  const {
+    api,
+    size,
+    variant,
+    readOnly,
+    callerDescribedBy,
+    describedById,
+    errorMessageId,
+    validateStatus,
+  } = useRadioGroupContext()
+  const { itemProps, describedById: itemDescriptionId } =
+    useRadioGroupItemContext()
   const styles = radioGroupVariants({ size, variant })
 
   return (
@@ -396,6 +437,40 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
       ref={ref}
       {...api.getItemHiddenInputProps(itemProps)}
       {...props}
+      aria-describedby={joinDescribedBy(
+        props["aria-describedby"],
+        callerDescribedBy,
+        describedById,
+        itemDescriptionId
+      )}
+      aria-errormessage={
+        validateStatus === "error" || errorMessageId
+          ? errorMessageId
+          : undefined
+      }
+      aria-invalid={
+        api.getItemState(itemProps).invalid || !!errorMessageId || undefined
+      }
+      disabled={api.getItemState(itemProps).disabled}
+      onKeyDownCapture={(event) => {
+        props.onKeyDownCapture?.(event)
+        if (
+          readOnly &&
+          [
+            " ",
+            "ArrowLeft",
+            "ArrowRight",
+            "ArrowUp",
+            "ArrowDown",
+            "Home",
+            "End",
+          ].includes(event.key)
+        ) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+      }}
+      readOnly={readOnly}
     />
   )
 }
@@ -426,6 +501,7 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
         aria-hidden="true"
         className={styles.itemIndicator()}
         data-disabled={itemState.disabled || undefined}
+        data-readonly={api.getRootProps()["aria-readonly"] ? "" : undefined}
         data-state={itemState.checked ? "checked" : "unchecked"}
       />
       {children}
@@ -490,7 +566,10 @@ RadioGroup.ItemDescription = function RadioGroupItemDescription({
   ...props
 }: RadioGroupItemDescriptionProps) {
   const { api, size, variant } = useRadioGroupContext()
-  const { itemProps } = useRadioGroupItemContext()
+  const { itemProps, registerDescription } = useRadioGroupItemContext()
+  const generatedId = useId()
+  const id = props.id ?? generatedId
+  useRegisterDescription(id, registerDescription)
   const styles = radioGroupVariants({ size, variant })
   const itemState = api.getItemState(itemProps)
 
@@ -500,6 +579,7 @@ RadioGroup.ItemDescription = function RadioGroupItemDescription({
       data-disabled={itemState.disabled || undefined}
       ref={ref}
       {...props}
+      id={id}
     >
       {children}
     </div>
@@ -522,16 +602,21 @@ RadioGroup.StatusText = function RadioGroupStatusText({
   children,
   ...props
 }: RadioGroupStatusTextProps) {
-  const { size, validateStatus, statusTextId, registerDescription } =
+  const { size, validateStatus, registerDescription, registerError } =
     useRadioGroupContext()
+  const generatedId = useId()
+  const id = props.id ?? generatedId
   const effectiveSize = sizeProp ?? size
   const effectiveStatus = status ?? validateStatus
-  const id = props.id ?? statusTextId
   useRegisterDescription(id, registerDescription)
+  useRegisterDescription(
+    id,
+    effectiveStatus === "error" ? registerError : ignoreDescription
+  )
 
   return (
     <StatusTextComponent
-      showIcon={showIcon ?? effectiveStatus !== "default"}
+      showIcon={effectiveStatus !== "default" || showIcon}
       size={effectiveSize}
       status={effectiveStatus}
       {...props}

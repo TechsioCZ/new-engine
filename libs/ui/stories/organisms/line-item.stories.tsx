@@ -1,11 +1,10 @@
 ﻿import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { fn } from "storybook/test"
+import { expect, fn, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Image } from "../../src/atoms/image"
 import { Link } from "../../src/atoms/link"
-import { StatusText } from "../../src/atoms/status-text"
 import { AvailabilityStatus } from "../../src/molecules/availability-status"
 import { PriceBlock } from "../../src/molecules/price-block"
 import { QuantityField } from "../../src/molecules/quantity-field"
@@ -24,14 +23,17 @@ function DraftQuantity({
 	title,
 	pending = false,
 	disabled = false,
+  error,
 }: {
 	title: string
 	pending?: boolean
 	disabled?: boolean
+  error?: string
 }) {
 	const [value, setValue] = useState("2")
 	return (
 		<QuantityField
+      error={error}
 			hideLabel
 			label={`Množství: ${title}`}
 			min={1}
@@ -64,7 +66,7 @@ function CartRow({ unavailable = false, error, ...props }: CartRowProps) {
 			<LineItem.Body>
 				<LineItem.Heading>
 					<LineItem.Title>
-						<Link href="#product">{props.title}</Link>
+						<Link href="#product" onClick={(event) => event.preventDefault()}>{props.title}</Link>
 					</LineItem.Title>
 					<LineItem.Price>
 						<PriceBlock state="known" amountLabel="498 Kč" />
@@ -80,13 +82,14 @@ function CartRow({ unavailable = false, error, ...props }: CartRowProps) {
 							title={props.title}
 							pending={props.pending}
 							disabled={unavailable}
+              error={error}
 						/>
 					</LineItem.Quantity>
 					<LineItem.Actions>
 						<LineItem.Remove label="Odebrat" onClick={removed} />
 					</LineItem.Actions>
 				</LineItem.Controls>
-				{error ? <StatusText status="error">{error}</StatusText> : null}
+
 			</LineItem.Body>
 		</LineItem>
 	)
@@ -97,6 +100,7 @@ const meta: Meta<typeof LineItem> = {
 	component: LineItem,
 	tags: ["autodocs"],
 	parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
 		layout: "padded",
 		docs: {
 			description: {
@@ -125,6 +129,7 @@ export default meta
 type Story = StoryObj<typeof LineItem>
 
 export const Playground: Story = {
+  parameters: { docs: { description: { story: "Use the controls to explore the component in a realistic layout without leaving the preview." } } },
 	render: (args) => (
 		<div className="w-xl max-w-full">
 			<CartRow {...args} />
@@ -179,6 +184,17 @@ export const Unavailable: Story = {
 	},
 }
 export const ItemError: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const quantity = canvas.getByRole("spinbutton")
+    const message = canvas.getByRole("alert")
+    await expect(message).toHaveAttribute("id")
+    await expect(quantity).toHaveAttribute("aria-invalid", "true")
+    await expect(quantity).toHaveAttribute("aria-errormessage", message.id)
+    await expect(quantity.getAttribute("aria-describedby")?.split(" ")).toContain(message.id)
+    await expect(message.querySelector('[aria-hidden="true"]')).not.toBeNull()
+  },
+  parameters: { docs: { description: { story: "A product-specific error explains why a quantity change failed and how to recover without losing the item context." } } },
 	render: (args) => (
 		<div className="w-xl max-w-full">
 			<CartRow
@@ -189,6 +205,7 @@ export const ItemError: Story = {
 	),
 }
 export const Layouts: Story = {
+  parameters: { docs: { description: { story: "Compare default and compact product-row layouts using the same title, quantity and price; these are composition options, not control sizes." } } },
 	render: (args) => (
 		<VariantContainer>
 			{(["default", "compact"] as const).map((layout) => (

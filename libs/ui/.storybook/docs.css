@@ -1,0 +1,12 @@
+/* Keep Controls/ArgTypes at their readable intrinsic width without widening
+ * the Docs page. The wrapper also contains Storybook's reset-controls button. */
+.sbdocs-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sbdocs-content div:has(> .docblock-argstable) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}

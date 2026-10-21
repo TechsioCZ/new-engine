@@ -52,12 +52,13 @@ const meta: Meta<typeof GalleryTemplate> = {
   title: 'Templates/GalleryTemplate',
   component: GalleryTemplate,
   parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
     layout: 'fullscreen',
     docs: {
       description: {
         component: `
 A ready-to-use ecommerce image gallery template built on top of the Gallery compound component.
-Supports fixed dimensions and parent-fill layout via \`fitParent\`.
+Supports fixed dimensions and parent-fill layout via \`fitParent\`. Choose compound Gallery for custom composition, or Carousel when thumbnails are unnecessary. The size prop describes media dimensions rather than form-control heights.
         `,
       },
     },
@@ -145,6 +146,7 @@ export default meta
 type Story = StoryObj<typeof GalleryTemplate>
 
 export const Playground: Story = {
+  parameters: { docs: { description: { story: "Use the controls to explore the component in a realistic layout without leaving the preview." } } },
   render: (args) => (
     <StoryFrame>
       <GalleryTemplate {...args} />
@@ -154,4 +156,12 @@ export const Playground: Story = {
     orientation: 'vertical',
     thumbnailSize: 64,
   },
+}
+
+export const MediaSizes: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "The nested carousel's Small (sm), Medium (md) and Large (lg) media dimensions are independent of form-control heights; fitParent makes each example responsive." } } },
+  render: (args) => <div className="flex flex-col gap-400">{(["sm", "md", "lg"] as const).map((size) => <section key={size}>
+    <h2 className="p-200">{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
+    <StoryFrame><GalleryTemplate {...args} size={size} /></StoryFrame>
+  </section>)}</div>,
 }

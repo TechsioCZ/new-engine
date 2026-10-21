@@ -90,3 +90,11 @@
 @utility token-icon-combobox-clear {
   @apply token-icon-close;
 }
+
+/* A reduced-motion preference must also override transition-discrete. */
+@media (prefers-reduced-motion: reduce) {
+  [data-scope="combobox"][data-part="content"] {
+    transition: none;
+    animation: none;
+  }
+}

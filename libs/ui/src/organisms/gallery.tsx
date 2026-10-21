@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -461,6 +461,7 @@ Gallery.Carousel = function GalleryCarousel<
 
   return (
     <Carousel
+      aria-label="Product images"
       {...mergedProps}
       onPageChange={handlePageChange}
       page={page}

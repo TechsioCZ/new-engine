@@ -1,3 +1,5 @@
+import { expect, userEvent, within } from "storybook/test"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Badge } from "../../src/atoms/badge"
@@ -31,12 +33,13 @@ import {
 } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/CMS/Media library",
   parameters: {
@@ -117,22 +120,28 @@ function MediaLibraryPage() {
   const [preview, setPreview] = useState<(typeof assets)[number] | null>(null)
   const [altDraft, setAltDraft] = useState("")
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [assetType, setAssetType] = useState("all")
+  const [view, setView] = useState<"grid" | "list">("grid")
+  const [page, setPage] = useState(1)
+  const pageSize = 4
   const assetCount = (n: number) => `${n} ${n === 1 ? "asset" : "assets"}`
 
   /* Bulk actions act on the selection, report, and clear it. */
   const updateSelected = (
-    change: (asset: (typeof assets)[number]) => (typeof assets)[number]
+    change: (asset: (typeof assets)[number]) => (typeof assets)[number],
   ) =>
     setLibrary((current) =>
       current.map((asset) =>
-        selected.includes(asset.id) ? change(asset) : asset
-      )
+        selected.includes(asset.id) ? change(asset) : asset,
+      ),
     )
   /* "All media" shows everything; a folder shows only what lives in it. */
-  const visible =
-    folder === "media-root"
-      ? library
-      : library.filter((asset) => asset.folder === folder)
+  const visible = library.filter(
+    (asset) =>
+      (folder === "media-root" || asset.folder === folder) &&
+      (assetType === "all" || assetType === "image"),
+  )
+  const pageAssets = visible.slice((page - 1) * pageSize, page * pageSize)
 
   const bulkDone = (title: string) => {
     toaster.create({ type: "success", title })
@@ -141,6 +150,7 @@ function MediaLibraryPage() {
 
   const selectFolder = (next: string) => {
     setFolder(next)
+    setPage(1)
     /* A hidden asset must never stay selected for a bulk action. */
     setSelected([])
   }
@@ -149,7 +159,7 @@ function MediaLibraryPage() {
     setSelected((current) =>
       current.includes(id)
         ? current.filter((entry) => entry !== id)
-        : [...current, id]
+        : [...current, id],
     )
 
   return (
@@ -182,25 +192,7 @@ function MediaLibraryPage() {
       <Toaster />
 
       <PageHeader
-        actions={
-          <>
-            <Button
-              icon="icon-[mdi--folder-plus-outline]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              New folder
-            </Button>
-            <Button
-              icon="icon-[mdi--cloud-upload-outline]"
-              size="sm"
-              variant="primary"
-            >
-              Upload
-            </Button>
-          </>
-        }
+        actions={<></>}
         breadcrumb={[
           { label: "Home", href: "#" },
           { label: "Content", href: "#" },
@@ -275,18 +267,26 @@ function MediaLibraryPage() {
         <div className="flex min-w-0 flex-1 flex-col gap-200">
           <div className="flex flex-wrap items-center justify-between gap-150">
             <span className="text-fg-secondary text-sm">
-              {`${visible.length} of 1 284 assets`}
+              {`${visible.length} matching assets in this demo`}
             </span>
             <div className="flex items-center gap-150">
               <div className="w-2xs">
                 <SelectTemplate
-                  defaultValue={["all"]}
+                  value={[assetType]}
+                  onValueChange={({ value }) => {
+                    setAssetType(value[0] ?? "all")
+                    setPage(1)
+                    setSelected([])
+                  }}
+                  label="Asset type"
                   items={typeItems}
                   size="sm"
                 />
               </div>
               <Button
                 aria-label="Grid view"
+                aria-pressed={view === "grid"}
+                onClick={() => setView("grid")}
                 icon="icon-[mdi--view-grid-outline]"
                 size="sm"
                 theme="solid"
@@ -294,6 +294,8 @@ function MediaLibraryPage() {
               />
               <Button
                 aria-label="List view"
+                aria-pressed={view === "list"}
+                onClick={() => setView("list")}
                 icon="icon-[mdi--view-list-outline]"
                 size="sm"
                 theme="outlined"
@@ -363,7 +365,7 @@ function MediaLibraryPage() {
                   onClick={() => {
                     const count = selected.length
                     setLibrary((current) =>
-                      current.filter((asset) => !selected.includes(asset.id))
+                      current.filter((asset) => !selected.includes(asset.id)),
                     )
                     setConfirmDelete(false)
                     bulkDone(`Deleted ${assetCount(count)}`)
@@ -383,13 +385,40 @@ function MediaLibraryPage() {
             title="Delete the selected assets?"
           />
 
-          <div className="grid grid-cols-2 gap-200 md:grid-cols-3 xl:grid-cols-4">
-            {visible.map((asset) => (
+          {visible.length === 0 && (
+            <p role="status">
+              No{" "}
+              {assetType === "all"
+                ? "assets"
+                : assetType === "video"
+                  ? "videos"
+                  : assetType === "doc"
+                    ? "documents"
+                    : "images"}{" "}
+              in this folder. Choose another asset type or folder.
+            </p>
+          )}
+          <div
+            className={
+              view === "grid"
+                ? "grid grid-cols-1 gap-200 sm:grid-cols-2 xl:grid-cols-4"
+                : "flex flex-col gap-150"
+            }
+          >
+            {pageAssets.map((asset) => (
               <figure
-                className="flex flex-col gap-100 rounded-lg border border-border-primary bg-surface p-150"
+                className={
+                  view === "grid"
+                    ? "flex flex-col gap-100 rounded-lg border border-border-primary bg-surface p-150"
+                    : "flex items-center gap-200 rounded-lg border border-border-primary bg-surface p-150"
+                }
                 key={asset.id}
               >
-                <div className="relative">
+                <div
+                  className={
+                    view === "list" ? "relative w-3xs shrink-0" : "relative"
+                  }
+                >
                   <Button
                     aria-label={`Preview ${asset.name}`}
                     className="block w-full overflow-hidden rounded-md p-0"
@@ -452,20 +481,23 @@ function MediaLibraryPage() {
                 size="xl"
               />
               <p className="text-sm">
-                Drop files anywhere on this page to upload
+                Upload is not connected in this local demo.
               </p>
               <p className="text-fg-secondary text-xs">
-                JPEG, PNG, WebP, AVIF, MP4 · up to 50 MB each
+                Use the asset filters, preview and bulk actions to explore the
+                existing library.
               </p>
             </div>
           </SectionCard>
 
           <div className="flex justify-center">
             <Pagination
-              count={1284}
-              defaultPage={1}
-              getPageUrl={({ page }) => `?page=${page}`}
-              pageSize={Math.max(visible.length, 1)}
+              count={visible.length}
+              page={page}
+              onPageChange={setPage}
+              linkProps={{ onClick: (event) => event.preventDefault() }}
+              getPageUrl={() => "#media-page"}
+              pageSize={pageSize}
               siblingCount={1}
             />
           </div>
@@ -488,8 +520,8 @@ function MediaLibraryPage() {
                 if (id) {
                   setLibrary((current) =>
                     current.map((asset) =>
-                      asset.id === id ? { ...asset, alt: altDraft } : asset
-                    )
+                      asset.id === id ? { ...asset, alt: altDraft } : asset,
+                    ),
                   )
                 }
                 toaster.create({ type: "success", title: "Alt text saved" })
@@ -549,6 +581,29 @@ function MediaLibraryPage() {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "List view" }))
+    await expect(
+      canvas.getByRole("button", { name: "List view" }),
+    ).toHaveAttribute("aria-pressed", "true")
+    const before = window.location.href
+    await userEvent.click(canvas.getByRole("link", { name: /page 2/i }))
+    await expect(window.location.href).toBe(before)
+    await expect(canvas.getByText("rangefinder-35.jpg")).toBeVisible()
+    await userEvent.click(canvas.getByRole("link", { name: /page 1/i }))
+    await userEvent.click(canvas.getByRole("button", { name: "Grid view" }))
+  },
+
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Filter the local asset library, switch between grid and list, and page through results without navigating away.",
+      },
+    },
+  },
+
   name: "Asset grid",
   render: () => <MediaLibraryPage />,
 }

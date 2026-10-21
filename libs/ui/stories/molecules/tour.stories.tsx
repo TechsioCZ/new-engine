@@ -102,6 +102,7 @@ const meta = {
   component: Tour,
   tags: ["autodocs", "tour"],
   parameters: {
+    docs: { description: { component: "Tour introduces a workflow through dismissible dialogs, anchored tips and floating steps. Use it for optional first-run guidance, not essential instructions; use Tooltip for brief context or Dialog for a task that must be completed. Panel layout follows its content and target placement rather than a form-control size scale." } },
     layout: "fullscreen",
     controls: {
       include: [
@@ -137,7 +138,8 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Playground: Story = {}
+export const Playground: Story = {
+  parameters: { docs: { description: { story: "Use the controls to explore the component in a realistic layout without leaving the preview." } } },}
 
 function LateTargetExample(props: Omit<TourRootProps, "children" | "steps">) {
   const target = useRef<HTMLButtonElement>(null)
@@ -196,6 +198,7 @@ function LateTargetExample(props: Omit<TourRootProps, "children" | "steps">) {
 }
 
 export const LateTarget: Story = {
+  parameters: { docs: { description: { story: "Wait for a target that mounts asynchronously rather than displaying a floating tip in the wrong place." } } },
   render: (args) => <LateTargetExample {...args} />,
 }
 
@@ -274,6 +277,7 @@ function InteractiveWaitExample(
 }
 
 export const InteractiveWait: Story = {
+  parameters: { docs: { description: { story: "A tour step can wait for a deliberate user action before continuing the introduction." } } },
   render: (args) => <InteractiveWaitExample {...args} />,
 }
 
@@ -294,6 +298,7 @@ const floatingPlacements = [
 ] as const
 
 export const FloatingPlacements: Story = {
+  parameters: { docs: { description: { story: "Compare floating tip placements when a specific page element is not the right anchor." } } },
   render: (args) => (
     <Tour
       {...args}
@@ -412,10 +417,12 @@ function ControlsExample(props: Omit<TourRootProps, "children" | "steps">) {
 }
 
 export const CustomControls: Story = {
+  parameters: { docs: { description: { story: "Custom tour actions preserve clear back, next and dismissal choices." } } },
   render: (args) => <ControlsExample {...args} />,
 }
 
 export const LongContent: Story = {
+  parameters: { docs: { description: { story: "Long guidance wraps inside the tour surface without hiding its navigation actions." } } },
   render: (args) => (
     <Tour
       {...args}
@@ -485,6 +492,7 @@ function UnmountExample(props: Omit<TourRootProps, "children" | "steps">) {
 }
 
 export const UnmountDuringWait: Story = {
+  parameters: { docs: { description: { story: "Unmounting a tour cancels pending target work instead of leaving a delayed overlay behind." } } },
   tags: ["!dev", "!autodocs"],
   render: (args) => <UnmountExample {...args} />,
 }
@@ -516,5 +524,6 @@ function ScrollTargetExample(props: Omit<TourRootProps, "children" | "steps">) {
 }
 
 export const ScrollTarget: Story = {
+  parameters: { docs: { description: { story: "A distant target is brought into view before its guide step is positioned." } } },
   render: (args) => <ScrollTargetExample {...args} />,
 }

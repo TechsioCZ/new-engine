@@ -311,3 +311,7 @@ rg -P -n "<Sidebar\.Panel(?![^>]*(aria-label|aria-labelledby))" apps
 rg -P -n "<Sidebar\.(Trigger|CloseTrigger|Rail)(?![^>]*aria-label)" apps
 rg -n -- "--breakpoint-sidebar-desktop|--spacing-sidebar-offset" apps
 ```
+
+## Wave 2 contracts
+
+Sidebar dimensions describe panel widths and collapse modes (rail/content), not canonical form-control sizes. Demo dashboard content uses content-start so metric cards retain their natural content height rather than stretching to the viewport. For a simple global site bar, use Header instead.

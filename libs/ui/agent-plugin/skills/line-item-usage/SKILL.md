@@ -94,3 +94,9 @@ Organisms/LineItem covers editable, read-only, pending, unavailable, item error,
 compact/long content and CustomComposition. The custom story demonstrates an
 omitted image, a relocated price and extra actions with the same shared guards.
 Figma handoff follows component-to-figma after API stabilization.
+
+## Wave 2 contracts
+
+LineItem layout="default"|"compact" controls content/media composition, not a sm/md/lg form-control size. Choose canonical sizes on the composed QuantityField and actions independently; do not fake a LineItem size with story-only padding.
+
+A quantity-change failure belongs on the composed QuantityField error prop, not an unrelated item-level StatusText. QuantityField renders the icon/message and associates its generated error ID with the numeric input, preserving the unit description. Reserve a separate StatusText for errors unrelated to quantity.

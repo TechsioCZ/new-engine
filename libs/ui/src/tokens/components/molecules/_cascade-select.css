@@ -113,3 +113,11 @@
 @utility token-icon-cascade-select-check {
   @apply token-icon-check;
 }
+
+/* A reduced-motion preference must also override transition-discrete. */
+@media (prefers-reduced-motion: reduce) {
+  [data-scope="cascade-select"][data-part="content"] {
+    transition: none;
+    animation: none;
+  }
+}

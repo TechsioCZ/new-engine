@@ -6,7 +6,7 @@ description: >
   numeric compatibility or controlled string drafts, locale formatting, min/max/step, and token-first
   styling.
 metadata:
-  component_version: "1.1.3"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -265,3 +265,38 @@ rg -U -P -n "<NumericInput\\b(?!\\.)[\\s\\S]{0,400}<button|<NumericInput\\b(?!\\
 rg -P -n "<NumericInput\\b(?!\\.)[^>]*className=.*(bg-|text-|border-|px-|py-)" apps
 rg -U -P -n "<NumericInput\\b(?!\\.)(?![\\s\\S]{0,600}<NumericInput\\.Input)" apps
 ```
+
+## Read-only, precision and compound feedback
+
+`readOnly` is supported by NumericInput, FormNumericInput and
+NumericInputTemplate. It retains focus, copying and normal contrast while
+omitting steppers and scrubbers. All machine value actions are guarded,
+including keyboard, wheel, blur clamping and an already-running hold/drag.
+A parent can still change a controlled value. Disabled wins and removes the
+input/actions from the tab order.
+
+`precision={0}` rounds numeric values to whole units (1.75 displays as 2).
+Precision limits maximum fraction digits; it does not force trailing zeros.
+Controlled string drafts remain authoritative while editing; use numeric
+values for immediate formatted display.
+
+`NumericInput.StatusText` registers a stable unique message ID with the input.
+Multiple mounted messages are merged with caller `aria-describedby` IDs and
+unregistered on removal. Error parts also set `aria-invalid` and
+`aria-errormessage`; validation icons cannot be suppressed. The legacy
+`describedBy` root prop and input-level ARIA attributes remain supported.
+
+Canonical sizes are sm/md/lg, default md. The adjacent, side-by-side steppers
+provide at least 24×24 CSS-pixel targets without increasing field height.
+For external layouts, keep the same minimum hit area.
+
+
+### Component-specific read-only colors
+
+Override `--color-numeric-input-bg-readonly` and `--color-numeric-input-fg-readonly`
+to tune only this field's read-only surface and value. The default reference
+aliases follow `--color-form-control-readonly` and `--color-form-control-text`.
+These overrides also apply on hover/focus; disabled styling still wins.
+The NumericInput aliases style both the compound control and its nested input;
+FormNumericInput and NumericInputTemplate inherit them. Root `aria-invalid`
+reaches the focusable input, alongside the legacy `invalid` machine prop.

@@ -15,6 +15,24 @@
  */
 
 @theme static {
+  --color-checkbox-readonly: var(--color-form-control-fg-readonly);
+  --color-checkbox-fg-readonly: var(--color-checkbox-readonly);
+  --spacing-form-checkbox-description-sm: calc(
+    var(--size-form-checkbox-control-sm) +
+    var(--spacing-form-checkbox-gap)
+  );
+  --size-form-checkbox-control-sm: var(--dimension-18);
+  --spacing-form-checkbox-description-md: calc(
+    var(--size-form-checkbox-control-md) +
+    var(--spacing-form-checkbox-gap)
+  );
+  --size-form-checkbox-control-md: var(--dimension-24);
+  --spacing-form-checkbox-description-lg: calc(
+    var(--size-form-checkbox-control-lg) +
+    var(--spacing-form-checkbox-gap)
+  );
+  --size-form-checkbox-control-lg: var(--dimension-30);
+
   /* A checkbox must remain distinct from a radio even in rounded themes. */
   --radius-checkbox-corner: var(--radius-xs);
   --radius-checkbox-control: min(

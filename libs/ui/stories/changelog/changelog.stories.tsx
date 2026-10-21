@@ -12,6 +12,213 @@ import type { Meta, StoryObj } from "@storybook/react"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### ActionIcon v1.1.1
+- Disabled actions suppress hover/pressed treatments; added complete public stories and documented embedded hit-area sizing.
+
+### Breadcrumb v1.0.3
+- Preserve the explicitly current location before collapsing the path; normalize collapse limits and retain canonical ancestor-link typography.
+
+### Button v0.5.0
+- Readable borderless interactions, shared disabled styling, explicit action-button default type, loading busy state, inherited icon sizing and corrected treatment documentation.
+- Make Playground responsive, including block-button demonstrations.
+
+### Carousel v1.3.1
+- Render template indicators from actual snap pages, including multi-slide layouts; preserve the existing compound navigation API.
+
+### Chart v1.1.1
+- Inspection tooltip adopts the shared opaque popup surface and managed elevation, overriding upstream inline styling.
+
+### Checkbox v1.1.0
+- Block native read-only pointer/Space toggles without disabling focus.
+- Document behavioral native read-only support.
+- Read-only checkboxes no longer invoke onChange or mutate controlled application state through activation.
+
+### ColorSelect v1.1.0
+- Add accessible group labels, roving radio focus, RTL-aware navigation, non-submitting buttons, read-only/validation support, working canonical sizes and contrast-safe selection badges.
+- Resolve swatch caption, count and icon font sizes explicitly from component typography tokens.
+
+### Combobox v1.4.0
+- Restore keyboard focus rings, submit actual selected values, expose multiple selected labels, merge caller descriptions and suppress read-only mutation affordances/opening.
+- Cancel selection-mode search drafts on read-only transitions, restore committed labels, validate required selections independently of query text, and inherit size-aware label typography.
+
+### DataTable v1.3.0
+- Add keyboard resizing/reset, contrasting loading rows, accessible scroll regions and hidden virtual spacers; order edit actions consistently.
+- Accessible sized validation, minimum readable editor widths, canonical boolean sizing, and container-responsive action pinning; regression stories and usage prose updated.
+
+### DatePicker v1.3.0
+- Adopt compound feedback, shared control heights/popup layering and read-only draft cancellation; use secondary Cancel.
+- Restore calendar focus to a surviving date segment when read-only closes the popup.
+
+### FacetFilterPanel v1.1.0
+- Give range thumbs distinct accessible names and propagate control sizes/read-only state.
+
+### FileUpload v1.1.0
+- Preserve focus after file deletion; add canonical sizing, inspectable read-only behavior and compound StatusText feedback.
+- Cancel stale asynchronous processing at the commit boundary and synchronize preloaded selections with native submission.
+
+### Footer v1.1.0
+- Forward DOM props and improve semantic sections, readable hover states and narrow-screen layout.
+
+### FormCheckbox v1.2.0
+- Fix mixed/disabled visuals, scaled helper alignment and error ARIA.
+- Add read-only foreground and scaled box/helper-offset aliases.
+- Add canonical sizing, actionable feedback and behavioral regressions.
+- Document mixed-state, sizing and feedback behavior.
+- Mixed selection now initializes and synchronizes native indeterminate and accessible mixed state.
+
+### FormErrorSummary v1.1.0
+- Support documented ref focus, accessible heading association and real focus-moving field links.
+
+### FormInput v1.1.3
+- Keep padding size-driven and unify standard/Raw feedback association, icons and error-reference cleanup.
+- Keep caller-owned error associations when wrapper validation clears; add lifecycle regressions and usage guidance.
+
+### FormNumericInput v1.2.0
+- Make IDs optional, merge helper descriptions onto the input, associate errors and preserve validation icons.
+- Keep caller-owned error associations, remove fixed story IDs, hide internal controls, and add lifecycle regressions.
+
+### FormTextarea v1.1.2
+- Unify standard/Raw StatusText feedback with merged descriptions, stable IDs and error-reference cleanup; document native readOnly.
+- Keep caller-owned error associations when wrapper validation clears; add lifecycle regressions and usage guidance.
+
+### Gallery v1.0.3
+- Name carousel regions and restore unitless inactive/hover/current thumbnail brightness; document the compound API correctly.
+
+### Header v1.1.0
+- Fix container-responsive navigation, mobile menu relationships, Escape dismissal and focus restoration.
+- Current destination links expose aria-current=page.
+
+### Hotkeys v1.1.0
+- Added canonical display sizes, working size controls, usage guidance and a Playwright sizing regression.
+
+### Icon v1.1.2
+- Meaningful primary/status colors consume contrast-safe foreground aliases; preserved the existing gallery and documented decorative size compatibility.
+- Document the canonical sm/md/lg story matrix separately from supported legacy sizes.
+
+### Input v1.1.1
+- Respect hideSearchClear=false without leaking a DOM prop; generate missing IDs and apply focusable, full-contrast read-only styling. Refresh stories and usage guidance.
+- Wire component-specific read-only foreground/background overrides; normalize story formatting.
+
+### Label v1.0.1
+- Correct weight namespace, accessible required alternative, React 19 ref typing, canonical size/state stories and updated usage guidance.
+
+### Link v1.1.0
+- Added underlined, readable navigation styling, focus treatment and canonical text sizing with inherited-size compatibility.
+
+### LinkButton v1.1.0
+- Default md sizing and static disabled navigation placeholders, including routing-adapter safety and complete public stories.
+
+### Menu v1.2.0
+- Fixed disabled submenus, context activation, custom triggers, className, RTL nesting, viewport collision handling and popup elevation; rebuilt focused interactive documentation.
+
+### NumericInput v1.2.0
+- Support zero precision, adequately sized adjacent steppers, comprehensive read-only mutation guards and registered compound StatusText feedback.
+- Preserve caller error references, forward inherited invalid state, support component-specific read-only colors, and repair numeric Playground controls and instance IDs.
+
+### Pagination v1.1.0
+- Unavailable links use static placeholders; canonical heights, responsive wrapping and stateful non-navigating stories now agree with regression tests.
+- Align canonical page-control typography with Button, Menu and Tabs.
+
+### PhoneInput v1.1.0
+- Compact country prefixes and adopt unique registered error feedback with guarded read-only mutation paths.
+- Provide a valid country label target and preserve the read-only text-selection cursor.
+
+### Popover v1.0.3
+- Shared popup layering, available-space bounds, preserved typography, canonical stories and local save/cancel behavior.
+- Name custom-trigger and other heading-free example dialogs; cover accessible names, dismissal and restored focus.
+
+### PriceBlock v1.0.1
+- Normalize implementation formatting without changing the pricing API; document intent, display-state controls and alternatives.
+
+### ProductCard v1.2.0
+- Make aggregate ratings static, stabilize catalog geometry, preserve action-button attributes and correct pressed colors; keep templates and local demo actions in sync.
+
+### QuantityField v1.0.1
+- Link native input errors and remove read-only stepping affordances.
+- Preserve the text-selection cursor for enabled read-only numeric values.
+
+### RadioCard v1.1.0
+- Expose rich content, register descriptions/addons and fix read-only inputs.
+- Strengthen indicators, readable addon pairings and read-only content.
+- Use realistic delivery cards, canonical matrices and lifecycle regressions.
+- Document read-only operation and accessible compound content.
+- Restore readable checked-outline hover descriptions/addons and accessible Business solid-addon text.
+
+### RadioGroup v1.1.0
+- Associate compound messages and preserve read-only focus/submission.
+- Add contrasting checked foreground and border pairings.
+- Standardize delivery examples and test feedback registration/cleanup.
+- Document associated descriptions and immutable read-only groups.
+- Use an accessible on-primary solid indicator pairing, including Business hover states.
+
+### Rating v1.2.0
+- Add accessible targets, feedback, numeric values and named-image display.
+- Provide contrasting outlined/filled/half glyphs and target/focus tokens.
+- Add complete documentation and interactive/read-only regressions.
+- Document feedback API, targets and focusable read-only image semantics.
+- Show zero for untouched ratings, announce precise half scores, respect disabled foregrounds, and wrap long scales within narrow layouts.
+
+### SearchForm v1.1.0
+- Preserve visible-label naming, restore focus after clearing, fix standalone input corners and add compound validation/read-only/disabled contracts.
+- Reserve size-aware clear-action space instead of a generic 120px button gutter, preserving usable query width on narrow screens.
+
+### Select v1.2.0
+- Fix label-based typeahead, Zag prop forwarding, composed handlers, multi-value/static display, registered feedback, immutable read-only behavior and popup layering.
+
+### Skeleton v1.0.4
+- Align loading-region documentation/tests, consolidate canonical sizes, and normalize line counts.
+- Make visibility-control regressions dynamic and constrain the product loading demo on mobile.
+
+### Slider v1.2.0
+- Fix value text for single/multiple thumbs, invalid-thumb ARIA, marker spacing, explicit thumb names and size/read-only consistency.
+
+### Steps v1.1.0
+- Added correctable, guarded validation with associated StatusText and a regression proving recovery; standardized size and workflow guidance.
+- Adapt workflow lists, panels, navigation and progress tracks to narrow screens without changing step semantics.
+
+### Switch v1.1.0
+- Correct switch semantics, sizes, feedback and read-only behavior.
+- Derive size-aware thumb travel and distinguish disabled/read-only thumbs.
+- Replace inconsistent demos with controlled documentation and regressions.
+- Document sizes, switch semantics and feedback/read-only contracts.
+
+### Table v1.3.0
+- Support keyboard row activation, visible focus and standard React object/callback refs.
+- Selected rows expose accessible selection state; keyboard demonstration documentation and assertions corrected.
+
+### Tabs v1.1.0
+- Constrained narrow layouts, introduced scroll-safe focus treatment, corrected disabled attributes and replaced nested-tab documentation with sectioned content.
+- Keep selected-tab indicators visible inside scrolling lists, provide a default underline cue, and preserve leading-tab access under center/end alignment.
+
+### Textarea v1.0.3
+- Unify native readOnly and legacy readonly behavior and styling; generate missing IDs and refresh accessible multiline examples.
+- Wire component-specific read-only foreground/background overrides; normalize story formatting.
+
+### Toast v1.1.0
+- Added isolated stores/providers and unique regions; fixed loading titles, actions, closability, readable surfaces, multiline alignment and responsive width.
+- Prevent Escape dismissal of non-closable notifications while retaining normal dismissal after completion.
+
+### Tooltip v1.0.2
+- Wrap long references within floating bounds, retain keyboard descriptions and replace interactive tooltip examples with appropriate guidance.
+
+### TotalsSummary v1.0.1
+- Normalize implementation token-class ordering without changing the summary API; constrain mobile examples, provide local recap actions and clarify prepared totals.
+
+### Tour v1.0.6
+- Simplify action-trigger accessible-name fallback without changing its result or public API.
+
+### TreeView v1.0.3
+- Split machine and DOM props so custom IDs and initial focus work without attribute leakage.
+- Responsive comparison/activity examples and readable associated custom label.
+
+### VerticalNavigation v1.1.0
+- Add canonical lg navigation with shared control heights, typography, spacing and icons; show exactly one Small/Medium/Large comparison and retain keyboard disclosure/current-page behavior.
+
+### Shared foundations — wave 2
+- Keep read-only text cursors selectable in every state and non-text cursors neutral; improve Business solid-primary contrast and responsive detail/Docs layouts.
+- Resolve nested scheme aliases, readable links, feedback hierarchy and corrected motion units through a documented Figma bridge; validate tokens independently of working directory.
+- Complete accessible, responsive component documentation and safe local page workflows across the kit.
+
 ### Checkbox v1.0.4
 - Fix mixed-state dash rendering, checked-mask conflicts and disabled styling; retain visible keyboard focus and distinguish rounded checkboxes from radios.
 - Complete accessible Docs and selection examples, with one live Playground synchronized to Controls.

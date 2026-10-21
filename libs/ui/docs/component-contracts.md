@@ -153,6 +153,9 @@ Justified non-control exceptions:
   interaction targets. ActionIcon still uses sm/md/lg with an adequate hit area.
 - Label may use `current` to inherit its field's text. Button's existing
   `current` is an inline composition escape hatch, not a fourth demo size.
+- StatusText uses a secondary 12/14/16px helper scale for sm/md/lg. Match
+  the field's size prop; do not downsize helpers to compensate for body type.
+  Labels retain their field scale and 700 weight.
 - Badge/status labels may have a documented compact xs; this is not a reason to
   give every input xs. Content/media/dialog widths and heading levels are
   different axes, not control sizes.

@@ -4,6 +4,33 @@ import { describe, expect, it } from "vitest"
 import { VerticalNavigation } from "../../src/molecules/vertical-navigation"
 
 describe("VerticalNavigation server rendering", () => {
+  it.each(["sm", "md", "lg"] as const)(
+    "propagates canonical %s sizing to links and disclosure controls",
+    (size) => {
+      const html = renderToStaticMarkup(
+        h(
+          VerticalNavigation,
+          { size },
+          h(VerticalNavigation.Link, { href: "/catalog" }, "All products"),
+          h(
+            VerticalNavigation.Branch,
+            null,
+            h(
+              VerticalNavigation.BranchTrigger,
+              null,
+              "Fasteners",
+              h(VerticalNavigation.BranchIndicator)
+            )
+          )
+        )
+      )
+      expect(html).toContain(`text-vertical-navigation-${size}`)
+      expect(html).toContain(`min-h-vertical-navigation-item-${size}`)
+      expect(html).toContain(`py-vertical-navigation-item-y-${size}`)
+      expect(html).toContain(`text-vertical-navigation-icon-${size}`)
+    }
+  )
+
   it("renders native navigation and a current-page link, not an ARIA menu", () => {
     const html = renderToStaticMarkup(
       h(
@@ -32,43 +59,43 @@ describe("VerticalNavigation server rendering", () => {
     expect(html).not.toContain('role="tree"')
   })
 
-  it.each([
-    "primary",
-    "secondary",
-  ] as const)("keeps %s group colors separate from navigation state", (variant) => {
-    const html = renderToStaticMarkup(
-      h(
-        VerticalNavigation,
-        { "aria-label": "Categories" },
+  it.each(["primary", "secondary"] as const)(
+    "keeps %s group colors separate from navigation state",
+    (variant) => {
+      const html = renderToStaticMarkup(
         h(
-          VerticalNavigation.List,
-          null,
+          VerticalNavigation,
+          { "aria-label": "Categories" },
           h(
-            VerticalNavigation.Branch,
-            { defaultOpen: true },
+            VerticalNavigation.List,
+            null,
             h(
-              VerticalNavigation.Row,
-              null,
-              h(VerticalNavigation.Link, { href: "/screws" }, "Screws"),
+              VerticalNavigation.Branch,
+              { defaultOpen: true },
               h(
-                VerticalNavigation.BranchTrigger,
-                { "aria-label": "Toggle screws" },
-                "+"
-              )
-            ),
-            h(
-              VerticalNavigation.BranchContent,
-              { tone: "accent", variant },
-              h(
-                VerticalNavigation.List,
+                VerticalNavigation.Row,
                 null,
+                h(VerticalNavigation.Link, { href: "/screws" }, "Screws"),
                 h(
-                  VerticalNavigation.Item,
+                  VerticalNavigation.BranchTrigger,
+                  { "aria-label": "Toggle screws" },
+                  "+"
+                )
+              ),
+              h(
+                VerticalNavigation.BranchContent,
+                { tone: "accent", variant },
+                h(
+                  VerticalNavigation.List,
                   null,
                   h(
-                    VerticalNavigation.Link,
-                    { href: "/screws/din933" },
-                    "DIN 933"
+                    VerticalNavigation.Item,
+                    null,
+                    h(
+                      VerticalNavigation.Link,
+                      { href: "/screws/din933" },
+                      "DIN 933"
+                    )
                   )
                 )
               )
@@ -76,17 +103,17 @@ describe("VerticalNavigation server rendering", () => {
           )
         )
       )
-    )
-    expect(html).toContain('aria-expanded="true"')
-    expect(html).toContain("aria-controls=")
-    expect(html).toContain('data-tone="accent"')
-    expect(html).toContain(`data-variant="${variant}"`)
-    expect(html).toContain(
-      `bg-vertical-navigation-group-bg-${variant === "primary" ? "accent" : "secondary"}`
-    )
-    expect(html).not.toContain('aria-current="page"')
-    expect(html).toMatch(/<a[^>]*>Screws<\/a><button/)
-  })
+      expect(html).toContain('aria-expanded="true"')
+      expect(html).toContain("aria-controls=")
+      expect(html).toContain('data-tone="accent"')
+      expect(html).toContain(`data-variant="${variant}"`)
+      expect(html).toContain(
+        `bg-vertical-navigation-group-bg-${variant === "primary" ? "accent" : "secondary"}`
+      )
+      expect(html).not.toContain('aria-current="page"')
+      expect(html).toMatch(/<a[^>]*>Screws<\/a><button/)
+    }
+  )
 
   it("keeps plain groups neutral even when a brand variant is specified", () => {
     const html = renderToStaticMarkup(

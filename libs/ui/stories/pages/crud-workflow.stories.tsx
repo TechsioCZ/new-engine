@@ -1,3 +1,4 @@
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useRef, useState } from "react"
 import { Button } from "../../src/atoms/button"
@@ -28,12 +29,13 @@ import {
 } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/Patterns/CRUD workflow",
   parameters: {
@@ -52,7 +54,7 @@ const meta: Meta = {
           "| Read | row click → detail drawer | non-destructive, reversible, keeps the scroll position |",
           "| Update (light) | DataTable inline edit | one or two fields, no context switch |",
           "| Update (full) | same drawer as create | anything that needs validation across fields |",
-          "| Delete | `role=\"alertdialog\"` | irreversible, so it blocks and names the record |",
+          '| Delete | `role="alertdialog"` | irreversible, so it blocks and names the record |',
           "",
           "Every mutation ends in a `Toast`: the list does not visibly change enough on",
           "its own to confirm that the write happened.",
@@ -120,7 +122,9 @@ function ProductForm({
         label="SKU"
         onChange={(event) => onChange({ sku: event.target.value })}
         required
-        validateStatus={draft.sku.length > 0 && draft.sku.length < 4 ? "error" : "default"}
+        validateStatus={
+          draft.sku.length > 0 && draft.sku.length < 4 ? "error" : "default"
+        }
         value={draft.sku}
       />
       <SelectTemplate
@@ -255,7 +259,9 @@ function CrudPage() {
         cell: (info) => {
           const stock = info.getValue<number>()
           return (
-            <span className={stock === 0 ? "text-fg-accent-danger" : "tabular-nums"}>
+            <span
+              className={stock === 0 ? "text-fg-accent-danger" : "tabular-nums"}
+            >
               {stock === 0 ? "Out of stock" : stock}
             </span>
           )
@@ -264,7 +270,12 @@ function CrudPage() {
       {
         accessorKey: "status",
         header: "Status",
-        meta: { type: "enum", options: productStatusOptions, editable: true, width: 140 },
+        meta: {
+          type: "enum",
+          options: productStatusOptions,
+          editable: true,
+          width: 140,
+        },
         cell: (info) => <StatusBadge status={info.getValue<string>()} />,
       },
       {
@@ -274,7 +285,7 @@ function CrudPage() {
         cell: (info) => (info.getValue<boolean>() ? "Yes" : "—"),
       },
     ],
-    []
+    [],
   )
 
   const openCreate = () => {
@@ -293,8 +304,10 @@ function CrudPage() {
     if (editingId) {
       setRows((current) =>
         current.map((row) =>
-          row.id === editingId ? { ...row, ...draft, status: draft.status as Product["status"] } : row
-        )
+          row.id === editingId
+            ? { ...row, ...draft, status: draft.status as Product["status"] }
+            : row,
+        ),
       )
       toaster.create({
         type: "success",
@@ -379,8 +392,10 @@ function CrudPage() {
           onEditCommit={({ rowId, draft: committed }) => {
             setRows((current) =>
               current.map((row) =>
-                row.id === rowId ? { ...row, ...(committed as Partial<Product>) } : row
-              )
+                row.id === rowId
+                  ? { ...row, ...(committed as Partial<Product>) }
+                  : row,
+              ),
             )
             toaster.create({ type: "success", title: "Product saved" })
           }}
@@ -439,7 +454,9 @@ function CrudPage() {
       >
         <ProductForm
           draft={draft}
-          onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+          onChange={(patch) =>
+            setDraft((current) => ({ ...current, ...patch }))
+          }
         />
       </Dialog>
 
@@ -523,6 +540,15 @@ function CrudPage() {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in crud workflow to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Create · read · update · delete",
   render: () => <CrudPage />,
 }

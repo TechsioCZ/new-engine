@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.0
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,6 +25,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react"
@@ -33,13 +34,20 @@ import { Button } from "../atoms/button"
 import { Icon, type IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
 import { Label } from "../atoms/label"
+import { StatusText, type StatusTextProps } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
 import { tv } from "../utils"
 
 const fileUploadStyles = tv({
   slots: {
-    root: "flex w-full flex-col items-start gap-file-upload-root",
+    root: "focus-visible:file-upload-focus flex w-full flex-col items-start gap-file-upload-root",
     label: [
-      "file-upload-label-typography font-file-upload-label text-file-upload-label-fg",
+      "font-file-upload-label text-file-upload-label-fg",
       "data-disabled:text-file-upload-label-disabled-fg",
     ],
     dropzone: [
@@ -50,7 +58,7 @@ const fileUploadStyles = tv({
       "data-dragging:file-upload-dropzone-border-solid data-dragging:border-file-upload-dropzone-dragging-border data-dragging:bg-file-upload-dropzone-dragging-bg",
       "data-invalid:border-file-upload-dropzone-invalid-border",
       "data-disabled:cursor-not-allowed data-disabled:border-file-upload-dropzone-disabled-border data-disabled:bg-file-upload-dropzone-disabled-bg data-disabled:text-file-upload-dropzone-disabled-fg",
-      "data-readonly:cursor-default",
+      "form-control-readonly data-readonly:cursor-default",
     ],
     trigger: "",
     itemGroup: "flex w-full flex-col gap-file-upload-item-group empty:hidden",
@@ -70,17 +78,29 @@ const fileUploadStyles = tv({
       "data-disabled:text-file-upload-item-disabled-fg",
     ],
     itemSizeText: [
-      "file-upload-item-size-typography text-file-upload-item-size-fg",
+      "text-file-upload-item-size-fg",
       "data-disabled:text-file-upload-item-disabled-fg",
     ],
     itemDeleteTrigger: "",
     clearTrigger: "",
   },
+  variants: {
+    size: {
+      sm: { root: "text-file-upload-sm", item: "text-file-upload-sm" },
+      md: { root: "text-file-upload-md", item: "text-file-upload-md" },
+      lg: { root: "text-file-upload-lg", item: "text-file-upload-lg" },
+    },
+  },
+  defaultVariants: { size: "md" },
 })
 
 type FileUploadContextValue = {
   api: FileUploadApi
   required?: boolean
+  invalid?: boolean
+  size: "sm" | "md" | "lg"
+  descriptions: DescribedBy
+  errorDescriptions: DescribedBy
   styles: ReturnType<typeof fileUploadStyles>
 }
 
@@ -142,6 +162,7 @@ type FileUploadRootDomProps = Omit<
 export type FileUploadProps = FileUploadRootDomProps &
   Omit<FileUploadMachineProps, "id"> & {
     id?: string
+    size?: "sm" | "md" | "lg"
     ref?: Ref<HTMLDivElement>
   }
 
@@ -172,18 +193,33 @@ export function FileUpload({
   readOnly,
   ref,
   required,
+  size = "md",
   transformFiles,
   translations,
   validate,
   ...props
 }: FileUploadProps) {
   const generatedId = useId()
+  // Keep the commit boundary controlled: Zag may finish an asynchronous
+  // transform after the interaction that started it has become read-only.
+  const [localFiles, setLocalFiles] = useState<File[]>(
+    () => defaultAcceptedFiles ?? []
+  )
+  const interaction = useRef({
+    blocked: Boolean(readOnly || disabled),
+    epoch: 0,
+  })
+  useLayoutEffect(() => {
+    const blocked = Boolean(readOnly || disabled)
+    if (interaction.current.blocked !== blocked) {
+      interaction.current = { blocked, epoch: interaction.current.epoch + 1 }
+    }
+  }, [readOnly, disabled])
   const service = useMachine(fileUploadMachine, {
     accept,
-    acceptedFiles,
+    acceptedFiles: acceptedFiles ?? localFiles,
     allowDrop,
     capture,
-    defaultAcceptedFiles,
     dir,
     directory,
     disabled,
@@ -196,23 +232,75 @@ export function FileUpload({
     maxFiles,
     minFileSize,
     name,
-    onFileAccept,
-    onFileChange,
-    onFileReject,
+    onFileAccept: (details) => {
+      if (!interaction.current.blocked) {
+        onFileAccept?.(details)
+      }
+    },
+    onFileChange: (details) => {
+      if (interaction.current.blocked) {
+        return
+      }
+      if (acceptedFiles === undefined) {
+        setLocalFiles(details.acceptedFiles)
+      }
+      onFileChange?.(details)
+    },
+    onFileReject: (details) => {
+      if (!interaction.current.blocked) {
+        onFileReject?.(details)
+      }
+    },
     preventDocumentDrop,
     readOnly,
     required,
-    transformFiles,
+    transformFiles: transformFiles
+      ? async (files) => {
+          const epoch = interaction.current.epoch
+          const transformed = await transformFiles(files)
+          if (
+            interaction.current.blocked ||
+            interaction.current.epoch !== epoch
+          ) {
+            // Reject, rather than return an empty list: Zag would still commit
+            // the batch's rejected files after a fulfilled transformation.
+            throw new DOMException("File processing cancelled", "AbortError")
+          }
+          return transformed
+        }
+      : undefined,
     translations,
     validate,
   })
   const api = connectFileUpload(service, normalizeProps)
-  const styles = fileUploadStyles()
+  const styles = fileUploadStyles({ size })
+  const descriptions = useDescribedBy()
+  const errorDescriptions = useDescribedBy()
   const rootProps = mergeProps(props, api.getRootProps())
 
   return (
-    <FileUploadContext.Provider value={{ api, required, styles }}>
-      <div className={styles.root({ className })} ref={ref} {...rootProps}>
+    <FileUploadContext.Provider
+      value={{
+        api,
+        required,
+        invalid,
+        styles,
+        size,
+        descriptions,
+        errorDescriptions,
+      }}
+    >
+      <div
+        className={styles.root({ className })}
+        ref={ref}
+        tabIndex={readOnly && !disabled ? 0 : -1}
+        {...rootProps}
+        aria-description={
+          readOnly
+            ? "Read-only files. Uploading and removing files is unavailable."
+            : undefined
+        }
+      >
         {children}
       </div>
     </FileUploadContext.Provider>
@@ -244,14 +332,14 @@ FileUpload.Label = function FileUploadLabel({
   ref,
   ...props
 }: FileUploadLabelProps) {
-  const { api, required, styles } = useFileUploadContext()
+  const { api, required, styles, size } = useFileUploadContext()
   const labelProps = mergeProps({ ref }, props, api.getLabelProps())
 
   return (
     <Label
       className={styles.label({ className })}
       required={required}
-      size="current"
+      size={size}
       {...labelProps}
     >
       {children}
@@ -275,7 +363,8 @@ FileUpload.Dropzone = function FileUploadDropzone({
   ref,
   ...props
 }: FileUploadDropzoneProps) {
-  const { api, styles } = useFileUploadContext()
+  const { api, styles, descriptions, errorDescriptions, invalid } =
+    useFileUploadContext()
   const {
     onClick: onMachineClick,
     onKeyDown: onMachineKeyDown,
@@ -285,7 +374,22 @@ FileUpload.Dropzone = function FileUploadDropzone({
     props,
     machineDropzoneProps,
     {
-      role: disableClick ? "group" : "button",
+      role: disableClick || api.readOnly ? "group" : "button",
+      tabIndex: api.disabled ? undefined : 0,
+      "aria-disabled": api.disabled || undefined,
+      "aria-description": api.readOnly
+        ? "Read-only files. Uploading and removing files is unavailable."
+        : undefined,
+      "aria-describedby": joinDescribedBy(
+        props["aria-describedby"],
+        descriptions.describedById
+      ),
+      "aria-invalid":
+        invalid || Boolean(errorDescriptions.describedById) || undefined,
+      "aria-errormessage":
+        invalid || errorDescriptions.describedById
+          ? errorDescriptions.describedById
+          : undefined,
       "aria-label": ariaLabel ?? machineDropzoneProps["aria-label"],
       "aria-labelledby":
         ariaLabelledBy ?? (ariaLabel ? undefined : api.getLabelProps().id),
@@ -321,6 +425,7 @@ FileUpload.Dropzone = function FileUploadDropzone({
       className={styles.dropzone({ className })}
       ref={ref}
       {...dropzoneProps}
+      aria-disabled={api.disabled || undefined}
     >
       {children}
     </div>
@@ -358,8 +463,51 @@ FileUpload.HiddenInput = function FileUploadHiddenInput({
 }: FileUploadHiddenInputProps) {
   const { api } = useFileUploadContext()
   const inputProps = mergeProps(props, api.getHiddenInputProps())
+  const inputRef = useRef<HTMLInputElement>(null)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Blocking editing must also discard uncommitted native files while an async transform is pending.
+  useLayoutEffect(() => {
+    const input = inputRef.current
+    if (!input) {
+      return
+    }
+    const view = input.ownerDocument.defaultView
+    if (!(view && "DataTransfer" in view)) {
+      return
+    }
+    const transfer = new view.DataTransfer()
+    for (const file of api.acceptedFiles) {
+      transfer.items.add(file)
+    }
+    try {
+      input.files = transfer.files
+    } catch {
+      // Some host/test environments expose a getter-only FileList. Match
+      // Zag's best-effort synchronization without unmounting the whole field.
+    }
+  }, [api.acceptedFiles, api.readOnly, api.disabled])
 
-  return <input ref={ref} {...inputProps} />
+  return (
+    <input
+      ref={(node) => {
+        inputRef.current = node
+        if (typeof ref === "function") {
+          return ref(node)
+        }
+        if (ref) {
+          ref.current = node
+        }
+      }}
+      {...inputProps}
+      disabled={api.disabled}
+      onClick={(event) => {
+        if (api.readOnly) {
+          event.preventDefault()
+          return
+        }
+        inputProps.onClick?.(event)
+      }}
+    />
+  )
 }
 
 export type FileUploadTriggerProps = Omit<
@@ -379,7 +527,8 @@ FileUpload.Trigger = function FileUploadTrigger({
   ref,
   ...props
 }: FileUploadTriggerProps) {
-  const { api, styles } = useFileUploadContext()
+  const { api, styles, size, descriptions, errorDescriptions, invalid } =
+    useFileUploadContext()
   const {
     disabled: machineDisabled,
     onClick: onMachineClick,
@@ -387,9 +536,25 @@ FileUpload.Trigger = function FileUploadTrigger({
   } = api.getTriggerProps() as ComponentPropsWithoutRef<"button">
   const triggerProps = mergeProps(props, machineTriggerProps)
   const isDisabled = Boolean(disabled || machineDisabled)
+  if (api.readOnly) {
+    return null
+  }
 
   return (
     <Button
+      {...triggerProps}
+      aria-describedby={joinDescribedBy(
+        props["aria-describedby"],
+        descriptions.describedById
+      )}
+      aria-errormessage={
+        invalid || errorDescriptions.describedById
+          ? errorDescriptions.describedById
+          : undefined
+      }
+      aria-invalid={
+        invalid || Boolean(errorDescriptions.describedById) || undefined
+      }
       className={styles.trigger({ className })}
       disabled={isDisabled}
       icon={icon}
@@ -401,11 +566,10 @@ FileUpload.Trigger = function FileUploadTrigger({
         }
       }}
       ref={ref}
-      size="md"
+      size={size}
       theme="outlined"
       type="button"
       variant="primary"
-      {...triggerProps}
     >
       {children}
     </Button>
@@ -605,7 +769,7 @@ FileUpload.ItemDeleteTrigger = function FileUploadItemDeleteTrigger({
   ref,
   ...props
 }: FileUploadItemDeleteTriggerProps) {
-  const { api, styles } = useFileUploadContext()
+  const { api, styles, size } = useFileUploadContext()
   const { file, type } = useFileUploadItemContext()
   const {
     disabled: machineDisabled,
@@ -617,6 +781,9 @@ FileUpload.ItemDeleteTrigger = function FileUploadItemDeleteTrigger({
   }) as ComponentPropsWithoutRef<"button">
   const deleteProps = mergeProps(props, machineDeleteProps)
   const isDisabled = Boolean(disabled || machineDisabled)
+  if (api.readOnly) {
+    return null
+  }
 
   return (
     <ActionIcon
@@ -626,12 +793,32 @@ FileUpload.ItemDeleteTrigger = function FileUploadItemDeleteTrigger({
       onClick={(event) => {
         onClick?.(event)
 
-        if (!event.defaultPrevented) {
+        if (!(event.defaultPrevented || api.disabled || api.readOnly)) {
+          const button = event.currentTarget
+          const root = button.closest<HTMLElement>(
+            '[data-scope="file-upload"][data-part="root"]'
+          )
+          const buttons = Array.from(
+            root?.querySelectorAll<HTMLButtonElement>(
+              '[data-part="item-delete-trigger"]:not(:disabled)'
+            ) ?? []
+          )
+          const index = buttons.indexOf(button)
+          const next = buttons[index + 1] ?? buttons[index - 1]
+          const restoreFocus = button.ownerDocument.activeElement === button
           onMachineClick?.(event)
+          if (restoreFocus) {
+            requestAnimationFrame(() => {
+              const fallback = root?.querySelector<HTMLElement>(
+                '[data-part="dropzone"], [data-part="trigger"]:not(:disabled), input:not([type="file"]):not(:disabled)'
+              )
+              ;(next?.isConnected ? next : (fallback ?? root))?.focus()
+            })
+          }
         }
       }}
       ref={ref}
-      size="md"
+      size={size}
       tone="neutral"
       type="button"
       {...deleteProps}
@@ -651,7 +838,7 @@ FileUpload.ClearTrigger = function FileUploadClearTrigger({
   ref,
   ...props
 }: FileUploadClearTriggerProps) {
-  const { api, styles } = useFileUploadContext()
+  const { api, styles, size } = useFileUploadContext()
   const {
     disabled: machineDisabled,
     onClick: onMachineClick,
@@ -659,6 +846,9 @@ FileUpload.ClearTrigger = function FileUploadClearTrigger({
   } = api.getClearTriggerProps() as ComponentPropsWithoutRef<"button">
   const clearProps = mergeProps(props, machineClearProps)
   const isDisabled = Boolean(disabled || machineDisabled)
+  if (api.readOnly) {
+    return null
+  }
 
   return (
     <ActionIcon
@@ -674,10 +864,42 @@ FileUpload.ClearTrigger = function FileUploadClearTrigger({
         }
       }}
       ref={ref}
-      size="md"
+      size={size}
       tone="neutral"
       type="button"
       {...clearProps}
+    />
+  )
+}
+
+export type FileUploadStatusTextProps = StatusTextProps
+
+FileUpload.StatusText = function FileUploadStatusText({
+  id: providedId,
+  status,
+  size: sizeProp,
+  ...props
+}: FileUploadStatusTextProps) {
+  const generatedId = useId()
+  const id = providedId ?? generatedId
+  const { size, descriptions, errorDescriptions, invalid } =
+    useFileUploadContext()
+  const resolvedStatus = status ?? (invalid ? "error" : "default")
+  useRegisterDescription(id, descriptions.registerDescription)
+  useEffect(
+    () =>
+      resolvedStatus === "error"
+        ? errorDescriptions.registerDescription(id)
+        : undefined,
+    [id, resolvedStatus, errorDescriptions.registerDescription]
+  )
+  return (
+    <StatusText
+      {...props}
+      id={id}
+      showIcon={resolvedStatus === "default" ? props.showIcon : true}
+      size={sizeProp ?? size}
+      status={resolvedStatus}
     />
   )
 }

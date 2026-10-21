@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.0
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,8 +29,8 @@ import { tv } from "../utils"
 
 export const paginationVariants = tv({
   slots: {
-    base: "",
-    list: ["inline-flex items-center gap-pagination-list"],
+    base: "max-w-full",
+    list: ["inline-flex max-w-full flex-wrap items-center gap-pagination-list"],
     item: [
       "grid cursor-pointer",
       'has-[[data-part="ellipsis"]]:bg-pagination-bg-neutral',
@@ -86,16 +86,16 @@ export const paginationVariants = tv({
     },
     size: {
       sm: {
-        link: "h-pagination-sm text-pagination-sm",
-        compactText: "text-pagination-sm",
+        link: "h-form-control-sm text-pagination-nav-sm",
+        compactText: "text-pagination-nav-sm",
       },
       md: {
-        link: "h-pagination-md text-pagination-md",
-        compactText: "text-pagination-md",
+        link: "h-form-control-md text-pagination-nav-md",
+        compactText: "text-pagination-nav-md",
       },
       lg: {
-        link: "h-pagination-lg text-pagination-lg",
-        compactText: "text-pagination-lg",
+        link: "h-form-control-lg text-pagination-nav-lg",
+        compactText: "text-pagination-nav-lg",
       },
     },
   },
@@ -294,13 +294,11 @@ export function Pagination<T extends ElementType = "a">({
       baseTriggerProps,
       {
         ...(isNavigable && linkAs ? { as: linkAs } : {}),
-        // Without an href an <a> has no role, so Zag's aria-label on the
-        // disabled prev/next trigger is prohibited. Render a real button.
+        // An unavailable destination is a non-interactive link placeholder.
         ...(isNavigable
           ? {}
           : {
-              as: "button",
-              type: "button",
+              as: "span",
               disabled: true,
               role: triggerProps.role ?? sharedLinkProps?.role ?? "link",
             }),

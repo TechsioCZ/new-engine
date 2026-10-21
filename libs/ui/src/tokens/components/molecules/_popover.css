@@ -14,3 +14,19 @@
 
   --padding-popover-trigger: var(--spacing-100) var(--spacing-150);
 }
+
+@theme static {
+  --width-popover-max: 32rem;
+  --spacing-popover-close: var(--spacing-100);
+  --spacing-popover-viewport: var(--spacing-200);
+  --font-weight-popover-title: var(--font-weight-semibold);
+}
+
+@utility popover-viewport {
+  max-width: min(
+    var(--width-popover-max),
+    var(--available-width, 100vw),
+    calc(100vw - var(--spacing-popover-viewport) * 2)
+  );
+  overflow-wrap: anywhere;
+}

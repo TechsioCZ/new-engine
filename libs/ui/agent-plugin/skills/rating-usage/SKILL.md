@@ -5,7 +5,7 @@ description: >
   accessible rating capture or display using the Zag.js rating-group wrapper,
   supported value/count/allowHalf/readOnly/disabled props, and token styling.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -70,6 +70,21 @@ size: sm | md | lg
 
 ## Core Patterns
 
+### Feedback, targets and display semantics
+
+Interactive stars have at least 32-pixel targets at every size, with outlined
+empty stars, filled selected stars and a visible numeric value. `helpText` and
+`validateStatus="default" | "error" | "warning" | "success"` provide associated
+StatusText feedback; caller `aria-describedby` is merged onto the group and each
+focus target, with `aria-invalid` and `aria-errormessage` for errors.
+A `readOnly` rating uses one focusable `role="img"` named, for example,
+"Average delivery rating: 4.5 out of 5". It does not expose interactive radios,
+ignores pointer and keyboard mutation, and preserves named form submission.
+Disabled takes priority and removes all keyboard targets. Sizes are `sm`, `md`,
+`lg`, default `md`; stars are glyphs, not single-line boxed controls, so shared
+form-control heights do not replace their square hit targets.
+
+
 ### Use controlled mode for editable rating state
 
 ```tsx
@@ -94,7 +109,7 @@ Zag exposes hover/value changes; the wrapper converts them to numbers.
 Use `disabled` when the control is unavailable, not for normal display.
 
 A `readOnly` rating renders as one `role="img"` named "<labelText>: 4.5 out of 5":
-no radios and no tab stop, so read-only stars are never focusable or a target.
+no radios; the image itself remains focusable so keyboard users can inspect the value.
 The hidden input stays, so a `name`d read-only rating still submits with its form.
 
 ### Use token-backed size and state styling
@@ -180,6 +195,10 @@ Correct:
 ```tsx
 <Rating value={4.5} readOnly />
 ```
+
+## State consistency
+
+An untouched rating displays `0 / count` with no checked radio. A checked half-star option announces its exact value (for example, “4.5 stars”); the visible score is also associated with the group and each interactive focus target. `translations.ratingValueText` receives the exact selected value. Disabled stars and their label use disabled foregrounds. Long scales wrap inside the available width without shrinking the minimum 32px targets.
 
 ## Validation Commands
 

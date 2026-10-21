@@ -1,14 +1,22 @@
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Badge } from "../../src/atoms/badge"
-import { Button } from "../../src/atoms/button"
+
 import { Icon } from "../../src/atoms/icon"
 import { Skeleton } from "../../src/atoms/skeleton"
 import { Chart } from "../../src/molecules/chart"
 import { Popover } from "../../src/molecules/popover"
 import { Tabs } from "../../src/molecules/tabs"
 import { Table } from "../../src/organisms/table"
-import { adminNav, currency, orders, products, revenueByChannel, formatDate } from "./data"
+import {
+  adminNav,
+  currency,
+  orders,
+  products,
+  revenueByChannel,
+  formatDate,
+} from "./data"
 import {
   Brand,
   Frame,
@@ -27,12 +35,13 @@ import {
 } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/E-commerce/Dashboard home",
   parameters: {
@@ -68,7 +77,7 @@ const lowStock = products.filter((product) => product.stock < 60)
 function MetricHelp({ title, body }: { title: string; body: string }) {
   return (
     <Popover placement="bottom-start" size="sm">
-      <Popover.Trigger>
+      <Popover.Trigger aria-label={title}>
         <Icon icon="icon-[mdi--information-outline]" size="sm" />
       </Popover.Trigger>
       <Popover.Positioner>
@@ -101,21 +110,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
       }
     >
       <PageHeader
-        actions={
-          <>
-            <Button
-              icon="icon-[mdi--calendar-range]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              Last 30 days
-            </Button>
-            <Button icon="icon-[mdi--plus]" size="sm" variant="primary">
-              New order
-            </Button>
-          </>
-        }
+        actions={<></>}
         description="Saturday, 12 September 2026 · everything below is scoped to the last 30 days."
         meta={
           <Badge size="sm" variant="warning">
@@ -126,11 +121,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
       />
 
       <SectionCard
-        actions={
-          <Button size="sm" theme="borderless" variant="secondary">
-            View all
-          </Button>
-        }
+        actions={null}
         description="Things that will get worse if nobody touches them today."
         title="Needs attention"
       >
@@ -144,9 +135,6 @@ function DashboardPage({ loading }: { loading?: boolean }) {
             <span className="flex-1 text-sm">
               12 marketplace SKUs rejected by the feed since 9 September
             </span>
-            <Button size="sm" theme="outlined" variant="secondary">
-              Inspect feed
-            </Button>
           </div>
           <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
             <Icon
@@ -157,9 +145,6 @@ function DashboardPage({ loading }: { loading?: boolean }) {
             <span className="flex-1 text-sm">
               17 paid orders have been awaiting fulfilment for over 24 hours
             </span>
-            <Button size="sm" theme="outlined" variant="secondary">
-              Open queue
-            </Button>
           </div>
           <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
             <Icon
@@ -170,9 +155,6 @@ function DashboardPage({ loading }: { loading?: boolean }) {
             <span className="flex-1 text-sm">
               {`${lowStock.length} products are below their reorder point`}
             </span>
-            <Button size="sm" theme="outlined" variant="secondary">
-              Review stock
-            </Button>
           </div>
         </div>
       </SectionCard>
@@ -243,14 +225,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           )}
         </SectionCard>
 
-        <SectionCard
-          actions={
-            <Button size="sm" theme="borderless" variant="secondary">
-              View all
-            </Button>
-          }
-          title="Latest orders"
-        >
+        <SectionCard actions={null} title="Latest orders">
           {loading ? (
             <Skeleton isLoaded={false}>
               <Skeleton.Text noOfLines={6} />
@@ -350,6 +325,15 @@ function DashboardPage({ loading }: { loading?: boolean }) {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in dashboard to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   render: () => <DashboardPage />,
 }
 

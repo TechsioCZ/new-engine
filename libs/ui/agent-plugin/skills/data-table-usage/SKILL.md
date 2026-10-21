@@ -8,7 +8,7 @@ description: >
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
 metadata:
-  component_version: "1.2.4"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -392,3 +392,13 @@ clicks, so rows never look clickable when they are not.
 - Do not hardcode colors/padding — the grid is fully tokenised via `Table`.
 - Do not reach for a canvas grid (VTable/S2): they cannot use our Tailwind tokens.
 - Do not mutate `data` in place for row reorder — apply the `onRowReorder` `data` result to your state.
+
+## Wave 2 contracts
+
+With enableColumnResizing, focus a Resize <column> edge and press Left/Right to change its width by 10px (Shift: 50px), clamped to column minSize/maxSize. Enter or Home resets its width; pointer double-click also resets. Keep destructive bulk actions behind an alertdialog naming the affected records, or provide a real undo path. Skeleton fill uses a table-specific token so it remains distinct in dark mode. Canonical sizes are sm/md/lg (default md).
+
+The bounded scroll surface is a keyboard-focusable named region. Its caption supplies the name; without a caption, localize `translations.scrollLabel` (default “Scrollable records”). Virtual padding rows are hidden from the accessibility tree while real rows retain absolute `aria-rowindex` and the table reports the full `aria-rowcount`.
+
+Default inline editors render sized StatusText errors with icons, aria-invalid and aria-errormessage on the actual control. Choice editors own their feedback through the widget API; custom editors receive error/errorId and must associate their focus target. Built-in editors reserve a size-dependent minimum value width so numeric values remain readable beside steppers; constrained fixed-layout cells scroll locally instead of covering adjacent fields.
+
+Sticky actions pin only when the table scroll container is at least 48rem wide. In narrower containers they scroll with the row, so Save/Cancel cannot cover a focused value editor. This is container-responsive, including narrow panels on desktop.

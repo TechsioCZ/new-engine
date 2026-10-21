@@ -6,7 +6,7 @@ description: >
   nav, nav items, actions, hamburger, active state, size, direction, and token
   styling.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -157,3 +157,9 @@ rg -n "<a[^>]*href=|<Header\\.Hamburger|<Header\\.Mobile" apps
 rg -n "<Header[^>]*size=\"(xs|xl)\"|position=\"(left|right)\".*Header\\.Container" apps
 ```
 
+
+## Wave 2 contracts
+
+Header.Desktop, Header.Mobile and Header.Hamburger use the header container’s content width (48rem breakpoint), not the viewport. Compose exactly one Mobile slot with its Hamburger. The trigger exposes aria-controls/aria-expanded; Escape closes an open menu and restores trigger focus. A custom Mobile id is synchronized with aria-controls. Canonical sizes are sm/md/lg (default md); place primary navigation inside the responsive slots.
+
+Header.NavItem active controls styling only. Mark the actual current destination link with aria-current="page"; inactive destinations omit it.

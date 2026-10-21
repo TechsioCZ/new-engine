@@ -6,7 +6,7 @@ description: >
   trigger, value text, clear trigger, item groups, item indicators, validation
   status, size, and multiple mode.
 metadata:
-  component_version: "1.1.4"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -158,3 +158,26 @@ rg -n "<select\\b|<Select\\b(?!\\.)[^>]*value=\"|<Select\\.Trigger[^>]*className
 rg -U -P -n "<Select\\b(?!\\.)(?![\\s\\S]{0,700}<Select\\.Item)" apps
 rg -n "<Select\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Field contracts
+
+`Select` itself is the root; there is no `Select.Root`. All supported Zag props
+(including `open`, `defaultOpen`, `dir`, `positioning` and `ids`) are forwarded.
+Trigger event handlers are composed with Zag's handlers. Typeahead searches the
+visible string label; provide `displayValue` for a rich ReactNode label.
+`ValueText` honors both static children and render functions, and otherwise
+shows every selected label separated by commas. The hidden select submits values,
+not labels.
+
+Use `Select.StatusText` for help and validation. Each mounted message gets its
+own stable ID; the trigger merges caller descriptions with every mounted message
+and links error messages with `aria-errormessage`. State icons remain enabled.
+
+`readOnly` keeps the trigger focusable, its text selectable and its form value
+intact. It suppresses opening (including `open`/`defaultOpen`), clear and chevron
+affordances and all selection changes. Disabled takes precedence. Canonical sizes
+are sm/md/lg (default md); xs remains a compatibility alias, not a canonical size.
+
+`SelectTemplate` also accepts `helpText` and `triggerProps` for accessible naming
+and caller descriptions. Its `valueText` supports a static summary or render
+function. Visual/API changes need a Figma-sync handoff once this pass stabilizes.

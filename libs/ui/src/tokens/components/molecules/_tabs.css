@@ -9,9 +9,37 @@
  */
 
 @theme static {
-  --padding-tabs-trigger-sm: var(--padding-tabs-trigger-y-sm) var(--padding-tabs-trigger-x-sm);
-  --padding-tabs-trigger-md: var(--padding-tabs-trigger-y-md) var(--padding-tabs-trigger-x-md);
-  --padding-tabs-trigger-lg: var(--padding-tabs-trigger-y-lg) var(--padding-tabs-trigger-x-lg);
+  --padding-tabs-trigger-sm: var(--padding-tabs-trigger-y-sm)
+    var(--padding-tabs-trigger-x-sm);
+  --padding-tabs-trigger-md: var(--padding-tabs-trigger-y-md)
+    var(--padding-tabs-trigger-x-md);
+  --padding-tabs-trigger-lg: var(--padding-tabs-trigger-y-lg)
+    var(--padding-tabs-trigger-x-lg);
 
   --width-tabs-indicator: var(--size-tabs-indicator-width);
+}
+
+/* Safe alignment falls back to start when tabs exceed the scrollport. */
+@utility tabs-list-center {
+  justify-content: safe center;
+}
+
+@utility tabs-list-end {
+  justify-content: safe end;
+}
+
+/* Default tabs keep a non-color selected cue without requiring Indicator. */
+@utility tabs-trigger-selected {
+  &[data-selected] {
+    text-decoration-line: underline;
+    text-decoration-thickness: var(--spacing-tabs-indicator-height);
+    text-underline-offset: var(--spacing-tabs-indicator-height);
+  }
+}
+
+/* A scrollable tab list must not clip the focused trigger's ring. */
+@utility tabs-trigger-focus {
+  &:focus-visible {
+    outline-offset: calc(-1 * var(--default-ring-width));
+  }
 }

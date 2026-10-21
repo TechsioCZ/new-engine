@@ -9,6 +9,10 @@
 
 import fs, { globSync } from "node:fs"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
+
+const ROOT = fileURLToPath(new URL("../", import.meta.url))
+
 import {
   COLOR_PREFIXES,
   INSET_PREFIXES,
@@ -80,14 +84,17 @@ const globCache = new Map()
  */
 function readFileWithCache(filePath) {
   if (!fileCache.has(filePath)) {
-    fileCache.set(filePath, fs.readFileSync(filePath, "utf-8"))
+    fileCache.set(
+      filePath,
+      fs.readFileSync(path.resolve(ROOT, filePath), "utf-8")
+    )
   }
   return fileCache.get(filePath)
 }
 
 function globWithCache(pattern) {
   if (!globCache.has(pattern)) {
-    globCache.set(pattern, globSync(pattern))
+    globCache.set(pattern, globSync(pattern, { cwd: ROOT }))
   }
   return globCache.get(pattern)
 }
@@ -401,9 +408,15 @@ function reportUnusedTokens(unusedTokens, allTokens) {
 
   // Generate and save detailed report
   const report = generateReport(unusedTokens, allTokens)
-  const reportPath = "unused-tokens-report.md"
-  fs.writeFileSync(reportPath, report)
-  console.log(`\n📄 Detailed report saved to: ${reportPath}`)
+  const reportPath = process.argv
+    .find((arg) => arg.startsWith("--output="))
+    ?.slice("--output=".length)
+  if (reportPath) {
+    fs.writeFileSync(path.resolve(reportPath), report)
+    console.log(`Report saved to: ${path.resolve(reportPath)}`)
+  } else {
+    console.log(report)
+  }
 
   // Show summary
   const percent = (count) => ((count / allTokens.size) * 100).toFixed(1)
@@ -460,4 +473,5 @@ try {
   main()
 } catch (error) {
   console.error(error)
+  process.exitCode = 1
 }

@@ -209,3 +209,9 @@ rg -n "<Badge[^>]*variant=\"dynamic\"" apps
 rg -n "<Badge[^>]*className=.*(bg-|text-|border-|px-|py-|rounded-)" apps
 ```
 
+## Display-size compatibility
+
+The canonical comparison is sm/md/lg, default md. The existing xl size remains
+available for display-only composition; it is not a fourth form-control size.
+Badges are not interaction targets and therefore do not use field heights.
+Custom dynamic colours must retain readable text and a useful status label.

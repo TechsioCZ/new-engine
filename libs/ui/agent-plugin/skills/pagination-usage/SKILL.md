@@ -5,7 +5,7 @@ description: >
   link-based paginated navigation with Zag.js pagination, getPageUrl,
   LinkButton, NextLink adapters, compact mode, variants, and sizes.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -14,6 +14,9 @@ metadata:
 ---
 
 # @techsio/ui-kit Pagination Usage
+
+Canonical `sm` / `md` / `lg` sizes use the same control heights and interactive
+text scale as Button, Menu and Tabs, including compact page summaries.
 
 Use Pagination for page-based navigation. Do not use it for infinite scroll or
 stepper/wizard progress.
@@ -149,3 +152,13 @@ rg -P -n "<Pagination(?![^>]*getPageUrl=)|<Pagination[^>]*className=.*(gap-|text
 rg -P -n "<Pagination(?![^>]*linkAs=\\{?NextLink)" apps
 rg -n "createPaginationGetPageUrl|compactLabel|siblingCount|boundaryCount" apps
 ```
+
+## Unavailable destinations and small screens
+
+Unavailable previous/next destinations render a span with role=link,
+aria-disabled=true and tabindex=-1, without href. They are not buttons and cannot
+navigate or invoke the page callback. Navigable pages keep real href values.
+The sm/md/lg scale uses shared field heights, default md; the list may wrap on
+narrow surfaces. Prefer compact mode where horizontal space is very limited.
+Controlled page usage must update page in onPageChange; examples suppress browser
+navigation while updating local page state.

@@ -163,3 +163,20 @@
 @utility token-icon-decrement {
   @apply token-icon-chevron-down;
 }
+
+/* Meaningful primary icons use semantic text contrast, never the brand tint. */
+@theme static {
+  --color-icon-accent-safe: var(--color-fg-accent-primary);
+  --color-icon-fg-accent-safe: var(--color-icon-accent-safe);
+}
+
+@theme static {
+  --color-icon-secondary-safe: var(--color-fg-accent-secondary);
+  --color-icon-danger-safe: var(--color-danger-fg);
+  --color-icon-success-safe: var(--color-success-fg);
+  --color-icon-warning-safe: var(--color-warning-fg);
+  --color-icon-fg-secondary-safe: var(--color-icon-secondary-safe);
+  --color-icon-fg-danger-safe: var(--color-icon-danger-safe);
+  --color-icon-fg-success-safe: var(--color-icon-success-safe);
+  --color-icon-fg-warning-safe: var(--color-icon-warning-safe);
+}

@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -38,6 +38,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useReducer,
   useRef,
   useState,
@@ -45,6 +46,7 @@ import {
 import { Button, type ButtonProps } from "../atoms/button"
 import { Input } from "../atoms/input"
 import { Label } from "../atoms/label"
+import { StatusText, type StatusTextProps } from "../atoms/status-text"
 import {
   canConfirmDatePickerDraft,
   createDatePickerCoordinatorState,
@@ -55,6 +57,12 @@ import {
   datePickerCoordinatorReducer,
   getDatePickerDraftTimeParts,
 } from "../internal/date-picker-coordinator"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
 import { tv } from "../utils"
 
 export type DatePickerGranularity = "day" | "hour" | "minute" | "second"
@@ -191,7 +199,7 @@ const datePickerVariants = tv({
       "data-focus:data-[validation=error]:border-date-picker-control-border-error-focus",
       "data-disabled:cursor-not-allowed data-disabled:border-date-picker-control-border-disabled",
       "data-disabled:bg-date-picker-control-bg-disabled data-disabled:text-date-picker-control-fg-disabled",
-      "data-readonly:bg-date-picker-control-bg-readonly",
+      "form-control-readonly",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     segments: [
@@ -232,9 +240,9 @@ const datePickerVariants = tv({
       "disabled:cursor-not-allowed disabled:text-date-picker-trigger-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    positioner: "date-picker-popup-layer isolate",
+    positioner: "popup-layer isolate",
     content: [
-      "date-picker-popup-layer flex max-h-(--available-height) w-date-picker-content max-w-date-picker-viewport flex-col overflow-hidden",
+      "popup-layer flex max-h-(--available-height) w-date-picker-content max-w-date-picker-viewport flex-col overflow-hidden",
       "data-[selection-mode=range]:w-date-picker-content-range",
       "border-(length:--border-width-date-picker-content) border-date-picker-content-border",
       "rounded-date-picker-content bg-date-picker-content-bg text-date-picker-content-fg shadow-date-picker-content",
@@ -347,7 +355,7 @@ const datePickerVariants = tv({
     size: {
       sm: {
         inputControl:
-          "h-date-picker-control-sm rounded-date-picker-control-sm p-date-picker-segments-sm text-date-picker-sm",
+          "h-form-control-sm rounded-date-picker-control-sm p-date-picker-segments-sm text-date-picker-sm",
         trigger: "size-icon-control-sm text-icon-control-sm",
         clearTrigger: "size-icon-control-sm text-icon-control-sm",
         content: "text-date-picker-content-sm",
@@ -356,7 +364,7 @@ const datePickerVariants = tv({
       },
       md: {
         inputControl:
-          "h-date-picker-control-md rounded-date-picker-control-md p-date-picker-segments-md text-date-picker-md",
+          "h-form-control-md rounded-date-picker-control-md p-date-picker-segments-md text-date-picker-md",
         trigger: "size-icon-control-md text-icon-control-md",
         clearTrigger: "size-icon-control-md text-icon-control-md",
         content: "text-date-picker-content-md",
@@ -365,7 +373,7 @@ const datePickerVariants = tv({
       },
       lg: {
         inputControl:
-          "h-date-picker-control-lg rounded-date-picker-control-lg p-date-picker-segments-lg text-date-picker-lg",
+          "h-form-control-lg rounded-date-picker-control-lg p-date-picker-segments-lg text-date-picker-lg",
         trigger: "size-icon-control-lg text-icon-control-lg",
         clearTrigger: "size-icon-control-lg text-icon-control-lg",
         content: "text-date-picker-content-lg",
@@ -413,6 +421,8 @@ type DatePickerContextValue = {
   styles: DatePickerStyles
   submitDraft: () => void
   triggerElementRef: { current: HTMLButtonElement | null }
+  descriptions: DescribedBy
+  errorDescriptions: DescribedBy
 }
 
 const DatePickerContext = createContext<DatePickerContextValue | null>(null)
@@ -583,7 +593,9 @@ export function DatePicker({
   )
   const usesPopupDraft = isTimed || selectionMode === "range"
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen)
-  const resolvedOpen = open === undefined ? uncontrolledOpen : open
+  const interactionBlocked = disabled || readOnly
+  const resolvedOpen =
+    !interactionBlocked && (open === undefined ? uncontrolledOpen : open)
   const isTimedRangePopupOpen =
     isTimed && selectionMode === "range" && resolvedOpen
   const [coordinator, dispatch] = useReducer(
@@ -602,10 +614,44 @@ export function DatePicker({
   const acceptedValueAsString = serializeDatePickerValue(acceptedValue)
   const acceptedValuesAsString = acceptedValues.map((item) => item.toString())
   const acceptedValueKey = JSON.stringify(acceptedValueAsString)
+  useEffect(() => {
+    if (interactionBlocked) {
+      setUncontrolledOpen(false)
+      setRangeInputDraft(null)
+      dispatch({ type: "discard" })
+      if (open) {
+        onOpenChange?.({ open: false })
+      }
+    }
+  }, [interactionBlocked, open, onOpenChange])
+  const rootElementRef = useRef<HTMLDivElement>(null)
   const previousAcceptedValue = useRef(acceptedValueKey)
   const previousOpen = useRef(resolvedOpen)
   const triggerElementRef = useRef<HTMLButtonElement>(null)
   const styles = datePickerVariants({ size, timed: isTimed })
+  const descriptions = useDescribedBy()
+  const errorDescriptions = useDescribedBy()
+
+  useLayoutEffect(() => {
+    // The trigger is omitted in read-only mode. Restore popup focus to a
+    // surviving value segment, but never steal focus from an external control.
+    if (readOnly && !disabled && previousOpen.current && !resolvedOpen) {
+      const root = rootElementRef.current
+      const document = root?.ownerDocument
+      const focusedPopup = document?.activeElement?.closest(
+        '[data-scope="date-picker"][data-part="content"]'
+      )
+      if (
+        document &&
+        (document.activeElement === document.body ||
+          focusedPopup?.id === `${root?.id}:content`)
+      ) {
+        root
+          ?.querySelector<HTMLElement>('[role="spinbutton"]')
+          ?.focus({ preventScroll: true })
+      }
+    }
+  }, [readOnly, disabled, resolvedOpen])
 
   useEffect(() => {
     if (previousOpen.current === resolvedOpen) {
@@ -651,6 +697,9 @@ export function DatePicker({
   }, [acceptedCandidate, acceptedValueKey, resolvedOpen, usesPopupDraft])
 
   const commitValue = (nextValue: DatePickerPublicValue | null) => {
+    if (interactionBlocked) {
+      return
+    }
     if (value === undefined) {
       setUncontrolledValue(nextValue)
     }
@@ -668,6 +717,9 @@ export function DatePicker({
   }
 
   const requestOpen = (nextOpen: boolean) => {
+    if (nextOpen && interactionBlocked) {
+      return
+    }
     if (nextOpen === resolvedOpen) {
       return
     }
@@ -814,7 +866,9 @@ export function DatePicker({
   })
   const dateInputApi = connectDateInput(dateInputService, normalizeProps)
 
-  const canConfirm = canConfirmDatePickerDraft(coordinator, isTimeUnavailable)
+  const canConfirm =
+    !interactionBlocked &&
+    canConfirmDatePickerDraft(coordinator, isTimeUnavailable)
   const submitDraft = () => {
     if (!(canConfirm && coordinator.draft)) {
       return
@@ -837,7 +891,7 @@ export function DatePicker({
     requestOpen(false)
   }
   const clearValue = () => {
-    if (disabled || readOnly) {
+    if (interactionBlocked) {
       return
     }
 
@@ -871,7 +925,7 @@ export function DatePicker({
         required: Boolean(required),
         selectionMode,
         setDraftTimePart: (part, nextValue, index = 0) => {
-          if (granularity !== "day") {
+          if (!interactionBlocked && granularity !== "day") {
             dispatch({
               type: "edit-time",
               granularity,
@@ -882,12 +936,17 @@ export function DatePicker({
             })
           }
         },
-        setDraftValue: (nextValue) =>
-          dispatch({ type: "edit", value: nextValue }),
+        setDraftValue: (nextValue) => {
+          if (!interactionBlocked) {
+            dispatch({ type: "edit", value: nextValue })
+          }
+        },
         size,
         styles,
         submitDraft,
         triggerElementRef,
+        descriptions,
+        errorDescriptions,
       }}
     >
       <div
@@ -895,37 +954,47 @@ export function DatePicker({
         className={styles.root({ className })}
         data-granularity={granularity}
         data-selection-mode={selectionMode}
-        ref={ref}
+        ref={(node) => {
+          rootElementRef.current = node
+          setRefValue(ref, node)
+        }}
       >
         {children}
-        {selectionMode === "range" ? (
-          <>
-            <input
-              disabled={disabled}
-              form={form}
-              name={startName}
-              type="hidden"
-              value={acceptedValuesAsString[0] ?? ""}
-            />
-            <input
-              disabled={disabled}
-              form={form}
-              name={endName}
-              type="hidden"
-              value={acceptedValuesAsString[1] ?? ""}
-            />
-          </>
-        ) : (
-          <input
-            disabled={disabled}
-            form={form}
-            name={name}
-            type="hidden"
-            value={acceptedValuesAsString[0] ?? ""}
-          />
-        )}
+        <DatePickerFormValue
+          disabled={disabled}
+          form={form}
+          names={selectionMode === "range" ? [startName, endName] : [name]}
+          values={acceptedValuesAsString}
+        />
       </div>
     </DatePickerContext.Provider>
+  )
+}
+
+function DatePickerFormValue({
+  disabled,
+  form,
+  names,
+  values,
+}: {
+  disabled?: boolean
+  form?: string
+  names: (string | undefined)[]
+  values: string[]
+}) {
+  return (
+    <>
+      {names.map((name, index) => (
+        <input
+          disabled={disabled}
+          form={form}
+          key={name ?? index}
+          name={name}
+          type="hidden"
+          value={values[index] ?? ""}
+        />
+      ))}
+    </>
   )
 }
 
@@ -1008,8 +1077,14 @@ DatePicker.Segments = function DatePickerSegments({
   startLabel = "Start",
   ...props
 }: DatePickerSegmentsProps) {
-  const { dateInputApi, required, selectionMode, styles } =
-    useDatePickerContext()
+  const {
+    dateInputApi,
+    required,
+    selectionMode,
+    styles,
+    descriptions,
+    errorDescriptions,
+  } = useDatePickerContext()
   const startDescriptorId = useId()
   const endDescriptorId = useId()
 
@@ -1018,6 +1093,27 @@ DatePicker.Segments = function DatePickerSegments({
       // biome-ignore lint/a11y/useAriaPropsSupportedByRole: Zag supplies role=spinbutton for every nonliteral segment; literal segments receive no aria-required.
       <span
         {...dateInputApi.getSegmentProps({ index, segment })}
+        aria-describedby={
+          segment.type === "literal"
+            ? undefined
+            : joinDescribedBy(
+                props["aria-describedby"],
+                descriptions.describedById
+              )
+        }
+        aria-errormessage={
+          segment.type !== "literal" &&
+          (dateInputApi.invalid || errorDescriptions.describedById)
+            ? errorDescriptions.describedById
+            : undefined
+        }
+        aria-invalid={
+          segment.type === "literal"
+            ? undefined
+            : dateInputApi.invalid ||
+              Boolean(errorDescriptions.describedById) ||
+              undefined
+        }
         aria-required={
           required && segment.type !== "literal" ? true : undefined
         }
@@ -1131,6 +1227,9 @@ DatePicker.Trigger = function DatePickerTrigger({
   const { dateInputApi, pickerApi, styles, triggerElementRef } =
     useDatePickerContext()
   const triggerProps = mergeProps(props, pickerApi.getTriggerProps())
+  if (pickerApi.readOnly) {
+    return null
+  }
 
   return (
     <Button
@@ -1180,6 +1279,10 @@ DatePicker.ClearTrigger = function DatePickerClearTrigger({
     if (!(event.defaultPrevented || isClearDisabled)) {
       clearValue()
     }
+  }
+
+  if (pickerApi.readOnly) {
+    return null
   }
 
   return (
@@ -1999,7 +2102,7 @@ DatePicker.CancelTrigger = function DatePickerCancelTrigger({
   size: sizeProp,
   theme = "borderless",
   type = "button",
-  variant = "primary",
+  variant = "secondary",
   ...props
 }: DatePickerCancelTriggerProps) {
   const { requestOpen, size, styles } = useDatePickerContext()
@@ -2070,6 +2173,38 @@ DatePicker.ConfirmTrigger = function DatePickerConfirmTrigger({
     >
       {children}
     </Button>
+  )
+}
+
+export type DatePickerStatusTextProps = StatusTextProps
+
+DatePicker.StatusText = function DatePickerStatusText({
+  id: providedId,
+  status,
+  size: sizeProp,
+  ...props
+}: DatePickerStatusTextProps) {
+  const generatedId = useId()
+  const id = providedId ?? generatedId
+  const { descriptions, errorDescriptions, dateInputApi, size } =
+    useDatePickerContext()
+  const resolvedStatus = status ?? (dateInputApi.invalid ? "error" : "default")
+  useRegisterDescription(id, descriptions.registerDescription)
+  useEffect(
+    () =>
+      resolvedStatus === "error"
+        ? errorDescriptions.registerDescription(id)
+        : undefined,
+    [id, resolvedStatus, errorDescriptions.registerDescription]
+  )
+  return (
+    <StatusText
+      {...props}
+      id={id}
+      showIcon={resolvedStatus === "default" ? props.showIcon : true}
+      size={sizeProp ?? size}
+      status={resolvedStatus}
+    />
   )
 }
 

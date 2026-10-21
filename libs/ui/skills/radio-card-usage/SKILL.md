@@ -5,7 +5,7 @@ description: >
   prominent single-choice cards with Zag.js radio behavior, label, item,
   hidden input, control, text, description, addon, indicator, and status text.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -90,6 +90,19 @@ orientation, value/defaultValue, disabled, required, onValueChange
 
 ## Core Patterns
 
+### Associated feedback and read-only groups
+
+Pass `readOnly` to preserve focus, full-contrast values and form submission while
+blocking pointer, Space and arrow-key selection. Disabled takes priority.
+Use `ItemDescription` for option detail and `StatusText` for field feedback:
+mounted parts receive unique IDs, register their descriptions and merge them
+with caller `aria-describedby` on every input. Error messages additionally set
+`aria-invalid` and `aria-errormessage`. Rich card text stays exposed to assistive
+technology; `ItemControl` is not an aria-hidden decoration. Keep the visible
+`ItemIndicator` so checked state never relies on a pale surface alone.
+Validation always keeps its status icon. Canonical sizes are `sm`, `md`, `lg`.
+
+
 ### Use for rich options
 
 Plans, delivery methods, payment methods, and selectable cards belong here.
@@ -151,6 +164,10 @@ Correct:
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_radio-card.css
+
+## State consistency
+
+Checked outline hover states promote descriptions and addon text to the full-contrast foreground paired with the hover surface. Solid addons use the same on-primary text pairing as the option title rather than an independent indicator foreground.
 
 ## Validation Commands
 

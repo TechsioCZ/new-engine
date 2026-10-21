@@ -100,3 +100,14 @@ app; fetching, debounce, routing, analytics and DTO adaptation stay outside UI.
 
 The template reuses Combobox anatomy and tokens. Code owns API and token names;
 Figma owns static values. Run component-to-figma only after API/stories stabilize.
+
+## Shared field contracts
+
+The inherited readOnly prop keeps the saved query focusable and copyable but
+blocks editing, clear, result navigation and popup opening (including supplied
+open/defaultOpen). Disabled takes precedence. Use helpText and validateStatus
+for linked inline StatusText validation with state icons. Canonical sizes are
+sm/md/lg, default md; popup layers and reduced-motion behavior follow Combobox.
+The Storybook demos intercept navigation; consumers still supply their router
+through navigate or use native anchor navigation. Figma-sync handoff should
+include the immutable-query and validation states.

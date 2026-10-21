@@ -1,11 +1,14 @@
+import { expect, userEvent, within } from "storybook/test"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import { NumericInput } from "../../src/atoms/numeric-input"
 import { Rating } from "../../src/atoms/rating"
 import { StatusText } from "../../src/atoms/status-text"
+import { Dialog } from "../../src/molecules/dialog"
 import { Accordion } from "../../src/molecules/accordion"
 import { Carousel } from "../../src/molecules/carousel"
 import { ColorSelect } from "../../src/molecules/color-select"
@@ -19,12 +22,13 @@ import { ProductCardTemplate } from "../../src/templates/product-card"
 import { colorFacets, productGallery, storefrontProducts } from "./data"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/Storefront/Product detail",
   parameters: {
@@ -58,12 +62,40 @@ const sizeOptions = ["38", "39", "40", "41", "42", "43", "44"]
 
 function ProductDetailPage() {
   const toaster = useToast()
+  const [slidesPerPage, setSlidesPerPage] = useState(1)
+  useEffect(() => {
+    const tablet = window.matchMedia("(min-width: 640px)")
+    const desktop = window.matchMedia("(min-width: 1024px)")
+    const update = () =>
+      setSlidesPerPage(desktop.matches ? 4 : tablet.matches ? 2 : 1)
+    update()
+    tablet.addEventListener("change", update)
+    desktop.addEventListener("change", update)
+    return () => {
+      tablet.removeEventListener("change", update)
+      desktop.removeEventListener("change", update)
+    }
+  }, [])
   const [size, setSize] = useState("42")
   const [quantity, setQuantity] = useState(1)
+  const [color, setColor] = useState(colorFacets[0]?.color)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [wishlisted, setWishlisted] = useState(false)
+  const [cartCount, setCartCount] = useState(0)
 
   return (
     <div className="flex min-h-screen flex-col bg-base text-fg-primary">
       <Toaster />
+      <Dialog
+        customTrigger
+        title="Size guide — Runner low"
+        description="Measure your foot from heel to toe. EU 40: 25.5 cm · EU 41: 26 cm · EU 42: 26.5 cm · EU 43: 27.5 cm · EU 44: 28 cm. Choose the next size if between measurements."
+        open={guideOpen}
+        onOpenChange={({ open }) => setGuideOpen(open)}
+      />
+      <StatusText className="px-250" role="status">
+        Demo cart: {cartCount} items
+      </StatusText>
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-350 p-250">
         <BreadcrumbTemplate
@@ -108,7 +140,10 @@ function ProductDetailPage() {
             <div className="flex flex-col gap-100">
               <span className="font-medium text-sm">Colour</span>
               <ColorSelect
-                colors={colorFacets.slice(0, 4)}
+                colors={colorFacets
+                  .slice(0, 4)
+                  .map((item) => ({ ...item, selected: item.color === color }))}
+                onColorClick={setColor}
                 layout="grid"
                 selectionMode="single"
                 size="md"
@@ -118,7 +153,12 @@ function ProductDetailPage() {
             <div className="flex flex-col gap-100">
               <div className="flex items-center justify-between gap-150">
                 <span className="font-medium text-sm">Size (EU)</span>
-                <Button size="sm" theme="borderless" variant="secondary">
+                <Button
+                  onClick={() => setGuideOpen(true)}
+                  size="sm"
+                  theme="borderless"
+                  variant="secondary"
+                >
                   Size guide
                 </Button>
               </div>
@@ -145,14 +185,13 @@ function ProductDetailPage() {
             <div className="flex flex-wrap items-end gap-150">
               <div className="w-3xs">
                 <NumericInput
-                  aria-label="Quantity"
                   max={10}
                   min={1}
                   onChange={setQuantity}
                   value={quantity}
                 >
                   <NumericInput.Control>
-                    <NumericInput.Input />
+                    <NumericInput.Input aria-label="Quantity" />
                     <NumericInput.TriggerContainer>
                       <NumericInput.IncrementTrigger />
                       <NumericInput.DecrementTrigger />
@@ -163,26 +202,36 @@ function ProductDetailPage() {
               <Button
                 className="flex-1 whitespace-nowrap"
                 icon="icon-[mdi--cart-outline]"
-                onClick={() =>
+                onClick={() => {
+                  setCartCount((count) => count + quantity)
                   toaster.create({
                     type: "success",
                     title: "Added to cart",
-                    description: `Runner low · EU ${size} · ${quantity} pc`,
+                    description: `Runner low · EU ${size} · ${quantity} pc · saved to this demo cart`,
                   })
-                }
+                }}
                 variant="primary"
               >
                 Add to cart
               </Button>
               <Button
-                aria-label="Add to wishlist"
+                aria-label={
+                  wishlisted ? "Remove from wishlist" : "Add to wishlist"
+                }
+                aria-pressed={wishlisted}
+                onClick={() => setWishlisted((value) => !value)}
                 icon="icon-[mdi--heart-outline]"
                 theme="outlined"
                 variant="secondary"
               />
             </div>
 
-            <RadioCard defaultValue="standard" name="delivery" size="sm" variant="outline">
+            <RadioCard
+              defaultValue="standard"
+              name="delivery"
+              size="sm"
+              variant="outline"
+            >
               <RadioCard.Label>Delivery</RadioCard.Label>
               <RadioCard.Item value="standard">
                 <RadioCard.ItemHiddenInput />
@@ -236,7 +285,10 @@ function ProductDetailPage() {
             <Tabs.Indicator />
           </Tabs.List>
 
-          <Tabs.Content className="flex flex-col gap-150 p-250" value="description">
+          <Tabs.Content
+            className="flex flex-col gap-150 p-250"
+            value="description"
+          >
             <p className="max-w-prose text-fg-secondary text-sm">
               A low-profile everyday trainer on a compression-moulded midsole.
               The upper is a single piece of recycled engineered mesh, so there
@@ -274,14 +326,13 @@ function ProductDetailPage() {
                 <Rating count={5} defaultValue={4.8} readOnly size="sm" />
                 <span className="text-fg-secondary text-xs">542 reviews</span>
               </div>
-              <Button size="sm" theme="outlined" variant="secondary">
-                Write a review
-              </Button>
             </div>
             <Accordion collapsible defaultValue={["r1"]} multiple>
               <Accordion.Item value="r1">
                 <Accordion.Header>
-                  <Accordion.Title>“Best daily trainer I have owned”</Accordion.Title>
+                  <Accordion.Title>
+                    “Best daily trainer I have owned”
+                  </Accordion.Title>
                   <Accordion.Indicator />
                 </Accordion.Header>
                 <Accordion.Content>
@@ -306,7 +357,10 @@ function ProductDetailPage() {
             </Accordion>
           </Tabs.Content>
 
-          <Tabs.Content className="flex flex-col gap-150 p-250" value="shipping">
+          <Tabs.Content
+            className="flex flex-col gap-150 p-250"
+            value="shipping"
+          >
             <p className="max-w-prose text-fg-secondary text-sm">
               Free standard delivery over 50 €. Express orders placed before
               14:00 ship the same day. Returns are free for 30 days.
@@ -317,10 +371,11 @@ function ProductDetailPage() {
         <section className="flex flex-col gap-200">
           <h2 className="font-semibold text-md">You may also like</h2>
           <Carousel
+            aria-label="Related products"
             aspectRatio="none"
             size="full"
             slideCount={storefrontProducts.length}
-            slidesPerPage={4}
+            slidesPerPage={slidesPerPage}
           >
             <Carousel.Slides
               slides={storefrontProducts.map((product) => ({
@@ -336,7 +391,10 @@ function ProductDetailPage() {
                 ),
               }))}
             />
-            <Carousel.Control controlPosition="bottom">
+            <Carousel.Control
+              className="mx-auto mt-200 w-max max-w-full"
+              controlPosition="unset"
+            >
               <Carousel.Previous />
               <Carousel.Indicators />
               <Carousel.Next />
@@ -349,6 +407,41 @@ function ProductDetailPage() {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const quantity = canvas.getByRole("spinbutton", { name: "Quantity" })
+    await expect(quantity).toBeVisible()
+    const colors = canvas.getAllByRole("radio")
+    await userEvent.click(colors[1]!)
+    await expect(colors[1]!).toHaveAttribute("aria-checked", "true")
+    await userEvent.click(canvas.getByRole("button", { name: "Size guide" }))
+    const dialog = within(canvasElement.ownerDocument.body).getByRole(
+      "dialog",
+      { name: "Size guide — Runner low" }
+    )
+    await expect(dialog).toBeVisible()
+    await userEvent.keyboard("{Escape}")
+    const related = canvas.getByRole("region", { name: "Related products" })
+    const slides = related.querySelector<HTMLElement>(
+      '[data-part="item-group"]'
+    )!
+    const controls = related.querySelector<HTMLElement>(
+      '[data-part="control"]'
+    )!
+    await expect(controls.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      slides.getBoundingClientRect().bottom
+    )
+  },
+
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare product details, select a variant and quantity, and add it to a local demo cart without leaving Storybook.",
+      },
+    },
+  },
+
   name: "Buy box + detail",
   render: () => <ProductDetailPage />,
 }

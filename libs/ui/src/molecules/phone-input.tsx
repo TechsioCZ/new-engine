@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.0.4
+ * @componentVersion v1.1.0
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,7 +25,6 @@ import {
   createContext,
   type ReactNode,
   type Ref,
-  useCallback,
   useContext,
   useEffect,
   useId,
@@ -131,7 +130,7 @@ const phoneInputVariants = tv({
       "hover:bg-phone-input-trigger-bg-hover",
       "border-(length:--border-phone-input-trigger)",
       "focus-visible:outline-hidden",
-      "w-phone-input-trigger",
+      "w-phone-input-trigger gap-phone-input-country-trigger px-phone-input-country-trigger",
       "focus-visible:bg-phone-input-trigger-bg-hover",
       // Sits flush against the input: round only the leading (left) corners to
       // match the control; keep the trailing (right) edge square so the hover
@@ -148,7 +147,7 @@ const phoneInputVariants = tv({
       "font-medium text-phone-input-country-calling-code-fg",
     ],
     input: [
-      "min-w-0 flex-1 border-0",
+      "min-w-0 flex-1 border-0 read-only:enabled:cursor-text!",
       "bg-phone-input-input-bg-base",
       "text-phone-input-fg",
       "placeholder:text-phone-input-fg-placeholder",
@@ -200,6 +199,7 @@ type PhoneInputContextValue = {
   required: boolean
   validateStatus: PhoneInputValidateStatus
   statusTextId: string
+  errorDescriptions: DescribedBy
 } & DescribedBy
 
 const PhoneInputContext = createContext<PhoneInputContextValue | null>(null)
@@ -331,6 +331,9 @@ export function PhoneInput({
   }, [countries, country, internalCountry, isValueControlled, value])
 
   const setInputValue = (nextValue: string) => {
+    if (disabled || readOnly) {
+      return
+    }
     const nextDetails = getPhoneInputValueDetailsInternal(
       nextValue,
       selectedCountry,
@@ -360,6 +363,9 @@ export function PhoneInput({
   }
 
   const setCountryValue = (nextCountry: CountryCode) => {
+    if (disabled || readOnly) {
+      return
+    }
     const nextCountryItem = getCountryItem(countries, nextCountry)
     const nextDetails = getPhoneInputValueDetailsInternal(
       inputValue,
@@ -386,6 +392,7 @@ export function PhoneInput({
 
   const styles = phoneInputVariants({ size })
   const describedBy = useDescribedBy()
+  const errorDescriptions = useDescribedBy()
 
   return (
     <PhoneInputContext.Provider
@@ -409,6 +416,7 @@ export function PhoneInput({
         validateStatus,
         statusTextId: `${id}-status`,
         ...describedBy,
+        errorDescriptions,
       }}
     >
       {name && (
@@ -500,6 +508,7 @@ PhoneInput.CountrySelect = function PhoneInputCountrySelect({
     form,
     readOnly,
     selectedCountry,
+    selectedCountryItem,
     setCountryValue,
     size,
   } = usePhoneInputContext()
@@ -523,6 +532,10 @@ PhoneInput.CountrySelect = function PhoneInputCountrySelect({
       size={size}
       value={[selectedCountry]}
     >
+      <Select.Label className="sr-only">
+        {getCountryDisplayValue(selectedCountryItem)} (+
+        {getPhoneCountryCallingCode(selectedCountryItem)})
+      </Select.Label>
       {children}
     </Select>
   )
@@ -740,17 +753,15 @@ PhoneInput.Input = function PhoneInputInput({
     setInputValue,
     size,
     describedById,
+    errorDescriptions,
     validateStatus,
   } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
   const inputRef = useRef<HTMLInputElement>(null)
-  const setInputRef = useCallback(
-    (node: HTMLInputElement | null) => {
-      inputRef.current = node
-      assignRef(ref, node)
-    },
-    [ref]
-  )
+  const setInputRef = (node: HTMLInputElement | null) => {
+    inputRef.current = node
+    assignRef(ref, node)
+  }
 
   useEffect(() => {
     const input = inputRef.current
@@ -783,7 +794,16 @@ PhoneInput.Input = function PhoneInputInput({
         props["aria-describedby"],
         describedById
       )}
+      aria-errormessage={
+        validateStatus === "error" || errorDescriptions.describedById
+          ? joinDescribedBy(
+              props["aria-errormessage"],
+              errorDescriptions.describedById
+            )
+          : undefined
+      }
       aria-invalid={
+        Boolean(errorDescriptions.describedById) ||
         validateStatus === "error" ||
         (nativeValidation && inputValue.trim() !== "" && !details.isValid) ||
         undefined
@@ -795,8 +815,10 @@ PhoneInput.Input = function PhoneInputInput({
       inputMode="tel"
       name={undefined}
       onChange={(event) => {
-        setInputValue(event.target.value)
-        onChange?.(event)
+        if (!(disabled || readOnly)) {
+          setInputValue(event.target.value)
+          onChange?.(event)
+        }
       }}
       placeholder={placeholder}
       readOnly={readOnly}
@@ -925,16 +947,25 @@ PhoneInput.StatusText = function PhoneInputStatusText({
   children,
   ...props
 }: PhoneInputStatusTextProps) {
-  const { size, validateStatus, statusTextId, registerDescription } =
+  const messageId = useId()
+  const { size, validateStatus, registerDescription, errorDescriptions } =
     usePhoneInputContext()
-  const id = props.id ?? statusTextId
+  const id = props.id ?? messageId
+  const resolvedStatus = status ?? validateStatus
   useRegisterDescription(id, registerDescription)
+  useEffect(
+    () =>
+      resolvedStatus === "error"
+        ? errorDescriptions.registerDescription(id)
+        : undefined,
+    [id, resolvedStatus, errorDescriptions.registerDescription]
+  )
 
   return (
     <StatusTextComponent
-      showIcon={showIcon}
+      showIcon={resolvedStatus === "default" ? showIcon : true}
       size={size}
-      status={status ?? validateStatus}
+      status={resolvedStatus}
       {...props}
       id={id}
     >

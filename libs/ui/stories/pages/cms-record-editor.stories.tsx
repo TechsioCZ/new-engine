@@ -1,3 +1,5 @@
+import { expect, userEvent, within } from "storybook/test"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Badge } from "../../src/atoms/badge"
@@ -12,15 +14,22 @@ import { Toaster, useToast } from "../../src/molecules/toast"
 import { TreeView } from "../../src/molecules/tree-view"
 import { SelectTemplate } from "../../src/templates/select"
 import { adminNav, categoryTree, formatDate } from "./data"
-import { AdminShell, DetailList, PageHeader, SectionCard, StatusBadge } from "./shell"
+import {
+  AdminShell,
+  DetailList,
+  PageHeader,
+  SectionCard,
+  StatusBadge,
+} from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/CMS/Record editor",
   parameters: {
@@ -63,7 +72,11 @@ const authorItems = [
   { label: "Alicia Moreau", value: "alicia" },
 ]
 
-function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string }) {
+function RecordEditorPage({
+  initialStatus = "draft",
+}: {
+  initialStatus?: string
+}) {
   const toaster = useToast()
   const [nav, setNav] = useState("content-pages")
   const [title, setTitle] = useState("Autumn collection 2026")
@@ -74,16 +87,54 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
   const [status, setStatus] = useState(initialStatus)
   const [indexable, setIndexable] = useState(true)
   const [dirty, setDirty] = useState(false)
+  const [titleInvalid, setTitleInvalid] = useState(false)
+  const [revisions, setRevisions] = useState<number[]>([])
   const [leaving, setLeaving] = useState(false)
+  const [metaTitle, setMetaTitle] = useState("")
+  const [metaDescription, setMetaDescription] = useState("")
+  const [publishAt, setPublishAt] = useState("")
+  const [author, setAuthor] = useState(["nora"])
+  const [placement, setPlacement] = useState(["apparel-outerwear"])
+  const [savedDraft, setSavedDraft] = useState({
+    title,
+    slug,
+    excerpt,
+    status,
+    indexable,
+    metaTitle,
+    metaDescription,
+    publishAt,
+    author,
+    placement,
+  })
 
   const markDirty = () => setDirty(true)
 
   const save = () => {
+    if (!title.trim()) {
+      setTitleInvalid(true)
+      document.getElementById("page-title")?.focus()
+      return
+    }
+    const revision = 12 + revisions.length
+    setRevisions((current) => [revision, ...current])
+    setSavedDraft({
+      title,
+      slug,
+      excerpt,
+      status,
+      indexable,
+      metaTitle,
+      metaDescription,
+      publishAt,
+      author,
+      placement,
+    })
     setDirty(false)
     toaster.create({
       type: "success",
       title: "Changes saved",
-      description: "Revision 12 created.",
+      description: `Revision ${revision} created in this local demo.`,
     })
   }
 
@@ -114,14 +165,7 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
             >
               Back to list
             </Button>
-            <Button
-              icon="icon-[mdi--eye-outline]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              Preview
-            </Button>
+
             <Button
               disabled={!dirty}
               icon="icon-[mdi--content-save-outline]"
@@ -164,12 +208,22 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
                 <Tabs.Indicator />
               </Tabs.List>
 
-              <Tabs.Content className="flex flex-col gap-250 p-250" value="content">
+              <Tabs.Content
+                className="flex flex-col gap-250 p-250"
+                value="content"
+              >
                 <FormInput
                   id="page-title"
                   label="Title"
+                  validateStatus={titleInvalid ? "error" : "default"}
+                  helpText={
+                    titleInvalid
+                      ? "Enter a title before saving this page."
+                      : undefined
+                  }
                   onChange={(event) => {
                     setTitle(event.target.value)
+                    setTitleInvalid(false)
                     markDirty()
                   }}
                   required
@@ -203,13 +257,21 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
                   helpText="Falls back to the page title when empty."
                   id="seo-title"
                   label="Meta title"
-                  onChange={markDirty}
+                  value={metaTitle}
+                  onChange={(event) => {
+                    setMetaTitle(event.target.value)
+                    markDirty()
+                  }}
                   placeholder={title}
                 />
                 <FormTextarea
                   id="seo-description"
                   label="Meta description"
-                  onChange={markDirty}
+                  value={metaDescription}
+                  onChange={(event) => {
+                    setMetaDescription(event.target.value)
+                    markDirty()
+                  }}
                   rows={3}
                 />
                 <Switch
@@ -224,10 +286,13 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
                 </Switch>
               </Tabs.Content>
 
-              <Tabs.Content className="flex flex-col gap-200 p-250" value="media">
+              <Tabs.Content
+                className="flex flex-col gap-200 p-250"
+                value="media"
+              >
                 <p className="text-fg-secondary text-sm">
-                  Hero and gallery assets for this page. Drop a file or pick from
-                  the media library.
+                  Hero and gallery assets are managed in the media library. This
+                  local record editor does not upload files.
                 </p>
                 <div className="flex flex-col items-center gap-150 rounded-md border border-border-primary border-dashed p-350 text-center">
                   <Icon
@@ -235,19 +300,34 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
                     icon="icon-[mdi--cloud-upload-outline]"
                     size="xl"
                   />
-                  <p className="text-sm">Drop images here</p>
-                  <Button size="sm" theme="outlined" variant="secondary">
-                    Browse library
-                  </Button>
+                  <p className="text-sm">
+                    No media upload is connected in this example.
+                  </p>
                 </div>
               </Tabs.Content>
 
-              <Tabs.Content className="flex flex-col gap-150 p-250" value="revisions">
+              <Tabs.Content
+                className="flex flex-col gap-150 p-250"
+                value="revisions"
+              >
                 <DetailList
                   items={[
-                    { term: "Revision 11", value: "Nora Kessler · 2026-09-04 14:02" },
-                    { term: "Revision 10", value: "Tom Hayes · 2026-09-01 09:18" },
-                    { term: "Revision 9", value: "Nora Kessler · 2026-08-26 17:44" },
+                    ...revisions.map((revision) => ({
+                      term: `Revision ${revision}`,
+                      value: "Nora Kessler · saved in this local session",
+                    })),
+                    {
+                      term: "Revision 11",
+                      value: "Nora Kessler · 2026-09-04 14:02",
+                    },
+                    {
+                      term: "Revision 10",
+                      value: "Tom Hayes · 2026-09-01 09:18",
+                    },
+                    {
+                      term: "Revision 9",
+                      value: "Nora Kessler · 2026-08-26 17:44",
+                    },
                     {
                       term: "Created",
                       value: `Nora Kessler · ${formatDate("2026-08-11 10:03")}`,
@@ -266,14 +346,6 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
               <p className="text-fg-secondary text-sm">
                 Deleting removes the page, its revisions and its redirects.
               </p>
-              <Button
-                icon="icon-[mdi--delete-outline]"
-                size="sm"
-                theme="outlined"
-                variant="danger"
-              >
-                Delete page
-              </Button>
             </div>
           </SectionCard>
         </div>
@@ -296,15 +368,22 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
             <FormInput
               id="publish-at"
               label="Publish at"
-              onChange={markDirty}
+              value={publishAt}
+              onChange={(event) => {
+                setPublishAt(event.target.value)
+                markDirty()
+              }}
               size="sm"
               type="datetime-local"
             />
             <SelectTemplate
-              defaultValue={["nora"]}
               items={authorItems}
               label="Author"
-              onValueChange={markDirty}
+              value={author}
+              onValueChange={({ value }) => {
+                setAuthor(value)
+                markDirty()
+              }}
               size="sm"
             />
           </SectionCard>
@@ -316,15 +395,22 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
             <TreeView
               data={categoryTree}
               defaultExpandedValue={["root-apparel"]}
-              defaultSelectedValue={["apparel-outerwear"]}
-              onSelectionChange={markDirty}
+              selectedValue={placement}
+              onSelectionChange={({ selectedValue }) => {
+                setPlacement(selectedValue)
+                markDirty()
+              }}
               selectionBehavior="all"
               selectionMode="single"
               size="sm"
             >
               <TreeView.Tree>
                 {categoryTree.map((node, index) => (
-                  <TreeView.Node indexPath={[index]} key={node.id} node={node} />
+                  <TreeView.Node
+                    indexPath={[index]}
+                    key={node.id}
+                    node={node}
+                  />
                 ))}
               </TreeView.Tree>
             </TreeView>
@@ -335,7 +421,10 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
               items={[
                 { term: "Slug", value: slug },
                 { term: "Indexable", value: indexable ? "Yes" : "No" },
-                { term: "Excerpt length", value: `${excerpt.length} characters` },
+                {
+                  term: "Excerpt length",
+                  value: `${excerpt.length} characters`,
+                },
                 { term: "Locale", value: "en-GB" },
               ]}
             />
@@ -356,6 +445,17 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
             <Button
               onClick={() => {
                 setLeaving(false)
+                setTitle(savedDraft.title)
+                setTitleInvalid(false)
+                setSlug(savedDraft.slug)
+                setExcerpt(savedDraft.excerpt)
+                setStatus(savedDraft.status)
+                setIndexable(savedDraft.indexable)
+                setMetaTitle(savedDraft.metaTitle)
+                setMetaDescription(savedDraft.metaDescription)
+                setPublishAt(savedDraft.publishAt)
+                setAuthor(savedDraft.author)
+                setPlacement(savedDraft.placement)
                 setDirty(false)
                 toaster.create({
                   type: "info",
@@ -382,6 +482,40 @@ function RecordEditorPage({ initialStatus = "draft" }: { initialStatus?: string 
 }
 
 export const Draft: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const title = canvas.getByRole("textbox", { name: /^Title/ })
+    const original = (title as HTMLInputElement).value
+    await userEvent.clear(title)
+    await userEvent.type(title, "Unsaved draft title")
+    await userEvent.click(canvas.getByRole("button", { name: /Back/ }))
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(body.getByRole("button", { name: "Discard changes" }))
+    await expect(title).toHaveValue(original)
+    await expect(canvas.getByRole("button", { name: "Save" })).toBeDisabled()
+    await userEvent.clear(title)
+    await userEvent.click(canvas.getByRole("button", { name: "Save" }))
+    await expect(title).toHaveAttribute("aria-invalid", "true")
+    await expect(title).toHaveAccessibleDescription(
+      "Enter a title before saving this page."
+    )
+    await expect(title).toHaveFocus()
+    await userEvent.type(title, original)
+    await userEvent.click(canvas.getByRole("button", { name: "Save" }))
+    await userEvent.click(canvas.getByRole("tab", { name: "Revisions" }))
+    await expect(canvas.getByText("Revision 12", { exact: true })).toBeVisible()
+    await userEvent.click(canvas.getByRole("tab", { name: /^Content$/ }))
+  },
+
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Edit a content draft, save a local revision, or discard changes back to the last saved values.",
+      },
+    },
+  },
+
   render: () => <RecordEditorPage />,
 }
 

@@ -5,7 +5,7 @@ description: >
   Zag keyboard registrations with @techsio/ui-kit Hotkeys. Covers compound
   keycaps, current callbacks, store ownership, scopes and optional registry readback.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -66,7 +66,7 @@ import { Hotkeys } from "@techsio/ui-kit/atoms/hotkeys"
 The automatic form renders one native Zag-formatted keycap; it does not split
 formatted labels into another shortcut grammar. Explicit children take
 precedence. Root, Key and Separator forward their native attributes and refs.
-Separator defaults to a decorative plus sign. There are no size/theme variants.
+Separator defaults to a decorative plus sign. The root supports sm/md/lg display sizes; there are no theme variants.
 
 `formatOptions` accepts native Zag formatter options such as
 `{ platform: "mac" }`, `style`, `separator` and `sequenceSeparator`.
@@ -212,3 +212,9 @@ twice and its registrations/subscriptions survive:
 pnpm.cmd -C libs/ui exec cross-env NODE_ENV=development storybook build
 pnpm.cmd -C libs/ui test:components hotkeys.spec.ts --project=desktop --grep "development StrictMode"
 ```
+
+## Display sizing
+
+`size="sm" | "md" | "lg"` scales keycap typography; default md. These are
+non-interactive display sizes, not button hit areas. Compound Key parts inherit
+the root typography. Formatting or changing size does not register a shortcut.

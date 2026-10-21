@@ -1,12 +1,16 @@
+import { DemoMenu } from "./demo-boundary"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { fn } from "storybook/test"
 import { useMemo, useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
-import { Icon } from "../../src/atoms/icon"
+import { Input } from "../../src/atoms/input"
+import { StatusText } from "../../src/atoms/status-text"
+
 import { Accordion } from "../../src/molecules/accordion"
 import { Dialog } from "../../src/molecules/dialog"
-import { Menu, type MenuItem } from "../../src/molecules/menu"
+import { type MenuItem } from "../../src/molecules/menu"
 import { Tabs } from "../../src/molecules/tabs"
 import type { ColumnDef } from "../../src/organisms/data-table"
 import { DataTable } from "../../src/organisms/data-table"
@@ -43,12 +47,13 @@ import {
 } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/Layouts/Shell arrangements",
   parameters: {
@@ -218,7 +223,7 @@ function useContentColumns(): ColumnDef<ContentEntry, unknown>[] {
         cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
-    []
+    [],
   )
 }
 
@@ -229,11 +234,7 @@ function DemoContent({ dense }: { dense?: boolean }) {
   return (
     <>
       <PageHeader
-        actions={
-          <Button icon="icon-[mdi--plus]" size="sm" variant="primary">
-            New page
-          </Button>
-        }
+        actions={undefined}
         breadcrumb={[
           { label: "Home", href: "#" },
           { label: "Content", href: "#" },
@@ -284,7 +285,7 @@ function NavPanel({
         onSelect={onSelect}
         selected={selected}
       />
-      <Menu
+      <DemoMenu
         aria-label="Account"
         customTrigger={
           <Button
@@ -405,7 +406,7 @@ export const SidebarRight: Story = {
         top={
           <TopBar
             end={
-              <Menu
+              <DemoMenu
                 aria-label="Account"
                 customTrigger={
                   <Button
@@ -495,10 +496,11 @@ export const IconRailNav: Story = {
           left={
             <IconRail
               footer={
-                <Menu
+                <DemoMenu
                   aria-label="Account"
                   customTrigger={
                     <Button
+                      aria-label="Account"
                       icon="icon-[mdi--account-circle-outline]"
                       size="sm"
                       theme="borderless"
@@ -711,20 +713,7 @@ export const ThreePane: Story = {
           <div className="flex min-w-0 flex-1 flex-col gap-250">
             {active ? (
               <SectionCard
-                actions={
-                  <>
-                    <Button size="sm" theme="outlined" variant="secondary">
-                      Refund
-                    </Button>
-                    <Button
-                      icon="icon-[mdi--truck-outline]"
-                      size="sm"
-                      variant="primary"
-                    >
-                      Fulfil
-                    </Button>
-                  </>
-                }
+                actions={<></>}
                 description={`${active.customer} · ${active.email}`}
                 title={`Order ${active.number}`}
               >
@@ -904,63 +893,113 @@ export const FocusedTask: Story = {
       },
     },
   },
-  render: () => (
-    <Frame
-      top={
-        <TopBar
-          end={
-            <Button
-              icon="icon-[mdi--close]"
-              size="sm"
-              theme="borderless"
-              variant="secondary"
-            >
-              Save and exit
-            </Button>
-          }
-          start={<Brand environment="New import" />}
-        />
-      }
-    >
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-250 py-250">
-        <div className="flex flex-col items-center gap-150 text-center">
-          <Icon
-            className="text-fg-secondary"
-            icon="icon-[mdi--database-import-outline]"
-            size="xl"
+  render: function Render() {
+    const [file, setFile] = useState<File | null>(null)
+    const [step, setStep] = useState(0)
+    const [saved, setSaved] = useState(false)
+    return (
+      <Frame
+        top={
+          <TopBar
+            start={<Brand environment="Demo import" />}
+            end={
+              <Button
+                size="sm"
+                variant="secondary"
+                theme="borderless"
+                onClick={() => setSaved(true)}
+              >
+                Save and exit
+              </Button>
+            }
           />
+        }
+      >
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-250 py-250">
           <h1 className="font-semibold text-xl">Import products</h1>
-          <p className="max-w-prose text-fg-secondary text-sm">
-            Three steps: upload the file, map the columns, review what will
-            change. Nothing is written until the last step.
-          </p>
+          <StatusText>
+            This is a local preview. Files are never uploaded and products are
+            not written.
+          </StatusText>
+          {saved ? (
+            <>
+              <StatusText status="success">
+                Draft retained in this example. No import was submitted.
+              </StatusText>
+              <Button variant="secondary" onClick={() => setSaved(false)}>
+                Resume draft
+              </Button>
+            </>
+          ) : (
+            <>
+              <SectionCard
+                title={
+                  step === 0
+                    ? "1 · Choose CSV"
+                    : step === 1
+                      ? "2 · Column mapping"
+                      : "3 · Review"
+                }
+              >
+                {step === 0 ? (
+                  <>
+                    <label htmlFor="layout-import-csv">Product CSV file</label>
+                    <Input
+                      id="layout-import-csv"
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={(event) =>
+                        setFile(event.target.files?.[0] ?? null)
+                      }
+                    />
+                  </>
+                ) : step === 1 ? (
+                  <p>
+                    Demo mapping: first column → product name; second column →
+                    SKU; third column → price. Choose Back to select another
+                    file.
+                  </p>
+                ) : (
+                  <StatusText>
+                    Selected file: {file?.name}. Review complete; no data will
+                    be imported in Storybook.
+                  </StatusText>
+                )}
+              </SectionCard>
+              <div className="flex flex-wrap justify-end gap-150">
+                <Button
+                  variant="secondary"
+                  theme="outlined"
+                  onClick={() => {
+                    setStep(0)
+                    setFile(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                {step > 0 && (
+                  <Button
+                    variant="secondary"
+                    theme="outlined"
+                    onClick={() => setStep((current) => current - 1)}
+                  >
+                    Back
+                  </Button>
+                )}
+                <Button
+                  disabled={!file}
+                  onClick={() => {
+                    if (step < 2) setStep((current) => current + 1)
+                    else setSaved(true)
+                  }}
+                >
+                  {step === 2 ? "Save demo draft" : "Continue"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
-        <SectionCard title="1 · Upload">
-          <div className="flex flex-col items-center gap-150 rounded-md border border-border-primary border-dashed p-350 text-center">
-            <Icon
-              className="text-fg-secondary"
-              icon="icon-[mdi--file-delimited-outline]"
-              size="xl"
-            />
-            <p className="text-sm">Drop a CSV file here</p>
-            <Button size="sm" theme="outlined" variant="secondary">
-              Choose file
-            </Button>
-          </div>
-        </SectionCard>
-        <div className="flex justify-between gap-150">
-          <Button theme="borderless" variant="secondary">
-            Cancel
-          </Button>
-          <Button
-            icon="icon-[mdi--arrow-right]"
-            iconPosition="right"
-            variant="primary"
-          >
-            Continue
-          </Button>
-        </div>
-      </div>
-    </Frame>
-  ),
+      </Frame>
+    )
+  },
 }

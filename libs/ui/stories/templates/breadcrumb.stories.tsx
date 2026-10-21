@@ -36,6 +36,7 @@ const meta: Meta<typeof BreadcrumbTemplate> = {
   title: "Templates/BreadcrumbTemplate",
   component: BreadcrumbTemplate,
   parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
     layout: "centered",
     docs: {
       description: {
@@ -160,41 +161,6 @@ export const Playground: Story = {
   },
 }
 
-export const Sizes: Story = {
-  parameters: {
-    controls: { disable: true },
-    docs: {
-      description: {
-        story:
-          "Compare coordinated text, spacing and icon sizes for compact, regular and spacious page headers.",
-      },
-    },
-  },
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Sizes">
-        <div className="flex flex-col gap-300">
-          <BreadcrumbTemplate
-            aria-label="Breadcrumb, sm"
-            items={defaultItems}
-            size="sm"
-          />
-          <BreadcrumbTemplate
-            aria-label="Breadcrumb, md"
-            items={defaultItems}
-            size="md"
-          />
-          <BreadcrumbTemplate
-            aria-label="Breadcrumb, lg"
-            items={defaultItems}
-            size="lg"
-          />
-        </div>
-      </VariantGroup>
-    </VariantContainer>
-  ),
-}
-
 export const Variants: Story = {
   parameters: {
     controls: { disable: true },
@@ -223,6 +189,22 @@ export const Variants: Story = {
       </VariantGroup>
     </VariantContainer>
   ),
+}
+
+export const Sizes: Story = {
+  play: async ({ canvasElement }) => {
+    for (const nav of within(canvasElement).getAllByRole("navigation")) {
+      const link = within(nav).getAllByRole("link")[0] as HTMLElement
+      const current = nav.querySelector('[aria-current="page"]') as HTMLElement
+      await expect(getComputedStyle(link).fontSize).toBe(getComputedStyle(current).fontSize)
+    }
+  },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Compare Small (sm), Medium (md) and Large (lg) using the same location trail." } } },
+  render: () => <VariantContainer>
+    {(["sm", "md", "lg"] as const).map((size) => <VariantGroup key={size} title={{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}>
+      <BreadcrumbTemplate aria-label="Product location" items={defaultItems} size={size} />
+    </VariantGroup>)}
+  </VariantContainer>,
 }
 
 export const CustomSeparator: Story = {
@@ -274,5 +256,25 @@ export const ExplicitCurrent: Story = {
         isCurrent: true,
       },
     ],
+  },
+}
+
+export const CollapsedCurrentAncestor: Story = {
+  args: {
+    maxItems: 2,
+    items: [
+      { label: "Home", href: "/" },
+      { label: "Catalog", href: "/catalog" },
+      { label: "Tools", href: "/catalog/tools", isCurrent: true },
+      { label: "Drills", href: "/catalog/tools/drills" },
+      { label: "Cordless drills", href: "/catalog/tools/drills/cordless" },
+    ],
+  },
+  parameters: { docs: { description: { story: "An explicit current ancestor ends the trail before collapse, so hidden route descendants never become a false current page." } } },
+  play: async ({ canvasElement }) => {
+    const current = canvasElement.querySelectorAll('[aria-current="page"]')
+    await expect(current).toHaveLength(1)
+    await expect(current[0]).toHaveTextContent("Tools")
+    await expect(within(canvasElement).queryByText("Cordless drills")).not.toBeInTheDocument()
   },
 }

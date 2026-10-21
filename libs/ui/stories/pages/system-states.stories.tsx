@@ -1,23 +1,35 @@
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { fn } from "storybook/test"
 import type { ReactNode } from "react"
 import { useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
+import { Input } from "../../src/atoms/input"
+import { Dialog } from "../../src/molecules/dialog"
 import { Icon, type IconType } from "../../src/atoms/icon"
 import { Skeleton } from "../../src/atoms/skeleton"
 import { StatusText } from "../../src/atoms/status-text"
 import { adminNav } from "./data"
-import { Brand, Frame, GlobalSearch, NavList, Panel, TopBar } from "./frame"
+import {
+  Brand,
+  Frame,
+  GlobalSearch,
+  NavDrawer,
+  NavList,
+  Panel,
+  TopBar,
+} from "./frame"
 import { PageHeader, SectionCard, StatCard, StatRow } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/System/States",
   parameters: {
@@ -65,10 +77,107 @@ function StateShell({ children }: { children: ReactNode }) {
           <NavList nav={adminNav} onSelect={selectNav(setNav)} selected={nav} />
         </Panel>
       }
-      top={<TopBar center={<GlobalSearch />} />}
+      top={
+        <TopBar
+          center={<GlobalSearch />}
+          start={<NavDrawer nav={adminNav} onSelect={setNav} selected={nav} />}
+        />
+      }
     >
       {children}
     </Frame>
+  )
+}
+
+function RecoveryAction({
+  label,
+  kind,
+}: {
+  label: string
+  kind: "dashboard" | "retry" | "support" | "request" | "notify"
+}) {
+  const [open, setOpen] = useState(false)
+  const [done, setDone] = useState(false)
+  const [email, setEmail] = useState("")
+  return (
+    <>
+      <Button
+        variant={
+          kind === "dashboard" || kind === "support" ? "secondary" : "primary"
+        }
+        theme={
+          kind === "dashboard" || kind === "support" ? "outlined" : "solid"
+        }
+        onClick={() => {
+          setDone(false)
+          setOpen(true)
+        }}
+      >
+        {label}
+      </Button>
+      <Dialog
+        customTrigger
+        open={open}
+        onOpenChange={({ open: next }) => setOpen(next)}
+        title={kind === "dashboard" ? "Demo dashboard" : label}
+        description="This recovery flow runs locally in Storybook. No request, email or notification is sent."
+      >
+        {kind === "retry" ? (
+          <>
+            <StatusText status="success">
+              Local sample data is available again. The failed request was
+              replaced with a local preview.
+            </StatusText>
+            <p>Orders: 24 · Products: 120 · Last local update: just now</p>
+          </>
+        ) : kind === "dashboard" ? (
+          <>
+            <h2 className="font-semibold">Northwind workspace</h2>
+            <p>
+              Use the navigation menu to explore the application layout. This
+              preview intentionally stays in Storybook.
+            </p>
+          </>
+        ) : kind === "support" ? (
+          <>
+            <StatusText>
+              Support reference: 9f2c-41ab-7e10. Include this reference and
+              describe what you were doing before the error.
+            </StatusText>
+            <p>No support ticket has been sent from this prototype.</p>
+          </>
+        ) : (
+          <form
+            className="flex flex-col gap-150"
+            onSubmit={(event) => {
+              event.preventDefault()
+              setDone(true)
+            }}
+          >
+            <label htmlFor={`recovery-${kind}`}>Contact email</label>
+            <Input
+              id={`recovery-${kind}`}
+              type="email"
+              required
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value)
+                setDone(false)
+              }}
+            />
+            <Button type="submit" disabled={done}>
+              {done ? "Saved locally" : "Save demo request"}
+            </Button>
+            {done && (
+              <StatusText role="status">
+                Demo request saved for {email}. Nothing was sent; closing this
+                example clears it.
+              </StatusText>
+            )}
+          </form>
+        )}
+      </Dialog>
+    </>
   )
 }
 
@@ -112,22 +221,23 @@ function StatePanel({
 }
 
 export const NotFound: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare not found in system states to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "404 · Not found",
   render: () => (
     <StateShell>
       <StatePanel
         actions={
           <>
-            <Button
-              icon="icon-[mdi--arrow-left]"
-              theme="outlined"
-              variant="secondary"
-            >
-              Go back
-            </Button>
-            <Button icon="icon-[mdi--home-outline]" variant="primary">
-              Open dashboard
-            </Button>
+            <RecoveryAction label={"Go back"} kind="dashboard" />
+            <RecoveryAction label={"Open dashboard"} kind="dashboard" />
           </>
         }
         description="The page you followed does not exist, or it was deleted. If you reached this from a link inside the admin, the record was probably removed by someone else."
@@ -139,22 +249,26 @@ export const NotFound: Story = {
 }
 
 export const Forbidden: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare forbidden in system states to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "403 · No permission",
   render: () => (
     <StateShell>
       <StatePanel
         actions={
           <>
-            <Button
-              icon="icon-[mdi--arrow-left]"
-              theme="outlined"
-              variant="secondary"
-            >
-              Go back
-            </Button>
-            <Button icon="icon-[mdi--account-key-outline]" variant="primary">
-              Request access from Nora Kessler
-            </Button>
+            <RecoveryAction label={"Go back"} kind="dashboard" />
+            <RecoveryAction
+              label={"Request access from Nora Kessler"}
+              kind="request"
+            />
           </>
         }
         description="Billing is limited to workspace owners. Your role is Editor, which can read and publish content but not see financial data."
@@ -172,22 +286,23 @@ export const Forbidden: Story = {
 }
 
 export const ServerError: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare server error in system states to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "500 · Something broke",
   render: () => (
     <StateShell>
       <StatePanel
         actions={
           <>
-            <Button
-              icon="icon-[mdi--refresh]"
-              theme="outlined"
-              variant="secondary"
-            >
-              Try again
-            </Button>
-            <Button icon="icon-[mdi--lifebuoy]" variant="primary">
-              Contact support
-            </Button>
+            <RecoveryAction label={"Try again"} kind="retry" />
+            <RecoveryAction label={"Contact support"} kind="support" />
           </>
         }
         description="The request failed on our side, not yours. Nothing you entered was saved. Quote the reference below if you contact support."
@@ -205,15 +320,20 @@ export const ServerError: Story = {
 }
 
 export const Offline: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare offline in system states to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Offline",
   render: () => (
     <StateShell>
       <StatePanel
-        actions={
-          <Button icon="icon-[mdi--refresh]" variant="primary">
-            Retry now
-          </Button>
-        }
+        actions={<RecoveryAction label={"Retry now"} kind="retry" />}
         description="Your changes are held locally and will be sent as soon as the connection returns. Do not close the tab."
         detail={
           <Badge size="sm" variant="warning">
@@ -243,13 +363,7 @@ export const Maintenance: Story = {
       <TopBar start={<Brand environment="Maintenance" />} />
       <StatePanel
         actions={
-          <Button
-            icon="icon-[mdi--bell-outline]"
-            theme="outlined"
-            variant="secondary"
-          >
-            Notify me when it's back
-          </Button>
+          <RecoveryAction label={"Notify me when it's back"} kind="notify" />
         }
         description="We are migrating the order database. The admin is read-only until 03:00 CET; the storefront and checkout are unaffected."
         detail={
@@ -317,43 +431,17 @@ export const FirstRun: Story = {
       />
       <div className="grid grid-cols-1 gap-250 lg:grid-cols-3">
         <SectionCard
-          actions={
-            <Button
-              icon="icon-[mdi--database-import-outline]"
-              size="sm"
-              variant="primary"
-            >
-              Import
-            </Button>
-          }
+          actions={undefined}
           description="Bring a CSV or connect an existing catalogue. Nothing is published until you say so."
           title="1 · Add products"
         />
         <SectionCard
-          actions={
-            <Button
-              icon="icon-[mdi--palette-outline]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              Choose theme
-            </Button>
-          }
+          actions={undefined}
           description="Pick a brand theme and upload a logo. You can change both later."
           title="2 · Set up the storefront"
         />
         <SectionCard
-          actions={
-            <Button
-              icon="icon-[mdi--credit-card-outline]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              Connect
-            </Button>
-          }
+          actions={undefined}
           description="Connect a payment provider so checkout can take real orders."
           title="3 · Take payments"
         />

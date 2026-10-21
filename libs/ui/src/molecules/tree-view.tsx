@@ -2,7 +2,7 @@
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,7 +10,16 @@
  * the tree-view-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { normalizeProps, useMachine } from "@zag-js/react"
-import * as tree from "@zag-js/tree-view"
+import {
+  connect as connectTree,
+  collection as createTreeCollection,
+  splitProps as splitTreeProps,
+  type Api as TreeApi,
+  type NodeProps as TreeNodeProps,
+  type NodeState as TreeNodeState,
+  type Props as TreeProps,
+  machine as treeMachine,
+} from "@zag-js/tree-view"
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -142,7 +151,7 @@ const treeViewVariants = tv({
 })
 
 type TreeViewContextValue = {
-  api: tree.Api
+  api: TreeApi
   size?: "sm" | "md" | "lg"
   styles: ReturnType<typeof treeViewVariants>
   selectionBehavior?: "all" | "leaf-only" | "custom"
@@ -161,8 +170,8 @@ function useTreeViewContext() {
 type TreeViewNodeContextValue = {
   node: TreeNode
   indexPath: number[]
-  nodeProps: tree.NodeProps
-  nodeState: tree.NodeState
+  nodeProps: TreeNodeProps
+  nodeState: TreeNodeState
 }
 
 const TreeViewNodeContext = createContext<TreeViewNodeContextValue | null>(null)
@@ -179,7 +188,7 @@ function useTreeViewNodeContext() {
 
 interface TreeViewRootProps
   extends VariantProps<typeof treeViewVariants>,
-    Omit<tree.Props, "id" | "size">,
+    Omit<TreeProps, "id" | "size">,
     Omit<ComponentPropsWithoutRef<"div">, "onChange" | "dir"> {
   id?: string
   data: TreeNode[]
@@ -187,55 +196,29 @@ interface TreeViewRootProps
 }
 
 export function TreeView({
-  id,
   data,
   size,
   selectionBehavior = "all",
-
-  dir = "ltr",
-  selectionMode = "single",
-  expandedValue,
-  selectedValue,
-  focusedValue,
-  defaultExpandedValue,
-  defaultSelectedValue,
-  expandOnClick = true,
-  typeahead = true,
-  onExpandedChange,
-  onSelectionChange,
-  onFocusChange,
-
   children,
   className,
   ...props
 }: TreeViewRootProps) {
   const generatedId = useId()
-  const uniqueId = id || generatedId
-
-  const collection = tree.collection<TreeNode>({
+  const [machineProps, rootProps] = splitTreeProps(props)
+  const collection = createTreeCollection<TreeNode>({
     nodeToValue: (node) => node.id,
     nodeToString: (node) => node.name,
     rootNode: { id: "ROOT", name: "", children: data },
   })
-
-  const service = useMachine(tree.machine, {
-    id: uniqueId,
+  const service = useMachine(treeMachine, {
+    expandOnClick: true,
+    typeahead: true,
+    ...machineProps,
+    id: machineProps.id ?? generatedId,
     collection,
-    dir,
-    selectionMode,
-    expandedValue,
-    selectedValue,
-    focusedValue,
-    defaultExpandedValue,
-    defaultSelectedValue,
-    expandOnClick,
-    typeahead,
-    onExpandedChange,
-    onSelectionChange,
-    onFocusChange,
   })
 
-  const api = tree.connect(service, normalizeProps)
+  const api = connectTree(service, normalizeProps)
   const styles = treeViewVariants({ size })
 
   return (
@@ -243,7 +226,7 @@ export function TreeView({
       <div
         className={styles.root({ className })}
         {...api.getRootProps()}
-        {...props}
+        {...rootProps}
       >
         {children}
       </div>

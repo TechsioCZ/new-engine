@@ -5,7 +5,7 @@ description: >
   select, validate, preview, and manage local File objects through the Zag.js
   compound API, including accepted/rejected files and native form behavior.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -26,6 +26,24 @@ sources:
 FileUpload manages local browser `File` objects for selection, validation,
 preview, and removal; it does not upload files to a server. Network transport,
 progress, cancellation, retry, and server errors belong to the consuming app.
+
+## Shared field contract
+
+`size="sm" | "md" | "lg"` (default `md`) controls the field typography, label,
+feedback and action sizes; the multiline dropzone retains its content-driven
+minimum height. Use `FileUpload.StatusText` for field helper/validation messages:
+it registers a unique ID on the dropzone and picker trigger, merges external
+descriptions, and links errors through `aria-errormessage` and `aria-invalid`.
+
+Read-only files stay inspectable at full contrast. The root/dropzone retains a
+focus target, clearly describes its read-only state, and upload, clear and delete
+actions are omitted. Zag guards drop, paste and exposed mutation APIs; the
+component also rejects in-flight transformations after read-only/disabled changes,
+even if editing is restored before they finish. `HiddenInput` synchronizes both
+preloaded (`defaultAcceptedFiles` / `acceptedFiles`) and subsequently selected
+files into its native FileList, preserving read-only submission; disabled wins. Deleting
+a focused file moves focus to the next file, previous file or the dropzone/picker
+instead of the document body.
 
 ## UX/UI guidelines
 
@@ -143,7 +161,7 @@ meaning; it creates its object URL through Zag and revokes it when the file
 changes or the part unmounts.
 
 There is no `Items`, `List`, `FileText`, `PropsProvider`, public store/provider,
-`size`, or `variant` API. Compose ordinary content around the public parts when
+or `variant` API. Canonical `size` is supported. Compose ordinary content around the public parts when
 the application needs a different layout.
 
 ## Zag Capabilities
@@ -270,7 +288,7 @@ Source: libs/ui/src/molecules/file-upload.tsx
 Wrong:
 
 ```tsx
-<FileUpload size="lg" variant="dashed">
+<FileUpload variant="dashed">
   <FileUpload.Items />
 </FileUpload>
 ```
@@ -318,7 +336,7 @@ Source: https://zagjs.com/components/react/file-upload
 ## Validation Commands
 
 ```sh
-rg -n "<input[^>]*type=['\"]file|<FileUpload[^>]*(onUpload|progress|retry|size|variant)" apps
+rg -n "<input[^>]*type=['\"]file|<FileUpload[^>]*(onUpload|progress|retry|variant)" apps
 rg -n "FileUpload\.(Items|List|FileText|PropsProvider|RootProvider)" apps
 rg -U -P -n "<FileUpload(?![\\s\\S]{0,1200}<FileUpload\\.HiddenInput)" apps
 rg -n "<FileUpload[^>]*className=.*(bg-|text-|border-|p-|px-|py-|rounded-)" apps

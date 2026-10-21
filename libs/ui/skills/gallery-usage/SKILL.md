@@ -6,7 +6,7 @@ description: >
   controlled page, orientation, thumbnail image adapters, thumbnail aria labels,
   empty state, and NextImage support.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -158,3 +158,7 @@ rg -n "setActive|setPage|<Gallery\\.Thumbnail[^>]*className=.*(h-|w-|rounded-|bo
 rg -U -P -n "<Gallery(?![\\s\\S]{0,800}<Gallery\\.Thumbnails)" apps
 rg -P -n "<Gallery(?![^>]*(thumbnailImageAs|carouselProps=\\{\\{[^}]*imageAs))" apps
 ```
+
+## Wave 2 contracts
+
+Gallery is the compound organism, not GalleryTemplate: configure nested media through carouselProps and compose Gallery.Main, Gallery.Carousel, Gallery.Slides and Gallery.Thumbnails. carouselWidth, fitParent and showControls belong to GalleryTemplate only. Gallery.Carousel defaults to aria-label="Product images"; provide a specific name through carouselProps or the slot when multiple galleries appear. Thumbnail dimming uses unitless brightness factors (0.7 at rest, 1 on hover/current), not rem dimensions. thumbnailSize is a media dimension in pixels, not a sm/md/lg control scale.

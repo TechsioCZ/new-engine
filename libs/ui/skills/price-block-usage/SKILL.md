@@ -8,7 +8,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "PriceBlock"
-  component_version: "1.0.0"
+  component_version: "1.0.1"
 requires:
   - component-usage-ux
   - app-token-overrides
@@ -143,3 +143,7 @@ Correct:
 rg -n "<PriceBlock[^>]*(amount=|currency=|locale=|children=)" apps
 rg -n "state=\"pending\"[^>]*(amountLabel|label|originalLabel)" apps
 ```
+
+## Story controls and display state
+
+The Playground selects all five price states and maps only the active state's labels into the component. Use `label` for on-request and `pendingLabel` for pending. PriceBlock is display-only: disabled and readOnly are not supported or meaningful price states. Use TotalsSummary for a basket total.

@@ -5,7 +5,7 @@ description: >
   multi-line text entry with valid variant, size, resize, readonly styling, and
   token-first validation.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -61,10 +61,11 @@ Supported component props:
 variant: default | error | success | warning | borderless
 size: sm | md | lg
 resize: none | y | x | both | auto
-readonly: boolean
+readOnly: boolean
+readonly: boolean (legacy alias; prefer readOnly)
 ```
 
-Use `readonly` when you need the UI-kit readonly visual variant.
+Use native `readOnly` for both immutable behavior and the full-contrast read-only surface. The legacy `readonly` alias remains supported; explicit `readOnly` takes precedence.
 
 ## Core Patterns
 
@@ -85,14 +86,13 @@ auto -> content-sized field when supported by the target browser matrix
 both/x -> rare, only when the product explicitly needs it
 ```
 
-### Use readonly for read-only styling
+### Use readOnly for read-only styling
 
 ```tsx
-<Textarea readonly value={note} />
+<Textarea readOnly value={note} />
 ```
 
-The component-specific `readonly` prop drives both the visual variant and the
-`readOnly` attribute.
+Both spellings drive the native attribute and the same full-contrast visual treatment.
 
 ## Common Mistakes
 
@@ -144,21 +144,21 @@ Correct:
 
 Source: libs/ui/src/tokens/components/atoms/_textarea.css
 
-### MEDIUM readOnly without readonly styling
+### MEDIUM Disabling a value that should remain copyable
 
 Wrong:
 
 ```tsx
-<Textarea readOnly value={note} />
+<Textarea disabled value={note} />
 ```
 
 Correct:
 
 ```tsx
-<Textarea readonly value={note} />
+<Textarea readOnly value={note} />
 ```
 
-Use `readonly` so the token-backed readonly styles apply.
+Use `readOnly` to preserve focus, selection, submission and normal contrast. Disabled takes precedence if both are set.
 
 ## Validation Commands
 
@@ -169,3 +169,19 @@ rg -n "<Textarea[^>]*readOnly" apps
 rg -n "resize=\"(none|y|x|both|auto)\"" apps
 ```
 
+
+## Feedback and sizes
+
+The atom generates a stable ID when no nonempty `id` is supplied. Bare field
+compositions must associate StatusText IDs through `aria-describedby` and, for
+errors, `aria-errormessage`. Use FormTextarea for automatic wiring. Canonical
+sizes are sm/md/lg, default md; multiline height comes from rows/content, not
+a forced single-line control height.
+
+
+### Component-specific read-only colors
+
+Override `--color-textarea-bg-readonly` and `--color-textarea-fg-readonly`
+to tune only this field's read-only surface and value. The default reference
+aliases follow `--color-form-control-readonly` and `--color-form-control-text`.
+These overrides also apply on hover/focus; disabled styling still wins.

@@ -38,6 +38,14 @@ export const verticalNavigationStyles = tv({
         indicator: "text-vertical-navigation-icon-md",
         groupLabel: "px-vertical-navigation-item-x-md",
       },
+      lg: {
+        root: "text-vertical-navigation-lg",
+        link: "min-h-vertical-navigation-item-lg px-vertical-navigation-item-x-lg py-vertical-navigation-item-y-lg",
+        trigger:
+          "min-h-vertical-navigation-item-lg px-vertical-navigation-item-x-lg py-vertical-navigation-item-y-lg",
+        indicator: "text-vertical-navigation-icon-lg",
+        groupLabel: "px-vertical-navigation-item-x-lg",
+      },
     },
     tone: {
       plain: {

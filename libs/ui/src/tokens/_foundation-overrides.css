@@ -1,0 +1,72 @@
+/* Local runtime bridge, after the generated Figma and brand layers.
+ * Keep exporter snapshots untouched. Reconcile these corrections in Figma
+ * before removing this bridge; see THEME-FLOW.md. */
+@theme static {
+  /* Feedback is subordinate to labels, including inherited 16px labels. */
+  --text-helper-sm: 0.75rem;
+  --text-helper-md: 0.875rem;
+  --text-helper-lg: 1rem;
+  --text-status-text-sm: var(--text-helper-sm);
+  --text-status-text-md: var(--text-helper-md);
+  --text-status-text-lg: var(--text-helper-lg);
+
+  /* Canonical navigation scale; the export still carries its legacy md density. */
+  --spacing-vertical-navigation-item-md: var(--height-form-control-md);
+  --text-vertical-navigation-sm: var(--text-button-sm);
+  --text-vertical-navigation-md: var(--text-button-md);
+
+  /* Figma's exported 1/2/3 are unitless ordinal steps, not milliseconds. */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-skeleton-fast: var(--duration-skeleton-pulse-fast);
+  --duration-skeleton-normal: var(--duration-skeleton-pulse-normal);
+  --duration-skeleton-slow: var(--duration-skeleton-pulse-slow);
+
+  /* Control boundaries are functional, not decorative. */
+  --color-form-control-border-hover: light-dark(
+    var(--color-neutral-600),
+    var(--color-neutral-400)
+  );
+  --color-label-required: light-dark(
+    oklch(from var(--color-danger-500) 0.45 calc(c * 0.75) h),
+    oklch(from var(--color-danger-500) 0.8 calc(c * 0.75) h)
+  );
+  --color-label-fg-required: var(--color-label-required);
+
+  /* Readable text, not primary palette steps (yellow is not text on white).
+   * Explicit light/dark lightness keeps every brand and interaction legible. */
+  --color-link: light-dark(
+    oklch(from var(--color-primary-500) 0.4 calc(c * 0.65) h),
+    oklch(from var(--color-primary-500) 0.85 calc(c * 0.65) h)
+  );
+  --color-link-base: var(--color-link);
+  --color-link-hover: light-dark(
+    oklch(from var(--color-link) 0.32 c h),
+    oklch(from var(--color-link) 0.9 c h)
+  );
+  --color-link-active: light-dark(
+    oklch(from var(--color-link) 0.28 c h),
+    oklch(from var(--color-link) 0.94 c h)
+  );
+  --color-link-visited: light-dark(
+    oklch(from var(--color-link) 0.42 c h),
+    oklch(from var(--color-link) 0.82 c h)
+  );
+}
+
+/* Business primary-500/600/700 are dark blue, including its solid choice
+ * surfaces. Both public solid-primary foreground aliases must stay white. */
+[data-theme="business"] {
+  --color-fg-on-primary-solid: var(--color-white);
+  --color-fg-on-primary-solid-neo: var(--color-white);
+}
+
+/* Brand selectors are unlayered; override the legacy link alias there too. */
+:root,
+[data-theme] {
+  --color-link: light-dark(
+    oklch(from var(--color-primary-500) 0.4 calc(c * 0.65) h),
+    oklch(from var(--color-primary-500) 0.85 calc(c * 0.65) h)
+  );
+}

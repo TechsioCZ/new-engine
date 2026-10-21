@@ -11,6 +11,7 @@ import { useId, useState } from "react"
 import { useArgs } from "storybook/preview-api"
 import { expect, fn, userEvent, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
 import { Checkbox, type CheckboxProps } from "../../src/atoms/checkbox"
 
 function CheckboxDocs() {
@@ -335,5 +336,54 @@ export const IndeterminateTest: Story = {
     await userEvent.click(selectAll)
     for (const checkbox of canvas.getAllByRole("checkbox"))
       await expect(checkbox).not.toBeChecked()
+  },
+}
+
+export const ReadOnly: Story = {
+  name: "Read-only",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A controlled read-only checkbox keeps focus without invoking mutation callbacks, even after its parent rerenders.",
+      },
+    },
+  },
+  args: { readOnly: true, checked: false, onChange: fn() },
+  render: function ReadOnly(args) {
+    const [checked, setChecked] = useState(false)
+    const [refreshed, setRefreshed] = useState(false)
+    return (
+      <div className="flex flex-col gap-200">
+        <Checkbox
+          {...args}
+          checked={checked}
+          aria-label={
+            refreshed ? "Saved product selection" : "Product selection"
+          }
+          onChange={(event) => {
+            args.onChange?.(event)
+            setChecked(event.currentTarget.checked)
+          }}
+        />
+        <Button variant="secondary" onClick={() => setRefreshed(true)}>
+          Refresh selection label
+        </Button>
+      </div>
+    )
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("checkbox")
+    input.focus()
+    await expect(input).toHaveFocus()
+    await userEvent.click(input)
+    await userEvent.keyboard(" ")
+    await expect(args.onChange).not.toHaveBeenCalled()
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Refresh selection label" })
+    )
+    await expect(input).toHaveAccessibleName("Saved product selection")
+    await expect(input).not.toBeChecked()
   },
 }

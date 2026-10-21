@@ -1,3 +1,4 @@
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -31,10 +32,18 @@ import {
 } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Orders",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -138,7 +147,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
   const toAbra = selected.filter(canSendToAbra)
   const toRemind = selected.filter(canRemind)
   const toAbraUnpaid = toAbra.filter(
-    (order) => order.payment !== "paid" && order.payment !== "refunded"
+    (order) => order.payment !== "paid" && order.payment !== "refunded",
   )
 
   const sendToAbra = (ids: string[]) => {
@@ -146,14 +155,14 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
       current.map((order) =>
         ids.includes(order.id)
           ? { ...order, abra: "queued", abraError: undefined }
-          : order
-      )
+          : order,
+      ),
     )
     setSelection({})
     toaster.create({
       type: "success",
-      title: `${ids.length} ${ids.length === 1 ? "order" : "orders"} queued for ABRA`,
-      description: "The transfer runs every 5 minutes; the state updates here.",
+      title: `${ids.length} ${ids.length === 1 ? "order" : "orders"} queued locally`,
+      description: "The demo queue was updated. No request was sent to ABRA.",
     })
   }
 
@@ -237,7 +246,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
         ),
       },
     ],
-    []
+    [],
   )
 
   return (
@@ -245,16 +254,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
       <Toaster />
 
       <PageHeader
-        actions={
-          <Button
-            icon="icon-[mdi--tray-arrow-down]"
-            size="sm"
-            theme="outlined"
-            variant="secondary"
-          >
-            Export
-          </Button>
-        }
+        actions={null}
         breadcrumb={[{ label: "Home", href: "#" }, { label: "Orders" }]}
         description="Every order from the e-shop. Payment states come from Comgate, ABRA states from the transfer job."
         title="Orders"
@@ -306,15 +306,15 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
                     onClick={() =>
                       toaster.create({
                         type: "info",
-                        title: "Payment reminders sent",
-                        description: `${toRemind.length} customers received a new Comgate link.`,
+                        title: "Payment reminder preview",
+                        description: `${toRemind.length} recipients selected. This demo sends no email or payment links.`,
                       })
                     }
                     size="sm"
                     theme="outlined"
                     variant="secondary"
                   >
-                    {`Remind ${toRemind.length} unpaid Comgate`}
+                    {`Preview ${toRemind.length} payment reminders`}
                   </Button>
                 </BulkActionBar>
 
@@ -361,14 +361,14 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
                       },
                       {
                         id: "remind",
-                        label: "Send payment reminder",
+                        label: "Preview payment reminder",
                         icon: "icon-[mdi--email-sync-outline]",
                         hidden: (row) => !canRemind(row.original),
                         onAction: (row) =>
                           toaster.create({
                             type: "info",
-                            title: "Payment reminder sent",
-                            description: row.original.email,
+                            title: "Payment reminder preview",
+                            description: `Recipient: ${row.original.email}. No email was sent from this demo.`,
                           }),
                       },
                     ]}
@@ -428,6 +428,15 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in orders to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "All orders",
   render: () => <OrdersPage />,
 }

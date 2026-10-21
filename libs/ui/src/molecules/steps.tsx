@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.0.5
+ * @componentVersion v1.1.0
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -35,17 +35,17 @@ import { tv } from "../utils"
 const stepsVariants = tv({
   slots: {
     root: [
-      "flex w-full flex-col gap-steps-root",
+      "flex w-full min-w-0 max-w-full flex-col gap-steps-root",
       "text-steps-fg",
-      "data-[orientation=vertical]:flex-row data-[orientation=vertical]:items-start",
+      "sm:data-[orientation=vertical]:flex-row sm:data-[orientation=vertical]:items-start",
     ],
     list: [
-      "flex w-full gap-steps-list",
+      "flex w-full min-w-0 max-w-full gap-steps-list",
       "data-[orientation=horizontal]:items-start",
-      "data-[orientation=vertical]:w-auto data-[orientation=vertical]:min-w-steps-list-vertical data-[orientation=vertical]:flex-col",
+      "data-[orientation=vertical]:flex-col sm:data-[orientation=vertical]:w-auto sm:data-[orientation=vertical]:min-w-steps-list-vertical",
     ],
     panels: [
-      "flex w-full flex-col gap-steps-panels",
+      "flex w-full min-w-0 max-w-full flex-col gap-steps-panels",
       "data-[orientation=vertical]:min-w-0 data-[orientation=vertical]:flex-1",
     ],
     item: [
@@ -54,7 +54,8 @@ const stepsVariants = tv({
       "data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-start",
     ],
     trigger: [
-      "group relative flex min-w-0 items-center justify-start gap-steps-trigger",
+      "group relative flex min-w-0 max-w-full items-center justify-start gap-steps-trigger",
+      "data-[orientation=horizontal]:flex-col sm:data-[orientation=horizontal]:flex-row",
       "text-start",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-steps-ring",
@@ -64,7 +65,7 @@ const stepsVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     itemText: [
-      "inline-flex min-w-0 flex-col gap-steps-text",
+      "inline-flex min-w-0 max-w-full flex-col gap-steps-text",
       "data-[orientation=vertical]:items-start",
     ],
     indicator: [
@@ -79,13 +80,13 @@ const stepsVariants = tv({
     indicatorIcon: "text-steps-icon",
     number: ["font-steps-number leading-none"],
     title: [
-      "truncate font-steps-title text-steps-title text-steps-title-fg",
+      "break-words font-steps-title text-steps-title text-steps-title-fg",
       "data-current:text-steps-title-fg-current",
       "data-complete:text-steps-title-fg-complete",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     description: [
-      "text-steps-description text-steps-description-fg",
+      "break-words text-steps-description text-steps-description-fg",
       "data-current:text-steps-description-fg-current",
       "data-complete:text-steps-description-fg-complete",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -102,10 +103,11 @@ const stepsVariants = tv({
     progress: [
       "relative min-w-0 overflow-clip rounded-steps-progress bg-steps-progress-bg",
       "data-[orientation=horizontal]:h-steps-progress data-[orientation=horizontal]:w-full",
-      "data-[orientation=vertical]:w-steps-progress data-[orientation=vertical]:self-stretch",
+      "data-[orientation=vertical]:h-steps-progress data-[orientation=vertical]:w-full data-[orientation=vertical]:self-stretch",
+      "sm:data-[orientation=vertical]:h-auto sm:data-[orientation=vertical]:w-steps-progress",
     ],
     progressRange: [
-      "absolute rounded-steps-progress bg-steps-progress-range-bg",
+      "steps-progress-range absolute rounded-steps-progress bg-steps-progress-range-bg",
       "transition-[width,height] duration-200 motion-reduce:transition-none",
       "data-[orientation=horizontal]:inset-s-0 data-[orientation=horizontal]:inset-y-0",
       "data-[orientation=vertical]:inset-x-0 data-[orientation=vertical]:top-0",
@@ -766,10 +768,6 @@ Steps.Progress = function StepsProgress({
   const { api, orientation, styles } = useStepsContext()
   // A progressbar needs an accessible name (axe aria-progressbar-name).
   const progressProps = mergeProps(props, api.getProgressProps())
-  const progressRangeStyle =
-    orientation === "horizontal"
-      ? { width: "var(--percent)" }
-      : { height: "var(--percent)" }
 
   return (
     <div
@@ -785,7 +783,6 @@ Steps.Progress = function StepsProgress({
         aria-hidden="true"
         className={styles.progressRange()}
         data-orientation={orientation}
-        style={progressRangeStyle}
       />
     </div>
   )

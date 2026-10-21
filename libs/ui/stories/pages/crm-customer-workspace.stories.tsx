@@ -1,3 +1,5 @@
+import { expect, userEvent, within } from "storybook/test"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
 import { ActionIcon } from "../../src/atoms/action-icon"
@@ -32,12 +34,13 @@ import {
 } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/CRM/Customer workspace",
   parameters: {
@@ -85,22 +88,43 @@ const activityIcons: Record<string, IconType> = {
 }
 
 const recordMenu: MenuItem[] = [
-  { type: "action", value: "merge", label: "Merge duplicates", icon: "icon-[mdi--merge]" },
-  { type: "action", value: "assign", label: "Change owner", icon: "icon-[mdi--account-switch-outline]" },
-  { type: "action", value: "export", label: "Export account", icon: "icon-[mdi--tray-arrow-down]" },
+  {
+    type: "action",
+    value: "merge",
+    label: "Merge duplicates",
+    icon: "icon-[mdi--merge]",
+  },
+  {
+    type: "action",
+    value: "assign",
+    label: "Change owner",
+    icon: "icon-[mdi--account-switch-outline]",
+  },
+  {
+    type: "action",
+    value: "export",
+    label: "Export account",
+    icon: "icon-[mdi--tray-arrow-down]",
+  },
   { type: "separator", id: "record" },
-  { type: "action", value: "archive", label: "Archive account", icon: "icon-[mdi--archive-outline]" },
+  {
+    type: "action",
+    value: "archive",
+    label: "Archive account",
+    icon: "icon-[mdi--archive-outline]",
+  },
 ]
 
 function CustomerWorkspace() {
   const toaster = useToast()
   const [nav, setNav] = useState("customers")
+  const [localActivities, setLocalActivities] = useState(activities)
   const [firstCustomer] = customers
   const [selectedId, setSelectedId] = useState(firstCustomer?.id ?? "")
 
   const selected =
     customers.find((row) => row.id === selectedId) ?? firstCustomer
-  const customerActivities = activities.filter(
+  const customerActivities = localActivities.filter(
     (entry) => entry.customerId === selected?.id
   )
   const customerOrders = orders.filter(
@@ -116,7 +140,7 @@ function CustomerWorkspace() {
         cell: (info) => (
           <span className="flex flex-col gap-50">
             <span className="font-medium">{info.getValue<string>()}</span>
-            <span className="text-fg-secondary text-xs">
+            <span className="text-fg-secondary text-xs group-data-[selected=true]:text-inherit">
               {info.row.original.company}
             </span>
           </span>
@@ -143,29 +167,11 @@ function CustomerWorkspace() {
   }
 
   return (
-    <AdminShell
-      nav={adminNav}
-      onNavChange={setNav}
-      selectedNav={nav}
-    >
+    <AdminShell nav={adminNav} onNavChange={setNav} selectedNav={nav}>
       <Toaster />
 
       <PageHeader
-        actions={
-          <>
-            <Button
-              icon="icon-[mdi--filter-variant]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              Saved views
-            </Button>
-            <Button icon="icon-[mdi--plus]" size="sm" variant="primary">
-              New account
-            </Button>
-          </>
-        }
+        actions={<></>}
         breadcrumb={[{ label: "Home", href: "#" }, { label: "Customers" }]}
         description="Pick an account on the left; everything on the right follows the selection."
         title="Customers"
@@ -178,9 +184,16 @@ function CustomerWorkspace() {
             data={customers}
             enableGlobalFilter
             enableSorting
+            enableRowSelection
+            onRowSelectionChange={(selection) => {
+              const id = Object.keys(selection).find((key) => selection[key])
+              if (id) setSelectedId(id)
+            }}
             getRowId={(row) => row.id}
             getRowLabel={(row) => row.original.name}
             onRowClick={(row) => setSelectedId(row.original.id)}
+            rowSelection={{ [selectedId]: true }}
+            selectionMode="single"
             size="sm"
             translations={{ searchPlaceholder: "Search accounts…" }}
           />
@@ -207,11 +220,18 @@ function CustomerWorkspace() {
                 <Button
                   icon="icon-[mdi--plus]"
                   onClick={() =>
-                    toaster.create({
-                      type: "success",
-                      title: "Activity logged",
-                      description: `Added to ${selected.name}.`,
-                    })
+                    setLocalActivities((current) => [
+                      {
+                        id: crypto.randomUUID(),
+                        customerId: selected.id,
+                        kind: "note",
+                        title: "Local account review",
+                        detail:
+                          "Reviewed the account in this demo workspace. No customer was contacted.",
+                        at: "Just now",
+                      },
+                      ...current,
+                    ])
                   }
                   size="sm"
                   variant="primary"
@@ -283,7 +303,10 @@ function CustomerWorkspace() {
                 <Tabs.Indicator />
               </Tabs.List>
 
-              <Tabs.Content className="flex flex-col gap-200 p-250" value="activity">
+              <Tabs.Content
+                className="flex flex-col gap-200 p-250"
+                value="activity"
+              >
                 {customerActivities.length === 0 ? (
                   <p className="text-fg-secondary text-sm">
                     Nothing logged for this account yet.
@@ -293,7 +316,13 @@ function CustomerWorkspace() {
                     {customerActivities.map((entry) => (
                       <li className="flex gap-150" key={entry.id}>
                         <span className="mt-50 flex size-icon-control-sm shrink-0 items-center justify-center rounded-full bg-overlay text-fg-secondary">
-                          <Icon icon={activityIcons[entry.kind] ?? "icon-[mdi--note-text-outline]"} size="sm" />
+                          <Icon
+                            icon={
+                              activityIcons[entry.kind] ??
+                              "icon-[mdi--note-text-outline]"
+                            }
+                            size="sm"
+                          />
                         </span>
                         <div className="flex min-w-0 flex-col gap-50">
                           <div className="flex flex-wrap items-baseline gap-150">
@@ -314,7 +343,10 @@ function CustomerWorkspace() {
                 )}
               </Tabs.Content>
 
-              <Tabs.Content className="flex flex-col gap-150 p-250" value="orders">
+              <Tabs.Content
+                className="flex flex-col gap-150 p-250"
+                value="orders"
+              >
                 {customerOrders.length === 0 ? (
                   <p className="text-fg-secondary text-sm">
                     This account has not ordered yet.
@@ -325,7 +357,9 @@ function CustomerWorkspace() {
                       className="flex flex-wrap items-center justify-between gap-150 rounded-md border border-border-primary p-150"
                       key={order.id}
                     >
-                      <span className="font-medium text-sm">{order.number}</span>
+                      <span className="font-medium text-sm">
+                        {order.number}
+                      </span>
                       <span className="text-fg-secondary text-sm">
                         {formatDate(order.placedAt)} · {order.items} items
                       </span>
@@ -383,6 +417,25 @@ function CustomerWorkspace() {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const row = canvas.getByRole("row", { name: /Jonas/ })
+    await userEvent.click(row)
+    const heading = canvas.getByRole("heading", { name: /Jonas/ })
+    await expect(heading).toBeVisible()
+    await userEvent.click(heading)
+    await userEvent.unhover(row)
+    await expect(row).toHaveAttribute("data-selected", "true")
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Select a customer and retain a visible master-list selection while inspecting the corresponding account detail.",
+      },
+    },
+  },
+
   name: "Master–detail",
   render: () => <CustomerWorkspace />,
 }

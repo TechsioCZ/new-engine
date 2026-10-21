@@ -1,13 +1,17 @@
 /**
  * VerticalNavigation — @techsio/ui-kit molecule.
  * @component VerticalNavigation
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill vertical-navigation-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
 "use client"
 
-import * as collapsible from "@zag-js/collapsible"
+import {
+  type Props as CollapsibleProps,
+  connect,
+  machine,
+} from "@zag-js/collapsible"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import { type ComponentProps, type ElementType, useContext, useId } from "react"
 import { Button } from "../atoms/button"
@@ -154,7 +158,7 @@ export type VerticalNavigationBranchProps = Omit<
   "onChange" | "dir"
 > &
   Pick<
-    collapsible.Props,
+    CollapsibleProps,
     "open" | "defaultOpen" | "onOpenChange" | "disabled" | "getRootNode"
   > & { containsCurrent?: boolean }
 
@@ -172,7 +176,7 @@ VerticalNavigation.Branch = function VerticalNavigationBranch({
 }: VerticalNavigationBranchProps) {
   const { dir } = useVerticalNavigationContext()
   const generatedId = useId()
-  const service = useMachine(collapsible.machine, {
+  const service = useMachine(machine, {
     id: id ?? generatedId,
     dir,
     open,
@@ -181,7 +185,7 @@ VerticalNavigation.Branch = function VerticalNavigationBranch({
     disabled,
     getRootNode,
   })
-  const api = collapsible.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
   return (
     <VerticalNavigationBranchContext.Provider value={{ api, containsCurrent }}>
       <li

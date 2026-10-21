@@ -2,7 +2,7 @@
  * LinkButton — @techsio/ui-kit atom.
  *
  * @component LinkButton
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill link-button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -20,13 +20,12 @@ import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
 import { buttonVariants } from "./button"
 import { Icon, type IconProps, type IconType } from "./icon"
-import { Link } from "./link"
 
 const linkButton = tv({
   extend: buttonVariants,
-  base: "data-disabled:cursor-not-allowed",
+  base: "no-underline data-disabled:cursor-not-allowed",
   defaultVariants: {
-    size: "current",
+    size: "md",
   },
 })
 
@@ -73,11 +72,12 @@ export function LinkButton<T extends ElementType = "a">({
     | ((event: MouseEvent<Element>) => void)
     | undefined
 
+  const Component = (disabled ? "span" : as || "a") as ElementType
+
   return (
-    <Link
+    <Component
       {...props}
       aria-disabled={disabled}
-      as={as as ElementType}
       className={linkButton({
         variant,
         theme,
@@ -86,8 +86,8 @@ export function LinkButton<T extends ElementType = "a">({
         uppercase,
         className,
       })}
-      data-disabled={disabled || undefined}
-      href={href}
+      data-disabled={disabled ? "" : undefined}
+      href={disabled ? undefined : href}
       onClick={(e: MouseEvent) => {
         if (disabled) {
           e.preventDefault()
@@ -98,15 +98,16 @@ export function LinkButton<T extends ElementType = "a">({
         handleClick?.(e)
       }}
       ref={ref}
+      role={disabled ? "link" : props.role}
       tabIndex={disabled ? -1 : tabIndex}
     >
       {icon && iconPosition === "left" && (
-        <Icon icon={icon} size={iconSize ?? size} />
+        <Icon icon={icon} size={iconSize ?? "current"} />
       )}
       {children}
       {icon && iconPosition === "right" && (
-        <Icon icon={icon} size={iconSize ?? size} />
+        <Icon icon={icon} size={iconSize ?? "current"} />
       )}
-    </Link>
+    </Component>
   )
 }

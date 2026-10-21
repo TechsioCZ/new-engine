@@ -15,10 +15,12 @@ import { useState } from "react"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Button } from "../../src/atoms/button"
 import { Icon, type IconType } from "../../src/atoms/icon"
+import { StatusText } from "../../src/atoms/status-text"
 import { Tooltip } from "../../src/atoms/tooltip"
 import { Dialog } from "../../src/molecules/dialog"
 import { SearchForm } from "../../src/molecules/search-form"
 import { type TreeNode, TreeView } from "../../src/molecules/tree-view"
+import { contentEntries, customers, orders, storefrontProducts } from "./data"
 
 type FrameProps = {
   /** Full-width bar above every column. */
@@ -273,20 +275,7 @@ export function TopBar({ start, center, end }: TopBarProps) {
         <div className="flex min-w-0 flex-1 justify-center">{center}</div>
       )}
       <div className="ms-auto flex items-center gap-100">
-        {end ?? (
-          <>
-            <ActionIcon
-              aria-label="Notifications"
-              icon="icon-[mdi--bell-outline]"
-              size="md"
-            />
-            <ActionIcon
-              aria-label="Help"
-              icon="icon-[mdi--help-circle-outline]"
-              size="md"
-            />
-          </>
-        )}
+        {end ?? <DemoUtilities />}
       </div>
     </header>
   )
@@ -298,16 +287,132 @@ export function GlobalSearch({
 }: {
   placeholder?: string
 }) {
+  const [query, setQuery] = useState("")
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<string>()
+  const records = [
+    ...orders.map((order) => ({
+      id: order.id,
+      label: `${order.number} · ${order.customer}`,
+      kind: "Order",
+    })),
+    ...storefrontProducts.map((product) => ({
+      id: product.id,
+      label: product.name,
+      kind: "Product",
+    })),
+    ...customers.map((customer) => ({
+      id: customer.id,
+      label: customer.name,
+      kind: "Customer",
+    })),
+    ...contentEntries.map((entry) => ({
+      id: entry.id,
+      label: entry.title,
+      kind: "Content",
+    })),
+  ]
+  const results = query.trim()
+    ? records
+        .filter((record) =>
+          record.label
+            .toLocaleLowerCase()
+            .includes(query.trim().toLocaleLowerCase())
+        )
+        .slice(0, 8)
+    : []
   return (
-    <SearchForm className="w-full max-w-lg" size="sm">
-      <SearchForm.Control>
-        <SearchForm.Input
-          aria-label="Search the workspace"
-          placeholder={placeholder}
-        />
-        <SearchForm.Button>Search</SearchForm.Button>
-      </SearchForm.Control>
-    </SearchForm>
+    <>
+      <SearchForm
+        className="w-full max-w-lg"
+        onSubmit={() => {
+          setSelected(undefined)
+          setOpen(true)
+        }}
+        onValueChange={setQuery}
+        size="sm"
+        value={query}
+      >
+        <SearchForm.Control>
+          <SearchForm.Input
+            aria-label="Search the workspace"
+            placeholder={placeholder}
+          />
+          <SearchForm.Button>Search</SearchForm.Button>
+        </SearchForm.Control>
+      </SearchForm>
+      <Dialog
+        customTrigger
+        description="Search local sample records; no external index or live account is contacted."
+        onOpenChange={({ open: next }) => setOpen(next)}
+        open={open}
+        title="Workspace search"
+      >
+        {results.length ? (
+          <ul className="flex flex-col gap-100">
+            {results.map((record) => (
+              <li key={`${record.kind}-${record.id}`}>
+                <Button
+                  onClick={() =>
+                    setSelected(
+                      `${record.kind}: ${record.label} · ${record.id}`
+                    )
+                  }
+                  theme="borderless"
+                  variant="secondary"
+                >
+                  {record.kind} · {record.label}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <StatusText role="status">
+            {query.trim()
+              ? `No sample records match “${query}”. Try “Runner”, “Nora” or an order number.`
+              : "Enter a product, customer, order number or content title to search."}
+          </StatusText>
+        )}
+        {selected && (
+          <StatusText role="status">Record preview: {selected}</StatusText>
+        )}
+      </Dialog>
+    </>
+  )
+}
+
+export function DemoUtilities() {
+  const [panel, setPanel] = useState<"help" | "notifications" | null>(null)
+  return (
+    <>
+      <ActionIcon
+        aria-label="Notifications"
+        icon="icon-[mdi--bell-outline]"
+        onClick={() => setPanel("notifications")}
+        size="md"
+      />
+      <ActionIcon
+        aria-label="Help"
+        icon="icon-[mdi--help-circle-outline]"
+        onClick={() => setPanel("help")}
+        size="md"
+      />
+      <Dialog
+        customTrigger
+        description={
+          panel === "help"
+            ? "These examples use local state. Use the Storybook component Docs for API guidance and the navigation menu for layout patterns."
+            : "No unread notifications in this local demo. No account service was contacted."
+        }
+        onOpenChange={({ open }) => {
+          if (!open) {
+            setPanel(null)
+          }
+        }}
+        open={panel !== null}
+        title={panel === "help" ? "Workspace help" : "Notifications"}
+      />
+    </>
   )
 }
 

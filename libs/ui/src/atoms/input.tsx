@@ -2,20 +2,20 @@
  * Input — @techsio/ui-kit atom.
  *
  * @component Input
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the input-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { InputHTMLAttributes, Ref } from "react"
+import { type InputHTMLAttributes, type Ref, useId } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
 
 const inputVariants = tv({
   base: [
-    "block w-full",
+    "form-control-readonly input-readonly form-control-disabled block w-full",
     "font-input",
     "bg-input-bg-base",
     "text-input-fg",
@@ -84,37 +84,44 @@ const inputVariants = tv({
     size: "md",
     variant: "default",
     hideSearchClear: true,
-    withIconInside: false,
   },
 })
 
-export interface InputProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, "size">,
-    VariantProps<typeof inputVariants> {
-  ref?: Ref<HTMLInputElement>
-}
+export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> &
+  VariantProps<typeof inputVariants> & {
+    ref?: Ref<HTMLInputElement>
+  }
 
 export function Input({
   size,
   variant,
   disabled,
+  readOnly,
+  hideSearchClear,
+  id,
   ref,
   withButtonInside,
   className,
   ...props
 }: InputProps) {
+  const generatedId = useId()
   return (
     <input
       className={inputVariants({
         size,
         variant,
         disabled,
+        hideSearchClear: readOnly || hideSearchClear,
         withButtonInside,
         className,
       })}
+      data-readonly={readOnly ? "" : undefined}
       disabled={disabled}
+      id={id || generatedId}
+      readOnly={readOnly}
       ref={ref}
       {...props}
+      aria-invalid={variant === "error" ? true : props["aria-invalid"]}
     />
   )
 }

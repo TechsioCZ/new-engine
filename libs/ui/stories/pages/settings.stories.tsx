@@ -1,7 +1,10 @@
+import { expect, userEvent, within } from "storybook/test"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
+import { StatusText } from "../../src/atoms/status-text"
 import { Combobox } from "../../src/molecules/combobox"
 import { Dialog } from "../../src/molecules/dialog"
 import { FormInput } from "../../src/molecules/form-input"
@@ -25,12 +28,13 @@ import {
 import { PageHeader, SectionCard, StatusBadge } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/System/Settings",
   parameters: {
@@ -139,11 +143,62 @@ const currencyItems = [
   { label: "USD — US dollar", value: "USD" },
 ]
 
+function CheckoutNumberSetting({
+  id,
+  label,
+  initialValue,
+  hint,
+  onSaved,
+}: {
+  id: string
+  label: string
+  initialValue: string
+  hint: string
+  onSaved: (label: string) => void
+}) {
+  const [value, setValue] = useState(initialValue)
+  const [invalid, setInvalid] = useState(false)
+  return (
+    <FormInput
+      id={id}
+      label={label}
+      type="number"
+      min={0}
+      step={1}
+      required
+      value={value}
+      validateStatus={invalid ? "error" : "default"}
+      helpText={invalid ? "Enter a whole number of zero or more." : hint}
+      onChange={(event) => {
+        setValue(event.target.value)
+        setInvalid(false)
+      }}
+      onBlur={(event) => {
+        const valid = event.target.value !== "" && event.target.validity.valid
+        setInvalid(!valid)
+        if (valid) onSaved(`${label} saved in this demo`)
+      }}
+    />
+  )
+}
+
 function SettingsPage() {
   const toaster = useToast()
   const [nav, setNav] = useState("settings-team")
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [workspaceDeleted, setWorkspaceDeleted] = useState(false)
   const [team, setTeam] = useState(members)
+  const [removing, setRemoving] = useState<Member | null>(null)
+  const [workspaceName, setWorkspaceName] = useState("Northwind Commerce")
+  const [nameInvalid, setNameInvalid] = useState(false)
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 64rem)")
+    const update = () => setWide(media.matches)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [])
 
   const memberColumns: ColumnDef<Member, unknown>[] = [
     {
@@ -173,7 +228,25 @@ function SettingsPage() {
   ]
 
   const saved = (what: string) =>
-    toaster.create({ type: "success", title: "Settings saved", description: what })
+    toaster.create({
+      type: "success",
+      title: "Settings saved",
+      description: what,
+    })
+
+  if (workspaceDeleted)
+    return (
+      <Frame top={<TopBar />}>
+        <h1 className="font-semibold text-xl">Demo workspace deleted</h1>
+        <StatusText role="status">
+          The local example is closed. No live products, orders, customers or
+          workspace were deleted.
+        </StatusText>
+        <Button variant="secondary" onClick={() => setWorkspaceDeleted(false)}>
+          Restore demo workspace
+        </Button>
+      </Frame>
+    )
 
   return (
     <Frame
@@ -211,12 +284,13 @@ function SettingsPage() {
       />
 
       <Tabs
+        className="flex-col lg:flex-row"
         defaultValue="general"
         justify="start"
-        orientation="vertical"
+        orientation={wide ? "vertical" : "horizontal"}
         variant="line"
       >
-        <Tabs.List className="w-3xs shrink-0">
+        <Tabs.List className="w-full shrink-0 flex-wrap lg:w-3xs">
           <Tabs.Trigger value="general">General</Tabs.Trigger>
           <Tabs.Trigger value="team">Team &amp; roles</Tabs.Trigger>
           <Tabs.Trigger value="notifications">Notifications</Tabs.Trigger>
@@ -235,7 +309,17 @@ function SettingsPage() {
           >
             <div className="flex max-w-2xl flex-col gap-200">
               <FormInput
-                defaultValue="Northwind Commerce"
+                value={workspaceName}
+                onChange={(event) => {
+                  setWorkspaceName(event.target.value)
+                  setNameInvalid(false)
+                }}
+                validateStatus={nameInvalid ? "error" : "default"}
+                helpText={
+                  nameInvalid
+                    ? "Enter a workspace name before saving."
+                    : undefined
+                }
                 id="ws-name"
                 label="Workspace name"
                 required
@@ -261,7 +345,13 @@ function SettingsPage() {
               {/* Explicit-save forms end with their action: bottom-right, after the last field. */}
               <div className="flex justify-end">
                 <Button
-                  onClick={() => saved("Workspace details")}
+                  onClick={() => {
+                    if (!workspaceName.trim()) {
+                      setNameInvalid(true)
+                      return
+                    }
+                    saved("Workspace details saved in this demo")
+                  }}
                   size="sm"
                   variant="primary"
                 >
@@ -305,15 +395,7 @@ function SettingsPage() {
           value="team"
         >
           <SectionCard
-            actions={
-              <Button
-                icon="icon-[mdi--account-plus-outline]"
-                size="sm"
-                variant="primary"
-              >
-                Invite member
-              </Button>
-            }
+            actions={null}
             description="People are records, so they live in a table — searchable, sortable, with row actions."
             flush
             title="Members"
@@ -327,30 +409,12 @@ function SettingsPage() {
               getRowLabel={(row) => row.original.name}
               rowActions={[
                 {
-                  id: "role",
-                  label: "Change role",
-                  icon: "icon-[mdi--account-key-outline]",
-                  onAction: (row) =>
-                    toaster.create({
-                      type: "info",
-                      title: `Change role · ${row.original.name}`,
-                    }),
-                },
-                {
                   id: "remove",
                   label: "Remove from workspace",
                   icon: "icon-[mdi--account-remove-outline]",
                   tone: "danger",
                   disabled: (row) => row.original.role === "Owner",
-                  onAction: (row) => {
-                    setTeam((current) =>
-                      current.filter((member) => member.id !== row.original.id)
-                    )
-                    toaster.create({
-                      type: "warning",
-                      title: `Removed ${row.original.name}`,
-                    })
-                  },
+                  onAction: (row) => setRemoving(row.original),
                 },
               ]}
               size="sm"
@@ -439,7 +503,7 @@ function SettingsPage() {
           value="checkout"
         >
           <SectionCard
-            description="These settings change what shoppers see at the most sensitive moment of the funnel."
+            description="These settings change checkout. Number fields save locally when you leave the field; use non-negative values. No storefront is changed by this demo."
             title="Checkout"
           >
             <div className="flex max-w-2xl flex-col gap-200">
@@ -457,19 +521,19 @@ function SettingsPage() {
               >
                 Itemised tax
               </Switch>
-              <FormInput
-                defaultValue="50"
-                helpText="Order value in EUR above which standard delivery is free."
+              <CheckoutNumberSetting
+                initialValue="50"
+                hint="Order value in EUR above which standard delivery is free."
                 id="co-free-shipping"
                 label="Free delivery threshold"
-                type="number"
+                onSaved={saved}
               />
-              <FormInput
-                defaultValue="30"
-                helpText="Days a shopper has to start a return."
+              <CheckoutNumberSetting
+                initialValue="30"
+                hint="Days a shopper has to start a return."
                 id="co-returns"
                 label="Return window"
-                type="number"
+                onSaved={saved}
               />
             </div>
           </SectionCard>
@@ -494,9 +558,6 @@ function SettingsPage() {
                 <Badge size="sm" variant="success">
                   Active
                 </Badge>
-                <Button size="sm" theme="outlined" variant="warning">
-                  Rotate key
-                </Button>
               </div>
             </div>
           </SectionCard>
@@ -525,6 +586,36 @@ function SettingsPage() {
       </Tabs>
 
       <Dialog
+        customTrigger
+        role="alertdialog"
+        title={`Remove ${removing?.name ?? "member"}?`}
+        description="This person will lose access to this demo workspace. You can invite them again later."
+        open={removing !== null}
+        onOpenChange={({ open }) => {
+          if (!open) setRemoving(null)
+        }}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setRemoving(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (removing)
+                  setTeam((current) =>
+                    current.filter((member) => member.id !== removing.id)
+                  )
+                setRemoving(null)
+              }}
+            >
+              Remove member
+            </Button>
+          </>
+        }
+      />
+
+      <Dialog
         actions={
           <>
             <Button
@@ -537,11 +628,7 @@ function SettingsPage() {
             <Button
               onClick={() => {
                 setConfirmDelete(false)
-                toaster.create({
-                  type: "error",
-                  title: "Deletion scheduled",
-                  description: "The workspace will be removed in 30 days.",
-                })
+                setWorkspaceDeleted(true)
               }}
               variant="danger"
             >
@@ -550,7 +637,7 @@ function SettingsPage() {
           </>
         }
         customTrigger
-        description="Every product, order and customer record in Northwind Commerce will be removed. This cannot be undone."
+        description="This closes only the local demo workspace. No live products, orders or customer records will be deleted. A real workspace deletion is irreversible."
         onOpenChange={(details) => setConfirmDelete(details.open)}
         open={confirmDelete}
         role="alertdialog"
@@ -562,6 +649,57 @@ function SettingsPage() {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByLabelText(/Workspace name/)
+    await userEvent.clear(input)
+    await userEvent.click(canvas.getByRole("button", { name: "Save changes" }))
+    await expect(input).toHaveAttribute("aria-invalid", "true")
+    await expect(input).toHaveAccessibleDescription(
+      "Enter a workspace name before saving."
+    )
+    await userEvent.type(input, "Northwind Commerce")
+    await userEvent.click(canvas.getByRole("button", { name: "Save changes" }))
+    await expect(input).not.toHaveAttribute("aria-invalid", "true")
+    await userEvent.click(canvas.getByRole("tab", { name: "Team & roles" }))
+    const member = canvas.getByRole("row", { name: /Tom Hayes/ })
+    await userEvent.click(
+      within(member).getByRole("button", { name: "Remove from workspace" })
+    )
+    const dialog = within(canvasElement.ownerDocument.body).getByRole(
+      "alertdialog"
+    )
+    await expect(member).toBeInTheDocument()
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Cancel" })
+    )
+    await expect(member).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole("tab", { name: "Checkout" }))
+    const returns = canvas.getByRole("spinbutton", { name: /Return window/ })
+    await userEvent.clear(returns)
+    await userEvent.type(returns, "-5")
+    await userEvent.tab()
+    await expect(returns).toHaveAttribute("aria-invalid", "true")
+    await expect(returns).toHaveAttribute("aria-errormessage")
+    await expect(returns).toHaveAccessibleDescription(
+      "Enter a whole number of zero or more."
+    )
+    await userEvent.clear(returns)
+    await userEvent.type(returns, "30")
+    await userEvent.tab()
+    await expect(returns).not.toHaveAttribute("aria-invalid", "true")
+    await userEvent.click(canvas.getByRole("tab", { name: "General" }))
+  },
+
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Explore responsive workspace settings, validated saving and confirmed member removal using local demo state.",
+      },
+    },
+  },
+
   name: "Vertical tab navigation",
   render: () => <SettingsPage />,
 }

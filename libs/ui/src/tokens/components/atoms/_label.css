@@ -1,10 +1,6 @@
-/*
- * Label — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
- *
- * Kept here: `--font-label` (Figma doesn't yet export the `font-*`
- * shorthand needed by the `font-label` utility class on Label root).
- */
+/* Label uses --font-weight-label from Figma. Do not declare --font-label:
+ * Tailwind reserves --font-* for font families, not weights. */
 
 @theme static {
-  --font-label: var(--font-bold);
+  --spacing-label-required: var(--spacing-50);
 }

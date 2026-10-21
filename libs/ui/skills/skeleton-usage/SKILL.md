@@ -5,7 +5,7 @@ description: >
   loading placeholders using Root, Circle, Text, and Rectangle compound parts
   with token-backed variants, sizes, and animation speeds.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.0.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -187,3 +187,7 @@ rg -n "<Skeleton[^>]*className=.*(bg-|rounded-|animate-)" apps
 rg -n "<Skeleton\\.Text[^>]*noOfLines=\\{.*\\.length" apps
 rg -P -n "<Skeleton\\.Rectangle(?![^>]*className=)" apps
 ```
+
+## Shared contracts
+
+Wrap related placeholders in one `Skeleton` loading region: the root owns a single named `role="status"` with `aria-busy`, and its shapes are decorative. A standalone shape is its own loading region; use `aria-hidden="true"` when another component already supplies the loading description. The canonical Sizes story uses sm/md/lg; xl remains a legacy media-size option, not a control size.

@@ -10,3 +10,37 @@
 @utility token-icon-numeric-input-decrement {
   @apply token-icon-decrement;
 }
+
+@theme static {
+  /* Read-only reference and public component aliases. */
+  --color-numeric-input-readonly: var(--color-form-control-readonly);
+  --color-numeric-input-text-readonly: var(--color-form-control-text);
+  --color-numeric-input-bg-readonly: var(--color-numeric-input-readonly);
+  --color-numeric-input-fg-readonly: var(--color-numeric-input-text-readonly);
+
+  /* Side-by-side controls preserve the field height while meeting 24px targets. */
+  --spacing-numeric-input-trigger-min: var(--spacing-350);
+  --color-numeric-input-trigger-hover: var(--color-icon-control-bg-hover);
+  --color-numeric-input-trigger-active: var(--color-icon-control-bg-active);
+  --color-numeric-input-trigger-text: var(--color-icon-control-fg);
+  --color-numeric-input-trigger-disabled: var(--color-icon-control-fg-disabled);
+  --color-numeric-input-trigger-bg-hover: var(
+    --color-numeric-input-trigger-hover
+  );
+  --color-numeric-input-trigger-bg-active: var(
+    --color-numeric-input-trigger-active
+  );
+  --color-numeric-input-trigger-fg: var(--color-numeric-input-trigger-text);
+  --color-numeric-input-trigger-fg-disabled: var(
+    --color-numeric-input-trigger-disabled
+  );
+}
+
+/* Feed component overrides into the shared state utility on this surface. */
+@utility numeric-input-readonly {
+  --color-form-control-bg-readonly: var(--color-numeric-input-bg-readonly);
+  --color-form-control-fg-readonly: var(--color-numeric-input-fg-readonly);
+  /* The nested Input must use the number editor's aliases as well. */
+  --color-input-bg-readonly: var(--color-numeric-input-bg-readonly);
+  --color-input-fg-readonly: var(--color-numeric-input-fg-readonly);
+}

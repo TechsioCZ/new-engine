@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -40,13 +40,14 @@ const popoverVariants = tv({
   slots: {
     trigger: ["p-popover-trigger"],
     indicator: ["data-[state=open]:rotate-180"],
-    positioner: ["absolute"],
+    positioner: ["absolute", "popup-layer"],
     content: [
       "bg-popover-bg",
       "text-popover-fg",
       "rounded-popover",
       "outline-hidden",
-      "z-50",
+      "popup-layer",
+      "popover-viewport",
       "relative",
     ],
     arrow: "",
@@ -56,7 +57,7 @@ const popoverVariants = tv({
       "text-popover-description text-popover-description-fg",
       "leading-normal",
     ],
-    closeTrigger: ["absolute end-2 top-2"],
+    closeTrigger: ["absolute end-popover-close top-popover-close"],
   },
   variants: {
     shadow: {
@@ -72,15 +73,15 @@ const popoverVariants = tv({
     },
     size: {
       sm: {
-        content: "p-popover-sm text-sm",
+        content: "p-popover-sm text-popover-body-sm",
         title: "text-popover-title-sm",
       },
       md: {
-        content: "p-popover-md",
+        content: "p-popover-md text-popover-body-md",
         title: "text-popover-title-md",
       },
       lg: {
-        content: "p-popover-lg text-lg",
+        content: "p-popover-lg text-popover-body-lg",
         title: "text-popover-title-lg",
       },
     },

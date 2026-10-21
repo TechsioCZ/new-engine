@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.1.3
+ * @componentVersion v1.2.0
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,15 +13,16 @@ import { connect, machine } from "@zag-js/checkbox"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import { type ReactNode, useId } from "react"
 import { StatusText } from "../atoms/status-text"
+import { joinDescribedBy } from "../internal/described-by"
 import { tv } from "../utils"
 
 const checkboxVariants = tv({
   slots: {
     root: "flex items-center gap-form-checkbox-gap",
     control: [
-      "relative shrink-0 cursor-pointer",
-      "size-checkbox",
-      "border-(length:--border-width-checkbox) rounded-checkbox border-checkbox-border-base",
+      "form-control-readonly form-control-disabled relative shrink-0 cursor-pointer",
+
+      "border-(length:--border-width-checkbox) rounded-checkbox-control border-checkbox-border-base",
       "bg-checkbox-bg-base",
       "flex items-center justify-center",
       "transition duration-200 motion-reduce:transition-none",
@@ -41,25 +42,41 @@ const checkboxVariants = tv({
     indicator: [
       "text-checkbox-fg-checked",
       "data-[state=checked]:token-icon-checkbox",
-      "data-[state=indeterminate]:size-checkbox-indeterminate-icon",
+      "data-[state=indeterminate]:w-checkbox-indeterminate-icon",
+      "data-[state=indeterminate]:h-checkbox-indeterminate-stroke",
       "data-[state=indeterminate]:rounded-full",
       "data-[state=indeterminate]:bg-checkbox-fg-indeterminate",
       "data-disabled:text-checkbox-fg-disabled",
+      "data-disabled:data-[state=indeterminate]:bg-checkbox-fg-disabled",
+      "data-readonly:not-data-disabled:text-checkbox-fg-readonly",
+      "data-readonly:not-data-disabled:data-[state=indeterminate]:bg-checkbox-fg-readonly",
     ],
     label: [
-      "cursor-pointer select-none",
+      "cursor-pointer select-none data-readonly:not-data-disabled:cursor-default data-readonly:select-text",
       "text-label-fg",
       "data-disabled:cursor-not-allowed",
       "data-disabled:text-label-fg-disabled",
     ],
     hiddenInput: "sr-only",
-    textIndented: "data-[icon=false]:ps-form-checkbox-text-offset",
+    textIndented: "",
   },
   variants: {
     size: {
-      sm: { label: "text-label-sm" },
-      md: { label: "text-label-md" },
-      lg: { label: "text-label-lg" },
+      sm: {
+        label: "text-label-sm",
+        control: "size-form-checkbox-control-sm",
+        textIndented: "data-[icon=false]:ps-form-checkbox-description-sm",
+      },
+      md: {
+        label: "text-label-md",
+        control: "size-form-checkbox-control-md",
+        textIndented: "data-[icon=false]:ps-form-checkbox-description-md",
+      },
+      lg: {
+        label: "text-label-lg",
+        control: "size-form-checkbox-control-lg",
+        textIndented: "data-[icon=false]:ps-form-checkbox-description-lg",
+      },
     },
   },
   defaultVariants: {
@@ -111,10 +128,12 @@ export function FormCheckbox({
   const generatedId = useId()
   const uniqueId = id || generatedId
   const helpTextId = useId()
-  const describedBy =
-    [ariaDescribedBy, helpText ? helpTextId : undefined]
-      .filter(Boolean)
-      .join(" ") || undefined
+  const describedBy = joinDescribedBy(
+    ariaDescribedBy,
+    helpText ? helpTextId : undefined
+  )
+  const invalid = validateStatus === "error"
+  const showIcon = validateStatus !== "default" || showHelpTextIcon
 
   const service = useMachine(machine, {
     id: uniqueId,
@@ -128,7 +147,9 @@ export function FormCheckbox({
     readOnly,
     required,
     onCheckedChange: (details) => {
-      onCheckedChange?.(details.checked === true)
+      if (!(readOnly || disabled)) {
+        onCheckedChange?.(details.checked === true)
+      }
     },
   })
 
@@ -147,7 +168,18 @@ export function FormCheckbox({
         <input
           className={styles.hiddenInput()}
           {...api.getHiddenInputProps()}
+          aria-checked={api.indeterminate ? "mixed" : api.checked}
           aria-describedby={describedBy}
+          aria-errormessage={invalid && helpText ? helpTextId : undefined}
+          aria-invalid={invalid || undefined}
+          aria-readonly={(readOnly && !disabled) || undefined}
+          readOnly={readOnly}
+          ref={(node) => {
+            if (node) {
+              node.indeterminate = api.indeterminate
+            }
+          }}
+          type="checkbox"
         />
         {labelContent && (
           <span className={styles.label()} {...api.getLabelProps()}>
@@ -157,10 +189,10 @@ export function FormCheckbox({
         )}
       </label>
       {helpText && (
-        <div className={styles.textIndented()} data-icon={showHelpTextIcon}>
+        <div className={styles.textIndented()} data-icon={showIcon}>
           <StatusText
             id={helpTextId}
-            showIcon={showHelpTextIcon}
+            showIcon={showIcon}
             size={size}
             status={validateStatus}
           >

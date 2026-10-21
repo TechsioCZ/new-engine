@@ -16,3 +16,20 @@
   --tooltip-arrow-size: var(--spacing-tooltip-arrow);
   --tooltip-arrow-background: var(--color-tooltip-arrow);
 }
+
+@theme static {
+  --width-tooltip-max: 22rem;
+  --spacing-tooltip-viewport: var(--spacing-200);
+  --shadow-tooltip: var(--shadow-popup);
+}
+
+@utility tooltip-surface {
+  --arrow-size: var(--tooltip-arrow-size);
+  --arrow-background: var(--tooltip-arrow-background);
+  max-width: min(
+    var(--width-tooltip-max),
+    var(--available-width, 100vw),
+    calc(100vw - var(--spacing-tooltip-viewport) * 2)
+  );
+  overflow-wrap: anywhere;
+}

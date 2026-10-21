@@ -1,5 +1,14 @@
-/*
- * Link — runtime tokens come entirely from libs/ui/src/tokens/figma/variables.css.
- * The TSX itself consumes no link-specific utility classes today; the
- * tokens are exported for future styling work and direct CSS consumers.
- */
+/* Underlines provide a non-colour navigation affordance in every brand. */
+@theme static {
+  --color-link-text: var(--color-fg-primary);
+  --color-link-fg-readable: var(--color-link-text);
+  --color-link-ring: var(--color-ring-default);
+  --text-link-sm: var(--text-sm);
+  --text-link-md: var(--text-md);
+  --text-link-lg: var(--text-lg);
+}
+
+@utility link-current-size {
+  font-size: inherit;
+  line-height: inherit;
+}

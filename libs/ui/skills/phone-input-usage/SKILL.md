@@ -6,7 +6,7 @@ description: >
   hidden E.164 form value, native validation, validation status, and compound
   country picker slots.
 metadata:
-  component_version: "1.0.4"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -25,6 +25,21 @@ sources:
 
 Use PhoneInput for telephone fields. Do not compose country Select and Input
 manually.
+
+## Shared field contract
+
+Use `sm`, `md` (default), or `lg`. The prefix uses a compact, component-token
+width so the phone number retains useful space, including at large size.
+`PhoneInput.StatusText` generates a unique ID for each mounted message and merges
+all messages with the input's existing description; errors also register an
+error-message association. Error, warning and success messages keep their icons.
+The country picker mounts its own visually hidden label so its accessible name
+never points at an absent Select label.
+
+`readOnly` preserves focus, text selection/copy and the hidden form value while
+blocking both number and country mutations. The control uses the shared readonly
+surface and a text-selection cursor on the number; disabled remains the stronger state. Use a distinct “Read-only” example
+rather than treating it as disabled.
 
 ## UX/UI guidelines
 

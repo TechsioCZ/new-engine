@@ -8,6 +8,8 @@
  */
 
 @theme static {
+  --color-table-focus: var(--color-ring);
+  --color-table-ring: var(--color-table-focus);
   --padding-table-cell-sm: var(--padding-table-cell-sm-y)
     var(--padding-table-cell-sm-x);
   --padding-table-cell-md: var(--padding-table-cell-md-y)

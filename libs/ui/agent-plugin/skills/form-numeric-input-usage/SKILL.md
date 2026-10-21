@@ -5,7 +5,7 @@ description: >
   FormNumericInput for labeled numeric fields using NumericInput compound
   children, validation status, help text, and number-specific constraints.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -68,7 +68,7 @@ where actions and feedback live). This section applies them to `FormNumericInput
 Supported props:
 
 ```text
-id: required
+id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 children: NumericInput compound parts
 validateStatus: default | error | success | warning
@@ -125,21 +125,11 @@ Correct:
 
 Source: libs/ui/src/atoms/numeric-input.tsx
 
-### HIGH String value
+### Controlled string drafts
 
-Wrong:
-
-```tsx
-<FormNumericInput id="qty" label="Quantity" value="1" />
-```
-
-Correct:
-
-```tsx
-<FormNumericInput id="qty" label="Quantity" value={1} />
-```
-
-Source: libs/ui/src/atoms/numeric-input.tsx
+String values are supported when the parent must preserve empty or rejected
+drafts. Use onValueChange for text updates; the legacy onChange still receives
+a number (or NaN when cleared). Numeric values provide immediate formatting.
 
 ## Validation Commands
 
@@ -148,3 +138,21 @@ rg -U -P -n "type=\"number\"|<FormNumericInput[^>]*value=\"|<FormNumericInput(?!
 rg -P -n "<FormNumericInput(?![^>]*id=)|<FormNumericInput(?![^>]*label=)" apps
 rg -n "<FormNumericInput[^>]*className=.*(border-|text-|px-|py-|gap-)" apps
 ```
+
+## Read-only and feedback contracts
+
+Use `readOnly` for visible, focusable, copyable values that must not change.
+The value keeps full contrast and a subtle surface; disabled wins when both
+are set. Canonical sizes are sm/md/lg, default md, including labels and feedback.
+
+`helpText` renders StatusText with a stable unique ID, merged with caller
+`aria-describedby`. Errors also set `aria-invalid` and `aria-errormessage`;
+the internally generated error reference disappears when wrapper validation clears. Error/warning/success
+icons always remain enabled; `showHelpTextIcon` only customizes neutral help.
+Validate on blur/submit and use actionable copy rather than color alone.
+
+
+Caller-supplied `aria-errormessage` IDs are preserved independently of
+`validateStatus`, including when the caller supplies the invalid state. Clear
+caller-owned error IDs and invalid state together when removing that message;
+the wrapper only manages the lifecycle of its own generated error reference.

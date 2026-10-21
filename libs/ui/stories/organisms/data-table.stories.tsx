@@ -119,7 +119,9 @@ const columns: ColumnDef<Person>[] = [
 const meta = {
   title: "Organisms/DataTable",
   component: DataTable as ComponentType<DataTableProps<Person>>,
-  parameters: { layout: "padded" },
+  parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
+    docs: { description: { component: "DataTable presents structured records with sorting, filtering, selection and optional inline editing. Use it for operational lists with many rows; use Table for small static comparisons and TreeView for hierarchical navigation. Destructive application actions require confirmation or a reversible undo flow." } }, layout: "padded" },
   tags: ["autodocs"],
   argTypes: {
     variant: { control: "select", options: ["line", "outline", "striped"] },
@@ -138,6 +140,7 @@ const base = { columns, data: people }
 /* ── 1. Playground ───────────────────────────────────────────────────────── */
 
 export const Playground: Story = {
+  parameters: { docs: { description: { story: "Use the controls to explore the component in a realistic layout without leaving the preview." } } },
   args: {
     ...base,
     enableSorting: true,
@@ -153,9 +156,21 @@ export const Playground: Story = {
   },
 }
 
+export const Sizes: Story = {
+  args: { ...base, enablePagination: false },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Compare Small (sm), Medium (md) and Large (lg) with identical team records and controls." } } },
+  render: (args) => <div className="flex flex-col gap-400">
+    {(["sm", "md", "lg"] as const).map((size) => <section key={size}>
+      <h2>{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
+      <DataTable {...args} size={size} data={people.slice(0, 3)} columns={columns} caption="Team members" />
+    </section>)}
+  </div>,
+}
+
 /* ── 2. Sorting ──────────────────────────────────────────────────────────── */
 
 export const Sorting: Story = {
+  parameters: { docs: { description: { story: "Activate a column heading with a pointer or keyboard to sort the team list." } } },
   args: { ...base, enableSorting: true, onSortingChange: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -167,6 +182,7 @@ export const Sorting: Story = {
 /* ── 3. Column filters with conditions ───────────────────────────────────── */
 
 export const ColumnFiltersWithConditions: Story = {
+  parameters: { docs: { description: { story: "Combine a column value with a condition such as contains to narrow records without changing the underlying data." } } },
   args: { ...base, enableColumnFilters: true, onColumnFiltersChange: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -179,6 +195,7 @@ export const ColumnFiltersWithConditions: Story = {
 /* ── 4. Header filter template (custom slot) ─────────────────────────────── */
 
 export const HeaderFilterTemplate: Story = {
+  parameters: { docs: { description: { story: "A custom email filter keeps domain-specific input in the appropriate column rather than adding a second search surface." } } },
   args: {
     ...base,
     enableColumnFilters: true,
@@ -205,6 +222,7 @@ export const HeaderFilterTemplate: Story = {
 /* ── 5. Global fulltext search ───────────────────────────────────────────── */
 
 export const GlobalSearch: Story = {
+  parameters: { docs: { description: { story: "Search across the visible record set when the user knows a value but not which column contains it." } } },
   args: { ...base, enableGlobalFilter: true, onGlobalFilterChange: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -216,6 +234,7 @@ export const GlobalSearch: Story = {
 /* ── 5b. Toolbar: search fills the row, custom actions trail it ──────────── */
 
 export const ToolbarActions: Story = {
+  parameters: { docs: { description: { story: "Keep the main create action in the toolbar while filters remain associated with the records they affect." } } },
   args: {
     ...base,
     enableGlobalFilter: true,
@@ -268,6 +287,7 @@ export const ToolbarActions: Story = {
  * other two, so a table configured this way silently dropped its actions.
  */
 export const ToolbarActionsOnly: Story = {
+  parameters: { docs: { description: { story: "A toolbar can hold local actions without showing an unused search field." } } },
   args: {
     ...base,
     toolbarActions: [
@@ -291,6 +311,7 @@ export const ToolbarActionsOnly: Story = {
 /* ── 6. Empty state ──────────────────────────────────────────────────────── */
 
 export const EmptyState: Story = {
+  parameters: { docs: { description: { story: "An empty table explains why no records appear and offers a clear next step instead of a blank grid." } } },
   args: {
     ...base,
     data: [],
@@ -315,6 +336,7 @@ export const EmptyState: Story = {
 const onDeleteClick = fn()
 
 export const RowActions: Story = {
+  parameters: { docs: { description: { story: "Use named per-record actions so their purpose remains clear without relying on an icon alone." } } },
   args: {
     ...base,
     renderRowActions: (row) => (
@@ -337,6 +359,7 @@ export const RowActions: Story = {
 /* ── 8b. Column widths + text alignment ──────────────────────────────────── */
 
 export const ColumnWidthsAndAlignment: Story = {
+  parameters: { docs: { description: { story: "Adjust column widths and align numeric values to keep a mixed record set easy to scan." } } },
   args: {
     ...base,
     tableLayout: "fixed",
@@ -388,6 +411,7 @@ export const ColumnWidthsAndAlignment: Story = {
  * the frozen block drifts out of alignment.
  */
 export const FrozenColumnWidths: Story = {
+  parameters: { docs: { description: { story: "Explicit widths keep pinned identity columns aligned with the scrollable record data." } } },
   args: {
     ...base,
     tableLayout: "fixed",
@@ -421,6 +445,7 @@ export const FrozenColumnWidths: Story = {
 /* ── 9. Frozen columns (left + right) ────────────────────────────────────── */
 
 export const FrozenColumns: Story = {
+  parameters: { docs: { description: { story: "Pin identity and action columns to opposite edges while the remaining fields scroll horizontally." } } },
   args: {
     ...base,
     enableColumnPinning: true,
@@ -432,6 +457,7 @@ export const FrozenColumns: Story = {
 /* ── 10. Sticky header ───────────────────────────────────────────────────── */
 
 export const StickyHeader: Story = {
+  parameters: { docs: { description: { story: "A sticky header preserves column context while records scroll within a bounded region." } } },
   args: { ...base, data: bigData.slice(0, 40), stickyHeader: true, maxHeight: "300px" },
 }
 
@@ -444,6 +470,7 @@ export const StickyHeader: Story = {
  * clear both. Scroll the body to check nothing overlaps.
  */
 export const GroupedStickyHeader: Story = {
+  parameters: { docs: { description: { story: "Grouped column headings stack without covering each other while the records scroll." } } },
   args: {
     data: bigData.slice(0, 40),
     stickyHeader: true,
@@ -488,6 +515,7 @@ export const GroupedStickyHeader: Story = {
 /* ── 10b. Hidden header (headerless layout) ──────────────────────────────── */
 
 export const HiddenHeader: Story = {
+  parameters: { docs: { description: { story: "Hide visible headings only when the table context still supplies understandable column names." } } },
   args: { ...base, hideHeader: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -506,24 +534,44 @@ export const HiddenHeader: Story = {
 /* ── 11. Striped rows ────────────────────────────────────────────────────── */
 
 export const StripedRows: Story = {
+  parameters: { docs: { description: { story: "Alternating row surfaces help readers track dense records across many columns." } } },
   args: { ...base, striped: true },
 }
 
 /* ── 11b. Striped + outline (boolean composes with any variant) ──────────── */
 
 export const StripedOutlined: Story = {
+  parameters: { docs: { description: { story: "Combine a restrained outer boundary with alternating rows for a dense standalone record panel." } } },
   args: { ...base, striped: true, variant: "outline" },
 }
 
 /* ── 12. Infinite scroll / virtualization ────────────────────────────────── */
 
 export const InfiniteScrollVirtualized: Story = {
+  parameters: { docs: { description: { story: "A bounded virtualized list loads more records as you approach the end without mounting every row." } } },
   args: {
     columns,
     data: bigData,
     enableVirtualization: true,
+    caption: "Virtualized team members",
     maxHeight: "400px",
     onReachEnd: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const region = canvas.getByRole("region", { name: "Virtualized team members" })
+    await expect(region).toHaveAttribute("tabindex", "0")
+    await expect(canvas.getByRole("table")).toHaveAttribute("aria-rowcount", "501")
+    await expect(canvas.getAllByRole("row").length).toBeLessThan(100)
+    region.scrollTop = 3000
+    region.dispatchEvent(new Event("scroll"))
+    await waitFor(() => {
+      const row = canvasElement.querySelector("tbody tr[aria-rowindex]")
+      expect(Number(row?.getAttribute("aria-rowindex"))).toBeGreaterThan(2)
+    })
+    for (const spacer of canvasElement.querySelectorAll("tbody tr:not([aria-rowindex])")) {
+      await expect(spacer).toHaveAttribute("aria-hidden", "true")
+    }
   },
 }
 
@@ -538,6 +586,8 @@ export const InfiniteScrollVirtualized: Story = {
  * set `maxHeight`, which is exactly why this went unnoticed.
  */
 export const WindowScrollInfiniteLoad: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "Page-level loading uses the window scroll position instead of an unnecessary nested scrollbar." } } },
   render: () => {
     const [rows, setRows] = useState(bigData.slice(0, 30))
     return (
@@ -587,6 +637,7 @@ export const WindowScrollInfiniteLoad: Story = {
  * the accompanying dev warning.
  */
 export const VirtualizationWithoutMaxHeight: Story = {
+  parameters: { docs: { description: { story: "Without a bounded scroll region the table falls back to ordinary rows rather than silently losing records." } } },
   args: {
     columns,
     data: bigData,
@@ -624,6 +675,7 @@ const getCellSpan: DataTableGetCellSpan<Person> = (cell, { rows, rowIndex }) => 
 }
 
 export const ColSpanRowSpan: Story = {
+  parameters: { docs: { description: { story: "Merged cells communicate genuinely shared data while keeping the record structure readable." } } },
   args: {
     columns,
     // Sorted by role so equal roles are adjacent and merge vertically.
@@ -636,6 +688,7 @@ export const ColSpanRowSpan: Story = {
 /* ── 14. onRowClick ──────────────────────────────────────────────────────── */
 
 export const RowClick: Story = {
+  parameters: { docs: { description: { story: "Activate a record using the pointer, Enter or Space while preserving independent controls inside each row." } } },
   args: { ...base, onRowClick: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -647,6 +700,7 @@ export const RowClick: Story = {
 /* ── 15. Selectable rows with checkbox ───────────────────────────────────── */
 
 export const RowSelection: Story = {
+  parameters: { docs: { description: { story: "Selection checkboxes identify individual records and expose the current selected state." } } },
   args: { ...base, enableRowSelection: true, onRowSelectionChange: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -658,6 +712,7 @@ export const RowSelection: Story = {
 /* ── 16. Column reorder ──────────────────────────────────────────────────── */
 
 export const ColumnReorder: Story = {
+  parameters: { docs: { description: { story: "Drag a column grip to rearrange fields without confusing sorting with reordering." } } },
   args: { ...base, enableColumnReorder: true, onColumnReorder: fn() },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -670,6 +725,7 @@ export const ColumnReorder: Story = {
 /* ── 17. Row reorder ─────────────────────────────────────────────────────── */
 
 export const RowReorder: Story = {
+  parameters: { docs: { description: { story: "Reorder records with explicit drag handles while keeping unrelated row actions independent." } } },
   render: (args) => {
     // DataTable does not own `data`; the consumer applies the reordered array.
     const [rows, setRows] = useState(people)
@@ -696,6 +752,7 @@ export const RowReorder: Story = {
 }
 
 export const KeyboardReorder: Story = {
+  parameters: { docs: { description: { story: "Keyboard reordering announces movement so drag handles remain usable without a pointer." } } },
   tags: ["dnd-regression"],
   args: {
     ...base,
@@ -805,6 +862,7 @@ export const KeyboardReorder: Story = {
 }
 
 export const PaginatedRowReorder: Story = {
+  parameters: { docs: { description: { story: "Reordering a page updates the correct records rather than applying page-local indices to the full data set." } } },
   tags: ["dnd-regression"],
   args: {
     ...base,
@@ -852,6 +910,7 @@ export const PaginatedRowReorder: Story = {
 /* ── 18. Column visibility (show/hide) ───────────────────────────────────── */
 
 export const ColumnVisibility: Story = {
+  parameters: { docs: { description: { story: "Let readers hide optional fields without losing the identity column needed to recognize a record." } } },
   args: {
     ...base,
     enableColumnVisibility: true,
@@ -882,6 +941,7 @@ export const ColumnVisibility: Story = {
 /* ── 19. Custom cell content template ────────────────────────────────────── */
 
 export const CustomCellTemplate: Story = {
+  parameters: { docs: { description: { story: "A custom cell presents structured record content while the table still owns sorting and alignment." } } },
   args: {
     columns: [
       {
@@ -933,6 +993,7 @@ const tree: Node[] = [
 ]
 
 export const TreeStructure: Story = {
+  parameters: { docs: { description: { story: "Expandable rows reveal child records in place when hierarchy matters more than a flat list." } } },
   args: {
     columns: columns as ColumnDef<Person>[],
     data: tree,
@@ -950,6 +1011,7 @@ export const TreeStructure: Story = {
 /* ── 20a2. Tree structure with nested rows tinted by depth ───────────────── */
 
 export const TreeStructureTinted: Story = {
+  parameters: { docs: { description: { story: "A subtle depth tint reinforces nested rows without replacing their indentation and disclosure cues." } } },
   args: {
     columns: columns as ColumnDef<Person>[],
     data: tree,
@@ -974,6 +1036,7 @@ export const TreeStructureTinted: Story = {
 /* ── 20b. Master-detail: the expanded row is one free-form box ───────────── */
 
 export const ExpandedRowDetail: Story = {
+  parameters: { docs: { description: { story: "Expand a record to inspect supporting details without navigating away from the list." } } },
   args: {
     columns: columns as ColumnDef<Person>[],
     data: tree,
@@ -1051,6 +1114,7 @@ const inlineEditColumns: ColumnDef<Person>[] = [
 ]
 
 export const InlineEdit: Story = {
+  parameters: { docs: { description: { story: "Edit a record in place, then cancel or save the draft through explicit row actions." } } },
   args: {
     columns: inlineEditColumns,
     data: people,
@@ -1095,6 +1159,13 @@ export const InlineEdit: Story = {
     await expect(canvas.getByText("ada@calc.io")).toBeInTheDocument()
 
     await userEvent.clear(firstName)
+    await userEvent.click(canvas.getByLabelText("Save row"))
+    const error = canvas.getByRole("alert")
+    await expect(error).toHaveTextContent("Enter a value before saving this row.")
+    await expect(firstName).toHaveAttribute("aria-invalid", "true")
+    await expect(firstName).toHaveAttribute("aria-errormessage", error.id)
+    await expect(firstName).toHaveAccessibleDescription(error.textContent ?? "")
+    await expect(error.querySelector('[aria-hidden="true"]')).not.toBeNull()
     await userEvent.type(firstName, "Augusta")
     await userEvent.click(canvas.getByLabelText("Save row"))
 
@@ -1106,6 +1177,7 @@ export const InlineEdit: Story = {
 
 /* Cancelling restores the original values and leaves edit mode. */
 export const InlineEditCancel: Story = {
+  parameters: { docs: { description: { story: "Cancel an inline draft without changing the original record." } } },
   args: {
     columns: inlineEditColumns,
     data: people,
@@ -1132,6 +1204,7 @@ export const InlineEditCancel: Story = {
 
 /* Always-live cell editor via `meta.updateData`, without the row edit flow. */
 export const InlineEditCustomCell: Story = {
+  parameters: { docs: { description: { story: "A custom editor uses the same draft and commit contract as the built-in field editors." } } },
   args: {
     columns: [
       { accessorKey: "firstName", header: "First name" },
@@ -1159,6 +1232,7 @@ export const InlineEditCustomCell: Story = {
 /* ── 22. Pagination ──────────────────────────────────────────────────────── */
 
 export const Pagination: Story = {
+  parameters: { docs: { description: { story: "Page controls preserve a manageable record set and announce the current range." } } },
   args: {
     columns,
     data: bigData,
@@ -1252,7 +1326,7 @@ const typedColumns: ColumnDef<Employee>[] = [
       type: "number",
       align: "end",
       editable: true,
-      validate: (v) => (Number(v) < 0 ? "Must be positive" : undefined),
+      validate: (v) => (Number(v) < 0 ? "Enter a salary of zero or more." : undefined),
     },
   },
   {
@@ -1280,6 +1354,7 @@ const typedMeta = {
 } satisfies Partial<DataTableProps<Employee>>
 
 export const TypedColumnFilters: EmployeeStory = {
+  parameters: { docs: { description: { story: "Column-type-specific filters match the input to the value being queried." } } },
   args: {
     ...typedMeta,
     enableColumnFilters: true,
@@ -1306,6 +1381,7 @@ export const TypedColumnFilters: EmployeeStory = {
  * matcher reads as plain text.
  */
 export const DeprecatedFilterVariant: Story = {
+  parameters: { docs: { description: { story: "Legacy filter configuration remains supported while new examples use the current column metadata." } } },
   args: {
     columns: [
       { accessorKey: "firstName", header: "First name" },
@@ -1336,6 +1412,7 @@ export const DeprecatedFilterVariant: Story = {
 /* ── 24. Custom filter template for a non-standard column type ───────────── */
 
 export const CustomFilterTemplate: EmployeeStory = {
+  parameters: { docs: { description: { story: "A custom filter integrates domain-specific options without replacing the table layout." } } },
   args: {
     ...typedMeta,
     columns: [
@@ -1399,6 +1476,7 @@ export const CustomFilterTemplate: EmployeeStory = {
 /* ── 25. Inline edit driven by column type + sticky actions ──────────────── */
 
 export const InlineEditByColumnType: EmployeeStory = {
+  parameters: { docs: { description: { story: "Text, number and choice editors share the same row draft and save behavior." } } },
   args: {
     ...typedMeta,
     enableInlineEdit: true,
@@ -1422,6 +1500,7 @@ export const InlineEditByColumnType: EmployeeStory = {
 /* ── 26. Edit mode locks filtering, selection and sorting ────────────────── */
 
 export const EditModeLocksInteractions: EmployeeStory = {
+  parameters: { docs: { description: { story: "Lock conflicting record interactions while a row draft is active to avoid accidental changes." } } },
   args: {
     ...typedMeta,
     enableInlineEdit: true,
@@ -1450,7 +1529,8 @@ export const EditModeLocksInteractions: EmployeeStory = {
 
 /* ── 27. Size propagates to every nested control ─────────────────────────── */
 
-export const SizeSynchronised: EmployeeStory = {
+export const LargeFieldAlignment: EmployeeStory = {
+  parameters: { docs: { description: { story: "Large table cells, filters and inline editors stay aligned because their size is inherited consistently." } } },
   args: {
     ...typedMeta,
     size: "lg",
@@ -1460,11 +1540,27 @@ export const SizeSynchronised: EmployeeStory = {
     enablePagination: true,
     pageSizeOptions: [2, 5],
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getAllByLabelText("Edit row 0")[0] as HTMLElement)
+    const salary = canvas.getByRole("spinbutton", { name: "Edit Salary" })
+    await expect(salary).toHaveValue("5200")
+    const style = getComputedStyle(salary)
+    const valueWidth = salary.getBoundingClientRect().width - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight)
+    await expect(valueWidth).toBeGreaterThan(80)
+    await expect(canvasElement.querySelector(".switch-size-lg")).not.toBeNull()
+    salary.scrollIntoView({ block: "nearest", inline: "center" })
+    salary.focus()
+    const rect = salary.getBoundingClientRect()
+    const surface = canvasElement.ownerDocument.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+    await expect(surface).toBe(salary)
+  },
 }
 
 /* ── 28. Single-row selection ────────────────────────────────────────────── */
 
 export const SingleRowSelection: Story = {
+  parameters: { docs: { description: { story: "Single-selection mode replaces the previous selection instead of accumulating records." } } },
   args: {
     ...base,
     enableRowSelection: true,
@@ -1486,6 +1582,7 @@ export const SingleRowSelection: Story = {
 /* ── 29. Capped selection (max 2 rows) ───────────────────────────────────── */
 
 export const MaxTwoRowsSelectable: Story = {
+  parameters: { docs: { description: { story: "A selection limit gives feedback before an action could exceed the allowed record count." } } },
   args: {
     ...base,
     enableRowSelection: true,
@@ -1510,6 +1607,7 @@ export const MaxTwoRowsSelectable: Story = {
 /* ── 30. Custom selectability rule ───────────────────────────────────────── */
 
 export const ConditionalRowSelection: Story = {
+  parameters: { docs: { description: { story: "Record-specific eligibility prevents selection when an action is not available for that record." } } },
   args: {
     ...base,
     enableRowSelection: true,
@@ -1530,6 +1628,7 @@ const onArchive = fn()
 const onDelete = fn()
 
 export const PerRowActionPermissions: Story = {
+  parameters: { docs: { description: { story: "Permission-dependent row actions are hidden or disabled with a meaningful record context." } } },
   args: {
     ...base,
     enableInlineEdit: true,
@@ -1574,6 +1673,7 @@ export const PerRowActionPermissions: Story = {
 /* ── 32. Loading skeletons ───────────────────────────────────────────────── */
 
 export const LoadingSkeletons: Story = {
+  parameters: { docs: { description: { story: "Loading rows preserve the table layout and remain visible in light and dark themes while records are fetched." } } },
   args: { ...base, loading: true, loadingRowCount: 6, enableSorting: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -1586,6 +1686,7 @@ export const LoadingSkeletons: Story = {
 /* ── 33. Loading more (infinite scroll footer) ───────────────────────────── */
 
 export const LoadingMore: Story = {
+  parameters: { docs: { description: { story: "An appended skeleton row keeps existing records visible while another page is fetched." } } },
   args: {
     columns,
     data: people,
@@ -1598,6 +1699,7 @@ export const LoadingMore: Story = {
 /* ── 34. Drag affordances ────────────────────────────────────────────────── */
 
 export const DragAffordances: Story = {
+  parameters: { docs: { description: { story: "Reorder grips separate drag interaction from links, selection and record actions." } } },
   args: {
     ...base,
     enableColumnReorder: true,
@@ -1620,6 +1722,7 @@ export const DragAffordances: Story = {
 /* ── 35. Accessibility semantics ─────────────────────────────────────────── */
 
 export const AccessibleSemantics: Story = {
+  parameters: { docs: { description: { story: "Native table headings, record labels and selection controls expose the list to assistive technology." } } },
   args: {
     ...base,
     enableSorting: true,
@@ -1646,5 +1749,55 @@ export const AccessibleSemantics: Story = {
     row.focus()
     await userEvent.keyboard("{Enter}")
     await expect(args.onRowClick).toHaveBeenCalled()
+  },
+}
+
+export const KeyboardColumnResize: Story = {
+  args: { ...base, enableColumnResizing: true, enablePagination: false },
+  parameters: { docs: { description: { story: "Focus a column edge and use Left/Right to resize, Shift for larger steps and Enter to restore its default width." } } },
+  play: async ({ canvasElement }) => {
+    const handle = within(canvasElement).getByRole("button", { name: "Resize First name" })
+    const header = handle.closest("th")!
+    const initial = header.getBoundingClientRect().width
+    handle.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(header.getBoundingClientRect().width).toBeGreaterThan(initial)
+    await userEvent.keyboard("{Enter}")
+    await expect(header.getBoundingClientRect().width).toBeCloseTo(initial, 0)
+    await expect(handle).toHaveFocus()
+  },
+}
+
+
+export const EditorValidation: EmployeeStory = {
+  parameters: { docs: { description: { story: "Required choices and approval errors stay next to their editor, with state icons and associated messages on the actual focus target." } } },
+  args: {
+    data: [{ ...employees[0] as Employee, department: "", skills: [], active: false }],
+    columns: typedColumns.slice(0, 4).map((column) => ({
+      ...column,
+      meta: {
+        ...column.meta,
+        required: true,
+        validate: column.id === "active" || ("accessorKey" in column && column.accessorKey === "active")
+          ? (value) => value ? undefined : "Confirm the employee is active before saving."
+          : undefined,
+      },
+    })),
+    enableInlineEdit: true,
+    size: "lg",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByLabelText("Edit row 0"))
+    await userEvent.click(canvas.getByLabelText("Save row"))
+    for (const label of ["Edit Department", "Edit Skills", "Edit Active"]) {
+      const field = canvas.getByRole(label === "Edit Active" ? "switch" : "combobox", { name: label })
+      await expect(field).toHaveAttribute("aria-invalid", "true")
+      const errorId = field.getAttribute("aria-errormessage")
+      const error = errorId ? canvasElement.ownerDocument.getElementById(errorId) : null
+      await expect(error).not.toBeNull()
+      await expect(field.getAttribute("aria-describedby")?.split(" ")).toContain(errorId)
+      await expect(error?.querySelector('[aria-hidden="true"]')).not.toBeNull()
+    }
   },
 }

@@ -1,3 +1,4 @@
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -36,10 +37,18 @@ import {
 } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Customers",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -83,7 +92,7 @@ function duplicatesOf(customer: AkCustomer, all: AkCustomer[]) {
   return all.filter(
     (entry) =>
       entry.duplicateGroup === customer.duplicateGroup &&
-      entry.id !== customer.id
+      entry.id !== customer.id,
   )
 }
 
@@ -102,7 +111,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
   const history = akOrders.filter((order) => order.email === selected?.email)
   const carts = akCarts.filter(
     (cart) =>
-      cart.customer === selected?.name || cart.customer === selected?.company
+      cart.customer === selected?.name || cart.customer === selected?.company,
   )
 
   const columns = useMemo<ColumnDef<AkCustomer, unknown>[]>(
@@ -147,7 +156,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
         cell: (info) => czk.format(info.getValue<number>()),
       },
     ],
-    []
+    [],
   )
 
   if (!selected) {
@@ -166,8 +175,8 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
               dic: `CZ${ico}`,
               priceList,
             }
-          : entry
-      )
+          : entry,
+      ),
     )
     setUpgrading(false)
     toaster.create({
@@ -182,15 +191,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
       <Toaster />
 
       <PageHeader
-        actions={
-          <Button
-            icon="icon-[mdi--account-plus-outline]"
-            size="sm"
-            variant="primary"
-          >
-            New customer
-          </Button>
-        }
+        actions={null}
         breadcrumb={[{ label: "Home", href: "#" }, { label: "Customers" }]}
         description="Search by name, email, phone, IČO or company."
         title="Customers"
@@ -215,11 +216,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
         <div className="flex flex-col gap-250 xl:col-span-3">
           {duplicates.length > 0 && (
             <Notice
-              action={
-                <Button size="sm" theme="outlined" variant="secondary">
-                  Review duplicates
-                </Button>
-              }
+              action={null}
               title={`Looks like ${duplicates.length} other account belongs to the same person`}
               tone="warning"
             >
@@ -265,7 +262,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
               <StatCard
                 label="Average order"
                 value={czk.format(
-                  Math.round(selected.revenue / selected.orders)
+                  Math.round(selected.revenue / selected.orders),
                 )}
               />
               <StatCard label="Last order" value={selected.lastOrder} />
@@ -484,7 +481,7 @@ function DuplicatesPage() {
                 <Button
                   onClick={() => {
                     setGroups((current) =>
-                      current.filter(([id]) => id !== group)
+                      current.filter(([id]) => id !== group),
                     )
                     toaster.create({
                       type: "info",
@@ -501,7 +498,7 @@ function DuplicatesPage() {
                   icon="icon-[mdi--merge]"
                   onClick={() => {
                     setGroups((current) =>
-                      current.filter(([id]) => id !== group)
+                      current.filter(([id]) => id !== group),
                     )
                     toaster.create({
                       type: "success",
@@ -558,6 +555,15 @@ function DuplicatesPage() {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in customers to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Search & account detail",
   render: () => <CustomersPage />,
 }

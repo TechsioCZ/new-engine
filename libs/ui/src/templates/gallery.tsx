@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit template.
  *
  * @component Gallery
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,10 +11,7 @@
  */
 import type { ElementType, ReactNode } from "react"
 import type { IconType } from "../atoms/icon"
-import {
-  Carousel,
-  type CarouselRootProps,
-} from "../molecules/carousel"
+import { Carousel, type CarouselRootProps } from "../molecules/carousel"
 import {
   Gallery,
   type GalleryItem,

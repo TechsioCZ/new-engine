@@ -404,3 +404,17 @@ on press. Every button state now passes in all six modes.
 
 VerticalNavigation: `group-bg-subtle` → `vertical-navigation/surface` and `group-bg-accent` →
 `vertical-navigation/accent-light`, as on master. Both shipped in the 2026-10-12 09:45 export.
+
+## Wave 2 integration handoff — 2026-10-21
+
+- Business: bind both `color/fg/on-primary-solid` and
+  `color/fg/on-primary-solid-neo` to `color/white` on solid-primary surfaces.
+  The settled runtime Business primary-500 is dark blue, not the reported
+  lighter blue: white measures 5.48:1; the old first alias resolved to dark ink.
+  Preserve the primary-600/700 hover/active backgrounds and verify each pair.
+  The correction lives in `_foundation-overrides.css`; generated Figma CSS is
+  unchanged. Reconcile these aliases in Figma before removing the bridge.
+- VerticalNavigation: add canonical Large with the shared lg control height,
+  popup-item padding, button typography and control-icon size. Align Medium
+  to the shared md height/type rather than the legacy fixed 36px density.
+  Mirror aliases, not copied literal values, and retain subordinate section labels.
