@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -45,6 +45,8 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
 const fileUploadStyles = tv({
@@ -207,27 +209,21 @@ export function FileUpload({
 }: FileUploadProps) {
   const generatedId = useId()
   const probeRef = useRef<HTMLInputElement>(null)
-  const [inheritedDisabled, setInheritedDisabled] = useState(false)
-  const disabled = Boolean(explicitDisabled || inheritedDisabled)
+  const [disabledElement, setDisabledElement] =
+    useState<HTMLInputElement | null>(null)
+  const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
+  const disabledRef = useMemo(
+    () => (node: HTMLInputElement | null) => {
+      probeRef.current = node
+      setDisabledElement(node)
+    },
+    []
+  )
   const [processingError, setProcessingError] = useState<string>()
-  useLayoutEffect(() => {
-    const probe = probeRef.current
-    if (!probe) {
-      return
-    }
-    const update = () => setInheritedDisabled(probe.matches(":disabled"))
-    update()
-    const observer = new MutationObserver(update)
-    observer.observe(probe.ownerDocument.documentElement, {
-      attributes: true,
-      subtree: true,
-      attributeFilter: ["disabled"],
-      childList: true,
-    })
-    return () => observer.disconnect()
-  }, [])
   // Keep the commit boundary controlled: Zag may finish an asynchronous
   // transform after the interaction that started it has become read-only.
+  const initialFiles = useRef(defaultAcceptedFiles ?? [])
+  const resetting = useRef(false)
   const committedFiles = useRef(acceptedFiles ?? defaultAcceptedFiles ?? [])
   if (acceptedFiles !== undefined) {
     committedFiles.current = acceptedFiles
@@ -463,7 +459,7 @@ export function FileUpload({
     minFileSize,
     name,
     onFileAccept: (details) => {
-      if (!interaction.current.blocked) {
+      if (!(resetting.current || interaction.current.blocked)) {
         mutationProposal.current = details.files
         if (acceptedFiles === undefined) {
           committedFiles.current = details.files
@@ -472,7 +468,7 @@ export function FileUpload({
       }
     },
     onFileChange: (details) => {
-      if (interaction.current.blocked) {
+      if (resetting.current || interaction.current.blocked) {
         return
       }
       onFileChange?.({
@@ -482,7 +478,7 @@ export function FileUpload({
       })
     },
     onFileReject: (details) => {
-      if (!interaction.current.blocked) {
+      if (!(resetting.current || interaction.current.blocked)) {
         onFileReject?.(details)
       }
     },
@@ -510,9 +506,23 @@ export function FileUpload({
       value={{
         api,
         resetFiles: () => {
-          api.clearFiles()
-          api.setFiles(defaultAcceptedFiles ?? [])
-          return service.context.get("acceptedFiles")
+          resetting.current = true
+          try {
+            // Reset restores form state; it is not a user mutation and must
+            // work even while disabled/read-only. Do not revalidate defaults
+            // or route them through guarded/async upload actions.
+            service.context.set("rejectedFiles", [])
+            const files = acceptedFiles ?? initialFiles.current
+            if (acceptedFiles === undefined) {
+              service.context.set("acceptedFiles", files)
+            }
+            committedFiles.current = files
+            mutationProposal.current = undefined
+            setProcessingError(undefined)
+            return files
+          } finally {
+            resetting.current = false
+          }
         },
         cancelPendingFiles: () => {
           interaction.current.epoch += 1
@@ -538,7 +548,7 @@ export function FileUpload({
             : undefined
         }
       >
-        <input disabled={explicitDisabled} ref={probeRef} type="hidden" />
+        <input ref={disabledRef} type="hidden" />
         {children}
         {processingError && (
           <FileUpload.StatusText size={size} status="error">
@@ -724,24 +734,17 @@ FileUpload.HiddenInput = function FileUploadHiddenInput({
     }
   }
   useLayoutEffect(syncSubmission)
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    cancelPendingFiles()
+    syncSubmission(resetFiles())
+  }
   useEffect(() => {
-    const form = submissionRef.current?.form
-    if (!form) {
-      return
-    }
-    const reset = (event: Event) => {
-      // Browser-dispatched events can flush microtasks between listeners. Wait
-      // until the entire dispatch finishes so later listeners can cancel reset.
-      setTimeout(() => {
-        if (!event.defaultPrevented) {
-          cancelPendingFiles()
-          syncSubmission(resetFiles())
-        }
-      })
-    }
-    form.addEventListener("reset", reset)
-    return () => form.removeEventListener("reset", reset)
-  })
+    const input = submissionRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
 
   return (
     <>

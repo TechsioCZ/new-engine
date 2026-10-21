@@ -6,13 +6,18 @@ description: >
   hidden E.164 form value, native validation, validation status, and compound
   country picker slots.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux select-usage app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/phone-input.tsx libs/ui/src/tokens/components/molecules/_phone-input.css libs/ui/stories/molecules/phone-input.stories.tsx"
+  sources: ""
+  contributor_sources: "libs/ui/src/molecules/phone-input.tsx libs/ui/src/tokens/components/molecules/_phone-input.css libs/ui/stories/molecules/phone-input.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit PhoneInput Usage
 
@@ -158,9 +163,9 @@ Source: libs/ui/src/tokens/components/molecules/_phone-input.css
 ## Validation Commands
 
 ```sh
-rg -n "type=\"tel\"|<PhoneInput\\b(?!\\.)[^>]*className=.*(border-|bg-|text-|p-)" apps
+rg -P -n "type=\"tel\"|<PhoneInput\\b(?!\\.)[^>]*className=.*(border-|bg-|text-|p-)" apps
 rg -U -P -n "<PhoneInput\\b(?!\\.)(?![\\s\\S]{0,600}<PhoneInput\\.Input)" apps
-rg -n "<PhoneInput\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
+rg -P -n "<PhoneInput\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
 
 ### Editing, reset and refs

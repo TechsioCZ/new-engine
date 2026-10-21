@@ -11,12 +11,15 @@
  *
  * Copies every skill directory except `_artifacts`, refuses to overwrite the
  * plugin's own authored workflow skills on a name collision. Each SKILL.md is
- * converted to the portable Agent Skills frontmatter on the way
- * (see lib/skill-frontmatter.mjs); every other file is copied byte-for-byte.
+ * converted to portable frontmatter, relative resources and audience scope on the way
+ * (see lib/skill-frontmatter.mjs); every other skill file is copied byte-for-byte.
+ * Required contracts/rules are bundled in references/; authored workflows retain their
+ * bodies while generated prerequisite metadata is refreshed.
  */
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -25,7 +28,13 @@ import {
 } from "node:fs"
 import { dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { AUTHORED_SKILLS, toPortableSkill } from "./lib/skill-frontmatter.mjs"
+import {
+  AUTHORED_SKILLS,
+  BUNDLED_RESOURCES,
+  toAuthoredPortableSkill,
+  toPortableResource,
+  toPortableSkill,
+} from "./lib/skill-frontmatter.mjs"
 
 const pluginDir = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const srcDir = resolve(pluginDir, "../skills") // libs/ui/skills
@@ -60,6 +69,35 @@ const entries = readdirSync(srcDir, { withFileTypes: true })
   .map((e) => e.name)
 
 const stale = []
+// Bundle resources before skill conversion; --check compares without writing.
+for (const resource of BUNDLED_RESOURCES) {
+  const from = resolve(pluginDir, "..", resource.source)
+  const to = resolve(pluginDir, resource.path)
+  const expected = Buffer.from(
+    toPortableResource(readFileSync(from, "utf8"), resource.path)
+  )
+  if (check) {
+    if (!(existsSync(to) && expected.equals(readFileSync(to)))) {
+      stale.push(resource.path)
+    }
+  } else {
+    mkdirSync(dirname(to), { recursive: true })
+    writeFileSync(to, expected)
+  }
+}
+// Never replace authored workflow bodies with deep-skill source bodies.
+for (const name of AUTHORED_SKILLS) {
+  const file = join(destDir, name, "SKILL.md")
+  const current = readFileSync(file, "utf8")
+  const expected = toAuthoredPortableSkill(current, name)
+  if (check) {
+    if (current !== expected) {
+      stale.push(`${name} (authored prerequisites)`)
+    }
+  } else if (current !== expected) {
+    writeFileSync(file, expected)
+  }
+}
 for (const name of entries) {
   if (AUTHORED_SKILLS.has(name)) {
     console.error(

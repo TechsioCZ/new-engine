@@ -11,8 +11,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/organisms/footer.tsx libs/ui/src/tokens/components/organisms/_footer.css libs/ui/stories/organisms/footer.stories.tsx"
+  sources: ""
+  contributor_sources: "libs/ui/src/organisms/footer.tsx libs/ui/src/tokens/components/organisms/_footer.css libs/ui/stories/organisms/footer.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Footer Usage
 

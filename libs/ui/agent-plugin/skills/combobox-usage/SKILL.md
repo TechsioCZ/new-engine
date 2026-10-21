@@ -5,13 +5,18 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.5.0"
+  component_version: "1.6.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/combobox.tsx libs/ui/src/tokens/components/molecules/_combobox.css libs/ui/stories/molecules/combobox.stories.tsx libs/ui/src/molecules/combobox.figma.ts https://zagjs.com/components/react/combobox"
+  sources: "https://zagjs.com/components/react/combobox"
+  contributor_sources: "libs/ui/src/molecules/combobox.tsx libs/ui/src/tokens/components/molecules/_combobox.css libs/ui/stories/molecules/combobox.stories.tsx libs/ui/src/molecules/combobox.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Combobox Usage
 

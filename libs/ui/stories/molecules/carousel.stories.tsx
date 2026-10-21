@@ -69,7 +69,9 @@ const meta: Meta<StoryArgs> = {
     docs: {
       source: {
         transform: (source: string) =>
-          source.includes('import { Carousel } from "@techsio/ui-kit/molecules/carousel"')
+          source.includes(
+            'import { Carousel } from "@techsio/ui-kit/molecules/carousel"'
+          )
             ? source
             : `import { Carousel } from "@techsio/ui-kit/molecules/carousel"\n\n${source}`,
       },
@@ -328,10 +330,9 @@ export const VerticalWide: Story = {
     })
     await userEvent.click(next)
     await waitFor(() =>
-      expect(canvas.getAllByRole("button", { name: /Go to slide/ })[1]).toHaveAttribute(
-        "aria-current",
-        "true"
-      )
+      expect(
+        canvas.getAllByRole("button", { name: /Go to slide/ })[1]
+      ).toHaveAttribute("aria-current", "true")
     )
   },
 }
@@ -580,5 +581,69 @@ export const VerticalMinimalControls: Story = {
           "Minimal up/down arrows sit at opposite ends of the vertical viewport and remain visible without a navigation rail.",
       },
     },
+  },
+}
+
+export const NativeMediaFallbacks: Story = {
+  render: () => (
+    <Carousel
+      slideCount={3}
+      size="full"
+      objectFit="contain"
+      aria-label="Native media fallback examples"
+    >
+      <Carousel.Slides
+        slides={[
+          {
+            id: "failed",
+            src: "data:image/png;base64,invalid",
+            alt: "Runner low side view",
+            imageProps: { width: 400, height: 300 },
+          },
+          {
+            id: "missing",
+            src: "",
+            alt: "Runner low sole view",
+            imageProps: { width: 400, height: 300 },
+          },
+          {
+            id: "loaded",
+            src: new URL("../../assets/gallery/shoes-1.avif", import.meta.url)
+              .href,
+            alt: "Runner low front view",
+            imageProps: { width: 400, height: 300 },
+          },
+        ]}
+      />
+      <Carousel.Control controlPosition="unset">
+        <Carousel.Previous />
+        <Carousel.Indicators />
+        <Carousel.Next />
+      </Carousel.Control>
+    </Carousel>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Native failed and missing sources use the same reserved fallback as adapters. The third slide demonstrates loaded media; contain fitting reaches the actual image through the media wrapper.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const media = canvasElement.querySelectorAll("[data-image-state]")
+    await waitFor(() =>
+      expect(media[0]).toHaveAttribute("data-image-state", "error")
+    )
+    await expect(media[1]).toHaveAttribute("data-image-state", "error")
+    await waitFor(() =>
+      expect(media[2]).toHaveAttribute("data-image-state", "loaded")
+    )
+    for (const item of media) {
+      await expect(getComputedStyle(item.querySelector("img")!).objectFit).toBe(
+        "contain"
+      )
+      await expect(item.getBoundingClientRect().height).toBeGreaterThan(0)
+    }
   },
 }

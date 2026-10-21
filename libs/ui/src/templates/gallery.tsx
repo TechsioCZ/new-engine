@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit template.
  *
  * @component Gallery
- * @componentVersion v1.0.4
+ * @componentVersion v1.1.0
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -177,7 +177,7 @@ export function GalleryTemplate<T extends ElementType = "img">({
               )}
             </Carousel.Control>
           )}
-          {showAutoplay && (
+          {(Boolean(autoplay) || showAutoplay) && (
             <Carousel.Autoplay className={autoplayTriggerClassName} />
           )}
         </Gallery.Carousel>

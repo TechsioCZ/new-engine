@@ -2,7 +2,7 @@
  * Drawer - @techsio/ui-kit molecule.
  *
  * @component Drawer
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill drawer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -37,7 +37,7 @@ import {
   type DrawerSize,
   drawerVariants,
 } from "../internal/molecules/drawer.styles"
-import { OverlayContainerProvider } from "./dialog"
+import { OverlayContainerProvider } from "../internal/overlay-portal"
 
 export type {
   DrawerApi,

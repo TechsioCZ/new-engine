@@ -5,13 +5,18 @@ description: >
   Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect
   ratio, object fit, and framework image adapters.
 metadata:
-  component_version: "1.3.2"
+  component_version: "1.3.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration zag-compound-components app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/carousel.tsx libs/ui/src/tokens/components/molecules/_carousel.css libs/ui/stories/molecules/carousel.stories.tsx libs/ui/src/molecules/carousel.figma.ts https://zagjs.com/components/react/carousel"
+  sources: "https://zagjs.com/components/react/carousel"
+  contributor_sources: "libs/ui/src/molecules/carousel.tsx libs/ui/src/tokens/components/molecules/_carousel.css libs/ui/stories/molecules/carousel.stories.tsx libs/ui/src/molecules/carousel.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Carousel Usage
 

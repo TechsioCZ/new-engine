@@ -5,7 +5,7 @@ description: >
   prominent single-choice cards with Zag.js radio behavior, label, item,
   hidden input, control, text, description, addon, indicator, and status text.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -130,6 +130,49 @@ Each item should include `RadioCard.ItemHiddenInput` for form behavior.
 ### Use StatusText part for field status
 
 Use `RadioCard.StatusText` instead of external paragraphs for validation.
+
+## Focus refs and cancellation-safe native forms
+
+The root `ref` is a container ref. Focus an option with
+`RadioCard.ItemHiddenInput ref?: Ref<HTMLInputElement>` — despite the part's
+name, this is the native focusable radio, not a `type="hidden"` submission
+proxy. Its `onFocus`, `onBlur` and keyboard observers compose with machine
+handlers; consumer cancellation is respected. Keep `RadioCard.ItemHiddenInput`
+inside every item and preserve the normal radio tab/arrow-key pattern.
+
+```tsx
+import { useRef, useState } from "react"
+import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"
+
+function DeliveryChoice() {
+  const firstOption = useRef<HTMLInputElement>(null)
+  const [value, setValue] = useState<string | null>("standard")
+  return <RadioCard name="delivery" value={value} onValueChange={setValue}>
+    <RadioCard.Label>Delivery</RadioCard.Label>
+    <RadioCard.Item value="standard">
+      <RadioCard.ItemHiddenInput ref={firstOption} />
+      <RadioCard.ItemControl>
+        <RadioCard.ItemContent>
+          <RadioCard.ItemText>Standard delivery</RadioCard.ItemText>
+        </RadioCard.ItemContent>
+        <RadioCard.ItemIndicator />
+      </RadioCard.ItemControl>
+    </RadioCard.Item>
+  </RadioCard>
+}
+```
+
+Native owner reset follows the radio's actual form association, including
+external-owner ID changes/reassociation. Canceling native or React `onReset`
+preserves the current choice; accepted uncontrolled reset restores the initial
+default after cancellation has settled. Controlled `value` stays parent-owned,
+including when a proposal is rejected; app-owned reset explicitly updates that
+state. Reset does not synthesize input activation or move focus. Nested native
+disabled fieldsets and their first-legend exceptions apply; read-only remains
+focusable and submitted. Object refs and React 19 callback cleanup are supported.
+If an actively focused option is removed/disabled, recovery chooses a surviving
+enabled focus target without changing selection; updates never steal outside
+focus.
 
 ## Common Mistakes
 

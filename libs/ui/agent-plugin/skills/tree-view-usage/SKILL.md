@@ -11,8 +11,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/tree-view.tsx libs/ui/src/tokens/components/molecules/_tree-view.css libs/ui/stories/molecules/tree-view.stories.tsx libs/ui/src/molecules/tree-view.figma.ts https://zagjs.com/components/react/tree-view"
+  sources: "https://zagjs.com/components/react/tree-view"
+  contributor_sources: "libs/ui/src/molecules/tree-view.tsx libs/ui/src/tokens/components/molecules/_tree-view.css libs/ui/stories/molecules/tree-view.stories.tsx libs/ui/src/molecules/tree-view.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit TreeView Usage
 

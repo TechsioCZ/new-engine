@@ -10,8 +10,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux drawer-usage app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/organisms/sidebar.tsx libs/ui/src/internal/organisms/sidebar.context.tsx libs/ui/src/internal/organisms/sidebar.focus.ts libs/ui/src/internal/organisms/sidebar.styles.ts libs/ui/src/tokens/components/organisms/_sidebar.css libs/ui/stories/organisms/sidebar.stories.tsx"
+  sources: ""
+  contributor_sources: "libs/ui/src/organisms/sidebar.tsx libs/ui/src/internal/organisms/sidebar.context.tsx libs/ui/src/internal/organisms/sidebar.focus.ts libs/ui/src/internal/organisms/sidebar.styles.ts libs/ui/src/tokens/components/organisms/_sidebar.css libs/ui/stories/organisms/sidebar.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # Sidebar Usage
 

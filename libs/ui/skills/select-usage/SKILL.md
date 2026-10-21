@@ -6,7 +6,7 @@ description: >
   trigger, value text, clear trigger, item groups, item indicators, validation
   status, size, and multiple mode.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -166,9 +166,9 @@ Source: libs/ui/src/tokens/components/molecules/_select.css
 ## Validation Commands
 
 ```sh
-rg -n "<select\\b|<Select\\b(?!\\.)[^>]*value=\"|<Select\\.Trigger[^>]*className=.*(border-|bg-|p-|text-)" apps
+rg -P -n "<select\\b|<Select\\b(?!\\.)[^>]*value=\"|<Select\\.Trigger[^>]*className=.*(border-|bg-|p-|text-)" apps
 rg -U -P -n "<Select\\b(?!\\.)(?![\\s\\S]{0,700}<Select\\.Item)" apps
-rg -n "<Select\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
+rg -P -n "<Select\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
 
 ## Field contracts

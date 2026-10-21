@@ -1,7 +1,7 @@
 /**
  * VerticalNavigation — @techsio/ui-kit molecule.
  * @component VerticalNavigation
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill vertical-navigation-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -143,6 +143,7 @@ VerticalNavigation.Link = function VerticalNavigationLink<
       {...(props as LinkButtonProps<T>)}
       aria-current={current ? "page" : undefined}
       className={verticalNavigationStyles({ size }).link({ className })}
+      composition={true}
       data-current={current || undefined}
       data-current-path={branch?.containsCurrent || undefined}
       data-part="link"
@@ -212,11 +213,13 @@ VerticalNavigation.BranchTrigger = function VerticalNavigationBranchTrigger({
   ...props
 }: VerticalNavigationBranchTriggerProps) {
   const { size } = useVerticalNavigationContext()
-  const { api } = useVerticalNavigationBranchContext()
+  const { api, containsCurrent } = useVerticalNavigationBranchContext()
   return (
     <Button
       {...mergeProps(props, api.getTriggerProps())}
       className={verticalNavigationStyles({ size }).trigger({ className })}
+      composition={true}
+      data-current-path={containsCurrent || undefined}
       data-part="branch-trigger"
       data-scope="vertical-navigation"
       disabled={disabled || api.disabled}

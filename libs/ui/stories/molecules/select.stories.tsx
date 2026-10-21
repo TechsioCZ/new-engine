@@ -57,8 +57,58 @@ const meta: Meta<typeof Select> = {
     layout: "padded",
     docs: {
       description: {
-        component:
-          "Choose one or more values from a known list with a keyboard-accessible popup. Compose the parts under Select (there is no Select.Root). Use SelectTemplate for a props-only API, Combobox for searchable lists, RadioGroup for a few visible choices, or CascadeSelect for a hierarchy. Canonical sizes are sm/md/lg; legacy xs remains supported.",
+        component: `Choose one or more values from a known list with a keyboard-accessible popup. Use SelectTemplate for a props-only API, Combobox for searchable lists, RadioGroup for a few visible choices, or CascadeSelect for a hierarchy. Canonical sizes are sm/md/lg; legacy xs remains supported.
+
+### Compound member reference
+
+| Member | Contract and rendered/ref target |
+| --- | --- |
+| \`Select\` | Root provider and layout \`div\` (root \`ref\`); accepts required \`items\` collection. There is no \`Select.Root\`. |
+| \`Select.Label\` | Visible \`label\` associated with the trigger; keep it under Select. |
+| \`Select.Control\` | Layout \`div\`; contains Trigger and optional sibling ClearTrigger, never nest ClearTrigger inside the trigger button. |
+| \`Select.Trigger\` | Focusable \`button\` / \`HTMLButtonElement\` ref. Caller \`aria-labelledby\` wins; an explicit \`aria-label\` omits the generated label reference. |
+| \`Select.ValueText\` | \`span\` / \`HTMLSpanElement\` ref inside Trigger; displays selected items or \`placeholder\`, not an editable input. |
+| \`Select.ClearTrigger\` | Optional clear \`button\` / \`HTMLButtonElement\` ref; sibling of Trigger. |
+| \`Select.Positioner\` | Floating layout \`div\` / \`HTMLDivElement\` ref wrapping Content; \`portalled={false}\` keeps it inline. |
+| \`Select.Content\` | Listbox \`ul\` / \`HTMLUListElement\` ref containing options. Keep under Positioner. |
+| \`Select.Item\` | Option \`li\` / \`HTMLLIElement\` ref; required \`item\` must belong to the root's \`items\`. Contains ItemText and optional ItemIndicator. |
+| \`Select.ItemText\` / \`Select.ItemIndicator\` | Presentational text/indicator \`span\` parts inside Item. ItemText defaults to its item's label. |
+| \`Select.ItemGroup\` / \`Select.ItemGroupLabel\` | Optional grouped-option \`div\` parts; use matching \`id\` / \`htmlFor\` to name the group. |
+| \`Select.StatusText\` | Helper/validation feedback registered with the trigger's description. |
+| Hidden native select | Automatically rendered by Select, not a public \`Select.HiddenInput\` member. Root \`name\`, \`form\`, \`required\`, \`multiple\` and disabled state govern native submission. |
+
+\`value\` / \`defaultValue\` are arrays of item \`value\` strings, even in single-select mode. Every selected value must exist in \`items\`; use \`onValueChange={({ value }) => ...}\` for controlled state. Rich labels need \`displayValue\` for native text/typeahead. Preserve this nesting:
+
+\`\`\`tsx
+import { Select } from "@techsio/ui-kit/molecules/select"
+
+const items = [{ label: "Canada", value: "ca" }];
+
+export function CountryExample() {
+  return (
+    <Select items={items} defaultValue={["ca"]} name="country">
+      <Select.Label>Country</Select.Label>
+      <Select.Control>
+        <Select.Trigger>
+          <Select.ValueText placeholder="Select a country" />
+        </Select.Trigger>
+        <Select.ClearTrigger />
+      </Select.Control>
+      <Select.Positioner>
+        <Select.Content>
+          {items.map((item) => (
+            <Select.Item key={item.value} item={item}>
+              <Select.ItemText />
+              <Select.ItemIndicator />
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select.Positioner>
+    </Select>
+  )
+}
+\`\`\`
+`,
       },
     },
   },

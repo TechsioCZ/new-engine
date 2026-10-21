@@ -2,7 +2,7 @@
  * Checkbox — @techsio/ui-kit atom.
  *
  * @component Checkbox
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,153 +10,15 @@
  * the checkbox-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
-  type ComponentPropsWithRef,
   type InputHTMLAttributes,
   type Ref,
   useLayoutEffect,
+  useMemo,
   useRef,
 } from "react"
+import { useChoiceInputRef } from "../internal/choice-control"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { tv } from "../utils"
-
-/** @internal Keep React responsible for native restoration after rejected proposals. */
-export function getControlledChoiceInputProps(
-  props: ComponentPropsWithRef<"input">,
-  checked: boolean,
-  indeterminate?: boolean
-): ComponentPropsWithRef<"input"> {
-  const { defaultChecked: _defaultChecked, ...inputProps } = props
-  return {
-    ...inputProps,
-    checked,
-    onChange(event) {
-      // Native activation clears the mixed property even when checked is refused.
-      if (indeterminate !== undefined) {
-        event.currentTarget.indeterminate = indeterminate
-      }
-      props.onChange?.(event)
-    },
-  }
-}
-
-/** @internal Form association and deferred reset shared by choice controls. */
-export function trackChoiceFormControl(
-  root: HTMLElement | null,
-  onReset: () => void,
-  onDisabled: (disabled: boolean) => void
-) {
-  if (!root) {
-    return
-  }
-  let owner: HTMLFormElement | null = null
-  let active = true
-  const reset = (event: Event) => {
-    // Reset listeners run before the native default action and before later
-    // listeners can cancel it. Never activate an input to synchronize a reset.
-    queueMicrotask(() => {
-      if (active && !event.defaultPrevented) {
-        onReset()
-      }
-    })
-  }
-  const updateOwner = () => {
-    const form = root.querySelector<HTMLInputElement>("input")?.form ?? null
-    if (owner === form) {
-      return
-    }
-    owner?.removeEventListener("reset", reset)
-    owner = form
-    owner?.addEventListener("reset", reset)
-  }
-  updateOwner()
-  const observer = new MutationObserver(updateOwner)
-  observer.observe(root, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["form"],
-  })
-  const fieldset = root.closest("fieldset")
-  const disabledObserver = new MutationObserver(() =>
-    onDisabled(!!fieldset?.disabled)
-  )
-  if (fieldset) {
-    onDisabled(fieldset.disabled)
-    disabledObserver.observe(fieldset, {
-      attributes: true,
-      attributeFilter: ["disabled"],
-    })
-  }
-  return () => {
-    active = false
-    owner?.removeEventListener("reset", reset)
-    observer.disconnect()
-    disabledObserver.disconnect()
-  }
-}
-
-/** @internal Recover focus, not selection, when a focused choice is invalidated. */
-export function useChoiceFocusRecovery(selector = 'input[type="radio"]') {
-  const rootRef = useRef<HTMLDivElement>(null)
-  useLayoutEffect(() => {
-    const root = rootRef.current
-    if (!root) {
-      return
-    }
-    const doc = root.ownerDocument
-    let focused: HTMLElement | null = null
-    let previous: HTMLElement[] = []
-    const inputs = () =>
-      Array.from(root.querySelectorAll<HTMLElement>(selector))
-    const isEnabled = (input: HTMLElement) =>
-      !input.matches(
-        ":disabled, [aria-disabled=true], [data-disabled]:not([data-disabled=false])"
-      )
-    const recordFocus = () => {
-      const current = inputs()
-      focused = current.find((input) => input === doc.activeElement) ?? null
-      previous = current
-    }
-    recordFocus()
-    doc.addEventListener("focusin", recordFocus)
-    const observer = new MutationObserver(() => {
-      if (!focused) {
-        return
-      }
-      if (focused.isConnected && isEnabled(focused)) {
-        previous = inputs()
-        return
-      }
-      if (doc.activeElement !== doc.body && doc.activeElement !== focused) {
-        focused = null
-        return
-      }
-      const current = inputs()
-      const enabled = current.filter(isEnabled)
-      const index = previous.indexOf(focused)
-      const next =
-        previous.slice(index + 1).find((input) => enabled.includes(input)) ??
-        previous
-          .slice(0, index)
-          .reverse()
-          .find((input) => enabled.includes(input)) ??
-        enabled[Math.min(index, enabled.length - 1)]
-      focused = null
-      const target = next ?? root
-      target.focus({ preventScroll: true })
-    })
-    observer.observe(root, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["disabled", "aria-disabled", "data-disabled"],
-    })
-    return () => {
-      doc.removeEventListener("focusin", recordFocus)
-      observer.disconnect()
-    }
-  }, [selector])
-  return rootRef
-}
 
 const checkboxVariants = tv({
   base: [
@@ -223,24 +85,44 @@ export function Checkbox({
   onKeyDown,
   ...props
 }: CheckboxProps) {
-  const setIndeterminate = (node: HTMLInputElement | null) => {
-    if (node) {
-      node.indeterminate = indeterminate ?? false
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const currentValue = useRef({ checked: props.checked, indeterminate })
+  useLayoutEffect(() => {
+    currentValue.current = { checked: props.checked, indeterminate }
+  })
+  const choiceRef = useChoiceInputRef(ref, indeterminate ?? false)
+  const setInputRef = useMemo(
+    () => (node: HTMLInputElement | null) => {
+      inputRef.current = node
+      const cleanup = choiceRef(node)
+      return () => {
+        inputRef.current = null
+        cleanup()
+      }
+    },
+    [choiceRef]
+  )
+  useLayoutEffect(() => {
+    const input = inputRef.current
+    if (!input) {
+      return
     }
-    if (typeof ref === "function") {
-      return ref(node)
-    }
-    if (ref) {
-      ref.current = node
-    }
-  }
+    return subscribeOwnerFormReset(input, () => {
+      // Native reset bypasses React's controlled change restoration. Restore the
+      // latest parent value without synthesizing a change or moving focus.
+      // Assign even for uncontrolled inputs: native reset bypasses React's
+      // checked tracker, otherwise the next identical activation loses onChange.
+      input.checked = currentValue.current.checked ?? input.checked
+      input.indeterminate = currentValue.current.indeterminate ?? false
+    })
+  }, [])
 
   return (
     <input
       aria-invalid={invalid || undefined}
       className={checkboxVariants({ size, className })}
       data-invalid={invalid || undefined}
-      ref={setIndeterminate}
+      ref={setInputRef}
       type="checkbox"
       {...props}
       aria-readonly={(readOnly && !props.disabled) || undefined}

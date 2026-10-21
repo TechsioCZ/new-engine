@@ -5,7 +5,7 @@ import {
   parseZonedDateTime,
 } from "@internationalized/date"
 import type { Meta, StoryObj } from "@storybook/react"
-import { type ComponentType, type ReactNode, useRef, useState } from "react"
+import { type ComponentType, type ReactNode, useId, useRef, useState } from "react"
 import {
   expect,
   fireEvent,
@@ -1556,4 +1556,143 @@ function FieldRegressionExample() {
       <output aria-label="Last accepted date">{last}</output>
     </div>
   )
+}
+
+
+function NativeResetDates() {
+  const id = useId()
+  const [owner, setOwner] = useState("a")
+  const [controlled, setControlled] = useState<CalendarDate | null>(
+    new CalendarDate(2026, 10, 25)
+  )
+  const form = `${id}-${owner}`
+  const dateRange = [
+    new CalendarDate(2026, 10, 20),
+    new CalendarDate(2026, 10, 22),
+  ] as const
+  const timedRange = [
+    new CalendarDateTime(2026, 10, 20, 14, 30),
+    new CalendarDateTime(2026, 10, 22, 16, 45),
+  ] as const
+  return (
+    <div className="flex w-full min-w-0 max-w-xl flex-col gap-200">
+      <form aria-label="Date owner a" id={`${id}-a`} />
+      <form aria-label="Date owner b" id={`${id}-b`} />
+      <DateOnlyField
+        label="Reset date"
+        name="date"
+        form={form}
+        defaultValue={dateRange[0]}
+      />
+      <TimedField
+        label="Reset date time"
+        name="time"
+        form={form}
+        granularity="minute"
+        defaultValue={timedRange[0]}
+      />
+      <DateRangeField
+        label="Reset date range"
+        startName="start"
+        endName="end"
+        form={form}
+        defaultValue={dateRange}
+      />
+      <TimedRangeField
+        label="Reset timed range"
+        startName="timedStart"
+        endName="timedEnd"
+        form={form}
+        granularity="minute"
+        defaultValue={timedRange}
+      />
+      <DateOnlyField
+        label="Controlled reset date"
+        name="controlled"
+        form={form}
+        value={controlled}
+        onValueChange={({ value }) => setControlled(value)}
+      />
+      <Button
+        variant="secondary"
+        onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
+      >
+        Move date owner
+      </Button>
+    </div>
+  )
+}
+
+export const NativeResetContracts: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Accepted resets restore initial date, clock and range values, cancel popup drafts, preserve controlled authority, and follow external form reassociation.",
+      },
+    },
+  },
+  render: () => <NativeResetDates />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const formA = canvas.getByRole("form", {
+      name: "Date owner a",
+    }) as HTMLFormElement
+    const formB = canvas.getByRole("form", {
+      name: "Date owner b",
+    }) as HTMLFormElement
+    const snapshot = (form: HTMLFormElement) =>
+      Array.from(new FormData(form).entries())
+    const initial = snapshot(formA)
+    for (const root of canvasElement.querySelectorAll<HTMLElement>(
+      "[data-granularity]"
+    )) {
+      await userEvent.click(
+        root.querySelector<HTMLElement>('[data-part="clear-trigger"]')!
+      )
+    }
+    const cleared = snapshot(formA)
+    await expect(cleared.every(([, value]) => value === "")).toBe(true)
+    formA.addEventListener("reset", (event) => event.preventDefault(), {
+      once: true,
+    })
+    formA.reset()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    await expect(snapshot(formA)).toEqual(cleared)
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Move date owner" })
+    )
+    formA.reset()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    await expect(snapshot(formB)).toEqual(cleared)
+    const timed =
+      canvasElement.querySelectorAll<HTMLElement>("[data-granularity]")[3]!
+    await userEvent.click(
+      timed.querySelector<HTMLElement>('[data-part="trigger"]')!
+    )
+    await waitFor(() =>
+      expect(
+        within(canvasElement.ownerDocument.body).getByRole("button", {
+          name: "Confirm",
+        })
+      ).toBeVisible()
+    )
+    formB.reset()
+    await waitFor(() =>
+      expect(snapshot(formB)).toEqual(
+        initial.map(([name, value]) => [
+          name,
+          name === "controlled" ? "" : value,
+        ])
+      )
+    )
+    await waitFor(() =>
+      expect(
+        within(canvasElement.ownerDocument.body).queryByRole("button", {
+          name: "Confirm",
+        })
+      ).not.toBeInTheDocument()
+    )
+  },
 }

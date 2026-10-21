@@ -10,8 +10,13 @@ metadata:
   component: "PriceBlock"
   component_version: "1.0.1"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/price-block.tsx libs/ui/src/tokens/components/molecules/_price-block.css libs/ui/stories/molecules/price-block.stories.tsx libs/ui/docs/price-availability-figma-handoff.md"
+  sources: ""
+  contributor_sources: "libs/ui/src/molecules/price-block.tsx libs/ui/src/tokens/components/molecules/_price-block.css libs/ui/stories/molecules/price-block.stories.tsx libs/ui/docs/price-availability-figma-handoff.md"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit PriceBlock Usage
 

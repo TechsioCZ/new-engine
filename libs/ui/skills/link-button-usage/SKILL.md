@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit LinkButton, including framework link adapters, href, disabled
   state, icons, and Button-compatible variants/themes/sizes.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

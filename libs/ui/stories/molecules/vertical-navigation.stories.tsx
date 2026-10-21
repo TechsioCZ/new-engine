@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type MouseEvent, useState } from "react"
-import { fn } from "storybook/test"
+import { expect, fn, userEvent, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { StatusText } from "../../src/atoms/status-text"
 import { Button } from "../../src/atoms/button"
@@ -116,17 +116,62 @@ function CategoryNavigation({
   )
 }
 
-function NavigationStory(args: NavigationStoryProps) {
+const playgroundSource = `import { type MouseEvent, useState } from "react"
+import { VerticalNavigation } from "@techsio/ui-kit/molecules/vertical-navigation"
+
+export function ProductNavigation() {
+  const [current, setCurrent] = useState("Bolts")
+  const [open, setOpen] = useState(true)
+  function navigate(event: MouseEvent<HTMLAnchorElement>, label: string) {
+    event.preventDefault()
+    setCurrent(label)
+  }
   return (
-    <div data-navigation-story="">
-      <CategoryNavigation {...args} />
+    <div className="flex min-w-0 flex-col gap-200" data-navigation-story="">
+      <VerticalNavigation aria-label="Product categories" dir="ltr" size="md">
+        <VerticalNavigation.Group>
+          <VerticalNavigation.GroupLabel>Catalog</VerticalNavigation.GroupLabel>
+          <VerticalNavigation.List>
+            <VerticalNavigation.Item>
+              <VerticalNavigation.Link current={current === "All products"} href="#all-products" onClick={(event) => navigate(event, "All products")}>
+                All products
+              </VerticalNavigation.Link>
+            </VerticalNavigation.Item>
+            <VerticalNavigation.Branch containsCurrent={["Bolts", "Nuts"].includes(current)} open={open} onOpenChange={(details) => setOpen(details.open)}>
+              <VerticalNavigation.Row>
+                <VerticalNavigation.Link current={current === "Fasteners"} href="#fasteners" onClick={(event) => navigate(event, "Fasteners")}>
+                  Fasteners
+                </VerticalNavigation.Link>
+                <VerticalNavigation.BranchTrigger aria-label="Toggle Fasteners">
+                  <VerticalNavigation.BranchIndicator />
+                </VerticalNavigation.BranchTrigger>
+              </VerticalNavigation.Row>
+              <VerticalNavigation.BranchContent indent showGuide={false} tone="subtle" variant="primary">
+                <VerticalNavigation.List>
+                  {["Bolts", "Nuts"].map((label) => (
+                    <VerticalNavigation.Item key={label}>
+                      <VerticalNavigation.Link current={current === label} href={\`#\${label.toLowerCase()}\`} onClick={(event) => navigate(event, label)}>
+                        {label}
+                      </VerticalNavigation.Link>
+                    </VerticalNavigation.Item>
+                  ))}
+                </VerticalNavigation.List>
+              </VerticalNavigation.BranchContent>
+            </VerticalNavigation.Branch>
+          </VerticalNavigation.List>
+        </VerticalNavigation.Group>
+      </VerticalNavigation>
+      <p className="sr-only" data-testid="current-page" role="status">Current page: {current}</p>
     </div>
   )
-}
+}`
 
 const meta = {
   title: "Molecules/VerticalNavigation",
-  component: NavigationStory,
+  component: VerticalNavigation,
+  render: (args) => (
+    <div data-navigation-story=""><CategoryNavigation {...args} /></div>
+  ),
   tags: ["autodocs"],
   parameters: {
     controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
@@ -163,7 +208,7 @@ const meta = {
     showGuide: false,
     dir: "ltr",
   },
-} satisfies Meta<typeof NavigationStory>
+} satisfies Meta<NavigationStoryProps>
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -474,7 +519,74 @@ function AkrosCatalogExample() {
 }
 
 export const Playground: Story = {
-  parameters: { docs: { description: { story: "Use the controls to explore the component in a realistic layout without leaving the preview." } } },}
+  parameters: {
+    docs: {
+      source: { code: playgroundSource, language: "tsx", type: "code" },
+      description: { story: "Control current-page selection and branch disclosure independently without leaving the preview; subgroup controls change the nested surface only." },
+    },
+  },
+  render: function NavigationPlayground({ size, dir, tone, variant, indent, showGuide }: NavigationStoryProps) {
+  const [current, setCurrent] = useState("Bolts")
+  const [open, setOpen] = useState(true)
+  function navigate(event: MouseEvent<HTMLAnchorElement>, label: string) {
+    event.preventDefault()
+    setCurrent(label)
+  }
+  return (
+    <div className="flex min-w-0 flex-col gap-200" data-navigation-story="">
+      <VerticalNavigation aria-label="Product categories" dir={dir} size={size}>
+        <VerticalNavigation.Group>
+          <VerticalNavigation.GroupLabel>Catalog</VerticalNavigation.GroupLabel>
+          <VerticalNavigation.List>
+            <VerticalNavigation.Item>
+              <VerticalNavigation.Link current={current === "All products"} href="#all-products" onClick={(event) => navigate(event, "All products")}>
+                All products
+              </VerticalNavigation.Link>
+            </VerticalNavigation.Item>
+            <VerticalNavigation.Branch containsCurrent={["Bolts", "Nuts"].includes(current)} open={open} onOpenChange={(details) => setOpen(details.open)}>
+              <VerticalNavigation.Row>
+                <VerticalNavigation.Link current={current === "Fasteners"} href="#fasteners" onClick={(event) => navigate(event, "Fasteners")}>
+                  Fasteners
+                </VerticalNavigation.Link>
+                <VerticalNavigation.BranchTrigger aria-label="Toggle Fasteners">
+                  <VerticalNavigation.BranchIndicator />
+                </VerticalNavigation.BranchTrigger>
+              </VerticalNavigation.Row>
+              <VerticalNavigation.BranchContent indent={indent} showGuide={showGuide} tone={tone} variant={variant}>
+                <VerticalNavigation.List>
+                  {["Bolts", "Nuts"].map((label) => (
+                    <VerticalNavigation.Item key={label}>
+                      <VerticalNavigation.Link current={current === label} href={`#${label.toLowerCase()}`} onClick={(event) => navigate(event, label)}>
+                        {label}
+                      </VerticalNavigation.Link>
+                    </VerticalNavigation.Item>
+                  ))}
+                </VerticalNavigation.List>
+              </VerticalNavigation.BranchContent>
+            </VerticalNavigation.Branch>
+          </VerticalNavigation.List>
+        </VerticalNavigation.Group>
+      </VerticalNavigation>
+      <p className="sr-only" data-testid="current-page" role="status">Current page: {current}</p>
+    </div>
+  )
+},
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const before = canvasElement.ownerDocument.location.href
+    const trigger = canvas.getByRole("button", { name: "Toggle Fasteners" })
+    await userEvent.click(canvas.getByRole("link", { name: "Nuts" }))
+    await expect(canvas.getByRole("link", { name: "Nuts" })).toHaveAttribute("aria-current", "page")
+    await userEvent.click(trigger)
+    await expect(trigger).toHaveAttribute("aria-expanded", "false")
+    await expect(canvas.queryByRole("link", { name: "Nuts" })).not.toBeInTheDocument()
+    trigger.focus()
+    await userEvent.keyboard("{Enter}")
+    await expect(trigger).toHaveAttribute("aria-expanded", "true")
+    await expect(canvas.getByRole("link", { name: "Nuts" })).toHaveAttribute("aria-current", "page")
+    await expect(canvasElement.ownerDocument.location.href).toBe(before)
+  },
+}
 
 export const Variants: Story = {
   parameters: {

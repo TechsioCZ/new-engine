@@ -20,17 +20,42 @@ const meta: Meta<typeof Accordion> = {
     },
   },
   argTypes: {
-    size: { description: "Scales trigger text, spacing and indicators together.", control: "inline-radio", options: ["sm", "md", "lg"] },
-    shadow: { description: "Elevation around the disclosure group; none suits embedded sections.", control: "inline-radio", options: ["none", "sm", "md"] },
+    size: {
+      description: "Scales trigger text, spacing and indicators together.",
+      control: "inline-radio",
+      options: ["sm", "md", "lg"],
+    },
+    shadow: {
+      description:
+        "Elevation around the disclosure group; none suits embedded sections.",
+      control: "inline-radio",
+      options: ["none", "sm", "md"],
+    },
     variant: {
-      description: "Default uses a surface; borderless removes dividers; child inherits the surrounding surface.",
+      description:
+        "Default uses a surface; borderless removes dividers; child inherits the surrounding surface.",
       control: "inline-radio",
       options: ["default", "borderless", "child"],
     },
-    multiple: { description: "Allow several answers to stay open independently.", control: "boolean" },
-    collapsible: { description: "Allow every answer to close, including the last open panel.", control: "boolean" },
-    disabled: { description: "Make all disclosure triggers unavailable.", control: "boolean" },
-    dir: { description: "Mirror the logical layout and keyboard direction for right-to-left content.", control: "inline-radio", options: ["ltr", "rtl"] },
+    multiple: {
+      description: "Allow several answers to stay open independently.",
+      control: "boolean",
+    },
+    collapsible: {
+      description:
+        "Allow every answer to close, including the last open panel.",
+      control: "boolean",
+    },
+    disabled: {
+      description: "Make all disclosure triggers unavailable.",
+      control: "boolean",
+    },
+    dir: {
+      description:
+        "Mirror the logical layout and keyboard direction for right-to-left content.",
+      control: "inline-radio",
+      options: ["ltr", "rtl"],
+    },
   },
   args: {
     size: "md",
@@ -100,6 +125,60 @@ function Questions({
 export const Playground: Story = {
   parameters: {
     docs: {
+      source: {
+        type: "code",
+        language: "tsx",
+        code: `import { Accordion } from "@techsio/ui-kit/molecules/accordion"
+
+const questions = [
+  {
+    value: "delivery",
+    title: "When will my order arrive?",
+    subtitle: "Delivery and tracking",
+    content:
+      "Orders leave our warehouse within two business days. Standard delivery takes another three to five business days; a tracking link is emailed as soon as your parcel ships.",
+  },
+  {
+    value: "returns",
+    title: "Can I return an item?",
+    content:
+      "You can return unused items in their original packaging within 30 days of delivery. Start a return from your order details and we will guide you through the next steps.",
+  },
+  {
+    value: "collection",
+    title: "Can I collect from the warehouse?",
+    subtitle: "Unavailable during warehouse maintenance",
+    content: "Collection will resume after warehouse maintenance is complete.",
+    disabled: true,
+  },
+]
+
+export function DeliveryFAQ() {
+  return (
+    <Accordion
+      defaultValue={["delivery"]}
+      size="md"
+      shadow="none"
+      variant="default"
+      multiple={false}
+      collapsible
+    >
+      {questions.map((question) => (
+        <Accordion.Item key={question.value} value={question.value} disabled={question.disabled}>
+          <Accordion.Header>
+            <Accordion.Title>
+              {question.title}
+              {question.subtitle && <Accordion.Subtitle>{question.subtitle}</Accordion.Subtitle>}
+            </Accordion.Title>
+            <Accordion.Indicator />
+          </Accordion.Header>
+          <Accordion.Content>{question.content}</Accordion.Content>
+        </Accordion.Item>
+      ))}
+    </Accordion>
+  )
+}`,
+      },
       description: {
         story:
           "Explore a delivery FAQ with an open answer and an explained unavailable option to compare panel hierarchy and disclosure behavior.",

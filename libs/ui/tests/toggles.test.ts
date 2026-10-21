@@ -1,13 +1,11 @@
 import { type ChangeEvent, createElement as h } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
-import {
-  Checkbox,
-  type CheckboxProps,
-  getControlledChoiceInputProps,
-} from "../src/atoms/checkbox"
+import { Checkbox, type CheckboxProps } from "../src/atoms/checkbox"
 import { Rating } from "../src/atoms/rating"
+import { getControlledChoiceInputProps } from "../src/internal/choice-control"
 import { FormCheckbox } from "../src/molecules/form-checkbox"
+import { Switch } from "../src/molecules/switch"
 
 const INPUT_TAG = /<input\b[^>]*>/
 const GROUP_TAG = /<div\b[^>]*role="radiogroup"[^>]*>/
@@ -99,3 +97,39 @@ it.each([
     expect(html.match(INPUT_TAG)?.[0]).toContain(value)
   }
 )
+
+it.each(["checkbox", "switch"])(
+  "routes explicit native names and omits unmounted label references for %s",
+  (component) => {
+    const props = {
+      "aria-label": "Explicit toggle",
+      "aria-describedby": "caller-help",
+      helpText: "Additional guidance",
+      inputProps: { "aria-describedby": "native-help", title: "Native title" },
+    }
+    const html = renderToStaticMarkup(
+      component === "checkbox" ? h(FormCheckbox, props) : h(Switch, props)
+    )
+    const input = html.match(INPUT_TAG)?.[0]
+    expect(input).toContain('aria-label="Explicit toggle"')
+    expect(input).not.toContain("aria-labelledby=")
+    expect(input).toContain("caller-help native-help")
+    expect(input).toContain('title="Native title"')
+  }
+)
+
+it("separates aggregate display from focusable read-only form ratings", () => {
+  const aggregate = renderToStaticMarkup(
+    h(Rating, { displayOnly: true, value: 4.6, labelText: "Average" })
+  )
+  expect(aggregate).toContain('role="img"')
+  expect(aggregate).toContain('aria-label="Average: 4.6 out of 5"')
+  expect(aggregate).not.toContain('tabindex="0"')
+  expect(aggregate).not.toContain("<input")
+  const formValue = renderToStaticMarkup(
+    h(Rating, { readOnly: true, value: 4, name: "saved" })
+  )
+  expect(formValue).toContain('role="radiogroup"')
+  expect(formValue).toContain('tabindex="0"')
+  expect(formValue).toContain('name="saved"')
+})

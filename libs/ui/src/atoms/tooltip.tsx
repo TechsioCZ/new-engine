@@ -2,7 +2,7 @@
  * Tooltip — @techsio/ui-kit atom.
  *
  * @component Tooltip
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill tooltip-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,7 +30,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { joinDescribedBy } from "../internal/described-by"
-import { OverlayPortal as Portal } from "../molecules/dialog"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { tv } from "../utils"
 
 const tooltipVariants = tv({

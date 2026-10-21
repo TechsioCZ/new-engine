@@ -1,5 +1,7 @@
 import { checkSwitchThumbContrast } from "./switch-contrast"
 import { ChoiceContract, checkChoiceContract } from "./choice-contract"
+import { useMemo, useRef, useState } from "react"
+import { Button } from "../../src/atoms/button"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useArgs } from "storybook/preview-api"
 import { expect, fn, userEvent, within } from "storybook/test"
@@ -228,4 +230,55 @@ export const ThumbVisibility: Story = {
     </Switch>)))}
   </div>,
   play: async ({ canvasElement }) => checkSwitchThumbContrast(canvasElement),
+}
+
+const trackNativeRef = fn()
+const trackNativeChange = fn()
+export const NativeInputContract: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "ref targets the focusable native input. inputProps forwards native attributes and consumer-first cancellable handlers. Explicit names work without visible children; callback ref disposers and object refs survive replacement and unmount." } } },
+  render: function NativeInputContract() {
+    const [version, setVersion] = useState(0)
+    const [shown, setShown] = useState(true)
+    const [revision, setRevision] = useState(0)
+    const objectRef = useRef<HTMLInputElement>(null)
+    const refs = useMemo(() => [
+      (node: HTMLInputElement | null) => { trackNativeRef(node ? "A:attach" : "A:null"); return () => trackNativeRef("A:cleanup") },
+      (node: HTMLInputElement | null) => { trackNativeRef(node ? "legacy:attach" : "legacy:null") },
+    ], [])
+    return <div className="grid gap-200" data-revision={revision}>
+      <span id="native-contract-help">Native help.</span>
+      {shown && <Switch ref={version === 2 ? objectRef : refs[version]} aria-label="Named toggle" aria-describedby="native-contract-help" helpText="Generated help." defaultChecked inputProps={{ title: "Native target", onClick: event => event.preventDefault() }} onCheckedChange={trackNativeChange} />}
+      <Button onClick={() => setRevision(revision + 1)}>Rerender</Button>
+      <Button onClick={() => setVersion(Math.min(version + 1, 2))}>Replace ref</Button>
+      <Button onClick={() => objectRef.current?.focus()}>Focus input</Button>
+      <Button onClick={() => objectRef.current?.blur()}>Blur input</Button>
+      <Button onClick={() => setShown(false)}>Unmount input</Button>
+      <Button onClick={() => trackNativeRef(objectRef.current ? "object:attached" : "object:cleared")}>Inspect object ref</Button>
+    </div>
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    trackNativeRef.mockClear(); trackNativeChange.mockClear()
+    const input = canvas.getByRole("switch", { name: "Named toggle" })
+    await expect(input).not.toHaveAttribute("aria-labelledby")
+    await expect(input).toHaveAccessibleDescription("Native help. Generated help.")
+    await userEvent.click(input)
+    await expect(input).toBeChecked()
+    await expect(trackNativeChange).not.toHaveBeenCalled()
+    await userEvent.click(canvas.getByRole("button", { name: "Rerender" }))
+    await expect(trackNativeRef).not.toHaveBeenCalled()
+    await userEvent.click(canvas.getByRole("button", { name: "Replace ref" }))
+    await expect(trackNativeRef.mock.calls.map(([event]) => event)).toEqual(["A:cleanup", "legacy:attach"])
+    await userEvent.click(canvas.getByRole("button", { name: "Replace ref" }))
+    await expect(trackNativeRef).toHaveBeenLastCalledWith("legacy:null")
+    await userEvent.click(canvas.getByRole("button", { name: "Focus input" }))
+    await expect(input).toHaveFocus()
+    await userEvent.click(canvas.getByRole("button", { name: "Blur input" }))
+    await expect(input).not.toHaveFocus()
+    await userEvent.click(canvas.getByRole("button", { name: "Inspect object ref" }))
+    await expect(trackNativeRef).toHaveBeenLastCalledWith("object:attached")
+    await userEvent.click(canvas.getByRole("button", { name: "Unmount input" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Inspect object ref" }))
+    await expect(trackNativeRef).toHaveBeenLastCalledWith("object:cleared")
+  },
 }

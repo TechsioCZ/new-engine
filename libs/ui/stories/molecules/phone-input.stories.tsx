@@ -915,12 +915,15 @@ export const ExternalFormReset: Story = {
     },
   },
   render(args) {
-    const formId = useId()
+    const id = useId()
+    const [owner, setOwner] = useState("first")
+    const formId = `${id}-${owner}`
     const [cancelReset, setCancelReset] = useState(false)
     return (
       <div className="grid w-full max-w-sm gap-200">
+        <form id={`${id}-first`} onReset={event => { if (cancelReset) event.preventDefault() }} />
         <form
-          id={formId}
+          id={`${id}-second`}
           onReset={(event) => {
             if (cancelReset) event.preventDefault()
           }}
@@ -936,6 +939,7 @@ export const ExternalFormReset: Story = {
         <Button form={formId} type="reset">
           Reset phone
         </Button>
+        <Button onClick={() => setOwner(owner === "first" ? "second" : "first")}>Reassociate phone</Button>
         <Button theme="outlined" onClick={() => setCancelReset(!cancelReset)}>
           Cancel reset: {cancelReset ? "on" : "off"}
         </Button>
@@ -960,6 +964,15 @@ export const ExternalFormReset: Story = {
     await userEvent.click(
       canvas.getByRole("button", { name: "Cancel reset: on" })
     )
+    const oldOwner = input.form!
+    oldOwner.addEventListener("reset", event => event.preventDefault(), { once: true })
+    await userEvent.click(canvas.getByRole("button", { name: "Reset phone" }))
+    await new Promise(resolve => setTimeout(resolve, 30))
+    await expect(input).toHaveValue("777 123 456")
+    await userEvent.click(canvas.getByRole("button", { name: "Reassociate phone" }))
+    oldOwner.reset()
+    await new Promise(resolve => setTimeout(resolve, 30))
+    await expect(input).toHaveValue("777 123 456")
     await userEvent.click(canvas.getByRole("button", { name: "Reset phone" }))
     await waitFor(() => expect(input).toHaveValue("900 123 456"))
     await expect(
@@ -968,6 +981,20 @@ export const ExternalFormReset: Story = {
     await expect(new FormData(input.form as HTMLFormElement).get("phone")).toBe(
       "+421900123456"
     )
+    await userEvent.clear(input)
+    await userEvent.type(input, "901123456")
+    const dispatchingOwner = input.form!
+    dispatchingOwner.addEventListener("reset", () => {
+      for (const control of Array.from(dispatchingOwner.elements)) {
+        if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement) {
+          control.setAttribute("form", oldOwner.id)
+        }
+      }
+    }, { once: true })
+    await userEvent.click(canvas.getByRole("button", { name: "Reset phone" }))
+    await new Promise(resolve => setTimeout(resolve, 30))
+    await expect(input).toHaveValue("901 123 456")
+    await expect(new FormData(oldOwner).get("phone")).toBe("+421901123456")
   },
 }
 

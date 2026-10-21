@@ -9,8 +9,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux quantity-field-usage price-block-usage app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/organisms/line-item.tsx libs/ui/src/tokens/components/organisms/_line-item.css libs/ui/stories/organisms/line-item.stories.tsx libs/ui/docs/cart-presentation-figma-handoff.md"
+  sources: ""
+  contributor_sources: "libs/ui/src/organisms/line-item.tsx libs/ui/src/tokens/components/organisms/_line-item.css libs/ui/stories/organisms/line-item.stories.tsx libs/ui/docs/cart-presentation-figma-handoff.md"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit LineItem usage
 
@@ -75,6 +80,30 @@ import { QuantityField } from "@techsio/ui-kit/molecules/quantity-field"
   feedback automatically below the composed content; no implicit live region.
 - The root cannot inspect arbitrary child components. Use Quantity, Actions and
   Remove for editable controls so the shared state guards apply.
+
+## Application-owned pending focus lifecycle
+
+`pending` makes Quantity and Actions descendants inert and disables Remove; it
+cannot decide where the rest of the application should put focus. Before setting
+pending, capture the initiating control and **move focus out of the soon-inert
+subtree** to a stable, named app-owned target (for example an order summary or
+row status container with `tabIndex={-1}`). Do this synchronously before the
+state update, not after the browser has already dropped focus to the document.
+
+After success **or** failure, clear pending and wait for the editable controls to
+mount/become enabled before attempting recovery. Restore focus only if it still
+rests on the temporary handoff target (or was lost as that target unmounted).
+If the user intentionally focused a link or another field while waiting, leave
+that focus alone. Restore to the original initiating control only if it remains
+connected, visible, enabled and outside inert/aria-hidden ancestors. If a
+successful removal deletes that control or row, use an app-owned next-row action
+or the cart/summary heading as the fallback; never focus a detached node. Failure
+keeps the draft and inline error visible and uses the same conditional recovery.
+Announce a result once through the app's chosen feedback surface, without adding
+another live region around LineItem's pending description.
+
+The integration story demonstrates this app-level handoff; LineItem itself does
+not own requests, focus destinations, completion timing, or rollback policy.
 
 ## UX/UI guidelines
 

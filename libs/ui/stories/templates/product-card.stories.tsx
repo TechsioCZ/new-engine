@@ -144,7 +144,7 @@ export const Playground: Story = {
     const canvas = within(canvasElement)
     await expect(canvas.queryByRole("radiogroup")).not.toBeInTheDocument()
     await expect(
-      canvas.getByRole("img", { name: "4.5 out of 5 stars" })
+      canvas.getByRole("img", { name: "4.5 out of 5" })
     ).toBeVisible()
   },
 

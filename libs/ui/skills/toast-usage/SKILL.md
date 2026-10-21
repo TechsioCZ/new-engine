@@ -6,7 +6,7 @@ description: >
   portal, useToast, toast types, title, description, close trigger, and token
   styling.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -10,8 +10,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "tailwind-token-authoring storybook-authoring"
-  sources: "libs/ui/AGENTS.md libs/ui/README.md libs/ui/src/atoms/button.tsx libs/ui/src/molecules/carousel.tsx libs/ui/src/organisms/header.tsx libs/ui/src/tokens/components/components.css libs/ui/stories/atoms/button.stories.tsx https://github.com/TechsioCZ/new-engine/issues/295"
+  sources: "https://github.com/TechsioCZ/new-engine/issues/295"
+  contributor_sources: "libs/ui/AGENTS.md libs/ui/README.md libs/ui/src/atoms/button.tsx libs/ui/src/molecules/carousel.tsx libs/ui/src/organisms/header.tsx libs/ui/src/tokens/components/components.css libs/ui/stories/atoms/button.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Component Authoring
 
@@ -230,7 +235,7 @@ Add Storybook/a11y/component visual checks when visuals or interactions change.
 
 ## Shared component contracts (required)
 
-The canonical requirements are in `libs/ui/docs/component-contracts.md`.
+The canonical requirements are in `../../references/component-contracts.md`.
 
 - Below-control messages use StatusText. Error/warning/success icons are on by
   default; never disable them for validation. Neutral helper text has no default

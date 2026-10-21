@@ -6,13 +6,18 @@ description: >
   numeric compatibility or controlled string drafts, locale formatting, min/max/step, and token-first
   styling.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.3.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/atoms/numeric-input.tsx libs/ui/src/tokens/components/atoms/_numeric-input.css libs/ui/stories/atoms/numeric-input.stories.tsx libs/ui/src/atoms/numeric-input.figma.ts https://zagjs.com/components/react/number-input"
+  sources: "https://zagjs.com/components/react/number-input"
+  contributor_sources: "libs/ui/src/atoms/numeric-input.tsx libs/ui/src/tokens/components/atoms/_numeric-input.css libs/ui/stories/atoms/numeric-input.stories.tsx libs/ui/src/atoms/numeric-input.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit NumericInput Usage
 
@@ -169,6 +174,41 @@ beyond them. Zag may normalize incomplete fragments at blur/Enter.
 `describedBy` is merged into the input `aria-describedby`.
 When `id` is provided, it is also the native input's ID, so labels and form
 error summary links can target the editable field.
+
+## Input refs and cancellation-safe native reset
+
+`NumericInput` root `ref` targets its container. For imperative focus use
+`NumericInput.Input ref?: Ref<HTMLInputElement>`; this is the editable native
+spinbutton. React 19 callback disposers/object-ref clearing work in controlled
+and uncontrolled modes. Keep machine focus/blur behaviour intact when observing
+input events.
+
+```tsx
+import { useId, useRef, useState } from "react"
+import { Label } from "@techsio/ui-kit/atoms/label"
+import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+
+function OrderQuantity() {
+  const id = useId()
+  const input = useRef<HTMLInputElement>(null)
+  const [draft, setDraft] = useState("2")
+  return <NumericInput name="quantity" value={draft}
+    onValueChange={({ value }) => setDraft(value)} min={1}>
+    <Label htmlFor={id}>Quantity</Label>
+    <NumericInput.Control><NumericInput.Input id={id} ref={input} /></NumericInput.Control>
+  </NumericInput>
+}
+```
+
+Keep controlled drafts in app state; rejected edits restore the prop value,
+not just the next blur's value. Native owner reset tracks the input's actual
+form association, including reassociation/ID changes. A canceled native or
+React reset leaves the draft untouched. Accepted uncontrolled reset restores
+the initial default after cancellation has settled, without simulated clicks
+or focus transfer. Controlled reset needs an explicit app-state update.
+Native nested disabled fieldsets and first-legend exceptions apply to the input
+and steppers; read-only retains focus/copy/submission. Ref/subscription cleanup
+must not leave reset work acting on a removed input.
 
 ## Common Mistakes
 

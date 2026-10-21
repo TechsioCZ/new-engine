@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,12 +25,15 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
-import {
-  getControlledChoiceInputProps,
-  useChoiceFocusRecovery,
-} from "../atoms/checkbox"
 import { Label } from "../atoms/label"
 import { StatusText as StatusTextComponent } from "../atoms/status-text"
+import {
+  getControlledChoiceInputProps,
+  handleChoiceArrowKey,
+  isSilentChoiceReset,
+  mergeChoiceInputProps,
+  useChoiceFocusRecovery,
+} from "../internal/choice-control"
 import {
   type DescribedBy,
   joinDescribedBy,
@@ -359,6 +362,8 @@ type RadioCardMachineProps = Omit<
 
 export type RadioCardProps = VariantProps<typeof radioCardVariants> &
   RadioCardMachineProps & {
+    "aria-label"?: string
+    "aria-labelledby"?: string
     "aria-describedby"?: string
     id?: string
     children: ReactNode
@@ -369,6 +374,8 @@ export type RadioCardProps = VariantProps<typeof radioCardVariants> &
   }
 
 export function RadioCard({
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   "aria-describedby": ariaDescribedByProp,
   id: providedId,
   disabled = false,
@@ -400,7 +407,7 @@ export function RadioCard({
     orientation,
     invalid,
     onValueChange: ({ value: nextValue }: ValueChangeDetails) => {
-      if (!(readOnly || disabled)) {
+      if (!(readOnly || disabled || isSilentChoiceReset(service.context))) {
         onValueChange?.(nextValue)
       }
     },
@@ -455,6 +462,12 @@ export function RadioCard({
         )}
         aria-errormessage={errors.describedById}
         aria-invalid={invalid || !!errors.describedById || undefined}
+        aria-label={ariaLabel}
+        aria-labelledby={
+          ariaLabelledBy ??
+          (ariaLabel ? undefined : api.getRootProps()["aria-labelledby"])
+        }
+        role="radiogroup"
         tabIndex={-1}
       >
         {children}
@@ -562,7 +575,7 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
     useRadioCardItemContext()
   const styles = radioCardVariants({ size, variant })
   const hiddenInputProps = getControlledChoiceInputProps(
-    mergeProps(props, api.getItemHiddenInputProps(itemProps)),
+    mergeChoiceInputProps(props, api.getItemHiddenInputProps(itemProps)),
     api.getItemState(itemProps).checked
   )
 
@@ -586,6 +599,12 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
         api.getItemState(itemProps).invalid || !!errorMessageId || undefined
       }
       disabled={api.getItemState(itemProps).disabled}
+      onKeyDown={(event) => {
+        hiddenInputProps.onKeyDown?.(event)
+        if (!readOnly) {
+          handleChoiceArrowKey(event)
+        }
+      }}
       onKeyDownCapture={(event) => {
         props.onKeyDownCapture?.(event)
         if (

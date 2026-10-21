@@ -1001,6 +1001,9 @@
     --text-decoration-thickness-pagination-marker: var(
       --border-width-pagination
     );
+    --font-weight-pagination: var(--font-weight-medium);
+    --border-width-pagination-pressed: var(--border-width-sm);
+    --font-weight-pagination-current: var(--font-weight-semibold);
     --arrow-size: var(--spacing-popover-arrow-size);
     --arrow-background: var(--color-popover-arrow);
     --padding-popover-trigger: var(--spacing-100) var(--spacing-150);
@@ -1104,6 +1107,9 @@
       var(--padding-tabs-trigger-x-lg);
     --width-tabs-indicator: var(--size-tabs-indicator-width);
     --spacing-tabs-rail-offset: var(--border-width-tabs);
+    --font-weight-tabs-trigger: var(--font-weight-medium);
+    --border-width-tabs-pressed: var(--border-width-sm);
+    --font-weight-tabs-trigger-selected: var(--font-weight-semibold);
     --product-card-layout-row-grid: minmax(
         var(--width-product-card-image-min),
         var(--width-product-card-image-max)
@@ -1288,6 +1294,8 @@
     --radius-vertical-navigation-item: var(--radius-sm);
     --radius-vertical-navigation-group: var(--radius-none);
     --color-vertical-navigation-focus-border: var(--color-ring);
+    --font-weight-vertical-navigation: var(--font-weight-normal);
+    --border-width-vertical-navigation-pressed: var(--border-width-sm);
     --color-table-focus: var(--color-ring);
     --color-table-ring: var(--color-table-focus);
     --padding-table-cell-sm: var(--padding-table-cell-sm-y)

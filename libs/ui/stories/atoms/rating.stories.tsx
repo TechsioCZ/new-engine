@@ -16,7 +16,7 @@ const meta: Meta<typeof Rating> = {
     docs: {
       description: {
         component:
-          "A star rating for collecting review scores or displaying an average. Interactive ratings use keyboard-accessible radios; read-only ratings expose one named image and a visible numeric value. Use text or a progress indicator for non-rating scores.",
+          "A star rating for collecting review scores or displaying an average. Interactive and read-only form ratings use keyboard-accessible radios. displayOnly exposes one nonfocusable aggregate image and no form input. Use text or a progress indicator for non-rating scores.",
       },
     },
   },
@@ -26,6 +26,7 @@ const meta: Meta<typeof Rating> = {
     size: { control: "select", options: ["sm", "md", "lg"] },
     labelText: { control: "text" },
     readOnly: { control: "boolean" },
+    displayOnly: { control: "boolean", description: "Nonfocusable aggregate summary, not a submitted form value." },
     disabled: { control: "boolean" },
     allowHalf: { control: "boolean" },
     helpText: { control: "text" },
@@ -155,56 +156,31 @@ export const Disabled: Story = {
   },
 }
 export const ReadOnly: Story = {
-  name: "Read-only",
-  parameters: describe(
-    "A read-only score is one focusable named image, not editable radios, and still submits its form value."
-  ),
-  render: () => (
-    <div className="flex flex-col gap-250">
-      <Rating
-        name="average-score"
-        labelText="Average delivery rating"
-        readOnly
-        value={4.5}
-        helpText="Based on 128 verified reviews."
-      />
-      <Rating
-        name="saved-score"
-        labelText="Your delivery rating"
-        readOnly
-        defaultValue={4}
-        helpText="Your review is already published."
-      />
-    </div>
-  ),
+  name: "Read-only form value",
+  parameters: describe("A saved form rating remains focusable and submitted, but cannot be edited. Use displayOnly for aggregate averages."),
+  render: () => <form><Rating name="saved-score" labelText="Your delivery rating" readOnly defaultValue={4} helpText="Your review is already published." /></form>,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(canvas.queryByRole("radio")).not.toBeInTheDocument()
-    const image = canvas.getByRole("img", {
-      name: "Average delivery rating: 4.5 out of 5",
-    })
-    image.focus()
-    await expect(image).toHaveFocus()
+    const selected = canvas.getByRole("radio", { checked: true })
+    selected.focus()
+    await expect(selected).toHaveFocus()
     await userEvent.keyboard("{ArrowRight} ")
-    await userEvent.click(image)
-    await expect(image).toHaveAccessibleName(
-      "Average delivery rating: 4.5 out of 5"
-    )
+    await userEvent.click(canvas.getAllByRole("radio")[0]!)
+    await expect(selected).toBeChecked()
+    await expect(new FormData(canvasElement.querySelector("form")!).get("saved-score")).toBe("4")
   },
 }
 export const HalfStars: Story = {
-  parameters: describe(
-    "Half-star display uses a half-filled outline and a numeric value so precision never depends on color alone."
-  ),
-  render: () => (
-    <Rating
-      labelText="Average product rating"
-      readOnly
-      value={4.5}
-      allowHalf
-      helpText="Based on 128 verified reviews."
-    />
-  ),
+  name: "Aggregate average",
+  parameters: describe("displayOnly exposes a precise, named aggregate without a tab stop or a submitted form value."),
+  render: () => <Rating labelText="Average product rating" displayOnly value={4.6} helpText="Based on 128 verified reviews." />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const image = canvas.getByRole("img", { name: "Average product rating: 4.6 out of 5" })
+    await expect(image).not.toHaveAttribute("tabindex")
+    await expect(canvas.queryByRole("radio")).not.toBeInTheDocument()
+    await expect(canvasElement.querySelector("input")).toBeNull()
+  },
 }
 
 export const Unselected: Story = {
@@ -316,6 +292,54 @@ export const ChangingScale: Story = {
     form.reset()
     await waitFor(() => expect(new FormData(form).get("score")).toBe("3"))
     await expect(canvas.getByRole("radio", { checked: true })).toHaveAttribute("tabindex", "0")
-    await expect(canvas.getByText("Score changes: 5")).toBeVisible()
+    // Scale normalization and two real arrow edits notify; both resets are silent.
+    await expect(canvas.getByText("Score changes: 3")).toBeVisible()
+  },
+}
+
+export const FieldsetLifecycle: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Every disabled fieldset ancestor applies, even through an enabled inner fieldset. Only each fieldset's first legend is exempt. Disabling and re-enabling is reversible." } } },
+  render: function FieldsetLifecycle() {
+    const [disabled, setDisabled] = useState(true)
+    return <div className="grid gap-200">
+      <fieldset disabled={disabled}>
+        <legend><Rating labelText="Legend rating" defaultValue={2} allowHalf={false} /></legend>
+        <fieldset><Rating labelText="Nested rating" defaultValue={3} allowHalf={false} /></fieldset>
+        <legend><Rating labelText="Later legend rating" defaultValue={1} allowHalf={false} /></legend>
+      </fieldset>
+      <Button onClick={() => setDisabled(!disabled)}>Toggle fieldset</Button>
+    </div>
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const exempt = canvas.getByRole("radiogroup", { name: "Legend rating" })
+    const nested = canvas.getByRole("radiogroup", { name: "Nested rating" })
+    const later = canvas.getByRole("radiogroup", { name: "Later legend rating" })
+    await waitFor(() => expect(within(nested).getAllByRole("radio")[0]).toHaveAttribute("aria-disabled", "true"))
+    await expect(within(later).getAllByRole("radio")[0]).toHaveAttribute("aria-disabled", "true")
+    await expect(within(exempt).getByRole("radio", { checked: true })).toHaveAttribute("tabindex", "0")
+    for (const radio of within(nested).getAllByRole("radio")) await expect(radio).not.toHaveAttribute("tabindex", "0")
+    await userEvent.click(within(nested).getAllByRole("radio")[4]!)
+    await expect(within(nested).getByRole("radio", { checked: true })).toHaveAccessibleName("3 stars")
+    await userEvent.click(canvas.getByRole("button", { name: "Toggle fieldset" }))
+    const selected = within(nested).getByRole("radio", { checked: true })
+    await waitFor(() => expect(selected).toHaveAttribute("tabindex", "0"))
+    selected.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(within(nested).getByRole("radio", { checked: true })).toHaveAccessibleName("4 stars")
+    await userEvent.click(canvas.getByRole("button", { name: "Toggle fieldset" }))
+    await waitFor(() => expect(selected).not.toHaveAttribute("tabindex", "0"))
+  },
+}
+
+
+export const AggregateDisplay: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "An aggregate average is an accessible summary, not a focusable read-only form control." } } },
+  render: () => <Rating displayOnly labelText="Average delivery rating" value={4.6} />,
+  play: async ({ canvasElement }) => {
+    const summary = within(canvasElement).getByRole("img", { name: "Average delivery rating: 4.6 out of 5" })
+    await expect(summary).not.toHaveAttribute("tabindex")
+    await expect(canvasElement.querySelector("input")).toBeNull()
+    await expect(within(canvasElement).queryByRole("radio")).toBeNull()
   },
 }

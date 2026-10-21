@@ -5,13 +5,18 @@ description: >
   anchored non-blocking content using Zag.js compound parts, placement,
   portalling, close behavior, arrow, title, description, and close trigger.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/popover.tsx libs/ui/src/tokens/components/molecules/_popover.css libs/ui/stories/molecules/popover.stories.tsx libs/ui/src/molecules/popover.figma.ts https://zagjs.com/components/react/popover"
+  sources: "https://zagjs.com/components/react/popover"
+  contributor_sources: "libs/ui/src/molecules/popover.tsx libs/ui/src/tokens/components/molecules/_popover.css libs/ui/stories/molecules/popover.stories.tsx libs/ui/src/molecules/popover.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Popover Usage
 

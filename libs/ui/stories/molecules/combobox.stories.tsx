@@ -38,6 +38,10 @@ const meta: Meta<typeof Combobox> = {
   },
   tags: ['autodocs'],
   argTypes: {
+    defaultInputValue: {
+      control: 'text',
+      description: 'Initial uncontrolled search query; accepted native resets restore it, cancelled resets preserve the current query. Use inputValue for a controlled query.',
+    },
     id: { control: false, table: { disable: true } },
     // Text inputs
     label: { control: 'text', description: 'Label text' },
@@ -798,5 +802,69 @@ export const ExternalFormAssociation: Story = {
     await waitFor(() => expect(new FormData(form).getAll("single")).toEqual(["de"]))
     await userEvent.click(within(input.parentElement as HTMLElement).getByRole("button", { name: "Clear value" }))
     await waitFor(() => expect(new FormData(form).getAll("single")).toEqual([""]))
+  },
+}
+
+function ResetAuthorityCountries() {
+  const [savedCountry, setSavedCountry] = useState("cz")
+  return (
+    <form aria-label="Reset country authority" className="mx-auto flex w-full max-w-sm flex-col gap-200" onSubmit={(event) => event.preventDefault()}>
+      <Combobox items={countries} label="Initial country query" name="initial" defaultValue="cz" defaultInputValue="Seed" inputBehavior="none" />
+      <Combobox items={countries} label="Saved country" name="saved" value={savedCountry} inputBehavior="none" />
+      <Combobox items={countries} label="Authoritative query" name="query" value={savedCountry} inputValue="Parent query" inputBehavior="none" />
+      <Button theme="outlined" onClick={() => setSavedCountry((current) => current === "de" ? "cz" : "de")}>Change saved country</Button>
+      <Button theme="outlined" type="reset">Reset country fields</Button>
+    </form>
+  )
+}
+
+export const ResetAuthority: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "Accepted resets restore a distinct initial query without replacing the parent's current selection or controlled query; cancelled resets keep drafts." } },
+  },
+  render: () => <ResetAuthorityCountries />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const form = canvas.getByRole("form", { name: "Reset country authority" }) as HTMLFormElement
+    const seeded = canvas.getByRole("combobox", { name: "Initial country query" })
+    const saved = canvas.getByRole("combobox", { name: "Saved country" })
+    const controlledQuery = canvas.getByRole("combobox", { name: "Authoritative query" })
+    await expect(seeded).toHaveValue("Seed")
+    await userEvent.clear(seeded)
+    await userEvent.type(seeded, "Germ")
+    await userEvent.keyboard("{ArrowDown}{Enter}")
+    await waitFor(() => expect(new FormData(form).get("initial")).toBe("de"))
+    await userEvent.click(canvas.getByRole("button", { name: "Change saved country" }))
+    await waitFor(() => expect(saved).toHaveValue("Germany"))
+    await expect(controlledQuery).toHaveValue("Parent query")
+    await userEvent.clear(saved)
+    await userEvent.type(saved, "Draft")
+    form.addEventListener("reset", (event) => event.preventDefault(), { once: true })
+    form.reset()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    await expect(saved).toHaveValue("Draft")
+    await expect(seeded).toHaveValue("Germany")
+    form.reset()
+    await waitFor(() => expect(seeded).toHaveValue("Seed"))
+    await waitFor(() => expect(saved).toHaveValue("Germany"))
+    await expect(controlledQuery).toHaveValue("Parent query")
+    await expect(new FormData(form).get("initial")).toBe("cz")
+    await expect(new FormData(form).get("saved")).toBe("de")
+    await expect(new FormData(form).get("query")).toBe("de")
+    await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
+    // Repeated resets and the next real edit must not retain a reset latch.
+    form.reset()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    await expect(seeded).toHaveValue("Seed")
+    await userEvent.clear(seeded)
+    await userEvent.type(seeded, "Germ")
+    await userEvent.click(await body.findByRole("option", { name: "Germany" }))
+    await waitFor(() => expect(seeded).toHaveValue("Germany"))
+    await userEvent.click(canvas.getByRole("button", { name: "Change saved country" }))
+    await waitFor(() => expect(saved).toHaveValue("Czech Republic"))
+    await expect(controlledQuery).toHaveValue("Parent query")
+    await expect(new FormData(form).get("saved")).toBe("cz")
   },
 }

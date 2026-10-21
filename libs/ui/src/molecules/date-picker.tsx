@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -23,7 +23,7 @@ import {
   type PositioningOptions,
   type Api as ZagDatePickerApi,
 } from "@zag-js/date-picker"
-import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import type {
   ComponentPropsWithoutRef,
   KeyboardEvent,
@@ -72,6 +72,9 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
 export type DatePickerGranularity = "day" | "hour" | "minute" | "second"
@@ -547,23 +550,21 @@ function useDatePickerEnvironment(
 ) {
   const rootElementRef = useRef<HTMLDivElement>(null)
   const disabledProbeRef = useRef<HTMLInputElement>(null)
-  const [inheritedDisabled, setInheritedDisabled] = useState(false)
+  const [rootElement, setRootElement] = useState<HTMLDivElement | null>(null)
   const [inheritedDir, setInheritedDir] = useState<"ltr" | "rtl">("ltr")
-  const disabled = Boolean(explicitDisabled || inheritedDisabled)
+  const disabled = useEffectiveDisabled(rootElement, explicitDisabled)
   const dir =
     explicitDir === "rtl" || explicitDir === "ltr" ? explicitDir : inheritedDir
   const rootRef = useMemo(
-    () => composeDatePickerRefs(rootElementRef, ref),
+    () => composeDatePickerRefs(rootElementRef, setRootElement, ref),
     [ref]
   )
   useLayoutEffect(() => {
     const root = rootElementRef.current
-    const probe = disabledProbeRef.current
-    if (!(root && probe)) {
+    if (!root) {
       return
     }
     const update = () => {
-      setInheritedDisabled(probe.matches(":disabled"))
       setInheritedDir(
         root.ownerDocument.defaultView?.getComputedStyle(root).direction ===
           "rtl"
@@ -576,7 +577,7 @@ function useDatePickerEnvironment(
     observer.observe(root.ownerDocument.documentElement, {
       attributes: true,
       subtree: true,
-      attributeFilter: ["disabled", "dir"],
+      attributeFilter: ["dir"],
       childList: true,
     })
     return () => observer.disconnect()
@@ -643,6 +644,7 @@ export function DatePicker({
   const resolvedHourCycle = resolveDatePickerHourCycle(locale, hourCycle)
   const [uncontrolledValue, setUncontrolledValue] =
     useState<DatePickerPublicValue | null>(() => defaultValue ?? null)
+  const initialValue = useRef(defaultValue ?? null)
   const acceptedValue: DatePickerPublicValue | null =
     value === undefined ? uncontrolledValue : value
   // Preserve the accepted wire value, but use one clock/zone for both machines
@@ -965,6 +967,27 @@ export function DatePicker({
     value: dateInputValues,
   })
   const dateInputApi = connectDateInput(dateInputService, normalizeProps)
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    if (value === undefined) {
+      setUncontrolledValue(initialValue.current)
+    }
+    setSegmentInputDraft(null)
+    setRangeInputDraft(null)
+    setNativeInvalid(false)
+    dispatch({ type: "discard" })
+    setUncontrolledOpen(false)
+    if (open) {
+      onOpenChange?.({ open: false })
+    }
+  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the environment returns a stable ref; the adapter follows its input owner.
+  useEffect(() => {
+    const input = disabledProbeRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
 
   useLayoutEffect(() => {
     const probe = disabledProbeRef.current

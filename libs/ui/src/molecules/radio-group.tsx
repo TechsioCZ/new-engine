@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,7 +16,7 @@ import {
   type Props as ZagRadioGroupProps,
   type ItemProps as ZagRadioItemProps,
 } from "@zag-js/radio-group"
-import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
+import { normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -26,13 +26,17 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
-import {
-  getControlledChoiceInputProps,
-  trackChoiceFormControl,
-  useChoiceFocusRecovery,
-} from "../atoms/checkbox"
 import { Label } from "../atoms/label"
 import { StatusText as StatusTextComponent } from "../atoms/status-text"
+import {
+  getControlledChoiceInputProps,
+  handleChoiceArrowKey,
+  isSilentChoiceReset,
+  mergeChoiceInputProps,
+  runSilentChoiceReset,
+  trackChoiceFormControl,
+  useChoiceFocusRecovery,
+} from "../internal/choice-control"
 import {
   type DescribedBy,
   joinDescribedBy,
@@ -48,11 +52,20 @@ export const radioChoiceMachine: typeof machine = {
     ...machine.implementations,
     effects: {
       ...machine.implementations?.effects,
-      trackFormControlState({ scope, context }) {
+      trackFormControlState({ scope, context, prop, action }) {
         const root = scope.getById(scope.ids?.root ?? `radio-group:${scope.id}`)
         return trackChoiceFormControl(
           root,
-          () => context.set("value", context.initial("value")),
+          () => {
+            if (prop("value") === undefined) {
+              runSilentChoiceReset(context, () =>
+                context.set("value", context.initial("value"))
+              )
+            } else {
+              // Native reset bypasses React; the parent remains authoritative.
+              action(["syncInputElements"])
+            }
+          },
           (disabled) => context.set("fieldsetDisabled", disabled)
         )
       },
@@ -253,6 +266,8 @@ type RadioGroupMachineProps = Omit<
 
 export type RadioGroupProps = VariantProps<typeof radioGroupVariants> &
   RadioGroupMachineProps & {
+    "aria-label"?: string
+    "aria-labelledby"?: string
     "aria-describedby"?: string
     id?: string
     children: ReactNode
@@ -263,6 +278,8 @@ export type RadioGroupProps = VariantProps<typeof radioGroupVariants> &
   }
 
 export function RadioGroup({
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   "aria-describedby": ariaDescribedByProp,
   id: providedId,
   disabled = false,
@@ -291,7 +308,7 @@ export function RadioGroup({
     orientation,
     invalid,
     onValueChange: ({ value: nextValue }: ValueChangeDetails) => {
-      if (!(readOnly || disabled)) {
+      if (!(readOnly || disabled || isSilentChoiceReset(service.context))) {
         onValueChange?.(nextValue)
       }
     },
@@ -339,6 +356,12 @@ export function RadioGroup({
         )}
         aria-errormessage={errors.describedById}
         aria-invalid={invalid || !!errors.describedById || undefined}
+        aria-label={ariaLabel}
+        aria-labelledby={
+          ariaLabelledBy ??
+          (ariaLabel ? undefined : api.getRootProps()["aria-labelledby"])
+        }
+        role="radiogroup"
         tabIndex={-1}
       >
         {children}
@@ -471,7 +494,7 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
     useRadioGroupItemContext()
   const styles = radioGroupVariants({ size, variant })
   const inputProps = getControlledChoiceInputProps(
-    mergeProps(props, api.getItemHiddenInputProps(itemProps)),
+    mergeChoiceInputProps(props, api.getItemHiddenInputProps(itemProps)),
     api.getItemState(itemProps).checked
   )
 
@@ -495,6 +518,12 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
         api.getItemState(itemProps).invalid || !!errorMessageId || undefined
       }
       disabled={api.getItemState(itemProps).disabled}
+      onKeyDown={(event) => {
+        inputProps.onKeyDown?.(event)
+        if (!readOnly) {
+          handleChoiceArrowKey(event)
+        }
+      }}
       onKeyDownCapture={(event) => {
         props.onKeyDownCapture?.(event)
         if (

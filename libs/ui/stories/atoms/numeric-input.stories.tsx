@@ -1,4 +1,4 @@
-﻿import type { Meta, StoryObj } from "@storybook/react"
+import type { Meta, StoryObj } from "@storybook/react"
 import { useEffect, useId, useState } from "react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
@@ -22,6 +22,31 @@ type PlaygroundArgs = NumericInputProps & {
   showScrubber?: boolean
 }
 
+const playgroundSource = String.raw`import { useState } from "react"
+import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+
+export function QuantityField() {
+  const [draft, setDraft] = useState("2")
+  return (
+    <NumericInput
+      name="quantity"
+      value={draft}
+      onValueChange={({ value }) => setDraft(value)}
+      min={0}
+      max={100}
+    >
+      <NumericInput.Control>
+        <NumericInput.Input aria-label="Quantity" />
+        <NumericInput.TriggerContainer>
+          <NumericInput.IncrementTrigger aria-label="Increase quantity" />
+          <NumericInput.DecrementTrigger aria-label="Decrease quantity" />
+        </NumericInput.TriggerContainer>
+      </NumericInput.Control>
+      <NumericInput.StatusText>Choose up to 100 items.</NumericInput.StatusText>
+    </NumericInput>
+  )
+}`
+
 const meta: Meta<typeof NumericInput> = {
   title: "Atoms/NumericInput",
   component: NumericInput,
@@ -29,8 +54,7 @@ const meta: Meta<typeof NumericInput> = {
     layout: "centered",
     docs: {
       description: {
-        component:
-          "NumericInput is a composable number editor with locale formatting and keyboard or button adjustments. Use FormNumericInput for complete labeled fields, NumericInputTemplate for a props-based layout, or Input for numeric identifiers.",
+        component: "Locale-aware numeric editing. Pair value with onValueChange={({ value }) => setDraft(value)} for controlled draft strings; onChange(number) is a legacy numeric projection and cannot preserve empty/intermediate text. defaultValue is uncontrolled. readOnly remains focusable and submits its value but blocks typing, keys, wheel, scrubbing and adjustment buttons. disabled removes interaction/submission. validateStatus=\"error\" or invalid marks the input invalid; render StatusText for linked guidance. form=\"owner-id\" on Root associates an external owner: accepted reset silently restores uncontrolled defaults after native cancellation has settled. Canceled resets preserve edits; controlled values remain authoritative and reset never emits a change callback.\n\n### Compound member contracts\n\n- **`NumericInput (Root)`** — No value required; value + onValueChange or defaultValue. No parent context. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.Control`** — Visual input frame. Inside Root. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.Input`** — Required editor; provide aria-label or associated Label htmlFor. Inside Root. `ref`: `HTMLInputElement`.\n\n- **`NumericInput.TriggerContainer`** — Optional adjustment layout. Inside Root. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.IncrementTrigger`** — Optional increment button. Inside Root. `ref`: `HTMLButtonElement`.\n\n- **`NumericInput.DecrementTrigger`** — Optional decrement button. Inside Root. `ref`: `HTMLButtonElement`.\n\n- **`NumericInput.Scrubber`** — Optional pointer adjustment surface. Inside Root. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.StatusText`** — Optional linked helper/validation; set status explicitly (default is neutral). Inside Root. `ref`: `HTMLDivElement`.",
       },
     },
   },
@@ -41,6 +65,8 @@ const meta: Meta<typeof NumericInput> = {
     ref: { control: false, table: { disable: true } },
     value: { control: "number" },
     defaultValue: { control: "number" },
+    onValueChange: { control: false, description: "Controlled draft proposal, including empty/intermediate text.", table: { type: { summary: "(details: { value: string; valueAsNumber: number }) => void" } } },
+    onChange: { control: false, description: "Legacy numeric projection; prefer onValueChange for controlled text editing.", table: { type: { summary: "(value: number) => void" } } },
   },
 }
 
@@ -50,6 +76,7 @@ type Story = StoryObj<PlaygroundArgs>
 export const Playground: Story = {
   parameters: {
     docs: {
+      source: { code: playgroundSource, language: "tsx", type: "code" },
       description: {
         story:
           "Adjust the numeric options to explore locale formatting, constraints and interaction states.",
@@ -994,5 +1021,109 @@ export const FeedbackLifecycle: Story = {
     await expect(input).toHaveAccessibleDescription(
       "Only used for this order. Up to 100 per order."
     )
+  },
+}
+
+const trackResetDraft = fn()
+export const ExternalOwnerReset: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Root form associates native NumericInput.Input with an external owner. Accepted resets restore defaultValue; React or later native cancellation preserves edits. Reassociation detaches the old owner, while a refusing controlled parent remains authoritative." } } },
+  render: function ExternalOwnerReset() {
+    const id = useId()
+    const [owner, setOwner] = useState("first")
+    const [cancel, setCancel] = useState(false)
+    const [controlled, setControlled] = useState(8)
+    const form = `${id}-${owner}`
+    return <div className="grid w-full max-w-sm gap-200">
+      <form id={`${id}-first`} aria-label="First owner" onReset={event => { if (cancel) event.preventDefault() }} />
+      <form id={`${id}-second`} aria-label="Second owner" onReset={event => { if (cancel) event.preventDefault() }} />
+      <NumericInput form={form} name="quantity" defaultValue={3} locale="en-US"><NumericInput.Control><NumericInput.Input aria-label="Reset quantity" /></NumericInput.Control></NumericInput>
+      <NumericInput form={form} name="fixed" value={controlled} locale="en-US" onValueChange={trackResetDraft}><NumericInput.Control><NumericInput.Input aria-label="Controlled quantity" /></NumericInput.Control></NumericInput>
+      <Button form={form} type="reset">Reset owner</Button>
+      <Button onClick={() => setCancel(!cancel)}>Cancel reset: {cancel ? "on" : "off"}</Button>
+      <Button onClick={() => setOwner(owner === "first" ? "second" : "first")}>Reassociate owner</Button>
+      <Button onClick={() => setControlled(9)}>Update controlled value</Button>
+    </div>
+  },
+  play: async ({ canvasElement }) => {
+    trackResetDraft.mockClear()
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("spinbutton", { name: "Reset quantity" }) as HTMLInputElement
+    const controlled = canvas.getByRole("spinbutton", { name: "Controlled quantity" })
+    const oldOwner = input.form!
+    const edit = async (value: string) => { await userEvent.clear(input); await userEvent.type(input, value) }
+    await edit("12")
+    await userEvent.click(canvas.getByRole("button", { name: "Cancel reset: off" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Reset owner" }))
+    await new Promise(resolve => setTimeout(resolve, 30))
+    await expect(input).toHaveValue("12")
+    await userEvent.click(canvas.getByRole("button", { name: "Cancel reset: on" }))
+    oldOwner.addEventListener("reset", event => event.preventDefault(), { once: true })
+    await userEvent.click(canvas.getByRole("button", { name: "Reset owner" }))
+    await new Promise(resolve => setTimeout(resolve, 30))
+    await expect(input).toHaveValue("12")
+    await userEvent.click(canvas.getByRole("button", { name: "Update controlled value" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Reset owner" }))
+    await waitFor(() => expect(input).toHaveValue("3"))
+    await expect(controlled).toHaveValue("9")
+    await edit("14")
+    await userEvent.click(canvas.getByRole("button", { name: "Reassociate owner" }))
+    oldOwner.reset()
+    await new Promise(resolve => setTimeout(resolve, 30))
+    await expect(input).toHaveValue("14")
+    await userEvent.click(canvas.getByRole("button", { name: "Reset owner" }))
+    await waitFor(() => expect(input).toHaveValue("3"))
+    await expect(controlled).toHaveValue("9")
+    await expect(trackResetDraft).not.toHaveBeenCalled()
+    await edit("15")
+    const dispatchingOwner = input.form!
+    dispatchingOwner.addEventListener("reset", () => {
+      input.setAttribute("form", oldOwner.id)
+    }, { once: true })
+    await userEvent.click(canvas.getByRole("button", { name: "Reset owner" }))
+    await new Promise(resolve => setTimeout(resolve, 30))
+    await expect(input).toHaveValue("15")
+    await expect(new FormData(oldOwner).get("quantity")).toBe("15")
+  },
+}
+
+
+const observedBlur = fn()
+const canceledBlur = fn()
+export const NativeEventComposition: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "Input handlers observe before Zag. An observational onBlur preserves clamping and commit; preventDefault() cancels that machine action." } },
+  },
+  render: () => (
+    <div className="grid w-full max-w-sm gap-200">
+      <NumericInput defaultValue={2} min={0} max={10}>
+        <NumericInput.Control>
+          <NumericInput.Input aria-label="Observed blur" onBlur={observedBlur} />
+        </NumericInput.Control>
+      </NumericInput>
+      <NumericInput defaultValue={2} min={0} max={10}>
+        <NumericInput.Control>
+          <NumericInput.Input aria-label="Canceled blur" onBlur={event => { canceledBlur(); event.preventDefault() }} />
+        </NumericInput.Control>
+      </NumericInput>
+      <Button>Continue</Button>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    observedBlur.mockClear()
+    canceledBlur.mockClear()
+    const canvas = within(canvasElement)
+    const observed = canvas.getByRole("spinbutton", { name: "Observed blur" })
+    const canceled = canvas.getByRole("spinbutton", { name: "Canceled blur" })
+    await userEvent.clear(observed)
+    await userEvent.type(observed, "99")
+    await userEvent.tab()
+    await waitFor(() => expect(observed).toHaveValue("10"))
+    await expect(observedBlur).toHaveBeenCalledTimes(1)
+    await userEvent.clear(canceled)
+    await userEvent.type(canceled, "99")
+    await userEvent.tab()
+    await expect(canceled).toHaveValue("99")
+    await expect(canceledBlur).toHaveBeenCalledTimes(1)
   },
 }

@@ -1,9 +1,16 @@
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
-import { type ComponentType, createElement as h, useState } from "react"
+import {
+  type ComponentType,
+  createElement as h,
+  useId,
+  useRef,
+  useState,
+} from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import ts from "typescript"
 import { describe, expect, it } from "vitest"
+import { Label } from "../src/atoms/label"
 import { NumericInput } from "../src/atoms/numeric-input"
 import { FormNumericInput } from "../src/molecules/form-numeric-input"
 
@@ -39,7 +46,21 @@ function exampleBody(code: string) {
   const withoutImport = code.replace(componentImport, "")
   const start = withoutImport.search(rootStart)
   if (start < 0) {
-    throw new Error("Expected a complete numeric JSX example")
+    const source = ts.createSourceFile(
+      "example.tsx",
+      withoutImport,
+      ts.ScriptTarget.ES2022,
+      true,
+      ts.ScriptKind.TSX
+    )
+    const component = source.statements.find(ts.isFunctionDeclaration)?.name
+      ?.text
+    if (!component) {
+      throw new Error(
+        "Expected a numeric JSX expression or complete component example"
+      )
+    }
+    return `${withoutImport}\nreturn <${component} />;`
   }
   return `${withoutImport.slice(0, start)}\nreturn (${withoutImport.slice(start)});`
 }
@@ -119,9 +140,20 @@ describe("copyable numeric usage examples", () => {
         "NumericInput",
         "FormNumericInput",
         "useState",
+        "useId",
+        "useRef",
+        "Label",
         "h",
         `${compiled}; return Example`
-      )(NumericInput, FormNumericInput, useState, h) as ComponentType
+      )(
+        NumericInput,
+        FormNumericInput,
+        useState,
+        useId,
+        useRef,
+        Label,
+        h
+      ) as ComponentType
       const html = renderToStaticMarkup(h(Example))
       const input = html.match(inputTag)?.[0]
       expect(input, `${component}: ${code}`).toBeTruthy()
@@ -136,7 +168,7 @@ describe("copyable numeric usage examples", () => {
     const fixture = fileURLToPath(
       new URL("./__numeric-docs__.tsx", import.meta.url)
     )
-    const content = `import {useState} from "react";\nimport {NumericInput} from "../src/atoms/numeric-input";\nimport {FormNumericInput} from "../src/molecules/form-numeric-input";\n${positiveNumericExamples()
+    const content = `import {useId, useRef, useState} from "react";\nimport {Label} from "../src/atoms/label";\nimport {NumericInput} from "../src/atoms/numeric-input";\nimport {FormNumericInput} from "../src/molecules/form-numeric-input";\n${positiveNumericExamples()
       .map(
         ({ code }, index) =>
           `export function Example${index}() {${exampleBody(code)}}`
@@ -178,6 +210,78 @@ describe("copyable numeric usage examples", () => {
       )
     ).toEqual([])
   }, 30_000)
+})
+
+describe("copyable primary compound Docs sources", () => {
+  it.each([
+    "atoms/numeric-input",
+    "molecules/radio-group",
+    "molecules/radio-card",
+  ])(
+    "typechecks the complete public-import example for %s",
+    (component) => {
+      const story = readFileSync(
+        new URL(`../stories/${component}.stories.tsx`, import.meta.url),
+        "utf8"
+      )
+      const code = story
+        .split("const playgroundSource = String.raw`")[1]
+        ?.split("`")[0]
+      expect(code).toContain('import { useState } from "react"')
+      expect(code).toContain("@techsio/ui-kit/")
+      expect(story).toContain("source: {")
+      expect(story).not.toContain("| Member |")
+      const fixture = fileURLToPath(
+        new URL("./__primary-docs__.tsx", import.meta.url)
+      )
+      const options: ts.CompilerOptions = {
+        noEmit: true,
+        strict: true,
+        skipLibCheck: true,
+        jsx: ts.JsxEmit.ReactJSX,
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.ESNext,
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
+        types: ["react", "react-dom", "node"],
+        paths: {
+          "@techsio/ui-kit/*": [
+            fileURLToPath(new URL("../src/*", import.meta.url)),
+          ],
+        },
+      }
+      const host = ts.createCompilerHost(options)
+      const readSource = host.getSourceFile.bind(host)
+      host.getSourceFile = (
+        path,
+        languageVersion,
+        onError,
+        shouldCreateNewSourceFile
+      ) =>
+        path === fixture
+          ? ts.createSourceFile(
+              path,
+              code ?? "",
+              ts.ScriptTarget.ES2022,
+              true,
+              ts.ScriptKind.TSX
+            )
+          : readSource(
+              path,
+              languageVersion,
+              onError,
+              shouldCreateNewSourceFile
+            )
+      const program = ts.createProgram([fixture], options, host)
+      expect(
+        ts
+          .getPreEmitDiagnostics(program, program.getSourceFile(fixture))
+          .map((diagnostic) =>
+            ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")
+          )
+      ).toEqual([])
+    },
+    30_000
+  )
 })
 
 describe("text field documentation contracts", () => {

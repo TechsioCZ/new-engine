@@ -6,13 +6,18 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.4.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/slider.tsx libs/ui/src/tokens/components/molecules/_slider.css libs/ui/stories/molecules/slider.stories.tsx https://zagjs.com/components/react/slider"
+  sources: "https://zagjs.com/components/react/slider"
+  contributor_sources: "libs/ui/src/molecules/slider.tsx libs/ui/src/tokens/components/molecules/_slider.css libs/ui/stories/molecules/slider.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Slider Usage
 
@@ -109,6 +114,48 @@ Use `showMarkers` and `markerCount`, not custom tick markup.
 
 If the user must type an exact value, use NumericInput or pair both components
 deliberately.
+
+## Focus refs and native form lifecycle
+
+`getThumbProps(index)` accepts only `ref`, `onFocus` and `onBlur` for the
+zero-based thumb. The ref is a `HTMLDivElement` with `role="slider"`, not its
+hidden form input. Focus/blur handlers compose with the machine; do not replace
+its keyboard handlers or set thumb values through the DOM. Object refs and
+React 19 callback-ref cleanup are supported, including thumb removal.
+
+```tsx
+import { useRef, useState } from "react"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Slider } from "@techsio/ui-kit/molecules/slider"
+
+function Budget() {
+  const [values, setValues] = useState([20, 80])
+  const minimum = useRef<HTMLDivElement>(null)
+  const maximum = useRef<HTMLDivElement>(null)
+  return <>
+    <Slider label="Budget" name="budget" value={values} onChange={setValues}
+      aria-label={["Minimum budget", "Maximum budget"]}
+      getThumbProps={(index) => ({ ref: index === 0 ? minimum : maximum })} />
+    <Button variant="secondary" onClick={() => minimum.current?.focus()}>Focus minimum</Button>
+    <Button variant="secondary" onClick={() => maximum.current?.focus()}>Focus maximum</Button>
+  </>
+}
+```
+
+Use `name` for native form values and `form` for an external owner. Owner changes
+follow the actual native input association (including moved forms or changed
+IDs). Uncontrolled reset restores the initial defaults under the current bounds
+only after all native/React reset listeners can cancel it. `preventDefault()`
+in `onReset` preserves the value and emits no reset proposal. Pending work is
+cleaned up on unmount. Controlled `value` remains authoritative, including when
+the parent rejects a proposal; reset does not silently rewrite parent state.
+If the product needs a controlled reset, the app explicitly sets that state.
+
+Native disabled fieldsets (including nested fieldsets and first-legend
+exceptions) affect thumbs and submission; read-only remains focusable and
+submittable. Runtime bounds/precision normalization and removed-thumb recovery
+must not be mistaken for app consent to commit a different controlled value.
+The component-owned ThumbFocus/native-form stories cover these contracts.
 
 ## Common Mistakes
 

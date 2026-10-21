@@ -6,7 +6,7 @@ description: >
   hidden E.164 form value, native validation, validation status, and compound
   country picker slots.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -165,9 +165,9 @@ Source: libs/ui/src/tokens/components/molecules/_phone-input.css
 ## Validation Commands
 
 ```sh
-rg -n "type=\"tel\"|<PhoneInput\\b(?!\\.)[^>]*className=.*(border-|bg-|text-|p-)" apps
+rg -P -n "type=\"tel\"|<PhoneInput\\b(?!\\.)[^>]*className=.*(border-|bg-|text-|p-)" apps
 rg -U -P -n "<PhoneInput\\b(?!\\.)(?![\\s\\S]{0,600}<PhoneInput\\.Input)" apps
-rg -n "<PhoneInput\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
+rg -P -n "<PhoneInput\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
 
 ### Editing, reset and refs

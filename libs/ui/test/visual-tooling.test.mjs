@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
+import { runInNewContext } from "node:vm"
 import {
   assertCalibration,
   assertSupportedTheme,
@@ -10,10 +11,19 @@ import {
 import { curateControls } from "../.storybook/controls.ts"
 import { applyPreviewTheme, bindDocsTheme } from "../.storybook/theme.mjs"
 import {
+  nativeFormAdapters,
+  nativeResetCancellations,
+} from "./native-form-contracts.mjs"
+import {
   assertPrimaryBaselines,
   assertReleaseSelection,
   assertVisualCompletion,
 } from "./visual-completion.mjs"
+import {
+  assertFloatingContainment,
+  popupCheckpointStories,
+  visibleFloatingSurfaces,
+} from "./visual-popup-capture.mjs"
 import { createThemeMatrix, createVisualMatrix } from "./visual-projects.mjs"
 import {
   hasClientDirective,
@@ -428,4 +438,212 @@ test("release preflight requires exact reviewed baselines for each story and dev
       ),
     /Missing 12/
   )
+})
+
+test("role-free portal anatomy is discovered and hidden surfaces are excluded", async () => {
+  const bounds = {
+    x: 12,
+    y: 20,
+    left: 12,
+    top: 20,
+    right: 112,
+    bottom: 100,
+    width: 100,
+    height: 80,
+  }
+  const parent = {
+    parentElement: null,
+    getBoundingClientRect: () => bounds,
+    style: {},
+  }
+  const element = {
+    parentElement: parent,
+    getAttribute: (name) =>
+      ({ "data-scope": "custom-calendar", "data-part": "content" })[name] ??
+      null,
+    getBoundingClientRect: () => bounds,
+    getClientRects: () => [bounds],
+    querySelectorAll: () => [],
+    closest: (selector) => (selector.includes("positioner") ? parent : null),
+    style: {},
+  }
+  let selected
+  const page = {
+    evaluate: async (evaluate) =>
+      runInNewContext(`(${evaluate.toString()})()`, {
+        document: {
+          getElementById: () => ({ contains: () => false }),
+          querySelectorAll: (selector) => {
+            selected = selector
+            return [element, { ...element, style: { display: "none" } }]
+          },
+        },
+        getComputedStyle: (node) => ({
+          display: "block",
+          visibility: "visible",
+          ...node.style,
+        }),
+        scrollX: 0,
+        scrollY: 0,
+      }),
+  }
+  const surfaces = await visibleFloatingSurfaces(page)
+  assert.ok(selected.includes('[data-part="positioner"] [data-part="content"]'))
+  assert.equal(surfaces.length, 1)
+  assert.equal(surfaces[0].role, null)
+  assert.equal(surfaces[0].scope, "custom-calendar")
+  assert.equal(surfaces[0].external, true)
+  assertFloatingContainment(surfaces, { width: 390, height: 844 })
+
+  // The panel and its positioner fit, but a descendant can still be entirely
+  // outside overflow-hidden bounds (the expanded CascadeSelect Phones bug).
+  const descendant = {
+    ...element,
+    parentElement: element,
+    getAttribute: (name) => (name === "aria-label" ? "Phones" : null),
+    getBoundingClientRect: () => ({
+      ...bounds,
+      top: 120,
+      bottom: 150,
+      y: 120,
+      height: 30,
+    }),
+  }
+  element.querySelectorAll = () => [descendant]
+  for (const overflowY of ["hidden", "clip"]) {
+    element.style = { overflowY }
+    const clippedHierarchy = await visibleFloatingSurfaces(page)
+    assert.equal(clippedHierarchy[0].clipped, false)
+    assert.deepEqual(Array.from(clippedHierarchy[0].clippedDescendants), [
+      "Phones",
+    ])
+    assert.throws(
+      () =>
+        assertFloatingContainment(clippedHierarchy, {
+          width: 390,
+          height: 844,
+        }),
+      /descendants are clipped by an ancestor/
+    )
+  }
+  // Scrollable lists legitimately contain offscreen rows. Required checkpoint
+  // rows separately use IntersectionObserver to reject scrollport clipping.
+  element.style = { overflowY: "auto" }
+  assertFloatingContainment(await visibleFloatingSurfaces(page), {
+    width: 390,
+    height: 844,
+  })
+  element.style = {}
+  element.querySelectorAll = () => []
+  parent.style = { overflowX: "hidden" }
+  parent.getBoundingClientRect = () => ({ ...bounds, right: 80, width: 68 })
+  const clipped = await visibleFloatingSurfaces(page)
+  assert.equal(clipped[0].clipped, true)
+  assert.throws(
+    () => assertFloatingContainment(clipped, { width: 390, height: 844 }),
+    /clipped by an ancestor/
+  )
+})
+
+test("floating captures reject missing, clipped and out-of-PNG content or positioners", () => {
+  const surface = {
+    scope: "cascade-select",
+    part: "content",
+    role: null,
+    x: 10,
+    y: 20,
+    width: 200,
+    height: 100,
+    clipped: false,
+    inaccessible: false,
+    positioner: null,
+  }
+  const image = { width: 390, height: 844 }
+  assertFloatingContainment([surface], image)
+  // Visible background dialogs remain capturable when a child overlay makes
+  // them inert. Active checkpoint accessibility is checked separately.
+  assertFloatingContainment([{ ...surface, inaccessible: true }], image)
+  for (const surfaces of [
+    [],
+    [{ ...surface, x: -5 }],
+    [{ ...surface, y: -5 }],
+    [{ ...surface, width: 400 }],
+    [{ ...surface, height: 900 }],
+    [{ ...surface, clipped: true }],
+    [{ ...surface, clippedDescendants: ["Phones"] }],
+    [{ ...surface, positioner: { x: 380, y: 20, width: 20, height: 100 } }],
+  ]) {
+    assert.throws(() => assertFloatingContainment(surfaces, image))
+  }
+})
+
+test("primary screenshot comparisons retain story annotations and deterministic popup checkpoints", () => {
+  const primary = read("./visual.spec.ts")
+  assert.match(primary, /type: "visual-story-id",\s+description: story.id/)
+  assert.match(primary, /await visibleFloatingSurfaces\(page\)/)
+  assert.match(
+    primary,
+    /await checkStoryPopupCheckpoints\(page, story.id, \(suffix\) =>\s+capture\(suffix, true\)/
+  )
+  assert.match(
+    primary,
+    /assertFloatingContainment\(surfaces, PNG.sync.read\(actual\)\)/
+  )
+  for (const id of [
+    "molecules-cascadeselect--playground",
+    "molecules-datepicker--playground",
+    "molecules-menu--nested-menu",
+  ]) {
+    assert.ok(popupCheckpointStories.some(([story]) => story === id))
+  }
+  const checkpoints = read("./visual-popup-capture.mjs")
+  assert.match(checkpoints, /--popup-hierarchy/)
+  assert.match(checkpoints, /--popup-submenu/)
+  assert.match(checkpoints, /getByRole\("grid"\)/)
+  assert.match(
+    checkpoints,
+    /getByRole\("treeitem", \{ name: "Phones", exact: true \}\)\s*\)\.toBeInViewport\(\{ ratio: 1 \}\)/
+  )
+})
+
+test("native-form lifecycle matrix uses all maintained adapters without disabling mobile keyboard coverage", () => {
+  assert.equal(new Set(nativeFormAdapters.map(({ id }) => id)).size, 15)
+  assert.deepEqual(nativeResetCancellations, [
+    "none",
+    "early-native",
+    "late-native",
+    "early-react",
+    "late-react",
+  ])
+  const spec = read("./native-form.behavior.spec.ts")
+  for (const helper of [
+    "checkNativeReset",
+    "checkNativeAuthority",
+    "checkNativeOwnership",
+    "checkNativeFieldsets",
+  ]) {
+    assert.ok(spec.includes(`await ${helper}(page, adapter`))
+  }
+  assert.doesNotMatch(spec, /test\.(?:skip|fixme)|isMobile|browserName/)
+  assert.match(
+    spec,
+    /await checkNativeDateKeyboardAuthority\(page, authority\)/
+  )
+  const nativeContracts = read("./native-form-contracts.mjs")
+  assert.doesNotMatch(nativeContracts, /resetProposal|resetCallbacks/)
+  assert.match(nativeContracts, /changed: true, callbacks: 2/)
+  const shared = read("./visual-shared-contracts.mjs")
+  assert.match(
+    shared,
+    /await radios.nth\(0\).press\("ArrowUp"\)\s+await expect\(radios.nth\(2\)\).toBeChecked\(\)/
+  )
+  assert.doesNotMatch(shared, /test\.(?:skip|fixme)/)
+  const fixture = read("../stories/testing/native-form-contracts.stories.tsx")
+  for (const { id } of nativeFormAdapters) {
+    assert.ok(fixture.includes(`case "${id}"`))
+  }
+  const config = read("../playwright.config.mts")
+  assert.match(config, /"desktop", "mobile"/)
+  assert.match(config, /"webkit"/)
+  assert.match(config, /"chromium"/)
 })

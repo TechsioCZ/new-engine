@@ -2,7 +2,7 @@
  * Switch — @techsio/ui-kit molecule.
  *
  * @component Switch
- * @componentVersion v1.1.1
+ * @componentVersion v1.2.0
  * @skill switch-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,14 +11,23 @@
  */
 import { normalizeProps, useMachine } from "@zag-js/react"
 import { connect, machine } from "@zag-js/switch"
-import { type ReactNode, useId } from "react"
-import type { VariantProps } from "tailwind-variants"
 import {
-  getControlledChoiceInputProps,
-  trackChoiceFormControl,
-} from "../atoms/checkbox"
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+  type Ref,
+  useId,
+} from "react"
+import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import {
+  getControlledChoiceInputProps,
+  isSilentChoiceReset,
+  mergeChoiceInputProps,
+  runSilentChoiceReset,
+  trackChoiceFormControl,
+  useChoiceInputRef,
+} from "../internal/choice-control"
 import { joinDescribedBy } from "../internal/described-by"
 import { tv } from "../utils"
 
@@ -28,11 +37,20 @@ const switchChoiceMachine: typeof machine = {
     ...machine.implementations,
     effects: {
       ...machine.implementations?.effects,
-      trackFormControlState({ scope, context }) {
+      trackFormControlState({ scope, context, prop, action }) {
         const root = scope.getById(scope.ids?.root ?? `switch:${scope.id}`)
         return trackChoiceFormControl(
           root,
-          () => context.set("checked", context.initial("checked")),
+          () => {
+            if (prop("checked") === undefined) {
+              runSilentChoiceReset(context, () =>
+                context.set("checked", context.initial("checked"))
+              )
+            } else {
+              // Native reset bypasses React; the parent remains authoritative.
+              action(["syncInputElement"])
+            }
+          },
           (disabled) => context.set("fieldsetDisabled", disabled)
         )
       },
@@ -96,6 +114,22 @@ const switchVariants = tv({
 
 export type SwitchProps = VariantProps<typeof switchVariants> & {
   "aria-describedby"?: string
+  /** Ref targets the native, focusable input rather than the visual control. */
+  ref?: Ref<HTMLInputElement>
+  inputProps?: Omit<
+    ComponentPropsWithoutRef<"input">,
+    | "type"
+    | "checked"
+    | "defaultChecked"
+    | "disabled"
+    | "readOnly"
+    | "required"
+    | "name"
+    | "value"
+    | "id"
+  >
+  "aria-label"?: string
+  "aria-labelledby"?: string
   id?: string
   name?: string
   value?: string | number
@@ -114,6 +148,10 @@ export type SwitchProps = VariantProps<typeof switchVariants> & {
 }
 
 export function Switch({
+  ref,
+  inputProps: nativeInputProps = {},
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   id,
   "aria-describedby": ariaDescribedBy,
   size = "md",
@@ -142,6 +180,7 @@ export function Switch({
     ids: id ? { hiddenInput: id } : undefined,
     name,
     value,
+    form: nativeInputProps.form,
     checked,
     defaultChecked,
     dir,
@@ -150,7 +189,7 @@ export function Switch({
     readOnly,
     required,
     onCheckedChange: ({ checked: nextChecked }) => {
-      if (!(readOnly || disabled)) {
+      if (!(readOnly || disabled || isSilentChoiceReset(service.context))) {
         onCheckedChange?.(nextChecked)
       }
     },
@@ -158,10 +197,11 @@ export function Switch({
 
   const api = connect(service, normalizeProps)
   const inputProps = getControlledChoiceInputProps(
-    api.getHiddenInputProps(),
+    mergeChoiceInputProps(nativeInputProps, api.getHiddenInputProps()),
     api.checked
   )
 
+  const inputRef = useChoiceInputRef(ref)
   const { root, control, thumb, label, hiddenInput } = switchVariants({
     size,
   })
@@ -175,17 +215,27 @@ export function Switch({
         {...api.getRootProps()}
       >
         <input
-          className={hiddenInput()}
           {...inputProps}
           aria-checked={api.checked}
           aria-describedby={joinDescribedBy(
             ariaDescribedBy,
+            nativeInputProps["aria-describedby"],
             helpText ? helpTextId : undefined
           )}
           aria-errormessage={invalid && helpText ? helpTextId : undefined}
           aria-invalid={invalid || undefined}
+          aria-label={nativeInputProps["aria-label"] ?? ariaLabel}
+          aria-labelledby={
+            nativeInputProps["aria-labelledby"] ??
+            ariaLabelledBy ??
+            ((nativeInputProps["aria-label"] ?? ariaLabel) || !children
+              ? undefined
+              : inputProps["aria-labelledby"])
+          }
           aria-readonly={(readOnly && !disabled) || undefined}
+          className={hiddenInput({ className: nativeInputProps.className })}
           readOnly={readOnly}
+          ref={inputRef}
           role="switch"
         />
         <span className={control()} {...api.getControlProps()}>

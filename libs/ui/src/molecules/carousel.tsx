@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,7 +27,7 @@ import {
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import type { IconType } from "../atoms/icon"
-import { Image } from "../atoms/image"
+import { Image, ImageWithFallback } from "../atoms/image"
 import { usePrefersReducedMotion } from "../internal/reduced-motion"
 import { tv } from "../utils"
 
@@ -231,6 +231,7 @@ type CarouselImageComponent<T extends ElementType = typeof Image> =
 const carouselVariants = tv({
   slots: {
     wrapper: ["relative w-full"],
+    media: "",
     root: ["carousel-side-layout relative w-full", "rounded-carousel"],
     control: [
       "flex items-center gap-carousel-control p-carousel-control",
@@ -302,12 +303,15 @@ const carouselVariants = tv({
     objectFit: {
       cover: {
         slide: "*:size-full *:object-cover",
+        media: "object-cover",
       },
       contain: {
         slide: "*:size-full *:object-contain",
+        media: "object-contain",
       },
       fill: {
         slide: "*:size-full *:object-fill",
+        media: "object-fill",
       },
       none: {
         slide: "",
@@ -600,16 +604,14 @@ Carousel.Slides = function CarouselSlides({
     imageAs: contextImageAs,
   } = useCarouselContext()
   const size = overrideSize ?? contextSize
-  const { slideGroup } = carouselVariants({
+  const { slideGroup, media } = carouselVariants({
     size,
     objectFit,
     aspectRatio,
   })
   const resolvedImageAs = imageAs ?? contextImageAs
-  const hasCustomImageComponent = resolvedImageAs && resolvedImageAs !== Image
-  const CustomImageComponent = hasCustomImageComponent
-    ? (resolvedImageAs as ElementType)
-    : Image
+  // Public wrappers retain adapter contracts; media records are resolved at runtime.
+  const Media: ElementType = ImageWithFallback
 
   const groupProps = api.getItemGroupProps()
   return (
@@ -634,20 +636,21 @@ Carousel.Slides = function CarouselSlides({
     >
       {slides.map((slide, index) => (
         <Carousel.Slide index={index} key={slide.id}>
-          {slide.content ??
-            (hasCustomImageComponent ? (
-              <CustomImageComponent
-                alt={slide.alt || ""}
-                src={slide.src || ""}
-                {...slide.imageProps}
-              />
-            ) : (
-              <Image
-                alt={slide.alt || ""}
-                src={slide.src || ""}
-                {...slide.imageProps}
-              />
-            ))}
+          {slide.content ?? (
+            <Media
+              alt={slide.alt || ""}
+              src={slide.src || ""}
+              {...slide.imageProps}
+              as={
+                resolvedImageAs && resolvedImageAs !== Image
+                  ? resolvedImageAs
+                  : "img"
+              }
+              className={media({
+                className: slide.imageProps?.className as string | undefined,
+              })}
+            />
+          )}
         </Carousel.Slide>
       ))}
     </div>

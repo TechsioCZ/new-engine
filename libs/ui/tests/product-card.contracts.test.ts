@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, expectTypeOf, it } from "vitest"
 import type { Image } from "../src/atoms/image"
 import { ProductCard } from "../src/molecules/product-card"
+import { Gallery } from "../src/organisms/gallery"
 import { ProductCardTemplate } from "../src/templates/product-card"
 
 function Adapter(_props: {
@@ -45,7 +46,41 @@ function imageTypeCases() {
   ProductCard.Image({ as: Adapter, src: "photo.jpg", alt: "Photo" })
 }
 
+function galleryRefTypeCases() {
+  createElement(Gallery, { items: [], ref: createRef<HTMLDivElement>() })
+  Gallery.Main({ ref: createRef<HTMLDivElement>() })
+  Gallery.Thumbnails({
+    ref: createRef<HTMLDivElement>(),
+    listRef: createRef<HTMLDivElement>(),
+    scrollAreaRef: () => () => {
+      /* React 19 cleanup. */
+    },
+  })
+  Gallery.Thumbnail({ index: 0, ref: createRef<HTMLButtonElement>() })
+  // @ts-expect-error The thumbnail ref targets its button, never the image.
+  Gallery.Thumbnail({ index: 0, ref: createRef<HTMLImageElement>() })
+  // @ts-expect-error The main ref targets a div.
+  Gallery.Main({ ref: createRef<HTMLButtonElement>() })
+}
+
 describe("ProductCard public contracts", () => {
+  it("uses the shared aggregate rating display without readonly control tab stops", () => {
+    const html = renderToStaticMarkup(
+      createElement(ProductCardTemplate, {
+        name: "Runner",
+        rating: { value: 4.8, count: 5 },
+      })
+    )
+    expect(html).toContain('role="img"')
+    expect(html).toContain('aria-label="4.8 out of 5"')
+    expect(html).toContain('aria-description="Average rating"')
+    expect(html).not.toContain('role="radiogroup"')
+    expect(html).not.toContain('tabindex="0"')
+    expect(html).not.toContain('type="hidden"')
+  })
+  it("exposes React 19 gallery DOM ref and cleanup contracts", () => {
+    expectTypeOf(galleryRefTypeCases).toBeFunction()
+  })
   it("preserves required default and adapter image props", () => {
     expectTypeOf(imageTypeCases).toBeFunction()
     type NativeProps = ComponentProps<typeof ProductCard.Image<typeof Image>>

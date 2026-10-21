@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -41,6 +41,7 @@ export const paginationVariants = tv({
       'has-[[data-part="compact-text"]]:bg-pagination-bg-neutral',
     ],
     link: [
+      "pagination-press font-pagination data-selected:font-pagination-current",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-pagination-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -415,7 +416,7 @@ export function Pagination<T extends ElementType = "a">({
         : undefined,
       className: link(),
       size: "current" as const,
-      theme: "borderless" as const,
+      theme: "unstyled" as const,
       ...overrides,
     })
 
@@ -423,6 +424,7 @@ export function Pagination<T extends ElementType = "a">({
       isNavigable ? { ...sharedLinkProps, onClick: undefined } : undefined,
       baseTriggerProps,
       {
+        composition: true,
         ...(isNavigable && linkAs ? { as: linkAs } : {}),
         // An unavailable destination is a non-interactive link placeholder.
         ...(isNavigable

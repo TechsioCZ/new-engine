@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import { createElement as h } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
+import ts from "typescript"
 import { describe, expect, it } from "vitest"
 import { Breadcrumb } from "../src/molecules/breadcrumb"
 import { Pagination, paginationVariants } from "../src/molecules/pagination"
@@ -296,4 +298,98 @@ describe("tree selection eligibility", () => {
       }
     }
   )
+})
+
+const copiedSourcePattern =
+  /const playgroundSource = `([\s\S]*?)`\n\nconst meta/
+const sourceEscapePattern = /\\([`$])/g
+
+describe("navigation Docs sources", () => {
+  const components = ["tabs", "pagination", "vertical-navigation"]
+  const stories = components.map((component) =>
+    readFileSync(
+      new URL(`../stories/molecules/${component}.stories.tsx`, import.meta.url),
+      "utf8"
+    )
+  )
+
+  it("provides complete primary examples without private story wrappers", () => {
+    for (let index = 0; index < components.length; index++) {
+      const story = stories[index]
+      const source = story?.match(copiedSourcePattern)?.[1]
+      expect(source).toContain(`@techsio/ui-kit/molecules/${components[index]}`)
+      expect(source).not.toContain("StoryPagination")
+      expect(source).not.toContain("NavigationStory")
+      expect(source).not.toContain("CategoryNavigation")
+      expect(story).toContain(
+        'source: { code: playgroundSource, language: "tsx", type: "code" }'
+      )
+    }
+    expect(stories[2]).toContain("component: VerticalNavigation")
+    for (const member of ["List", "Trigger", "Content", "Indicator"]) {
+      expect(stories[0]).toContain(`### Tabs.${member}`)
+    }
+    expect(stories[0]).toContain("HTMLButtonElement with role=tab")
+    expect(stories[0]).toContain("HTMLDivElement with role=tabpanel")
+  })
+
+  it("typechecks the exact copied examples using the public subpath export contract", () => {
+    const root = fileURLToPath(new URL("../", import.meta.url))
+    const packageJson = JSON.parse(readFileSync(`${root}package.json`, "utf8"))
+    expect(packageJson.exports["./molecules/*"].types).toBe(
+      "./dist/src/molecules/*.d.ts"
+    )
+    const config = ts.readConfigFile(`${root}tsconfig.json`, ts.sys.readFile)
+    const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, root)
+    const options = {
+      ...parsed.options,
+      incremental: false,
+      paths: { "@techsio/ui-kit/molecules/*": [`${root}src/molecules/*`] },
+    }
+    const files = new Map(
+      components.map((component, index) => {
+        const source = stories[index]?.match(copiedSourcePattern)?.[1]
+        if (!source) {
+          throw new Error(`Missing primary source for ${component}`)
+        }
+        return [
+          `${root}tests/copied-${component}.tsx`,
+          source.replace(sourceEscapePattern, "$1"),
+        ]
+      })
+    )
+    const host = ts.createCompilerHost(options)
+    const originalGetSourceFile = host.getSourceFile.bind(host)
+    host.getSourceFile = (
+      name,
+      languageVersion,
+      onError,
+      shouldCreateNewSourceFile
+    ) => {
+      const source = files.get(name)
+      return source === undefined
+        ? originalGetSourceFile(
+            name,
+            languageVersion,
+            onError,
+            shouldCreateNewSourceFile
+          )
+        : ts.createSourceFile(
+            name,
+            source,
+            languageVersion,
+            true,
+            ts.ScriptKind.TSX
+          )
+    }
+    const program = ts.createProgram([...files.keys()], options, host)
+    const diagnostics = ts.getPreEmitDiagnostics(program)
+    expect(
+      ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+        getCanonicalFileName: (name) => name,
+        getCurrentDirectory: () => root,
+        getNewLine: () => "\n",
+      })
+    ).toBe("")
+  }, 30_000)
 })

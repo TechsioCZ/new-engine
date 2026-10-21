@@ -9,8 +9,13 @@ metadata:
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
-  sources: "libs/ui/package.json libs/ui/project.json libs/ui/.storybook/main.ts libs/ui/scripts/validate-token-usage.js libs/ui/scripts/validate-token-definitions.js libs/ui/scripts/run-component-tests.mjs libs/ui/figma.config.json libs/ui/skills/_artifacts/domain_map.yaml"
+  sources: ""
+  contributor_sources: "libs/ui/package.json libs/ui/project.json libs/ui/.storybook/main.ts libs/ui/scripts/validate-token-usage.js libs/ui/scripts/validate-token-definitions.js libs/ui/scripts/run-component-tests.mjs libs/ui/figma.config.json libs/ui/skills/_artifacts/domain_map.yaml"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Component Consistency Validation
 
@@ -148,7 +153,7 @@ Source: libs/ui/src/molecules/carousel.tsx
 ```sh
 bunx biome check --write libs/ui/src/atoms/button.tsx libs/ui/stories/atoms/button.stories.tsx
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+pnpm --dir libs/ui build
 pnpm --dir libs/ui figma:connect:parse
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y
@@ -161,7 +166,7 @@ a full readiness pass.
 
 ## Shared-contract review (required)
 
-Check `libs/ui/docs/component-contracts.md` alongside API/token matching:
+Check `../../references/component-contracts.md` alongside API/token matching:
 
 - StatusText icons default on for error/warning/success, decorative ARIA,
   multiline first-line alignment, unique message IDs and merged descriptions.

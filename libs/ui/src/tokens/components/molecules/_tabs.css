@@ -47,3 +47,16 @@
 @theme static {
   --spacing-tabs-rail-offset: var(--border-width-tabs);
 }
+
+/* Navigation owns typography and an inset press cue; Button motion is not inherited. */
+@theme static {
+  --font-weight-tabs-trigger: var(--font-weight-medium);
+  --border-width-tabs-pressed: var(--border-width-sm);
+  --font-weight-tabs-trigger-selected: var(--font-weight-semibold);
+}
+
+@utility tabs-trigger-press {
+  &:active:not(:disabled):not([data-disabled]) {
+    box-shadow: inset 0 calc(-1 * var(--border-width-tabs-pressed)) currentColor;
+  }
+}

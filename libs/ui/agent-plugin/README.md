@@ -17,7 +17,7 @@ marketplace as-is.
 | Type | Count | Purpose |
 | --- | --- | --- |
 | Workflow skills | 8 | `$ui-*` entry points: scaffold, tokens, stories, theming, Figma sync, validation, release, usage routing |
-| Bundled deep skills | 74 | Synced from `libs/ui/skills/`: 59 per-component `*-usage` guides (each with a **UX/UI guidelines** section), `ux-guidelines`, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
+| Bundled deep skills | 79 | Synced from `libs/ui/skills/`: 64 per-component `*-usage` guides (each with a **UX/UI guidelines** section), `ux-guidelines`, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
 | MCP servers | 3 | context7 (docs), figma (design context + Code Connect), chrome-devtools (browser) — `mcp.json` |
 | Codex extension (`com.openai/`) | 6 agents + 2 hooks | Subagents (design-system expert, component-dev orchestrator, token/story/figma specialists, QA gate); real git `pre-push` gate installer + `--no-verify` guard |
 
@@ -159,9 +159,33 @@ from the source, and fails on a name collision with the 8 authored workflow skil
 source keeps the TanStack Intent authoring format (`requires` / `sources` lists at top
 level); on the way into the bundle each `SKILL.md` frontmatter is rewritten to the strict
 Agent Skills form (every non-spec key moved under `metadata`, lists joined with spaces).
-The body and all other files are copied byte-for-byte. Never edit bundled skills inside the
-plugin — edit them in `libs/ui/skills/` and re-sync; the repo's pre-commit
+Required contract/rule paths in skill bodies and metadata become skill-relative
+`../../references/...` paths. The generator bundles the canonical
+`docs/component-contracts.md` and `skills/_artifacts/consumer_app_usage_rules.md`
+into `references/`, adapts consumer-rule source exploration to installed package
+subpaths, separates repo-only `contributor_sources` from portable sources, and
+adds an audience/scope notice. Other skill files are copied byte-for-byte.
+Authored workflow bodies remain intact; their `metadata.requires` declarations and
+portable scope notice are maintained by the same generator. Never hand-edit generated
+skill bodies or bundled references — edit canonical sources and re-sync; the repo's pre-commit
 `scripts/check-skill-sync.mjs` rejects a stale bundle.
+
+## Installed consumers versus kit contributors
+
+For app work, start with `ui-component-usage` → `component-usage-ux` →
+`ux-guidelines` → the matching `<component>-usage` skill. Check props in the
+installed package's exported declarations, not `libs/ui/src`. Read bundled
+`references/component-contracts.md` and `references/consumer_app_usage_rules.md`;
+paths inside a skill resolve from that skill's folder, never the app's cwd.
+No monorepo checkout, `_artifacts`, or kit build is required for consumer work.
+Repository citations are optional contributor evidence. Use the app's own checks.
+
+Source-authoring workflows (`ui-new-component`, `ui-tokens`, `ui-story`,
+`ui-validate`, `ui-theme-brand`, `ui-figma-sync`, `ui-release-check`) intentionally
+require an explicit source checkout. Their monorepo commands do not apply to
+installed consumer apps. Packaging validation (`node scripts/validate-plugin.mjs`)
+works standalone and fails if a required bundled skill or reference is missing.
+`sync-skills.mjs` and its `--check` mode are contributor-only generation commands.
 
 ## The pre-push quality gate
 
@@ -219,7 +243,7 @@ slot, collisions are resolved so existing hooks keep running — never won by fo
 techsio-ui-kit-ai/
 ├── plugin.json                  # Agent Plugins 1.0.0 manifest (portable, canonical)
 ├── mcp.json                     # MCP servers: context7, figma, chrome-devtools (portable)
-├── skills/                      # 8 authored workflow skills + 74 bundled deep skills (portable)
+├── skills/                      # 8 authored workflow skills + 79 bundled deep skills (portable)
 ├── com.openai/                  # Codex extension directory (extensions["com.openai"])
 │   ├── hooks.json               # SessionStart installer + --no-verify guard
 │   └── agents/*.toml            # 6 Codex subagents

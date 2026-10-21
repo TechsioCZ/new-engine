@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,7 +22,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button as ButtonComponent } from "../atoms/button"
-import { Image, type ImageProps } from "../atoms/image"
+import { Image, type ImageProps, ImageWithFallback } from "../atoms/image"
 import { Rating as RatingComponent, type RatingProps } from "../atoms/rating"
 import { tv } from "../utils"
 
@@ -172,10 +172,15 @@ ProductCard.Image = function ProductCardImage<
 >({ as, className, ref, ...props }: ProductCardImageProps<T>) {
   const context = useContext(ProductCardContext)
   const { imageSlot } = productCardVariants({ layout: context.layout })
-  const ImageComponent = (as || Image) as ElementType
-
+  // Public wrappers retain adapter contracts; media records are resolved at runtime.
+  const Media: ElementType = ImageWithFallback
   return (
-    <ImageComponent className={imageSlot({ className })} ref={ref} {...props} />
+    <Media
+      {...props}
+      as={(as && as !== Image ? as : "img") as ElementType}
+      className={imageSlot({ className })}
+      ref={ref}
+    />
   )
 }
 
@@ -262,21 +267,7 @@ ProductCard.Rating = function ProductCardRating({
   const context = useContext(ProductCardContext)
   const { ratingSlot } = productCardVariants({ layout: context.layout })
 
-  let content = children
-  if (rating?.readOnly && !rating.disabled) {
-    content = (
-      <span
-        aria-label={`${rating.value ?? rating.defaultValue ?? 0} out of ${rating.count ?? 5} stars`}
-        role="img"
-      >
-        <span aria-hidden="true">
-          ★ {rating.value ?? rating.defaultValue ?? 0} / {rating.count ?? 5}
-        </span>
-      </span>
-    )
-  } else if (rating) {
-    content = <RatingComponent {...rating} />
-  }
+  const content = rating ? <RatingComponent {...rating} /> : children
   return (
     <div className={ratingSlot({ className })} ref={ref} {...props}>
       {content}

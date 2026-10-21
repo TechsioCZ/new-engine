@@ -2,90 +2,58 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.3.0
+ * @componentVersion v1.4.0
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the slider-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { normalizeProps, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   connect as connectSlider,
   machine as sliderMachine,
 } from "@zag-js/slider"
-import { useEffect, useId, useMemo, useRef, useState } from "react"
+import {
+  type ComponentPropsWithRef,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { slugify, tv } from "../utils"
 
-// Zag observes only the closest fieldset. Native :disabled also accounts for
-// disabled outer fieldsets and the first-legend exception. The unnamed probe
-// never inherits the machine's disabled attribute, so enabling cannot latch.
-const createNativeSliderMachine = (
-  onDisabled: (disabled: boolean) => void
-): typeof sliderMachine => ({
+// Shared lifecycle replaces Zag's nearest-fieldset approximation and eager reset.
+const nativeSliderMachine: typeof sliderMachine = {
   ...sliderMachine,
   implementations: {
     ...sliderMachine.implementations,
     effects: {
       ...sliderMachine.implementations?.effects,
-      trackFormControlState({ scope, context }) {
-        const root = scope.getById(scope.ids?.root ?? `slider:${scope.id}`)
-        const probe = root?.querySelector<HTMLInputElement>(
-          '[data-part="disabled-probe"]'
-        )
-        if (!probe) {
-          return
-        }
-        let active = true
-        let form: HTMLFormElement | null = null
-        const reset = (event: Event) => {
-          // A microtask may run before a later native listener prevents reset.
-          setTimeout(() => {
-            if (active && !event.defaultPrevented) {
-              context.set("value", context.initial("value"))
-            }
-          })
-        }
-        const update = () => {
-          onDisabled(probe.matches(":disabled"))
-          if (form !== probe.form) {
-            form?.removeEventListener("reset", reset)
-            form = probe.form
-            form?.addEventListener("reset", reset)
-          }
-        }
-        update()
-        const observer = new MutationObserver(update)
-        observer.observe(probe.ownerDocument.documentElement, {
-          attributes: true,
-          attributeFilter: ["disabled", "form"],
-          childList: true,
-          subtree: true,
-        })
-        return () => {
-          active = false
-          observer.disconnect()
-          form?.removeEventListener("reset", reset)
-        }
+      trackFormControlState() {
+        /* Shared lifecycle below owns disabled and reset behavior. */
       },
     },
   },
-})
+}
 
 const sliderVariants = tv({
   slots: {
     root: [
-      "flex w-full flex-col gap-slider",
+      "flex w-full min-w-0 flex-col gap-slider",
       "data-[orientation=vertical]:h-full",
       "data-disabled:cursor-not-allowed",
     ],
-    header: ["flex items-center justify-between"],
-    value: ["tabular-nums"],
-    label: ["block font-medium"],
+    header: ["flex min-w-0 flex-wrap items-center justify-between gap-slider"],
+    value: ["wrap-anywhere min-w-0 tabular-nums"],
+    label: ["wrap-anywhere block min-w-0 font-medium"],
     control: [
       "relative grid min-h-slider-control place-items-center",
       "data-markers:mb-slider-marker-label",
@@ -173,9 +141,16 @@ const sliderVariants = tv({
   },
 })
 
+/** Ref and focus events target the actual focusable `role="slider"` thumb, not its hidden input. */
+export type SliderThumbProps = Pick<
+  ComponentPropsWithRef<"div">,
+  "ref" | "onFocus" | "onBlur"
+>
+
 export type SliderProps = VariantProps<typeof sliderVariants> & {
   id?: string
   name?: string
+  form?: string
   label?: string
   /**
    * One distinct accessible name per thumb, including sliders with a visible `label`
@@ -205,6 +180,8 @@ export type SliderProps = VariantProps<typeof sliderVariants> & {
   formatRangeText?: (values: number[]) => string
   formatValue?: (value: number) => string
   getAriaValueText?: (details: { value: number; index: number }) => string
+  /** Zero-based thumb props. React cleans up callback/object refs on removal; focus handlers compose with Zag. */
+  getThumbProps?: (index: number) => SliderThumbProps
   className?: string
   onChange?: (values: number[]) => void
   onChangeEnd?: (values: number[]) => void
@@ -414,6 +391,7 @@ const apiValueFallback = (
 export function Slider({
   id,
   name,
+  form,
   label,
   "aria-label": ariaLabel,
   "aria-describedby": ariaDescribedBy,
@@ -429,7 +407,7 @@ export function Slider({
   max = 100,
   step = 1,
   minStepsBetweenThumbs = 0,
-  disabled = false,
+  disabled: explicitDisabled = false,
   readOnly = false,
   dir = "ltr",
   orientation = "horizontal",
@@ -439,6 +417,7 @@ export function Slider({
   showValueText = false,
   formatRangeText,
   getAriaValueText,
+  getThumbProps,
   formatValue = (val: number) => val.toString(),
   className,
   onChange,
@@ -446,9 +425,15 @@ export function Slider({
 }: SliderProps) {
   const generatedId = useId()
   const disabledProbeRef = useRef<HTMLInputElement>(null)
-  const [inheritedDisabled, setInheritedDisabled] = useState(false)
-  const nativeSliderMachine = useMemo(
-    () => createNativeSliderMachine(setInheritedDisabled),
+  const resetting = useRef(false)
+  const [disabledElement, setDisabledElement] =
+    useState<HTMLInputElement | null>(null)
+  const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
+  const probeRef = useMemo(
+    () => (node: HTMLInputElement | null) => {
+      disabledProbeRef.current = node
+      setDisabledElement(node)
+    },
     []
   )
   const interactionBlocked = () =>
@@ -500,6 +485,7 @@ export function Slider({
   const service = useMachine(nativeSliderMachine, {
     id: uniqueId,
     name,
+    form,
     "aria-label": ariaLabel,
     getAriaValueText:
       getAriaValueText ?? (({ value: thumbValue }) => formatValue(thumbValue)),
@@ -511,23 +497,51 @@ export function Slider({
     thumbAlignment,
     step: resolvedConfig.step,
     minStepsBetweenThumbs: resolvedConfig.minStepsBetweenThumbs,
-    disabled: disabled || inheritedDisabled,
+    disabled,
     readOnly,
     dir,
     orientation,
     onValueChange: (details) => {
-      if (!interactionBlocked()) {
+      if (!(resetting.current || interactionBlocked())) {
         onChange?.(details.value)
       }
     },
     onValueChangeEnd: (details) => {
-      if (!interactionBlocked()) {
+      if (!(resetting.current || interactionBlocked())) {
         onChangeEnd?.(details.value)
       }
     },
   })
 
   const api = connectSlider(service, normalizeProps)
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    resetting.current = true
+    try {
+      if (!isControlled) {
+        service.context.set("value", service.context.initial("value"))
+      }
+      // Reconcile native inputs even when controlled state did not rerender.
+      const inputs =
+        disabledProbeRef.current?.parentElement?.querySelectorAll<HTMLInputElement>(
+          "input[hidden]"
+        ) ?? []
+      const restored = isControlled
+        ? resolvedValue
+        : service.context.get("value")
+      for (const [index, input] of Array.from(inputs).entries()) {
+        input.value = String(restored?.[index] ?? "")
+      }
+    } finally {
+      resetting.current = false
+    }
+  }
+  useEffect(() => {
+    const input = disabledProbeRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
 
   const {
     root,
@@ -563,7 +577,12 @@ export function Slider({
         }
       }}
     >
-      <input data-part="disabled-probe" ref={disabledProbeRef} type="hidden" />
+      <input
+        data-part="disabled-probe"
+        form={form}
+        ref={probeRef}
+        type="hidden"
+      />
       {(label || showValueText) && (
         <div className={header()}>
           <Label className={labelSlot()} size={size} {...api.getLabelProps()}>
@@ -642,7 +661,10 @@ export function Slider({
             className={thumb()}
             // biome-ignore lint/suspicious/noArrayIndexKey: thumb indices are stable value positions, not reorderable items.
             key={`thumb-${index}`}
-            {...api.getThumbProps({ index })}
+            {...mergeProps(
+              api.getThumbProps({ index }),
+              getThumbProps?.(index) ?? {}
+            )}
             // The thumb is the focusable slider; link the help/error text to it.
             aria-describedby={joinDescribedBy(
               ariaDescribedBy,
@@ -666,7 +688,10 @@ export function Slider({
             role="slider"
             tabIndex={api.getThumbProps({ index }).tabIndex}
           >
-            <input {...api.getHiddenInputProps({ index })} />
+            <input
+              {...api.getHiddenInputProps({ index })}
+              disabled={disabled}
+            />
           </div>
         ))}
       </div>

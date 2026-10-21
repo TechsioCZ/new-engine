@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useEffect, useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import {
   ColorSelect,
@@ -332,5 +332,79 @@ export const LongCaptions: Story = {
       if (!cell) throw new Error("Missing swatch cell")
       await expect(cell.scrollWidth).toBeLessThanOrEqual(cell.clientWidth + 1)
     }
+  },
+}
+
+
+function RecoveringColors() {
+  const [choices, setChoices] = useState(
+    colors.filter((item) => !item.disabled)
+  )
+  return (
+    <ColorSelect
+      label="Available colors"
+      colors={choices}
+      onKeyDownCapture={(event) => {
+        const button = (event.target as HTMLElement).closest(
+          'button[role="radio"]'
+        )
+        if (!button) return
+        const label = button.getAttribute("aria-label")
+        if (event.key === "Delete") {
+          event.preventDefault()
+          setChoices((current) =>
+            current.filter((item) => `Select color ${item.label}` !== label)
+          )
+        }
+        if (event.key === "d") {
+          event.preventDefault()
+          setChoices((current) =>
+            current.map((item) =>
+              `Select color ${item.label}` === label
+                ? { ...item, disabled: true }
+                : item
+            )
+          )
+        }
+      }}
+    />
+  )
+}
+
+export const FocusRecovery: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Removing or disabling a focused color recovers focus to a surviving choice, then a named empty-group fallback without changing selection.",
+      },
+    },
+  },
+  render: () => <RecoveringColors />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    canvas.getByRole("radio", { name: "Select color Sand" }).focus()
+    await userEvent.keyboard("{Delete}")
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("radio", { name: "Select color Forest" })
+      ).toHaveFocus()
+    )
+    await userEvent.keyboard("d")
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("radio", { name: "Select color Navy" })
+      ).toHaveFocus()
+    )
+    await userEvent.keyboard("d")
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("radiogroup", { name: "Available colors" })
+      ).toHaveFocus()
+    )
+    await expect(
+      canvas.queryAllByRole("radio", { checked: true })
+    ).toHaveLength(0)
   },
 }

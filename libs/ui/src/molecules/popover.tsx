@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -35,8 +35,11 @@ import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
+import {
+  OverlayContainerProvider,
+  OverlayPortal as Portal,
+} from "../internal/overlay-portal"
 import { tv } from "../utils"
-import { OverlayContainerProvider, OverlayPortal as Portal } from "./dialog"
 
 const popoverVariants = tv({
   slots: {

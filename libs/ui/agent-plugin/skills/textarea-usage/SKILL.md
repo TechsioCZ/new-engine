@@ -10,8 +10,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/atoms/textarea.tsx libs/ui/src/tokens/components/atoms/_textarea.css libs/ui/stories/atoms/textarea.stories.tsx libs/ui/src/atoms/textarea.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/textarea.tsx libs/ui/src/tokens/components/atoms/_textarea.css libs/ui/stories/atoms/textarea.stories.tsx libs/ui/src/atoms/textarea.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Textarea Usage
 

@@ -6,13 +6,18 @@ description: >
   triggers, content, indicator, orientation, activation mode, variants, fitted,
   and justify props.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/tabs.tsx libs/ui/src/tokens/components/molecules/_tabs.css libs/ui/stories/molecules/tabs.stories.tsx libs/ui/src/molecules/tabs.figma.ts https://zagjs.com/components/react/tabs"
+  sources: "https://zagjs.com/components/react/tabs"
+  contributor_sources: "libs/ui/src/molecules/tabs.tsx libs/ui/src/tokens/components/molecules/_tabs.css libs/ui/stories/molecules/tabs.stories.tsx libs/ui/src/molecules/tabs.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Tabs Usage
 

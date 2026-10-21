@@ -9,8 +9,13 @@ metadata:
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
-  sources: "libs/ui/AGENTS.md libs/ui/token-contribution.md libs/ui/src/tokens/index.css libs/ui/src/tokens/_semantic.css libs/ui/src/tokens/_layout.css libs/ui/src/tokens/_spacing.css libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/tokens/components/components.css libs/ui/scripts/validate-token-usage.js libs/ui/scripts/validate-token-definitions.js https://github.com/TechsioCZ/new-engine/issues/72 https://github.com/TechsioCZ/new-engine/issues/329"
+  sources: "https://github.com/TechsioCZ/new-engine/issues/72 https://github.com/TechsioCZ/new-engine/issues/329"
+  contributor_sources: "libs/ui/AGENTS.md libs/ui/token-contribution.md libs/ui/src/tokens/index.css libs/ui/src/tokens/_semantic.css libs/ui/src/tokens/_layout.css libs/ui/src/tokens/_spacing.css libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/tokens/components/components.css libs/ui/scripts/validate-token-usage.js libs/ui/scripts/validate-token-definitions.js"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Tailwind Token Authoring
 

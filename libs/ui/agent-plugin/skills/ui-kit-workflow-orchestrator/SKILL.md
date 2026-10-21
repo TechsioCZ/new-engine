@@ -9,8 +9,13 @@ metadata:
   type: "lifecycle"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
-  sources: "libs/ui/AGENTS.md libs/ui/skills/_artifacts/domain_map.yaml libs/ui/skills/_artifacts/skill_spec.md libs/ui/skills/_artifacts/skill_tree.yaml"
+  sources: ""
+  contributor_sources: "libs/ui/AGENTS.md libs/ui/skills/_artifacts/domain_map.yaml libs/ui/skills/_artifacts/skill_spec.md libs/ui/skills/_artifacts/skill_tree.yaml"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Workflow Orchestrator
 
@@ -78,7 +83,7 @@ Do not edit Figma automatically from ordinary UI-kit skills.
 ```sh
 bunx biome check --write libs/ui/src/atoms/button.tsx
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+pnpm --dir libs/ui build
 ```
 
 Run narrow checks by default. Ask the maintainer before broader Storybook,
@@ -105,7 +110,7 @@ Escalate to component-authoring only if the UI kit has an API gap.
 
 This keeps app-specific design from becoming a shared library regression.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### HIGH Skipping follow-up skills
 

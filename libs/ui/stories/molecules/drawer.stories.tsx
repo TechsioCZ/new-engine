@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ReactNode, useId, useState } from "react"
-import { fn } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { FormInput } from "../../src/molecules/form-input"
@@ -99,7 +99,8 @@ function DrawerStory({
 
 const meta = {
   title: "Molecules/Drawer",
-  component: DrawerStory,
+  component: Drawer,
+  render: (args) => <DrawerStory {...args} />,
   tags: ["autodocs"],
   parameters: {
     layout: "centered",
@@ -193,7 +194,7 @@ const meta = {
     trapFocus: true,
     triggerLabel: "Open drawer",
   },
-} satisfies Meta<typeof DrawerStory>
+} satisfies Meta<DrawerStoryArgs>
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -206,7 +207,74 @@ export const Playground: Story = {
         story:
           "A configurable workspace panel demonstrates edge placement, dimensions, drag behavior, and dismissal controls.",
       },
+      source: {
+        code: `import { Drawer } from "@techsio/ui-kit/molecules/drawer"
+
+export function WorkspaceDrawer() {
+  return (
+    <Drawer placement="end" size="md">
+      <Drawer.Trigger>Open drawer</Drawer.Trigger>
+      <Drawer.Portal>
+        <Drawer.Backdrop />
+        <Drawer.Positioner>
+          <Drawer.Content draggable>
+            <Drawer.Grabber>
+              <Drawer.GrabberIndicator />
+            </Drawer.Grabber>
+            <Drawer.Header>
+              <Drawer.Title>Playground drawer</Drawer.Title>
+              <Drawer.Description>
+                Review the current workspace settings.
+              </Drawer.Description>
+            </Drawer.Header>
+            <Drawer.Body>
+              Notifications, privacy, and workspace defaults are ready to review.
+            </Drawer.Body>
+            <Drawer.Footer>
+              <Drawer.CloseTrigger variant="tertiary" theme="outlined">
+                Close
+              </Drawer.CloseTrigger>
+            </Drawer.Footer>
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Drawer.Portal>
+    </Drawer>
+  )
+}`,
+      },
     },
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("button", {
+      name: "Open drawer",
+    })
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(trigger)
+    const drawer = await body.findByRole("dialog", {
+      name: "Playground drawer",
+    })
+    await waitFor(() =>
+      expect(drawer.contains(canvasElement.ownerDocument.activeElement)).toBe(
+        true
+      )
+    )
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(drawer).not.toBeInTheDocument())
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await userEvent.keyboard("{Enter}")
+    const reopened = await body.findByRole("dialog", {
+      name: "Playground drawer",
+    })
+    await waitFor(() =>
+      expect(reopened.contains(canvasElement.ownerDocument.activeElement)).toBe(
+        true
+      )
+    )
+    await userEvent.click(
+      within(reopened).getByRole("button", { name: /^Close$/ })
+    )
+    await waitFor(() => expect(reopened).not.toBeInTheDocument())
+    await waitFor(() => expect(trigger).toHaveFocus())
   },
 }
 

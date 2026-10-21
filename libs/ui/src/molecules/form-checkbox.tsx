@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.2.1
+ * @componentVersion v1.3.0
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,12 +11,21 @@
  */
 import { connect, machine } from "@zag-js/checkbox"
 import { normalizeProps, useMachine } from "@zag-js/react"
-import { type ReactNode, useId } from "react"
+import {
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+  type Ref,
+  useId,
+} from "react"
+import { StatusText } from "../atoms/status-text"
 import {
   getControlledChoiceInputProps,
+  isSilentChoiceReset,
+  mergeChoiceInputProps,
+  runSilentChoiceReset,
   trackChoiceFormControl,
-} from "../atoms/checkbox"
-import { StatusText } from "../atoms/status-text"
+  useChoiceInputRef,
+} from "../internal/choice-control"
 import { joinDescribedBy } from "../internal/described-by"
 import { tv } from "../utils"
 
@@ -26,11 +35,20 @@ const checkboxChoiceMachine: typeof machine = {
     ...machine.implementations,
     effects: {
       ...machine.implementations?.effects,
-      trackFormControlState({ scope, context }) {
+      trackFormControlState({ scope, context, prop, action }) {
         const root = scope.getById(scope.ids?.root ?? `checkbox:${scope.id}`)
         return trackChoiceFormControl(
           root,
-          () => context.set("checked", context.initial("checked")),
+          () => {
+            if (prop("checked") === undefined) {
+              runSilentChoiceReset(context, () =>
+                context.set("checked", context.initial("checked"))
+              )
+            } else {
+              // Native reset bypasses React; the parent remains authoritative.
+              action(["syncInputElement"])
+            }
+          },
           (disabled) => context.set("fieldsetDisabled", disabled)
         )
       },
@@ -107,6 +125,22 @@ const checkboxVariants = tv({
 })
 
 export type FormCheckboxProps = {
+  /** Ref targets the native, focusable input rather than the visual control. */
+  ref?: Ref<HTMLInputElement>
+  inputProps?: Omit<
+    ComponentPropsWithoutRef<"input">,
+    | "type"
+    | "checked"
+    | "defaultChecked"
+    | "disabled"
+    | "readOnly"
+    | "required"
+    | "name"
+    | "value"
+    | "id"
+  >
+  "aria-label"?: string
+  "aria-labelledby"?: string
   id?: string
   name?: string
   value?: string
@@ -128,6 +162,10 @@ export type FormCheckboxProps = {
 }
 
 export function FormCheckbox({
+  ref,
+  inputProps: nativeInputProps = {},
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   id,
   name,
   value,
@@ -152,6 +190,7 @@ export function FormCheckbox({
   const helpTextId = useId()
   const describedBy = joinDescribedBy(
     ariaDescribedBy,
+    nativeInputProps["aria-describedby"],
     helpText ? helpTextId : undefined
   )
   const invalid = validateStatus === "error"
@@ -162,6 +201,7 @@ export function FormCheckbox({
     ids: id ? { hiddenInput: id } : undefined,
     name,
     value,
+    form: nativeInputProps.form,
     checked: indeterminate ? "indeterminate" : checked,
     defaultChecked,
     disabled,
@@ -169,7 +209,7 @@ export function FormCheckbox({
     readOnly,
     required,
     onCheckedChange: (details) => {
-      if (!(readOnly || disabled)) {
+      if (!(readOnly || disabled || isSilentChoiceReset(service.context))) {
         onCheckedChange?.(details.checked === true)
       }
     },
@@ -177,11 +217,12 @@ export function FormCheckbox({
 
   const api = connect(service, normalizeProps)
   const inputProps = getControlledChoiceInputProps(
-    api.getHiddenInputProps(),
+    mergeChoiceInputProps(nativeInputProps, api.getHiddenInputProps()),
     api.checked,
     api.indeterminate
   )
 
+  const inputRef = useChoiceInputRef(ref, api.indeterminate)
   const styles = checkboxVariants({ size })
 
   const labelContent = label ?? children
@@ -193,19 +234,25 @@ export function FormCheckbox({
           <span className={styles.indicator()} {...api.getIndicatorProps()} />
         </div>
         <input
-          className={styles.hiddenInput()}
           {...inputProps}
           aria-checked={api.indeterminate ? "mixed" : api.checked}
           aria-describedby={describedBy}
           aria-errormessage={invalid && helpText ? helpTextId : undefined}
           aria-invalid={invalid || undefined}
+          aria-label={nativeInputProps["aria-label"] ?? ariaLabel}
+          aria-labelledby={
+            nativeInputProps["aria-labelledby"] ??
+            ariaLabelledBy ??
+            ((nativeInputProps["aria-label"] ?? ariaLabel) || !labelContent
+              ? undefined
+              : inputProps["aria-labelledby"])
+          }
           aria-readonly={(readOnly && !disabled) || undefined}
+          className={styles.hiddenInput({
+            className: nativeInputProps.className,
+          })}
           readOnly={readOnly}
-          ref={(node) => {
-            if (node) {
-              node.indeterminate = api.indeterminate
-            }
-          }}
+          ref={inputRef}
           type="checkbox"
         />
         {labelContent && (

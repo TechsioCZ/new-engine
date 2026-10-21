@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { Link } from "../../src/atoms/link"
 
 /**
  * Per-component changelog for `@techsio/ui-kit`, rendered in Storybook.
@@ -11,6 +12,102 @@ import type { Meta, StoryObj } from "@storybook/react"
  */
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
+
+### Wave 4 shared foundations and integration
+- Consolidate native form ownership, inherited disabling, cancellation-safe resets, choice event/ref composition and modal-aware portal ownership into shared internal modules without adding public helper exports.
+- Integrate cross-control native form and nested-overlay regression stories, maintained browser matrices, popup clipping checks and commerce workflow examples; document responsive compound-member contracts and complete public-import examples.
+
+### Wave 4 documentation and tooling
+- Render safe semantic changelog history with unique anchors and compact navigation; align shared gallery spacing and consumer/contributor guidance.
+- Validate portable skill prerequisites, bundled resources, copied-plugin usage and public API examples; synchronize the canonical and generated skill bundle.
+- Harden Figma token normalization, color validation and all-brand write safety; align canonical border-width utility validation, regenerate scheme scopes and consolidate source-linked Figma handoffs.
+
+### Checkbox v1.2.1
+- Internalize choice helpers and share native form lifecycles while preserving controlled and mixed state, React change tracking, silent resets and ref cleanup.
+
+### LinkButton v1.2.1
+- Preserve caller aria-disabled unless the disabled prop is authoritative.
+
+### NumericInput v1.3.1
+- Track actual owner-form resets, keep controlled values authoritative, restore defaults silently and compose cancellable native input handlers.
+
+### Rating v1.3.0
+- Add displayOnly aggregate summaries without form values or read-only tab stops; share inherited disabling and silent, constraint-normalized resets.
+
+### Tooltip v1.1.1
+- Use centralized internal modal-aware portal ownership without depending on Dialog.
+
+### Carousel v1.3.3
+- Compose shared image fallback while preserving image overrides and applying object-fit to the actual image.
+
+### CascadeSelect v1.1.2
+- Share inherited disabling, cancellation-safe owner-form resets and modal-aware popup portals.
+
+### ColorSelect v1.1.2
+- Share native disabled inheritance and recover focus among surviving choices or a named group fallback.
+
+### Combobox v1.6.0
+- Add defaultInputValue restoration; share native form lifecycles and modal-aware portals while preserving authoritative selection labels, query state and silent resets.
+
+### DatePicker v1.3.2
+- Share owner-form reset and disabled lifecycles, restore date/time/range defaults silently, discard popup drafts and use modal-aware portals.
+
+### Dialog v1.2.1
+- Move modal ownership and portal infrastructure into shared internals; cover nested control popups and supported inline rendering.
+
+### Drawer v1.0.3
+- Use internal modal-container ownership without depending on Dialog; document public anatomy and verify dismissal and focus return.
+
+### FileUpload v1.1.2
+- Share owner-form subscriptions, restore default FileList projections even while disabled or read-only, preserve controlled files and cancel accepted-reset transforms.
+
+### FormCheckbox v1.3.0
+- Expose native input refs and inputProps with cancellable event composition, explicit naming and merged descriptions; keep native resets silent and controlled state authoritative.
+
+### Menu v1.3.1
+- Use centralized internal overlay portals; keep long-label menus shrinkable and cover enlarged-text keyboard navigation and focus return.
+
+### Pagination v1.1.2
+- Own navigation typography, current-page emphasis and pressed feedback independently of Button defaults; provide a complete controlled public example.
+
+### PhoneInput v1.1.2
+- Share cancellation-safe, reassociation-aware native owner-form reset tracking while preserving controlled authority and country-selection suppression.
+
+### Popover v1.1.1
+- Use centralized internal modal-aware portal and container helpers; clarify floating-surface template controls.
+
+### ProductCard v1.3.1
+- Compose native and adapter media through ImageWithFallback and use displayOnly aggregate ratings without read-only tab stops.
+
+### RadioCard v1.1.2
+- Share reentrant silent-reset suppression and preserve cancellable activation, explicit group naming and consistent arrow-key wrapping.
+
+### RadioGroup v1.1.2
+- Preserve observational handlers and canceled activation, restore native checked state silently and keep arrow-key wrapping consistent across browsers.
+
+### SearchForm v1.1.1
+- Follow actual input form ownership for cancellation-safe query restoration and inherited disabling.
+
+### Select v1.3.0
+- Add inline Positioner rendering through portalled; share disabled/reset lifecycles and modal-aware portals, honor accessible names and reserve outlines for keyboard focus.
+
+### Slider v1.4.0
+- Add external form ownership and indexed thumb refs/focus events; share inherited disabling and deferred silent resets, and wrap label/value content.
+
+### Switch v1.2.0
+- Expose native input refs and inputProps with cancellable event composition, explicit naming and merged descriptions; keep accepted native resets silent and controlled state authoritative.
+
+### Tabs v1.2.1
+- Isolate trigger typography and pressed feedback from Button defaults while preserving selected emphasis; publish complete compound-member contracts.
+
+### Toast v1.1.2
+- Subscribe to centralized active-modal ownership for notification hosting without importing Dialog internals.
+
+### VerticalNavigation v1.1.1
+- Own link and disclosure styling independently of Button while preserving current-path emphasis; document public root metadata and controlled usage.
+
+### Gallery v1.1.0
+- Expose native refs with scrolling-ref cleanup, compose decorative thumbnails through shared fallback and always expose configured autoplay pause/restart controls.
 
 ### Wave 3 foundations and tooling
 - Preserve requested themes, first paint and live OS/brand changes; improve contrast, focus, pressed states, scoped aliases and cancellable native form reset infrastructure.
@@ -1058,25 +1155,176 @@ const CHANGELOG = `
 - Opted into per-component versioning; paired 1:1 with the tree-view-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 `.trim()
 
-function Changelog() {
-	return (
-		<div className="min-h-screen bg-base p-400">
-			<div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
-				<pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
-					{CHANGELOG}
-				</pre>
-			</div>
-		</div>
-	)
+type ChangelogBlock =
+  | { kind: "heading"; level: 2 | 3; text: string; id: string }
+  | { kind: "list"; items: string[] }
+  | { kind: "paragraph"; text: string }
+
+// Intentionally limited to the authored changelog grammar. React escapes all text;
+// HTML and Markdown links are never interpreted as markup or executable URLs.
+function parseChangelog(source: string): ChangelogBlock[] {
+  const blocks: ChangelogBlock[] = []
+  const usedIds = new Set<string>()
+  for (const line of source.split("\n")) {
+    const heading = /^(#{2,3}) (.+)$/.exec(line)
+    if (heading) {
+      const text = heading[2] ?? ""
+      const slug =
+        text
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "") || "section"
+      const base = `changelog-${slug}`
+      let id = base
+      let occurrence = 1
+      while (usedIds.has(id)) {
+        occurrence += 1
+        id = `${base}-${occurrence}`
+      }
+      usedIds.add(id)
+      blocks.push({
+        kind: "heading",
+        level: heading[1]?.length === 2 ? 2 : 3,
+        text,
+        id,
+      })
+    } else if (line.startsWith("- ")) {
+      const previous = blocks.at(-1)
+      if (previous?.kind === "list") previous.items.push(line.slice(2))
+      else blocks.push({ kind: "list", items: [line.slice(2)] })
+    } else if (line.trim()) {
+      const previous = blocks.at(-1)
+      // Indented lines continue the preceding bullet without creating a second entry.
+      if (/^\s+/.test(line) && previous?.kind === "list") {
+        const index = previous.items.length - 1
+        previous.items[index] += ` ${line.trim()}`
+      } else blocks.push({ kind: "paragraph", text: line.trim() })
+    }
+  }
+  return blocks
 }
 
-const meta: Meta<typeof Changelog> = {
-	title: "Guide/Changelog",
-	component: Changelog,
-	tags: ["autodocs"],
-	parameters: { layout: "fullscreen" },
+function InlineCode({ text }: { text: string }) {
+  return text.split(/(`[^`]+`)/g).map((part, index) =>
+    part.startsWith("`") && part.endsWith("`") ? (
+      // The segments are immutable, positional tokens, not reorderable data.
+      // biome-ignore lint/suspicious/noArrayIndexKey: repeated inline code needs a positional key.
+      <code
+        className="break-all rounded-sm bg-base px-50 font-mono"
+        key={index}
+      >
+        {part.slice(1, -1)}
+      </code>
+    ) : (
+      part
+    )
+  )
 }
+
+function Changelog({ source = CHANGELOG }: { source?: string }) {
+  const blocks = parseChangelog(source)
+  const headings = blocks.filter((block) => block.kind === "heading")
+  return (
+    <article className="min-h-screen bg-base p-400 text-fg-primary">
+      <div className="mx-auto min-w-0 max-w-container space-y-400 rounded-2xl bg-surface p-300 shadow-2">
+        <h1 className="font-semibold text-2xl">Changelog</h1>
+        <nav aria-label="Changelog contents">
+          <details className="rounded-lg border border-border p-200">
+            <summary className="cursor-pointer font-semibold">
+              Jump to a component or version ({headings.length})
+            </summary>
+            <ul className="mt-200 max-h-(--container-sm) space-y-100 overflow-y-auto p-100 text-sm">
+              {headings.map((heading) => (
+                <li key={heading.id}>
+                  <Link
+                    className="break-words"
+                    href={`#${heading.id}`}
+                    size="current"
+                    onClick={(event) =>
+                      event.currentTarget
+                        .closest("details")
+                        ?.removeAttribute("open")
+                    }
+                  >
+                    <InlineCode text={heading.text} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </nav>
+        <div className="space-y-400 break-words text-sm leading-relaxed">
+          {blocks.map((block, index) => {
+            if (block.kind === "heading") {
+              const Heading = block.level === 2 ? "h2" : "h3"
+              return (
+                <Heading
+                  className={
+                    block.level === 2
+                      ? "font-semibold text-xl"
+                      : "font-semibold text-lg"
+                  }
+                  id={block.id}
+                  key={block.id}
+                  tabIndex={-1}
+                >
+                  <Link href={`#${block.id}`} size="current">
+                    <InlineCode text={block.text} />
+                  </Link>
+                </Heading>
+              )
+            }
+            if (block.kind === "list") {
+              // biome-ignore lint/suspicious/noArrayIndexKey: source blocks and bullets retain their authored order.
+              return (
+                <ul className="list-disc space-y-100 pl-400" key={index}>
+                  {block.items.map((item, itemIndex) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: identical bullet text is legal in different entries.
+                    <li key={itemIndex}>
+                      <InlineCode text={item} />
+                    </li>
+                  ))}
+                </ul>
+              )
+            }
+            // biome-ignore lint/suspicious/noArrayIndexKey: immutable source order.
+            return (
+              <p key={index}>
+                <InlineCode text={block.text} />
+              </p>
+            )
+          })}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+const meta = {
+  title: "Guide/Changelog",
+  component: Changelog,
+  tags: ["autodocs"],
+  parameters: {
+    layout: "fullscreen",
+    controls: { disable: true },
+    docs: {
+      description: {
+        component:
+          "Per-component version history for @techsio/ui-kit. Use the compact contents to jump to a release or component; headings link directly to stable entries.",
+      },
+    },
+  },
+} satisfies Meta<typeof Changelog>
 
 export default meta
 
-export const Playground: StoryObj<typeof Changelog> = {}
+export const Playground: StoryObj<typeof Changelog> = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Browse the authored component history with navigable headings, readable lists and inline API names.",
+      },
+    },
+  },
+}

@@ -1,10 +1,19 @@
+import { CalendarDate } from "@internationalized/date"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useEffect, useId, useRef, useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { NumericInput } from "../../src/atoms/numeric-input"
 import { StatusText } from "../../src/atoms/status-text"
+import { CascadeSelect } from "../../src/molecules/cascade-select"
+import { DatePicker } from "../../src/molecules/date-picker"
+import { Dialog } from "../../src/molecules/dialog"
+import { Drawer } from "../../src/molecules/drawer"
+import { SearchSuggestions } from "../../src/templates/search-suggestions"
+import { FileUpload } from "../../src/molecules/file-upload"
+import { SearchForm } from "../../src/molecules/search-form"
+import { SelectTemplate } from "../../src/templates/select"
 import { Combobox } from "../../src/molecules/combobox"
 import { FormCheckbox } from "../../src/molecules/form-checkbox"
 import {
@@ -28,7 +37,7 @@ const meta: Meta<FormArgs> = {
   title: "Templates/Comprehensive Form",
   tags: ["autodocs"],
   parameters: {
-    layout: "centered",
+    layout: "padded",
     docs: {
       description: {
         component:
@@ -36,6 +45,7 @@ const meta: Meta<FormArgs> = {
       },
     },
   },
+  decorators: [(Story) => <div className="mx-auto w-full min-w-0 max-w-3xl"><Story /></div>],
   argTypes: {
     size: { control: "select", options: ["sm", "md", "lg"] },
     validateStatus: {
@@ -126,7 +136,7 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
   const shared = { size, disabled, readOnly }
   return (
     <form
-      className="flex w-full max-w-3xl flex-col gap-300"
+      className="flex w-full min-w-0 max-w-3xl flex-col gap-300 wrap-anywhere"
       noValidate
       onSubmit={(event) => {
         event.preventDefault()
@@ -159,7 +169,7 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
           Tell our team what you need. Required fields are marked.
         </p>
       </div>
-      <FormErrorSummary errors={errors} ref={summaryRef} />
+      <FormErrorSummary className="w-full min-w-0" errors={errors} ref={summaryRef} />
       <div className="grid grid-cols-1 gap-300 md:grid-cols-2">
         <FormInput
           {...shared}
@@ -310,7 +320,7 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
           changes.
         </StatusText>
       )}
-      <div className="flex flex-wrap justify-end gap-150">
+      <div className="flex min-w-0 flex-wrap justify-end gap-150 [&>button]:min-w-0 [&>button]:max-w-full [&>button]:whitespace-normal">
         <Button
           type="button"
           size={size}
@@ -513,5 +523,375 @@ export const SuccessState: Story = {
           "Positive feedback uses both words and status icons at the size of its associated field.",
       },
     },
+  },
+}
+
+
+// Test-only composition: all native projections must follow the same owner lifecycle.
+function PopupLifecycleFixture() {
+  const prefix = useId()
+  const [owner, setOwner] = useState("a")
+  const [cancel, setCancel] = useState(false)
+  const [disabled, setDisabled] = useState(false)
+  const [initialFiles] = useState(() => [
+    new File(["initial"], "initial.txt", { type: "text/plain" }),
+  ])
+  const form = `${prefix}-${owner}`
+  const items = [
+    { label: "Alpha", value: "a" },
+    { label: "Beta", value: "b" },
+  ]
+  return (
+    <div className="flex w-full min-w-0 max-w-xl flex-col gap-200">
+      {(["a", "b"] as const).map((key) => (
+        <form
+          key={key}
+          id={`${prefix}-${key}`}
+          aria-label={`Owner ${key}`}
+          onReset={(event) => {
+            if (cancel) event.preventDefault()
+          }}
+        />
+      ))}
+      <fieldset disabled={disabled}>
+        <legend>
+          <Slider
+            label="Legend exemption"
+            defaultValue={[10]}
+            aria-label={["Legend exemption"]}
+          />
+        </legend>
+        <fieldset className="flex min-w-0 flex-col gap-200">
+          <legend>Popup lifecycle fields</legend>
+          <SelectTemplate
+            label="Lifecycle select"
+            name="select"
+            form={form}
+            items={items}
+            defaultValue={["a"]}
+          />
+          <Combobox
+            label="Lifecycle combobox"
+            name="combobox"
+            inputProps={{ form }}
+            items={items}
+            defaultValue={["a"]}
+            defaultInputValue="Alpha"
+          />
+          <CascadeSelect
+            items={[{ label: "Group", value: "group", children: items }]}
+            defaultValue={[["group", "a"]]}
+            name="cascade"
+            form={form}
+          >
+            <CascadeSelect.Label>Lifecycle cascade</CascadeSelect.Label>
+            <CascadeSelect.Control>
+              <CascadeSelect.Trigger>
+                <CascadeSelect.ValueText />
+                <CascadeSelect.Indicator />
+              </CascadeSelect.Trigger>
+            </CascadeSelect.Control>
+            <CascadeSelect.Positioner>
+              <CascadeSelect.Content>
+                <CascadeSelect.Node />
+              </CascadeSelect.Content>
+            </CascadeSelect.Positioner>
+          </CascadeSelect>
+          <DatePicker.Root
+            name="date"
+            form={form}
+            defaultValue={new CalendarDate(2026, 10, 20)}
+          >
+            <DatePicker.Label>Lifecycle date</DatePicker.Label>
+            <DatePicker.Control>
+              <DatePicker.Segments />
+              <DatePicker.IndicatorGroup>
+                <DatePicker.ClearTrigger />
+                <DatePicker.Trigger />
+              </DatePicker.IndicatorGroup>
+            </DatePicker.Control>
+            <DatePicker.Positioner>
+              <DatePicker.Content>
+                <DatePicker.Calendar />
+              </DatePicker.Content>
+            </DatePicker.Positioner>
+          </DatePicker.Root>
+          <Slider
+            label="Lifecycle range"
+            name="range"
+            form={form}
+            defaultValue={[20, 80]}
+            aria-label={["Range minimum", "Range maximum"]}
+          />
+          <FileUpload
+            name="files"
+            defaultAcceptedFiles={initialFiles}
+            maxFiles={3}
+          >
+            <FileUpload.Label>Lifecycle files</FileUpload.Label>
+            <FileUpload.HiddenInput form={form} />
+            <FileUpload.Trigger>Choose lifecycle files</FileUpload.Trigger>
+            <FileUpload.Context>
+              {(api) => (
+                <output>
+                  {api.acceptedFiles.map((file) => file.name).join(", ")}
+                </output>
+              )}
+            </FileUpload.Context>
+          </FileUpload>
+          <SearchForm defaultValue="Initial query">
+            <SearchForm.Label>Lifecycle search</SearchForm.Label>
+            <SearchForm.Input name="query" form={form} />
+          </SearchForm>
+        </fieldset>
+      </fieldset>
+      <div className="flex flex-wrap gap-150">
+        <Button
+          variant="secondary"
+          onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
+        >
+          Reassociate owner
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => setCancel((current) => !current)}
+        >
+          Toggle cancellation
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => setDisabled((current) => !current)}
+        >
+          Toggle ancestor disabled
+        </Button>
+        <Button variant="secondary" type="reset" form={`${prefix}-a`}>
+          Reset owner a
+        </Button>
+        <Button variant="secondary" type="reset" form={`${prefix}-b`}>
+          Reset owner b
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export const PopupLifecycleContracts: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Integration regression for cancellation-safe reset, external owner reassociation, disabled ancestors and first-legend exemptions across custom popup fields.",
+      },
+    },
+  },
+  render: () => <PopupLifecycleFixture />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("combobox", { name: "Lifecycle combobox" })
+    const query = canvas.getByRole("searchbox", { name: "Lifecycle search" })
+    const range = canvas.getByRole("slider", { name: "Range minimum" })
+    const snapshot = (owner: "a" | "b") =>
+      Array.from(
+        new FormData(
+          canvas.getByRole("form", {
+            name: `Owner ${owner}`,
+          }) as HTMLFormElement
+        ).entries()
+      ).map(([name, value]) => [
+        name,
+        typeof value === "string" ? value : (value as unknown as File).name,
+      ])
+    const baseline = snapshot("a")
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(
+      canvas.getByRole("combobox", { name: "Lifecycle select" })
+    )
+    await userEvent.click(await body.findByRole("option", { name: "Beta" }))
+    await userEvent.click(
+      canvas.getByRole("combobox", { name: "Lifecycle cascade" })
+    )
+    await userEvent.click(await body.findByRole("treeitem", { name: "Group" }))
+    await userEvent.click(await body.findByRole("treeitem", { name: "Beta" }))
+    await userEvent.keyboard("{Escape}")
+    await userEvent.clear(input)
+    await userEvent.type(input, "Bet")
+    await userEvent.click(await body.findByRole("option", { name: "Beta" }))
+    const picker = canvas.getByLabelText("Lifecycle files") as HTMLInputElement
+    await userEvent.upload(
+      picker,
+      new File(["changed"], "changed.txt", { type: "text/plain" })
+    )
+    await userEvent.click(
+      canvasElement.querySelector<HTMLElement>(
+        '[data-scope="date-picker"][data-part="clear-trigger"]'
+      )!
+    )
+    await userEvent.clear(query)
+    await userEvent.type(query, "Changed query")
+    range.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Toggle cancellation" })
+    )
+    await userEvent.clear(input)
+    await userEvent.type(input, "Draft")
+    ;(canvas.getByRole("form", { name: "Owner a" }) as HTMLFormElement).reset()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    await expect(query).toHaveValue("Changed query")
+    await expect(input).toHaveValue("Draft")
+    await expect(range).toHaveAttribute("aria-valuenow", "21")
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Toggle cancellation" })
+    )
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Reassociate owner" })
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Reset owner a" }))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    await expect(query).toHaveValue("Changed query")
+    input.focus()
+    await userEvent.type(input, "draft")
+    ;(canvas.getByRole("form", { name: "Owner b" }) as HTMLFormElement).reset()
+    await waitFor(() => expect(query).toHaveValue("Initial query"))
+    await waitFor(() => expect(input).toHaveValue("Alpha"))
+    await waitFor(() => expect(range).toHaveAttribute("aria-valuenow", "20"))
+    await expect(snapshot("b")).toEqual(baseline)
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Toggle ancestor disabled" })
+    )
+    await waitFor(() => expect(input).toBeDisabled())
+    await expect(
+      canvas.getByRole("slider", { name: "Legend exemption" })
+    ).toHaveAttribute("tabindex", "0")
+    await expect(range).not.toHaveAttribute("tabindex", "0")
+    await expect(snapshot("b")).toEqual([])
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Toggle ancestor disabled" })
+    )
+    await waitFor(() => expect(input).toBeEnabled())
+    await expect(range).toHaveAttribute("tabindex", "0")
+    await expect(snapshot("b")).toEqual(baseline)
+  },
+}
+
+function ModalPopupFields() {
+  return (
+    <div className="flex min-w-0 flex-col gap-200">
+      <CascadeSelect
+        items={[
+          {
+            label: "Group",
+            value: "group",
+            children: [{ label: "Leaf", value: "leaf" }],
+          },
+        ]}
+      >
+        <CascadeSelect.Label>Modal category</CascadeSelect.Label>
+        <CascadeSelect.Control>
+          <CascadeSelect.Trigger>
+            <CascadeSelect.ValueText />
+            <CascadeSelect.Indicator />
+          </CascadeSelect.Trigger>
+        </CascadeSelect.Control>
+        <CascadeSelect.Positioner>
+          <CascadeSelect.Content>
+            <CascadeSelect.Node />
+          </CascadeSelect.Content>
+        </CascadeSelect.Positioner>
+      </CascadeSelect>
+      <SearchSuggestions
+        label="Modal suggestions"
+        portalled
+        groups={[
+          {
+            id: "results",
+            label: "Results",
+            items: [
+              { label: "Sample result", value: "result", href: "#result" },
+            ],
+          },
+        ]}
+        navigate={() => undefined}
+      />
+    </div>
+  )
+}
+
+export const ModalPopupContracts: Story = {
+  tags: ["!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "CascadeSelect and explicitly portalled SearchSuggestions remain inside Dialog and Drawer accessible focus scopes without an extra portal.",
+      },
+    },
+  },
+  render: () => (
+    <div className="flex flex-wrap gap-200">
+      <Dialog title="Popup dialog" triggerText="Open popup dialog">
+        <ModalPopupFields />
+      </Dialog>
+      <Drawer>
+        <Drawer.Trigger>Open popup drawer</Drawer.Trigger>
+        <Drawer.Portal>
+          <Drawer.Backdrop />
+          <Drawer.Positioner>
+            <Drawer.Content>
+              <Drawer.Header>
+                <Drawer.Title>Popup drawer</Drawer.Title>
+              </Drawer.Header>
+              <Drawer.Body>
+                <ModalPopupFields />
+              </Drawer.Body>
+              <Drawer.Footer>
+                <Drawer.CloseTrigger>Close drawer</Drawer.CloseTrigger>
+              </Drawer.Footer>
+            </Drawer.Content>
+          </Drawer.Positioner>
+        </Drawer.Portal>
+      </Drawer>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    for (const host of ["dialog", "drawer"]) {
+      const trigger = canvas.getByRole("button", { name: `Open popup ${host}` })
+      await userEvent.click(trigger)
+      const modal = await body.findByRole("dialog", { name: `Popup ${host}` })
+      const category = within(modal).getByRole("combobox", {
+        name: "Modal category",
+      })
+      category.focus()
+      await userEvent.keyboard("{ArrowDown}")
+      const tree = await body.findByRole("tree")
+      await expect(modal.contains(tree)).toBe(true)
+      await expect(tree.closest('[aria-hidden="true"], [inert]')).toBeNull()
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() => expect(category).toHaveFocus())
+      const search = within(modal).getByRole("combobox", {
+        name: "Modal suggestions",
+      })
+      search.focus()
+      await userEvent.keyboard("{ArrowDown}")
+      const list = await body.findByRole("listbox")
+      await expect(modal.contains(list)).toBe(true)
+      await expect(list.closest('[aria-hidden="true"], [inert]')).toBeNull()
+      await waitFor(() =>
+        expect(
+          body.getByRole("option", { name: "Sample result" })
+        ).toBeVisible()
+      )
+      await userEvent.keyboard("{Escape}")
+      await expect(search).toHaveFocus()
+      await expect(modal).toBeVisible()
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() => expect(modal).not.toBeInTheDocument())
+      // Drawer host-trigger restoration is tracked by the overlay owner; this
+      // regression owns popup containment and popup-to-input focus restoration.
+      if (host === "dialog") await waitFor(() => expect(trigger).toHaveFocus())
+    }
   },
 }

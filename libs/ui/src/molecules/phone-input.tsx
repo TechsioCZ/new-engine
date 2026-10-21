@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -44,6 +44,7 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { tv } from "../utils"
 import { Select } from "./select"
 
@@ -189,7 +190,8 @@ type PhoneInputContextValue = {
   inputId: string
   inputValue: string
   setInputValue: (value: string) => void
-  onFormReset: (event: Event) => void
+  onFormReset: () => void
+  setResetting: (resetting: boolean) => void
   details: PhoneInputValueChangeDetails
   disabled: boolean
   nativeValidation: boolean
@@ -311,26 +313,21 @@ export function PhoneInput({
   )
   const nativeFormValue = details.isValid ? details.e164 : inputValue
   const resetting = useRef(false)
-  const onFormReset = (event: Event) => {
-    // Capture before the nested Select handles reset, then wait until all
-    // listeners have had a chance to cancel the native event.
-    resetting.current = true
-    queueMicrotask(() => {
-      if (!event.defaultPrevented) {
-        const resetCountry = resolveCountry(
-          countries,
-          country ??
-            getInitialCountry(value ?? defaultValue, defaultCountry, countries)
-        )
-        if (country === undefined) {
-          setInternalCountry(resetCountry)
-        }
-        if (!isValueControlled) {
-          setInternalValue(formatPhoneInputValue(defaultValue, resetCountry))
-        }
-      }
-      resetting.current = false
-    })
+  const setResetting = (pendingReset: boolean) => {
+    resetting.current = pendingReset
+  }
+  const onFormReset = () => {
+    const resetCountry = resolveCountry(
+      countries,
+      country ??
+        getInitialCountry(value ?? defaultValue, defaultCountry, countries)
+    )
+    if (country === undefined) {
+      setInternalCountry(resetCountry)
+    }
+    if (!isValueControlled) {
+      setInternalValue(formatPhoneInputValue(defaultValue, resetCountry))
+    }
   }
 
   useEffect(() => {
@@ -429,6 +426,7 @@ export function PhoneInput({
         inputValue,
         setInputValue,
         onFormReset,
+        setResetting,
         details,
         disabled,
         nativeValidation,
@@ -771,6 +769,7 @@ PhoneInput.Input = function PhoneInputInput({
     nativeValidation,
     nativeValidationMessage,
     onFormReset,
+    setResetting,
     readOnly,
     required,
     setInputValue,
@@ -858,11 +857,24 @@ PhoneInput.Input = function PhoneInputInput({
     setSelection(undefined)
   }, [compositionValue, selection])
 
+  const resetHandlers = useRef({ onFormReset, setResetting })
+  useLayoutEffect(() => {
+    resetHandlers.current = { onFormReset, setResetting }
+  })
   useEffect(() => {
-    const owner = inputRef.current?.form
-    owner?.addEventListener("reset", onFormReset, true)
-    return () => owner?.removeEventListener("reset", onFormReset, true)
-  }, [onFormReset])
+    const input = inputRef.current
+    if (!input) {
+      return
+    }
+    return subscribeOwnerFormReset(
+      input,
+      () => resetHandlers.current.onFormReset(),
+      {
+        onResetStart: () => resetHandlers.current.setResetting(true),
+        onResetEnd: () => resetHandlers.current.setResetting(false),
+      }
+    )
+  }, [])
 
   useEffect(() => {
     const input = inputRef.current

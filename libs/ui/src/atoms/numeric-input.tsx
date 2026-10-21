@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,6 +23,12 @@ import {
   useMemo,
   useRef,
 } from "react"
+import {
+  isSilentChoiceReset,
+  mergeChoiceInputProps,
+  runSilentChoiceReset,
+  trackChoiceFormControl,
+} from "../internal/choice-control"
 import {
   type DescribedBy,
   joinDescribedBy,
@@ -50,6 +56,27 @@ const readOnlySafeMachine: typeof numberInput.machine = {
   ...numberInput.machine,
   implementations: {
     ...numberInput.machine.implementations,
+    effects: {
+      ...numberInput.machine.implementations?.effects,
+      trackFormControl({ scope, context, prop, action }) {
+        const root = scope.getById(
+          scope.ids?.root ?? `number-input:${scope.id}`
+        )
+        return trackChoiceFormControl(
+          root,
+          () => {
+            if (prop("value") === undefined) {
+              runSilentChoiceReset(context, () =>
+                context.set("value", context.initial("value"))
+              )
+            } else {
+              action(["syncInputElement"])
+            }
+          },
+          (disabled) => context.set("fieldsetDisabled", disabled)
+        )
+      },
+    },
     actions: {
       ...valueActions,
       increment: guardValueAction(valueActions.increment),
@@ -279,6 +306,9 @@ export function NumericInput({
       defaultValue === undefined ? undefined : formatValue(defaultValue),
     formatOptions: resolvedFormatOptions,
     onValueChange: (details) => {
+      if (isSilentChoiceReset(service.context)) {
+        return
+      }
       onChange?.(details.valueAsNumber)
       machineProps.onValueChange?.(details)
     },
@@ -485,8 +515,7 @@ NumericInput.Input = function NumericInputInput({
   return (
     <Input
       ref={controlledValue === undefined ? ref : mergedRef}
-      {...api.getInputProps()}
-      {...props}
+      {...mergeChoiceInputProps(props, api.getInputProps())}
       aria-describedby={ariaDescribedBy}
       aria-errormessage={errorId}
       aria-invalid={isInvalid || undefined}

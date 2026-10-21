@@ -13,6 +13,12 @@ metadata:
   library_version: "0.3.2"
 requires:
   - component-usage-ux
+resources:
+  - "references/component-selection.md"
+  - "references/feedback-and-actions.md"
+  - "references/formatting.md"
+  - "references/states.md"
+  - "references/ux-writing.md"
 sources:
   - "libs/ui/stories/pages/crud-workflow.stories.tsx"
   - "libs/ui/stories/pages/cms-record-editor.stories.tsx"
@@ -77,8 +83,10 @@ Delete        row action (danger, last) → alertdialog "Delete this <object>?"
 ### Full-page record editor (reference: Pages/CMS/Record editor)
 
 ```text
-PageHeader actions top-right: [Back to list] [Preview] [Save]   (header stays visible)
-Save disabled until the form is dirty; Badge "Unsaved changes" next to the status
+Editor-scoped sticky row: dirty/saved status + [Save] (only this row stays in view)
+Save disabled until the form is dirty; row says "Unsaved changes" / "All changes saved locally"
+PageHeader actions top-right: [Back to list] (the PageHeader scrolls normally)
+Badge "Unsaved changes" also identifies the dirty record near its status
 Leaving while dirty → alertdialog [Keep editing] [Discard changes]
 Delete lives in a separate section at the bottom — never beside Save
 Save → toast "<Object> saved" (user stays on the page)

@@ -57,6 +57,31 @@ function DeliveryOptions({
     </RadioGroup>
   )
 }
+const playgroundSource = String.raw`import { useState } from "react"
+import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
+
+export function DeliveryField() {
+  const [value, setValue] = useState<string | null>("standard")
+  return (
+    <RadioGroup name="delivery" value={value} onValueChange={setValue} orientation="vertical">
+      <RadioGroup.Label>Delivery method</RadioGroup.Label>
+      <RadioGroup.ItemGroup>
+        {[
+          { value: "standard", label: "Standard delivery" },
+          { value: "express", label: "Express delivery" },
+        ].map((option) => (
+          <RadioGroup.Item key={option.value} value={option.value}>
+            <RadioGroup.ItemHiddenInput />
+            <RadioGroup.ItemControl />
+            <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
+          </RadioGroup.Item>
+        ))}
+      </RadioGroup.ItemGroup>
+      <RadioGroup.StatusText>Choose a delivery method.</RadioGroup.StatusText>
+    </RadioGroup>
+  )
+}`
+
 const meta: Meta<typeof RadioGroup> = {
   title: "Molecules/RadioGroup",
   component: RadioGroup,
@@ -65,8 +90,7 @@ const meta: Meta<typeof RadioGroup> = {
     layout: "padded",
     docs: {
       description: {
-        component:
-          "A labeled group of mutually exclusive options for a short, visible set of choices. Use RadioCard for prominent rich options, Select for long lists, and FormCheckbox when several choices may be selected.",
+        component: "Compact mutually exclusive options. Pair controlled value with onValueChange={setValue}; callbacks propose changes and never overwrite a refused controlled value. readOnly keeps selection and form submission intact while preventing pointer and keyboard edits. disabled removes controls from interaction/submission. validateStatus=\"error\" marks inputs invalid; render StatusText for an associated error with a next step. Native handlers on ItemHiddenInput run before cancellable machine actions; preventDefault() rejects activation. Use form=\"owner-id\" on Root for an external owner; accepted resets silently restore uncontrolled defaults; controlled values stay with their parent. Canceled resets preserve edits and never notify.\n\n### Compound member contracts\n\n- **`RadioGroup`** — children required; value + onValueChange is controlled, defaultValue is uncontrolled. No parent context. `ref`: `HTMLDivElement`.\n\n- **`RadioGroup.Label`** — Visible group name or supply aria-label/aria-labelledby to Root. Inside RadioGroup. `ref`: `HTMLLabelElement`.\n\n- **`RadioGroup.ItemGroup`** — Optional layout wrapper. Inside RadioGroup. `ref`: `HTMLDivElement`.\n\n- **`RadioGroup.Item`** — Unique nonempty value; disabled optional. Inside RadioGroup. `ref`: `HTMLLabelElement`.\n\n- **`RadioGroup.ItemHiddenInput`** — Required in every Item; native form submission, focus and input event handlers. Inside Item. `ref`: `HTMLInputElement`.\n\n- **`RadioGroup.ItemControl`** — Visual surface; never replace ItemHiddenInput. Inside Item. `ref`: `HTMLSpanElement`.\n\n- **`RadioGroup.ItemContent`** — Optional content layout. Inside Item. `ref`: `HTMLDivElement`.\n\n- **`RadioGroup.ItemText`** — Option name; render for generated accessible naming. Inside Item. `ref`: `HTMLSpanElement`.\n\n- **`RadioGroup.ItemDescription`** — Optional description; automatically registered. Inside Item. `ref`: `HTMLDivElement`.\n\n- **`RadioGroup.StatusText`** — Group helper/validation; status inherits validateStatus. Inside RadioGroup. `ref`: `HTMLDivElement`.\n\n- **`useRadioGroupContext()`** — import from `@techsio/ui-kit/molecules/radio-group` for custom members inside RadioGroup. Returns the group `api` and presentation/description context; throws outside Root. It accepts no props and has no ref target.",
       },
     },
   },
@@ -83,7 +107,7 @@ const meta: Meta<typeof RadioGroup> = {
       options: ["standard", "express", "pickup", null],
     },
     defaultValue: { control: false },
-    onValueChange: { control: false },
+    onValueChange: { control: false, description: "Controlled selection proposal; pair value with this callback. Canceled activation does not call it.", table: { type: { summary: "(value: string | null) => void" } } },
     disabled: { control: "boolean" },
     readOnly: { control: "boolean" },
     required: { control: "boolean" },
@@ -92,6 +116,7 @@ const meta: Meta<typeof RadioGroup> = {
       options: ["default", "error", "warning", "success"],
     },
     orientation: {
+      description: "Group orientation; arrange the options to match.",
       control: "inline-radio",
       options: ["horizontal", "vertical"],
     },
@@ -110,9 +135,13 @@ const meta: Meta<typeof RadioGroup> = {
 export default meta
 type Story = StoryObj<typeof RadioGroup>
 export const Playground: Story = {
-  parameters: describe(
-    "Select a delivery method and use controls to inspect variants, sizing and validation."
-  ),
+  parameters: {
+    ...describe("Select a delivery method and use controls to inspect variants, sizing and validation."),
+    docs: {
+      description: { story: "Select a delivery method and use controls to inspect variants, sizing and validation." },
+      source: { code: playgroundSource, language: "tsx", type: "code" },
+    },
+  },
   render: function Playground(args) {
     const [, updateArgs] = useArgs()
     return (
@@ -129,9 +158,9 @@ export const Playground: Story = {
     const input = within(canvasElement).getByRole("radio", {
       name: "Standard delivery",
     })
-    await expect(input).toHaveAccessibleDescription(
+    await waitFor(() => expect(input).toHaveAccessibleDescription(
       "Choose how you would like to receive your order. Arrives in 3–5 business days."
-    )
+    ))
   },
 }
 export const Variants: Story = {
@@ -369,4 +398,49 @@ export const ChangingOptions: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Removing a focused delivery method moves focus to the next available method without silently changing the saved selection." } } },
   render: () => <DynamicRadioChoices kind="radio-group" />,
   play: async ({ canvasElement }) => checkDynamicRadioChoices(canvasElement),
+}
+
+const trackCancelledChoice = fn()
+const trackObservedChoice = fn()
+export const CancellableActivation: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Consumer ItemHiddenInput.onClick can cancel controlled and uncontrolled proposals; observational handlers still run. Arrow keys wrap consistently, including mobile WebKit." } } },
+  render: () => <div className="grid gap-250">{[false, true].map(controlled => <RadioGroup key={String(controlled)} aria-label={controlled ? "Controlled choices" : "Default choices"} value={controlled ? "one" : undefined} defaultValue={controlled ? undefined : "one"} onValueChange={trackCancelledChoice}>
+    {["one", "two", "three"].map(value => <RadioGroup.Item key={value} value={value}>
+      <RadioGroup.ItemHiddenInput onClick={event => { trackObservedChoice(value); if (value === "two") event.preventDefault() }} />
+      <RadioGroup.ItemControl /><RadioGroup.ItemText>{value}</RadioGroup.ItemText>
+    </RadioGroup.Item>)}
+  </RadioGroup>)}</div>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    trackCancelledChoice.mockClear(); trackObservedChoice.mockClear()
+    for (const group of canvas.getAllByRole("radiogroup")) {
+      const radios = within(group).getAllByRole("radio")
+      await userEvent.click(radios[1]!)
+      await expect(radios[0]).toBeChecked()
+      await expect(radios[1]).not.toBeChecked()
+    }
+    await expect(trackCancelledChoice).not.toHaveBeenCalled()
+    await expect(trackObservedChoice).toHaveBeenCalledTimes(2)
+    const radios = within(canvas.getByRole("radiogroup", { name: "Default choices" })).getAllByRole("radio")
+    radios[0]!.focus()
+    await userEvent.keyboard("{ArrowUp}")
+    await expect(radios[2]).toBeChecked()
+    await expect(trackObservedChoice).toHaveBeenCalledTimes(3)
+  },
+}
+
+export const KeyboardWrapping: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Native inputs provide focus and form values; one arrow implementation prevents duplicate native/machine changes and wraps in either direction." } } },
+  render: () => <DeliveryOptions defaultValue="standard" />,
+  play: async ({ canvasElement }) => {
+    const radios = within(canvasElement).getAllByRole("radio")
+    radios[0]!.focus()
+    await userEvent.keyboard("{ArrowDown}")
+    await expect(radios[1]).toBeChecked()
+    await userEvent.keyboard("{ArrowUp}")
+    await expect(radios[0]).toBeChecked()
+    await userEvent.keyboard("{ArrowUp}")
+    await expect(radios[2]).toBeChecked()
+    await expect(radios[2]).toHaveFocus()
+  },
 }

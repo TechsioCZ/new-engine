@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
@@ -19,6 +19,10 @@ const meta: Meta<typeof Slider> = {
   },
   tags: ["autodocs"],
   argTypes: {
+    getThumbProps: {
+      control: false,
+      description: "Indexed ref/onFocus/onBlur props for the actual focusable slider div. Callback refs support React 19 cleanup; machine focus events remain composed.",
+    },
     value: {
       control: "object",
       description:
@@ -1114,5 +1118,68 @@ export const NativeFieldset: Story = {
     await userEvent.keyboard("{ArrowRight}")
     await expect(nested).toHaveAttribute("aria-valuenow", "26")
     await expect(new FormData(form).get("nested")).toBeNull()
+  },
+}
+
+
+function FocusableThumbsExample() {
+  const thumbs = useRef<(HTMLDivElement | null)[]>([])
+  const [focused, setFocused] = useState<number | null>(null)
+  return (
+    <div className="flex flex-col gap-200">
+      <Slider
+        label="Budget"
+        aria-label={["Minimum budget", "Maximum budget"]}
+        defaultValue={[25, 75]}
+        getThumbProps={(index) => ({
+          ref: (node) => {
+            thumbs.current[index] = node
+            return () => {
+              thumbs.current[index] = null
+            }
+          },
+          onFocus: () => setFocused(index),
+          onBlur: () => setFocused(null),
+        })}
+      />
+      <div className="flex flex-wrap gap-150">
+        <Button variant="secondary" onClick={() => thumbs.current[0]?.focus()}>
+          Focus minimum
+        </Button>
+        <Button variant="secondary" onClick={() => thumbs.current[1]?.focus()}>
+          Focus maximum
+        </Button>
+      </div>
+      <output aria-live="polite">
+        {focused === null ? "No thumb focused" : `Focused thumb ${focused + 1}`}
+      </output>
+    </div>
+  )
+}
+
+export const ThumbFocus: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Use indexed getThumbProps refs to focus either actual slider thumb; consumer focus and blur handlers compose with the machine.",
+      },
+    },
+  },
+  render: () => <FocusableThumbsExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const minimum = canvas.getByRole("slider", { name: "Minimum budget" })
+    const maximum = canvas.getByRole("slider", { name: "Maximum budget" })
+    await userEvent.click(canvas.getByRole("button", { name: "Focus minimum" }))
+    await expect(minimum).toHaveFocus()
+    await expect(canvas.getByText("Focused thumb 1")).toBeVisible()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(minimum).toHaveAttribute("aria-valuenow", "26")
+    await userEvent.click(canvas.getByRole("button", { name: "Focus maximum" }))
+    await expect(maximum).toHaveFocus()
+    await expect(canvas.getByText("Focused thumb 2")).toBeVisible()
+    await userEvent.keyboard("{ArrowLeft}")
+    await expect(maximum).toHaveAttribute("aria-valuenow", "74")
   },
 }

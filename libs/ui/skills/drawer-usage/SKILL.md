@@ -5,7 +5,7 @@ description: >
   transient edge panels, modal or non-modal behavior, snap points, swipe
   gestures, multiple triggers, custom portals, controlled state, and stacks.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -4,6 +4,11 @@ import path from "node:path"
 import { expect, type Page, type TestInfo, test } from "@playwright/test"
 import { PNG } from "pngjs"
 import { installVisualAssets } from "./visual-assets.mjs"
+import {
+  assertFloatingContainment,
+  checkStoryPopupCheckpoints,
+  visibleFloatingSurfaces,
+} from "./visual-popup-capture.mjs"
 import { freezeVisualSvgImages } from "./visual-svg.mjs"
 
 type StorybookEntry = { id: string; name: string; title: string; type: string }
@@ -796,30 +801,24 @@ test.describe
             const actual = fullPage
               ? await page.screenshot({ ...options, fullPage: true })
               : await root.screenshot(options)
+            if (fullPage) {
+              const surfaces = await visibleFloatingSurfaces(page)
+              assertFloatingContainment(surfaces, PNG.sync.read(actual))
+            }
             const snapshot = await compareSnapshotBuffer(actual, name, testInfo)
             await disposeAssets.whenIdle()
             expect(snapshot.passed, snapshot.message).toBe(true)
           }
           await capture()
-          const hasVisiblePortal = await page.evaluate(() =>
-            Array.from(
-              document.querySelectorAll(
-                '[role="dialog"],[role="menu"],[role="listbox"],[role="tooltip"]'
-              )
-            ).some((element) => {
-              const rootElement = document.getElementById("storybook-root")
-              const style = getComputedStyle(element)
-              return (
-                !rootElement?.contains(element) &&
-                element.getClientRects().length > 0 &&
-                style.display !== "none" &&
-                style.visibility !== "hidden"
-              )
-            })
+          const hasVisiblePortal = (await visibleFloatingSurfaces(page)).some(
+            (surface) => surface.external
           )
           if (hasVisiblePortal) {
             await capture("--portal-open", true)
           }
+          await checkStoryPopupCheckpoints(page, story.id, (suffix) =>
+            capture(suffix, true)
+          )
           const portalCase = interactivePortals[story.id]
           if (portalCase) {
             const trigger = root

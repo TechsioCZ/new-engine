@@ -5,13 +5,18 @@ description: >
   for choosing color swatches with supported layout, size, radius, disabled
   state, selected state, labels, counts, and single/multiple roles.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/color-select.tsx libs/ui/src/tokens/components/molecules/_color-select.css libs/ui/stories/molecules/color-select.stories.tsx"
+  sources: ""
+  contributor_sources: "libs/ui/src/molecules/color-select.tsx libs/ui/src/tokens/components/molecules/_color-select.css libs/ui/stories/molecules/color-select.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit ColorSelect Usage
 
@@ -68,7 +73,7 @@ layout: list | grid
 size: sm | md | lg | full
 radius: sm | md | lg | full
 selectionMode: single | multiple
-disabled, onColorClick
+disabled, readOnly, name, label, helpText, validateStatus, onColorClick
 ```
 
 ## Core Patterns
@@ -87,6 +92,36 @@ manual `className`.
 
 Swatch fill uses inline `backgroundColor` because the data value is the product
 color, not a component theme token.
+
+## Controlled selection and focus recovery
+
+`colors[].selected` is application-owned; `onColorClick(color)` proposes a
+choice and does not rewrite the collection. Use stable, unique color values
+(and stable item IDs when provided). For example:
+
+```tsx
+import { useState } from "react"
+import { ColorSelect } from "@techsio/ui-kit/molecules/color-select"
+
+function ProductColor() {
+  const [selected, setSelected] = useState("#0f172a")
+  return <ColorSelect label="Colour" name="colour" selectionMode="single"
+    colors={[
+      { id: "navy", color: "#0f172a", label: "Navy", selected: selected === "#0f172a" },
+      { id: "cream", color: "#fffdd0", label: "Cream", selected: selected === "#fffdd0" },
+    ]}
+    onColorClick={setSelected} />
+}
+```
+
+If the focused swatch is removed or becomes disabled, focus recovers to a
+surviving enabled neighbour (or the group when none remain), **without**
+selecting it or firing `onColorClick`. Collection updates while focus is outside
+the group never steal it. A removed selected swatch does not authorize an
+implicit replacement selection: the app decides how to reconcile its selection.
+Single mode uses a roving radio target; multiple mode uses checkbox semantics.
+`readOnly` keeps the value inspectable and submitted but suppresses mutations;
+`disabled`, including native disabled-fieldset inheritance, removes interaction.
 
 ## Common Mistakes
 

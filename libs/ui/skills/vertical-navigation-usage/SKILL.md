@@ -4,7 +4,7 @@ description: >
   Use for nested page or category links with independently expandable and
   styled subgroups, standalone or inside Sidebar or Drawer.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

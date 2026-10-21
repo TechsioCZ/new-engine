@@ -5,13 +5,18 @@ description: >
   supplemental hover/focus help using the Zag.js tooltip wrapper, supported
   timing, placement, interaction, controlled state, and token styling props.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/atoms/tooltip.tsx libs/ui/src/tokens/components/atoms/_tooltip.css libs/ui/stories/atoms/tooltip.stories.tsx libs/ui/src/atoms/tooltip.figma.ts https://zagjs.com/components/react/tooltip"
+  sources: "https://zagjs.com/components/react/tooltip"
+  contributor_sources: "libs/ui/src/atoms/tooltip.tsx libs/ui/src/tokens/components/atoms/_tooltip.css libs/ui/stories/atoms/tooltip.stories.tsx libs/ui/src/atoms/tooltip.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Tooltip Usage
 

@@ -1,14 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import {
   type ComponentProps,
+  type ComponentPropsWithRef,
   type ReactNode,
   createContext,
   useContext,
+  useRef,
   useState,
 } from "react"
 import { StatusText } from "../../src/atoms/status-text"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
 import { Badge } from "../../src/atoms/badge"
 import { NumericInput } from "../../src/atoms/numeric-input"
 import { ProductCard } from "../../src/molecules/product-card"
@@ -240,7 +243,9 @@ export const Playground: StoryObj<PlaygroundArgs> = {
         )}
         <ProductCard.Name>{args.productName}</ProductCard.Name>
         {args.showRating && (
-          <ProductCard.Rating rating={{ value: args.rating, readOnly: true }} />
+          <ProductCard.Rating
+            rating={{ value: args.rating, displayOnly: true }}
+          />
         )}
         {args.showStock && (
           <ProductCard.Stock status={args.stockStatus}>
@@ -542,7 +547,7 @@ export const LayoutVariants: Story = {
         <ProductCard layout="column">
           <ProductCard.Image src={productImages.tshirt} alt="T-Shirt" />
           <ProductCard.Name>Cotton T-Shirt</ProductCard.Name>
-          <ProductCard.Rating rating={{ defaultValue: 4, readOnly: true }} />
+          <ProductCard.Rating rating={{ defaultValue: 4, displayOnly: true }} />
           <ProductCard.Stock status="in-stock">In Stock</ProductCard.Stock>
           <ProductCard.Price>$24.99</ProductCard.Price>
           <ProductCard.Actions>
@@ -564,7 +569,7 @@ export const LayoutVariants: Story = {
             className="row-span-6"
           />
           <ProductCard.Name>Running Shoes</ProductCard.Name>
-          <ProductCard.Rating rating={{ defaultValue: 5, readOnly: true }} />
+          <ProductCard.Rating rating={{ defaultValue: 5, displayOnly: true }} />
           <ProductCard.Stock status="limited-stock">
             Limited Stock
           </ProductCard.Stock>
@@ -586,10 +591,13 @@ export const LayoutVariants: Story = {
 export const CustomComposition: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(canvas.getByText("$1,329", { selector: "p" })).toHaveTextContent(
-      "Current price $1,329"
-    )
-    const previous = canvas.getByText("$1,899", { exact: false, selector: "del" })
+    await expect(
+      canvas.getByText("$1,329", { selector: "p" })
+    ).toHaveTextContent("Current price $1,329")
+    const previous = canvas.getByText("$1,899", {
+      exact: false,
+      selector: "del",
+    })
     await expect(previous).toHaveTextContent("Original price $1,899")
   },
   parameters: {
@@ -622,7 +630,7 @@ export const CustomComposition: Story = {
       </div>
 
       <div className="flex items-center gap-100">
-        <ProductCard.Rating rating={{ defaultValue: 4.5, readOnly: true }} />
+        <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true }} />
         <span className="text-100 text-fg-muted">(245 reviews)</span>
       </div>
 
@@ -730,10 +738,13 @@ export const MinimalCard: Story = {
 export const ComplexCard: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(canvas.getByText("$2,449", { selector: "p" })).toHaveTextContent(
-      "Current price $2,449"
-    )
-    const previous = canvas.getByText("$3,499", { exact: false, selector: "del" })
+    await expect(
+      canvas.getByText("$2,449", { selector: "p" })
+    ).toHaveTextContent("Current price $2,449")
+    const previous = canvas.getByText("$3,499", {
+      exact: false,
+      selector: "del",
+    })
     await expect(previous).toHaveTextContent("Original price $3,499")
   },
   parameters: {
@@ -769,7 +780,7 @@ export const ComplexCard: Story = {
       </ProductCard.Name>
 
       <div className="mb-100 flex items-center gap-100">
-        <ProductCard.Rating rating={{ defaultValue: 4.9, readOnly: true }} />
+        <ProductCard.Rating rating={{ defaultValue: 4.9, displayOnly: true }} />
         <span className="text-50 text-fg-muted">(512 reviews)</span>
       </div>
 
@@ -963,7 +974,7 @@ export const CustomRowSpan: Story = {
       </div>
       <div className="col-2 row-3 place-self-end">
         <ProductCard.Price>$1,299.99</ProductCard.Price>
-        <ProductCard.Rating rating={{ defaultValue: 4.5, readOnly: true }} />
+        <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true }} />
         <ProductCard.Actions>
           <DemoProductButton buttonVariant="cart" icon="token-icon-cart-button">
             Add to Cart
@@ -1003,7 +1014,7 @@ export const CustomGridLayout: Story = {
           <Badge variant="info">Noise Cancelling</Badge>
         </ProductCard.Badges>
         <ProductCard.Price>$349.99</ProductCard.Price>
-        <ProductCard.Rating rating={{ defaultValue: 4.9, readOnly: true }} />
+        <ProductCard.Rating rating={{ defaultValue: 4.9, displayOnly: true }} />
         <ProductCard.Stock status="limited-stock">
           Only 5 left in stock!
         </ProductCard.Stock>
@@ -1028,5 +1039,134 @@ export const CustomGridLayout: Story = {
           "Demonstrates complex layout override - custom grid with Title + Image in first column, all other content in second column. Uses a single column on phones and two equal columns on larger screens.",
       },
     },
+  },
+}
+
+export const NativeMediaFallback: Story = {
+  render: () => (
+    <ProductCard>
+      <ProductCard.Image
+        src="data:image/png;base64,invalid"
+        alt="Runner low side view"
+        width={400}
+        height={300}
+      />
+      <ProductCard.Name>Runner low</ProductCard.Name>
+    </ProductCard>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A failed native image retains its reserved media geometry and meaningful alternative instead of showing a broken browser icon.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const media =
+      canvasElement.querySelector<HTMLElement>("[data-image-state]")!
+    await waitFor(() =>
+      expect(media).toHaveAttribute("data-image-state", "error")
+    )
+    await expect(
+      within(canvasElement).getByRole("img", { name: "Runner low side view" })
+    ).toBeVisible()
+    await expect(media.getBoundingClientRect().height).toBeGreaterThan(0)
+  },
+}
+
+function CardMediaAdapter({
+  src,
+  assetId,
+  ...props
+}: ComponentPropsWithRef<"img"> & { assetId: string }) {
+  return <img {...props} data-requested-src={src} data-asset-id={assetId} />
+}
+function CardMediaLifecycleExample() {
+  const [source, setSource] = useState("pending-card")
+  const [events, setEvents] = useState("Waiting for media")
+  const image = useRef<HTMLImageElement>(null)
+  return (
+    <div className="flex flex-col gap-200">
+      <ProductCard>
+        <ProductCard.Image
+          as={CardMediaAdapter}
+          assetId="runner-side"
+          ref={image}
+          src={source}
+          alt="Runner low adapter side view"
+          width={400}
+          height={300}
+          onLoad={() =>
+            setEvents(
+              image.current?.tagName === "IMG"
+                ? "Loaded on image ref"
+                : "Incorrect ref"
+            )
+          }
+          onError={() =>
+            setEvents("Image failed; select a new source to recover")
+          }
+        />
+        <ProductCard.Name>Runner low</ProductCard.Name>
+      </ProductCard>
+      <Button onClick={() => setSource("recovered-card")}>
+        Recover card media
+      </Button>
+      <StatusText role="status" aria-label="Card media lifecycle">
+        {events}
+      </StatusText>
+    </div>
+  )
+}
+export const AdapterMediaLifecycle: Story = {
+  render: () => <CardMediaLifecycleExample />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A custom adapter retains its required props, event handlers and actual image ref through loading, failure and source recovery.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    let image = canvasElement.querySelector<HTMLImageElement>(
+      '[data-asset-id="runner-side"]'
+    )!
+    const media = image.closest<HTMLElement>("[data-image-state]")!
+    const initial = media.getBoundingClientRect()
+    await expect(media).toHaveAttribute("data-image-state", "loading")
+    image.dispatchEvent(new Event("error"))
+    await waitFor(() =>
+      expect(media).toHaveAttribute("data-image-state", "error")
+    )
+    await expect(
+      canvas.getByRole("status", { name: "Card media lifecycle" })
+    ).toHaveTextContent("Image failed")
+    await expect(
+      canvas.getByRole("img", { name: "Runner low adapter side view" })
+    ).toBeVisible()
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Recover card media" })
+    )
+    image = canvasElement.querySelector<HTMLImageElement>(
+      '[data-asset-id="runner-side"]'
+    )!
+    await expect(image.closest("[data-image-state]")).toHaveAttribute(
+      "data-image-state",
+      "loading"
+    )
+    image.dispatchEvent(new Event("load"))
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("status", { name: "Card media lifecycle" })
+      ).toHaveTextContent("Loaded on image ref")
+    )
+    const recovered = image
+      .closest<HTMLElement>("[data-image-state]")!
+      .getBoundingClientRect()
+    await expect(recovered.width).toBe(initial.width)
+    await expect(recovered.height).toBe(initial.height)
   },
 }

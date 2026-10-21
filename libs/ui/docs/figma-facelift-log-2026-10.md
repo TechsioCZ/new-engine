@@ -431,3 +431,344 @@ Pending upstream token/export reconciliation; this entry records code-side bridg
 - Form-control minima grow with actual line height and padding; public border-width primitives own legacy width aliases. Effective radii remain 8/12/16px, baseline control minima 32/44/56px.
 - Preserve exact rem precision for pixel-named dimensions (2/6/10/14 etc.). `dimension-700` remains the legacy 70px spacing endpoint pending an upstream axis/consumer audit; do not reinterpret it as 700px.
 - The merger still needs token-aware whitespace/type validation before regeneration. Do not remove `_foundation-overrides.css` merely because a same-named Figma token exists; compare all six supported brand/mode combinations, nested scopes and app overrides first.
+
+## Consolidated component handoff — 2026-10-21 · pending design synchronization
+
+This section consolidates the missing Wave 2 handoffs, Wave 3 initial and repair
+rounds, and the current integration implementations. **Every item below is pending
+design synchronization**, not a record of changes made or published in Figma.
+The historical Figma/export results and foundations entries above remain intact.
+
+**Design** means component geometry, visible states, aliases or prototype behavior
+to mirror in Figma. **Contract** means accessibility/API guidance to annotate in
+the component documentation and review for Code Connect; it is not an extra
+visual layer. Source links are relative to `libs/ui`; evidence keys refer to the
+recorded verification at the end of this section. Use `component-to-figma` as a
+maintainer-initiated follow-up, not automatic publication.
+
+### Text controls, toggles and choice fields
+
+- **NumericInput / FormNumericInput** ([source](../src/atoms/numeric-input.tsx),
+  [aliases](../src/tokens/components/atoms/_numeric-input.css)) — **Design:** mirror
+  adjacent increment/decrement steppers, canonical sm/md/lg and the distinct
+  read-only surface with steppers suppressed. Include `validateStatus` default,
+  error, success and warning; success/warning reference aliases feed
+  `--color-numeric-input-border-success` and `--color-numeric-input-border-warning`.
+  Validation borders persist outside focus; disabled remains authoritative.
+  **Contract:** name the input and each step action, link feedback to the actual
+  spinbutton, and retain the numeric-callback/string-draft distinction. [E1]
+- **PhoneInput** ([source](../src/molecules/phone-input.tsx),
+  [aliases](../src/tokens/components/molecules/_phone-input.css)) — **Design:** keep
+  hover/focus interaction surfaces neutral so prefix, placeholder and value stay
+  readable; use focus-visible-only outlines without erasing validation borders.
+  Country metadata inherits its highlighted/selected row foreground. Mirror the
+  compact intrinsic country trigger, shared sizes and read-only country-action
+  suppression. **Contract:** caret/IME, native form ownership and React 19 ref
+  cleanup are implementation behavior, not additional Figma layers. [E1]
+- **Checkbox / FormCheckbox** ([source](../src/atoms/checkbox.tsx),
+  [field composition](../src/molecules/form-checkbox.tsx)) — **Design:** use the
+  shared 18/24/30px sm/md/lg box geometry; default md changes from 16px to 24px.
+  Include checked, mixed, invalid, disabled and full-contrast read-only states;
+  preserve rich-label wrapping and aligned option counts. The 24px default was
+  checked in DataTable's 56px selection cell. **Contract:** accepted native state,
+  not a rejected activation, determines the visible check/mixed mark. [E2]
+- **Switch** ([source](../src/molecules/switch.tsx),
+  [aliases](../src/tokens/components/molecules/_switch.css)) — **Design:** mirror
+  size-aware track/thumb geometry and readable unchecked/invalid thumbs through
+  `--color-switch-thumb-bg-unchecked` / `--color-switch-thumb-bg-invalid`; retain
+  read-only/unavailable distinctions. Include the forced-colors boundary/system
+  ink treatment and a wrapping enlarged-label example. **Contract:** system-color
+  mappings and reduced-motion suppression are environment behavior, not fixed
+  brand-color variants. [E2]
+- **RadioGroup / RadioCard / Rating** ([radio source](../src/molecules/radio-group.tsx),
+  [card source](../src/molecules/radio-card.tsx), [rating source](../src/atoms/rating.tsx))
+  — **Design:** carry forward toggle contrast aliases, selected/read-only/disabled
+  distinctions and Rating's separate target/glyph geometry (32px target alias),
+  including fractional aggregate display. **Contract:** an aggregate rating is a
+  named, noninteractive image (`displayOnly`), not an editable star group; focus
+  recovery and rejected-change reconciliation do not add design layers. [E2, E8]
+- **Select** ([source](../src/molecules/select.tsx)) — **Design:** reserve a
+  size-aware logical clear-action gutter so value text, chevron and clear do not
+  collide in LTR or RTL. Show sm/md/lg; xs remains a compatibility alias, not a
+  fourth canonical size. **Contract:** clear is a separate named action and is
+  absent in read-only; supplied handlers retain cancellation semantics. [E3]
+- **Combobox** ([source](../src/molecules/combobox.tsx)) — **Design:** multiple
+  selection uses built-in visible tokens with individually removable actions,
+  rather than an undifferentiated value string. **Contract:** each action is named
+  `Remove <selected label>`; read-only preserves tokens without remove affordances.
+  Native external-form association and focusable input refs are API annotations,
+  not token/chip layers to draw. [E3]
+- **ColorSelect** ([source](../src/molecules/color-select.tsx)) — **Design:** preserve
+  exact product swatch fills, including forced-colors presentation; wrap complete
+  captions within the swatch column and place counts on a separate line instead
+  of clipping names or appending crowded metadata. Functional boundary contrast
+  is already tracked in the foundations entry above. **Contract:** the radio
+  group and each swatch retain meaningful names and keyboard focus recovery. [E3]
+- **CascadeSelect** ([source](../src/molecules/cascade-select.tsx)) — **Design:**
+  mirror canonical sm/md/lg (retain xs compatibility), full-contrast read-only
+  values with dropdown/clear affordances suppressed, and explicit error styling.
+  The repair makes a mounted error StatusText activate invalid appearance even
+  when root `validateStatus` is default. **Contract:** associate that error with
+  the trigger through described-by/error-message IDs; read-only cannot open or
+  commit a draft. Reset and hierarchy reconciliation are implementation-only. [E3]
+
+### Complex fields and feedback
+
+- **DatePicker** ([source](../src/molecules/date-picker.tsx)) — **Design:** date-range
+  endpoint strips size intrinsically without shrinking into each other; keep the
+  focused segment visible. Weekdays remain visually compact. **Contract:** range
+  endpoints have distinct start/end names and weekday headers expose full names,
+  not just their narrow glyphs. Localized digits, timezone-safe bounds/calendar
+  presentation and modal commit-focus restoration are behavior, not extra layers.
+  This handoff requires no token migration. [E4, E9]
+- **Slider** ([source](../src/molecules/slider.tsx)) — **Design:** labels and formatted
+  value summaries wrap within a shrinkable header, including enlarged text and
+  multi-thumb ranges. Preserve fractional steps and full-contrast read-only
+  presentation. **Contract:** every thumb has a distinct endpoint name; formatted
+  `aria-valuetext` speaks the relevant currency/unit, with `getAriaValueText`
+  available for explicit spoken wording. Shared help/error IDs belong on each
+  focusable thumb. Fieldset/reset guards and `getThumbProps` refs are not new
+  Figma visual parts. [E4, E9]
+- **FormErrorSummary** ([source](../src/molecules/form-error-summary.tsx)) —
+  **Design:** long validation instructions and unbroken field names wrap without
+  page overflow; keep status icon and multiline text aligned. **Contract:** an
+  error link reveals its hidden target (including awaited `revealField`) before
+  focusing it; it does not need a second toast/live announcement. [E4]
+
+### Overlays and notifications
+
+- **Dialog / Drawer** ([dialog](../src/molecules/dialog.tsx),
+  [drawer](../src/molecules/drawer.tsx), [layer aliases](../src/tokens/components/molecules/_dialog.css))
+  — **Design:** show nested modal surfaces in depth order; content/positioner
+  layers follow `50 + 2 * depth` and each backdrop sits immediately below its
+  surface. Keep Dialog's viewport-bounded body scrolling while close/actions
+  remain reachable. Drawer uses the actually visible detent viewport with pinned,
+  wrapping footer controls, not a full-height body hidden below the screen.
+  Focus-role synchronization is already tracked in foundations above.
+  **Contract:** the depth arithmetic and shared
+  [OverlayPortal](../src/internal/overlay-portal.tsx) ownership are runtime
+  implementation details, not literal Figma z-index variables. Nested fields and
+  menus remain within the active modal's focus/accessibility scope. [E5, E9]
+- **Popover / PopoverTemplate** ([source](../src/molecules/popover.tsx),
+  [template](../src/templates/popover.tsx)) — **Design:** use an opaque bounded
+  panel with close clearance; the repair scrolls an inner viewport while close
+  and arrow chrome remain outside it and visible at maximum scroll. **Contract:**
+  document title/alternative naming and untitled fallbacks, modal descendant-portal
+  ownership, and asynchronous status feedback. Moving chrome into its persistent
+  container introduced no new Figma variables. [E5]
+- **Tour** ([source](../src/molecules/tour.tsx)) — **Design:** only the long
+  description scrolls; title, progress, close and actions remain reachable at
+  mobile heights. **Contract:** retain reduced-motion behavior and meaningful
+  progress/action names rather than modeling an all-scrolling panel. [E5]
+- **Toast** ([source](../src/molecules/toast.tsx),
+  [aliases](../src/tokens/components/molecules/_toast.css)) — **Design:** carry
+  forward opaque neutral surfaces, readable status foreground/border aliases and
+  independent title/description typography. Notifications remain viewport-relative
+  even inside translated partial-detent Drawers. **Contract:** a stable manual
+  top-layer host belongs to the active modal without restarting toast actors;
+  its transparent viewport is pointer-transparent while notification groups stay
+  interactive. Host DOM/popover mechanics are implementation-only, not another
+  visible scrim or panel. No new variables were added by the placement repair. [E5]
+- **Tooltip / Menu** ([tooltip](../src/atoms/tooltip.tsx),
+  [menu](../src/molecules/menu.tsx)) — **Design:** Menu labels wrap within bounded
+  surfaces with nonshrinking icons/indicators; show disabled checkbox/radio
+  options and native-link rows distinctly from commands. **Contract:** preserve
+  native modified/new-context link behavior, disabled immutability, submenu
+  policy inheritance and contextual focus. Tooltip's accessible content ID,
+  positioning/portal API and Escape priority must not dismiss an unrelated
+  focused popup or its parent modal. [E5]
+
+### Navigation and disclosure
+
+- **Pagination** ([source](../src/molecules/pagination.tsx),
+  [aliases](../src/tokens/components/molecules/_pagination.css)) — **Design:**
+  minimal active pages have a persistent tokenized underline, not color alone;
+  its functional contrast role is tracked in foundations above. **Contract:**
+  distinguish empty/shrinking collections and disabled endpoints, preserve native
+  modified links, and avoid hash navigation for ordinary local page actions. [E6]
+- **TreeView** ([source](../src/molecules/tree-view.tsx),
+  [aliases](../src/tokens/components/molecules/_tree-view.css)) — **Design:** show
+  a persistent selection surface/marker separate from hover, 24px disclosure
+  targets, and a constant logical indentation step at every depth in LTR/RTL.
+  Include the repair's inherited disabled subtree state, not enabled-looking
+  descendants under a disabled branch. **Contract:** disclosure and selection are
+  separate actions; inherited disabling applies to pointer, keyboard, select-all
+  and controlled expansion, with focus recovered outside the subtree. [E6]
+- **Tabs / TabsTemplate** ([source](../src/molecules/tabs.tsx),
+  [template](../src/templates/tabs.tsx)) — **Design:** the vertical rail is at
+  inline-start; the repair preserves intrinsic tab-strip width while the panel
+  shrinks/wraps, including fitted/RTL layouts. **Contract:** template `tablistProps`
+  supplies tablist naming/DOM props. Dynamic focus recovery and local trigger
+  scrolling are behavior. Navigation's `composition` mode owns typography and
+  static press feedback instead of inheriting Button scale/weight. [E6, E9]
+- **Breadcrumb** ([source](../src/molecules/breadcrumb.tsx)) — **Design:** links
+  inherit the trail's typography by default (`size="current"`) while explicit
+  overrides remain supported; long words and trails wrap inside their container.
+  Do not reproduce the old mixed link/current-page font scale. [E6]
+- **Accordion / AccordionTemplate** ([source](../src/molecules/accordion.tsx),
+  [template](../src/templates/accordion.tsx)) — **Design:** long titles shrink/wrap
+  without squeezing indicators; indicators do not shrink. **Contract:** template
+  `headingLevel` supplies the actual heading level (default 3), not a visual text
+  size variant; maintain a named trigger and its controlled panel relation. [E6]
+- **Steps** ([source](../src/molecules/steps.tsx)) — **Design:** preserve current,
+  completed and terminal workflow states as the step count changes. **Contract:**
+  use ordered-list steps and named content/completion sections, not tab semantics;
+  accepted navigation focuses its destination and progress stays bounded. [E6]
+- **VerticalNavigation** ([source](../src/molecules/vertical-navigation.tsx)) —
+  retain the size handoff above; integration now isolates navigation typography,
+  icon sizing and pressed feedback through its own aliases rather than Button
+  defaults. This is component ownership, not a change to the canonical scale. [E9]
+
+### Actions, media, data layout and commerce
+
+- **Button / LinkButton / Link** ([button](../src/atoms/button.tsx),
+  [link button](../src/atoms/link-button.tsx), [link](../src/atoms/link.tsx)) —
+  **Design:** buttons use minimum height plus padding so wrapped labels grow;
+  carry forward readable borderless interaction foregrounds and disabled states.
+  Pending has visible progress/busy feedback without dropping initiating focus.
+  **Contract:** pending guards activation/submission without native disabling;
+  genuinely disabled actions keep native semantics. LinkButton disabled placeholders
+  cannot be made enabled-looking by overriding `aria-disabled`; native/router refs
+  follow the selected adapter. `composition` is an internal styling opt-out, not
+  another public Figma button treatment. [E7, E9]
+- **ActionIcon / Icon / Hotkeys** ([action icon](../src/atoms/action-icon.tsx),
+  [pressed aliases](../src/tokens/components/atoms/_action-icon.css),
+  [icon](../src/atoms/icon.tsx), [hotkeys](../src/atoms/hotkeys.tsx)) — **Design:**
+  danger active uses paired `--color-action-icon-{bg,fg}-danger-active` aliases:
+  opposite danger-100/900 endpoints swap with the scheme. Do not reuse a solid
+  danger foreground on the light pressed fill. Retain disabled hover/press
+  suppression, readable primary/status Icon foreground aliases and Hotkeys md/lg
+  display sizes. **Contract:** action targets/names differ from decorative glyph
+  sizes; shortcut scope/modal suspension is implementation-only. [E7]
+- **Image / ImageWithFallback** ([source](../src/atoms/image.tsx),
+  [aliases](../src/tokens/components/atoms/_image.css)) — **Design:** Image remains
+  unwrapped; the opt-in fallback adds a neutral loading/error media box using
+  `--color-image-{bg,fg}-fallback`. Positive finite width/height reserve geometry
+  across loading/error/recovery; default aspect follows those dimensions, explicit
+  aspect overrides still work, and fixed thumbnail slots stay square.
+  **Contract:** compose load/error callbacks, recover on source changes and keep
+  adapter-specific required props/refs. The hidden reservation SVG is
+  implementation-only: **do not add it as a Figma visual layer**. Fill adapters
+  still require parent-owned geometry; Storybook is not a real Next.js build. [E7]
+- **Skeleton** ([source](../src/atoms/skeleton.tsx)) — **Design:** the group itself
+  is unanimated; each visible shape owns its pulse/reduced-motion appearance.
+  Preserve canonical shape sizing, not doubled parent/child opacity animation.
+  **Contract:** loading descendants are inert/hidden from accessibility, and
+  Rectangle withholds eventual children until ready; DOM guards are not layers. [E7]
+- **Chart** ([source](../src/molecules/chart.tsx),
+  [aliases](../src/tokens/components/molecules/_chart.css)) — **Design:** use
+  full-opacity 14px labels, line dash patterns matched by the legend, singleton
+  markers, and empty/invalid-data feedback; expose the formatted dataset through
+  an expandable disclosure. Keep stable series/category identities across
+  filtering, including repaired numeric pie/donut domains. **Contract:** data-table
+  disclosure and Escape-dismissable inspection are accessible alternatives;
+  domain normalization is implementation-only, not a separate visual variant. [E8]
+- **Table / DataTable** ([table](../src/organisms/table.tsx),
+  [data table](../src/organisms/data-table.tsx)) — **Design:** frozen-first-cell
+  surfaces composite stripe, hover and selected tints over the table surface;
+  ordinary body cells stay transparent. Preserve frozen offsets and responsive
+  scroll treatment. **Contract:** async pager/page-size loading retains focus and
+  restores it appropriately for empty/shrinking results; local-day date bounds,
+  rendered-width resizing and controlled server paging are behavior, not layers. [E8]
+- **Sidebar / Header** ([sidebar](../src/organisms/sidebar.tsx),
+  [header](../src/organisms/header.tsx)) — use the Sidebar semantic focus-role
+  handoff already recorded in foundations, including its local aliases rather
+  than decorative brand accents. **Design:** Header mobile/desktop layouts keep
+  actions reachable. **Contract:** Hamburger forwards button props/name/handlers/
+  refs, and closing/replacing the mobile menu on desktop transition recovers
+  focus rather than leaving it in hidden content. [E8]
+- **Gallery / Carousel and templates** ([gallery](../src/organisms/gallery.tsx),
+  [carousel](../src/molecules/carousel.tsx), [gallery template](../src/templates/gallery.tsx),
+  [carousel template](../src/templates/carousel.tsx)) — **Design:** keep the active
+  thumbnail visible in overflowing rails, preserve inactive/hover/current
+  brightness, and show a persistent pause/start control whenever autoplay is
+  configured, even without navigation/indicators. Gallery advances one image per
+  page; Carousel indicators follow actual snap pages. Shared fallback presentation
+  above now applies to default and adapter media, including thumbnails.
+  **Contract:** preserve media props and root/member refs (including rail/list
+  refs); handle slide replacement, keep editor/widget keys and interactive pointer
+  focus native, and move outgoing-slide focus before making it inert. Reduced
+  motion suppresses automatic startup, but explicit playback retains the configured
+  interval and user pause persists. [E8, E9]
+- **ProductCard / ProductCardTemplate / storefront**
+  ([card](../src/molecules/product-card.tsx), [template](../src/templates/product-card.tsx),
+  [storefront](../stories/pages/storefront-product.stories.tsx)) — **Design:** retain
+  reserved image/name geometry, wrapping actions and action-specific cart/detail/
+  wishlist pressed pairs. Product names remain headings containing real native or
+  router links; badges retain their full supplied presentation props. Sale prices
+  show localized original/current labels and deletion semantics, not strike-through
+  alone. **Contract:** apps supply formatted amounts/localized labels; card actions
+  inherit the Button contract above, adapters retain required image props/refs,
+  and aggregate ratings use the display contract above. Storefront quantity drafts
+  must not purchase invalid/last-valid stale quantities. [E7, E8, E9]
+- **CartPresentation / LineItem / TotalsSummary**
+  ([cart example](../stories/templates/cart-presentation.stories.tsx),
+  [line-item example](../stories/organisms/line-item.stories.tsx),
+  [totals example](../stories/molecules/totals-summary.stories.tsx)) — **Design:**
+  show pending, invalid-draft, remove/undo and failure/retry feedback without losing
+  the recognized item or amount. **Contract:** applications move focus to a stable
+  target **before** making quantity/actions inert; after success or failure, restore
+  a still-connected/enabled initiator only if focus remains at the handoff target.
+  Respect deliberate user focus changes and use a next-row/summary fallback after
+  removal. Request timing, rollback, quantity pricing and focus ownership remain
+  application responsibilities, not new presentation-component engines/layers. [E8, E9]
+
+### Evidence and synchronization boundary
+
+The Wave 3 evidence below comes from
+`/Volumes/DevWork/agent-scratch/ds-overhaul/wave3-result.json`, specifically each
+listed `results[*].fix` **and** `repair` changelog/verification. The earlier action,
+media and toggle follow-ups also use `wave2-result.json` and the exact requests in
+`wave4-inputs.json` (inputs 6, 12, 24, 41, 119, 127, 139, 147, 153, 162, 167, 172,
+177, 187, 197, 202, 209). Scratch paths below share the prefix
+`/Volumes/DevWork/agent-scratch/ds-overhaul/`.
+
+- **E1 — text-inputs:** `repair-text-inputs-round2/{verify,layout-contrast,validation-states}.json`;
+  initial editing/validation plays and repaired mobile Docs were checked in Akros
+  light, base light/dark, narrow viewports, forced colors and reduced motion.
+- **E2 — toggles:** `toggles/final-visual.json` and
+  `toggles-repair/{native,visual,plays}.json`; measured Checkbox geometry, 54 native
+  form scenarios and 11 retained regression plays, including system-color thumbs.
+- **E3 — choice:** `choice-repair-wave3/{browser-results,broad-results}.json`;
+  clear gutters, removal, explicit-error lifecycle, external forms and captions.
+  Visual references: `shots/choice-wave3-desktop-multiple-akros-light.png` and
+  `shots/choice-wave3-molecules-colorselect--long-captions-akros-light.png`.
+- **E4 — complex-fields:** `complex-fields/` and `complex-fields-repair/` browser
+  scripts/results; date endpoints, full weekday names, timezone boundaries,
+  spoken slider values and enlarged-text summaries, including 390px three-scheme
+  checks and forced-colors/reduced-motion Slider coverage.
+- **E5 — overlays:** `overlays-wave3/{play-results,surfaces-results}.json` and
+  `overlays-repair/{play-check,surface-check,detent-toast-check}.mjs`; initial modal
+  layout plus repaired Popover chrome, notification viewport and Escape priority.
+  Repair verification records 24 new and 33 retained story runs across Akros
+  light/base light/base dark, with mobile/desktop and modal accessibility checks.
+- **E6 — nav-disclosure:** `nav-disclosure/` and
+  `repair-nav-disclosure/{verify,regression-matrix,layout-matrix}.mjs`; initial
+  typography/markers/semantics and repaired disabled subtrees/intrinsic vertical
+  tabs were checked at 390px in all three schemes, plus RTL and motion/color modes.
+- **E7 — actions:** `actions/` and `actions-repair/verify.mjs`; pending-focus,
+  pressed-pair and media reservation checks. Repair geometry is unchanged from
+  loading to loaded: 358 × 201.375px at 390px and 512 × 288px at 1280px. The
+  reservation SVG is not visible design content.
+- **E8 — data-layout / commerce-media:** `data-layout-repair/{check,edges}.mjs`,
+  `commerce-media/{repair-round,repair-prior-matrix}.mjs` and their initial wave
+  verification; charts, frozen surfaces, pager focus, linked prices, cart focus,
+  responsive layouts and repaired autoplay timing in the three required schemes.
+- **E9 — integration source and handoff-log smoke:** the linked current sources
+  include shared modal ownership, navigation composition, Gallery autoplay/media
+  adoption, linked storefront recommendations and the LineItem pending-focus
+  lifecycle. `10-consolidated-figma-handoff-log/{check.mjs,browser-results.json}`
+  records 12 fresh 390px checks in Akros light/base light/base dark: numeric sizes,
+  distinct Slider names/spoken units, product-card layout and long Dialog geometry.
+  Dialog Enter/Escape/focus restoration and `role="dialog"`, `aria-modal="true"`,
+  absence of inert/aria-hidden ancestors and reachable close/publish controls pass.
+  Screenshots use `shots/handoff-log-dialog-*-390.png`. These are representative
+  smoke checks, not a replacement for each integration owner's regression matrix.
+
+**Next design step:** reconcile these component states and aliases with the
+existing foundations handoff, review documentation/Code Connect mappings, then
+let the maintainer re-export and compare runtime results before removing bridges.
+No token export, generated Figma CSS, component version, Code Connect publication
+or Figma library was changed by this documentation consolidation. Recorded browser
+checks are DOM/keyboard/visual evidence, not a manual screen-reader audio pass or
+an unconditional release/accessibility sign-off.

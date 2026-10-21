@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.2.1
+ * @componentVersion v1.3.0
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,11 +11,24 @@
  */
 import { connect, type IntlTranslations, machine } from "@zag-js/rating-group"
 import { normalizeProps, useMachine } from "@zag-js/react"
-import { type HTMLAttributes, type ReactNode, useId } from "react"
+import {
+  type HTMLAttributes,
+  type ReactNode,
+  useId,
+  useMemo,
+  useState,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
+import {
+  isSilentChoiceReset,
+  runSilentChoiceReset,
+  trackChoiceFormControl,
+  useChoiceFocusRecovery,
+} from "../internal/choice-control"
 import { joinDescribedBy } from "../internal/described-by"
+import { isEffectivelyDisabled } from "../internal/form-control-lifecycle"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
-import { trackChoiceFormControl, useChoiceFocusRecovery } from "./checkbox"
 import { Label } from "./label"
 import { StatusText } from "./status-text"
 
@@ -36,6 +49,22 @@ function normalizeRating(
   const step = allowHalf ? 2 : 1
   return Math.round(bounded * step) / step
 }
+
+const ratingValueActions = machine.implementations?.actions ?? {}
+const guardRatingAction =
+  (action: typeof ratingValueActions.setValue) =>
+  (params: Parameters<NonNullable<typeof ratingValueActions.setValue>>[0]) => {
+    const root = params.scope.getById(
+      params.scope.ids?.root ?? `rating:${params.scope.id}`
+    )
+    if (
+      params.prop("readOnly") ||
+      isEffectivelyDisabled(root, params.prop("disabled"))
+    ) {
+      return
+    }
+    action?.(params)
+  }
 
 const ratingChoiceMachine: typeof machine = {
   ...machine,
@@ -63,22 +92,42 @@ const ratingChoiceMachine: typeof machine = {
   },
   implementations: {
     ...machine.implementations,
+    actions: {
+      ...ratingValueActions,
+      setPrevValue: guardRatingAction(ratingValueActions.setPrevValue),
+      setNextValue: guardRatingAction(ratingValueActions.setNextValue),
+      setValueToMin: guardRatingAction(ratingValueActions.setValueToMin),
+      setValueToMax: guardRatingAction(ratingValueActions.setValueToMax),
+      setValue: guardRatingAction(ratingValueActions.setValue),
+      clearValue: guardRatingAction(ratingValueActions.clearValue),
+      setHoveredValue: guardRatingAction(ratingValueActions.setHoveredValue),
+    },
     effects: {
       ...machine.implementations?.effects,
       trackFormControlState({ scope, context, prop }) {
         const root = scope.getById(scope.ids?.root ?? `rating:${scope.id}`)
         return trackChoiceFormControl(
           root,
-          () =>
-            context.set(
-              "value",
-              normalizeRating(
-                context.initial("value"),
-                prop("count"),
-                !!prop("allowHalf"),
-                !!prop("readOnly")
+          () => {
+            if (prop("value") === undefined) {
+              runSilentChoiceReset(context, () =>
+                context.set(
+                  "value",
+                  normalizeRating(
+                    context.initial("value"),
+                    prop("count"),
+                    !!prop("allowHalf"),
+                    !!prop("readOnly")
+                  )
+                )
               )
-            ),
+            } else {
+              const input = root?.querySelector("input")
+              if (input) {
+                input.value = String(context.get("value"))
+              }
+            }
+          },
           (disabled) => context.set("fieldsetDisabled", disabled)
         )
       },
@@ -137,6 +186,8 @@ export type RatingProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> &
     count?: number
     labelText?: string
     readOnly?: boolean
+    /** Nonfocusable aggregate summary; does not participate in form submission. */
+    displayOnly?: boolean
     disabled?: boolean
     allowHalf?: boolean
     name?: string
@@ -153,8 +204,9 @@ export function Rating({
   defaultValue = 0,
   count = 5,
   labelText,
-  readOnly = false,
-  disabled = false,
+  readOnly: readOnlyProp = false,
+  displayOnly = false,
+  disabled: disabledProp = false,
   allowHalf = true,
   name,
   dir = "ltr",
@@ -170,6 +222,11 @@ export function Rating({
   "aria-labelledby": ariaLabelledBy,
   ...props
 }: RatingProps) {
+  const readOnly = readOnlyProp || displayOnly
+  const [controlElement, setControlElement] = useState<HTMLDivElement | null>(
+    null
+  )
+  const disabled = useEffectiveDisabled(controlElement, disabledProp)
   const generatedId = useId()
   const helpTextId = useId()
   const scoreId = useId()
@@ -186,6 +243,13 @@ export function Rating({
     ? Math.max(1, Math.floor(count))
     : 5
   const focusRef = useChoiceFocusRecovery('[role="radio"]')
+  const controlRef = useMemo(
+    () => (node: HTMLDivElement | null) => {
+      focusRef.current = node
+      setControlElement(node)
+    },
+    [focusRef]
+  )
   const service = useMachine(ratingChoiceMachine, {
     id,
     count: normalizedCount,
@@ -206,7 +270,7 @@ export function Rating({
     dir,
     translations,
     onValueChange: ({ value: newValue }) => {
-      if (interactive) {
+      if (interactive && !isSilentChoiceReset(service.context)) {
         onChange?.(newValue)
       }
     },
@@ -217,7 +281,7 @@ export function Rating({
     },
   })
   const api = connect(service, normalizeProps)
-  const isDisplay = readOnly && !disabled
+  const isDisplay = displayOnly
   const styles = rating({ size, isDisplay })
 
   return (
@@ -233,11 +297,13 @@ export function Rating({
         labelText={labelText}
         size={size}
       />
-      <input
-        {...api.getHiddenInputProps()}
-        defaultValue={undefined}
-        value={api.value}
-      />
+      {!displayOnly && (
+        <input
+          {...api.getHiddenInputProps()}
+          defaultValue={undefined}
+          value={api.value}
+        />
+      )}
       <div
         className={styles.control()}
         {...getRatingControlProps(
@@ -251,8 +317,8 @@ export function Rating({
         aria-errormessage={errorMessageId}
         aria-invalid={invalid || undefined}
         data-disabled={disabled ? "" : undefined}
-        data-readonly={isDisplay ? "" : undefined}
-        ref={focusRef}
+        data-readonly={readOnly && !disabled ? "" : undefined}
+        ref={controlRef}
       >
         <RatingItems
           api={api}
@@ -322,8 +388,7 @@ function getRatingControlProps(
       role: "img",
       "aria-labelledby": ariaLabelledBy,
       "aria-label": `${label ? `${label}: ` : ""}${Math.max(0, api.value)} out of ${api.count}`,
-      tabIndex: 0,
-      "aria-description": "Read-only rating",
+      "aria-description": "Average rating",
     }
   }
   const visibleLabelId =

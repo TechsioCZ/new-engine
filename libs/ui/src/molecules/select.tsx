@@ -2,14 +2,14 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.2.1
+ * @componentVersion v1.3.0
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the select-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   connect as connectSelect,
   collection as createSelectCollection,
@@ -40,7 +40,24 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
+
+// Wrapper-owned state and native projections share one cancellation-safe lifecycle.
+const nativeSelectMachine: typeof selectMachine = {
+  ...selectMachine,
+  implementations: {
+    ...selectMachine.implementations,
+    effects: {
+      ...selectMachine.implementations?.effects,
+      trackFormControlState() {
+        /* Shared lifecycle below owns disabled and reset behavior. */
+      },
+    },
+  },
+}
 
 export type SelectSize = "xs" | "sm" | "md" | "lg"
 
@@ -90,17 +107,11 @@ const selectVariants = tv({
       "data-[disabled]:text-select-fg-disabled",
       "data-[disabled]:border-select-border-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
-      "data-[validation=error]:border-select-border-error data-[validation=error]:outline-select-border-error",
-      "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
-      "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=error]:border-select-border-error",
       "data-[validation=success]:border-(length:--border-width-validation)",
-      "data-[validation=success]:border-select-border-success data-[validation=success]:outline-select-border-success",
-      "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
-      "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=success]:border-select-border-success",
       "data-[validation=warning]:border-(length:--border-width-validation)",
-      "data-[validation=warning]:border-select-border-warning data-[validation=warning]:outline-select-border-warning",
-      "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
-      "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=warning]:border-select-border-warning",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
@@ -236,7 +247,7 @@ export function Select({
   value,
   defaultValue,
   multiple = false,
-  disabled = false,
+  disabled: explicitDisabled = false,
   validateStatus = "default",
   required = false,
   readOnly = false,
@@ -254,6 +265,11 @@ export function Select({
   ...machineProps
 }: SelectProps) {
   const generatedId = useId()
+  const [disabledElement, setDisabledElement] =
+    useState<HTMLInputElement | null>(null)
+  const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
+  const hiddenSelectRef = useRef<HTMLSelectElement>(null)
+  const initialValue = useRef(defaultValue ?? [])
   const id = providedId || generatedId
 
   // Derive invalid from validateStatus for Zag.js accessibility
@@ -281,7 +297,7 @@ export function Select({
     [items]
   )
 
-  const service = useMachine(selectMachine, {
+  const service = useMachine(nativeSelectMachine, {
     ...machineProps,
     id,
     open: readOnly || disabled ? false : machineProps.open,
@@ -352,6 +368,32 @@ export function Select({
   }, [collection, service])
   const { defaultValue: _nativeDefaultValue, ...hiddenSelectProps } =
     api.getHiddenSelectProps()
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    if (value === undefined) {
+      setInternalValue(
+        initialValue.current.filter((selected) => collection.has(selected))
+      )
+    }
+    const restored =
+      value === undefined
+        ? initialValue.current.filter((selected) => collection.has(selected))
+        : effectiveValue
+    for (const option of hiddenSelectRef.current?.options ?? []) {
+      option.selected = restored.includes(option.value)
+    }
+    if (!(multiple || restored.length) && hiddenSelectRef.current) {
+      hiddenSelectRef.current.value = ""
+    }
+    api.setOpen(false)
+    api.clearHighlightValue()
+  }
+  useEffect(() => {
+    const input = hiddenSelectRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
   const styles = selectVariants({ size })
   const describedBy = useDescribedBy()
   const errors = useDescribedBy()
@@ -370,6 +412,7 @@ export function Select({
         ...describedBy,
       }}
     >
+      <input ref={setDisabledElement} type="hidden" />
       {/* Hidden form select for native form submission */}
       <select
         {...hiddenSelectProps}
@@ -401,6 +444,7 @@ export function Select({
             api.getHiddenSelectProps().onInput?.(event)
           }
         }}
+        ref={hiddenSelectRef}
         value={multiple ? effectiveValue : (effectiveValue[0] ?? "")}
       >
         {!multiple && <option value="" />}
@@ -514,6 +558,12 @@ Select.Trigger = function SelectTrigger({
       size="current"
       theme="unstyled"
       {...mergeProps(api.getTriggerProps(), props)}
+      aria-labelledby={
+        props["aria-labelledby"] ??
+        (props["aria-label"]
+          ? undefined
+          : api.getTriggerProps()["aria-labelledby"])
+      }
       disabled={disabled || props.disabled}
       {...validationDataAttrs}
       aria-describedby={joinDescribedBy(
@@ -636,10 +686,12 @@ Select.ClearTrigger = function SelectClearTrigger({
 }
 
 type SelectPositionerProps = ComponentPropsWithoutRef<"div"> & {
+  portalled?: boolean
   ref?: Ref<HTMLDivElement>
 }
 
 Select.Positioner = function SelectPositioner({
+  portalled = true,
   children,
   className,
   ref,
@@ -649,7 +701,7 @@ Select.Positioner = function SelectPositioner({
   const styles = selectVariants({ size })
 
   return (
-    <Portal>
+    <Portal disabled={!portalled}>
       <div
         className={styles.positioner({ className })}
         ref={ref}

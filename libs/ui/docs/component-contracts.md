@@ -134,10 +134,20 @@ The canonical **interactive control** sizes are `sm`, `md`, `lg`, in that
 order; default `md`. `sm` is for dense interfaces, `md` for ordinary forms,
 `lg` for deliberately prominent or touch-friendly layouts. Related controls
 and their labels, helper text, icons and option rows must follow the same size.
-Use `h-form-control-sm`, `h-form-control-md`, `h-form-control-lg` for single-line
-boxed controls/buttons; these derive from shared border, spacing and line
-height. Multiline controls use minimum height/padding, not a forced one-line
-height. Popup options use `popup-size-sm/md/lg` and `popup-item-base`.
+Geometry follows the content, not just the shared size name:
+
+- Single-line boxed fields use `h-form-control-sm`, `h-form-control-md` or
+  `h-form-control-lg`; these fixed heights derive from shared border, spacing
+  and line height.
+- Icon-only actions use square targets with matching width and height. Keep
+  their icon centered and their accessible name on the action; do not give a
+  text button square geometry.
+- Text buttons use `button-size-sm/md/lg`: minimum height and block/inline
+  padding aligned with the single-line field scale. Wrapped labels must grow
+  the button rather than clip or overflow; never force `h-form-control-*` onto
+  a text button.
+- Multiline controls use minimum height and padding, not a forced one-line
+  height. Popup options use `popup-size-sm/md/lg` and `popup-item-base`.
 
 The actual audit found sm/md/lg on Button, ActionIcon, Input, Textarea,
 NumericInput, PhoneInput, Combobox, DatePicker and most choice controls, but
@@ -201,6 +211,14 @@ explained explicitly.
   `parameters.docs.description.story` explaining **what** it shows and **why**.
 - Order: Playground, Variants (if supported), Sizes (if supported), States
   (if supported), then meaningful component-specific examples.
+- Compound components document every public member, not only the root props.
+  Include each member's purpose, rendered element/role, required parent/context,
+  required values (including uniqueness and matching Trigger/Content values),
+  supported state/behavior props and the exact DOM element targeted by its ref.
+  Explain root/provider setup and context hooks where public. Primary Docs
+  source must use public package imports and include all data, helpers, state
+  and cleanup needed to compile and preserve the demonstrated interaction;
+  private story helpers are not copyable API documentation.
 - Playground controls must visibly affect the rendered component. Hide internal
   IDs, refs and meaningless callback controls. Use realistic names, values and
   messages; preserve the message icon/association and focus contracts in demos.

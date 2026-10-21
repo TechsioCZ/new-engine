@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.0.4
+ * @componentVersion v1.1.0
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,20 +11,23 @@
  */
 import {
   type ComponentPropsWithoutRef,
+  type ComponentPropsWithRef,
   type CSSProperties,
   createContext,
   type ElementType,
   Fragment,
   type MouseEvent,
   type ReactNode,
+  type Ref,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
-import { Image } from "../atoms/image"
+import { Image, ImageWithFallback } from "../atoms/image"
 import {
   Carousel,
   type CarouselRootProps,
@@ -125,7 +128,7 @@ type GalleryCarouselProps<T extends ElementType = typeof Image> = Omit<
 export type GalleryProps<T extends ElementType = typeof Image> = VariantProps<
   typeof galleryVariants
 > &
-  Omit<ComponentPropsWithoutRef<"div">, "children"> & {
+  Omit<ComponentPropsWithRef<"div">, "children"> & {
     items: GalleryItem[]
     children?: ReactNode
     value?: number
@@ -237,7 +240,7 @@ export function Gallery<T extends ElementType = typeof Image>({
   )
 }
 
-type GalleryMainProps = ComponentPropsWithoutRef<"div">
+type GalleryMainProps = ComponentPropsWithRef<"div">
 
 Gallery.Main = function GalleryMain({
   children,
@@ -253,13 +256,12 @@ Gallery.Main = function GalleryMain({
   )
 }
 
-type GalleryThumbnailsProps = Omit<
-  ComponentPropsWithoutRef<"div">,
-  "children"
-> & {
+type GalleryThumbnailsProps = Omit<ComponentPropsWithRef<"div">, "children"> & {
   children?: ReactNode
   scrollAreaClassName?: string
   listClassName?: string
+  listRef?: Ref<HTMLDivElement>
+  scrollAreaRef?: Ref<HTMLDivElement>
   thumbnailClassName?: string
   renderThumbnail?: (params: GalleryRenderThumbnailParams) => ReactNode
 }
@@ -268,6 +270,8 @@ Gallery.Thumbnails = function GalleryThumbnails({
   children,
   className,
   listClassName,
+  listRef,
+  scrollAreaRef: callerScrollAreaRef,
   scrollAreaClassName,
   thumbnailClassName,
   renderThumbnail,
@@ -276,6 +280,29 @@ Gallery.Thumbnails = function GalleryThumbnails({
   const { items, page, setPage, showThumbnails, styles } = useGalleryContext()
 
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const mergedScrollAreaRef = useMemo(
+    () => (node: HTMLDivElement | null) => {
+      scrollAreaRef.current = node
+      const cleanup =
+        typeof callerScrollAreaRef === "function"
+          ? callerScrollAreaRef(node)
+          : undefined
+      if (callerScrollAreaRef && typeof callerScrollAreaRef !== "function") {
+        callerScrollAreaRef.current = node
+      }
+      return () => {
+        scrollAreaRef.current = null
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof callerScrollAreaRef === "function") {
+          callerScrollAreaRef(null)
+        } else if (callerScrollAreaRef) {
+          callerScrollAreaRef.current = null
+        }
+      }
+    },
+    [callerScrollAreaRef]
+  )
   // biome-ignore lint/correctness/useExhaustiveDependencies: selected state changes DOM aria-current before this visibility check.
   useEffect(() => {
     const rail = scrollAreaRef.current
@@ -346,9 +373,12 @@ Gallery.Thumbnails = function GalleryThumbnails({
         className={styles.thumbnailsScrollArea({
           className: scrollAreaClassName,
         })}
-        ref={scrollAreaRef}
+        ref={mergedScrollAreaRef}
       >
-        <div className={styles.thumbnailsList({ className: listClassName })}>
+        <div
+          className={styles.thumbnailsList({ className: listClassName })}
+          ref={listRef}
+        >
           {thumbnails}
         </div>
       </div>
@@ -357,7 +387,7 @@ Gallery.Thumbnails = function GalleryThumbnails({
 }
 
 type GalleryThumbnailProps<T extends ElementType = typeof Image> = Omit<
-  ComponentPropsWithoutRef<"button">,
+  ComponentPropsWithRef<"button">,
   "children"
 > & {
   index: number
@@ -395,15 +425,9 @@ Gallery.Thumbnail = function GalleryThumbnail<
 
   const isActive = page === index
   const thumbnailSource = item.thumbnailSrc || item.src || ""
-  const thumbnailAlt =
-    item.thumbnailAlt ?? item.alt ?? `Product image ${index + 1}`
-  const resolvedImageAs = (imageAs ||
-    thumbnailImageAs ||
-    Image) as GalleryImageComponent<T>
-  const hasCustomThumbnailComponent = resolvedImageAs !== Image
-  const CustomThumbnailComponent = hasCustomThumbnailComponent
-    ? (resolvedImageAs as ElementType)
-    : Image
+  const resolvedImageAs = imageAs ?? thumbnailImageAs
+  // Public wrappers retain adapter contracts; media records are resolved at runtime.
+  const Media: ElementType = ImageWithFallback
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     onClick?.(event)
@@ -418,28 +442,20 @@ Gallery.Thumbnail = function GalleryThumbnail<
     ...style,
   } as CSSProperties
 
-  let fallbackThumbnail: ReactNode = null
-  if (thumbnailSource) {
-    fallbackThumbnail = hasCustomThumbnailComponent ? (
-      <CustomThumbnailComponent
-        alt={thumbnailAlt}
-        className={imageClassName}
-        height={thumbnailSize}
-        src={thumbnailSource}
-        width={thumbnailSize}
-        {...item.thumbnailImageProps}
-      />
-    ) : (
-      <Image
-        alt={thumbnailAlt}
-        className={imageClassName}
-        height={thumbnailSize}
-        src={thumbnailSource}
-        width={thumbnailSize}
-        {...item.thumbnailImageProps}
-      />
-    )
-  }
+  const fallbackThumbnail = (
+    <Media
+      {...item.thumbnailImageProps}
+      alt=""
+      aria-hidden="true"
+      as={
+        resolvedImageAs && resolvedImageAs !== Image ? resolvedImageAs : "img"
+      }
+      className={imageClassName ?? item.thumbnailImageProps?.className}
+      height={thumbnailSize}
+      src={thumbnailSource}
+      width={thumbnailSize}
+    />
+  )
 
   return (
     <Button

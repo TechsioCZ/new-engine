@@ -5,13 +5,18 @@ description: >
   for labeled checkbox fields with Zag.js checked/indeterminate state, help
   text, validation status, required, disabled, and read-only props.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/form-checkbox.tsx libs/ui/src/tokens/components/atoms/_checkbox.css libs/ui/stories/molecules/form-checkbox.stories.tsx libs/ui/src/molecules/form-checkbox.figma.ts https://zagjs.com/components/react/checkbox"
+  sources: "https://zagjs.com/components/react/checkbox"
+  contributor_sources: "libs/ui/src/molecules/form-checkbox.tsx libs/ui/src/tokens/components/atoms/_checkbox.css libs/ui/stories/molecules/form-checkbox.stories.tsx libs/ui/src/molecules/form-checkbox.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit FormCheckbox Usage
 
@@ -120,6 +125,40 @@ value.
 ### Use validateStatus for errors
 
 `validateStatus="error"` maps to Zag invalid state and token styling.
+
+## Native input ref and cancellation-safe forms
+
+`ref?: Ref<HTMLInputElement>` targets the focusable native checkbox, not the
+visual square or label. Use `inputProps` for native focus/blur/key/change
+observers, external `form`, and input ARIA. `inputProps` does not accept the
+component-owned `type`, `checked`, `defaultChecked`, `disabled`, `readOnly`,
+`required`, `name`, `value` or `id`; pass those through the top-level API.
+Caller descriptions merge with help text. Consumer handlers run before machine
+handlers and can cancel a cancellable action with `preventDefault()`.
+
+```tsx
+import { useRef, useState } from "react"
+import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
+
+function Terms() {
+  const input = useRef<HTMLInputElement>(null)
+  const [accepted, setAccepted] = useState(false)
+  return <FormCheckbox ref={input} name="terms" label="Accept terms"
+    checked={accepted} onCheckedChange={setAccepted}
+    inputProps={{ form: "checkout", onFocus: () => { /* app observation */ } }} />
+}
+```
+
+Native reset follows the current input form owner, including external-form ID
+changes/reassociation. A canceled reset (native or React `onReset`) changes
+nothing; an accepted uncontrolled reset restores the initial default after
+cancellation/default-action handling settles. The parent still owns controlled
+`checked` and `indeterminate`; proposals rejected by the parent are restored,
+not persisted as DOM-only state. Reset must not simulate a click or steal focus. Do not treat a controlled reset
+proposal as an accepted parent-state change. App-owned controlled reset is an explicit state
+update, not an assumption that `form.reset()` will change React state.
+Nested disabled fieldsets and first-legend exceptions use native semantics;
+read-only stays focusable and submitted. Ref callbacks support React 19 cleanup.
 
 ## Common Mistakes
 

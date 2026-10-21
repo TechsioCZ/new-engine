@@ -26,7 +26,11 @@ const meta: Meta<typeof TabsTemplate> = {
     ),
   ],
   argTypes: {
-    tablistProps: { control: false, description: "Props on the tablist; prefer aria-labelledby pointing to a visible heading." },
+    tablistProps: {
+      control: false,
+      description:
+        "Props on the tablist; prefer aria-labelledby pointing to a visible heading.",
+    },
     items: {
       control: "object",
       description:
@@ -190,6 +194,7 @@ export const Playground: Story = {
 
 export const Variants: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:
@@ -216,6 +221,7 @@ export const Variants: Story = {
 
 export const Sizes: Story = {
   parameters: {
+    controls: { disable: true },
     docs: {
       description: {
         story:

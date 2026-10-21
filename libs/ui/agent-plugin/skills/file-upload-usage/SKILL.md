@@ -5,13 +5,18 @@ description: >
   select, validate, preview, and manage local File objects through the Zag.js
   compound API, including accepted/rejected files and native form behavior.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/file-upload.tsx libs/ui/src/tokens/components/molecules/_file-upload.css libs/ui/stories/molecules/file-upload.stories.tsx https://zagjs.com/components/react/file-upload"
+  sources: "https://zagjs.com/components/react/file-upload"
+  contributor_sources: "libs/ui/src/molecules/file-upload.tsx libs/ui/src/tokens/components/molecules/_file-upload.css libs/ui/stories/molecules/file-upload.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit FileUpload Usage
 

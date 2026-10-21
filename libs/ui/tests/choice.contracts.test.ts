@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import {
   type Dispatch,
   createElement as h,
@@ -5,14 +7,19 @@ import {
   type SetStateAction,
 } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
+import ts from "typescript"
 import { describe, expect, expectTypeOf, it } from "vitest"
 import { ColorSelect } from "../src/molecules/color-select"
 import { Combobox, type ComboboxProps } from "../src/molecules/combobox"
+import { Select } from "../src/molecules/select"
+import type { SliderProps, SliderThumbProps } from "../src/molecules/slider"
 import type { SearchSuggestionsProps } from "../src/templates/search-suggestions"
 import { SelectTemplate } from "../src/templates/select"
 
+const BUTTON_TAG = /<button\b[^>]*>/
 const INPUT_TAG = /<input\b[^>]*>/
 const DESCRIPTIONS = /aria-describedby="external native-hint [^"]+-help"/
+const TSX_DOCS = /```tsx\n([\s\S]*?)```/
 
 const items = [
   { label: "Alpha", value: "a" },
@@ -20,6 +27,104 @@ const items = [
 ]
 
 describe("choice public contracts", () => {
+  it("compiles the exact Select compound example copied from Docs", () => {
+    const root = fileURLToPath(new URL("../", import.meta.url))
+    const storyPath = `${root}stories/molecules/select.stories.tsx`
+    const story = ts.createSourceFile(
+      storyPath,
+      readFileSync(storyPath, "utf8"),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX
+    )
+    let snippet: string | undefined
+    const visit = (node: ts.Node) => {
+      if (ts.isStringLiteralLike(node)) {
+        const code = node.text.match(TSX_DOCS)?.[1]
+        if (code?.includes("@techsio/ui-kit/molecules/select")) {
+          snippet = code
+        }
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(story)
+    expect(snippet).toBeDefined()
+    const file = `${root}tests/__select-docs.tsx`
+    const config = ts.readConfigFile(`${root}tsconfig.json`, ts.sys.readFile)
+    const { options } = ts.parseJsonConfigFileContent(
+      config.config,
+      ts.sys,
+      root
+    )
+    const compilerOptions = {
+      ...options,
+      incremental: false,
+      paths: {
+        ...options.paths,
+        "@techsio/ui-kit/molecules/*": [`${root}src/molecules/*`],
+      },
+    }
+    const host = ts.createCompilerHost(compilerOptions)
+    const getSourceFile = host.getSourceFile.bind(host)
+    host.getSourceFile = (name, languageVersion, onError, createNew) =>
+      name === file
+        ? ts.createSourceFile(
+            name,
+            snippet ?? "",
+            languageVersion,
+            true,
+            ts.ScriptKind.TSX
+          )
+        : getSourceFile(name, languageVersion, onError, createNew)
+    const program = ts.createProgram([file], compilerOptions, host)
+    expect(
+      ts
+        .getPreEmitDiagnostics(program)
+        .map((diagnostic) =>
+          ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")
+        )
+    ).toEqual([])
+  }, 60_000)
+
+  it("exposes per-thumb refs and focus handlers on the slider", () => {
+    expectTypeOf<SliderThumbProps["ref"]>().toEqualTypeOf<
+      Ref<HTMLDivElement> | undefined
+    >()
+    expectTypeOf<NonNullable<SliderProps["getThumbProps"]>>()
+      .parameter(0)
+      .toEqualTypeOf<number>()
+  })
+
+  it.each([
+    { "aria-label": "External country" },
+    { "aria-labelledby": "external-label" },
+    { "aria-label": "Ignored fallback", "aria-labelledby": "external-label" },
+  ])(
+    "lets explicit Select trigger names replace machine names (%j)",
+    (name) => {
+      const html = renderToStaticMarkup(
+        h(
+          Select,
+          // biome-ignore lint/correctness/noChildrenProp: required root children prop is supplied by createElement arguments.
+          { items, children: null },
+          h(Select.Label, { key: "label" }, "Generated label"),
+          h(
+            Select.Trigger,
+            { key: "trigger", ...name },
+            h(Select.ValueText, {})
+          )
+        )
+      )
+      const trigger = html.match(BUTTON_TAG)?.[0] ?? ""
+      if (name["aria-labelledby"]) {
+        expect(trigger).toContain('aria-labelledby="external-label"')
+      } else {
+        expect(trigger).toContain('aria-label="External country"')
+        expect(trigger).not.toContain("aria-labelledby=")
+      }
+    }
+  )
+
   it("accepts direct array setters and exposes focusable input refs through templates", () => {
     expectTypeOf<Dispatch<SetStateAction<string[]>>>().toExtend<
       NonNullable<ComboboxProps["onChange"]>

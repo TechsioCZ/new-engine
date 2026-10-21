@@ -1,9 +1,21 @@
-import { createElement } from "react"
+import { createElement, createRef, type ReactNode, type RefObject } from "react"
+import { createPortal } from "react-dom"
 import { renderToStaticMarkup } from "react-dom/server"
-import { expect, test } from "vitest"
+import { expect, test, vi } from "vitest"
 import { Tooltip } from "../src/atoms/tooltip"
+import {
+  OverlayContainerProvider,
+  OverlayPortal,
+} from "../src/internal/overlay-portal"
 import { Popover } from "../src/molecules/popover"
 import { PopoverTemplate } from "../src/templates/popover"
+
+// Observe target selection without mutating a DOM owned by React. Browser stories
+// separately cover real mounting, focus scopes, nested modals and portal cleanup.
+vi.mock("react-dom", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-dom")>()),
+  createPortal: vi.fn((children: ReactNode) => children),
+}))
 
 function template(props: Partial<Parameters<typeof PopoverTemplate>[0]> = {}) {
   return renderToStaticMarkup(
@@ -75,4 +87,110 @@ test("icon-only popover close preserves the caller's name and size", () => {
   )
   expect(markup).toContain('aria-label="Dismiss delivery details"')
   expect(markup).toContain("size-icon-control-sm")
+})
+
+test("overlay portals render server-safe children without resolving a DOM root", () => {
+  const getRootNode = () => {
+    throw new Error("Server rendering must not resolve a DOM root")
+  }
+  const markup = renderToStaticMarkup(
+    createElement(OverlayContainerProvider, {
+      container: null,
+      // biome-ignore lint/correctness/noChildrenProp: createElement needs required children in the typed props argument.
+      children: createElement(OverlayPortal, {
+        getRootNode,
+        // biome-ignore lint/correctness/noChildrenProp: createElement needs required children in the typed props argument.
+        children: createElement("span", null, "Nested popup"),
+      }),
+    })
+  )
+  expect(markup).toBe("<span>Nested popup</span>")
+})
+
+test("disabled overlay portals preserve their children during server rendering", () => {
+  const markup = renderToStaticMarkup(
+    createElement(OverlayPortal, {
+      disabled: true,
+      // biome-ignore lint/correctness/noChildrenProp: createElement needs required children in the typed props argument.
+      children: createElement("button", { type: "button" }, "Inline popup"),
+    })
+  )
+  expect(markup).toContain("Inline popup")
+})
+
+function observePortalTarget(
+  props: Omit<Parameters<typeof OverlayPortal>[0], "children"> = {},
+  containers: (HTMLElement | null)[] = []
+) {
+  const document = { body: {} } as Document
+  vi.stubGlobal("document", document)
+  vi.mocked(createPortal).mockClear()
+  try {
+    let node: ReactNode = createElement(OverlayPortal, {
+      ...props,
+      // biome-ignore lint/correctness/noChildrenProp: createElement needs required children in the typed props argument.
+      children: "Popup",
+    })
+    for (const container of [...containers].reverse()) {
+      node = createElement(OverlayContainerProvider, {
+        container,
+        // biome-ignore lint/correctness/noChildrenProp: createElement needs required children in the typed props argument.
+        children: node,
+      })
+    }
+    const markup = renderToStaticMarkup(node)
+    return {
+      document,
+      markup,
+      target: vi.mocked(createPortal).mock.calls[0]?.[1],
+    }
+  } finally {
+    vi.unstubAllGlobals()
+  }
+}
+
+test("explicit portal containers take precedence over the nearest modal", () => {
+  const explicit = {} as HTMLElement
+  const modal = {} as HTMLElement
+  expect(
+    observePortalTarget({ container: { current: explicit } }, [modal]).target
+  ).toBe(explicit)
+})
+
+test("a pending nested modal inherits its parent until its own container exists", () => {
+  const parent = {} as HTMLElement
+  const child = {} as HTMLElement
+  expect(observePortalTarget({}, [parent, null]).target).toBe(parent)
+  expect(observePortalTarget({}, [parent, child]).target).toBe(child)
+})
+
+test("an unset explicit container falls back to the nearest modal", () => {
+  const modal = {} as HTMLElement
+  expect(
+    observePortalTarget(
+      { container: createRef<HTMLElement>() as RefObject<HTMLElement> },
+      [modal]
+    ).target
+  ).toBe(modal)
+})
+
+test("unscoped portals respect document and shadow root environments", () => {
+  const document = { nodeType: 9, body: {} } as Document
+  const shadowRoot = { nodeType: 11, ownerDocument: document } as ShadowRoot
+  expect(observePortalTarget({ getRootNode: () => document }).target).toBe(
+    document.body
+  )
+  expect(observePortalTarget({ getRootNode: () => shadowRoot }).target).toBe(
+    shadowRoot
+  )
+  const fallback = observePortalTarget()
+  expect(fallback.target).toBe(fallback.document.body)
+})
+
+test("disabled client portals stay inline and never resolve or create a portal", () => {
+  const getRootNode = vi.fn(() => ({}) as Document)
+  const result = observePortalTarget({ disabled: true, getRootNode })
+  expect(result.markup).toBe("Popup")
+  expect(createPortal).not.toHaveBeenCalled()
+  expect(getRootNode).not.toHaveBeenCalled()
 })

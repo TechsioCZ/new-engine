@@ -10,8 +10,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "tailwind-token-authoring"
-  sources: "libs/ui/skills/_artifacts/consumer_app_usage_rules.md libs/ui/src/tokens/_semantic.css libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/tokens/components/molecules/_dialog.css libs/ui/src/tokens/components/components.css https://github.com/TechsioCZ/new-engine/issues/72"
+  sources: "../../references/consumer_app_usage_rules.md https://github.com/TechsioCZ/new-engine/issues/72"
+  contributor_sources: "libs/ui/src/tokens/_semantic.css libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/tokens/components/molecules/_dialog.css libs/ui/src/tokens/components/components.css"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit App Token Overrides
 
@@ -110,7 +115,7 @@ Correct:
 Use a component override only when Button really should diverge from semantic
 primary/default mappings. Otherwise fix the semantic token.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### HIGH Font weight token bypassed
 
@@ -130,7 +135,7 @@ Correct:
 
 `--font-weight-*` tokens map to `font-*` classes in TSX.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### MEDIUM Container token misapplied
 
@@ -152,7 +157,7 @@ Correct:
 
 `--container-*` tokens are for width and max-width utilities, not spacing.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### MEDIUM Permanent API gap workaround
 
@@ -171,7 +176,7 @@ express the design, record a Button API/token gap for libs/ui.
 
 Do not normalize one-off class hacks into app code.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ## Validation Commands
 

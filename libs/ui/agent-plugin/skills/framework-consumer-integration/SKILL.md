@@ -10,8 +10,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux"
-  sources: "libs/ui/skills/_artifacts/consumer_app_usage_rules.md libs/ui/package.json libs/ui/src/atoms/link.tsx libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/image.tsx libs/ui/src/molecules/breadcrumb.tsx libs/ui/src/molecules/pagination.tsx"
+  sources: "../../references/consumer_app_usage_rules.md"
+  contributor_sources: "libs/ui/package.json libs/ui/src/atoms/link.tsx libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/image.tsx libs/ui/src/molecules/breadcrumb.tsx libs/ui/src/molecules/pagination.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 This skill builds on `component-usage-ux`. Read it first for component
 selection before applying framework adapters.
@@ -93,7 +98,7 @@ Correct:
 
 UI-kit Link/Image are framework-agnostic; Next apps should use adapters.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### HIGH Missing token imports
 

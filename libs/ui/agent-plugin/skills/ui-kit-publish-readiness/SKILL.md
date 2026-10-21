@@ -9,8 +9,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-consistency-validation"
-  sources: "libs/ui/package.json libs/ui/project.json libs/ui/rslib.config.ts libs/ui/release.config.mjs libs/ui/scripts/storybook-a11y.sh libs/ui/scripts/storybook-a11y-summary.mjs libs/ui/scripts/run-component-tests.mjs"
+  sources: ""
+  contributor_sources: "libs/ui/package.json libs/ui/project.json libs/ui/rslib.config.ts libs/ui/release.config.mjs libs/ui/scripts/storybook-a11y.sh libs/ui/scripts/storybook-a11y-summary.mjs libs/ui/scripts/run-component-tests.mjs"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Publish Readiness Checklist
 

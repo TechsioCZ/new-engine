@@ -149,6 +149,6 @@ covered by `tests/form-error-summary.ids.test.ts`, included in the regular
 ## Validation Commands
 
 ```sh
-rg -n "<ul[^>]*>[[:space:]]*\{.*errors|<FormErrorSummary(?![^>]*errors=)" apps
+rg -P -n "<ul[^>]*>[[:space:]]*\{.*errors|<FormErrorSummary\\b(?!\\.)(?![^>]*errors=)" apps
 rg -n "targetId=\"" apps
 ```

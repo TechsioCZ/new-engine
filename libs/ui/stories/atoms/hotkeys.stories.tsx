@@ -214,6 +214,87 @@ export const Playground: Story = {
   args: { hotkey: "mod+Shift+A" },
   parameters: {
     docs: {
+      source: {
+        type: "code",
+        language: "tsx",
+        code: `import { useEffect, useRef, useState } from "react"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Hotkeys, type HotkeysProps } from "@techsio/ui-kit/atoms/hotkeys"
+import { createHotkeyStore, useHotkey, useHotkeyRegistrations } from "@techsio/ui-kit/hotkeys"
+import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+
+export function HotkeysExample({
+  hotkey = "mod+Shift+A",
+  formatOptions,
+  size,
+}: HotkeysProps) {
+  const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
+  const [open, setOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
+  function openExample() {
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    store.init({ target: document })
+    return () => store.destroy()
+  }, [store])
+
+  useHotkey({
+    store,
+    hotkey,
+    action: openExample,
+    enabled: !open,
+    options: {
+      target: getTarget,
+      preventDefault: true,
+      requireReset: true,
+      stopPropagation: true,
+    },
+  })
+  const registrations = useHotkeyRegistrations({ store })
+
+  return (
+    <div className="flex flex-col items-start gap-200" ref={demo}>
+      <p>
+        Focus this example’s button, then press the shortcut or activate it.
+        Both open one dialog, while the keycap adapts to the selected platform.
+      </p>
+      <Button onClick={openExample} ref={trigger}>
+        Open example
+        <Hotkeys
+          aria-hidden="true"
+          formatOptions={formatOptions}
+          size={size}
+          hotkey={hotkey}
+        />
+      </Button>
+      <p className="text-fg-secondary">
+        Registered shortcuts:{" "}
+        <output data-testid="hotkeys-playground-registrations">
+          {registrations.length}
+        </output>
+      </p>
+      <Dialog
+        customTrigger
+        description="Both the button and keyboard shortcut open this dialog. Press Escape to close it and try again."
+        finalFocusEl={() => trigger.current}
+        onOpenChange={({ open }) => setOpen(open)}
+        open={open}
+        title="Hotkey activated"
+      >
+        <p>
+          Keyboard shortcut:{" "}
+          <Hotkeys formatOptions={formatOptions} hotkey={hotkey} size={size} />
+        </p>
+      </Dialog>
+    </div>
+  )
+}
+`,
+      },
       description: {
         story:
           "The shortcut and visible button open the same local dialog; controls change the displayed keycap and shortcut.",

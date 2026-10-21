@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.5.0
+ * @componentVersion v1.6.0
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,7 +19,6 @@ import {
 import {
   mergeProps,
   normalizeProps,
-  Portal,
   type PropTypes,
   useMachine,
 } from "@zag-js/react"
@@ -41,6 +40,9 @@ import { Input } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
 const comboboxVariants = tv({
@@ -236,6 +238,7 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
     required?: boolean
     value?: string | string[]
     defaultValue?: string | string[]
+    defaultInputValue?: string
     inputValue?: string
     multiple?: boolean
     validateStatus?: "default" | "error" | "success" | "warning"
@@ -541,7 +544,7 @@ export function Combobox<T = unknown>({
   label,
   size,
   placeholder = "Select option",
-  disabled = false,
+  disabled: explicitDisabled = false,
   readOnly = false,
   required = false,
   items,
@@ -549,6 +552,7 @@ export function Combobox<T = unknown>({
   value,
   defaultValue,
   inputValue,
+  defaultInputValue,
   multiple = false,
   validateStatus,
   helpText,
@@ -597,6 +601,51 @@ export function Combobox<T = unknown>({
   )
 
   const inputRef = useRef<HTMLInputElement>(null)
+  const [disabledElement, setDisabledElement] = useState<HTMLDivElement | null>(
+    null
+  )
+  const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
+  const initialValue = useRef(normalizeValue(defaultValue) ?? [])
+  const resetting = useRef(false)
+  const resetSelection = useRef<string[] | null>(null)
+  const coordinatedMachine = useMemo<typeof comboboxMachine>(() => {
+    const syncSelectedItems =
+      comboboxMachine.implementations?.actions?.syncSelectedItems
+    if (!syncSelectedItems) {
+      throw new Error("Combobox selection synchronization unavailable")
+    }
+    return {
+      ...comboboxMachine,
+      implementations: {
+        ...comboboxMachine.implementations,
+        actions: {
+          ...comboboxMachine.implementations?.actions,
+          syncSelectedItems(params) {
+            syncSelectedItems({
+              ...params,
+              prop(key) {
+                const propValue = params.prop(key)
+                // Zag resolves this inside a microtask. Preserve the restored
+                // query while still refreshing its selected-item cache. A new
+                // edit or authoritative selection releases the reset snapshot.
+                const restored = resetSelection.current
+                const selected = params.context.get("value")
+                if (
+                  key === "selectionBehavior" &&
+                  restored &&
+                  restored.length === selected.length &&
+                  restored.every((item, index) => item === selected[index])
+                ) {
+                  return "preserve" as typeof propValue
+                }
+                return propValue
+              },
+            })
+          },
+        },
+      },
+    }
+  }, [])
   const focusableRef = useMemo(
     () => (node: HTMLInputElement | null) => {
       inputRef.current = node
@@ -634,7 +683,7 @@ export function Combobox<T = unknown>({
       ),
   })
 
-  const service = useMachine(comboboxMachine, {
+  const service = useMachine(coordinatedMachine, {
     id: uniqueId,
     name: navigation ? undefined : name,
     collection,
@@ -666,19 +715,26 @@ export function Combobox<T = unknown>({
     defaultValue: navigation ? undefined : normalizeValue(defaultValue),
     multiple: !navigation && multiple,
     inputValue,
+    defaultInputValue,
     onValueChange: ({ value: selectedValue }) => {
-      if (!(navigation || readOnly || disabled)) {
+      if (!resetting.current) {
+        resetSelection.current = null
+      }
+      if (!(resetting.current || navigation || readOnly || disabled)) {
         onChange?.(selectedValue)
       }
     },
     onInputValueChange: ({ inputValue: newItemInputValue }) => {
+      if (!resetting.current) {
+        resetSelection.current = null
+      }
       if (filterBehavior === "local") {
         const filtered = allItems.filter((item) =>
           item.label.toLowerCase().includes(newItemInputValue.toLowerCase())
         )
         setOptions(filtered)
       }
-      if (!(readOnly || disabled)) {
+      if (!(resetting.current || readOnly || disabled)) {
         onInputValueChange?.(newItemInputValue)
       }
     },
@@ -693,6 +749,54 @@ export function Combobox<T = unknown>({
   })
 
   const api = connectCombobox(service, normalizeProps)
+  const initialQuery = useRef(service.context.initial("inputValue"))
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    // A controlled selection remains authoritative. Its current label, not
+    // the label at mount, is the reset projection for a replacement query.
+    const restoredValue = navigation
+      ? []
+      : (normalizeValue(value) ?? initialValue.current)
+    const restoredQuery =
+      inputValue ??
+      (value !== undefined && selectionBehavior === "replace" && !navigation
+        ? restoredValue
+            .map(
+              (itemValue) =>
+                allItems.find((item) => item.value === itemValue)?.label ??
+                api.selectedItems.find((item) => item.value === itemValue)
+                  ?.label ??
+                itemValue
+            )
+            .join(", ")
+        : initialQuery.current)
+    // Direct restoration bypasses edit guards without emitting user callbacks.
+    // Keep the snapshot through Zag's deferred selected-item synchronization.
+    resetSelection.current = restoredValue
+    resetting.current = true
+    try {
+      if (value === undefined) {
+        service.context.set("value", restoredValue)
+      }
+      if (inputValue === undefined) {
+        service.context.set("inputValue", restoredQuery)
+      }
+    } finally {
+      resetting.current = false
+    }
+    api.setOpen(false)
+    api.clearHighlightValue()
+    setOptions(allItems)
+    if (inputRef.current) {
+      inputRef.current.value = restoredQuery
+    }
+  }
+  useEffect(() => {
+    const input = inputRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
   useEffect(() => {
     inputRef.current?.setCustomValidity(
       !navigation && required && api.value.length === 0
@@ -769,6 +873,7 @@ export function Combobox<T = unknown>({
       className={root({ className })}
       data-mode={mode}
       data-status={state}
+      ref={setDisabledElement}
     >
       {label && (
         <Label

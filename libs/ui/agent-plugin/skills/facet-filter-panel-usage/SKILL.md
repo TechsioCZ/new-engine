@@ -7,8 +7,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux accordion-usage dialog-usage form-checkbox-usage slider-usage ux-guidelines"
-  sources: "libs/ui/src/templates/facet-filter-panel.tsx libs/ui/src/tokens/components/templates/_facet-filter-panel.css libs/ui/stories/templates/facet-filter-panel.stories.tsx"
+  sources: ""
+  contributor_sources: "libs/ui/src/templates/facet-filter-panel.tsx libs/ui/src/tokens/components/templates/_facet-filter-panel.css libs/ui/stories/templates/facet-filter-panel.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # FacetFilterPanel Usage
 

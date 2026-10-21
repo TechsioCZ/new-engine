@@ -3,15 +3,15 @@ import { runInNewContext } from "node:vm"
 import postcss from "postcss"
 import { describe, expect, it } from "vitest"
 import {
-  BrandThemeScript,
-  resolveAppearance,
-} from "../src/theme/theme-provider"
-import {
   isEffectivelyDisabled,
   subscribeEffectiveDisabled,
   subscribeOwnerFormReset,
-  tv,
-} from "../src/utils"
+} from "../src/internal/form-control-lifecycle"
+import {
+  BrandThemeScript,
+  resolveAppearance,
+} from "../src/theme/theme-provider"
+import { tv } from "../src/utils"
 
 function executeBrand(stored: string | null, unavailable = false) {
   const attrs = new Map([["data-theme", "neo"]])
@@ -114,7 +114,7 @@ describe("shared owner-form reset subscription", () => {
   const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0))
   it("runs after native reset and respects cancellation and cleanup", async () => {
     const form = new EventTarget()
-    const input = { form } as unknown as HTMLInputElement
+    const input = { form, isConnected: true } as unknown as HTMLInputElement
     let resets = 0
     const dispose = subscribeOwnerFormReset(input, () => {
       resets += 1
@@ -144,7 +144,7 @@ describe("shared owner-form reset subscription", () => {
     }
     let resets = 0
     const dispose = subscribeOwnerFormReset(
-      { form } as unknown as HTMLInputElement,
+      { form, isConnected: true } as unknown as HTMLInputElement,
       () => {
         resets += 1
       }
@@ -163,6 +163,163 @@ describe("shared owner-form reset subscription", () => {
     await nextTask()
     expect(resets).toBe(0)
     dispose()
+  })
+})
+
+describe("owner form reassociation", () => {
+  const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0))
+  function fixture() {
+    let notify: () => void = () => undefined
+    const disconnected = { count: 0 }
+    class Observer {
+      constructor(callback: () => void) {
+        notify = callback
+      }
+      observe() {
+        /* Test mutations are delivered explicitly. */
+      }
+      disconnect() {
+        disconnected.count += 1
+      }
+    }
+    const doc = Object.assign(new EventTarget(), {
+      defaultView: { MutationObserver: Observer },
+      documentElement: {},
+    }) as unknown as Document
+    const first = new EventTarget(),
+      second = new EventTarget()
+    const input = {
+      form: first,
+      isConnected: true,
+      ownerDocument: doc,
+    } as unknown as HTMLInputElement
+    return { doc, first, second, input, mutate: () => notify(), disconnected }
+  }
+  it("follows actual ownership after form/id changes, DOM moves and replacement", async () => {
+    const f = fixture()
+    const reset = () => {
+      f.doc.dispatchEvent(new Event("reset"))
+      f.input.form?.dispatchEvent(new Event("reset", { cancelable: true }))
+    }
+    let count = 0
+    const dispose = subscribeOwnerFormReset(f.input, () => {
+      count += 1
+    })
+    reset()
+    await nextTask()
+    expect(count).toBe(1)
+    Object.assign(f.input, { form: f.second })
+    // Capture-phase checkpoint must rebind even before observer delivery.
+    reset()
+    await nextTask()
+    expect(count).toBe(2)
+    f.first.dispatchEvent(new Event("reset"))
+    await nextTask()
+    expect(count).toBe(2)
+    Object.assign(f.input, { form: null })
+    f.mutate()
+    f.second.dispatchEvent(new Event("reset"))
+    await nextTask()
+    expect(count).toBe(2)
+    Object.assign(f.input, { form: f.first })
+    f.mutate()
+    f.mutate()
+    reset()
+    await nextTask()
+    expect(count).toBe(3)
+    dispose()
+    reset()
+    await nextTask()
+    expect(count).toBe(3)
+    expect(f.disconnected.count).toBe(1)
+  })
+  it("settles nested suppression on accepted/canceled resets and disposal", async () => {
+    const f = fixture()
+    let depth = 0,
+      resets = 0
+    const dispose = subscribeOwnerFormReset(
+      f.input,
+      () => {
+        resets += 1
+      },
+      {
+        onResetStart: () => {
+          depth = 1
+        },
+        onResetEnd: () => {
+          depth = 0
+        },
+      }
+    )
+    f.first.dispatchEvent(new Event("reset"))
+    expect(depth).toBe(1)
+    await nextTask()
+    expect([depth, resets]).toEqual([0, 1])
+    f.first.addEventListener("reset", (event) => event.preventDefault(), {
+      once: true,
+    })
+    f.first.dispatchEvent(new Event("reset", { cancelable: true }))
+    await nextTask()
+    expect([depth, resets]).toEqual([0, 1])
+    f.first.dispatchEvent(new Event("reset"))
+    dispose()
+    await nextTask()
+    expect([depth, resets]).toEqual([0, 1])
+  })
+  it.each(["reassociate", "disconnect"])(
+    "ignores an old owner's deferred reset after %s during dispatch",
+    async (mutation) => {
+      const f = fixture()
+      let count = 0
+      let settling = false
+      const dispose = subscribeOwnerFormReset(
+        f.input,
+        () => {
+          count += 1
+        },
+        {
+          onResetStart: () => {
+            settling = true
+          },
+          onResetEnd: () => {
+            settling = false
+          },
+        }
+      )
+      f.first.addEventListener(
+        "reset",
+        () => {
+          Object.assign(
+            f.input,
+            mutation === "reassociate"
+              ? { form: f.second }
+              : { isConnected: false }
+          )
+          f.mutate()
+        },
+        { once: true }
+      )
+      f.first.dispatchEvent(new Event("reset"))
+      expect(settling).toBe(true)
+      await nextTask()
+      expect(count).toBe(0)
+      expect(settling).toBe(false)
+      Object.assign(f.input, { isConnected: true, form: f.second })
+      f.mutate()
+      f.second.dispatchEvent(new Event("reset"))
+      await nextTask()
+      expect(count).toBe(1)
+      dispose()
+    }
+  )
+  it("shares ownership observation and releases the final subscriber", () => {
+    const f = fixture()
+    const first = subscribeOwnerFormReset(f.input, () => undefined)
+    const second = subscribeOwnerFormReset(f.input, () => undefined)
+    first()
+    expect(f.disconnected.count).toBe(0)
+    second()
+    expect(f.disconnected.count).toBe(1)
   })
 })
 

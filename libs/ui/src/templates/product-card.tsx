@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit template.
  *
  * @component ProductCard
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -136,7 +136,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
             rating={{
               value: rating.value,
               count: rating.count,
-              readOnly: true,
+              displayOnly: true,
             }}
           />
           {rating.reviewCount !== undefined && (

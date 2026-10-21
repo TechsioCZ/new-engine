@@ -1,7 +1,7 @@
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useEffect, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
@@ -78,7 +78,17 @@ function ProductDetailPage() {
     }
   }, [])
   const [size, setSize] = useState("42")
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState("1")
+  const quantityErrorId = useId()
+  const quantityNumber = Number(quantity)
+  const validQuantity =
+    quantity.trim() !== "" &&
+    Number.isFinite(quantityNumber) &&
+    Number.isInteger(quantityNumber) &&
+    quantityNumber >= 1 &&
+    quantityNumber <= 10
+  const quantityError =
+    "Enter a whole number from 1 to 10 before adding to cart."
   const [color, setColor] = useState(colorFacets[0]?.color)
   const [guideOpen, setGuideOpen] = useState(false)
   const [wishlisted, setWishlisted] = useState(false)
@@ -122,7 +132,7 @@ function ProductDetailPage() {
               <span className="text-fg-secondary text-sm">Northwind Sport</span>
               <h1 className="font-semibold text-2xl">Runner low</h1>
               <div className="flex flex-wrap items-center gap-150">
-                <Rating count={5} defaultValue={4.8} readOnly size="sm" />
+                <Rating count={5} value={4.8} displayOnly size="sm" />
                 <span className="text-fg-secondary text-sm">542 reviews</span>
                 <Badge size="sm" variant="success">
                   In stock
@@ -131,8 +141,12 @@ function ProductDetailPage() {
             </div>
 
             <div className="flex flex-wrap items-baseline gap-150">
-              <span className="font-semibold text-xl">139 €</span>
-              <span className="text-fg-secondary line-through">179 €</span>
+              <span className="font-semibold text-xl">
+                <span className="sr-only">Current price: </span>139 €
+              </span>
+              <del className="text-fg-secondary">
+                <span className="sr-only">Original price: </span>179 €
+              </del>
               <Badge size="sm" variant="danger">
                 −22%
               </Badge>
@@ -188,23 +202,40 @@ function ProductDetailPage() {
                 <NumericInput
                   max={10}
                   min={1}
-                  onChange={setQuantity}
+                  clampValueOnBlur={false}
+                  onValueChange={(details) => setQuantity(details.value)}
                   value={quantity}
                 >
                   <NumericInput.Control>
-                    <NumericInput.Input aria-label="Quantity" />
+                    <NumericInput.Input
+                      aria-label="Quantity"
+                      aria-invalid={!validQuantity || undefined}
+                      aria-describedby={
+                        !validQuantity ? quantityErrorId : undefined
+                      }
+                      aria-errormessage={
+                        !validQuantity ? quantityErrorId : undefined
+                      }
+                    />
                     <NumericInput.TriggerContainer>
                       <NumericInput.IncrementTrigger />
                       <NumericInput.DecrementTrigger />
                     </NumericInput.TriggerContainer>
                   </NumericInput.Control>
                 </NumericInput>
+                {!validQuantity && (
+                  <StatusText id={quantityErrorId} status="error" size="sm">
+                    {quantityError}
+                  </StatusText>
+                )}
               </div>
               <Button
                 className="w-full sm:w-auto sm:flex-1"
                 icon="icon-[mdi--cart-outline]"
+                disabled={!validQuantity}
                 onClick={() => {
-                  setCartCount((count) => count + quantity)
+                  if (!validQuantity) return
+                  setCartCount((count) => count + quantityNumber)
                   toaster.create({
                     type: "success",
                     title: "Added to cart",
@@ -327,7 +358,7 @@ function ProductDetailPage() {
             <div className="flex flex-wrap items-center gap-250">
               <div className="flex flex-col gap-50">
                 <span className="font-semibold text-xl">4.8</span>
-                <Rating count={5} defaultValue={4.8} readOnly size="sm" />
+                <Rating count={5} value={4.8} displayOnly size="sm" />
                 <span className="text-fg-secondary text-xs">542 reviews</span>
               </div>
             </div>
@@ -388,6 +419,18 @@ function ProductDetailPage() {
                   <ProductCardTemplate
                     image={{ src: product.image, alt: product.name }}
                     name={product.name}
+                    href={`/products/${product.id}`}
+                    linkProps={{
+                      onClick: (event) => {
+                        event.preventDefault()
+                        toaster.create({
+                          type: "info",
+                          title: product.name,
+                          description:
+                            "Product details opened locally in this demo.",
+                        })
+                      },
+                    }}
                     price={product.price}
                     rating={{ value: product.rating, count: 5 }}
                     showActions={false}
@@ -415,9 +458,30 @@ export const Default: Story = {
     const canvas = within(canvasElement)
     const quantity = canvas.getByRole("spinbutton", { name: "Quantity" })
     await expect(quantity).toBeVisible()
+    const purchase = canvas.getByRole("button", { name: "Add to cart" })
+    for (const draft of ["", "1.5", "0", "11"]) {
+      await userEvent.clear(quantity)
+      if (draft) await userEvent.type(quantity, draft)
+      await userEvent.tab()
+      await expect(quantity).toHaveValue(draft)
+      await expect(purchase).toBeDisabled()
+      await expect(quantity).toHaveAttribute("aria-invalid", "true")
+      purchase.click()
+      await expect(canvas.getByText("Demo cart: 0 items")).toBeVisible()
+    }
+    await userEvent.clear(quantity)
+    await userEvent.type(quantity, "2")
+    await expect(purchase).toBeEnabled()
+    await userEvent.click(purchase)
+    await expect(canvas.getByText("Demo cart: 2 items")).toBeVisible()
+    await expect(canvasElement.querySelector("del")).toHaveTextContent(
+      "Original price: 179 €"
+    )
     const colors = canvas.getAllByRole("radio")
     await userEvent.click(colors[1]!)
-    await expect(colors[1]!).toHaveAttribute("aria-checked", "true")
+    await waitFor(() =>
+      expect(colors[1]!).toHaveAttribute("aria-checked", "true")
+    )
     await userEvent.click(canvas.getByRole("button", { name: "Size guide" }))
     const dialog = within(canvasElement.ownerDocument.body).getByRole(
       "dialog",
@@ -444,6 +508,24 @@ export const Default: Story = {
     )!
     await expect(controls.getBoundingClientRect().top).toBeGreaterThanOrEqual(
       slides.getBoundingClientRect().bottom
+    )
+    await expect(
+      canvasElement.querySelectorAll(
+        '[data-scope="rating-group"] [tabindex="0"]'
+      )
+    ).toHaveLength(0)
+    const productLinks = related.querySelectorAll<HTMLAnchorElement>(
+      'h3 a[href^="/products/"]'
+    )
+    await expect(productLinks).toHaveLength(storefrontProducts.length)
+    productLinks[0]!.focus()
+    await userEvent.keyboard("{Enter}")
+    await waitFor(() =>
+      expect(
+        within(canvasElement.ownerDocument.body).getByText(
+          "Product details opened locally in this demo."
+        )
+      ).toBeVisible()
     )
     await expect(
       canvasElement.ownerDocument.documentElement.scrollWidth

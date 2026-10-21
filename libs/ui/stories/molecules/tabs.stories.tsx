@@ -5,6 +5,33 @@ import { VariantContainer } from "../../.storybook/decorator"
 import { Tabs } from "../../src/molecules/tabs"
 import { Badge } from "../../src/atoms/badge"
 
+const playgroundSource = `import { Tabs } from "@techsio/ui-kit/molecules/tabs"
+
+export function ProjectTabs() {
+  return (
+    <Tabs defaultValue="tab1" variant="line" size="md" className="w-md max-w-full">
+      <Tabs.List aria-label="Project views">
+        <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
+        <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
+        <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
+        <Tabs.Indicator />
+      </Tabs.List>
+      <Tabs.Content value="tab1">
+        <p className="text-fg-secondary">
+          Overview tab content. Try changing the controls to see different
+          variants and sizes.
+        </p>
+      </Tabs.Content>
+      <Tabs.Content value="tab2">
+        <p className="text-fg-secondary">Details tab content with more information.</p>
+      </Tabs.Content>
+      <Tabs.Content value="tab3">
+        <p className="text-fg-secondary">Settings tab for configuration options.</p>
+      </Tabs.Content>
+    </Tabs>
+  )
+}`
+
 const meta: Meta<typeof Tabs> = {
   title: "Molecules/Tabs",
   component: Tabs,
@@ -13,7 +40,51 @@ const meta: Meta<typeof Tabs> = {
     docs: {
       description: {
         component:
-          "Keyboard-accessible peer content panels with composable triggers, content and an optional active indicator. Use Tabs to switch views in one page context; choose Steps for ordered workflows, links for page navigation and headings instead of nesting tabs.",
+          `Keyboard-accessible peer content panels with composable triggers, content and an optional active indicator. Use Tabs to switch views in one page context; choose Steps for ordered workflows, links for page navigation and headings instead of nesting tabs.
+
+## Composition contract
+
+All members must be descendants of the same Tabs root; they throw outside its context. Use a unique string value for each Trigger/Content pair. Root defaultValue (uncontrolled) or value with onValueChange (controlled) selects that same string. Keep the members mounted to preserve the tab-to-panel relationship. The root ref targets its HTMLDivElement, not the active trigger.
+
+### Tabs.List
+
+| Member prop | Contract |
+| --- | --- |
+| children | Place Trigger members and the optional Indicator inside this list. |
+| aria-label / aria-labelledby | Required accessible name for the tablist; the root label does not name it. |
+| ref | HTMLDivElement with role=tablist. |
+
+### Tabs.Trigger
+
+| Member prop | Contract |
+| --- | --- |
+| value | Required unique string matching one Content value and the root selection. |
+| disabled | Defaults to false; disables activation and removes the trigger from arrow-key navigation. |
+| children | Visible accessible tab name; use aria-label for an icon-only trigger. |
+| ref | HTMLButtonElement with role=tab; not a wrapper. |
+
+Trigger requires Tabs context and belongs inside List. Root activationMode controls automatic selection on arrow keys or manual selection with Enter/Space. Do not override machine-owned role, tabIndex or selection relationships. Navigation owns its typography and pressed styling, not Button defaults.
+
+### Tabs.Content
+
+| Member prop | Contract |
+| --- | --- |
+| value | Required string matching its Trigger exactly. |
+| children | Panel content; inactive panels stay mounted but hidden and out of the tab order. |
+| ref | HTMLDivElement with role=tabpanel, labelled by its matching Trigger. |
+
+Content requires Tabs context and is a sibling of List, not nested inside a Trigger. The panel label is owned by its Trigger; add helper descriptions to controls within the panel rather than replacing that label.
+
+### Tabs.Indicator
+
+| Member prop | Contract |
+| --- | --- |
+| ref | HTMLDivElement for the decorative active-tab rail, not a trigger or panel. |
+| className / style | Optional DOM styling overrides; no value or children are required. |
+
+Indicator requires Tabs context and belongs inside List so measured positioning follows the selected Trigger. It is optional, is visible for the line variant, and does not own focus, selection or the accessible name.
+
+All four members accept common React DOM attributes for their ref element (Trigger also accepts Button props); see the [React DOM attribute reference](https://react.dev/reference/react-dom/components/common) for event and data attributes. See the Playground source for a complete public-import example.`,
       },
     },
   },
@@ -82,6 +153,7 @@ type Story = StoryObj<typeof Tabs>
 export const Playground: Story = {
   parameters: {
     docs: {
+      source: { code: playgroundSource, language: "tsx", type: "code" },
       description: {
         story:
           "Choose tab appearance, orientation and keyboard activation while switching peer project panels.",
@@ -101,7 +173,7 @@ export const Playground: Story = {
   },
   render: (args) => (
     <Tabs {...args} className="w-md max-w-full">
-      <Tabs.List>
+      <Tabs.List aria-label="Project views">
         <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
         <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
         <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>

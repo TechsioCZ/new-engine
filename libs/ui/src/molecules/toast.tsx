@@ -2,7 +2,7 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,8 +25,8 @@ import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
+import { useActiveModalContainer } from "../internal/overlay-portal"
 import { tv } from "../utils"
-import { useActiveModalContainer } from "./dialog"
 
 // Toast Item Variants
 const toastVariants = tv({

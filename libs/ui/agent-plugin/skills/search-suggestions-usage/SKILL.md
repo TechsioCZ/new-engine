@@ -7,8 +7,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux combobox-usage ux-guidelines"
-  sources: "libs/ui/src/templates/search-suggestions.tsx libs/ui/src/molecules/combobox.tsx libs/ui/stories/templates/search-suggestions.stories.tsx"
+  sources: ""
+  contributor_sources: "libs/ui/src/templates/search-suggestions.tsx libs/ui/src/molecules/combobox.tsx libs/ui/stories/templates/search-suggestions.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # SearchSuggestions Usage
 

@@ -6,13 +6,18 @@ description: >
   trigger, value text, clear trigger, item groups, item indicators, validation
   status, size, and multiple mode.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/select.tsx libs/ui/src/tokens/components/molecules/_select.css libs/ui/stories/molecules/select.stories.tsx libs/ui/src/molecules/select.figma.ts https://zagjs.com/components/react/select"
+  sources: "https://zagjs.com/components/react/select"
+  contributor_sources: "libs/ui/src/molecules/select.tsx libs/ui/src/tokens/components/molecules/_select.css libs/ui/stories/molecules/select.stories.tsx libs/ui/src/molecules/select.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Select Usage
 
@@ -157,9 +162,9 @@ Source: libs/ui/src/tokens/components/molecules/_select.css
 ## Validation Commands
 
 ```sh
-rg -n "<select\\b|<Select\\b(?!\\.)[^>]*value=\"|<Select\\.Trigger[^>]*className=.*(border-|bg-|p-|text-)" apps
+rg -P -n "<select\\b|<Select\\b(?!\\.)[^>]*value=\"|<Select\\.Trigger[^>]*className=.*(border-|bg-|p-|text-)" apps
 rg -U -P -n "<Select\\b(?!\\.)(?![\\s\\S]{0,700}<Select\\.Item)" apps
-rg -n "<Select\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
+rg -P -n "<Select\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
 
 ## Field contracts

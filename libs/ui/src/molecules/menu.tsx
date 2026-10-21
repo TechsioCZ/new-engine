@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,7 +26,7 @@ import {
 import { tv, type VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { Icon, type IconType } from "../atoms/icon"
-import { OverlayPortal as Portal } from "./dialog"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
 
 type ActionMenuItem = {
   type: "action"

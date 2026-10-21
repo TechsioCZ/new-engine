@@ -10,8 +10,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux textarea-usage app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/form-textarea.tsx libs/ui/src/atoms/textarea.tsx libs/ui/stories/molecules/form-textarea.stories.tsx libs/ui/src/molecules/form-textarea.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/molecules/form-textarea.tsx libs/ui/src/atoms/textarea.tsx libs/ui/stories/molecules/form-textarea.stories.tsx libs/ui/src/molecules/form-textarea.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit FormTextarea Usage
 

@@ -56,6 +56,28 @@ function StoryLink({ replace, ...props }: StoryLinkProps) {
   return <a data-replace={replace ? "true" : undefined} {...props} />
 }
 
+const playgroundSource = `import { useState } from "react"
+import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+
+export function ProductPages() {
+  const [page, setPage] = useState(5)
+  return (
+    <Pagination
+      aria-label="Product pages"
+      count={100}
+      pageSize={10}
+      page={page}
+      onPageChange={setPage}
+      getPageUrl={({ page, pageSize }) =>
+        \`#products?page=\${page}&pageSize=\${pageSize}\`
+      }
+      variant="filled"
+      size="md"
+      onClick={(event) => event.preventDefault()}
+    />
+  )
+}`
+
 const meta: Meta<typeof Pagination> = {
   title: "Molecules/Pagination",
   component: Pagination,
@@ -151,6 +173,7 @@ type Story = StoryObj<typeof Pagination>
 export const Playground: Story = {
   parameters: {
     docs: {
+      source: { code: playgroundSource, language: "tsx", type: "code" },
       description: {
         story:
           "Change paging controls and click page 6 to update the current page without navigating away.",

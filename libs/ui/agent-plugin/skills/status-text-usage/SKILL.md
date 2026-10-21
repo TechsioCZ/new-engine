@@ -10,8 +10,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/atoms/status-text.tsx libs/ui/src/tokens/components/atoms/_status-text.css libs/ui/stories/atoms/status-text.stories.tsx libs/ui/src/atoms/status-text.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/status-text.tsx libs/ui/src/tokens/components/atoms/_status-text.css libs/ui/stories/atoms/status-text.stories.tsx libs/ui/src/atoms/status-text.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit StatusText Usage
 
@@ -187,7 +192,7 @@ rg -n "<Badge[^>]*>[^<]{30,}</Badge>" apps
 
 ## Field association and wrapping contract
 
-Follow `libs/ui/docs/component-contracts.md`. Put a unique stable id on each
+Follow `../../references/component-contracts.md`. Put a unique stable id on each
 message and merge it into the focusable field's aria-describedby. For errors
 also set aria-invalid and aria-errormessage; remove error references on clear.
 Compound controls use useDescribedBy/useRegisterDescription/joinDescribedBy.

@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -43,7 +43,8 @@ const tabsVariants = tv({
     ],
     trigger: [
       "relative flex shrink-0 items-center justify-center",
-      "text-tabs-trigger-fg-base",
+      "font-tabs-trigger text-tabs-trigger-fg-base data-selected:font-tabs-trigger-selected",
+      "tabs-trigger-press",
       "rounded-tabs-trigger",
       "cursor-pointer",
       "not-data-disabled:hover:bg-tabs-trigger-bg-hover",
@@ -515,6 +516,7 @@ Tabs.Trigger = function TabsTrigger({
         contentValues.has(value) ? triggerProps["aria-controls"] : undefined
       }
       className={styles.trigger({ className })}
+      composition={true}
       data-disabled={disabled ? "" : undefined}
       ref={(node) => {
         triggerElement.current = node

@@ -2,7 +2,7 @@
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,12 +13,15 @@ import {
   type ComponentPropsWithoutRef,
   type KeyboardEvent,
   useId,
+  useMemo,
   useState,
 } from "react"
 import { Icon } from "../atoms/icon"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import { useChoiceFocusRecovery } from "../internal/choice-control"
 import { joinDescribedBy } from "../internal/described-by"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
 const colorSelectVariants = tv({
@@ -26,6 +29,8 @@ const colorSelectVariants = tv({
     root: "grid gap-color-select-md",
     group: [
       "form-control-readonly grid min-w-0 items-start justify-items-stretch",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-offset-(length:--default-ring-offset) focus-visible:outline-color-select-ring",
     ],
     cell: "grid w-full min-w-0 justify-items-center",
     atom: [
@@ -175,7 +180,7 @@ export const ColorSelect = ({
   layout = "grid",
   size = "md",
   radius = "full",
-  disabled,
+  disabled: explicitDisabled,
   onColorClick,
   selectionMode = "single",
   label = "Color",
@@ -186,6 +191,18 @@ export const ColorSelect = ({
   ...props
 }: ColorSelectProps) => {
   const id = useId()
+  const recoveryRef = useChoiceFocusRecovery(
+    'button[role="radio"], button[role="checkbox"]'
+  )
+  const [groupElement, setGroupElement] = useState<HTMLDivElement | null>(null)
+  const groupRef = useMemo(
+    () => (node: HTMLDivElement | null) => {
+      recoveryRef.current = node
+      setGroupElement(node)
+    },
+    [recoveryRef]
+  )
+  const disabled = useEffectiveDisabled(groupElement, explicitDisabled)
   const immutable = readOnly && !disabled
   const controlSize = size === "full" ? "md" : size
   const messageId = `${id}-status`
@@ -272,7 +289,9 @@ export const ColorSelect = ({
         className={group({ className: props.className })}
         data-disabled={disabled ? "" : undefined}
         data-readonly={readOnly ? "" : undefined}
+        ref={groupRef}
         role={selectionMode === "single" ? "radiogroup" : "group"}
+        tabIndex={-1}
       >
         {colors.map((colorItem) => (
           <div className={cell()} key={colorItem.id || colorItem.color}>

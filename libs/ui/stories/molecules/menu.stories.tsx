@@ -64,7 +64,13 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
+  render: (args) => (
+    <div className="flex min-w-0 max-w-full justify-center">
+      <Menu {...args} />
+    </div>
+  ),
   parameters: {
+    layout: "padded",
     docs: {
       description: {
         story:
@@ -72,7 +78,33 @@ export const Playground: Story = {
       },
     },
   },
+  play: async ({ canvasElement, args }) => {
+    const trigger = within(canvasElement).getByRole("button", {
+      name: String(args.triggerText),
+    })
+    const body = within(canvasElement.ownerDocument.body)
+    trigger.focus()
+    await userEvent.keyboard(
+      args.contextMenu ? "{Shift>}{F10}{/Shift}" : "{ArrowDown}"
+    )
+    const menu = await body.findByRole("menu")
+    await waitFor(() => expect(menu).toBeVisible())
+    await expect(
+      body.getByRole("menuitem", { name: "Archived projects" })
+    ).toHaveTextContent("Archived projects")
+    await userEvent.keyboard("{End}")
+    await waitFor(() =>
+      expect(
+        body.getByRole("menuitem", { name: "Share project" })
+      ).toHaveAttribute("data-highlighted", "")
+    )
+    const document = canvasElement.ownerDocument.documentElement
+    await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(trigger).toHaveFocus())
+  },
 }
+
 export const Sizes: Story = {
   parameters: {
     docs: {
@@ -343,8 +375,51 @@ export const NavigationAndDisabledOptions: Story = {
 }
 
 export const LongLabels: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "Long command labels wrap inside the phone viewport instead of widening the page or hiding their meaning." } } },
+  tags: ["ui-runtime-regression"],
+  render: Playground.render,
+  parameters: {
+    layout: "padded",
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Long command labels and their trigger stay inside the phone viewport at 200% text size while preserving keyboard navigation and dismissal.",
+      },
+    },
+  },
   args: { triggerText: "File commands", items: [{ type: "action", value: "download", label: "Download the complete catalog including archived products and regional delivery exceptions" }, { type: "action", value: "reference", label: "AKROS-2026-" + "AB1234567890".repeat(8) }] },
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument.documentElement
+    const previousFontSize = document.style.fontSize
+    const trigger = within(canvasElement).getByRole("button", {
+      name: "File commands",
+    })
+    const body = within(canvasElement.ownerDocument.body)
+    document.style.fontSize = "200%"
+    try {
+      await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
+      trigger.focus()
+      await userEvent.keyboard("{ArrowDown}")
+      const menu = await body.findByRole("menu")
+      await waitFor(() => expect(menu).toHaveFocus())
+      await expect(
+        body.getByRole("menuitem", {
+          name: "Download the complete catalog including archived products and regional delivery exceptions",
+        })
+      ).toBeVisible()
+      const reference = body.getByRole("menuitem", { name: /^AKROS-2026-/ })
+      await expect(reference).toBeVisible()
+      await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
+      await userEvent.keyboard("{End}")
+      await waitFor(() => expect(reference).toHaveAttribute("data-highlighted"))
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() => expect(menu).not.toBeInTheDocument())
+      await waitFor(() => expect(trigger).toHaveFocus())
+      await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
+    } finally {
+      document.style.fontSize = previousFontSize
+    }
+  },
 }
 
 export const SubmenuKeyboardPolicy: Story = {

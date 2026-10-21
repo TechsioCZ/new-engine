@@ -1616,3 +1616,64 @@ export const ReplacementRegressions: Story = {
     await expect(canvas.queryByText("declined.txt")).not.toBeInTheDocument()
   },
 }
+
+function BlockedResetFiles() {
+  const [ancestorDisabled, setAncestorDisabled] = useState(false)
+  const [disabled, setDisabled] = useState(false)
+  const [readOnly, setReadOnly] = useState(false)
+  const [changes, setChanges] = useState(0)
+  const [initialFiles] = useState(() => [
+    new File(["initial"], "initial.txt", { type: "text/plain" }),
+  ])
+  return (
+    <form aria-label="Blocked upload reset" className="flex w-full min-w-0 max-w-sm flex-col gap-200" onSubmit={(event) => event.preventDefault()}>
+      <fieldset disabled={ancestorDisabled} className="min-w-0">
+        <legend>Saved attachments</legend>
+        <FileUpload name="files" defaultAcceptedFiles={initialFiles} maxFiles={3} disabled={disabled} readOnly={readOnly} onFileChange={() => setChanges((current) => current + 1)}>
+          <FileUpload.Label>Reset attachments</FileUpload.Label>
+          <FileUpload.HiddenInput />
+          <FileUpload.Trigger>Choose attachments</FileUpload.Trigger>
+          <FileUpload.Context>{(api) => <output aria-label="Accepted attachments">{api.acceptedFiles.map((file) => file.name).join(", ")}</output>}</FileUpload.Context>
+        </FileUpload>
+      </fieldset>
+      <output aria-label="File changes">{changes}</output>
+      <Button theme="outlined" onClick={() => setAncestorDisabled((current) => !current)}>Toggle ancestor disabled</Button>
+      <Button theme="outlined" onClick={() => setDisabled((current) => !current)}>Toggle upload disabled</Button>
+      <Button theme="outlined" onClick={() => setReadOnly((current) => !current)}>Toggle upload read-only</Button>
+      <Button theme="outlined" type="reset">Restore attachments</Button>
+    </form>
+  )
+}
+
+export const BlockedFormReset: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: { description: { story: "Form reset restores initial files and their native FileList even while an ancestor, the upload itself, or read-only mode blocks user mutations." } },
+  },
+  render: () => <BlockedResetFiles />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const form = canvas.getByRole("form", { name: "Blocked upload reset" }) as HTMLFormElement
+    const picker = canvas.getByLabelText("Reset attachments") as HTMLInputElement
+    const accepted = canvas.getByRole("status", { name: "Accepted attachments" })
+    const changes = canvas.getByRole("status", { name: "File changes" })
+    const submitted = () => new FormData(form).getAll("files").map((file) => (file as File).name)
+    for (const toggle of ["Toggle ancestor disabled", "Toggle upload disabled", "Toggle upload read-only"]) {
+      await userEvent.upload(picker, new File(["changed"], "changed.txt", { type: "text/plain" }))
+      await waitFor(() => expect(accepted).toHaveTextContent("initial.txt, changed.txt"))
+      const previousChanges = changes.textContent
+      await userEvent.click(canvas.getByRole("button", { name: toggle }))
+      form.addEventListener("reset", (event) => event.preventDefault(), { once: true })
+      form.reset()
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      await expect(accepted).toHaveTextContent("initial.txt, changed.txt")
+      await userEvent.click(canvas.getByRole("button", { name: "Restore attachments" }))
+      await waitFor(() => expect(accepted).toHaveTextContent(/^initial\.txt$/))
+      await expect(changes.textContent).toBe(previousChanges)
+      await expect(submitted()).toEqual(toggle.endsWith("read-only") ? ["initial.txt"] : [])
+      await userEvent.click(canvas.getByRole("button", { name: toggle }))
+      await waitFor(() => expect(picker).toBeEnabled())
+      await expect(submitted()).toEqual(["initial.txt"])
+    }
+  },
+}

@@ -1,9 +1,11 @@
+import { CalendarDate } from "@internationalized/date"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useId, useRef, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Tooltip } from "../../src/atoms/tooltip"
+import { DatePicker } from "../../src/molecules/date-picker"
 import { Drawer } from "../../src/molecules/drawer"
 import { Menu } from "../../src/molecules/menu"
 import { ToastProvider, useToast } from "../../src/molecules/toast"
@@ -13,6 +15,7 @@ import { StatusText } from "../../src/atoms/status-text"
 import { Dialog, type DialogProps } from "../../src/molecules/dialog"
 import { FormInput } from "../../src/molecules/form-input"
 import { Popover } from "../../src/molecules/popover"
+import { Select } from "../../src/molecules/select"
 
 const meta = {
   title: "Molecules/Dialog",
@@ -622,4 +625,288 @@ export const LongContent: Story = {
     const [published, setPublished] = useState(false)
     return <div className="space-y-200"><Dialog title="Review catalog" triggerText="Review long catalog" open={open} onOpenChange={({open}) => setOpen(open)} actions={<Button onClick={() => {setPublished(true);setOpen(false)}}>Publish changes</Button>}><div className="space-y-200">{Array.from({ length: 24 }, (_, index) => <p key={index}>Review product {index + 1}: confirm its availability and delivery details before publishing.</p>)}</div></Dialog>{published && <StatusText status="success">Catalog published for this preview.</StatusText>}</div>
   },
+}
+
+
+type NestedFieldKind = "select" | "combobox" | "date-picker"
+
+const shippingMethods = [
+  { value: "standard", label: "Standard delivery" },
+  { value: "express", label: "Express delivery" },
+]
+
+function NestedField({
+  kind,
+  portalled,
+}: {
+  kind: NestedFieldKind
+  portalled: boolean
+}) {
+  const [selection, setSelection] = useState("No selection yet.")
+  return (
+    <div className="min-w-0 space-y-200">
+      {kind === "select" && (
+        <Select
+          items={shippingMethods}
+          positioning={{ strategy: portalled ? "absolute" : "fixed" }}
+          onValueChange={({ value }) =>
+            setSelection(`Selected shipping: ${value.join(", ")}`)
+          }
+        >
+          <Select.Label>Shipping method</Select.Label>
+          <Select.Control>
+            <Select.Trigger>
+              <Select.ValueText placeholder="Choose shipping" />
+            </Select.Trigger>
+          </Select.Control>
+          <Select.Positioner portalled={portalled}>
+            <Select.Content>
+              {shippingMethods.map((item) => (
+                <Select.Item item={item} key={item.value}>
+                  <Select.ItemText />
+                  <Select.ItemIndicator />
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select>
+      )}
+      {kind === "combobox" && (
+        <Combobox
+          label="Destination"
+          portalled={portalled}
+          items={[
+            { id: "cz", value: "cz", label: "Czech Republic" },
+            { id: "sk", value: "sk", label: "Slovakia" },
+          ]}
+          onChange={(value) =>
+            setSelection(`Selected destination: ${value.join(", ")}`)
+          }
+        />
+      )}
+      {kind === "date-picker" && (
+        <DatePicker.Root
+          defaultValue={new CalendarDate(2026, 10, 15)}
+          locale="en-US"
+          onValueChange={({ value }) =>
+            setSelection(
+              value
+                ? `Selected delivery date: ${new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" }).format(value.toDate("UTC"))}`
+                : "No selection yet."
+            )
+          }
+        >
+          <DatePicker.Label>Delivery date</DatePicker.Label>
+          <DatePicker.Control>
+            <DatePicker.Segments />
+            <DatePicker.IndicatorGroup>
+              <DatePicker.Trigger />
+            </DatePicker.IndicatorGroup>
+          </DatePicker.Control>
+          <DatePicker.Positioner>
+            <DatePicker.Content>
+              <DatePicker.Calendar />
+            </DatePicker.Content>
+          </DatePicker.Positioner>
+        </DatePicker.Root>
+      )}
+      <StatusText role="status">{selection}</StatusText>
+    </div>
+  )
+}
+
+function NestedFieldHosts({ kind }: { kind: NestedFieldKind }) {
+  const modes = kind === "date-picker" ? [true] : [true, false]
+  return (
+    <div className="flex max-w-full flex-wrap gap-200">
+      {modes.map((portalled) => {
+        const mode = portalled ? "portalled" : "inline"
+        return (
+          <div className="flex min-w-0 flex-wrap gap-200" key={mode}>
+            <Dialog
+              title={`${mode} ${kind} dialog`}
+              triggerText={`Open ${mode} dialog`}
+            >
+              <NestedField kind={kind} portalled={portalled} />
+            </Dialog>
+            <Drawer>
+              <Drawer.Trigger>Open {mode} drawer</Drawer.Trigger>
+              <Drawer.Portal>
+                <Drawer.Backdrop />
+                <Drawer.Positioner>
+                  <Drawer.Content>
+                    <Drawer.Header>
+                      <Drawer.Title>
+                        {mode} {kind} drawer
+                      </Drawer.Title>
+                    </Drawer.Header>
+                    <Drawer.Body>
+                      <NestedField kind={kind} portalled={portalled} />
+                    </Drawer.Body>
+                    <Drawer.Footer>
+                      <Drawer.CloseTrigger>Close host</Drawer.CloseTrigger>
+                    </Drawer.Footer>
+                  </Drawer.Content>
+                </Drawer.Positioner>
+              </Drawer.Portal>
+            </Drawer>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+async function exerciseNestedField(
+  canvasElement: HTMLElement,
+  kind: NestedFieldKind
+) {
+  const canvas = within(canvasElement)
+  const body = within(canvasElement.ownerDocument.body)
+  const modes = kind === "date-picker" ? ["portalled"] : ["portalled", "inline"]
+  for (const mode of modes) {
+    for (const host of ["dialog", "drawer"]) {
+      const hostTrigger = canvas.getByRole("button", {
+        name: `Open ${mode} ${host}`,
+      })
+      await userEvent.click(hostTrigger)
+      const modal = await body.findByRole("dialog", {
+        name: `${mode} ${kind} ${host}`,
+      })
+      const field =
+        kind === "date-picker"
+          ? within(modal).getByRole("button", { name: "Open calendar" })
+          : within(modal).getByRole("combobox", {
+              name: kind === "select" ? "Shipping method" : "Destination",
+            })
+      await waitFor(() =>
+        expect(modal.contains(canvasElement.ownerDocument.activeElement)).toBe(
+          true
+        )
+      )
+      field.focus()
+      await expect(field).toHaveFocus()
+      await userEvent.keyboard(
+        kind === "date-picker" ? "{Enter}" : "{ArrowDown}"
+      )
+      const popup =
+        kind === "date-picker"
+          ? await body.findByRole("grid", { name: "October 2026" })
+          : await body.findByRole("listbox")
+      await waitFor(() => expect(popup).toBeVisible())
+      // Default role queries deliberately exclude aria-hidden/inert modal siblings.
+      await expect(modal.contains(popup)).toBe(true)
+      if (kind === "date-picker") {
+        await expect(
+          body.getByRole("grid", { name: "October 2026" })
+        ).toBeVisible()
+        await waitFor(() =>
+          expect(
+            within(popup).getByRole("button", {
+              name: /Thursday, October 15, 2026/,
+            })
+          ).toHaveFocus()
+        )
+      } else {
+        await expect(
+          body.getByRole("option", {
+            name: kind === "select" ? "Standard delivery" : "Czech Republic",
+          })
+        ).toBeVisible()
+      }
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() =>
+        expect(
+          body.queryByRole(kind === "date-picker" ? "grid" : "listbox")
+        ).toBeNull()
+      )
+      await expect(modal).toBeVisible()
+      await waitFor(() => expect(field).toHaveFocus())
+      await userEvent.keyboard(
+        kind === "date-picker" ? "{Enter}" : "{ArrowDown}"
+      )
+      if (kind === "date-picker") {
+        const calendar = await body.findByRole("grid", { name: "October 2026" })
+        await waitFor(() =>
+          expect(
+            within(calendar).getByRole("button", {
+              name: /Thursday, October 15, 2026/,
+            })
+          ).toHaveFocus()
+        )
+        await userEvent.keyboard("{ArrowRight}")
+        await waitFor(() =>
+          expect(
+            within(calendar).getByRole("button", {
+              name: "Choose Friday, October 16, 2026",
+            })
+          ).toHaveFocus()
+        )
+        await userEvent.keyboard("{Enter}")
+        await waitFor(() =>
+          expect(within(modal).getByRole("status")).toHaveTextContent(
+            "Selected delivery date: October 16, 2026"
+          )
+        )
+      } else {
+        await body.findByRole("listbox")
+        await userEvent.keyboard("{Home}{ArrowDown}{Enter}")
+        await waitFor(() =>
+          expect(within(modal).getByRole("status")).toHaveTextContent(
+            kind === "select"
+              ? "Selected shipping: express"
+              : "Selected destination: sk"
+          )
+        )
+      }
+      await waitFor(() => expect(field).toHaveFocus())
+      await expect(modal).toBeVisible()
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() => expect(modal).not.toBeInTheDocument())
+      await waitFor(() => expect(hostTrigger).toHaveFocus())
+    }
+  }
+}
+
+export const SelectInsideDialog: Story = {
+  tags: ["ui-runtime-regression"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Portalled and inline Select lists inside Dialog and Drawer remain accessible, support keyboard selection, and dismiss before their host.",
+      },
+    },
+  },
+  render: () => <NestedFieldHosts kind="select" />,
+  play: ({ canvasElement }) => exerciseNestedField(canvasElement, "select"),
+}
+
+export const ComboboxInsideDialog: Story = {
+  tags: ["ui-runtime-regression"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Portalled and inline Combobox lists inside Dialog and Drawer retain accessible options, keyboard selection, and independent Escape dismissal.",
+      },
+    },
+  },
+  render: () => <NestedFieldHosts kind="combobox" />,
+  play: ({ canvasElement }) => exerciseNestedField(canvasElement, "combobox"),
+}
+
+export const DatePickerInsideDialog: Story = {
+  tags: ["ui-runtime-regression"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A DatePicker calendar inside Dialog and Drawer stays in the accessible modal scope and restores focus after Escape or keyboard date selection.",
+      },
+    },
+  },
+  render: () => <NestedFieldHosts kind="date-picker" />,
+  play: ({ canvasElement }) =>
+    exerciseNestedField(canvasElement, "date-picker"),
 }

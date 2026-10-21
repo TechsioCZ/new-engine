@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -18,6 +18,8 @@ import {
   useContext,
   useEffect,
   useId,
+  useMemo,
+  useRef,
   useState,
 } from "react"
 import { createPortal } from "react-dom"
@@ -34,6 +36,8 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
 const searchFormVariants = tv({
@@ -155,7 +159,7 @@ export function SearchForm({
   size = "md",
   gapped = false,
   readOnly = false,
-  disabled = false,
+  disabled: explicitDisabled = false,
   validateStatus = "default",
   children,
   defaultValue = "",
@@ -168,8 +172,33 @@ export function SearchForm({
 }: SearchFormProps) {
   const generatedId = useId()
   const inputId = `search-input-${generatedId}`
-  const [internalValue, setInternalValue] = useState(defaultValue)
+  const [formElement, setFormElement] = useState<HTMLFormElement | null>(null)
   const [clearSlot, setClearSlot] = useState<HTMLDivElement | null>(null)
+  const disabled = useEffectiveDisabled(
+    clearSlot ?? formElement,
+    explicitDisabled
+  )
+  const formRef = useMemo(
+    () => (node: HTMLFormElement | null) => {
+      setFormElement(node)
+      const cleanup = typeof ref === "function" ? ref(node) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = node
+      }
+      return () => {
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
+  const initialValue = useRef(defaultValue)
+  const [internalValue, setInternalValue] = useState(defaultValue)
   const [hasClearButton, setHasClearButton] = useState(false)
   const [inputReadOnly, setInputReadOnly] = useState(false)
   const [inputDisabled, setInputDisabled] = useState(false)
@@ -180,6 +209,23 @@ export function SearchForm({
   const blocked = readOnly || disabled || inputReadOnly || inputDisabled
   const isControlled = value !== undefined
   const inputValue = isControlled ? value : internalValue
+
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    if (!isControlled) {
+      setInternalValue(initialValue.current)
+    }
+    const input = clearSlot?.querySelector("input")
+    if (input) {
+      input.value = value ?? initialValue.current
+    }
+  }
+  useEffect(() => {
+    const input = clearSlot?.querySelector("input")
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [clearSlot])
 
   const setInputValue = (newValue: string) => {
     if (blocked) {
@@ -234,7 +280,7 @@ export function SearchForm({
         <form
           className={styles.root({ className })}
           onSubmit={handleSubmit}
-          ref={ref}
+          ref={formRef}
           {...props}
         >
           {children}

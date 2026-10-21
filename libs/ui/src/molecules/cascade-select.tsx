@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,7 +22,6 @@ import {
 import {
   mergeProps,
   normalizeProps,
-  Portal,
   type PropTypes,
   useMachine,
 } from "@zag-js/react"
@@ -50,6 +49,9 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
 export type CascadeSelectSize = "xs" | "sm" | "md" | "lg"
@@ -74,6 +76,20 @@ const controlGlyphClass: Record<"sm" | "md" | "lg", string> = {
   sm: "text-icon-control-sm",
   md: "text-icon-control-md",
   lg: "text-icon-control-lg",
+}
+
+// Wrapper-owned state and native projections share one cancellation-safe lifecycle.
+const nativeCascadeSelectMachine: typeof cascadeSelectMachine = {
+  ...cascadeSelectMachine,
+  implementations: {
+    ...cascadeSelectMachine.implementations,
+    effects: {
+      ...cascadeSelectMachine.implementations?.effects,
+      trackFormControlState() {
+        /* Shared lifecycle below owns disabled and reset behavior. */
+      },
+    },
+  },
 }
 
 export const cascadeSelectVariants = tv({
@@ -321,6 +337,11 @@ export function CascadeSelect({
   const descriptions = useDescribedBy()
   const errors = useDescribedBy()
   const hiddenInputRef = useRef<HTMLInputElement>(null)
+  const [disabledElement, setDisabledElement] =
+    useState<HTMLInputElement | null>(null)
+  const disabled = useEffectiveDisabled(disabledElement, machineProps.disabled)
+  const initialValue = useRef(machineProps.defaultValue ?? [])
+
   const [internalValue, setInternalValue] = useState(
     machineProps.defaultValue ?? []
   )
@@ -355,17 +376,13 @@ export function CascadeSelect({
       ? controlledHighlight
       : []
   const highlightReconciliation = useRef<string | null>(null)
-  const service = useMachine(cascadeSelectMachine, {
+  const service = useMachine(nativeCascadeSelectMachine, {
     ...machineProps,
     collection,
-    open:
-      machineProps.readOnly || machineProps.disabled
-        ? false
-        : machineProps.open,
+    disabled,
+    open: machineProps.readOnly || disabled ? false : machineProps.open,
     defaultOpen:
-      machineProps.readOnly || machineProps.disabled
-        ? false
-        : machineProps.defaultOpen,
+      machineProps.readOnly || disabled ? false : machineProps.defaultOpen,
     value: effectiveValue,
     highlightedValue: effectiveHighlight,
     onHighlightChange: (details) => {
@@ -375,7 +392,7 @@ export function CascadeSelect({
       machineProps.onHighlightChange?.(details)
     },
     onValueChange: (details) => {
-      if (machineProps.readOnly || machineProps.disabled) {
+      if (machineProps.readOnly || disabled) {
         return
       }
       if (machineProps.value === undefined) {
@@ -421,32 +438,24 @@ export function CascadeSelect({
     machineProps.onValueChange,
   ])
 
-  // Zag resets its bindable context directly, without onValueChange. Keep the
-  // wrapper-owned uncontrolled value in sync with the actual associated form.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Rebind when the native form association changes.
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    if (machineProps.value === undefined) {
+      setInternalValue(
+        initialValue.current.filter((path) => resolvePath(items, path).complete)
+      )
+    }
+    if (machineProps.highlightedValue === undefined) {
+      setInternalHighlight([])
+    }
+    api.setOpen(false)
+  }
   useEffect(() => {
-    const form = hiddenInputRef.current?.form
-    if (!form || machineProps.value !== undefined) {
-      return
-    }
-    let active = true
-    const onReset = (event: Event) => {
-      queueMicrotask(() => {
-        if (active && !event.defaultPrevented) {
-          setInternalValue(
-            (machineProps.defaultValue ?? []).filter(
-              (path) => resolvePath(items, path).complete
-            )
-          )
-        }
-      })
-    }
-    form.addEventListener("reset", onReset)
-    return () => {
-      active = false
-      form.removeEventListener("reset", onReset)
-    }
-  }, [items, machineProps.form, machineProps.value, machineProps.defaultValue])
+    const input = hiddenInputRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
 
   // Zag caches nodes and index paths but does not watch collection replacement.
   // Refresh metadata without emitting a value-change event for a rename/reorder.
@@ -499,7 +508,12 @@ export function CascadeSelect({
         className={styles.root({ className })}
         ref={ref}
       >
-        <input {...api.getHiddenInputProps()} ref={hiddenInputRef} />
+        <input ref={setDisabledElement} type="hidden" />
+        <input
+          {...api.getHiddenInputProps()}
+          disabled={disabled}
+          ref={hiddenInputRef}
+        />
         {children}
       </div>
     </CascadeSelectContext.Provider>

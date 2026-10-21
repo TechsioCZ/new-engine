@@ -6,7 +6,7 @@ description: >
   hidden inputs, controls, text, descriptions, validation status, variants, and
   sizes.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -130,6 +130,47 @@ Use `RadioGroup.ItemDescription`, not loose paragraphs.
 ### Use value strings
 
 Radio values are strings; map domain IDs to strings consistently.
+
+## Focus refs and cancellation-safe native forms
+
+The root `ref` is a container ref. Focus an option with
+`RadioGroup.ItemHiddenInput ref?: Ref<HTMLInputElement>` — despite the part's
+name, this is the native focusable radio, not a `type="hidden"` submission
+proxy. Its `onFocus`, `onBlur` and keyboard observers compose with machine
+handlers; consumer cancellation is respected. Keep `RadioGroup.ItemHiddenInput`
+inside every item and preserve the normal radio tab/arrow-key pattern.
+
+```tsx
+import { useRef, useState } from "react"
+import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
+
+function DeliveryChoice() {
+  const firstOption = useRef<HTMLInputElement>(null)
+  const [value, setValue] = useState<string | null>("standard")
+  return <RadioGroup name="delivery" value={value} onValueChange={setValue}>
+    <RadioGroup.Label>Delivery</RadioGroup.Label>
+    <RadioGroup.ItemGroup>
+      <RadioGroup.Item value="standard">
+        <RadioGroup.ItemHiddenInput ref={firstOption} />
+        <RadioGroup.ItemControl />
+        <RadioGroup.ItemText>Standard delivery</RadioGroup.ItemText>
+      </RadioGroup.Item>
+    </RadioGroup.ItemGroup>
+  </RadioGroup>
+}
+```
+
+Native owner reset follows the radio's actual form association, including
+external-owner ID changes/reassociation. Canceling native or React `onReset`
+preserves the current choice; accepted uncontrolled reset restores the initial
+default after cancellation has settled. Controlled `value` stays parent-owned,
+including when a proposal is rejected; app-owned reset explicitly updates that
+state. Reset does not synthesize input activation or move focus. Nested native
+disabled fieldsets and their first-legend exceptions apply; read-only remains
+focusable and submitted. Object refs and React 19 callback cleanup are supported.
+If an actively focused option is removed/disabled, recovery chooses a surviving
+enabled focus target without changing selection; updates never steal outside
+focus.
 
 ## Common Mistakes
 

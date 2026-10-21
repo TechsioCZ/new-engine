@@ -3,9 +3,9 @@ name: rating-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Rating for
   accessible rating capture or display using the Zag.js rating-group wrapper,
-  supported value/count/allowHalf/readOnly/disabled props, and token styling.
+  supported value/count/allowHalf/readOnly/displayOnly/disabled props, and token styling.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -23,8 +23,8 @@ sources:
 
 # @techsio/ui-kit Rating Usage
 
-Use Rating for product reviews, satisfaction scores, and read-only rating
-display. Do not build custom star maps.
+Use Rating for product reviews, satisfaction scores, read-only form values,
+and explicit aggregate display. Do not build custom star maps.
 
 ## UX/UI guidelines
 
@@ -43,7 +43,7 @@ where actions and feedback live). This section applies them to `Rating`.
 
 **Do**
 
-- Always show the numeric value and count next to read-only stars (`4.6 (128 reviews)`).
+- Always show the numeric value and review count next to aggregate stars (`4.6 (128 reviews)`).
 - Allow half values only in display, whole values in input unless the product needs halves.
 - Label interactive ratings (`Rate this product`).
 
@@ -72,7 +72,7 @@ onChange: (value: number) => void
 onHoverChange: (value: number) => void
 count: number, default 5
 allowHalf: boolean, default true
-readOnly, disabled, name, labelText, translations, dir
+readOnly, displayOnly, disabled, name, labelText, translations, dir
 size: sm | md | lg
 ```
 
@@ -109,10 +109,12 @@ empty stars, filled selected stars and a visible numeric value. `helpText` and
 `validateStatus="default" | "error" | "warning" | "success"` provide associated
 StatusText feedback; caller `aria-describedby` is merged onto the group and each
 focus target, with `aria-invalid` and `aria-errormessage` for errors.
-A `readOnly` rating uses one focusable `role="img"` named, for example,
-"Average delivery rating: 4.5 out of 5". It does not expose interactive radios,
-ignores pointer and keyboard mutation, and preserves named form submission.
-Disabled takes priority and removes all keyboard targets. Sizes are `sm`, `md`,
+A `readOnly` form rating retains radiogroup/radio semantics, an inspectable
+keyboard target and named form submission, while ignoring pointer/keyboard
+mutation. It is not aggregate display. `displayOnly` instead exposes a
+nonfocusable `role="img"` summary with no radios and no hidden form input.
+Disabled takes priority over the read-only interaction state and removes all
+keyboard targets. Sizes are `sm`, `md`,
 `lg`, default `md`; stars are glyphs, not single-line boxed controls, so shared
 form-control heights do not replace their square hit targets.
 
@@ -132,22 +134,33 @@ const [rating, setRating] = useState(0)
 
 Zag exposes hover/value changes; the wrapper converts them to numbers.
 
-### Use readOnly for display-only ratings
+### Separate read-only form values from aggregate display
 
 ```tsx
-<Rating value={4.5} readOnly labelText="Average product rating" />
+<Rating name="deliveryScore" value={4.5} readOnly labelText="Your delivery rating" />
+<Rating value={4.6} displayOnly labelText="Average product rating" />
 ```
 
-Use `disabled` when the control is unavailable, not for normal display.
+`readOnly` is an immutable **form control**, not an unavailable value: keep its
+normal focus target and submission. `displayOnly` is an **aggregate summary**:
+no tab stop, mutation callback or form submission, even if a name is passed.
+It implicitly prevents editing and retains fractional averages. Name the image
+meaningfully (for example "Average product rating: 4.6 out of 5") and show the
+locale-formatted numeric average and review count in adjacent app copy.
+Use `disabled` for a temporarily unavailable control, not for an average.
 
-A `readOnly` rating renders as one `role="img"` named "<labelText>: 4.5 out of 5":
-no radios; the image itself remains focusable so keyboard users can inspect the value.
-The hidden input stays, so a `name`d read-only rating still submits with its form.
+Native reset for a form rating follows the current form owner and waits for all
+native/React cancellation before restoring an uncontrolled initial score under
+the current constraints. Canceled reset preserves it and emits no reset change;
+controlled state always belongs to the parent. A controlled reset requires an
+explicit app-state update. Native nested-fieldset disabling and first-legend
+exceptions apply; reset does not click a star or steal focus. Aggregate display
+has no input and therefore no native form lifecycle.
 
 ### Use token-backed size and state styling
 
 ```tsx
-<Rating size="sm" value={3.5} readOnly />
+<Rating size="sm" value={3.5} displayOnly labelText="Average product rating" />
 ```
 
 The rating token file owns checked, highlighted, half, disabled, and readonly
