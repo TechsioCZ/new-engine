@@ -52,9 +52,11 @@ test("pending retains the last summary and blocks even an enabled action", async
   await expect(summary.getByText("1 587 Kč", { exact: true })).toBeVisible()
   await expect(summary.locator("[inert]")).toHaveCount(1)
   await expect(summary.locator("button")).toBeDisabled()
-  await summary
-    .locator("button")
-    .evaluate((button) => button.removeAttribute("disabled"))
+  // Remove both Button disabled signals to isolate the summary's inert guard.
+  await summary.locator("button").evaluate((button) => {
+    button.removeAttribute("disabled")
+    button.removeAttribute("aria-disabled")
+  })
   const action = summary.locator("button")
   await expect(action).toBeEnabled()
   await action.evaluate((button) => {

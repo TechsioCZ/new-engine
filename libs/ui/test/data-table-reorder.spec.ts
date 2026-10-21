@@ -111,13 +111,14 @@ test("mouse drag reorders rows through the drag handle", async ({ page }) => {
 
   await drag(
     page,
-    page.getByLabel("Drag to reorder row 0"),
-    page.getByLabel("Drag to reorder row 1")
+    // Handles and callbacks use the record's stable id, not its row index.
+    page.getByLabel("Drag to reorder row 1", { exact: true }),
+    page.getByLabel("Drag to reorder row 2", { exact: true })
   )
 
   await expect(firstCells.nth(0)).toHaveText("Alan")
   await expect(firstCells.nth(1)).toHaveText("Ada")
   await expect
     .poll(() => callbackCalls(page, "onRowReorder"))
-    .toEqual([expect.objectContaining({ from: 0, to: 1, rowId: "0" })])
+    .toEqual([expect.objectContaining({ from: 0, to: 1, rowId: "1" })])
 })

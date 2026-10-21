@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.6.1"
+  component_version: "1.6.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -291,3 +291,8 @@ active search draft is preserved during collection updates. Without an explicit
 `defaultInputValue`, reset resolves the default selection's latest labels rather
 than its mount-time labels. An explicitly controlled `inputValue` remains
 independently parent-owned.
+
+Uncontrolled native typing retains its text and caret while filtered results
+update, including deferred WebKit synchronization. Programmatic query changes
+and native reset release that edit ownership; an explicit `inputValue` remains
+parent-owned throughout.

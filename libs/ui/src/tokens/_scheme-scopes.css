@@ -563,7 +563,9 @@
     --font-weight-cascade-select-path: var(--font-weight-semibold);
     --color-cascade-select-trigger-bg-hover: var(--color-form-control-bg-hover);
     --color-cascade-select-trigger-fg-base: var(--color-fg-primary);
-    --color-cascade-select-trigger-fg-hover: var(--color-fg-accent-primary);
+    --color-cascade-select-trigger-fg-hover: var(
+      --color-select-trigger-fg-hover
+    );
     --color-cascade-select-trigger-border: var(--color-form-control-border);
     --color-cascade-select-trigger-border-hover: var(
       --color-form-control-border-hover

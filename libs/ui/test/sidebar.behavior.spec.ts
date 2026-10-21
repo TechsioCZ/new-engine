@@ -361,15 +361,25 @@ test.describe("Sidebar responsive behavior", () => {
         return {
           endLeft: endBox?.x,
           rootLeft: rootBox?.x,
-          rootRight: (rootBox?.x ?? 0) + (rootBox?.width ?? 0),
-          startRight: (startBox?.x ?? 0) + (startBox?.width ?? 0),
+          // The stable scrollbar gutter reduces the root's content area even
+          // when clientWidth includes the reserved, currently empty track.
+          rootRightOffset:
+            (rootBox?.x ?? 0) +
+            (rootBox?.width ?? 0) -
+            (await page.evaluate(
+              () => document.documentElement.getBoundingClientRect().right
+            )),
+          startRightOffset:
+            (startBox?.x ?? 0) +
+            (startBox?.width ?? 0) -
+            ((rootBox?.x ?? 0) + (rootBox?.width ?? 0)),
         }
       })
       .toMatchObject({
         endLeft: 0,
         rootLeft: 0,
-        rootRight: 1280,
-        startRight: 1280,
+        rootRightOffset: 0,
+        startRightOffset: 0,
       })
 
     await page.setViewportSize(mobileViewport)

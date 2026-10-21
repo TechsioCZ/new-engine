@@ -258,12 +258,17 @@ export const States: Story = {
   play: async ({ canvasElement }) => {
     const input = within(canvasElement).getAllByRole("radio")[0]
     if (!input) throw new Error("Missing radio regression target")
-    await expect(input).toHaveAttribute("aria-invalid", "true")
-    const id = input.getAttribute("aria-errormessage")
-    await expect(id).toBeTruthy()
-    await expect(input.getAttribute("aria-describedby")?.split(" ")).toContain(
-      id
-    )
+    // Compound messages register after mount; wait for their associations,
+    // not just the root's synchronous invalid state.
+    await waitFor(() => {
+      expect(input).toHaveAttribute("aria-invalid", "true")
+      const id = input.getAttribute("aria-errormessage")
+      expect(id).toBeTruthy()
+      expect(input.getAttribute("aria-describedby")?.split(" ")).toContain(id)
+      expect(canvasElement.ownerDocument.getElementById(id ?? "")).toHaveTextContent(
+        "Select a delivery method before continuing."
+      )
+    })
   },
 }
 export const Disabled: Story = {
@@ -364,17 +369,27 @@ export const MultipleDescriptions: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const input = canvas.getByRole("radio")
+    await waitFor(() => {
+      expect(input).toHaveAttribute("aria-invalid", "true")
+      expect(input).toHaveAttribute("aria-errormessage")
+      const descriptions = input.getAttribute("aria-describedby")?.split(" ") ?? []
+      expect(new Set(descriptions).size).toBe(3)
+      expect(input).toHaveAccessibleDescription(
+        "Delivery for order TS-2048. Your address determines available delivery methods. Select an available delivery method before continuing."
+      )
+    })
     const errorId = input.getAttribute("aria-errormessage")
-    await expect(errorId).toBeTruthy()
-    const descriptions =
-      input.getAttribute("aria-describedby")?.split(" ") ?? []
-    await expect(new Set(descriptions).size).toBe(3)
     await userEvent.click(
       canvas.getByRole("button", { name: "Clear validation" })
     )
-    await waitFor(() => expect(input).not.toHaveAttribute("aria-errormessage"))
-    await expect(input).not.toHaveAttribute("aria-invalid")
-    await expect(input.getAttribute("aria-describedby")).not.toContain(errorId)
+    await waitFor(() => {
+      expect(input).not.toHaveAttribute("aria-errormessage")
+      expect(input).not.toHaveAttribute("aria-invalid")
+      expect(input.getAttribute("aria-describedby")).not.toContain(errorId)
+      expect(input).toHaveAccessibleDescription(
+        "Delivery for order TS-2048. Your address determines available delivery methods."
+      )
+    })
   },
 }
 

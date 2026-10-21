@@ -5,7 +5,7 @@ description: >
   select, validate, preview, and manage local File objects through the Zag.js
   compound API, including accepted/rejected files and native form behavior.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -345,3 +345,6 @@ rg -n "<FileUpload[^>]*className=.*(bg-|text-|border-|p-|px-|py-|rounded-)" apps
 The unnamed picker is separate from the named native submission input, which projects committed acceptedFiles only. Raw, rejected and pending files never enter FormData or satisfy required. Async batches revalidate against current capacity and duplicates at commit; single-file replacement is latest-request-wins. Clear (button or api.clearFiles) and explicit api.setFiles replacement cancel outstanding batches; disabled/read-only transitions also invalidate them. Individual deletion does not cancel unrelated pending additions. Transform failures keep prior files and show retry guidance.
 
 A non-prevented native form reset cancels pending work and requests restoration of `defaultAcceptedFiles` (empty by default); a controlled parent still owns whether that request is accepted. Calling `preventDefault()` on the reset event leaves pending transformations, processing state and accepted files intact. Read-only/disabled collections remain intact, including their native submission projection.
+
+After deleting a focused file, focus moves to a surviving delete action or
+a visible upload control/dropzone, never the hidden native submission input.

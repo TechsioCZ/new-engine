@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -461,13 +461,17 @@ export function CascadeSelect({
   // Refresh metadata without emitting a value-change event for a rename/reorder.
   const valueKey = JSON.stringify(effectiveValue)
   const highlightKey = JSON.stringify(controlledHighlight)
+  // useMachine returns a new service object on every render. Its context and
+  // send function are stable; subscribing to the service itself repeatedly
+  // writes fresh arrays and can overwrite a keyboard transition mid-flight.
+  const { context: machineContext, send } = service
   useEffect(() => {
     const paths = JSON.parse(valueKey) as string[][]
-    service.context.set(
+    machineContext.set(
       "valueIndexPath",
       paths.map((path) => resolvePath(items, path).indices)
     )
-    service.context.set(
+    machineContext.set(
       "selectedItems",
       paths.map((path) => resolvePath(items, path).nodes)
     )
@@ -479,14 +483,14 @@ export function CascadeSelect({
     ) {
       if (highlightReconciliation.current !== highlightKey) {
         highlightReconciliation.current = highlightKey
-        service.send({ type: "HIGHLIGHTED_VALUE.CLEAR" })
+        send({ type: "HIGHLIGHTED_VALUE.CLEAR" })
       }
     } else {
       highlightReconciliation.current = null
-      service.context.set("highlightedIndexPath", resolved.indices)
-      service.context.set("highlightedItems", resolved.nodes)
+      machineContext.set("highlightedIndexPath", resolved.indices)
+      machineContext.set("highlightedItems", resolved.nodes)
     }
-  }, [items, service, valueKey, highlightKey])
+  }, [items, machineContext, send, valueKey, highlightKey])
   const styles = cascadeSelectVariants({ size })
 
   return (

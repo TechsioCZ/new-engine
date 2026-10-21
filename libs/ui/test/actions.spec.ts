@@ -69,13 +69,16 @@ for (const [brand, mode] of schemes) {
     page,
   }) => {
     await page.goto(
-      `/iframe.html?id=atoms-skeleton--interaction-isolation&viewMode=story${globals}`
+      `/iframe.html?id=atoms-skeleton--interaction-isolation&viewMode=story&embed=true${globals}`
     )
     const toggle = page.getByRole("button", { name: "Toggle loading" })
     await expect(toggle).toBeVisible()
-    if ((await page.locator("#storybook-root [inert]").count()) === 0) {
-      await toggle.click()
-    }
+    // Embed mode leaves loading state and keyboard input owned by this spec,
+    // rather than racing the story's independent interaction demonstration.
+    await expect(page.getByTestId("skeleton-group")).toHaveAttribute(
+      "aria-busy",
+      "true"
+    )
     await toggle.focus()
     await page.keyboard.press("Tab")
     await expect(
@@ -155,14 +158,12 @@ test("grouped skeletons have one pulse owner and independent local timing", asyn
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" })
   await page.goto(
-    "/iframe.html?id=atoms-skeleton--interaction-isolation&viewMode=story"
+    "/iframe.html?id=atoms-skeleton--interaction-isolation&viewMode=story&embed=true"
   )
   const toggle = page.getByRole("button", { name: "Toggle loading" })
   await expect(toggle).toBeVisible()
-  if ((await page.locator("#storybook-root [inert]").count()) === 0) {
-    await toggle.click()
-  }
   const group = page.getByTestId("skeleton-group")
+  await expect(group).toHaveAttribute("aria-busy", "true")
   await expect(group).toHaveCSS("animation-name", "none")
   const sampled = await page.evaluate(() =>
     ["group-rectangle", "standalone-rectangle"].map((id) => {

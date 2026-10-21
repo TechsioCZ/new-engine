@@ -13,6 +13,34 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Suite fixes and testing
+- Align DatePicker and other behavior specs with current control contracts; wait for real focus, validation, inert and popup states in stories, including Akros banner uploads and cart dialogs.
+- Keep brand-locked visual stories in their authored brand, pin external image assets, wait for loaded media or visible fallbacks, and tile oversized screenshots without launching extra browser sessions.
+
+### Button v0.6.1
+- Keep consumer refs attached across rerenders instead of repeatedly detaching and restoring them.
+
+### Carousel v1.3.4
+- Preserve indicator focus and queued navigation while snap offsets settle, with vertical keyboard and finite-boundary regression coverage.
+
+### CascadeSelect v1.1.3
+- Preserve keyboard highlights during hierarchy reconciliation and match Select trigger hover text instead of using accent text.
+
+### Combobox v1.6.2
+- Preserve typed query text and caret during deferred result updates in WebKit while keeping controlled queries and reset authoritative.
+
+### SearchSuggestions v1.0.2
+- Inherit stable query text and caret while filtered result groups update, including deferred WebKit synchronization.
+
+### FileUpload v1.1.3
+- Return focus to a visible upload control after deletion rather than the hidden submission input.
+
+### Slider v1.4.2
+- Let read-only thumbs receive pointer focus without changing values or starting a drag.
+
+### Tour v1.0.8
+- Keep dialog and floating panels within their viewport inset even when a scrollbar gutter is reserved.
+
 ### Coherence pass
 - Align focus return, visible values and native form submission across controls. Native reset never calls value-change callbacks or dispatches native input/change events: uncontrolled controls restore defaults, controlled controls retain parent values, and React tracking is resynchronized for the next identical user edit.
 - Extend reset, controlled-refusal, nested-popup and displayOnly regression coverage; preserve authored Controls rows and harden typechecking, visual-tooling tests and large component-test reports.

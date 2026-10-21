@@ -6,7 +6,7 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.4.1"
+  component_version: "1.4.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -227,3 +227,7 @@ value and FormData. Handle the form's `onReset` to intentionally change parent
 state. Canceled resets change nothing. React's value tracker is re-synced after
 restoration, so the next identical user edit notifies exactly once. Reset does
 not move focus.
+
+Read-only thumbs remain pointer-focusable as well as keyboard-focusable,
+without changing their values or starting a drag. Disabled thumbs do not gain
+this pointer-focus affordance.

@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.6.0
+ * @componentVersion v0.6.1
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -307,7 +307,8 @@ export function Button({
   ...props
 }: ButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
-  useImperativeHandle(ref, () => buttonRef.current as HTMLButtonElement)
+  // Without deps, every render would detach and reattach consumer refs.
+  useImperativeHandle(ref, () => buttonRef.current as HTMLButtonElement, [])
 
   // Click guards cover pointer, Enter/Space and implicit Enter submission.
   // Also guard requestSubmit() paths that do not dispatch a click.

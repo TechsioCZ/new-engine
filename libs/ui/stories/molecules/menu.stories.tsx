@@ -401,19 +401,30 @@ export const LongLabels: Story = {
       trigger.focus()
       await userEvent.keyboard("{ArrowDown}")
       const menu = await body.findByRole("menu")
-      await waitFor(() => expect(menu).toHaveFocus())
-      await expect(
-        body.getByRole("menuitem", {
-          name: "Download the complete catalog including archived products and regional delivery exceptions",
-        })
-      ).toBeVisible()
       const reference = body.getByRole("menuitem", { name: /^AKROS-2026-/ })
-      await expect(reference).toBeVisible()
+      // Focus can precede the starting-style frame even with reduced motion.
+      await waitFor(() => {
+        expect(menu).toHaveFocus()
+        expect(menu).toBeVisible()
+        expect(
+          body.getByRole("menuitem", {
+            name: "Download the complete catalog including archived products and regional delivery exceptions",
+          })
+        ).toBeVisible()
+        expect(reference).toBeVisible()
+      })
       await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
       await userEvent.keyboard("{End}")
       await waitFor(() => expect(reference).toHaveAttribute("data-highlighted"))
       await userEvent.keyboard("{Escape}")
-      await waitFor(() => expect(menu).not.toBeInTheDocument())
+      // Menu retains its closed content for CSS discrete transitions.
+      // Dismissal means hidden/inaccessible, not necessarily unmounted.
+      await waitFor(() => {
+        expect(menu).toHaveAttribute("data-state", "closed")
+        expect(menu).not.toBeVisible()
+        expect(body.queryByRole("menu")).toBeNull()
+        expect(trigger).toHaveAttribute("aria-expanded", "false")
+      })
       await waitFor(() => expect(trigger).toHaveFocus())
       await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
     } finally {

@@ -849,8 +849,27 @@ async function exerciseNestedField(
           )
         )
       } else {
-        await body.findByRole("listbox")
-        await userEvent.keyboard("{Home}{ArrowDown}{Enter}")
+        const listbox = await body.findByRole("listbox")
+        // Visibility precedes Zag's deferred focus/highlight work, especially
+        // inside a modal. Wait for each real navigation state before acting.
+        if (kind === "select") {
+          await waitFor(() => expect(listbox).toHaveFocus())
+        } else {
+          await waitFor(() => expect(field).toHaveFocus())
+        }
+        await userEvent.keyboard("{Home}")
+        await waitFor(() =>
+          expect(within(listbox).getByRole("option", {
+            name: kind === "select" ? "Standard delivery" : "Czech Republic",
+          })).toHaveAttribute("data-highlighted")
+        )
+        await userEvent.keyboard("{ArrowDown}")
+        await waitFor(() =>
+          expect(within(listbox).getByRole("option", {
+            name: kind === "select" ? "Express delivery" : "Slovakia",
+          })).toHaveAttribute("data-highlighted")
+        )
+        await userEvent.keyboard("{Enter}")
         await waitFor(() =>
           expect(within(modal).getByRole("status")).toHaveTextContent(
             kind === "select"

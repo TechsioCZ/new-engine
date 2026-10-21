@@ -73,6 +73,8 @@
 
 /* Wave 3: runtime corrections awaiting the matching Figma export. */
 @theme static {
+  /* CascadeSelect shares the Select trigger; Figma still exports accent hover text. */
+  --color-cascade-select-trigger-fg-hover: var(--color-select-trigger-fg-hover);
   --font-body: var(--font-sans);
   --text-theme-toggle-label-size: var(--text-sm);
   --gap-theme-toggle-group: var(--spacing-100);

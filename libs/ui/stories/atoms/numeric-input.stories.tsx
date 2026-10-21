@@ -1013,15 +1013,23 @@ export const FeedbackLifecycle: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const input = canvas.getByRole("spinbutton")
-    await expect(input).toHaveAttribute("aria-invalid", "true")
-    await expect(input).toHaveAttribute("aria-errormessage")
+    await waitFor(() => {
+      expect(input).toHaveAttribute("aria-invalid", "true")
+      expect(input).toHaveAttribute("aria-errormessage")
+      expect(input).toHaveAccessibleDescription(
+        "Only used for this order. Up to 100 per order. Enter a quantity available in stock."
+      )
+    })
     await userEvent.click(
       canvas.getByRole("button", { name: "Clear validation" })
     )
-    await expect(input).not.toHaveAttribute("aria-errormessage")
-    await expect(input).toHaveAccessibleDescription(
-      "Only used for this order. Up to 100 per order."
-    )
+    await waitFor(() => {
+      expect(input).not.toHaveAttribute("aria-invalid")
+      expect(input).not.toHaveAttribute("aria-errormessage")
+      expect(input).toHaveAccessibleDescription(
+        "Only used for this order. Up to 100 per order."
+      )
+    })
   },
 }
 

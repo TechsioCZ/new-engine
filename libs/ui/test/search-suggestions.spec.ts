@@ -1,7 +1,10 @@
 import { expect, type Page, test } from "@playwright/test"
 
+// Embed mode disables Storybook autoplay: this suite owns all user input.
+// Story play functions remain covered independently by visual.spec.ts.
+
 async function openStory(page: Page, story: string) {
-  await page.goto(`/iframe.html?id=${story}&viewMode=story`)
+  await page.goto(`/iframe.html?id=${story}&viewMode=story&embed=true`)
   await expect(page.getByRole("combobox").first()).toBeAttached()
 }
 
@@ -63,7 +66,6 @@ test("input and trigger control the scrollable listbox", async ({ page }) => {
 
 test("Playground waits for user input", async ({ page }) => {
   await openStory(page, "templates-searchsuggestions--playground")
-  await page.waitForTimeout(700)
   await expect(page.getByRole("combobox")).toHaveValue("")
   await expect(page.getByRole("listbox")).toBeHidden()
 })
@@ -205,7 +207,7 @@ test("dialog shows full first result and Escape closes one layer at a time", asy
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=templates-searchsuggestions--in-dialog&viewMode=story"
+    "/iframe.html?id=templates-searchsuggestions--in-dialog&viewMode=story&embed=true"
   )
   const trigger = page.getByRole("button", { name: "Open search" })
   await expect(trigger).toBeVisible()
@@ -350,10 +352,17 @@ test("keyboard focus has a visible control ring", async ({ page }) => {
   await openStory(page, "templates-searchsuggestions--playground")
   const input = page.getByRole("combobox")
   await page.evaluate(() => {
-    ;(document.activeElement as HTMLElement)?.blur()
+    const before = document.createElement("button")
+    before.id = "before-search-control"
+    before.textContent = "Before search control"
+    document.querySelector("#storybook-root")?.prepend(before)
+    before.focus()
   })
   await page.keyboard.press("Tab")
   await expect(input).toBeFocused()
+  await page
+    .locator("#before-search-control")
+    .evaluate((element) => element.remove())
   const control = page.locator('[data-scope="combobox"][data-part="control"]')
   await expect(control).toHaveAttribute("data-focus-visible", "")
   await expect(control).not.toHaveCSS("outline-style", "none")

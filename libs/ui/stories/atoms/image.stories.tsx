@@ -446,8 +446,11 @@ export const PrimitiveRefs: Story = {
   },
   render: () => <PrimitiveRefsExample />,
   play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).getByTestId("primitive-ref-targets")
-    ).toHaveTextContent("A,BUTTON,SPAN,IMG,IMG")
+    // Ref targets are published by an effect after the first render.
+    await waitFor(() =>
+      expect(
+        within(canvasElement).getByTestId("primitive-ref-targets")
+      ).toHaveTextContent("A,BUTTON,SPAN,IMG,IMG")
+    )
   },
 }

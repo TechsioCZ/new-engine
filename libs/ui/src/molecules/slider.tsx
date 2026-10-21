@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.4.1
+ * @componentVersion v1.4.2
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -595,6 +595,12 @@ export function Slider({
       }}
       onPointerDownCapture={(event) => {
         if (interactionBlocked()) {
+          // Cancel native/Zag dragging without canceling the read-only
+          // thumb's focus affordance along with the pointer default.
+          if (readOnly && !disabled) {
+            const target = event.target as HTMLElement
+            target.closest<HTMLElement>('[data-part="thumb"]')?.focus()
+          }
           event.preventDefault()
           event.stopPropagation()
         }

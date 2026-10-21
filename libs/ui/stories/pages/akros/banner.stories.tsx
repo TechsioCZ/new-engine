@@ -492,6 +492,8 @@ export const Default: Story = {
       )
     )
     upload.files = transfer.files
+    // Browsers fire input before change after a file selection.
+    upload.dispatchEvent(new Event("input", { bubbles: true }))
     upload.dispatchEvent(new Event("change", { bubbles: true }))
     await waitFor(() =>
       expect(
@@ -506,6 +508,7 @@ export const Default: Story = {
       new File([image], "replacement.svg", { type: "image/svg+xml" })
     )
     upload.files = replacement.files
+    upload.dispatchEvent(new Event("input", { bubbles: true }))
     upload.dispatchEvent(new Event("change", { bubbles: true }))
     await waitFor(() =>
       expect(

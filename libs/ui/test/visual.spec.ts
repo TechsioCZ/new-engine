@@ -4,11 +4,14 @@ import path from "node:path"
 import { expect, type Page, type TestInfo, test } from "@playwright/test"
 import { PNG } from "pngjs"
 import { installVisualAssets } from "./visual-assets.mjs"
+import { visualCaptureTiles } from "./visual-capture.mjs"
+import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
   assertFloatingContainment,
   checkStoryPopupCheckpoints,
   visibleFloatingSurfaces,
 } from "./visual-popup-capture.mjs"
+import { resolveVisualTheme } from "./visual-projects.mjs"
 import { freezeVisualSvgImages } from "./visual-svg.mjs"
 
 type StorybookEntry = { id: string; name: string; title: string; type: string }
@@ -23,6 +26,7 @@ type StoryCompletion = {
   declaredGlobals?: Record<string, unknown>
   userGlobals?: Record<string, unknown>
   effectiveGlobals?: Record<string, unknown>
+  brandLock?: unknown
 }
 type StorybookWindow = Window & {
   __VISUAL_RANDOM_RESET__?: () => void
@@ -35,6 +39,7 @@ type StorybookWindow = Window & {
     ready: () => Promise<void>
     loadStory: (input: { storyId: string }) => Promise<{
       storyGlobals: Record<string, unknown>
+      parameters: { brandLock?: unknown }
     }>
     getStoryContext: (story: { storyGlobals: Record<string, unknown> }) => {
       globals: Record<string, unknown>
@@ -215,7 +220,8 @@ async function assertPostCaptureBehavior(page: Page, storyId: string) {
     return
   }
   if (storyId === "molecules-pagination--edge-cases") {
-    const disabledLinks = canvas.locator('a[aria-disabled="true"]')
+    // Unavailable destinations are link placeholders, not anchors with hrefs.
+    const disabledLinks = canvas.getByRole("link", { disabled: true })
     const count = await disabledLinks.count()
     expect(count).toBeGreaterThan(0)
     const pageUrl = page.url()
@@ -224,6 +230,9 @@ async function assertPostCaptureBehavior(page: Page, storyId: string) {
     for (let index = 0; index < count; index += 1) {
       const link = disabledLinks.nth(index)
       await expect(link).toBeVisible()
+      await expect(link).toHaveAttribute("aria-disabled", "true")
+      await expect(link).not.toHaveAttribute("href")
+      await expect(link).toHaveAttribute("tabindex", "-1")
       await link.scrollIntoViewIfNeeded()
       const box = await link.boundingBox()
       if (!box || box.width <= 0 || box.height <= 0) {
@@ -247,7 +256,7 @@ async function assertPostCaptureBehavior(page: Page, storyId: string) {
       await expect(page).toHaveURL(pageUrl)
       expect(await selected.allTextContents()).toEqual(selectedPages)
       await page.mouse.move(0, 0)
-      await link.evaluate((element: HTMLAnchorElement) => element.blur())
+      await link.evaluate((element: HTMLElement) => element.blur())
       await expect(link).not.toBeFocused()
     }
     return
@@ -262,7 +271,9 @@ async function assertPostCaptureBehavior(page: Page, storyId: string) {
   if (horizontal) {
     await canvas.getByRole("button", { name: "Continue", exact: true }).click()
     await expect(progress).toHaveAttribute("aria-valuenow", "100")
-    await expect(progress).toHaveAttribute("aria-valuetext", "100% complete")
+    // Zag supplies percentage text; completion is exposed as data-complete.
+    await expect(progress).toHaveAttribute("aria-valuetext", "100%")
+    await expect(progress).toHaveAttribute("data-complete", "")
     await expect(
       canvas.getByText(stepsCompletedText, { exact: true })
     ).toBeVisible()
@@ -274,7 +285,7 @@ async function assertPostCaptureBehavior(page: Page, storyId: string) {
   }
   await expect.poll(percent).toBeCloseTo(66.67, 1)
   await expect(
-    canvas.getByRole("tabpanel", { name: stepsReviewPanel })
+    canvas.getByRole("region", { name: stepsReviewPanel })
   ).toBeVisible()
   await expect(
     canvas.getByText(stepsCompletedText, { exact: true })
@@ -476,13 +487,14 @@ async function renderStory(
         declaredGlobals,
         userGlobals,
         effectiveGlobals,
+        brandLock: preparedStory.parameters.brandLock,
       }
     },
     { storyId: id, colorMode: mode, colorBrand: brand }
   )
 }
 
-async function waitForAssets(page: Page) {
+async function waitForAssets(page: Page, storyId: string) {
   await page.evaluate(() => {
     for (const image of document.images) {
       image.loading = "eager"
@@ -502,6 +514,7 @@ async function waitForAssets(page: Page) {
     undefined,
     { timeout: 30_000 }
   )
+  await page.evaluate(assertDecodedVisualImages, storyId)
   await page.evaluate(async () => {
     await document.fonts.ready
     const failedFonts = Array.from(document.fonts).filter(
@@ -511,23 +524,6 @@ async function waitForAssets(page: Page) {
       throw new Error(
         `Fonts failed to load: ${failedFonts.map((font) => font.family).join(", ")}`
       )
-    }
-    const images = Array.from(document.images).filter((image) => {
-      const style = getComputedStyle(image)
-      return (
-        image.currentSrc &&
-        image.getClientRects().length &&
-        style.display !== "none" &&
-        style.visibility !== "hidden"
-      )
-    })
-    for (const image of images) {
-      if (
-        !(image.complete && image.naturalWidth > 0 && image.naturalHeight > 0)
-      ) {
-        throw new Error(`Visible image failed to load: ${image.currentSrc}`)
-      }
-      await image.decode()
     }
     const backgroundUrls = new Set<string>()
     const imageUrlPattern = /url\((?:"([^"]*)"|'([^']*)'|([^)]*))\)/g
@@ -675,24 +671,16 @@ test.describe
             testInfo.project.use.colorScheme === "dark" ? "dark" : "light"
           const brand = testInfo.project.metadata.brand as VisualBrand
           const completion = await renderStory(page, story.id, mode, brand)
-          const expectedBrand = completion.effectiveGlobals?.brand
-          const expectedMode = completion.effectiveGlobals?.mode
-          if (
-            !(
-              (expectedBrand === "base" ||
-                expectedBrand === "neo" ||
-                expectedBrand === "business" ||
-                expectedBrand === "akros") &&
-              (expectedMode === "light" || expectedMode === "dark")
+          const { brand: expectedBrand, mode: expectedMode } =
+            resolveVisualTheme(
+              completion.effectiveGlobals ?? {},
+              completion.brandLock
             )
-          ) {
-            throw new Error(`Unsupported declared story theme for ${story.id}`)
-          }
-          if (
-            (expectedBrand === "business" || expectedBrand === "akros") &&
-            expectedMode === "dark"
-          ) {
-            throw new Error(`Unsupported ${expectedBrand} dark story theme`)
+          if (completion.brandLock !== undefined) {
+            testInfo.annotations.push({
+              type: "visual-brand-lock",
+              description: `${expectedBrand}/${expectedMode}; captured in ${testInfo.project.name}`,
+            })
           }
           await expect(page.locator("#storybook-root")).toBeAttached()
           await page.addStyleTag({
@@ -778,7 +766,7 @@ test.describe
                 }
               }
             })
-            await waitForAssets(page)
+            await waitForAssets(page, story.id)
             await disposeAssets.whenIdle()
             await assertThemeTokens(page, expectedBrand, expectedMode)
             await page.evaluate(
@@ -798,16 +786,52 @@ test.describe
               caret: "hide" as const,
               scale: "css" as const,
             }
-            const actual = fullPage
-              ? await page.screenshot({ ...options, fullPage: true })
-              : await root.screenshot(options)
-            if (fullPage) {
-              const surfaces = await visibleFloatingSurfaces(page)
-              assertFloatingContainment(surfaces, PNG.sync.read(actual))
+            const tiles = fullPage
+              ? []
+              : visualCaptureTiles(
+                  await root.evaluate((element) => {
+                    const box = element.getBoundingClientRect()
+                    return {
+                      x: box.x + window.scrollX,
+                      y: box.y + window.scrollY,
+                      width: box.width,
+                      height: box.height,
+                    }
+                  })
+                )
+            if (tiles.length) {
+              testInfo.annotations.push({
+                type: "visual-capture-tiles",
+                description: JSON.stringify({ name, tiles }),
+              })
             }
-            const snapshot = await compareSnapshotBuffer(actual, name, testInfo)
-            await disposeAssets.whenIdle()
-            expect(snapshot.passed, snapshot.message).toBe(true)
+            // No truncation or coverage exemption: compare every tile, retaining
+            // the primary name for the first and unique suffixes for the rest.
+            for (const tile of tiles.length ? tiles : [null]) {
+              let actual: Buffer
+              if (tile) {
+                actual = await page.screenshot({
+                  ...options,
+                  fullPage: true,
+                  clip: tile.clip,
+                })
+              } else {
+                actual = fullPage
+                  ? await page.screenshot({ ...options, fullPage: true })
+                  : await root.screenshot(options)
+              }
+              if (fullPage) {
+                const surfaces = await visibleFloatingSurfaces(page)
+                assertFloatingContainment(surfaces, PNG.sync.read(actual))
+              }
+              const snapshot = await compareSnapshotBuffer(
+                actual,
+                `${name}${tile?.suffix ?? ""}`,
+                testInfo
+              )
+              await disposeAssets.whenIdle()
+              expect(snapshot.passed, snapshot.message).toBe(true)
+            }
           }
           await capture()
           const hasVisiblePortal = (await visibleFloatingSurfaces(page)).some(

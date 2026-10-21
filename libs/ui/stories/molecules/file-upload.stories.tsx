@@ -515,7 +515,8 @@ export const States: Story = {
       hidden: true,
     })
     const hiddenInputs = canvas.getAllByLabelText("Attachments")
-    await expect(disabledTriggers).toHaveLength(2)
+    // Read-only upload/remove actions are absent, not disabled copies.
+    await expect(disabledTriggers).toHaveLength(1)
     await expect(hiddenInputs).toHaveLength(2)
     await Promise.all(
       disabledTriggers.map((trigger) => expect(trigger).toBeDisabled())
@@ -523,7 +524,12 @@ export const States: Story = {
     await Promise.all(hiddenInputs.map((input) => expect(input).toBeDisabled()))
     await expect(canvas.getByText("invoice.pdf")).toBeInTheDocument()
     await expect(canvas.getByText("Select a supported document.")).toBeVisible()
-    await expect(canvas.getByLabelText(/Required attachments/)).toBeRequired()
+    const picker = canvas.getByLabelText<HTMLInputElement>(/Required attachments/)
+    await expect(picker).not.toBeRequired()
+    const submission = picker
+      .closest('[data-part="root"]')
+      ?.querySelector('input[type="file"][required]')
+    await expect(submission).toBeRequired()
     await expect(canvas.getByText("*")).toBeVisible()
   },
 }
@@ -748,6 +754,9 @@ export const DropzoneStates: Story = {
       value: () => ({ isFile: true, isDirectory: false }),
     })
     Object.defineProperty(dataTransfer, "items", { value: items })
+    // userEvent's DataTransfer stub does not populate types when adding files.
+    // Real OS file drags include Files, which the dropzone uses to gate entry.
+    Object.defineProperty(dataTransfer, "types", { value: ["Files"] })
     fireEvent.dragOver(browse, { dataTransfer })
     await waitFor(() => expect(browse).toHaveAttribute("data-dragging"))
     fireEvent.drop(browse, { dataTransfer })

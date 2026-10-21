@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.1
+ * @componentVersion v1.6.2
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -623,6 +623,7 @@ export function Combobox<T = unknown>({
   selectionCollection.current = fullCollection
   const initialValue = useRef(normalizeValue(defaultValue) ?? [])
   const resetting = useRef(false)
+  const nativeInputOwnsQuery = useRef(false)
   const resetSelection = useRef<string[] | null>(null)
   useLayoutEffect(() => {
     const restored = resetSelection.current
@@ -641,7 +642,9 @@ export function Combobox<T = unknown>({
   const coordinatedMachine = useMemo<typeof comboboxMachine>(() => {
     const syncSelectedItems =
       comboboxMachine.implementations?.actions?.syncSelectedItems
-    if (!syncSelectedItems) {
+    const syncInputValue =
+      comboboxMachine.implementations?.actions?.syncInputValue
+    if (!(syncSelectedItems && syncInputValue)) {
       throw new Error("Combobox selection synchronization unavailable")
     }
     return {
@@ -650,6 +653,20 @@ export function Combobox<T = unknown>({
         ...comboboxMachine.implementations,
         actions: {
           ...comboboxMachine.implementations?.actions,
+          syncInputValue(params) {
+            // Native edits already updated the value and caret. A deferred
+            // watcher can see an older query after filtering has replaced the
+            // current event with CHILDREN_CHANGE, so event.type is not enough.
+            // Keep DOM ownership until a programmatic query change or reset;
+            // controlled queries still project their parent's value.
+            if (
+              nativeInputOwnsQuery.current &&
+              params.prop("inputValue") === undefined
+            ) {
+              return
+            }
+            syncInputValue(params)
+          },
           syncSelectedItems(params) {
             syncSelectedItems({
               ...params,
@@ -764,7 +781,9 @@ export function Combobox<T = unknown>({
         }
       }
     },
-    onInputValueChange: ({ inputValue: newItemInputValue }) => {
+    onInputValueChange: ({ inputValue: newItemInputValue, reason }) => {
+      nativeInputOwnsQuery.current =
+        !resetting.current && reason === "input-change"
       if (!resetting.current) {
         resetSelection.current = null
       }
@@ -852,6 +871,7 @@ export function Combobox<T = unknown>({
     // Direct restoration bypasses edit guards without emitting user callbacks.
     // Keep the snapshot through Zag's deferred selected-item synchronization.
     resetSelection.current = restoredValue
+    nativeInputOwnsQuery.current = false
     resetting.current = true
     try {
       if (value === undefined) {

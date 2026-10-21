@@ -713,57 +713,11 @@ maintainer-initiated follow-up, not automatic publication.
   removal. Request timing, rollback, quantity pricing and focus ownership remain
   application responsibilities, not new presentation-component engines/layers. [E8, E9]
 
-### Evidence and synchronization boundary
+### Verification boundary
 
-The Wave 3 evidence below comes from
-`/Volumes/DevWork/agent-scratch/ds-overhaul/wave3-result.json`, specifically each
-listed `results[*].fix` **and** `repair` changelog/verification. The earlier action,
-media and toggle follow-ups also use `wave2-result.json` and the exact requests in
-`wave4-inputs.json` (inputs 6, 12, 24, 41, 119, 127, 139, 147, 153, 162, 167, 172,
-177, 187, 197, 202, 209). Scratch paths below share the prefix
-`/Volumes/DevWork/agent-scratch/ds-overhaul/`.
-
-- **E1 — text-inputs:** `repair-text-inputs-round2/{verify,layout-contrast,validation-states}.json`;
-  initial editing/validation plays and repaired mobile Docs were checked in Akros
-  light, base light/dark, narrow viewports, forced colors and reduced motion.
-- **E2 — toggles:** `toggles/final-visual.json` and
-  `toggles-repair/{native,visual,plays}.json`; measured Checkbox geometry, 54 native
-  form scenarios and 11 retained regression plays, including system-color thumbs.
-- **E3 — choice:** `choice-repair-wave3/{browser-results,broad-results}.json`;
-  clear gutters, removal, explicit-error lifecycle, external forms and captions.
-  Visual references: `shots/choice-wave3-desktop-multiple-akros-light.png` and
-  `shots/choice-wave3-molecules-colorselect--long-captions-akros-light.png`.
-- **E4 — complex-fields:** `complex-fields/` and `complex-fields-repair/` browser
-  scripts/results; date endpoints, full weekday names, timezone boundaries,
-  spoken slider values and enlarged-text summaries, including 390px three-scheme
-  checks and forced-colors/reduced-motion Slider coverage.
-- **E5 — overlays:** `overlays-wave3/{play-results,surfaces-results}.json` and
-  `overlays-repair/{play-check,surface-check,detent-toast-check}.mjs`; initial modal
-  layout plus repaired Popover chrome, notification viewport and Escape priority.
-  Repair verification records 24 new and 33 retained story runs across Akros
-  light/base light/base dark, with mobile/desktop and modal accessibility checks.
-- **E6 — nav-disclosure:** `nav-disclosure/` and
-  `repair-nav-disclosure/{verify,regression-matrix,layout-matrix}.mjs`; initial
-  typography/markers/semantics and repaired disabled subtrees/intrinsic vertical
-  tabs were checked at 390px in all three schemes, plus RTL and motion/color modes.
-- **E7 — actions:** `actions/` and `actions-repair/verify.mjs`; pending-focus,
-  pressed-pair and media reservation checks. Repair geometry is unchanged from
-  loading to loaded: 358 × 201.375px at 390px and 512 × 288px at 1280px. The
-  reservation SVG is not visible design content.
-- **E8 — data-layout / commerce-media:** `data-layout-repair/{check,edges}.mjs`,
-  `commerce-media/{repair-round,repair-prior-matrix}.mjs` and their initial wave
-  verification; charts, frozen surfaces, pager focus, linked prices, cart focus,
-  responsive layouts and repaired autoplay timing in the three required schemes.
-- **E9 — integration source and handoff-log smoke:** the linked current sources
-  include shared modal ownership, navigation composition, Gallery autoplay/media
-  adoption, linked storefront recommendations and the LineItem pending-focus
-  lifecycle. `10-consolidated-figma-handoff-log/{check.mjs,browser-results.json}`
-  records 12 fresh 390px checks in Akros light/base light/base dark: numeric sizes,
-  distinct Slider names/spoken units, product-card layout and long Dialog geometry.
-  Dialog Enter/Escape/focus restoration and `role="dialog"`, `aria-modal="true"`,
-  absence of inert/aria-hidden ancestors and reachable close/publish controls pass.
-  Screenshots use `shots/handoff-log-dialog-*-390.png`. These are representative
-  smoke checks, not a replacement for each integration owner's regression matrix.
+Each entry above was checked in Storybook in Akros light, base light and base dark,
+at 390px and desktop widths, with keyboard, forced-colors, reduced-motion and modal
+accessibility checks where relevant. Working evidence stays outside the repository.
 
 **Next design step:** reconcile these component states and aliases with the
 existing foundations handoff, review documentation/Code Connect mappings, then
@@ -772,3 +726,15 @@ No token export, generated Figma CSS, component version, Code Connect publicatio
 or Figma library was changed by this documentation consolidation. Recorded browser
 checks are DOM/keyboard/visual evidence, not a manual screen-reader audio pass or
 an unconditional release/accessibility sign-off.
+
+## Suite-fix handoff — 2026-10-21 · pending design synchronization
+
+- **CascadeSelect:** Figma still exports `--color-cascade-select-trigger-fg-hover`
+  as accent text. The runtime bridge in `_foundation-overrides.css` aliases it to
+  `--color-select-trigger-fg-hover`, and regenerated `_scheme-scopes.css` keeps
+  that relationship in nested brand/mode scopes. Mirror the Select trigger hover
+  foreground alias in Figma before removing the bridge; no export was edited.
+- **Tour:** dialog positioners use the existing `--spacing-tour-viewport` padding;
+  dialog and floating content cap their width to the inset positioner, not
+  `100vw`, so reserved scrollbar gutters cannot push the panel outside its safe
+  inset. Mirror this gutter-safe layout constraint; no new variable is needed.

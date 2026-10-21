@@ -187,14 +187,19 @@ test("Skeleton groups announce loading once and aggregate product ratings are st
     page.getByRole("status", { name: "Loading content" })
   ).toHaveCount(1)
   await expect(
-    page.locator('[role="status"] [aria-hidden="true"]')
+    page.locator('[role="status"] > [inert] > [aria-hidden="true"]')
   ).toHaveCount(3)
+  await expect(
+    page
+      .getByRole("status", { name: "Loading content" })
+      .locator(":scope > [inert]")
+  ).toHaveAttribute("aria-hidden", "true")
   await openStory(page, "atoms-skeleton--playground", "showCircle:!false")
   await expect(
     page.getByRole("status", { name: "Loading content" })
   ).toHaveCount(1)
   await expect(
-    page.locator('[role="status"] [aria-hidden="true"]')
+    page.locator('[role="status"] > [inert] > [aria-hidden="true"]')
   ).toHaveCount(2)
   await openStory(
     page,
@@ -205,7 +210,9 @@ test("Skeleton groups announce loading once and aggregate product ratings are st
   await expect(page.getByText("2 balení", { exact: true })).toBeVisible()
   await openStory(page, "templates-productcardtemplate--playground")
   await expect(page.getByRole("radiogroup")).toHaveCount(0)
-  const rating = page.getByRole("img", { name: "4.5 out of 5 stars" })
+  const rating = page.getByRole("img", { name: "4.5 out of 5", exact: true })
   await expect(rating).toBeVisible()
+  await expect(rating).toHaveAccessibleDescription("4.5 / 5")
   await expect(rating).not.toHaveAttribute("tabindex")
+  await expect(rating.locator("[tabindex], input")).toHaveCount(0)
 })

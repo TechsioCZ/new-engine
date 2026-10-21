@@ -1,7 +1,10 @@
 import { expect, type Page, test } from "@playwright/test"
 
+// Embed mode disables Storybook autoplay: this suite owns all user input.
+// Story play functions remain covered independently by visual.spec.ts.
+
 async function openStory(page: Page, story: string) {
-  await page.goto(`/iframe.html?id=${story}&viewMode=story`)
+  await page.goto(`/iframe.html?id=${story}&viewMode=story&embed=true`)
 }
 
 test("Playground waits for user input", async ({ page }) => {
@@ -163,7 +166,6 @@ test("rejected controlled drawer close keeps focus inside", async ({
   await dialog.getByRole("button", { name: "Close dialog" }).click()
   await expect(page.getByText("Close requests: 1")).toBeVisible()
   await expect(dialog).toBeVisible()
-  await page.waitForTimeout(50)
   await expect
     .poll(() =>
       dialog.evaluate((element) => element.contains(document.activeElement))

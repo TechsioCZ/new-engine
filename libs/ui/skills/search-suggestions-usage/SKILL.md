@@ -2,7 +2,7 @@
 name: search-suggestions-usage
 description: Use for grouped storefront search navigation with rich results and an all-results link, composed from the UI-kit Combobox.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -142,3 +142,7 @@ callback, including when the same value was entered before reset.
 Navigation mode has no submitted selection. Its query follows the same silent
 reset rule: restore the latest `defaultInputValue` when uncontrolled, or keep
 `inputValue` when controlled.
+
+Uncontrolled query text and caret stay intact while replacement groups arrive,
+including deferred WebKit updates. This inherits Combobox's native edit ownership;
+explicit `inputValue` remains parent-owned and reset releases native ownership.

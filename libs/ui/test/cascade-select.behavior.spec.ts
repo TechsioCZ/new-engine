@@ -1,5 +1,8 @@
 import { expect, type Page, test } from "@playwright/test"
 
+// Embed mode disables Storybook autoplay: this suite owns all user input.
+// Story play functions remain covered independently by visual.spec.ts.
+
 const stories = {
   openHierarchy: "molecules-cascadeselect--open-hierarchy",
   parentSelection: "molecules-cascadeselect--parent-selection",
@@ -20,7 +23,7 @@ const cascadeItemSelector = '[data-scope="cascade-select"][data-part="item"]'
 
 async function openStory(page: Page, storyId: string, args = "") {
   await page.goto(
-    `/iframe.html?id=${storyId}&viewMode=story${args ? `&args=${args}` : ""}`,
+    `/iframe.html?id=${storyId}&viewMode=story&embed=true${args ? `&args=${args}` : ""}`,
     { waitUntil: "domcontentloaded" }
   )
   await expect(page.locator("#storybook-root")).not.toBeEmpty()
@@ -358,13 +361,17 @@ test.describe("CascadeSelect browser behavior", () => {
       .locator(cascadeItemSelector)
       .filter({ hasText: "Electronics" })
       .first()
-    const itemBox = await electronics.boundingBox()
-    const branchBox = await electronics
-      .locator(':scope > span[aria-hidden="true"]')
-      .boundingBox()
-    expect(itemBox).not.toBeNull()
-    expect(branchBox).not.toBeNull()
-    if (itemBox && branchBox) {
+    // Read both rectangles in one layout snapshot: keyboard-cursor scrolling
+    // may move the column between separate Playwright boundingBox calls.
+    const { itemBox, branchBox } = await electronics.evaluate((element) => ({
+      itemBox: element.getBoundingClientRect().toJSON(),
+      branchBox: element
+        .querySelector(':scope > span[aria-hidden="true"]')
+        ?.getBoundingClientRect()
+        .toJSON(),
+    }))
+    expect(branchBox).toBeDefined()
+    if (branchBox) {
       const inset = itemBox.x + itemBox.width - (branchBox.x + branchBox.width)
       expect(inset).toBeGreaterThanOrEqual(8)
       expect(inset).toBeLessThanOrEqual(12)
@@ -411,13 +418,33 @@ test.describe("CascadeSelect browser behavior", () => {
     await page.keyboard.press("Enter")
     const content = page.locator(cascadeContentSelector)
     await expect(content).toBeFocused()
+    await expect(
+      page.getByRole("treeitem", { name: "Electronics", exact: true })
+    ).toHaveAttribute("data-highlighted", "")
     await page.keyboard.press("ArrowRight")
     await expect(
       page.locator('[data-scope="cascade-select"][data-part="list"]')
     ).toHaveCount(2)
+    // The column is rendered before the cursor enters it. Wait for that
+    // transition before asking for the next sibling on slow WebKit.
+    await expect(
+      page.getByRole("treeitem", { name: "Computers", exact: true })
+    ).toHaveAttribute("data-highlighted", "")
     await page.keyboard.press("ArrowDown")
     const phone = page.getByRole("treeitem", { name: "Phones", exact: true })
     await expect(phone).toHaveAttribute("data-highlighted", "")
+    await expect(content).toHaveAttribute(
+      "aria-activedescendant",
+      (await phone.getAttribute("id")) as string
+    )
+    await expect
+      .poll(() =>
+        content.evaluate((element) => element.scrollWidth > element.clientWidth)
+      )
+      .toBe(true)
+    await expect
+      .poll(() => content.evaluate((element) => element.scrollLeft))
+      .toBeGreaterThan(0)
     await expect
       .poll(async () => {
         const viewport = await content.boundingBox()
@@ -522,13 +549,17 @@ test.describe("CascadeSelect browser behavior", () => {
       .locator(cascadeItemSelector)
       .filter({ hasText: "Electronics" })
       .first()
-    const itemBox = await electronics.boundingBox()
-    const branchBox = await electronics
-      .locator(':scope > span[aria-hidden="true"]')
-      .boundingBox()
-    expect(itemBox).not.toBeNull()
-    expect(branchBox).not.toBeNull()
-    if (itemBox && branchBox) {
+    // Read both rectangles in one layout snapshot: keyboard-cursor scrolling
+    // may move the column between separate Playwright boundingBox calls.
+    const { itemBox, branchBox } = await electronics.evaluate((element) => ({
+      itemBox: element.getBoundingClientRect().toJSON(),
+      branchBox: element
+        .querySelector(':scope > span[aria-hidden="true"]')
+        ?.getBoundingClientRect()
+        .toJSON(),
+    }))
+    expect(branchBox).toBeDefined()
+    if (branchBox) {
       const inset = branchBox.x - itemBox.x
       expect(inset).toBeGreaterThanOrEqual(8)
       expect(inset).toBeLessThanOrEqual(12)

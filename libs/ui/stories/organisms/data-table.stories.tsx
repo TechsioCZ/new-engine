@@ -1720,7 +1720,7 @@ export const DragAffordances: Story = {
       canvas.getByLabelText("Drag to reorder First name")
     ).toBeInTheDocument()
     await expect(
-      canvas.getByLabelText("Drag to reorder row 0")
+      canvas.getByLabelText("Drag to reorder row 1")
     ).toBeInTheDocument()
   },
 }

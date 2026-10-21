@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -1080,7 +1080,7 @@ FileUpload.ItemDeleteTrigger = function FileUploadItemDeleteTrigger({
           if (restoreFocus) {
             requestAnimationFrame(() => {
               const fallback = root?.querySelector<HTMLElement>(
-                '[data-part="dropzone"], [data-part="trigger"]:not(:disabled), input:not([type="file"]):not(:disabled)'
+                '[data-part="dropzone"], [data-part="trigger"]:not(:disabled), input:not([type="file"]):not([type="hidden"]):not(:disabled)'
               )
               ;(next?.isConnected ? next : (fallback ?? root))?.focus()
             })

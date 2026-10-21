@@ -6,7 +6,7 @@ description: >
   compound parts, parent or multiple selection, validation, and keyboard
   navigation.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -266,3 +266,7 @@ Read-only hierarchy fields keep the selected path, normal focus and native
 submission while suppressing opening (including open/defaultOpen), clear and
 indicator actions. Switching to read-only closes an already-open popup without
 committing a new path; read-only is not disabled.
+
+Hierarchy metadata reconciliation preserves in-flight keyboard highlighting
+across ordinary rerenders. Trigger hover text shares the Select foreground
+alias rather than the accent text color.

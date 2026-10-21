@@ -5,7 +5,7 @@ description: >
   Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect
   ratio, object fit, and framework image adapters.
 metadata:
-  component_version: "1.3.3"
+  component_version: "1.3.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -177,3 +177,7 @@ Key slide data by stable IDs. The shared integration refreshes snapping and visi
 When a transition would hide a focused slide, Carousel moves focus to the persistent, programmatically focusable viewport before applying inert. This works without controls and leaves successive navigation keys usable. Focus already outside the outgoing slide (including controls) is not moved. Applications own focus when they unmount the entire carousel or remove the focused element themselves; choose a surviving item or nearby heading after that commit.
 
 CarouselTemplate always supplies a pause/start control for boolean or configured autoplay, even when navigation is hidden, `showAutoplay=false`, or reduced motion suppresses automatic startup. `showAutoplay` may additionally show the control without autoplay. Compound compositions must still render Carousel.Autoplay whenever they enable automatic rotation. Reduced motion suppresses automatic startup without discarding an `autoplay={{ delay }}` configuration: an explicit Start uses that same interval. Switching to reduced motion pauses an already running carousel.
+
+Built-in indicator buttons retain their page identity and focus when snap
+offsets are measured or resized. Use ArrowUp/ArrowDown for a vertical viewport;
+with `loop={false}`, navigation stops at the first and last page.

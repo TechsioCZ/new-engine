@@ -1,9 +1,12 @@
 import { expect, type Page, test } from "@playwright/test"
 
+// Embed mode disables Storybook autoplay: this suite owns all user input.
+// Story play functions remain covered independently by visual.spec.ts.
+
 async function openStory(page: Page, name: string) {
   await page.emulateMedia({ reducedMotion: "reduce" })
   await page.goto(
-    `/iframe.html?id=molecules-verticalnavigation--${name}&viewMode=story`
+    `/iframe.html?id=molecules-verticalnavigation--${name}&viewMode=story&embed=true`
   )
 }
 
@@ -45,7 +48,7 @@ for (const mode of ["light", "dark"]) {
     page,
   }) => {
     await page.goto(
-      `/iframe.html?id=molecules-verticalnavigation--playground&viewMode=story&globals=mode:${mode}`
+      `/iframe.html?id=molecules-verticalnavigation--playground&viewMode=story&embed=true&globals=mode:${mode}`
     )
     const link = page.getByRole("link", { name: "Fasteners", exact: true })
     const toggle = page.getByRole("button", { name: "Toggle Fasteners" })
@@ -64,15 +67,28 @@ for (const mode of ["light", "dark"]) {
     const hoverBackground = await row.evaluate(
       (element) => getComputedStyle(element).backgroundColor
     )
-    expect(hoverBackground).not.toBe(idleBackground)
+    const supportsHover = await page.evaluate(
+      () => matchMedia("(hover: hover) and (pointer: fine)").matches
+    )
+    if (supportsHover) {
+      expect(hoverBackground).not.toBe(idleBackground)
+    } else {
+      // Touch devices must not acquire a sticky mouse-hover background.
+      expect(hoverBackground).toBe(idleBackground)
+    }
     await expect(link).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
     await expect(toggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
     await toggle.hover()
     await expect(row).toHaveCSS("background-color", hoverBackground)
     await expect(toggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
-    expect(
-      await indicator.evaluate((element) => getComputedStyle(element).color)
-    ).not.toBe(idleIndicator)
+    const hoveredIndicator = await indicator.evaluate(
+      (element) => getComputedStyle(element).color
+    )
+    if (supportsHover) {
+      expect(hoveredIndicator).not.toBe(idleIndicator)
+    } else {
+      expect(hoveredIndicator).toBe(idleIndicator)
+    }
 
     await link.click()
     await expect(link).toHaveAttribute("aria-current", "page")
@@ -138,8 +154,14 @@ test("respects rejected controlled proposals and external route-driven expansion
 }) => {
   await openStory(page, "controlled")
   const toggle = page.getByRole("button", { name: "Toggle controlled branch" })
+  const rejectChanges = page.getByRole("button", { name: /^Reject changes:/ })
+  await expect(rejectChanges).toHaveAttribute("aria-pressed", "false")
+  await rejectChanges.click()
+  await expect(rejectChanges).toHaveAttribute("aria-pressed", "true")
   await toggle.click()
-  await expect(page.getByTestId("open-change-count")).toHaveText("1")
+  await expect(page.getByTestId("open-change-count")).toHaveText(
+    "1 expansion proposals"
+  )
   await expect(toggle).toHaveAttribute("aria-expanded", "false")
   await expect(
     page.getByRole("link", { name: "Controlled destination" })
@@ -147,9 +169,12 @@ test("respects rejected controlled proposals and external route-driven expansion
   await page.getByRole("button", { name: "Reveal current page" }).click()
   await expect(toggle).toHaveAttribute("aria-expanded", "true")
   await toggle.click()
-  await expect(page.getByTestId("open-change-count")).toHaveText("2")
+  await expect(page.getByTestId("open-change-count")).toHaveText(
+    "2 expansion proposals"
+  )
   await expect(toggle).toHaveAttribute("aria-expanded", "true")
-  await page.getByRole("button", { name: "Reject changes" }).click()
+  await rejectChanges.click()
+  await expect(rejectChanges).toHaveAttribute("aria-pressed", "false")
   await toggle.click()
   await expect(toggle).toHaveAttribute("aria-expanded", "false")
   await expect(page.getByTestId("controlled-open-state")).toHaveText("Closed")
@@ -180,7 +205,7 @@ test("States honors appearance controls on the root and nested content", async (
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-verticalnavigation--states&viewMode=story&args=size:sm;dir:rtl;tone:accent;indent:!false;showGuide:!false"
+    "/iframe.html?id=molecules-verticalnavigation--states&viewMode=story&embed=true&args=size:sm;dir:rtl;tone:accent;indent:!false;showGuide:!false"
   )
   const navigation = page.getByRole("navigation", { name: "Navigation states" })
   await expect(navigation).toHaveAttribute("dir", "rtl")
@@ -216,22 +241,44 @@ test("Sizes shares compact typography, flat groups and catalog width", async ({
   page,
 }) => {
   await openStory(page, "sizes")
-  for (const [size, fontSize, rowHeight] of [
-    ["sm", 14.08, 32],
-    ["md", 16, 36],
-  ] as const) {
+  let previousFontSize = 0
+  let previousHeight = 0
+  for (const size of ["sm", "md", "lg"] as const) {
     const navigation = page.getByRole("navigation", {
       name: `Product categories - ${size}`,
     })
     await expect(navigation).toBeVisible()
     expect((await navigation.boundingBox())?.width).toBeCloseTo(280)
     const link = navigation.getByRole("link", { name: "All products" })
-    expect(
-      await link.evaluate((element) =>
-        Number.parseFloat(getComputedStyle(element).fontSize)
-      )
-    ).toBeCloseTo(fontSize)
-    expect((await link.boundingBox())?.height).toBeCloseTo(rowHeight)
+    // The overhaul deliberately aligns navigation with the shared control
+    // typography. Rows have a minimum height and may grow with their line box.
+    const geometry = await link.evaluate((element, controlSize) => {
+      const style = getComputedStyle(element)
+      const probe = document.createElement("span")
+      probe.style.position = "absolute"
+      probe.style.fontSize = `var(--text-button-${controlSize})`
+      probe.style.minHeight = `var(--height-form-control-${controlSize})`
+      element.append(probe)
+      const expected = getComputedStyle(probe)
+      const result = {
+        fontSize: Number.parseFloat(style.fontSize),
+        expectedFontSize: Number.parseFloat(expected.fontSize),
+        minHeight: Number.parseFloat(style.minHeight),
+        expectedMinHeight: Number.parseFloat(expected.minHeight),
+        // Compare resolved CSS metrics at the same precision, rather than
+        // mixing CSS serialization with fractional layout-unit rounding.
+        height: Number.parseFloat(style.height),
+      }
+      probe.remove()
+      return result
+    }, size)
+    expect(geometry.fontSize).toBeCloseTo(geometry.expectedFontSize)
+    expect(geometry.minHeight).toBeCloseTo(geometry.expectedMinHeight)
+    expect(geometry.height).toBeGreaterThanOrEqual(geometry.minHeight)
+    expect(geometry.fontSize).toBeGreaterThan(previousFontSize)
+    expect(geometry.height).toBeGreaterThan(previousHeight)
+    previousFontSize = geometry.fontSize
+    previousHeight = geometry.height
     await expect(
       navigation.getByRole("heading", { name: "Catalog" })
     ).toHaveCSS("font-size", "12px")
@@ -348,7 +395,17 @@ test("Akros catalog keeps a 280px catalog readable and separates navigation from
   const navigation = page.getByRole("navigation", { name: "Katalog Akros" })
   await expect(navigation).toBeVisible()
   const bounds = await navigation.boundingBox()
-  expect(bounds?.width).toBeCloseTo(280)
+  // Classic scrollbars consume layout width in Docker Chromium. The padded
+  // story's 280px column must shrink, rather than overflow a 320px viewport.
+  const availableWidth = await page
+    .locator("#storybook-root")
+    .evaluate((element) => element.clientWidth)
+  expect(bounds?.width).toBeCloseTo(Math.min(280, availableWidth))
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth)
+  ).toBeLessThanOrEqual(
+    await page.evaluate(() => document.documentElement.clientWidth)
+  )
   const clippedItems = await navigation
     .locator("a, button")
     .evaluateAll(

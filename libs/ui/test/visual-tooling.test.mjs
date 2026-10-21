@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { EventEmitter } from "node:events"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
 import { runInNewContext } from "node:vm"
@@ -14,17 +15,24 @@ import {
   nativeFormAdapters,
   nativeResetCancellations,
 } from "./native-form-contracts.mjs"
+import { installVisualAssets } from "./visual-assets.mjs"
+import { visualCaptureTiles } from "./visual-capture.mjs"
 import {
   assertPrimaryBaselines,
   assertReleaseSelection,
   assertVisualCompletion,
 } from "./visual-completion.mjs"
+import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
   assertFloatingContainment,
   popupCheckpointStories,
   visibleFloatingSurfaces,
 } from "./visual-popup-capture.mjs"
-import { createThemeMatrix, createVisualMatrix } from "./visual-projects.mjs"
+import {
+  createThemeMatrix,
+  createVisualMatrix,
+  resolveVisualTheme,
+} from "./visual-projects.mjs"
 import {
   hasClientDirective,
   needsClientBoundary,
@@ -501,6 +509,361 @@ test("standalone Docs replay initial globals, follow live changes and clean up l
   applyPreviewTheme(root, { brand: "base", mode: "dark" }, "akros")
   assert.equal(attributes.get("data-theme"), "akros")
   assert.deepEqual([...classes], ["app-shell", "light"])
+})
+
+test("visual capture honors brand locks consistently without exempting any project from coverage", () => {
+  const matrix = createVisualMatrix()
+  for (const project of matrix) {
+    const globals = { brand: project.brand, mode: project.colorScheme }
+    for (const lock of [undefined, "akros", "neo"]) {
+      const actual = resolveVisualTheme(globals, lock)
+      const { root, classes, attributes } = themeRoot()
+      applyPreviewTheme(root, globals, lock)
+      assert.equal(attributes.get("data-theme") ?? "base", actual.brand)
+      assert.ok(classes.has(actual.mode))
+      if (lock === "akros") {
+        assert.deepEqual(actual, { brand: "akros", mode: "light" })
+      }
+    }
+  }
+  assert.throws(() =>
+    resolveVisualTheme({ brand: "base", mode: "light" }, "unknown")
+  )
+  assert.throws(() => resolveVisualTheme({ brand: "unknown", mode: "light" }))
+  assert.throws(() => resolveVisualTheme({ brand: "akros", mode: "system" }))
+  const story = { id: "pages-akros-admin-home-statistics--default" }
+  const names = matrix.map(({ name }) => name)
+  const executions = names.map((name) => successful(name, story.id))
+  assertVisualCompletion([report(executions)], [story], names)
+  for (const name of [
+    "desktop-light",
+    "akros-desktop-light",
+    "akros-mobile-light",
+  ]) {
+    assert.throws(
+      () =>
+        assertVisualCompletion(
+          [
+            report(
+              executions.filter((execution) => execution.projectName !== name)
+            ),
+          ],
+          [story],
+          names
+        ),
+      /Missing/
+    )
+  }
+})
+
+async function fakeAssetReplay() {
+  const context = Object.assign(new EventEmitter(), {
+    routeFromHAR: async () => {},
+    route: async () => {},
+  })
+  const dispose = await installVisualAssets(context, {
+    harPath: new URL("./fixtures/visual-assets/assets.har", import.meta.url)
+      .pathname,
+    origin: "http://127.0.0.1:6006",
+  })
+  const request = {
+    url: () => "http://127.0.0.1:6006/stalled.png",
+    resourceType: () => "image",
+    failure: () => ({ errorText: "net::ERR_FAILED" }),
+  }
+  return { context, dispose, request }
+}
+
+test("asset idle barriers fail with pending URLs instead of consuming the whole test timeout", async () => {
+  const { context, dispose, request } = await fakeAssetReplay()
+  context.emit("request", request)
+  await assert.rejects(
+    dispose.whenIdle(10),
+    /did not settle within 10ms: .*stalled.png/
+  )
+  context.emit("requestfinished", request)
+  await dispose.whenIdle()
+  await dispose()
+})
+
+test("asset cleanup reports only new failures, preserving the original replay diagnostic", async () => {
+  const { context, dispose, request } = await fakeAssetReplay()
+  context.emit("request", request)
+  context.emit("requestfailed", request)
+  await assert.rejects(
+    dispose.whenIdle(),
+    (error) =>
+      error instanceof AggregateError &&
+      error.errors.length === 1 &&
+      error.errors[0].message.includes("stalled.png")
+  )
+  await dispose()
+  context.emit("request", request)
+  context.emit("requestfailed", request)
+  await assert.rejects(dispose(), AggregateError)
+})
+
+function visualReplacement(overrides = {}) {
+  return {
+    style: { display: "block", visibility: "visible", opacity: "1" },
+    getClientRects: () => [{ width: 100, height: 100 }],
+    getAttribute: (name) =>
+      name === "aria-label" ? "Unavailable product image" : null,
+    hasAttribute: () => false,
+    parentElement: null,
+    ...overrides,
+  }
+}
+
+function visualImage(overrides = {}) {
+  const fallback = visualReplacement()
+  return {
+    currentSrc: "data:image/png;base64,invalid",
+    complete: true,
+    naturalWidth: 0,
+    naturalHeight: 0,
+    style: { display: "block", visibility: "visible", opacity: "0" },
+    getClientRects: () => [{}],
+    getAttribute: (name) => (name === "aria-hidden" ? "true" : null),
+    closest: () => ({ querySelector: () => fallback }),
+    decode: () => {
+      throw new Error("Broken media must not be decoded")
+    },
+    ...overrides,
+  }
+}
+
+function checkVisualImage(story, image) {
+  return runInNewContext(
+    `(${assertDecodedVisualImages.toString()})(${JSON.stringify(story)})`,
+    {
+      document: { images: [image] },
+      getComputedStyle: (element) => element.style,
+    }
+  )
+}
+
+test("only explicit native fallback demos may capture the settled, hidden invalid source", async () => {
+  for (const story of [
+    "molecules-carousel--native-media-fallbacks",
+    "molecules-productcard--native-media-fallback",
+  ]) {
+    await checkVisualImage(story, visualImage())
+    for (const overrides of [
+      { currentSrc: "https://fixture.invalid/real-broken-image.png" },
+      { complete: false },
+      { closest: () => null },
+      { closest: () => ({ querySelector: () => null }) },
+      { getAttribute: () => null },
+      { style: { display: "block", visibility: "visible", opacity: "1" } },
+      {
+        closest: () => ({
+          querySelector: () => ({
+            style: { display: "none", visibility: "visible" },
+            getClientRects: () => [],
+            getAttribute: () => "Unavailable image",
+          }),
+        }),
+      },
+    ]) {
+      await assert.rejects(
+        checkVisualImage(story, visualImage(overrides)),
+        /Visible image failed to load/
+      )
+    }
+  }
+  await assert.rejects(
+    checkVisualImage("molecules-productcard--playground", visualImage()),
+    /Visible image failed to load/
+  )
+})
+
+test("native fallback replacements must have non-zero visible, accessibility-exposed boxes through every ancestor", async () => {
+  for (const story of [
+    "molecules-carousel--native-media-fallbacks",
+    "molecules-productcard--native-media-fallback",
+  ]) {
+    for (const overrides of [
+      { style: { opacity: "0" } },
+      { style: { display: "none" } },
+      { style: { visibility: "hidden" } },
+      { style: { visibility: "collapse" } },
+      {
+        getAttribute: (name) =>
+          name === "aria-hidden" ? "true" : "Unavailable product image",
+      },
+      { hasAttribute: (name) => name === "inert" },
+    ]) {
+      const hidden = visualReplacement(overrides)
+      for (const fallback of [
+        hidden,
+        visualReplacement({
+          parentElement: visualReplacement({ parentElement: hidden }),
+        }),
+      ]) {
+        await assert.rejects(
+          checkVisualImage(
+            story,
+            visualImage({ closest: () => ({ querySelector: () => fallback }) })
+          ),
+          /Visible image failed to load/
+        )
+      }
+    }
+    for (const overrides of [
+      { getClientRects: () => [] },
+      { getClientRects: () => [{ width: 0, height: 100 }] },
+      { getClientRects: () => [{ width: 100, height: 0 }] },
+      { getAttribute: () => " " },
+    ]) {
+      await assert.rejects(
+        checkVisualImage(
+          story,
+          visualImage({
+            closest: () => ({
+              querySelector: () => visualReplacement(overrides),
+            }),
+          })
+        ),
+        /Visible image failed to load/
+      )
+    }
+    await checkVisualImage(
+      story,
+      visualImage({
+        closest: () => ({
+          querySelector: () =>
+            visualReplacement({ parentElement: visualReplacement() }),
+        }),
+      })
+    )
+  }
+})
+
+test("the fallback-ref demo permits only its declared invalid source with a visible exposed replacement", async () => {
+  const story = "atoms-image--primitive-refs"
+  const currentSrc = "data:image/png;base64,not-an-image"
+  await checkVisualImage(story, visualImage({ currentSrc }))
+  await assert.rejects(
+    checkVisualImage(story, visualImage()),
+    /Visible image failed to load/
+  )
+  for (const otherStory of [
+    "atoms-image--playground",
+    "molecules-carousel--native-media-fallbacks",
+  ]) {
+    await assert.rejects(
+      checkVisualImage(otherStory, visualImage({ currentSrc })),
+      /Visible image failed to load/
+    )
+  }
+  for (const hidden of [
+    visualReplacement({ style: { opacity: "0" } }),
+    visualReplacement({ getAttribute: () => "true" }),
+    visualReplacement({ hasAttribute: (name) => name === "inert" }),
+  ]) {
+    for (const replacement of [
+      hidden,
+      visualReplacement({ parentElement: hidden }),
+    ]) {
+      await assert.rejects(
+        checkVisualImage(
+          story,
+          visualImage({
+            currentSrc,
+            closest: () => ({ querySelector: () => replacement }),
+          })
+        ),
+        /Visible image failed to load/
+      )
+    }
+  }
+})
+
+test("valid images, including off-screen carousel slides, must decode before capture", async () => {
+  let decoded = 0
+  await checkVisualImage(
+    "molecules-carousel--playground",
+    visualImage({
+      currentSrc: "https://fixture.invalid/slide.png",
+      naturalWidth: 800,
+      naturalHeight: 600,
+      decode: () => {
+        decoded += 1
+        return Promise.resolve()
+      },
+    })
+  )
+  assert.equal(decoded, 1)
+  await assert.rejects(
+    checkVisualImage(
+      "molecules-carousel--playground",
+      visualImage({
+        currentSrc: "https://fixture.invalid/slide.png",
+        naturalWidth: 800,
+        naturalHeight: 600,
+        decode: () => Promise.reject(new Error("decode rejected")),
+      })
+    ),
+    /decode rejected/
+  )
+})
+
+test("oversized visual roots tile the entire document region without gaps or exceeding bitmap bounds", () => {
+  assert.deepEqual(
+    visualCaptureTiles({ x: 8, y: 8, width: 390, height: 16_000 }),
+    []
+  )
+  for (const bounds of [
+    { x: 8, y: 8, width: 390, height: 45_123 },
+    { x: 1.5, y: 20.25, width: 33_000.25, height: 32_999.5 },
+  ]) {
+    const tiles = visualCaptureTiles(bounds)
+    assert.ok(tiles.length > 1)
+    assert.equal(tiles[0].suffix, "")
+    assert.equal(new Set(tiles.map(({ suffix }) => suffix)).size, tiles.length)
+    const left = Math.floor(bounds.x)
+    const top = Math.floor(bounds.y)
+    const right = Math.ceil(bounds.x + bounds.width)
+    const bottom = Math.ceil(bounds.y + bounds.height)
+    let area = 0
+    for (const { clip } of tiles) {
+      assert.ok(clip.width > 0 && clip.width <= 16_000)
+      assert.ok(clip.height > 0 && clip.height <= 16_000)
+      assert.ok(clip.x >= left && clip.x + clip.width <= right)
+      assert.ok(clip.y >= top && clip.y + clip.height <= bottom)
+      area += clip.width * clip.height
+      for (const { clip: other } of tiles) {
+        if (clip === other) {
+          continue
+        }
+        assert.ok(
+          clip.x + clip.width <= other.x ||
+            other.x + other.width <= clip.x ||
+            clip.y + clip.height <= other.y ||
+            other.y + other.height <= clip.y
+        )
+      }
+    }
+    assert.equal(area, (right - left) * (bottom - top))
+  }
+  for (const bounds of [
+    { x: 0, y: 0, width: 0, height: 1 },
+    { x: 0, y: 0, width: 1, height: Number.NaN },
+    { x: -1, y: 0, width: 1, height: 1 },
+  ]) {
+    assert.throws(
+      () => visualCaptureTiles(bounds),
+      /Invalid visual capture bounds/
+    )
+  }
+  const primary = read("./visual.spec.ts")
+  assert.match(primary, /type: "visual-capture-tiles"/)
+  assert.match(
+    primary,
+    /for \(const tile of tiles.length \? tiles : \[null\]\)/
+  )
+  assert.match(primary, /clip: tile.clip/)
 })
 
 test("release preflight requires exact reviewed baselines for each story and device", () => {

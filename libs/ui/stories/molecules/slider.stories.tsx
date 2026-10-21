@@ -277,7 +277,11 @@ export const ReadOnly: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const thumb = canvas.getByRole("slider")
+    await userEvent.tab()
+    await expect(thumb).toHaveFocus()
+    thumb.blur()
     await userEvent.click(thumb)
+    await expect(thumb).toHaveFocus()
     await userEvent.keyboard("{ArrowRight}{End}{Home}")
     await expect(thumb).toHaveAttribute("aria-valuenow", "25")
     await expect(thumb).toHaveAttribute("aria-readonly", "true")

@@ -1,7 +1,12 @@
 import { expect, type Page, test } from "@playwright/test"
 
+// Embed mode disables Storybook autoplay: this suite owns all user input.
+// Story play functions remain covered independently by visual.spec.ts.
+
 async function startTour(page: Page) {
-  await page.goto("/iframe.html?id=molecules-tour--playground&viewMode=story")
+  await page.goto(
+    "/iframe.html?id=molecules-tour--playground&viewMode=story&embed=true"
+  )
   await page.getByRole("button", { name: "Start tour" }).click()
   await expect(
     page.getByRole("alertdialog", { name: "Make yourself at home" })
@@ -74,7 +79,9 @@ test("Escape restores focus and permits restart", async ({ page }) => {
 })
 
 test("resolves a target that appears after start", async ({ page }) => {
-  await page.goto("/iframe.html?id=molecules-tour--late-target&viewMode=story")
+  await page.goto(
+    "/iframe.html?id=molecules-tour--late-target&viewMode=story&embed=true"
+  )
   await page.getByRole("button", { name: "Start tour" }).click()
   await expect(page.getByRole("alertdialog")).toHaveCount(0)
   await expect(page.getByRole("button", { name: "Start tour" })).toBeDisabled()
@@ -87,7 +94,9 @@ test("resolves a target that appears after start", async ({ page }) => {
 test("a missing target ends without skipping or retaining UI", async ({
   page,
 }) => {
-  await page.goto("/iframe.html?id=molecules-tour--late-target&viewMode=story")
+  await page.goto(
+    "/iframe.html?id=molecules-tour--late-target&viewMode=story&embed=true"
+  )
   await page.getByRole("button", { name: "Start tour" }).click()
   await expect(page.getByLabel("Tour status")).toHaveText("not-found")
   await expect(page.getByLabel("Effect cleanup count")).toHaveText("1")
@@ -105,7 +114,7 @@ test("interactive wait hides the overlay and cleans up on advance", async ({
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--interactive-wait&viewMode=story"
+    "/iframe.html?id=molecules-tour--interactive-wait&viewMode=story&embed=true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Next", exact: true }).click()
@@ -121,7 +130,7 @@ test("interactive wait hides the overlay and cleans up on advance", async ({
 
 test("effect dismissal cleans up and permits restart", async ({ page }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--interactive-wait&viewMode=story"
+    "/iframe.html?id=molecules-tour--interactive-wait&viewMode=story&embed=true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Next", exact: true }).click()
@@ -136,7 +145,7 @@ test("effect dismissal cleans up and permits restart", async ({ page }) => {
 
 test("RTL arrow navigation works at both boundaries", async ({ page }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--playground&viewMode=story&args=dir:rtl"
+    "/iframe.html?id=molecules-tour--playground&viewMode=story&embed=true&args=dir:rtl"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Next", exact: true }).focus()
@@ -179,7 +188,7 @@ test("floating placements use the viewport and respect RTL", async ({
   await page.setViewportSize({ width: 1200, height: 900 })
   for (const dir of ["ltr", "rtl"]) {
     await page.goto(
-      `/iframe.html?id=molecules-tour--floating-placements&viewMode=story&args=dir:${dir}`
+      `/iframe.html?id=molecules-tour--floating-placements&viewMode=story&embed=true&args=dir:${dir}`
     )
     for (const [
       placement,
@@ -195,15 +204,21 @@ test("floating placements use the viewport and respect RTL", async ({
       if (!rect) {
         throw new Error("Missing floating panel")
       }
+      // Fixed inset positioning excludes the stable scrollbar gutter, even
+      // when clientWidth includes its reserved, currently empty track.
+      const viewport = await page.evaluate(() => ({
+        width: document.documentElement.getBoundingClientRect().width,
+        height: document.documentElement.clientHeight,
+      }))
       const columns = [
         16,
-        (1200 - rect.width) / 2,
-        1200 - 16 - rect.width,
+        (viewport.width - rect.width) / 2,
+        viewport.width - 16 - rect.width,
       ] as const
       const rows = [
         16,
-        (900 - rect.height) / 2,
-        900 - 16 - rect.height,
+        (viewport.height - rect.height) / 2,
+        viewport.height - 16 - rect.height,
       ] as const
       const column = dir === "rtl" ? rtlColumn : ltrColumn
       expect(rect.x, `${dir} ${placement} x`).toBeCloseTo(columns[column], 0)
@@ -217,7 +232,7 @@ test("consumer cancellation, editor keys and imperative controls", async ({
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--custom-controls&viewMode=story"
+    "/iframe.html?id=molecules-tour--custom-controls&viewMode=story&embed=true"
   )
   await expect(
     page.getByRole("button", { name: "Disabled start" })
@@ -257,7 +272,7 @@ test("escape, outside click and arrow navigation can be disabled", async ({
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--playground&viewMode=story&args=closeOnEscape:false;closeOnInteractOutside:false;keyboardNavigation:false"
+    "/iframe.html?id=molecules-tour--playground&viewMode=story&embed=true&args=closeOnEscape:false;closeOnInteractOutside:false;keyboardNavigation:false"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.keyboard.press("Escape")
@@ -289,7 +304,7 @@ for (const scenario of [
     page,
   }) => {
     await page.goto(
-      `/iframe.html?id=molecules-tour--${scenario.story}&viewMode=story&args=preventInteraction:true`
+      `/iframe.html?id=molecules-tour--${scenario.story}&viewMode=story&embed=true&args=preventInteraction:true`
     )
     await page.getByRole("button", { name: "Start tour" }).click()
     const blocked = await page
@@ -333,7 +348,7 @@ test("late targets become inert and are restored after dismissal", async ({
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--late-target&viewMode=story&args=preventInteraction:true"
+    "/iframe.html?id=molecules-tour--late-target&viewMode=story&embed=true&args=preventInteraction:true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Reveal target" }).click()
@@ -349,7 +364,7 @@ test("existing targets become inert and are restored after advancing", async ({
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--playground&viewMode=story&args=preventInteraction:true"
+    "/iframe.html?id=molecules-tour--playground&viewMode=story&embed=true&args=preventInteraction:true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Next", exact: true }).click()
@@ -372,7 +387,7 @@ test("preserves application inert added to a late target during the tour", async
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--late-target&viewMode=story&args=preventInteraction:true"
+    "/iframe.html?id=molecules-tour--late-target&viewMode=story&embed=true&args=preventInteraction:true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Reveal target" }).click()
@@ -394,7 +409,7 @@ test("preserves application inert added to an existing target when advancing", a
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--playground&viewMode=story&args=preventInteraction:true"
+    "/iframe.html?id=molecules-tour--playground&viewMode=story&embed=true&args=preventInteraction:true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Next", exact: true }).click()
@@ -418,7 +433,7 @@ test("preserves application inert added to an existing target when advancing", a
 
 test("preserves application inert that predates the tour", async ({ page }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--playground&viewMode=story&args=preventInteraction:true"
+    "/iframe.html?id=molecules-tour--playground&viewMode=story&embed=true&args=preventInteraction:true"
   )
   const target = page.locator("button").filter({ hasText: "Create project" })
   await target.evaluate((element: HTMLButtonElement) => {
@@ -444,7 +459,7 @@ test("restores interaction when the application withdraws inert during the tour"
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--playground&viewMode=story&args=preventInteraction:true"
+    "/iframe.html?id=molecules-tour--playground&viewMode=story&embed=true&args=preventInteraction:true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Next", exact: true }).click()
@@ -470,7 +485,7 @@ test("preserves application inert added immediately before dismissal", async ({
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--late-target&viewMode=story&args=preventInteraction:true"
+    "/iframe.html?id=molecules-tour--late-target&viewMode=story&embed=true&args=preventInteraction:true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Reveal target" }).click()
@@ -502,7 +517,7 @@ test("preserves application inert added immediately before dismissal", async ({
 
 test("wait cleanup also runs on unmount", async ({ page }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--unmount-during-wait&viewMode=story"
+    "/iframe.html?id=molecules-tour--unmount-during-wait&viewMode=story&embed=true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await page.getByRole("button", { name: "Unmount tour" }).click()
@@ -513,7 +528,9 @@ test("mobile panels fit, scroll long content and retain reachable actions", asyn
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 568 })
-  await page.goto("/iframe.html?id=molecules-tour--long-content&viewMode=story")
+  await page.goto(
+    "/iframe.html?id=molecules-tour--long-content&viewMode=story&embed=true"
+  )
   await page.getByRole("button", { name: "Start tour" }).click()
   const panel = page.getByRole("alertdialog")
   await expect(panel).toBeVisible()
@@ -524,15 +541,29 @@ test("mobile panels fit, scroll long content and retain reachable actions", asyn
       right: rect.right,
       y: rect.y,
       bottom: rect.bottom,
-      scrollable: element.scrollHeight > element.clientHeight,
+      viewportRight: document.documentElement.getBoundingClientRect().right,
+      scrollable: (() => {
+        const description = element.querySelector('[data-part="description"]')
+        return Boolean(
+          description && description.scrollHeight > description.clientHeight
+        )
+      })(),
     }
   })
   expect(geometry.x).toBeGreaterThanOrEqual(16)
-  expect(geometry.right).toBeLessThanOrEqual(304)
+  expect(geometry.right).toBeLessThanOrEqual(geometry.viewportRight - 16)
   expect(geometry.y).toBeGreaterThanOrEqual(16)
   expect(geometry.bottom).toBeLessThanOrEqual(552)
   expect(geometry.scrollable).toBe(true)
-  await page.screenshot({ path: "libs/ui/.scratch/tour-mobile-long.png" })
+  const description = panel.locator('[data-part="description"]')
+  await description.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  await expect
+    .poll(() => description.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0)
+  // Actions remain outside the scrolling description and within the viewport.
+  await expect(page.getByRole("button", { name: "Finish" })).toBeInViewport()
   await page.getByRole("button", { name: "Finish" }).click()
   await expect(panel).toHaveCount(0)
   await startTour(page)
@@ -557,7 +588,7 @@ test("scrolls to a target and keeps its spotlight aligned after scrolling", asyn
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-tour--scroll-target&viewMode=story"
+    "/iframe.html?id=molecules-tour--scroll-target&viewMode=story&embed=true"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
   await expect(

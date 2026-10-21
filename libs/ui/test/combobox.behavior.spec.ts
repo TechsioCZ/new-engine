@@ -239,6 +239,35 @@ for (const [brand, mode] of [
   })
 }
 
+test("reset authority play preserves queries and submitted parent values", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-combobox--reset-authority&viewMode=story"
+  )
+  await page.waitForFunction(
+    () =>
+      Reflect.get(window, "__STORYBOOK_PREVIEW__")?.currentRender?.phase ===
+      "finished"
+  )
+  await expect(
+    page.getByRole("combobox", { name: "Initial country query" })
+  ).toHaveValue("Germany")
+  await expect(
+    page.getByRole("combobox", { name: "Saved country" })
+  ).toHaveValue("Czech Republic")
+  await expect(
+    page.getByRole("combobox", { name: "Authoritative query" })
+  ).toHaveValue("Parent query")
+  expect(
+    await page
+      .getByRole("form", { name: "Reset country authority" })
+      .evaluate((form: HTMLFormElement) =>
+        Object.fromEntries(new FormData(form))
+      )
+  ).toEqual({ initial: "de", saved: "cz", query: "cz" })
+})
+
 test("external filtering displays only the latest debounced query", async ({
   page,
 }) => {

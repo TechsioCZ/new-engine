@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import type { ComponentPropsWithoutRef } from "react"
 import { useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { Skeleton } from "../../src/atoms/skeleton"
 import { Button } from "../../src/atoms/button"
 
@@ -136,7 +136,11 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     const status = canvas.getByRole("status", { name: "Loading content" })
     await expect(status).toHaveAttribute("aria-busy", "true")
     await expect(canvas.getAllByRole("status")).toHaveLength(1)
-    await expect(status.querySelectorAll('[aria-hidden="true"]')).toHaveLength(
+    const placeholders = status.querySelector("[inert]")
+    await expect(placeholders).toHaveAttribute("aria-hidden", "true")
+    await expect(
+      placeholders?.querySelectorAll(':scope > [aria-hidden="true"]')
+    ).toHaveLength(
       [args.showRectangle, args.showText, args.showCircle].filter(Boolean)
         .length
     )
@@ -679,11 +683,14 @@ export const InteractionIsolation: Story = {
     const canvas = within(canvasElement)
     const toggle = canvas.getByRole("button", { name: "Toggle loading" })
     toggle.focus()
-    await userEvent.tab()
-    await expect(
-      canvas.getByRole("button", { name: "After placeholders" })
-    ).toHaveFocus()
-    await userEvent.tab({ shift: true })
+    // userEvent.tab does not model native inert tab order. Assert the browser's
+    // focus rejection here; actions.spec.ts covers real Tab traversal.
+    const hiddenAction = within(canvas.getByTestId("skeleton-group")).getByText(
+      "Root action"
+    )
+    await expect(hiddenAction.closest("[inert]")).not.toBeNull()
+    hiddenAction.focus()
+    await expect(hiddenAction).not.toHaveFocus()
     await expect(toggle).toHaveFocus()
     await expect(
       canvas.queryByRole("button", { name: "Rectangle action" })
@@ -692,9 +699,11 @@ export const InteractionIsolation: Story = {
       canvas.getByTestId("placeholder-activations")
     ).toHaveTextContent("0")
     await userEvent.click(toggle)
-    await expect(
-      canvasElement.querySelector("[inert], [aria-busy], [aria-hidden=true]")
-    ).toBeNull()
+    await waitFor(() =>
+      expect(
+        canvasElement.querySelector("[inert], [aria-busy], [aria-hidden=true]")
+      ).toBeNull()
+    )
     await userEvent.tab()
     await expect(
       canvas.getByRole("button", { name: "Root action" })

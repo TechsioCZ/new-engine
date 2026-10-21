@@ -1,4 +1,4 @@
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
@@ -557,6 +557,13 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const body = within(canvasElement.ownerDocument.body)
+    // The modal keeps the page inert until its exit finishes; wait before
+    // querying background controls.
+    const dialogClosed = () =>
+      waitFor(() => {
+        expect(body.queryByRole("dialog")).not.toBeInTheDocument()
+        expect(canvasElement.closest("[aria-hidden='true'], [inert]")).toBeNull()
+      })
     await userEvent.click(canvas.getByRole("button", { name: "Share" }))
     const recipient = body.getByLabelText("Recipient")
     await userEvent.clear(recipient)
@@ -566,6 +573,7 @@ export const Default: Story = {
     await userEvent.click(
       body.getByRole("button", { name: "Save share draft" })
     )
+    await dialogClosed()
     await userEvent.click(canvas.getByRole("button", { name: "Share" }))
     await expect(body.getByLabelText("Recipient")).toHaveValue(
       "saved@example.com"
@@ -576,15 +584,18 @@ export const Default: Story = {
     await userEvent.clear(body.getByLabelText("Message"))
     await userEvent.type(body.getByLabelText("Message"), "Cancelled message")
     await userEvent.keyboard("{Escape}")
+    await dialogClosed()
     await userEvent.click(canvas.getByRole("button", { name: "Share" }))
     await expect(body.getByLabelText("Message")).toHaveValue(
       "Saved share message"
     )
     await userEvent.keyboard("{Escape}")
+    await dialogClosed()
     await userEvent.click(
       canvas.getByRole("button", { name: "Load to customer" })
     )
     await userEvent.click(body.getByRole("button", { name: /^Load cart$/ }))
+    await dialogClosed()
     await expect(canvas.getByText("300 pcs", { exact: true })).toBeVisible()
     await userEvent.click(
       canvas.getByRole("button", { name: "Load to customer" })
@@ -593,6 +604,7 @@ export const Default: Story = {
       body.getByRole("switch", { name: "Merge with the live cart" })
     )
     await userEvent.click(body.getByRole("button", { name: /^Load cart$/ }))
+    await dialogClosed()
     await expect(canvas.getByText("200 pcs", { exact: true })).toBeVisible()
     await expect(
       canvas.queryByText("300 pcs", { exact: true })

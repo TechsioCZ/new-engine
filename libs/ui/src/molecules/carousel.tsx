@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.3.3
+ * @componentVersion v1.3.4
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -778,8 +778,11 @@ Carousel.Indicators = function CarouselIndicators({
       className={indicatorGroup({ className })}
       {...api.getIndicatorGroupProps()}
     >
-      {api.pageSnapPoints.map((snapPoint, index) => (
-        <Carousel.Indicator index={index} key={snapPoint} />
+      {api.pageSnapPoints.map((_, index) => (
+        // Page identity is its index, not its measured scroll offset. Replacing
+        // buttons during initial measurement/resize loses focus and queued input.
+        // biome-ignore lint/suspicious/noArrayIndexKey: Page indexes are the public indicator identity.
+        <Carousel.Indicator index={index} key={index} />
       ))}
     </div>
   )

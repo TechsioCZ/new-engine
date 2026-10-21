@@ -59,6 +59,11 @@ const meta: Meta<typeof CarouselTemplate> = {
       control: "inline-radio",
       options: ["horizontal", "vertical"],
     },
+    dir: { control: "inline-radio", options: ["ltr", "rtl"] },
+    slidesPerMove: {
+      control: { type: "number", min: 1, max: 3, step: 1 },
+      description: "Slides advanced per move, including a partial final page.",
+    },
     showControls: { control: "boolean" },
     showIndicators: { control: "boolean" },
     showAutoplay: {
@@ -90,6 +95,8 @@ const meta: Meta<typeof CarouselTemplate> = {
     showAutoplay: false,
     allowMouseDrag: true,
     slidesPerPage: 1,
+    slidesPerMove: 1,
+    dir: "ltr",
     onPageChange: fn(),
   },
   render: (args) => <CarouselTemplate {...args} />,
@@ -124,6 +131,24 @@ export const Vertical: Story = {
 export const NonLooping: Story = {
   name: "Non-looping destinations",
   args: { loop: false },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const previous = canvas.getByRole("button", { name: "Previous slide" })
+    const next = canvas.getByRole("button", { name: "Next slide" })
+    const indicators = canvas.getAllByRole("button", { name: /Go to slide/ })
+    await waitFor(() => expect(previous).toBeDisabled())
+    await userEvent.click(indicators.at(-1)!)
+    await waitFor(() => expect(next).toBeDisabled())
+    await expect(next).toHaveAttribute("aria-disabled", "true")
+    await userEvent.click(next)
+    await expect(indicators.at(-1)!).toHaveAttribute("aria-current", "true")
+    await userEvent.click(indicators[0]!)
+    await waitFor(() => expect(previous).toBeDisabled())
+    await expect(previous).toHaveAttribute("aria-disabled", "true")
+    await userEvent.click(previous)
+    await expect(indicators[0]!).toHaveAttribute("aria-current", "true")
+    await expect(next).toBeEnabled()
+  },
   parameters: {
     docs: {
       description: {

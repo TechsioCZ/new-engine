@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type MouseEvent, useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { StatusText } from "../../src/atoms/status-text"
 import { Button } from "../../src/atoms/button"
@@ -158,6 +158,17 @@ export function ProductNavigation() {
                 </VerticalNavigation.List>
               </VerticalNavigation.BranchContent>
             </VerticalNavigation.Branch>
+          </VerticalNavigation.List>
+        </VerticalNavigation.Group>
+        <VerticalNavigation.Separator />
+        <VerticalNavigation.Group>
+          <VerticalNavigation.GroupLabel>Support</VerticalNavigation.GroupLabel>
+          <VerticalNavigation.List>
+            <VerticalNavigation.Item>
+              <VerticalNavigation.Link current={current === "Contact"} href="#contact" onClick={(event) => navigate(event, "Contact")}>
+                Contact
+              </VerticalNavigation.Link>
+            </VerticalNavigation.Item>
           </VerticalNavigation.List>
         </VerticalNavigation.Group>
       </VerticalNavigation>
@@ -566,6 +577,17 @@ export const Playground: Story = {
             </VerticalNavigation.Branch>
           </VerticalNavigation.List>
         </VerticalNavigation.Group>
+        <VerticalNavigation.Separator />
+        <VerticalNavigation.Group>
+          <VerticalNavigation.GroupLabel>Support</VerticalNavigation.GroupLabel>
+          <VerticalNavigation.List>
+            <VerticalNavigation.Item>
+              <VerticalNavigation.Link current={current === "Contact"} href="#contact" onClick={(event) => navigate(event, "Contact")}>
+                Contact
+              </VerticalNavigation.Link>
+            </VerticalNavigation.Item>
+          </VerticalNavigation.List>
+        </VerticalNavigation.Group>
       </VerticalNavigation>
       <p className="sr-only" data-testid="current-page" role="status">Current page: {current}</p>
     </div>
@@ -578,12 +600,17 @@ export const Playground: Story = {
     await userEvent.click(canvas.getByRole("link", { name: "Nuts" }))
     await expect(canvas.getByRole("link", { name: "Nuts" })).toHaveAttribute("aria-current", "page")
     await userEvent.click(trigger)
-    await expect(trigger).toHaveAttribute("aria-expanded", "false")
-    await expect(canvas.queryByRole("link", { name: "Nuts" })).not.toBeInTheDocument()
+    // Controlled parent state and Zag's disclosure projection settle separately.
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute("aria-expanded", "false")
+      expect(canvas.queryByRole("link", { name: "Nuts" })).not.toBeInTheDocument()
+    })
     trigger.focus()
     await userEvent.keyboard("{Enter}")
-    await expect(trigger).toHaveAttribute("aria-expanded", "true")
-    await expect(canvas.getByRole("link", { name: "Nuts" })).toHaveAttribute("aria-current", "page")
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute("aria-expanded", "true")
+      expect(canvas.getByRole("link", { name: "Nuts" })).toHaveAttribute("aria-current", "page")
+    })
     await expect(canvasElement.ownerDocument.location.href).toBe(before)
   },
 }
@@ -698,7 +725,7 @@ export const Sizes: Story = {
       {(["sm", "md", "lg"] as const).map((size) => (
         <VariantGroup key={size} title={size === "sm" ? "Small (sm)" : size === "md" ? "Medium (md)" : "Large (lg)"}>
           <div data-navigation-story="">
-            <CategoryNavigation {...args} label="Product categories" size={size} />
+            <CategoryNavigation {...args} label={`Product categories - ${size}`} size={size} />
           </div>
         </VariantGroup>
       ))}

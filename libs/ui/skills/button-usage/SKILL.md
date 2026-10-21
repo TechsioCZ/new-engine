@@ -9,7 +9,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "Button"
-  component_version: "0.6.0"
+  component_version: "0.6.1"
 requires:
   - component-usage-ux
   - app-token-overrides
@@ -262,3 +262,6 @@ Internal kit compositions may set `composition` to omit Button-only font weight
 and press scaling, while retaining focus/disabled behavior; the owning component
 must then supply its own typography. `theme="unstyled"` alone retains the
 existing Button typography/press contract for compatibility.
+
+Consumer refs remain attached across ordinary Button rerenders; callback-ref
+cleanup is not triggered merely by a loading or label update.
