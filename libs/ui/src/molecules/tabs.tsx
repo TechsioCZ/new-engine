@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,6 +19,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react"
@@ -577,6 +578,109 @@ Tabs.Content = function TabsContent({
   )
 }
 
+type TabsIndicatorRect = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+function measureTabIndicator(indicator: HTMLElement, list: HTMLElement) {
+  const selected = Array.from(
+    list.querySelectorAll<HTMLElement>('[role="tab"][aria-selected="true"]')
+  ).find((trigger) => trigger.closest('[role="tablist"]') === list)
+  if (!selected) {
+    return null
+  }
+  // Both elements scroll with the list. Convert viewport coordinates back to
+  // the indicator's padding-box containing block, not to the visible scrollport.
+  // Physical scrollLeft also works for RTL, where it can be negative.
+  const parent = (indicator.offsetParent as HTMLElement | null) ?? list
+  const parentBox = parent.getBoundingClientRect()
+  const box = selected.getBoundingClientRect()
+  return {
+    x: box.left - parentBox.left - parent.clientLeft + parent.scrollLeft,
+    y: box.top - parentBox.top - parent.clientTop + parent.scrollTop,
+    width: box.width,
+    height: box.height,
+  }
+}
+
+function useTabIndicatorRect(ref: RefObject<HTMLDivElement | null>) {
+  const [rect, setRect] = useState<TabsIndicatorRect | null>(null)
+  useLayoutEffect(() => {
+    const indicator = ref.current
+    const list = indicator?.closest<HTMLElement>('[role="tablist"]')
+    if (!(indicator && list)) {
+      return
+    }
+    let frame = 0
+    const measure = () => {
+      const next = measureTabIndicator(indicator, list)
+      setRect((previous) =>
+        previous?.x === next?.x &&
+        previous?.y === next?.y &&
+        previous?.width === next?.width &&
+        previous?.height === next?.height
+          ? previous
+          : next
+      )
+    }
+    const schedule = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    }
+    const resize = new ResizeObserver(schedule)
+    const observeSizes = () => {
+      resize.disconnect()
+      resize.observe(list)
+      for (const trigger of list.querySelectorAll('[role="tab"]')) {
+        if (trigger.closest('[role="tablist"]') === list) {
+          resize.observe(trigger)
+        }
+      }
+    }
+    const mutation = new MutationObserver((records) => {
+      // Our own geometry writes must not feed back into the measurement loop.
+      const changes = records.filter(
+        (record) => !indicator.contains(record.target)
+      )
+      if (changes.some((record) => record.type === "childList")) {
+        observeSizes()
+      }
+      if (changes.length) {
+        schedule()
+      }
+    })
+    mutation.observe(list, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: [
+        "aria-selected",
+        "class",
+        "style",
+        "dir",
+        "data-orientation",
+      ],
+    })
+    observeSizes()
+    // Zag caches offset rectangles on selection/resize only. Scroll and
+    // position-only changes (gap, alignment, direction) need their own refresh.
+    list.addEventListener("scroll", schedule, { passive: true })
+    window.addEventListener("resize", schedule)
+    measure()
+    return () => {
+      cancelAnimationFrame(frame)
+      resize.disconnect()
+      mutation.disconnect()
+      list.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
+    }
+  }, [ref])
+  return rect
+}
+
 // Indicator component
 type TabsIndicatorProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
@@ -588,13 +692,32 @@ Tabs.Indicator = function TabsIndicator({
   ...props
 }: TabsIndicatorProps) {
   const { api, styles } = useTabsContext()
+  const indicatorElement = useRef<HTMLDivElement | null>(null)
+  const rect = useTabIndicatorRect(indicatorElement)
+  const indicatorProps = api.getIndicatorProps()
 
   return (
     <div
       className={styles.indicator({ className })}
-      ref={ref}
-      {...api.getIndicatorProps()}
+      {...indicatorProps}
+      hidden={!rect}
+      style={{
+        ...indicatorProps.style,
+        "--left": `${rect?.x ?? 0}px`,
+        "--top": `${rect?.y ?? 0}px`,
+        "--width": `${rect?.width ?? 0}px`,
+        "--height": `${rect?.height ?? 0}px`,
+      }}
       {...props}
+      ref={(node) => {
+        indicatorElement.current = node
+        if (typeof ref === "function") {
+          return ref(node)
+        }
+        if (ref) {
+          ref.current = node
+        }
+      }}
     />
   )
 }

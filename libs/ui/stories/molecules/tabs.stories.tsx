@@ -803,7 +803,7 @@ export const ScrollableAlignment: Story = {
     docs: {
       description: {
         story:
-          "Large tab labels scroll inside narrow surfaces. Center and end alignment fall back to the leading edge when space runs out, in both text directions; the active underline stays inside the scrollport.",
+          "Large tab labels scroll inside narrow surfaces. Center and end alignment fall back to the leading edge in both text directions. The underline tracks selection through automatic/manual keyboard activation, direct scrolling and position-only layout changes.",
       },
     },
   },
@@ -813,7 +813,14 @@ export const ScrollableAlignment: Story = {
         (["center", "end"] as const).map((justify) => (
           <section className="w-xs max-w-full" key={`${dir}-${justify}`}>
             <h3 className="mb-150 font-semibold">{dir} / {justify}</h3>
-            <Tabs defaultValue="overview" dir={dir} justify={justify} size="lg" variant="line">
+            <Tabs
+              activationMode={justify === "end" ? "manual" : "automatic"}
+              defaultValue="overview"
+              dir={dir}
+              justify={justify}
+              size="lg"
+              variant="line"
+            >
               <Tabs.List aria-label={`${dir} ${justify} project views`}>
                 <Tabs.Trigger value="overview">Project overview</Tabs.Trigger>
                 <Tabs.Trigger value="details">Technical details</Tabs.Trigger>
@@ -850,19 +857,57 @@ export const ScrollableAlignment: Story = {
       await expect(firstBox.right).toBeLessThanOrEqual(listBox.right + 1)
       const indicator = list.querySelector('[data-part="indicator"]')
       if (!indicator) throw new Error("Missing selected-tab indicator")
-      await waitFor(() => {
-        const indicatorBox = indicator.getBoundingClientRect()
-        expect(indicatorBox.height).toBeGreaterThan(0)
-        expect(indicatorBox.bottom).toBeLessThanOrEqual(listBox.bottom)
-        expect(indicatorBox.top).toBeGreaterThanOrEqual(listBox.top)
-      })
+      const expectAligned = async () => {
+        await waitFor(() => {
+          const selected = within(list).getByRole("tab", { selected: true })
+          const selectedBox = selected.getBoundingClientRect()
+          const indicatorBox = indicator.getBoundingClientRect()
+          expect(indicatorBox.height).toBeGreaterThan(0)
+          expect(Math.abs(indicatorBox.left - selectedBox.left)).toBeLessThan(2)
+          expect(Math.abs(indicatorBox.width - selectedBox.width)).toBeLessThan(2)
+          expect(Math.abs(indicatorBox.bottom - selectedBox.bottom)).toBeLessThan(
+            3
+          )
+        })
+      }
+      const manual = list.getAttribute("aria-label")?.includes("end")
+      await expectAligned()
       await userEvent.click(last)
       await expect(last).toHaveAttribute("aria-selected", "true")
+      await expectAligned()
+      // A gap changes positions but not any observed border-box size. The old
+      // resize-only rectangle stayed stale indefinitely, including after scroll.
+      list.style.columnGap = "var(--spacing-200)"
+      list.scrollLeft = list.dir === "rtl" ? -111 : 111
+      await expectAligned()
+      list.scrollLeft = 0
+      await expectAligned()
       await userEvent.keyboard("{Home}")
-      await waitFor(() => {
-        expect(first).toHaveFocus()
-        expect(first).toHaveAttribute("aria-selected", "true")
-      })
+      await waitFor(() => expect(first).toHaveFocus())
+      if (manual) {
+        await expect(last).toHaveAttribute("aria-selected", "true")
+        await expectAligned()
+        await userEvent.keyboard("{Enter}")
+      }
+      await waitFor(() => expect(first).toHaveAttribute("aria-selected", "true"))
+      await expectAligned()
+      await userEvent.keyboard(
+        list.dir === "rtl" ? "{ArrowLeft}" : "{ArrowRight}"
+      )
+      await waitFor(() => expect(tabs[1]).toHaveFocus())
+      if (manual) {
+        await expect(first).toHaveAttribute("aria-selected", "true")
+        await expectAligned()
+        await userEvent.keyboard("{Enter}")
+      }
+      await waitFor(() => expect(tabs[1]).toHaveAttribute("aria-selected", "true"))
+      await expectAligned()
+      list.style.removeProperty("column-gap")
+      await userEvent.keyboard("{Home}")
+      await waitFor(() => expect(first).toHaveFocus())
+      if (manual) await userEvent.keyboard("{Enter}")
+      await waitFor(() => expect(first).toHaveAttribute("aria-selected", "true"))
+      await expectAligned()
     }
     const selected = within(canvas.getByRole("tablist", { name: "Default selection cue" })).getByRole("tab", { selected: true })
     await expect(getComputedStyle(selected).textDecorationLine).toContain("underline")

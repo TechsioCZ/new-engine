@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Tabs v1.2.3
+- The indicator tracks the selected tab across selection, keyboard navigation, strip scrolling and layout shifts in LTR and RTL, measured in its own containing block instead of a cached rectangle.
+
 ### Combobox v1.6.4
 - Controlled queries follow an ordered acknowledgement queue: in-order late acknowledgements never drop typing or move the caret, deliberate restores after acknowledgement apply while focused, and edits equal to the current value complete immediately. A restore to a still-unacknowledged value is indistinguishable from its acknowledgement; async parents must discard out-of-order responses.
 

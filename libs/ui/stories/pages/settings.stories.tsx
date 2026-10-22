@@ -661,6 +661,7 @@ export const Default: Story = {
         const selectedBox = tab.getBoundingClientRect()
         const indicatorBox = indicator.getBoundingClientRect()
         await expect(Math.abs(selectedBox.left - indicatorBox.left)).toBeLessThan(2)
+        await expect(Math.abs(selectedBox.width - indicatorBox.width)).toBeLessThan(2)
         await expect(Math.abs(selectedBox.bottom - indicatorBox.bottom)).toBeLessThan(3)
       })
     }
@@ -690,6 +691,7 @@ export const Default: Story = {
     )
     await expect(member).toBeInTheDocument()
     await userEvent.click(canvas.getByRole("tab", { name: "Checkout" }))
+    await expectSelectedIndicator("Checkout")
     const returns = canvas.getByRole("spinbutton", { name: /Return window/ })
     await userEvent.clear(returns)
     await userEvent.type(returns, "-5")

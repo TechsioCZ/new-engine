@@ -6,7 +6,7 @@ description: >
   triggers, content, indicator, orientation, activation mode, variants, fitted,
   and justify props.
 metadata:
-  component_version: "1.2.2"
+  component_version: "1.2.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -213,3 +213,5 @@ scroll within their own strip, including manual activation and RTL.
 
 Only one trigger drives strip scrolling at a time, so the selected underline
 stays beneath its own tab.
+
+The indicator tracks the selected tab across selection, keyboard navigation, strip scrolling and layout shifts in LTR and RTL, measured in its own containing block instead of a cached rectangle.
