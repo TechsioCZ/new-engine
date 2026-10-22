@@ -5,7 +5,7 @@ description: >
   accessible rating capture or display using the Zag.js rating-group wrapper,
   supported value/count/allowHalf/readOnly/displayOnly/disabled props, and token styling.
 metadata:
-  component_version: "1.3.2"
+  component_version: "1.3.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -264,5 +264,3 @@ state to it. Handle the form's `onReset` to intentionally change parent state.
 Canceled resets leave every channel unchanged. Reset does not synthesize events
 or move focus; the first real user edit afterward emits exactly one normal
 callback, including when the same value was entered before reset.
-
-Scales never wrap; longer scales scroll within the rating instead.

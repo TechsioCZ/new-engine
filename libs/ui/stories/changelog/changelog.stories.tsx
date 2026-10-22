@@ -41,9 +41,6 @@ const CHANGELOG = `
 ### ProductCard v1.3.2
 - Stack row cards responsively to their container so ratings and primary actions keep their space.
 
-### Rating v1.3.2
-- Keep rating scales on one line and scroll longer scales internally instead of wrapping.
-
 ### Tabs v1.2.2
 - Keep the selected underline on its own tab row by preventing selected and focused triggers from competing for strip scrolling.
 
