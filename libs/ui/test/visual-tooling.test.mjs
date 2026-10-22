@@ -37,6 +37,8 @@ import {
   resolveVisualTheme,
 } from "./visual-projects.mjs"
 import {
+  detectClientBoundaries,
+  getClientBoundaryModules,
   hasClientDirective,
   needsClientBoundary,
 } from "./visual-rsc-boundaries.mjs"
@@ -255,6 +257,80 @@ test("client ownership is selective and emitted directives must be in the prolog
     hasClientDirective('// "use client"\nexport const value = 1'),
     false
   )
+})
+
+test("client member reads and compound composition require a boundary, unlike plain client children", () => {
+  const isClientModule = (specifier) => specifier === "./select"
+  for (const expression of [
+    "export const Template = () => <Select.Control />",
+    "export const Template = () => <Select.Control><Select.Trigger /></Select.Control>",
+    'export const Control = Select["Control"]',
+    "const { Control } = Select",
+    "export { Select }",
+    "export const Compound = Object.assign(Root, { Select })",
+    "Root.Select = Select",
+  ]) {
+    const source = `import { Select } from './select'; ${expression}`
+    assert.equal(needsClientBoundary(source), false, expression)
+    assert.equal(needsClientBoundary(source, isClientModule), true, expression)
+  }
+  for (const source of [
+    "import { Select as Choice } from './select'; const Control = Choice.Control",
+    "import Select from './select'; const Control = Select.Control",
+    "import * as UI from './select'; const Template = () => <UI.Select />",
+    "export { Select } from './select'",
+    "export * from './select'",
+  ]) {
+    assert.equal(needsClientBoundary(source, isClientModule), true, source)
+  }
+  for (const source of [
+    "import { Select } from './select'; const Page = () => <Select />",
+    "import { Select } from './select'; const Page = () => <Select></Select>",
+    "import type { Select } from './select'; type Control = Select.Control",
+    "import { type Select } from './select'; type Control = Select.Control",
+    "import { Select } from './select'; type Control = typeof Select.Control",
+    "import { Select } from './select'; export type { Select }",
+    "export type { Select } from './select'",
+    "export { type Select } from './select'",
+    "import { Select } from './server'; const Control = Select.Control",
+  ]) {
+    assert.equal(needsClientBoundary(source, isClientModule), false, source)
+  }
+})
+
+test("client ownership propagates through re-exports and cycles independent of source order", () => {
+  const sources = new Map([
+    [
+      "/src/template.tsx",
+      "import { Select } from '@/alias'; export const Template = () => <Select.Control />",
+    ],
+    ["/src/alias.ts", "export { Select } from './cycle'"],
+    [
+      "/src/cycle.ts",
+      "export * from './alias'; export { Select } from './select'",
+    ],
+    ["/src/select.tsx", '"use client"; export function Select() {}'],
+    [
+      "/src/page.tsx",
+      "import { Select } from './alias'; export const Page = () => <Select />",
+    ],
+  ])
+  assert.deepEqual([...detectClientBoundaries(sources, "/src")].sort(), [
+    "/src/alias.ts",
+    "/src/cycle.ts",
+    "/src/select.tsx",
+    "/src/template.tsx",
+  ])
+})
+
+test("all hook-free compound templates are included in the build boundary set", () => {
+  const sourceRoot = new URL("../src/", import.meta.url).pathname
+  const clients = getClientBoundaryModules(sourceRoot)
+  for (const template of ["select", "popover", "numeric-input", "gallery"]) {
+    const filename = `${sourceRoot}templates/${template}.tsx`
+    assert.equal(needsClientBoundary(readFileSync(filename, "utf8")), false)
+    assert.equal(clients.has(filename), true, template)
+  }
 })
 
 test("CI and forced publication require the same immutable-SHA quality workflow", () => {

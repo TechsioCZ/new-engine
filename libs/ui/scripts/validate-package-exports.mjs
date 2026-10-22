@@ -3,8 +3,8 @@ import { access, glob, readFile } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
+  getClientBoundaryModules,
   hasClientDirective,
-  needsClientBoundary,
 } from "../test/visual-rsc-boundaries.mjs"
 import { validateCompoundDeclarations } from "./validate-compound-declarations.mjs"
 
@@ -94,6 +94,8 @@ console.log(
 )
 
 // A source-only directive check misses transformations that strip the prologue.
+const clientModules = getClientBoundaryModules(resolve(packageRoot, "src"))
+let checkedBoundaries = 0
 for (const [subpath, target] of publicRuntimeTargets) {
   const sourceStem = resolve(
     packageRoot,
@@ -112,10 +114,13 @@ for (const [subpath, target] of publicRuntimeTargets) {
   if (!sourcePath) {
     continue
   }
-  if (
-    needsClientBoundary(await readFile(sourcePath, "utf8")) &&
-    !hasClientDirective(await readFile(resolve(packageRoot, target), "utf8"))
-  ) {
-    throw new Error(`${subpath} is missing its emitted React client boundary`)
+  if (clientModules.has(sourcePath)) {
+    if (
+      !hasClientDirective(await readFile(resolve(packageRoot, target), "utf8"))
+    ) {
+      throw new Error(`${subpath} is missing its emitted React client boundary`)
+    }
+    checkedBoundaries += 1
   }
 }
+console.log(`Validated ${checkedBoundaries} emitted React client boundaries.`)
