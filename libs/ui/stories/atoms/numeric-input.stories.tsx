@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { StorySurface, VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
@@ -1304,5 +1304,79 @@ export const NativeResetTracker: Story = {
         }
       }
     }
+  },
+}
+
+export const DeferredParentAcknowledgement: Story = {
+  tags: ["ui-semantic-regression"],
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: "A controlled parent can acknowledge an earlier blur after the next edit has started. Releasing that old commit must not replace the new native draft; external replacement and native reset still take authority.",
+      },
+    },
+  },
+  render() {
+    const [value, setValue] = useState("2")
+    const committed = useRef("2")
+    return (
+      <form className="grid w-full max-w-md gap-100">
+        <NumericInput
+          clampValueOnBlur={false}
+          locale="en-US"
+          max={10}
+          min={1}
+          name="quantity"
+          onValueChange={(details) => setValue(details.value)}
+          onValueCommit={(details) => { committed.current = details.value }}
+          precision={0}
+          value={value}
+        >
+          <NumericInput.Control>
+            <NumericInput.Input aria-label="Deferred quantity" />
+          </NumericInput.Control>
+        </NumericInput>
+        <output aria-label="Parent value">{value}</output>
+        <Button
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => setValue(committed.current)}
+          variant="secondary"
+        >
+          Acknowledge earlier commit
+        </Button>
+        <Button onClick={() => setValue("12")} variant="secondary">
+          Replace with earlier quantity
+        </Button>
+        <Button onClick={() => setValue("7")} variant="secondary">
+          Replace from parent
+        </Button>
+        <Button type="reset" variant="secondary">Reset quantity</Button>
+      </form>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("spinbutton", { name: "Deferred quantity" }) as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.type(input, "12", { delay: 0 })
+    await userEvent.tab()
+    await expect(input).toHaveValue("12")
+    await userEvent.clear(input)
+    await userEvent.type(input, "1.", { delay: 0 })
+    await userEvent.click(canvas.getByRole("button", { name: "Acknowledge earlier commit" }))
+    await expect(canvas.getByLabelText("Parent value")).toHaveTextContent(/^12$/)
+    await expect(input).toHaveValue("1.")
+    await userEvent.type(input, "5", { delay: 0 })
+    await userEvent.tab()
+    await expect(input).toHaveValue("1.5")
+    await expect(input).toHaveAttribute("aria-valuenow", "1.5")
+    await expect(new FormData(input.form!).get("quantity")).toBe("1.5")
+    await userEvent.click(canvas.getByRole("button", { name: "Replace with earlier quantity" }))
+    await expect(input).toHaveValue("12")
+    await userEvent.click(canvas.getByRole("button", { name: "Replace from parent" }))
+    await expect(input).toHaveValue("7")
+    await userEvent.click(canvas.getByRole("button", { name: "Reset quantity" }))
+    await waitFor(() => expect(input).toHaveValue("7"))
   },
 }

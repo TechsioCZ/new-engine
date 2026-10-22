@@ -2,7 +2,7 @@
  * Header — @techsio/ui-kit organism.
  *
  * @component Header
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill header-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -240,12 +240,20 @@ export function Header({
         focusWasInMobile = false
       }
     }
+    const view = trigger.ownerDocument.defaultView
     trigger.ownerDocument.addEventListener("focusin", rememberFocus)
-    const observer = new ResizeObserver(reconcile)
-    observer.observe(header)
+    // Test DOMs and older embeds may lack ResizeObserver; viewport resizes
+    // still cover breakpoint changes there.
+    const Observer = view?.ResizeObserver
+    const observer = Observer ? new Observer(reconcile) : undefined
+    observer?.observe(header)
+    if (!observer) {
+      view?.addEventListener("resize", reconcile)
+    }
     reconcile()
     return () => {
-      observer.disconnect()
+      observer?.disconnect()
+      view?.removeEventListener("resize", reconcile)
       trigger.ownerDocument.removeEventListener("focusin", rememberFocus)
     }
   }, [mobileMenuId])

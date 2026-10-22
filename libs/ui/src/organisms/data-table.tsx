@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.2
+ * @componentVersion v1.4.3
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -2419,16 +2419,20 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     // Sticky offsets can change the observed layout. Commit outside observer
     // delivery so WebKit does not defer a second resize in the same frame.
     let frame = 0
-    const observer = new ResizeObserver(() => {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(measure)
-    })
+    // Test DOMs may lack ResizeObserver; the initial measurement still runs.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(() => {
+            cancelAnimationFrame(frame)
+            frame = requestAnimationFrame(measure)
+          })
     for (const node of nodes) {
-      observer.observe(node)
+      observer?.observe(node)
     }
     measure()
     return () => {
-      observer.disconnect()
+      observer?.disconnect()
       cancelAnimationFrame(frame)
     }
   }, [stickyHeader, headerGroupCount])
@@ -3079,17 +3083,20 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       )
     }
     let frame = 0
-    const observer = new ResizeObserver(() => {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(measure)
-    })
-    observer.observe(host)
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(() => {
+            cancelAnimationFrame(frame)
+            frame = requestAnimationFrame(measure)
+          })
+    observer?.observe(host)
     for (const cell of cells) {
-      observer.observe(cell)
+      observer?.observe(cell)
     }
     measure()
     return () => {
-      observer.disconnect()
+      observer?.disconnect()
       cancelAnimationFrame(frame)
     }
   }, [leafColumns, headerGroupCount, hasActionsColumn, stickyActions])

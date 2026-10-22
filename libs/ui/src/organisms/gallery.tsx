@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -330,9 +330,13 @@ Gallery.Thumbnails = function GalleryThumbnails({
       }
     }
     reveal()
-    const observer = new ResizeObserver(reveal)
-    observer.observe(rail)
-    return () => observer.disconnect()
+    // Test DOMs may lack ResizeObserver; the initial reveal still runs.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(reveal)
+    observer?.observe(rail)
+    return () => observer?.disconnect()
   }, [page, showThumbnails])
 
   if (!showThumbnails) {

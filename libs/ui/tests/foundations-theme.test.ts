@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { runInNewContext } from "node:vm"
 import postcss from "postcss"
-import { describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   isEffectivelyDisabled,
   subscribeEffectiveDisabled,
@@ -167,7 +167,15 @@ describe("shared owner-form reset subscription", () => {
 })
 
 describe("owner form reassociation", () => {
-  const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0))
+  // Fake timers make every pending reset callback run at a known point; real
+  // zero-delay timers raced the assertions on heavily loaded CI runners.
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+  const nextTask = () => vi.runAllTimersAsync()
   function fixture() {
     let notify: () => void = () => undefined
     const disconnected = { count: 0 }

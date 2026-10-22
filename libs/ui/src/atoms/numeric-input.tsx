@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,6 +22,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react"
 import { flushSync } from "react-dom"
 import {
@@ -36,7 +37,11 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
-import { syncReactFormControl } from "../internal/form-control-lifecycle"
+import {
+  createNumericInputEditing,
+  type NumericInputEditing,
+  syncNumericInputValue,
+} from "../internal/numeric-input-editing"
 import { tv } from "../utils"
 import { Button } from "./button"
 import type { IconType } from "./icon"
@@ -75,66 +80,15 @@ const readOnlySafeMachine: typeof numberInput.machine = {
   },
   implementations: {
     ...numberInput.machine.implementations,
-    effects: {
-      ...numberInput.machine.implementations?.effects,
-      trackFormControl({ scope, context, prop, action }) {
-        const root = scope.getById(
-          scope.ids?.root ?? `number-input:${scope.id}`
-        )
-        return trackChoiceFormControl(
-          root,
-          () => {
-            if (prop("value") === undefined) {
-              runSilentChoiceReset(context, () =>
-                context.set("value", context.initial("value"))
-              )
-            }
-            action(["syncInputElement"])
-          },
-          (disabled) => context.set("fieldsetDisabled", disabled)
-        )
-      },
-    },
     actions: {
       ...valueActions,
-      syncInputElement(params) {
-        const { scope } = params
-        const input = scope.getById<HTMLInputElement>(
-          scope.ids?.input ?? `number-input:${scope.id}:input`
-        )
-        valueActions.syncInputElement?.(params)
-        // Zag writes through the native prototype in a frame, after React's
-        // batched reset update. Synchronize immediately after its actual write,
-        // not from the preceding context snapshot. Keep Zag's cursor handling.
-        input?.ownerDocument.defaultView?.requestAnimationFrame(() => {
-          if (input.isConnected) {
-            syncReactFormControl(input)
-          }
-        })
-      },
       increment: guardValueAction(valueActions.increment),
       decrement: guardValueAction(valueActions.decrement),
       incrementToMax: guardValueAction(valueActions.incrementToMax),
       decrementToMin: guardValueAction(valueActions.decrementToMin),
-      setValue(params) {
-        // Zag handles INPUT.CHANGE in a microtask, outside React's native-event
-        // batch. Settle that update before the next keystroke or authority frame
-        // can observe the preceding value and overwrite a newer native draft.
-        flushSync(() => guardValueAction(valueActions.setValue)(params))
-        // A refusing parent need not render again. Check its latest decision
-        // after React's batch, without asking Zag to queue a stale value/cursor.
-        if (params.prop("value") !== undefined) {
-          const { scope } = params
-          const input = scope.getById<HTMLInputElement>(
-            scope.ids?.input ?? `number-input:${scope.id}:input`
-          )
-          input?.ownerDocument.defaultView?.requestAnimationFrame(() => {
-            const authoritativeValue = params.prop("value")
-            if (input.isConnected && authoritativeValue !== undefined) {
-              syncReactFormControl(input, authoritativeValue)
-            }
-          })
-        }
+      setValue() {
+        // Native input is captured synchronously by NumericInput.Input. Zag's
+        // queued event still sets its hint, but must not reread a mutable target.
       },
       setRawValue: guardValueAction(valueActions.setRawValue),
       clearValue: guardValueAction(valueActions.clearValue),
@@ -257,6 +211,8 @@ type NumericInputContextValue = {
   validateStatus: "default" | "error" | "success" | "warning"
   describedBy?: string
   controlledValue?: string
+  editing: NumericInputEditing
+  onNativeInput: (input: HTMLInputElement) => void
   isValidInputDraft?: (value: string) => boolean
   readOnly?: boolean
   disabled?: boolean
@@ -365,7 +321,79 @@ export function NumericInput({
     )
   }
 
-  const service = useMachine(readOnlySafeMachine, {
+  const [editing] = useState(createNumericInputEditing)
+  const [, refreshNativeValue] = useState(0)
+  const controlledValue = value === undefined ? undefined : formatValue(value)
+  const resolvedValue = editing.resolve(controlledValue)
+  const coordinatedMachine = useMemo<typeof numberInput.machine>(() => {
+    const actions = readOnlySafeMachine.implementations?.actions ?? {}
+    const authoritativeAction =
+      (action: typeof valueActions.increment) =>
+      (params: Parameters<NonNullable<typeof valueActions.increment>>[0]) => {
+        if (!(params.prop("readOnly") || params.computed("isDisabled"))) {
+          editing.reset()
+        }
+        action?.(params)
+      }
+    return {
+      ...readOnlySafeMachine,
+      implementations: {
+        ...readOnlySafeMachine.implementations,
+        effects: {
+          ...readOnlySafeMachine.implementations?.effects,
+          trackFormControl({ scope, context, prop, action }) {
+            const root = scope.getById(
+              scope.ids?.root ?? `number-input:${scope.id}`
+            )
+            return trackChoiceFormControl(
+              root,
+              () => {
+                editing.reset()
+                // Reset discards optimistic echoes too: a controlled reset
+                // restores the actual parent prop, without proposing a change.
+                flushSync(() => refreshNativeValue((current) => current + 1))
+                if (prop("value") === undefined) {
+                  runSilentChoiceReset(context, () =>
+                    context.set("value", context.initial("value"))
+                  )
+                }
+                action(["syncInputElement"])
+              },
+              (fieldsetDisabled) =>
+                context.set("fieldsetDisabled", fieldsetDisabled)
+            )
+          },
+        },
+        actions: {
+          ...actions,
+          syncInputElement({ scope, context, computed, event }) {
+            if (editing.nativeOwnsValue) {
+              return
+            }
+            const input = scope.getById<HTMLInputElement>(
+              scope.ids?.input ?? `number-input:${scope.id}:input`
+            )
+            const nextValue = event.type.endsWith("CHANGE")
+              ? context.get("value")
+              : computed("formattedValue")
+            if (input) {
+              editing.schedule(input, () =>
+                syncNumericInputValue(input, nextValue)
+              )
+            }
+          },
+          increment: authoritativeAction(actions.increment),
+          decrement: authoritativeAction(actions.decrement),
+          incrementToMax: authoritativeAction(actions.incrementToMax),
+          decrementToMin: authoritativeAction(actions.decrementToMin),
+          setRawValue: authoritativeAction(actions.setRawValue),
+          clearValue: authoritativeAction(actions.clearValue),
+        },
+      },
+    }
+  }, [editing])
+
+  const service = useMachine(coordinatedMachine, {
     ...machineProps,
     invalid,
     disabled,
@@ -381,7 +409,7 @@ export function NumericInput({
       : machineProps.ids,
     dir,
     locale,
-    value: value === undefined ? undefined : formatValue(value),
+    value: resolvedValue,
     defaultValue:
       defaultValue === undefined ? undefined : formatValue(defaultValue),
     formatOptions: resolvedFormatOptions,
@@ -389,10 +417,38 @@ export function NumericInput({
       if (isSilentChoiceReset(service.context)) {
         return
       }
+      editing.propose(details.value)
       onChange?.(details.valueAsNumber)
       machineProps.onValueChange?.(details)
     },
   })
+  useLayoutEffect(() => {
+    if (!editing.reconcile(controlledValue)) {
+      return
+    }
+    const input = service.scope.getById<HTMLInputElement>(
+      service.scope.ids?.input ?? `number-input:${service.scope.id}:input`
+    )
+    if (input && controlledValue !== undefined) {
+      syncNumericInputValue(input, controlledValue)
+    }
+  }, [controlledValue, editing, service])
+
+  const onNativeInput = (input: HTMLInputElement) => {
+    if (machineProps.readOnly || service.computed("isDisabled")) {
+      return
+    }
+    const draft = input.value
+    editing.edit(draft)
+    service.send({ type: "INPUT.CHANGE", value: draft, hint: "set" })
+    // Capture and notify in the native event, before another task or a queued
+    // projection can change input.value. This also renders a refusing parent’s
+    // unchanged authority, without waiting for it to rerender on our behalf.
+    flushSync(() => {
+      service.context.set("value", draft)
+      refreshNativeValue((current) => current + 1)
+    })
+  }
 
   // With no formatOptions Zag parses via parseFloat, so validate dot decimals
   // rather than applying a conflicting locale guard. Integer presentation must
@@ -453,7 +509,9 @@ export function NumericInput({
         errorMessageId: ariaErrorMessage,
         readOnly: machineProps.readOnly,
         disabled: inputDisabled,
-        controlledValue: value === undefined ? undefined : formatValue(value),
+        controlledValue: resolvedValue,
+        editing,
+        onNativeInput,
         isValidInputDraft,
       }}
     >
@@ -528,6 +586,8 @@ NumericInput.Input = function NumericInputInput({
     size,
     describedBy,
     controlledValue,
+    editing,
+    onNativeInput,
     isValidInputDraft,
     description,
     errors,
@@ -559,51 +619,17 @@ NumericInput.Input = function NumericInputInput({
   )
   // biome-ignore lint/correctness/useExhaustiveDependencies: Zag can synchronize the DOM after any machine update, even when the controlled draft is unchanged.
   useLayoutEffect(() => {
-    if (controlledValue === undefined) {
-      return
-    }
-    const view = inputRef.current?.ownerDocument.defaultView
-    if (!view) {
-      return
-    }
-    let cancelled = false
-    let frame: number | undefined
-    // Zag's React adapter dispatches input events in a microtask and then
-    // formats the DOM in a frame. Keep its input handler uncontrolled, and
-    // restore the authoritative text prop after that queued synchronization.
-    queueMicrotask(() => {
-      if (cancelled) {
-        return
-      }
-      frame = view.requestAnimationFrame(() => {
-        const input = inputRef.current
-        if (!input || input.value === controlledValue) {
-          return
-        }
-        const start = input.selectionStart
-        const end = input.selectionEnd
-        const direction = input.selectionDirection
-        input.value = controlledValue
-        if (
-          input.ownerDocument.activeElement === input &&
-          start !== null &&
-          end !== null
-        ) {
-          input.setSelectionRange(
-            Math.min(start, controlledValue.length),
-            Math.min(end, controlledValue.length),
-            direction ?? undefined
-          )
-        }
-      })
-    })
-    return () => {
-      cancelled = true
-      if (frame !== undefined) {
-        view.cancelAnimationFrame(frame)
-      }
-    }
-  }, [api, controlledValue])
+    const input = inputRef.current
+    const cancel =
+      input && controlledValue !== undefined
+        ? editing.schedule(input, () => {
+            if (input.value !== controlledValue) {
+              syncNumericInputValue(input, controlledValue)
+            }
+          })
+        : undefined
+    return () => cancel?.()
+  }, [api, controlledValue, editing])
 
   const ariaDescribedBy = joinDescribedBy(
     props["aria-describedby"],
@@ -621,6 +647,19 @@ NumericInput.Input = function NumericInputInput({
   const machineInputProps = api.getInputProps()
   const inputProps = mergeChoiceInputProps(props, {
     ...machineInputProps,
+    onChange(event) {
+      onNativeInput(event.currentTarget)
+    },
+    onBlur(event) {
+      editing.commit()
+      machineInputProps.onBlur?.(event)
+    },
+    onKeyDown(event) {
+      if (event.key === "Enter") {
+        editing.commit()
+      }
+      machineInputProps.onKeyDown?.(event)
+    },
     onBeforeInput(event) {
       if (!isValidInputDraft) {
         machineInputProps.onBeforeInput?.(event)

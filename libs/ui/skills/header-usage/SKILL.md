@@ -6,7 +6,7 @@ description: >
   nav, nav items, actions, hamburger, active state, size, direction, and token
   styling.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -165,3 +165,6 @@ Header.Desktop, Header.Mobile and Header.Hamburger use the header container’s 
 Header.NavItem active controls styling only. Mark the actual current destination link with aria-current="page"; inactive destinations omit it.
 
 Hamburger forwards Button props (including localized `aria-label`, event handlers and a React 19 `ref`). Prevent the click default to cancel toggling. On transition to desktop, the menu closes and focus moves to desktop navigation when the hidden mobile region held focus. Render Hamburger before Mobile so the next Tab enters the open navigation.
+
+Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
+the initial measurement still runs.

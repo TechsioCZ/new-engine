@@ -49,6 +49,95 @@ test("controlled strings retain empty/rejected drafts and honor parent updates",
   await expect(input).toHaveValue("7")
 })
 
+test("a previous blur frame cannot restore text between clear and typing", async ({
+  page,
+}) => {
+  await openStory(page, "controlled-draft")
+  const input = page.getByRole("spinbutton", { name: "Draft quantity" })
+  await input.fill("12")
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+  )
+  await page.evaluate(() => {
+    const view = window as NumericFrameWindow
+    view.numericFrames = new Map()
+    view.numericRequestFrame = window.requestAnimationFrame
+    view.numericCancelFrame = window.cancelAnimationFrame
+    let id = 0
+    window.requestAnimationFrame = (callback) => {
+      id -= 1
+      view.numericFrames.set(id, callback)
+      return id
+    }
+    window.cancelAnimationFrame = (frame) => {
+      if (frame < 0) {
+        view.numericFrames.delete(frame)
+      } else {
+        view.numericCancelFrame(frame)
+      }
+    }
+  })
+  try {
+    await input.press("Tab")
+    const previousFrames = await page.evaluate(() => [
+      ...(window as NumericFrameWindow).numericFrames.keys(),
+    ])
+    await input.focus()
+    await page.keyboard.press("ControlOrMeta+A")
+    await page.keyboard.press("Backspace")
+    await expect(input).toHaveValue("")
+    const values = await page.evaluate((ids) => {
+      const view = window as NumericFrameWindow
+      const editor = document.querySelector<HTMLInputElement>(
+        'input[role="spinbutton"]'
+      )
+      if (!editor) {
+        throw new Error("NumericInput editor is missing")
+      }
+      return ids.map((id) => {
+        const callback = view.numericFrames.get(id)
+        view.numericFrames.delete(id)
+        callback?.(performance.now())
+        return editor.value
+      })
+    }, previousFrames)
+    expect(values.every((value) => value === "")).toBe(true)
+    await page.keyboard.type("1.5", { delay: 0 })
+    await input.press("Tab")
+    await expect(input).toHaveValue("1.5")
+  } finally {
+    await page.evaluate(() => {
+      const view = window as NumericFrameWindow
+      window.requestAnimationFrame = view.numericRequestFrame
+      window.cancelAnimationFrame = view.numericCancelFrame
+      for (const callback of view.numericFrames.values()) {
+        callback(performance.now())
+      }
+      view.numericFrames.clear()
+    })
+  }
+  await expect(input).toHaveValue("1.5")
+})
+
+type NumericFrameWindow = Window &
+  typeof globalThis & {
+    numericFrames: Map<number, FrameRequestCallback>
+    numericRequestFrame: typeof requestAnimationFrame
+    numericCancelFrame: typeof cancelAnimationFrame
+  }
+
+test("late parent acknowledgements preserve typing while external values and reset win", async ({
+  page,
+}) => {
+  await openStory(page, "deferred-parent-acknowledgement")
+  await expect(
+    page.getByRole("spinbutton", { name: "Deferred quantity" })
+  ).toHaveValue("7")
+})
+
 test("legacy numeric and Zag callbacks each fire once, including NaN on clear", async ({
   page,
 }) => {

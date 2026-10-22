@@ -13,6 +13,21 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Header v1.2.1
+- Render without throwing when \`ResizeObserver\` is unavailable, as in jsdom consumer tests.
+
+### Gallery v1.1.1
+- Render without throwing when \`ResizeObserver\` is unavailable, as in jsdom consumer tests.
+
+### CascadeSelect v1.1.6
+- Render without throwing when \`ResizeObserver\` is unavailable, as in jsdom consumer tests.
+
+### DataTable v1.4.3
+- Render without throwing when \`ResizeObserver\` is unavailable, as in jsdom consumer tests.
+
+### NumericInput v1.3.3
+- Prevent stale blur synchronization and late controlled acknowledgements from overwriting newer edits after a field is cleared.
+
 ### Screenshot review fixes
 - Bound StatusText, NumericInput, Popover, PhoneInput, RadioCard and CRM/Settings demonstrations to the viewport; make submenu and Slider captures deterministic.
 - Share block padding and line-height floors across form controls so Select, Button, Input and Combobox heights match at every size.

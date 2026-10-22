@@ -6,7 +6,7 @@ description: >
   compound parts, parent or multiple selection, validation, and keyboard
   navigation.
 metadata:
-  component_version: "1.1.5"
+  component_version: "1.1.6"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -278,3 +278,6 @@ column or the keyboard-focused one. Desktop geometry is unchanged.
 
 The trigger reserves size-aware space for the clear action, so long selected
 paths truncate with an ellipsis before the clear button.
+
+Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
+the initial measurement still runs.

@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.5
+ * @componentVersion v1.1.6
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -847,11 +847,15 @@ CascadeSelect.Content = function CascadeSelectContent({
       })
     }
     scheduleReveal()
-    const observer = new ResizeObserver(scheduleReveal)
-    observer.observe(content)
+    // Test DOMs may lack ResizeObserver; the initial reveal still runs.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(scheduleReveal)
+    observer?.observe(content)
     return () => {
       view.cancelAnimationFrame(frame)
-      observer.disconnect()
+      observer?.disconnect()
     }
   }, [api.open, contentId, getRootNode, highlightedId, keyboardNavigation])
 
