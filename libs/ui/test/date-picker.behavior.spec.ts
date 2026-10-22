@@ -1343,13 +1343,19 @@ test.describe("DatePicker browser behavior", () => {
       await segment.pressSequentially(value)
     }
 
+    // Leave the segment editor before selecting days: its queued focus/display
+    // synchronization must not race the first calendar selection.
+    await page.locator(contentSelector).locator("button").first().focus()
+    await expect(firstEndpoint.locator('[data-type="year"]')).toHaveText("2026")
     await expect(hidden.nth(0)).toHaveValue("")
     await expect(hidden.nth(1)).toHaveValue("")
-    await page
-      .locator(
-        '[data-scope="date-picker"][data-part="table-cell-trigger"][data-value="2026-09-19"]'
-      )
-      .click()
+    const rangeStart = page.locator(
+      '[data-scope="date-picker"][data-part="table-cell-trigger"][data-value="2026-09-19"]'
+    )
+    await rangeStart.click()
+    await expect(rangeStart).toHaveAttribute("data-selected")
+    await expect(rangeStart).toHaveAttribute("data-range-start")
+    await expect(rangeStart).not.toHaveAttribute("data-range-end")
     await page
       .locator(
         '[data-scope="date-picker"][data-part="table-cell-trigger"][data-value="2026-09-20"]'

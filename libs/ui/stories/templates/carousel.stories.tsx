@@ -263,5 +263,20 @@ export const AutoplayWithoutNavigation: Story = {
     await waitFor(() =>
       expect(toggle).toHaveAccessibleName("Start slide rotation")
     )
+    // Rotation is verified above, but elapsed time must not choose the final
+    // destination. Scroll the paused carousel to its exact last snap point.
+    const slides = canvasElement.querySelector<HTMLElement>(
+      '[data-part="item-group"]'
+    )
+    if (!slides) throw new Error("Carousel slides are required")
+    slides.scrollTo({
+      left: slides.scrollWidth - slides.clientWidth,
+      behavior: "instant",
+    })
+    await waitFor(() => {
+      expect(visibleSlide()).toBe(String(travelSlides.length - 1))
+      expect(slides.scrollLeft).toBe(slides.scrollWidth - slides.clientWidth)
+      expect(toggle).toHaveAccessibleName("Start slide rotation")
+    })
   },
 }

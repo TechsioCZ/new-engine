@@ -150,6 +150,32 @@ export const Playground: Story = {
     onInputValueChange: fn(),
     onOpenChange: fn(),
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('combobox')
+    const trigger = canvasElement.querySelector<HTMLElement>(
+      '[data-scope="combobox"][data-part="trigger"]'
+    )
+    if (!trigger) throw new Error('Combobox trigger is required')
+    // Prime floating geometry before pointer-driven reopening. On the first
+    // layout the popup can cross the stationary pointer and highlight a row.
+    input.focus()
+    await userEvent.keyboard('{ArrowDown}')
+    const document = within(canvasElement.ownerDocument.body)
+    const list = await document.findByRole('listbox')
+    await waitFor(() => {
+      expect(list.closest('[data-part="content"]')).toHaveAttribute('data-placement')
+      expect(list.getBoundingClientRect().top).toBeGreaterThan(
+        input.getBoundingClientRect().bottom
+      )
+    })
+    await expect(document.getAllByRole('option')).toHaveLength(countries.length)
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(list).not.toBeVisible())
+    await expect(input).not.toHaveAttribute('aria-activedescendant')
+    input.blur()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  },
 }
 
 export const Sizes: Story = {

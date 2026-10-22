@@ -515,6 +515,16 @@ export const Default: Story = {
         canvasElement.querySelector("picture img")?.getAttribute("src")
       ).toBe(`data:image/svg+xml;base64,${btoa(image)}`)
     )
+    // Typing/focusing fields scrolls this long mobile page. Finish outside the
+    // editor and at the top so sticky chrome cannot move between captures.
+    ;(headline as HTMLElement).blur()
+    const view = canvasElement.ownerDocument.defaultView!
+    view.scrollTo({ top: 0, left: 0, behavior: "instant" })
+    await waitFor(() => {
+      expect(headline).not.toHaveFocus()
+      expect(view.scrollY).toBe(0)
+      expect(canvasElement.querySelector("header")?.getBoundingClientRect().top).toBe(0)
+    })
   },
 
   parameters: {
