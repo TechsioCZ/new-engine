@@ -204,7 +204,7 @@ export const Sizes: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Compare Small (sm), Medium (md) and Large (lg) using the same location trail." } } },
   render: () => <VariantContainer>
     {(["sm", "md", "lg"] as const).map((size) => <VariantGroup key={size} title={{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}>
-      <BreadcrumbTemplate aria-label="Product location" items={defaultItems} size={size} />
+      <BreadcrumbTemplate aria-label={`Product location ${size}`} items={defaultItems} size={size} />
     </VariantGroup>)}
   </VariantContainer>,
 }

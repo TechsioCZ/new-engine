@@ -14,19 +14,19 @@ function Navigation({ label }: { label: string }) {
     </Header.Nav>
   )
 }
-function StoreHeader(props: React.ComponentProps<typeof Header>) {
+function StoreHeader({ navigationName, ...props }: React.ComponentProps<typeof Header> & { navigationName?: string }) {
   return (
     <Header {...props} className="items-center gap-200 p-200">
       <Link href="/" className="shrink-0 font-semibold">Workshop</Link>
       <Header.Desktop>
-        <Navigation label="Main navigation" />
+        <Navigation label={navigationName ? `${navigationName} main navigation` : "Main navigation"} />
         <Header.Actions>
           <Header.ActionItem><Button theme="outlined" size={props.size}>Account</Button></Header.ActionItem>
         </Header.Actions>
       </Header.Desktop>
       <Header.Hamburger />
       <Header.Mobile>
-        <Navigation label="Mobile navigation" />
+        <Navigation label={navigationName ? `${navigationName} mobile navigation` : "Mobile navigation"} />
       </Header.Mobile>
     </Header>
   )
@@ -66,7 +66,7 @@ export const Sizes: Story = {
   render: (args) => <div className="flex flex-col gap-400">
     {(["sm", "md", "lg"] as const).map((size) => <section key={size}>
       <h2 className="p-200">{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
-      <StoreHeader {...args} size={size} />
+      <StoreHeader {...args} size={size} navigationName={`Header ${size}`} />
     </section>)}
   </div>,
 }

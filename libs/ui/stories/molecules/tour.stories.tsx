@@ -464,6 +464,10 @@ export const LongContent: Story = {
     const panel = await within(canvasElement.ownerDocument.body).findByRole("alertdialog", { name: "A guide with longer content" })
     const description = panel.querySelector<HTMLElement>('[data-part="description"]')
     if (!description) throw new Error("Missing tour description")
+    await expect(description).toHaveAccessibleName("Tour guidance")
+    await expect(description).toHaveAttribute("tabindex", "0")
+    description.focus()
+    await expect(description).toHaveFocus()
     description.scrollTop = description.scrollHeight / 2
     for (const control of within(panel).getAllByRole("button")) {
       const rect = control.getBoundingClientRect()

@@ -13,7 +13,10 @@ import { describe, expect, it, vi } from "vitest"
 import { Label } from "../src/atoms/label"
 import { NumericInput } from "../src/atoms/numeric-input"
 import { syncReactFormControl } from "../src/internal/form-control-lifecycle"
+import { FileUpload } from "../src/molecules/file-upload"
 import { FormNumericInput } from "../src/molecules/form-numeric-input"
+import { Slider } from "../src/molecules/slider"
+import { Tour } from "../src/molecules/tour"
 
 const inputTag = /<input\b[^>]*>/
 const nonfiniteText = /NaN|Infinity/
@@ -65,6 +68,59 @@ function exampleBody(code: string) {
   }
   return `${withoutImport.slice(0, start)}\nreturn (${withoutImport.slice(start)});`
 }
+
+describe("accessible control values and feedback", () => {
+  it("serializes small slider values as valid ARIA decimals without changing form values", () => {
+    const html = renderToStaticMarkup(
+      h(Slider, {
+        label: "Small step",
+        name: "tiny",
+        min: 0,
+        max: 0.000_001,
+        step: 0.000_000_1,
+        defaultValue: [0.000_000_5],
+      })
+    )
+    expect(html).toContain('aria-valuenow="0.0000005"')
+    expect(html).toContain('aria-valuemax="0.000001"')
+    expect(html).toContain('value="5e-7"')
+  })
+  it("announces upload errors even with a caller-provided status role", () => {
+    const html = renderToStaticMarkup(
+      h(
+        FileUpload,
+        null,
+        h(FileUpload.StatusText, {
+          status: "error",
+          role: "status",
+          // biome-ignore lint/correctness/noChildrenProp: createElement requires the public component's children prop in its props type.
+          children: "Choose a PNG or JPG.",
+        })
+      )
+    )
+    expect(html).toContain('aria-live="polite"')
+    expect(html).toContain('role="status"')
+  })
+  it("exposes disabled uploads to assistive technology, including selected file text", () => {
+    const html = renderToStaticMarkup(
+      h(FileUpload, { disabled: true }, "Files unavailable")
+    )
+    expect(html).toContain('aria-disabled="true"')
+  })
+  it("gives tour guidance an independently focusable, named scroll surface", () => {
+    const html = renderToStaticMarkup(
+      h(Tour, {
+        steps: [],
+        // biome-ignore lint/correctness/noChildrenProp: createElement requires the public component's children prop in its props type.
+        children: h(Tour.Description, null, "Long guidance"),
+      })
+    )
+    expect(html).toContain('aria-label="Tour guidance"')
+    expect(html).toContain('role="group"')
+    expect(html).toContain('tabindex="0"')
+    expect(html).toContain("focus-visible:tour-scroll-focus")
+  })
+})
 
 describe("native reset React tracker synchronization", () => {
   it.each(["value", "checked"] as const)(

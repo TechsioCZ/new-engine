@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.3
+ * @componentVersion v1.4.4
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -1222,7 +1222,9 @@ function HeaderSortLabel<T extends RowData>({
     ? null
     : flexRender(column.columnDef.header, header.getContext())
 
-  if (!canSort) {
+  // Grouped tables insert empty alignment placeholders above ungrouped leaves.
+  // They are not another copy of the leaf's sortable header.
+  if (header.isPlaceholder || !canSort) {
     return <>{label}</>
   }
 
@@ -3279,7 +3281,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
   ) => {
     const column = header.column
-    const ariaSort = sortState(column, enableSorting)
+    const ariaSort = header.isPlaceholder
+      ? undefined
+      : sortState(column, enableSorting)
     const dropClass = dnd?.dropSide ? styles.columnDropIndicator() : ""
     return (
       <Table.ColumnHeader
@@ -3330,6 +3334,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           />
         </div>
         {enableColumnResizing &&
+        !header.isPlaceholder &&
         column.columns.length === 0 &&
         column.getCanResize() ? (
           <button

@@ -6,7 +6,7 @@ description: >
   controlled page, orientation, thumbnail image adapters, thumbnail aria labels,
   empty state, and NextImage support.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -170,3 +170,5 @@ Gallery is a single-image selector: `slidesPerPage` and `slidesPerMove` are fixe
 
 Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
 the initial measurement still runs.
+
+Forward the template name to its carousel landmark.

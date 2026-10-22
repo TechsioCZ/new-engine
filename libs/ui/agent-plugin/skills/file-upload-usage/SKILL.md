@@ -5,7 +5,7 @@ description: >
   select, validate, preview, and manage local File objects through the Zag.js
   compound API, including accepted/rejected files and native form behavior.
 metadata:
-  component_version: "1.1.3"
+  component_version: "1.1.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -345,3 +345,5 @@ A non-prevented native form reset cancels pending work and requests restoration 
 
 After deleting a focused file, focus moves to a surviving delete action or
 a visible upload control/dropzone, never the hidden native submission input.
+
+Expose inherited disabled state and announce error messages explicitly.

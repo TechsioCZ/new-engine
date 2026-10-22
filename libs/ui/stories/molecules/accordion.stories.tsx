@@ -97,8 +97,10 @@ const questions = [
 
 function Questions({
   includeCollection = false,
+  panelNamePrefix,
 }: {
   includeCollection?: boolean
+  panelNamePrefix?: string
 }) {
   return questions
     .filter((question) => includeCollection || !question.disabled)
@@ -117,7 +119,13 @@ function Questions({
           </Accordion.Title>
           <Accordion.Indicator />
         </Accordion.Header>
-        <Accordion.Content>{question.content}</Accordion.Content>
+        <Accordion.Content
+          aria-label={
+            panelNamePrefix ? `${panelNamePrefix}: ${question.title}` : undefined
+          }
+        >
+          {question.content}
+        </Accordion.Content>
       </Accordion.Item>
     ))
 }
@@ -265,7 +273,7 @@ export const AllVariants: Story = {
         {(["default", "borderless", "child"] as const).map((variant) => (
           <VariantGroup key={variant} title={variant} fullWidth>
             <Accordion variant={variant} defaultValue={["delivery"]}>
-              <Questions />
+              <Questions panelNamePrefix={`FAQ ${variant}`} />
             </Accordion>
           </VariantGroup>
         ))}
@@ -291,7 +299,7 @@ export const SizeVariants: Story = {
         {(["sm", "md", "lg"] as const).map((size) => (
           <VariantGroup key={size} title={size} fullWidth>
             <Accordion size={size} defaultValue={["delivery"]}>
-              <Questions />
+              <Questions panelNamePrefix={`FAQ ${size}`} />
             </Accordion>
           </VariantGroup>
         ))}
@@ -339,7 +347,7 @@ export const ShadowVariants: Story = {
         {(["none", "sm", "md"] as const).map((shadow) => (
           <VariantGroup key={shadow} title={shadow} fullWidth>
             <Accordion shadow={shadow} defaultValue={["delivery"]}>
-              <Questions />
+              <Questions panelNamePrefix={`FAQ ${shadow}`} />
             </Accordion>
           </VariantGroup>
         ))}

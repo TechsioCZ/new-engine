@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -300,14 +300,21 @@ Accordion.Content = function AccordionContent({
 }: AccordionContentProps) {
   const { api, styles } = useAccordionContext()
   const { value } = useAccordionItemContext()
+  const contentProps = api.getItemContentProps({ value })
 
   return (
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: Zag supplies a region; consumers can choose another named grouping role.
     <div
       className={styles.content({ className })}
       ref={ref}
       {...props}
-      {...api.getItemContentProps({ value })}
+      {...contentProps}
+      aria-labelledby={
+        props["aria-labelledby"] ??
+        (props["aria-label"] ? undefined : contentProps["aria-labelledby"])
+      }
       data-state={api.value.includes(value) ? "expanded" : "collapsed"}
+      role={props.role ?? contentProps.role}
     >
       {children}
     </div>

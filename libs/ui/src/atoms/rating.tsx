@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -308,6 +308,7 @@ export function Rating({
       className={styles.root({ className })}
       {...api.getRootProps()}
       {...props}
+      aria-disabled={disabled || undefined}
     >
       <RatingLabel
         api={api}

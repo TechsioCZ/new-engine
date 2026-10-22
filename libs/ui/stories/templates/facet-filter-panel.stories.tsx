@@ -427,7 +427,7 @@ export const Sizes: Story = {
       {(["sm", "md", "lg"] as const).map((size, index) => (
         <section key={size} className="w-full max-w-sm">
           <h2>{["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}</h2>
-          <PanelDemo {...args} size={size} />
+          <PanelDemo {...args} aria-label={`Product filters ${size}`} size={size} />
         </section>
       ))}
     </div>

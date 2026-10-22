@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.3
+ * @componentVersion v1.3.4
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -213,6 +213,7 @@ type NumericInputContextValue = {
   controlledValue?: string
   editing: NumericInputEditing
   onNativeInput: (input: HTMLInputElement) => void
+  setInputId: (id: string | undefined) => void
   isValidInputDraft?: (value: string) => boolean
   readOnly?: boolean
   disabled?: boolean
@@ -277,6 +278,7 @@ export function NumericInput({
   ...props
 }: NumericInputProps) {
   const generatedId = useId()
+  const [inputId, setInputId] = useState<string>()
   const description = useDescribedBy()
   const errors = useDescribedBy()
   const [machineProps, elementProps] = numberInput.splitProps(props)
@@ -404,9 +406,13 @@ export function NumericInput({
     spinOnPress,
     focusInputOnChange,
     id: id || generatedId,
-    ids: id
-      ? { ...machineProps.ids, input: machineProps.ids?.input ?? id }
-      : machineProps.ids,
+    ids:
+      inputId || id
+        ? {
+            ...machineProps.ids,
+            input: inputId ?? machineProps.ids?.input ?? id,
+          }
+        : machineProps.ids,
     dir,
     locale,
     value: resolvedValue,
@@ -485,8 +491,8 @@ export function NumericInput({
   useEffect(() => {
     // React's autoFocus runs before the parent machine starts. Reconcile that
     // existing DOM focus so typing and arrow keys work without refocusing.
-    const inputId = api.getInputProps().id
-    const input = inputId ? service.scope.getById(inputId) : null
+    const machineInputId = api.getInputProps().id
+    const input = machineInputId ? service.scope.getById(machineInputId) : null
     if (input && input === service.scope.getActiveElement() && !api.focused) {
       service.send({ type: "INPUT.FOCUS" })
     }
@@ -512,6 +518,7 @@ export function NumericInput({
         controlledValue: resolvedValue,
         editing,
         onNativeInput,
+        setInputId,
         isValidInputDraft,
       }}
     >
@@ -588,6 +595,7 @@ NumericInput.Input = function NumericInputInput({
     controlledValue,
     editing,
     onNativeInput,
+    setInputId,
     isValidInputDraft,
     description,
     errors,
@@ -596,6 +604,12 @@ NumericInput.Input = function NumericInputInput({
     readOnly,
     disabled,
   } = useNumericInputContext()
+  // A native id override must also reach Zag's labels, focus actions and
+  // stepper aria-controls. Unregister it when the input is replaced/unmounted.
+  useLayoutEffect(() => {
+    setInputId(props.id)
+    return () => setInputId(undefined)
+  }, [props.id, setInputId])
   const inputRef = useRef<HTMLInputElement>(null)
   const mergedRef = useMemo(
     () => (node: HTMLInputElement | null) => {

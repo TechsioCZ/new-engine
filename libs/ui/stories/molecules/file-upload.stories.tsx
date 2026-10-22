@@ -764,6 +764,15 @@ export const DropzoneStates: Story = {
       await interactive.findByText("This file type is not accepted.")
     ).toBeVisible()
     await expect(interactive.getByText("accepted.png")).toBeVisible()
+    await expect(browse).toHaveAttribute("aria-invalid", "true")
+    const errorIds = browse.getAttribute("aria-errormessage")?.split(/\s+/) ?? []
+    await expect(errorIds.length).toBeGreaterThan(0)
+    for (const id of errorIds) {
+      const error = canvasElement.ownerDocument.getElementById(id)
+      await expect(error).toBeVisible()
+      await expect(error).toHaveAttribute("aria-live", /polite|assertive/)
+      await expect(browse.getAttribute("aria-describedby")?.split(/\s+/)).toContain(id)
+    }
   },
 }
 

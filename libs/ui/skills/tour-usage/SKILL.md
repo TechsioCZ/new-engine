@@ -5,7 +5,7 @@ description: >
   tooltip/dialog/floating steps, target resolution, interactive wait effects,
   imperative control, shared action buttons, cleanup and app-owned onboarding policy.
 metadata:
-  component_version: "1.0.8"
+  component_version: "1.0.9"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -264,3 +264,5 @@ control and action row remain outside that scroll area and stay reachable.
 Dialog and floating panels size against their inset positioner, including
 scrollbar gutters, rather than the full viewport width. The dialog positioner
 uses the existing `--spacing-tour-viewport` inset; no new token is required.
+
+Make long guidance independently named, focusable and keyboard-scrollable.

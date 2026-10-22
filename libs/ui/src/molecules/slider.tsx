@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.4.2
+ * @componentVersion v1.4.3
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -239,6 +239,26 @@ const countDecimals = (value: number) => {
     0,
     (coefficient.split(".")[1]?.length ?? 0) - Number(exponent)
   )
+}
+
+// ARIA numbers use decimal notation, not JavaScript's exponent notation.
+// React's ARIA types accept only numbers, although DOM attributes are strings.
+const ariaNumber = (value: number): number => {
+  const text = String(value)
+  const [coefficient = "", exponent] = text.split("e")
+  if (exponent === undefined) {
+    return value
+  }
+  const sign = coefficient.startsWith("-") ? "-" : ""
+  const unsigned = coefficient.replace("-", "")
+  const digits = unsigned.replace(".", "")
+  const point = (unsigned.split(".")[0]?.length ?? 0) + Number(exponent)
+  const decimal =
+    point <= 0
+      ? `0.${"0".repeat(-point)}${digits}`
+      : digits.padEnd(point, "0").slice(0, point) +
+        (point < digits.length ? `.${digits.slice(point)}` : "")
+  return `${sign}${decimal}` as unknown as number
 }
 
 const snapToStep = (value: number, min: number, step: number) => {
@@ -712,7 +732,9 @@ export function Slider({
               ariaLabel?.[index] ? undefined : api.getLabelProps().id
             }
             aria-readonly={readOnly || undefined}
-            aria-valuenow={api.value[index]}
+            aria-valuemax={ariaNumber(api.getThumbMax(index))}
+            aria-valuemin={ariaNumber(api.getThumbMin(index))}
+            aria-valuenow={ariaNumber(api.value[index] ?? 0)}
             data-readonly={readOnly ? "" : undefined}
             role="slider"
             tabIndex={api.getThumbProps({ index }).tabIndex}

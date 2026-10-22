@@ -11,10 +11,12 @@ function CollectionExample({
   dir = "ltr",
   slidesPerPage = 1,
   showControls = true,
+  label = "Editable collection",
 }: {
   dir?: "ltr" | "rtl"
   slidesPerPage?: number
   showControls?: boolean
+  label?: string
 }) {
   const [generation, setGeneration] = useState(0)
   const [count, setCount] = useState(4)
@@ -93,7 +95,7 @@ function CollectionExample({
       </div>
       <StatusText role="status">{message}</StatusText>
       <Carousel
-        aria-label="Editable collection"
+        aria-label={label}
         objectFit="none"
         size="full"
         aspectRatio="none"
@@ -241,8 +243,8 @@ export const ControlFreeRtl: Story = {
 export const IndependentCollections: Story = {
   render: () => (
     <div className="flex flex-col gap-400">
-      <CollectionExample />
-      <CollectionExample />
+      <CollectionExample label="First editable collection" />
+      <CollectionExample label="Second editable collection" />
     </div>
   ),
   parameters: {

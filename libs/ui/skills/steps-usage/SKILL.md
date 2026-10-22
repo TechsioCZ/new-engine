@@ -6,7 +6,7 @@ description: >
   panels, progress, navigation triggers, linear flow, controlled step, and
   variants.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.2.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -217,3 +217,5 @@ the owner must update its step and related data. Progress remains finite in
 
 Connectors align to indicator centers at every size and variant, and labels
 wrap between words only.
+
+Render workflow panels as named groups instead of anonymous regions.

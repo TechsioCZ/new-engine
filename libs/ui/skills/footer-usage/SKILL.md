@@ -6,7 +6,7 @@ description: >
   divider, bottom area, size, layout, direction, section flow, and framework
   link adapters.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -164,3 +164,5 @@ rg -n "<Footer[^>]*size=\"(xs|xl)\"|layout=\"(grid|columns)\"" apps
 ## Wave 2 contracts
 
 Every Footer slot forwards native DOM/ARIA/event props. Footer.Section renders a semantic section; name important sections with aria-labelledby referring to Footer.Title. Columns stack on mobile and long contact strings wrap. Hover uses readable text tokens, never decorative brand fills. Canonical sizes are sm/md/lg (default md).
+
+Keep footer subsections as groups within the single footer landmark.

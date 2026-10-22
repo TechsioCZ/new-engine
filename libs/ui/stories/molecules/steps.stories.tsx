@@ -56,7 +56,7 @@ async function expectResponsiveSteps(canvasElement: HTMLElement) {
   const viewportWidth = document.documentElement.clientWidth
   await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(viewportWidth)
   for (const element of canvasElement.querySelectorAll<HTMLElement>(
-    '[data-scope="steps"][data-part="trigger"], [data-scope="steps"][role="region"]:not([hidden]), [data-part="navigation"] button'
+    '[data-scope="steps"][data-part="trigger"], [data-scope="steps"][role="group"]:not([hidden]), [data-part="navigation"] button'
   )) {
     const box = element.getBoundingClientRect()
     await expect(box.left).toBeGreaterThanOrEqual(0)
@@ -240,22 +240,22 @@ export const Playground: Story = {
     await waitFor(() => {
       expect(second).toHaveAttribute("aria-current", "step")
       expect(first).not.toHaveAttribute("aria-current")
-      expect(canvas.getByRole("region", { name: "Inputs" })).toBeVisible()
+      expect(canvas.getByRole("group", { name: "Inputs" })).toBeVisible()
     })
 
     await userEvent.click(first)
     await waitFor(() => {
       expect(first).toHaveAttribute("aria-current", "step")
       expect(second).not.toHaveAttribute("aria-current")
-      expect(canvas.getByRole("region", { name: "Brief" })).toBeVisible()
+      expect(canvas.getByRole("group", { name: "Brief" })).toBeVisible()
     })
     for (const name of ["Inputs", "Review", "Workflow complete"]) {
       await userEvent.click(canvas.getByRole("button", { name: "Continue" }))
-      await waitFor(() => expect(canvas.getByRole("region", { name })).toHaveFocus())
+      await waitFor(() => expect(canvas.getByRole("group", { name })).toHaveFocus())
     }
     await expect(canvas.getByRole("button", { name: "Continue" })).toBeDisabled()
     await userEvent.click(canvas.getByRole("button", { name: "Back" }))
-    await waitFor(() => expect(canvas.getByRole("region", { name: "Review" })).toHaveFocus())
+    await waitFor(() => expect(canvas.getByRole("group", { name: "Review" })).toHaveFocus())
     await expectResponsiveSteps(canvasElement)
   },
 }
@@ -808,7 +808,7 @@ export const ProgressHorizontal: Story = {
     for (const tab of canvas.getAllByRole("button")) {
       if (tab !== current) await expect(tab).not.toHaveAttribute("aria-current")
     }
-    await expect(canvas.getByRole("region", { name: /Review/ })).toBeVisible()
+    await expect(canvas.getByRole("group", { name: /Review/ })).toBeVisible()
     await expect(canvas.getByText(completedText)).not.toBeVisible()
   },
 }
@@ -885,7 +885,7 @@ export const ProgressVertical: Story = {
     for (const tab of canvas.getAllByRole("button")) {
       if (tab !== current) await expect(tab).not.toHaveAttribute("aria-current")
     }
-    await expect(canvas.getByRole("region", { name: /Review/ })).toBeVisible()
+    await expect(canvas.getByRole("group", { name: /Review/ })).toBeVisible()
     await expect(canvas.getByText(completedText)).not.toBeVisible()
   },
 }

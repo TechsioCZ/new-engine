@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -879,18 +879,20 @@ Steps.Content = function StepsContent({
   const { role: _tabpanelRole, ...machineContentProps } = api.getContentProps({
     index,
   })
-  const contentProps = mergeProps(props, machineContentProps)
+  const contentProps = mergeProps(machineContentProps, props)
   useRegisterStepsContent(index)
 
   return (
-    <section
+    // biome-ignore lint/a11y/useSemanticElements: A workflow panel can contain more than form controls, so it is a group rather than a fieldset.
+    <div
       className={styles.content({ className })}
       ref={ref}
+      role="group"
       {...contentProps}
       tabIndex={-1}
     >
       {children}
-    </section>
+    </div>
   )
 }
 
@@ -947,9 +949,11 @@ Steps.CompletedContent = function StepsCompletedContent({
   const contentProps = mergeProps(machineContentProps, props)
 
   return (
-    <section
+    // biome-ignore lint/a11y/useSemanticElements: Completion content is a named group, not a group of form controls.
+    <div
       className={styles.completedContent({ className })}
       ref={ref}
+      role="group"
       {...contentProps}
       aria-label={
         props["aria-label"] ??
@@ -960,7 +964,7 @@ Steps.CompletedContent = function StepsCompletedContent({
       tabIndex={-1}
     >
       {children}
-    </section>
+    </div>
   )
 }
 

@@ -186,7 +186,7 @@ export const MediaSizes: Story = {
             {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
           </h2>
           <StoryFrame>
-            <GalleryTemplate {...args} size={size} />
+            <GalleryTemplate {...args} aria-label={`Product images ${size}`} size={size} />
           </StoryFrame>
         </section>
       ))}

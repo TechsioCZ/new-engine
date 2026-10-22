@@ -202,6 +202,18 @@ describe("commerce integration contracts", () => {
     expect(html).not.toContain("Must not override")
     expect(html).toContain('aria-hidden="true"')
   })
+  it("forwards a gallery template name to its carousel landmark", () => {
+    const html = renderToStaticMarkup(
+      <GalleryTemplate
+        aria-label="Small product images"
+        items={[{ id: "a", src: "", alt: "A" }]}
+      />
+    )
+    const region = html.match(/<section\b[^>]*data-part="root"[^>]*>/)?.[0]
+    expect(region).toContain('role="region"')
+    expect(region).toContain('aria-label="Small product images"')
+    expect(html).not.toContain('aria-label="Product images"')
+  })
   it("offers an autoplay toggle independently of all navigation flags", () => {
     const html = renderToStaticMarkup(
       <GalleryTemplate

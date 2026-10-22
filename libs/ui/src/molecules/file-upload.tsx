@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -547,6 +547,7 @@ export function FileUpload({
             ? "Read-only files. Uploading and removing files is unavailable."
             : undefined
         }
+        aria-disabled={disabled || undefined}
       >
         <input ref={disabledRef} type="hidden" />
         {children}
@@ -1156,6 +1157,7 @@ FileUpload.StatusText = function FileUploadStatusText({
   const { size, descriptions, errorDescriptions, invalid } =
     useFileUploadContext()
   const resolvedStatus = status ?? (invalid ? "error" : "default")
+  const errorLive = props.role === "status" ? "polite" : "assertive"
   useRegisterDescription(id, descriptions.registerDescription)
   useEffect(
     () =>
@@ -1167,6 +1169,12 @@ FileUpload.StatusText = function FileUploadStatusText({
   return (
     <StatusText
       {...props}
+      // Explicit live semantics also announce error lists when a caller uses
+      // role="status"; aria-errormessage alone is not reliably announced.
+      aria-live={
+        props["aria-live"] ??
+        (resolvedStatus === "error" ? errorLive : undefined)
+      }
       id={id}
       showIcon={resolvedStatus === "default" ? props.showIcon : true}
       size={sizeProp ?? size}

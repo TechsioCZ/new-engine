@@ -4,6 +4,7 @@
   --color-facet-filter-panel-text: var(--color-fg-primary);
   --color-facet-filter-panel-muted: var(--color-fg-secondary);
   --color-facet-filter-panel-divider: var(--color-border-primary);
+  --color-facet-filter-panel-focus: var(--color-ring-default);
   --color-facet-filter-panel-accent: var(--color-bg-primary-base);
   --color-facet-filter-panel-on-accent: var(--color-fg-on-primary-solid-neo);
 
@@ -13,8 +14,11 @@
   --color-facet-filter-panel-title-fg: var(--color-facet-filter-panel-text);
   --color-facet-filter-panel-muted-fg: var(--color-facet-filter-panel-muted);
   --color-facet-filter-panel-border: var(--color-facet-filter-panel-divider);
+  --color-facet-filter-panel-ring-focus: var(--color-facet-filter-panel-focus);
   --color-facet-filter-panel-count-bg: var(--color-facet-filter-panel-accent);
-  --color-facet-filter-panel-count-fg: var(--color-facet-filter-panel-on-accent);
+  --color-facet-filter-panel-count-fg: var(
+    --color-facet-filter-panel-on-accent
+  );
 
   --border-width-facet-filter-panel: var(--border-sm);
   --radius-facet-filter-panel: var(--radius-md);
@@ -40,4 +44,10 @@
 
 @utility token-icon-facet-filter-panel-filter {
   @apply icon-[mdi--filter-variant];
+}
+
+@utility facet-filter-panel-scroll-focus {
+  outline: var(--default-ring-width) var(--default-ring-style)
+    var(--color-facet-filter-panel-ring-focus);
+  outline-offset: calc(-1 * var(--default-ring-width));
 }

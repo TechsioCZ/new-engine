@@ -13,6 +13,45 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Accessibility enforcement
+- CI blocks on WCAG A/AA violations in every supported theme; APCA gold and AAA contrast stay advisory in the report.
+
+### NumericInput v1.3.4
+- Keep custom input ids in sync with the stepper and focus references.
+
+### Rating v1.3.2
+- Expose the disabled state across the whole widget so assistive tech and contrast checks treat it as inactive.
+
+### Accordion v1.2.1
+- Honor explicit panel names and grouping roles so repeated accordions expose distinct landmarks.
+
+### FileUpload v1.1.4
+- Expose inherited disabled state and announce error messages explicitly.
+
+### Slider v1.4.3
+- Serialize ARIA values and bounds in decimal notation for tiny steps.
+
+### Steps v1.2.2
+- Render workflow panels as named groups instead of anonymous regions.
+
+### Tour v1.0.9
+- Make long guidance independently named, focusable and keyboard-scrollable.
+
+### DataTable v1.4.4
+- Omit interactive sort controls from grouped-header alignment placeholders.
+
+### Footer v1.1.1
+- Keep footer subsections as groups within the single footer landmark.
+
+### FacetFilterPanel v1.2.1
+- Forward distinguishing names and keep scrolling keyboard-reachable when controls are disabled.
+
+### Gallery v1.1.2
+- Forward the template name to its carousel landmark.
+
+### DatePicker v1.3.5
+- Keep empty segment placeholders at readable contrast on every field surface.
+
 ### Header v1.2.1
 - Render without throwing when \`ResizeObserver\` is unavailable, as in jsdom consumer tests.
 

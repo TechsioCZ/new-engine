@@ -2,7 +2,7 @@
  * FacetFilterPanel - @techsio/ui-kit template.
  *
  * @component FacetFilterPanel
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill facet-filter-panel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -24,6 +24,7 @@ const facetFilterPanelStyles = tv({
       "border-(length:--border-width-facet-filter-panel) border-facet-filter-panel-border",
       "bg-facet-filter-panel-bg text-facet-filter-panel-fg",
       "p-facet-filter-panel",
+      "focus-visible:facet-filter-panel-scroll-focus",
     ],
     content: "flex min-h-0 flex-col gap-facet-filter-panel",
     title:
@@ -109,6 +110,7 @@ export type FacetFilterRangeChangeDetails = {
 }
 
 export type FacetFilterPanelProps = {
+  "aria-label"?: string
   title: ReactNode
   groups: readonly FacetFilterGroup[]
   selectedValues?: Readonly<Record<string, readonly string[]>>
@@ -385,7 +387,7 @@ function FacetFilterPanelContent({
                 <Accordion.Title>{group.label}</Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
-              <Accordion.Content>
+              <Accordion.Content role="group">
                 <FacetFilterOptions
                   disabled={interactionDisabled || Boolean(group.disabled)}
                   group={group}
@@ -406,6 +408,7 @@ function FacetFilterPanelContent({
 }
 
 export function FacetFilterPanel({
+  "aria-label": ariaLabel,
   presentation = "inline",
   drawerTriggerLabel,
   drawerPlacement = "right",
@@ -452,6 +455,7 @@ export function FacetFilterPanel({
           ) : null}
         </Button>
         <Dialog
+          aria-label={ariaLabel}
           className={styles.drawerContent({ className })}
           customTrigger
           finalFocusEl={() => drawerTriggerRef.current}
@@ -469,8 +473,11 @@ export function FacetFilterPanel({
 
   return (
     <aside
-      aria-labelledby={inlineTitleId}
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabel ? undefined : inlineTitleId}
       className={styles.root({ className })}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: Disabled controls still leave readable scrollable filter content.
+      tabIndex={0}
     >
       <FacetFilterPanelContent {...props} showTitle titleId={inlineTitleId} />
     </aside>
@@ -490,7 +497,7 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
 }: FacetFilterActiveFiltersProps) {
   const styles = facetFilterPanelStyles()
 
-  const sectionRef = useRef<HTMLElement>(null)
+  const sectionRef = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<{
     action: HTMLElement
     ids: string[]
@@ -548,11 +555,13 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
   }
 
   return (
-    <section
+    // biome-ignore lint/a11y/useSemanticElements: Applied-filter summaries are a named group, not a separate page landmark or form fieldset.
+    <div
       aria-label={typeof label === "string" ? label : "Active filters"}
       className={styles.activeRoot({ className })}
       data-empty={items.length === 0 ? "" : undefined}
       ref={sectionRef}
+      role="group"
       tabIndex={-1}
     >
       {items.length > 0 && (
@@ -605,6 +614,6 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
           </div>
         </>
       )}
-    </section>
+    </div>
   )
 }

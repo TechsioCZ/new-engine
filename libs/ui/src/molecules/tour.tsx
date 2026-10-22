@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.8
+ * @componentVersion v1.0.9
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -50,7 +50,7 @@ const tourStyles = tv({
     arrowTip: "bg-tour-arrow-bg",
     title: "shrink-0 pe-tour-title font-tour-title text-tour-title-size",
     description:
-      "min-h-0 overflow-y-auto overscroll-contain text-tour-body-size text-tour-description-fg",
+      "focus-visible:tour-scroll-focus min-h-0 overflow-y-auto overscroll-contain text-tour-body-size text-tour-description-fg",
     progressText: "shrink-0 text-tour-progress-fg text-tour-progress-size",
     actions:
       "flex shrink-0 flex-wrap items-center justify-end gap-tour-actions pt-tour-actions",
@@ -435,10 +435,14 @@ Tour.Description = function TourDescription({
 }: TourPartProps) {
   const api = useTourContext()
   return (
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: The default named group is keyboard-scrollable; callers can override its role.
     <div
       {...mergeProps(props, api.getDescriptionProps())}
+      aria-label={props["aria-label"] ?? "Tour guidance"}
       className={tourStyles().description({ className })}
       ref={ref}
+      role={props.role ?? "group"}
+      tabIndex={props.tabIndex ?? 0}
     >
       {children ?? api.step?.description}
     </div>

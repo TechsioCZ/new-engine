@@ -47,11 +47,14 @@ export function Frame({ top, left, right, flush, children }: FrameProps) {
       <div className="flex min-h-0 flex-1">
         {left}
         <main
+          aria-label="Page content"
           className={
             flush
-              ? "flex min-w-0 flex-1 flex-col overflow-y-auto"
-              : "flex min-w-0 flex-1 flex-col gap-250 overflow-y-auto p-250"
+              ? "flex min-w-0 flex-1 flex-col overflow-y-auto focus-visible:ring-2 focus-visible:ring-ring-default focus-visible:ring-inset"
+              : "flex min-w-0 flex-1 flex-col gap-250 overflow-y-auto p-250 focus-visible:ring-2 focus-visible:ring-ring-default focus-visible:ring-inset"
           }
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: Page content is the shell's only scroll viewport.
+          tabIndex={0}
         >
           {children}
         </main>

@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

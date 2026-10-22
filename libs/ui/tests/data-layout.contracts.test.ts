@@ -183,6 +183,16 @@ describe("table leaf widths, row semantics and announcements", () => {
     expect(html).toContain('aria-label="Resize First"')
     expect(html).not.toContain('aria-label="Resize Identity"')
     expect(html).toMatch(GROUPED_FOOTER_RE)
+    // The alignment cell above Amount is not a second sortable/resizable leaf.
+    const rows = [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)]
+    const placeholder = rows[0]?.[1]?.match(
+      /<th\b[^>]*data-leaf-column="amount"[^>]*>[\s\S]*?<\/th>/
+    )?.[0]
+    expect(placeholder).toBeDefined()
+    expect(placeholder).not.toContain("<button")
+    expect(placeholder).not.toContain("aria-sort=")
+    expect(rows[1]?.[1]).toContain('data-leaf-column="amount"')
+    expect(rows[1]?.[1]).toContain('aria-label="Resize Amount"')
   })
   it("includes expanded detail rows and footers in a monotonic accessible sequence", () => {
     const html = renderTable({

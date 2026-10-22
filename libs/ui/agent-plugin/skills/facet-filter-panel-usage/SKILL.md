@@ -2,7 +2,7 @@
 name: facet-filter-panel-usage
 description: Use for controlled catalog facet presentation with generic option and range groups, active filters, overflow, and an inline panel or Dialog drawer.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -161,3 +161,5 @@ Code owns the API and token names. Figma owns static values. Run
 component-to-figma only after the API and stories stabilize.
 
 ActiveFilters reconciles keyboard focus after controlled items actually change, preferring the next then previous surviving chip. After reset or last-chip removal it focuses a surviving facet control; standalone compositions may supply fallbackFocusEl(): HTMLElement | null. Focus does not move for rejected updates or when the user moved elsewhere while awaiting an update.
+
+Forward distinguishing names and keep scrolling keyboard-reachable when controls are disabled.

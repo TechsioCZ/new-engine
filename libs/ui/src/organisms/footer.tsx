@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -218,9 +218,10 @@ Footer.Section = function FooterSection({
     sectionFlow,
   })
   return (
-    <section className={section({ className })} {...props}>
+    // biome-ignore lint/a11y/useSemanticElements: Footer content groups are not form fieldsets or standalone page landmarks.
+    <div className={section({ className })} role="group" {...props}>
       {children}
-    </section>
+    </div>
   )
 }
 

@@ -6,7 +6,7 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.4.2"
+  component_version: "1.4.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -233,3 +233,5 @@ not move focus.
 Read-only thumbs remain pointer-focusable as well as keyboard-focusable,
 without changing their values or starting a drag. Disabled thumbs do not gain
 this pointer-focus affordance.
+
+Serialize ARIA values and bounds in decimal notation for tiny steps.

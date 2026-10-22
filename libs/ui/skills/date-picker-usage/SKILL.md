@@ -6,7 +6,7 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.3.4"
+  component_version: "1.3.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -441,3 +441,5 @@ focus handlers.
 
 On narrow fields, timed and zoned ranges wrap their start and end endpoints
 into labeled groups instead of hiding the end behind horizontal scrolling.
+
+Keep empty segment placeholders at readable contrast on every field surface.

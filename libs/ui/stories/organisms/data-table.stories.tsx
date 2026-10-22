@@ -168,7 +168,7 @@ export const Sizes: Story = {
   render: (args) => <div className="flex flex-col gap-400">
     {(["sm", "md", "lg"] as const).map((size) => <section key={size}>
       <h2>{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
-      <DataTable {...args} size={size} data={people.slice(0, 3)} columns={columns} caption="Team members" />
+      <DataTable {...args} size={size} data={people.slice(0, 3)} columns={columns} caption={<>Team members<span className="sr-only">, {size} table</span></>} />
     </section>)}
   </div>,
 }

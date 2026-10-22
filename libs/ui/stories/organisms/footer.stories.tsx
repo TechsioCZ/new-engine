@@ -5,7 +5,7 @@ import { Footer } from "../../src/organisms/footer"
 
 function StoreFooter(props: React.ComponentProps<typeof Footer>) {
   const titleId = useId()
-  return <Footer {...props} direction="vertical" aria-label="Store information">
+  return <Footer {...props} direction="vertical" aria-label={props["aria-label"] ?? "Store information"}>
     <Footer.Container>
       <Footer.Section aria-labelledby={titleId}>
         <Footer.Title id={titleId}>Workshop</Footer.Title>
@@ -59,7 +59,7 @@ export const Playground: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole("contentinfo", { name: "Store information" })).toBeInTheDocument()
-    await expect(canvas.getByRole("region", { name: "Workshop" })).toBeInTheDocument()
+    await expect(canvas.getByRole("group", { name: "Workshop" })).toBeInTheDocument()
   },
 }
 export const Sizes: Story = {
@@ -67,7 +67,7 @@ export const Sizes: Story = {
   render: (args) => <div className="flex flex-col gap-400">
     {(["sm", "md", "lg"] as const).map((size) => <section key={size}>
       <h2 className="p-200">{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
-      <StoreFooter {...args} size={size} />
+      <StoreFooter {...args} size={size} aria-label={`Store information ${size}`} />
     </section>)}
   </div>,
 }

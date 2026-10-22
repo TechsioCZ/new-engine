@@ -1052,7 +1052,7 @@ export const Precision: Story = {
     await expect(offset).toHaveAttribute("aria-valuenow", "1.5")
     await expect(
       canvas.getByRole("slider", { name: "Small step" })
-    ).toHaveAttribute("aria-valuenow", "5e-7")
+    ).toHaveAttribute("aria-valuenow", "0.0000005")
     await expect(new FormData(form).get("offset")).toBe("1.5")
     offset.focus()
     await userEvent.keyboard("{ArrowRight}")

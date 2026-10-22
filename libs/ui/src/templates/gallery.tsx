@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit template.
  *
  * @component Gallery
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -72,6 +72,7 @@ export type GalleryTemplateProps<T extends ElementType = "img"> = Omit<
 }
 
 export function GalleryTemplate<T extends ElementType = "img">({
+  "aria-label": ariaLabel,
   items,
   orientation,
   carouselWidth,
@@ -114,6 +115,7 @@ export function GalleryTemplate<T extends ElementType = "img">({
     carouselWidth ?? (fitParent ? "100%" : undefined)
   const resolvedCarouselHeight = carouselHeight
   const resolvedCarouselProps = {
+    ...(ariaLabel === undefined ? {} : { "aria-label": ariaLabel }),
     orientation: resolvedOrientation,
     aspectRatio: aspectRatio ?? "portrait",
     size: size ?? "full",

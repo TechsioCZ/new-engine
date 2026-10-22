@@ -4,12 +4,15 @@ import { createElement as h } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import ts from "typescript"
 import { describe, expect, it } from "vitest"
+import { Accordion } from "../src/molecules/accordion"
 import { Breadcrumb } from "../src/molecules/breadcrumb"
 import { Pagination, paginationVariants } from "../src/molecules/pagination"
 import { Steps, useSteps } from "../src/molecules/steps"
 import { type TreeNode, TreeView } from "../src/molecules/tree-view"
+import { Footer } from "../src/organisms/footer"
 import { AccordionTemplate } from "../src/templates/accordion"
 import { BreadcrumbTemplate } from "../src/templates/breadcrumb"
+import { FacetFilterPanel } from "../src/templates/facet-filter-panel"
 import { TabsTemplate } from "../src/templates/tabs"
 
 const href = ({ page }: { page: number }) => `#page-${page}`
@@ -48,7 +51,8 @@ describe("bounded navigation state", () => {
       )
     )
     expect(html).toContain('aria-valuenow="100"')
-    expect(html).toContain("<section")
+    expect(html).toContain('role="group"')
+    expect(html).not.toContain("<section")
     expect(html).toContain('aria-label="Workflow complete"')
     expect(html).not.toContain('role="tabpanel"')
     expect(html).not.toContain("trigger:0")
@@ -108,6 +112,77 @@ describe("bounded navigation state", () => {
     expect(paginationVariants({ variant: "minimal" }).link()).toContain(
       "data-selected:underline"
     )
+  })
+})
+
+describe("landmark naming and nested groups", () => {
+  it("lets accordion panels have a distinguishing name or a non-landmark group role", () => {
+    const html = renderToStaticMarkup(
+      h(
+        Accordion,
+        { defaultValue: ["delivery"] },
+        h(
+          Accordion.Item,
+          { value: "delivery" },
+          h(Accordion.Header, null, "Delivery"),
+          h(
+            Accordion.Content,
+            { "aria-label": "Small FAQ: Delivery", role: "group" },
+            "Two business days"
+          )
+        )
+      )
+    )
+    const panel = html.match(/<div\b[^>]*data-part="item-content"[^>]*>/)?.[0]
+    expect(panel).toContain('aria-label="Small FAQ: Delivery"')
+    expect(panel).toContain('role="group"')
+    expect(panel).not.toContain("aria-labelledby=")
+  })
+  it("keeps indexed step content a labelled group rather than a page landmark", () => {
+    const html = renderToStaticMarkup(
+      h(
+        Steps,
+        { count: 1 },
+        h(Steps.Content, { index: 0 }, "Enter the order details")
+      )
+    )
+    expect(html).toContain('role="group"')
+    expect(html).toContain("aria-labelledby=")
+    expect(html).not.toContain("<section")
+  })
+  it("keeps footer subsections grouped inside the named footer landmark", () => {
+    const html = renderToStaticMarkup(
+      h(
+        Footer,
+        // biome-ignore lint/correctness/noChildrenProp: createElement requires the public component's children prop in its props type.
+        { "aria-label": "Store information", children: null },
+        h(
+          Footer.Section,
+          // biome-ignore lint/correctness/noChildrenProp: createElement requires the public component's children prop in its props type.
+          { "aria-label": "Contact", children: null },
+          "Contact details"
+        )
+      )
+    )
+    expect(html).toContain("<footer")
+    expect(html).toContain('aria-label="Store information"')
+    expect(html).toContain('role="group"')
+    expect(html).not.toContain("<section")
+  })
+  it("names the keyboard-scrollable filter landmark even when every control is disabled", () => {
+    const html = renderToStaticMarkup(
+      h(FacetFilterPanel, {
+        title: "Filters",
+        "aria-label": "Small product filters",
+        groups: [],
+        disabled: true,
+      })
+    )
+    const root = html.match(/<aside\b[^>]*>/)?.[0]
+    expect(root).toContain('aria-label="Small product filters"')
+    expect(root).toContain('tabindex="0"')
+    expect(root).not.toContain("aria-labelledby=")
+    expect(html).not.toContain("<section")
   })
 })
 

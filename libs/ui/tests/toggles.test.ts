@@ -119,6 +119,22 @@ it.each(["checkbox", "switch"])(
   }
 )
 
+it.each([false, true])(
+  "exposes disabled=%s on the whole Rating, including its score text",
+  (disabled) => {
+    const html = renderToStaticMarkup(h(Rating, { disabled, value: 3 }))
+    const root = html.slice(0, html.indexOf(">") + 1)
+    if (disabled) {
+      expect(root).toContain('aria-disabled="true"')
+      expect(html).not.toContain('tabindex="0"')
+    } else {
+      expect(root).not.toContain("aria-disabled=")
+      expect(html).toContain('tabindex="0"')
+    }
+    expect(html).toContain("3 / 5")
+  }
+)
+
 it("separates aggregate display from focusable read-only form ratings", () => {
   const aggregate = renderToStaticMarkup(
     h(Rating, { displayOnly: true, value: 4.6, labelText: "Average" })

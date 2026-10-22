@@ -16,7 +16,8 @@
   --color-date-picker-accent-foreground: var(--color-fg-on-primary-solid-neo);
   --color-date-picker-text: var(--color-fg-primary);
   --color-date-picker-text-muted: var(--color-fg-secondary);
-  --color-date-picker-placeholder: var(--color-form-control-fg-placeholder);
+  /* Segments stay readable on the control's tinted hover/focus fills. */
+  --color-date-picker-placeholder: var(--color-fg-primary);
   --color-date-picker-disabled: var(--color-form-control-fg-disabled);
   --color-date-picker-border: var(--color-form-control-border);
   --color-date-picker-border-hover: var(--color-form-control-border-hover);

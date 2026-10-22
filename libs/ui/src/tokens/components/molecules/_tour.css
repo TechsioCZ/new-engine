@@ -5,6 +5,7 @@
   --color-tour-text: var(--color-fg-primary);
   --color-tour-outline: var(--color-border-primary);
   --color-tour-scrim: var(--color-bg-scrim);
+  --color-tour-focus: var(--color-ring-default);
 
   /* Derived layer */
   --color-tour-bg: var(--color-tour-surface);
@@ -15,6 +16,7 @@
   --color-tour-backdrop-bg: var(--color-tour-scrim);
   --color-tour-arrow-bg: var(--color-tour-surface);
   --color-tour-spotlight-border: var(--color-tour-text);
+  --color-tour-ring-focus: var(--color-tour-focus);
   --border-width-tour: var(--border-width-sm);
   --radius-tour: var(--radius-sm);
   --shadow-tour: var(--shadow-primary);
@@ -34,6 +36,12 @@
 
   /* Runtime layer, not a Figma variable. */
   --z-tour: 80;
+}
+
+@utility tour-scroll-focus {
+  outline: var(--default-ring-width) var(--default-ring-style)
+    var(--color-tour-ring-focus);
+  outline-offset: calc(-1 * var(--default-ring-width));
 }
 
 @utility tour-layer {

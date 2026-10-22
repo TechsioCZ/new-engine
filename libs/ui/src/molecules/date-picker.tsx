@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.4
+ * @componentVersion v1.3.5
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */

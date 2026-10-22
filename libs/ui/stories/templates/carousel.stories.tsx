@@ -188,7 +188,7 @@ export const MediaSizes: Story = {
           <h2>
             {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
           </h2>
-          <CarouselTemplate {...args} size={size} width="100%" />
+          <CarouselTemplate {...args} aria-label={`Featured destinations ${size}`} size={size} width="100%" />
         </section>
       ))}
     </div>

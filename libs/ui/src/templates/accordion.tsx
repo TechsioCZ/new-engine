@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit template.
  *
  * @component Accordion
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

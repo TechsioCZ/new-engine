@@ -180,9 +180,9 @@ function PaginationRecoveryExample() {
   return <div className="flex min-w-0 flex-col gap-200">
     <div className="flex flex-wrap gap-100"><Button onClick={() => setCount(20)}>Reduce results</Button><Button onClick={() => setCount(0)}>Clear results</Button><Button onClick={() => setReject(!reject)}>Toggle invalid controlled page</Button></div>
     <StatusText role="status">Page changes: {changes}</StatusText>
-    <Pagination count={count} defaultPage={10} page={reject ? 10 : undefined} getPageUrl={({ page }) => `#page-${page}`} onPageChange={() => setChanges((value) => value + 1)} onClick={(event) => event.preventDefault()} variant="minimal" />
-    <Pagination count={0} compact getPageUrl={({ page }) => `#empty-${page}`} />
-    <Pagination count={100} defaultPage={5} dir="rtl" compact getPageUrl={({ page }) => `#rtl-${page}`} onClick={(event) => event.preventDefault()} />
+    <Pagination aria-label="Results pages" count={count} defaultPage={10} page={reject ? 10 : undefined} getPageUrl={({ page }) => `#page-${page}`} onPageChange={() => setChanges((value) => value + 1)} onClick={(event) => event.preventDefault()} variant="minimal" />
+    <Pagination aria-label="Empty results pages" count={0} compact getPageUrl={({ page }) => `#empty-${page}`} />
+    <Pagination aria-label="Right-to-left results pages" count={100} defaultPage={5} dir="rtl" compact getPageUrl={({ page }) => `#rtl-${page}`} onClick={(event) => event.preventDefault()} />
   </div>
 }
 export const PaginationRecovery: Story = {
@@ -221,10 +221,10 @@ export const StepsRecovery: Story = {
     await expect(canvas.getByText("Correct the brief before continuing.")).toBeVisible()
     await expect(canvasElement.querySelector("#validation-root")).not.toHaveAttribute("isStepValid")
     await userEvent.click(canvas.getByRole("button", { name: "Remove final steps" }))
-    await waitFor(() => expect(canvas.getByRole("region", { name: "Stage 1" })).toBeVisible())
+    await waitFor(() => expect(canvas.getByRole("group", { name: "Stage 1" })).toBeVisible())
     await expect(canvas.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0")
     await userEvent.click(canvas.getByRole("button", { name: "Finish stage" }))
-    await waitFor(() => expect(canvas.getByRole("region", { name: "Store complete" })).toHaveFocus())
+    await waitFor(() => expect(canvas.getByRole("group", { name: "Store complete" })).toHaveFocus())
     canvasElement.dataset.navRegression = "passed"
   },
 }

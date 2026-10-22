@@ -903,7 +903,13 @@ export const SideBySide: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     for (const name of ["Order quantity", "Quantity (sm)", "Quantity (md)"]) {
-      await expect(canvas.getByRole("spinbutton", { name })).toHaveAccessibleName(name)
+      const input = canvas.getByRole("spinbutton", { name })
+      await expect(input).toHaveAccessibleName(name)
+      const control = input.closest('[data-scope="number-input"][data-part="root"]')
+      if (!control) throw new Error("Missing numeric input root")
+      for (const trigger of within(control as HTMLElement).getAllByRole("button")) {
+        await expect(trigger).toHaveAttribute("aria-controls", input.id)
+      }
     }
     for (const size of ["sm", "md"]) {
       await expect(canvas.getByRole("combobox", { name: `Country (${size})` })).toHaveAccessibleName(`Country (${size})`)

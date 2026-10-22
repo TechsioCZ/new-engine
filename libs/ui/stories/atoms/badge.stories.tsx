@@ -89,9 +89,9 @@ export const Playground: Story = {
     args.variant === "dynamic" ? (
       <Badge
         {...args}
-        bgColor={args.bgColor ?? "var(--color-primary)"}
-        fgColor={args.fgColor ?? "var(--color-fg-on-primary-solid)"}
-        borderColor={args.borderColor ?? "var(--color-primary)"}
+        bgColor={args.bgColor ?? "var(--color-badge-bg-primary)"}
+        fgColor={args.fgColor ?? "var(--color-badge-fg-primary)"}
+        borderColor={args.borderColor ?? "var(--color-badge-border-primary)"}
       />
     ) : (
       <Badge {...args} />
@@ -181,9 +181,9 @@ export const Dynamic: Story = {
   args: {
     variant: "dynamic",
     size: "md",
-    bgColor: "var(--color-primary)",
-    fgColor: "var(--color-fg-on-primary-solid)",
-    borderColor: "var(--color-primary)",
+    bgColor: "var(--color-badge-bg-primary)",
+    fgColor: "var(--color-badge-fg-primary)",
+    borderColor: "var(--color-badge-border-primary)",
     children: "Priority support",
   },
 }

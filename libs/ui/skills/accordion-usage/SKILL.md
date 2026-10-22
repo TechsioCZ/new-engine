@@ -5,7 +5,7 @@ description: >
   collapsible sections using the Zag.js-backed compound anatomy, supported
   variant, shadow, size, value, multiple, and collapsible props.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -204,3 +204,5 @@ AccordionTemplate accepts headingLevel (1–6, default 3) and applies it to each
 item heading, never the root. Match the surrounding page outline, for example
 headingLevel={2} below the page title. Long titles wrap without truncation and
 indicator wrappers keep a separate nonshrinking column.
+
+Honor explicit panel names and grouping roles so repeated accordions expose distinct landmarks.
