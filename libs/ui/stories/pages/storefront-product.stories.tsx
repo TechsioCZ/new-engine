@@ -507,6 +507,11 @@ export const Default: Story = {
     )
     await expect(dialog).toBeVisible()
     await userEvent.keyboard("{Escape}")
+    // The page stays inert and aria-hidden until the dialog finishes closing.
+    await waitFor(() => {
+      expect(dialog).not.toBeInTheDocument()
+      expect(canvasElement.closest("[aria-hidden='true'], [inert]")).toBeNull()
+    })
     await userEvent.click(
       canvas.getByRole("button", { name: "Add to wishlist" })
     )
