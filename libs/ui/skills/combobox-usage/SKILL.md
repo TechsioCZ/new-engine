@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.6.3"
+  component_version: "1.6.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -304,3 +304,5 @@ A controlled `inputValue` no longer round-trips each keystroke through React:
 native typing stays DOM-owned, so a parent that acknowledges an older query
 after newer keys landed cannot drop characters. External replacement,
 selection, blur and native reset hand authority back to the parent value.
+
+Controlled queries follow an ordered acknowledgement queue: in-order late acknowledgements never drop typing or move the caret, deliberate restores after acknowledgement apply while focused, and edits equal to the current value complete immediately. A restore to a still-unacknowledged value is indistinguishable from its acknowledgement; async parents must discard out-of-order responses.

@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.3
+ * @componentVersion v1.6.4
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -42,6 +42,10 @@ import { Icon, type IconProps, type IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import {
+  acknowledgeComboboxQuery,
+  queueComboboxQuery,
+} from "../internal/combobox-query-sync"
 import { joinDescribedBy } from "../internal/described-by"
 import {
   subscribeOwnerFormReset,
@@ -627,19 +631,29 @@ export function Combobox<T = unknown>({
   const resetting = useRef(false)
   const nativeInputOwnsQuery = useRef(false)
   const nativeQueries = useRef(new Set<string>())
+  const pendingQueries = useRef<string[]>([])
   // A controlled parent may acknowledge an older edit after the next key has
   // already landed. Keep an optimistic machine query, never a React-controlled
   // native input, and distinguish those echoes from external replacements.
   const [query, setQuery] = useState(inputValue ?? "")
   useLayoutEffect(() => {
-    if (
-      inputValue === undefined ||
-      (nativeInputOwnsQuery.current && nativeQueries.current.has(inputValue))
-    ) {
+    if (inputValue === undefined) {
       return
+    }
+    if (nativeInputOwnsQuery.current) {
+      const remaining = acknowledgeComboboxQuery(
+        pendingQueries.current,
+        inputValue
+      )
+      if (remaining !== null) {
+        pendingQueries.current = remaining
+        // Zag's deferred input echoes are separate from parent acknowledgements.
+        return
+      }
     }
     nativeInputOwnsQuery.current = false
     nativeQueries.current.clear()
+    pendingQueries.current = []
     setQuery(inputValue)
     if (inputRef.current && inputRef.current.value !== inputValue) {
       syncReactFormControl(inputRef.current, inputValue)
@@ -689,6 +703,7 @@ export function Combobox<T = unknown>({
             if (params.prop("selectionBehavior") !== "preserve") {
               nativeInputOwnsQuery.current = false
               nativeQueries.current.clear()
+              pendingQueries.current = []
             }
             syncSelectedItems({
               ...params,
@@ -827,6 +842,7 @@ export function Combobox<T = unknown>({
       }
       nativeInputOwnsQuery.current = false
       nativeQueries.current.clear()
+      pendingQueries.current = []
       // Programmatic proposals still respect a controlled parent's authority.
       // Native edits are handled directly below, including edits equal to an
       // older machine snapshot (which Zag's equality check would suppress).
@@ -911,6 +927,7 @@ export function Combobox<T = unknown>({
     resetSelection.current = restoredValue
     nativeInputOwnsQuery.current = false
     nativeQueries.current.clear()
+    pendingQueries.current = []
     if (inputValue !== undefined) {
       setQuery(inputValue)
     }
@@ -1020,6 +1037,11 @@ export function Combobox<T = unknown>({
         nativeInputOwnsQuery.current = true
         nativeQueries.current.add(nextQuery)
         if (inputValue !== undefined) {
+          pendingQueries.current = queueComboboxQuery(
+            pendingQueries.current,
+            nextQuery,
+            inputValue
+          )
           setQuery(nextQuery)
         }
         notifyInputValueChange(nextQuery)
@@ -1028,6 +1050,7 @@ export function Combobox<T = unknown>({
       onBlur(event: FocusEvent<HTMLInputElement>) {
         nativeInputOwnsQuery.current = false
         nativeQueries.current.clear()
+        pendingQueries.current = []
         machineInputProps.onBlur?.(event)
         if (inputValue !== undefined) {
           setQuery(inputValue)

@@ -51,6 +51,142 @@ function editor(value = "12") {
 }
 
 describe("NumericInput edit ownership", () => {
+  it("honors refusal after accepting and committing the same parent value", () => {
+    const editing = createNumericInputEditing()
+    const view = editor("2")
+    editing.reconcile("2")
+    editing.edit("1")
+    editing.propose("1")
+    editing.reconcile("1")
+    editing.commit()
+    editing.edit("12")
+    editing.propose("12")
+    editing.reconcile("1")
+    expect(editing.resolve("1")).toBe("1")
+    editing.commit()
+    editing.schedule(view.input, () =>
+      syncNumericInputValue(view.input, editing.resolve("1") ?? "")
+    )
+    view.drain()
+    expect(view.input.value).toBe("1")
+    expect(editing.resolve("1")).toBe("1")
+  })
+
+  it("keeps numeric-acknowledged decimal drafts exactly as typed", () => {
+    const editing = createNumericInputEditing()
+    const view = editor("2")
+    editing.reconcile("2")
+    for (const [draft, parent] of [
+      ["1", "1"],
+      ["1.", "1"],
+      ["1.5", "1.5"],
+      ["1.50", "1.5"],
+    ] as const) {
+      view.input.value = draft
+      editing.edit(draft)
+      editing.propose(draft)
+      editing.reconcile(parent)
+      editing.schedule(view.input, () => {
+        const resolved = editing.resolve(parent) ?? ""
+        if (view.input.value !== resolved) {
+          syncNumericInputValue(view.input, resolved)
+        }
+      })
+      view.drain()
+      expect(view.input.value).toBe(draft)
+      expect(view.input.setSelectionRange).not.toHaveBeenCalled()
+    }
+  })
+  it("uses the component parser for locale-aware numeric acknowledgements", () => {
+    const editing = createNumericInputEditing((value) =>
+      Number.parseFloat(value.replace(",", "."))
+    )
+    editing.reconcile("2")
+    for (const [draft, parent] of [
+      ["1", "1"],
+      ["1,", "1"],
+      ["1,50", "1,5"],
+    ] as const) {
+      editing.edit(draft)
+      editing.propose(draft)
+      editing.reconcile(parent)
+      expect(editing.resolve(parent)).toBe(draft)
+    }
+    editing.edit("12")
+    editing.reconcile("1,5")
+    expect(editing.resolve("1,5")).toBe("1,5")
+  })
+
+  it("compares numeric props before display formatting rounds them", () => {
+    const editing = createNumericInputEditing()
+    editing.reconcile("2", 1.75)
+    editing.edit("1.75")
+    editing.reconcile("2", 1.75)
+    expect(editing.resolve("2", 1.75)).toBe("1.75")
+    editing.edit("2")
+    expect(editing.resolve("2", 1.75)).toBe("2")
+    editing.commit()
+    expect(editing.resolve("2", 1.75)).toBe("2")
+  })
+
+  it("updates numeric parent authority even when formatting hides the change", () => {
+    const editing = createNumericInputEditing()
+    editing.reconcile("2", 1.75)
+    editing.edit("1.75")
+    editing.reconcile("2", 1.75)
+    editing.commit()
+    editing.reconcile("2", 2)
+    editing.edit("2")
+    editing.edit("3")
+    expect(editing.resolve("2", 2)).toBe("2")
+  })
+
+  it("acknowledges empty and NaN drafts without rewriting their text", () => {
+    const editing = createNumericInputEditing()
+    editing.reconcile("2")
+    for (const draft of ["", "-", "."]) {
+      editing.edit(draft)
+      editing.reconcile("", Number.NaN)
+      expect(editing.resolve("", Number.NaN)).toBe(draft)
+    }
+  })
+
+  it("does not let a queued older proposal mutate a newer native draft", () => {
+    const editing = createNumericInputEditing()
+    editing.reconcile("2")
+    editing.edit("12")
+    editing.reconcile("12")
+    editing.commit()
+    editing.edit("1.5")
+    editing.reconcile("1.5")
+    editing.propose("12")
+    expect(editing.resolve("1.5")).toBe("1.5")
+    expect(editing.resolve("12")).toBe("1.5")
+  })
+
+  it("leaves uncontrolled native editing and commit normalization unchanged", () => {
+    const editing = createNumericInputEditing()
+    const view = editor("2")
+    editing.reconcile(undefined)
+    for (const draft of ["", "1", "1.", "1.5"]) {
+      view.input.value = draft
+      editing.edit(draft)
+      editing.propose(draft)
+      editing.reconcile(undefined)
+      expect(editing.nativeOwnsValue).toBe(true)
+      expect(editing.resolve(undefined)).toBeUndefined()
+      expect(view.input.value).toBe(draft)
+    }
+    editing.commit()
+    editing.propose("1.50")
+    editing.schedule(view.input, () =>
+      syncNumericInputValue(view.input, "1.50")
+    )
+    view.drain()
+    expect(view.input.value).toBe("1.50")
+    expect(editing.nativeOwnsValue).toBe(false)
+  })
+
   it("discards the previous blur frame between clear and the next keystroke", () => {
     const editing = createNumericInputEditing()
     const view = editor()
@@ -88,6 +224,7 @@ describe("NumericInput edit ownership", () => {
     editing.reconcile("12")
     editing.commit()
     editing.edit("")
+    editing.reconcile("")
     editing.edit("1.")
     expect(editing.resolve("12")).toBe("1.")
     expect(editing.reconcile("12")).toBe(false)
@@ -124,7 +261,7 @@ describe("NumericInput edit ownership", () => {
     expect(editing.reconcile("12")).toBe(true)
   })
 
-  it("does not revive an already-ignored parent echo when the newer draft blurs", () => {
+  it("restores the actual parent on blur if it never accepted the newer draft", () => {
     const editing = createNumericInputEditing()
     editing.reconcile("2")
     editing.edit("12")
@@ -133,10 +270,11 @@ describe("NumericInput edit ownership", () => {
     editing.edit("1.5")
     editing.reconcile("1.5")
     editing.reconcile("12")
+    expect(editing.resolve("12")).toBe("1.5")
     editing.commit()
-    expect(editing.resolve("12")).toBe("1.5")
+    expect(editing.resolve("12")).toBe("12")
     editing.propose("1.5")
-    expect(editing.resolve("12")).toBe("1.5")
+    expect(editing.resolve("12")).toBe("12")
     expect(editing.resolve("7")).toBe("7")
     expect(editing.reconcile("7")).toBe(true)
   })
@@ -151,6 +289,110 @@ describe("NumericInput edit ownership", () => {
     view.drain()
     expect(view.input.value).toBe("9")
   })
+
+  it("restores refusal authority after the draft catches up to an ignored echo", () => {
+    const editing = createNumericInputEditing()
+    editing.reconcile("2")
+    editing.edit("1")
+    editing.propose("1")
+    editing.edit("12")
+    editing.propose("12")
+    editing.reconcile("1")
+    expect(editing.resolve("1")).toBe("12")
+    editing.edit("1")
+    editing.propose("1")
+    editing.reconcile("1")
+    editing.edit("12")
+    editing.propose("12")
+    expect(editing.resolve("1")).toBe("1")
+    editing.commit()
+    expect(editing.resolve("1")).toBe("1")
+  })
+
+  it("ignores a delayed accepted native echo after clear without any blur", () => {
+    const editing = createNumericInputEditing()
+    const view = editor("12")
+    editing.reconcile("2")
+    editing.edit("12")
+    editing.propose("12")
+    editing.reconcile("12")
+    view.input.value = ""
+    editing.edit("")
+    editing.propose("")
+    editing.reconcile("")
+    expect(editing.resolve("12")).toBe("")
+    expect(editing.reconcile("12")).toBe(false)
+    editing.schedule(view.input, () =>
+      syncNumericInputValue(view.input, editing.resolve("12") ?? "")
+    )
+    view.drain()
+    for (const character of "1.5") {
+      view.input.value += character
+      editing.edit(view.input.value)
+      editing.propose(view.input.value)
+      editing.reconcile(view.input.value)
+    }
+    expect(view.input.value).toBe("1.5")
+    expect(editing.resolve("1.5")).toBe("1.5")
+    editing.commit()
+    expect(editing.resolve("1.5")).toBe("1.5")
+  })
+
+  it.each(["12", "10"])(
+    "ignores a late acknowledged commit, including blur normalization (%s)",
+    (committedValue) => {
+      const editing = createNumericInputEditing()
+      editing.reconcile("2")
+      editing.edit("12")
+      editing.reconcile("12")
+      editing.commit()
+      editing.propose(committedValue)
+      editing.reconcile(committedValue)
+      editing.edit("1.")
+      editing.reconcile("1.")
+      expect(editing.resolve(committedValue)).toBe("1.")
+      expect(editing.reconcile(committedValue)).toBe(false)
+      editing.edit("1.5")
+      editing.reconcile("1.5")
+      editing.commit()
+      expect(editing.resolve("1.5")).toBe("1.5")
+    }
+  )
+
+  it.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])(
+    "restores a refusing parent (accepted blur: %s, refused blur: %s)",
+    (acceptedBlur, refusedBlur) => {
+      const editing = createNumericInputEditing()
+      const view = editor("2")
+      editing.reconcile("2")
+      editing.edit("1")
+      editing.propose("1")
+      editing.reconcile("1")
+      if (acceptedBlur) {
+        editing.commit()
+        editing.propose("1")
+        editing.reconcile("1")
+      }
+      editing.edit("12")
+      editing.propose("12")
+      if (refusedBlur) {
+        editing.commit()
+      }
+      expect(editing.resolve("1")).toBe("1")
+      expect(editing.reconcile("1")).toBe(false)
+      view.input.value = "12"
+      editing.schedule(view.input, () =>
+        syncNumericInputValue(view.input, editing.resolve("1") ?? "")
+      )
+      view.drain()
+      expect(view.input.value).toBe("1")
+    }
+  )
 
   it("allows blur normalization and records its proposal for subsequent edits", () => {
     const editing = createNumericInputEditing()
@@ -173,6 +415,8 @@ describe("NumericInput edit ownership", () => {
     editing.reconcile("12")
     editing.edit("12")
     editing.edit("1.5")
+    editing.reconcile("1.5")
+    editing.reconcile("12")
     expect(editing.resolve("12")).toBe("1.5")
     editing.schedule(view.input, () => syncNumericInputValue(view.input, "1.5"))
     editing.reset()

@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Combobox v1.6.4
+- Controlled queries follow an ordered acknowledgement queue: in-order late acknowledgements never drop typing or move the caret, deliberate restores after acknowledgement apply while focused, and edits equal to the current value complete immediately. A restore to a still-unacknowledged value is indistinguishable from its acknowledgement; async parents must discard out-of-order responses.
+
+### NumericInput v1.3.5
+- Controlled values are acknowledged or refused by numeric value: decimal drafts such as 1. and 1.50 are never rewritten, while a parent that keeps its previous value restores it on screen and in the submitted value, including after an earlier accepted edit.
+
 ### DataTable v1.4.5
 - Fixed-layout column filters scroll within their cell instead of overlapping neighbouring filters; auto layout keeps the full control width.
 

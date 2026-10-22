@@ -55,7 +55,7 @@ const meta: Meta<typeof NumericInput> = {
     layout: "centered",
     docs: {
       description: {
-        component: "Locale-aware numeric editing. Pair value with onValueChange={({ value }) => setDraft(value)} for controlled draft strings; onChange(number) is a legacy numeric projection and cannot preserve empty/intermediate text. defaultValue is uncontrolled. readOnly remains focusable and submits its value but blocks typing, keys, wheel, scrubbing and adjustment buttons. disabled removes interaction/submission. validateStatus=\"error\" or invalid marks the input invalid; render StatusText for linked guidance. form=\"owner-id\" on Root associates an external owner: accepted reset silently restores uncontrolled defaults after native cancellation has settled. Canceled resets preserve edits; controlled values remain authoritative and reset never emits a change callback.\n\n### Compound member contracts\n\n- **`NumericInput (Root)`** — No value required; value + onValueChange or defaultValue. No parent context. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.Control`** — Visual input frame. Inside Root. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.Input`** — Required editor; provide aria-label or associated Label htmlFor. Inside Root. `ref`: `HTMLInputElement`.\n\n- **`NumericInput.TriggerContainer`** — Optional adjustment layout. Inside Root. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.IncrementTrigger`** — Optional increment button. Inside Root. `ref`: `HTMLButtonElement`.\n\n- **`NumericInput.DecrementTrigger`** — Optional decrement button. Inside Root. `ref`: `HTMLButtonElement`.\n\n- **`NumericInput.Scrubber`** — Optional pointer adjustment surface. Inside Root. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.StatusText`** — Optional linked helper/validation; set status explicitly (default is neutral). Inside Root. `ref`: `HTMLDivElement`.",
+        component: "Locale-aware numeric editing. Pair value with onValueChange={({ value }) => setDraft(value)} for controlled draft strings; onChange(number) is a numeric projection: equal parsed numbers acknowledge and preserve intermediate text such as 1. while editing; empty drafts project NaN. Refused edits restore the parent value in a revision-guarded frame and on commit. defaultValue is uncontrolled. readOnly remains focusable and submits its value but blocks typing, keys, wheel, scrubbing and adjustment buttons. disabled removes interaction/submission. validateStatus=\"error\" or invalid marks the input invalid; render StatusText for linked guidance. form=\"owner-id\" on Root associates an external owner: accepted reset silently restores uncontrolled defaults after native cancellation has settled. Canceled resets preserve edits; controlled values remain authoritative and reset never emits a change callback.\n\n### Compound member contracts\n\n- **`NumericInput (Root)`** — No value required; value + onValueChange or defaultValue. No parent context. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.Control`** — Visual input frame. Inside Root. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.Input`** — Required editor; provide aria-label or associated Label htmlFor. Inside Root. `ref`: `HTMLInputElement`.\n\n- **`NumericInput.TriggerContainer`** — Optional adjustment layout. Inside Root. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.IncrementTrigger`** — Optional increment button. Inside Root. `ref`: `HTMLButtonElement`.\n\n- **`NumericInput.DecrementTrigger`** — Optional decrement button. Inside Root. `ref`: `HTMLButtonElement`.\n\n- **`NumericInput.Scrubber`** — Optional pointer adjustment surface. Inside Root. `ref`: `HTMLDivElement`.\n\n- **`NumericInput.StatusText`** — Optional linked helper/validation; set status explicitly (default is neutral). Inside Root. `ref`: `HTMLDivElement`.",
       },
     },
   },
@@ -67,7 +67,7 @@ const meta: Meta<typeof NumericInput> = {
     value: { control: "number" },
     defaultValue: { control: "number" },
     onValueChange: { control: false, description: "Controlled draft proposal, including empty/intermediate text.", table: { type: { summary: "(details: { value: string; valueAsNumber: number }) => void" } } },
-    onChange: { control: false, description: "Legacy numeric projection; prefer onValueChange for controlled text editing.", table: { type: { summary: "(value: number) => void" } } },
+    onChange: { control: false, description: "Numeric projection; matching parsed numbers preserve native decimal drafts. Prefer onValueChange when the parent also needs draft text.", table: { type: { summary: "(value: number) => void" } } },
   },
 }
 
@@ -427,6 +427,27 @@ export const WithoutControls: Story = {
       </div>
     )
   },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("spinbutton") as HTMLInputElement
+    await userEvent.click(input)
+    input.setSelectionRange(0, input.value.length)
+    await userEvent.keyboard("1.")
+    // Numeric onChange echoes 1 for both "1" and "1.". Give queued projections
+    // time to run before entering the fraction; neither may remove the dot.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+    await expect(input).toHaveValue("1.")
+    await expect(input.selectionStart).toBe(2)
+    await userEvent.keyboard("5")
+    await waitFor(() => expect(input).toHaveValue("1.5"))
+    await userEvent.tab()
+    await expect(input).toHaveValue("1.5")
+    // Leave the visual demonstration at its original quantity.
+    await userEvent.click(input)
+    input.setSelectionRange(0, input.value.length)
+    await userEvent.keyboard("50")
+    await userEvent.tab()
+    await expect(input).toHaveValue("50")
+  },
 }
 
 export const WithScrubber: Story = {
@@ -642,7 +663,7 @@ export const ControlledDraft: Story = {
     docs: {
       description: {
         story:
-          "String-controlled drafts retain empty and rejected text until the parent accepts an update.",
+          "String-controlled drafts preserve accepted empty and intermediate text; refused edits restore the parent value.",
       },
     },
   },
@@ -1307,19 +1328,152 @@ export const NativeResetTracker: Story = {
   },
 }
 
+function ControlledRefusalField({ wrapped }: { wrapped: boolean }) {
+  const [value, setValue] = useState(2)
+  const earlierProposal = useRef<number | undefined>(undefined)
+  const label = `${wrapped ? "FormNumericInput" : "NumericInput"} selective quantity`
+  const fieldProps: NumericInputProps = {
+    allowOverflow: true,
+    clampValueOnBlur: false,
+    locale: "en-US",
+    max: 10,
+    min: 0,
+    name: "quantity",
+    value,
+    onChange: (next) => {
+      if (next <= 10) {
+        earlierProposal.current ??= next
+        setValue(next)
+      }
+    },
+  }
+  const editor = (
+    <NumericInput.Control>
+      <NumericInput.Input aria-label={label} />
+    </NumericInput.Control>
+  )
+  return (
+    <form aria-label={label} className="grid gap-100">
+      {wrapped ? (
+        <FormNumericInput {...fieldProps} label={label}>
+          {editor}
+        </FormNumericInput>
+      ) : (
+        <NumericInput {...fieldProps}>{editor}</NumericInput>
+      )}
+      <output aria-label="Accepted quantity">{value}</output>
+      <Button
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => {
+          if (earlierProposal.current !== undefined) {
+            setValue(earlierProposal.current)
+          }
+        }}
+        variant="secondary"
+      >
+        Acknowledge earlier quantity
+      </Button>
+      <Button variant="secondary">Continue</Button>
+    </form>
+  )
+}
+
+export const ControlledRefusal: Story = {
+  tags: ["ui-semantic-regression"],
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: "After accepting a quantity, a controlled parent can refuse the next edit without rerendering. The input, accessibility value and submitted quantity must restore the accepted value, including after blur and through FormNumericInput.",
+      },
+    },
+  },
+  render: () => (
+    <div className="grid w-full max-w-md gap-300">
+      <ControlledRefusalField wrapped={false} />
+      <ControlledRefusalField wrapped />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const wrapped of [false, true]) {
+      const label = `${wrapped ? "FormNumericInput" : "NumericInput"} selective quantity`
+      const form = canvas.getByRole("form", { name: label }) as HTMLFormElement
+      const field = within(form)
+      const input = field.getByRole("spinbutton") as HTMLInputElement
+      const assertQuantity = async (value: string) => {
+        await waitFor(() => {
+          expect(input).toHaveValue(value)
+          expect(input).toHaveAttribute("aria-valuenow", value)
+          expect(field.getByLabelText("Accepted quantity")).toHaveTextContent(
+            new RegExp(`^${value}$`)
+          )
+          expect(new FormData(form).get("quantity")).toBe(value)
+        })
+      }
+      await userEvent.click(input)
+      input.setSelectionRange(0, input.value.length)
+      await userEvent.keyboard("1")
+      await assertQuantity("1")
+      input.setSelectionRange(input.value.length, input.value.length)
+      await userEvent.keyboard("2")
+      await assertQuantity("1")
+      await userEvent.tab()
+      await assertQuantity("1")
+      // Acknowledging the same text on blur must also release its proposal.
+      await userEvent.click(input)
+      input.setSelectionRange(0, input.value.length)
+      await userEvent.keyboard("3")
+      await userEvent.tab()
+      await assertQuantity("3")
+      await userEvent.click(input)
+      input.setSelectionRange(input.value.length, input.value.length)
+      await userEvent.keyboard("4")
+      await assertQuantity("3")
+      await userEvent.tab()
+      await assertQuantity("3")
+      // Catch up to an ignored native echo, then refuse another edit while the
+      // parent prop stays unchanged. Its earlier ignored status must be gone.
+      await userEvent.click(input)
+      input.setSelectionRange(0, input.value.length)
+      await userEvent.keyboard("4")
+      await assertQuantity("4")
+      await userEvent.click(
+        field.getByRole("button", { name: "Acknowledge earlier quantity" })
+      )
+      await waitFor(() => {
+        expect(field.getByLabelText("Accepted quantity")).toHaveTextContent(/^1$/)
+        expect(input).toHaveFocus()
+        expect(input).toHaveValue("4")
+        expect(input).toHaveAttribute("aria-valuenow", "4")
+        expect(new FormData(form).get("quantity")).toBe("4")
+      })
+      input.setSelectionRange(0, input.value.length)
+      await userEvent.keyboard("1")
+      await assertQuantity("1")
+      input.setSelectionRange(input.value.length, input.value.length)
+      await userEvent.keyboard("2")
+      await assertQuantity("1")
+      await userEvent.tab()
+      await assertQuantity("1")
+    }
+  },
+}
+
 export const DeferredParentAcknowledgement: Story = {
   tags: ["ui-semantic-regression"],
   parameters: {
     controls: { disable: true },
     docs: {
       description: {
-        story: "A controlled parent can acknowledge an earlier blur after the next edit has started. Releasing that old commit must not replace the new native draft; external replacement and native reset still take authority.",
+        story: "A controlled parent can acknowledge an earlier native edit or blur after the next edit has started. Releasing that old proposal must not replace the new native draft; external replacement and native reset still take authority.",
       },
     },
   },
   render() {
     const [value, setValue] = useState("2")
     const committed = useRef("2")
+    const nativeProposal = useRef("2")
     return (
       <form className="grid w-full max-w-md gap-100">
         <NumericInput
@@ -1328,7 +1482,12 @@ export const DeferredParentAcknowledgement: Story = {
           max={10}
           min={1}
           name="quantity"
-          onValueChange={(details) => setValue(details.value)}
+          onValueChange={(details) => {
+            if (details.value === "12") {
+              nativeProposal.current = details.value
+            }
+            setValue(details.value)
+          }}
           onValueCommit={(details) => { committed.current = details.value }}
           precision={0}
           value={value}
@@ -1338,6 +1497,13 @@ export const DeferredParentAcknowledgement: Story = {
           </NumericInput.Control>
         </NumericInput>
         <output aria-label="Parent value">{value}</output>
+        <Button
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => setValue(nativeProposal.current)}
+          variant="secondary"
+        >
+          Acknowledge earlier native edit
+        </Button>
         <Button
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => setValue(committed.current)}
@@ -1358,6 +1524,25 @@ export const DeferredParentAcknowledgement: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const input = canvas.getByRole("spinbutton", { name: "Deferred quantity" }) as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.type(input, "12", { delay: 0 })
+    await expect(input).toHaveFocus()
+    await userEvent.clear(input)
+    await expect(canvas.getByLabelText("Parent value")).toHaveTextContent(/^$/)
+    await userEvent.click(canvas.getByRole("button", { name: "Acknowledge earlier native edit" }))
+    await expect(input).toHaveFocus()
+    await expect(canvas.getByLabelText("Parent value")).toHaveTextContent(/^12$/)
+    await expect(input).toHaveValue("")
+    await expect(new FormData(input.form!).get("quantity")).toBe("")
+    await userEvent.type(input, "1.5", { delay: 0 })
+    await expect(input).toHaveValue("1.5")
+    await expect(input).toHaveAttribute("aria-valuenow", "1.5")
+    await expect(new FormData(input.form!).get("quantity")).toBe("1.5")
+    await userEvent.tab()
+    await expect(input).toHaveValue("1.5")
+    await userEvent.click(canvas.getByRole("button", { name: "Replace from parent" }))
+    await expect(input).toHaveValue("7")
+    // Preserve the original delayed-blur case independently of the native echo.
     await userEvent.clear(input)
     await userEvent.type(input, "12", { delay: 0 })
     await userEvent.tab()

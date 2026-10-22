@@ -1,65 +1,94 @@
 import { syncReactFormControl } from "./form-control-lifecycle"
 
-// Each deferred projection belongs to the edit that scheduled it, not to the
-// next native draft. Keep proposal history across blur so a late controlled
-// acknowledgement of that commit cannot take ownership back from newer typing.
-export function createNumericInputEditing() {
+// Compare acknowledgements/refusals numerically, preserving acknowledged draft
+// text (including "1."). Unchanged accepted numbers refuse later different edits;
+// only echoes of OTHER older numbers may wait behind newer typing. Refusals are
+// projected in revision-guarded frames, and commit always restores parent authority.
+export function createNumericInputEditing(parse = Number.parseFloat) {
   let revision = 0
   let nativeValue: string | undefined
   let nativeOwnsValue = false
   let parentValue: string | undefined
-  let ignoredParentValue: string | undefined
-  const proposals = new Set<string>()
+  let parentNumber: number | undefined
+  let acceptedNumber: number | undefined
+  const proposedNumbers = new Set<number | undefined>()
+  const numberOf = (value: string | number | undefined) => {
+    if (value === "") {
+      return
+    }
+    const parsed = typeof value === "string" ? parse(value) : value
+    return parsed === undefined || Number.isNaN(parsed) ? undefined : parsed
+  }
 
   const editing = {
     edit(value: string) {
       revision += 1
       nativeOwnsValue = true
       nativeValue = value
-      proposals.add(value)
+      proposedNumbers.add(numberOf(value))
     },
     commit() {
-      if (parentValue !== editing.resolve(parentValue)) {
-        ignoredParentValue = parentValue
-      }
       revision += 1
       nativeOwnsValue = false
+      acceptedNumber = parentNumber
     },
     propose(value: string) {
+      // A queued blur/change notification can belong to an older edit. Record
+      // its numeric echo without ever replacing the current native draft text.
       if (nativeValue !== undefined) {
-        nativeValue = value
-        proposals.add(value)
+        proposedNumbers.add(numberOf(value))
       }
     },
     reset() {
       revision += 1
       nativeOwnsValue = false
       nativeValue = undefined
-      ignoredParentValue = undefined
-      proposals.clear()
+      acceptedNumber = parentNumber
+      proposedNumbers.clear()
     },
-    resolve(value: string | undefined) {
+    resolve(
+      value: string | undefined,
+      numericValue: string | number | undefined = value
+    ) {
+      const number = numberOf(numericValue)
       return value !== undefined &&
+        nativeOwnsValue &&
         nativeValue !== undefined &&
-        proposals.has(value) &&
-        (nativeOwnsValue || value === ignoredParentValue)
+        (number === numberOf(nativeValue) ||
+          (number !== acceptedNumber && proposedNumbers.has(number)))
         ? nativeValue
         : value
     },
-    reconcile(value: string | undefined) {
-      if (parentValue === value) {
+    reconcile(
+      value: string | undefined,
+      numericValue: string | number | undefined = value
+    ) {
+      const number = numberOf(numericValue)
+      const previousValue = parentValue
+      const previousNumber = parentNumber
+      parentValue = value
+      parentNumber = number
+      if (value !== undefined && nativeOwnsValue) {
+        if (number === numberOf(nativeValue)) {
+          acceptedNumber = number
+          return false
+        }
+        if (number === acceptedNumber || proposedNumbers.has(number)) {
+          // Refusal is deferred, not written synchronously during a native edit.
+          return false
+        }
+      } else if (value !== undefined && proposedNumbers.has(number)) {
+        acceptedNumber = number
+        if (value !== previousValue || number !== previousNumber) {
+          revision += 1
+          return true
+        }
+        return false
+      } else if (value === previousValue && number === previousNumber) {
         return false
       }
-      parentValue = value
-      if (editing.resolve(value) !== value) {
-        ignoredParentValue = value
-      } else if (value === nativeValue) {
-        ignoredParentValue = undefined
-      } else {
-        editing.reset()
-        return true
-      }
-      return false
+      editing.reset()
+      return true
     },
     get nativeOwnsValue() {
       return nativeOwnsValue

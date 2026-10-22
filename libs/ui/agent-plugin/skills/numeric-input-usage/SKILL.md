@@ -6,7 +6,7 @@ description: >
   numeric compatibility or controlled string drafts, locale formatting, min/max/step, and token-first
   styling.
 metadata:
-  component_version: "1.3.4"
+  component_version: "1.3.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -402,3 +402,5 @@ acknowledgement can never overwrite newer typing. External replacement, silent
 reset, refusal and blur normalization stay authoritative.
 
 Keep custom input ids in sync with the stepper and focus references.
+
+Controlled values are acknowledged or refused by numeric value: decimal drafts such as 1. and 1.50 are never rewritten, while a parent that keeps its previous value restores it on screen and in the submitted value, including after an earlier accepted edit.

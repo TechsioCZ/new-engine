@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.4
+ * @componentVersion v1.3.5
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -213,6 +213,7 @@ type NumericInputContextValue = {
   controlledValue?: string
   editing: NumericInputEditing
   onNativeInput: (input: HTMLInputElement) => void
+  onNativeCommit: () => void
   setInputId: (id: string | undefined) => void
   isValidInputDraft?: (value: string) => boolean
   readOnly?: boolean
@@ -323,10 +324,13 @@ export function NumericInput({
     )
   }
 
-  const [editing] = useState(createNumericInputEditing)
+  const parseDraft = useRef(Number.parseFloat)
+  const [editing] = useState(() =>
+    createNumericInputEditing((draft) => parseDraft.current(draft))
+  )
   const [, refreshNativeValue] = useState(0)
   const controlledValue = value === undefined ? undefined : formatValue(value)
-  const resolvedValue = editing.resolve(controlledValue)
+  const resolvedValue = editing.resolve(controlledValue, value)
   const coordinatedMachine = useMemo<typeof numberInput.machine>(() => {
     const actions = readOnlySafeMachine.implementations?.actions ?? {}
     const authoritativeAction =
@@ -428,8 +432,13 @@ export function NumericInput({
       machineProps.onValueChange?.(details)
     },
   })
+  // Use Zag's exact parser rather than comparing locale-formatted draft text.
+  parseDraft.current = (draft) =>
+    resolvedFormatOptions
+      ? service.computed("parser").parse(draft)
+      : Number.parseFloat(draft)
   useLayoutEffect(() => {
-    if (!editing.reconcile(controlledValue)) {
+    if (!editing.reconcile(controlledValue, value)) {
       return
     }
     const input = service.scope.getById<HTMLInputElement>(
@@ -438,7 +447,13 @@ export function NumericInput({
     if (input && controlledValue !== undefined) {
       syncNumericInputValue(input, controlledValue)
     }
-  }, [controlledValue, editing, service])
+  })
+
+  const onNativeCommit = () => {
+    editing.commit()
+    // Even an unchanged refusing parent needs a fresh projection on blur/Enter.
+    flushSync(() => refreshNativeValue((current) => current + 1))
+  }
 
   const onNativeInput = (input: HTMLInputElement) => {
     if (machineProps.readOnly || service.computed("isDisabled")) {
@@ -518,6 +533,7 @@ export function NumericInput({
         controlledValue: resolvedValue,
         editing,
         onNativeInput,
+        onNativeCommit,
         setInputId,
         isValidInputDraft,
       }}
@@ -595,6 +611,7 @@ NumericInput.Input = function NumericInputInput({
     controlledValue,
     editing,
     onNativeInput,
+    onNativeCommit,
     setInputId,
     isValidInputDraft,
     description,
@@ -665,12 +682,12 @@ NumericInput.Input = function NumericInputInput({
       onNativeInput(event.currentTarget)
     },
     onBlur(event) {
-      editing.commit()
+      onNativeCommit()
       machineInputProps.onBlur?.(event)
     },
     onKeyDown(event) {
       if (event.key === "Enter") {
-        editing.commit()
+        onNativeCommit()
       }
       machineInputProps.onKeyDown?.(event)
     },
