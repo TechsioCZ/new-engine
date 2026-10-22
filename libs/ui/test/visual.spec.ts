@@ -361,7 +361,7 @@ async function assertPostCaptureBehavior(page: Page, storyId: string) {
   }
   await expect.poll(percent).toBeCloseTo(66.67, 1)
   await expect(
-    canvas.getByRole("region", { name: stepsReviewPanel })
+    canvas.getByRole("group", { name: stepsReviewPanel })
   ).toBeVisible()
   await expect(
     canvas.getByText(stepsCompletedText, { exact: true })

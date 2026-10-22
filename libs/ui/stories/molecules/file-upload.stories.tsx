@@ -770,7 +770,7 @@ export const DropzoneStates: Story = {
     for (const id of errorIds) {
       const error = canvasElement.ownerDocument.getElementById(id)
       await expect(error).toBeVisible()
-      await expect(error).toHaveAttribute("aria-live", /polite|assertive/)
+      await expect(error?.getAttribute("aria-live")).toMatch(/^(polite|assertive)$/)
       await expect(browse.getAttribute("aria-describedby")?.split(/\s+/)).toContain(id)
     }
   },
