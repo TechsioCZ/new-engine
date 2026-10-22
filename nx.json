@@ -5,7 +5,6 @@
     "default": [
       "{projectRoot}/**/*",
       "!{projectRoot}/dist/**",
-      "!{projectRoot}/.medusa/**",
       "!{projectRoot}/.next/**",
       "!{projectRoot}/coverage/**",
       "!{projectRoot}/playwright-report/**",
@@ -35,7 +34,6 @@
     "lintTooling": [
       "workspaceTooling",
       "{workspaceRoot}/biome.json",
-      "{workspaceRoot}/eslint.config.ts",
       "{workspaceRoot}/eslint.nx.config.cjs"
     ],
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]

@@ -5,8 +5,6 @@ minimumReleaseAgeExclude:
   - '@techsio/storybook-better-a11y'
   - '@techsio/storybook-a11y-reporter'
   - '@medusajs/*'
-  - '@paykit-sdk/*'
-  - '@rokmohar/medusa-plugin-meilisearch'
 # trustPolicy: no-downgrade
 
 # Packages own their test-tool dependencies; catalogs centralize the two
@@ -51,50 +49,14 @@ publicHoistPattern:
   - storybook-*
   - '@storybook/*'
   - '@rsbuild/*'
-  - '@medusajs/*'
 
 overrides:
   # Storybook's runner accepts these versions; share the browser revision with
   # the workspace CLI and Playwright container used to install Chromium.
   '@storybook/test-runner@0.26.0>playwright': 1.64.0
   '@storybook/test-runner@0.26.0>playwright-core': 1.64.0
-  # Keep applications outside this design-system upgrade on their existing
-  # React and Node type providers. The UI package owns its latest providers.
-  'frontend-demo>react': 19.2.3
-  'frontend-demo>react-dom': 19.2.3
-  'frontend-demo>@types/node': 24.12.4
-  'frontend-demo>@types/react': 19.2.3
-  'frontend-demo>@types/react-dom': 19.2.3
-  'herbatika>react': 19.2.3
-  'herbatika>react-dom': 19.2.3
-  'herbatika>@types/node': 24.12.4
-  'herbatika>@types/react': 19.2.3
-  'herbatika>@types/react-dom': 19.2.3
-  'medusa-be>react': 19.2.3
-  'medusa-be>react-dom': 19.2.3
-  'medusa-be>@types/node': 24.12.4
-  'medusa-be>@types/react': 19.2.3
-  'medusa-be>@types/react-dom': 19.2.3
-  'medusa-order-dashboard-plugin>@types/react': 19.2.3
-  'medusa-order-dashboard-plugin>@types/react-dom': 19.2.3
-  'medusa-order-dashboard-plugin>react': 19.2.3
-  'medusa-order-dashboard-plugin>react-dom': 19.2.3
-  'medusa-symmy-plugin>@types/node': 24.12.4
-  'medusa-symmy-plugin>@types/react': 19.2.3
-  'medusa-symmy-plugin>@types/react-dom': 19.2.3
-  'medusa-symmy-plugin>react': 19.2.3
-  'medusa-symmy-plugin>react-dom': 19.2.3
-  'n1>react': 19.2.3
-  'n1>react-dom': 19.2.3
-  'n1>@types/node': 24.12.4
-  'n1>@types/react': 19.2.3
-  'n1>@types/react-dom': 19.2.3
-  'new-engine-ctl>@types/node': 24.12.4
-  '@nmit/payload>react': 19.2.3
-  '@nmit/payload>react-dom': 19.2.3
-  '@nmit/payload>@types/node': 24.12.4
-  '@nmit/payload>@types/react': 19.2.3
-  '@nmit/payload>@types/react-dom': 19.2.3
+  # Keep these libraries on their existing React and type providers. The UI
+  # package owns its latest providers.
   '@techsio/analytics>react': 19.2.3
   '@techsio/analytics>react-dom': 19.2.3
   '@techsio/analytics>@types/react': 19.2.3
@@ -104,28 +66,14 @@ overrides:
   '@techsio/storefront-data>@types/react': 19.2.3
   '@techsio/storefront-data>@types/react-dom': 19.2.3
   # Vitest 3 supports Vite 5-7, but pnpm otherwise selects Vite 7 for its
-  # private dependency graph. Keep Medusa's test tooling on its Vite 5 line.
+  # private dependency graph. Keep the vite5-testing catalog on Vite 5.
   'vitest@3.2.7>vite': 5.4.21
   'vite-node@3.2.4>vite': 5.4.21
   # Security-only convergence scoped to the exact owning package versions.
   # Keep these narrow so future parent upgrades restore normal resolution.
   'vite@5.4.21>rollup': 4.59.0
   'ts-node@10.9.2>diff': 4.0.4
-  'cli-ux@5.6.7>js-yaml': 3.15.0
-  '@mdxeditor/editor@3.54.0>js-yaml': 4.3.0
 
-# These exact, package-scoped exceptions acknowledge compatibility without
-# rewriting the dependencies' published peer metadata. Future version changes
-# will surface as peer errors again and require explicit re-verification.
-peerDependencyRules:
-  allowedVersions:
-    # This release uses ESLint's sourceCode API, retained in ESLint 10;
-    # its published peer range still stops at ESLint 9.
-    '@medusajs/eslint-plugin@2.18.0>eslint': 10.12.0
-    # Herbatika imports Medusa DTOs only as TypeScript types and owns its Vite
-    # 8 test runtime independently from Medusa Admin's Vite 5 toolchain.
-    '@medusajs/types@2.18.0>vite': 8.1.3
-    'fdir@6.1.1>picomatch': 4.0.7
 supportedArchitectures:
   # `current` still covers Windows when it is the active host. Darwin + Linux
   # and x64 + arm64 are retained for the shared host/Docker store. Runtime
@@ -144,40 +92,18 @@ supportedArchitectures:
 
 # Manual dependency metadata extensions for packages with incomplete published metadata.
 packageExtensions:
-  '@medusajs/caching@2.18.0':
-    dependencies:
-      graphql: 16.14.0
-  '@medusajs/core-flows@2.18.0':
-    dependencies:
-      '@medusajs/utils': 2.18.0
-      '@medusajs/workflows-sdk': 2.18.0
   '@medusajs/types@2.18.0':
     dependencies:
       # Its published declarations import this package, but the release lists
       # it only as a dev dependency. Supply the missing type/runtime edge so
       # every MedusaContainer resolves the same Awilix contract.
       '@medusajs/deps': 2.18.0
-  '@rokmohar/medusa-plugin-meilisearch@1.4.3':
-    dependencies:
-      # The published bundle externalizes these runtime imports but omits them
-      # from its manifest. Keep the extension scoped to the audited release.
-      '@medusajs/js-sdk': 2.18.0
-      '@medusajs/utils': 2.18.0
-      '@medusajs/workflows-sdk': 2.18.0
-      zod: ^4.2.0
 patchedDependencies:
-  '@lexical/code@0.35.0': patches/@lexical__code@0.35.0.patch
-  '@rokmohar/medusa-plugin-meilisearch@1.4.3': patches/@rokmohar__medusa-plugin-meilisearch@1.4.3.patch
   '@zag-js/focus-visible@1.45.0': patches/@zag-js__focus-visible@1.45.0.patch
   object-inspect@1.13.4: patches/object-inspect@1.13.4.patch
 
 packages:
-  - packages/**
-  - apps/**
   - libs/**
-  - '!apps/demo/**'
-  - '!apps/e2e/**'
-  - '!apps/typesense-demo/**'
   # agent plugin is published separately, not a workspace package
   - '!libs/ui/agent-plugin/**'
 
@@ -187,14 +113,11 @@ syncInjectedDepsAfterScripts:
 allowBuilds:
   '@nubjs/nub': true
   '@biomejs/biome': true
-  '@medusajs/telemetry': false
   '@parcel/watcher': true
   '@swc/core': true
   '@tailwindcss/oxide': true
   core-js: false
-  es5-ext: false
   esbuild: true
-  msgpackr-extract: false
   msw: false
   nx: true
   protobufjs: false

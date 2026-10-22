@@ -52,7 +52,6 @@ test-results
 agent-sitemaps/
 dogfood-output/
 .env
-.env.zane*
 
 # Local Netlify folder
 .netlify
@@ -61,24 +60,16 @@ dogfood-output/
 .mcp.json
 .schaltwerk/
 
-# Frontend demo test pages
 .next/
 
 local/
 opencode.json
-apps/frontend-demo/public/data/
 static-data/
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 .code
 
 plans/
-apps/n1/next-env.d.ts
-apps/medusa-be/.env.test.local
 .oas/
 libs/ui/.visual-diff/
 
-# Seed-database handover output (dumps/media/manifests must never be committed)
-seed-handover-output/
-scripts/seed-handover/*.dump
-scripts/seed-handover/*.tar.gz

@@ -1,9 +1,0 @@
-@theme static {
-  /* Logo colors - responsive to theme */
-  --color-logo-fg: light-dark(#222222, white);
-
-  /* Logo sizes */
-  --spacing-logo-sm: 2.5rem;
-  --spacing-logo-md: 5rem;
-  --spacing-logo-lg: 10rem;
-}
