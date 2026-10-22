@@ -79,15 +79,15 @@ const testRunnerConfig = {
   },
   async postVisit(page, context) {
     const story =
-      /** @type {Awaited<ReturnType<typeof getStoryContext>> & {globals: {brand?: string, mode?: string, a11y?: {manual?: boolean}}}} */ (
+      /** @type {Awaited<ReturnType<typeof getStoryContext>> & {globals?: {brand?: string, mode?: string, a11y?: {manual?: boolean}}}} */ (
         await getStoryContext(page, context)
       )
     const effectiveBrand =
-      story.parameters.brandLock ?? story.globals.brand ?? brand
+      story.parameters.brandLock ?? story.globals?.brand ?? brand
     const effectiveMode =
       effectiveBrand === "akros" || effectiveBrand === "business"
         ? "light"
-        : (story.globals.mode ?? mode)
+        : (story.globals?.mode ?? mode)
     // Pinned examples belong only to their actual matrix cell.
     if (effectiveBrand !== brand || effectiveMode !== mode) {
       return
@@ -106,7 +106,7 @@ const testRunnerConfig = {
     if (
       story.parameters.a11y?.disable ||
       story.parameters.a11y?.test === "off" ||
-      story.globals.a11y?.manual
+      story.globals?.a11y?.manual
     ) {
       throw new Error(`Missing enforced accessibility scan: ${context.id}`)
     }

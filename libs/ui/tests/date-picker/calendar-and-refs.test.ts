@@ -35,45 +35,6 @@ const INPUT_TAGS = /<input\b[^>]*>/g
 
 describe("DatePicker timezone-consistent calendar labels", () => {
   it.each([
-    "UTC",
-    "Europe/Prague",
-    "America/Los_Angeles",
-    "Pacific/Kiritimati",
-  ])("does not depend on the host timezone for %s", (timeZone) => {
-    const previous = process.env.TZ
-    try {
-      const dates = [
-        new CalendarDate(2026, 1, 1),
-        new CalendarDate(2026, 3, 29),
-        new CalendarDate(2026, 10, 2),
-        new CalendarDate(2026, 12, 31),
-      ]
-      const render = () =>
-        dates.map((date) => ({
-          day: formatDatePickerCalendar(date, "en-US", timeZone, {
-            day: "numeric",
-          }),
-          month: formatDatePickerCalendar(date, "en-US", timeZone, {
-            month: "long",
-            year: "numeric",
-          }),
-          serialized: date.toString(),
-        }))
-      process.env.TZ = "Europe/Prague"
-      const server = render()
-      process.env.TZ = "America/Los_Angeles"
-      expect(render()).toEqual(server)
-      expect(server.map((label) => label.day)).toEqual(["1", "29", "2", "31"])
-      expect(server[2]?.month).toBe("October 2026")
-    } finally {
-      if (previous === undefined) {
-        delete process.env.TZ
-      } else {
-        process.env.TZ = previous
-      }
-    }
-  })
-  it.each([
     ["2026-03-28T00:30[Europe/Prague]", "UTC", "2026-03-27", "March 2026", 23],
     [
       "2026-03-01T00:30[Europe/Prague]",
@@ -312,4 +273,48 @@ it("renders identical calendar markup across server host timezones", () => {
     }
     resetLocalTimeZone()
   }
+})
+
+// Runs last: it changes process.env.TZ at runtime, which skewed later
+// zoned-date assertions in the same worker on UTC hosts such as CI.
+describe("DatePicker host timezone independence", () => {
+  it.each([
+    "UTC",
+    "Europe/Prague",
+    "America/Los_Angeles",
+    "Pacific/Kiritimati",
+  ])("does not depend on the host timezone for %s", (timeZone) => {
+    const previous = process.env.TZ
+    try {
+      const dates = [
+        new CalendarDate(2026, 1, 1),
+        new CalendarDate(2026, 3, 29),
+        new CalendarDate(2026, 10, 2),
+        new CalendarDate(2026, 12, 31),
+      ]
+      const render = () =>
+        dates.map((date) => ({
+          day: formatDatePickerCalendar(date, "en-US", timeZone, {
+            day: "numeric",
+          }),
+          month: formatDatePickerCalendar(date, "en-US", timeZone, {
+            month: "long",
+            year: "numeric",
+          }),
+          serialized: date.toString(),
+        }))
+      process.env.TZ = "Europe/Prague"
+      const server = render()
+      process.env.TZ = "America/Los_Angeles"
+      expect(render()).toEqual(server)
+      expect(server.map((label) => label.day)).toEqual(["1", "29", "2", "31"])
+      expect(server[2]?.month).toBe("October 2026")
+    } finally {
+      if (previous === undefined) {
+        delete process.env.TZ
+      } else {
+        process.env.TZ = previous
+      }
+    }
+  })
 })
