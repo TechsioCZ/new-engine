@@ -148,6 +148,12 @@ export const NonLooping: Story = {
     await userEvent.click(previous)
     await expect(indicators[0]!).toHaveAttribute("aria-current", "true")
     await expect(next).toBeEnabled()
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    )
+    // Finish with pointer focus off the carousel, not a pending indicator RAF.
+    await userEvent.click(canvasElement)
+    await expect(canvasElement.ownerDocument.body).toHaveFocus()
   },
   parameters: {
     docs: {

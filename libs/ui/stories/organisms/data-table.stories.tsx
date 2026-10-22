@@ -642,12 +642,42 @@ export const InfiniteScrollVirtualized: Story = {
     await expect(region).toHaveAttribute("tabindex", "0")
     await expect(canvas.getByRole("table")).toHaveAttribute("aria-rowcount", "501")
     await expect(canvas.getAllByRole("row").length).toBeLessThan(100)
-    region.scrollTop = 3000
-    region.dispatchEvent(new Event("scroll"))
-    await waitFor(() => {
-      const row = canvasElement.querySelector("tbody tr[aria-rowindex]")
-      expect(Number(row?.getAttribute("aria-rowindex"))).toBeGreaterThan(2)
-    })
+    await canvasElement.ownerDocument.fonts.ready
+    const settleMeasuredRows = async (scrollTop: number) => {
+      let previous = ""
+      let stableSamples = 0
+      await waitFor(async () => {
+        // ResizeObserver measurements can compensate scrollTop after a scroll.
+        // Reapply the target until both the measured window and offset settle.
+        region.scrollTo({ top: scrollTop, left: 0, behavior: "instant" })
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        )
+        const rows = Array.from(
+          canvasElement.querySelectorAll<HTMLTableRowElement>("tbody tr[aria-rowindex]")
+        )
+        const layout = JSON.stringify([
+          region.scrollHeight,
+          rows.map((row) => [
+            row.getAttribute("aria-rowindex"),
+            row.offsetTop,
+            row.offsetHeight,
+          ]),
+        ])
+        stableSamples = layout === previous ? stableSamples + 1 : 0
+        previous = layout
+        expect(region.scrollTop).toBe(scrollTop)
+        expect(region.scrollLeft).toBe(0)
+        expect(stableSamples).toBeGreaterThanOrEqual(3)
+      }, { timeout: 5000 })
+    }
+    // Measure the initial window before jumping so scheduling cannot decide
+    // which above-viewport rows have measured rather than estimated heights.
+    await settleMeasuredRows(0)
+    await settleMeasuredRows(3000)
+    const row = canvasElement.querySelector("tbody tr[aria-rowindex]")
+    await expect(Number(row?.getAttribute("aria-rowindex"))).toBeGreaterThan(2)
+    await expect(region.scrollTop).toBe(3000)
     for (const spacer of canvasElement.querySelectorAll("tbody tr:not([aria-rowindex])")) {
       await expect(spacer).toHaveAttribute("aria-hidden", "true")
     }

@@ -300,6 +300,7 @@ export const ChangingScale: Story = {
   ),
   render: function ChangingScale() {
     const [count, setCount] = useState(5)
+    const [shrinkOnFocus, setShrinkOnFocus] = useState(false)
     const [allowHalf, setAllowHalf] = useState(true)
     const [changes, setChanges] = useState(0)
     return (
@@ -314,13 +315,25 @@ export const ChangingScale: Story = {
           defaultValue={4.5}
           count={count}
           allowHalf={allowHalf}
+          onFocusCapture={(event) => {
+            // Shrink only once the soon-to-be-removed star actually has focus.
+            // A timer can expire before the play gets there on a loaded runner.
+            if (
+              shrinkOnFocus &&
+              event.target instanceof HTMLElement &&
+              event.target.getAttribute("aria-posinset") === "5"
+            ) {
+              setShrinkOnFocus(false)
+              setCount(3)
+            }
+          }}
           onChange={() => setChanges((value) => value + 1)}
         />
         <p className="text-sm text-fg-secondary">Score changes: {changes}</p>
         <div className="flex flex-wrap gap-150">
           <Button
             variant="secondary"
-            onClick={() => setTimeout(() => setCount(3), 100)}
+            onClick={() => setShrinkOnFocus(true)}
           >
             Use three stars after focus moves
           </Button>
@@ -342,10 +355,16 @@ export const ChangingScale: Story = {
     await userEvent.click(
       canvas.getByRole("button", { name: "Use three stars after focus moves" })
     )
-    canvas.getAllByRole("radio")[4]?.focus()
+    const removedStar = canvas.getAllByRole("radio")[4]
+    if (!removedStar) {
+      throw new Error("Expected a fifth star before changing scale")
+    }
+    removedStar.focus()
     await waitFor(() => expect(canvas.getAllByRole("radio")).toHaveLength(3))
     await waitFor(() => expect(new FormData(form).get("score")).toBe("3"))
-    await expect(canvas.getByRole("radio", { checked: true })).toHaveFocus()
+    await waitFor(() =>
+      expect(canvas.getByRole("radio", { checked: true })).toHaveFocus()
+    )
     await expect(canvas.getByText("Score changes: 1")).toBeVisible()
     await userEvent.click(
       canvas.getByRole("button", { name: "Use whole stars" })
@@ -360,8 +379,13 @@ export const ChangingScale: Story = {
     await waitFor(() => expect(new FormData(form).get("score")).toBe("3"))
     canvas.getByRole("radio", { checked: true }).focus()
     await userEvent.keyboard("{ArrowLeft}")
+    const secondStar = canvas.getByRole("radio", { checked: true })
+    // Navigation updates the value before its RAF moves focus. Finish that
+    // interaction before reset; native reset preserves focus on star two.
+    await waitFor(() => expect(secondStar).toHaveFocus())
     form.reset()
     await waitFor(() => expect(new FormData(form).get("score")).toBe("3"))
+    await expect(secondStar).toHaveFocus()
     await expect(canvas.getByRole("radio", { checked: true })).toHaveAttribute(
       "tabindex",
       "0"

@@ -241,7 +241,8 @@ export const CustomTrigger: Story = {
       await expect(panel).toHaveAccessibleName(title)
       await userEvent.keyboard("{Escape}")
       await waitFor(() => expect(panel).not.toBeInTheDocument())
-      await expect(trigger).toHaveFocus()
+      // Unmount and Zag's requestAnimationFrame focus return are separate steps.
+      await waitFor(() => expect(trigger).toHaveFocus())
     }
   },
 }

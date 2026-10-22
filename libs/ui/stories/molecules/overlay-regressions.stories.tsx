@@ -92,14 +92,22 @@ export const ModalPopoverCommands: Story = {
     const inner = await body.findByRole("dialog", { name: "Delivery options" })
     await userEvent.click(within(inner).getByRole("button", { name: "Delivery commands" }))
     const command = await body.findByRole("menuitem", { name: "Use express delivery" })
-    await expect(command).toBeVisible()
+    // Role discovery can precede the menu's starting-style opacity transition.
+    await waitFor(() => expect(command).toBeVisible())
     await expect(command.closest('[aria-hidden="true"], [inert]')).toBeNull()
     await expect(inner.contains(command)).toBe(true)
     await userEvent.keyboard("{Escape}")
+    await waitFor(() => {
+      expect(body.queryByRole("menu")).toBeNull()
+      expect(within(inner).getByRole("button", { name: "Delivery commands" })).toHaveFocus()
+    })
     await expect(inner).toBeVisible()
     await expect(outer).toBeVisible()
     await userEvent.keyboard("{Escape}")
-    await waitFor(() => expect(body.queryByRole("dialog", { name: "Delivery options" })).toBeNull())
+    await waitFor(() => {
+      expect(body.queryByRole("dialog", { name: "Delivery options" })).toBeNull()
+      expect(within(outer).getByRole("button", { name: "Open delivery options" })).toHaveFocus()
+    })
     await expect(outer).toBeVisible()
   },
 }

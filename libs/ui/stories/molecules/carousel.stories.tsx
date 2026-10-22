@@ -244,6 +244,13 @@ export const States: Story = {
     await expect(next).toBeEnabled()
     await userEvent.click(previous)
     await expect(indicators[0]!).toHaveAttribute("aria-current", "true")
+    // Let queued indicator focus finish (a disabled-arrow click can also blur).
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    )
+    // Boundary assertions are complete; leave no modality-dependent ring.
+    await userEvent.click(canvasElement)
+    await expect(canvasElement.ownerDocument.body).toHaveFocus()
   },
 }
 
@@ -287,9 +294,13 @@ export const Vertical: Story = {
       expect(indicators[1]).toHaveAttribute("aria-current", "true")
     )
     await userEvent.keyboard("{Home}")
-    await waitFor(() =>
+    await waitFor(() => {
       expect(indicators[0]).toHaveAttribute("aria-current", "true")
-    )
+      expect(indicators[0]).toHaveFocus()
+    })
+    // Keep the keyboard-navigation check, then capture the neutral resting view.
+    await userEvent.click(canvasElement)
+    await expect(canvasElement.ownerDocument.body).toHaveFocus()
   },
 }
 

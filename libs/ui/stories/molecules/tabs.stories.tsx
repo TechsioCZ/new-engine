@@ -866,5 +866,21 @@ export const ScrollableAlignment: Story = {
     }
     const selected = within(canvas.getByRole("tablist", { name: "Default selection cue" })).getByRole("tab", { selected: true })
     await expect(getComputedStyle(selected).textDecorationLine).toContain("underline")
+    // Navigation has been checked in both directions. Remove focus outlines
+    // before putting every strip at its exact logical start (RTL is also 0).
+    await userEvent.click(canvasElement)
+    await expect(canvasElement.ownerDocument.body).toHaveFocus()
+    await waitFor(async () => {
+      for (const list of canvas.getAllByRole("tablist")) {
+        list.scrollTo({ left: 0, top: 0, behavior: "instant" })
+      }
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      )
+      for (const list of canvas.getAllByRole("tablist")) {
+        expect(list.scrollLeft).toBe(0)
+        expect(list.scrollTop).toBe(0)
+      }
+    })
   },
 }

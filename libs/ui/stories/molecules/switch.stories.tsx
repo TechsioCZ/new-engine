@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react"
 import { Button } from "../../src/atoms/button"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useArgs } from "storybook/preview-api"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Switch } from "../../src/molecules/switch"
 const describe = (story: string) => ({ docs: { description: { story } } })
@@ -219,7 +219,21 @@ export const RightToLeft: Story = {
 export const NativeFormContract: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Rejected proposals preserve the submitted value; restoring defaults updates native, accessible and visible state together, including external form ownership." } } },
   render: () => <ChoiceContract kind="switch" />,
-  play: async ({ canvasElement }) => checkChoiceContract(canvasElement),
+  play: async ({ canvasElement }) => {
+    await checkChoiceContract(canvasElement)
+    // The contract ends after a cancelled reset, with an input still focused.
+    // Leave a neutral, fully settled track/thumb view rather than capturing
+    // the focus-visible projection or a transition from an earlier proposal.
+    await userEvent.click(canvasElement)
+    await expect(canvasElement.ownerDocument.body).toHaveFocus()
+    await waitFor(() =>
+      expect(
+        canvasElement.getAnimations({ subtree: true }).filter(
+          (animation) => animation.pending || animation.playState === "running"
+        )
+      ).toHaveLength(0)
+    )
+  },
 }
 
 export const ThumbVisibility: Story = {
