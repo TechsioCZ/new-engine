@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DatePicker v1.3.6
+- Empty segments keep the shared placeholder color; a focused empty segment switches to the value color so it stays readable on the focus fill.
+
 ### Steps v1.2.3
 - Reliably focus the accepted navigation panel without stealing focus after rejected or unrelated updates.
 

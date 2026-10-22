@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.5
+ * @componentVersion v1.3.6
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -231,6 +231,7 @@ const datePickerVariants = tv({
       "date-picker-segment-size inline-flex shrink-0 items-center justify-center rounded-date-picker-day px-date-picker-segment tabular-nums outline-hidden",
       "data-placeholder-shown:text-date-picker-segment-fg-placeholder",
       "focus:bg-date-picker-segment-bg-focus",
+      "data-placeholder-shown:focus:text-date-picker-segment-fg-placeholder-focus",
       "data-[type=literal]:min-h-0 data-[type=literal]:min-w-0 data-[type=literal]:px-0 data-[type=literal]:text-date-picker-control-fg",
       "data-disabled:cursor-not-allowed data-readonly:cursor-default",
     ],

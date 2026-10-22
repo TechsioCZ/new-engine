@@ -23,10 +23,6 @@
   --duration-skeleton-normal: var(--duration-skeleton-pulse-normal);
   --duration-skeleton-slow: var(--duration-skeleton-pulse-slow);
 
-  /* Empty date segments remain readable on tinted control hover/focus fills.
-   * Mirror the component reference after Figma's legacy placeholder alias. */
-  --color-date-picker-placeholder: var(--color-fg-primary);
-
   /* Control boundaries are functional, not decorative. */
   --color-form-control-border-hover: light-dark(
     var(--color-neutral-600),

@@ -16,8 +16,7 @@
   --color-date-picker-accent-foreground: var(--color-fg-on-primary-solid-neo);
   --color-date-picker-text: var(--color-fg-primary);
   --color-date-picker-text-muted: var(--color-fg-secondary);
-  /* Segments stay readable on the control's tinted hover/focus fills. */
-  --color-date-picker-placeholder: var(--color-fg-primary);
+  --color-date-picker-placeholder: var(--color-form-control-fg-placeholder);
   --color-date-picker-disabled: var(--color-form-control-fg-disabled);
   --color-date-picker-border: var(--color-form-control-border);
   --color-date-picker-border-hover: var(--color-form-control-border-hover);
@@ -65,6 +64,11 @@
   --color-date-picker-segment-bg-focus: var(--color-date-picker-fill-hover);
   --color-date-picker-segment-fg-placeholder: var(
     --color-date-picker-placeholder
+  );
+  /* A focused empty segment sits on the tinted focus fill; muted placeholder
+   * text would drop below AA there, so it switches to the value color. */
+  --color-date-picker-segment-fg-placeholder-focus: var(
+    --color-date-picker-text
   );
   --color-date-picker-range-separator-fg: var(--color-date-picker-text-muted);
   --color-date-picker-trigger-bg: var(--color-date-picker-fill);
