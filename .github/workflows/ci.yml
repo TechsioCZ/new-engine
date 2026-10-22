@@ -18,7 +18,6 @@ jobs:
   main:
     runs-on: ubuntu-latest
     env:
-      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
       NX_NO_CLOUD: "true"
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -42,8 +41,6 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile --prefer-offline
-      - name: Verify Herbatika Next.js version
-        run: pnpm --filter=herbatika verify:next-version
       - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
       - name: Determine affected projects
         id: determine_affected
@@ -54,22 +51,16 @@ jobs:
           projects="$(printf '%s' "$projects_json" | node -e 'let input = ""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const projects = input.trim() ? JSON.parse(input) : []; if (!Array.isArray(projects)) { throw new Error("Expected an array from nx show projects --json"); } process.stdout.write(projects.join(",")); });')"
           echo "projects=${projects}" >> "$GITHUB_OUTPUT"
           echo "projects_csv=,${projects}," >> "$GITHUB_OUTPUT"
-      - name: Generate Next.js types (n1)
-        id: generate_next_types_n1
-        if: contains(steps.determine_affected.outputs.projects_csv, ',n1,')
-        run: TURBOPACK=1 pnpm --filter=n1 exec next typegen
 
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       # - run: pnpm exec nx-cloud record -- echo Hello World
       - name: Lint Nx module boundaries
         run: pnpm lint:nx
-      - name: Test new-engine-ctl CI wiring
-        run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:test
       - name: Typecheck affected prepared projects
         run: |
           affected="${{ steps.determine_affected.outputs.projects }}"
           # Only run project-owned typecheck targets; inferred TypeScript targets use build mode.
-          prepared="@techsio/storefront-data,new-engine-ctl,zane-operator,medusa-symmy-plugin,medusa-order-dashboard-plugin"
+          prepared="@techsio/storefront-data"
           projects="$(AFFECTED="$affected" PREPARED="$prepared" node -e 'const affected = (process.env.AFFECTED || "").split(",").filter(Boolean); const prepared = new Set((process.env.PREPARED || "").split(",").filter(Boolean)); process.stdout.write(affected.filter((project) => prepared.has(project)).join(","));')"
           if [ -z "$projects" ]; then
             echo "No affected projects with explicit typecheck targets."
@@ -89,12 +80,6 @@ jobs:
       - name: Check affected UI package output
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
         run: pnpm --dir libs/ui check:package
-      - name: Prove URL registry parity on PostgreSQL 18.1
-        if: contains(steps.determine_affected.outputs.projects_csv, ',herbatika,')
-        run: pnpm --filter=herbatika test:url-registry:pg18
-      - name: Prove Herbatika Pages hard statuses through Docker ingress
-        if: contains(steps.determine_affected.outputs.projects_csv, ',herbatika,')
-        run: pnpm --filter=herbatika test:m00:wire
 
   # Required status check for master (ruleset "Master"). It fails unless every
   # job in `needs` succeeded, so the ruleset has one stable name to require.

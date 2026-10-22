@@ -1,7 +1,0 @@
-{
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "name": "frontend-demo",
-  "projectType": "application",
-  "sourceRoot": "apps/frontend-demo/src",
-  "tags": ["type:app", "platform:web", "framework:next"]
-}

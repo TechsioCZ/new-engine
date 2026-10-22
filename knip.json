@@ -4,25 +4,14 @@
     "@libs/ui": ["./libs/ui/src"],
     "@libs/ui/*": ["./libs/ui/src/*"],
     "@libs/analytics": ["./libs/analytics/src"],
-    "@libs/analytics/*": ["./libs/analytics/src/*"],
-    "@libs/medusa-sdk": ["./libs/medusa-sdk/src"],
-    "@libs/medusa-sdk/*": ["./libs/medusa-sdk/src/*"],
-    "@libs/product-hooks": ["./libs/product-hooks/src"],
-    "@libs/product-hooks/*": ["./libs/product-hooks/src/*"]
+    "@libs/analytics/*": ["./libs/analytics/src/*"]
   },
   "ignoreBinaries": ["build", "semantic-release"],
-  "ignoreDependencies": [
-    "@iconify/json",
-    "@iconify/tailwind4",
-    "tslib"
-  ],
-  "ignoreUnresolved": [
-    "^\\.\\./\\*\\*/\\*\\.\\{js,ts,jsx,tsx,mdx\\}$"
-  ],
+  "ignoreDependencies": ["@iconify/json", "@iconify/tailwind4", "tslib"],
+  "ignoreUnresolved": ["^\\.\\./\\*\\*/\\*\\.\\{js,ts,jsx,tsx,mdx\\}$"],
   "ignore": [
     "**/dist/**",
     "**/.next/**",
-    "**/.medusa/**",
     "**/build/**",
     "**/storybook-static/**",
     "**/coverage/**",
@@ -45,60 +34,6 @@
     "**/tokens/**/*.css": ["files"]
   },
   "workspaces": {
-    "apps/medusa-be": {
-      "entry": [
-        "src/api/**/*.{ts,tsx}!",
-        "src/modules/**/*.{ts,tsx}!",
-        "src/workflows/**/*.{ts,tsx}!",
-        "src/jobs/**/*.{ts,tsx}!",
-        "src/admin/**/*.{ts,tsx}!",
-        "src/scripts/**/*.{ts,tsx}!",
-        "tests/**/*.{ts,tsx}",
-        "integration-tests/**/*.{js,ts}",
-        "instrumentation.ts!",
-        "medusa-config.ts!"
-      ],
-      "ignoreDependencies": [
-        "@medusajs/admin-shared",
-        "@medusajs/caching-redis",
-        "@medusajs/dashboard",
-        "@medusajs/draft-order",
-        "@medusajs/event-bus-redis",
-        "@medusajs/index"
-      ],
-      "ignore": [
-        ".medusa/**",
-        "dist/**"
-      ]
-    },
-    "apps/frontend-demo": {
-      "entry": [
-        "src/app/**/*.{tsx,ts}!",
-        "next.config.{js,ts,mjs}!"
-      ],
-      "ignoreDependencies": [
-        "tailwindcss-animate"
-      ],
-      "ignore": [
-        ".next/**",
-        ".netlify/**"
-      ]
-    },
-    "apps/n1": {
-      "entry": [
-        "src/app/**/*.{tsx,ts}!",
-        "next.config.{js,ts,mjs}!"
-      ],
-      "ignore": [
-        ".next/**",
-        ".netlify/**"
-      ]
-    },
-    "apps/herbatika": {
-      "entry": [
-        "src/**/*.{ts,tsx}!"
-      ]
-    },
     "libs/ui": {
       "entry": [
         "src/atoms/*.tsx!",
@@ -116,22 +51,11 @@
         ".storybook/**/*.{ts,tsx}"
       ],
       "storybook": {
-        "config": [
-          ".storybook/main.ts"
-        ],
-        "entry": [
-          "**/*.stories.{ts,tsx}",
-          ".storybook/**/*.{ts,tsx}"
-        ]
+        "config": [".storybook/main.ts"],
+        "entry": ["**/*.stories.{ts,tsx}", ".storybook/**/*.{ts,tsx}"]
       },
-      "ignoreDependencies": [
-        "^@iconify-json/",
-        "^@semantic-release/"
-      ],
-      "ignore": [
-        "storybook-static/**",
-        "local/**"
-      ]
+      "ignoreDependencies": ["^@iconify-json/", "^@semantic-release/"],
+      "ignore": ["storybook-static/**", "local/**"]
     },
     "libs/analytics": {
       "entry": [
@@ -142,19 +66,7 @@
         "src/heureka/index.ts!",
         "src/leadhub/index.ts!"
       ],
-      "ignoreDependencies": [
-        "@types/react-dom"
-      ]
-    },
-    "libs/medusa-sdk": {
-      "entry": [
-        "src/index.ts!"
-      ]
-    },
-    "libs/product-hooks": {
-      "entry": [
-        "src/index.ts!"
-      ]
+      "ignoreDependencies": ["@types/react-dom"]
     }
   },
   "rules": {
