@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useId, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { StorySurface, VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { useDescribedBy, useRegisterDescription, joinDescribedBy, type DescribedBy } from "../../src/internal/described-by"
 import { Input } from "../../src/atoms/input"
@@ -63,20 +63,24 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
+  decorators: [(Story) => <StorySurface><Story /></StorySurface>],
   parameters: {
+    layout: "fullscreen",
     docs: { description: { story: "Change the status, size and message to see how inline feedback stays readable without relying on color." } },
   },
-  render: (args) => <div className="w-md max-w-full"><StatusText {...args} /></div>,
+  render: (args) => <div className="w-full min-w-0 max-w-md"><StatusText {...args} /></div>,
 }
 
 export const AllStatuses: Story = {
+  decorators: [(Story) => <StorySurface><Story /></StorySurface>],
   name: "Variants",
   parameters: {
+    layout: "fullscreen",
     controls: { disable: true },
     docs: { description: { story: "Error, success and warning use distinct icons automatically, while neutral guidance stays quiet and icon-free." } },
   },
   render: () => (
-    <div className="flex w-md max-w-full flex-col gap-200">
+    <div className="flex w-full min-w-0 max-w-md flex-col gap-200">
       <StatusText status="error">Enter an email address to receive order updates.</StatusText>
       <StatusText status="success">Email address verified.</StatusText>
       <StatusText status="warning">Delivery may take two additional business days.</StatusText>
@@ -130,7 +134,7 @@ export const Sizes: Story = {
 function ValidationField() {
   const [valid, setValid] = useState(false)
   return (
-    <div className="flex w-md max-w-full flex-col gap-100">
+    <div className="flex w-full min-w-0 max-w-md flex-col gap-100">
       <Label htmlFor="status-text-email" required>Email address</Label>
       <Input
         aria-describedby="status-text-email-hint status-text-email-message"
@@ -152,8 +156,10 @@ function ValidationField() {
 }
 
 export const FormValidationContext: Story = {
+  decorators: [(Story) => <StorySurface><Story /></StorySurface>],
   name: "Associated field feedback",
   parameters: {
+    layout: "fullscreen",
     controls: { disable: true },
     docs: { description: { story: "Edit the email and leave the field to see associated validation feedback update without losing the permanent helper description." } },
   },

@@ -443,7 +443,10 @@ export const CancellableActivation: Story = {
   render: () => <div className="grid gap-250">{[false, true].map(controlled => <RadioCard key={String(controlled)} aria-label={controlled ? "Controlled choices" : "Default choices"} value={controlled ? "one" : undefined} defaultValue={controlled ? undefined : "one"} onValueChange={trackCancelledChoice}>
     {["one", "two", "three"].map(value => <RadioCard.Item key={value} value={value}>
       <RadioCard.ItemHiddenInput onClick={event => { trackObservedChoice(value); if (value === "two") event.preventDefault() }} />
-      <RadioCard.ItemControl /><RadioCard.ItemText>{value}</RadioCard.ItemText>
+      <RadioCard.ItemControl>
+        <RadioCard.ItemContent><RadioCard.ItemText>{value}</RadioCard.ItemText></RadioCard.ItemContent>
+        <RadioCard.ItemIndicator />
+      </RadioCard.ItemControl>
     </RadioCard.Item>)}
   </RadioCard>)}</div>,
   play: async ({ canvasElement }) => {

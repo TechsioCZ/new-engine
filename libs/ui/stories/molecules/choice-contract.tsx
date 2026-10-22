@@ -8,6 +8,33 @@ import { Switch } from "../../src/molecules/switch"
 
 type ChoiceKind = "checkbox" | "switch" | "radio-group" | "radio-card"
 
+function RadioChoiceContent({
+  kind,
+  children,
+}: {
+  kind: "radio-group" | "radio-card"
+  children: ReactNode
+}) {
+  if (kind === "radio-card") {
+    return (
+      <RadioCard.ItemControl>
+        <RadioCard.ItemContent>
+          <RadioCard.ItemText>{children}</RadioCard.ItemText>
+        </RadioCard.ItemContent>
+        <RadioCard.ItemIndicator />
+      </RadioCard.ItemControl>
+    )
+  }
+  return (
+    <>
+      <RadioGroup.ItemControl />
+      <RadioGroup.ItemContent>
+        <RadioGroup.ItemText>{children}</RadioGroup.ItemText>
+      </RadioGroup.ItemContent>
+    </>
+  )
+}
+
 function RadioChoices({
   kind,
   children,
@@ -25,8 +52,9 @@ function RadioChoices({
   const items = ["a", "b", "c"].map((value) => (
     <C.Item key={value} value={value}>
       <C.ItemHiddenInput />
-      <C.ItemControl />
-      <C.ItemText>Delivery {value.toUpperCase()}</C.ItemText>
+      <RadioChoiceContent kind={kind}>
+        Delivery {value.toUpperCase()}
+      </RadioChoiceContent>
     </C.Item>
   ))
   return (
@@ -229,8 +257,9 @@ export function DynamicRadioChoices({
           }
         }}
       />
-      <C.ItemControl />
-      <C.ItemText>Delivery {value.toUpperCase()}</C.ItemText>
+      <RadioChoiceContent kind={kind}>
+        Delivery {value.toUpperCase()}
+      </RadioChoiceContent>
     </C.Item>
   ))
   return (

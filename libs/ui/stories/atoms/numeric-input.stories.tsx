@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useEffect, useId, useState } from "react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { StorySurface, VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Label } from "../../src/atoms/label"
 import {
@@ -692,7 +692,9 @@ export const ControlledDraft: Story = {
 }
 
 export const CallbackCompatibility: Story = {
+  decorators: [(Story) => <StorySurface><Story /></StorySurface>],
   parameters: {
+    layout: "fullscreen",
     docs: {
       description: {
         story:
@@ -714,7 +716,7 @@ export const CallbackCompatibility: Story = {
     const record = (key: keyof typeof counts) =>
       setCounts((previous) => ({ ...previous, [key]: previous[key] + 1 }))
     return (
-      <div className="flex w-full max-w-md flex-col gap-100">
+      <div className="flex w-full min-w-0 max-w-md flex-col gap-100">
         <form
           id={`${instanceId}-numeric-callback-form`}
           onSubmit={(event) => event.preventDefault()}
@@ -769,7 +771,7 @@ export const CallbackCompatibility: Story = {
           Draft: {draft === "" ? "(empty)" : draft}
         </p>
         <p data-testid="numeric-value">Numeric: {String(numeric)}</p>
-        <p data-testid="callback-counts">{JSON.stringify(counts)}</p>
+        <p className="wrap-anywhere" data-testid="callback-counts">{JSON.stringify(counts)}</p>
         <Button onClick={() => setDraft("2")} theme="outlined">
           Reset parent value
         </Button>

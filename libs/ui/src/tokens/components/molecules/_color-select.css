@@ -28,6 +28,9 @@
   --width-color-select-control-md: var(--height-form-control-md);
   --width-color-select-control-lg: var(--height-form-control-lg);
 
+  /* Caption tracks scale with type; long localized names still wrap. */
+  --width-color-select-caption-lg: calc(var(--text-color-select-lg) * 6);
+
   --height-color-select-sm: var(--size-color-select-sm);
   --height-color-select-md: var(--size-color-select-md);
   --height-color-select-lg: var(--size-color-select-lg);
@@ -51,4 +54,13 @@
 
 @utility color-select-grid {
   grid-template-columns: repeat(var(--cols-num), minmax(0, 1fr));
+
+  /* Large captions need wider tracks than the compact caption scale. Drop
+   * columns before splitting ordinary names; unbroken long names still wrap. */
+  &[data-size="lg"] {
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(min(100%, var(--width-color-select-caption-lg)), 1fr)
+      );
+  }
 }

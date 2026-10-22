@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -51,7 +51,7 @@ const stepsVariants = tv({
       "data-[orientation=vertical]:min-w-0 data-[orientation=vertical]:flex-1",
     ],
     item: [
-      "relative flex min-w-0 gap-steps-item",
+      "steps-indicator-connectors relative flex min-w-0 gap-steps-item",
       "data-[orientation=horizontal]:flex-1 data-[orientation=horizontal]:items-center",
       "data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-start",
     ],
@@ -138,8 +138,9 @@ const stepsVariants = tv({
   },
   variants: {
     variant: {
-      subtle: {},
+      subtle: { item: "steps-connector-subtle" },
       solid: {
+        item: "steps-connector-solid",
         trigger: [
           "rounded-steps-trigger px-steps-trigger-x py-steps-trigger-y",
           "hover:bg-steps-trigger-bg-hover",
@@ -159,6 +160,7 @@ const stepsVariants = tv({
     },
     size: {
       sm: {
+        item: "steps-connector-sm",
         indicator: "size-steps-indicator-sm",
         indicatorIcon: "text-steps-icon-sm",
         number: "text-steps-number-sm",
@@ -168,6 +170,7 @@ const stepsVariants = tv({
         completedContent: "p-steps-content-padding-sm text-steps-content-sm",
       },
       md: {
+        item: "steps-connector-md",
         indicator: "size-steps-indicator-md",
         indicatorIcon: "text-steps-icon-md",
         number: "text-steps-number-md",
@@ -177,6 +180,7 @@ const stepsVariants = tv({
         completedContent: "p-steps-content-padding-md text-steps-content-md",
       },
       lg: {
+        item: "steps-connector-lg",
         indicator: "size-steps-indicator-lg",
         indicatorIcon: "text-steps-icon-lg",
         number: "text-steps-number-lg",

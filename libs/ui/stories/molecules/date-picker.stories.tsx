@@ -1092,7 +1092,24 @@ export const InitiallyOpenTimedDraft: Story = {
   ),
 }
 
+async function assertCompleteRangeVisible(canvasElement: HTMLElement) {
+  const segments = canvasElement.querySelector<HTMLElement>(
+    '[data-part="segments"][data-selection-mode="range"]'
+  )
+  await expect(segments).not.toBeNull()
+  if (!segments) return
+  await expect(segments.querySelectorAll('[data-part="segment-group"]')).toHaveLength(2)
+  const bounds = segments.getBoundingClientRect()
+  for (const segment of segments.querySelectorAll<HTMLElement>('[data-part="segment"]')) {
+    const rect = segment.getBoundingClientRect()
+    await expect(rect.left).toBeGreaterThanOrEqual(bounds.left - 1)
+    await expect(rect.right).toBeLessThanOrEqual(bounds.right + 1)
+    await expect(rect.bottom).toBeLessThanOrEqual(bounds.bottom + 1)
+  }
+}
+
 export const InitiallyOpenDateTimeRange: Story = {
+  play: async ({ canvasElement }) => assertCompleteRangeVisible(canvasElement),
   name: "Date and time range",
   parameters: {
     layout: "padded",
@@ -1123,6 +1140,7 @@ export const InitiallyOpenDateTimeRange: Story = {
 }
 
 export const ZonedDateTimeRange: Story = {
+  play: async ({ canvasElement }) => assertCompleteRangeVisible(canvasElement),
   name: "Time zone and daylight saving",
   tags: ["!dev"],
   parameters: {

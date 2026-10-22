@@ -42,3 +42,41 @@
 @utility token-icon-steps-check {
   @apply token-icon-check;
 }
+
+/* Horizontal mobile labels sit below their indicators. Connect only the
+ * indicator row, not the full variable-height trigger. Lines has no indicator. */
+@utility steps-connector-sm {
+  --steps-connector-indicator-size: var(--size-steps-indicator-sm);
+}
+@utility steps-connector-md {
+  --steps-connector-indicator-size: var(--size-steps-indicator-md);
+}
+@utility steps-connector-lg {
+  --steps-connector-indicator-size: var(--size-steps-indicator-lg);
+}
+@utility steps-connector-subtle {
+  --steps-connector-inset: 0px;
+}
+@utility steps-connector-solid {
+  --steps-connector-inset: var(--padding-steps-trigger-y);
+}
+@utility steps-indicator-connectors {
+  @variant max-sm {
+    &[data-orientation="horizontal"]:has([data-part="indicator"]) {
+      align-items: flex-start;
+      & > [data-part="separator"] {
+        margin-block-start: calc(
+          var(--steps-connector-inset, 0px) +
+          (
+            var(
+              --steps-connector-indicator-size,
+              var(--size-steps-indicator-md)
+            ) -
+            var(--height-steps-separator)
+          ) /
+          2
+        );
+      }
+    }
+  }
+}

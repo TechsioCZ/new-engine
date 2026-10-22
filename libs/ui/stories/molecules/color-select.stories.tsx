@@ -145,6 +145,14 @@ export const Sizes: Story = {
     await expect(fonts).toHaveLength(3)
     await expect(fonts[0]).toBeLessThan(fonts[1] ?? 0)
     await expect(fonts[1]).toBeLessThan(fonts[2] ?? 0)
+    for (const caption of canvas.getAllByText("Chestnut", { exact: true })) {
+      await expect(caption.getBoundingClientRect().height).toBeLessThanOrEqual(
+        Number.parseFloat(getComputedStyle(caption).lineHeight) + 1
+      )
+    }
+    for (const group of canvas.getAllByRole("radiogroup")) {
+      await expect(group.scrollWidth).toBeLessThanOrEqual(group.clientWidth)
+    }
   },
 }
 

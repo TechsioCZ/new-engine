@@ -6,7 +6,7 @@ description: >
   compound parts, parent or multiple selection, validation, and keyboard
   navigation.
 metadata:
-  component_version: "1.1.4"
+  component_version: "1.1.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -278,3 +278,6 @@ On narrow viewports the panel stays within the overlay's available width and
 two columns always fit side by side (each at most half the available width);
 deeper levels scroll horizontally with snapping, revealing the deepest open
 column or the keyboard-focused one. Desktop geometry is unchanged.
+
+The trigger reserves size-aware space for the clear action, so long selected
+paths truncate with an ellipsis before the clear button.

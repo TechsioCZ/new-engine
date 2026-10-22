@@ -8,7 +8,7 @@ description: >
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
 metadata:
-  component_version: "1.4.1"
+  component_version: "1.4.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -468,3 +468,8 @@ columns first); pins that would leave no scrollable room scroll with the data
 and freeze again when space permits. Resized widths are kept under auto table
 layout, and virtualized measurement is frame-batched so resizing never
 triggers ResizeObserver loops.
+
+The toolbar wraps search and actions on narrow screens, fixed-layout cells clip
+their content to the column, and empty or loading feedback centers in the
+visible scrollport. When start and end pins would leave no room for middle
+columns, end pins scroll with the data.

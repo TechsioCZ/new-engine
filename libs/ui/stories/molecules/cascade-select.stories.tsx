@@ -405,10 +405,32 @@ export const Sizes: Story = {
       },
     },
   },
+  play: async ({ canvasElement }) => {
+    const controls = canvasElement.querySelectorAll<HTMLElement>(
+      '[data-scope="cascade-select"][data-part="control"]'
+    )
+    await expect(controls).toHaveLength(3)
+    for (const control of controls) {
+      const value = control.querySelector<HTMLElement>('[data-part="value-text"]')
+      const clear = control.querySelector<HTMLElement>('[data-part="clear-trigger"]')
+      const indicator = control.querySelector<HTMLElement>('[data-part="indicator"]')
+      await expect(value).not.toBeNull()
+      await expect(clear).not.toBeNull()
+      await expect(indicator).not.toBeNull()
+      if (!(value && clear && indicator)) continue
+      await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(
+        clear.getBoundingClientRect().left
+      )
+      await expect(clear.getBoundingClientRect().right).toBeLessThanOrEqual(
+        indicator.getBoundingClientRect().left + 1
+      )
+    }
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Small (sm)">
         <CascadeSelectField
+          defaultValue={[["home", "furniture"]]}
           items={productCategories}
           label="Product category"
           placeholder="Choose a category"
@@ -417,6 +439,7 @@ export const Sizes: Story = {
       </VariantGroup>
       <VariantGroup title="Medium (md)">
         <CascadeSelectField
+          defaultValue={[["home", "furniture"]]}
           items={productCategories}
           label="Product category"
           placeholder="Choose a category"
@@ -425,6 +448,7 @@ export const Sizes: Story = {
       </VariantGroup>
       <VariantGroup title="Large (lg)">
         <CascadeSelectField
+          defaultValue={[["home", "furniture"]]}
           items={productCategories}
           label="Product category"
           placeholder="Choose a category"

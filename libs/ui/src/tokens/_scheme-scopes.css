@@ -230,11 +230,15 @@
     --color-form-control-bg-readonly: var(--color-form-control-readonly);
     --color-form-control-fg-readonly: var(--color-form-control-text);
     --color-form-control-placeholder: var(--color-fg-placeholder);
+    --line-height-form-control-sm: var(--line-height-24);
+    --padding-form-control-block-sm: var(--padding-button-y-sm);
+    --padding-form-control-block-md: var(--padding-button-y-md);
+    --padding-form-control-block-lg: var(--padding-button-y-lg);
     --height-form-control-sm: max(
       2rem,
       calc(
-        1lh +
-        var(--padding-button-y-sm) *
+        max(1lh, var(--line-height-form-control-sm)) +
+        var(--padding-form-control-block-sm) *
         2 +
         var(--border-width-form-control) *
         2
@@ -244,7 +248,7 @@
       2.75rem,
       calc(
         1lh +
-        var(--padding-button-y-md) *
+        var(--padding-form-control-block-md) *
         2 +
         var(--border-width-form-control) *
         2
@@ -254,7 +258,7 @@
       3.5rem,
       calc(
         1lh +
-        var(--padding-button-y-lg) *
+        var(--padding-form-control-block-lg) *
         2 +
         var(--border-width-form-control) *
         2
@@ -286,7 +290,15 @@
     --font-weight-button: var(--font-weight-medium);
     --padding-button-sm: var(--padding-button-y-sm) var(--padding-button-x-sm);
     --padding-button-md: var(--padding-button-y-md) var(--padding-button-x-md);
-    --padding-button-lg: var(--padding-button-y-lg) var(--padding-button-x-lg);
+    --padding-button-lg: calc(
+        var(--padding-form-control-block-lg) -
+        max(
+          0px,
+          var(--border-width-button-lg) -
+          var(--border-width-form-control)
+        )
+      )
+      var(--padding-button-x-lg);
     --color-checkbox-readonly: var(--color-form-control-fg-readonly);
     --color-checkbox-fg-readonly: var(--color-checkbox-readonly);
     --spacing-form-checkbox-description-sm: calc(
@@ -552,6 +564,7 @@
     --color-cascade-select-step-fg: var(--color-cascade-select-foreground);
     --color-cascade-select-path-bg: var(--color-cascade-select-highlight);
     --color-cascade-select-path-border: var(--color-cascade-select-accent);
+    --border-width-cascade-select-trigger: var(--border-width-form-control);
     --border-width-cascade-select-column: var(--border-width-sm);
     --border-width-cascade-select-path: var(--border-width-lg);
     --padding-cascade-select-column: var(--spacing-50);
@@ -625,6 +638,7 @@
     --width-color-select-control-sm: var(--height-form-control-sm);
     --width-color-select-control-md: var(--height-form-control-md);
     --width-color-select-control-lg: var(--height-form-control-lg);
+    --width-color-select-caption-lg: calc(var(--text-color-select-lg) * 6);
     --height-color-select-sm: var(--size-color-select-sm);
     --height-color-select-md: var(--size-color-select-md);
     --height-color-select-lg: var(--size-color-select-lg);
@@ -1101,6 +1115,7 @@
     --height-menu-separator: var(--size-menu-separator-height);
     --text-menu-xs: var(--text-xs);
     --spacing-menu-viewport: var(--spacing-200);
+    --spacing-menu-content-min: var(--dimension-192);
     --padding-tabs-trigger-sm: var(--padding-tabs-trigger-y-sm)
       var(--padding-tabs-trigger-x-sm);
     --padding-tabs-trigger-md: var(--padding-tabs-trigger-y-md)
@@ -1316,6 +1331,10 @@
     --color-data-table-skeleton-bg: var(--color-data-table-skeleton);
     --color-data-table-focus: var(--color-ring);
     --color-data-table-scroll-ring: var(--color-data-table-focus);
+    --spacing-data-table-search: var(--container-3xs);
+    --spacing-data-table-filter-sm: calc(var(--height-form-control-sm) * 5);
+    --spacing-data-table-filter-md: calc(var(--height-form-control-md) * 5);
+    --spacing-data-table-filter-lg: calc(var(--height-form-control-lg) * 5);
     --spacing-data-table-editor-sm: calc(var(--height-form-control-sm) * 4);
     --spacing-data-table-editor-md: calc(var(--height-form-control-md) * 4);
     --spacing-data-table-editor-lg: calc(var(--height-form-control-lg) * 4);

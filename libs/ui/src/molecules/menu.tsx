@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -90,9 +90,8 @@ export type MenuItem =
 const menuVariants = tv({
   slots: {
     trigger: "",
-    // Override Popper's max-content minimum at narrow viewport boundaries;
-    // retain the trigger width when it fits and wrap full command labels.
-    positioner: ["popup-layer menu-viewport isolate w-(--reference-width)"],
+    // Commands size independently of an icon trigger, within the viewport.
+    positioner: ["popup-layer menu-viewport isolate"],
     content: [
       "popup-surface-base popup-layer",
       "w-full min-w-0",

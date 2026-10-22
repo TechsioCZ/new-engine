@@ -148,22 +148,69 @@ export function assertFloatingContainment(surfaces, dimensions) {
   }
 }
 
-/** @param {Page} page */
-export async function captureFloatingPage(page) {
+/** @param {Page} page @param {(() => Promise<void>) | undefined} beforeCapture */
+export async function captureFloatingPage(page, beforeCapture) {
   await page.evaluate(
     () =>
       new Promise((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(resolve))
       )
   )
+  await beforeCapture?.()
   const surfaces = await visibleFloatingSurfaces(page)
   const image = await page.screenshot({
     fullPage: true,
     animations: "disabled",
     scale: "css",
   })
+  await beforeCapture?.()
   assertFloatingContainment(surfaces, PNG.sync.read(image))
   return { image, surfaces }
+}
+
+/** Assert the state at the capture boundary, after pointer parking and asset waits.
+ * @param {Page} page
+ */
+export async function assertSubmenuCaptureReady(page) {
+  const menus = page
+    .locator('[data-scope="menu"][data-part="content"]')
+    .filter({ visible: true })
+  await expect(menus).toHaveCount(2)
+  for (const menu of await menus.all()) {
+    await expect(menu).toHaveAttribute("data-state", "open")
+    await expect(menu).toHaveCSS("opacity", "1")
+  }
+  for (const name of ["Send by email", "Invite teammate"]) {
+    const item = page.getByRole("menuitem", { name, exact: true })
+    await expect(item).toBeVisible()
+    await expect(item).toBeInViewport({ ratio: 1 })
+  }
+  // Positioning and delayed pointer-out state must settle without a fixed sleep.
+  await expect
+    .poll(
+      async () => {
+        const before = await visibleFloatingSurfaces(page)
+        await page.evaluate(
+          () =>
+            new Promise((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve))
+            )
+        )
+        const after = await visibleFloatingSurfaces(page)
+        return (
+          after.filter(
+            (surface) => surface.scope === "menu" && surface.part === "content"
+          ).length === 2 && JSON.stringify(before) === JSON.stringify(after)
+        )
+      },
+      { message: "Both submenu surfaces must remain stable at capture" }
+    )
+    .toBe(true)
+  const viewport = await page.evaluate(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }))
+  assertFloatingContainment(await visibleFloatingSurfaces(page), viewport)
 }
 
 export const popupCheckpointStories = [
@@ -176,7 +223,7 @@ export const popupCheckpointStories = [
 ]
 
 /** Exercise the current story; the caller owns deterministic rendering and comparison.
- * @param {Page} page @param {string} id @param {(suffix: string) => Promise<void>} capture
+ * @param {Page} page @param {string} id @param {(suffix: string, beforeCapture?: () => Promise<void>) => Promise<void>} capture
  */
 export async function checkStoryPopupCheckpoints(page, id, capture) {
   const entry = popupCheckpointStories.find(([storyId]) => storyId === id)
@@ -222,19 +269,16 @@ export async function checkStoryPopupCheckpoints(page, id, capture) {
   await page.mouse.move(0, 0)
   await capture("--popup-open")
   if (id === "molecules-menu--nested-menu") {
-    await page
-      .getByRole("menuitem", { name: "Share project", exact: true })
-      .click()
+    // Park before keyboard activation: moving off a pointer-opened submenu can
+    // legitimately schedule its close while assets settle for the screenshot.
+    await content.press("End")
     await expect(
-      page.getByRole("menuitem", { name: "Send by email", exact: true })
-    ).toBeInViewport({ ratio: 1 })
-    expect(
-      (await visibleFloatingSurfaces(page)).filter(
-        (surface) => surface.scope === "menu" && surface.part === "content"
-      ).length
-    ).toBe(2)
-    await page.mouse.move(0, 0)
-    await capture("--popup-submenu")
+      page.getByRole("menuitem", { name: "Share project", exact: true })
+    ).toHaveAttribute("data-highlighted", "")
+    await content.press("ArrowRight")
+    const beforeCapture = () => assertSubmenuCaptureReady(page)
+    await beforeCapture()
+    await capture("--popup-submenu", beforeCapture)
   }
   if (scope === "cascade-select") {
     await page
@@ -270,8 +314,15 @@ export async function checkStoryPopupCheckpoints(page, id, capture) {
 export async function checkPopupCheckpoints(page, options, attach) {
   for (const [id] of popupCheckpointStories) {
     await openContractStory(page, id, options)
-    await checkStoryPopupCheckpoints(page, id, async (suffix) => {
-      await attach(`${id}${suffix}`, (await captureFloatingPage(page)).image)
-    })
+    await checkStoryPopupCheckpoints(
+      page,
+      id,
+      async (suffix, beforeCapture) => {
+        await attach(
+          `${id}${suffix}`,
+          (await captureFloatingPage(page, beforeCapture)).image
+        )
+      }
+    )
   }
 }

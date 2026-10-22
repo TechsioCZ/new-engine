@@ -53,3 +53,34 @@
       currentColor;
   }
 }
+
+/* The available navigation width determines when page links become a summary. */
+@utility pagination-container {
+  container: pagination / inline-size;
+  &[data-prev-next="false"] > ul {
+    overflow-x: auto;
+  }
+}
+
+/* Match the 2xl container token: retain full-size targets below this width. */
+@utility pagination-page-item {
+  @container pagination (width < 42rem) {
+    [data-prev-next="true"] > ul > & {
+      display: none;
+    }
+  }
+}
+
+@utility pagination-responsive-summary {
+  &[class] {
+    display: none;
+  }
+  [data-compact="true"] > ul > & {
+    display: grid;
+  }
+  @container pagination (width < 42rem) {
+    [data-prev-next="true"] > ul > & {
+      display: grid;
+    }
+  }
+}

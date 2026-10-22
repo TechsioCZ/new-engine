@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -44,7 +44,7 @@ const productCardVariants = tv({
       "data-[stock=out-of-stock]:text-product-card-stock-fg-out-of-stock",
     ],
     badgesSlot: "flex flex-wrap gap-product-card-badges",
-    ratingSlot: "flex items-center",
+    ratingSlot: "flex min-w-0 max-w-full items-center",
     actionsSlot: "flex flex-wrap gap-product-card-actions",
     button: "",
   },
@@ -70,7 +70,7 @@ const productCardVariants = tv({
         imageSlot: "aspect-product-card-image",
       },
       row: {
-        root: "grid grid-cols-(--product-card-layout-row-grid) gap-x-product-card-row-layout",
+        root: "product-card-row grid w-full grid-cols-(--product-card-layout-row-grid) gap-x-product-card-row-layout",
         imageSlot: "row-span-6 aspect-product-card-image h-full",
       },
     },
@@ -159,7 +159,12 @@ export function ProductCard({
 
   return (
     <ProductCardContext.Provider value={{ layout }}>
-      <div className={root({ className })} ref={ref} {...props}>
+      <div
+        className={root({ className })}
+        ref={ref}
+        {...props}
+        data-layout={layout}
+      >
         {children}
       </div>
     </ProductCardContext.Provider>

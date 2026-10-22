@@ -91,8 +91,8 @@
   --height-form-control-sm: max(
     2rem,
     calc(
-      1lh +
-      var(--padding-button-y-sm) *
+      max(1lh, var(--line-height-form-control-sm)) +
+      var(--padding-form-control-block-sm) *
       2 +
       var(--border-width-form-control) *
       2
@@ -102,7 +102,7 @@
     2.75rem,
     calc(
       1lh +
-      var(--padding-button-y-md) *
+      var(--padding-form-control-block-md) *
       2 +
       var(--border-width-form-control) *
       2
@@ -112,12 +112,20 @@
     3.5rem,
     calc(
       1lh +
-      var(--padding-button-y-lg) *
+      var(--padding-form-control-block-lg) *
       2 +
       var(--border-width-form-control) *
       2
     )
   );
+
+  /* Large outlined buttons reserve their thicker border inside the shared
+   * box. Keep this in the padding token so caller utilities can still win. */
+  --padding-button-lg: calc(
+      var(--padding-form-control-block-lg) -
+      max(0px, var(--border-width-button-lg) - var(--border-width-form-control))
+    )
+    var(--padding-button-x-lg);
 
   /* Paired hover roles use the same on-solid foreground as their surface. */
   --color-fg-on-primary-hover: var(--color-fg-on-primary-solid-neo);

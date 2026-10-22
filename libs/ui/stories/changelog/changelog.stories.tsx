@@ -13,6 +13,43 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Screenshot review fixes
+- Bound StatusText, NumericInput, Popover, PhoneInput, RadioCard and CRM/Settings demonstrations to the viewport; make submenu and Slider captures deterministic.
+- Share block padding and line-height floors across form controls so Select, Button, Input and Combobox heights match at every size.
+
+### DataTable v1.4.2
+- Keep the column-settings menu readable, stop mobile toolbar search and actions from overlapping, contain fixed-layout cell content, keep editor validation clear of sticky actions, center empty feedback in the visible scrollport and keep opposing pins from hiding middle columns.
+
+### Menu v1.3.2
+- Size menus to their content within the available viewport instead of locking them to the trigger width.
+
+### CascadeSelect v1.1.5
+- Reserve size-aware space for the clear action so long selected paths truncate before it, and share the growing control geometry with Select.
+
+### DatePicker v1.3.4
+- Wrap timed and zoned range endpoints on narrow fields with labeled start and end groups instead of hiding the end behind a scroll.
+
+### ColorSelect v1.1.3
+- Give large captions wider adaptive tracks so ordinary names stay on one line.
+
+### Select v1.3.2
+- Match the outer height of Button, Input and Combobox at every size through shared control geometry.
+
+### Pagination v1.1.3
+- Keep Next beside the page sequence on narrow screens with container-responsive summaries and a scrollable numbered sequence.
+
+### ProductCard v1.3.2
+- Stack row cards responsively to their container so ratings and primary actions keep their space.
+
+### Rating v1.3.2
+- Keep rating scales on one line and scroll longer scales internally instead of wrapping.
+
+### Tabs v1.2.2
+- Keep the selected underline on its own tab row by preventing selected and focused triggers from competing for strip scrolling.
+
+### Steps v1.2.1
+- Align mobile connectors to indicator centers and keep step labels whole.
+
 ### Mobile fixes
 - Make RadioGroup, RadioCard, Checkbox, FacetFilterPanel and DataTable reorder plays wait for real focus, args and drag completion under CPU load instead of racing timers.
 

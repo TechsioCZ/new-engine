@@ -17,6 +17,7 @@
   --color-cascade-select-step-fg: var(--color-cascade-select-foreground);
   --color-cascade-select-path-bg: var(--color-cascade-select-highlight);
   --color-cascade-select-path-border: var(--color-cascade-select-accent);
+  --border-width-cascade-select-trigger: var(--border-width-form-control);
   --border-width-cascade-select-column: var(--border-width-sm);
   --border-width-cascade-select-path: var(--border-width-lg);
   --padding-cascade-select-column: var(--spacing-50);
@@ -138,5 +139,32 @@
   [data-scope="cascade-select"][data-part="content"] {
     transition: none;
     animation: none;
+  }
+}
+
+/* Clear is a sibling action, not part of the selected path's text box. */
+@utility cascade-select-clear-gutter {
+  --cascade-select-clear-size: var(--size-icon-control-md);
+  --cascade-select-trigger-padding: var(--padding-cascade-select-trigger-md);
+  --cascade-select-chevron-size: var(--text-icon-control-md);
+  &[data-size="sm"] {
+    --cascade-select-clear-size: var(--size-icon-control-sm);
+    --cascade-select-trigger-padding: var(--padding-cascade-select-trigger-sm);
+    --cascade-select-chevron-size: var(--text-icon-control-sm);
+  }
+  &[data-size="lg"] {
+    --cascade-select-clear-size: var(--size-icon-control-lg);
+    --cascade-select-chevron-size: var(--text-icon-control-lg);
+  }
+  [data-part="clear-trigger"] {
+    inset-inline-end: calc(
+      var(--cascade-select-trigger-padding) +
+      var(--cascade-select-chevron-size) +
+      var(--border-width-cascade-select-trigger)
+    );
+  }
+  &:has([data-part="clear-trigger"]:not([hidden], [data-readonly]))
+    [data-part="value-text"] {
+    margin-inline-end: var(--cascade-select-clear-size);
   }
 }

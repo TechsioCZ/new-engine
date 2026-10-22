@@ -27,6 +27,20 @@ const productImages = {
   backpack: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400",
 }
 
+async function expectCoherentCards(canvasElement: HTMLElement) {
+  const document = canvasElement.ownerDocument
+  await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth)
+  for (const control of canvasElement.querySelectorAll('[data-scope="rating-group"][data-part="control"], [role="img"][aria-description="Average rating"]')) {
+    const stars = [...control.querySelectorAll(':scope > [data-part="item"]')]
+    const first = stars[0]?.getBoundingClientRect()
+    if (!first) continue
+    for (const star of stars) {
+      await expect(star.getBoundingClientRect().top).toBe(first.top)
+    }
+    await expect(control.scrollWidth).toBeLessThanOrEqual(control.clientWidth + 1)
+  }
+}
+
 const ActionContext = createContext<(message: string) => void>(() => {})
 function DemoActions({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState(
@@ -532,6 +546,7 @@ export const AllButtonVariants: Story = {
 }
 
 export const LayoutVariants: Story = {
+  play: async ({ canvasElement }) => expectCoherentCards(canvasElement),
   parameters: {
     docs: {
       description: {
@@ -562,27 +577,29 @@ export const LayoutVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Row Layout">
-        <ProductCard layout="row" className="w-full max-w-lg">
-          <ProductCard.Image
-            src={productImages.shoes}
-            alt="Shoes"
-            className="row-span-6"
-          />
-          <ProductCard.Name>Running Shoes</ProductCard.Name>
-          <ProductCard.Rating rating={{ defaultValue: 5, displayOnly: true }} />
-          <ProductCard.Stock status="limited-stock">
-            Limited Stock
-          </ProductCard.Stock>
-          <ProductCard.Price>$89.99</ProductCard.Price>
-          <ProductCard.Actions>
-            <DemoProductButton
-              buttonVariant="cart"
-              icon="token-icon-cart-button"
-            >
-              Add to Cart
-            </DemoProductButton>
-          </ProductCard.Actions>
-        </ProductCard>
+        <div className="w-lg max-w-full">
+          <ProductCard layout="row" className="w-full">
+            <ProductCard.Image
+              src={productImages.shoes}
+              alt="Shoes"
+              className="row-span-6"
+            />
+            <ProductCard.Name>Running Shoes</ProductCard.Name>
+            <ProductCard.Rating rating={{ defaultValue: 5, displayOnly: true }} />
+            <ProductCard.Stock status="limited-stock">
+              Limited Stock
+            </ProductCard.Stock>
+            <ProductCard.Price>$89.99</ProductCard.Price>
+            <ProductCard.Actions>
+              <DemoProductButton
+                buttonVariant="cart"
+                icon="token-icon-cart-button"
+              >
+                Add to Cart
+              </DemoProductButton>
+            </ProductCard.Actions>
+          </ProductCard>
+        </div>
       </VariantGroup>
     </VariantContainer>
   ),
@@ -961,27 +978,30 @@ export const ActionLayouts: Story = {
 }
 
 export const CustomRowSpan: Story = {
+  play: async ({ canvasElement }) => expectCoherentCards(canvasElement),
   name: "Custom Row Span Override",
   render: () => (
-    <ProductCard layout="row" className="w-full max-w-lg auto-rows-auto">
-      <div className="row-span-3">
-        <ProductCard.Name>Professional Camera</ProductCard.Name>
-        <ProductCard.Image
-          src={productImages.camera}
-          alt="Camera"
-          className="h-fit row-span-2"
-        />
-      </div>
-      <div className="col-2 row-3 place-self-end">
-        <ProductCard.Price>$1,299.99</ProductCard.Price>
-        <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true }} />
-        <ProductCard.Actions>
-          <DemoProductButton buttonVariant="cart" icon="token-icon-cart-button">
-            Add to Cart
-          </DemoProductButton>
-        </ProductCard.Actions>
-      </div>
-    </ProductCard>
+    <div className="w-lg max-w-full">
+      <ProductCard layout="row" className="w-full auto-rows-auto">
+        <div className="row-span-3">
+          <ProductCard.Name>Professional Camera</ProductCard.Name>
+          <ProductCard.Image
+            src={productImages.camera}
+            alt="Camera"
+            className="h-fit row-span-2"
+          />
+        </div>
+        <div className="col-2 row-3 place-self-end">
+          <ProductCard.Price>$1,299.99</ProductCard.Price>
+          <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true }} />
+          <ProductCard.Actions>
+            <DemoProductButton buttonVariant="cart" icon="token-icon-cart-button">
+              Add to Cart
+            </DemoProductButton>
+          </ProductCard.Actions>
+        </div>
+      </ProductCard>
+    </div>
   ),
   parameters: {
     docs: {

@@ -579,17 +579,17 @@ export function getColumnSizeStyles<T extends RowData>(
     Object.hasOwn(columnSizing, column.id)
   const fromTanstack = wasResized || typeof declared === "number"
   const declaredMinimum = toCssLength(meta?.minWidth)
-  const resizedMinimum = wasResized ? toCssLength(column.getSize()) : undefined
+  const width = toCssLength(fromTanstack ? column.getSize() : declared)
   const minWidth =
-    resizedMinimum && declaredMinimum
-      ? `max(${resizedMinimum}, ${declaredMinimum})`
-      : (resizedMinimum ?? declaredMinimum)
+    width && declaredMinimum
+      ? `max(${width}, ${declaredMinimum})`
+      : (width ?? declaredMinimum)
 
   return {
-    width: toCssLength(fromTanstack ? column.getSize() : declared),
-    // Auto table layout may compress `width` down to the content minimum on
-    // narrow scrollports. A user-resized width is a lower bound too, otherwise
-    // keyboard and pointer growth can update the model without moving the edge.
+    width,
+    // Keep declared and resized widths readable in narrow auto-layout tables.
+    // Fixed layout also budgets these minima on the table itself, because
+    // native fixed-layout cells do not enforce their own min-width.
     minWidth,
     maxWidth: toCssLength(meta?.maxWidth),
   }

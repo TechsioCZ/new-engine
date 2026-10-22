@@ -5,7 +5,7 @@ description: >
   action, radio, checkbox, separator, or submenu items using the Zag.js menu
   wrapper, Button trigger, icons, and supported open/highlight/select props.
 metadata:
-  component_version: "1.3.1"
+  component_version: "1.3.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -182,3 +182,6 @@ callback work; `navigate` receives the item value. Checkboxes and radio items
 also accept `disabled`. Submenus inherit direction, focus looping, typeahead,
 and navigation from the root. Escape or selection restores context-menu focus
 to its invoker; clicking or focusing outside does not steal focus back.
+
+Menus size to their content (bounded by the available viewport width) instead
+of inheriting the trigger width, so icon-only triggers open readable menus.

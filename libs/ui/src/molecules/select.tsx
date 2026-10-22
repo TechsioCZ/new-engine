@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -174,28 +174,28 @@ const selectVariants = tv({
     size: {
       xs: {
         trigger:
-          "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-xs",
+          "form-control-size-sm rounded-select-sm px-select-trigger-sm text-select-trigger-xs",
         content: "popup-size-xs text-select-item-xs",
         valueText: "text-select-value-xs",
         itemGroupLabel: "text-select-item-group-label-xs",
       },
       sm: {
         trigger:
-          "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-sm",
+          "form-control-size-sm rounded-select-sm px-select-trigger-sm text-select-trigger-sm",
         content: "popup-size-sm text-select-item-sm",
         valueText: "text-select-value-sm",
         itemGroupLabel: "text-select-item-group-label-sm",
       },
       md: {
         trigger:
-          "h-form-control-md rounded-select-md p-select-trigger-md text-select-trigger-md",
+          "form-control-size-md rounded-select-md px-select-trigger-md text-select-trigger-md",
         content: "popup-size-md text-select-item-md",
         valueText: "text-select-value-md",
         itemGroupLabel: "text-select-item-group-label-md",
       },
       lg: {
         trigger:
-          "h-form-control-lg rounded-select-lg p-select-trigger-md text-select-trigger-lg",
+          "form-control-size-lg rounded-select-lg px-select-trigger-md text-select-trigger-lg",
         content: "popup-size-lg text-select-item-lg",
         valueText: "text-select-value-lg",
         itemGroupLabel: "text-select-item-group-label-lg",

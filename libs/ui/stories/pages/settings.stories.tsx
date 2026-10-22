@@ -1,4 +1,4 @@
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useEffect, useState } from "react"
@@ -290,7 +290,7 @@ function SettingsPage() {
         orientation={wide ? "vertical" : "horizontal"}
         variant="line"
       >
-        <Tabs.List className="w-full shrink-0 flex-wrap lg:w-3xs">
+        <Tabs.List className="w-full shrink-0 lg:w-3xs">
           <Tabs.Trigger value="general">General</Tabs.Trigger>
           <Tabs.Trigger value="team">Team &amp; roles</Tabs.Trigger>
           <Tabs.Trigger value="notifications">Notifications</Tabs.Trigger>
@@ -651,6 +651,20 @@ function SettingsPage() {
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    const expectSelectedIndicator = async (name: string) => {
+      const tab = canvas.getByRole("tab", { name })
+      await expect(tab).toHaveAttribute("aria-selected", "true")
+      if (tab.getAttribute("data-orientation") !== "horizontal") return
+      await waitFor(async () => {
+        const indicator = tab.closest('[role="tablist"]')?.querySelector('[data-part="indicator"]')
+        if (!indicator) throw new Error("Missing selected-tab indicator")
+        const selectedBox = tab.getBoundingClientRect()
+        const indicatorBox = indicator.getBoundingClientRect()
+        await expect(Math.abs(selectedBox.left - indicatorBox.left)).toBeLessThan(2)
+        await expect(Math.abs(selectedBox.bottom - indicatorBox.bottom)).toBeLessThan(3)
+      })
+    }
+    await expectSelectedIndicator("General")
     const input = canvas.getByLabelText(/Workspace name/)
     await userEvent.clear(input)
     await userEvent.click(canvas.getByRole("button", { name: "Save changes" }))
@@ -662,6 +676,7 @@ export const Default: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Save changes" }))
     await expect(input).not.toHaveAttribute("aria-invalid", "true")
     await userEvent.click(canvas.getByRole("tab", { name: "Team & roles" }))
+    await expectSelectedIndicator("Team & roles")
     const member = canvas.getByRole("row", { name: /Tom Hayes/ })
     await userEvent.click(
       within(member).getByRole("button", { name: "Remove from workspace" })
@@ -689,6 +704,7 @@ export const Default: Story = {
     await userEvent.tab()
     await expect(returns).not.toHaveAttribute("aria-invalid", "true")
     await userEvent.click(canvas.getByRole("tab", { name: "General" }))
+    await expectSelectedIndicator("General")
   },
 
   parameters: {

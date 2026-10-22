@@ -477,7 +477,21 @@ export const ReadOnly: Story = {
 }
 export const AllFormInputs: Story = {
   ...Playground,
-  play: undefined,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("textbox", { name: /Full name/ })
+    const select = canvas.getByRole("combobox", { name: "Team" })
+    const combobox = canvas.getByRole("combobox", { name: "Project category" })
+      .closest<HTMLElement>('[data-part="control"]')
+    const button = canvas.getByRole("button", { name: "Cancel" })
+    await expect(combobox).not.toBeNull()
+    const height = input.getBoundingClientRect().height
+    for (const control of [select, combobox, button]) {
+      if (!control) continue
+      await expect(Math.abs(control.getBoundingClientRect().height - height))
+        .toBeLessThanOrEqual(1)
+    }
+  },
   parameters: {
     docs: {
       description: {

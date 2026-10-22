@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -158,7 +158,7 @@ const rating = tv({
   slots: {
     root: "grid min-w-0 max-w-full items-center",
     control:
-      "form-control-readonly focus-visible:rating-focus-outline inline-flex w-fit max-w-full flex-wrap items-center",
+      "form-control-readonly focus-visible:rating-focus-outline inline-flex w-fit max-w-full flex-nowrap items-center overflow-x-auto",
     item: [
       "inline-grid min-h-rating-target min-w-rating-target shrink-0 place-items-center",
       "cursor-pointer data-disabled:cursor-not-allowed",

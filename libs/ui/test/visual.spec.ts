@@ -8,6 +8,7 @@ import { visualCaptureTiles } from "./visual-capture.mjs"
 import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
   assertFloatingContainment,
+  assertSubmenuCaptureReady,
   checkStoryPopupCheckpoints,
   visibleFloatingSurfaces,
 } from "./visual-popup-capture.mjs"
@@ -707,6 +708,10 @@ test.describe
           await page.mouse.move(0, 0)
           const root = page.locator("#storybook-root")
           const capture = async (suffix = "", fullPage = false) => {
+            const beforeCapture =
+              suffix === "--popup-submenu"
+                ? () => assertSubmenuCaptureReady(page)
+                : undefined
             await expect
               .poll(
                 () =>
@@ -786,19 +791,56 @@ test.describe
               caret: "hide" as const,
               scale: "css" as const,
             }
-            const tiles = fullPage
-              ? []
-              : visualCaptureTiles(
-                  await root.evaluate((element) => {
-                    const box = element.getBoundingClientRect()
-                    return {
-                      x: box.x + window.scrollX,
-                      y: box.y + window.scrollY,
-                      width: box.width,
-                      height: box.height,
-                    }
-                  })
-                )
+            const framing = fullPage
+              ? null
+              : await root.evaluate((element) => {
+                  const rootBox = element.getBoundingClientRect()
+                  // Positioned marker labels deliberately extend beyond the slider
+                  // root. Include their ink without resizing or hiding overflow.
+                  const markers = Array.from(
+                    element.querySelectorAll(
+                      '[data-scope="slider"][data-part="marker"], [data-scope="slider"][data-part="marker"] *'
+                    )
+                  )
+                    .filter((marker) => {
+                      const style = getComputedStyle(marker)
+                      return (
+                        style.display !== "none" &&
+                        style.visibility !== "hidden" &&
+                        marker.getClientRects().length > 0
+                      )
+                    })
+                    .map((marker) => marker.getBoundingClientRect())
+                  const boxes = [rootBox, ...markers]
+                  const left = Math.max(
+                    0,
+                    Math.floor(
+                      Math.min(...boxes.map((box) => box.left)) + window.scrollX
+                    )
+                  )
+                  const top = Math.max(
+                    0,
+                    Math.floor(
+                      Math.min(...boxes.map((box) => box.top)) + window.scrollY
+                    )
+                  )
+                  const right = Math.ceil(
+                    Math.max(...boxes.map((box) => box.right)) + window.scrollX
+                  )
+                  const bottom = Math.ceil(
+                    Math.max(...boxes.map((box) => box.bottom)) + window.scrollY
+                  )
+                  return {
+                    includesMarkers: markers.length > 0,
+                    bounds: {
+                      x: left,
+                      y: top,
+                      width: right - left,
+                      height: bottom - top,
+                    },
+                  }
+                })
+            const tiles = framing ? visualCaptureTiles(framing.bounds) : []
             if (tiles.length) {
               testInfo.annotations.push({
                 type: "visual-capture-tiles",
@@ -809,17 +851,25 @@ test.describe
             // the primary name for the first and unique suffixes for the rest.
             for (const tile of tiles.length ? tiles : [null]) {
               let actual: Buffer
+              await beforeCapture?.()
               if (tile) {
                 actual = await page.screenshot({
                   ...options,
                   fullPage: true,
                   clip: tile.clip,
                 })
+              } else if (fullPage) {
+                actual = await page.screenshot({ ...options, fullPage: true })
+              } else if (framing?.includesMarkers) {
+                actual = await page.screenshot({
+                  ...options,
+                  fullPage: true,
+                  clip: framing.bounds,
+                })
               } else {
-                actual = fullPage
-                  ? await page.screenshot({ ...options, fullPage: true })
-                  : await root.screenshot(options)
+                actual = await root.screenshot(options)
               }
+              await beforeCapture?.()
               if (fullPage) {
                 const surfaces = await visibleFloatingSurfaces(page)
                 assertFloatingContainment(surfaces, PNG.sync.read(actual))

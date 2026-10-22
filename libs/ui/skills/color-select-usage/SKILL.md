@@ -5,7 +5,7 @@ description: >
   for choosing color swatches with supported layout, size, radius, disabled
   state, selected state, labels, counts, and single/multiple roles.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -213,3 +213,6 @@ Swatch fills never change brightness on selection or hover: borders and the
 contrasting check badge communicate state without misrepresenting product color.
 Grid cells and captions share a centered axis; long localized/unbroken labels wrap
 inside their track and counts occupy a separate line (including zero).
+
+Large swatches get wider adaptive caption tracks, so ordinary color names stay
+on one line; very long names still wrap.

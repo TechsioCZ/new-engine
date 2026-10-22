@@ -281,6 +281,27 @@ export const ToolbarActions: Story = {
 
     // Typing reveals the SearchForm clear button, which empties the field.
     const input = canvas.getByLabelText("Search")
+    await waitFor(() => {
+      expect(input.getBoundingClientRect().width).toBeGreaterThanOrEqual(120)
+      const controls = [
+        input,
+        canvas.getByLabelText("Submit search"),
+        canvas.getByRole("button", { name: "Refresh" }),
+        canvas.getByRole("button", { name: "Export" }),
+        canvas.getByRole("button", { name: "Filtry" }),
+      ]
+      const rects = controls.map((control) => control.getBoundingClientRect())
+      const viewport = canvasElement.ownerDocument.documentElement.clientWidth
+      for (const [index, rect] of rects.entries()) {
+        expect(rect.left).toBeGreaterThanOrEqual(0)
+        expect(rect.right).toBeLessThanOrEqual(viewport)
+        for (const other of rects.slice(index + 1)) {
+          const overlapX = Math.min(rect.right, other.right) - Math.max(rect.left, other.left)
+          const overlapY = Math.min(rect.bottom, other.bottom) - Math.max(rect.top, other.top)
+          expect(overlapX > 1 && overlapY > 1).toBe(false)
+        }
+      }
+    })
     await userEvent.type(input, "Hopper")
     await userEvent.click(canvas.getByLabelText("Clear search"))
     await expect(input).toHaveValue("")
@@ -331,9 +352,20 @@ export const EmptyState: Story = {
     // The title also appears in the sr-only aria-live status region, so both the
     // visible empty block and the announcement are expected.
     await expect(canvas.getAllByText("No team members")).toHaveLength(2)
-    await expect(
-      canvas.getByText("Invite someone to get started.")
-    ).toBeInTheDocument()
+    const description = canvas.getByText("Invite someone to get started.")
+    await expect(description).toBeInTheDocument()
+    const region = canvas.getByRole("region", { name: "Scrollable records" })
+    const feedback = description.closest(".data-table-empty-viewport")
+    for (const position of [0, region.scrollWidth - region.clientWidth, 0]) {
+      region.scrollLeft = position
+      await waitFor(() => {
+        const viewport = region.getBoundingClientRect()
+        const rect = feedback?.getBoundingClientRect()
+        expect(rect).toBeDefined()
+        expect(rect?.left).toBeCloseTo(viewport.left, 0)
+        expect(rect?.width).toBeCloseTo(region.clientWidth, 0)
+      })
+    }
   },
 }
 
@@ -378,7 +410,7 @@ export const ColumnWidthsAndAlignment: Story = {
       {
         accessorKey: "email",
         header: "Email",
-        meta: { width: "var(--dimension-200)", align: "start" },
+        meta: { width: "var(--dimension-240)", align: "start" },
       },
       {
         accessorKey: "status",
@@ -404,10 +436,22 @@ export const ColumnWidthsAndAlignment: Story = {
     const canvas = within(canvasElement)
     const ageHeader = canvas.getByRole("columnheader", { name: /Age/ })
     await expect(ageHeader).toHaveAttribute("data-align", "end")
-    await expect(ageHeader).toHaveStyle({ width: "80px" })
+    // Fixed layout distributes spare space when every column declares a width.
+    // Preserve the exact declaration and verify its rendered lower bound.
+    await expect(ageHeader.style.width).toBe("80px")
+    await expect(ageHeader.getBoundingClientRect().width).toBeGreaterThanOrEqual(80)
 
     const statusHeader = canvas.getByRole("columnheader", { name: /Status/ })
     await expect(statusHeader).toHaveAttribute("data-align", "center")
+    await waitFor(() => {
+      for (const cell of canvasElement.querySelectorAll("th, tbody td")) {
+        const bounds = cell.getBoundingClientRect()
+        const content = cell.firstElementChild?.getBoundingClientRect()
+        expect(content).toBeDefined()
+        expect(content?.left).toBeGreaterThanOrEqual(bounds.left)
+        expect(content?.right).toBeLessThanOrEqual(bounds.right)
+      }
+    })
   },
 }
 
@@ -443,8 +487,8 @@ export const FrozenColumnWidths: Story = {
     const lastName = canvas.getByRole("columnheader", { name: /Last name/ })
     const region = canvas.getByRole("region", { name: "Scrollable records" })
     // Keep the primary identity column frozen on mobile. The second pin only
-    // sticks if the entire band fits, otherwise records would be covered.
-    const bothFit = region.clientWidth > 440
+    // sticks if the entire band leaves a useful scrollable middle region.
+    const bothFit = region.clientWidth * 0.6 > 440
     await waitFor(() => {
       expect(firstName).toHaveStyle({ position: "sticky", left: "0px" })
       expect(lastName).toHaveStyle({
@@ -968,7 +1012,15 @@ export const ColumnVisibility: Story = {
 
     // Toggling a column keeps the list open, so several can be hidden in a row.
     const body = within(canvasElement.ownerDocument.body)
-    const menu = within(await body.findByRole("menu"))
+    const panel = await body.findByRole("menu")
+    const menu = within(panel)
+    await waitFor(() => {
+      const rect = panel.getBoundingClientRect()
+      expect(rect.width).toBeGreaterThanOrEqual(180)
+      expect(rect.left).toBeGreaterThanOrEqual(0)
+      expect(rect.right).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientWidth)
+      expect(panel.scrollWidth).toBeLessThanOrEqual(panel.clientWidth + 1)
+    })
     const firstName = await menu.findByRole("menuitemcheckbox", { name: "First name" })
     await userEvent.click(firstName)
     await expect(firstName).toHaveAttribute("aria-checked", "false")
@@ -1846,7 +1898,17 @@ export const EditorValidation: EmployeeStory = {
       await expect(error).not.toBeNull()
       await expect(field.getAttribute("aria-describedby")?.split(" ")).toContain(errorId)
       await expect(error?.querySelector('[aria-hidden="true"]')).not.toBeNull()
+      await waitFor(() => {
+        const cell = field.closest("td")?.getBoundingClientRect()
+        const message = error?.getBoundingClientRect()
+        expect(cell).toBeDefined()
+        expect(message).toBeDefined()
+        expect(message?.left).toBeGreaterThanOrEqual(cell?.left ?? 0)
+        expect(message?.right).toBeLessThanOrEqual(cell?.right ?? 0)
+        expect(error?.scrollWidth ?? 0).toBeLessThanOrEqual((error?.clientWidth ?? 0) + 1)
+      })
     }
+    await expect(canvas.getByText("Confirm the employee is active before saving.")).toBeVisible()
   },
 }
 

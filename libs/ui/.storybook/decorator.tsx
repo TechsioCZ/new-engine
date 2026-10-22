@@ -1,4 +1,22 @@
 import type { ReactNode } from "react"
+import { tv } from "../src/utils"
+
+const storySurface = tv({ base: "mx-auto w-full min-w-0 max-w-md" })
+
+/** Use with fullscreen layout so intrinsic story content cannot widen the viewport. */
+export function StorySurface({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div className="w-full min-w-0 p-200">
+      <div className={storySurface({ className })}>{children}</div>
+    </div>
+  )
+}
 
 type VariantGroupProps = {
   title: string

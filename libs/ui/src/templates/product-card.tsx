@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit template.
  *
  * @component ProductCard
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

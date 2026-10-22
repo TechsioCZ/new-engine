@@ -62,6 +62,14 @@ async function expectResponsiveSteps(canvasElement: HTMLElement) {
     await expect(box.left).toBeGreaterThanOrEqual(0)
     await expect(box.right).toBeLessThanOrEqual(viewportWidth + 1)
   }
+  if (document.defaultView?.matchMedia("(max-width: 39.999rem)").matches) {
+    for (const item of canvasElement.querySelectorAll('[data-part="item"][data-orientation="horizontal"]')) {
+      const indicator = item.querySelector('[data-part="indicator"]')?.getBoundingClientRect()
+      const separator = item.querySelector('[data-part="separator"]')?.getBoundingClientRect()
+      if (!indicator || !separator?.width) continue
+      await expect(Math.abs(indicator.y + indicator.height / 2 - separator.y - separator.height / 2)).toBeLessThan(1)
+    }
+  }
 }
 
 const meta: Meta<typeof Steps> = {
@@ -248,6 +256,7 @@ export const Playground: Story = {
     await expect(canvas.getByRole("button", { name: "Continue" })).toBeDisabled()
     await userEvent.click(canvas.getByRole("button", { name: "Back" }))
     await waitFor(() => expect(canvas.getByRole("region", { name: "Review" })).toHaveFocus())
+    await expectResponsiveSteps(canvasElement)
   },
 }
 
@@ -459,6 +468,7 @@ export const Sizes: Story = {
 }
 
 export const Basic: Story = {
+  play: async ({ canvasElement }) => expectResponsiveSteps(canvasElement),
   parameters: {
     controls: { disable: true },
     docs: {
@@ -510,6 +520,7 @@ export const Basic: Story = {
 }
 
 export const Controlled: Story = {
+  play: async ({ canvasElement }) => expectResponsiveSteps(canvasElement),
   parameters: {
     controls: { disable: true },
     docs: {
@@ -933,6 +944,7 @@ export const Description: Story = {
 }
 
 export const WithIcon: Story = {
+  play: async ({ canvasElement }) => expectResponsiveSteps(canvasElement),
   parameters: {
     controls: { disable: true },
     docs: {
@@ -990,7 +1002,16 @@ export const WithIcon: Story = {
 }
 
 export const Lines: Story = {
+  play: async ({ canvasElement }) => {
+    await expectResponsiveSteps(canvasElement)
+    for (const title of canvasElement.querySelectorAll('[data-part="title"]')) {
+      const range = canvasElement.ownerDocument.createRange()
+      range.selectNodeContents(title)
+      await expect(range.getClientRects().length).toBe(1)
+    }
+  },
   parameters: {
+    layout: "padded",
     controls: { disable: true },
     docs: {
       description: {
@@ -1000,7 +1021,7 @@ export const Lines: Story = {
     },
   },
   render: () => (
-    <div className="w-full max-w-5xl">
+    <div className="mx-auto w-5xl max-w-full">
       <Steps
         count={demoSteps.length}
         defaultStep={1}

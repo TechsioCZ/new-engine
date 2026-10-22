@@ -155,7 +155,7 @@ function PhoneInputExample({
   label?: string
 }) {
   return (
-    <div className="w-full max-w-2xs">
+    <div className="w-full min-w-0 max-w-sm">
       <PhoneInput {...props}>
         <PhoneInput.Label>{label}</PhoneInput.Label>
         <PhoneInput.Control>

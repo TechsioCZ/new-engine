@@ -93,10 +93,40 @@
 }
 
 @theme static {
+  --spacing-data-table-search: var(--container-3xs);
+  --spacing-data-table-filter-sm: calc(var(--height-form-control-sm) * 5);
+  --spacing-data-table-filter-md: calc(var(--height-form-control-md) * 5);
+  --spacing-data-table-filter-lg: calc(var(--height-form-control-lg) * 5);
   /* Reserve room for values, padding and steppers, not just control chrome. */
   --spacing-data-table-editor-sm: calc(var(--height-form-control-sm) * 4);
   --spacing-data-table-editor-md: calc(var(--height-form-control-md) * 4);
   --spacing-data-table-editor-lg: calc(var(--height-form-control-lg) * 4);
+}
+
+@utility data-table-filter-control {
+  --data-table-filter-min: var(--spacing-data-table-filter-md);
+  min-width: var(--data-table-filter-min);
+  &[data-size="sm"] {
+    --data-table-filter-min: var(--spacing-data-table-filter-sm);
+  }
+  &[data-size="lg"] {
+    --data-table-filter-min: var(--spacing-data-table-filter-lg);
+  }
+  & > input {
+    min-width: calc(var(--data-table-filter-min) / 2);
+  }
+}
+
+@utility data-table-empty-viewport {
+  /* cqw resolves against the scrollport, not the overflowing table. Sticky
+   * keeps both built-in and custom empty content in view while scrolling. */
+  position: sticky;
+  inset-inline-start: 0;
+  width: 100cqw;
+  max-width: 100%;
+  & > * {
+    max-width: 100%;
+  }
 }
 
 @utility data-table-editor {
@@ -104,6 +134,13 @@
    * or painting over the adjacent cell. Auto layout reserves its full width. */
   &[data-layout="fixed"] {
     overflow-x: auto;
+  }
+  /* A switch needs no text-entry minimum. Let its complete associated
+   * feedback wrap, rather than forcing it underneath sticky row actions. */
+  &[data-type="boolean"] > .data-table-editor-value {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 }
 

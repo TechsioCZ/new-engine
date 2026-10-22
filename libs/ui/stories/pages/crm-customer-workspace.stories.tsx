@@ -1,7 +1,7 @@
 import { expect, userEvent, within } from "storybook/test"
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
@@ -117,6 +117,14 @@ const recordMenu: MenuItem[] = [
 
 function CustomerWorkspace() {
   const toaster = useToast()
+  const [compactPipeline, setCompactPipeline] = useState(false)
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 39.999rem)")
+    const update = () => setCompactPipeline(media.matches)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [])
   const [nav, setNav] = useState("customers")
   const [localActivities, setLocalActivities] = useState(activities)
   const [firstCustomer] = customers
@@ -269,7 +277,13 @@ function CustomerWorkspace() {
             description="Where this account sits today. Moving a stage is an explicit action, never a side effect of editing a field."
             title="Pipeline"
           >
-            <Steps count={pipeline.length} size="sm" step={2} variant="solid">
+            <Steps
+              count={pipeline.length}
+              orientation={compactPipeline ? "vertical" : "horizontal"}
+              size="sm"
+              step={2}
+              variant="solid"
+            >
               <Steps.List>
                 {pipeline.map((stage, index) => (
                   <Steps.Item index={index} key={stage.title}>

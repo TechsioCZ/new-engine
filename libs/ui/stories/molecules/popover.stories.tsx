@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useId, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
+import { StorySurface } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
@@ -318,10 +319,11 @@ export const AsyncContent: Story = {
 
 
 export const PositioningBehaviors: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "Flip keeps the panel inside the viewport; non-portalled bounded examples illustrate the clipping trade-off." } } },
+  decorators: [(Story) => <StorySurface className="max-w-4xl"><Story /></StorySurface>],
+  parameters: { layout: "fullscreen", controls: { disable: true }, docs: { description: { story: "Flip keeps the panel inside the viewport; non-portalled bounded examples illustrate the clipping trade-off." } } },
   args: {},
   render: () => (
-    <div className="grid justify-items-start gap-400 p-400">
+    <div className="grid w-full min-w-0 justify-items-start gap-400">
       <PopoverTemplate
         description="Flips to opposite side when no space"
         flip={true}
@@ -335,12 +337,12 @@ export const PositioningBehaviors: Story = {
           space.
         </p>
       </PopoverTemplate>
-      <div className="space-y-100">
+      <div className="w-full min-w-0 space-y-100">
         <p className="text-sm">
           Bounded containers simulate narrow viewport. Compare slide behavior:
         </p>
         <div className="flex flex-wrap gap-200">
-          <div className="relative h-48 w-sm max-w-full overflow-hidden border border-border border-dashed">
+          <div className="relative h-48 w-full min-w-0 max-w-sm overflow-hidden border border-border border-dashed">
             <div>
               <PopoverTemplate
                 id="slide-true-popover"
@@ -355,7 +357,7 @@ export const PositioningBehaviors: Story = {
             </div>
           </div>
 
-          <div className="relative h-48 w-sm max-w-full overflow-hidden border border-border border-dashed">
+          <div className="relative h-48 w-full min-w-0 max-w-sm overflow-hidden border border-border border-dashed">
             <div>
               <PopoverTemplate
                 id="slide-false-popover"
@@ -421,11 +423,12 @@ export const SameWidthDemo: Story = {
 }
 
 export const EdgePositioning: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "Open panels near viewport edges to compare automatic collision handling." } } },
+  decorators: [(Story) => <StorySurface className="max-w-4xl"><Story /></StorySurface>],
+  parameters: { layout: "fullscreen", controls: { disable: true }, docs: { description: { story: "Open panels near viewport edges to compare automatic collision handling." } } },
   args: {},
   render: () => (
     <div className="relative h-96 w-full border border-border border-dashed">
-      <div className="absolute top-2 left-2">
+      <div className="absolute top-100 left-100">
         <PopoverTemplate
           id="smart-popover"
           title="Top-left details"
@@ -438,7 +441,7 @@ export const EdgePositioning: Story = {
         </PopoverTemplate>
       </div>
 
-      <div className="absolute top-2 right-2">
+      <div className="absolute top-100 right-100">
         <PopoverTemplate
           flip={true}
           id="adjust-popover"
@@ -452,7 +455,7 @@ export const EdgePositioning: Story = {
         </PopoverTemplate>
       </div>
 
-      <div className="absolute bottom-2 left-2">
+      <div className="absolute bottom-100 left-100">
         <PopoverTemplate
           flip={true}
           id="flip-popover"
@@ -466,7 +469,7 @@ export const EdgePositioning: Story = {
         </PopoverTemplate>
       </div>
 
-      <div className="absolute right-2 bottom-2">
+      <div className="absolute right-100 bottom-100">
         <PopoverTemplate
           flip={true}
           id="corner-popover"

@@ -5,7 +5,7 @@ description: >
   for product summaries with image adapter, name, price, stock, badges,
   rating, actions, and card button variants.
 metadata:
-  component_version: "1.3.1"
+  component_version: "1.3.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -168,3 +168,6 @@ Keep custom row/grid demos responsive with standard grid utilities and constrain
 ProductCard.Image preserves required `src`, `alt` and selected adapter props; select an adapter with `as`. Use `alt=""` only for deliberately decorative images. ProductCard.Button inherits Button loadingText/isLoading, native click events, disabled, type, ARIA and ref props; its size and visual variant are owned by the card.
 
 ProductCardTemplate accepts ReactNode names, `href`, `linkAs` and `linkProps` using the kit Link adapter pattern. A destination makes the name a link inside its heading, not a wrapper around cart/wishlist buttons. Without a destination it stays a nonlinked heading. Preserve normal modified-click behavior in applications; intercept navigation only in demos. Pass localized `originalPriceLabel` and `currentPriceLabel` (English defaults) for sale-price meaning. Previous amounts use deletion markup plus an actual visually hidden label. Badge objects are forwarded in full, including attributes, size, styles and passive handlers; give changing or duplicate-label badges stable `key` values.
+
+Row cards respond to their container width: narrow cards stack media and
+content so ratings and primary actions are not squeezed.

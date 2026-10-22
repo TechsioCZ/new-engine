@@ -14,6 +14,7 @@
 
   --text-menu-xs: var(--text-xs);
   --spacing-menu-viewport: var(--spacing-200);
+  --spacing-menu-content-min: var(--dimension-192);
 }
 
 /* Semantic tokens for menu icons */
@@ -30,10 +31,16 @@
 }
 
 @utility menu-viewport {
-  /* Popper's max-content minimum must not outrank the viewport maximum. */
-  min-width: 0 !important;
-  max-width: min(
+  /* Replace Popper's max-content minimum so the viewport cap always wins.
+   * Reference width is a preference, never the width of an icon-only menu. */
+  --menu-available-width: min(
     var(--available-width, 100vw),
     calc(100vw - var(--spacing-menu-viewport) * 2)
   );
+  width: max-content;
+  min-width: min(
+    max(var(--reference-width, 0px), var(--spacing-menu-content-min)),
+    var(--menu-available-width)
+  ) !important;
+  max-width: var(--menu-available-width);
 }

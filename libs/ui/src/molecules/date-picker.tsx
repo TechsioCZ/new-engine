@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.3
+ * @componentVersion v1.3.4
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -200,9 +200,9 @@ const datePickerVariants = tv({
   slots: {
     root: "relative flex w-full flex-col gap-date-picker-root",
     label: "text-date-picker-label-fg",
-    control: "w-full",
+    control: "date-picker-field-container w-full",
     inputControl: [
-      "form-control-base flex w-full items-center gap-date-picker-control",
+      "form-control-base date-picker-range-control flex w-full items-center gap-date-picker-control",
       "border-(length:--border-width-date-picker-control)",
       "border-date-picker-control-border bg-date-picker-control-bg text-date-picker-control-fg",
       "hover:border-date-picker-control-border-hover hover:bg-date-picker-control-bg-hover",
@@ -220,10 +220,11 @@ const datePickerVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     segments: [
-      "date-picker-scrollbar-hidden flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-hidden outline-hidden",
+      "date-picker-range-segments flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-hidden outline-hidden",
       "data-disabled:overflow-hidden",
     ],
     segmentGroup: "flex min-w-max shrink-0 items-center",
+    rangeLabel: "date-picker-range-label",
     rangeSeparator:
       "shrink-0 px-date-picker-range-separator text-date-picker-range-separator-fg",
     segment: [
@@ -1337,8 +1338,14 @@ DatePicker.Control = function DatePickerControl({
   ref,
   ...props
 }: DatePickerControlProps) {
-  const { dateInputApi, pickerApi, validationMessage, styles } =
-    useDatePickerContext()
+  const {
+    dateInputApi,
+    pickerApi,
+    selectionMode,
+    size,
+    validationMessage,
+    styles,
+  } = useDatePickerContext()
   const controlProps = mergeProps(props, pickerApi.getControlProps())
   const { "data-invalid": _dataInvalid, ...dateInputControlProps } =
     dateInputApi.getControlProps()
@@ -1350,6 +1357,8 @@ DatePicker.Control = function DatePickerControl({
         className={styles.inputControl()}
         data-disabled={dateInputApi.disabled || undefined}
         data-readonly={pickerApi.readOnly || undefined}
+        data-selection-mode={selectionMode}
+        data-size={size}
         data-validation={
           dateInputApi.invalid || validationMessage ? "error" : undefined
         }
@@ -1523,27 +1532,32 @@ DatePicker.Segments = function DatePickerSegments({
         className={styles.segments({ className })}
         data-part="segments"
         data-scope="date-picker"
+        data-selection-mode="range"
         ref={ref}
       >
-        <span className="sr-only" id={startDescriptorId}>
-          {startLabel}
-        </span>
         <div
           {...getRangeGroupLabelProps(0, startDescriptorId, startLabel)}
           className={styles.segmentGroup()}
         >
+          <span className={styles.rangeLabel()} id={startDescriptorId}>
+            {startLabel}
+          </span>
           {renderSegments(0)}
         </div>
-        <span aria-hidden="true" className={styles.rangeSeparator()}>
+        <span
+          aria-hidden="true"
+          className={styles.rangeSeparator()}
+          data-part="range-separator"
+        >
           {separator}
-        </span>
-        <span className="sr-only" id={endDescriptorId}>
-          {endLabel}
         </span>
         <div
           {...getRangeGroupLabelProps(1, endDescriptorId, endLabel)}
           className={styles.segmentGroup()}
         >
+          <span className={styles.rangeLabel()} id={endDescriptorId}>
+            {endLabel}
+          </span>
           {renderSegments(1)}
         </div>
       </div>

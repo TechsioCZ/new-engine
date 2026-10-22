@@ -179,11 +179,55 @@
   --opacity-date-picker-disabled: var(--opacity-disabled);
 }
 
-@utility date-picker-scrollbar-hidden {
-  scrollbar-width: none;
+/* Range layout responds to the field's width, not the viewport. Both endpoints
+ * remain visible at rest; segment focus order and editable spans stay intact. */
+@utility date-picker-field-container {
+  container-type: inline-size;
+}
 
-  &::-webkit-scrollbar {
-    display: none;
+@utility date-picker-range-control {
+  &[data-selection-mode="range"] {
+    @apply form-control-size-md;
+    &[data-size="sm"] {
+      @apply form-control-size-sm;
+    }
+    &[data-size="lg"] {
+      @apply form-control-size-lg;
+    }
+  }
+}
+
+@utility date-picker-range-segments {
+  &[data-selection-mode="range"] {
+    flex-wrap: wrap;
+    overflow: visible;
+    row-gap: var(--gap-date-picker-control);
+
+    [data-part="segment-group"] {
+      min-inline-size: 0;
+      max-inline-size: 100%;
+      flex-wrap: wrap;
+    }
+
+    @container (inline-size < 40rem) {
+      flex-direction: column;
+      align-items: stretch;
+
+      [data-part="range-separator"] {
+        display: none;
+      }
+    }
+  }
+}
+
+@utility date-picker-range-label {
+  display: none;
+
+  @container (inline-size < 40rem) {
+    display: block;
+    flex-basis: 100%;
+    font-size: var(--text-date-picker-time-label);
+    color: var(--color-date-picker-range-separator-fg);
   }
 }
 

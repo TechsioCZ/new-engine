@@ -6,7 +6,7 @@ description: >
   triggers, content, indicator, orientation, activation mode, variants, fitted,
   and justify props.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.2.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -206,3 +206,6 @@ enabled trigger remains a keyboard entry point. Accept the request to keep panel
 data and selection aligned. Focus only recovers when the affected trigger/panel
 owned it; changes elsewhere do not steal focus. Focused/selected horizontal tabs
 scroll within their own strip, including manual activation and RTL.
+
+Only one trigger drives strip scrolling at a time, so the selected underline
+stays beneath its own tab.

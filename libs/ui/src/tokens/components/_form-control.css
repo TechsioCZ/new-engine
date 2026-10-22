@@ -47,30 +47,54 @@
    * Canonical sm/md/lg heights for form controls + buttons.
    * Formula: border×2 + button-padding-y×2 + 1lh
    * (1lh resolves to the element's computed line-height at usage time)
-   * Apply h-form-control-sm / h-form-control-md to both buttons and
-   * form-control wrappers so they share an identical rendered height.
+   * Fixed fields use h-form-control-*. Growing compound triggers use
+   * form-control-size-* with matching block padding and minimum height.
    */
+  /* Small buttons use secondary type, but share the small field's box. The
+   * live line-height still wins when text is enlarged. */
+  --line-height-form-control-sm: var(--line-height-24);
+  --padding-form-control-block-sm: var(--padding-button-y-sm);
+  --padding-form-control-block-md: var(--padding-button-y-md);
+  --padding-form-control-block-lg: var(--padding-button-y-lg);
   --height-form-control-sm: calc(
     var(--border-width-form-control) *
     2 +
-    var(--spacing-50) *
+    var(--padding-form-control-block-sm) *
     2 +
-    1lh
+    max(1lh, var(--line-height-form-control-sm))
   );
   --height-form-control-md: calc(
     var(--border-width-form-control) *
     2 +
-    var(--spacing-100) *
+    var(--padding-form-control-block-md) *
     2 +
     1lh
   );
   --height-form-control-lg: calc(
     var(--border-width-form-control) *
     2 +
-    var(--spacing-200) *
+    var(--padding-form-control-block-lg) *
     2 +
     1lh
   );
+}
+
+/* Compound text controls share the fixed field scale without clipping wrapped
+ * labels. Inline padding remains owned by the component. */
+@utility form-control-size-sm {
+  height: auto;
+  min-height: var(--height-form-control-sm);
+  padding-block: var(--padding-form-control-block-sm);
+}
+@utility form-control-size-md {
+  height: auto;
+  min-height: var(--height-form-control-md);
+  padding-block: var(--padding-form-control-block-md);
+}
+@utility form-control-size-lg {
+  height: auto;
+  min-height: var(--height-form-control-lg);
+  padding-block: var(--padding-form-control-block-lg);
 }
 
 /*

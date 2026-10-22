@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -493,10 +493,15 @@ Tabs.Trigger = function TabsTrigger({
   useEffect(() => {
     const trigger = triggerElement.current
     const list = trigger?.closest<HTMLElement>('[data-part="list"]')
-    if (
-      !(trigger && list) ||
-      (api.value !== value && api.focusedValue !== value)
-    ) {
+    if (!(trigger && list)) {
+      return
+    }
+    // In manual activation, focus may differ from selection. Only one trigger
+    // can own strip scrolling, or the two effects undo one another's movement.
+    const scrollValue = list.contains(list.ownerDocument.activeElement)
+      ? (api.focusedValue ?? api.value)
+      : api.value
+    if (scrollValue !== value) {
       return
     }
     const row = trigger.getBoundingClientRect()

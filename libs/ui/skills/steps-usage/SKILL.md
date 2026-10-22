@@ -6,7 +6,7 @@ description: >
   panels, progress, navigation triggers, linear flow, controlled step, and
   variants.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -214,3 +214,6 @@ complete and progress is 100%. Invalid controlled steps render a safe effective
 state and request correction once per invalid input/count pair via onStepChange;
 the owner must update its step and related data. Progress remains finite in
 0–100. Completion/reset through the API remains supported.
+
+Connectors align to indicator centers at every size and variant, and labels
+wrap between words only.

@@ -5,7 +5,7 @@ description: >
   link-based paginated navigation with Zag.js pagination, getPageUrl,
   LinkButton, NextLink adapters, compact mode, variants, and sizes.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -184,3 +184,6 @@ on pageSize changes. Modified, auxiliary or new-context link activation preserve
 native navigation without changing the original paginator; ordinary primary
 click/Enter activation changes it. RTL swaps only arrow glyphs, not arithmetic.
 Minimal selection has a persistent underline separate from keyboard focus.
+
+On narrow containers the summary condenses and the numbered sequence scrolls
+horizontally, so Previous and Next stay on the same row as the pages.

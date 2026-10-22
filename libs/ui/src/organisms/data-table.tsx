@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.1
+ * @componentVersion v1.4.2
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -169,17 +169,20 @@ const dataTableVariants = tv({
       "border-(length:--border-width-data-table) border-data-table-border",
     ],
     toolbar: [
-      "flex items-center justify-between gap-data-table-toolbar",
+      "flex flex-wrap items-center justify-between gap-data-table-toolbar",
       "bg-data-table-toolbar-bg text-data-table-toolbar-fg",
       "p-data-table-toolbar",
       "border-b-(length:--border-width-data-table) border-data-table-border",
     ],
-    /* The search takes the remaining width; actions keep their intrinsic size
-     * and stay pinned to the trailing edge. */
-    toolbarSearch: ["min-w-0 flex-1"],
-    toolbarActions: ["flex shrink-0 items-center gap-data-table-toolbar"],
+    /* Search and actions share a row when they fit; search keeps a useful
+     * basis and actions wrap onto their own row in narrow containers. */
+    toolbarSearch: ["min-w-0 flex-1 basis-data-table-search"],
+    toolbarActions: [
+      "flex min-w-0 max-w-full flex-wrap items-center justify-end gap-data-table-toolbar",
+    ],
     scroll: ["@container/data-table relative w-full overflow-auto"],
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
+    cellContent: ["min-w-0 max-w-full"],
     columnDropIndicator: [
       // A real cell border changes native auto-table widths, feeding back into
       // dnd-kit's placeholder ResizeObserver. Paint the edge out of flow.
@@ -213,13 +216,15 @@ const dataTableVariants = tv({
     filterRow: ["bg-data-table-filter-row-bg"],
     filterCell: [
       "p-data-table-filter-cell",
-      "min-w-fit",
       "border-b-(length:--border-width-data-table) border-data-table-border",
     ],
     filterControl: [
-      "flex flex-wrap items-center gap-data-table-filter-control",
+      "data-table-filter-control flex items-center gap-data-table-filter-control",
     ],
-    editorControl: ["data-table-editor flex flex-col gap-data-table-editor"],
+    editorControl: [
+      "data-table-editor flex min-w-0 max-w-full flex-col gap-data-table-editor",
+    ],
+    emptyViewport: ["data-table-empty-viewport wrap-anywhere min-w-0"],
     actionsCell: ["flex items-center justify-end gap-100"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
@@ -245,6 +250,14 @@ const dataTableVariants = tv({
      */
     outlined: {
       true: { wrapper: "shadow-data-table-outline" },
+    },
+    fixedLayout: {
+      true: {
+        headerLabel: "min-w-0 max-w-full whitespace-normal",
+        sortButton: "wrap-anywhere min-w-0 max-w-full whitespace-normal",
+        sortIcon: "shrink-0",
+        cellContent: "wrap-anywhere",
+      },
     },
   },
 })
@@ -1286,6 +1299,7 @@ function renderCellContent<T extends RowData>({
         className={styles.editorControl()}
         data-editor-control=""
         data-layout={tableLayout}
+        data-type={resolveColumnType(column.columnDef.meta)}
       >
         <div className="data-table-editor-value" data-size={size}>
           {editor}
@@ -1298,7 +1312,12 @@ function renderCellContent<T extends RowData>({
       </div>
     )
   }
-  return flexRender(column.columnDef.cell, cell.getContext())
+  const content = flexRender(column.columnDef.cell, cell.getContext())
+  return tableLayout === "fixed" ? (
+    <div className={styles.cellContent()}>{content}</div>
+  ) : (
+    content
+  )
 }
 
 /**
@@ -1880,7 +1899,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   // spellings through the one correct implementation instead of letting a
   // consumer pick the broken one.
   const effectiveStriped = striped || variant === "striped"
-  const styles = dataTableVariants({ outlined })
+  const styles = dataTableVariants({
+    outlined,
+    fixedLayout: tableLayout === "fixed",
+  })
   const generatedId = useId()
   const instanceId = idProp ?? generatedId
   const scrollRef = useRef<HTMLElement | null>(null)
@@ -3072,9 +3094,15 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
   }, [leafColumns, headerGroupCount, hasActionsColumn, stickyActions])
 
-  // Keep useful identity pins on phones rather than disabling the entire band
-  // when it would cover the scrollport. Start-side pins take priority, then
-  // end-side pins nearest their edge; columns that do not fit scroll normally.
+  // Keep useful identity pins while reserving a readable middle band. Merely
+  // fitting all pins can leave only a few pixels between opposing surfaces.
+  // Start-side identity pins win; rejected pins remain normally scrollable.
+  const renderedTableWidth = leafColumns.reduce(
+    (sum, leaf) => sum + (renderedWidths[leaf.id] ?? leaf.getSize()),
+    renderedActionsWidth
+  )
+  const scrollableBudget =
+    renderedTableWidth > viewportWidth ? viewportWidth * 0.4 : 0
   const fittingPins = new Set<string>()
   let pinnedWidth = renderedActionsWidth
   const pinCandidates = [
@@ -3083,7 +3111,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   ]
   for (const leaf of pinCandidates) {
     const width = renderedWidths[leaf.id] ?? leaf.getSize()
-    if (viewportWidth === 0 || pinnedWidth + width < viewportWidth) {
+    if (
+      viewportWidth === 0 ||
+      pinnedWidth + width + scrollableBudget < viewportWidth
+    ) {
       fittingPins.add(leaf.id)
       pinnedWidth += width
     }
@@ -3271,7 +3302,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           ...stickyRowOffset(stickyHeader, headerOffsets, groupIndex),
           ...pinningStyles(column, "header"),
           ...dnd?.style,
-          ...(tableLayout !== "fixed" && column.columns.length === 0
+          ...(column.columns.length === 0
             ? getColumnSizeStyles(column, enableColumnResizing, columnSizing)
             : undefined),
         }}
@@ -3400,9 +3431,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   : undefined),
               }}
             >
-              <div className={styles.filterControl()}>
-                {column.getCanFilter() ? renderColumnFilter(column) : null}
-              </div>
+              {column.getCanFilter() ? (
+                <div className={styles.filterControl()} data-size={size}>
+                  {renderColumnFilter(column)}
+                </div>
+              ) : null}
             </td>
           ))}
           {hasActionsColumn && (
@@ -3950,8 +3983,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   const emptyRow = (
     <tr>
-      <Table.Cell colSpan={columnCount + (hasActionsColumn ? 1 : 0)}>
-        {emptyState}
+      <Table.Cell
+        className="p-0!"
+        colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
+      >
+        <div className={styles.emptyViewport()}>{emptyState}</div>
       </Table.Cell>
     </tr>
   )
@@ -4035,6 +4071,26 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     </Table.Footer>
   ) : null
 
+  // Native fixed layout ignores cell min-width and otherwise squeezes CSS
+  // lengths into a 100%-wide table. Budget absolute/CSS lengths on the table;
+  // proportional columns keep a model-sized floor rather than recursively
+  // adding their percentage of the already-expanded table.
+  const fixedTableMinWidth =
+    tableLayout === "fixed"
+      ? `calc(${[
+          ...leafColumns.map((column) => {
+            const sizing = getColumnSizeStyles(
+              column,
+              enableColumnResizing,
+              columnSizing
+            )
+            const minimum = String(sizing.minWidth ?? `${column.getSize()}px`)
+            return minimum.includes("%") ? `${column.getSize()}px` : minimum
+          }),
+          ...(hasActionsColumn ? [`${fixedActionsWidth ?? 0}px`] : []),
+        ].join(" + ")})`
+      : undefined
+
   const tableEl = (
     <FieldTableLayoutContext.Provider value={tableLayout}>
       <Table
@@ -4048,7 +4104,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         // is the broken one `effectiveStriped` is routing around.
         variant={outlined || variant === "striped" ? "line" : variant}
         {...slotProps?.root}
-        style={{ tableLayout, ...slotProps?.root?.style }}
+        style={{
+          tableLayout,
+          minWidth: fixedTableMinWidth,
+          ...slotProps?.root?.style,
+        }}
       >
         {caption && (
           <Table.Caption id={`${instanceId}-caption`}>{caption}</Table.Caption>
@@ -4057,11 +4117,15 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           {leafColumns.map((column) => (
             <col
               key={column.id}
-              style={getColumnSizeStyles(
-                column,
-                enableColumnResizing,
-                columnSizing
-              )}
+              // min/max-width do not participate in native colgroup layout.
+              // Cell minima and the fixed-table budget enforce those bounds.
+              style={{
+                width: getColumnSizeStyles(
+                  column,
+                  enableColumnResizing,
+                  columnSizing
+                ).width,
+              }}
             />
           ))}
           {hasActionsColumn && (

@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.4
+ * @componentVersion v1.1.5
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -96,7 +96,8 @@ const nativeCascadeSelectMachine: typeof cascadeSelectMachine = {
 export const cascadeSelectVariants = tv({
   slots: {
     root: "relative flex w-full flex-col gap-cascade-select",
-    control: "relative flex w-full items-center justify-between",
+    control:
+      "cascade-select-clear-gutter relative flex w-full items-center justify-between",
     positioner: "isolate",
     trigger: [
       "form-control-base group w-full",
@@ -181,25 +182,25 @@ export const cascadeSelectVariants = tv({
     size: {
       xs: {
         trigger:
-          "h-form-control-sm rounded-cascade-select-sm p-cascade-select-trigger-sm text-cascade-select-trigger-xs",
+          "form-control-size-sm rounded-cascade-select-sm px-cascade-select-trigger-sm text-cascade-select-trigger-xs",
         content: "popup-size-xs text-cascade-select-item-xs",
         valueText: "text-cascade-select-value-xs",
       },
       sm: {
         trigger:
-          "h-form-control-sm rounded-cascade-select-sm p-cascade-select-trigger-sm text-cascade-select-trigger-sm",
+          "form-control-size-sm rounded-cascade-select-sm px-cascade-select-trigger-sm text-cascade-select-trigger-sm",
         content: "popup-size-sm text-cascade-select-item-sm",
         valueText: "text-cascade-select-value-sm",
       },
       md: {
         trigger:
-          "h-form-control-md rounded-cascade-select-md p-cascade-select-trigger-md text-cascade-select-trigger-md",
+          "form-control-size-md rounded-cascade-select-md px-cascade-select-trigger-md text-cascade-select-trigger-md",
         content: "popup-size-md text-cascade-select-item-md",
         valueText: "text-cascade-select-value-md",
       },
       lg: {
         trigger:
-          "h-form-control-lg rounded-cascade-select-lg p-cascade-select-trigger-md text-cascade-select-trigger-lg",
+          "form-control-size-lg rounded-cascade-select-lg px-cascade-select-trigger-md text-cascade-select-trigger-lg",
         content: "popup-size-lg text-cascade-select-item-lg",
         valueText: "text-cascade-select-value-lg",
       },
@@ -575,6 +576,7 @@ CascadeSelect.Control = function CascadeSelectControl({
     <div
       {...mergeProps(api.getControlProps(), props)}
       className={styles.control({ className })}
+      data-size={toControlSize(size)}
       ref={ref}
     />
   )
