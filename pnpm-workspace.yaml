@@ -99,6 +99,7 @@ packageExtensions:
       # every MedusaContainer resolves the same Awilix contract.
       '@medusajs/deps': 2.18.0
 patchedDependencies:
+  '@techsio/storybook-a11y-reporter@0.1.3': patches/@techsio__storybook-a11y-reporter@0.1.3.patch
   '@techsio/storybook-better-a11y@0.1.3': patches/@techsio__storybook-better-a11y@0.1.3.patch
   '@zag-js/focus-visible@1.45.0': patches/@zag-js__focus-visible@1.45.0.patch
   object-inspect@1.13.4: patches/object-inspect@1.13.4.patch
