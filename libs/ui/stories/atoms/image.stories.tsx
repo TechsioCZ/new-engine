@@ -379,8 +379,14 @@ export const DelayedAdapter: Story = {
     const before = box.getBoundingClientRect()
     await expect(before.width).toBeGreaterThan(0)
     await expect(before.height).toBeGreaterThan(0)
-    await waitFor(() => expect(image.naturalWidth).toBeGreaterThan(0))
-    await expect(box).toHaveAttribute("data-image-state", "loaded")
+    // Decoding can finish before the load event's React state update commits.
+    await waitFor(
+      () => {
+        expect(image.naturalWidth).toBeGreaterThan(0)
+        expect(box).toHaveAttribute("data-image-state", "loaded")
+      },
+      { timeout: 5000 }
+    )
     const after = box.getBoundingClientRect()
     await expect(after.width).toBeCloseTo(before.width, 1)
     await expect(after.height).toBeCloseTo(before.height, 1)

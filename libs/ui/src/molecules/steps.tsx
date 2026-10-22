@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,9 +26,11 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react"
+import { flushSync } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
 import { Icon } from "../atoms/icon"
@@ -207,7 +209,10 @@ type StepsContextValue = {
   orientation: StepsOrientation
   size?: StepsSize
   styles: ReturnType<typeof stepsVariants>
-  requestNavigationFocus: (source: HTMLButtonElement) => void
+  requestNavigationFocus: (
+    source: HTMLButtonElement,
+    navigate: () => void
+  ) => void
 } & StepsContentRegistry
 
 /*
@@ -394,7 +399,9 @@ function useNavigationFocus(api: StepsApi) {
   const pending = useRef<{ source: HTMLButtonElement; value: number } | null>(
     null
   )
-  useEffect(() => {
+  const [, commitNavigation] = useState(0)
+  // Focus in the accepted commit, before the navigation transaction ends.
+  useLayoutEffect(() => {
     const request = pending.current
     if (!request || request.value === api.value) {
       return
@@ -416,13 +423,28 @@ function useNavigationFocus(api: StepsApi) {
       )
       ?.focus()
   }, [api.value])
-  return (source: HTMLButtonElement) => {
-    pending.current = { source, value: api.value }
-    // Synchronous accepted updates commit before this frame. Rejected proposals
-    // must not cause a later unrelated controlled update to steal focus.
-    requestAnimationFrame(() => {
-      if (pending.current?.source === source) {
-        pending.current = null
+  return (source: HTMLButtonElement, navigate: () => void) => {
+    const request = { source, value: api.value }
+    pending.current = request
+    try {
+      navigate()
+    } catch (error) {
+      pending.current = null
+      throw error
+    }
+    // Zag queues its transition in a microtask. Commit after that proposal, not
+    // before it, and never let a paint deadline discard an accepted update.
+    queueMicrotask(() => {
+      if (pending.current !== request) {
+        return
+      }
+      try {
+        flushSync(() => commitNavigation((value) => value + 1))
+      } finally {
+        // Rejected proposals must not survive into unrelated external updates.
+        if (pending.current === request) {
+          pending.current = null
+        }
       }
     })
   }
@@ -1007,8 +1029,9 @@ Steps.PrevTrigger = function StepsPrevTrigger({
       onClick={(event) => {
         onClick?.(event)
         if (!event.defaultPrevented) {
-          requestNavigationFocus(event.currentTarget)
-          onPrevTriggerClick?.(event)
+          requestNavigationFocus(event.currentTarget, () => {
+            onPrevTriggerClick?.(event)
+          })
         }
       }}
     />
@@ -1050,8 +1073,9 @@ Steps.NextTrigger = function StepsNextTrigger({
       onClick={(event) => {
         onClick?.(event)
         if (!event.defaultPrevented) {
-          requestNavigationFocus(event.currentTarget)
-          onNextTriggerClick?.(event)
+          requestNavigationFocus(event.currentTarget, () => {
+            onNextTriggerClick?.(event)
+          })
         }
       }}
     />

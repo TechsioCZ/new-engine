@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Steps v1.2.3
+- Reliably focus the accepted navigation panel without stealing focus after rejected or unrelated updates.
+
+### Testing
+- Patch @techsio/storybook-better-a11y so SVG content no longer aborts the scan before results are published.
+
 ### Accessibility enforcement
 - CI blocks on WCAG A/AA violations in every supported theme; APCA gold and AAA contrast stay advisory in the report.
 
