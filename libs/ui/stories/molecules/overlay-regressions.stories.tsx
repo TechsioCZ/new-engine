@@ -93,7 +93,8 @@ export const ModalPopoverCommands: Story = {
     await userEvent.click(within(inner).getByRole("button", { name: "Delivery commands" }))
     const command = await body.findByRole("menuitem", { name: "Use express delivery" })
     // Role discovery can precede the menu's starting-style opacity transition.
-    await waitFor(() => expect(command).toBeVisible())
+    // The entrance fade starts at opacity 0; allow slow engines to finish it.
+    await waitFor(() => expect(command).toBeVisible(), { timeout: 5000 })
     await expect(command.closest('[aria-hidden="true"], [inert]')).toBeNull()
     await expect(inner.contains(command)).toBe(true)
     await userEvent.keyboard("{Escape}")

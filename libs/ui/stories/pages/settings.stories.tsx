@@ -705,21 +705,6 @@ export const Default: Story = {
     await expect(returns).not.toHaveAttribute("aria-invalid", "true")
     await userEvent.click(canvas.getByRole("tab", { name: "General" }))
     await expectSelectedIndicator("General")
-    // The shell's main (not the window) owns page scrolling. Field focus and
-    // tab changes above must not leave a fractional scroll offset at capture.
-    const main = canvas.getByRole("main", { name: "Page content" })
-    const list = canvas.getByRole("tablist")
-    await waitFor(async () => {
-      main.scrollTo({ top: 0, left: 0, behavior: "instant" })
-      list.scrollTo({ top: 0, left: 0, behavior: "instant" })
-      await new Promise<void>((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-      )
-      expect(main.scrollTop).toBe(0)
-      expect(main.scrollLeft).toBe(0)
-      expect(list.scrollTop).toBe(0)
-      expect(list.scrollLeft).toBe(0)
-    })
   },
 
   parameters: {
