@@ -13,8 +13,9 @@ libraries. The applications that use them live in a separate repository.
 
 ## Requirements
 
-- Node and pnpm versions pinned in `.mise.toml` and `package.json`
-  (`mise install` sets them up).
+- Node from `.mise.toml` (`mise install`).
+- pnpm at the version pinned by `packageManager` in `package.json`
+  (for example `npm install -g pnpm@12.11.2`).
 - Docker only for the UI component and visual tests
   (`docker/development/playwright/Dockerfile`).
 
