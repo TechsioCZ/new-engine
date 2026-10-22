@@ -28,6 +28,7 @@ type StoryCompletion = {
   userGlobals?: Record<string, unknown>
   effectiveGlobals?: Record<string, unknown>
   brandLock?: unknown
+  visualTimedToasts?: unknown
 }
 type StorybookWindow = Window & {
   __VISUAL_RANDOM_RESET__?: () => void
@@ -40,7 +41,7 @@ type StorybookWindow = Window & {
     ready: () => Promise<void>
     loadStory: (input: { storyId: string }) => Promise<{
       storyGlobals: Record<string, unknown>
-      parameters: { brandLock?: unknown }
+      parameters: { brandLock?: unknown; visualTimedToasts?: unknown }
     }>
     getStoryContext: (story: { storyGlobals: Record<string, unknown> }) => {
       globals: Record<string, unknown>
@@ -49,8 +50,24 @@ type StorybookWindow = Window & {
   }
 }
 
-// Exact decoded RGBA equality: Playwright's toHaveScreenshot tolerates
-// anti-aliasing differences even with a zero threshold.
+// Decoded RGBA comparison with no pixel-count allowance: Playwright's
+// toHaveScreenshot tolerates anti-aliasing differences even with a zero
+// threshold. Only per-channel rounding noise between machines (local amd64
+// emulation vs native CI runners differ by a few levels) is ignored.
+const channelTolerance = 8
+
+function pixelChanged(a: Buffer, e: Buffer, offset: number) {
+  for (let channel = 0; channel < 4; channel += 1) {
+    if (
+      Math.abs(a.readUInt8(offset + channel) - e.readUInt8(offset + channel)) >
+      channelTolerance
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
 function comparePng(actual: Buffer, expected: Buffer) {
   const a = PNG.sync.read(actual)
   const e = PNG.sync.read(expected)
@@ -66,7 +83,7 @@ function comparePng(actual: Buffer, expected: Buffer) {
   const diff = new PNG({ width: a.width, height: a.height })
   let changedPixels = 0
   for (let offset = 0; offset < a.data.length; offset += 4) {
-    const changed = a.data.readUInt32BE(offset) !== e.data.readUInt32BE(offset)
+    const changed = pixelChanged(a.data, e.data, offset)
     changedPixels += Number(changed)
     // Changed pixels are red; unchanged pixels are a faded copy of the baseline.
     const faded = 255 - Math.round((255 - e.data.readUInt8(offset)) / 4)
@@ -75,11 +92,69 @@ function comparePng(actual: Buffer, expected: Buffer) {
     diff.data[offset + 2] = changed ? 0 : faded
     diff.data[offset + 3] = 255
   }
+  if (changedPixels === 0) {
+    return { equal: true }
+  }
   return {
     equal: false,
     summary: `${changedPixels} pixels differ`,
     diff: PNG.sync.write(diff),
   }
+}
+
+// Timed toasts and smooth scrolls finish on their own; capture the settled
+// frame instead of whichever moment a slower or faster machine reaches.
+// Persistent toasts (duration Infinity) stay part of the frame.
+async function settleTransientUi(
+  page: Page,
+  { waitForTimedToasts }: { waitForTimedToasts: boolean }
+) {
+  if (waitForTimedToasts) {
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () =>
+              [
+                ...document.querySelectorAll<HTMLElement>(
+                  '[data-scope="toast"][data-part="root"]'
+                ),
+              ].filter((toast) =>
+                Number.isFinite(
+                  Number.parseFloat(
+                    getComputedStyle(toast).getPropertyValue("--duration")
+                  )
+                )
+              ).length
+          ),
+        { message: "Timed toasts did not dismiss", timeout: 20_000 }
+      )
+      .toBe(0)
+  }
+  const scrollPositions = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("*")]
+        .filter(
+          (element) =>
+            element.scrollWidth > element.clientWidth ||
+            element.scrollHeight > element.clientHeight
+        )
+        .map((element) => `${element.scrollLeft},${element.scrollTop}`)
+        .join("|")
+    )
+  let previous = await scrollPositions()
+  await expect
+    .poll(
+      async () => {
+        await page.waitForTimeout(150)
+        const current = await scrollPositions()
+        const settled = current === previous
+        previous = current
+        return settled
+      },
+      { message: "Scroll positions did not settle", timeout: 10_000 }
+    )
+    .toBe(true)
 }
 
 async function compareSnapshotBuffer(
@@ -489,6 +564,7 @@ async function renderStory(
         userGlobals,
         effectiveGlobals,
         brandLock: preparedStory.parameters.brandLock,
+        visualTimedToasts: preparedStory.parameters.visualTimedToasts,
       }
     },
     { storyId: id, colorMode: mode, colorBrand: brand }
@@ -706,6 +782,11 @@ test.describe
             ).toBeVisible()
           }
           await page.mouse.move(0, 0)
+          await settleTransientUi(page, {
+            // Toast stories document the toast itself; elsewhere a timed
+            // toast is transient feedback that must not decide the frame.
+            waitForTimedToasts: completion.visualTimedToasts !== "capture",
+          })
           const root = page.locator("#storybook-root")
           const capture = async (suffix = "", fullPage = false) => {
             const beforeCapture =

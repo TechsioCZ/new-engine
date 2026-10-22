@@ -14,6 +14,8 @@ type ToastStoryArgs = Pick<
 const meta: Meta<ToastStoryArgs> = {
   title: "Molecules/Toast",
   parameters: {
+    // Visual baselines capture the toast itself rather than waiting it out.
+    visualTimedToasts: "capture",
     docs: {
       description: {
         component:

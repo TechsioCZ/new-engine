@@ -53,10 +53,16 @@ export function assertSupportedTheme(brand, mode) {
 
 /** Exact calibration contracts, never a blanket contrast-rule exclusion.
  * @param {string} id
- * @param {string[]} fixtureLabels
- * @param {{violations: {id: string, nodes: {html: string}[]}[]}} results
+ * @param {string[]} browserLabels
+ * @param {{violations: {id: string, nodes: {html: string}[]}[]}} browserResults
  */
-export function assertCalibration(id, fixtureLabels, results) {
+export function assertCalibration(id, browserLabels, browserResults) {
+  // Playwright returns values created in another realm under Jest; strict deep
+  // equality compares prototypes, so normalize them to local plain values.
+  /** @type {string[]} */
+  const fixtureLabels = JSON.parse(JSON.stringify(browserLabels))
+  /** @type {typeof browserResults} */
+  const results = JSON.parse(JSON.stringify(browserResults ?? null))
   assert.deepEqual(
     fixtureLabels.map((label) => label.trim()),
     calibrationLabels,
