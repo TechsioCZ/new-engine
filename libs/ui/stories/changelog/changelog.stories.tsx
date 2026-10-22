@@ -13,6 +13,15 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.5
+- Fixed-layout column filters scroll within their cell instead of overlapping neighbouring filters; auto layout keeps the full control width.
+
+### DatePicker v1.3.7
+- Read-only segments block only value edits; copy, select-all and navigation shortcuts keep working.
+
+### Menu v1.3.3
+- Construct native MouseEvents explicitly so the dismissal path is unambiguous to readers and static analysis; no behaviour change.
+
 ### DatePicker v1.3.6
 - Empty segments keep the shared placeholder color; a focused empty segment switches to the value color so it stays readable on the focus fill.
 

@@ -5,7 +5,7 @@ description: >
   action, radio, checkbox, separator, or submenu items using the Zag.js menu
   wrapper, Button trigger, icons, and supported open/highlight/select props.
 metadata:
-  component_version: "1.3.2"
+  component_version: "1.3.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -188,3 +188,5 @@ to its invoker; clicking or focusing outside does not steal focus back.
 
 Menus size to their content (bounded by the available viewport width) instead
 of inheriting the trigger width, so icon-only triggers open readable menus.
+
+Construct native MouseEvents explicitly so the dismissal path is unambiguous to readers and static analysis; no behaviour change.

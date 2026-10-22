@@ -61,6 +61,47 @@ test("importing the exporter performs no token reads or writes", () => {
   assert.equal(child.status, 0, child.stderr)
 })
 
+function regenerateRealExports() {
+  // Read the actual default inputs, intercepting only the output boundary so
+  // these regressions never rewrite the working tree's generated CSS.
+  const outputs = new Map()
+  const originalWrite = fs.writeFileSync
+  fs.writeFileSync = (path, content) => outputs.set(path, content)
+  syncBuiltinESMExports()
+  try {
+    main()
+  } finally {
+    fs.writeFileSync = originalWrite
+    syncBuiltinESMExports()
+  }
+  assert.equal(outputs.size, 2)
+  return outputs
+}
+
+test("regeneration accepts the real Figma exports and emits valid primitives", () => {
+  const [variablesCss, overridesCss] = [...regenerateRealExports().values()]
+  const variables = parseDecls(variablesCss)
+  validateDeclarations(variables)
+  assert.equal(variables.get("--brightness-100"), "1")
+  assert.equal(variables.get("--brightness-70"), "0.7")
+  assert.equal(
+    variables.get("--brightness-gallery-trigger"),
+    "var(--brightness-70)"
+  )
+  assert.equal(variables.get("--dimension-1"), "0.0625rem")
+  assert.equal(variables.get("--dimension-2"), "0.125rem")
+  assert.equal(variables.get("--dimension-70"), "4.375rem")
+  assert.equal(variables.get("--dimension-700"), "4.375rem")
+  assert.equal(variables.get("--dimension-100-min"), "var(--dimension-4)")
+  for (const brand of ["neo", "business", "akros"]) {
+    const body = overridesCss.match(
+      new RegExp(`\\[data-theme="${brand}"\\] \\{([^}]*)\\}`)
+    )?.[1]
+    assert.ok(body !== undefined, `Missing ${brand} overrides`)
+    validateDeclarations(parseDecls(body))
+  }
+})
+
 test("composite shadow formatting is normalized without creating light-dark", () => {
   const light = parseDecls(
     ":root { --shadow-card: 0  1px  2px oklch(0 0 0 / .2), 0 3px 4px rgb(0, 0, 0); }"
@@ -326,7 +367,7 @@ test("invalid inputs in the last brand cannot partially rewrite either export", 
     for (const [light, invalid] of [
       ["--shadow-card: 0 1px 2px black;", "--shadow-card: 0 2px 4px black;"],
       ["--color-card: white;", "--dimension-1: .06rem;"],
-      ["--color-card: white;", "--brightness-70: 4.38rem;"],
+      ["--color-card: white;", "--brightness-70: 4.39rem;"],
       ...INVALID_COLORS.flatMap((value) => [
         ["--color-card: white;", `--color-card: ${value};`],
         [`--color-card: ${value};`, "--color-card: white;"],

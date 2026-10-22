@@ -198,6 +198,71 @@ export const ColumnFiltersWithConditions: Story = {
   },
 }
 
+export const NarrowColumnFilters: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Fixed-layout filters scroll within narrow columns without covering their neighbours. Auto layout keeps enough room for the complete controls." } } },
+  args: {
+    ...base,
+    data: people.slice(0, 3),
+    enableColumnFilters: true,
+    columns: [
+      { accessorKey: "age", header: "Age", meta: { width: 80, type: "number" } },
+      { accessorKey: "visits", header: "Visits", meta: { width: 80, type: "number" } },
+      { accessorKey: "firstName", header: "First name", meta: { width: 240, type: "string" } },
+    ],
+  },
+  render: (args) => (
+    <div className="flex min-w-0 flex-col gap-400">
+      {(["fixed", "auto"] as const).map((layout) => (
+        <section className="w-sm max-w-full" key={layout}>
+          <DataTable {...args} caption={`${layout} layout filters`} tableLayout={layout} />
+        </section>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const layout of ["fixed", "auto"] as const) {
+      const table = canvas.getByRole("table", { name: `${layout} layout filters` })
+      const filterRow = within(table).getByRole("row", { name: "Column filters" })
+      const cells = within(filterRow).getAllByRole("cell")
+      for (const cell of cells) {
+        const viewport = cell.firstElementChild
+        await expect(viewport).not.toBeNull()
+        if (!viewport) {
+          throw new Error("Missing filter viewport")
+        }
+        const cellBounds = cell.getBoundingClientRect()
+        const bounds = viewport.getBoundingClientRect()
+        await expect(bounds.left).toBeGreaterThanOrEqual(cellBounds.left)
+        await expect(bounds.right).toBeLessThanOrEqual(cellBounds.right)
+        if (layout === "fixed") {
+          await expect(getComputedStyle(viewport).overflowX).toBe("auto")
+          if (cell !== cells[2]) {
+            await expect(viewport.scrollWidth).toBeGreaterThan(viewport.clientWidth)
+          }
+        } else {
+          await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
+        }
+      }
+      const input = within(table).getByLabelText("Filter value for Age")
+      await userEvent.type(input, "36")
+      await expect(input).toHaveValue(36)
+      await userEvent.tab()
+      const condition = within(table).getByRole("button", { name: /Filter condition for Age:/ })
+      await expect(condition).toHaveFocus()
+      await expect(condition).toBeVisible()
+      const viewport = cells[0]?.firstElementChild
+      if (!viewport) {
+        throw new Error("Missing age filter viewport")
+      }
+      const conditionBounds = condition.getBoundingClientRect()
+      const viewportBounds = viewport.getBoundingClientRect()
+      await expect(conditionBounds.left).toBeGreaterThanOrEqual(viewportBounds.left - 1)
+      await expect(conditionBounds.right).toBeLessThanOrEqual(viewportBounds.right + 1)
+    }
+  },
+}
+
 /* ── 4. Header filter template (custom slot) ─────────────────────────────── */
 
 export const HeaderFilterTemplate: Story = {
@@ -668,6 +733,10 @@ export const InfiniteScrollVirtualized: Story = {
         previous = layout
         expect(region.scrollTop).toBe(scrollTop)
         expect(region.scrollLeft).toBe(0)
+        // A stable layout is not enough: the virtual window must have moved.
+        if (scrollTop > 0) {
+          expect(Number(rows[0]?.getAttribute("aria-rowindex"))).toBeGreaterThan(2)
+        }
         expect(stableSamples).toBeGreaterThanOrEqual(3)
       }, { timeout: 5000 })
     }

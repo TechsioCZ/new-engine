@@ -6,7 +6,7 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.3.6"
+  component_version: "1.3.7"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -445,3 +445,5 @@ into labeled groups instead of hiding the end behind horizontal scrolling.
 Keep empty segment placeholders at readable contrast on every field surface.
 
 Empty segments keep the shared placeholder color; a focused empty segment switches to the value color so it stays readable on the focus fill.
+
+Read-only segments block only value edits; copy, select-all and navigation shortcuts keep working.

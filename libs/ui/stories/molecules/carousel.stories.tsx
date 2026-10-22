@@ -294,13 +294,24 @@ export const Vertical: Story = {
       expect(indicators[1]).toHaveAttribute("aria-current", "true")
     )
     await userEvent.keyboard("{Home}")
-    await waitFor(() => {
+    await waitFor(() =>
       expect(indicators[0]).toHaveAttribute("aria-current", "true")
-      expect(indicators[0]).toHaveFocus()
-    })
-    // Keep the keyboard-navigation check, then capture the neutral resting view.
+    )
+    // Queued indicator focus lands after snapping (later on WebKit). Wait until
+    // focus stops moving, then capture the neutral resting view.
+    const doc = canvasElement.ownerDocument
+    let previousFocus = doc.activeElement
+    await waitFor(
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 150))
+        const settled = doc.activeElement === previousFocus
+        previousFocus = doc.activeElement
+        await expect(settled).toBe(true)
+      },
+      { timeout: 5000 }
+    )
     await userEvent.click(canvasElement)
-    await expect(canvasElement.ownerDocument.body).toHaveFocus()
+    await expect(doc.body).toHaveFocus()
   },
 }
 

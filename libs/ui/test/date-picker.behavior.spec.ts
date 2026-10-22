@@ -241,6 +241,107 @@ test.describe("DatePicker browser behavior", () => {
     ).toHaveAttribute("aria-required", "true")
   })
 
+  test("keeps read-only dates selectable and copyable without allowing edits", async ({
+    page,
+  }) => {
+    await openStory(page, stories.states)
+    const root = pickerByLabel(page, "Read only")
+    const day = root.getByRole("spinbutton", { name: "Day", exact: true })
+    await expect(day).toHaveAttribute("contenteditable", "false")
+    await day.focus()
+    await expect(day).toBeFocused()
+
+    const blockedShortcuts = await day.evaluate((node) => {
+      const shortcuts: KeyboardEventInit[] = [
+        { key: "Tab" },
+        { key: "Tab", shiftKey: true },
+        { key: "Escape" },
+      ]
+      for (const modifiers of [
+        {},
+        { shiftKey: true },
+        { ctrlKey: true },
+        { metaKey: true },
+      ]) {
+        for (const key of ["ArrowLeft", "ArrowRight", "Home", "End"]) {
+          shortcuts.push({ key, ...modifiers })
+        }
+      }
+      for (const modifiers of [{ ctrlKey: true }, { metaKey: true }]) {
+        for (const key of ["a", "c"]) {
+          shortcuts.push({ key, ...modifiers })
+        }
+      }
+      return shortcuts.filter((shortcut) => {
+        const event = new KeyboardEvent("keydown", {
+          ...shortcut,
+          bubbles: true,
+          cancelable: true,
+        })
+        node.dispatchEvent(event)
+        return event.defaultPrevented
+      })
+    })
+    expect(blockedShortcuts).toEqual([])
+
+    await day.press("ControlOrMeta+a")
+    expect(
+      await day.evaluate((node) =>
+        node.ownerDocument.getSelection()?.toString()
+      )
+    ).toContain("31")
+    await day.evaluate((node) => {
+      node.ownerDocument.addEventListener(
+        "copy",
+        (event) => {
+          node.setAttribute(
+            "data-copied-text",
+            node.ownerDocument.getSelection()?.toString() ?? ""
+          )
+          // Observe the real copy command without changing the shared clipboard.
+          event.preventDefault()
+        },
+        { once: true }
+      )
+    })
+    await day.press("ControlOrMeta+c")
+    await expect
+      .poll(() => day.getAttribute("data-copied-text"))
+      .toContain("31")
+
+    for (const key of [
+      "1",
+      "Backspace",
+      "Delete",
+      "ArrowUp",
+      "ArrowDown",
+      "PageUp",
+      "PageDown",
+      "Home",
+      "End",
+      "ControlOrMeta+z",
+    ]) {
+      await day.press(key)
+    }
+    const pasteBlocked = await day.evaluate((node) => {
+      const data = new DataTransfer()
+      data.setData("text/plain", "2027-01-01")
+      const event = new ClipboardEvent("paste", {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: data,
+      })
+      node.dispatchEvent(event)
+      return event.defaultPrevented
+    })
+    expect(pasteBlocked).toBe(true)
+    await expect(day).toHaveText("31")
+    await expect(hiddenValue(root)).toHaveValue("2026-08-31")
+    await expect(page.locator(contentSelector)).toHaveCount(0)
+    await day.press("Tab")
+    await expect(day).not.toBeFocused()
+  })
+
   test("keeps the calendar heading compact and accessible", async ({
     page,
   }) => {

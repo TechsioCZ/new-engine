@@ -134,36 +134,47 @@ describe("shared owner-form reset subscription", () => {
     await nextTask()
     expect(resets).toBe(1)
   })
-  it("waits past between-listener microtask checkpoints before checking cancellation", async () => {
-    const listeners: ((event: Event) => void)[] = []
-    const form = {
-      addEventListener: (_type: string, listener: (event: Event) => void) => {
-        listeners.push(listener)
-      },
-      removeEventListener: () => undefined,
-    }
-    let resets = 0
-    const dispose = subscribeOwnerFormReset(
-      { form, isConnected: true } as unknown as HTMLInputElement,
-      () => {
-        resets += 1
+  it.each([true, false])(
+    "waits past between-listener microtask checkpoints before checking cancellation (canceled: %s)",
+    async (canceled) => {
+      const listeners: ((event: Event) => void)[] = []
+      const form = {
+        addEventListener: (_type: string, listener: (event: Event) => void) => {
+          listeners.push(listener)
+        },
+        removeEventListener: () => undefined,
       }
-    )
-    const event = new Event("reset", { cancelable: true })
-    // Native browser dispatch can perform this checkpoint before invoking the
-    // next listener. A queueMicrotask callback would already reconcile here.
-    const dispatchReset = listeners[0]
-    if (!dispatchReset) {
-      throw new Error("Expected the reset subscription")
+      let resets = 0
+      const dispose = subscribeOwnerFormReset(
+        { form, isConnected: true } as unknown as HTMLInputElement,
+        () => {
+          resets += 1
+        }
+      )
+      try {
+        const event = new Event("reset", { cancelable: true })
+        // Calling the captured listener directly must still model native dispatch.
+        Object.defineProperty(event, "currentTarget", { value: form })
+        const dispatchReset = listeners[0]
+        if (!dispatchReset) {
+          throw new Error("Expected the reset subscription")
+        }
+        dispatchReset(event)
+        expect(resets).toBe(0)
+        // Native browser dispatch can perform this checkpoint before invoking the
+        // next listener. A queueMicrotask callback would already reconcile here.
+        await Promise.resolve()
+        expect(resets).toBe(0)
+        if (canceled) {
+          event.preventDefault()
+        }
+        await nextTask()
+        expect(resets).toBe(canceled ? 0 : 1)
+      } finally {
+        dispose()
+      }
     }
-    dispatchReset(event)
-    await Promise.resolve()
-    expect(resets).toBe(0)
-    event.preventDefault()
-    await nextTask()
-    expect(resets).toBe(0)
-    dispose()
-  })
+  )
 })
 
 describe("owner form reassociation", () => {

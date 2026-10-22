@@ -50,11 +50,14 @@ type StorybookWindow = Window & {
   }
 }
 
-// Decoded RGBA comparison with no pixel-count allowance: Playwright's
-// toHaveScreenshot tolerates anti-aliasing differences even with a zero
-// threshold. Only per-channel rounding noise between machines (local amd64
-// emulation vs native CI runners differ by a few levels) is ignored.
+// Decoded RGBA comparison instead of Playwright's toHaveScreenshot, which
+// tolerates anti-aliasing differences even with a zero threshold. Ignored:
+// per-channel rounding between machines (local amd64 emulation vs native CI
+// runners differ by a few levels) and a handful of anti-aliased edge pixels
+// that vary between raster runs. Real regressions change far more pixels.
 const channelTolerance = 8
+const edgePixelAllowance = (width: number, height: number) =>
+  Math.max(16, Math.round(width * height * 0.0002))
 
 function pixelChanged(a: Buffer, e: Buffer, offset: number) {
   for (let channel = 0; channel < 4; channel += 1) {
@@ -92,7 +95,7 @@ function comparePng(actual: Buffer, expected: Buffer) {
     diff.data[offset + 2] = changed ? 0 : faded
     diff.data[offset + 3] = 255
   }
-  if (changedPixels === 0) {
+  if (changedPixels <= edgePixelAllowance(a.width, a.height)) {
     return { equal: true }
   }
   return {

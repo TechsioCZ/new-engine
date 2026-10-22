@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -15,9 +15,9 @@ import {
   cloneElement,
   isValidElement,
   type KeyboardEvent,
-  type MouseEvent,
   type PointerEvent,
   type ReactElement,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   useEffect,
   useId,
@@ -543,7 +543,7 @@ export function Menu({
           contextInvoker.current = event.currentTarget
           restoreContextFocus.current = true
         },
-        onContextMenu(event: MouseEvent<HTMLElement>) {
+        onContextMenu(event: ReactMouseEvent<HTMLElement>) {
           contextInvoker.current = event.currentTarget
           restoreContextFocus.current = true
         },
@@ -555,7 +555,7 @@ export function Menu({
             event.preventDefault()
             const rect = event.currentTarget.getBoundingClientRect()
             event.currentTarget.dispatchEvent(
-              new MouseEvent("contextmenu", {
+              new globalThis.MouseEvent("contextmenu", {
                 bubbles: true,
                 cancelable: true,
                 clientX: rect.left,

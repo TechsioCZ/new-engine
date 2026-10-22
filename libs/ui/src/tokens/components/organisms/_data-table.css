@@ -103,6 +103,14 @@
   --spacing-data-table-editor-lg: calc(var(--height-form-control-lg) * 4);
 }
 
+@utility data-table-filter-viewport {
+  /* Fixed cells cannot grow to the control minimum. Keep the complete filter
+   * reachable by scrolling inside its cell; auto layout still reserves room. */
+  &[data-layout="fixed"] {
+    overflow-x: auto;
+  }
+}
+
 @utility data-table-filter-control {
   --data-table-filter-min: var(--spacing-data-table-filter-md);
   min-width: var(--data-table-filter-min);

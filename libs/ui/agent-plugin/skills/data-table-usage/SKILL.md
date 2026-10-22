@@ -8,7 +8,7 @@ description: >
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
 metadata:
-  component_version: "1.4.4"
+  component_version: "1.4.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -478,3 +478,5 @@ Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
 the initial measurement still runs.
 
 Omit interactive sort controls from grouped-header alignment placeholders.
+
+Fixed-layout column filters scroll within their cell instead of overlapping neighbouring filters; auto layout keeps the full control width.

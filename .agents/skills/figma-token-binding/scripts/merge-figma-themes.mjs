@@ -197,6 +197,45 @@ function exactRem(value, pixels) {
   )
 }
 
+function remFromPixels(pixels, precision = 4) {
+  const scale = 10n ** BigInt(precision)
+  const digits = String((pixels * scale + 8n) / 16n).padStart(
+    precision + 1,
+    "0"
+  )
+  const rem = `${digits.slice(0, -precision)}.${digits.slice(-precision)}`
+    .replace(/0+$/, "")
+    .replace(/\.$/, "")
+  return `${rem}rem`
+}
+
+/** Convert only known legacy Figma encodings, before strict validation.
+ * The export plugin rounded pixel primitives to two rem decimals and treated
+ * brightness percentages as lengths. Do not relax mergeMode's CSS contracts or
+ * silently repair arbitrary invalid values supplied by future exports.
+ */
+function convertRawExport(declarations) {
+  return new Map(
+    [...declarations].map(([name, value]) => {
+      const pixels = name.match(/^--dimension-(\d+)$/)?.[1]
+      if (pixels !== undefined) {
+        // Historical dimension-700 is the 70px primitive, not 700px.
+        const px = BigInt(pixels === "700" ? "70" : pixels)
+        if (value === remFromPixels(px, 2)) {
+          return [name, remFromPixels(px)]
+        }
+      }
+      if (name === "--brightness-100" && value === "6.25rem") {
+        return [name, "1"]
+      }
+      if (name === "--brightness-70" && value === "4.38rem") {
+        return [name, "0.7"]
+      }
+      return [name, value]
+    })
+  )
+}
+
 function validateDimension(name, value) {
   const pixels = name.match(/^--dimension-(\d+)$/)?.[1]
   if (pixels === undefined) {
@@ -380,7 +419,7 @@ export function mergeMode(lightDecls, darkDecls) {
     } else if (D === undefined || L === D) {
       merged.set(name, L)
     } else if (
-      name.startsWith("--color-") &&
+      (name.startsWith("--color-") || name === "--default-ring-color") &&
       isSingleColor(L) &&
       isSingleColor(D)
     ) {
@@ -436,8 +475,10 @@ export function main({
     Object.fromEntries(
       ["light", "dark"].map((mode) => [
         mode,
-        parseDecls(
-          readFileSync(join(figmaDir, modes[mode], "variables.css"), "utf8")
+        convertRawExport(
+          parseDecls(
+            readFileSync(join(figmaDir, modes[mode], "variables.css"), "utf8")
+          )
         ),
       ])
     )

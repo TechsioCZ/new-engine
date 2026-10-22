@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.6
+ * @componentVersion v1.3.7
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -1476,13 +1476,15 @@ DatePicker.Segments = function DatePickerSegments({
             })
           }}
           onKeyDown={(event) => {
-            if (
-              dateInputApi.disabled ||
-              dateInputApi.getSegmentState({ index, segment }).readonly
-            ) {
+            if (dateInputApi.disabled) {
               if (event.key !== "Tab") {
                 event.preventDefault()
               }
+              return
+            }
+            if (dateInputApi.getSegmentState({ index, segment }).readonly) {
+              // Read-only segments are not contenteditable. Skip value-editing
+              // handlers without cancelling native selection, copy or navigation.
               return
             }
             if (event.key === "Backspace" || event.key === "Delete") {

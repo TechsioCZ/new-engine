@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.4
+ * @componentVersion v1.4.5
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -218,6 +218,7 @@ const dataTableVariants = tv({
       "p-data-table-filter-cell",
       "border-b-(length:--border-width-data-table) border-data-table-border",
     ],
+    filterViewport: ["data-table-filter-viewport"],
     filterControl: [
       "data-table-filter-control flex items-center gap-data-table-filter-control",
     ],
@@ -3444,8 +3445,13 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               }}
             >
               {column.getCanFilter() ? (
-                <div className={styles.filterControl()} data-size={size}>
-                  {renderColumnFilter(column)}
+                <div
+                  className={styles.filterViewport()}
+                  data-layout={tableLayout}
+                >
+                  <div className={styles.filterControl()} data-size={size}>
+                    {renderColumnFilter(column)}
+                  </div>
                 </div>
               ) : null}
             </td>
