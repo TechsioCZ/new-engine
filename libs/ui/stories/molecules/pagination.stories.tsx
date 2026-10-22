@@ -56,21 +56,6 @@ function StoryLink({ replace, ...props }: StoryLinkProps) {
   return <a data-replace={replace ? "true" : undefined} {...props} />
 }
 
-async function expectPaginationArrangement(canvasElement: HTMLElement) {
-  const document = canvasElement.ownerDocument
-  await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth)
-  for (const nav of canvasElement.querySelectorAll("nav")) {
-    const items = [...nav.querySelectorAll("li")].filter(item => item.getBoundingClientRect().width > 0)
-    const first = items[0]?.getBoundingClientRect()
-    if (!first) continue
-    for (const item of items) {
-      const box = item.getBoundingClientRect()
-      await expect(Math.abs(box.y + box.height / 2 - first.y - first.height / 2)).toBeLessThan(1)
-      await expect(box.right).toBeLessThanOrEqual(nav.getBoundingClientRect().right + 1)
-    }
-  }
-}
-
 const playgroundSource = `import { useState } from "react"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 
@@ -103,12 +88,12 @@ const meta: Meta<typeof Pagination> = {
           "A navigation landmark for moving through a paged collection with real destination URLs. Use it for long result sets; use Tabs for peer content panels or Steps for a sequential workflow. Unavailable destinations are non-interactive link placeholders; demos suppress real navigation.",
       },
     },
-    layout: "padded",
+    layout: "centered",
   },
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="mx-auto w-full max-w-5xl" onClick={(event) => event.preventDefault()} role="presentation">
+      <div onClick={(event) => event.preventDefault()} role="presentation">
         <Story />
       </div>
     ),
@@ -191,7 +176,7 @@ export const Playground: Story = {
       source: { code: playgroundSource, language: "tsx", type: "code" },
       description: {
         story:
-          "Change paging controls and follow Next page to update the current page without navigating away.",
+          "Change paging controls and click page 6 to update the current page without navigating away.",
       },
     },
   },
@@ -199,17 +184,15 @@ export const Playground: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const before = canvasElement.ownerDocument.location.href
-    await expectPaginationArrangement(canvasElement)
-    await userEvent.click(canvas.getByRole("link", { name: /next page/i }))
+    await userEvent.click(canvas.getByRole("link", { name: /^page 6$/ }))
     await expect(
-      canvasElement.querySelector('[aria-current="page"]')
-    ).toHaveTextContent("6")
+      canvas.getByRole("link", { name: /^page 6$/ })
+    ).toHaveAttribute("aria-current", "page")
     await expect(canvasElement.ownerDocument.location.href).toBe(before)
   },
 }
 
 export const StyleVariants: Story = {
-  play: async ({ canvasElement }) => expectPaginationArrangement(canvasElement),
   parameters: {
     controls: { disable: true },
     docs: {
@@ -255,7 +238,6 @@ export const StyleVariants: Story = {
 
 export const Sizes: Story = {
   play: async ({ canvasElement }) => {
-    await expectPaginationArrangement(canvasElement)
     for (const nav of within(canvasElement).getAllByRole("navigation")) {
       const page = nav.querySelector('[data-part="item"]')
       const next = nav.querySelector('[data-part="next-trigger"]')
@@ -295,7 +277,6 @@ export const Sizes: Story = {
 }
 
 export const Default: Story = {
-  play: async ({ canvasElement }) => expectPaginationArrangement(canvasElement),
   parameters: {
     controls: { disable: true },
     docs: {
@@ -309,7 +290,6 @@ export const Default: Story = {
 }
 
 export const CompactMode: Story = {
-  play: async ({ canvasElement }) => expectPaginationArrangement(canvasElement),
   parameters: {
     controls: { disable: true },
     docs: {
@@ -322,7 +302,7 @@ export const CompactMode: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Regular vs Compact">
-        <div className="w-full space-y-300">
+        <div className="space-y-300">
           <StoryPagination
             aria-label="Pagination, Regular vs Compact 1"
             count={250}
@@ -356,7 +336,7 @@ export const EdgeCases: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Very few pages">
-        <div className="w-full space-y-300">
+        <div className="space-y-300">
           <StoryPagination
             aria-label="Pagination, Very few pages 1"
             count={5}
@@ -381,7 +361,7 @@ export const EdgeCases: Story = {
       </VariantGroup>
 
       <VariantGroup title="Many pages">
-        <div className="w-full space-y-300">
+        <div className="space-y-300">
           <StoryPagination
             aria-label="Pagination, Many pages 1"
             count={1000}
@@ -400,7 +380,6 @@ export const EdgeCases: Story = {
     </VariantContainer>
   ),
   play: async ({ canvasElement }) => {
-    await expectPaginationArrangement(canvasElement)
     const disabledLinks = canvasElement.querySelectorAll<HTMLElement>(
       '[role="link"][aria-disabled="true"]'
     )
@@ -453,7 +432,7 @@ export const CustomLinkComponent: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Custom polymorphic link">
-        <div className="w-full space-y-300">
+        <div className="space-y-300">
           <p className="text-fg-secondary text-sm">
             `Pagination` stays navigation-only, but can forward extra props to a
             custom link component.
@@ -487,7 +466,7 @@ export const RealWorldScenarios: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Table navigation">
-        <div className="w-full space-y-300">
+        <div className="space-y-300">
           <div className="space-y-300 rounded border bg-base p-300">
             <div className="flex h-32 items-center justify-center rounded bg-surface text-fg-primary text-sm">
               Table content area
@@ -508,7 +487,7 @@ export const RealWorldScenarios: Story = {
       </VariantGroup>
 
       <VariantGroup title="Without prev/next buttons">
-        <div className="w-full space-y-300">
+        <div className="space-y-300">
           <StoryPagination
             aria-label="Pagination, Without prev/next buttons 1"
             count={150}

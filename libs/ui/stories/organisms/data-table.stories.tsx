@@ -2165,9 +2165,11 @@ export const MeasuredFrozenColumns: Story = {
     await waitFor(() => {
       let used = getComputedStyle(actions).insetInlineEnd === "auto"
         ? 0 : actions.getBoundingClientRect().width
+      // Overflowing tables keep 40% of the scrollport for unpinned columns.
+      const budget = region.scrollWidth > region.clientWidth ? region.clientWidth * 0.4 : 0
       for (const header of [first, second, pinnedEnd]) {
         const width = header.getBoundingClientRect().width
-        const fits = used + width < region.clientWidth
+        const fits = used + width + budget < region.clientWidth
         expect(getComputedStyle(header).position).toBe(fits ? "sticky" : "relative")
         if (fits) used += width
       }

@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.2
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -33,12 +33,10 @@ import { tv } from "../utils"
 
 export const paginationVariants = tv({
   slots: {
-    base: "pagination-container w-full max-w-full",
-    list: ["inline-flex max-w-full items-center gap-pagination-list"],
-    pageItem: "pagination-page-item",
-    responsiveSummary: "pagination-responsive-summary",
+    base: "max-w-full",
+    list: ["inline-flex max-w-full flex-wrap items-center gap-pagination-list"],
     item: [
-      "grid shrink-0 cursor-pointer",
+      "grid cursor-pointer",
       'has-[[data-part="ellipsis"]]:bg-pagination-bg-neutral',
       'has-[[data-part="compact-text"]]:bg-pagination-bg-neutral',
     ],
@@ -355,16 +353,7 @@ export function Pagination<T extends ElementType = "a">({
   })
 
   const api = connectPagination(service, normalizeProps)
-  const {
-    base,
-    list,
-    link,
-    item,
-    pageItem,
-    responsiveSummary,
-    ellipsis,
-    compactText,
-  } = paginationVariants({
+  const { base, list, link, item, ellipsis, compactText } = paginationVariants({
     variant,
     size,
   })
@@ -451,15 +440,9 @@ export function Pagination<T extends ElementType = "a">({
 
   const prevTriggerProps = api.getPrevTriggerProps() as PaginationTriggerProps
   const nextTriggerProps = api.getNextTriggerProps() as PaginationTriggerProps
-  const numberedItemClass = item({ className: pageItem() })
 
   return (
-    <nav
-      className={base({ className })}
-      {...rootProps}
-      data-compact={compact}
-      data-prev-next={showPrevNext}
-    >
+    <nav className={base({ className })} {...rootProps}>
       {pendingCorrection ? (
         <span role="status">
           Page unavailable. Choose a page within the current results.
@@ -482,19 +465,21 @@ export function Pagination<T extends ElementType = "a">({
               />
             </li>
           )}
-          <li className={item({ className: responsiveSummary() })}>
-            <span className={compactText()} data-part="compact-text">
-              {compactLabel?.({
-                page: totalPages === 0 ? 0 : effectivePage,
-                totalPages,
-              }) ?? `${totalPages === 0 ? 0 : effectivePage} of ${totalPages}`}
-            </span>
-          </li>
-          {!compact &&
+          {compact ? (
+            <li className={item()}>
+              <span className={compactText()} data-part="compact-text">
+                {compactLabel?.({
+                  page: totalPages === 0 ? 0 : effectivePage,
+                  totalPages,
+                }) ??
+                  `${totalPages === 0 ? 0 : effectivePage} of ${totalPages}`}
+              </span>
+            </li>
+          ) : (
             api.pages.map((paginationPage, index) => {
               if (paginationPage.type === "page") {
                 return (
-                  <li className={numberedItemClass} key={paginationPage.value}>
+                  <li className={item()} key={paginationPage.value}>
                     <LinkButton
                       {...getTriggerButtonProps(
                         api.getItemProps(paginationPage) as Record<
@@ -518,7 +503,7 @@ export function Pagination<T extends ElementType = "a">({
 
               return (
                 <li
-                  className={numberedItemClass}
+                  className={item()}
                   key={`ellipsis-${previousPageValue}-${nextPageValue}`}
                 >
                   <span
@@ -533,7 +518,8 @@ export function Pagination<T extends ElementType = "a">({
                   </span>
                 </li>
               )
-            })}
+            })
+          )}
 
           {showPrevNext && (
             <li className={item()}>

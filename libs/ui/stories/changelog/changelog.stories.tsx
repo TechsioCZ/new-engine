@@ -35,9 +35,6 @@ const CHANGELOG = `
 ### Select v1.3.2
 - Match the outer height of Button, Input and Combobox at every size through shared control geometry.
 
-### Pagination v1.1.3
-- Keep Next beside the page sequence on narrow screens with container-responsive summaries and a scrollable numbered sequence.
-
 ### ProductCard v1.3.2
 - Stack row cards responsively to their container so ratings and primary actions keep their space.
 
