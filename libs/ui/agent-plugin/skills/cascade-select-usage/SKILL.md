@@ -6,7 +6,7 @@ description: >
   compound parts, parent or multiple selection, validation, and keyboard
   navigation.
 metadata:
-  component_version: "1.1.3"
+  component_version: "1.1.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -270,3 +270,8 @@ committing a new path; read-only is not disabled.
 Hierarchy metadata reconciliation preserves in-flight keyboard highlighting
 across ordinary rerenders. Trigger hover text shares the Select foreground
 alias rather than the accent text color.
+
+On narrow viewports the panel stays within the overlay's available width and
+two columns always fit side by side (each at most half the available width);
+deeper levels scroll horizontally with snapping, revealing the deepest open
+column or the keyboard-focused one. Desktop geometry is unchanged.

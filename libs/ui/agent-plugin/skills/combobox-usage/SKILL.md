@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.6.2"
+  component_version: "1.6.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -296,3 +296,8 @@ Uncontrolled native typing retains its text and caret while filtered results
 update, including deferred WebKit synchronization. Programmatic query changes
 and native reset release that edit ownership; an explicit `inputValue` remains
 parent-owned throughout.
+
+A controlled `inputValue` no longer round-trips each keystroke through React:
+native typing stays DOM-owned, so a parent that acknowledges an older query
+after newer keys landed cannot drop characters. External replacement,
+selection, blur and native reset hand authority back to the parent value.

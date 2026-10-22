@@ -75,6 +75,25 @@
   --radius-cascade-select-md: var(--radius-select-md);
 }
 
+/* A wide trigger must not force the hierarchy beyond the overlay boundary. */
+@utility cascade-select-viewport {
+  min-inline-size: min(var(--reference-width), var(--available-width));
+  max-inline-size: var(--available-width);
+}
+
+/* Two columns always fit side by side on narrow screens; deeper levels scroll.
+   Each column gives back one border width for the surface edges. */
+@utility cascade-select-column-size {
+  inline-size: min(
+    var(--container-cascade-select-column),
+    calc(
+      var(--available-width, 100vw) /
+      2 -
+      var(--border-width-cascade-select-column)
+    )
+  );
+}
+
 /* Logical borders also separate columns and mark the path in RTL. */
 @utility cascade-select-column-divider {
   & + & {

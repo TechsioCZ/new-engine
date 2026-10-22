@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,6 +30,7 @@ import {
   createContext,
   type ReactNode,
   type Ref,
+  type RefObject,
   useContext,
   useEffect,
   useId,
@@ -129,7 +130,7 @@ export const cascadeSelectVariants = tv({
     clearTrigger:
       "absolute end-cascade-select-right top-1/2 -translate-y-1/2 data-readonly:hidden",
     content: [
-      "popup-surface-base flex w-max min-w-(--reference-width) max-w-(--available-width) overflow-x-auto p-0",
+      "popup-surface-base cascade-select-viewport flex w-max snap-x snap-proximity overflow-x-auto p-0",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
@@ -138,7 +139,7 @@ export const cascadeSelectVariants = tv({
       "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
     column: [
-      "flex min-w-cascade-select-column flex-1 shrink-0 basis-0 flex-col",
+      "cascade-select-column-size flex min-w-0 shrink-0 grow snap-start flex-col",
       "cascade-select-column-divider bg-cascade-select-column-bg",
     ],
     columnHeader:
@@ -268,6 +269,7 @@ type CascadeSelectContextValue = {
   getRootNode?: ZagCascadeSelectProps<CascadeSelectItem>["getRootNode"]
   readOnly: boolean
   required: boolean
+  keyboardNavigation: RefObject<boolean>
   size: CascadeSelectSize
   validateStatus: CascadeSelectValidateStatus
   errors: DescribedBy
@@ -337,6 +339,7 @@ export function CascadeSelect({
   const descriptions = useDescribedBy()
   const errors = useDescribedBy()
   const hiddenInputRef = useRef<HTMLInputElement>(null)
+  const keyboardNavigation = useRef(false)
   const [disabledElement, setDisabledElement] =
     useState<HTMLInputElement | null>(null)
   const disabled = useEffectiveDisabled(disabledElement, machineProps.disabled)
@@ -499,6 +502,7 @@ export function CascadeSelect({
         api,
         formatValue: machineProps.formatValue,
         getRootNode: machineProps.getRootNode,
+        keyboardNavigation,
         readOnly: machineProps.readOnly ?? false,
         required,
         size,
@@ -510,6 +514,15 @@ export function CascadeSelect({
       <div
         {...api.getRootProps()}
         className={styles.root({ className })}
+        onKeyDownCapture={() => {
+          keyboardNavigation.current = true
+        }}
+        onPointerDownCapture={() => {
+          keyboardNavigation.current = false
+        }}
+        onPointerMoveCapture={() => {
+          keyboardNavigation.current = false
+        }}
         ref={ref}
       >
         <input ref={setDisabledElement} type="hidden" />
@@ -769,38 +782,76 @@ CascadeSelect.Content = function CascadeSelectContent({
   ref,
   ...props
 }: CascadeSelectContentProps) {
-  const { api, getRootNode, size } = useCascadeSelectContext()
+  const { api, getRootNode, keyboardNavigation, size } =
+    useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
   const contentProps = api.getContentProps()
   const highlightedId = api.highlightedValue.length
     ? contentProps["aria-activedescendant"]
     : undefined
 
+  const contentId = contentProps.id
+
   useEffect(() => {
-    if (!(api.open && highlightedId)) {
+    if (!api.open) {
       return
     }
-    // Zag scrolls within each list, but columns overflow the shared surface.
-    // Keep the actual keyboard cursor visible in narrow viewports too.
     const root = getRootNode?.() ?? document
     const scope =
       root.nodeType === Node.DOCUMENT_NODE ||
       root.nodeType === Node.DOCUMENT_FRAGMENT_NODE
         ? (root as Document | DocumentFragment)
         : (root.ownerDocument ?? document)
-    const view = scope.ownerDocument?.defaultView ?? window
-    // Placement and Zag's per-list scrolling settle in the next frame.
-    let frame = view.requestAnimationFrame(() => {
+    const content = contentId ? scope.getElementById(contentId) : null
+    if (!content) {
+      return
+    }
+    const view = content.ownerDocument.defaultView ?? window
+    let frame = 0
+    let columnToReveal: HTMLElement | null = null
+    const revealColumn = () => {
+      const columns = content.querySelectorAll<HTMLElement>(
+        '[data-scope="cascade-select"][data-part="column"]'
+      )
+      const highlighted = highlightedId
+        ? scope.getElementById(highlightedId)
+        : null
+      // Pointer expansion (including switching sibling branches) reveals the
+      // deepest column. Keyboard input keeps its actual cursor column visible.
+      columnToReveal ??=
+        (keyboardNavigation.current
+          ? highlighted?.closest<HTMLElement>('[data-part="column"]')
+          : null) ?? columns.item(columns.length - 1)
+      if (!columnToReveal) {
+        return
+      }
+      const surface = content.getBoundingClientRect()
+      const target = columnToReveal.getBoundingClientRect()
+      const left = surface.left + content.clientLeft
+      const right = left + content.clientWidth
+      // Scroll only this surface, not the page or a containing modal. Physical
+      // deltas also work with the negative scrollLeft used by RTL browsers.
+      const delta =
+        target.left < left
+          ? target.left - left
+          : Math.max(0, target.right - right)
+      content.scrollBy({ left: delta, behavior: "instant" })
+    }
+    const scheduleReveal = () => {
+      view.cancelAnimationFrame(frame)
+      // Placement and Zag's per-list scrolling settle in the next frame.
       frame = view.requestAnimationFrame(() => {
-        scope.getElementById(highlightedId)?.scrollIntoView({
-          block: "nearest",
-          inline: "nearest",
-          behavior: "instant",
-        })
+        frame = view.requestAnimationFrame(revealColumn)
       })
-    })
-    return () => view.cancelAnimationFrame(frame)
-  }, [api.open, getRootNode, highlightedId])
+    }
+    scheduleReveal()
+    const observer = new ResizeObserver(scheduleReveal)
+    observer.observe(content)
+    return () => {
+      view.cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [api.open, contentId, getRootNode, highlightedId, keyboardNavigation])
 
   return (
     <div

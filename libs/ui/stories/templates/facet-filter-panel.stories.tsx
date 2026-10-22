@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useRef, useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
 import {
   FacetFilterPanel,
@@ -744,17 +744,32 @@ export const RejectedDrawerClose: Story = {
     const canvas = within(canvasElement)
     const trigger = canvas.getByRole("button", { name: "Filters" })
     await userEvent.click(trigger)
-    const body = within(canvasElement.ownerDocument.body)
+    const document = canvasElement.ownerDocument
+    const body = within(document.body)
+    const dialog = await body.findByRole("dialog")
+    // Mounting content and activating its focus trap happen on separate tasks.
+    await waitFor(() => {
+      expect(dialog).toBeVisible()
+      expect(dialog).toContainElement(document.activeElement as HTMLElement)
+    })
     await userEvent.keyboard("{Escape}")
-    await expect(body.getByRole("dialog")).toBeVisible()
-    await expect(
-      body.getByText(
-        "Close was declined once. Press Escape or Close again to leave."
-      )
-    ).toBeVisible()
+    await waitFor(() => {
+      expect(dialog).toBeVisible()
+      expect(
+        body.getByText(
+          "Close was declined once. Press Escape or Close again to leave."
+        )
+      ).toBeVisible()
+      expect(canvas.getByText("Close requests: 1")).toBeVisible()
+      expect(dialog).toContainElement(document.activeElement as HTMLElement)
+    })
     await userEvent.keyboard("{Escape}")
-    await expect(body.queryByRole("dialog")).not.toBeInTheDocument()
-    await expect(trigger).toHaveFocus()
+    // Trap teardown restores focus after the controlled content unmounts.
+    await waitFor(() => {
+      expect(body.queryByRole("dialog")).not.toBeInTheDocument()
+      expect(canvas.getByText("Close requests: 2")).toBeVisible()
+      expect(trigger).toHaveFocus()
+    })
   },
 }
 

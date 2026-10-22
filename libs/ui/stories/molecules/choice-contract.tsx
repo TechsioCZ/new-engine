@@ -216,10 +216,19 @@ export function DynamicRadioChoices({
   kind: "radio-group" | "radio-card"
 }) {
   const [options, setOptions] = useState(["a", "b", "c"])
+  const [removeOnFocus, setRemoveOnFocus] = useState(false)
   const C = kind === "radio-card" ? RadioCard : RadioGroup
   const items = options.map((value) => (
     <C.Item key={value} value={value}>
-      <C.ItemHiddenInput />
+      <C.ItemHiddenInput
+        onFocus={() => {
+          // Remove B once it actually has focus. A timer can expire before
+          // the play focuses B when the browser is under CPU load.
+          if (removeOnFocus && value === "b") {
+            setOptions(["a", "c"])
+          }
+        }}
+      />
       <C.ItemControl />
       <C.ItemText>Delivery {value.toUpperCase()}</C.ItemText>
     </C.Item>
@@ -234,10 +243,7 @@ export function DynamicRadioChoices({
           items
         )}
       </C>
-      <Button
-        onClick={() => setTimeout(() => setOptions(["a", "c"]), 100)}
-        variant="secondary"
-      >
+      <Button onClick={() => setRemoveOnFocus(true)} variant="secondary">
         Remove delivery B after focus moves
       </Button>
       <Button variant="secondary">Continue</Button>

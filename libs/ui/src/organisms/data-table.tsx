@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.0
+ * @componentVersion v1.4.1
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -180,6 +180,12 @@ const dataTableVariants = tv({
     toolbarActions: ["flex shrink-0 items-center gap-data-table-toolbar"],
     scroll: ["@container/data-table relative w-full overflow-auto"],
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
+    columnDropIndicator: [
+      // A real cell border changes native auto-table widths, feeding back into
+      // dnd-kit's placeholder ResizeObserver. Paint the edge out of flow.
+      "after:pointer-events-none after:absolute after:inset-y-0 after:border-data-table-sort-icon-fg-active after:border-s-2",
+      "data-[drop-side=end]:after:inset-e-0 data-[drop-side=start]:after:inset-s-0",
+    ],
     sortButton: [
       "inline-flex items-center gap-100 whitespace-nowrap",
       "cursor-pointer select-none bg-transparent text-start",
@@ -928,6 +934,11 @@ export type DataTableProps<T extends RowData> = {
   onColumnVisibilityChange?: (state: ColumnVisibilityState) => void
   columnOrder?: string[]
   onColumnOrderChange?: (order: string[]) => void
+  /**
+   * Requested frozen columns. If their measured band would cover the scrollport,
+   * start-side columns take priority, then end-side columns nearest the edge.
+   * Pins that do not fit scroll normally without changing this controlled state.
+   */
   columnPinning?: ColumnPinningState
   onColumnPinningChange?: (state: ColumnPinningState) => void
   expanded?: ExpandedState
@@ -2376,14 +2387,28 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           (offsets.at(-1) ?? 0) + node.getBoundingClientRect().height
         )
       }
-      setHeaderOffsets(offsets)
+      setHeaderOffsets((old) =>
+        old.length === offsets.length &&
+        offsets.every((offset, index) => offset === old[index])
+          ? old
+          : offsets
+      )
     }
-    const observer = new ResizeObserver(measure)
+    // Sticky offsets can change the observed layout. Commit outside observer
+    // delivery so WebKit does not defer a second resize in the same frame.
+    let frame = 0
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    })
     for (const node of nodes) {
       observer.observe(node)
     }
     measure()
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      cancelAnimationFrame(frame)
+    }
   }, [stickyHeader, headerGroupCount])
 
   /**
@@ -2699,6 +2724,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     getScrollElement: () => scrollRef.current,
     estimateSize: () => estimateRowHeight,
     overscan: 12,
+    // Row measurements change spacer heights and can change auto column widths.
+    // Defer those writes out of ResizeObserver delivery to avoid a same-frame
+    // row/container resize feedback loop (notably on narrow WebKit tables).
+    useAnimationFrameWithResizeObserver: true,
     enabled: virtualizationUsable,
   })
   const virtualItems = virtualizationUsable
@@ -3027,14 +3056,42 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           : widths
       )
     }
-    const observer = new ResizeObserver(measure)
+    let frame = 0
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    })
     observer.observe(host)
     for (const cell of cells) {
       observer.observe(cell)
     }
     measure()
-    return () => observer.disconnect()
-  })
+    return () => {
+      observer.disconnect()
+      cancelAnimationFrame(frame)
+    }
+  }, [leafColumns, headerGroupCount, hasActionsColumn, stickyActions])
+
+  // Keep useful identity pins on phones rather than disabling the entire band
+  // when it would cover the scrollport. Start-side pins take priority, then
+  // end-side pins nearest their edge; columns that do not fit scroll normally.
+  const fittingPins = new Set<string>()
+  let pinnedWidth = renderedActionsWidth
+  const pinCandidates = [
+    ...leafColumns.filter((leaf) => leaf.getIsPinned() === "start"),
+    ...leafColumns.filter((leaf) => leaf.getIsPinned() === "end").reverse(),
+  ]
+  for (const leaf of pinCandidates) {
+    const width = renderedWidths[leaf.id] ?? leaf.getSize()
+    if (viewportWidth === 0 || pinnedWidth + width < viewportWidth) {
+      fittingPins.add(leaf.id)
+      pinnedWidth += width
+    }
+  }
+  const unpinnedPosition = {
+    header: stickyHeader ? "sticky" : "relative",
+    body: "static",
+  } as const
   const pinningStyles = (
     column: Column<T, unknown>,
     kind: "header" | "body" = "body"
@@ -3043,25 +3100,19 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     if (!pinned) {
       return {}
     }
-    const pinnedWidth = leafColumns
-      .filter((leaf) => leaf.getIsPinned())
-      .reduce(
-        (sum, leaf) => sum + (renderedWidths[leaf.id] ?? leaf.getSize()),
-        renderedActionsWidth
-      )
-    // A frozen band wider than its viewport permanently covers other columns.
-    // Let all columns scroll until the container can fit its requested pins.
-    if (viewportWidth > 0 && pinnedWidth >= viewportWidth) {
+    const descendants =
+      column.columns.length > 0 ? column.getLeafColumns() : [column]
+    if (!descendants.every((leaf) => fittingPins.has(leaf.id))) {
       return {
-        position: kind === "header" && stickyHeader ? "sticky" : "static",
+        position: unpinnedPosition[kind],
         insetInlineStart: "auto",
         insetInlineEnd: "auto",
         zIndex: undefined,
       } as CSSProperties
     }
-    const siblings = leafColumns.filter((leaf) => leaf.getIsPinned() === pinned)
-    const descendants =
-      column.columns.length > 0 ? column.getLeafColumns() : [column]
+    const siblings = leafColumns.filter(
+      (leaf) => leaf.getIsPinned() === pinned && fittingPins.has(leaf.id)
+    )
     const target = pinned === "start" ? descendants[0] : descendants.at(-1)
     const index = siblings.findIndex((leaf) => leaf.id === target?.id)
     const preceding =
@@ -3191,12 +3242,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   ) => {
     const column = header.column
     const ariaSort = sortState(column, enableSorting)
-    let dropClass = ""
-    if (dnd?.dropSide === "start") {
-      dropClass = "border-primary border-s-2"
-    } else if (dnd?.dropSide === "end") {
-      dropClass = "border-primary border-e-2"
-    }
+    const dropClass = dnd?.dropSide ? styles.columnDropIndicator() : ""
     return (
       <Table.ColumnHeader
         align={column.columnDef.meta?.align}
@@ -3215,6 +3261,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         // straight into the header-group map and is the one that needs it.
         colSpan={header.colSpan}
         data-dragging={dnd?.isDragging || undefined}
+        data-drop-side={dnd?.dropSide}
         data-leaf-column={column.columns.length === 0 ? column.id : undefined}
         data-pinned={column.getIsPinned() || undefined}
         key={header.id}

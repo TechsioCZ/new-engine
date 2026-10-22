@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.2
+ * @componentVersion v1.6.3
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,7 +23,9 @@ import {
   useMachine,
 } from "@zag-js/react"
 import {
+  type ChangeEvent,
   type ComponentPropsWithoutRef,
+  type FocusEvent,
   type ReactNode,
   type Ref,
   useEffect,
@@ -624,6 +626,25 @@ export function Combobox<T = unknown>({
   const initialValue = useRef(normalizeValue(defaultValue) ?? [])
   const resetting = useRef(false)
   const nativeInputOwnsQuery = useRef(false)
+  const nativeQueries = useRef(new Set<string>())
+  // A controlled parent may acknowledge an older edit after the next key has
+  // already landed. Keep an optimistic machine query, never a React-controlled
+  // native input, and distinguish those echoes from external replacements.
+  const [query, setQuery] = useState(inputValue ?? "")
+  useLayoutEffect(() => {
+    if (
+      inputValue === undefined ||
+      (nativeInputOwnsQuery.current && nativeQueries.current.has(inputValue))
+    ) {
+      return
+    }
+    nativeInputOwnsQuery.current = false
+    nativeQueries.current.clear()
+    setQuery(inputValue)
+    if (inputRef.current && inputRef.current.value !== inputValue) {
+      syncReactFormControl(inputRef.current, inputValue)
+    }
+  }, [inputValue])
   const resetSelection = useRef<string[] | null>(null)
   useLayoutEffect(() => {
     const restored = resetSelection.current
@@ -657,17 +678,18 @@ export function Combobox<T = unknown>({
             // Native edits already updated the value and caret. A deferred
             // watcher can see an older query after filtering has replaced the
             // current event with CHILDREN_CHANGE, so event.type is not enough.
-            // Keep DOM ownership until a programmatic query change or reset;
-            // controlled queries still project their parent's value.
-            if (
-              nativeInputOwnsQuery.current &&
-              params.prop("inputValue") === undefined
-            ) {
+            // Controlled and uncontrolled edits both belong to the DOM until
+            // an external replacement, selection, blur or reset releases them.
+            if (nativeInputOwnsQuery.current) {
               return
             }
             syncInputValue(params)
           },
           syncSelectedItems(params) {
+            if (params.prop("selectionBehavior") !== "preserve") {
+              nativeInputOwnsQuery.current = false
+              nativeQueries.current.clear()
+            }
             syncSelectedItems({
               ...params,
               prop(key) {
@@ -733,6 +755,22 @@ export function Combobox<T = unknown>({
       ),
   })
 
+  const notifyInputValueChange = (nextQuery: string) => {
+    if (!resetting.current) {
+      resetSelection.current = null
+    }
+    if (filterBehavior === "local") {
+      setOptions(
+        allItems.filter((item) =>
+          item.label.toLowerCase().includes(nextQuery.toLowerCase())
+        )
+      )
+    }
+    if (!(resetting.current || readOnly || disabled)) {
+      onInputValueChange?.(nextQuery)
+    }
+  }
+
   const service = useMachine(coordinatedMachine, {
     id: uniqueId,
     name: navigation ? undefined : name,
@@ -764,7 +802,7 @@ export function Combobox<T = unknown>({
     value: navigation ? [] : normalizeValue(value),
     defaultValue: navigation ? undefined : normalizeValue(defaultValue),
     multiple: !navigation && multiple,
-    inputValue,
+    inputValue: inputValue === undefined ? undefined : query,
     defaultInputValue,
     onValueChange: ({ value: selectedValue }) => {
       if (!resetting.current) {
@@ -781,21 +819,21 @@ export function Combobox<T = unknown>({
         }
       }
     },
-    onInputValueChange: ({ inputValue: newItemInputValue, reason }) => {
-      nativeInputOwnsQuery.current =
-        !resetting.current && reason === "input-change"
-      if (!resetting.current) {
-        resetSelection.current = null
+    onInputValueChange: ({ inputValue: nextQuery, reason }) => {
+      // Zag queues native INPUT.CHANGE events. Their notification may arrive
+      // after this handler returned or newer keys landed; it is only an echo.
+      if (reason === "input-change" && nativeQueries.current.has(nextQuery)) {
+        return
       }
-      if (filterBehavior === "local") {
-        const filtered = allItems.filter((item) =>
-          item.label.toLowerCase().includes(newItemInputValue.toLowerCase())
-        )
-        setOptions(filtered)
+      nativeInputOwnsQuery.current = false
+      nativeQueries.current.clear()
+      // Programmatic proposals still respect a controlled parent's authority.
+      // Native edits are handled directly below, including edits equal to an
+      // older machine snapshot (which Zag's equality check would suppress).
+      if (inputValue !== undefined) {
+        setQuery(inputValue)
       }
-      if (!(resetting.current || readOnly || disabled)) {
-        onInputValueChange?.(newItemInputValue)
-      }
+      notifyInputValueChange(nextQuery)
     },
     onOpenChange: ({ open: nextOpen, reason }) => {
       // Zag opens after notifying the first input change. Do not overwrite
@@ -872,6 +910,10 @@ export function Combobox<T = unknown>({
     // Keep the snapshot through Zag's deferred selected-item synchronization.
     resetSelection.current = restoredValue
     nativeInputOwnsQuery.current = false
+    nativeQueries.current.clear()
+    if (inputValue !== undefined) {
+      setQuery(inputValue)
+    }
     resetting.current = true
     try {
       if (value === undefined) {
@@ -966,6 +1008,36 @@ export function Combobox<T = unknown>({
     inputValue: api.inputValue,
   })
 
+  const machineInputProps = api.getInputProps()
+  const mergedInputProps = mergeProps(
+    {
+      ...machineInputProps,
+      onChange(event: ChangeEvent<HTMLInputElement>) {
+        if (readOnly || disabled) {
+          return
+        }
+        const nextQuery = event.currentTarget.value
+        nativeInputOwnsQuery.current = true
+        nativeQueries.current.add(nextQuery)
+        if (inputValue !== undefined) {
+          setQuery(nextQuery)
+        }
+        notifyInputValueChange(nextQuery)
+        machineInputProps.onChange?.(event)
+      },
+      onBlur(event: FocusEvent<HTMLInputElement>) {
+        nativeInputOwnsQuery.current = false
+        nativeQueries.current.clear()
+        machineInputProps.onBlur?.(event)
+        if (inputValue !== undefined) {
+          setQuery(inputValue)
+          syncReactFormControl(event.currentTarget, inputValue)
+        }
+      },
+    },
+    inputProps
+  )
+
   return (
     <div
       {...mergeProps(api.getRootProps(), rootProps)}
@@ -997,7 +1069,7 @@ export function Combobox<T = unknown>({
         onPointerDownCapture={() => setFocusVisible(false)}
       >
         <Input
-          {...mergeProps(api.getInputProps(), inputProps)}
+          {...mergedInputProps}
           aria-controls={api.open ? listId : undefined}
           aria-describedby={joinDescribedBy(
             ariaDescribedBy,
@@ -1028,7 +1100,7 @@ export function Combobox<T = unknown>({
           }
           aria-required={required || undefined}
           className={input({ className: inputProps.className })}
-          defaultValue={inputValue === undefined ? api.inputValue : undefined}
+          defaultValue={api.inputValue}
           disabled={disabled}
           name={undefined}
           onKeyDown={(event) => {
@@ -1060,7 +1132,7 @@ export function Combobox<T = unknown>({
           ref={focusableRef}
           required={navigation && required}
           size={size}
-          value={inputValue}
+          value={undefined}
         />
 
         <ComboboxClearTrigger

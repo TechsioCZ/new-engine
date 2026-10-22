@@ -2,7 +2,7 @@
 name: search-suggestions-usage
 description: Use for grouped storefront search navigation with rich results and an all-results link, composed from the UI-kit Combobox.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -145,3 +145,6 @@ reset rule: restore the latest `defaultInputValue` when uncontrolled, or keep
 Uncontrolled query text and caret stay intact while replacement groups arrive,
 including deferred WebKit updates. This inherits Combobox's native edit ownership;
 explicit `inputValue` remains parent-owned and reset releases native ownership.
+
+Rapid typing on slow devices keeps every character, including when the parent
+query state updates later than the input.

@@ -38,6 +38,65 @@ const productCategories = [
   },
 ] satisfies CascadeSelectItem[]
 
+const deepProductCategories = [
+  {
+    label: "Electronics",
+    value: "electronics",
+    children: [
+      {
+        label: "Computers",
+        value: "computers",
+        children: [
+          { label: "Laptops", value: "laptops" },
+          { label: "Desktops", value: "desktops" },
+          { label: "Tablets", value: "tablets" },
+        ],
+      },
+      {
+        label: "Phones",
+        value: "phones",
+        children: [
+          { label: "Android", value: "android" },
+          { label: "iPhone", value: "iphone" },
+        ],
+      },
+      { label: "Cameras", value: "cameras", disabled: true },
+    ],
+  },
+  {
+    label: "Home & garden",
+    value: "home",
+    children: [
+      {
+        label: "Furniture",
+        value: "furniture",
+        children: [
+          { label: "Sofas", value: "sofas" },
+          { label: "Tables", value: "tables" },
+        ],
+      },
+      { label: "Lighting", value: "lighting" },
+      { label: "Garden", value: "garden" },
+    ],
+  },
+  {
+    label: "Fashion",
+    value: "fashion",
+    children: [
+      {
+        label: "Women",
+        value: "women",
+        children: [
+          { label: "Dresses", value: "dresses" },
+          { label: "Shoes", value: "shoes" },
+        ],
+      },
+      { label: "Men", value: "men" },
+      { label: "Children", value: "children" },
+    ],
+  },
+] satisfies CascadeSelectItem[]
+
 type CascadeSelectFieldProps = Omit<
   ComponentProps<typeof CascadeSelect>,
   "children"
@@ -472,6 +531,30 @@ export const OpenHierarchy: Story = {
       defaultHighlightedValue={["electronics"]}
       defaultOpen
       items={productCategories}
+      label="Product category"
+      placeholder="Choose a category"
+    />
+  ),
+}
+
+export const DeepHierarchy: Story = {
+  args: { defaultOpen: true },
+  parameters: {
+    controls: { include: ["defaultOpen"] },
+    docs: {
+      description: {
+        story:
+          "Three levels deep. On a phone two columns always fit side by side; the third scrolls into view with snapping and the keyboard cursor stays visible.",
+      },
+    },
+  },
+  render: ({ defaultOpen }) => (
+    <CascadeSelectField
+      defaultHighlightedValue={
+        defaultOpen ? ["electronics", "computers"] : undefined
+      }
+      defaultOpen={defaultOpen}
+      items={deepProductCategories}
       label="Product category"
       placeholder="Choose a category"
     />

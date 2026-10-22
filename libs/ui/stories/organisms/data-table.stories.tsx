@@ -125,7 +125,7 @@ const meta = {
   component: DataTable as ComponentType<DataTableProps<Person>>,
   parameters: {
     controls: { exclude: ["ref", "id", "children", "ids", "getRootNode", "columns", "rowActions"] },
-    docs: { description: { component: "DataTable presents structured records with sorting, filtering, selection and optional inline editing. Use it for operational lists with many rows; use Table for small static comparisons and TreeView for hierarchical navigation. Destructive application actions require confirmation or a reversible undo flow." } }, layout: "padded" },
+    docs: { description: { component: "DataTable presents structured records with sorting, filtering, selection and optional inline editing. Use it for operational lists with many rows; use Table for small static comparisons and TreeView for hierarchical navigation. Frozen columns work inside the horizontal scroll region on mobile. If all requested pins would cover the scrollport, start-side identity columns take priority, followed by end-side columns nearest the edge; pins that do not fit scroll normally and become frozen again when space is available. Use narrow identity columns to leave room for record data. Destructive application actions require confirmation or a reversible undo flow." } }, layout: "padded" },
   tags: ["autodocs"],
   argTypes: {
     columns: { control: false },
@@ -441,10 +441,39 @@ export const FrozenColumnWidths: Story = {
     const canvas = within(canvasElement)
     const firstName = canvas.getByRole("columnheader", { name: /First name/ })
     const lastName = canvas.getByRole("columnheader", { name: /Last name/ })
-    // The second pinned column must start exactly where the first one ends,
-    // which only holds if the declared width also reached TanStack's size model.
-    await expect(lastName).toHaveStyle({ left: "200px" })
+    const region = canvas.getByRole("region", { name: "Scrollable records" })
+    // Keep the primary identity column frozen on mobile. The second pin only
+    // sticks if the entire band fits, otherwise records would be covered.
+    const bothFit = region.clientWidth > 440
+    await waitFor(() => {
+      expect(firstName).toHaveStyle({ position: "sticky", left: "0px" })
+      expect(lastName).toHaveStyle({
+        position: bothFit ? "sticky" : "relative",
+      })
+      expect(lastName.style.insetInlineStart).toBe(bothFit ? "200px" : "auto")
+    })
     await expect(Math.round(firstName.getBoundingClientRect().width)).toBe(200)
+    const firstLeft = firstName.getBoundingClientRect().left
+    const secondLeft = lastName.getBoundingClientRect().left
+    region.scrollLeft = bothFit ? 500 : 240
+    region.dispatchEvent(new Event("scroll"))
+    await waitFor(() => {
+      expect(firstName.getBoundingClientRect().left).toBeCloseTo(firstLeft, 0)
+      if (bothFit) {
+        expect(lastName.getBoundingClientRect().left).toBeCloseTo(secondLeft, 0)
+      } else {
+        expect(lastName.getBoundingClientRect().left).toBeLessThan(secondLeft)
+        // The wide data column is reachable beside the remaining identity pin.
+        const email = canvas.getByRole("columnheader", { name: /Email/ })
+        const rect = email.getBoundingClientRect()
+        const regionRect = region.getBoundingClientRect()
+        const x = firstName.getBoundingClientRect().right + 20
+        const y = rect.top + rect.height / 2
+        expect(x).toBeLessThan(regionRect.right)
+        expect(email.contains(canvasElement.ownerDocument.elementFromPoint(x, y))).toBe(true)
+      }
+    })
+    region.scrollLeft = 0
   },
 }
 
@@ -804,14 +833,16 @@ export const KeyboardReorder: Story = {
     await expect(canvas.queryByLabelText("Drag to reorder Email")).toBeNull()
     await expect(canvas.queryByLabelText("Drag to reorder Last name")).toBeNull()
 
-    const columnHandle = canvas.getByLabelText("Drag to reorder First name")
+    const columnHandle = canvas.getByRole("button", { name: "Drag to reorder First name" })
     columnHandle.focus()
     await userEvent.keyboard("[Space]")
     await waitFor(() => expect(columnHandle).toHaveAttribute("aria-pressed", "true"))
     await userEvent.keyboard("[ArrowRight]")
-    await waitFor(() =>
-      expect(canvas.getByRole("columnheader", { name: /Role/ })).toHaveClass("border-e-2")
-    )
+    await waitFor(() => {
+      const target = canvas.getByRole("columnheader", { name: /Role/ })
+      expect(target).toHaveAttribute("data-drop-side", "end")
+      expect(getComputedStyle(target, "::after").borderInlineStartWidth).toBe("2px")
+    })
     await userEvent.keyboard("[Space]")
     await waitFor(() =>
       expect(args.onColumnReorder).toHaveBeenLastCalledWith({
@@ -835,13 +866,13 @@ export const KeyboardReorder: Story = {
       ).toBe(true)
     })
 
-    const rowHandle = canvas.getByLabelText("Drag to reorder Ada Lovelace")
+    const rowHandle = canvas.getByRole("button", { name: "Drag to reorder Ada Lovelace" })
     rowHandle.focus()
     await userEvent.keyboard("[Space]")
     await waitFor(() => expect(rowHandle).toHaveAttribute("aria-pressed", "true"))
     await userEvent.keyboard("[ArrowDown]")
     await waitFor(() =>
-      expect(canvas.getByLabelText("Drag to reorder Alan Turing").closest("tr")).toHaveClass("border-b-2")
+      expect(canvas.getByRole("button", { name: "Drag to reorder Alan Turing" }).closest("tr")).toHaveClass("border-b-2")
     )
     await userEvent.keyboard("[Space]")
     await waitFor(() =>
@@ -851,15 +882,22 @@ export const KeyboardReorder: Story = {
     )
     await expect(args.onColumnReorder).toHaveBeenCalledTimes(1)
     await expect(args.onRowClick).not.toHaveBeenCalled()
-    await waitFor(() => expect(rowHandle).toHaveFocus())
+    // Focus can return before dnd-kit's drop animation removes its inert,
+    // aria-hidden placeholder. Wait for the drag lifecycle, not just focus;
+    // role queries deliberately assert there is exactly one accessible handle.
+    await waitFor(() => {
+      expect(rowHandle).toHaveFocus()
+      expect(rowHandle).toHaveAttribute("aria-pressed", "false")
+      expect(canvas.getAllByRole("button", { name: "Drag to reorder Ada Lovelace" })).toHaveLength(1)
+    })
 
-    const cancelHandle = canvas.getByLabelText("Drag to reorder Ada Lovelace")
+    const cancelHandle = canvas.getByRole("button", { name: "Drag to reorder Ada Lovelace" })
     cancelHandle.focus()
     await userEvent.keyboard("[Space]")
     await waitFor(() => expect(cancelHandle).toHaveAttribute("aria-pressed", "true"))
     await userEvent.keyboard("[ArrowDown]")
     await waitFor(() =>
-      expect(canvas.getByLabelText("Drag to reorder Grace Hopper").closest("tr")).toHaveClass("border-b-2")
+      expect(canvas.getByRole("button", { name: "Drag to reorder Grace Hopper" }).closest("tr")).toHaveClass("border-b-2")
     )
     await userEvent.keyboard("[Escape]")
     await waitFor(() => expect(cancelHandle).toHaveAttribute("aria-pressed", "false"))
@@ -1767,9 +1805,13 @@ export const KeyboardColumnResize: Story = {
     const initial = header.getBoundingClientRect().width
     handle.focus()
     await userEvent.keyboard("{ArrowRight}")
-    await expect(header.getBoundingClientRect().width).toBeGreaterThan(initial)
+    await waitFor(() => expect(header.getBoundingClientRect().width).toBeCloseTo(initial + 10, 0))
+    await userEvent.keyboard("{Shift>}{ArrowRight}{/Shift}")
+    await waitFor(() => expect(header.getBoundingClientRect().width).toBeCloseTo(initial + 60, 0))
+    await userEvent.keyboard("{ArrowLeft}")
+    await waitFor(() => expect(header.getBoundingClientRect().width).toBeCloseTo(initial + 50, 0))
     await userEvent.keyboard("{Enter}")
-    await expect(header.getBoundingClientRect().width).toBeCloseTo(initial, 0)
+    await waitFor(() => expect(header.getBoundingClientRect().width).toBeCloseTo(initial, 0))
     await expect(handle).toHaveFocus()
   },
 }
@@ -2051,19 +2093,33 @@ export const MeasuredFrozenColumns: Story = {
     renderRowActions: () => <Button theme="outlined">Inspect</Button>,
   },
   play: async ({ canvasElement }) => {
-    const headers = [...canvasElement.querySelectorAll("thead th")]
+    const canvas = within(canvasElement)
+    const headers = [...canvasElement.querySelectorAll<HTMLTableCellElement>("thead th")]
     const first = headers[0]!
     const second = headers[1]!
-    if (getComputedStyle(second).position === "sticky") {
-      await waitFor(() => expect(Number.parseFloat(getComputedStyle(second).insetInlineStart)).toBeCloseTo(first.getBoundingClientRect().width, 0))
-    } else {
-      await expect(getComputedStyle(second).insetInlineStart).toBe("auto")
-    }
     const pinnedEnd = headers[3]!
     const actions = headers[4]!
-    if (getComputedStyle(actions).insetInlineEnd !== "auto") {
-      await waitFor(() => expect(Number.parseFloat(getComputedStyle(pinnedEnd).insetInlineEnd)).toBeCloseTo(actions.getBoundingClientRect().width, 0))
-    }
+    const region = canvas.getByRole("region", { name: "Scrollable records" })
+    await waitFor(() => {
+      let used = getComputedStyle(actions).insetInlineEnd === "auto"
+        ? 0 : actions.getBoundingClientRect().width
+      for (const header of [first, second, pinnedEnd]) {
+        const width = header.getBoundingClientRect().width
+        const fits = used + width < region.clientWidth
+        expect(getComputedStyle(header).position).toBe(fits ? "sticky" : "relative")
+        if (fits) used += width
+      }
+      if (getComputedStyle(second).position === "sticky") {
+        expect(Number.parseFloat(getComputedStyle(second).insetInlineStart)).toBeCloseTo(first.getBoundingClientRect().width, 0)
+      } else {
+        expect(second.style.insetInlineStart).toBe("auto")
+      }
+      if (getComputedStyle(pinnedEnd).position === "sticky") {
+        expect(Number.parseFloat(getComputedStyle(pinnedEnd).insetInlineEnd)).toBeCloseTo(actions.getBoundingClientRect().width, 0)
+      } else {
+        expect(pinnedEnd.style.insetInlineEnd).toBe("auto")
+      }
+    })
   },
 }
 

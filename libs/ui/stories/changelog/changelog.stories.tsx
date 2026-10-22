@@ -13,6 +13,21 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Mobile fixes
+- Make RadioGroup, RadioCard, Checkbox, FacetFilterPanel and DataTable reorder plays wait for real focus, args and drag completion under CPU load instead of racing timers.
+
+### Combobox v1.6.3
+- Keep every keystroke when a controlled query is acknowledged late by its parent; external replacement, selection, blur and reset stay authoritative.
+
+### SearchSuggestions v1.0.3
+- Never drop characters during rapid typing on slow devices.
+
+### CascadeSelect v1.1.4
+- Fit the open hierarchy within narrow viewports: two columns always sit side by side, deeper levels scroll with snapping and keep the active and focused columns visible.
+
+### DataTable v1.4.1
+- Keep resized column widths and fitting frozen identity columns on narrow screens, and batch virtualized measurement to avoid ResizeObserver loops.
+
 ### Suite fixes and testing
 - Align DatePicker and other behavior specs with current control contracts; wait for real focus, validation, inert and popup states in stories, including Akros banner uploads and cart dialogs.
 - Keep brand-locked visual stories in their authored brand, pin external image assets, wait for loaded media or visible fallbacks, and tile oversized screenshots without launching extra browser sessions.

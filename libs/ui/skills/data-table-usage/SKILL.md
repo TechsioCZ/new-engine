@@ -8,7 +8,7 @@ description: >
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
 metadata:
-  component_version: "1.4.0"
+  component_version: "1.4.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -464,3 +464,9 @@ An invalid response shows a correction message, not a false empty-success state.
 is suppressed when custom content is supplied.
 
 If the combined frozen bands cannot fit their scroll container, pinning temporarily yields to horizontal scrolling so every column stays reachable; the requested pins resume when there is room.
+
+On narrow screens, pinned columns that fit stay frozen (start-side identity
+columns first); pins that would leave no scrollable room scroll with the data
+and freeze again when space permits. Resized widths are kept under auto table
+layout, and virtualized measurement is frame-batched so resizing never
+triggers ResizeObserver loops.

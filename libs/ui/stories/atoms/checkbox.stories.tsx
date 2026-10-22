@@ -7,9 +7,9 @@ import {
   Title,
 } from "@storybook/addon-docs/blocks"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useId, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { useArgs } from "storybook/preview-api"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Checkbox, type CheckboxProps } from "../../src/atoms/checkbox"
@@ -82,6 +82,56 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+// Storybook hooks must not mix with React state in the story function itself.
+// Interaction owns the rendered state; args only mirror it to Controls.
+// useArgs round-trips asynchronously, and a key pressed before the echo
+// arrives would otherwise toggle the stale value.
+function CheckboxPlayground({
+  args,
+  updateArgs,
+}: {
+  args: CheckboxProps
+  updateArgs: (next: Partial<CheckboxProps>) => void
+}) {
+  const descriptionId = useId()
+  const [checked, setChecked] = useState(args.checked)
+  const [indeterminate, setIndeterminate] = useState(args.indeterminate)
+  useEffect(() => setChecked(args.checked), [args.checked])
+  useEffect(() => setIndeterminate(args.indeterminate), [args.indeterminate])
+  return (
+    <div className="flex w-full max-w-md flex-col gap-150">
+      <div className="flex items-center gap-150">
+        <Checkbox
+          {...args}
+          checked={checked}
+          indeterminate={indeterminate}
+          id={args.id ?? `${descriptionId}-control`}
+          aria-describedby={descriptionId}
+          onChange={(event) => {
+            args.onChange?.(event)
+            setChecked(event.currentTarget.checked)
+            setIndeterminate(false)
+            updateArgs({
+              checked: event.currentTarget.checked,
+              indeterminate: false,
+            })
+          }}
+        />
+        <label htmlFor={args.id ?? `${descriptionId}-control`}>
+          Alpine daypack
+        </label>
+      </div>
+      <p id={descriptionId} className="text-sm text-fg-secondary">
+        {args.invalid
+          ? "Selection error: choose at least one available product."
+          : args.disabled
+            ? "Selection unavailable while this product is archived."
+            : "Use Space to change selection; use FormCheckbox when the row is a form field."}
+      </p>
+    </div>
+  )
+}
+
 export const Playground: Story = {
   parameters: {
     docs: {
@@ -93,43 +143,17 @@ export const Playground: Story = {
   },
   render: function Render() {
     const [args, updateArgs] = useArgs<CheckboxProps>()
-    const descriptionId = useId()
-    return (
-      <div className="flex w-full max-w-md flex-col gap-150">
-        <div className="flex items-center gap-150">
-          <Checkbox
-            {...args}
-            id={args.id ?? `${descriptionId}-control`}
-            aria-describedby={descriptionId}
-            onChange={(event) => {
-              args.onChange?.(event)
-              updateArgs({
-                checked: event.currentTarget.checked,
-                indeterminate: false,
-              })
-            }}
-          />
-          <label htmlFor={args.id ?? `${descriptionId}-control`}>
-            Alpine daypack
-          </label>
-        </div>
-        <p id={descriptionId} className="text-sm text-fg-secondary">
-          {args.invalid
-            ? "Selection error: choose at least one available product."
-            : args.disabled
-              ? "Selection unavailable while this product is archived."
-              : "Use Space to change selection; use FormCheckbox when the row is a form field."}
-        </p>
-      </div>
-    )
+    return <CheckboxPlayground args={args} updateArgs={updateArgs} />
   },
   play: async ({ canvasElement }) => {
     const checkbox = within(canvasElement).getByRole("checkbox")
+    // useArgs round-trips asynchronously, so the controlled value settles
+    // after the event; wait for it instead of reading the interim state.
     await userEvent.click(checkbox)
-    await expect(checkbox).toBeChecked()
+    await waitFor(() => expect(checkbox).toBeChecked())
     await expect(checkbox).not.toBePartiallyChecked()
     await userEvent.keyboard(" ")
-    await expect(checkbox).not.toBeChecked()
+    await waitFor(() => expect(checkbox).not.toBeChecked())
   },
 }
 

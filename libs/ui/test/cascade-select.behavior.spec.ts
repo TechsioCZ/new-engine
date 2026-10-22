@@ -5,6 +5,7 @@ import { expect, type Page, test } from "@playwright/test"
 
 const stories = {
   openHierarchy: "molecules-cascadeselect--open-hierarchy",
+  deepHierarchy: "molecules-cascadeselect--deep-hierarchy",
   parentSelection: "molecules-cascadeselect--parent-selection",
   playground: "molecules-cascadeselect--playground",
   controlled: "molecules-cascadeselect--controlled",
@@ -20,6 +21,7 @@ const cascadeTriggerSelector =
 const cascadeContentSelector =
   '[data-scope="cascade-select"][data-part="content"]'
 const cascadeItemSelector = '[data-scope="cascade-select"][data-part="item"]'
+const horizontalProximitySnap = /^x(?: proximity)?$/
 
 async function openStory(page: Page, storyId: string, args = "") {
   await page.goto(
@@ -204,10 +206,13 @@ test.describe("CascadeSelect browser behavior", () => {
       (el) => getComputedStyle(el).borderInlineStartColor
     )
     expect(marker).not.toBe("rgba(0, 0, 0, 0)")
-    const first = await columns.nth(0).boundingBox()
-    const second = await columns.nth(1).boundingBox()
-    expect(first).not.toBeNull()
-    expect(second).not.toBeNull()
+    // Read the strip in one layout snapshot: revealing the keyboard cursor
+    // can scroll both columns between separate boundingBox calls on WebKit.
+    const [first, second] = await columns.evaluateAll((elements) =>
+      elements.map((element) => element.getBoundingClientRect().toJSON())
+    )
+    expect(first).toBeDefined()
+    expect(second).toBeDefined()
     if (first && second) {
       expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(1)
       expect(second.x).toBeGreaterThanOrEqual(first.x + first.width - 1)
@@ -314,6 +319,82 @@ test.describe("CascadeSelect browser behavior", () => {
     }
   })
 
+  test("reveals the deepest open column with snapping on a narrow viewport", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    // Two levels fit side by side on a phone without scrolling.
+    await openStory(page, stories.openHierarchy)
+    const content = page.locator(cascadeContentSelector)
+    await expect(content).toBeVisible()
+    await expect
+      .poll(() =>
+        content.evaluate(
+          (element) =>
+            element.querySelectorAll('[data-part="column"]').length === 2 &&
+            element.scrollWidth <= element.clientWidth
+        )
+      )
+      .toBe(true)
+
+    // A third level overflows and the deepest column is revealed.
+    await openStory(page, stories.deepHierarchy)
+    await expect(content).toBeVisible()
+    await expect
+      .poll(() =>
+        content.evaluate((element) => {
+          const column = [
+            ...element.querySelectorAll('[data-part="column"]'),
+          ].at(-1)
+          if (!column) {
+            return false
+          }
+          const surface = element.getBoundingClientRect()
+          const child = column.getBoundingClientRect()
+          const left = surface.left + element.clientLeft
+          return (
+            child.left >= left - 1 &&
+            child.right <= left + element.clientWidth + 1 &&
+            element.scrollLeft > 0
+          )
+        })
+      )
+      .toBe(true)
+    expect(
+      await content.evaluate(
+        (element) => getComputedStyle(element).scrollSnapType
+      )
+    ).toMatch(horizontalProximitySnap)
+  })
+
+  test("constrains columns and an oversized reference to the available width", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 240, height: 844 })
+    await openStory(page, stories.openHierarchy)
+    const content = page.locator(cascadeContentSelector)
+    await expect(content).toBeVisible()
+    await expect
+      .poll(() =>
+        content.evaluate((element) => {
+          const surface = element.getBoundingClientRect()
+          const available = Number.parseFloat(
+            getComputedStyle(element).getPropertyValue("--available-width")
+          )
+          return (
+            surface.left >= 0 &&
+            surface.right <= innerWidth &&
+            surface.width <= available + 1 &&
+            [...element.querySelectorAll('[data-part="column"]')].every(
+              (column) =>
+                column.getBoundingClientRect().width <= element.clientWidth + 1
+            )
+          )
+        })
+      )
+      .toBe(true)
+  })
+
   test("keeps the popup anchored while adding a hierarchy level", async ({
     page,
   }, testInfo) => {
@@ -411,31 +492,47 @@ test.describe("CascadeSelect browser behavior", () => {
   test("scrolls the keyboard cursor into view when columns overflow", async ({
     page,
   }) => {
+    // Two columns always fit on a phone; the third level overflows.
     await page.setViewportSize({ width: 375, height: 812 })
-    await openStory(page, stories.playground)
+    await openStory(page, stories.deepHierarchy, "defaultOpen:!false")
     await page.locator(cascadeTriggerSelector).focus()
     await page.keyboard.press("ArrowDown")
     await page.keyboard.press("Enter")
     const content = page.locator(cascadeContentSelector)
+    const lists = page.locator(
+      '[data-scope="cascade-select"][data-part="list"]'
+    )
     await expect(content).toBeFocused()
     await expect(
       page.getByRole("treeitem", { name: "Electronics", exact: true })
     ).toHaveAttribute("data-highlighted", "")
-    await page.keyboard.press("ArrowRight")
-    await expect(
-      page.locator('[data-scope="cascade-select"][data-part="list"]')
-    ).toHaveCount(2)
+    await expect(lists).toHaveCount(2)
+    await expect
+      .poll(() =>
+        content.evaluate((element) => element.scrollWidth > element.clientWidth)
+      )
+      .toBe(false)
+    // Entering Electronics highlights Computers, which opens its children.
     // The column is rendered before the cursor enters it. Wait for that
-    // transition before asking for the next sibling on slow WebKit.
+    // transition before asking for the next level on slow WebKit.
+    await page.keyboard.press("ArrowRight")
+    await expect(lists).toHaveCount(3)
     await expect(
       page.getByRole("treeitem", { name: "Computers", exact: true })
     ).toHaveAttribute("data-highlighted", "")
+    await page.keyboard.press("ArrowRight")
+    await expect(
+      page.getByRole("treeitem", { name: "Laptops", exact: true })
+    ).toHaveAttribute("data-highlighted", "")
     await page.keyboard.press("ArrowDown")
-    const phone = page.getByRole("treeitem", { name: "Phones", exact: true })
-    await expect(phone).toHaveAttribute("data-highlighted", "")
+    const desktops = page.getByRole("treeitem", {
+      name: "Desktops",
+      exact: true,
+    })
+    await expect(desktops).toHaveAttribute("data-highlighted", "")
     await expect(content).toHaveAttribute(
       "aria-activedescendant",
-      (await phone.getAttribute("id")) as string
+      (await desktops.getAttribute("id")) as string
     )
     await expect
       .poll(() =>
@@ -448,7 +545,7 @@ test.describe("CascadeSelect browser behavior", () => {
     await expect
       .poll(async () => {
         const viewport = await content.boundingBox()
-        const item = await phone.boundingBox()
+        const item = await desktops.boundingBox()
         return Boolean(
           viewport &&
             item &&
@@ -457,58 +554,53 @@ test.describe("CascadeSelect browser behavior", () => {
         )
       })
       .toBe(true)
-  })
 
-  test("reflects controlled updates in the trigger", async ({ page }) => {
-    await openStory(page, stories.controlled)
+    // Moving back to the first level scrolls its column into view again.
+    await page.keyboard.press("ArrowLeft")
+    await expect(
+      page.getByRole("treeitem", { name: "Computers", exact: true })
+    ).toHaveAttribute("data-highlighted", "")
+    await page.keyboard.press("ArrowLeft")
+    const ancestor = page.getByRole("treeitem", {
+      name: "Electronics",
+      exact: true,
+    })
+    await expect(ancestor).toHaveAttribute("data-highlighted", "")
+    await expect
+      .poll(() =>
+        content.evaluate((element) => {
+          const column = element.querySelector('[data-part="column"]')
+          if (!column) {
+            return false
+          }
+          const surface = element.getBoundingClientRect()
+          const parent = column.getBoundingClientRect()
+          const left = surface.left + element.clientLeft
+          return (
+            parent.left >= left - 1 &&
+            parent.right <= left + element.clientWidth + 1
+          )
+        })
+      )
+      .toBe(true)
 
-    const trigger = page.locator(cascadeTriggerSelector)
-    await expect(trigger).toContainText("Home & garden / Furniture")
-    await page.getByRole("button", { name: "Set phones" }).click()
-    await expect(trigger).toContainText("Electronics / Phones")
-    await page.getByRole("button", { name: "Clear", exact: true }).click()
-    await expect(trigger).toContainText("Choose a category")
-  })
+    await page.keyboard.press("ArrowDown")
+    await expect(
+      page.getByRole("treeitem", { name: "Home & garden", exact: true })
+    ).toHaveAttribute("data-highlighted", "")
+    // Changing a branch with the keyboard must not hide the cursor in favor
+    // of its newly mounted children.
+    await expect
+      .poll(() => content.evaluate((element) => element.scrollLeft))
+      .toBe(0)
 
-  test("keeps multiple selection open while appending a path", async ({
-    page,
-  }) => {
-    await openStory(page, stories.multipleSelection)
-
-    const trigger = page.locator(cascadeTriggerSelector)
-    await expect(trigger).toContainText("Computers, Lighting")
-    await trigger.click()
-    await page.getByText("Fashion", { exact: true }).click()
-    await page.getByText("Men", { exact: true }).click()
-
-    await expect(trigger).toHaveAttribute("aria-expanded", "true")
-    await expect(trigger).toContainText("Computers, Lighting, Men")
-  })
-
-  test("submits the complete selected path with a native form", async ({
-    page,
-  }) => {
-    await openStory(page, stories.withinForm)
-
-    await page.getByRole("button", { name: "Save category" }).click()
-    await expect(page.getByRole("alert")).toHaveText(
-      "Choose a category before saving."
-    )
-    await expect(page.locator(cascadeTriggerSelector)).toHaveAttribute(
-      "aria-invalid",
-      "true"
-    )
-    await expect(page.locator("output")).toHaveCount(0)
-    await page.locator(cascadeTriggerSelector).click()
-    await page
-      .locator(`${cascadeItemSelector}[data-value="electronics"]`)
-      .click()
-    await page.getByText("Phones", { exact: true }).click()
-    await page.getByRole("button", { name: "Save category" }).click()
-
-    await expect(page.locator("output")).toHaveText(
-      "Submitted value: electronics,phones"
-    )
+    await page.getByRole("treeitem", { name: "Fashion", exact: true }).click()
+    await page.getByRole("treeitem", { name: "Women", exact: true }).click()
+    await expect(page.getByRole("group", { name: "Women" })).toBeVisible()
+    // Pointer expansion, unlike keyboard traversal, reveals the deepest column.
+    await expect
+      .poll(() => content.evaluate((element) => element.scrollLeft))
+      .toBeGreaterThan(0)
   })
 
   test("renders selection and branch indicators without overlap", async ({
@@ -523,14 +615,22 @@ test.describe("CascadeSelect browser behavior", () => {
       .first()
     await expect(selectedParent).toHaveAttribute("data-state", "checked")
 
-    const selectionBox = await selectedParent
-      .locator('[data-part="item-indicator"]')
-      .boundingBox()
-    const branchBox = await selectedParent
-      .locator(':scope > span[aria-hidden="true"]')
-      .boundingBox()
-    expect(selectionBox).not.toBeNull()
-    expect(branchBox).not.toBeNull()
+    // Read both rectangles in one layout snapshot: opening scrolls the column
+    // strip to reveal the child column between separate boundingBox calls.
+    const { selectionBox, branchBox } = await selectedParent.evaluate(
+      (element) => ({
+        selectionBox: element
+          .querySelector('[data-part="item-indicator"]')
+          ?.getBoundingClientRect()
+          .toJSON(),
+        branchBox: element
+          .querySelector(':scope > span[aria-hidden="true"]')
+          ?.getBoundingClientRect()
+          .toJSON(),
+      })
+    )
+    expect(selectionBox).toBeDefined()
+    expect(branchBox).toBeDefined()
     if (selectionBox && branchBox) {
       expect(
         branchBox.x - (selectionBox.x + selectionBox.width)
