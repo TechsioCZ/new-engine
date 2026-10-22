@@ -151,8 +151,14 @@ export function subscribeOwnerFormReset(
   const pending = new Set<ReturnType<typeof setTimeout>>()
   const reset = (event: Event) => {
     // Check again in case another capture listener reassociated the control.
+    // Also ignore former owners: some EventTarget implementations (Node < 26.9)
+    // keep boolean-capture listeners after removeEventListener.
     const dispatchingOwner = owner
-    if (!control.isConnected || control.form !== dispatchingOwner) {
+    if (
+      event.currentTarget !== dispatchingOwner ||
+      !control.isConnected ||
+      control.form !== dispatchingOwner
+    ) {
       return
     }
     options.onResetStart?.()

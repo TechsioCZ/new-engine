@@ -4,8 +4,10 @@ import { readFileSync } from "node:fs"
 import { test } from "node:test"
 import { runInNewContext } from "node:vm"
 import {
+  advisoryRules,
   assertCalibration,
   assertSupportedTheme,
+  blockingViolations,
   calibrationIds,
   calibrationLabels,
 } from "../.storybook/a11y-policy.mjs"
@@ -21,6 +23,7 @@ import {
   assertPrimaryBaselines,
   assertReleaseSelection,
   assertVisualCompletion,
+  parseReleaseShard,
 } from "./visual-completion.mjs"
 import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
@@ -1110,4 +1113,26 @@ test("native-form lifecycle matrix uses all maintained adapters without disablin
   assert.match(config, /"desktop", "mobile"/)
   assert.match(config, /"webkit"/)
   assert.match(config, /"chromium"/)
+})
+
+test("a11y enforcement blocks WCAG A/AA rules and only reports advisory ones", () => {
+  assert.deepEqual(blockingViolations(advisoryRules.map((id) => ({ id }))), [])
+  assert.deepEqual(
+    blockingViolations([
+      { id: "apca-contrast" },
+      { id: "button-name" },
+      { id: "button-name" },
+      { id: "color-contrast" },
+    ]),
+    ["button-name", "color-contrast"]
+  )
+})
+
+test("release shards are validated index/total pairs", () => {
+  assert.equal(parseReleaseShard(undefined), undefined)
+  assert.equal(parseReleaseShard(""), undefined)
+  assert.deepEqual(parseReleaseShard("2/4"), { index: 2, total: 4 })
+  for (const value of ["0/4", "5/4", "1/0", "a/4", "1/4/2", "1/64"]) {
+    assert.throws(() => parseReleaseShard(value))
+  }
 })

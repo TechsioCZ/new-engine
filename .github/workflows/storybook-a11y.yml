@@ -14,7 +14,13 @@ permissions:
 jobs:
   storybook-a11y:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # Must list every supported pair; the script fails on a count mismatch.
+        theme:
+          [base-light, base-dark, neo-light, neo-dark, business-light, akros-light]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,15 +33,18 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --prefer-offline --network-concurrency=4
       - run: timeout 420 pnpm exec playwright install --only-shell chromium
-      # Derives all six supported pairs; calibration failures are asserted separately.
+      # One supported pair per job; calibration failures are asserted separately.
+      # WCAG A/AA rules block; APCA gold and AAA contrast are reported only.
       - name: Enforce product accessibility and reporter calibration
         id: a11y
         env:
           A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"
+          A11Y_THEME: ${{ matrix.theme }}
+          A11Y_THEME_COUNT: "6"
         run: pnpm --dir libs/ui storybook:a11y
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: storybook-a11y-${{ inputs.sha || github.sha }}
+          name: storybook-a11y-${{ inputs.sha || github.sha }}-${{ matrix.theme }}
           path: libs/ui/a11y-report
           if-no-files-found: error

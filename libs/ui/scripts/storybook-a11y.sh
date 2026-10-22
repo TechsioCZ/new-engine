@@ -53,6 +53,16 @@ export A11Y_REPORT_FAIL_ON_VIOLATIONS="${FAIL_ON_VIOLATIONS}"
 STATUS=0
 THEME_MATRIX="$(node --input-type=module -e "import { createThemeMatrix } from '${ROOT_DIR}/test/visual-projects.mjs'; for (const {brand,mode} of createThemeMatrix()) console.log(brand,mode)")"
 [ -n "$THEME_MATRIX" ] || { echo "Supported theme matrix is empty" >&2; exit 1; }
+# CI scans one theme per job (A11Y_THEME=brand-mode). A11Y_THEME_COUNT must
+# match the supported matrix so a new theme cannot silently go unscanned.
+if [ -n "${A11Y_THEME:-}" ]; then
+  if [ "${A11Y_THEME_COUNT:-}" != "$(printf '%s\n' "$THEME_MATRIX" | wc -l | tr -d ' ')" ]; then
+    echo "A11Y_THEME_COUNT does not match the supported theme matrix" >&2
+    exit 1
+  fi
+  THEME_MATRIX="$(printf '%s\n' "$THEME_MATRIX" | awk -v want="${A11Y_THEME}" '$1"-"$2 == want')"
+  [ -n "$THEME_MATRIX" ] || { echo "Unsupported A11Y_THEME: ${A11Y_THEME}" >&2; exit 1; }
+fi
 while read -r brand mode; do
   theme="${brand}-${mode}"
   THEME_DIR="${RUN_REPORT_ROOT}/${theme}"

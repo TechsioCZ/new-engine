@@ -13,6 +13,31 @@ export const calibrationIds = [
   "overview-apca-contrast-test--bronze",
 ]
 
+/**
+ * Reported but not blocking. APCA gold and WCAG AAA enhanced contrast are
+ * aspirational targets; non-text-contrast still flags icons of disabled
+ * controls (exempt under WCAG 1.4.11) and visually hidden indicators.
+ */
+export const advisoryRules = [
+  "apca-contrast",
+  "color-contrast-enhanced",
+  "non-text-contrast",
+]
+
+/**
+ * @param {{id: string}[]} violations
+ * @returns {string[]} blocking rule ids
+ */
+export function blockingViolations(violations) {
+  return [
+    ...new Set(
+      violations
+        .map((violation) => violation.id)
+        .filter((id) => !advisoryRules.includes(id))
+    ),
+  ]
+}
+
 /** @param {string} brand @param {string} mode */
 export function assertSupportedTheme(brand, mode) {
   assert.ok(

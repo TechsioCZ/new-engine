@@ -33,7 +33,13 @@ jobs:
 
   components:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}/4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,17 +51,45 @@ jobs:
           node-version: 26.11.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile --prefer-offline --network-concurrency=4
-      # Full Docker suite: behavior on both devices and all 12 visual projects.
-      # Release mode rejects filters, missing identities and baseline updates.
+      # Full Docker suite: behavior on both devices and all 12 visual projects,
+      # split across shards. Release mode rejects filters and baseline updates;
+      # components-complete asserts every identity over all shard reports.
       - run: pnpm --dir libs/ui test:components:release
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: ui-component-results-${{ inputs.sha }}
+          name: ui-component-results-${{ inputs.sha }}-shard-${{ matrix.shard }}
           path: |
             libs/ui/playwright-report
             libs/ui/test-results
           if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-component-report-${{ inputs.sha }}-shard-${{ matrix.shard }}
+          path: |
+            libs/ui/test-results/visual-reports/all.json
+            libs/ui/test-results/visual-reports/index.json
+          if-no-files-found: error
+
+  components-complete:
+    needs: components
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.11.1
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: ui-component-report-${{ inputs.sha }}-shard-*
+          path: component-shards
+      - run: node libs/ui/scripts/verify-component-shards.mjs component-shards
+        env:
+          PLAYWRIGHT_RELEASE_SHARDS: "4"
 
   accessibility:
     uses: ./.github/workflows/storybook-a11y.yml

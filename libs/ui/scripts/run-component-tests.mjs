@@ -7,6 +7,7 @@ import {
   assertPrimaryBaselines,
   assertReleaseSelection,
   assertVisualCompletion,
+  parseReleaseShard,
 } from "../test/visual-completion.mjs"
 import { createVisualMatrix } from "../test/visual-projects.mjs"
 
@@ -49,6 +50,9 @@ const extraArgs = process.argv.slice(2).filter((arg) => arg !== "--")
 if (process.env.VISUAL_RELEASE_READINESS === "1") {
   assertReleaseSelection(extraArgs, process.env)
 }
+// CI splits the release run; scripts/verify-component-shards.mjs then asserts
+// completeness over every shard report together.
+const releaseShard = parseReleaseShard(process.env.PLAYWRIGHT_RELEASE_SHARD)
 const updatesSnapshots = extraArgs.some((arg, index) => {
   const match = updateSnapshotsPattern.exec(arg)
   const mode = match?.[1] ?? (match && extraArgs[index + 1])
@@ -95,7 +99,7 @@ function verifyCompletion(reports) {
       .entries
   ).filter((entry) => entry.type === "story")
   const requireComplete = selectedStories.length === 0 && extraArgs.length === 0
-  if (requireComplete) {
+  if (requireComplete && !releaseShard) {
     assertVisualCompletion(reports, stories, projects)
     return
   }
@@ -246,6 +250,9 @@ function main() {
         "playwright.config.mts",
         "--reporter=list,html,json",
         ...(project ? ["--project", project] : []),
+        ...(releaseShard
+          ? [`--shard=${releaseShard.index}/${releaseShard.total}`]
+          : []),
         ...extraArgs,
       ],
       { stdio: "inherit" }
@@ -269,6 +276,13 @@ function main() {
     [`${reportRoot}/.`, "test-results/visual-reports"],
   ]) {
     docker(["cp", `${containerName}:${source}`, path.join(uiRoot, destination)])
+  }
+  if (releaseShard) {
+    // The shard verifier needs the exact story list this commit was built with.
+    fs.copyFileSync(
+      path.join(storybookDir, "index.json"),
+      path.join(uiRoot, "test-results/visual-reports/index.json")
+    )
   }
   if (status !== 0) {
     return status

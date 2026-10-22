@@ -10,6 +10,7 @@ import { createA11yReporter } from "@techsio/storybook-a11y-reporter"
 import {
   assertCalibration,
   assertSupportedTheme,
+  blockingViolations,
   calibrationIds,
 } from "./a11y-policy.mjs"
 import { checkChartPointerSelection } from "./chart-pointer-regression.mjs"
@@ -23,8 +24,11 @@ import { checkChartPointerSelection } from "./chart-pointer-regression.mjs"
  */
 
 // The reporter reads its documented A11Y_REPORT_* environment variables itself
-// (A11Y_REPORT_FAIL_ON_VIOLATIONS, A11Y_REPORT_JUNIT, A11Y_REPORT_WAIT_MS,
-// A11Y_REPORT_OUTPUT_DIR). Only "false" disables a boolean option.
+// (A11Y_REPORT_JUNIT, A11Y_REPORT_WAIT_MS, A11Y_REPORT_OUTPUT_DIR). It records
+// every violation; this runner decides which ones block (see advisoryRules).
+// Only "false" disables enforcement.
+const enforceViolations = process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS !== "false"
+process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS = "false"
 const reporter = createA11yReporter({ waitForResultsMs: 30_000 })
 
 const mode = process.env.A11Y_STORYBOOK_MODE ?? "light"
@@ -137,7 +141,17 @@ const testRunnerConfig = {
       )
       return
     }
-    const checks = [() => reporter.postVisit?.(page, context)]
+    const checks = [
+      () => reporter.postVisit?.(page, context),
+      () => {
+        const blocking = blockingViolations(result.results.violations)
+        if (enforceViolations && blocking.length) {
+          throw new Error(
+            `A11y violations detected in ${context.title} / ${context.name}: ${blocking.join(", ")}`
+          )
+        }
+      },
+    ]
     if (context.id === "molecules-chart--pointer-selection") {
       checks.push(() => checkChartPointerSelection(page))
     }

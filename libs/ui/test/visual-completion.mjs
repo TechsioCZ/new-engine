@@ -27,6 +27,26 @@ export function assertReleaseSelection(args, env) {
   )
 }
 
+/** Parse PLAYWRIGHT_RELEASE_SHARD ("index/total"). Shards only split the
+ * release run; completeness is asserted over the merged shard reports.
+ * @param {string | undefined} value
+ * @returns {{index: number, total: number} | undefined}
+ */
+export function parseReleaseShard(value) {
+  if (!value) {
+    return
+  }
+  const match = /^(\d+)\/(\d+)$/.exec(value)
+  assert.ok(match, `Invalid release shard "${value}"; use index/total`)
+  const index = Number(match[1])
+  const total = Number(match[2])
+  assert.ok(
+    total >= 1 && total <= 32 && index >= 1 && index <= total,
+    `Release shard out of range: ${value}`
+  )
+  return { index, total }
+}
+
 /** Fail before expensive browser work; never create baselines in the release gate.
  * @param {{id: string}[]} stories
  * @param {{name: string, brand: string, isMobile: boolean, colorScheme: string}[]} projects
