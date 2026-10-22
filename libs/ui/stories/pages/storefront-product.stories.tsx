@@ -431,6 +431,9 @@ function ProductDetailPage() {
                           title: product.name,
                           description:
                             "Product details opened locally in this demo.",
+                          // Stays until closed, so the notice is never missed
+                          // and the final frame does not depend on timing.
+                          duration: Number.POSITIVE_INFINITY,
                         })
                       },
                     }}
