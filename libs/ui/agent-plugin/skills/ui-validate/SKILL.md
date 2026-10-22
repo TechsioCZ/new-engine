@@ -49,8 +49,3 @@ The plugin installs a real git `pre-push` hook that rejects any push whose commi
 `libs/ui` until this marker matches the pushed ref's tip. Git gives that hook the exact refs and
 SHAs, so no form of `git push` (aliases, `--all`, `--mirror`, refspecs, config) evades it — and
 `--no-verify` is refused separately. Any new commit invalidates the marker, so validate last.
-
-## Known CI trap
-
-`herbatica:lint` is red on master (9 pre-existing errors) and any UI diff makes herbatika
-"affected" — that failure is not caused by UI work. Never modify apps/herbatika from a UI task.

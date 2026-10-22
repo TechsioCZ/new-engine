@@ -10,15 +10,11 @@
     "includes": [
       "!**/node_modules/**/*",
       "!**/playwright-report/**/*",
-      "!**/.medusa/**/*",
       "!**/migrations/**/*",
       "!**/.next/**/*",
-      "!apps/payload/src/payload-types.ts",
-      "!apps/payload/src/app/(payload)/importMap.js",
       "!**/check-env-variables.js",
       "!**/*.stories.tsx",
       "!**/.storybook/main.ts",
-      "!apps/medusa-be/tests/fixtures/ro-catalog-source-extract/befungin-minimal.html",
       "!**/libs/ui/src/tokens/index.css"
     ]
   },
@@ -173,23 +169,6 @@
           },
           "security": {
             "noDangerouslySetInnerHtml": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/medusa-be/**/*"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "useAwait": "off"
-          },
-          "complexity": {
-            "noExcessiveCognitiveComplexity": "warn"
-          },
-          "performance": {
-            "noBarrelFile": "off",
-            "noNamespaceImport": "info"
           }
         }
       }
