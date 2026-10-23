@@ -857,6 +857,14 @@ export const ResetAuthority: Story = {
     const seeded = canvas.getByRole("combobox", { name: "Initial country query" })
     const saved = canvas.getByRole("combobox", { name: "Saved country" })
     const controlledQuery = canvas.getByRole("combobox", { name: "Authoritative query" })
+    // Selecting an option closes the popup and returns focus to the input on the
+    // next animation frame. Let that land first, or it steals focus back from
+    // the button clicked next and the captured focus ring moves.
+    const settleFinalFocus = async () => {
+      await waitFor(() => expect(body.queryByRole("listbox")).not.toBeInTheDocument())
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      await expect(seeded).toHaveFocus()
+    }
     await expect(seeded).toHaveValue("Seed")
     await userEvent.clear(seeded)
     await userEvent.type(seeded, "Germ")
@@ -866,6 +874,7 @@ export const ResetAuthority: Story = {
     await waitFor(() => expect(germany).toHaveAttribute("data-highlighted"))
     await userEvent.keyboard("{Enter}")
     await waitFor(() => expect(new FormData(form).get("initial")).toBe("de"))
+    await settleFinalFocus()
     await userEvent.click(canvas.getByRole("button", { name: "Change saved country" }))
     await waitFor(() => expect(saved).toHaveValue("Germany"))
     await expect(controlledQuery).toHaveValue("Parent query")
@@ -900,6 +909,7 @@ export const ResetAuthority: Story = {
     await waitFor(() => expect(seeded).toHaveValue("Germ"))
     await userEvent.click(await body.findByRole("option", { name: "Germany" }))
     await waitFor(() => expect(seeded).toHaveValue("Germany"))
+    await settleFinalFocus()
     await userEvent.click(canvas.getByRole("button", { name: "Change saved country" }))
     await waitFor(() => expect(saved).toHaveValue("Czech Republic"))
     await expect(controlledQuery).toHaveValue("Parent query")
