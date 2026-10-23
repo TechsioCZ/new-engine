@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Menu v1.3.5
+- Reduced motion now opens and closes the panel without any transition. Before, every panel property still animated over 200 ms from its starting styles, and WebKit could leave the panel transparent for over a second inside a Dialog. Focus is handed back from a panel only after the menu itself has closed.
+
 ### Menu v1.3.4
 - Escape right after a navigation key keeps focus on the trigger in Safari. A late internal focus call could land on the closed menu, and focus then fell to the page body.
 
