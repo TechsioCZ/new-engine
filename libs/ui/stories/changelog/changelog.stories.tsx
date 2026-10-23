@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DatePicker v1.3.9
+- Clicking or tabbing into the date segments closes an open calendar at once. The calendar's own outside check ran a few frames late; with a parent that keeps the calendar open, that late check restarted a range the user had half picked.
+
 ### DatePicker v1.3.8
 - Closing the calendar no longer discards a range endpoint already typed into the segments. Outside dismissal is deferred by animation frames, so on a slow device it could land after the start date was typed and wipe it; opening the calendar still discards a partial typed range.
 

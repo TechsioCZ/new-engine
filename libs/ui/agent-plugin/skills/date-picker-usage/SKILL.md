@@ -6,7 +6,7 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.3.8"
+  component_version: "1.3.9"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -235,8 +235,9 @@ two in range mode and one in single mode.
 
 A start endpoint typed into the segments stays private until the end endpoint
 is complete. Opening the calendar discards that partial segment draft; closing
-the calendar keeps it, even when an outside dismissal lands after typing began.
-A complete calendar range replaces it.
+the calendar keeps it. A complete calendar range replaces it. Clicking or
+tabbing into the segments closes an open calendar at once; when a controlled
+parent refuses that close, a half-picked calendar range is kept.
 
 ### Select neighboring-month days
 

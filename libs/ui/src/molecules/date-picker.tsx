@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.8
+ * @componentVersion v1.3.9
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -505,6 +505,17 @@ function serializeDatePickerValue(
   }
 
   return value?.toString() ?? ""
+}
+
+/** Whether an event target is inside one of the control's segment groups. */
+function isDatePickerSegmentTarget(
+  control: Element | null,
+  target: EventTarget | null
+) {
+  const group = (target as Element | null)?.closest?.(
+    '[data-scope="date-input"][data-part="segment-group"]'
+  )
+  return Boolean(group && control?.contains(group))
 }
 
 function resolveDatePickerHourCycle(locale: string, hourCycle?: 12 | 24) {
@@ -1348,17 +1359,21 @@ DatePicker.Control = function DatePickerControl({
   const {
     dateInputApi,
     pickerApi,
+    requestOpen,
     selectionMode,
     size,
     validationMessage,
     styles,
   } = useDatePickerContext()
+  const pointerEntry = useRef(false)
   const controlProps = mergeProps(props, pickerApi.getControlProps())
   const { "data-invalid": _dataInvalid, ...dateInputControlProps } =
     dateInputApi.getControlProps()
 
   return (
     <div {...controlProps} className={styles.control({ className })} ref={ref}>
+      {/* Entering the segments closes the calendar at once. Zag's own outside
+       * check runs frames later, so Content ignores it for the segments. */}
       <div
         {...dateInputControlProps}
         className={styles.inputControl()}
@@ -1369,6 +1384,27 @@ DatePicker.Control = function DatePickerControl({
         data-validation={
           dateInputApi.invalid || validationMessage ? "error" : undefined
         }
+        onFocusCapture={(event) => {
+          const fromPointer = pointerEntry.current
+          pointerEntry.current = false
+          const control = event.currentTarget
+          if (
+            !fromPointer &&
+            isDatePickerSegmentTarget(control, event.target) &&
+            !isDatePickerSegmentTarget(control, event.relatedTarget)
+          ) {
+            requestOpen(false)
+          }
+        }}
+        onPointerDownCapture={(event) => {
+          if (isDatePickerSegmentTarget(event.currentTarget, event.target)) {
+            pointerEntry.current = true
+            requestOpen(false)
+          }
+        }}
+        onPointerUpCapture={() => {
+          pointerEntry.current = false
+        }}
       >
         {children}
       </div>
@@ -1740,8 +1776,41 @@ DatePicker.Content = function DatePickerContent({
   ref,
   ...props
 }: DatePickerContentProps) {
-  const { isTimed, pickerApi, selectionMode, styles } = useDatePickerContext()
+  const { dateInputApi, isTimed, pickerApi, selectionMode, styles } =
+    useDatePickerContext()
   const contentProps = mergeProps(props, pickerApi.getContentProps())
+  const contentRef = useRef<HTMLDivElement>(null)
+  const composedRef = useMemo(
+    () => composeDatePickerRefs(contentRef, ref),
+    [ref]
+  )
+  const controlId = dateInputApi.getControlProps().id
+
+  // DatePicker.Control already closes the calendar when the segments are used.
+  // Zag checks outside interactions frames later; a late check would close the
+  // popup mid-entry or, with a refusing parent, reset the range in progress.
+  useEffect(() => {
+    const content = contentRef.current
+    if (!content) {
+      return
+    }
+    const keepFieldInteraction = (event: Event) => {
+      const target = (event as CustomEvent<{ target?: EventTarget | null }>)
+        .detail?.target
+      const control = content.ownerDocument.getElementById(controlId)
+      if (isDatePickerSegmentTarget(control, target ?? null)) {
+        event.preventDefault()
+      }
+    }
+    for (const type of ["pointerdown.outside", "focus.outside"]) {
+      content.addEventListener(type, keepFieldInteraction)
+    }
+    return () => {
+      for (const type of ["pointerdown.outside", "focus.outside"]) {
+        content.removeEventListener(type, keepFieldInteraction)
+      }
+    }
+  }, [controlId])
 
   return (
     <div
@@ -1749,7 +1818,7 @@ DatePicker.Content = function DatePickerContent({
       className={styles.content({ className })}
       data-selection-mode={selectionMode}
       data-timed={isTimed || undefined}
-      ref={ref}
+      ref={composedRef}
     />
   )
 }
