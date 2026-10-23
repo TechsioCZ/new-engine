@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.9
+ * @componentVersion v1.3.10
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -2682,12 +2682,10 @@ DatePicker.StatusText = function DatePickerStatusText({
     useDatePickerContext()
   const resolvedStatus = status ?? (dateInputApi.invalid ? "error" : "default")
   useRegisterDescription(id, descriptions.registerDescription)
-  useEffect(
-    () =>
-      resolvedStatus === "error"
-        ? errorDescriptions.registerDescription(id)
-        : undefined,
-    [id, resolvedStatus, errorDescriptions.registerDescription]
+  useRegisterDescription(
+    id,
+    errorDescriptions.registerDescription,
+    resolvedStatus === "error"
   )
   return (
     <StatusText

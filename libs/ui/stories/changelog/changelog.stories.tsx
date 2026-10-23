@@ -13,6 +13,27 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### SearchForm v1.1.2
+- Error and hint messages are linked to the search field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
+
+### DatePicker v1.3.10
+- Error and hint messages are linked to the date field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
+
+### PhoneInput v1.1.3
+- Error and hint messages are linked to the phone field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
+
+### CascadeSelect v1.1.7
+- Error and hint messages are linked to the trigger in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the trigger still reported itself as valid.
+
+### RadioCard v1.1.4
+- Item descriptions and error messages are linked to their radios in the same update that shows them, instead of one render later.
+
+### RadioGroup v1.1.4
+- Item descriptions and error messages are linked to their radios in the same update that shows them, instead of one render later.
+
+### FileUpload v1.1.5
+- A new error message and the browse trigger's aria-invalid, aria-errormessage and aria-describedby now appear in the same update. Before, the message was linked one render later, so assistive tech could briefly read the error text while the trigger still reported itself as valid.
+
 ### DatePicker v1.3.9
 - Clicking or tabbing into the date segments closes an open calendar at once. The calendar's own outside check ran a few frames late; with a parent that keeps the calendar open, that late check restarted a range the user had half picked.
 

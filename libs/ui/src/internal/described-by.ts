@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useLayoutEffect, useState } from "react"
 
 const ID_SEPARATOR = /\s+/
 
@@ -40,11 +40,21 @@ export function useDescribedBy(): DescribedBy {
   }
 }
 
+/**
+ * Registers a mounted message id while `enabled`. A layout effect, not a
+ * passive one: the root re-renders the control's aria-describedby,
+ * aria-errormessage and aria-invalid before paint, in the same task as the
+ * message commit, so no observer sees the message without its control link.
+ */
 export function useRegisterDescription(
   id: string,
-  registerDescription: DescribedBy["registerDescription"]
+  registerDescription: DescribedBy["registerDescription"],
+  enabled = true
 ) {
-  useEffect(() => registerDescription(id), [id, registerDescription])
+  useLayoutEffect(
+    () => (enabled ? registerDescription(id) : undefined),
+    [id, registerDescription, enabled]
+  )
 }
 
 /** Joins a caller's aria-describedby with the registered one. */

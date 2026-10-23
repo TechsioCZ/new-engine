@@ -6,7 +6,7 @@ description: >
   input, submit button, clear button, icon props, and token-backed field
   layout.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
