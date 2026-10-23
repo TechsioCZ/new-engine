@@ -376,6 +376,14 @@ test("Docs shortcut examples are exclusive and background commands pause under t
 }) => {
   await page.goto("/iframe.html?id=atoms-hotkeys--docs&viewMode=docs")
   const opens = page.getByRole("button", { name: "Open example", exact: true })
+  const counts = page.getByTestId("hotkeys-platform-save-count")
+  const notes = page.getByTestId("hotkeys-saved-note")
+  // Docs mounts each story separately, so wait for the background examples
+  // before taking the baseline; a late mount must not look like a command.
+  const beforeCounts = ["0"]
+  const beforeNotes = ["Nothing saved yet"]
+  await expect(counts).toHaveText(beforeCounts)
+  await expect(notes).toHaveText(beforeNotes)
   await opens.first().focus()
   await page.keyboard.press("Control+Shift+a")
   await expect(
@@ -387,10 +395,6 @@ test("Docs shortcut examples are exclusive and background commands pause under t
       Boolean(document.activeElement?.closest('[aria-hidden="true"]'))
     )
   ).toBe(false)
-  const counts = page.getByTestId("hotkeys-platform-save-count")
-  const notes = page.getByTestId("hotkeys-saved-note")
-  const beforeCounts = await counts.allTextContents()
-  const beforeNotes = await notes.allTextContents()
   await page.keyboard.press("Control+s")
   expect(await counts.allTextContents()).toEqual(beforeCounts)
   expect(await notes.allTextContents()).toEqual(beforeNotes)
