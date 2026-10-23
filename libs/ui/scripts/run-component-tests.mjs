@@ -128,7 +128,7 @@ function verifyReviewedBaselines() {
   )
 }
 
-function main() {
+function ensureStorybookBuild() {
   if (
     storybookOverride === undefined &&
     process.env.PLAYWRIGHT_STORYBOOK_REBUILD !== "0"
@@ -149,9 +149,9 @@ function main() {
   if (!fs.existsSync(path.join(storybookDir, "iframe.html"))) {
     throw new Error(`Storybook build not found: ${storybookDir}`)
   }
-  if (process.env.VISUAL_RELEASE_READINESS === "1") {
-    verifyReviewedBaselines()
-  }
+}
+
+function ensureDockerImage() {
   if (docker(["image", "inspect", imageName]).status !== 0) {
     run("docker", [
       "build",
@@ -164,7 +164,9 @@ function main() {
     ])
   }
   console.log(`Using Docker image: ${imageName}`)
+}
 
+function startContainer() {
   const env = {
     CI: "true",
     PLAYWRIGHT_DOCKER: "1",
@@ -228,7 +230,10 @@ function main() {
     "node:node",
     "/app/test",
   ])
+}
 
+/** @returns {{reportNames: string[], status: number}} */
+function runPlaywrightProjects() {
   const reportNames = []
   let status = 0
   for (const project of sequentialProjects
@@ -263,7 +268,10 @@ function main() {
       break
     }
   }
+  return { reportNames, status }
+}
 
+function copyResultsToHost() {
   if (updatesSnapshots) {
     run("docker", [
       "cp",
@@ -285,20 +293,34 @@ function main() {
       path.join(uiRoot, "test-results/visual-reports/index.json")
     )
   }
+}
+
+/** @param {string[]} reportNames */
+function readReports(reportNames) {
+  return reportNames.map((name) =>
+    JSON.parse(
+      run("docker", ["exec", containerName, "cat", `${reportRoot}/${name}`], {
+        stdio: "pipe",
+        // Full-matrix JSON reports exceed spawnSync's 1 MiB default buffer.
+        maxBuffer: 512 * 1024 * 1024,
+      }).stdout.toString()
+    )
+  )
+}
+
+function main() {
+  ensureStorybookBuild()
+  if (process.env.VISUAL_RELEASE_READINESS === "1") {
+    verifyReviewedBaselines()
+  }
+  ensureDockerImage()
+  startContainer()
+  const { reportNames, status } = runPlaywrightProjects()
+  copyResultsToHost()
   if (status !== 0) {
     return status
   }
-  verifyCompletion(
-    reportNames.map((name) =>
-      JSON.parse(
-        run("docker", ["exec", containerName, "cat", `${reportRoot}/${name}`], {
-          stdio: "pipe",
-          // Full-matrix JSON reports exceed spawnSync's 1 MiB default buffer.
-          maxBuffer: 512 * 1024 * 1024,
-        }).stdout.toString()
-      )
-    )
-  )
+  verifyCompletion(readReports(reportNames))
   return 0
 }
 
