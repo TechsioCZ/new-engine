@@ -88,7 +88,12 @@ export const Playground: Story = {
       args.contextMenu ? "{Shift>}{F10}{/Shift}" : "{ArrowDown}"
     )
     const menu = await body.findByRole("menu")
-    await waitFor(() => expect(menu).toBeVisible())
+    // Zag focuses the menu on the next frame; until then the trigger still
+    // has focus and ignores navigation keys such as End.
+    await waitFor(() => {
+      expect(menu).toHaveFocus()
+      expect(menu).toBeVisible()
+    })
     await expect(
       body.getByRole("menuitem", { name: "Archived projects" })
     ).toHaveTextContent("Archived projects")
