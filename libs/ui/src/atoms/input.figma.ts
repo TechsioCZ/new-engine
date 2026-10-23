@@ -29,10 +29,10 @@ export default {
   imports: ['import { Input } from "@techsio/ui-kit/atoms/input"'],
   example: figma.code`<Input${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("variant", variant)}/>`,
   metadata: { nestable: true },
 }

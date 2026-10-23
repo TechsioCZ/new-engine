@@ -15,7 +15,7 @@ export default {
   imports: ['import { Menu } from "@techsio/ui-kit/molecules/menu"'],
   example: figma.code`<Menu items={[{ type: "action", value: "item-1", label: "Item 1" }]}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )} triggerText="Open"/>`,
   metadata: { nestable: true },
 }

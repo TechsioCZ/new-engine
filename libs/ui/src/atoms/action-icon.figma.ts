@@ -19,7 +19,7 @@ export default {
   imports: ['import { ActionIcon } from "@techsio/ui-kit/atoms/action-icon"'],
   example: figma.code`<ActionIcon aria-label="Clear" icon="token-icon-close"${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("tone", tone)}/>`,
   metadata: { nestable: true },
 }

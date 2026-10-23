@@ -14,7 +14,9 @@ const type = figma.selectedInstance.getEnum("type", {
 
 export default {
   id: "Toaster",
-  imports: ['import { Toaster, useToast } from "@techsio/ui-kit/molecules/toast"'],
+  imports: [
+    'import { Toaster, useToast } from "@techsio/ui-kit/molecules/toast"',
+  ],
   example: figma.code`function Example() {
     const toast = useToast();
     return (<>

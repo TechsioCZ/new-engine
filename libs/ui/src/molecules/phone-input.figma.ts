@@ -42,16 +42,16 @@ export default {
   ],
   example: figma.code`<PhoneInput defaultCountry="SK"${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "readOnly",
-    readOnly,
+    readOnly
   )}${figma.helpers.react.renderProp(
     "required",
-    required,
+    required
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}>
         <PhoneInput.Label>Phone number</PhoneInput.Label>
         <PhoneInput.Control>

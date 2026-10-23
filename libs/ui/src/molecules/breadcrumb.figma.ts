@@ -12,10 +12,12 @@ const size = figma.selectedInstance.getEnum("size", {
 
 export default {
   id: "Breadcrumb",
-  imports: ['import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"'],
+  imports: [
+    'import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"',
+  ],
   example: figma.code`<Breadcrumb${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}>
         <Breadcrumb.Item>
           <Breadcrumb.Link href="/">Home</Breadcrumb.Link>

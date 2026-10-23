@@ -24,7 +24,7 @@ const size = figma.selectedInstance.getEnum("size", {
 // Badge exposes no `children` text property — the label is a plain text layer
 const childrenLayer = figma.selectedInstance.findText("Label")
 const children =
-  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
+  childrenLayer.type === "ERROR" ? undefined : childrenLayer.textContent
 
 export default {
   id: "Badge",

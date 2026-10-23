@@ -38,16 +38,16 @@
 
   /* Removes the double-tap-to-zoom delay on controls. */
   :where(
-      a,
-      button,
-      label,
-      select,
-      summary,
-      [role="button"],
-      [role="option"],
-      [role="tab"],
-      input:is([type="checkbox"], [type="radio"])
-    ) {
+    a,
+    button,
+    label,
+    select,
+    summary,
+    [role="button"],
+    [role="option"],
+    [role="tab"],
+    input:is([type="checkbox"], [type="radio"])
+  ) {
     touch-action: manipulation;
   }
 }

@@ -99,7 +99,8 @@
  * its Input is the field, so scope to the Combobox root (the only one with
  * data-mode) instead of the shared data-scope. */
 [data-scope="combobox"][data-part="root"][data-mode]
-> [data-part="control"] > [data-part="input"] {
+  > [data-part="control"]
+  > [data-part="input"] {
   background-color: transparent;
   border: 0;
   border-radius: 0;
@@ -108,8 +109,12 @@
 /* The control owns the focus indicator for every focusable descendant, including
  * the clear/chevron actions. Do not remove their hover/active affordances. */
 [data-scope="combobox"][data-part="root"][data-mode]
-> [data-part="control"]
-> :is([data-part="input"], [data-part="trigger"], [data-part="clear-trigger"]) {
+  > [data-part="control"]
+  > :is(
+    [data-part="input"],
+    [data-part="trigger"],
+    [data-part="clear-trigger"]
+  ) {
   outline: none;
   box-shadow: none;
 }

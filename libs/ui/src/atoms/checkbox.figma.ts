@@ -29,13 +29,13 @@ export default {
   imports: ['import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"'],
   example: figma.code`<Checkbox${figma.helpers.react.renderProp(
     "checked",
-    checked,
+    checked
   )}${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "indeterminate",
-    indeterminate,
+    indeterminate
   )}${figma.helpers.react.renderProp("invalid", invalid)}/>`,
   metadata: { nestable: true },
 }

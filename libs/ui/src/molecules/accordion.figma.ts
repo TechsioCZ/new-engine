@@ -25,10 +25,10 @@ export default {
   imports: ['import { Accordion } from "@techsio/ui-kit/molecules/accordion"'],
   example: figma.code`<Accordion${figma.helpers.react.renderProp(
     "shadow",
-    shadow,
+    shadow
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("variant", variant)}>
         <Accordion.Item value="item-1">
           <Accordion.Header>Title</Accordion.Header>

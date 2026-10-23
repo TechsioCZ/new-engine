@@ -34,13 +34,13 @@ export default {
   ],
   example: figma.code`<FileUpload.Root${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "invalid",
-    invalid,
+    invalid
   )}${figma.helpers.react.renderProp(
     "readOnly",
-    readOnly,
+    readOnly
   )}${figma.helpers.react.renderProp("required", required)}>
         <FileUpload.Label>Attachments</FileUpload.Label>
         <FileUpload.HiddenInput />

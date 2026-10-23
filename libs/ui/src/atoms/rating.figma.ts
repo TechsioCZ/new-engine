@@ -23,7 +23,7 @@ const count = figma.selectedInstance.getString("count")
 // "Label" is a plain text layer on Rating, not a nested instance
 const labelLayer = figma.selectedInstance.findText("Label")
 const labelText =
-  labelLayer.type !== "ERROR" ? labelLayer.textContent : undefined
+  labelLayer.type === "ERROR" ? undefined : labelLayer.textContent
 
 export default {
   id: "Rating",
