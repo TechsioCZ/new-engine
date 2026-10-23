@@ -8,10 +8,15 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "PriceBlock"
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/price-block.tsx libs/ui/src/tokens/components/molecules/_price-block.css libs/ui/stories/molecules/price-block.stories.tsx libs/ui/docs/price-availability-figma-handoff.md"
+  sources: ""
+  contributor_sources: "libs/ui/src/molecules/price-block.tsx libs/ui/src/tokens/components/molecules/_price-block.css libs/ui/stories/molecules/price-block.stories.tsx libs/ui/docs/price-availability-figma-handoff.md"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit PriceBlock Usage
 
@@ -136,3 +141,7 @@ Correct:
 rg -n "<PriceBlock[^>]*(amount=|currency=|locale=|children=)" apps
 rg -n "state=\"pending\"[^>]*(amountLabel|label|originalLabel)" apps
 ```
+
+## Story controls and display state
+
+The Playground selects all five price states and maps only the active state's labels into the component. Use `label` for on-request and `pendingLabel` for pending. PriceBlock is display-only: disabled and readOnly are not supported or meaningful price states. Use TotalsSummary for a basket total.

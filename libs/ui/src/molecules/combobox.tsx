@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.3.4
+ * @componentVersion v1.6.6
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,10 +13,28 @@ import {
   machine as comboboxMachine,
   connect as connectCombobox,
   collection as createComboboxCollection,
+  type Api as ZagComboboxApi,
   type Props as ZagComboboxProps,
 } from "@zag-js/combobox"
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type ReactNode, useEffect, useId, useMemo, useState } from "react"
+import {
+  mergeProps,
+  normalizeProps,
+  type PropTypes,
+  useMachine,
+} from "@zag-js/react"
+import {
+  type ChangeEvent,
+  type ComponentPropsWithoutRef,
+  type FocusEvent,
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
@@ -24,12 +42,23 @@ import { Icon, type IconProps, type IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import {
+  acknowledgeComboboxQuery,
+  queueComboboxQuery,
+} from "../internal/combobox-query-sync"
+import { joinDescribedBy } from "../internal/described-by"
+import {
+  subscribeOwnerFormReset,
+  syncReactFormControl,
+} from "../internal/form-control-lifecycle"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
 const comboboxVariants = tv({
   slots: {
     root: ["relative flex w-full flex-col"],
-    label: ["block font-label text-label-md"],
+    label: ["block font-label"],
     control: [
       "form-control-base relative flex w-full min-w-0 items-center overflow-clip",
       "bg-combobox-bg-base",
@@ -64,12 +93,12 @@ const comboboxVariants = tv({
     // Zag sets `min-width: max-content` inline, so this resolves to
     // max(trigger width, content width) — the panel is never narrower than
     // the control that opened it.
-    positioner: ["isolate w-(--reference-width)"],
+    positioner: ["popup-layer isolate w-(--reference-width)"],
     content: [
-      "popup-surface-base",
+      "popup-surface-base popup-layer",
       "w-full",
       "flex flex-col overflow-hidden",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale] motion-reduce:transition-none motion-reduce:duration-0",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
       "data-[state=open]:starting:scale-98 data-[state=open]:starting:opacity-0",
@@ -88,20 +117,15 @@ const comboboxVariants = tv({
     ],
     itemText: ["min-w-0 flex-grow truncate"],
     item: [
-      "popup-item-base",
-      "hover:bg-popup-item-bg-hover",
-      "data-highlighted:bg-popup-item-bg-hover",
-      "data-[state=checked]:bg-popup-item-bg-selected",
-      "data-[state=checked]:text-popup-item-fg-selected",
-      "data-disabled:cursor-not-allowed data-disabled:text-popup-item-fg-disabled",
+      "combobox-item-base",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     // Matches Select: absolutely positioned in the reserved end gutter, so a
     // checked option never shifts its label.
     itemIndicator: [
-      "-translate-y-1/2 absolute end-(--popup-item-x) top-1/2",
+      "absolute end-(--popup-item-x) top-1/2 -translate-y-1/2",
       "flex items-center justify-center",
-      "size-(--size-popup-indicator) text-popup-item-fg-selected",
+      "size-(--size-popup-indicator) text-current",
     ],
     emptyState: [
       "px-(--popup-item-x) py-(--popup-item-y)",
@@ -121,6 +145,11 @@ const comboboxVariants = tv({
       "data-[validation=success]:text-combobox-success-fg",
       "data-[validation=warning]:text-combobox-warning-fg",
     ],
+    selectedList: ["m-0 flex min-w-0 list-none flex-wrap gap-combobox-sm p-0"],
+    selectedItem: [
+      "flex min-w-0 max-w-full items-center rounded-combobox-sm border border-combobox-footer-border bg-combobox-bg-base ps-combobox-input-sm",
+    ],
+    selectedLabel: ["wrap-anywhere min-w-0 text-combobox-status-fg"],
     multiple: [],
   },
   compoundSlots: [
@@ -184,12 +213,34 @@ export type ComboboxItemGroup<T = unknown> = {
 }
 
 export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
+  Omit<
+    ComponentPropsWithoutRef<"div">,
+    "onChange" | "defaultValue" | "children"
+  > &
   (
     | { items: ComboboxItem<T>[]; groups?: never }
     | { items?: never; groups: ComboboxItemGroup<T>[] }
   ) & {
+    /** Ref to the focusable input, not the wrapper. Supports React 19 cleanup. */
+    ref?: Ref<HTMLInputElement>
+    /** Native input attributes/events; machine-owned value and editability remain authoritative. */
+    inputProps?: Omit<
+      ComponentPropsWithoutRef<"input">,
+      | "size"
+      | "value"
+      | "defaultValue"
+      | "name"
+      | "disabled"
+      | "readOnly"
+      | "required"
+      | "id"
+      | "children"
+    >
     id?: string
     name?: string
+    "aria-label"?: string
+    "aria-labelledby"?: string
+    "aria-describedby"?: string
     label?: string
     placeholder?: string
     disabled?: boolean
@@ -197,6 +248,7 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
     required?: boolean
     value?: string | string[]
     defaultValue?: string | string[]
+    defaultInputValue?: string
     inputValue?: string
     multiple?: boolean
     validateStatus?: "default" | "error" | "success" | "warning"
@@ -214,7 +266,8 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
     triggerIcon?: IconType
     triggerIconSize?: IconProps["size"]
     clearIcon?: IconType
-    onChange?: (value: string | string[]) => void
+    /** Always emits an array, including single selection and clearing ([]). */
+    onChange?: (value: string[]) => void
     onInputValueChange?: (value: string) => void
     onOpenChange?: (open: boolean) => void
     inputBehavior?: "autohighlight" | "autocomplete" | "none"
@@ -231,13 +284,277 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
     portalled?: boolean
   }
 
+type ComboboxApi<T> = ZagComboboxApi<PropTypes, ComboboxItem<T>>
+type ComboboxStyles = ReturnType<typeof comboboxVariants>
+type ComboboxOptionProps<T> = Pick<
+  ComboboxProps<T>,
+  "disabled" | "readOnly" | "navigate" | "renderItem"
+> & {
+  api: ComboboxApi<T>
+  item: ComboboxItem<T>
+  navigation: boolean
+  styles: ComboboxStyles
+}
+
+function ComboboxOption<T>({
+  api,
+  item,
+  navigation,
+  disabled,
+  readOnly,
+  navigate,
+  renderItem,
+  styles,
+}: ComboboxOptionProps<T>) {
+  const { item: itemSlot, itemText, itemIndicator } = styles
+  const itemProps = api.getItemProps({ item })
+  const itemContent = renderItem ? (
+    renderItem(item)
+  ) : (
+    <span className={itemText()}>{item.label}</span>
+  )
+
+  if (navigation) {
+    const blocked = disabled || readOnly || item.disabled || !item.href
+    return (
+      <a
+        {...itemProps}
+        aria-label={item.label}
+        className={itemSlot()}
+        href={blocked ? undefined : item.href}
+        onClick={(event) => {
+          if (blocked) {
+            event.preventDefault()
+            return
+          }
+          itemProps.onClick?.(event)
+          if (
+            navigate &&
+            !event.defaultPrevented &&
+            event.button === 0 &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey
+          ) {
+            event.preventDefault()
+            navigate({
+              node: event.currentTarget,
+              href: event.currentTarget.href,
+              value: item.value,
+            })
+          }
+        }}
+      >
+        {itemContent}
+      </a>
+    )
+  }
+
+  return (
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: Zag supplies role="option"; focus stays on the input via aria-activedescendant.
+    <div {...itemProps} aria-label={item.label} className={itemSlot()}>
+      {itemContent}
+      <span
+        {...api.getItemIndicatorProps({ item })}
+        className={itemIndicator()}
+      >
+        <Icon icon="token-icon-check" size="current" />
+      </span>
+    </div>
+  )
+}
+
+type ComboboxOptionsProps<T> = Omit<ComboboxOptionProps<T>, "item"> & {
+  groups?: ComboboxItemGroup<T>[]
+}
+
+function ComboboxOptions<T>({
+  groups,
+  ...optionProps
+}: ComboboxOptionsProps<T>) {
+  const { api, styles } = optionProps
+  const renderOption = (item: ComboboxItem<T>) => (
+    <ComboboxOption {...optionProps} item={item} key={item.value} />
+  )
+  if (!groups) {
+    return api.collection.items.map(renderOption)
+  }
+
+  const visibleValues = new Set(api.collection.items.map((item) => item.value))
+  return groups.map((group) => {
+    const groupItems = group.items.filter((item) =>
+      visibleValues.has(item.value)
+    )
+    if (groupItems.length === 0) {
+      return null
+    }
+    const groupProps = api.getItemGroupProps({ id: group.id })
+    return (
+      // biome-ignore lint/a11y/useAriaPropsSupportedByRole: Zag supplies the listbox option group role.
+      <div
+        {...groupProps}
+        aria-labelledby={
+          group.label ? groupProps["aria-labelledby"] : undefined
+        }
+        key={group.id}
+      >
+        {group.label && (
+          <div
+            {...api.getItemGroupLabelProps({ htmlFor: group.id })}
+            className={styles.groupLabel()}
+          >
+            {group.label}
+          </div>
+        )}
+        {groupItems.map(renderOption)}
+      </div>
+    )
+  })
+}
+
+function normalizeValue(value: ComboboxProps["value"]) {
+  if (typeof value === "string") {
+    return value ? [value] : []
+  }
+  return value
+}
+
+function getResultsState({
+  loading,
+  error,
+  hasOptions,
+  inputValue,
+}: {
+  loading: boolean
+  error: ReactNode
+  hasOptions: boolean
+  inputValue: string
+}) {
+  if (loading) {
+    return "loading"
+  }
+  if (error) {
+    return "error"
+  }
+  if (hasOptions) {
+    return "results"
+  }
+  return inputValue ? "empty" : "idle"
+}
+
+function ComboboxClearTrigger<T>({
+  api,
+  navigation,
+  clearable,
+  clearIcon,
+  size,
+  disabled,
+  readOnly,
+}: Pick<ComboboxProps<T>, "clearable" | "size" | "disabled" | "readOnly"> & {
+  api: ComboboxApi<T>
+  clearIcon: IconType
+  navigation: boolean
+}) {
+  const hasValue = navigation ? Boolean(api.inputValue) : api.value.length > 0
+  if (readOnly || !(clearable && hasValue)) {
+    return null
+  }
+  return (
+    <ActionIcon
+      icon={clearIcon}
+      size={size ?? "md"}
+      tone="neutral"
+      {...api.getClearTriggerProps()}
+      aria-label={api.getClearTriggerProps()["aria-label"] ?? "Clear value"}
+      disabled={disabled || readOnly}
+      hidden={false}
+      onClick={(event) => {
+        if (navigation) {
+          if (disabled || readOnly) {
+            return
+          }
+          api.setInputValue("")
+          api.focus()
+        } else {
+          api.getClearTriggerProps().onClick?.(event)
+        }
+      }}
+    />
+  )
+}
+
+function ComboboxStatus({
+  state,
+  styles,
+  loadingMessage,
+  error,
+  onRetry,
+  disabled,
+  readOnly,
+  retryLabel,
+  noResultsMessage,
+  inputValue,
+}: Pick<
+  ComboboxProps,
+  | "loadingMessage"
+  | "error"
+  | "onRetry"
+  | "disabled"
+  | "readOnly"
+  | "retryLabel"
+> & {
+  state: ReturnType<typeof getResultsState>
+  styles: ComboboxStyles
+  noResultsMessage: string
+  inputValue: string
+}) {
+  if (state === "loading") {
+    return (
+      <div className={styles.status()} role="status">
+        <Icon icon="token-icon-spinner" size="current" />
+        <span>{loadingMessage}</span>
+      </div>
+    )
+  }
+  if (state === "error") {
+    return (
+      <div className={styles.status()} role="alert">
+        <span className="min-w-0 flex-1">{error}</span>
+        {onRetry && (
+          <Button
+            disabled={disabled || readOnly}
+            onClick={onRetry}
+            size="sm"
+            variant="secondary"
+          >
+            {retryLabel}
+          </Button>
+        )}
+      </div>
+    )
+  }
+  if (state === "empty") {
+    return (
+      <div className={styles.emptyState()} role="status">
+        {noResultsMessage.replace("{inputValue}", inputValue)}
+      </div>
+    )
+  }
+  return null
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: The root coordinates the Zag selection, navigation and field contracts.
 export function Combobox<T = unknown>({
   id,
   name,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
   label,
   size,
   placeholder = "Select option",
-  disabled = false,
+  disabled: explicitDisabled = false,
   readOnly = false,
   required = false,
   items,
@@ -245,6 +562,7 @@ export function Combobox<T = unknown>({
   value,
   defaultValue,
   inputValue,
+  defaultInputValue,
   multiple = false,
   validateStatus,
   helpText,
@@ -276,17 +594,166 @@ export function Combobox<T = unknown>({
   navigate,
   footer,
   portalled = true,
+  ref,
+  inputProps = {},
+  className,
+  ...rootProps
 }: ComboboxProps<T>) {
   const generatedId = useId()
   const uniqueId = id || generatedId
   const listId = `${uniqueId}-listbox`
   const helpTextId = `${uniqueId}-help`
+  const selectedTextId = `${uniqueId}-selected`
   const navigation = mode === "navigation"
   const allItems = useMemo(
     () => (groups ? groups.flatMap((group) => group.items) : (items ?? [])),
     [groups, items]
   )
 
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [disabledElement, setDisabledElement] = useState<HTMLDivElement | null>(
+    null
+  )
+  const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
+  // Selection projection must not depend on the filtered popup collection.
+  const fullCollection = useMemo(
+    () =>
+      createComboboxCollection({
+        items: allItems,
+        itemToString: (item) => item.label,
+        itemToValue: (item) => item.value,
+      }),
+    [allItems]
+  )
+  const selectionCollection = useRef(fullCollection)
+  selectionCollection.current = fullCollection
+  const initialValue = useRef(normalizeValue(defaultValue) ?? [])
+  const resetting = useRef(false)
+  const nativeInputOwnsQuery = useRef(false)
+  const nativeQueries = useRef(new Set<string>())
+  const pendingQueries = useRef<string[]>([])
+  // A controlled parent may acknowledge an older edit after the next key has
+  // already landed. Keep an optimistic machine query, never a React-controlled
+  // native input, and distinguish those echoes from external replacements.
+  const [query, setQuery] = useState(inputValue ?? "")
+  useLayoutEffect(() => {
+    if (inputValue === undefined) {
+      return
+    }
+    if (nativeInputOwnsQuery.current) {
+      const remaining = acknowledgeComboboxQuery(
+        pendingQueries.current,
+        inputValue
+      )
+      if (remaining !== null) {
+        pendingQueries.current = remaining
+        // Zag's deferred input echoes are separate from parent acknowledgements.
+        return
+      }
+    }
+    nativeInputOwnsQuery.current = false
+    nativeQueries.current.clear()
+    pendingQueries.current = []
+    setQuery(inputValue)
+    if (inputRef.current && inputRef.current.value !== inputValue) {
+      syncReactFormControl(inputRef.current, inputValue)
+    }
+  }, [inputValue])
+  const resetSelection = useRef<string[] | null>(null)
+  useLayoutEffect(() => {
+    const restored = resetSelection.current
+    const controlled = normalizeValue(value)
+    if (
+      restored &&
+      controlled &&
+      (restored.length !== controlled.length ||
+        restored.some((item, index) => item !== controlled[index]))
+    ) {
+      // External parent updates are not user proposals, but must release the
+      // reset query too (including a later round-trip back to the reset value).
+      resetSelection.current = null
+    }
+  }, [value])
+  const coordinatedMachine = useMemo<typeof comboboxMachine>(() => {
+    const syncSelectedItems =
+      comboboxMachine.implementations?.actions?.syncSelectedItems
+    const syncInputValue =
+      comboboxMachine.implementations?.actions?.syncInputValue
+    if (!(syncSelectedItems && syncInputValue)) {
+      throw new Error("Combobox selection synchronization unavailable")
+    }
+    return {
+      ...comboboxMachine,
+      implementations: {
+        ...comboboxMachine.implementations,
+        actions: {
+          ...comboboxMachine.implementations?.actions,
+          syncInputValue(params) {
+            // Native edits already updated the value and caret. A deferred
+            // watcher can see an older query after filtering has replaced the
+            // current event with CHILDREN_CHANGE, so event.type is not enough.
+            // Controlled and uncontrolled edits both belong to the DOM until
+            // an external replacement, selection, blur or reset releases them.
+            if (nativeInputOwnsQuery.current) {
+              return
+            }
+            syncInputValue(params)
+          },
+          syncSelectedItems(params) {
+            if (params.prop("selectionBehavior") !== "preserve") {
+              nativeInputOwnsQuery.current = false
+              nativeQueries.current.clear()
+              pendingQueries.current = []
+            }
+            syncSelectedItems({
+              ...params,
+              prop(key) {
+                const propValue = params.prop(key)
+                if (key === "collection") {
+                  return selectionCollection.current as typeof propValue
+                }
+                // Zag resolves this inside a microtask. Preserve the restored
+                // query while still refreshing its selected-item cache. A new
+                // edit or authoritative selection releases the reset snapshot.
+                const restored = resetSelection.current
+                const selected = params.context.get("value")
+                if (
+                  key === "selectionBehavior" &&
+                  restored &&
+                  restored.length === selected.length &&
+                  restored.every((item, index) => item === selected[index])
+                ) {
+                  return "preserve" as typeof propValue
+                }
+                return propValue
+              },
+            })
+          },
+        },
+      },
+    }
+  }, [])
+  const focusableRef = useMemo(
+    () => (node: HTMLInputElement | null) => {
+      inputRef.current = node
+      const cleanup = typeof ref === "function" ? ref(node) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = node
+      }
+      return () => {
+        inputRef.current = null
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
+  const [focusVisible, setFocusVisible] = useState(false)
   const [options, setOptions] = useState(allItems)
   useEffect(() => {
     setOptions(allItems)
@@ -303,18 +770,23 @@ export function Combobox<T = unknown>({
       ),
   })
 
-  let normalizedValue = value
-  if (typeof normalizedValue === "string") {
-    normalizedValue = normalizedValue ? [normalizedValue] : []
-  }
-  let normalizedDefaultValue = defaultValue
-  if (typeof normalizedDefaultValue === "string") {
-    normalizedDefaultValue = normalizedDefaultValue
-      ? [normalizedDefaultValue]
-      : []
+  const notifyInputValueChange = (nextQuery: string) => {
+    if (!resetting.current) {
+      resetSelection.current = null
+    }
+    if (filterBehavior === "local") {
+      setOptions(
+        allItems.filter((item) =>
+          item.label.toLowerCase().includes(nextQuery.toLowerCase())
+        )
+      )
+    }
+    if (!(resetting.current || readOnly || disabled)) {
+      onInputValueChange?.(nextQuery)
+    }
   }
 
-  const service = useMachine(comboboxMachine, {
+  const service = useMachine(coordinatedMachine, {
     id: uniqueId,
     name: navigation ? undefined : name,
     collection,
@@ -324,8 +796,8 @@ export function Combobox<T = unknown>({
     selectionBehavior: navigation ? "preserve" : selectionBehavior,
     allowCustomValue: !navigation && allowCustomValue,
     autoFocus,
-    open,
-    defaultOpen,
+    open: readOnly || disabled ? false : open,
+    defaultOpen: readOnly || disabled ? false : defaultOpen,
     inputBehavior,
     loopFocus,
     navigate,
@@ -342,30 +814,197 @@ export function Combobox<T = unknown>({
       input: `${uniqueId}-input`,
       control: `${uniqueId}-control`,
     },
-    value: navigation ? [] : normalizedValue,
-    defaultValue: navigation ? undefined : normalizedDefaultValue,
+    value: navigation ? [] : normalizeValue(value),
+    defaultValue: navigation ? undefined : normalizeValue(defaultValue),
     multiple: !navigation && multiple,
-    inputValue,
+    inputValue: inputValue === undefined ? undefined : query,
+    defaultInputValue,
     onValueChange: ({ value: selectedValue }) => {
-      if (!navigation) onChange?.(selectedValue)
-    },
-    onInputValueChange: ({ inputValue: newItemInputValue }) => {
-      if (filterBehavior === "local") {
-        const filtered = allItems.filter((item) =>
-          item.label.toLowerCase().includes(newItemInputValue.toLowerCase())
-        )
-        setOptions(filtered)
+      if (!resetting.current) {
+        resetSelection.current = null
       }
-      onInputValueChange?.(newItemInputValue)
+      if (!(resetting.current || navigation || readOnly || disabled)) {
+        onChange?.(selectedValue)
+        if (value !== undefined) {
+          // A refused proposal does not change Zag's value, so its value watcher
+          // never repairs the query written by selectItem/selectHighlightedItem.
+          // Resolve after React has accepted/refused the proposal, not from the
+          // proposed item or the filtered popup collection.
+          queueMicrotask(() => service.send({ type: "SELECTED_ITEMS.SYNC" }))
+        }
+      }
     },
-    onOpenChange: ({ open }) => {
-      setOptions(allItems)
-      onOpenChange?.(open)
+    onInputValueChange: ({ inputValue: nextQuery, reason }) => {
+      // Zag queues native INPUT.CHANGE events. Their notification may arrive
+      // after this handler returned or newer keys landed; it is only an echo.
+      if (reason === "input-change" && nativeQueries.current.has(nextQuery)) {
+        return
+      }
+      nativeInputOwnsQuery.current = false
+      nativeQueries.current.clear()
+      pendingQueries.current = []
+      // Programmatic proposals still respect a controlled parent's authority.
+      // Native edits are handled directly below, including edits equal to an
+      // older machine snapshot (which Zag's equality check would suppress).
+      if (inputValue !== undefined) {
+        setQuery(inputValue)
+      }
+      notifyInputValueChange(nextQuery)
+    },
+    onOpenChange: ({ open: nextOpen, reason }) => {
+      // Zag opens after notifying the first input change. Do not overwrite
+      // that freshly filtered collection; explicit reopening restores choices.
+      if (reason !== "input-change") {
+        setOptions(allItems)
+      }
+      onOpenChange?.(nextOpen)
     },
   })
 
   const api = connectCombobox(service, normalizeProps)
+  const previousSelectionCollection = useRef(fullCollection)
+  useLayoutEffect(() => {
+    const previous = previousSelectionCollection.current
+    previousSelectionCollection.current = fullCollection
+    if (
+      previous === fullCollection ||
+      navigation ||
+      selectionBehavior !== "replace" ||
+      inputValue !== undefined
+    ) {
+      return
+    }
+    const selected = service.context.get("value")
+    // Remote results may temporarily omit selected items. Keep their cached
+    // labels instead of replacing the query with a partial or empty projection.
+    if (selected.some((item) => !fullCollection.find(item))) {
+      return
+    }
+    const previousText = previous.stringifyMany(selected)
+    const nextText = fullCollection.stringifyMany(selected)
+    // Zag watches selected keys, not their labels. Refresh a projected label
+    // when only collection data changes, without discarding an active query.
+    if (
+      previousText === nextText ||
+      service.context.get("inputValue") !== previousText
+    ) {
+      return
+    }
+    resetSelection.current = null
+    resetting.current = true
+    try {
+      service.context.set("inputValue", nextText)
+    } finally {
+      resetting.current = false
+    }
+    service.send({ type: "SELECTED_ITEMS.SYNC" })
+  }, [fullCollection, inputValue, navigation, selectionBehavior, service])
+  const initialQuery = useRef(service.context.initial("inputValue"))
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    // A controlled selection remains authoritative. Its current label, not
+    // the label at mount, is the reset projection for a replacement query.
+    const restoredValue = navigation
+      ? []
+      : (normalizeValue(value) ?? initialValue.current)
+    const restoredQuery =
+      inputValue ??
+      (selectionBehavior === "replace" &&
+      !navigation &&
+      (value !== undefined || defaultInputValue === undefined)
+        ? restoredValue
+            .map(
+              (itemValue) =>
+                allItems.find((item) => item.value === itemValue)?.label ??
+                api.selectedItems.find((item) => item.value === itemValue)
+                  ?.label ??
+                itemValue
+            )
+            .join(", ")
+        : (defaultInputValue ?? initialQuery.current))
+    // Direct restoration bypasses edit guards without emitting user callbacks.
+    // Keep the snapshot through Zag's deferred selected-item synchronization.
+    resetSelection.current = restoredValue
+    nativeInputOwnsQuery.current = false
+    nativeQueries.current.clear()
+    pendingQueries.current = []
+    if (inputValue !== undefined) {
+      setQuery(inputValue)
+    }
+    resetting.current = true
+    try {
+      if (value === undefined) {
+        service.context.set("value", restoredValue)
+      }
+      if (inputValue === undefined) {
+        service.context.set("inputValue", restoredQuery)
+      }
+    } finally {
+      resetting.current = false
+    }
+    api.setOpen(false)
+    api.clearHighlightValue()
+    setOptions(allItems)
+    if (inputRef.current) {
+      syncReactFormControl(inputRef.current, restoredQuery)
+    }
+  }
+  useEffect(() => {
+    const input = inputRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
+  useEffect(() => {
+    inputRef.current?.setCustomValidity(
+      !navigation && required && api.value.length === 0
+        ? "Select an option from the suggestions."
+        : ""
+    )
+  }, [navigation, required, api.value.length])
+  const selectedText = api.value
+    .map(
+      (selectedValue) =>
+        allItems.find((item) => item.value === selectedValue)?.label ??
+        api.selectedItems.find((item) => item.value === selectedValue)?.label ??
+        selectedValue
+    )
+    .join(", ")
 
+  useEffect(() => {
+    if (readOnly && !navigation) {
+      // Closing the popup alone leaves its uncommitted search in the input.
+      // Resolve from selected items, including those outside the filtered list.
+      if (service.context.get("inputValue") !== selectedText) {
+        service.send({ type: "INPUT_VALUE.SET", value: selectedText })
+      }
+      // Ask a controlled query's owner to discard its draft too. The surface
+      // still reflects the selection if that owner cannot update immediately.
+      if (inputValue !== undefined && inputValue !== selectedText) {
+        onInputValueChange?.(selectedText)
+      }
+      if (inputRef.current) {
+        inputRef.current.value = selectedText
+      }
+    }
+  }, [
+    readOnly,
+    navigation,
+    selectedText,
+    service,
+    inputValue,
+    onInputValueChange,
+  ])
+  // The inner list owns listbox semantics; the outer surface is only the
+  // dismissal boundary and also contains statuses and retry/footer actions.
+  const {
+    role: _contentRole,
+    tabIndex: _contentTabIndex,
+    "aria-labelledby": _contentLabel,
+    ...contentProps
+  } = api.getContentProps()
+
+  const styles = comboboxVariants({ size })
   const {
     root,
     label: labelStyles,
@@ -375,96 +1014,60 @@ export function Combobox<T = unknown>({
     positioner,
     content,
     list,
-    groupLabel,
     footer: footerSlot,
-    item: itemSlot,
-    itemText,
-    itemIndicator,
-    emptyState,
-    status: statusSlot,
     triggerIndicator,
-  } = comboboxVariants({ size })
+  } = styles
 
-  const hasOptions = api.collection.size > 0
-  const showEmptyState =
-    !(resultsHidden || hasOptions) && Boolean(api.inputValue)
-  let state = "idle"
-  if (loading) state = "loading"
-  else if (error) state = "error"
-  else if (hasOptions) state = "results"
-  else if (showEmptyState) state = "empty"
-  const visibleValues = new Set(collection.items.map((item) => item.value))
+  const state = getResultsState({
+    loading,
+    error,
+    hasOptions: api.collection.size > 0,
+    inputValue: api.inputValue,
+  })
 
-  const renderOption = (item: ComboboxItem<T>) => {
-    const itemProps = api.getItemProps({ item })
-    const itemContent = renderItem ? (
-      renderItem(item)
-    ) : (
-      <span className={itemText()}>{item.label}</span>
-    )
-
-    if (navigation) {
-      const blocked = disabled || readOnly || item.disabled || !item.href
-      return (
-        <a
-          {...itemProps}
-          aria-label={item.label}
-          className={itemSlot()}
-          href={blocked ? undefined : item.href}
-          key={item.value}
-          onClick={(event) => {
-            if (blocked) {
-              event.preventDefault()
-              return
-            }
-            itemProps.onClick?.(event)
-            if (
-              navigate &&
-              !event.defaultPrevented &&
-              event.button === 0 &&
-              !event.metaKey &&
-              !event.ctrlKey &&
-              !event.shiftKey &&
-              !event.altKey
-            ) {
-              event.preventDefault()
-              navigate({
-                node: event.currentTarget,
-                href: event.currentTarget.href,
-                value: item.value,
-              })
-            }
-          }}
-        >
-          {itemContent}
-        </a>
-      )
-    }
-
-    return (
-      <div
-        {...itemProps}
-        aria-label={item.label}
-        className={itemSlot()}
-        key={item.value}
-      >
-        {itemContent}
-        <span
-          {...api.getItemIndicatorProps({ item })}
-          className={itemIndicator()}
-        >
-          <Icon icon="token-icon-check" size="current" />
-        </span>
-      </div>
-    )
-  }
+  const machineInputProps = api.getInputProps()
+  const mergedInputProps = mergeProps(
+    {
+      ...machineInputProps,
+      onChange(event: ChangeEvent<HTMLInputElement>) {
+        if (readOnly || disabled) {
+          return
+        }
+        const nextQuery = event.currentTarget.value
+        nativeInputOwnsQuery.current = true
+        nativeQueries.current.add(nextQuery)
+        if (inputValue !== undefined) {
+          pendingQueries.current = queueComboboxQuery(
+            pendingQueries.current,
+            nextQuery,
+            inputValue
+          )
+          setQuery(nextQuery)
+        }
+        notifyInputValueChange(nextQuery)
+        machineInputProps.onChange?.(event)
+      },
+      onBlur(event: FocusEvent<HTMLInputElement>) {
+        nativeInputOwnsQuery.current = false
+        nativeQueries.current.clear()
+        pendingQueries.current = []
+        machineInputProps.onBlur?.(event)
+        if (inputValue !== undefined) {
+          setQuery(inputValue)
+          syncReactFormControl(event.currentTarget, inputValue)
+        }
+      },
+    },
+    inputProps
+  )
 
   return (
     <div
-      {...api.getRootProps()}
-      className={root()}
+      {...mergeProps(api.getRootProps(), rootProps)}
+      className={root({ className })}
       data-mode={mode}
       data-status={state}
+      ref={setDisabledElement}
     >
       {label && (
         <Label
@@ -479,133 +1082,155 @@ export function Combobox<T = unknown>({
       <div
         className={control()}
         {...api.getControlProps()}
+        data-focus-visible={focusVisible ? "" : undefined}
         data-validation={validateStatus}
+        onBlurCapture={() => setFocusVisible(false)}
+        onFocusCapture={(event) =>
+          setFocusVisible(event.target.matches(":focus-visible"))
+        }
+        onKeyDownCapture={() => setFocusVisible(true)}
+        onPointerDownCapture={() => setFocusVisible(false)}
       >
         <Input
-          className={input()}
-          {...api.getInputProps()}
+          {...mergedInputProps}
           aria-controls={api.open ? listId : undefined}
-          aria-describedby={helpText ? helpTextId : undefined}
-          name={navigation ? undefined : name}
+          aria-describedby={joinDescribedBy(
+            ariaDescribedBy,
+            inputProps["aria-describedby"],
+            helpText ? helpTextId : undefined,
+            multiple && api.value.length ? selectedTextId : undefined
+          )}
+          aria-errormessage={
+            validateStatus === "error"
+              ? joinDescribedBy(
+                  inputProps["aria-errormessage"],
+                  helpText ? helpTextId : undefined
+                )
+              : inputProps["aria-errormessage"]
+          }
+          aria-invalid={
+            validateStatus === "error" ||
+            inputProps["aria-invalid"] ||
+            undefined
+          }
+          aria-label={ariaLabel ?? inputProps["aria-label"]}
+          aria-labelledby={
+            ariaLabelledBy ??
+            inputProps["aria-labelledby"] ??
+            (label && !(ariaLabel ?? inputProps["aria-label"])
+              ? api.getInputProps()["aria-labelledby"]
+              : undefined)
+          }
+          aria-required={required || undefined}
+          className={input({ className: inputProps.className })}
+          defaultValue={api.inputValue}
+          disabled={disabled}
+          name={undefined}
+          onKeyDown={(event) => {
+            inputProps.onKeyDown?.(event)
+            if (event.defaultPrevented) {
+              return
+            }
+            if (
+              !navigation &&
+              multiple &&
+              !disabled &&
+              !readOnly &&
+              !api.open &&
+              !api.inputValue &&
+              event.key === "Backspace" &&
+              !event.nativeEvent.isComposing
+            ) {
+              const lastValue = api.value.at(-1)
+              if (lastValue) {
+                event.preventDefault()
+                api.clearValue(lastValue)
+              }
+              return
+            }
+            api.getInputProps().onKeyDown?.(event)
+          }}
           placeholder={placeholder}
-          required={required}
+          readOnly={readOnly}
+          ref={focusableRef}
+          required={navigation && required}
+          size={size}
+          value={undefined}
+        />
+
+        <ComboboxClearTrigger
+          api={api}
+          clearable={clearable}
+          clearIcon={clearIcon}
+          disabled={disabled}
+          navigation={navigation}
+          readOnly={readOnly}
           size={size}
         />
 
-        {clearable &&
-          (navigation ? Boolean(api.inputValue) : api.value.length > 0) && (
-            <ActionIcon
-              icon={clearIcon}
-              size={size ?? "md"}
-              tone="neutral"
-              {...api.getClearTriggerProps()}
-              aria-label={
-                api.getClearTriggerProps()["aria-label"] ?? "Clear value"
-              }
-              disabled={disabled || readOnly}
-              hidden={false}
-              onClick={(event) => {
-                if (navigation) {
-                  if (disabled || readOnly) return
-                  api.setInputValue("")
-                  api.focus()
-                } else {
-                  api.getClearTriggerProps().onClick?.(event)
-                }
-              }}
+        {!readOnly && (
+          <Button
+            {...api.getTriggerProps()}
+            aria-controls={api.open ? listId : undefined}
+            aria-haspopup="listbox"
+            className={trigger()}
+            size="current"
+            theme="unstyled"
+          >
+            <Icon
+              className={triggerIndicator()}
+              icon={triggerIcon}
+              size={triggerIconSize ?? "current"}
             />
-          )}
-
-        <Button
-          {...api.getTriggerProps()}
-          aria-controls={api.open ? listId : undefined}
-          aria-haspopup="listbox"
-          className={trigger()}
-          size="current"
-          theme="unstyled"
-        >
-          <Icon
-            className={triggerIndicator()}
-            icon={triggerIcon}
-            size={triggerIconSize ?? "current"}
-          />
-        </Button>
+          </Button>
+        )}
       </div>
+      {!navigation &&
+        name &&
+        (api.value.length ? api.value : [""]).map((selectedValue) => (
+          <input
+            disabled={disabled}
+            form={inputProps.form}
+            key={selectedValue}
+            name={name}
+            type="hidden"
+            value={selectedValue}
+          />
+        ))}
 
       <Portal disabled={!portalled}>
         <div {...api.getPositionerProps()} className={positioner()}>
-          <div
-            {...api.getContentProps()}
-            aria-labelledby={undefined}
-            className={content()}
-            data-status={state}
-            role={undefined}
-            tabIndex={undefined}
-          >
-            {loading ? (
-              <div className={statusSlot()} role="status">
-                <Icon icon="token-icon-spinner" size="current" />
-                <span>{loadingMessage}</span>
-              </div>
-            ) : error ? (
-              <div className={statusSlot()} role="alert">
-                <span className="min-w-0 flex-1">{error}</span>
-                {onRetry && (
-                  <Button
-                    disabled={disabled || readOnly}
-                    onClick={onRetry}
-                    size="sm"
-                    variant="secondary"
-                  >
-                    {retryLabel}
-                  </Button>
-                )}
-              </div>
-            ) : showEmptyState ? (
-              <div className={emptyState()} role="status">
-                {noResultsMessage.replace("{inputValue}", api.inputValue)}
-              </div>
-            ) : null}
+          <div {...contentProps} className={content()} data-status={state}>
+            <ComboboxStatus
+              disabled={disabled}
+              error={error}
+              inputValue={api.inputValue}
+              loadingMessage={loadingMessage}
+              noResultsMessage={noResultsMessage}
+              onRetry={onRetry}
+              readOnly={readOnly}
+              retryLabel={retryLabel}
+              state={state}
+              styles={styles}
+            />
             <div
               {...api.getListProps()}
               aria-busy={loading || undefined}
               className={list()}
               id={listId}
             >
-              {!resultsHidden &&
-                (groups
-                  ? groups.map((group) => {
-                      const groupItems = group.items.filter((item) =>
-                        visibleValues.has(item.value)
-                      )
-                      if (groupItems.length === 0) return null
-                      return (
-                        <div
-                          {...api.getItemGroupProps({ id: group.id })}
-                          aria-labelledby={
-                            group.label
-                              ? api.getItemGroupProps({ id: group.id })[
-                                  "aria-labelledby"
-                                ]
-                              : undefined
-                          }
-                          key={group.id}
-                        >
-                          {group.label && (
-                            <div
-                              {...api.getItemGroupLabelProps({
-                                htmlFor: group.id,
-                              })}
-                              className={groupLabel()}
-                            >
-                              {group.label}
-                            </div>
-                          )}
-                          {groupItems.map(renderOption)}
-                        </div>
-                      )
-                    })
-                  : collection.items.map(renderOption))}
+              {!resultsHidden && (
+                <ComboboxOptions
+                  api={api}
+                  disabled={disabled}
+                  groups={groups}
+                  navigate={navigate}
+                  navigation={navigation}
+                  readOnly={readOnly}
+                  renderItem={renderItem}
+                  styles={styles}
+                />
+              )}
             </div>
             {footer && (
               <div className={footerSlot()} data-part="footer">
@@ -615,6 +1240,45 @@ export function Combobox<T = unknown>({
           </div>
         </div>
       </Portal>
+
+      {multiple && !navigation && api.value.length > 0 && (
+        <div>
+          <StatusText className="sr-only" id={selectedTextId} size={size}>
+            Selected: {selectedText}
+          </StatusText>
+          <ul aria-label="Selected values" className={styles.selectedList()}>
+            {api.value.map((selectedValue) => {
+              const selectedLabel =
+                allItems.find((item) => item.value === selectedValue)?.label ??
+                api.selectedItems.find((item) => item.value === selectedValue)
+                  ?.label ??
+                selectedValue
+              return (
+                <li className={styles.selectedItem()} key={selectedValue}>
+                  <span className={styles.selectedLabel()}>
+                    {selectedLabel}
+                  </span>
+                  {!readOnly && (
+                    <ActionIcon
+                      aria-label={`Remove ${selectedLabel}`}
+                      disabled={disabled}
+                      icon="token-icon-combobox-clear"
+                      onClick={() => {
+                        if (disabled || readOnly) {
+                          return
+                        }
+                        api.clearValue(selectedValue)
+                        api.focus()
+                      }}
+                      size={size ?? "md"}
+                    />
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       {helpText && (
         <StatusText

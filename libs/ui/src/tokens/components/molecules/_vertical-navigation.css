@@ -52,20 +52,25 @@
   --spacing-vertical-navigation-indent: var(--dimension-12);
   --spacing-vertical-navigation-label: var(--dimension-8);
   --spacing-vertical-navigation-item-sm: var(--height-form-control-sm);
-  --spacing-vertical-navigation-item-md: var(--dimension-36);
+  --spacing-vertical-navigation-item-md: var(--height-form-control-md);
+  --spacing-vertical-navigation-item-lg: var(--height-form-control-lg);
   --spacing-vertical-navigation-separator: var(--border-width-sm);
   --padding-vertical-navigation-item-x-sm: var(--padding-popup-item-x-sm);
   --padding-vertical-navigation-item-x-md: var(--padding-popup-item-x-md);
+  --padding-vertical-navigation-item-x-lg: var(--padding-popup-item-x-lg);
   --padding-vertical-navigation-item-y-sm: var(--padding-popup-item-y-sm);
   --padding-vertical-navigation-item-y-md: var(--padding-popup-item-y-md);
+  --padding-vertical-navigation-item-y-lg: var(--padding-popup-item-y-lg);
   --padding-vertical-navigation-group: var(--dimension-0);
 
   /* TYPOGRAPHY */
-  --text-vertical-navigation-sm: var(--text-sm);
-  --text-vertical-navigation-md: var(--text-base);
+  --text-vertical-navigation-sm: var(--text-button-sm);
+  --text-vertical-navigation-md: var(--text-button-md);
+  --text-vertical-navigation-lg: var(--text-button-lg);
   --text-vertical-navigation-label-sm: var(--text-xs);
   --text-vertical-navigation-icon-sm: var(--text-icon-control-sm);
   --text-vertical-navigation-icon-md: var(--text-icon-control-md);
+  --text-vertical-navigation-icon-lg: var(--text-icon-control-lg);
   --font-weight-vertical-navigation-current: var(--font-weight-semibold);
   --font-weight-vertical-navigation-label: var(--font-weight-semibold);
   --font-weight-vertical-navigation-path: var(--font-weight-medium);
@@ -132,4 +137,17 @@
 
 @utility token-icon-vertical-navigation-chevron {
   @apply token-icon-chevron-down;
+}
+
+/* Navigation owns typography and an inset press cue; Button motion is not inherited. */
+@theme static {
+  --font-weight-vertical-navigation: var(--font-weight-normal);
+  --border-width-vertical-navigation-pressed: var(--border-width-sm);
+}
+
+@utility vertical-navigation-press {
+  &:active:not(:disabled):not([data-disabled]) {
+    box-shadow: inset 0
+      calc(-1 * var(--border-width-vertical-navigation-pressed)) currentColor;
+  }
 }

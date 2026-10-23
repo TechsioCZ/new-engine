@@ -9,5 +9,16 @@
  */
 
 :root {
+  --brightness-gallery-inactive: 0.7;
+  --brightness-gallery-current: 1;
+  --brightness-gallery-trigger: var(--brightness-gallery-inactive);
+  --brightness-gallery-trigger-active: var(--brightness-gallery-current);
   --height-gallery: min(60svh, 36rem);
+}
+
+@utility brightness-gallery-trigger {
+  filter: brightness(var(--brightness-gallery-trigger));
+}
+@utility brightness-gallery-trigger-active {
+  filter: brightness(var(--brightness-gallery-trigger-active));
 }

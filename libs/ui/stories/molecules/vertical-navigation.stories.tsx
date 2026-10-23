@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type MouseEvent, useState } from "react"
-import { fn } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { StatusText } from "../../src/atoms/status-text"
 import { Button } from "../../src/atoms/button"
 import { Drawer } from "../../src/molecules/drawer"
 import { VerticalNavigation } from "../../src/molecules/vertical-navigation"
@@ -9,7 +10,7 @@ import { Sidebar } from "../../src/organisms/sidebar"
 import "./vertical-navigation.stories.css"
 
 type NavigationStoryProps = {
-  size: "sm" | "md"
+  size: "sm" | "md" | "lg"
   tone: "plain" | "subtle" | "accent"
   variant: "primary" | "secondary"
   indent: boolean
@@ -115,19 +116,76 @@ function CategoryNavigation({
   )
 }
 
-function NavigationStory(args: NavigationStoryProps) {
+const playgroundSource = `import { type MouseEvent, useState } from "react"
+import { VerticalNavigation } from "@techsio/ui-kit/molecules/vertical-navigation"
+
+export function ProductNavigation() {
+  const [current, setCurrent] = useState("Bolts")
+  const [open, setOpen] = useState(true)
+  function navigate(event: MouseEvent<HTMLAnchorElement>, label: string) {
+    event.preventDefault()
+    setCurrent(label)
+  }
   return (
-    <div data-navigation-story="">
-      <CategoryNavigation {...args} />
+    <div className="flex min-w-0 flex-col gap-200" data-navigation-story="">
+      <VerticalNavigation aria-label="Product categories" dir="ltr" size="md">
+        <VerticalNavigation.Group>
+          <VerticalNavigation.GroupLabel>Catalog</VerticalNavigation.GroupLabel>
+          <VerticalNavigation.List>
+            <VerticalNavigation.Item>
+              <VerticalNavigation.Link current={current === "All products"} href="#all-products" onClick={(event) => navigate(event, "All products")}>
+                All products
+              </VerticalNavigation.Link>
+            </VerticalNavigation.Item>
+            <VerticalNavigation.Branch containsCurrent={["Bolts", "Nuts"].includes(current)} open={open} onOpenChange={(details) => setOpen(details.open)}>
+              <VerticalNavigation.Row>
+                <VerticalNavigation.Link current={current === "Fasteners"} href="#fasteners" onClick={(event) => navigate(event, "Fasteners")}>
+                  Fasteners
+                </VerticalNavigation.Link>
+                <VerticalNavigation.BranchTrigger aria-label="Toggle Fasteners">
+                  <VerticalNavigation.BranchIndicator />
+                </VerticalNavigation.BranchTrigger>
+              </VerticalNavigation.Row>
+              <VerticalNavigation.BranchContent indent showGuide={false} tone="subtle" variant="primary">
+                <VerticalNavigation.List>
+                  {["Bolts", "Nuts"].map((label) => (
+                    <VerticalNavigation.Item key={label}>
+                      <VerticalNavigation.Link current={current === label} href={\`#\${label.toLowerCase()}\`} onClick={(event) => navigate(event, label)}>
+                        {label}
+                      </VerticalNavigation.Link>
+                    </VerticalNavigation.Item>
+                  ))}
+                </VerticalNavigation.List>
+              </VerticalNavigation.BranchContent>
+            </VerticalNavigation.Branch>
+          </VerticalNavigation.List>
+        </VerticalNavigation.Group>
+        <VerticalNavigation.Separator />
+        <VerticalNavigation.Group>
+          <VerticalNavigation.GroupLabel>Support</VerticalNavigation.GroupLabel>
+          <VerticalNavigation.List>
+            <VerticalNavigation.Item>
+              <VerticalNavigation.Link current={current === "Contact"} href="#contact" onClick={(event) => navigate(event, "Contact")}>
+                Contact
+              </VerticalNavigation.Link>
+            </VerticalNavigation.Item>
+          </VerticalNavigation.List>
+        </VerticalNavigation.Group>
+      </VerticalNavigation>
+      <p className="sr-only" data-testid="current-page" role="status">Current page: {current}</p>
     </div>
   )
-}
+}`
 
 const meta = {
   title: "Molecules/VerticalNavigation",
-  component: NavigationStory,
+  component: VerticalNavigation,
+  render: (args) => (
+    <div data-navigation-story=""><CategoryNavigation {...args} /></div>
+  ),
   tags: ["autodocs"],
   parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
     layout: "padded",
     docs: {
       description: {
@@ -143,15 +201,15 @@ const meta = {
       if: { arg: "tone", eq: "accent" },
       description: "Brand color for accent group backgrounds; does not change the current page",
     },
-    size: { control: "select", options: ["sm", "md"] },
+    size: { description: "Scales navigation row text and spacing for dense or touch-friendly layouts.", control: "select", options: ["sm", "md", "lg"] },
     tone: {
       control: "select",
       options: ["plain", "subtle", "accent"],
       description: "Appearance of nested groups, not their active state",
     },
-    indent: { control: "boolean" },
-    showGuide: { control: "boolean" },
-    dir: { control: "select", options: ["ltr", "rtl"] },
+    indent: { description: "Inset nested links to make the parent-child hierarchy visible.", control: "boolean" },
+    showGuide: { description: "Draw a logical-start guide beside nested groups.", control: "boolean" },
+    dir: { description: "Mirror logical indentation and disclosure placement for RTL navigation.", control: "select", options: ["ltr", "rtl"] },
   },
   args: {
     size: "md",
@@ -161,127 +219,10 @@ const meta = {
     showGuide: false,
     dir: "ltr",
   },
-} satisfies Meta<typeof NavigationStory>
+} satisfies Meta<NavigationStoryProps>
 
 export default meta
 type Story = StoryObj<typeof meta>
-
-export const Playground: Story = {}
-
-export const Variants: Story = {
-  parameters: { controls: { exclude: ["tone", "variant"] } },
-  render: (args) => (
-    <VariantContainer>
-      {(
-        [
-          { tone: "plain", variant: "primary", title: "Plain" },
-          { tone: "subtle", variant: "primary", title: "Subtle" },
-          { tone: "accent", variant: "primary", title: "Accent — primary" },
-          { tone: "accent", variant: "secondary", title: "Accent — secondary" },
-        ] as const
-      ).map(({ tone, variant, title }) => (
-        <VariantGroup key={title} title={title}>
-          <div data-navigation-story="">
-            <CategoryNavigation
-              {...args}
-              label={`Product categories - ${title}`}
-              tone={tone}
-              variant={variant}
-            />
-          </div>
-        </VariantGroup>
-      ))}
-    </VariantContainer>
-  ),
-}
-
-export const Sizes: Story = {
-  parameters: { controls: { exclude: ["size"] } },
-  render: (args) => (
-    <VariantContainer>
-      {(["sm", "md"] as const).map((size) => (
-        <VariantGroup key={size} title={size}>
-          <div data-navigation-story="">
-            <CategoryNavigation {...args} label={`Product categories - ${size}`} size={size} />
-          </div>
-        </VariantGroup>
-      ))}
-    </VariantContainer>
-  ),
-}
-
-export const States: Story = {
-  render: ({ size, dir, tone, variant, indent, showGuide }) => (
-    <VerticalNavigation
-      aria-label="Navigation states"
-      data-navigation-story=""
-      dir={dir}
-      size={size}
-    >
-      <VerticalNavigation.Group>
-        <VerticalNavigation.GroupLabel>Links</VerticalNavigation.GroupLabel>
-        <VerticalNavigation.List>
-          <VerticalNavigation.Item>
-            <VerticalNavigation.Link current href="#overview" onClick={onNavigate}>
-              Overview
-            </VerticalNavigation.Link>
-          </VerticalNavigation.Item>
-          <VerticalNavigation.Item>
-            <VerticalNavigation.Link disabled href="#unavailable" onClick={onNavigate}>
-              Unavailable destination
-            </VerticalNavigation.Link>
-          </VerticalNavigation.Item>
-        </VerticalNavigation.List>
-      </VerticalNavigation.Group>
-      <VerticalNavigation.Separator />
-      <VerticalNavigation.Group>
-        <VerticalNavigation.GroupLabel>Categories</VerticalNavigation.GroupLabel>
-        <VerticalNavigation.List>
-          <VerticalNavigation.Branch onOpenChange={onOpenChange}>
-            <VerticalNavigation.BranchTrigger>
-              Collapsed category
-              <VerticalNavigation.BranchIndicator />
-            </VerticalNavigation.BranchTrigger>
-            <VerticalNavigation.BranchContent
-              tone={tone}
-              variant={variant}
-              indent={indent}
-              showGuide={showGuide}
-            >
-              <VerticalNavigation.List>
-                <VerticalNavigation.Item>
-                  <VerticalNavigation.Link href="#hidden-destination" onClick={onNavigate}>
-                    Hidden destination
-                  </VerticalNavigation.Link>
-                </VerticalNavigation.Item>
-              </VerticalNavigation.List>
-            </VerticalNavigation.BranchContent>
-          </VerticalNavigation.Branch>
-          <VerticalNavigation.Branch disabled>
-            <VerticalNavigation.BranchTrigger>
-              Unavailable category
-              <VerticalNavigation.BranchIndicator />
-            </VerticalNavigation.BranchTrigger>
-            <VerticalNavigation.BranchContent
-              tone={tone}
-              variant={variant}
-              indent={indent}
-              showGuide={showGuide}
-            >
-              <VerticalNavigation.List>
-                <VerticalNavigation.Item>
-                  <VerticalNavigation.Link href="#restricted">
-                    Restricted destination
-                  </VerticalNavigation.Link>
-                </VerticalNavigation.Item>
-              </VerticalNavigation.List>
-            </VerticalNavigation.BranchContent>
-          </VerticalNavigation.Branch>
-        </VerticalNavigation.List>
-      </VerticalNavigation.Group>
-    </VerticalNavigation>
-  ),
-}
 
 type Category = {
   id: string
@@ -424,33 +365,21 @@ function SevenLevelsExample() {
   )
 }
 
-export const SevenLevels: Story = {
-  parameters: {
-    controls: { disable: true },
-    docs: {
-      description: {
-        story:
-          "Seven nested lists in a 280 px column. The small size and maxIndentDepth={7} preserve visible indentation at every level; long labels wrap. Only one subgroup is tinted, independently of the current page.",
-      },
-    },
-  },
-  render: () => <SevenLevelsExample />,
-}
-
 function ControlledExample() {
   const [open, setOpen] = useState(false)
-  const [rejectChanges, setRejectChanges] = useState(true)
+  const [rejectChanges, setRejectChanges] = useState(false)
+  const [message, setMessage] = useState("")
   const [changeCount, setChangeCount] = useState(0)
 
   return (
     <div className="flex flex-col gap-200" data-navigation-story="">
       <Button
         aria-pressed={rejectChanges}
-        onClick={() => setRejectChanges(!rejectChanges)}
+        onClick={() => { setRejectChanges(!rejectChanges); setMessage("") }}
         theme="outlined"
         size="sm"
       >
-        Reject changes
+        Reject changes: {rejectChanges ? "on" : "off"}
       </Button>
       <Button onClick={() => setOpen(true)} size="sm" theme="outlined">
         Reveal current page
@@ -464,6 +393,9 @@ function ControlledExample() {
               onOpenChange(details)
               if (!rejectChanges) {
                 setOpen(details.open)
+                setMessage("Expansion request accepted.")
+              } else {
+                setMessage("Expansion request intentionally rejected. Turn off Reject changes to allow it.")
               }
             }}
             open={open}
@@ -487,76 +419,13 @@ function ControlledExample() {
       <p className="text-fg-primary text-sm" data-testid="controlled-open-state">
         {open ? "Open" : "Closed"}
       </p>
-      <p className="sr-only" data-testid="open-change-count">
-        {changeCount}
+      <StatusText role="status">{message || "Changes are accepted by default. Turn on Reject changes to test parent-owned disclosure."}</StatusText>
+      <p className="text-sm text-fg-secondary" data-testid="open-change-count">
+        {changeCount} expansion proposals
       </p>
     </div>
   )
 }
-
-export const Controlled: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => <ControlledExample />,
-}
-
-export const WithinDrawer: Story = {
-  render: (args) => (
-    <Drawer placement="start" size="sm">
-      <Drawer.Trigger>Browse categories</Drawer.Trigger>
-      <Drawer.Portal>
-        <Drawer.Backdrop />
-        <Drawer.Positioner>
-          <Drawer.Content>
-            <Drawer.Header>
-              <Drawer.Title>Product catalog</Drawer.Title>
-              <Drawer.Description className="text-fg-primary">
-                Choose a product category.
-              </Drawer.Description>
-            </Drawer.Header>
-            <Drawer.Body>
-              <CategoryNavigation {...args} />
-            </Drawer.Body>
-            <Drawer.Footer>
-              <Drawer.CloseTrigger>Close catalog</Drawer.CloseTrigger>
-            </Drawer.Footer>
-          </Drawer.Content>
-        </Drawer.Positioner>
-      </Drawer.Portal>
-    </Drawer>
-  ),
-}
-
-export const WithinSidebar: Story = {
-  parameters: { layout: "fullscreen" },
-  render: (args) => (
-    <Sidebar collapsible={{ start: "none" }}>
-      <Sidebar.Panel aria-label="Catalog sidebar">
-        <Sidebar.Header>
-          <div className="flex items-center gap-100">
-            <span className="min-w-0 flex-1 font-semibold text-fg-primary text-sm">
-              Product catalog
-            </span>
-            <Sidebar.CloseTrigger aria-label="Close categories" />
-          </div>
-        </Sidebar.Header>
-        <Sidebar.Content>
-          <CategoryNavigation {...args} />
-        </Sidebar.Content>
-      </Sidebar.Panel>
-      <Sidebar.Inset>
-        <div className="flex flex-col gap-200 p-200">
-          <Sidebar.Trigger aria-label="Browse categories" side="start" />
-          <p className="text-fg-primary text-sm">
-            The Sidebar owns layout and its mobile Drawer. The navigation owns links and disclosure
-            branches.
-          </p>
-        </div>
-      </Sidebar.Inset>
-    </Sidebar>
-  ),
-}
-
-export const RTL: Story = { args: { dir: "rtl" } }
 
 const akrosCategories: Category[] = [
   {
@@ -659,6 +528,291 @@ function AkrosCatalogExample() {
     </div>
   )
 }
+
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      source: { code: playgroundSource, language: "tsx", type: "code" },
+      description: { story: "Control current-page selection and branch disclosure independently without leaving the preview; subgroup controls change the nested surface only." },
+    },
+  },
+  render: function NavigationPlayground({ size, dir, tone, variant, indent, showGuide }: NavigationStoryProps) {
+  const [current, setCurrent] = useState("Bolts")
+  const [open, setOpen] = useState(true)
+  function navigate(event: MouseEvent<HTMLAnchorElement>, label: string) {
+    event.preventDefault()
+    setCurrent(label)
+  }
+  return (
+    <div className="flex min-w-0 flex-col gap-200" data-navigation-story="">
+      <VerticalNavigation aria-label="Product categories" dir={dir} size={size}>
+        <VerticalNavigation.Group>
+          <VerticalNavigation.GroupLabel>Catalog</VerticalNavigation.GroupLabel>
+          <VerticalNavigation.List>
+            <VerticalNavigation.Item>
+              <VerticalNavigation.Link current={current === "All products"} href="#all-products" onClick={(event) => navigate(event, "All products")}>
+                All products
+              </VerticalNavigation.Link>
+            </VerticalNavigation.Item>
+            <VerticalNavigation.Branch containsCurrent={["Bolts", "Nuts"].includes(current)} open={open} onOpenChange={(details) => setOpen(details.open)}>
+              <VerticalNavigation.Row>
+                <VerticalNavigation.Link current={current === "Fasteners"} href="#fasteners" onClick={(event) => navigate(event, "Fasteners")}>
+                  Fasteners
+                </VerticalNavigation.Link>
+                <VerticalNavigation.BranchTrigger aria-label="Toggle Fasteners">
+                  <VerticalNavigation.BranchIndicator />
+                </VerticalNavigation.BranchTrigger>
+              </VerticalNavigation.Row>
+              <VerticalNavigation.BranchContent indent={indent} showGuide={showGuide} tone={tone} variant={variant}>
+                <VerticalNavigation.List>
+                  {["Bolts", "Nuts"].map((label) => (
+                    <VerticalNavigation.Item key={label}>
+                      <VerticalNavigation.Link current={current === label} href={`#${label.toLowerCase()}`} onClick={(event) => navigate(event, label)}>
+                        {label}
+                      </VerticalNavigation.Link>
+                    </VerticalNavigation.Item>
+                  ))}
+                </VerticalNavigation.List>
+              </VerticalNavigation.BranchContent>
+            </VerticalNavigation.Branch>
+          </VerticalNavigation.List>
+        </VerticalNavigation.Group>
+        <VerticalNavigation.Separator />
+        <VerticalNavigation.Group>
+          <VerticalNavigation.GroupLabel>Support</VerticalNavigation.GroupLabel>
+          <VerticalNavigation.List>
+            <VerticalNavigation.Item>
+              <VerticalNavigation.Link current={current === "Contact"} href="#contact" onClick={(event) => navigate(event, "Contact")}>
+                Contact
+              </VerticalNavigation.Link>
+            </VerticalNavigation.Item>
+          </VerticalNavigation.List>
+        </VerticalNavigation.Group>
+      </VerticalNavigation>
+      <p className="sr-only" data-testid="current-page" role="status">Current page: {current}</p>
+    </div>
+  )
+},
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const before = canvasElement.ownerDocument.location.href
+    const trigger = canvas.getByRole("button", { name: "Toggle Fasteners" })
+    await userEvent.click(canvas.getByRole("link", { name: "Nuts" }))
+    await expect(canvas.getByRole("link", { name: "Nuts" })).toHaveAttribute("aria-current", "page")
+    await userEvent.click(trigger)
+    // Controlled parent state and Zag's disclosure projection settle separately.
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute("aria-expanded", "false")
+      expect(canvas.queryByRole("link", { name: "Nuts" })).not.toBeInTheDocument()
+    })
+    trigger.focus()
+    await userEvent.keyboard("{Enter}")
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute("aria-expanded", "true")
+      expect(canvas.getByRole("link", { name: "Nuts" })).toHaveAttribute("aria-current", "page")
+    })
+    await expect(canvasElement.ownerDocument.location.href).toBe(before)
+  },
+}
+
+export const Variants: Story = {
+  parameters: {
+    docs: { description: { story: "Compare neutral and branded subgroup surfaces without changing navigation behavior or current-page semantics." } }, controls: { exclude: ["tone", "variant"] } },
+  render: (args) => (
+    <VariantContainer>
+      {(
+        [
+          { tone: "plain", variant: "primary", title: "Plain" },
+          { tone: "subtle", variant: "primary", title: "Subtle" },
+          { tone: "accent", variant: "primary", title: "Accent — primary" },
+          { tone: "accent", variant: "secondary", title: "Accent — secondary" },
+        ] as const
+      ).map(({ tone, variant, title }) => (
+        <VariantGroup key={title} title={title}>
+          <div data-navigation-story="">
+            <CategoryNavigation
+              {...args}
+              label={`Product categories - ${title}`}
+              tone={tone}
+              variant={variant}
+            />
+          </div>
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+}
+
+export const States: Story = {
+  parameters: { docs: { description: { story: "Current, ancestor-path and disabled navigation states combine text cues with surface treatment so they do not depend on color alone." } } },
+  render: ({ size, dir, tone, variant, indent, showGuide }) => (
+    <VerticalNavigation
+      aria-label="Navigation states"
+      data-navigation-story=""
+      dir={dir}
+      size={size}
+    >
+      <VerticalNavigation.Group>
+        <VerticalNavigation.GroupLabel>Links</VerticalNavigation.GroupLabel>
+        <VerticalNavigation.List>
+          <VerticalNavigation.Item>
+            <VerticalNavigation.Link current href="#overview" onClick={onNavigate}>
+              Overview
+            </VerticalNavigation.Link>
+          </VerticalNavigation.Item>
+          <VerticalNavigation.Item>
+            <VerticalNavigation.Link disabled href="#unavailable" onClick={onNavigate}>
+              Unavailable destination
+            </VerticalNavigation.Link>
+          </VerticalNavigation.Item>
+        </VerticalNavigation.List>
+      </VerticalNavigation.Group>
+      <VerticalNavigation.Separator />
+      <VerticalNavigation.Group>
+        <VerticalNavigation.GroupLabel>Categories</VerticalNavigation.GroupLabel>
+        <VerticalNavigation.List>
+          <VerticalNavigation.Branch onOpenChange={onOpenChange}>
+            <VerticalNavigation.BranchTrigger>
+              Collapsed category
+              <VerticalNavigation.BranchIndicator />
+            </VerticalNavigation.BranchTrigger>
+            <VerticalNavigation.BranchContent
+              tone={tone}
+              variant={variant}
+              indent={indent}
+              showGuide={showGuide}
+            >
+              <VerticalNavigation.List>
+                <VerticalNavigation.Item>
+                  <VerticalNavigation.Link href="#hidden-destination" onClick={onNavigate}>
+                    Hidden destination
+                  </VerticalNavigation.Link>
+                </VerticalNavigation.Item>
+              </VerticalNavigation.List>
+            </VerticalNavigation.BranchContent>
+          </VerticalNavigation.Branch>
+          <VerticalNavigation.Branch disabled>
+            <VerticalNavigation.BranchTrigger>
+              Unavailable category
+              <VerticalNavigation.BranchIndicator />
+            </VerticalNavigation.BranchTrigger>
+            <VerticalNavigation.BranchContent
+              tone={tone}
+              variant={variant}
+              indent={indent}
+              showGuide={showGuide}
+            >
+              <VerticalNavigation.List>
+                <VerticalNavigation.Item>
+                  <VerticalNavigation.Link href="#restricted">
+                    Restricted destination
+                  </VerticalNavigation.Link>
+                </VerticalNavigation.Item>
+              </VerticalNavigation.List>
+            </VerticalNavigation.BranchContent>
+          </VerticalNavigation.Branch>
+        </VerticalNavigation.List>
+      </VerticalNavigation.Group>
+    </VerticalNavigation>
+  ),
+}
+
+export const Sizes: Story = {
+  parameters: {
+    docs: { description: { story: "Compare Small, Medium and Large navigation with identical categories; typography, control height, spacing and indicators follow the canonical size scale." } }, controls: { exclude: ["size"] } },
+  render: (args) => (
+    <VariantContainer>
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <VariantGroup key={size} title={size === "sm" ? "Small (sm)" : size === "md" ? "Medium (md)" : "Large (lg)"}>
+          <div data-navigation-story="">
+            <CategoryNavigation {...args} label={`Product categories - ${size}`} size={size} />
+          </div>
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+}
+
+export const SevenLevels: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Seven nested lists in a 280 px column. The small size and maxIndentDepth={7} preserve visible indentation at every level; long labels wrap. Only one subgroup is tinted, independently of the current page.",
+      },
+    },
+  },
+  render: () => <SevenLevelsExample />,
+}
+
+export const Controlled: Story = {
+  parameters: {
+    docs: { description: { story: "The application owns disclosure state and accepts or rejects proposed changes, keeping the current route and expanded branch independent." } }, controls: { disable: true } },
+  render: () => <ControlledExample />,
+}
+
+export const WithinDrawer: Story = {
+  parameters: { docs: { description: { story: "Place ordinary nested navigation inside a temporary Drawer when the page does not have room for a persistent panel." } } },
+  render: (args) => (
+    <Drawer placement="start" size="sm">
+      <Drawer.Trigger>Browse categories</Drawer.Trigger>
+      <Drawer.Portal>
+        <Drawer.Backdrop />
+        <Drawer.Positioner>
+          <Drawer.Content>
+            <Drawer.Header>
+              <Drawer.Title>Product catalog</Drawer.Title>
+              <Drawer.Description className="text-fg-primary">
+                Choose a product category.
+              </Drawer.Description>
+            </Drawer.Header>
+            <Drawer.Body>
+              <CategoryNavigation {...args} />
+            </Drawer.Body>
+            <Drawer.Footer>
+              <Drawer.CloseTrigger>Close catalog</Drawer.CloseTrigger>
+            </Drawer.Footer>
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Drawer.Portal>
+    </Drawer>
+  ),
+}
+
+export const WithinSidebar: Story = {
+  parameters: {
+    docs: { description: { story: "Sidebar owns the responsive shell while VerticalNavigation supplies the nested destinations inside its panel." } }, layout: "fullscreen" },
+  render: (args) => (
+    <Sidebar collapsible={{ start: "none" }}>
+      <Sidebar.Panel aria-label="Catalog sidebar">
+        <Sidebar.Header>
+          <div className="flex items-center gap-100">
+            <span className="min-w-0 flex-1 font-semibold text-fg-primary text-sm">
+              Product catalog
+            </span>
+            <Sidebar.CloseTrigger aria-label="Close categories" />
+          </div>
+        </Sidebar.Header>
+        <Sidebar.Content>
+          <CategoryNavigation {...args} />
+        </Sidebar.Content>
+      </Sidebar.Panel>
+      <Sidebar.Inset>
+        <div className="flex flex-col gap-200 p-200">
+          <Sidebar.Trigger aria-label="Browse categories" side="start" />
+          <p className="text-fg-primary text-sm">
+            The Sidebar owns layout and its mobile Drawer. The navigation owns links and disclosure
+            branches.
+          </p>
+        </div>
+      </Sidebar.Inset>
+    </Sidebar>
+  ),
+}
+
+export const RTL: Story = {
+  parameters: { docs: { description: { story: "Logical spacing and disclosure layout follow right-to-left reading direction without changing the destination hierarchy." } } }, args: { dir: "rtl" } }
 
 export const AkrosCatalog: Story = {
   name: "Akros — katalog",

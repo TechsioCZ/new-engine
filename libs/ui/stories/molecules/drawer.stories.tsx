@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { type ReactNode, useState } from "react"
-import { fn } from "storybook/test"
+import { type ReactNode, useId, useState } from "react"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
+import { FormInput } from "../../src/molecules/form-input"
 import {
   Drawer,
   type DrawerPlacement,
@@ -58,7 +59,7 @@ function DrawerPanel({
               <Drawer.CloseTrigger
                 size="md"
                 theme="outlined"
-                variant="secondary"
+                variant="tertiary"
               >
                 Close
               </Drawer.CloseTrigger>
@@ -98,14 +99,29 @@ function DrawerStory({
 
 const meta = {
   title: "Molecules/Drawer",
-  component: DrawerStory,
+  component: Drawer,
+  render: (args) => <DrawerStory {...args} />,
   tags: ["autodocs"],
   parameters: {
     layout: "centered",
+    controls: {
+      disable: true,
+      include: [
+        "placement",
+        "size",
+        "modal",
+        "draggable",
+        "closeOnEscape",
+        "closeOnInteractOutside",
+        "preventScroll",
+        "trapFocus",
+        "triggerLabel",
+      ],
+    },
     docs: {
       description: {
         component:
-          "A Zag.js-powered compound drawer with logical placement, snap points, swipe gestures, controlled state, custom portals, and coordinated stacks.",
+          "Drawer presents contextual tasks in a transient edge panel, with swipe gestures and accessible focus management; use Dialog for centered confirmations, Sidebar for persistent navigation, and Popover for anchored content.",
       },
     },
   },
@@ -119,7 +135,8 @@ const meta = {
     size: {
       control: "select",
       options: ["xs", "sm", "md", "lg", "xl", "full"],
-      description: "Width for side drawers or height for top and bottom drawers",
+      description:
+        "Width for side drawers or height for top and bottom drawers",
       table: { defaultValue: { summary: "md" } },
     },
     modal: {
@@ -177,12 +194,89 @@ const meta = {
     trapFocus: true,
     triggerLabel: "Open drawer",
   },
-} satisfies Meta<typeof DrawerStory>
+} satisfies Meta<DrawerStoryArgs>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Playground: Story = {}
+export const Playground: Story = {
+  parameters: {
+    controls: { disable: false },
+    docs: {
+      description: {
+        story:
+          "A configurable workspace panel demonstrates edge placement, dimensions, drag behavior, and dismissal controls.",
+      },
+      source: {
+        code: `import { Drawer } from "@techsio/ui-kit/molecules/drawer"
+
+export function WorkspaceDrawer() {
+  return (
+    <Drawer placement="end" size="md">
+      <Drawer.Trigger>Open drawer</Drawer.Trigger>
+      <Drawer.Portal>
+        <Drawer.Backdrop />
+        <Drawer.Positioner>
+          <Drawer.Content draggable>
+            <Drawer.Grabber>
+              <Drawer.GrabberIndicator />
+            </Drawer.Grabber>
+            <Drawer.Header>
+              <Drawer.Title>Playground drawer</Drawer.Title>
+              <Drawer.Description>
+                Review the current workspace settings.
+              </Drawer.Description>
+            </Drawer.Header>
+            <Drawer.Body>
+              Notifications, privacy, and workspace defaults are ready to review.
+            </Drawer.Body>
+            <Drawer.Footer>
+              <Drawer.CloseTrigger variant="tertiary" theme="outlined">
+                Close
+              </Drawer.CloseTrigger>
+            </Drawer.Footer>
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Drawer.Portal>
+    </Drawer>
+  )
+}`,
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("button", {
+      name: "Open drawer",
+    })
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(trigger)
+    const drawer = await body.findByRole("dialog", {
+      name: "Playground drawer",
+    })
+    await waitFor(() =>
+      expect(drawer.contains(canvasElement.ownerDocument.activeElement)).toBe(
+        true
+      )
+    )
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(drawer).not.toBeInTheDocument())
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await userEvent.keyboard("{Enter}")
+    const reopened = await body.findByRole("dialog", {
+      name: "Playground drawer",
+    })
+    await waitFor(() =>
+      expect(reopened.contains(canvasElement.ownerDocument.activeElement)).toBe(
+        true
+      )
+    )
+    await userEvent.click(
+      within(reopened).getByRole("button", { name: /^Close$/ })
+    )
+    await waitFor(() => expect(reopened).not.toBeInTheDocument())
+    await waitFor(() => expect(trigger).toHaveFocus())
+  },
+}
 
 const placements = [
   { label: "Start", value: "start" },
@@ -192,6 +286,14 @@ const placements = [
 ] satisfies { label: string; value: DrawerPlacement }[]
 
 export const Placements: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Start, end, top, and bottom panels demonstrate logical edge placement without duplicating Dialog examples.",
+      },
+    },
+  },
   args: {},
   render: () => (
     <VariantContainer>
@@ -217,6 +319,14 @@ export const Placements: Story = {
 const sizes = ["xs", "sm", "md", "lg", "xl", "full"] satisfies DrawerSize[]
 
 export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Six panel sizes demonstrate how much page context remains visible around the drawer.",
+      },
+    },
+  },
   args: {},
   render: () => (
     <VariantContainer>
@@ -245,7 +355,7 @@ export const SnapPointsAndSwipe: Story = {
     docs: {
       description: {
         story:
-          "Drag the content or grabber between snap points. The edge SwipeArea also opens the closed drawer with an upward gesture.",
+          "A bottom sheet combines draggable snap points with an upward edge-swipe opening gesture to reveal more or less page context.",
       },
     },
   },
@@ -276,7 +386,7 @@ export const SnapPointsAndSwipe: Story = {
                     onClick={() => api.setSnapPoint(snapPoint)}
                     size="sm"
                     theme="outlined"
-                    variant="secondary"
+                    variant="tertiary"
                   >
                     {Number(snapPoint) * 100}%
                   </Button>
@@ -321,50 +431,161 @@ function ControlledDrawerExample() {
 }
 
 export const Controlled: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Externally managed open state stays synchronized with the trigger, close action, and visible status.",
+      },
+    },
+  },
   args: {},
   render: () => <ControlledDrawerExample />,
 }
 
-const profiles = [
+type Profile = { email: string; id: string; name: string }
+
+const initialProfiles: Profile[] = [
   { email: "ada@example.com", id: "ada", name: "Ada Lovelace" },
   { email: "grace@example.com", id: "grace", name: "Grace Hopper" },
   { email: "margaret@example.com", id: "margaret", name: "Margaret Hamilton" },
-] as const
+]
+
+function ProfileForm({
+  formId,
+  profile,
+  onSave,
+}: {
+  formId: string
+  profile: Profile
+  onSave: (profile: Profile) => void
+}) {
+  const [name, setName] = useState(profile.name)
+  const [email, setEmail] = useState(profile.email)
+  return (
+    <form
+      id={formId}
+      className="space-y-200"
+      onSubmit={(event) => {
+        event.preventDefault()
+        onSave({ ...profile, name: name.trim(), email: email.trim() })
+      }}
+    >
+      <FormInput
+        label="Full name"
+        autoComplete="name"
+        required
+        pattern={String.raw`.*\S.*`}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <FormInput
+        label="Email address"
+        autoComplete="email"
+        type="email"
+        required
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+      />
+    </form>
+  )
+}
+
+function ProfileEditor({
+  profile,
+  onSave,
+}: {
+  profile: Profile
+  onSave: (profile: Profile) => void
+}) {
+  const formId = useId()
+  return (
+    <DrawerPanel
+      description="Update contact details for this team member. Changes stay in this demo."
+      draggable={false}
+      title="Edit profile"
+      footer={
+        <>
+          <Drawer.CloseTrigger size="md" theme="outlined" variant="tertiary">
+            Cancel
+          </Drawer.CloseTrigger>
+          <Button type="submit" form={formId}>
+            Save changes
+          </Button>
+        </>
+      }
+    >
+      <Drawer.Context>
+        {(api) => (
+          <ProfileForm
+            key={`${profile.id}-${api.open}`}
+            formId={formId}
+            profile={profile}
+            onSave={onSave}
+          />
+        )}
+      </Drawer.Context>
+    </DrawerPanel>
+  )
+}
 
 function MultipleTriggersExample() {
+  const [profiles, setProfiles] = useState(initialProfiles)
+  const [message, setMessage] = useState(
+    "Select a team member to edit their profile."
+  )
   return (
-    <Drawer placement="end" size="sm">
-      <div className="flex flex-wrap gap-100">
-        {profiles.map((profile) => (
-          <Drawer.Trigger key={profile.id} value={profile.id}>
-            Edit {profile.name.split(" ")[0]}
-          </Drawer.Trigger>
-        ))}
-      </div>
-      <DrawerPanel
-        description="Update contact details for this team member."
-        title="Edit profile"
-      >
+    <div className="space-y-150">
+      <Drawer placement="end" size="sm">
+        <div className="flex flex-wrap gap-100">
+          {profiles.map((profile) => (
+            <Drawer.Trigger
+              key={profile.id}
+              value={profile.id}
+              theme="outlined"
+              variant="tertiary"
+            >
+              Edit {profile.name.split(" ")[0]}
+            </Drawer.Trigger>
+          ))}
+        </div>
         <Drawer.Context>
           {(api) => {
-            const profile = profiles.find(
-              ({ id }) => id === api.triggerValue
-            )
-
+            const profile = profiles.find(({ id }) => id === api.triggerValue)
             return profile ? (
-              <div className="space-y-100 rounded-md border border-border-primary bg-surface p-150">
-                <p className="font-medium text-fg-primary">{profile.name}</p>
-                <p className="text-fg-secondary text-sm">{profile.email}</p>
-              </div>
+              <ProfileEditor
+                key={profile.id}
+                profile={profile}
+                onSave={(updated) => {
+                  setProfiles((current) =>
+                    current.map((item) =>
+                      item.id === updated.id ? updated : item
+                    )
+                  )
+                  setMessage(`Profile saved for ${updated.name}.`)
+                  api.setOpen(false)
+                }}
+              />
             ) : null
           }}
         </Drawer.Context>
-      </DrawerPanel>
-    </Drawer>
+      </Drawer>
+      <p role="status" className="text-fg-secondary text-sm">
+        {message}
+      </p>
+    </div>
   )
 }
 
 export const MultipleTriggers: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Each Edit trigger opens a real profile form; saving persists local edits, while Cancel discards the current draft.",
+      },
+    },
+  },
   args: {},
   render: () => <MultipleTriggersExample />,
 }
@@ -406,7 +627,15 @@ function CustomContainerExample() {
 
 export const CustomContainer: Story = {
   args: {},
-  parameters: { layout: "fullscreen" },
+  parameters: {
+    layout: "fullscreen",
+    docs: {
+      description: {
+        story:
+          "A non-modal drawer mounted inside a workspace container stays within its bounds instead of covering the viewport.",
+      },
+    },
+  },
   render: () => (
     <div className="flex min-h-screen items-center justify-center p-300">
       <CustomContainerExample />
@@ -418,7 +647,7 @@ function NonModalDrawerExample() {
   const [refreshes, setRefreshes] = useState(0)
 
   return (
-    <div className="flex flex-col items-center gap-150">
+    <div className="flex min-h-svh flex-col items-start gap-150 p-300">
       <Button onClick={() => setRefreshes((count) => count + 1)}>
         Refresh results
       </Button>
@@ -428,7 +657,7 @@ function NonModalDrawerExample() {
       <Drawer
         closeOnInteractOutside={false}
         modal={false}
-        placement="end"
+        placement="bottom"
         preventScroll={false}
         size="sm"
         trapFocus={false}
@@ -449,6 +678,15 @@ function NonModalDrawerExample() {
 }
 
 export const NonModal: Story = {
+  parameters: {
+    layout: "fullscreen",
+    docs: {
+      description: {
+        story:
+          "An activity panel leaves background refresh controls usable while remaining open.",
+      },
+    },
+  },
   args: {},
   render: () => <NonModalDrawerExample />,
 }
@@ -487,6 +725,14 @@ function DrawerStackExample() {
 }
 
 export const Stack: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A coordinated account and security stack demonstrates advanced nested panels; prefer a single panel for ordinary tasks.",
+      },
+    },
+  },
   args: {},
   render: () => <DrawerStackExample />,
 }

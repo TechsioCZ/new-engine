@@ -2,7 +2,7 @@
  * Command — @techsio/ui-kit molecule.
  *
  * @component Command
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill command-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -64,7 +64,7 @@ const commandVariants = tv({
     root: "command-border-width flex w-full flex-col gap-command-gap rounded-command border-command-border bg-command-bg p-command text-command-fg text-command-md",
     control: "relative flex items-center",
     list: "max-h-command-list-max overflow-y-auto overscroll-contain p-command-list",
-    item: "flex w-full cursor-pointer select-none items-center gap-command-item-gap rounded-command-item px-command-item-x py-command-item-y data-disabled:cursor-not-allowed data-highlighted:bg-command-item-bg-highlighted data-disabled:text-command-item-fg-disabled",
+    item: "flex w-full cursor-pointer select-none items-center gap-command-item-gap rounded-command-item px-command-item-x py-command-item-y data-disabled:cursor-not-allowed data-highlighted:bg-command-item-bg-highlighted data-highlighted:font-command-item-highlighted data-disabled:text-command-item-fg-disabled",
     itemText: "min-w-0 flex-1",
     itemGroup: "",
     itemGroupLabel:

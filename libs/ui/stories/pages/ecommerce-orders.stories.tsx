@@ -1,6 +1,7 @@
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
-import { Button } from "../../src/atoms/button"
+
 import { Chart } from "../../src/molecules/chart"
 import { Table } from "../../src/organisms/table"
 import type { ColumnDef } from "../../src/organisms/data-table"
@@ -26,12 +27,13 @@ import {
 } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/E-commerce/Orders dashboard",
   parameters: {
@@ -117,7 +119,7 @@ function OrdersDashboard() {
         cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
-    []
+    [],
   )
 
   return (
@@ -128,21 +130,7 @@ function OrdersDashboard() {
       selectedNav={nav}
     >
       <PageHeader
-        actions={
-          <>
-            <Button
-              icon="icon-[mdi--tray-arrow-down]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              Export
-            </Button>
-            <Button icon="icon-[mdi--truck-outline]" size="sm" variant="primary">
-              Create fulfilment
-            </Button>
-          </>
-        }
+        actions={<></>}
         breadcrumb={[
           { label: "Home", href: "#" },
           { label: "Sales", href: "#" },
@@ -220,7 +208,7 @@ function OrdersDashboard() {
           getRowLabel={(row) => `Order ${row.original.number}`}
           renderExpandedRow={(row) => {
             const lines = orderLines.filter(
-              (line) => line.orderId === row.original.id
+              (line) => line.orderId === row.original.id,
             )
 
             if (lines.length === 0) {
@@ -243,7 +231,9 @@ function OrdersDashboard() {
                       <Table.ColumnHeader align="end">
                         Unit price
                       </Table.ColumnHeader>
-                      <Table.ColumnHeader align="end">Line total</Table.ColumnHeader>
+                      <Table.ColumnHeader align="end">
+                        Line total
+                      </Table.ColumnHeader>
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
@@ -276,5 +266,14 @@ function OrdersDashboard() {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in ecommerce orders to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   render: () => <OrdersDashboard />,
 }

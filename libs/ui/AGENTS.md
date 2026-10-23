@@ -1,4 +1,4 @@
-# UI Library (`@libs/ui`)
+# UI Library (`@techsio/ui-kit`)
 
 React 19 + Tailwind v4 + Zag.js component library using atomic design.
 
@@ -33,9 +33,11 @@ stories/
 
 ## Commands
 
-- `bunx nx run ui:storybook`   # Component preview
-- `bunx nx run ui:build`       # Build library
-- `pnpm validate:tokens`       # Token validation
+Run these commands from the repository root. The registered Nx project is `ui-kit`.
+
+- `pnpm --dir libs/ui storybook`   # Component preview
+- `pnpm --dir libs/ui build`       # Build library
+- `pnpm --dir libs/ui validate:tokens`   # Token validation
 - `bunx biome check --write <file>`   # Lint-specific file (never ".")
 
 ## PR Descriptions (CLI)

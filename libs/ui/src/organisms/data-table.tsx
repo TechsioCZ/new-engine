@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.2.4
+ * @componentVersion v1.4.6
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -80,6 +80,7 @@ import { Button, type ButtonProps } from "../atoms/button"
 import { Checkbox } from "../atoms/checkbox"
 import { Icon, type IconType } from "../atoms/icon"
 import { Skeleton } from "../atoms/skeleton"
+import { StatusText } from "../atoms/status-text"
 import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
 import { SearchForm } from "../molecules/search-form"
@@ -164,21 +165,30 @@ export { conditionalFilterFn } from "./data-table.helpers"
 const dataTableVariants = tv({
   slots: {
     wrapper: [
-      "flex w-full flex-col overflow-hidden rounded-data-table",
+      "isolate flex w-full flex-col overflow-hidden rounded-data-table",
       "border-(length:--border-width-data-table) border-data-table-border",
     ],
     toolbar: [
-      "flex items-center justify-between gap-data-table-toolbar",
+      "flex flex-wrap items-center justify-between gap-data-table-toolbar",
       "bg-data-table-toolbar-bg text-data-table-toolbar-fg",
       "p-data-table-toolbar",
       "border-b-(length:--border-width-data-table) border-data-table-border",
     ],
-    /* The search takes the remaining width; actions keep their intrinsic size
-     * and stay pinned to the trailing edge. */
-    toolbarSearch: ["min-w-0 flex-1"],
-    toolbarActions: ["flex shrink-0 items-center gap-data-table-toolbar"],
-    scroll: ["relative w-full overflow-auto"],
+    /* Search and actions share a row when they fit; search keeps a useful
+     * basis and actions wrap onto their own row in narrow containers. */
+    toolbarSearch: ["min-w-0 flex-1 basis-data-table-search"],
+    toolbarActions: [
+      "flex min-w-0 max-w-full flex-wrap items-center justify-end gap-data-table-toolbar",
+    ],
+    scroll: ["@container/data-table relative w-full overflow-auto"],
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
+    cellContent: ["min-w-0 max-w-full"],
+    columnDropIndicator: [
+      // A real cell border changes native auto-table widths, feeding back into
+      // dnd-kit's placeholder ResizeObserver. Paint the edge out of flow.
+      "after:pointer-events-none after:absolute after:inset-y-0 after:border-data-table-sort-icon-fg-active after:border-s-2",
+      "data-[drop-side=end]:after:inset-e-0 data-[drop-side=start]:after:inset-s-0",
+    ],
     sortButton: [
       "inline-flex items-center gap-100 whitespace-nowrap",
       "cursor-pointer select-none bg-transparent text-start",
@@ -206,18 +216,16 @@ const dataTableVariants = tv({
     filterRow: ["bg-data-table-filter-row-bg"],
     filterCell: [
       "p-data-table-filter-cell",
-      "min-w-fit",
       "border-b-(length:--border-width-data-table) border-data-table-border",
     ],
+    filterViewport: ["data-table-filter-viewport"],
     filterControl: [
-      "flex flex-wrap items-center gap-data-table-filter-control",
+      "data-table-filter-control flex items-center gap-data-table-filter-control",
     ],
-    editorControl: ["flex flex-col gap-data-table-editor"],
-    // `-fg`, not the bare semantic: `--color-danger` is the fill/surface red,
-    // while AGENTS.md pins status *text* to `--color-<semantic>-fg`, which is
-    // the contrast-checked foreground. The bare token rendered the validation
-    // message at surface red on the table background.
-    editorError: ["text-data-table-editor-error-fg text-data-table-sm"],
+    editorControl: [
+      "data-table-editor flex min-w-0 max-w-full flex-col gap-data-table-editor",
+    ],
+    emptyViewport: ["data-table-empty-viewport wrap-anywhere min-w-0"],
     actionsCell: ["flex items-center justify-end gap-100"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
@@ -243,6 +251,14 @@ const dataTableVariants = tv({
      */
     outlined: {
       true: { wrapper: "shadow-data-table-outline" },
+    },
+    fixedLayout: {
+      true: {
+        headerLabel: "min-w-0 max-w-full whitespace-normal",
+        sortButton: "wrap-anywhere min-w-0 max-w-full whitespace-normal",
+        sortIcon: "shrink-0",
+        cellContent: "wrap-anywhere",
+      },
     },
   },
 })
@@ -737,6 +753,8 @@ type DataTableContextValue<T extends RowData> = {
   /** Control size shared by every nested form control. */
   size: DataTableControlSize
   paginationProps?: DataTableProps<T>["paginationProps"]
+  hasNextPage?: boolean
+  paginationBusy: boolean
   toolbarActions?: DataTableToolbarAction[]
 }
 
@@ -755,6 +773,8 @@ function useDataTableContext<T extends RowData>() {
 /* ── Props ───────────────────────────────────────────────────────────────── */
 
 export type DataTableTranslations = {
+  /** Accessible name of the keyboard-scrollable region when no caption is present. */
+  scrollLabel?: string
   searchPlaceholder?: string
   /** Accessible name of the global search input. */
   searchLabel?: string
@@ -778,11 +798,19 @@ export type DataTableTranslations = {
   operatorLabels?: Partial<Record<string, string>>
   editingLabel?: string
   rangeLabel?: (info: { start: number; end: number; total: number }) => string
+  pageLabel?: (info: { page: number; pageCount?: number }) => string
+  previousPageLabel?: string
+  nextPageLabel?: string
+  paginationPendingLabel?: string
+  invalidRangeLabel?: string
+  savePendingLabel?: string
+  saveErrorLabel?: string
   /** Inline-edit validation error for a blank `meta.required` field. */
   requiredLabel?: string
 }
 
 const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
+  scrollLabel: "Scrollable records",
   searchPlaceholder: "Search…",
   searchLabel: "Search",
   clearSearchLabel: "Clear search",
@@ -800,7 +828,16 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   operatorLabels: {},
   editingLabel: "Editing a row — other table controls are locked",
   rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
-  requiredLabel: "Required",
+  requiredLabel: "Enter a value before saving this row.",
+  pageLabel: ({ page, pageCount }) =>
+    pageCount == null ? `Page ${page}` : `Page ${page} of ${pageCount}`,
+  previousPageLabel: "Previous page",
+  nextPageLabel: "Next page",
+  paginationPendingLabel: "Page unavailable — requesting an available page.",
+  invalidRangeLabel: "Enter valid dates with the start on or before the end.",
+  savePendingLabel: "Saving row…",
+  saveErrorLabel:
+    "Could not save this row. Your changes are kept; try Save again.",
 }
 
 export type DataTableProps<T extends RowData> = {
@@ -911,6 +948,11 @@ export type DataTableProps<T extends RowData> = {
   onColumnVisibilityChange?: (state: ColumnVisibilityState) => void
   columnOrder?: string[]
   onColumnOrderChange?: (order: string[]) => void
+  /**
+   * Requested frozen columns. If their measured band would cover the scrollport,
+   * start-side columns take priority, then end-side columns nearest the edge.
+   * Pins that do not fit scroll normally without changing this controlled state.
+   */
   columnPinning?: ColumnPinningState
   onColumnPinningChange?: (state: ColumnPinningState) => void
   expanded?: ExpandedState
@@ -925,6 +967,8 @@ export type DataTableProps<T extends RowData> = {
   manualPagination?: boolean
   rowCount?: number
   pageCount?: number
+  /** Unknown-total server pagination: optionally signal that no next page exists. */
+  hasNextPage?: boolean
 
   /* Callbacks */
   onRowClick?: (
@@ -993,7 +1037,7 @@ export type DataTableProps<T extends RowData> = {
     rowId: string
     draft: Record<string, unknown>
     row: T
-  }) => void
+  }) => void | Promise<void>
   onEditCancel?: (details: { rowId: string; dirty: boolean }) => void
   onEditValidationError?: (details: {
     rowId: string
@@ -1067,7 +1111,9 @@ export type DataTableProps<T extends RowData> = {
     state: {
       isEditing: boolean
       startEdit: () => void
-      commitEdit: () => void
+      commitEdit: () => Promise<void>
+      pending: boolean
+      error?: string
       cancelEdit: () => void
       disabled: boolean
     }
@@ -1177,7 +1223,9 @@ function HeaderSortLabel<T extends RowData>({
     ? null
     : flexRender(column.columnDef.header, header.getContext())
 
-  if (!canSort) {
+  // Grouped tables insert empty alignment placeholders above ungrouped leaves.
+  // They are not another copy of the leaf's sortable header.
+  if (header.isPlaceholder || !canSort) {
     return <>{label}</>
   }
 
@@ -1217,6 +1265,8 @@ function renderCellContent<T extends RowData>({
   editor,
   editorError,
   editorErrorId,
+  size,
+  tableLayout,
   isDragCol,
   rowLabel,
 }: {
@@ -1229,6 +1279,8 @@ function renderCellContent<T extends RowData>({
   editor?: ReactNode
   editorError?: string
   editorErrorId?: string
+  size: DataTableControlSize
+  tableLayout: "auto" | "fixed"
   isDragCol: boolean
 }) {
   if (isDragCol && enableRowReorder && dnd) {
@@ -1246,21 +1298,29 @@ function renderCellContent<T extends RowData>({
   }
   if (editor) {
     return (
-      <div className={styles.editorControl()} data-editor-control="">
-        {editor}
+      <div
+        className={styles.editorControl()}
+        data-editor-control=""
+        data-layout={tableLayout}
+        data-type={resolveColumnType(column.columnDef.meta)}
+      >
+        <div className="data-table-editor-value" data-size={size}>
+          {editor}
+        </div>
         {editorError ? (
-          <span
-            className={styles.editorError()}
-            id={editorErrorId}
-            role="alert"
-          >
+          <StatusText id={editorErrorId} size={size} status="error">
             {editorError}
-          </span>
+          </StatusText>
         ) : null}
       </div>
     )
   }
-  return flexRender(column.columnDef.cell, cell.getContext())
+  const content = flexRender(column.columnDef.cell, cell.getContext())
+  return tableLayout === "fixed" ? (
+    <div className={styles.cellContent()}>{content}</div>
+  ) : (
+    content
+  )
 }
 
 /**
@@ -1294,9 +1354,12 @@ function DataTableBodyCell<T extends RowData>({
   editor,
   editorError,
   editorErrorId,
+  size,
   indentColumnId,
   rowLabel,
+  pinningStyle,
 }: {
+  pinningStyle?: CSSProperties
   cell: Cell<T, unknown>
   span: { colSpan?: number; rowSpan?: number } | undefined
   row: Row<T>
@@ -1308,9 +1371,11 @@ function DataTableBodyCell<T extends RowData>({
   editor?: ReactNode
   editorError?: string
   editorErrorId?: string
+  size: DataTableControlSize
   indentColumnId?: string
   rowLabel: string
 }) {
+  const tableLayout = useContext(FieldTableLayoutContext)
   const column = cell.column
   const pinned = column.getIsPinned()
   const isDragCol = column.id === DRAG_COLUMN_ID
@@ -1328,6 +1393,7 @@ function DataTableBodyCell<T extends RowData>({
       rowSpan={span?.rowSpan}
       style={{
         ...getPinningStyles(column),
+        ...pinningStyle,
         ...getColumnSizeStyles(column, enableColumnResizing, columnSizing),
         ...indent,
       }}
@@ -1341,6 +1407,8 @@ function DataTableBodyCell<T extends RowData>({
         editor,
         editorError,
         editorErrorId,
+        size,
+        tableLayout,
         isDragCol,
         rowLabel,
       })}
@@ -1348,11 +1416,26 @@ function DataTableBodyCell<T extends RowData>({
   )
 }
 
+const DATE_RANGE_BOUND_RE = /^\d{4}-\d{2}-\d{2}$/
+function validDateRange(value: { from?: string; to?: string }) {
+  const validDate = (raw: string | undefined) =>
+    !raw ||
+    (DATE_RANGE_BOUND_RE.test(raw) &&
+      Number.isFinite(Date.parse(`${raw}T00:00:00Z`)) &&
+      new Date(`${raw}T00:00:00Z`).toISOString().slice(0, 10) === raw)
+  return (
+    validDate(value.from) &&
+    validDate(value.to) &&
+    !(value.from && value.to && value.from > value.to)
+  )
+}
+
 /** Run `required` + `meta.validate` over a row draft, returning field errors. */
 function validateDraft<T extends RowData>(
   columns: Column<T, unknown>[],
   draft: Record<string, unknown>,
-  requiredLabel: string
+  requiredLabel: string,
+  invalidRangeLabel: string
 ): Record<string, string> {
   const errors: Record<string, string> = {}
   for (const column of columns) {
@@ -1364,12 +1447,23 @@ function validateDraft<T extends RowData>(
     // `NaN` is what a cleared numeric input parses to, and it is neither
     // null nor "" — so it has to be spelled out or a required number column
     // would validate as filled.
+    const dateRange =
+      resolveColumnType(meta) === "dateRange"
+        ? (value as { from?: string; to?: string } | null | undefined)
+        : undefined
     const empty =
+      (resolveColumnType(meta) === "dateRange" &&
+        isBlank(dateRange?.from) &&
+        isBlank(dateRange?.to)) ||
       isBlank(value) ||
       (typeof value === "number" && Number.isNaN(value)) ||
       (Array.isArray(value) && value.length === 0)
     if (meta.required && empty) {
       errors[column.id] = requiredLabel
+      continue
+    }
+    if (dateRange && !validDateRange(dateRange)) {
+      errors[column.id] = invalidRangeLabel
       continue
     }
     const message = meta.validate?.(value, draft)
@@ -1392,7 +1486,13 @@ function renderExpandedDetailRow<T extends RowData>({
   instanceId,
   styles,
   tintNestedRows,
+  rowIndex,
+  virtualIndex,
+  measureElement,
 }: {
+  rowIndex: number
+  virtualIndex: number
+  measureElement?: (element: HTMLTableRowElement | null) => void
   row: Row<T>
   renderExpandedRow: (row: Row<T>) => ReactNode
   colSpan: number
@@ -1402,8 +1502,11 @@ function renderExpandedDetailRow<T extends RowData>({
 }) {
   return (
     <Table.Row
+      aria-rowindex={rowIndex}
       className={tintNestedRows ? "data-table-row-nested-tint" : undefined}
       data-depth={row.depth + 1}
+      data-index={virtualIndex}
+      ref={measureElement}
     >
       <Table.Cell colSpan={colSpan}>
         <div
@@ -1624,6 +1727,15 @@ function buildRowClickHandler<T extends RowData>(
 ) {
   return (event: React.MouseEvent<HTMLTableRowElement>) => {
     rowOnClick?.(event)
+    const interactive = (event.target as Element).closest?.(
+      'button, a[href], input, select, textarea, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="combobox"], [tabindex]'
+    )
+    if (
+      event.defaultPrevented ||
+      (interactive && interactive !== event.currentTarget)
+    ) {
+      return
+    }
     if (onRowClick && !blocked("rowClick")) {
       onRowClick(row, event)
     }
@@ -1652,14 +1764,14 @@ function composeRowRef(
   dnd: { nodeRef: (node: Element | null) => void } | undefined,
   consumerRef: Ref<HTMLTableRowElement> | undefined
 ) {
-  return ((node: HTMLTableRowElement | null) => {
+  return (node: HTMLTableRowElement | null) => {
     dnd?.nodeRef(node)
     if (typeof consumerRef === "function") {
       consumerRef(node)
     } else if (consumerRef) {
       ;(consumerRef as { current: HTMLTableRowElement | null }).current = node
     }
-  }) as unknown as RefObject<HTMLTableRowElement>
+  }
 }
 
 /* ── Component ───────────────────────────────────────────────────────────── */
@@ -1721,6 +1833,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     manualPagination,
     rowCount,
     pageCount,
+    hasNextPage,
     onRowClick,
     onReachEnd,
     onColumnReorder,
@@ -1789,10 +1902,37 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   // spellings through the one correct implementation instead of letting a
   // consumer pick the broken one.
   const effectiveStriped = striped || variant === "striped"
-  const styles = dataTableVariants({ outlined })
+  const styles = dataTableVariants({
+    outlined,
+    fixedLayout: tableLayout === "fixed",
+  })
   const generatedId = useId()
   const instanceId = idProp ?? generatedId
-  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const scrollRef = useRef<HTMLElement | null>(null)
+  const [direction, setDirection] = useState<"ltr" | "rtl">("ltr")
+  useIsomorphicLayoutEffect(() => {
+    const element = scrollRef.current
+    if (!element) {
+      return
+    }
+    const update = () =>
+      setDirection(
+        getComputedStyle(element).direction === "rtl" ? "rtl" : "ltr"
+      )
+    const observer = new MutationObserver(update)
+    for (
+      let ancestor: Element | null = element;
+      ancestor;
+      ancestor = ancestor.parentElement
+    ) {
+      observer.observe(ancestor, {
+        attributes: true,
+        attributeFilter: ["dir", "class", "style"],
+      })
+    }
+    update()
+    return () => observer.disconnect()
+  }, [])
   const reachedEndRef = useRef(false)
   // Row count at the last `onReachEnd`, so a request that brings back
   // nothing doesn't immediately ask again. Written by every path that fires
@@ -1986,6 +2126,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   draftRef.current = draft
   const [editErrors, setEditErrors] = useState<Record<string, string>>({})
   const [dirty, setDirty] = useState(false)
+  const [savePending, setSavePending] = useState(false)
+  const [saveError, setSaveError] = useState<string>()
+  const savingRef = useRef(false)
+
+  useEffect(() => {
+    if (savePending || saveError) {
+      scrollRef.current
+        ?.querySelector<HTMLElement>('[aria-label="Save row"]')
+        ?.focus()
+    }
+  }, [saveError, savePending])
 
   const isEditing = editingRowId != null
   const locked = isEditing && lockInteractionsWhileEditing
@@ -2019,6 +2170,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    */
   const rowSelectionPredicate = (row: Row<T>) => {
     const isSelected = rowSelection[row.id] === true
+    if (isSelected) {
+      return true
+    }
     if (canSelectRow && !canSelectRow(row, { selectedCount, isSelected })) {
       return false
     }
@@ -2113,6 +2267,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     enableColumnPinning,
     enableColumnResizing,
     columnResizeMode: "onChange",
+    columnResizeDirection: direction,
     manualSorting,
     manualFiltering,
     // v9 registers the paginated row model on the feature set rather than
@@ -2257,14 +2412,32 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           (offsets.at(-1) ?? 0) + node.getBoundingClientRect().height
         )
       }
-      setHeaderOffsets(offsets)
+      setHeaderOffsets((old) =>
+        old.length === offsets.length &&
+        offsets.every((offset, index) => offset === old[index])
+          ? old
+          : offsets
+      )
     }
-    const observer = new ResizeObserver(measure)
+    // Sticky offsets can change the observed layout. Commit outside observer
+    // delivery so WebKit does not defer a second resize in the same frame.
+    let frame = 0
+    // Test DOMs may lack ResizeObserver; the initial measurement still runs.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(() => {
+            cancelAnimationFrame(frame)
+            frame = requestAnimationFrame(measure)
+          })
     for (const node of nodes) {
-      observer.observe(node)
+      observer?.observe(node)
     }
     measure()
-    return () => observer.disconnect()
+    return () => {
+      observer?.disconnect()
+      cancelAnimationFrame(frame)
+    }
   }, [stickyHeader, headerGroupCount])
 
   /**
@@ -2282,6 +2455,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     draftRowIdRef.current = row.id
     setDraft(initial)
     setEditErrors({})
+    setSaveError(undefined)
     setDirty(false)
   }
 
@@ -2303,6 +2477,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     // would fix the stored state but not `onEditChange`'s payload, since
     // React may run the updater after this call returns; the ref advances
     // synchronously so both agree.
+    if (savingRef.current) {
+      return
+    }
     const next = { ...draftRef.current, [columnId]: value }
     draftRef.current = next
     setDraft(next)
@@ -2313,16 +2490,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   }
 
   const cancelEdit = () => {
-    if (!isEditing) {
+    if (!isEditing || savingRef.current) {
       return
     }
     const rowId = editingRowId as string
     setEditingRowId(null)
+    setSaveError(undefined)
     onEditCancel?.({ rowId, dirty })
   }
 
-  const commitEdit = () => {
-    if (!isEditing) {
+  const commitEdit = async () => {
+    if (!isEditing || savingRef.current) {
       return
     }
     const rowId = editingRowId as string
@@ -2363,7 +2541,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     const errors = validateDraft(
       editableColumns,
       committed,
-      translations.requiredLabel
+      translations.requiredLabel,
+      translations.invalidRangeLabel
     )
 
     if (Object.keys(errors).length > 0) {
@@ -2372,9 +2551,55 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return
     }
 
-    onEditCommit?.({ rowId, draft: committed, row: row.original })
-    setEditingRowId(null)
+    savingRef.current = true
+    setSavePending(true)
+    setSaveError(undefined)
+    try {
+      await onEditCommit?.({ rowId, draft: committed, row: row.original })
+      if (draftRowIdRef.current === rowId) {
+        setEditingRowId(null)
+      }
+    } catch {
+      if (draftRowIdRef.current === rowId) {
+        setSaveError(translations.saveErrorLabel)
+      }
+    } finally {
+      savingRef.current = false
+      setSavePending(false)
+    }
   }
+
+  const lastCorrection = useRef<string | undefined>(undefined)
+  const settledPageCount =
+    rowCount == null ? pageCount : Math.ceil(rowCount / pagination.pageSize)
+  const invalidPage =
+    enablePagination &&
+    settledPageCount != null &&
+    settledPageCount >= 0 &&
+    pagination.pageIndex > Math.max(0, settledPageCount - 1)
+  useEffect(() => {
+    if (loading || loadingMore || !invalidPage) {
+      if (!invalidPage) {
+        lastCorrection.current = undefined
+      }
+      return
+    }
+    const corrected = Math.max(0, (settledPageCount ?? 0) - 1)
+    const key = `${pagination.pageIndex}:${pagination.pageSize}:${corrected}`
+    if (lastCorrection.current === key) {
+      return
+    }
+    lastCorrection.current = key
+    setPagination({ pageSize: pagination.pageSize, pageIndex: corrected })
+  }, [
+    invalidPage,
+    loading,
+    loadingMore,
+    pagination.pageIndex,
+    pagination.pageSize,
+    settledPageCount,
+    setPagination,
+  ])
 
   const rows = table.getRowModel().rows
   // Sortable indices belong to the rendered root rows, while public reorder
@@ -2418,6 +2643,18 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     [headerGroups]
   )
   const columnCount = leafColumns.length
+  const logicalRows = rows.flatMap((row, index) => [
+    { row, index, detail: false },
+    ...(renderExpandedRow && row.getIsExpanded()
+      ? [{ row, index, detail: true }]
+      : []),
+  ])
+  const logicalRowPosition = new Map<string, number>()
+  logicalRows.forEach((item, index) => {
+    if (!item.detail) {
+      logicalRowPosition.set(item.row.id, index)
+    }
+  })
 
   /* Virtualization (windowing that preserves native table column alignment).
    *
@@ -2510,10 +2747,16 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     // flips enableVirtualization on while maxHeight stays unset).
   }, [enableVirtualization, maxHeight])
   const rowVirtualizer = useVirtualizer({
-    count: rows.length,
+    count: logicalRows.length,
+    getItemKey: (index) =>
+      `${logicalRows[index]?.row.id}:${logicalRows[index]?.detail ? "detail" : "record"}`,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => estimateRowHeight,
     overscan: 12,
+    // Row measurements change spacer heights and can change auto column widths.
+    // Defer those writes out of ResizeObserver delivery to avoid a same-frame
+    // row/container resize feedback loop (notably on narrow WebKit tables).
+    useAnimationFrameWithResizeObserver: true,
     enabled: virtualizationUsable,
   })
   const virtualItems = virtualizationUsable
@@ -2534,12 +2777,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    * onto its predecessor's index, silently offsetting `aria-rowindex`, the
    * `striped` parity and the `rowIndex` handed to `getCellSpan`.
    */
-  const renderRows: { row: Row<T>; index: number }[] = virtualizationUsable
+  const renderRows = virtualizationUsable
     ? virtualItems.flatMap((vi) => {
-        const row = rows[vi.index]
-        return row ? [{ row, index: vi.index }] : []
+        const item = logicalRows[vi.index]
+        return item ? [item] : []
       })
-    : rows.map((row, index) => ({ row, index }))
+    : logicalRows
 
   // Without `maxHeight` the table does not scroll itself, so infinite scroll has
   // to observe the page instead of the container.
@@ -2804,66 +3047,130 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
   })
 
-  // An end-pinned column and the sticky actions cell both freeze at the
-  // trailing edge, and the actions column is not in TanStack's column model
-  // so `getAfter("end")` cannot reserve room for it — they overlap. The
-  // actions cell now wins the stacking deterministically, but the pinned
-  // column is still hidden underneath, so say so rather than let it look
-  // like a rendering glitch.
-  const hasWarnedAboutPinnedActionsOverlap = useRef(false)
-  useEffect(() => {
-    const endPinned =
-      enableColumnPinning &&
-      table.getAllLeafColumns().some((c) => c.getIsPinned() === "end")
-    if (
-      !(endPinned && stickyActions && hasActionsColumn) ||
-      hasWarnedAboutPinnedActionsOverlap.current ||
-      typeof process === "undefined" ||
-      process.env?.NODE_ENV === "production"
-    ) {
+  const [renderedWidths, setRenderedWidths] = useState<Record<string, number>>(
+    {}
+  )
+  const [renderedActionsWidth, setRenderedActionsWidth] = useState(0)
+  const [viewportWidth, setViewportWidth] = useState(0)
+  useIsomorphicLayoutEffect(() => {
+    const host = scrollRef.current
+    if (!host) {
       return
     }
-    hasWarnedAboutPinnedActionsOverlap.current = true
-    console.warn(
-      "DataTable: a column pinned to 'end' and the sticky actions cell both " +
-        "freeze at the trailing edge, so they overlap — the actions column " +
-        "is not part of the column model, so end-pinned offsets cannot " +
-        "account for its width. Use stickyActions={false}, or pin to " +
-        "'start' instead."
+    const cells = host.querySelectorAll<HTMLElement>(
+      "thead [data-leaf-column], thead [data-actions-column]"
     )
-  }, [enableColumnPinning, stickyActions, hasActionsColumn, table])
-
-  // Frozen offsets (`getStart`/`getAfter`) are sums of `getSize()`, and only a
-  // *numeric* `meta.width` is mirrored into `size` — a CSS string cannot be
-  // resolved without measuring. So a pinned column sized `"20%"` or
-  // `"var(--dimension-120)"` is laid out at its real width but offset as if it
-  // were the 150px default, and the frozen columns overlap.
-  const hasWarnedAboutPinnedStringWidth = useRef(false)
-  useEffect(() => {
-    const offender =
-      enableColumnPinning &&
-      table
-        .getAllLeafColumns()
-        .find(
-          (c) => c.getIsPinned() && typeof c.columnDef.meta?.width === "string"
+    const measure = () => {
+      setViewportWidth(host.clientWidth)
+      const widths: Record<string, number> = {}
+      for (const cell of cells) {
+        const width = cell.getBoundingClientRect().width
+        const id = cell.dataset.leafColumn
+        if (id == null) {
+          const offsetWidth =
+            getComputedStyle(cell).insetInlineEnd === "auto" ? 0 : width
+          setRenderedActionsWidth((old) =>
+            Math.abs(old - offsetWidth) < 0.5 ? old : offsetWidth
+          )
+        } else {
+          widths[id] = width
+        }
+      }
+      setRenderedWidths((old) =>
+        Object.keys(widths).length === Object.keys(old).length &&
+        Object.entries(widths).every(
+          ([id, width]) => Math.abs((old[id] ?? 0) - width) < 0.5
         )
-    if (
-      !offender ||
-      hasWarnedAboutPinnedStringWidth.current ||
-      typeof process === "undefined" ||
-      process.env?.NODE_ENV === "production"
-    ) {
-      return
+          ? old
+          : widths
+      )
     }
-    hasWarnedAboutPinnedStringWidth.current = true
-    console.warn(
-      `DataTable: pinned column "${offender.id}" declares a string ` +
-        "meta.width, which cannot be mirrored into TanStack's numeric " +
-        "`size`. Frozen offsets are computed from `size`, so this column " +
-        "will be positioned as if it were the default width and overlap its " +
-        "neighbours. Give pinned columns a numeric meta.width."
+    let frame = 0
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(() => {
+            cancelAnimationFrame(frame)
+            frame = requestAnimationFrame(measure)
+          })
+    observer?.observe(host)
+    for (const cell of cells) {
+      observer?.observe(cell)
+    }
+    measure()
+    return () => {
+      observer?.disconnect()
+      cancelAnimationFrame(frame)
+    }
+  }, [leafColumns, headerGroupCount, hasActionsColumn, stickyActions])
+
+  // Keep useful identity pins while reserving a readable middle band. Merely
+  // fitting all pins can leave only a few pixels between opposing surfaces.
+  // Start-side identity pins win; rejected pins remain normally scrollable.
+  const renderedTableWidth = leafColumns.reduce(
+    (sum, leaf) => sum + (renderedWidths[leaf.id] ?? leaf.getSize()),
+    renderedActionsWidth
+  )
+  const scrollableBudget =
+    renderedTableWidth > viewportWidth ? viewportWidth * 0.4 : 0
+  const fittingPins = new Set<string>()
+  let pinnedWidth = renderedActionsWidth
+  const pinCandidates = [
+    ...leafColumns.filter((leaf) => leaf.getIsPinned() === "start"),
+    ...leafColumns.filter((leaf) => leaf.getIsPinned() === "end").reverse(),
+  ]
+  for (const leaf of pinCandidates) {
+    const width = renderedWidths[leaf.id] ?? leaf.getSize()
+    if (
+      viewportWidth === 0 ||
+      pinnedWidth + width + scrollableBudget < viewportWidth
+    ) {
+      fittingPins.add(leaf.id)
+      pinnedWidth += width
+    }
+  }
+  const unpinnedPosition = {
+    header: stickyHeader ? "sticky" : "relative",
+    body: "static",
+  } as const
+  const pinningStyles = (
+    column: Column<T, unknown>,
+    kind: "header" | "body" = "body"
+  ) => {
+    const pinned = column.getIsPinned()
+    if (!pinned) {
+      return {}
+    }
+    const descendants =
+      column.columns.length > 0 ? column.getLeafColumns() : [column]
+    if (!descendants.every((leaf) => fittingPins.has(leaf.id))) {
+      return {
+        position: unpinnedPosition[kind],
+        insetInlineStart: "auto",
+        insetInlineEnd: "auto",
+        zIndex: undefined,
+      } as CSSProperties
+    }
+    const siblings = leafColumns.filter(
+      (leaf) => leaf.getIsPinned() === pinned && fittingPins.has(leaf.id)
     )
-  }, [enableColumnPinning, table])
+    const target = pinned === "start" ? descendants[0] : descendants.at(-1)
+    const index = siblings.findIndex((leaf) => leaf.id === target?.id)
+    const preceding =
+      pinned === "start" ? siblings.slice(0, index) : siblings.slice(index + 1)
+    const offset = preceding.reduce(
+      (sum, leaf) => sum + (renderedWidths[leaf.id] ?? leaf.getSize()),
+      0
+    )
+    const actionsOffset =
+      stickyActions && hasActionsColumn ? renderedActionsWidth : 0
+    return {
+      ...getPinningStyles(column, kind),
+      ...(pinned === "start"
+        ? { insetInlineStart: offset }
+        : { insetInlineEnd: offset + actionsOffset }),
+    }
+  }
 
   /**
    * Resolve a column's header filter: per-column `meta.renderFilter`, then the
@@ -2904,6 +3211,65 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     return renderer?.(ctx) ?? null
   }
 
+  const handleColumnResizeKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    column: Column<T, unknown>
+  ) => {
+    if (["Enter", "Home"].includes(event.key)) {
+      event.preventDefault()
+      column.resetSize()
+      return
+    }
+    const arrowDirection = (
+      { ArrowLeft: -1, ArrowRight: 1 } as Record<string, number>
+    )[event.key]
+    if (!arrowDirection) {
+      return
+    }
+    event.preventDefault()
+    const delta =
+      (event.shiftKey ? 50 : 10) *
+      arrowDirection *
+      (table.options.columnResizeDirection === "rtl" ? -1 : 1)
+    const min = column.columnDef.minSize ?? 20
+    const max = column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER
+    // Unresized columns may be auto-sized by native table layout, so
+    // TanStack's default model width need not match the visible width.
+    const renderedSize = event.currentTarget
+      .closest("th")
+      ?.getBoundingClientRect().width
+    const currentSize =
+      columnSizing[column.id] ?? renderedSize ?? column.getSize()
+    const nextSize = Math.min(max, Math.max(min, currentSize + delta))
+    table.setColumnSizing((current) => ({ ...current, [column.id]: nextSize }))
+  }
+
+  const handleColumnResizeStart = (
+    event:
+      | React.MouseEvent<HTMLButtonElement>
+      | React.TouchEvent<HTMLButtonElement>,
+    header: Header<T, unknown>
+  ) => {
+    const renderedSize = event.currentTarget
+      .closest("th")
+      ?.getBoundingClientRect().width
+    header.getResizeHandler()(event)
+    if (renderedSize == null || renderedSize <= 0) {
+      return
+    }
+    // Keep TanStack's drag lifecycle (RTL, touch cancellation and cleanup),
+    // but seed its leaf baseline from layout, not the 150px model fallback.
+    table.setColumnResizing((current) =>
+      current.isResizingColumn === header.column.id
+        ? {
+            ...current,
+            startSize: renderedSize,
+            columnSizingStart: [[header.column.id, renderedSize]],
+          }
+        : current
+    )
+  }
+
   const renderHeaderCell = (
     header: Header<T, unknown>,
     groupIndex: number,
@@ -2916,13 +3282,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
   ) => {
     const column = header.column
-    const ariaSort = sortState(column, enableSorting)
-    let dropClass = ""
-    if (dnd?.dropSide === "start") {
-      dropClass = "border-primary border-s-2"
-    } else if (dnd?.dropSide === "end") {
-      dropClass = "border-primary border-e-2"
-    }
+    const ariaSort = header.isPlaceholder
+      ? undefined
+      : sortState(column, enableSorting)
+    const dropClass = dnd?.dropSide ? styles.columnDropIndicator() : ""
     return (
       <Table.ColumnHeader
         align={column.columnDef.meta?.align}
@@ -2941,15 +3304,19 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         // straight into the header-group map and is the one that needs it.
         colSpan={header.colSpan}
         data-dragging={dnd?.isDragging || undefined}
+        data-drop-side={dnd?.dropSide}
+        data-leaf-column={column.columns.length === 0 ? column.id : undefined}
         data-pinned={column.getIsPinned() || undefined}
         key={header.id}
         ref={dnd?.nodeRef as unknown as RefObject<HTMLTableCellElement>}
         style={{
           ...OPAQUE_HEADER_BG,
           ...stickyRowOffset(stickyHeader, headerOffsets, groupIndex),
-          ...getPinningStyles(column, "header"),
+          ...pinningStyles(column, "header"),
           ...dnd?.style,
-          ...getColumnSizeStyles(column, enableColumnResizing, columnSizing),
+          ...(column.columns.length === 0
+            ? getColumnSizeStyles(column, enableColumnResizing, columnSizing)
+            : undefined),
         }}
       >
         <div className={styles.headerLabel()}>
@@ -2967,13 +3334,18 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             styles={styles}
           />
         </div>
-        {enableColumnResizing && column.getCanResize() ? (
+        {enableColumnResizing &&
+        !header.isPlaceholder &&
+        column.columns.length === 0 &&
+        column.getCanResize() ? (
           <button
+            aria-description="Use Left and Right arrows to resize; Shift changes by 50 pixels. Enter resets the width."
             aria-label={`Resize ${columnLabel(column)}`}
             className={styles.resizeHandle()}
             onDoubleClick={() => column.resetSize()}
-            onMouseDown={header.getResizeHandler()}
-            onTouchStart={header.getResizeHandler()}
+            onKeyDown={(event) => handleColumnResizeKeyDown(event, column)}
+            onMouseDown={(event) => handleColumnResizeStart(event, header)}
+            onTouchStart={(event) => handleColumnResizeStart(event, header)}
             type="button"
           />
         ) : null}
@@ -3020,7 +3392,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           })}
           {hasActionsColumn && groupIndex === 0 && (
             <Table.ColumnHeader
-              className={stickyActions ? "sticky inset-e-0" : undefined}
+              className={
+                stickyActions ? "data-table-actions-sticky sticky" : undefined
+              }
+              data-actions-column=""
               numeric
               rowSpan={table.getHeaderGroups().length}
               style={{
@@ -3051,7 +3426,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               key={column.id}
               style={{
                 ...OPAQUE_FILTER_ROW_BG,
-                ...getPinningStyles(column, "header"),
+                ...pinningStyles(column, "header"),
                 ...(stickyHeader
                   ? {
                       position: "sticky",
@@ -3069,16 +3444,23 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   : undefined),
               }}
             >
-              <div className={styles.filterControl()}>
-                {column.getCanFilter() ? renderColumnFilter(column) : null}
-              </div>
+              {column.getCanFilter() ? (
+                <div
+                  className={styles.filterViewport()}
+                  data-layout={tableLayout}
+                >
+                  <div className={styles.filterControl()} data-size={size}>
+                    {renderColumnFilter(column)}
+                  </div>
+                </div>
+              ) : null}
             </td>
           ))}
           {hasActionsColumn && (
             <td
               className={
                 stickyActions
-                  ? `${styles.filterCell()} sticky inset-e-0 bg-data-table-filter-row-bg`
+                  ? `${styles.filterCell()} data-table-actions-sticky sticky bg-data-table-filter-row-bg`
                   : styles.filterCell()
               }
               style={{
@@ -3087,7 +3469,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   ? { position: "sticky", top: headerHeight }
                   : undefined),
                 // Gated on `stickyActions` (which is what applies the
-                // `sticky inset-e-0` class), not on `stickyHeader`. Pinned filter
+                // `data-table-actions-sticky sticky` class), not on `stickyHeader`. Pinned filter
                 // cells take `zIndex: pinnedHeaderCell` from
                 // `getPinningStyles` unconditionally, so when the header was
                 // not sticky this cell had no level at all and an end-pinned
@@ -3121,7 +3503,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       type,
       value: draft[column.id],
       setValue: (next) => setDraftValue(row.id, column.id, next),
-      disabled: false,
+      disabled: savePending,
       size,
       // `meta.filterOptions` is deprecated in favour of `meta.options`, but a
       // column not yet migrated still needs its enum/multiEnum editor
@@ -3150,26 +3532,30 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return (
         <>
           <Button
-            aria-label="Save row"
-            icon="token-icon-check"
-            onClick={(e) => {
-              e.stopPropagation()
-              commitEdit()
-            }}
-            size="sm"
-            theme="borderless"
-            variant="primary"
-          />
-          <Button
             aria-label="Cancel edit"
+            disabled={savePending}
             icon="token-icon-close"
-            onClick={(e) => {
-              e.stopPropagation()
+            onClick={(event) => {
+              event.stopPropagation()
               cancelEdit()
             }}
-            size="sm"
-            theme="borderless"
+            size={size}
+            theme="outlined"
             variant="secondary"
+          />
+          <Button
+            aria-describedby={
+              saveError ? `${instanceId}-save-error` : undefined
+            }
+            aria-label="Save row"
+            icon="token-icon-check"
+            isLoading={savePending}
+            onClick={(event) => {
+              event.stopPropagation()
+              commitEdit()
+            }}
+            size={size}
+            variant="primary"
           />
         </>
       )
@@ -3206,6 +3592,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       isEditing: editingRowId === row.id,
       startEdit: () => startEdit(row),
       commitEdit,
+      pending: savePending,
+      error: saveError,
       cancelEdit,
       // `locked`, matching the declarative `rowActions` path: with
       // `lockInteractionsWhileEditing={false}` the caller has opted out of
@@ -3232,7 +3620,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       // Composites the row tint over an opaque surface, like pinned cells —
       // `bg-inherit` alone was transparent on striped/selected rows.
       className={
-        stickyActions ? "data-table-frozen-cell sticky inset-e-0" : undefined
+        stickyActions
+          ? "data-table-frozen-cell data-table-actions-sticky sticky"
+          : undefined
       }
       numeric
       style={
@@ -3294,6 +3684,20 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           )
         )}
         {rowActionsContent(row)}
+        {editingRowId === row.id && savePending && (
+          <StatusText role="status" size={size}>
+            {translations.savePendingLabel}
+          </StatusText>
+        )}
+        {editingRowId === row.id && saveError && (
+          <StatusText
+            id={`${instanceId}-save-error`}
+            size={size}
+            status="error"
+          >
+            {saveError}
+          </StatusText>
+        )}
       </div>
     </Table.Cell>
   )
@@ -3322,6 +3726,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         return null
       }
       const column = cell.column as Column<T, unknown>
+      const meta = column.columnDef.meta
+      const type = resolveColumnType(meta)
+      const ownsFeedback =
+        !(meta?.renderEditor || editorRenderers?.[type]) &&
+        (type === "boolean" || type === "enum" || type === "multiEnum")
       return (
         <DataTableBodyCell
           cell={cell}
@@ -3329,7 +3738,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           dnd={dnd}
           editor={renderCellEditor(row, column)}
           editorError={
-            editingRowId === row.id
+            editingRowId === row.id && !ownsFeedback
               ? editErrors[column.id] || undefined
               : undefined
           }
@@ -3338,8 +3747,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           enableRowReorder={enableRowReorder}
           indentColumnId={indentColumnId}
           key={cell.id}
+          pinningStyle={pinningStyles(column)}
           row={row}
           rowLabel={rowLabel}
+          size={size}
           span={span}
           styles={styles}
         />
@@ -3354,9 +3765,41 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    */
   const headerRowCount =
     table.getHeaderGroups().length + (enableColumnFilters ? 1 : 0)
-  const pageRowOffset = enablePagination
+  const pageRecordOffset = enablePagination
     ? pagination.pageIndex * pagination.pageSize
     : 0
+  const allClientRows = table.getPrePaginatedRowModel().rows
+  const detailCount = (modelRows: Row<T>[]) =>
+    renderExpandedRow
+      ? modelRows.filter((row) => row.getIsExpanded()).length
+      : 0
+  // Prior server pages' detail rows do not exist in this instance.
+  const pageRowOffset =
+    manualPagination && renderExpandedRow
+      ? 0
+      : pageRecordOffset + detailCount(allClientRows.slice(0, pageRecordOffset))
+  const footerRowCount = hasFooter ? table.getFooterGroups().length : 0
+  const knownRecordCount = manualPagination ? rowCount : table.getRowCount()
+  let accessibleBodyCount = knownRecordCount
+  if (renderExpandedRow) {
+    accessibleBodyCount = manualPagination
+      ? logicalRows.length
+      : allClientRows.length + detailCount(allClientRows)
+  }
+  if (
+    accessibleBodyCount != null &&
+    pageRowOffset + logicalRows.length > accessibleBodyCount
+  ) {
+    // Request/data metadata can be temporarily inconsistent; never publish a
+    // known row count smaller than the explicit positions we actually render.
+    accessibleBodyCount = undefined
+  }
+  const accessibleRowCount =
+    accessibleBodyCount == null
+      ? -1
+      : headerRowCount + accessibleBodyCount + footerRowCount
+  const footerRowOffset =
+    accessibleBodyCount ?? pageRowOffset + logicalRows.length
 
   type RowDnd = {
     nodeRef: (node: Element | null) => void
@@ -3382,7 +3825,13 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   ) => (
     <Table.Row
       {...restRowProps}
-      aria-rowindex={headerRowCount + pageRowOffset + rowIndex + 1}
+      aria-busy={(editingRowId === row.id && savePending) || undefined}
+      aria-rowindex={
+        headerRowCount +
+        pageRowOffset +
+        (logicalRowPosition.get(row.id) ?? rowIndex) +
+        1
+      }
       className={rowDragClass(dnd, {
         className: restRowProps.className,
         striped: effectiveStriped,
@@ -3391,6 +3840,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       })}
       data-depth={row.depth || undefined}
       data-dragging={dnd?.isDragging || undefined}
+      data-index={logicalRowPosition.get(row.id)}
       id={opts.rowElementId ?? restRowProps.id}
       onClick={buildRowClickHandler(row, rowOnClick, onRowClick, blocked)}
       // Composed, not overwritten: like `onClick`, a consumer's
@@ -3403,7 +3853,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         restRowProps.onKeyDown?.(event)
         opts.rowKeyDown?.(event)
       }}
-      ref={composeRowRef(dnd, rowRef)}
+      ref={(node) => {
+        composeRowRef(dnd, rowRef)(node)
+        if (virtualizationUsable) {
+          rowVirtualizer.measureElement(node)
+        }
+      }}
       // Sortable ref wins while reordering; otherwise keep the consumer's ref.
       selected={enableRowSelection ? row.getIsSelected() : undefined}
       style={{ ...rowStyle, ...dnd?.style }}
@@ -3417,7 +3872,6 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   /* ── Body row renderer ──────────────────────────────────────────────── */
   const renderBodyRow = (row: Row<T>, rowIndex: number, dnd?: RowDnd) => {
     const rowIsClickable = !!onRowClick && !locked
-    const actionsColumn = hasActionsColumn ? 1 : 0
     const rowElementId = editingRowElementId(editingRowId, instanceId, row.id)
     const rowKeyDown = rowIsClickable
       ? buildRowKeyDownHandler(row, onRowClick, blocked)
@@ -3429,24 +3883,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       rowKeyDown,
     })
 
-    const expandedRow =
-      renderExpandedRow && row.getIsExpanded()
-        ? renderExpandedDetailRow({
-            row,
-            renderExpandedRow,
-            colSpan: columnCount + actionsColumn,
-            instanceId,
-            styles,
-            tintNestedRows,
-          })
-        : null
-
-    return (
-      <Fragment key={row.id}>
-        {mainRow}
-        {expandedRow}
-      </Fragment>
-    )
+    return <Fragment key={row.id}>{mainRow}</Fragment>
   }
 
   // Row order only maps back to `data` while the view is unsorted/unfiltered.
@@ -3457,7 +3894,27 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     columnFilters.length === 0 &&
     !globalFilter
 
-  const bodyRows = renderRows.map(({ row, index: rowIndex }) => {
+  const bodyRows = renderRows.map(({ row, index: rowIndex, detail }) => {
+    if (detail && renderExpandedRow) {
+      const index = (logicalRowPosition.get(row.id) ?? rowIndex) + 1
+      return (
+        <Fragment key={`${row.id}-detail`}>
+          {renderExpandedDetailRow({
+            row,
+            renderExpandedRow,
+            colSpan: columnCount + (hasActionsColumn ? 1 : 0),
+            instanceId,
+            styles,
+            tintNestedRows,
+            rowIndex: headerRowCount + pageRowOffset + index + 1,
+            virtualIndex: index,
+            measureElement: virtualizationUsable
+              ? rowVirtualizer.measureElement
+              : undefined,
+          })}
+        </Fragment>
+      )
+    }
     // Only top-level rows are reorderable — sub-rows aren't in the top-level
     // `data` array, so dragging them could not be applied to it.
     return rowReorderActive && row.depth === 0 ? (
@@ -3480,7 +3937,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         <Table.Row aria-hidden="true" key={rowKey}>
           {leafColumns.map((column) => (
             <Table.Cell key={`${rowKey}-${column.id}`}>
-              <Skeleton.Text noOfLines={1} size={size} />
+              <Skeleton.Text
+                className="data-table-skeleton"
+                noOfLines={1}
+                size={size}
+              />
             </Table.Cell>
           ))}
           {hasActionsColumn && (
@@ -3489,7 +3950,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "data-table-frozen-cell sticky inset-e-0"
+                  ? "data-table-frozen-cell data-table-actions-sticky sticky"
                   : undefined
               }
               numeric
@@ -3499,16 +3960,18 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   : undefined
               }
             >
-              <Skeleton.Text noOfLines={1} size={size} />
+              <Skeleton.Text
+                className="data-table-skeleton"
+                noOfLines={1}
+                size={size}
+              />
             </Table.Cell>
           )}
         </Table.Row>
       )
     )
 
-  const emptyState = renderEmpty ? (
-    renderEmpty()
-  ) : (
+  let emptyState: ReactNode = (
     <div className={styles.empty()}>
       <Icon icon="icon-[mdi--table-off]" size="xl" />
       <div>
@@ -3518,19 +3981,31 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     </div>
   )
 
+  if (invalidPage) {
+    emptyState = <StatusText>{translations.paginationPendingLabel}</StatusText>
+  }
+  if (renderEmpty) {
+    emptyState = renderEmpty()
+  }
+
   let statusMessage = ""
-  if (loading) {
+  if (loading || loadingMore) {
     statusMessage = translations.loadingLabel
+  } else if (invalidPage) {
+    statusMessage = translations.paginationPendingLabel
   } else if (rows.length === 0) {
-    statusMessage = translations.emptyTitle
+    statusMessage = renderEmpty ? "" : translations.emptyTitle
   } else if (isEditing) {
     statusMessage = translations.editingLabel
   }
 
   const emptyRow = (
     <tr>
-      <Table.Cell colSpan={columnCount + (hasActionsColumn ? 1 : 0)}>
-        {emptyState}
+      <Table.Cell
+        className="p-0!"
+        colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
+      >
+        <div className={styles.emptyViewport()}>{emptyState}</div>
       </Table.Cell>
     </tr>
   )
@@ -3554,7 +4029,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       {bodyState === "rows" && (
         <>
           {paddingTop > 0 && (
-            <tr>
+            <tr aria-hidden="true" tabIndex={-1}>
               <td
                 colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
                 style={{ height: paddingTop }}
@@ -3564,7 +4039,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           {bodyRows}
           {loadingMore && skeletonRows(1, "skeleton-more")}
           {paddingBottom > 0 && (
-            <tr>
+            <tr aria-hidden="true" tabIndex={-1}>
               <td
                 colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
                 style={{ height: paddingBottom }}
@@ -3578,10 +4053,13 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   const footerContent = hasFooter ? (
     <Table.Footer>
-      {table.getFooterGroups().map((footerGroup) => (
-        <Table.Row key={footerGroup.id}>
+      {table.getFooterGroups().map((footerGroup, footerIndex) => (
+        <Table.Row
+          aria-rowindex={headerRowCount + footerRowOffset + footerIndex + 1}
+          key={footerGroup.id}
+        >
           {footerGroup.headers.map((header) => (
-            <Table.Cell key={header.id}>
+            <Table.Cell colSpan={header.colSpan} key={header.id}>
               {header.isPlaceholder
                 ? null
                 : flexRender(
@@ -3595,7 +4073,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "sticky inset-e-0 bg-data-table-footer-bg"
+                  ? "data-table-actions-sticky sticky bg-data-table-footer-bg"
                   : undefined
               }
               numeric
@@ -3611,11 +4089,31 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     </Table.Footer>
   ) : null
 
+  // Native fixed layout ignores cell min-width and otherwise squeezes CSS
+  // lengths into a 100%-wide table. Budget absolute/CSS lengths on the table;
+  // proportional columns keep a model-sized floor rather than recursively
+  // adding their percentage of the already-expanded table.
+  const fixedTableMinWidth =
+    tableLayout === "fixed"
+      ? `calc(${[
+          ...leafColumns.map((column) => {
+            const sizing = getColumnSizeStyles(
+              column,
+              enableColumnResizing,
+              columnSizing
+            )
+            const minimum = String(sizing.minWidth ?? `${column.getSize()}px`)
+            return minimum.includes("%") ? `${column.getSize()}px` : minimum
+          }),
+          ...(hasActionsColumn ? [`${fixedActionsWidth ?? 0}px`] : []),
+        ].join(" + ")})`
+      : undefined
+
   const tableEl = (
     <FieldTableLayoutContext.Provider value={tableLayout}>
       <Table
-        aria-busy={loading || loadingMore || undefined}
-        aria-rowcount={headerRowCount + table.getRowCount()}
+        aria-busy={loading || loadingMore || invalidPage || undefined}
+        aria-rowcount={accessibleRowCount}
         interactive={(interactive || !!onRowClick) && !locked}
         showColumnBorder={showColumnBorder}
         size={size}
@@ -3624,9 +4122,38 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         // is the broken one `effectiveStriped` is routing around.
         variant={outlined || variant === "striped" ? "line" : variant}
         {...slotProps?.root}
-        style={{ tableLayout, ...slotProps?.root?.style }}
+        style={{
+          tableLayout,
+          minWidth: fixedTableMinWidth,
+          ...slotProps?.root?.style,
+        }}
       >
-        {caption && <Table.Caption>{caption}</Table.Caption>}
+        {caption && (
+          <Table.Caption id={`${instanceId}-caption`}>{caption}</Table.Caption>
+        )}
+        <colgroup>
+          {leafColumns.map((column) => (
+            <col
+              key={column.id}
+              // min/max-width do not participate in native colgroup layout.
+              // Cell minima and the fixed-table budget enforce those bounds.
+              style={{
+                width: getColumnSizeStyles(
+                  column,
+                  enableColumnResizing,
+                  columnSizing
+                ).width,
+              }}
+            />
+          ))}
+          {hasActionsColumn && (
+            <col
+              style={
+                fixedActionsWidth ? { width: fixedActionsWidth } : undefined
+              }
+            />
+          )}
+        </colgroup>
         {headerContent}
         {bodyContent}
         {footerContent}
@@ -3669,6 +4196,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     blocked,
     size,
     paginationProps,
+    hasNextPage,
+    paginationBusy: loading || loadingMore || invalidPage,
     toolbarActions,
   }
 
@@ -3695,14 +4224,20 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               </div>
             </DataTable.Toolbar>
           ))}
-        <div
-          className={styles.scroll()}
+        <section
+          aria-label={caption ? undefined : translations.scrollLabel}
+          aria-labelledby={caption ? `${instanceId}-caption` : undefined}
+          className={styles.scroll({
+            className: "focus-visible:data-table-scroll-focus",
+          })}
           onScroll={handleScroll}
           ref={scrollRef}
           style={maxHeight ? { maxHeight } : undefined}
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: Scroll regions need keyboard focus to reveal offscreen records.
+          tabIndex={0}
         >
           {scrollBody}
-        </div>
+        </section>
         {enablePagination && <DataTable.Pagination />}
       </div>
     </DataTableContext.Provider>
@@ -3937,6 +4472,50 @@ DataTable.ColumnVisibility = function DataTableColumnVisibility() {
   )
 }
 
+function paginationSummary<T extends RowData>(
+  table: TanstackTable<T>,
+  translations: Required<DataTableTranslations>
+) {
+  const state = table.state.pagination
+  const declaredPageCount = table.options.pageCount
+  const isManual = table.options.manualPagination
+  const manualEmptyTotal = declaredPageCount === 0 ? 0 : undefined
+  const exactTotal =
+    table.options.rowCount ??
+    (isManual ? manualEmptyTotal : table.getRowCount())
+  const unknownTotal =
+    isManual && exactTotal == null && declaredPageCount === -1
+  const total =
+    exactTotal ??
+    (declaredPageCount != null && declaredPageCount >= 0
+      ? declaredPageCount * state.pageSize
+      : table.getRowCount())
+  const returnedCount = table.getRowModel().rows.length
+  const start = returnedCount === 0 ? 0 : state.pageIndex * state.pageSize + 1
+  const end =
+    returnedCount === 0
+      ? 0
+      : Math.min(
+          state.pageIndex * state.pageSize + returnedCount,
+          exactTotal ?? Number.POSITIVE_INFINITY
+        )
+  const rangeText =
+    exactTotal == null
+      ? translations.pageLabel({
+          page: state.pageIndex + 1,
+          pageCount:
+            declaredPageCount != null && declaredPageCount >= 0
+              ? declaredPageCount
+              : undefined,
+        })
+      : translations.rangeLabel({
+          start: end < start ? 0 : start,
+          end,
+          total: exactTotal,
+        })
+  return { total, unknownTotal, rangeText }
+}
+
 DataTable.Pagination = function DataTablePagination() {
   const {
     table,
@@ -3946,28 +4525,48 @@ DataTable.Pagination = function DataTablePagination() {
     blocked,
     size,
     paginationProps,
+    hasNextPage,
+    paginationBusy,
   } = useDataTableContext()
   const state = table.state.pagination
-  /*
-   * `Pagination` builds its page list from `count`/`pageSize` and has no
-   * `pageCount` prop, while `getRowCount()` is
-   * `options.rowCount ?? prePaginatedRowModel.rows.length`. So a consumer
-   * following the documented server-side contract with `manualPagination` +
-   * `pageCount` (but no `rowCount`) handed us a single page of rows, the
-   * pager rendered exactly one page, and every other page was unreachable.
-   *
-   * Fall back to the span `pageCount` implies. Exact whenever `rowCount` is
-   * given; otherwise an upper bound on the last page, which is the most
-   * `pageCount` alone can express.
-   */
-  const declaredPageCount = table.options.pageCount
-  const total =
-    table.options.rowCount ??
-    (declaredPageCount != null && declaredPageCount >= 0
-      ? declaredPageCount * state.pageSize
-      : table.getRowCount())
-  const start = total === 0 ? 0 : state.pageIndex * state.pageSize + 1
-  const end = Math.min((state.pageIndex + 1) * state.pageSize, total)
+  const summary = paginationSummary(table, translations)
+  const settledPager = useRef({
+    ...summary,
+    ...state,
+    canNext: hasNextPage ?? table.getCanNextPage(),
+  })
+  const currentPager = {
+    ...summary,
+    ...state,
+    canNext: hasNextPage ?? table.getCanNextPage(),
+  }
+  // A refetch may temporarily clear both rows and totals. Keep the last
+  // settled destinations mounted so the focused link does not disappear.
+  const pager = paginationBusy ? settledPager.current : currentPager
+  const controlsRef = useRef<HTMLDivElement>(null)
+  const focusedControl = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    if (!paginationBusy) {
+      settledPager.current = currentPager
+    }
+    const previous = focusedControl.current
+    const controls = controlsRef.current
+    const doc = controls?.ownerDocument
+    if (
+      previous &&
+      !previous.isConnected &&
+      doc &&
+      doc.activeElement === doc.body
+    ) {
+      // A settled response can remove the focused page. Recover its logical
+      // successor, but never steal focus that the user moved elsewhere.
+      const successor =
+        controls?.querySelector<HTMLElement>('[aria-current="page"][href]') ??
+        controls?.querySelector<HTMLElement>("a[href], button:not(:disabled)")
+      successor?.focus()
+    }
+  })
+
   const styles = dataTableVariants()
 
   const pageSizeItems: SelectItem[] = pageSizeOptions.map((n) => ({
@@ -3978,39 +4577,87 @@ DataTable.Pagination = function DataTablePagination() {
   return (
     <div className={styles.paginationBar()} style={OPAQUE_PAGINATION_BG}>
       <span className={styles.paginationInfo()}>
-        {translations.rangeLabel({ start, end, total })}
+        {paginationBusy ? translations.loadingLabel : summary.rangeText}
       </span>
-      <div className={styles.paginationControls()}>
-        <Pagination
-          size={size}
-          {...paginationProps}
-          count={total}
-          getPageUrl={() => "#"}
-          // `Pagination` renders its items as links, and a real `href="#"`
-          // navigates: the viewport jumps to the top of the document and a
-          // `#` entry is pushed onto history on every page change. Paging
-          // here is driven entirely by `onPageChange`, so the default is
-          // pure side effect. Zag's `mergeProps` composes handlers, so
-          // suppressing it does not stop the page from changing.
-          //
-          // Declared *after* the `paginationProps` spread and composed with
-          // whatever the consumer passed, so supplying `linkProps` (say, to
-          // add a `data-testid`) cannot silently drop the guard.
-          linkProps={{
-            ...paginationProps?.linkProps,
-            onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
-              paginationProps?.linkProps?.onClick?.(event)
+      <div
+        aria-busy={paginationBusy || undefined}
+        className={styles.paginationControls()}
+        onBlurCapture={(event) => {
+          if (
+            event.relatedTarget &&
+            !event.currentTarget.contains(event.relatedTarget as Node)
+          ) {
+            focusedControl.current = null
+          }
+        }}
+        onFocusCapture={(event) => {
+          focusedControl.current = event.target
+        }}
+        ref={controlsRef}
+      >
+        {pager.unknownTotal ? (
+          <>
+            <Button
+              aria-disabled={paginationBusy || undefined}
+              disabled={locked || pager.pageIndex === 0}
+              onClick={() => {
+                if (!(paginationBusy || blocked("paginate"))) {
+                  table.previousPage()
+                }
+              }}
+              size={size}
+              theme="outlined"
+              variant="secondary"
+            >
+              {translations.previousPageLabel}
+            </Button>
+            <Button
+              aria-disabled={paginationBusy || undefined}
+              disabled={locked || !pager.canNext}
+              onClick={() => {
+                if (!(paginationBusy || blocked("paginate"))) {
+                  table.nextPage()
+                }
+              }}
+              size={size}
+              theme="outlined"
+              variant="secondary"
+            >
+              {translations.nextPageLabel}
+            </Button>
+          </>
+        ) : (
+          <Pagination
+            size={size}
+            {...paginationProps}
+            aria-disabled={paginationBusy || locked || undefined}
+            count={pager.total}
+            getPageUrl={() => "#"}
+            linkProps={{
+              ...paginationProps?.linkProps,
+              onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+                if (paginationBusy) {
+                  event.preventDefault()
+                } else {
+                  paginationProps?.linkProps?.onClick?.(event)
+                }
+              },
+            }}
+            // Cancel hash navigation after the link's machine handler runs.
+            // Preventing it in linkProps would also veto Pagination's update.
+            onClick={(event) => {
+              paginationProps?.onClick?.(event)
               event.preventDefault()
-            },
-          }}
-          onPageChange={(page) => {
-            if (!blocked("paginate")) {
-              table.setPageIndex(page - 1)
-            }
-          }}
-          page={state.pageIndex + 1}
-          pageSize={state.pageSize}
-        />
+            }}
+            onPageChange={(page) => {
+              if (!(paginationBusy || blocked("paginate"))) {
+                table.setPageIndex(page - 1)
+              }
+            }}
+            page={pager.pageIndex + 1}
+            pageSize={pager.pageSize}
+          />
+        )}
         {/* The page-size control is labelled only for assistive tech; the
             design shows the bare select next to the pager. */}
         <FieldSelect
@@ -4018,10 +4665,11 @@ DataTable.Pagination = function DataTablePagination() {
           disabled={locked}
           items={pageSizeItems}
           onChange={(v) => {
-            if (!blocked("paginate")) {
-              table.setPageSize(Number(v))
+            if (!(paginationBusy || blocked("paginate"))) {
+              table.setPagination({ pageIndex: 0, pageSize: Number(v) })
             }
           }}
+          readOnly={paginationBusy}
           size={size}
           value={String(state.pageSize)}
         />

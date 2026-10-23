@@ -5,7 +5,7 @@ description: >
   modal dialogs, alert dialogs, drawers, actions, focus management, placement,
   size, and close behavior backed by Zag.js.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -50,7 +50,8 @@ where actions and feedback live). This section applies them to `Dialog`.
 **Do**
 
 - Title = the action or record (`New product`, `Edit product`); destructive title = question (`Delete this product?`).
-- Put actions in the `actions` footer: `[Cancel] [Primary]`, bottom-right, one primary.
+- Put actions in the `actions` footer: `[Cancel] [Primary]`, bottom-right, one primary. Use `variant="tertiary" theme="outlined"` for neutral Cancel, never warning or secondary brand orange.
+- In destructive confirmations, focus Cancel first with `initialFocusEl`; reserve `variant="danger"` for the destructive action.
 - In an alertdialog the destructive button replaces the primary and repeats the verb + object (`Delete product`); the description names the record and consequences.
 - Ask before closing a dirty form (`Discard unsaved changes?`).
 - Size to the content: `sm` for confirmations, `md` for forms; right drawer for record CRUD.
@@ -92,9 +93,17 @@ open, onOpenChange, customTrigger, triggerText, title, description, actions
 closeOnEscape, closeOnInteractOutside, preventScroll, trapFocus, modal, portal
 ```
 
-Controlled dialogs close on Escape as soon as their content is mounted. The
-component composes any Zag content key handler first and respects
-`closeOnEscape={false}` or a prevented keyboard event.
+Controlled dialogs use Zag's dismissable-layer handling for Escape, including
+nested-popup dismissal order and `closeOnEscape={false}`.
+
+`behavior="modeless"` defaults to no backdrop, focus trap, or background scroll
+lock. `modal`, `trapFocus`, and `preventScroll` remain explicit overrides;
+`modal` takes precedence over `behavior`. Set `closeOnInteractOutside={false}`
+when background interaction should keep the window open.
+
+Always supply `title`, or `aria-label` when a visible title is intentionally
+omitted. Centered `size` presets set width, not fixed height, and retain viewport
+gutters on narrow screens.
 
 ## Core Patterns
 
@@ -102,10 +111,13 @@ component composes any Zag content key handler first and respects
 
 Use `role="alertdialog"` and a danger Button action for irreversible actions.
 
-### Use placement for drawers
+### Choose Drawer for edge panels
 
-`placement="left" | "right" | "top" | "bottom"` creates drawer behavior with
-size-driven width or height.
+Use the dedicated `Drawer` component for new edge-panel flows, especially when
+swipe gestures, logical placement, or snap points are needed. Dialog's existing
+`placement="left" | "right" | "top" | "bottom"` remains supported for compatibility
+with size-driven width or height; do not duplicate Drawer demonstrations in
+Dialog documentation.
 
 ### Use tokens for visual changes
 
@@ -167,3 +179,8 @@ rg -n "role=\"dialog\"|fixed inset-0|alertdialog|<Dialog[^>]*className=.*(w-|h-|
 rg -U -n "<Popover[\\s\\S]{0,300}(Delete|Remove|danger)" apps
 rg -n "<Dialog[^>]*role=\"(modal|drawer)\"" apps
 ```
+
+Nested kit Menu, Popover and Tooltip portals stay inside the owning modal's
+focus and accessibility scope. Dialog and Drawer share managed modal depth, so
+a nested modal backdrop sits above its parent panel. Centered dialogs have a
+viewport-relative height cap with scrolling for excess content.

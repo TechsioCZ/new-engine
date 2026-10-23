@@ -1,106 +1,31 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import '../../src/tokens/_colors.css'
-import '../../src/tokens/_semantic.css'
-import {ColorSelect} from '../../src/molecules/color-select'
+import type { Meta, StoryObj } from "@storybook/react"
 
-const meta: Meta = {
-  title: 'Overview/Color Palette',
+const meta = {
+  title: "Overview/Color Palette",
+  tags: ["autodocs"],
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
+    docs: { description: { component: "Inspect the actual semantic surface, foreground and interaction tokens of the active brand. The toolbar controls the same token graph used by components; these are display swatches, not selection controls." } },
   },
+} satisfies Meta
+export default meta
+type Story = StoryObj<typeof meta>
+
+const families = ["primary", "secondary", "tertiary", "warning", "danger"] as const
+const states = ["base", "hover", "active"] as const
+
+function Swatch({ token, label }: { token: string; label: string }) {
+  return <figure className="min-w-0 space-y-100">
+    <div aria-hidden="true" className="h-16 w-full rounded-md border border-border-primary" style={{ backgroundColor: `var(${token})` }} />
+    <figcaption className="space-y-50"><p className="font-semibold text-fg-primary text-sm">{label}</p><code className="block break-words text-fg-secondary text-xs">{token}</code></figcaption>
+  </figure>
 }
 
-export default meta
-type Story = StoryObj
-
-const semanticColors = [
-  'primary',
-  'secondary',
-  'tertiary',
-  'info',
-  'success',
-  'warning',
-  'danger',
-] as const
-
-const colorVariants = [
-  { suffix: '', label: 'Default' },
-  { suffix: '-light', label: 'Light' },
-] as const
-
-const stateVariants = [
-  { state: '', label: 'Default' },
-  { state: 'hover', label: 'Hover' },
-  { state: 'active', label: 'Active' },
-  { state: 'disabled', label: 'Disabled' },
-] as const
-
 export const Default: Story = {
-  render: () => (
-    <div className="min-h-screen bg-base p-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {semanticColors.map((color) => (
-            <div key={color} className="rounded-xl bg-surface p-6 shadow-lg">
-              <h3 className="mb-4 font-semibold text-fg-primary text-lg capitalize">
-                {color}
-              </h3>
-
-              <div className="space-y-6">
-                {colorVariants.map(({ suffix, label }) => (
-                  <div key={suffix}>
-                    <h4 className="mb-3 font-medium text-fg-secondary text-sm">
-                      {label}
-                    </h4>
-                    <div className="grid grid-cols-4 gap-4">
-                      {stateVariants.map(({ state, label: stateLabel }) => {
-                        const baseColorVar = `--color-${color}${suffix}`
-                        const computedColor =
-                          state === 'disabled'
-                            ? `var(--color-${color}${suffix}-disabled)`
-                            : state !== ''
-                              ? `oklch(from var(${baseColorVar}) calc(l + var(--state-${state})) c h)`
-                              : `var(${baseColorVar})`
-
-                        const colorTokenName =
-                          state === 'disabled'
-                            ? `--color-${color}${suffix}-disabled`
-                            : state !== ''
-                              ? `--color-${color}${suffix}-${state}`
-                              : `--color-${color}${suffix}`
-
-                        return (
-                          <div
-                            key={state}
-                            className="flex min-w-0 flex-col items-center gap-2"
-                          >
-                            <div className="h-16 w-16 flex-shrink-0">
-                              <ColorSelect
-                                colors={[{ color: computedColor }]}
-                                size="full"
-                                radius="md"
-                                layout="list"
-                              />
-                            </div>
-                            <div className="w-full text-center">
-                              <div className="truncate font-medium text-fg-primary text-xs">
-                                {state || 'Default'}
-                              </div>
-                              <div className="mt-1 break-all font-mono text-fg-secondary text-xs leading-tight">
-                                {colorTokenName}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  ),
+  parameters: { docs: { description: { story: "Switch brands or modes to inspect real base, hover and active tokens, including the opaque popup and readable text surfaces." } } },
+  render: () => <div className="min-h-screen bg-base p-300 text-fg-primary md:p-600"><div className="mx-auto max-w-7xl space-y-600">
+    <header className="space-y-100"><h1 className="font-bold text-xl">Theme palette</h1><p className="text-fg-secondary text-sm">Live semantic tokens from the selected brand and mode. Hover and active swatches use exported tokens, not approximations.</p></header>
+    <div className="grid gap-400 md:grid-cols-2 xl:grid-cols-3">{families.map((family) => <section key={family} className="space-y-300 rounded-lg border border-border-primary bg-surface p-300"><h2 className="font-semibold text-lg capitalize">{family}</h2><div className="grid grid-cols-1 gap-200 sm:grid-cols-3">{states.map((state) => <Swatch key={state} label={state === "base" ? "Base" : state === "hover" ? "Hover" : "Active"} token={`--color-bg-${family}-${state}`} />)}</div></section>)}</div>
+    <section className="space-y-300"><h2 className="font-semibold text-lg">Surfaces and feedback</h2><div className="grid grid-cols-1 gap-300 sm:grid-cols-2 md:grid-cols-4">{([["Page", "--color-base"], ["Popup", "--color-popup-bg"], ["Disabled", "--color-bg-disabled"], ["Selection", "--color-fill-selected"], ["Information", "--color-bg-info"], ["Success", "--color-bg-success"], ["Text", "--color-fg-primary"], ["Link", "--color-link"]] as const).map(([label, token]) => <Swatch key={token} label={label} token={token} />)}</div></section>
+  </div></div>,
 }

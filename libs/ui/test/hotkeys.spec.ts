@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 const hotkeysColorClass = /text-hotkeys-key-fg/
-const hotkeysSizeClass = /text-hotkeys-sm/
+const hotkeysSizeClass = /text-hotkeys-md/
 
 test("Playground shortcut opens the visible action and prevents browser defaults", async ({
   page,
@@ -32,6 +32,7 @@ test("Playground shortcut opens the visible action and prevents browser defaults
       { capture: true }
     )
   })
+  await page.getByRole("button", { name: "Open example", exact: true }).focus()
   await page.keyboard.press("Control+Shift+a")
   await expect(page.locator("html")).toHaveAttribute(
     "data-hotkey-default-prevented",
@@ -54,6 +55,7 @@ test("requireReset survives rerenders while the shortcut is held", async ({
     "/iframe.html?id=atoms-hotkeys--form-fields-technical&viewMode=story"
   )
   await expect(page.getByTestId("hotkeys-count")).toHaveText("0")
+  await page.getByRole("button", { name: "Save", exact: true }).focus()
   await page.keyboard.down("Control")
   await page.keyboard.down("s")
   await expect(page.getByTestId("hotkeys-count")).toHaveText("1")
@@ -317,14 +319,14 @@ test("characterizes native 1.43.3 composing modifier events as unsuppressed", as
   await page.goto(
     "/iframe.html?id=atoms-hotkeys--form-fields-technical&viewMode=story"
   )
-  await page
-    .getByRole("button", { name: "Save", exact: true })
-    .dispatchEvent("keydown", {
-      key: "s",
-      code: "KeyS",
-      ctrlKey: true,
-      isComposing: true,
-    })
+  const target = page.getByRole("button", { name: "Save", exact: true })
+  await target.focus()
+  await target.dispatchEvent("keydown", {
+    key: "s",
+    code: "KeyS",
+    ctrlKey: true,
+    isComposing: true,
+  })
   await expect(page.getByTestId("hotkeys-count")).toHaveText("1")
 })
 
@@ -337,6 +339,7 @@ test("development StrictMode replays owner effects without losing registrations 
   const mode = await page
     .getByTestId("hotkeys-strict-mode-host")
     .getAttribute("data-react-mode")
+  // biome-ignore lint/suspicious/noSkippedTests: React production intentionally has no StrictMode effect replay.
   test.skip(
     mode === "production",
     "StrictMode effect replay is development-only"
@@ -349,4 +352,46 @@ test("development StrictMode replays owner effects without losing registrations 
   await expect(page.getByTestId("hotkeys-registry-size")).toHaveText("1")
   await page.keyboard.press("Control+j")
   await expect(page.getByTestId("hotkeys-shared-count")).toHaveText("1")
+})
+
+test("canonical display sizes preserve the same shortcut", async ({ page }) => {
+  await page.goto("/iframe.html?id=atoms-hotkeys--sizes&viewMode=story")
+  const roots = page.locator('[data-scope="hotkeys"][data-part="root"]')
+  await expect(roots).toHaveCount(3)
+  for (const [index, size] of ["sm", "md", "lg"].entries()) {
+    await expect(roots.nth(index)).toHaveClass(
+      new RegExp(`text-hotkeys-${size}`)
+    )
+  }
+  await expect(roots.nth(0)).toHaveText(
+    (await roots.nth(1).textContent()) ?? ""
+  )
+  await expect(roots.nth(1)).toHaveText(
+    (await roots.nth(2).textContent()) ?? ""
+  )
+})
+
+test("Docs shortcut examples are exclusive and background commands pause under the dialog", async ({
+  page,
+}) => {
+  await page.goto("/iframe.html?id=atoms-hotkeys--docs&viewMode=docs")
+  const opens = page.getByRole("button", { name: "Open example", exact: true })
+  await opens.first().focus()
+  await page.keyboard.press("Control+Shift+a")
+  await expect(
+    page.getByRole("dialog", { name: "Hotkey activated" })
+  ).toHaveCount(1)
+  await expect(page.locator('[role="dialog"]')).toHaveCount(1)
+  expect(
+    await page.evaluate(() =>
+      Boolean(document.activeElement?.closest('[aria-hidden="true"]'))
+    )
+  ).toBe(false)
+  const counts = page.getByTestId("hotkeys-platform-save-count")
+  const notes = page.getByTestId("hotkeys-saved-note")
+  const beforeCounts = await counts.allTextContents()
+  const beforeNotes = await notes.allTextContents()
+  await page.keyboard.press("Control+s")
+  expect(await counts.allTextContents()).toEqual(beforeCounts)
+  expect(await notes.allTextContents()).toEqual(beforeNotes)
 })

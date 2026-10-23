@@ -8,13 +8,18 @@ description: >
   data/x/y/series channels, with token-driven series colors, legend, tooltip,
   value formatting and selection callbacks.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/chart.tsx libs/ui/src/tokens/components/molecules/_chart.css libs/ui/stories/molecules/chart.stories.tsx https://tanstack.com/charts/v0/docs/overview"
+  sources: "https://tanstack.com/charts/v0/docs/overview"
+  contributor_sources: "libs/ui/src/molecules/chart.tsx libs/ui/src/tokens/components/molecules/_chart.css libs/ui/stories/molecules/chart.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Chart Usage
 
@@ -157,3 +162,26 @@ Never combine two value scales in one chart — render two charts instead.
   centroid within the library's fixed 48px radius, so parts of a large slice
   are not interactive — another reason to prefer `bar-horizontal` when the
   chart needs `onSelect`.
+
+## Wave 2 contracts
+
+Chart height/aspectRatio describe the visualization canvas, not sm/md/lg form-control sizes. Use a table when readers need exact records rather than a visual pattern, and keep the plot’s accessible label and multi-series legend meaningful.
+
+Inspection tooltips use opaque shared popup surface/border/shadow aliases and the managed popup layer. The library creates a single positioned tooltip element, so that element carries popup-layer; its important utility overrides the upstream inline z-index.
+
+## Data, identity and keyboard inspection
+
+Chart always includes a keyboard-operable “View chart data” disclosure with a
+captioned table of the same finite data and formatted values, even when tooltip
+is disabled. Localize `dataTableLabel`, `emptyLabel` and `invalidLabel` and give
+accessor-function channels `xLabel`, `yLabel` and `legendLabel`.
+Empty/nonfinite-only input shows a status instead of empty axes. Pie/donut reject
+negative or nonfinite input and zero-total data; use a bar chart for signed values.
+Lines use distinct dash patterns and matching legend samples; singleton series
+always have a point. Escape dismisses inspection without moving chart focus;
+arrow navigation or a new pointer movement resumes it.
+Pass `seriesDomain` in the full, fixed identity order when filtering data or
+comparing multiple charts; pie/donut use the x category as color identity.
+Polar domains accept numeric categories (for example, `seriesDomain={[1, 2]}`)
+with numeric x values; both are normalized to the same display-label identity.
+Without it, identities retain their first-seen slots for this mounted instance.

@@ -5,19 +5,33 @@ description: >
   for controlled quantity drafts with a visible unit, helper/error feedback,
   bounded stepping, accessible pending state and compact cart presentation.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux numeric-input-usage app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/quantity-field.tsx libs/ui/src/atoms/numeric-input.tsx libs/ui/src/tokens/components/molecules/_quantity-field.css libs/ui/stories/molecules/quantity-field.stories.tsx libs/ui/docs/quantity-field-figma-handoff.md https://zagjs.com/components/react/number-input"
+  sources: "https://zagjs.com/components/react/number-input"
+  contributor_sources: "libs/ui/src/molecules/quantity-field.tsx libs/ui/src/atoms/numeric-input.tsx libs/ui/src/tokens/components/molecules/_quantity-field.css libs/ui/stories/molecules/quantity-field.stories.tsx libs/ui/docs/quantity-field-figma-handoff.md"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit QuantityField Usage
 
 Use QuantityField for product, cart and repeat-order quantities that need a
 visible unit, instructions, errors and an update-in-progress state. It is a
 presentation molecule over the kit's existing NumericInput engine.
+
+## Shared field contract
+
+Canonical sizes are `sm`, `md` (default), and `lg`. Helper, unit, pending and error
+IDs are merged on the native numeric input. Errors include their status icon and
+set both `aria-invalid` and `aria-errormessage`. Read-only keeps text selectable
+with a text cursor and focusable, guards value/commit callbacks, and omits step
+buttons; disabled and pending remain unavailable states rather than read-only
+shortcuts.
 
 ## UX/UI guidelines
 
@@ -150,3 +164,21 @@ Inspect the public API and manual stories before selecting props. Verify clear
 and retype, rejected-draft retention, parent reset, boundaries and all pending/
 readOnly edit paths. Check the real input's label, descriptions and invalid state.
 Run narrow consumer checks; do not migrate an app while authoring the shared kit.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
+
+## Whole-unit validation
+
+`step={1}` and zero precision do not validate an integer quantity. Fractional
+drafts remain editable; the app must require a nonempty, finite, integer parsed
+value within its bounds before saving. Preserve an invalid draft with feedback
+rather than rounding or truncating it. Native handlers, clamped blur commits and
+controlled refusal follow NumericInput's contract.

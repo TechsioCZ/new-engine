@@ -6,13 +6,18 @@ description: >
   compound parts, parent or multiple selection, validation, and keyboard
   navigation.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.6"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/cascade-select.tsx libs/ui/src/tokens/components/molecules/_cascade-select.css libs/ui/stories/molecules/cascade-select.stories.tsx https://zagjs.com/components/react/cascade-select"
+  sources: "https://zagjs.com/components/react/cascade-select"
+  contributor_sources: "libs/ui/src/molecules/cascade-select.tsx libs/ui/src/tokens/components/molecules/_cascade-select.css libs/ui/stories/molecules/cascade-select.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit CascadeSelect Usage
 
@@ -87,7 +92,7 @@ Supported props:
 
 ```text
 items: { label, value, children?, disabled? }[]
-size: xs | sm | md | lg
+size: sm | md | lg (default md; legacy xs remains a compatibility alias)
 validateStatus: default | error | success | warning
 value/defaultValue: string[][]
 highlightedValue/defaultHighlightedValue: string[]
@@ -102,12 +107,30 @@ name, form, formatValue, onValueChange, onOpenChange, onHighlightChange
 
 Use Label, Control, Trigger, ValueText, Positioner, Content, and Node. Node is
 the default recursive renderer built from the public List, Item, ItemText,
-ItemIndicator, and BranchIndicator parts.
+ItemIndicator, and BranchIndicator parts. It renders separate columns with
+numbered headers and a persistent marker on the expanded ancestor path.
+Set `<CascadeSelect.Node rootLabel="Categories" />` to name the first column
+(default: `Options`); subsequent headers use the expanded parent's label.
+The marker means "this branch is open", not "this value is selected" — selected
+values have a checkmark.
+
+The trigger is a combobox with a tree popup. Arrow keys traverse levels,
+Enter selects a value, and Escape closes the popup. On narrow screens the
+columns scroll horizontally, and the active option scrolls into view as the
+user traverses levels. Each visible child group
+is labeled by its column header and owned by its expanded parent item.
 
 ### Treat each selected value as a complete path
 
 A single selection still uses an array of paths. The Electronics → Phones
 value is `[["electronics", "phones"]]`, not `["phones"]`.
+
+Native `form.reset()` restores uncontrolled selections to `defaultValue` (or an
+empty selection) and resolves the labels and submitted paths against the current
+hierarchy. A removed default path stays empty instead of submitting stale values.
+The `form` prop also supports controls outside the associated form. Cancelled
+reset events leave the value unchanged; controlled values remain parent-owned.
+A native reset does not emit `onValueChange`.
 
 ### Choose parent selection deliberately
 
@@ -120,7 +143,23 @@ only when selecting a whole branch is meaningful.
 the trigger's `aria-describedby` while mounted. You can provide a custom `id`;
 existing `aria-describedby` references on `CascadeSelect.Trigger` are preserved.
 Conditionally render StatusText when guidance or validation text is available;
-unmounting it removes its automatic description reference.
+unmounting it removes only its automatic description reference, leaving helper
+text and caller-provided descriptions linked. Keep persistent helper text at
+`status="default"` when the field becomes invalid, and render a separate
+`<CascadeSelect.StatusText showIcon>` for an error inherited from root
+`validateStatus="error"`. An explicit `<CascadeSelect.StatusText status="error">`
+also marks the trigger invalid, even when the root status is default. Every
+mounted error ID joins `aria-errormessage`; changing its status or unmounting it
+removes that error association. Helper and caller-owned IDs remain intact.
+Put actionable correction text in the error rather than relying on border color.
+
+The **Accessible status text** story demonstrates this with a product form:
+saving an empty category reveals the error, selecting a leaf resolves it, and
+saving again confirms success. The helper remains associated throughout.
+Use `noValidate` on forms that present their own inline validation: keep
+`required` on CascadeSelect for its accessible required state, validate the
+selected path on submit, and show a linked error instead of relying on a native
+validation bubble for the hidden form input.
 
 ### Let Select and popup tokens define appearance
 
@@ -141,7 +180,22 @@ Wrong:
 Correct:
 
 ```tsx
-<CascadeSelect items={categories} value={[["electronics", "phones"]]} />
+import { useState } from "react"
+import { CascadeSelect } from "@techsio/ui-kit/molecules/cascade-select"
+
+function CategoryField() {
+  const [value, setValue] = useState<string[][]>([["electronics", "phones"]])
+  return <CascadeSelect items={categories} value={value}
+    onValueChange={({ value }) => setValue(value)}>
+    <CascadeSelect.Label>Product category</CascadeSelect.Label>
+    <CascadeSelect.Control><CascadeSelect.Trigger>
+      <CascadeSelect.ValueText /><CascadeSelect.Indicator />
+    </CascadeSelect.Trigger></CascadeSelect.Control>
+    <CascadeSelect.Positioner><CascadeSelect.Content>
+      <CascadeSelect.Node />
+    </CascadeSelect.Content></CascadeSelect.Positioner>
+  </CascadeSelect>
+}
 ```
 
 Source: https://zagjs.com/components/react/cascade-select
@@ -154,10 +208,10 @@ Wrong:
 <button onClick={toggle}>{label}</button>
 ```
 
-Correct:
+Correct (prop-only fragment; retain the labeled compound anatomy from Setup):
 
 ```tsx
-<CascadeSelect items={categories}>{/* compound parts */}</CascadeSelect>
+<CascadeSelect items={categories}>{/* compound parts from Setup */}</CascadeSelect>
 ```
 
 Source: libs/ui/src/molecules/cascade-select.tsx
@@ -170,10 +224,10 @@ Wrong:
 <CascadeSelect.Trigger className="border-blue-500 bg-white px-4" />
 ```
 
-Correct:
+Correct (prop-only fragment; retain the labeled compound anatomy from Setup):
 
 ```tsx
-<CascadeSelect validateStatus="default">{/* compound parts */}</CascadeSelect>
+<CascadeSelect items={categories} validateStatus="default">{/* compound parts from Setup */}</CascadeSelect>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_cascade-select.css
@@ -185,3 +239,45 @@ rg -n '<CascadeSelect\b[^>]*(value|defaultValue)=\{\["' apps
 rg -n '<CascadeSelect\.Trigger[^>]*className=.*(border-|bg-|p[xy]?-|text-)' apps
 rg -n '<button[^>]*onClick=.*(category|categories)' apps
 ```
+
+## Reduced motion
+
+Popup content disables transitions and animations under
+`prefers-reduced-motion: reduce`, including discrete display transitions.
+The usual opening/closing interaction remains unchanged.
+
+## Authoritative hierarchy updates and feedback
+
+`items` is the full authoritative hierarchy. Resolve complete value paths, never a
+surviving ancestor prefix: removed paths clear with one `onValueChange` correction.
+Uncontrolled fields update themselves; controlled fields render/submit only the
+available subset while the owner applies the requested correction. Keep the full
+hierarchy during loading when selection must survive partial results. Existing
+selections that become disabled remain visible and submitted. Renaming/reordering
+refreshes nodes and navigation index paths without a selection-change callback;
+removed/disabled highlights clear so active descendants never reference old nodes.
+
+Every StatusText registers a description. Its effective error status (explicit
+status or root validateStatus) additionally registers an error ID on the invalid
+focusable trigger, merging caller error IDs. Registration cleans up on status
+changes and unmount; persistent helper descriptions remain linked.
+
+Read-only hierarchy fields keep the selected path, normal focus and native
+submission while suppressing opening (including open/defaultOpen), clear and
+indicator actions. Switching to read-only closes an already-open popup without
+committing a new path; read-only is not disabled.
+
+Hierarchy metadata reconciliation preserves in-flight keyboard highlighting
+across ordinary rerenders. Trigger hover text shares the Select foreground
+alias rather than the accent text color.
+
+On narrow viewports the panel stays within the overlay's available width and
+two columns always fit side by side (each at most half the available width);
+deeper levels scroll horizontally with snapping, revealing the deepest open
+column or the keyboard-focused one. Desktop geometry is unchanged.
+
+The trigger reserves size-aware space for the clear action, so long selected
+paths truncate with an ellipsis before the clear button.
+
+Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
+the initial measurement still runs.

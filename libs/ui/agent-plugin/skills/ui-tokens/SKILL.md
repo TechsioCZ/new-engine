@@ -7,7 +7,12 @@ description: >
 metadata:
   plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
+  requires: "tailwind-token-authoring"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # ui-kit token work
 

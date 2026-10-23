@@ -6,18 +6,36 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.4.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/slider.tsx libs/ui/src/tokens/components/molecules/_slider.css libs/ui/stories/molecules/slider.stories.tsx https://zagjs.com/components/react/slider"
+  sources: "https://zagjs.com/components/react/slider"
+  contributor_sources: "libs/ui/src/molecules/slider.tsx libs/ui/src/tokens/components/molecules/_slider.css libs/ui/stories/molecules/slider.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Slider Usage
 
 Use Slider for bounded numeric adjustment. Use NumericInput when exact typed
 entry is required.
+
+## Shared field contract
+
+Canonical sizes are `sm`, `md` (default), and `lg`. `showValueText` formats every
+thumb count: one value, a two-value range, or an ordered list of several values.
+Pass one `aria-label` per thumb (for example `Minimum price` and `Maximum price`);
+these explicit names take precedence over the shared visible label.
+
+`helpText` has a stable message ID merged with caller `aria-describedby` on each
+focusable thumb. Error status sets `aria-invalid` and `aria-errormessage` on the
+thumbs; non-neutral feedback always includes a status icon. Markers reserve a
+separate line above help text. `readOnly` keeps thumbs focusable, full contrast
+and immutable by pointer and keyboard; `disabled` removes their normal tab stops.
 
 ## UX/UI guidelines
 
@@ -54,6 +72,7 @@ where actions and feedback live). This section applies them to `Slider`.
 ```tsx
 <Slider
   label="Price range"
+  aria-label={["Minimum price", "Maximum price"]}
   defaultValue={[10, 100]}
   min={0}
   max={200}
@@ -95,6 +114,48 @@ Use `showMarkers` and `markerCount`, not custom tick markup.
 
 If the user must type an exact value, use NumericInput or pair both components
 deliberately.
+
+## Focus refs and native form lifecycle
+
+`getThumbProps(index)` accepts only `ref`, `onFocus` and `onBlur` for the
+zero-based thumb. The ref is a `HTMLDivElement` with `role="slider"`, not its
+hidden form input. Focus/blur handlers compose with the machine; do not replace
+its keyboard handlers or set thumb values through the DOM. Object refs and
+React 19 callback-ref cleanup are supported, including thumb removal.
+
+```tsx
+import { useRef, useState } from "react"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Slider } from "@techsio/ui-kit/molecules/slider"
+
+function Budget() {
+  const [values, setValues] = useState([20, 80])
+  const minimum = useRef<HTMLDivElement>(null)
+  const maximum = useRef<HTMLDivElement>(null)
+  return <>
+    <Slider label="Budget" name="budget" value={values} onChange={setValues}
+      aria-label={["Minimum budget", "Maximum budget"]}
+      getThumbProps={(index) => ({ ref: index === 0 ? minimum : maximum })} />
+    <Button variant="secondary" onClick={() => minimum.current?.focus()}>Focus minimum</Button>
+    <Button variant="secondary" onClick={() => maximum.current?.focus()}>Focus maximum</Button>
+  </>
+}
+```
+
+Use `name` for native form values and `form` for an external owner. Owner changes
+follow the actual native input association (including moved forms or changed
+IDs). Uncontrolled reset restores the initial defaults under the current bounds
+only after all native/React reset listeners can cancel it. `preventDefault()`
+in `onReset` preserves the value and emits no reset proposal. Pending work is
+cleaned up on unmount. Controlled `value` remains authoritative, including when
+the parent rejects a proposal; reset does not silently rewrite parent state.
+If the product needs a controlled reset, the app explicitly sets that state.
+
+Native disabled fieldsets (including nested fieldsets and first-legend
+exceptions) affect thumbs and submission; read-only remains focusable and
+submittable. Runtime bounds/precision normalization and removed-thumb recovery
+must not be mistaken for app consent to commit a different controlled value.
+The component-owned ThumbFocus/native-form stories cover these contracts.
 
 ## Common Mistakes
 
@@ -154,3 +215,21 @@ rg -n "<Slider[^>]*className=.*(bg-|rounded-|h-|w-|text-)" apps
 rg -n "showMarkers|markerCount|formatRangeText|onChangeEnd" apps
 ```
 
+
+Every multi-thumb slider needs distinct, contextual `aria-label` entries even when `label` is visible. Missing/duplicate names emit a warning. `getAriaValueText({value,index})` overrides spoken values per thumb and defaults to `formatValue(value)`; `formatRangeText` formats only the visible group summary. Inherited disabling follows native fieldset semantics, including disabled outer fieldsets and the first-legend exemption; dynamic changes update machine interactivity, thumb tab order and form submission together.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
+
+Read-only thumbs remain pointer-focusable as well as keyboard-focusable,
+without changing their values or starting a drag. Disabled thumbs do not gain
+this pointer-focus affordance.
+
+Serialize ARIA values and bounds in decimal notation for tiny steps.

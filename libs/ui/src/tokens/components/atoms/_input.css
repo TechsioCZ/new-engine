@@ -12,7 +12,19 @@
  */
 
 @theme static {
+  /* Read-only reference and public component aliases. */
+  --color-input-readonly: var(--color-form-control-readonly);
+  --color-input-text-readonly: var(--color-form-control-text);
+  --color-input-bg-readonly: var(--color-input-readonly);
+  --color-input-fg-readonly: var(--color-input-text-readonly);
+
   --font-weight-input: var(--font-weight-normal);
   --font-weight-input-placeholder: var(--font-weight-normal);
   --spacing-form-field-gap: var(--spacing-form-field);
+}
+
+/* Feed component overrides into the shared state utility on this surface. */
+@utility input-readonly {
+  --color-form-control-bg-readonly: var(--color-input-bg-readonly);
+  --color-form-control-fg-readonly: var(--color-input-fg-readonly);
 }

@@ -2,20 +2,31 @@
  * Input — @techsio/ui-kit atom.
  *
  * @component Input
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.2
  * @skill input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the input-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { InputHTMLAttributes, Ref } from "react"
+import {
+  type InputHTMLAttributes,
+  type Ref,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
+import {
+  subscribeOwnerFormReset,
+  syncReactFormControl,
+} from "../internal/form-control-lifecycle"
 import { tv } from "../utils"
 
 const inputVariants = tv({
   base: [
-    "block w-full",
+    "form-control-readonly input-readonly form-control-disabled block w-full",
     "font-input",
     "bg-input-bg-base",
     "text-input-fg",
@@ -84,37 +95,80 @@ const inputVariants = tv({
     size: "md",
     variant: "default",
     hideSearchClear: true,
-    withIconInside: false,
   },
 })
 
-export interface InputProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, "size">,
-    VariantProps<typeof inputVariants> {
-  ref?: Ref<HTMLInputElement>
-}
+export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> &
+  VariantProps<typeof inputVariants> & {
+    ref?: Ref<HTMLInputElement>
+  }
 
 export function Input({
   size,
   variant,
   disabled,
+  readOnly,
+  hideSearchClear,
+  id,
   ref,
   withButtonInside,
   className,
   ...props
 }: InputProps) {
+  const generatedId = useId()
+  const currentValue = useRef({ value: props.value, checked: props.checked })
+  useLayoutEffect(() => {
+    currentValue.current = { value: props.value, checked: props.checked }
+  })
+  const inputRef = useMemo(
+    () => (input: HTMLInputElement | null) => {
+      const stopReset = input
+        ? subscribeOwnerFormReset(input, () => {
+            const { value, checked } = currentValue.current
+            if (input.type === "checkbox" || input.type === "radio") {
+              syncReactFormControl(input, checked ?? input.checked)
+            } else {
+              syncReactFormControl(
+                input,
+                value == null ? input.value : String(value)
+              )
+            }
+          })
+        : undefined
+      const cleanup = typeof ref === "function" ? ref(input) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = input
+      }
+      return () => {
+        stopReset?.()
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
   return (
     <input
       className={inputVariants({
         size,
         variant,
         disabled,
+        hideSearchClear: readOnly || hideSearchClear,
         withButtonInside,
         className,
       })}
+      data-readonly={readOnly ? "" : undefined}
       disabled={disabled}
-      ref={ref}
+      id={id || generatedId}
+      readOnly={readOnly}
+      ref={inputRef}
       {...props}
+      aria-invalid={variant === "error" ? true : props["aria-invalid"]}
     />
   )
 }

@@ -5,13 +5,18 @@ description: >
   @techsio/ui-kit LinkButton, including framework link adapters, href, disabled
   state, icons, and Button-compatible variants/themes/sizes.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/link.tsx libs/ui/src/atoms/button.tsx libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/atoms/link-button.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/link.tsx libs/ui/src/atoms/button.tsx libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/atoms/link-button.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit LinkButton Usage
 
@@ -185,3 +190,20 @@ rg -n "<LinkButton[^>]*className=.*(bg-|text-|px-|py-|rounded-|border-)" apps
 rg -n "function .*LinkButton|const .*LinkButton" apps
 ```
 
+## Canonical and disabled navigation
+
+Default size is md. Use sm/md/lg for ordinary navigation; current remains an
+explicit embedded-composition escape hatch. Disabled LinkButton removes href,
+sets aria-disabled and tabindex=-1, and blocks click callbacks/navigation. The
+shared unavailable treatment applies to anchor data attributes as well as native
+buttons, including hover and pressed states. Disabled destinations render a static span, bypassing routing adapters that
+require an href; enabled adapters must forward native link and ARIA props.
+
+## Ref and internal composition contract
+
+`ref` follows the selected `as` element/adapter, not an unconditional anchor.
+Adapters without a ref prop do not gain one. A disabled LinkButton renders an
+inert link-like span and does not assign that span to an anchor/adapter ref.
+Text labels grow with the same minimum-height treatment as Button. Internal
+navigation compositions may pass `composition` to opt out of Button font weight
+and press scaling; they must supply component-owned typography and feedback.

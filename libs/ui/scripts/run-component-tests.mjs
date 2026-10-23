@@ -3,14 +3,18 @@ import crypto from "node:crypto"
 import fs from "node:fs"
 import { createRequire } from "node:module"
 import path from "node:path"
+import {
+  assertPrimaryBaselines,
+  assertReleaseSelection,
+  assertVisualCompletion,
+  parseReleaseShard,
+} from "../test/visual-completion.mjs"
 import { createVisualMatrix } from "../test/visual-projects.mjs"
 
 // Runs the Playwright visual tests inside Docker for reproducible snapshots.
 const uiRoot = path.resolve(import.meta.dirname, "..")
 const repoRoot = path.resolve(uiRoot, "../..")
 const playwrightVersionPattern = /^ARG\s+PLAYWRIGHT_VERSION\s*=\s*([^\s]+)\s*$/m
-const partialSelectionPattern =
-  /^(?:--project|--grep|--grep-invert|--shard|--test-list|--test-list-invert|--last-failed|--only-changed)(?:=|$)|^-[gG]/
 const updateSnapshotsPattern = /^(?:-u|--update-snapshots)(?:=(\w+))?$/
 
 const dockerfilePath = path.join(
@@ -42,7 +46,13 @@ const selectedStories = (process.env.TEST_STORIES ?? "")
   .split(",")
   .map((story) => story.trim())
   .filter(Boolean)
-const extraArgs = process.argv.slice(2)
+const extraArgs = process.argv.slice(2).filter((arg) => arg !== "--")
+if (process.env.VISUAL_RELEASE_READINESS === "1") {
+  assertReleaseSelection(extraArgs, process.env)
+}
+// CI splits the release run; scripts/verify-component-shards.mjs then asserts
+// completeness over every shard report together.
+const releaseShard = parseReleaseShard(process.env.PLAYWRIGHT_RELEASE_SHARD)
 const updatesSnapshots = extraArgs.some((arg, index) => {
   const match = updateSnapshotsPattern.exec(arg)
   const mode = match?.[1] ?? (match && extraArgs[index + 1])
@@ -88,35 +98,33 @@ function verifyCompletion(reports) {
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
       .entries
   ).filter((entry) => entry.type === "story")
-  const requireComplete = !(
-    selectedStories.length ||
-    extraArgs.some((arg) => partialSelectionPattern.test(arg))
-  )
-  let expected = 0
-  let ran = 0
-  for (const { errors, stats, suites } of reports) {
-    const tests = reportTests(suites, "visual.spec.ts")
-    ran += reportTests(suites).length
-    if (
-      errors.length ||
-      stats.unexpected ||
-      stats.flaky ||
-      (requireComplete && tests.some((test) => test.status !== "expected"))
-    ) {
-      throw new Error(
-        `Visual test run was not clean: ${JSON.stringify({ errors, stats })}`
-      )
-    }
-    expected += tests.filter((test) => test.status === "expected").length
+  const requireComplete = selectedStories.length === 0 && extraArgs.length === 0
+  if (requireComplete && !releaseShard) {
+    assertVisualCompletion(reports, stories, projects)
+    return
   }
-  // Behavior specs share the run; completeness counts screenshot cases only.
-  // Focused behavior-only runs (e.g. --project=desktop) need no screenshots.
-  const required = stories.length * projects.length
-  if (!ran || (requireComplete && expected !== required)) {
-    throw new Error(
-      `Visual test run covered ${expected} of ${required} story/project cases`
+  const ran = reports.flatMap((report) => reportTests(report.suites))
+  if (
+    !ran.length ||
+    reports.some(
+      ({ errors, stats }) => errors.length || stats.unexpected || stats.flaky
     )
+  ) {
+    throw new Error("Focused component run was empty or not clean")
   }
+}
+
+function verifyReviewedBaselines() {
+  const entries = Object.values(
+    JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
+      .entries
+  ).filter((entry) => entry.type === "story")
+  const directory = path.join(uiRoot, "test/visual.spec.ts-snapshots")
+  assertPrimaryBaselines(
+    entries,
+    createVisualMatrix(),
+    new Set(fs.existsSync(directory) ? fs.readdirSync(directory) : [])
+  )
 }
 
 function main() {
@@ -133,15 +141,15 @@ function main() {
     ).bin
     run(
       process.execPath,
-      [
-        path.join(path.dirname(storybookManifest), storybookBin),
-        "build",
-      ],
+      [path.join(path.dirname(storybookManifest), storybookBin), "build"],
       { cwd: uiRoot }
     )
   }
   if (!fs.existsSync(path.join(storybookDir, "iframe.html"))) {
     throw new Error(`Storybook build not found: ${storybookDir}`)
+  }
+  if (process.env.VISUAL_RELEASE_READINESS === "1") {
+    verifyReviewedBaselines()
   }
   if (docker(["image", "inspect", imageName]).status !== 0) {
     run("docker", [
@@ -169,6 +177,10 @@ function main() {
     [storybookDir, "/app/storybook-static"],
     [path.join(uiRoot, "playwright.config.mts"), "/app/playwright.config.mts"],
     [path.join(uiRoot, "package.json"), "/app/package.json"],
+    [
+      path.join(uiRoot, "src/theme/theme-config.ts"),
+      "/app/src/theme/theme-config.ts",
+    ],
     [path.dirname(harPath), "/app/visual-assets"],
   ]
   run(
@@ -238,6 +250,9 @@ function main() {
         "playwright.config.mts",
         "--reporter=list,html,json",
         ...(project ? ["--project", project] : []),
+        ...(releaseShard
+          ? [`--shard=${releaseShard.index}/${releaseShard.total}`]
+          : []),
         ...extraArgs,
       ],
       { stdio: "inherit" }
@@ -262,6 +277,13 @@ function main() {
   ]) {
     docker(["cp", `${containerName}:${source}`, path.join(uiRoot, destination)])
   }
+  if (releaseShard) {
+    // The shard verifier needs the exact story list this commit was built with.
+    fs.copyFileSync(
+      path.join(storybookDir, "index.json"),
+      path.join(uiRoot, "test-results/visual-reports/index.json")
+    )
+  }
   if (status !== 0) {
     return status
   }
@@ -270,6 +292,8 @@ function main() {
       JSON.parse(
         run("docker", ["exec", containerName, "cat", `${reportRoot}/${name}`], {
           stdio: "pipe",
+          // Full-matrix JSON reports exceed spawnSync's 1 MiB default buffer.
+          maxBuffer: 512 * 1024 * 1024,
         }).stdout.toString()
       )
     )

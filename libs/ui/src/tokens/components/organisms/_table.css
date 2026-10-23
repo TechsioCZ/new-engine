@@ -8,10 +8,41 @@
  */
 
 @theme static {
+  --color-table-focus: var(--color-ring);
+  --color-table-ring: var(--color-table-focus);
   --padding-table-cell-sm: var(--padding-table-cell-sm-y)
     var(--padding-table-cell-sm-x);
   --padding-table-cell-md: var(--padding-table-cell-md-y)
     var(--padding-table-cell-md-x);
   --padding-table-cell-lg: var(--padding-table-cell-lg-y)
     var(--padding-table-cell-lg-x);
+}
+
+/* Publish the row tint; only the frozen cell composites it over the surface. */
+@utility table-row-striped {
+  &:nth-child(odd) {
+    --table-row-tint: var(--color-table-row-striped-primary);
+  }
+  &:nth-child(even) {
+    --table-row-tint: var(--color-table-row-striped-secondary);
+  }
+}
+@utility table-row-interactive {
+  &:hover {
+    --table-row-tint: var(--color-table-row-bg-hover);
+  }
+}
+@utility table-frozen-cell {
+  background-color: var(--color-table-bg);
+  background-image: linear-gradient(
+    var(--table-row-tint, transparent),
+    var(--table-row-tint, transparent)
+  );
+  tr[data-selected="true"] > & {
+    background-image: linear-gradient(
+      var(--color-table-row-bg-selected),
+      var(--color-table-row-bg-selected)
+    );
+    color: var(--color-table-row-fg-selected);
+  }
 }

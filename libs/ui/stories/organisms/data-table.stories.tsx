@@ -1,9 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ComponentType, useState } from "react"
-import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { expect, fireEvent, fn, userEvent, waitFor, within } from "storybook/test"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Badge } from "../../src/atoms/badge"
+import { Button } from "../../src/atoms/button"
 import { Input } from "../../src/atoms/input"
+import { Label } from "../../src/atoms/label"
+import { Textarea } from "../../src/atoms/textarea"
+import { Dialog } from "../../src/molecules/dialog"
 import { Select } from "../../src/molecules/select"
 import {
   type CellContext,
@@ -119,9 +123,13 @@ const columns: ColumnDef<Person>[] = [
 const meta = {
   title: "Organisms/DataTable",
   component: DataTable as ComponentType<DataTableProps<Person>>,
-  parameters: { layout: "padded" },
+  parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode", "columns", "rowActions"] },
+    docs: { description: { component: "DataTable presents structured records with sorting, filtering, selection and optional inline editing. Use it for operational lists with many rows; use Table for small static comparisons and TreeView for hierarchical navigation. Frozen columns work inside the horizontal scroll region on mobile. If all requested pins would cover the scrollport, start-side identity columns take priority, followed by end-side columns nearest the edge; pins that do not fit scroll normally and become frozen again when space is available. Use narrow identity columns to leave room for record data. Destructive application actions require confirmation or a reversible undo flow." } }, layout: "padded" },
   tags: ["autodocs"],
   argTypes: {
+    columns: { control: false },
+    rowActions: { control: false },
     variant: { control: "select", options: ["line", "outline", "striped"] },
     size: { control: "select", options: ["sm", "md", "lg"] },
     stickyHeader: { control: "boolean" },
@@ -133,11 +141,12 @@ const meta = {
 export default meta
 type Story = StoryObj<DataTableProps<Person>>
 
-const base = { columns, data: people }
+const base = { columns, data: people, getRowId: (person: Person) => String(person.id) }
 
 /* ── 1. Playground ───────────────────────────────────────────────────────── */
 
 export const Playground: Story = {
+  parameters: { docs: { description: { story: "Use the controls to explore the component in a realistic layout without leaving the preview." } } },
   args: {
     ...base,
     enableSorting: true,
@@ -153,9 +162,21 @@ export const Playground: Story = {
   },
 }
 
+export const Sizes: Story = {
+  args: { ...base, enablePagination: false },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Compare Small (sm), Medium (md) and Large (lg) with identical team records and controls." } } },
+  render: (args) => <div className="flex flex-col gap-400">
+    {(["sm", "md", "lg"] as const).map((size) => <section key={size}>
+      <h2>{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
+      <DataTable {...args} size={size} data={people.slice(0, 3)} columns={columns} caption={<>Team members<span className="sr-only">, {size} table</span></>} />
+    </section>)}
+  </div>,
+}
+
 /* ── 2. Sorting ──────────────────────────────────────────────────────────── */
 
 export const Sorting: Story = {
+  parameters: { docs: { description: { story: "Activate a column heading with a pointer or keyboard to sort the team list." } } },
   args: { ...base, enableSorting: true, onSortingChange: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -167,6 +188,7 @@ export const Sorting: Story = {
 /* ── 3. Column filters with conditions ───────────────────────────────────── */
 
 export const ColumnFiltersWithConditions: Story = {
+  parameters: { docs: { description: { story: "Combine a column value with a condition such as contains to narrow records without changing the underlying data." } } },
   args: { ...base, enableColumnFilters: true, onColumnFiltersChange: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -176,9 +198,75 @@ export const ColumnFiltersWithConditions: Story = {
   },
 }
 
+export const NarrowColumnFilters: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Fixed-layout filters scroll within narrow columns without covering their neighbours. Auto layout keeps enough room for the complete controls." } } },
+  args: {
+    ...base,
+    data: people.slice(0, 3),
+    enableColumnFilters: true,
+    columns: [
+      { accessorKey: "age", header: "Age", meta: { width: 80, type: "number" } },
+      { accessorKey: "visits", header: "Visits", meta: { width: 80, type: "number" } },
+      { accessorKey: "firstName", header: "First name", meta: { width: 240, type: "string" } },
+    ],
+  },
+  render: (args) => (
+    <div className="flex min-w-0 flex-col gap-400">
+      {(["fixed", "auto"] as const).map((layout) => (
+        <section className="w-sm max-w-full" key={layout}>
+          <DataTable {...args} caption={`${layout} layout filters`} tableLayout={layout} />
+        </section>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const layout of ["fixed", "auto"] as const) {
+      const table = canvas.getByRole("table", { name: `${layout} layout filters` })
+      const filterRow = within(table).getByRole("row", { name: "Column filters" })
+      const cells = within(filterRow).getAllByRole("cell")
+      for (const cell of cells) {
+        const viewport = cell.firstElementChild
+        await expect(viewport).not.toBeNull()
+        if (!viewport) {
+          throw new Error("Missing filter viewport")
+        }
+        const cellBounds = cell.getBoundingClientRect()
+        const bounds = viewport.getBoundingClientRect()
+        await expect(bounds.left).toBeGreaterThanOrEqual(cellBounds.left)
+        await expect(bounds.right).toBeLessThanOrEqual(cellBounds.right)
+        if (layout === "fixed") {
+          await expect(getComputedStyle(viewport).overflowX).toBe("auto")
+          if (cell !== cells[2]) {
+            await expect(viewport.scrollWidth).toBeGreaterThan(viewport.clientWidth)
+          }
+        } else {
+          await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
+        }
+      }
+      const input = within(table).getByLabelText("Filter value for Age")
+      await userEvent.type(input, "36")
+      await expect(input).toHaveValue(36)
+      await userEvent.tab()
+      const condition = within(table).getByRole("button", { name: /Filter condition for Age:/ })
+      await expect(condition).toHaveFocus()
+      await expect(condition).toBeVisible()
+      const viewport = cells[0]?.firstElementChild
+      if (!viewport) {
+        throw new Error("Missing age filter viewport")
+      }
+      const conditionBounds = condition.getBoundingClientRect()
+      const viewportBounds = viewport.getBoundingClientRect()
+      await expect(conditionBounds.left).toBeGreaterThanOrEqual(viewportBounds.left - 1)
+      await expect(conditionBounds.right).toBeLessThanOrEqual(viewportBounds.right + 1)
+    }
+  },
+}
+
 /* ── 4. Header filter template (custom slot) ─────────────────────────────── */
 
 export const HeaderFilterTemplate: Story = {
+  parameters: { docs: { description: { story: "A custom email filter keeps domain-specific input in the appropriate column rather than adding a second search surface." } } },
   args: {
     ...base,
     enableColumnFilters: true,
@@ -205,6 +293,7 @@ export const HeaderFilterTemplate: Story = {
 /* ── 5. Global fulltext search ───────────────────────────────────────────── */
 
 export const GlobalSearch: Story = {
+  parameters: { docs: { description: { story: "Search across the visible record set when the user knows a value but not which column contains it." } } },
   args: { ...base, enableGlobalFilter: true, onGlobalFilterChange: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -216,6 +305,7 @@ export const GlobalSearch: Story = {
 /* ── 5b. Toolbar: search fills the row, custom actions trail it ──────────── */
 
 export const ToolbarActions: Story = {
+  parameters: { docs: { description: { story: "Keep the main create action in the toolbar while filters remain associated with the records they affect." } } },
   args: {
     ...base,
     enableGlobalFilter: true,
@@ -256,6 +346,27 @@ export const ToolbarActions: Story = {
 
     // Typing reveals the SearchForm clear button, which empties the field.
     const input = canvas.getByLabelText("Search")
+    await waitFor(() => {
+      expect(input.getBoundingClientRect().width).toBeGreaterThanOrEqual(120)
+      const controls = [
+        input,
+        canvas.getByLabelText("Submit search"),
+        canvas.getByRole("button", { name: "Refresh" }),
+        canvas.getByRole("button", { name: "Export" }),
+        canvas.getByRole("button", { name: "Filtry" }),
+      ]
+      const rects = controls.map((control) => control.getBoundingClientRect())
+      const viewport = canvasElement.ownerDocument.documentElement.clientWidth
+      for (const [index, rect] of rects.entries()) {
+        expect(rect.left).toBeGreaterThanOrEqual(0)
+        expect(rect.right).toBeLessThanOrEqual(viewport)
+        for (const other of rects.slice(index + 1)) {
+          const overlapX = Math.min(rect.right, other.right) - Math.max(rect.left, other.left)
+          const overlapY = Math.min(rect.bottom, other.bottom) - Math.max(rect.top, other.top)
+          expect(overlapX > 1 && overlapY > 1).toBe(false)
+        }
+      }
+    })
     await userEvent.type(input, "Hopper")
     await userEvent.click(canvas.getByLabelText("Clear search"))
     await expect(input).toHaveValue("")
@@ -268,6 +379,7 @@ export const ToolbarActions: Story = {
  * other two, so a table configured this way silently dropped its actions.
  */
 export const ToolbarActionsOnly: Story = {
+  parameters: { docs: { description: { story: "A toolbar can hold local actions without showing an unused search field." } } },
   args: {
     ...base,
     toolbarActions: [
@@ -291,6 +403,7 @@ export const ToolbarActionsOnly: Story = {
 /* ── 6. Empty state ──────────────────────────────────────────────────────── */
 
 export const EmptyState: Story = {
+  parameters: { docs: { description: { story: "An empty table explains why no records appear and offers a clear next step instead of a blank grid." } } },
   args: {
     ...base,
     data: [],
@@ -304,9 +417,20 @@ export const EmptyState: Story = {
     // The title also appears in the sr-only aria-live status region, so both the
     // visible empty block and the announcement are expected.
     await expect(canvas.getAllByText("No team members")).toHaveLength(2)
-    await expect(
-      canvas.getByText("Invite someone to get started.")
-    ).toBeInTheDocument()
+    const description = canvas.getByText("Invite someone to get started.")
+    await expect(description).toBeInTheDocument()
+    const region = canvas.getByRole("region", { name: "Scrollable records" })
+    const feedback = description.closest(".data-table-empty-viewport")
+    for (const position of [0, region.scrollWidth - region.clientWidth, 0]) {
+      region.scrollLeft = position
+      await waitFor(() => {
+        const viewport = region.getBoundingClientRect()
+        const rect = feedback?.getBoundingClientRect()
+        expect(rect).toBeDefined()
+        expect(rect?.left).toBeCloseTo(viewport.left, 0)
+        expect(rect?.width).toBeCloseTo(region.clientWidth, 0)
+      })
+    }
   },
 }
 
@@ -315,6 +439,7 @@ export const EmptyState: Story = {
 const onDeleteClick = fn()
 
 export const RowActions: Story = {
+  parameters: { docs: { description: { story: "Use named per-record actions so their purpose remains clear without relying on an icon alone." } } },
   args: {
     ...base,
     renderRowActions: (row) => (
@@ -337,6 +462,7 @@ export const RowActions: Story = {
 /* ── 8b. Column widths + text alignment ──────────────────────────────────── */
 
 export const ColumnWidthsAndAlignment: Story = {
+  parameters: { docs: { description: { story: "Adjust column widths and align numeric values to keep a mixed record set easy to scan." } } },
   args: {
     ...base,
     tableLayout: "fixed",
@@ -349,7 +475,7 @@ export const ColumnWidthsAndAlignment: Story = {
       {
         accessorKey: "email",
         header: "Email",
-        meta: { width: "var(--dimension-200)", align: "start" },
+        meta: { width: "var(--dimension-240)", align: "start" },
       },
       {
         accessorKey: "status",
@@ -375,10 +501,22 @@ export const ColumnWidthsAndAlignment: Story = {
     const canvas = within(canvasElement)
     const ageHeader = canvas.getByRole("columnheader", { name: /Age/ })
     await expect(ageHeader).toHaveAttribute("data-align", "end")
-    await expect(ageHeader).toHaveStyle({ width: "80px" })
+    // Fixed layout distributes spare space when every column declares a width.
+    // Preserve the exact declaration and verify its rendered lower bound.
+    await expect(ageHeader.style.width).toBe("80px")
+    await expect(ageHeader.getBoundingClientRect().width).toBeGreaterThanOrEqual(80)
 
     const statusHeader = canvas.getByRole("columnheader", { name: /Status/ })
     await expect(statusHeader).toHaveAttribute("data-align", "center")
+    await waitFor(() => {
+      for (const cell of canvasElement.querySelectorAll("th, tbody td")) {
+        const bounds = cell.getBoundingClientRect()
+        const content = cell.firstElementChild?.getBoundingClientRect()
+        expect(content).toBeDefined()
+        expect(content?.left).toBeGreaterThanOrEqual(bounds.left)
+        expect(content?.right).toBeLessThanOrEqual(bounds.right)
+      }
+    })
   },
 }
 
@@ -388,6 +526,7 @@ export const ColumnWidthsAndAlignment: Story = {
  * the frozen block drifts out of alignment.
  */
 export const FrozenColumnWidths: Story = {
+  parameters: { docs: { description: { story: "Explicit widths keep pinned identity columns aligned with the scrollable record data." } } },
   args: {
     ...base,
     tableLayout: "fixed",
@@ -411,16 +550,46 @@ export const FrozenColumnWidths: Story = {
     const canvas = within(canvasElement)
     const firstName = canvas.getByRole("columnheader", { name: /First name/ })
     const lastName = canvas.getByRole("columnheader", { name: /Last name/ })
-    // The second pinned column must start exactly where the first one ends,
-    // which only holds if the declared width also reached TanStack's size model.
-    await expect(lastName).toHaveStyle({ left: "200px" })
+    const region = canvas.getByRole("region", { name: "Scrollable records" })
+    // Keep the primary identity column frozen on mobile. The second pin only
+    // sticks if the entire band leaves a useful scrollable middle region.
+    const bothFit = region.clientWidth * 0.6 > 440
+    await waitFor(() => {
+      expect(firstName).toHaveStyle({ position: "sticky", left: "0px" })
+      expect(lastName).toHaveStyle({
+        position: bothFit ? "sticky" : "relative",
+      })
+      expect(lastName.style.insetInlineStart).toBe(bothFit ? "200px" : "auto")
+    })
     await expect(Math.round(firstName.getBoundingClientRect().width)).toBe(200)
+    const firstLeft = firstName.getBoundingClientRect().left
+    const secondLeft = lastName.getBoundingClientRect().left
+    region.scrollLeft = bothFit ? 500 : 240
+    region.dispatchEvent(new Event("scroll"))
+    await waitFor(() => {
+      expect(firstName.getBoundingClientRect().left).toBeCloseTo(firstLeft, 0)
+      if (bothFit) {
+        expect(lastName.getBoundingClientRect().left).toBeCloseTo(secondLeft, 0)
+      } else {
+        expect(lastName.getBoundingClientRect().left).toBeLessThan(secondLeft)
+        // The wide data column is reachable beside the remaining identity pin.
+        const email = canvas.getByRole("columnheader", { name: /Email/ })
+        const rect = email.getBoundingClientRect()
+        const regionRect = region.getBoundingClientRect()
+        const x = firstName.getBoundingClientRect().right + 20
+        const y = rect.top + rect.height / 2
+        expect(x).toBeLessThan(regionRect.right)
+        expect(email.contains(canvasElement.ownerDocument.elementFromPoint(x, y))).toBe(true)
+      }
+    })
+    region.scrollLeft = 0
   },
 }
 
 /* ── 9. Frozen columns (left + right) ────────────────────────────────────── */
 
 export const FrozenColumns: Story = {
+  parameters: { docs: { description: { story: "Pin identity and action columns to opposite edges while the remaining fields scroll horizontally." } } },
   args: {
     ...base,
     enableColumnPinning: true,
@@ -432,6 +601,7 @@ export const FrozenColumns: Story = {
 /* ── 10. Sticky header ───────────────────────────────────────────────────── */
 
 export const StickyHeader: Story = {
+  parameters: { docs: { description: { story: "A sticky header preserves column context while records scroll within a bounded region." } } },
   args: { ...base, data: bigData.slice(0, 40), stickyHeader: true, maxHeight: "300px" },
 }
 
@@ -444,6 +614,7 @@ export const StickyHeader: Story = {
  * clear both. Scroll the body to check nothing overlaps.
  */
 export const GroupedStickyHeader: Story = {
+  parameters: { docs: { description: { story: "Grouped column headings stack without covering each other while the records scroll." } } },
   args: {
     data: bigData.slice(0, 40),
     stickyHeader: true,
@@ -488,6 +659,7 @@ export const GroupedStickyHeader: Story = {
 /* ── 10b. Hidden header (headerless layout) ──────────────────────────────── */
 
 export const HiddenHeader: Story = {
+  parameters: { docs: { description: { story: "Hide visible headings only when the table context still supplies understandable column names." } } },
   args: { ...base, hideHeader: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -506,24 +678,86 @@ export const HiddenHeader: Story = {
 /* ── 11. Striped rows ────────────────────────────────────────────────────── */
 
 export const StripedRows: Story = {
+  parameters: { docs: { description: { story: "Alternating row surfaces help readers track dense records across many columns." } } },
   args: { ...base, striped: true },
 }
 
 /* ── 11b. Striped + outline (boolean composes with any variant) ──────────── */
 
 export const StripedOutlined: Story = {
+  parameters: { docs: { description: { story: "Combine a restrained outer boundary with alternating rows for a dense standalone record panel." } } },
   args: { ...base, striped: true, variant: "outline" },
 }
 
 /* ── 12. Infinite scroll / virtualization ────────────────────────────────── */
 
 export const InfiniteScrollVirtualized: Story = {
+  parameters: { docs: { description: { story: "A bounded virtualized list loads more records as you approach the end without mounting every row." } } },
   args: {
     columns,
     data: bigData,
     enableVirtualization: true,
+    caption: "Virtualized team members",
     maxHeight: "400px",
     onReachEnd: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const region = canvas.getByRole("region", { name: "Virtualized team members" })
+    await expect(region).toHaveAttribute("tabindex", "0")
+    await expect(canvas.getByRole("table")).toHaveAttribute("aria-rowcount", "501")
+    await expect(canvas.getAllByRole("row").length).toBeLessThan(100)
+    await canvasElement.ownerDocument.fonts.ready
+    const nextFrame = () => new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    )
+    const settleMeasuredRows = async (scrollTop: number) => {
+      let previous = ""
+      let stableSamples = 0
+      await waitFor(async () => {
+        region.scrollTo({ top: scrollTop, left: 0, behavior: "instant" })
+        // WebKit can coalesce a programmatic scroll with measurement-driven
+        // compensation. Notify the virtualizer of the actual offset explicitly.
+        fireEvent.scroll(region)
+        await nextFrame()
+        const rows = Array.from(
+          canvasElement.querySelectorAll<HTMLTableRowElement>("tbody tr[aria-rowindex]")
+        )
+        const layout = JSON.stringify(rows.map((row) => [
+          row.getAttribute("aria-rowindex"),
+          row.getBoundingClientRect().top,
+          row.getBoundingClientRect().height,
+        ]))
+        stableSamples = layout === previous ? stableSamples + 1 : 0
+        previous = layout
+        expect(region.scrollTop).toBe(scrollTop)
+        expect(region.scrollLeft).toBe(0)
+        if (scrollTop > 0) {
+          expect(Number(rows[0]?.getAttribute("aria-rowindex"))).toBeGreaterThan(2)
+        } else {
+          expect(rows[0]).toHaveAttribute("aria-rowindex", "2")
+        }
+        expect(stableSamples).toBeGreaterThanOrEqual(3)
+        // On an iOS user agent the virtualizer defers above-the-fold size
+        // corrections while the container is "scrolling" (until 150ms pass
+        // without a scroll event), then writes them as a scrollTop jump.
+        // Go idle long enough for that flush and require the offset to hold;
+        // otherwise a correction measured at 3000 lands after the return to 0.
+        await new Promise((resolve) => setTimeout(resolve, 400))
+        await nextFrame()
+        expect(region.scrollTop).toBe(scrollTop)
+      }, { timeout: 10_000 })
+    }
+    await settleMeasuredRows(0)
+    await settleMeasuredRows(3000)
+
+    // Unvisited rows still use estimates, so an absolute mid-list offset is
+    // measurement-history dependent. After proving the virtual window moved,
+    // restore the exact first logical row and scroll origin for capture.
+    await settleMeasuredRows(0)
+    for (const spacer of canvasElement.querySelectorAll("tbody tr:not([aria-rowindex])")) {
+      await expect(spacer).toHaveAttribute("aria-hidden", "true")
+    }
   },
 }
 
@@ -538,6 +772,8 @@ export const InfiniteScrollVirtualized: Story = {
  * set `maxHeight`, which is exactly why this went unnoticed.
  */
 export const WindowScrollInfiniteLoad: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "Page-level loading uses the window scroll position instead of an unnecessary nested scrollbar." } } },
   render: () => {
     const [rows, setRows] = useState(bigData.slice(0, 30))
     return (
@@ -587,6 +823,7 @@ export const WindowScrollInfiniteLoad: Story = {
  * the accompanying dev warning.
  */
 export const VirtualizationWithoutMaxHeight: Story = {
+  parameters: { docs: { description: { story: "Without a bounded scroll region the table falls back to ordinary rows rather than silently losing records." } } },
   args: {
     columns,
     data: bigData,
@@ -624,6 +861,7 @@ const getCellSpan: DataTableGetCellSpan<Person> = (cell, { rows, rowIndex }) => 
 }
 
 export const ColSpanRowSpan: Story = {
+  parameters: { docs: { description: { story: "Merged cells communicate genuinely shared data while keeping the record structure readable." } } },
   args: {
     columns,
     // Sorted by role so equal roles are adjacent and merge vertically.
@@ -636,6 +874,7 @@ export const ColSpanRowSpan: Story = {
 /* ── 14. onRowClick ──────────────────────────────────────────────────────── */
 
 export const RowClick: Story = {
+  parameters: { docs: { description: { story: "Activate a record using the pointer, Enter or Space while preserving independent controls inside each row." } } },
   args: { ...base, onRowClick: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -647,6 +886,7 @@ export const RowClick: Story = {
 /* ── 15. Selectable rows with checkbox ───────────────────────────────────── */
 
 export const RowSelection: Story = {
+  parameters: { docs: { description: { story: "Selection checkboxes identify individual records and expose the current selected state." } } },
   args: { ...base, enableRowSelection: true, onRowSelectionChange: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -658,6 +898,7 @@ export const RowSelection: Story = {
 /* ── 16. Column reorder ──────────────────────────────────────────────────── */
 
 export const ColumnReorder: Story = {
+  parameters: { docs: { description: { story: "Drag a column grip to rearrange fields without confusing sorting with reordering." } } },
   args: { ...base, enableColumnReorder: true, onColumnReorder: fn() },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -670,6 +911,7 @@ export const ColumnReorder: Story = {
 /* ── 17. Row reorder ─────────────────────────────────────────────────────── */
 
 export const RowReorder: Story = {
+  parameters: { docs: { description: { story: "Reorder records with explicit drag handles while keeping unrelated row actions independent." } } },
   render: (args) => {
     // DataTable does not own `data`; the consumer applies the reordered array.
     const [rows, setRows] = useState(people)
@@ -696,6 +938,7 @@ export const RowReorder: Story = {
 }
 
 export const KeyboardReorder: Story = {
+  parameters: { docs: { description: { story: "Keyboard reordering announces movement so drag handles remain usable without a pointer." } } },
   tags: ["dnd-regression"],
   args: {
     ...base,
@@ -741,14 +984,16 @@ export const KeyboardReorder: Story = {
     await expect(canvas.queryByLabelText("Drag to reorder Email")).toBeNull()
     await expect(canvas.queryByLabelText("Drag to reorder Last name")).toBeNull()
 
-    const columnHandle = canvas.getByLabelText("Drag to reorder First name")
+    const columnHandle = canvas.getByRole("button", { name: "Drag to reorder First name" })
     columnHandle.focus()
     await userEvent.keyboard("[Space]")
     await waitFor(() => expect(columnHandle).toHaveAttribute("aria-pressed", "true"))
     await userEvent.keyboard("[ArrowRight]")
-    await waitFor(() =>
-      expect(canvas.getByRole("columnheader", { name: /Role/ })).toHaveClass("border-e-2")
-    )
+    await waitFor(() => {
+      const target = canvas.getByRole("columnheader", { name: /Role/ })
+      expect(target).toHaveAttribute("data-drop-side", "end")
+      expect(getComputedStyle(target, "::after").borderInlineStartWidth).toBe("2px")
+    })
     await userEvent.keyboard("[Space]")
     await waitFor(() =>
       expect(args.onColumnReorder).toHaveBeenLastCalledWith({
@@ -772,13 +1017,13 @@ export const KeyboardReorder: Story = {
       ).toBe(true)
     })
 
-    const rowHandle = canvas.getByLabelText("Drag to reorder Ada Lovelace")
+    const rowHandle = canvas.getByRole("button", { name: "Drag to reorder Ada Lovelace" })
     rowHandle.focus()
     await userEvent.keyboard("[Space]")
     await waitFor(() => expect(rowHandle).toHaveAttribute("aria-pressed", "true"))
     await userEvent.keyboard("[ArrowDown]")
     await waitFor(() =>
-      expect(canvas.getByLabelText("Drag to reorder Alan Turing").closest("tr")).toHaveClass("border-b-2")
+      expect(canvas.getByRole("button", { name: "Drag to reorder Alan Turing" }).closest("tr")).toHaveClass("border-b-2")
     )
     await userEvent.keyboard("[Space]")
     await waitFor(() =>
@@ -788,15 +1033,22 @@ export const KeyboardReorder: Story = {
     )
     await expect(args.onColumnReorder).toHaveBeenCalledTimes(1)
     await expect(args.onRowClick).not.toHaveBeenCalled()
-    await waitFor(() => expect(rowHandle).toHaveFocus())
+    // Focus can return before dnd-kit's drop animation removes its inert,
+    // aria-hidden placeholder. Wait for the drag lifecycle, not just focus;
+    // role queries deliberately assert there is exactly one accessible handle.
+    await waitFor(() => {
+      expect(rowHandle).toHaveFocus()
+      expect(rowHandle).toHaveAttribute("aria-pressed", "false")
+      expect(canvas.getAllByRole("button", { name: "Drag to reorder Ada Lovelace" })).toHaveLength(1)
+    })
 
-    const cancelHandle = canvas.getByLabelText("Drag to reorder Ada Lovelace")
+    const cancelHandle = canvas.getByRole("button", { name: "Drag to reorder Ada Lovelace" })
     cancelHandle.focus()
     await userEvent.keyboard("[Space]")
     await waitFor(() => expect(cancelHandle).toHaveAttribute("aria-pressed", "true"))
     await userEvent.keyboard("[ArrowDown]")
     await waitFor(() =>
-      expect(canvas.getByLabelText("Drag to reorder Grace Hopper").closest("tr")).toHaveClass("border-b-2")
+      expect(canvas.getByRole("button", { name: "Drag to reorder Grace Hopper" }).closest("tr")).toHaveClass("border-b-2")
     )
     await userEvent.keyboard("[Escape]")
     await waitFor(() => expect(cancelHandle).toHaveAttribute("aria-pressed", "false"))
@@ -805,6 +1057,7 @@ export const KeyboardReorder: Story = {
 }
 
 export const PaginatedRowReorder: Story = {
+  parameters: { docs: { description: { story: "Reordering a page updates the correct records rather than applying page-local indices to the full data set." } } },
   tags: ["dnd-regression"],
   args: {
     ...base,
@@ -852,6 +1105,7 @@ export const PaginatedRowReorder: Story = {
 /* ── 18. Column visibility (show/hide) ───────────────────────────────────── */
 
 export const ColumnVisibility: Story = {
+  parameters: { docs: { description: { story: "Let readers hide optional fields without losing the identity column needed to recognize a record." } } },
   args: {
     ...base,
     enableColumnVisibility: true,
@@ -865,7 +1119,15 @@ export const ColumnVisibility: Story = {
 
     // Toggling a column keeps the list open, so several can be hidden in a row.
     const body = within(canvasElement.ownerDocument.body)
-    const menu = within(await body.findByRole("menu"))
+    const panel = await body.findByRole("menu")
+    const menu = within(panel)
+    await waitFor(() => {
+      const rect = panel.getBoundingClientRect()
+      expect(rect.width).toBeGreaterThanOrEqual(180)
+      expect(rect.left).toBeGreaterThanOrEqual(0)
+      expect(rect.right).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientWidth)
+      expect(panel.scrollWidth).toBeLessThanOrEqual(panel.clientWidth + 1)
+    })
     const firstName = await menu.findByRole("menuitemcheckbox", { name: "First name" })
     await userEvent.click(firstName)
     await expect(firstName).toHaveAttribute("aria-checked", "false")
@@ -882,6 +1144,7 @@ export const ColumnVisibility: Story = {
 /* ── 19. Custom cell content template ────────────────────────────────────── */
 
 export const CustomCellTemplate: Story = {
+  parameters: { docs: { description: { story: "A custom cell presents structured record content while the table still owns sorting and alignment." } } },
   args: {
     columns: [
       {
@@ -933,6 +1196,7 @@ const tree: Node[] = [
 ]
 
 export const TreeStructure: Story = {
+  parameters: { docs: { description: { story: "Expandable rows reveal child records in place when hierarchy matters more than a flat list." } } },
   args: {
     columns: columns as ColumnDef<Person>[],
     data: tree,
@@ -950,6 +1214,7 @@ export const TreeStructure: Story = {
 /* ── 20a2. Tree structure with nested rows tinted by depth ───────────────── */
 
 export const TreeStructureTinted: Story = {
+  parameters: { docs: { description: { story: "A subtle depth tint reinforces nested rows without replacing their indentation and disclosure cues." } } },
   args: {
     columns: columns as ColumnDef<Person>[],
     data: tree,
@@ -974,6 +1239,7 @@ export const TreeStructureTinted: Story = {
 /* ── 20b. Master-detail: the expanded row is one free-form box ───────────── */
 
 export const ExpandedRowDetail: Story = {
+  parameters: { docs: { description: { story: "Expand a record to inspect supporting details without navigating away from the list." } } },
   args: {
     columns: columns as ColumnDef<Person>[],
     data: tree,
@@ -1051,6 +1317,7 @@ const inlineEditColumns: ColumnDef<Person>[] = [
 ]
 
 export const InlineEdit: Story = {
+  parameters: { docs: { description: { story: "Edit a record in place, then cancel or save the draft through explicit row actions." } } },
   args: {
     columns: inlineEditColumns,
     data: people,
@@ -1066,7 +1333,8 @@ export const InlineEdit: Story = {
       <DataTable
         {...args}
         data={rows}
-        onEditCommit={(details) => {
+        onEditCommit={async (details) => {
+          await args.onEditCommit?.(details)
           setRows((current) =>
             current.map((person) =>
               person.id === details.row.id
@@ -1074,7 +1342,6 @@ export const InlineEdit: Story = {
                 : person
             )
           )
-          args.onEditCommit?.(details)
         }}
       />
     )
@@ -1095,6 +1362,13 @@ export const InlineEdit: Story = {
     await expect(canvas.getByText("ada@calc.io")).toBeInTheDocument()
 
     await userEvent.clear(firstName)
+    await userEvent.click(canvas.getByLabelText("Save row"))
+    const error = canvas.getByRole("alert")
+    await expect(error).toHaveTextContent("Enter a value before saving this row.")
+    await expect(firstName).toHaveAttribute("aria-invalid", "true")
+    await expect(firstName).toHaveAttribute("aria-errormessage", error.id)
+    await expect(firstName).toHaveAccessibleDescription(error.textContent ?? "")
+    await expect(error.querySelector('[aria-hidden="true"]')).not.toBeNull()
     await userEvent.type(firstName, "Augusta")
     await userEvent.click(canvas.getByLabelText("Save row"))
 
@@ -1106,6 +1380,7 @@ export const InlineEdit: Story = {
 
 /* Cancelling restores the original values and leaves edit mode. */
 export const InlineEditCancel: Story = {
+  parameters: { docs: { description: { story: "Cancel an inline draft without changing the original record." } } },
   args: {
     columns: inlineEditColumns,
     data: people,
@@ -1132,6 +1407,7 @@ export const InlineEditCancel: Story = {
 
 /* Always-live cell editor via `meta.updateData`, without the row edit flow. */
 export const InlineEditCustomCell: Story = {
+  parameters: { docs: { description: { story: "A custom editor uses the same draft and commit contract as the built-in field editors." } } },
   args: {
     columns: [
       { accessorKey: "firstName", header: "First name" },
@@ -1159,6 +1435,7 @@ export const InlineEditCustomCell: Story = {
 /* ── 22. Pagination ──────────────────────────────────────────────────────── */
 
 export const Pagination: Story = {
+  parameters: { docs: { description: { story: "Page controls preserve a manageable record set and announce the current range." } } },
   args: {
     columns,
     data: bigData,
@@ -1252,7 +1529,7 @@ const typedColumns: ColumnDef<Employee>[] = [
       type: "number",
       align: "end",
       editable: true,
-      validate: (v) => (Number(v) < 0 ? "Must be positive" : undefined),
+      validate: (v) => (Number(v) < 0 ? "Enter a salary of zero or more." : undefined),
     },
   },
   {
@@ -1280,6 +1557,7 @@ const typedMeta = {
 } satisfies Partial<DataTableProps<Employee>>
 
 export const TypedColumnFilters: EmployeeStory = {
+  parameters: { docs: { description: { story: "Column-type-specific filters match the input to the value being queried." } } },
   args: {
     ...typedMeta,
     enableColumnFilters: true,
@@ -1306,6 +1584,7 @@ export const TypedColumnFilters: EmployeeStory = {
  * matcher reads as plain text.
  */
 export const DeprecatedFilterVariant: Story = {
+  parameters: { docs: { description: { story: "Legacy filter configuration remains supported while new examples use the current column metadata." } } },
   args: {
     columns: [
       { accessorKey: "firstName", header: "First name" },
@@ -1336,6 +1615,7 @@ export const DeprecatedFilterVariant: Story = {
 /* ── 24. Custom filter template for a non-standard column type ───────────── */
 
 export const CustomFilterTemplate: EmployeeStory = {
+  parameters: { docs: { description: { story: "A custom filter integrates domain-specific options without replacing the table layout." } } },
   args: {
     ...typedMeta,
     columns: [
@@ -1399,6 +1679,7 @@ export const CustomFilterTemplate: EmployeeStory = {
 /* ── 25. Inline edit driven by column type + sticky actions ──────────────── */
 
 export const InlineEditByColumnType: EmployeeStory = {
+  parameters: { docs: { description: { story: "Text, number and choice editors share the same row draft and save behavior." } } },
   args: {
     ...typedMeta,
     enableInlineEdit: true,
@@ -1422,6 +1703,7 @@ export const InlineEditByColumnType: EmployeeStory = {
 /* ── 26. Edit mode locks filtering, selection and sorting ────────────────── */
 
 export const EditModeLocksInteractions: EmployeeStory = {
+  parameters: { docs: { description: { story: "Lock conflicting record interactions while a row draft is active to avoid accidental changes." } } },
   args: {
     ...typedMeta,
     enableInlineEdit: true,
@@ -1450,7 +1732,8 @@ export const EditModeLocksInteractions: EmployeeStory = {
 
 /* ── 27. Size propagates to every nested control ─────────────────────────── */
 
-export const SizeSynchronised: EmployeeStory = {
+export const LargeFieldAlignment: EmployeeStory = {
+  parameters: { docs: { description: { story: "Large table cells, filters and inline editors stay aligned because their size is inherited consistently." } } },
   args: {
     ...typedMeta,
     size: "lg",
@@ -1460,11 +1743,27 @@ export const SizeSynchronised: EmployeeStory = {
     enablePagination: true,
     pageSizeOptions: [2, 5],
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getAllByLabelText("Edit row 0")[0] as HTMLElement)
+    const salary = canvas.getByRole("spinbutton", { name: "Edit Salary" })
+    await expect(salary).toHaveValue("5200")
+    const style = getComputedStyle(salary)
+    const valueWidth = salary.getBoundingClientRect().width - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight)
+    await expect(valueWidth).toBeGreaterThan(80)
+    await expect(canvasElement.querySelector(".switch-size-lg")).not.toBeNull()
+    salary.scrollIntoView({ block: "nearest", inline: "center" })
+    salary.focus()
+    const rect = salary.getBoundingClientRect()
+    const surface = canvasElement.ownerDocument.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+    await expect(surface).toBe(salary)
+  },
 }
 
 /* ── 28. Single-row selection ────────────────────────────────────────────── */
 
 export const SingleRowSelection: Story = {
+  parameters: { docs: { description: { story: "Single-selection mode replaces the previous selection instead of accumulating records." } } },
   args: {
     ...base,
     enableRowSelection: true,
@@ -1474,18 +1773,19 @@ export const SingleRowSelection: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole("columnheader", { name: "Select rows" })).toBeVisible()
-    await userEvent.click(canvas.getByLabelText("Select row 0"))
-    await expect(canvas.getByLabelText("Select row 0")).toBeChecked()
-    // Selecting another row replaces the first instead of adding to it.
     await userEvent.click(canvas.getByLabelText("Select row 1"))
     await expect(canvas.getByLabelText("Select row 1")).toBeChecked()
-    await expect(canvas.getByLabelText("Select row 0")).not.toBeChecked()
+    // Selecting another row replaces the first instead of adding to it.
+    await userEvent.click(canvas.getByLabelText("Select row 2"))
+    await expect(canvas.getByLabelText("Select row 2")).toBeChecked()
+    await expect(canvas.getByLabelText("Select row 1")).not.toBeChecked()
   },
 }
 
 /* ── 29. Capped selection (max 2 rows) ───────────────────────────────────── */
 
 export const MaxTwoRowsSelectable: Story = {
+  parameters: { docs: { description: { story: "A selection limit gives feedback before an action could exceed the allowed record count." } } },
   args: {
     ...base,
     enableRowSelection: true,
@@ -1495,21 +1795,22 @@ export const MaxTwoRowsSelectable: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole("columnheader", { name: "Select rows" })).toBeVisible()
-    await userEvent.click(canvas.getByLabelText("Select row 0"))
     await userEvent.click(canvas.getByLabelText("Select row 1"))
+    await userEvent.click(canvas.getByLabelText("Select row 2"))
     await expect(args.onSelectionLimitReached).toHaveBeenCalled()
     // Unselected rows lock once the cap is hit…
-    await expect(canvas.getByLabelText("Select row 2")).toBeDisabled()
+    await expect(canvas.getByLabelText("Select row 3")).toBeDisabled()
     // …while the selected ones can still be released.
-    await expect(canvas.getByLabelText("Select row 0")).not.toBeDisabled()
-    await userEvent.click(canvas.getByLabelText("Select row 0"))
-    await expect(canvas.getByLabelText("Select row 2")).not.toBeDisabled()
+    await expect(canvas.getByLabelText("Select row 1")).not.toBeDisabled()
+    await userEvent.click(canvas.getByLabelText("Select row 1"))
+    await expect(canvas.getByLabelText("Select row 3")).not.toBeDisabled()
   },
 }
 
 /* ── 30. Custom selectability rule ───────────────────────────────────────── */
 
 export const ConditionalRowSelection: Story = {
+  parameters: { docs: { description: { story: "Record-specific eligibility prevents selection when an action is not available for that record." } } },
   args: {
     ...base,
     enableRowSelection: true,
@@ -1519,8 +1820,8 @@ export const ConditionalRowSelection: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     // Row 0 is active, row 2 is invited.
-    await expect(canvas.getByLabelText("Select row 0")).not.toBeDisabled()
-    await expect(canvas.getByLabelText("Select row 2")).toBeDisabled()
+    await expect(canvas.getByLabelText("Select row 1")).not.toBeDisabled()
+    await expect(canvas.getByLabelText("Select row 3")).toBeDisabled()
   },
 }
 
@@ -1530,6 +1831,7 @@ const onArchive = fn()
 const onDelete = fn()
 
 export const PerRowActionPermissions: Story = {
+  parameters: { docs: { description: { story: "Permission-dependent row actions are hidden or disabled with a meaningful record context." } } },
   args: {
     ...base,
     enableInlineEdit: true,
@@ -1560,12 +1862,12 @@ export const PerRowActionPermissions: Story = {
     const rows = canvas.getAllByRole("row")
     // Row 1 (Ada, Admin, active): editable, archivable, no delete action.
     const adaRow = within(rows[1] as HTMLElement)
-    await expect(adaRow.getByLabelText("Edit row 0")).not.toBeDisabled()
+    await expect(adaRow.getByLabelText("Edit row 1")).not.toBeDisabled()
     await expect(adaRow.getByLabelText("Archive")).not.toBeDisabled()
     await expect(adaRow.queryByLabelText("Delete")).not.toBeInTheDocument()
     // Row 5 (Margaret, Viewer, suspended): edit and archive both blocked.
     const suspendedRow = within(rows[5] as HTMLElement)
-    await expect(suspendedRow.getByLabelText("Edit row 4")).toBeDisabled()
+    await expect(suspendedRow.getByLabelText("Edit row 5")).toBeDisabled()
     await expect(suspendedRow.getByLabelText("Archive")).toBeDisabled()
     await expect(suspendedRow.getByLabelText("Delete")).toBeInTheDocument()
   },
@@ -1574,6 +1876,7 @@ export const PerRowActionPermissions: Story = {
 /* ── 32. Loading skeletons ───────────────────────────────────────────────── */
 
 export const LoadingSkeletons: Story = {
+  parameters: { docs: { description: { story: "Loading rows preserve the table layout and remain visible in light and dark themes while records are fetched." } } },
   args: { ...base, loading: true, loadingRowCount: 6, enableSorting: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -1586,6 +1889,7 @@ export const LoadingSkeletons: Story = {
 /* ── 33. Loading more (infinite scroll footer) ───────────────────────────── */
 
 export const LoadingMore: Story = {
+  parameters: { docs: { description: { story: "An appended skeleton row keeps existing records visible while another page is fetched." } } },
   args: {
     columns,
     data: people,
@@ -1598,6 +1902,7 @@ export const LoadingMore: Story = {
 /* ── 34. Drag affordances ────────────────────────────────────────────────── */
 
 export const DragAffordances: Story = {
+  parameters: { docs: { description: { story: "Reorder grips separate drag interaction from links, selection and record actions." } } },
   args: {
     ...base,
     enableColumnReorder: true,
@@ -1612,7 +1917,7 @@ export const DragAffordances: Story = {
       canvas.getByLabelText("Drag to reorder First name")
     ).toBeInTheDocument()
     await expect(
-      canvas.getByLabelText("Drag to reorder row 0")
+      canvas.getByLabelText("Drag to reorder row 1")
     ).toBeInTheDocument()
   },
 }
@@ -1620,6 +1925,7 @@ export const DragAffordances: Story = {
 /* ── 35. Accessibility semantics ─────────────────────────────────────────── */
 
 export const AccessibleSemantics: Story = {
+  parameters: { docs: { description: { story: "Native table headings, record labels and selection controls expose the list to assistive technology." } } },
   args: {
     ...base,
     enableSorting: true,
@@ -1646,5 +1952,384 @@ export const AccessibleSemantics: Story = {
     row.focus()
     await userEvent.keyboard("{Enter}")
     await expect(args.onRowClick).toHaveBeenCalled()
+  },
+}
+
+export const KeyboardColumnResize: Story = {
+  args: { ...base, enableColumnResizing: true, enablePagination: false },
+  parameters: { docs: { description: { story: "Focus a column edge and use Left/Right to resize, Shift for larger steps and Enter to restore its default width." } } },
+  play: async ({ canvasElement }) => {
+    const handle = within(canvasElement).getByRole("button", { name: "Resize First name" })
+    const header = handle.closest("th")!
+    const initial = header.getBoundingClientRect().width
+    handle.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await waitFor(() => expect(header.getBoundingClientRect().width).toBeCloseTo(initial + 10, 0))
+    await userEvent.keyboard("{Shift>}{ArrowRight}{/Shift}")
+    await waitFor(() => expect(header.getBoundingClientRect().width).toBeCloseTo(initial + 60, 0))
+    await userEvent.keyboard("{ArrowLeft}")
+    await waitFor(() => expect(header.getBoundingClientRect().width).toBeCloseTo(initial + 50, 0))
+    await userEvent.keyboard("{Enter}")
+    await waitFor(() => expect(header.getBoundingClientRect().width).toBeCloseTo(initial, 0))
+    await expect(handle).toHaveFocus()
+  },
+}
+
+
+export const EditorValidation: EmployeeStory = {
+  parameters: { docs: { description: { story: "Required choices and approval errors stay next to their editor, with state icons and associated messages on the actual focus target." } } },
+  args: {
+    data: [{ ...employees[0] as Employee, department: "", skills: [], active: false }],
+    columns: typedColumns.slice(0, 4).map((column) => ({
+      ...column,
+      meta: {
+        ...column.meta,
+        required: true,
+        validate: column.id === "active" || ("accessorKey" in column && column.accessorKey === "active")
+          ? (value) => value ? undefined : "Confirm the employee is active before saving."
+          : undefined,
+      },
+    })),
+    enableInlineEdit: true,
+    size: "lg",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByLabelText("Edit row 0"))
+    await userEvent.click(canvas.getByLabelText("Save row"))
+    for (const label of ["Edit Department", "Edit Skills", "Edit Active"]) {
+      const field = canvas.getByRole(label === "Edit Active" ? "switch" : "combobox", { name: label })
+      await expect(field).toHaveAttribute("aria-invalid", "true")
+      const errorId = field.getAttribute("aria-errormessage")
+      const error = errorId ? canvasElement.ownerDocument.getElementById(errorId) : null
+      await expect(error).not.toBeNull()
+      await expect(field.getAttribute("aria-describedby")?.split(" ")).toContain(errorId)
+      await expect(error?.querySelector('[aria-hidden="true"]')).not.toBeNull()
+      await waitFor(() => {
+        const cell = field.closest("td")?.getBoundingClientRect()
+        const message = error?.getBoundingClientRect()
+        expect(cell).toBeDefined()
+        expect(message).toBeDefined()
+        expect(message?.left).toBeGreaterThanOrEqual(cell?.left ?? 0)
+        expect(message?.right).toBeLessThanOrEqual(cell?.right ?? 0)
+        expect(error?.scrollWidth ?? 0).toBeLessThanOrEqual((error?.clientWidth ?? 0) + 1)
+      })
+    }
+    await expect(canvas.getByText("Confirm the employee is active before saving.")).toBeVisible()
+  },
+}
+
+
+export const AsyncSaveRecovery: Story = {
+  parameters: { docs: { description: { story: "A pending save keeps its draft, blocks duplicate submission and supports retry after a rejected persistence request." } } },
+  args: { ...base, data: people.slice(0, 1), columns: inlineEditColumns, enableInlineEdit: true, onEditCommit: fn(), getRowLabel: (row) => row.original.firstName },
+  render: (args) => {
+    const [request, setRequest] = useState<{ resolve: () => void; reject: () => void } | null>(null)
+    return <div className="flex flex-col gap-200">
+      <DataTable {...args} onEditCommit={async (details) => {
+        await args.onEditCommit?.(details)
+        return new Promise<void>((resolve, reject) => {
+          setRequest({
+            resolve: () => { setRequest(null); resolve() },
+            reject: () => { setRequest(null); reject(new Error("Simulated failure")) },
+          })
+        })
+      }} />
+      <div className="flex gap-100">
+        <Button disabled={!request} theme="outlined" onClick={() => request?.reject()}>Simulate save failure</Button>
+        <Button disabled={!request} onClick={() => request?.resolve()}>Complete save</Button>
+      </div>
+    </div>
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByLabelText("Edit Ada"))
+    const input = canvas.getByLabelText("Edit First name")
+    await userEvent.clear(input)
+    await userEvent.type(input, "Augusta")
+    await userEvent.click(canvas.getByLabelText("Save row"))
+    await expect(canvas.getByLabelText("Save row")).toHaveAttribute("aria-disabled", "true")
+    await expect(canvas.getByLabelText("Save row")).toHaveFocus()
+    await expect(input).toHaveValue("Augusta")
+    await expect(canvas.getByText("Saving row…")).toBeVisible()
+    await userEvent.keyboard("{Enter}{Enter}")
+    await expect(args.onEditCommit).toHaveBeenCalledTimes(1)
+    await userEvent.click(canvas.getByRole("button", { name: "Simulate save failure" }))
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Could not save this row")
+    await expect(input).toHaveValue("Augusta")
+    await userEvent.click(canvas.getByLabelText("Save row"))
+    await userEvent.click(canvas.getByRole("button", { name: "Complete save" }))
+    await waitFor(() => expect(canvas.queryByLabelText("Edit First name")).toBeNull())
+    await expect(args.onEditCommit).toHaveBeenCalledTimes(2)
+  },
+}
+
+type RangeRow = { id: string; period: { from: string; to: string } }
+export const RequiredDateRange: StoryObj<DataTableProps<RangeRow>> = {
+  parameters: { docs: { description: { story: "Required date ranges reject cleared or reversed bounds on both Save and Enter, while supporting open-ended ranges." } } },
+  args: {
+    data: [{ id: "booking", period: { from: "2026-03-29", to: "2026-03-30" } }],
+    columns: [{ accessorKey: "period", header: "Period", cell: () => "March booking", meta: { type: "dateRange", editable: true, required: true } }],
+    getRowId: (row) => row.id,
+    enableInlineEdit: true,
+    onEditCommit: fn(),
+  },
+  render: (args) => <DataTable {...args} />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByLabelText("Edit row booking"))
+    const from = canvas.getByLabelText("Edit Period from")
+    const to = canvas.getByLabelText("Edit Period to")
+    await userEvent.clear(from)
+    await userEvent.clear(to)
+    from.focus()
+    await userEvent.keyboard("{Enter}")
+    await expect(args.onEditCommit).not.toHaveBeenCalled()
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Enter a value")
+    await userEvent.type(from, "2026-04-01")
+    await userEvent.type(to, "2026-03-29")
+    await userEvent.click(canvas.getByLabelText("Save row"))
+    await expect(args.onEditCommit).not.toHaveBeenCalled()
+    await expect(canvas.getByRole("alert")).toHaveTextContent("start on or before the end")
+    await userEvent.clear(to)
+    await userEvent.click(canvas.getByLabelText("Save row"))
+    await expect(args.onEditCommit).toHaveBeenCalledTimes(1)
+  },
+}
+
+export const UnknownServerTotal: Story = {
+  parameters: { docs: { description: { story: "Server pages with an unknown total expose previous/next navigation, with the response explicitly signaling exhaustion." } } },
+  render: () => {
+    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 2 })
+    const records = people.slice(0, 5)
+    return <DataTable {...base} data={records.slice(pagination.pageIndex * pagination.pageSize, (pagination.pageIndex + 1) * pagination.pageSize)}
+      enablePagination manualPagination pageCount={-1} pagination={pagination} onPaginationChange={setPagination}
+      pageSizeOptions={[2, 5, 10]} hasNextPage={(pagination.pageIndex + 1) * pagination.pageSize < records.length} />
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByRole("button", { name: "Previous page" })).toBeDisabled()
+    await userEvent.click(canvas.getByRole("button", { name: "Next page" }))
+    await expect(canvas.getByText("Page 2")).toBeVisible()
+    await userEvent.click(canvas.getByRole("button", { name: "Next page" }))
+    await expect(canvas.getByText("Page 3")).toBeVisible()
+    await expect(canvas.getByRole("button", { name: "Next page" })).toBeDisabled()
+    await userEvent.click(canvas.getByRole("button", { name: "Previous page" }))
+    await expect(canvas.getByText("Page 2")).toBeVisible()
+  },
+}
+
+export const ShrinkingServerTotal: Story = {
+  parameters: { docs: { description: { story: "Deleting the last page requests the last available page once without rendering a reversed range or false empty success." } } },
+  render: () => {
+    const [count, setCount] = useState(5)
+    const [loading, setLoading] = useState(false)
+    const [pagination, setPagination] = useState({ pageIndex: 2, pageSize: 2 })
+    const records = people.slice(0, count)
+    return <div className="flex flex-col gap-200">
+      <DataTable {...base} data={records.slice(pagination.pageIndex * pagination.pageSize, (pagination.pageIndex + 1) * pagination.pageSize)}
+        enablePagination manualPagination rowCount={count} pagination={pagination} onPaginationChange={setPagination} pageSizeOptions={[2, 5, 10]} loading={loading} />
+      <Button theme="outlined" onClick={() => { setLoading(true); setCount(0) }}>Start refetch</Button>
+      <Button theme="outlined" onClick={() => { setCount(4); setLoading(false) }}>Delete last-page record</Button>
+    </div>
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText("5–5 of 5")).toBeVisible()
+    const current = canvasElement.querySelector<HTMLElement>('[aria-current="page"]')!
+    current.focus()
+    // Model a background refetch without moving the user's keyboard focus.
+    canvas.getByRole("button", { name: "Start refetch" }).click()
+    await waitFor(() => expect(canvas.getAllByText("Loading data")[0]).toBeInTheDocument())
+    await expect(current).toHaveFocus()
+    await expect(current.closest("nav")).toHaveAttribute("aria-disabled", "true")
+    await userEvent.keyboard("{Enter}")
+    await expect(current).toHaveFocus()
+    canvas.getByRole("button", { name: "Delete last-page record" }).click()
+    await waitFor(() => expect(canvas.getByText("3–4 of 4")).toBeVisible())
+    await expect(canvasElement.querySelector('[aria-current="page"]')).toHaveFocus()
+    // Normal activation still updates the page without navigating to a hash.
+    const locationBefore = canvasElement.ownerDocument.defaultView?.location.href
+    await userEvent.click(canvas.getByRole("link", { name: "page 1" }))
+    await expect(canvas.getByText("1–2 of 4")).toBeVisible()
+    await expect(canvasElement.ownerDocument.defaultView?.location.href).toBe(locationBefore)
+  },
+}
+
+export const GroupedFixedWidths: Story = {
+  parameters: { docs: { description: { story: "A leaf colgroup keeps mixed grouped and ungrouped fixed widths intact; only leaf headers expose resize handles." } } },
+  args: {
+    ...base, tableLayout: "fixed", enableColumnResizing: true,
+    columns: [
+      { id: "identity", header: "Identity", footer: "People", columns: [
+        { accessorKey: "firstName", header: "First name", meta: { width: 200 } },
+        { accessorKey: "lastName", header: "Last name", meta: { width: 200 } },
+      ] },
+      { accessorKey: "email", header: "Email", footer: "Contact details", meta: { width: 900 } },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const first = canvas.getByRole("columnheader", { name: /First name/ })
+    await expect(first.getBoundingClientRect().width).toBeGreaterThan(190)
+    await expect(canvas.queryByLabelText("Resize Identity")).toBeNull()
+    canvas.getByLabelText("Resize First name").focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(first.getBoundingClientRect().width).toBeGreaterThan(205)
+    await userEvent.keyboard("{Home}")
+    await expect(first.getBoundingClientRect().width).toBeLessThan(205)
+  },
+}
+
+export const CssWidthPointerResize: Story = {
+  parameters: { docs: { description: { story: "Dragging a CSS-sized leaf starts from its rendered width rather than the table model's fallback width." } } },
+  args: {
+    ...base,
+    tableLayout: "fixed",
+    enableColumnResizing: true,
+    columns: [
+      { accessorKey: "firstName", header: "First name", meta: { width: "20rem" } },
+      { accessorKey: "email", header: "Email", meta: { width: 900 } },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const handle = canvas.getByRole("button", { name: "Resize First name" })
+    const header = handle.closest("th")!
+    const initial = header.getBoundingClientRect().width
+    const rect = handle.getBoundingClientRect()
+    const clientX = rect.x + rect.width / 2
+    const clientY = rect.y + rect.height / 2
+    await userEvent.pointer([
+      { target: handle, keys: "[MouseLeft>]", coords: { clientX, clientY } },
+      { target: handle, coords: { clientX: clientX + 30, clientY } },
+      { target: handle, keys: "[/MouseLeft]", coords: { clientX: clientX + 30, clientY } },
+    ])
+    await waitFor(() => expect(header.getBoundingClientRect().width - initial).toBeCloseTo(30, 0))
+    await userEvent.dblClick(handle)
+    await waitFor(() => expect(header.getBoundingClientRect().width).toBeCloseTo(initial, 0))
+  },
+}
+
+export const InteractiveCellIsolation: Story = {
+  parameters: { docs: { description: { story: "Buttons and prevented cell events do not also activate the surrounding clickable row." } } },
+  args: {
+    ...base, data: people.slice(0, 1), onRowClick: fn(),
+    columns: [{ accessorKey: "firstName", header: "First name" }, { id: "inspect", header: "Details", cell: () => <Button theme="outlined">Inspect person</Button> }],
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "Inspect person" }))
+    await expect(args.onRowClick).not.toHaveBeenCalled()
+    await userEvent.click(canvas.getByText("Ada"))
+    await expect(args.onRowClick).toHaveBeenCalledTimes(1)
+  },
+}
+
+export const SelectionEligibilityChanges: Story = {
+  parameters: { docs: { description: { story: "A selected record remains individually deselectable after its eligibility changes, while new ineligible selections are refused." } } },
+  render: () => {
+    const [eligible, setEligible] = useState(true)
+    return <div className="flex flex-col gap-200">
+      <DataTable {...base} data={people.slice(0, 2)} enableRowSelection canSelectRow={() => eligible} />
+      <Button theme="outlined" onClick={() => setEligible(false)}>Revoke eligibility</Button>
+    </div>
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const selected = canvas.getByLabelText("Select row 1")
+    await userEvent.click(selected)
+    await userEvent.click(canvas.getByRole("button", { name: "Revoke eligibility" }))
+    await expect(selected).not.toBeDisabled()
+    await expect(canvas.getByLabelText("Select row 2")).toBeDisabled()
+    await userEvent.click(selected)
+    await expect(selected).not.toBeChecked()
+  },
+}
+
+
+export const MeasuredFrozenColumns: Story = {
+  parameters: { docs: { description: { story: "CSS-string widths and trailing actions reserve their rendered space so multiple frozen columns never overlap." } } },
+  args: {
+    ...base, enableColumnPinning: true, stickyActions: true,
+    columnPinning: { start: ["firstName", "lastName"], end: ["visits"] },
+    columns: [
+      { accessorKey: "firstName", header: "First name", meta: { width: "12rem" } },
+      { accessorKey: "lastName", header: "Last name", meta: { width: "10rem" } },
+      { accessorKey: "email", header: "Email", meta: { width: 900 } },
+      { accessorKey: "visits", header: "Visits", meta: { width: 120 } },
+    ],
+    renderRowActions: () => <Button theme="outlined">Inspect</Button>,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const headers = [...canvasElement.querySelectorAll<HTMLTableCellElement>("thead th")]
+    const first = headers[0]!
+    const second = headers[1]!
+    const pinnedEnd = headers[3]!
+    const actions = headers[4]!
+    const region = canvas.getByRole("region", { name: "Scrollable records" })
+    await waitFor(() => {
+      let used = getComputedStyle(actions).insetInlineEnd === "auto"
+        ? 0 : actions.getBoundingClientRect().width
+      // Overflowing tables keep 40% of the scrollport for unpinned columns.
+      const budget = region.scrollWidth > region.clientWidth ? region.clientWidth * 0.4 : 0
+      for (const header of [first, second, pinnedEnd]) {
+        const width = header.getBoundingClientRect().width
+        const fits = used + width + budget < region.clientWidth
+        expect(getComputedStyle(header).position).toBe(fits ? "sticky" : "relative")
+        if (fits) used += width
+      }
+      if (getComputedStyle(second).position === "sticky") {
+        expect(Number.parseFloat(getComputedStyle(second).insetInlineStart)).toBeCloseTo(first.getBoundingClientRect().width, 0)
+      } else {
+        expect(second.style.insetInlineStart).toBe("auto")
+      }
+      if (getComputedStyle(pinnedEnd).position === "sticky") {
+        expect(Number.parseFloat(getComputedStyle(pinnedEnd).insetInlineEnd)).toBeCloseTo(actions.getBoundingClientRect().width, 0)
+      } else {
+        expect(pinnedEnd.style.insetInlineEnd).toBe("auto")
+      }
+    })
+  },
+}
+
+export const VariableHeightVirtualRows: Story = {
+  parameters: { docs: { description: { story: "Windowed variable-height records and expanded detail rows are separately measured and keep stable record identities as scrolling reveals them." } } },
+  args: {
+    ...base, data: bigData, enableVirtualization: true, maxHeight: "26rem",
+    enableExpanding: true, expanded: { "row-1": true },
+    columns: [{ accessorKey: "firstName", header: "Person" }, {
+      accessorKey: "email", header: "Notes", cell: ({ row }) => <div>{Array.from({ length: row.index % 3 + 1 }, (_, index) => <p key={`note-${index}`}>Contact preferences and delivery instructions for {row.original.firstName}.</p>)}</div>,
+    }],
+    renderExpandedRow: (row) => <div className="p-400"><p>Delivery details for {row.original.firstName}</p><p>Preferred collection at the workshop reception.</p></div>,
+  },
+}
+
+
+export const OverlayIsolation: Story = {
+  parameters: { docs: { description: { story: "Sticky Actions remain within the table's stacking context instead of painting over a foreground dialog while background rows scroll." } } },
+  render: () => <div className="flex flex-col gap-200">
+    <Dialog triggerText="Review customer notes" title="Customer notes" description="Review the delivery note without table controls obscuring it.">
+      <Label htmlFor="table-overlay-notes">Delivery note</Label>
+      <Textarea id="table-overlay-notes" defaultValue="Leave the parcel at the workshop reception." />
+    </Dialog>
+    <DataTable {...base} data={bigData} stickyHeader maxHeight="26rem"
+      renderRowActions={() => <Button theme="outlined">Inspect</Button>} />
+  </div>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const document = canvasElement.ownerDocument
+    await userEvent.click(canvas.getByRole("button", { name: "Review customer notes" }))
+    const dialog = within(document.body).getByRole("dialog", { name: "Customer notes" })
+    const textarea = within(dialog).getByLabelText("Delivery note")
+    const scrollRegion = canvasElement.querySelector<HTMLElement>('section[aria-label="Scrollable records"]')!
+    scrollRegion.scrollTop = 180
+    textarea.focus()
+    await waitFor(() => {
+      const rect = textarea.getBoundingClientRect()
+      expect(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)).toBe(textarea)
+    })
+    await userEvent.keyboard("{Escape}")
   },
 }

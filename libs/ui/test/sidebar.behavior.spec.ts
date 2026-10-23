@@ -27,6 +27,7 @@ test.describe("Sidebar responsive behavior", () => {
   test("keeps Playground Controls and panel expansion in sync", async ({
     page,
   }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Storybook Controls are covered once on desktop"
@@ -71,6 +72,7 @@ test.describe("Sidebar responsive behavior", () => {
   test("preserves focus intent across repeated breakpoint changes", async ({
     page,
   }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Responsive behavior is covered once with explicit viewports"
@@ -123,6 +125,7 @@ test.describe("Sidebar responsive behavior", () => {
   test("falls back from a fixed panel to its mobile trigger", async ({
     page,
   }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Responsive behavior is covered once with explicit viewports"
@@ -165,6 +168,7 @@ test.describe("Sidebar responsive behavior", () => {
   test("treats controlled null as closed despite a non-null default", async ({
     page,
   }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Responsive behavior is covered once with an explicit mobile viewport"
@@ -192,6 +196,7 @@ test.describe("Sidebar responsive behavior", () => {
   })
 
   test("updates controlled desktop state", async ({ page }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Desktop state is covered once"
@@ -218,6 +223,7 @@ test.describe("Sidebar responsive behavior", () => {
   })
 
   test("toggles the icon-collapse panel", async ({ page }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Desktop collapse behavior is covered once"
@@ -244,6 +250,7 @@ test.describe("Sidebar responsive behavior", () => {
   test("restores the detail pane when a rail item is selected", async ({
     page,
   }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Desktop two-pane behavior is covered once"
@@ -271,6 +278,7 @@ test.describe("Sidebar responsive behavior", () => {
   })
 
   test("toggles a right sidebar independently", async ({ page }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Desktop end-panel behavior is covered once"
@@ -295,6 +303,7 @@ test.describe("Sidebar responsive behavior", () => {
   })
 
   test("keeps a fixed end panel expanded", async ({ page }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Desktop fixed-panel behavior is covered once"
@@ -325,6 +334,7 @@ test.describe("Sidebar responsive behavior", () => {
   test("maps logical RTL edges on desktop and mobile", async ({
     page,
   }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Logical edge behavior is covered once with explicit viewports"
@@ -351,15 +361,25 @@ test.describe("Sidebar responsive behavior", () => {
         return {
           endLeft: endBox?.x,
           rootLeft: rootBox?.x,
-          rootRight: (rootBox?.x ?? 0) + (rootBox?.width ?? 0),
-          startRight: (startBox?.x ?? 0) + (startBox?.width ?? 0),
+          // The stable scrollbar gutter reduces the root's content area even
+          // when clientWidth includes the reserved, currently empty track.
+          rootRightOffset:
+            (rootBox?.x ?? 0) +
+            (rootBox?.width ?? 0) -
+            (await page.evaluate(
+              () => document.documentElement.getBoundingClientRect().right
+            )),
+          startRightOffset:
+            (startBox?.x ?? 0) +
+            (startBox?.width ?? 0) -
+            ((rootBox?.x ?? 0) + (rootBox?.width ?? 0)),
         }
       })
       .toMatchObject({
         endLeft: 0,
         rootLeft: 0,
-        rootRight: 1280,
-        startRight: 1280,
+        rootRightOffset: 0,
+        startRightOffset: 0,
       })
 
     await page.setViewportSize(mobileViewport)
@@ -379,6 +399,7 @@ test.describe("Sidebar responsive behavior", () => {
   test("keeps the site header outside the sidebar row", async ({
     page,
   }, testInfo) => {
+    // biome-ignore lint/suspicious/noSkippedTests: Run this viewport-specific scenario only in its matching Playwright project.
     test.skip(
       testInfo.project.name !== "desktop",
       "Sticky header layout is covered once"

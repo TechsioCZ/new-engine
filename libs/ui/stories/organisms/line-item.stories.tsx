@@ -1,11 +1,11 @@
 ﻿import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
-import { fn } from "storybook/test"
+import { useLayoutEffect, useRef, useState } from "react"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Image } from "../../src/atoms/image"
-import { Link } from "../../src/atoms/link"
 import { StatusText } from "../../src/atoms/status-text"
+import { Link } from "../../src/atoms/link"
 import { AvailabilityStatus } from "../../src/molecules/availability-status"
 import { PriceBlock } from "../../src/molecules/price-block"
 import { QuantityField } from "../../src/molecules/quantity-field"
@@ -16,245 +16,417 @@ const quantityChanged = fn()
 const saved = fn()
 const productTitle = "Montážní sada M8"
 const longProductTitle =
-	"Montážní sada pro připevnění těžkých polic a regálů v dílně"
+  "Montážní sada pro připevnění těžkých polic a regálů v dílně"
 const thumbnail =
-	"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23999' stroke='%23444' stroke-width='4' d='M25 15h50l20 35-20 35H25L5 50z'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%23eee' stroke='%23444' stroke-width='4'/%3E%3C/svg%3E"
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23999' stroke='%23444' stroke-width='4' d='M25 15h50l20 35-20 35H25L5 50z'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%23eee' stroke='%23444' stroke-width='4'/%3E%3C/svg%3E"
 
 function DraftQuantity({
-	title,
-	pending = false,
-	disabled = false,
+  title,
+  pending = false,
+  disabled = false,
+  error,
 }: {
-	title: string
-	pending?: boolean
-	disabled?: boolean
+  title: string
+  pending?: boolean
+  disabled?: boolean
+  error?: string
 }) {
-	const [value, setValue] = useState("2")
-	return (
-		<QuantityField
-			hideLabel
-			label={`Množství: ${title}`}
-			min={1}
-			max={10}
-			value={value}
-			onValueChange={(details) => {
-				setValue(details.value)
-				quantityChanged(details)
-			}}
-			pending={pending}
-			pendingLabel="Ukládáme množství"
-			disabled={disabled}
-			size="sm"
-			unitLabel="balení"
-		/>
-	)
+  const [value, setValue] = useState("2")
+  return (
+    <QuantityField
+      error={error}
+      hideLabel
+      label={`Množství: ${title}`}
+      min={1}
+      max={10}
+      value={value}
+      onValueChange={(details) => {
+        setValue(details.value)
+        quantityChanged(details)
+      }}
+      pending={pending}
+      pendingLabel="Ukládáme množství"
+      disabled={disabled}
+      size="sm"
+      unitLabel="balení"
+    />
+  )
 }
 
 type CartRowProps = (
-	| Omit<Extract<LineItemProps, { pending: true }>, "children">
-	| Omit<Extract<LineItemProps, { pending?: false }>, "children">
+  | Omit<Extract<LineItemProps, { pending: true }>, "children">
+  | Omit<Extract<LineItemProps, { pending?: false }>, "children">
 ) & { unavailable?: boolean; error?: string }
 
 function CartRow({ unavailable = false, error, ...props }: CartRowProps) {
-	return (
-		<LineItem {...props}>
-			<LineItem.Image>
-				<Image alt="" src={thumbnail} />
-			</LineItem.Image>
-			<LineItem.Body>
-				<LineItem.Heading>
-					<LineItem.Title>
-						<Link href="#product">{props.title}</Link>
-					</LineItem.Title>
-					<LineItem.Price>
-						<PriceBlock state="known" amountLabel="498 Kč" />
-					</LineItem.Price>
-				</LineItem.Heading>
-				<LineItem.Options>100 ks · pozink · kód MS-008</LineItem.Options>
-				{unavailable ? (
-					<AvailabilityStatus status="unavailable" label="Není skladem" />
-				) : null}
-				<LineItem.Controls>
-					<LineItem.Quantity readOnlyLabel="2 balení">
-						<DraftQuantity
-							title={props.title}
-							pending={props.pending}
-							disabled={unavailable}
-						/>
-					</LineItem.Quantity>
-					<LineItem.Actions>
-						<LineItem.Remove label="Odebrat" onClick={removed} />
-					</LineItem.Actions>
-				</LineItem.Controls>
-				{error ? <StatusText status="error">{error}</StatusText> : null}
-			</LineItem.Body>
-		</LineItem>
-	)
+  return (
+    <LineItem {...props}>
+      <LineItem.Image>
+        <Image alt="" src={thumbnail} />
+      </LineItem.Image>
+      <LineItem.Body>
+        <LineItem.Heading>
+          <LineItem.Title>
+            <Link href="#product" onClick={(event) => event.preventDefault()}>
+              {props.title}
+            </Link>
+          </LineItem.Title>
+          <LineItem.Price>
+            <PriceBlock state="known" amountLabel="498 Kč" />
+          </LineItem.Price>
+        </LineItem.Heading>
+        <LineItem.Options>100 ks · pozink · kód MS-008</LineItem.Options>
+        {unavailable ? (
+          <AvailabilityStatus status="unavailable" label="Není skladem" />
+        ) : null}
+        <LineItem.Controls>
+          <LineItem.Quantity readOnlyLabel="2 balení">
+            <DraftQuantity
+              title={props.title}
+              pending={props.pending}
+              disabled={unavailable}
+              error={error}
+            />
+          </LineItem.Quantity>
+          <LineItem.Actions>
+            <LineItem.Remove label="Odebrat" onClick={removed} />
+          </LineItem.Actions>
+        </LineItem.Controls>
+      </LineItem.Body>
+    </LineItem>
+  )
 }
 
 const meta: Meta<typeof LineItem> = {
-	title: "Organisms/LineItem",
-	component: LineItem,
-	tags: ["autodocs"],
-	parameters: {
-		layout: "padded",
-		docs: {
-			description: {
-				component:
-					"Compound řádek produktu pro košík a rekapitulaci. Aplikace skládá části a dodává cenu, quantity control a dostupnost. Root sdílí pending/readOnly; Quantity v readOnly nezapojí své editovatelné děti a Actions/Remove se nevykreslí. Žádné výpočty nebo requesty.",
-			},
-		},
-	},
-	args: {
-		title: productTitle,
-		layout: "default",
-		readOnly: false,
-		pendingLabel: "Ukládáme položku",
-	},
-	argTypes: {
-		title: { control: "text" },
-		layout: { control: "select", options: ["default", "compact"] },
-		readOnly: { control: "boolean" },
-		pending: { control: "boolean" },
-		pendingLabel: { control: "text" },
-		children: { control: false },
-		ref: { control: false },
-	},
+  title: "Organisms/LineItem",
+  component: LineItem,
+  tags: ["autodocs"],
+  parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
+    layout: "padded",
+    docs: {
+      description: {
+        component:
+          "Compound řádek produktu pro košík a rekapitulaci. Aplikace skládá části a dodává cenu, quantity control a dostupnost. Root sdílí pending/readOnly; Quantity v readOnly nezapojí své editovatelné děti a Actions/Remove se nevykreslí. Žádné výpočty nebo requesty.",
+      },
+    },
+  },
+  args: {
+    title: productTitle,
+    layout: "default",
+    readOnly: false,
+    pendingLabel: "Ukládáme položku",
+  },
+  argTypes: {
+    title: { control: "text" },
+    layout: { control: "select", options: ["default", "compact"] },
+    readOnly: { control: "boolean" },
+    pending: { control: "boolean" },
+    pendingLabel: { control: "text" },
+    children: { control: false },
+    ref: { control: false },
+  },
 }
 export default meta
 type Story = StoryObj<typeof LineItem>
 
 export const Playground: Story = {
-	render: (args) => (
-		<div className="w-xl max-w-full">
-			<CartRow {...args} />
-		</div>
-	),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Use the controls to explore the component in a realistic layout without leaving the preview.",
+      },
+    },
+  },
+  render: (args) => (
+    <div className="w-xl max-w-full">
+      <CartRow {...args} />
+    </div>
+  ),
 }
 export const ReadOnly: Story = {
-	args: { readOnly: true },
-	render: (args) => (
-		<div className="w-xl max-w-full">
-			<CartRow {...args} />
-		</div>
-	),
-	parameters: {
-		docs: {
-			description: {
-				story:
-					"Stejná compound skladba obsahuje QuantityField i Remove. Root readOnly ale quantity nahradí textem a akce úplně vynechá.",
-			},
-		},
-	},
+  args: { readOnly: true },
+  render: (args) => (
+    <div className="w-xl max-w-full">
+      <CartRow {...args} />
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Stejná compound skladba obsahuje QuantityField i Remove. Root readOnly ale quantity nahradí textem a akce úplně vynechá.",
+      },
+    },
+  },
 }
 export const Pending: Story = {
-	args: { pending: true, pendingLabel: "Ukládáme položku" },
-	render: (args) => (
-		<div className="w-xl max-w-full">
-			<CartRow {...args} />
-		</div>
-	),
-	parameters: {
-		docs: {
-			description: {
-				story:
-					"Root blokuje Quantity a Actions pomocí inert, Remove navíc deaktivuje. QuantityField dostává pending také pro viditelný stav.",
-			},
-		},
-	},
+  args: { pending: true, pendingLabel: "Ukládáme položku" },
+  render: (args) => (
+    <div className="w-xl max-w-full">
+      <CartRow {...args} />
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Root blokuje Quantity a Actions pomocí inert, Remove navíc deaktivuje. QuantityField dostává pending také pro viditelný stav.",
+      },
+    },
+  },
 }
 export const Unavailable: Story = {
-	render: (args) => (
-		<div className="w-xl max-w-full">
-			<CartRow {...args} unavailable />
-		</div>
-	),
-	parameters: {
-		docs: {
-			description: {
-				story:
-					"Aplikace označí položku jako nedostupnou a deaktivuje quantity. Odebrání zůstává dostupné.",
-			},
-		},
-	},
+  render: (args) => (
+    <div className="w-xl max-w-full">
+      <CartRow {...args} unavailable />
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Aplikace označí položku jako nedostupnou a deaktivuje quantity. Odebrání zůstává dostupné.",
+      },
+    },
+  },
 }
 export const ItemError: Story = {
-	render: (args) => (
-		<div className="w-xl max-w-full">
-			<CartRow
-				{...args}
-				error="Změnu se nepodařilo uložit. Zkuste upravit množství znovu."
-			/>
-		</div>
-	),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const quantity = canvas.getByRole("spinbutton")
+    const message = canvas.getByRole("alert")
+    await expect(message).toHaveAttribute("id")
+    await expect(quantity).toHaveAttribute("aria-invalid", "true")
+    await expect(quantity).toHaveAttribute("aria-errormessage", message.id)
+    await expect(
+      quantity.getAttribute("aria-describedby")?.split(" ")
+    ).toContain(message.id)
+    await expect(message.querySelector('[aria-hidden="true"]')).not.toBeNull()
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A product-specific error explains why a quantity change failed and how to recover without losing the item context.",
+      },
+    },
+  },
+  render: (args) => (
+    <div className="w-xl max-w-full">
+      <CartRow
+        {...args}
+        error="Změnu se nepodařilo uložit. Zkuste upravit množství znovu."
+      />
+    </div>
+  ),
 }
 export const Layouts: Story = {
-	render: (args) => (
-		<VariantContainer>
-			{(["default", "compact"] as const).map((layout) => (
-				<VariantGroup fullWidth key={layout} title={layout}>
-					<div className="w-xl max-w-full">
-						<CartRow {...args} layout={layout} />
-					</div>
-				</VariantGroup>
-			))}
-		</VariantContainer>
-	),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default and compact product-row layouts using the same title, quantity and price; these are composition options, not control sizes.",
+      },
+    },
+  },
+  render: (args) => (
+    <VariantContainer>
+      {(["default", "compact"] as const).map((layout) => (
+        <VariantGroup fullWidth key={layout} title={layout}>
+          <div className="w-xl max-w-full">
+            <CartRow {...args} layout={layout} />
+          </div>
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
 }
 export const LongContent: Story = {
-	args: { title: longProductTitle, layout: "compact" },
-	render: (args) => (
-		<div className="w-sm max-w-full">
-			<CartRow {...args} />
-		</div>
-	),
-	parameters: {
-		docs: {
-			description: {
-				story:
-					"Dlouhý název na úzkém viewportu: cena a ovládání zůstávají viditelné.",
-			},
-		},
-	},
+  args: { title: longProductTitle, layout: "compact" },
+  render: (args) => (
+    <div className="w-sm max-w-full">
+      <CartRow {...args} />
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Dlouhý název na úzkém viewportu: cena a ovládání zůstávají viditelné.",
+      },
+    },
+  },
 }
 export const CustomComposition: Story = {
-	render: (args) => (
-		<div className="w-xl max-w-full">
-			<LineItem {...args}>
-				<LineItem.Body>
-					<LineItem.Title />
-					<LineItem.Options>
-						Bez fotografie, cena pod názvem a vlastní dodatečná akce.
-					</LineItem.Options>
-					<LineItem.Price>
-						<PriceBlock state="known" amountLabel="498 Kč" />
-					</LineItem.Price>
-					<LineItem.Controls>
-						<LineItem.Quantity readOnlyLabel="2 balení">
-							<DraftQuantity title={args.title} pending={args.pending} />
-						</LineItem.Quantity>
-						<LineItem.Actions>
-							<Button
-								onClick={saved}
-								disabled={args.pending}
-								size="sm"
-								theme="outlined"
-							>
-								Uložit na později
-							</Button>
-							<LineItem.Remove label="Odebrat" onClick={removed} />
-						</LineItem.Actions>
-					</LineItem.Controls>
-				</LineItem.Body>
-			</LineItem>
-		</div>
-	),
-	parameters: {
-		docs: {
-			description: {
-				story:
-					"Compound API umožňuje vynechat obrázek, přesunout cenu a doplnit vlastní akce. Přepněte pending/readOnly v Controls: společné pojistky platí i pro vlastní akce.",
-			},
-		},
-	},
+  render: (args) => (
+    <div className="w-xl max-w-full">
+      <LineItem {...args}>
+        <LineItem.Body>
+          <LineItem.Title />
+          <LineItem.Options>
+            Bez fotografie, cena pod názvem a vlastní dodatečná akce.
+          </LineItem.Options>
+          <LineItem.Price>
+            <PriceBlock state="known" amountLabel="498 Kč" />
+          </LineItem.Price>
+          <LineItem.Controls>
+            <LineItem.Quantity readOnlyLabel="2 balení">
+              <DraftQuantity title={args.title} pending={args.pending} />
+            </LineItem.Quantity>
+            <LineItem.Actions>
+              <Button
+                onClick={saved}
+                disabled={args.pending}
+                size="sm"
+                theme="outlined"
+              >
+                Uložit na později
+              </Button>
+              <LineItem.Remove label="Odebrat" onClick={removed} />
+            </LineItem.Actions>
+          </LineItem.Controls>
+        </LineItem.Body>
+      </LineItem>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compound API umožňuje vynechat obrázek, přesunout cenu a doplnit vlastní akce. Přepněte pending/readOnly v Controls: společné pojistky platí i pro vlastní akce.",
+      },
+    },
+  },
+}
+
+function PendingFocusExample() {
+  const [pending, setPending] = useState(false)
+  const [outcome, setOutcome] = useState("Ready to update this item locally.")
+  const [removed, setRemoved] = useState(false)
+  const destination = useRef<HTMLDivElement>(null)
+  const initiator = useRef<HTMLButtonElement | null>(null)
+  const shouldRestore = useRef(false)
+  const complete = (failed: boolean) => {
+    if (!pending) return
+    shouldRestore.current = document.activeElement === destination.current
+    setOutcome(
+      failed ? "Update failed. Retry the update." : "Item updated locally."
+    )
+    setPending(false)
+  }
+  useLayoutEffect(() => {
+    const target = initiator.current
+    if (
+      !pending &&
+      shouldRestore.current &&
+      target?.isConnected &&
+      !target.disabled &&
+      !target.closest('[inert], [aria-disabled="true"]') &&
+      document.activeElement === destination.current
+    ) {
+      target.focus()
+    }
+    shouldRestore.current = false
+  }, [pending])
+  return (
+    <div className="flex w-full max-w-xl flex-col gap-200">
+      <div
+        ref={destination}
+        tabIndex={-1}
+        className="rounded-md border border-border-primary p-200 focus-visible:outline"
+      >
+        <StatusText role="status">
+          {pending ? "Updating this item locally…" : outcome}
+        </StatusText>
+      </div>
+      <LineItem
+        title={productTitle}
+        {...(pending
+          ? { pending: true, pendingLabel: "Updating item" }
+          : { pending: false })}
+      >
+        <LineItem.Body>
+          <LineItem.Title />
+          <LineItem.Controls>
+            <LineItem.Quantity readOnlyLabel="2 packs">
+              <DraftQuantity title={productTitle} pending={pending} />
+            </LineItem.Quantity>
+            <LineItem.Actions>
+              {!removed && (
+                <Button
+                  onClick={(event) => {
+                    initiator.current = event.currentTarget
+                    destination.current?.focus()
+                    setPending(true)
+                  }}
+                >
+                  {outcome.startsWith("Update failed")
+                    ? "Retry update"
+                    : "Update item"}
+                </Button>
+              )}
+            </LineItem.Actions>
+          </LineItem.Controls>
+        </LineItem.Body>
+      </LineItem>
+      <div className="flex flex-wrap gap-200">
+        <Button onClick={() => complete(false)}>Simulate success</Button>
+        <Button onClick={() => complete(true)}>Simulate failure</Button>
+        <Button
+          onClick={() => {
+            if (pending) {
+              setRemoved(true)
+              setPending(false)
+              setOutcome(
+                "Initiating action removed. Focus stays at the stable destination."
+              )
+            }
+          }}
+        >
+          Remove initiating action
+        </Button>
+        <Button>Another action</Button>
+      </div>
+    </div>
+  )
+}
+
+export const PendingFocusLifecycle: Story = {
+  render: () => <PendingFocusExample />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Application-owned pending focus: hand off before quantity/actions become inert; restore a connected enabled initiator only while focus remains at the managed destination.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const start = canvas.getByRole("button", { name: "Update item" })
+    await userEvent.click(start)
+    const destination = canvas
+      .getByText("Updating this item locally…")
+      .closest("[tabindex]")
+    await expect(destination).toHaveFocus()
+    canvas.getByRole("button", { name: "Simulate failure" }).click()
+    await waitFor(() =>
+      expect(canvas.getByRole("button", { name: "Retry update" })).toHaveFocus()
+    )
+    await userEvent.keyboard("{Enter}")
+    await expect(destination).toHaveFocus()
+    canvas.getByRole("button", { name: "Simulate success" }).click()
+    await waitFor(() => expect(start).toHaveFocus())
+    await userEvent.keyboard("{Enter}")
+    const outside = canvas.getByRole("button", { name: "Another action" })
+    await userEvent.click(outside)
+    canvas.getByRole("button", { name: "Simulate success" }).click()
+    await waitFor(() => expect(outside).toHaveFocus())
+    await userEvent.click(start)
+    canvas.getByRole("button", { name: "Remove initiating action" }).click()
+    await waitFor(() => expect(start).not.toBeInTheDocument())
+    await expect(destination).toHaveFocus()
+  },
 }

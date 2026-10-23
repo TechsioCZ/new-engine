@@ -5,7 +5,7 @@ description: >
   searchable action list or a Dialog-based command palette with compound parts,
   grouped results, disabled actions, and optional shortcut hints.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -26,8 +26,15 @@ sources:
 
 # @techsio/ui-kit Command Usage
 
-Use Command for searching and activating application actions. Use Combobox for
-a form value, Menu for a short menu without search, and Dialog for the modal shell.
+Command is a **command palette**: a searchable, keyboard-first list of actions
+and destinations, often opened with ⌘K (Ctrl+K on Windows/Linux). It runs an
+action on Enter or click; highlighting does not execute anything. It can live
+inline or inside a Dialog.
+
+Use Combobox for a searchable form value, Select for fixed form choices, Menu
+for a short action list without search, and Dialog for the modal shell. Command
+does not register ⌘K automatically: compose it with the hotkey store only when
+you need an application-wide shortcut.
 
 ## UX/UI guidelines
 
@@ -178,8 +185,10 @@ attach a second `value`/`onChange` query state to `Command.Input`.
 
 Input and Label reuse kit atoms. Other parts use `--*-command-*` tokens;
 override those in the app token layer instead of repeating appearance classes.
-The inline list does not require a floating positioner, portal or selected-item
-indicator gutter. Root introduces no breakpoint-specific behavior.
+Highlighted actions use both a background and semibold text, so the active
+result is not indicated by color alone. The inline list does not require a
+floating positioner, portal or selected-item indicator gutter. Root introduces
+no breakpoint-specific behavior.
 
 Native Zag owns navigation and composition handling. Synthetic IME event tests
 are not proof of every OS input method or physical keyboard layout. Do not claim
@@ -195,7 +204,12 @@ accent-insensitive matching. InDialog opens the palette with the input focused,
 keeps the dialog open after a selection, and restores focus to the opener on
 Escape. `Command/With Hotkey/Playground` adds one integrated palette where
 `mod+K`, the Save button, `mod+S`, and a palette selection update the visible
-workspace state.
+workspace state. Its inline Docs canvases scope shortcuts to the preview with
+keyboard focus or its open dialog, so only one palette opens and only that
+workspace receives Save. Focus a preview button before using a Docs shortcut.
+Standalone stories keep application-wide shortcuts. When embedding independent
+palettes in one document, use focus-based enabled predicates (including portaled
+dialogs) or separate documents rather than registering competing global handlers.
 
 Only Playground exposes relevant Controls. Technical regression fixtures and
 the already-open visual fixture use `!dev` and `!autodocs`; their direct story

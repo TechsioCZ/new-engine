@@ -1,0 +1,16 @@
+diff --git a/dist/index.js b/dist/index.js
+index 22f482efee388007aa17e68217b013d18a6c1815..8fdf48220cdc4e149dd8e08c9348d353a33f68f5 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -96,7 +96,10 @@ async function readEntriesFromNdjson(ndjsonPath) {
+     const exists = await fs_extra.pathExists(ndjsonPath);
+     if (!exists) return [];
+     const content = await fs_extra.readFile(ndjsonPath, 'utf8');
+-    return content.split('\n').map((line)=>line.trim()).filter(Boolean).map((line)=>JSON.parse(line));
++    // Parallel test workers append to this file. Only parse complete,
++    // newline-terminated entries; a trailing line may still be mid-write.
++    const complete = content.endsWith('\n') ? content : content.slice(0, content.lastIndexOf('\n') + 1);
++    return complete.split('\n').map((line)=>line.trim()).filter(Boolean).map((line)=>JSON.parse(line));
+ }
+ async function writeReports(entries, options) {
+     const { outputDir, reportPath, summaryPath, junitPath } = getOutputPaths(options);

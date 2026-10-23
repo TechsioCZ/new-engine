@@ -2,7 +2,7 @@
 name: search-suggestions-usage
 description: Use for grouped storefront search navigation with rich results and an all-results link, composed from the UI-kit Combobox.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -106,3 +106,46 @@ app; fetching, debounce, routing, analytics and DTO adaptation stay outside UI.
 
 The template reuses Combobox anatomy and tokens. Code owns API and token names;
 Figma owns static values. Run component-to-figma only after API/stories stabilize.
+
+## Shared field contracts
+
+The inherited readOnly prop keeps the saved query focusable and copyable but
+blocks editing, clear, result navigation and popup opening (including supplied
+open/defaultOpen). Disabled takes precedence. Use helpText and validateStatus
+for linked inline StatusText validation with state icons. Canonical sizes are
+sm/md/lg, default md; popup layers and reduced-motion behavior follow Combobox.
+The Storybook demos intercept navigation; consumers still supply their router
+through navigate or use native anchor navigation. Figma-sync handoff should
+include the immutable-query and validation states.
+
+## Focusable input integration
+
+`ref` targets the actual `HTMLInputElement`, including React 19 callback-ref
+cleanup; `inputProps` forwards native input attributes and composed focus/blur
+handlers without replacing machine value/editability. Input descriptions merge
+with linked helper text. `className`, `style` and ordinary div DOM props target
+the root. These are the same APIs as Combobox, preserved through this template.
+The Playground simulates application-owned external filtering; production apps
+still own request debounce, fetching and replacement of result groups.
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.
+
+Navigation mode has no submitted selection. Its query follows the same silent
+reset rule: restore the latest `defaultInputValue` when uncontrolled, or keep
+`inputValue` when controlled.
+
+Uncontrolled query text and caret stay intact while replacement groups arrive,
+including deferred WebKit updates. This inherits Combobox's native edit ownership;
+explicit `inputValue` remains parent-owned and reset releases native ownership.
+
+Rapid typing on slow devices keeps every character, including when the parent
+query state updates later than the input.

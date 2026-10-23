@@ -1,3 +1,4 @@
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
 import { Button } from "../../src/atoms/button"
@@ -23,12 +24,13 @@ import {
 } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/CMS/Content list",
   parameters: {
@@ -104,7 +106,7 @@ function useContentColumns(): ColumnDef<ContentEntry, unknown>[] {
         cell: (info) => info.getValue<number>().toLocaleString("en-GB"),
       },
     ],
-    []
+    [],
   )
 }
 
@@ -126,7 +128,7 @@ function ContentListPage({
   const selectedIds = Object.keys(selection)
   /* Same rule as the row action: a published page must be unpublished first. */
   const deletableIds = selectedIds.filter(
-    (id) => data.find((row) => row.id === id)?.status !== "published"
+    (id) => data.find((row) => row.id === id)?.status !== "published",
   )
   const skippedCount = selectedIds.length - deletableIds.length
   const pageCount = (count: number) =>
@@ -135,8 +137,8 @@ function ContentListPage({
   const applyBulk = (status: ContentEntry["status"], label: string) => {
     setData((current) =>
       current.map((row) =>
-        selectedIds.includes(row.id) ? { ...row, status } : row
-      )
+        selectedIds.includes(row.id) ? { ...row, status } : row,
+      ),
     )
     toaster.create({
       type: "success",
@@ -148,7 +150,7 @@ function ContentListPage({
   const confirmBulkDelete = () => {
     const count = deletableIds.length
     setData((current) =>
-      current.filter((row) => !deletableIds.includes(row.id))
+      current.filter((row) => !deletableIds.includes(row.id)),
     )
     toaster.create({
       type: "success",
@@ -185,21 +187,7 @@ function ContentListPage({
       <Toaster />
 
       <PageHeader
-        actions={
-          <>
-            <Button
-              icon="icon-[mdi--tray-arrow-down]"
-              size="sm"
-              theme="outlined"
-              variant="secondary"
-            >
-              Export
-            </Button>
-            <Button icon="icon-[mdi--plus]" size="sm" variant="primary">
-              New page
-            </Button>
-          </>
-        }
+        actions={<></>}
         breadcrumb={[
           { label: "Home", href: "#" },
           { label: "Content", href: "#" },
@@ -260,11 +248,7 @@ function ContentListPage({
           pageSizeOptions={[10, 25, 50]}
           renderEmpty={() => (
             <EmptyState
-              action={
-                <Button icon="icon-[mdi--plus]" size="sm" variant="primary">
-                  New page
-                </Button>
-              }
+              action={null}
               description="No page matches the current filters. Clear a filter or create the first one."
               icon="icon-[mdi--file-document-outline]"
               title="No pages found"
@@ -297,7 +281,7 @@ function ContentListPage({
                 }
                 setData((current) => {
                   const index = current.findIndex(
-                    (entry) => entry.id === row.original.id
+                    (entry) => entry.id === row.original.id,
                   )
                   return [
                     ...current.slice(0, index + 1),
@@ -397,6 +381,15 @@ function ContentListPage({
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in cms content list to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   render: () => <ContentListPage rows={contentEntries} />,
 }
 

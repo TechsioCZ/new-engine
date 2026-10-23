@@ -26,6 +26,24 @@
 
   --spacing-product-card-max: 100%;
 
+  /* Fixed media geometry keeps catalog rows comparable regardless of source image. */
+  --aspect-product-card-media: 4 / 3;
+  --aspect-product-card-image: var(--aspect-product-card-media);
+  --spacing-product-card-name: calc(
+    2 *
+    var(--text-product-card-name-size) *
+    var(--leading-normal)
+  );
+  --color-product-card-button-cart-bg-active: var(
+    --color-product-card-button-cart-bg-hover
+  );
+  --color-product-card-button-detail-bg-active: var(
+    --color-product-card-button-detail-bg-hover
+  );
+  --color-product-card-button-wishlist-bg-active: var(
+    --color-product-card-button-wishlist-bg-hover
+  );
+
   --border-product-card-width: var(--border-width-product-card);
 }
 
@@ -47,4 +65,35 @@
 
 @utility token-icon-wishlist-button {
   @apply token-icon-heart;
+}
+
+/* Linked names retain the card's typography rather than Link's larger defaults. */
+@utility product-card-name {
+  & :where(a) {
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: inherit;
+  }
+}
+
+/* Query the card, not the viewport: row cards also appear in narrow sidebars.
+ * Spanning both tracks keeps custom media/details wrappers in source order. */
+@utility product-card-row {
+  container: product-card / inline-size;
+  contain-intrinsic-inline-size: var(--container-lg);
+
+  &[data-layout="row"] > * {
+    min-width: 0;
+    @container product-card (width < 28rem) {
+      grid-column: 1 / -1;
+      grid-row: auto;
+      justify-self: stretch;
+      height: auto;
+    }
+  }
+  &[data-layout="row"] > * + * {
+    @container product-card (width < 28rem) {
+      margin-block-start: var(--spacing-product-card-col-layout);
+    }
+  }
 }

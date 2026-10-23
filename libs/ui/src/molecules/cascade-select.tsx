@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.6
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,21 +22,20 @@ import {
 import {
   mergeProps,
   normalizeProps,
-  Portal,
   type PropTypes,
   useMachine,
 } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
   createContext,
-  type Dispatch,
   type ReactNode,
   type Ref,
-  type SetStateAction,
+  type RefObject,
   useContext,
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -45,6 +44,15 @@ import { Button } from "../atoms/button"
 import { Icon, type IconProps } from "../atoms/icon"
 import { Label } from "../atoms/label"
 import { StatusText, type StatusTextProps } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
 export type CascadeSelectSize = "xs" | "sm" | "md" | "lg"
@@ -71,10 +79,25 @@ const controlGlyphClass: Record<"sm" | "md" | "lg", string> = {
   lg: "text-icon-control-lg",
 }
 
+// Wrapper-owned state and native projections share one cancellation-safe lifecycle.
+const nativeCascadeSelectMachine: typeof cascadeSelectMachine = {
+  ...cascadeSelectMachine,
+  implementations: {
+    ...cascadeSelectMachine.implementations,
+    effects: {
+      ...cascadeSelectMachine.implementations?.effects,
+      trackFormControlState() {
+        /* Shared lifecycle below owns disabled and reset behavior. */
+      },
+    },
+  },
+}
+
 export const cascadeSelectVariants = tv({
   slots: {
     root: "relative flex w-full flex-col gap-cascade-select",
-    control: "relative flex w-full items-center justify-between",
+    control:
+      "cascade-select-clear-gutter relative flex w-full items-center justify-between",
     positioner: "isolate",
     trigger: [
       "form-control-base group w-full",
@@ -106,9 +129,9 @@ export const cascadeSelectVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     clearTrigger:
-      "-translate-y-1/2 absolute end-cascade-select-right top-1/2 data-readonly:hidden",
+      "absolute end-cascade-select-right top-1/2 -translate-y-1/2 data-readonly:hidden",
     content: [
-      "popup-surface-base flex w-max min-w-(--reference-width) max-w-(--available-width) overflow-x-auto",
+      "popup-surface-base cascade-select-viewport flex w-max snap-x snap-proximity overflow-x-auto p-0",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
@@ -116,9 +139,19 @@ export const cascadeSelectVariants = tv({
       "data-[state=open]:scale-100 data-[state=open]:opacity-100",
       "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
-    list: "min-w-cascade-select-column grow basis-0",
+    column: [
+      "cascade-select-column-size flex min-w-0 shrink-0 grow snap-start flex-col",
+      "cascade-select-column-divider bg-cascade-select-column-bg",
+    ],
+    columnHeader:
+      "flex items-center gap-cascade-select-header border-cascade-select-column-border border-b bg-cascade-select-header-bg p-cascade-select-header font-cascade-select-header text-cascade-select-header-fg text-cascade-select-header-size",
+    columnStep:
+      "flex size-cascade-select-step shrink-0 items-center justify-center rounded-full bg-cascade-select-step-bg text-cascade-select-step-fg",
+    list: "p-cascade-select-column",
     item: [
-      "popup-item-base",
+      "popup-item-base cascade-select-item-path",
+      "data-active-path:font-cascade-select-path",
+      "data-active-path:data-[state=unchecked]:bg-cascade-select-path-bg",
       "hover:bg-popup-item-bg-hover",
       "data-highlighted:bg-popup-item-bg-hover",
       "data-[state=checked]:bg-popup-item-bg-selected",
@@ -128,11 +161,11 @@ export const cascadeSelectVariants = tv({
     ],
     itemText: "min-w-0 flex-grow truncate",
     branchIndicator: [
-      "last:-me-(--size-popup-indicator) flex size-(--size-popup-indicator) shrink-0 items-center justify-center",
+      "flex size-(--size-popup-indicator) shrink-0 items-center justify-center last:-me-(--size-popup-indicator)",
       "rtl:rotate-180",
     ],
     itemIndicator: [
-      "last:-me-(--size-popup-indicator) flex size-(--size-popup-indicator) shrink-0 items-center justify-center",
+      "flex size-(--size-popup-indicator) shrink-0 items-center justify-center last:-me-(--size-popup-indicator)",
       "text-popup-item-fg-selected",
     ],
     valueText: [
@@ -149,25 +182,25 @@ export const cascadeSelectVariants = tv({
     size: {
       xs: {
         trigger:
-          "h-form-control-sm rounded-cascade-select-sm p-cascade-select-trigger-sm text-cascade-select-trigger-xs",
+          "form-control-size-sm rounded-cascade-select-sm px-cascade-select-trigger-sm text-cascade-select-trigger-xs",
         content: "popup-size-xs text-cascade-select-item-xs",
         valueText: "text-cascade-select-value-xs",
       },
       sm: {
         trigger:
-          "h-form-control-sm rounded-cascade-select-sm p-cascade-select-trigger-sm text-cascade-select-trigger-sm",
+          "form-control-size-sm rounded-cascade-select-sm px-cascade-select-trigger-sm text-cascade-select-trigger-sm",
         content: "popup-size-sm text-cascade-select-item-sm",
         valueText: "text-cascade-select-value-sm",
       },
       md: {
         trigger:
-          "h-form-control-md rounded-cascade-select-md p-cascade-select-trigger-md text-cascade-select-trigger-md",
+          "form-control-size-md rounded-cascade-select-md px-cascade-select-trigger-md text-cascade-select-trigger-md",
         content: "popup-size-md text-cascade-select-item-md",
         valueText: "text-cascade-select-value-md",
       },
       lg: {
         trigger:
-          "h-form-control-lg rounded-cascade-select-lg p-cascade-select-trigger-md text-cascade-select-trigger-lg",
+          "form-control-size-lg rounded-cascade-select-lg px-cascade-select-trigger-md text-cascade-select-trigger-lg",
         content: "popup-size-lg text-cascade-select-item-lg",
         valueText: "text-cascade-select-value-lg",
       },
@@ -180,35 +213,37 @@ export const cascadeSelectVariants = tv({
 
 type CascadeSelectApi = ZagCascadeSelectApi<PropTypes, CascadeSelectItem>
 
-const pathsMatch = (
-  api: CascadeSelectApi,
-  selectedItems: CascadeSelectItem[][]
-) =>
-  selectedItems.length === api.value.length &&
-  selectedItems.every(
-    (items, pathIndex) =>
-      items.length === api.value[pathIndex]?.length &&
-      items.every(
-        (item, itemIndex) =>
-          api.collection.getNodeValue(item) ===
-          api.value[pathIndex]?.[itemIndex]
-      )
-  )
-
-// Zag 1.41.2 initializes value from defaultValue before it initializes
-// selectedItems. Keep the compatibility path local to value rendering.
-const resolveSelectedItems = (api: CascadeSelectApi) => {
-  if (pathsMatch(api, api.selectedItems)) {
-    return api.selectedItems
-  }
-
-  return api.value.map((valuePath) => {
+// A path must resolve in full; a surviving ancestor is not the selected leaf.
+const resolveSelectedItems = (api: CascadeSelectApi) =>
+  api.value.map((valuePath) => {
     const indexPath = api.collection.getIndexPath(valuePath)
-
     return indexPath
       .map((_, index) => api.collection.at(indexPath.slice(0, index + 1)))
       .filter((item): item is CascadeSelectItem => item !== undefined)
   })
+
+function resolvePath(items: CascadeSelectItem[], path: string[]) {
+  const nodes: CascadeSelectItem[] = []
+  const indices: number[] = []
+  let children = items
+  for (const value of path) {
+    const index = children.findIndex((candidate) => candidate.value === value)
+    if (index === -1) {
+      break
+    }
+    const node = children[index]
+    if (!node) {
+      break
+    }
+    nodes.push(node)
+    indices.push(index)
+    children = node.children ?? []
+  }
+  return {
+    nodes,
+    indices,
+    complete: path.length > 0 && nodes.length === path.length,
+  }
 }
 
 const formatSelectedItems = (
@@ -232,12 +267,14 @@ const formatSelectedItems = (
 type CascadeSelectContextValue = {
   api: CascadeSelectApi
   formatValue?: (selectedItems: CascadeSelectItem[][]) => string
+  getRootNode?: ZagCascadeSelectProps<CascadeSelectItem>["getRootNode"]
+  readOnly: boolean
   required: boolean
+  keyboardNavigation: RefObject<boolean>
   size: CascadeSelectSize
-  statusTextIds: string[]
-  setStatusTextIds: Dispatch<SetStateAction<string[]>>
   validateStatus: CascadeSelectValidateStatus
-}
+  errors: DescribedBy
+} & DescribedBy
 
 const CascadeSelectContext = createContext<CascadeSelectContextValue | null>(
   null
@@ -281,6 +318,7 @@ export type CascadeSelectProps = VariantProps<typeof cascadeSelectVariants> &
     children: ReactNode
     className?: string
     id?: string
+    /** Complete authoritative hierarchy; removed paths request value reconciliation. */
     items: CascadeSelectItem[]
     ref?: Ref<HTMLDivElement>
     validateStatus?: CascadeSelectValidateStatus
@@ -299,7 +337,23 @@ export function CascadeSelect({
 }: CascadeSelectProps) {
   const generatedId = useId()
   const id = providedId || generatedId
-  const [statusTextIds, setStatusTextIds] = useState<string[]>([])
+  const descriptions = useDescribedBy()
+  const errors = useDescribedBy()
+  const hiddenInputRef = useRef<HTMLInputElement>(null)
+  const keyboardNavigation = useRef(false)
+  const [disabledElement, setDisabledElement] =
+    useState<HTMLInputElement | null>(null)
+  const disabled = useEffectiveDisabled(disabledElement, machineProps.disabled)
+  const initialValue = useRef(machineProps.defaultValue ?? [])
+
+  const [internalValue, setInternalValue] = useState(
+    machineProps.defaultValue ?? []
+  )
+  const requestedValue = machineProps.value ?? internalValue
+  const effectiveValue = requestedValue.filter(
+    (path) => resolvePath(items, path).complete
+  )
+  const reconciliation = useRef<string | null>(null)
   const collection = useMemo(
     () =>
       createCascadeSelectCollection<CascadeSelectItem>({
@@ -315,11 +369,43 @@ export function CascadeSelect({
       }),
     [items]
   )
-  const service = useMachine(cascadeSelectMachine, {
+  const [internalHighlight, setInternalHighlight] = useState<string[]>(
+    machineProps.defaultHighlightedValue ?? []
+  )
+  const controlledHighlight = machineProps.highlightedValue ?? internalHighlight
+  const resolvedHighlight = resolvePath(items, controlledHighlight ?? [])
+  const effectiveHighlight =
+    resolvedHighlight.complete &&
+    !resolvedHighlight.nodes.some((node) => node.disabled)
+      ? controlledHighlight
+      : []
+  const highlightReconciliation = useRef<string | null>(null)
+  const service = useMachine(nativeCascadeSelectMachine, {
     ...machineProps,
     collection,
+    disabled,
+    open: machineProps.readOnly || disabled ? false : machineProps.open,
+    defaultOpen:
+      machineProps.readOnly || disabled ? false : machineProps.defaultOpen,
+    value: effectiveValue,
+    highlightedValue: effectiveHighlight,
+    onHighlightChange: (details) => {
+      if (machineProps.highlightedValue === undefined) {
+        setInternalHighlight(details.highlightedValue ?? [])
+      }
+      machineProps.onHighlightChange?.(details)
+    },
+    onValueChange: (details) => {
+      if (machineProps.readOnly || disabled) {
+        return
+      }
+      if (machineProps.value === undefined) {
+        setInternalValue(details.value)
+      }
+      machineProps.onValueChange?.(details)
+    },
     id,
-    invalid: validateStatus === "error",
+    invalid: validateStatus === "error" || Boolean(errors.describedById),
     positioning: {
       fitViewport: true,
       placement: "bottom-start",
@@ -331,6 +417,84 @@ export function CascadeSelect({
     service as ZagCascadeSelectService<CascadeSelectItem>,
     normalizeProps
   )
+  useEffect(() => {
+    if (effectiveValue.length === requestedValue.length) {
+      reconciliation.current = null
+      return
+    }
+    const key = JSON.stringify([requestedValue, effectiveValue])
+    if (reconciliation.current === key) {
+      return
+    }
+    reconciliation.current = key
+    if (machineProps.value === undefined) {
+      setInternalValue(effectiveValue)
+    }
+    machineProps.onValueChange?.({
+      value: effectiveValue,
+      items: effectiveValue.map((path) => resolvePath(items, path).nodes),
+    })
+  }, [
+    effectiveValue,
+    requestedValue,
+    items,
+    machineProps.value,
+    machineProps.onValueChange,
+  ])
+
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    if (machineProps.value === undefined) {
+      setInternalValue(
+        initialValue.current.filter((path) => resolvePath(items, path).complete)
+      )
+    }
+    if (machineProps.highlightedValue === undefined) {
+      setInternalHighlight([])
+    }
+    api.setOpen(false)
+  }
+  useEffect(() => {
+    const input = hiddenInputRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
+
+  // Zag caches nodes and index paths but does not watch collection replacement.
+  // Refresh metadata without emitting a value-change event for a rename/reorder.
+  const valueKey = JSON.stringify(effectiveValue)
+  const highlightKey = JSON.stringify(controlledHighlight)
+  // useMachine returns a new service object on every render. Its context and
+  // send function are stable; subscribing to the service itself repeatedly
+  // writes fresh arrays and can overwrite a keyboard transition mid-flight.
+  const { context: machineContext, send } = service
+  useEffect(() => {
+    const paths = JSON.parse(valueKey) as string[][]
+    machineContext.set(
+      "valueIndexPath",
+      paths.map((path) => resolvePath(items, path).indices)
+    )
+    machineContext.set(
+      "selectedItems",
+      paths.map((path) => resolvePath(items, path).nodes)
+    )
+    const highlighted = JSON.parse(highlightKey) as string[]
+    const resolved = resolvePath(items, highlighted)
+    if (
+      highlighted.length &&
+      (!resolved.complete || resolved.nodes.some((node) => node.disabled))
+    ) {
+      if (highlightReconciliation.current !== highlightKey) {
+        highlightReconciliation.current = highlightKey
+        send({ type: "HIGHLIGHTED_VALUE.CLEAR" })
+      }
+    } else {
+      highlightReconciliation.current = null
+      machineContext.set("highlightedIndexPath", resolved.indices)
+      machineContext.set("highlightedItems", resolved.nodes)
+    }
+  }, [items, machineContext, send, valueKey, highlightKey])
   const styles = cascadeSelectVariants({ size })
 
   return (
@@ -338,19 +502,36 @@ export function CascadeSelect({
       value={{
         api,
         formatValue: machineProps.formatValue,
+        getRootNode: machineProps.getRootNode,
+        keyboardNavigation,
+        readOnly: machineProps.readOnly ?? false,
         required,
         size,
-        statusTextIds,
-        setStatusTextIds,
+        ...descriptions,
+        errors,
         validateStatus,
       }}
     >
       <div
         {...api.getRootProps()}
         className={styles.root({ className })}
+        onKeyDownCapture={() => {
+          keyboardNavigation.current = true
+        }}
+        onPointerDownCapture={() => {
+          keyboardNavigation.current = false
+        }}
+        onPointerMoveCapture={() => {
+          keyboardNavigation.current = false
+        }}
         ref={ref}
       >
-        <input {...api.getHiddenInputProps()} />
+        <input ref={setDisabledElement} type="hidden" />
+        <input
+          {...api.getHiddenInputProps()}
+          disabled={disabled}
+          ref={hiddenInputRef}
+        />
         {children}
       </div>
     </CascadeSelectContext.Provider>
@@ -395,6 +576,7 @@ CascadeSelect.Control = function CascadeSelectControl({
     <div
       {...mergeProps(api.getControlProps(), props)}
       className={styles.control({ className })}
+      data-size={toControlSize(size)}
       ref={ref}
     />
   )
@@ -409,21 +591,45 @@ CascadeSelect.Trigger = function CascadeSelectTrigger({
   ref,
   ...props
 }: CascadeSelectTriggerProps) {
-  const { api, size, statusTextIds, validateStatus } = useCascadeSelectContext()
+  const {
+    api,
+    describedById,
+    errors,
+    readOnly,
+    required,
+    size,
+    validateStatus,
+  } = useCascadeSelectContext()
+  const invalid = validateStatus === "error" || Boolean(errors.describedById)
+  const effectiveStatus = invalid ? "error" : validateStatus
   const styles = cascadeSelectVariants({ size })
-  const triggerProps = mergeProps(api.getTriggerProps(), props)
-  const ariaDescribedBy =
-    [triggerProps["aria-describedby"], ...statusTextIds]
-      .filter(Boolean)
-      .join(" ") || undefined
+  const triggerProps = mergeProps(
+    api.getTriggerProps(),
+    {
+      "aria-haspopup": "tree",
+      "aria-invalid": invalid || undefined,
+      "aria-required": required || undefined,
+      "aria-readonly": readOnly || undefined,
+    },
+    props
+  )
+  const ariaDescribedBy = joinDescribedBy(
+    triggerProps["aria-describedby"],
+    describedById
+  )
 
   return (
     <Button
       {...triggerProps}
       aria-describedby={ariaDescribedBy}
+      aria-errormessage={joinDescribedBy(
+        props["aria-errormessage"],
+        errors.describedById
+      )}
+      aria-invalid={invalid || props["aria-invalid"] || undefined}
       className={styles.trigger({ className })}
       data-validation={
-        validateStatus === "default" ? undefined : validateStatus
+        effectiveStatus === "default" ? undefined : effectiveStatus
       }
       ref={ref}
       size="current"
@@ -452,10 +658,7 @@ CascadeSelect.ValueText = function CascadeSelectValueText({
   const styles = cascadeSelectVariants({ size })
   const selectedItems = resolveSelectedItems(api)
   const valueText =
-    selectedItems === api.selectedItems
-      ? api.valueAsString
-      : (formatValue?.(selectedItems) ??
-        formatSelectedItems(api, selectedItems))
+    formatValue?.(selectedItems) ?? formatSelectedItems(api, selectedItems)
   const hasValue = api.hasSelectedItems
 
   let content: ReactNode = hasValue ? valueText : placeholder
@@ -494,8 +697,12 @@ CascadeSelect.Indicator = function CascadeSelectIndicator({
   ref,
   ...props
 }: CascadeSelectIndicatorProps) {
-  const { api, size } = useCascadeSelectContext()
+  const { api, size, readOnly } = useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
+
+  if (readOnly) {
+    return null
+  }
 
   return (
     <span
@@ -525,8 +732,12 @@ CascadeSelect.ClearTrigger = function CascadeSelectClearTrigger({
   ref,
   ...props
 }: CascadeSelectClearTriggerProps) {
-  const { api, size } = useCascadeSelectContext()
+  const { api, size, readOnly } = useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
+
+  if (readOnly) {
+    return null
+  }
 
   return (
     <ActionIcon
@@ -573,12 +784,91 @@ CascadeSelect.Content = function CascadeSelectContent({
   ref,
   ...props
 }: CascadeSelectContentProps) {
-  const { api, size } = useCascadeSelectContext()
+  const { api, getRootNode, keyboardNavigation, size } =
+    useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
+  const contentProps = api.getContentProps()
+  const highlightedId = api.highlightedValue.length
+    ? contentProps["aria-activedescendant"]
+    : undefined
+
+  const contentId = contentProps.id
+
+  useEffect(() => {
+    if (!api.open) {
+      return
+    }
+    const root = getRootNode?.() ?? document
+    const scope =
+      root.nodeType === Node.DOCUMENT_NODE ||
+      root.nodeType === Node.DOCUMENT_FRAGMENT_NODE
+        ? (root as Document | DocumentFragment)
+        : (root.ownerDocument ?? document)
+    const content = contentId ? scope.getElementById(contentId) : null
+    if (!content) {
+      return
+    }
+    const view = content.ownerDocument.defaultView ?? window
+    let frame = 0
+    let columnToReveal: HTMLElement | null = null
+    const revealColumn = () => {
+      const columns = content.querySelectorAll<HTMLElement>(
+        '[data-scope="cascade-select"][data-part="column"]'
+      )
+      const highlighted = highlightedId
+        ? scope.getElementById(highlightedId)
+        : null
+      // Pointer expansion (including switching sibling branches) reveals the
+      // deepest column. Keyboard input keeps its actual cursor column visible.
+      columnToReveal ??=
+        (keyboardNavigation.current
+          ? highlighted?.closest<HTMLElement>('[data-part="column"]')
+          : null) ?? columns.item(columns.length - 1)
+      if (!columnToReveal) {
+        return
+      }
+      const surface = content.getBoundingClientRect()
+      const target = columnToReveal.getBoundingClientRect()
+      const left = surface.left + content.clientLeft
+      const right = left + content.clientWidth
+      // Scroll only this surface, not the page or a containing modal. Physical
+      // deltas also work with the negative scrollLeft used by RTL browsers.
+      const delta =
+        target.left < left
+          ? target.left - left
+          : Math.max(0, target.right - right)
+      content.scrollBy({ left: delta, behavior: "instant" })
+    }
+    const scheduleReveal = () => {
+      view.cancelAnimationFrame(frame)
+      // Placement and Zag's per-list scrolling settle in the next frame.
+      frame = view.requestAnimationFrame(() => {
+        frame = view.requestAnimationFrame(revealColumn)
+      })
+    }
+    scheduleReveal()
+    // Test DOMs may lack ResizeObserver; the initial reveal still runs.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(scheduleReveal)
+    observer?.observe(content)
+    return () => {
+      view.cancelAnimationFrame(frame)
+      observer?.disconnect()
+    }
+  }, [api.open, contentId, getRootNode, highlightedId, keyboardNavigation])
 
   return (
     <div
-      {...mergeProps(api.getContentProps(), props)}
+      {...mergeProps(
+        {
+          ...contentProps,
+          role: "tree",
+          "aria-activedescendant": highlightedId,
+        },
+        props
+      )}
       className={styles.content({ className })}
       ref={ref}
     />
@@ -609,7 +899,10 @@ CascadeSelect.List = function CascadeSelectList({
 
   return (
     <ul
-      {...mergeProps(api.getListProps(itemProps), props)}
+      {...mergeProps(
+        { ...api.getListProps(itemProps), "aria-level": undefined },
+        props
+      )}
       className={styles.list({ className })}
       ref={ref}
     />
@@ -637,12 +930,33 @@ CascadeSelect.Item = function CascadeSelectItemPart({
   const styles = cascadeSelectVariants({ size })
   const itemProps = { indexPath, item, value }
   const itemState = api.getItemState(itemProps)
+  const connectedProps = api.getItemProps(itemProps)
+  const expanded = itemState.hasChildren && itemState.highlighted
 
   return (
     <CascadeSelectItemContext.Provider value={{ itemProps, itemState }}>
       <li
-        {...mergeProps(api.getItemProps(itemProps), props)}
+        {...mergeProps(
+          {
+            ...connectedProps,
+            "aria-label": item.label,
+            "aria-level": itemState.depth,
+            "aria-selected": itemState.selected,
+            "aria-expanded": itemState.hasChildren ? expanded : undefined,
+            // Child groups are mounted only for the active path. Never point
+            // assistive technology at a group that is not in the DOM.
+            "aria-controls": expanded
+              ? connectedProps["aria-controls"]
+              : undefined,
+            "aria-owns": expanded ? connectedProps["aria-owns"] : undefined,
+            "aria-haspopup": undefined,
+          },
+          props
+        )}
         className={styles.item({ className })}
+        data-active-path={
+          itemState.hasChildren && itemState.highlighted ? "" : undefined
+        }
         ref={ref}
       >
         {children}
@@ -742,44 +1056,71 @@ CascadeSelect.ItemIndicator = function CascadeSelectItemIndicator({
 type CascadeSelectTreeNodeProps = {
   indexPath: number[]
   node: CascadeSelectItem
+  rootLabel: string
   value: string[]
 }
 
 function CascadeSelectTreeNode({
   indexPath,
   node,
+  rootLabel,
   value,
 }: CascadeSelectTreeNodeProps) {
-  const { api } = useCascadeSelectContext()
+  const { api, size } = useCascadeSelectContext()
+  const styles = cascadeSelectVariants({ size })
+  const headingId = useId()
   const nodeProps = { indexPath, item: node, value }
-  const nodeState = api.getItemState(nodeProps)
   const children = api.collection.getNodeChildren(node)
-  const highlightedChild = nodeState.highlightedChild
+  // Resolve by value identity during render, not a cached pre-reorder index.
+  const highlightedIndex = children.findIndex(
+    (child) =>
+      api.collection.getNodeValue(child) ===
+      api.highlightedValue?.[indexPath.length]
+  )
+  const highlightedChild = children[highlightedIndex]
 
   return (
     <>
-      <CascadeSelect.List {...nodeProps}>
-        {children.map((item, index) => {
-          const itemValue = api.collection.getNodeValue(item)
-          const itemProps = {
-            indexPath: [...indexPath, index],
-            item,
-            value: [...value, itemValue],
-          }
-          return (
-            <CascadeSelect.Item {...itemProps} key={itemValue}>
-              <CascadeSelect.ItemText key="text" />
-              <CascadeSelect.ItemIndicator key="item-indicator" />
-              <CascadeSelect.BranchIndicator key="branch-indicator" />
-            </CascadeSelect.Item>
-          )
-        })}
-      </CascadeSelect.List>
+      <div
+        className={styles.column()}
+        data-depth={indexPath.length}
+        data-part="column"
+        data-scope="cascade-select"
+        dir={api.getListProps(nodeProps).dir}
+      >
+        <div className={styles.columnHeader()} data-part="column-header">
+          <span aria-hidden="true" className={styles.columnStep()}>
+            {indexPath.length + 1}
+          </span>
+          <span id={headingId}>
+            {indexPath.length === 0 ? rootLabel : node.label}
+          </span>
+        </div>
+        <CascadeSelect.List {...nodeProps} aria-labelledby={headingId}>
+          {children.map((item, index) => {
+            const itemValue = api.collection.getNodeValue(item)
+            const itemProps = {
+              indexPath: [...indexPath, index],
+              item,
+              value: [...value, itemValue],
+            }
+            return (
+              <CascadeSelect.Item {...itemProps} key={itemValue}>
+                <CascadeSelect.ItemText key="text" />
+                <CascadeSelect.ItemIndicator key="item-indicator" />
+                <CascadeSelect.BranchIndicator key="branch-indicator" />
+              </CascadeSelect.Item>
+            )
+          })}
+        </CascadeSelect.List>
+      </div>
 
       {highlightedChild && api.collection.isBranchNode(highlightedChild) && (
         <CascadeSelectTreeNode
-          indexPath={[...indexPath, nodeState.highlightedIndex]}
+          indexPath={[...indexPath, highlightedIndex]}
+          key={api.collection.getNodeValue(highlightedChild)}
           node={highlightedChild}
+          rootLabel={rootLabel}
           value={[...value, api.collection.getNodeValue(highlightedChild)]}
         />
       )}
@@ -790,12 +1131,15 @@ function CascadeSelectTreeNode({
 type CascadeSelectNodeProps = {
   indexPath?: number[]
   node?: CascadeSelectItem
+  /** Heading for the first column; subsequent columns use the parent label. */
+  rootLabel?: string
   value?: string[]
 }
 
 CascadeSelect.Node = function CascadeSelectNode({
   indexPath = [],
   node,
+  rootLabel = "Options",
   value = [],
 }: CascadeSelectNodeProps) {
   const { api } = useCascadeSelectContext()
@@ -804,6 +1148,7 @@ CascadeSelect.Node = function CascadeSelectNode({
     <CascadeSelectTreeNode
       indexPath={indexPath}
       node={node ?? api.collection.rootNode}
+      rootLabel={rootLabel}
       value={value}
     />
   )
@@ -820,23 +1165,27 @@ CascadeSelect.StatusText = function CascadeSelectStatusText({
   status: statusProp,
   ...props
 }: CascadeSelectStatusTextProps) {
-  const { setStatusTextIds, size, validateStatus } = useCascadeSelectContext()
+  const { registerDescription, errors, size, validateStatus } =
+    useCascadeSelectContext()
   const generatedId = useId()
   const id = providedId || generatedId
   const effectiveSize = sizeProp ?? size
+  const effectiveStatus = statusProp ?? validateStatus
+  useEffect(
+    () =>
+      effectiveStatus === "error" ? errors.registerDescription(id) : undefined,
+    [effectiveStatus, errors.registerDescription, id]
+  )
 
-  useEffect(() => {
-    setStatusTextIds((ids) => [...ids, id])
-    return () =>
-      setStatusTextIds((ids) => ids.filter((statusId) => statusId !== id))
-  }, [id, setStatusTextIds])
+  useRegisterDescription(id, registerDescription)
 
   return (
     <StatusText
+      align="start"
       {...props}
       id={id}
       size={effectiveSize === "xs" ? "sm" : effectiveSize}
-      status={statusProp ?? validateStatus}
+      status={effectiveStatus}
     />
   )
 }

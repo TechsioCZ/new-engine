@@ -6,7 +6,7 @@
   --color-sidebar-muted-foreground: var(--color-fg-secondary);
   --color-sidebar-border: var(--color-border-primary);
   --color-sidebar-interactive: var(--color-fill-overlay);
-  --color-sidebar-focus: var(--color-primary);
+  --color-sidebar-focus: var(--color-ring);
 
   /* DERIVED COLORS */
   --color-sidebar-root-bg: var(--color-sidebar-base);

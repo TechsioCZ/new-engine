@@ -5,7 +5,7 @@ description: >
   loading placeholders using Root, Circle, Text, and Rectangle compound parts
   with token-backed variants, sizes, and animation speeds.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.0.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -187,3 +187,20 @@ rg -n "<Skeleton[^>]*className=.*(bg-|rounded-|animate-)" apps
 rg -n "<Skeleton\\.Text[^>]*noOfLines=\\{.*\\.length" apps
 rg -P -n "<Skeleton\\.Rectangle(?![^>]*className=)" apps
 ```
+
+## Shared contracts
+
+Wrap related placeholders in one `Skeleton` loading region: the root owns a single named `role="status"` with `aria-busy`, and its shapes are decorative. A standalone shape is its own loading region; use `aria-hidden="true"` when another component already supplies the loading description. The canonical Sizes story uses sm/md/lg; xl remains a legacy media-size option, not a control size.
+
+## Placeholder interaction and animation ownership
+
+A loading root keeps its placeholder composition mounted in an `inert`,
+`aria-hidden` subtree; its single customizable `aria-label` loading status stays
+outside that subtree. Do not put genuine navigation/actions inside placeholders.
+Circle, Text and Rectangle withhold their eventual children until loaded. After
+loading, children render without residual loading/hidden/inert wrappers.
+
+The grouping root is fully opaque and never pulses. Each visible shape (or Text
+line) owns exactly one animation; group speed is a context default and a local
+speed overrides it independently. Reduced-motion static opacity applies only
+to those visible shapes, never to the group as well.

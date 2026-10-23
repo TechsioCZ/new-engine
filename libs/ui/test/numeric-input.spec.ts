@@ -8,6 +8,19 @@ async function openStory(page: Page, story: string) {
     { waitUntil: "domcontentloaded" }
   )
   await expect(page.getByRole("spinbutton").first()).toBeVisible()
+  await waitForStoryPlay(page)
+}
+
+// Stories with keyboard play functions must finish before tests send keys.
+async function waitForStoryPlay(page: Page) {
+  await page.waitForFunction(() => {
+    const preview = (
+      window as unknown as {
+        __STORYBOOK_PREVIEW__?: { currentRender?: { phase?: string } }
+      }
+    ).__STORYBOOK_PREVIEW__
+    return preview?.currentRender?.phase === "finished"
+  })
 }
 
 async function callbackCounts(page: Page) {
@@ -36,6 +49,95 @@ test("controlled strings retain empty/rejected drafts and honor parent updates",
   await expect(input).toHaveValue("7")
 })
 
+test("a previous blur frame cannot restore text between clear and typing", async ({
+  page,
+}) => {
+  await openStory(page, "controlled-draft")
+  const input = page.getByRole("spinbutton", { name: "Draft quantity" })
+  await input.fill("12")
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+  )
+  await page.evaluate(() => {
+    const view = window as NumericFrameWindow
+    view.numericFrames = new Map()
+    view.numericRequestFrame = window.requestAnimationFrame
+    view.numericCancelFrame = window.cancelAnimationFrame
+    let id = 0
+    window.requestAnimationFrame = (callback) => {
+      id -= 1
+      view.numericFrames.set(id, callback)
+      return id
+    }
+    window.cancelAnimationFrame = (frame) => {
+      if (frame < 0) {
+        view.numericFrames.delete(frame)
+      } else {
+        view.numericCancelFrame(frame)
+      }
+    }
+  })
+  try {
+    await input.press("Tab")
+    const previousFrames = await page.evaluate(() => [
+      ...(window as NumericFrameWindow).numericFrames.keys(),
+    ])
+    await input.focus()
+    await page.keyboard.press("ControlOrMeta+A")
+    await page.keyboard.press("Backspace")
+    await expect(input).toHaveValue("")
+    const values = await page.evaluate((ids) => {
+      const view = window as NumericFrameWindow
+      const editor = document.querySelector<HTMLInputElement>(
+        'input[role="spinbutton"]'
+      )
+      if (!editor) {
+        throw new Error("NumericInput editor is missing")
+      }
+      return ids.map((id) => {
+        const callback = view.numericFrames.get(id)
+        view.numericFrames.delete(id)
+        callback?.(performance.now())
+        return editor.value
+      })
+    }, previousFrames)
+    expect(values.every((value) => value === "")).toBe(true)
+    await page.keyboard.type("1.5", { delay: 0 })
+    await input.press("Tab")
+    await expect(input).toHaveValue("1.5")
+  } finally {
+    await page.evaluate(() => {
+      const view = window as NumericFrameWindow
+      window.requestAnimationFrame = view.numericRequestFrame
+      window.cancelAnimationFrame = view.numericCancelFrame
+      for (const callback of view.numericFrames.values()) {
+        callback(performance.now())
+      }
+      view.numericFrames.clear()
+    })
+  }
+  await expect(input).toHaveValue("1.5")
+})
+
+type NumericFrameWindow = Window &
+  typeof globalThis & {
+    numericFrames: Map<number, FrameRequestCallback>
+    numericRequestFrame: typeof requestAnimationFrame
+    numericCancelFrame: typeof cancelAnimationFrame
+  }
+
+test("late parent acknowledgements preserve typing while external values and reset win", async ({
+  page,
+}) => {
+  await openStory(page, "deferred-parent-acknowledgement")
+  await expect(
+    page.getByRole("spinbutton", { name: "Deferred quantity" })
+  ).toHaveValue("7")
+})
+
 test("legacy numeric and Zag callbacks each fire once, including NaN on clear", async ({
   page,
 }) => {
@@ -47,7 +149,9 @@ test("legacy numeric and Zag callbacks each fire once, including NaN on clear", 
   })
   await openStory(page, "callback-compatibility")
   const input = page.getByRole("spinbutton", { name: "Callback quantity" })
-  await expect(input).toHaveAttribute("form", "numeric-callback-form")
+  const formId = await page.locator("form").getAttribute("id")
+  expect(formId).toBeTruthy()
+  await expect(input).toHaveAttribute("form", formId ?? "")
   await expect(input).toHaveAttribute("name", "callbackQuantity")
   await expect(
     page.getByRole("button", { name: "Increase callback quantity" })
@@ -88,7 +192,7 @@ test("numeric controlled and uncontrolled consumers keep legacy defaults", async
   await expect(controlled).toHaveValue("42")
   await controlled.press("ArrowUp")
   await expect(controlled).toHaveValue("43")
-  await openStory(page, "all-sizes")
+  await openStory(page, "sizes")
   const uncontrolled = page.getByRole("spinbutton", { name: "Small (sm)" })
   await expect(uncontrolled).toHaveValue("10")
   await uncontrolled.press("ArrowDown")
@@ -143,6 +247,7 @@ test("FormNumericInput preserves localized drafts, rejected overflow and parent 
     "/iframe.html?id=molecules-formnumericinput--controlled-draft&viewMode=story",
     { waitUntil: "domcontentloaded" }
   )
+  await waitForStoryPlay(page)
   const input = page.getByRole("spinbutton", { name: "Form draft quantity" })
   const draft = page.getByTestId("form-draft-value")
   const committed = page.getByTestId("form-committed-value")
@@ -198,4 +303,38 @@ test("FormNumericInput preserves localized drafts, rejected overflow and parent 
   await expect(input).toHaveAccessibleDescription(
     "Zadejte požadované množství. Desetinná čísla oddělujte čárkou."
   )
+})
+
+test("zero precision rounds and canonical steppers meet the minimum hit target", async ({
+  page,
+}) => {
+  await openStory(page, "precision-zero")
+  await expect(
+    page.getByRole("spinbutton", { name: "Whole units" })
+  ).toHaveValue("2")
+  await openStory(page, "sizes")
+  for (const trigger of await page.getByRole("button").all()) {
+    const box = await trigger.boundingBox()
+    expect(box?.width).toBeGreaterThanOrEqual(24)
+    expect(box?.height).toBeGreaterThanOrEqual(24)
+  }
+})
+
+test("read-only values stay focusable and cannot be typed, stepped, wheeled or clamped", async ({
+  page,
+}) => {
+  await openStory(page, "read-only")
+  const input = page.getByRole("spinbutton")
+  await input.focus()
+  await expect(input).toBeFocused()
+  await input.press("ArrowUp")
+  await input.press("ArrowDown")
+  await input.press("Home")
+  await input.press("End")
+  await input.press("Backspace")
+  await input.press("7")
+  await input.dispatchEvent("wheel", { deltaY: -100, bubbles: true })
+  await input.press("Tab")
+  await expect(input).toHaveValue("42")
+  await expect(page.getByRole("button")).toHaveCount(0)
 })

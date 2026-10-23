@@ -2,7 +2,7 @@
 name: facet-filter-panel-usage
 description: Use for controlled catalog facet presentation with generic option and range groups, active filters, overflow, and an inline panel or Dialog drawer.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -63,6 +63,19 @@ import { FacetFilterPanel } from "@techsio/ui-kit/templates/facet-filter-panel"
   onReset={clearFilters}
 />
 ```
+
+## Shared field contract
+
+`size="sm" | "md" | "lg"` (default `md`) propagates to option controls and
+range sliders. `drawerSize` is a separate compatibility panel-width axis, not a
+fourth interactive control size. Range thumbs default to distinct names such as
+“Minimum price” and “Maximum price”; localize them with each range group's
+`aria-label: [minimumName, maximumName]`.
+
+`readOnly` propagates to every value-holding control, preserving focus and values
+while suppressing active-filter removal/reset actions. Group expansion and drawer
+browsing remain available for inspection. Disabled/pending block editing and
+remove those controls from the tab order; pending text uses StatusText.
 
 ## UX/UI guidelines
 
@@ -150,3 +163,7 @@ callbacks in the application.
 
 Code owns the API and token names. Figma owns static values. Run
 component-to-figma only after the API and stories stabilize.
+
+ActiveFilters reconciles keyboard focus after controlled items actually change, preferring the next then previous surviving chip. After reset or last-chip removal it focuses a surviving facet control; standalone compositions may supply fallbackFocusEl(): HTMLElement | null. Focus does not move for rejected updates or when the user moved elsewhere while awaiting an update.
+
+Forward distinguishing names and keep scrolling keyboard-reachable when controls are disabled.

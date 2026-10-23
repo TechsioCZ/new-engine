@@ -1,3 +1,5 @@
+import { expect, userEvent, waitFor, within } from "storybook/test"
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -36,10 +38,18 @@ import {
 } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Customers",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -182,15 +192,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
       <Toaster />
 
       <PageHeader
-        actions={
-          <Button
-            icon="icon-[mdi--account-plus-outline]"
-            size="sm"
-            variant="primary"
-          >
-            New customer
-          </Button>
-        }
+        actions={null}
         breadcrumb={[{ label: "Home", href: "#" }, { label: "Customers" }]}
         description="Search by name, email, phone, IČO or company."
         title="Customers"
@@ -204,6 +206,13 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
             enableColumnFilters
             enableGlobalFilter
             enableSorting
+            enableRowSelection
+            selectionMode="single"
+            rowSelection={{ [selectedId]: true }}
+            onRowSelectionChange={(selection) => {
+              const id = Object.keys(selection).find((key) => selection[key])
+              if (id) setSelectedId(id)
+            }}
             getRowId={(row) => row.id}
             getRowLabel={(row) => row.original.company ?? row.original.name}
             onRowClick={(row) => setSelectedId(row.original.id)}
@@ -215,11 +224,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
         <div className="flex flex-col gap-250 xl:col-span-3">
           {duplicates.length > 0 && (
             <Notice
-              action={
-                <Button size="sm" theme="outlined" variant="secondary">
-                  Review duplicates
-                </Button>
-              }
+              action={null}
               title={`Looks like ${duplicates.length} other account belongs to the same person`}
               tone="warning"
             >
@@ -268,7 +273,20 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
                   Math.round(selected.revenue / selected.orders)
                 )}
               />
-              <StatCard label="Last order" value={selected.lastOrder} />
+              <StatCard
+                compact
+                label="Last order"
+                value={
+                  <time dateTime={selected.lastOrder}>
+                    {new Intl.DateTimeFormat("cs-CZ", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      timeZone: "UTC",
+                    }).format(new Date(`${selected.lastOrder}T00:00:00Z`))}
+                  </time>
+                }
+              />
             </StatRow>
           </SectionCard>
 
@@ -558,6 +576,35 @@ function DuplicatesPage() {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const table = canvas.getByRole("table")
+    await expect(table.querySelectorAll('[aria-selected="true"]')).toHaveLength(
+      1
+    )
+    const radios = within(table).getAllByRole("checkbox")
+    const second = radios[1]
+    if (!second) throw new Error("Missing second customer selection")
+    second.focus()
+    await userEvent.keyboard(" ")
+    await waitFor(() =>
+      expect(table.querySelectorAll('[aria-selected="true"]')).toHaveLength(1)
+    )
+    await expect(second).toBeChecked()
+    await userEvent.click(canvas.getByRole("heading", { name: "Customers" }))
+    await expect(table.querySelectorAll('[aria-selected="true"]')).toHaveLength(
+      1
+    )
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in customers to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Search & account detail",
   render: () => <CustomersPage />,
 }

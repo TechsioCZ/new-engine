@@ -2,15 +2,28 @@
  * Header — @techsio/ui-kit organism.
  *
  * @component Header
- * @componentVersion v1.0.0
+ * @componentVersion v1.2.1
  * @skill header-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the header-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { HTMLAttributes, ReactNode, Ref } from "react"
-import { createContext, useContext, useState } from "react"
+import type {
+  ComponentProps,
+  HTMLAttributes,
+  ReactNode,
+  Ref,
+  RefObject,
+} from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { tv } from "../utils"
@@ -18,41 +31,41 @@ import { tv } from "../utils"
 const headerVariants = tv({
   slots: {
     root: [
-      "@container w-full bg-header-bg",
+      "@container w-full min-w-0 bg-header-bg",
       "flex justify-between",
       "max-w-header-max",
       "relative",
     ],
-    desktop: "flex @max-header-desktop:hidden w-full",
+    desktop: "header-desktop w-full min-w-0",
     mobile: [
-      "absolute top-full @header-desktop:hidden *:flex *:flex-col data-[position=right]:right-0 data-[position=left]:left-0 data-[open=false]:hidden",
+      "header-mobile absolute inset-x-0 top-full z-20 w-full min-w-0 bg-header-bg *:flex *:flex-col data-[position=right]:right-0 data-[position=left]:left-0 data-[open=false]:hidden",
     ],
     container: [
-      "grid w-full gap-header-container",
+      "grid w-full min-w-0 gap-header-container",
       "data-[position=start]:justify-items-start-safe",
       "data-[position=center]:justify-items-center-safe",
       "data-[position=end]:justify-items-end-safe",
     ],
-    nav: ["flex flex-1 items-center", "@max-header-desktop:bg-header-bg"],
+    nav: ["flex flex-1 items-center", "bg-header-bg"],
     navItem: [
-      'bg-header-nav-item-bg hover:bg-header-nav-item-bg-hover',
-      'data-[active=true]:text-header-nav-fg-active',
-      'data-[active=true]:font-header-nav-active',
-      'min-w-max',
-      'transition-colors duration-200 motion-reduce:transition-none',
+      "bg-header-nav-item-bg hover:bg-header-nav-item-bg-hover",
+      "data-[active=true]:text-header-nav-fg-active",
+      "data-[active=true]:font-header-nav-active",
+      "min-w-max",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     actions: ["flex items-center", "shrink-0"],
     actionItem: [
-      'text-header-actions-fg',
-      'hover:text-header-actions-fg-hover',
-      'transition-colors duration-200 motion-reduce:transition-none',
+      "text-header-actions-fg",
+      "hover:text-header-actions-fg-hover",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     hamburger: [
-      '@header-desktop:hidden',
-      'items-center',
-      'text-header-hamburger-fg hover:text-header-hamburger-fg-hover',
-      'transition-colors duration-header motion-reduce:transition-none',
-      'cursor-pointer',
+      "header-hamburger ms-auto shrink-0",
+      "items-center",
+      "text-header-hamburger-fg hover:text-header-hamburger-fg-hover",
+      "transition-colors duration-header motion-reduce:transition-none",
+      "cursor-pointer",
     ],
   },
   compoundSlots: [
@@ -79,21 +92,24 @@ const headerVariants = tv({
         navItem: "p-header-item-sm text-header-item-sm",
         actions: "gap-header-actions-sm",
         actionItem: "p-header-item-sm text-header-item-sm",
-        hamburger: "p-header-hamburger-sm text-header-hamburger-sm",
+        hamburger:
+          "h-form-control-sm p-header-hamburger-sm text-header-hamburger-sm",
       },
       md: {
         nav: "gap-header-nav-md",
         navItem: "p-header-item-md text-header-item-md",
         actions: "gap-header-actions-md",
         actionItem: "p-header-item-md text-header-item-md",
-        hamburger: "p-header-hamburger-md text-header-hamburger-md",
+        hamburger:
+          "h-form-control-md p-header-hamburger-md text-header-hamburger-md",
       },
       lg: {
         nav: "gap-header-nav-lg",
         navItem: "p-header-item-lg text-header-item-lg",
         actions: "gap-header-actions-lg",
         actionItem: "p-header-item-lg text-header-item-lg",
-        hamburger: "p-header-hamburger-lg text-header-hamburger-lg",
+        hamburger:
+          "h-form-control-lg p-header-hamburger-lg text-header-hamburger-lg",
       },
     },
   },
@@ -104,59 +120,63 @@ const headerVariants = tv({
 })
 
 // === CONTEXT ===
-interface HeaderContextValue {
+type HeaderContextValue = {
   size?: "sm" | "md" | "lg"
   isMobileMenuOpen: boolean
   setIsMobileMenuOpen: (open: boolean) => void
   toggleMobileMenu: () => void
+  mobileMenuId: string
+  setMobileMenuId: (id: string) => void
+  hamburgerRef?: RefObject<HTMLButtonElement | null>
 }
 
 export const HeaderContext = createContext<HeaderContextValue>({
+  mobileMenuId: "",
+  setMobileMenuId: () => undefined,
   isMobileMenuOpen: false,
-  setIsMobileMenuOpen: () => {},
-  toggleMobileMenu: () => {},
+  setIsMobileMenuOpen: () => undefined,
+  toggleMobileMenu: () => undefined,
 })
 
 // === TYPE DEFINITIONS ===
-export interface HeaderProps
-  extends HTMLAttributes<HTMLElement>,
-    VariantProps<typeof headerVariants> {
-  children: ReactNode
-  ref?: Ref<HTMLElement>
-}
+export type HeaderProps = HTMLAttributes<HTMLElement> &
+  VariantProps<typeof headerVariants> & {
+    children: ReactNode
+    ref?: Ref<HTMLElement>
+  }
 
-interface HeaderContainerProps extends HTMLAttributes<HTMLElement> {
+type HeaderContainerProps = HTMLAttributes<HTMLElement> & {
   children: ReactNode
   ref?: Ref<HTMLElement>
   position?: "start" | "center" | "end"
 }
 
-interface HeaderNavProps extends HTMLAttributes<HTMLElement> {
+type HeaderNavProps = HTMLAttributes<HTMLElement> & {
   children: ReactNode
   ref?: Ref<HTMLElement>
   size?: "sm" | "md" | "lg"
 }
 
-interface HeaderNavItemProps extends HTMLAttributes<HTMLDivElement> {
+type HeaderNavItemProps = HTMLAttributes<HTMLDivElement> & {
   active?: boolean
   children: ReactNode
   ref?: Ref<HTMLDivElement>
   size?: "sm" | "md" | "lg"
 }
 
-interface HeaderActionsProps extends HTMLAttributes<HTMLDivElement> {
+type HeaderActionsProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
   ref?: Ref<HTMLDivElement>
   size?: "sm" | "md" | "lg"
 }
 
-interface HeaderActionItemProps extends HTMLAttributes<HTMLDivElement> {
+type HeaderActionItemProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
   ref?: Ref<HTMLDivElement>
   size?: "sm" | "md" | "lg"
 }
 
-interface HeaderMobileProps extends HTMLAttributes<HTMLDivElement> {
+type HeaderMobileProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
   ref?: Ref<HTMLDivElement>
   position?: "left" | "right"
@@ -170,8 +190,73 @@ export function Header({
   ref,
   ...props
 }: HeaderProps) {
+  const generatedMenuId = useId()
+  const [mobileMenuId, setMobileMenuId] = useState(
+    `${generatedMenuId}-mobile-menu`
+  )
+  const hamburgerRef = useRef<HTMLButtonElement>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev)
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return
+    }
+    const ownerDocument = hamburgerRef.current?.ownerDocument
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) {
+        return
+      }
+      event.preventDefault()
+      setIsMobileMenuOpen(false)
+      hamburgerRef.current?.focus()
+    }
+    ownerDocument?.addEventListener("keydown", handleEscape)
+    return () => ownerDocument?.removeEventListener("keydown", handleEscape)
+  }, [isMobileMenuOpen])
+  useEffect(() => {
+    const trigger = hamburgerRef.current
+    const header = trigger?.closest("header")
+    if (!(trigger && header)) {
+      return
+    }
+    let focusWasInMobile = false
+    const rememberFocus = (event: FocusEvent) => {
+      const panel = trigger.ownerDocument.getElementById(mobileMenuId)
+      focusWasInMobile =
+        event.target === trigger ||
+        (event.target instanceof Node && !!panel?.contains(event.target))
+    }
+    const reconcile = () => {
+      if (getComputedStyle(trigger).display !== "none") {
+        return
+      }
+      setIsMobileMenuOpen(false)
+      if (focusWasInMobile) {
+        header
+          .querySelector<HTMLElement>(
+            ".header-desktop a[href], .header-desktop button:not([disabled])"
+          )
+          ?.focus()
+        focusWasInMobile = false
+      }
+    }
+    const view = trigger.ownerDocument.defaultView
+    trigger.ownerDocument.addEventListener("focusin", rememberFocus)
+    // Test DOMs and older embeds may lack ResizeObserver; viewport resizes
+    // still cover breakpoint changes there.
+    const Observer = view?.ResizeObserver
+    const observer = Observer ? new Observer(reconcile) : undefined
+    observer?.observe(header)
+    if (!observer) {
+      view?.addEventListener("resize", reconcile)
+    }
+    reconcile()
+    return () => {
+      observer?.disconnect()
+      view?.removeEventListener("resize", reconcile)
+      trigger.ownerDocument.removeEventListener("focusin", rememberFocus)
+    }
+  }, [mobileMenuId])
   const { root } = headerVariants({
     size,
     direction,
@@ -184,6 +269,9 @@ export function Header({
         isMobileMenuOpen,
         setIsMobileMenuOpen,
         toggleMobileMenu,
+        mobileMenuId,
+        setMobileMenuId,
+        hamburgerRef,
       }}
     >
       <header
@@ -218,9 +306,16 @@ Header.Mobile = function HeaderMobile({
   children,
   ref,
   position = "right",
+  id,
   ...props
 }: HeaderMobileProps) {
-  const { isMobileMenuOpen } = useContext(HeaderContext)
+  const { isMobileMenuOpen, mobileMenuId, setMobileMenuId } =
+    useContext(HeaderContext)
+  useEffect(() => {
+    if (id) {
+      setMobileMenuId(id)
+    }
+  }, [id, setMobileMenuId])
   const { mobile } = headerVariants()
   return (
     <section
@@ -229,6 +324,7 @@ Header.Mobile = function HeaderMobile({
       data-position={position}
       ref={ref}
       {...props}
+      id={mobileMenuId}
     >
       {children}
     </section>
@@ -335,19 +431,47 @@ Header.ActionItem = function HeaderActionItem({
 
 Header.Hamburger = function HeaderHamburger({
   className,
-}: {
-  className?: string
-}) {
-  const { toggleMobileMenu, isMobileMenuOpen } = useContext(HeaderContext)
-  const { hamburger } = headerVariants()
+  ref,
+  onClick,
+  "aria-label": ariaLabel = "Toggle mobile menu",
+  ...props
+}: ComponentProps<typeof Button>) {
+  const {
+    toggleMobileMenu,
+    isMobileMenuOpen,
+    mobileMenuId,
+    hamburgerRef,
+    size,
+  } = useContext(HeaderContext)
+  const { hamburger } = headerVariants({ size })
 
   return (
     <Button
+      aria-controls={mobileMenuId}
       aria-expanded={isMobileMenuOpen}
-      aria-label="Toggle mobile menu"
+      {...props}
+      aria-label={ariaLabel}
       className={hamburger({ className })}
-      icon={isMobileMenuOpen ? "token-icon-header-close" : "token-icon-header-menu"}
-      onClick={toggleMobileMenu}
+      icon={
+        isMobileMenuOpen ? "token-icon-header-close" : "token-icon-header-menu"
+      }
+      onClick={(event) => {
+        onClick?.(event)
+        if (!event.defaultPrevented) {
+          toggleMobileMenu()
+        }
+      }}
+      ref={(node) => {
+        if (hamburgerRef) {
+          hamburgerRef.current = node
+        }
+        if (typeof ref === "function") {
+          return ref(node)
+        }
+        if (ref) {
+          ref.current = node
+        }
+      }}
       size="current"
       theme="unstyled"
       type="button"

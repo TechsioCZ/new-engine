@@ -67,24 +67,23 @@ const alert = tv({
 
 ```css
 @theme static {
-  --color-button-primary: var(--color-primary);
-  --color-button-bg-primary: var(--color-button-primary);
+  --color-button-primary: var(--color-bg-primary-base);
+  --color-button-bg-primary-base: var(--color-button-primary);
 }
 ```
 
-Apps can change `--color-primary` globally or override
-`--color-button-bg-primary` only when the component needs a specific exception.
+Use an unlayered override after the kit stylesheet at `:root`, `[data-theme]` and each nested scheme boundary (see [App Token Overrides](../app-token-overrides/SKILL.md)). Apps can change `--color-bg-primary-base` (with hover/active and paired foregrounds) globally or override
+`--color-button-bg-primary-base` only when the component needs a specific exception.
 
 ### Use component utilities for focus
 
 ```tsx
 const input = tv({
-  base: "focus-visible:outline-input-focus-style focus-visible:outline-input-focus-ring",
+  base: "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-input-ring focus-visible:outline-offset-(length:--default-ring-offset)",
 })
 ```
 
-Issue 329 standardizes focus-visible outline utilities in component CSS instead
-of long arbitrary outline expressions in TSX.
+Use the supported style/width/offset custom-property pattern with the component ring color. Do not invent `outline-input-focus-style` or `outline-input-focus-ring`: neither emits CSS.
 
 ### Preserve token entrypoints
 
@@ -103,7 +102,7 @@ Wrong:
 
 ```css
 @theme static {
-  --color-button-bg-primary: #009869;
+  --color-button-bg-primary-base: #009869;
 }
 ```
 
@@ -111,8 +110,8 @@ Correct:
 
 ```css
 @theme static {
-  --color-button-primary: var(--color-primary);
-  --color-button-bg-primary: var(--color-button-primary);
+  --color-button-primary: var(--color-bg-primary-base);
+  --color-button-bg-primary-base: var(--color-button-primary);
 }
 ```
 
@@ -126,8 +125,7 @@ Wrong:
 
 ```css
 @theme static {
-  --color-btn-primary: var(--color-primary);
-  --color-button-primary: var(--color-primary);
+  --color-btn-primary: var(--color-bg-primary-base);
 }
 ```
 
@@ -135,12 +133,12 @@ Correct:
 
 ```css
 @theme static {
-  --color-button-primary: var(--color-primary);
-  --color-button-bg-primary: var(--color-button-primary);
+  --color-button-primary: var(--color-bg-primary-base);
+  --color-button-bg-primary-base: var(--color-button-primary);
 }
 ```
 
-Derived color tokens must use `-bg`, `-fg`, or `-border`; component names are
+[AGENTS.md naming rules](../../AGENTS.md#naming-rules) are authoritative. Reference aliases may omit roles; derived color tokens must use `-bg`, `-fg`, or `-border`; component names are
 not abbreviated.
 
 Source: libs/ui/AGENTS.md
@@ -187,17 +185,9 @@ unless a migration is explicitly in scope.
 
 Source: libs/ui/AGENTS.md
 
-### MEDIUM Arbitrary focus outline in TSX
+### MEDIUM Unsupported focus utility names
 
 Wrong:
-
-```tsx
-const trigger = tv({
-  base: "focus-visible:outline-(style:--default-ring-style)",
-})
-```
-
-Correct:
 
 ```tsx
 const trigger = tv({
@@ -205,8 +195,17 @@ const trigger = tv({
 })
 ```
 
-Focus styling should use readable component utilities defined in the component
-token file.
+Correct:
+
+```tsx
+const trigger = tv({
+  base: "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-combobox-ring focus-visible:outline-offset-(length:--default-ring-offset)",
+})
+```
+
+Focus geometry uses the shared custom-property style/width/offset bridge;
+color uses a registered component ring token. A plausible utility name is not
+proof that Tailwind emits it.
 
 Source: https://github.com/TechsioCZ/new-engine/issues/329
 

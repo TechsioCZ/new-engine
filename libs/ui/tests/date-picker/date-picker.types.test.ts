@@ -1,13 +1,13 @@
 import {
+  type CalendarDate,
   CalendarDateTime,
   parseZonedDateTime,
-  type CalendarDate,
   type ZonedDateTime,
 } from "@internationalized/date"
 import { describe, expectTypeOf, it } from "vitest"
 import type {
-  DatePickerDayRootProps,
   DatePickerDayRangeRootProps,
+  DatePickerDayRootProps,
   DatePickerRange,
   DatePickerRootProps,
   DatePickerTimedRange,

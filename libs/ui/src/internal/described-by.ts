@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+
+const ID_SEPARATOR = /\s+/
 
 /*
  * Links a compound component's StatusText part to its focusable control.
@@ -20,7 +22,9 @@ export function useDescribedBy(): DescribedBy {
   // and removing one must not unlink the other. Entries are counted so two
   // messages sharing the default id stay registered until both unmount.
   const [ids, setIds] = useState<readonly string[]>([])
-  const registerDescription = useCallback((id: string) => {
+  // A stable state initializer avoids re-registering on every render.
+  // The setter is stable and every update reads the current list.
+  const [registerDescription] = useState(() => (id: string) => {
     setIds((current) => [...current, id])
     return () =>
       setIds((current) => {
@@ -29,7 +33,7 @@ export function useDescribedBy(): DescribedBy {
           ? current
           : [...current.slice(0, index), ...current.slice(index + 1)]
       })
-  }, [])
+  })
   return {
     describedById: [...new Set(ids)].join(" ") || undefined,
     registerDescription,
@@ -47,5 +51,9 @@ export function useRegisterDescription(
 export function joinDescribedBy(
   ...ids: Array<string | undefined>
 ): string | undefined {
-  return ids.filter(Boolean).join(" ") || undefined
+  return (
+    [...new Set(ids.flatMap((id) => id?.split(ID_SEPARATOR) ?? []))]
+      .filter(Boolean)
+      .join(" ") || undefined
+  )
 }

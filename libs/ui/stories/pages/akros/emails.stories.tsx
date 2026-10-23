@@ -1,3 +1,7 @@
+import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test"
+import { templateText } from "../page-models"
+import { StatusText } from "../../../src/atoms/status-text"
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -12,14 +16,27 @@ import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
 import { Table } from "../../../src/organisms/table"
 import { PageHeader, SectionCard } from "../shell"
-import { type EmailTemplate, emailTemplates, emailVariables, formatDate } from "./data"
+import {
+  type EmailTemplate,
+  emailTemplates,
+  emailVariables,
+  formatDate,
+} from "./data"
 import { AkrosShell, akrosDocs } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Customer emails",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -71,10 +88,7 @@ const defaultBody = [
 ].join("\n")
 
 function render(text: string) {
-  return emailVariables.reduce(
-    (result, variable) => result.split(variable.token).join(variable.sample),
-    text
-  )
+  return templateText(text, emailVariables).rendered
 }
 
 const audienceLabels = { all: "All customers", B2C: "B2C", B2B: "B2B" }
@@ -90,7 +104,22 @@ function EmailsPage({ initialId }: { initialId?: string }) {
     editingId ? (bodies[editingId] ?? defaultBody) : defaultBody
   )
 
+  const [attempted, setAttempted] = useState(false)
+  const [tab, setTab] = useState("edit")
+  const subjectTokens = templateText(subject, emailVariables).unknown
+  const bodyTokens = templateText(body, emailVariables).unknown
+  const subjectError =
+    attempted && !subject.trim()
+      ? "Enter a nonempty subject before saving."
+      : subjectTokens.length
+        ? `Unsupported variables: ${subjectTokens.join(", ")}. Use a token from the Variables reference.`
+        : undefined
+  const bodyError = bodyTokens.length
+    ? `Unsupported variables: ${bodyTokens.join(", ")}. Use a token from the Variables reference.`
+    : undefined
   const open = (template: EmailTemplate) => {
+    setAttempted(false)
+    setTab("edit")
     setEditingId(template.id)
     setSubject(template.subject)
     setBody(savedBodies[template.id] ?? defaultBody)
@@ -197,21 +226,44 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                 onClick={() =>
                   toaster.create({
                     type: "info",
-                    title: "Test email sent",
-                    description: "To nora.kessler@akros.cz with sample data.",
+                    title: "Test delivery preview",
+                    description:
+                      "Sample recipient: nora.kessler@akros.cz. No email was sent from this demo.",
                   })
                 }
                 theme="outlined"
                 variant="secondary"
               >
-                Send test to me
+                Preview test delivery
               </Button>
               <Button
                 onClick={() => {
+                  setAttempted(true)
+                  if (
+                    !subject.trim() ||
+                    subjectTokens.length ||
+                    bodyTokens.length
+                  ) {
+                    setTab("edit")
+                    requestAnimationFrame(() =>
+                      document
+                        .getElementById(
+                          !subject.trim() || subjectTokens.length
+                            ? "email-subject"
+                            : "email-body"
+                        )
+                        ?.focus()
+                    )
+                    return
+                  }
                   setTemplates((current) =>
                     current.map((template) =>
                       template.id === editing.id
-                        ? { ...template, subject, updatedAt: "2026-09-14" }
+                        ? {
+                            ...template,
+                            subject: subject.trim(),
+                            updatedAt: "2026-09-14",
+                          }
                         : template
                     )
                   )
@@ -243,7 +295,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
           size="lg"
           title={editing.name}
         >
-          <Tabs defaultValue="edit" variant="line">
+          <Tabs value={tab} onValueChange={setTab} variant="line">
             <Tabs.List>
               <Tabs.Trigger value="edit">Edit</Tabs.Trigger>
               <Tabs.Trigger value="preview">Preview</Tabs.Trigger>
@@ -253,6 +305,8 @@ function EmailsPage({ initialId }: { initialId?: string }) {
             <Tabs.Content className="flex flex-col gap-200 pt-200" value="edit">
               <FormInput
                 id="email-subject"
+                helpText={subjectError}
+                validateStatus={subjectError ? "error" : "default"}
                 label="Subject"
                 onChange={(event) => setSubject(event.target.value)}
                 required
@@ -260,14 +314,21 @@ function EmailsPage({ initialId }: { initialId?: string }) {
               />
               <FormTextarea
                 id="email-body"
+                helpText={bodyError}
+                validateStatus={bodyError ? "error" : "default"}
                 label="Text"
                 onChange={(event) => setBody(event.target.value)}
                 rows={10}
                 value={body}
               />
-              <div className="flex flex-col gap-100">
+              <div
+                role="region"
+                aria-label="Supported email variables"
+                tabIndex={0}
+                className="min-w-0 max-w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-focus-ring"
+              >
                 <span className="font-medium text-sm">Variables</span>
-                <Table size="sm" variant="line">
+                <Table className="min-w-xl" size="sm" variant="line">
                   <Table.Header>
                     <Table.Row>
                       <Table.ColumnHeader>Variable</Table.ColumnHeader>
@@ -278,7 +339,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                     {emailVariables.map((variable) => (
                       <Table.Row key={variable.token}>
                         <Table.Cell>
-                          <code className="text-xs">{variable.token}</code>
+                          <code className="whitespace-nowrap text-xs">{variable.token}</code>
                         </Table.Cell>
                         <Table.Cell>{variable.sample}</Table.Cell>
                       </Table.Row>
@@ -292,7 +353,13 @@ function EmailsPage({ initialId }: { initialId?: string }) {
               className="flex flex-col gap-150 pt-200"
               value="preview"
             >
-              <div className="flex flex-col gap-100 rounded-md border border-border-primary p-200">
+              {(subjectError || bodyError) && (
+                <StatusText status="error">
+                  {[subjectError, bodyError].filter(Boolean).join(" ")} Open
+                  Edit to correct the template and consult Variables.
+                </StatusText>
+              )}
+              <div className="flex min-w-0 flex-col gap-100 rounded-md border border-border-primary p-200 wrap-anywhere">
                 <span className="text-fg-secondary text-xs">
                   From obchod@akros.cz · to jana.prochazkova@email.cz
                 </span>
@@ -313,11 +380,64 @@ function EmailsPage({ initialId }: { initialId?: string }) {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in emails to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Email notifications",
   render: () => <EmailsPage />,
 }
 
 export const EditUnpaidReminder: Story = {
+  play: async ({ canvasElement }) => {
+    for (const sample of [defaultBody, ...Object.values(bodies)]) {
+      await expect(templateText(sample, emailVariables).unknown).toEqual([])
+    }
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const dialog = within(body.getByRole("dialog"))
+    const variables = dialog.getByRole("region", {
+      name: "Supported email variables",
+    })
+    await expect(variables).toHaveAttribute("tabindex", "0")
+    await expect(within(variables).getByRole("table")).toHaveClass("min-w-xl")
+    for (const variable of emailVariables) {
+      await expect(within(variables).getByText(variable.token)).toHaveClass(
+        "whitespace-nowrap"
+      )
+    }
+    const subject = dialog.getByLabelText(/Subject/)
+    const original = (subject as HTMLInputElement).value
+    await userEvent.clear(subject)
+    await userEvent.type(subject, "   ")
+    await userEvent.click(dialog.getByRole("button", { name: "Save template" }))
+    await expect(subject).toHaveAttribute("aria-invalid", "true")
+    await waitFor(() => expect(subject).toHaveFocus())
+    await userEvent.clear(subject)
+    fireEvent.change(subject, {
+      target: { value: "Unknown {{unknown.token}}" },
+    })
+    await userEvent.click(dialog.getByRole("tab", { name: "Preview" }))
+    await expect(
+      dialog.getByText(/Open Edit to correct the template/)
+    ).toBeVisible()
+    await userEvent.click(dialog.getByRole("button", { name: "Save template" }))
+    await waitFor(() => expect(subject).toHaveFocus())
+    await userEvent.clear(subject)
+    fireEvent.change(subject, { target: { value: original } })
+    await userEvent.click(dialog.getByRole("button", { name: "Save template" }))
+    await waitFor(() =>
+      expect(body.queryByRole("dialog")).not.toBeInTheDocument()
+    )
+    await expect(
+      canvas.getByRole("heading", { name: "Customer emails" })
+    ).toBeVisible()
+  },
   name: "Edit the unpaid-payment email",
   parameters: {
     docs: {

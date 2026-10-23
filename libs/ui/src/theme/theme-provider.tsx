@@ -1,22 +1,16 @@
 "use client"
 
-/*
- * App theme provider — composes two orthogonal axes behind one provider/hook:
- *   - mode  (light / dark / system) → owned by better-themes on the `class`
- *     attribute, which also sets `color-scheme` and ships a zero-flash script.
- *   - brand (base / neo / …)        → owned here on the `data-theme` attribute,
- *     persisted to localStorage with its own pre-hydration no-flash script.
- *
- * Consumers see a single <AppThemeProvider> and a single useAppTheme() hook.
- */
-
+/* Requested appearance is persisted by better-themes. This provider alone
+ * projects brand capabilities + OS appearance onto the effective root scheme. */
 import { ThemeProvider as BetterThemesProvider, useTheme } from "better-themes"
 import {
   createContext,
   type PropsWithChildren,
   useContext,
   useEffect,
+  useLayoutEffect,
   useState,
+  useSyncExternalStore,
 } from "react"
 import {
   availableModeSettings,
@@ -34,186 +28,196 @@ import {
 } from "./theme-config"
 
 function readStoredBrand(): BrandKey | null {
-  if (typeof window === "undefined") {
-    return null
-  }
   try {
     const value = window.localStorage.getItem(BRAND_STORAGE_KEY)
     return value && isBrandKey(value) ? value : null
   } catch {
-    // Storage may be unavailable (private mode / blocked cookies); fall back to default.
     return null
   }
 }
 
-function persistBrand(brand: BrandKey): void {
-  if (typeof window === "undefined") {
-    return
+function subscribeAppearance(onChange: () => void) {
+  const media = window.matchMedia("(prefers-color-scheme: dark)")
+  media.addEventListener("change", onChange)
+  return () => media.removeEventListener("change", onChange)
+}
+const getAppearance = (): ColorMode =>
+  window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+const getServerAppearance = (): ColorMode => "light"
+
+export function resolveAppearance(
+  brand: BrandKey,
+  requested: ModeSetting,
+  system: ColorMode
+): ColorMode {
+  if (!brandSupportsDark(brand)) {
+    return "light"
   }
-  try {
-    window.localStorage.setItem(BRAND_STORAGE_KEY, brand)
-  } catch {
-    // Storage may be unavailable (private mode / quota); brand still applies for the session.
-  }
+  return requested === "system" ? system : requested
 }
 
-function applyBrandAttr(brand: BrandKey): void {
-  if (typeof document === "undefined") {
-    return
-  }
-  const attr = brandAttr(brand)
-  const root = document.documentElement
-  if (attr) {
-    root.setAttribute("data-theme", attr)
-  } else {
-    root.removeAttribute("data-theme")
-  }
-}
-
-type BrandContextValue = {
+export type UseAppThemeResult = {
   brand: BrandKey
+  brands: BrandKey[]
   setBrand: (brand: BrandKey) => void
-  /** False during SSR and the first client render; gate brand-dependent UI on it. */
+  /** Requested preference; retained while a light-only brand is active. */
+  mode: ModeSetting
+  /** Effective appearance, after OS resolution and brand capability constraints. */
+  resolvedMode: ColorMode
+  setMode: (mode: ModeSetting) => void
+  availableModes: ModeSetting[]
+  /** False during SSR and the first client render. */
   mounted: boolean
 }
-
-const BrandContext = createContext<BrandContextValue | null>(null)
+const AppThemeContext = createContext<UseAppThemeResult | null>(null)
 
 function BrandProvider({
   defaultBrand,
+  defaultMode,
   children,
-}: PropsWithChildren<{ defaultBrand: BrandKey }>) {
-  const { setTheme } = useTheme()
-  // Lazy-init from storage so the first client render already matches what the
-  // pre-hydration BrandThemeScript wrote to <html> — the apply effect below
-  // then re-applies the same value instead of clobbering it (no brand flash).
-  // On the server readStoredBrand() returns null, so SSR uses the default and
-  // the provider renders no brand-dependent markup (consumers gate on mounted).
+}: PropsWithChildren<{ defaultBrand: BrandKey; defaultMode: ModeSetting }>) {
+  const { theme, setTheme } = useTheme()
   const [brand, setBrandState] = useState<BrandKey>(
     () => readStoredBrand() ?? defaultBrand
   )
   const [mounted, setMounted] = useState(false)
+  const system = useSyncExternalStore(
+    subscribeAppearance,
+    getAppearance,
+    getServerAppearance
+  )
+  const mode =
+    theme === "light" || theme === "dark" || theme === "system"
+      ? theme
+      : defaultMode
+  const resolvedMode = resolveAppearance(brand, mode, system)
 
   useEffect(() => {
     setMounted(true)
-  }, [])
-
-  // Apply + persist whenever the brand changes; lock light-only brands to light.
-  useEffect(() => {
-    applyBrandAttr(brand)
-    persistBrand(brand)
-    if (!brandSupportsDark(brand)) {
-      setTheme("light")
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== BRAND_STORAGE_KEY && event.key !== null) {
+        return
+      }
+      if (event.storageArea && event.storageArea !== window.localStorage) {
+        return
+      }
+      const value = event.newValue
+      setBrandState(value && isBrandKey(value) ? value : defaultBrand)
     }
-  }, [brand, setTheme])
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [defaultBrand])
+
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    const attr = brandAttr(brand)
+    if (attr) {
+      root.setAttribute("data-theme", attr)
+    } else {
+      root.removeAttribute("data-theme")
+    }
+    root.classList.remove("light", "dark")
+    root.classList.add(resolvedMode)
+    root.style.colorScheme = resolvedMode
+  }, [brand, resolvedMode])
+
+  const setBrand = (next: BrandKey) => {
+    setBrandState(next)
+    // Persist user intent only; incoming storage events never echo stale values.
+    try {
+      window.localStorage.setItem(BRAND_STORAGE_KEY, next)
+    } catch {
+      // Blocked storage does not prevent a session-local change.
+    }
+  }
 
   return (
-    <BrandContext.Provider value={{ brand, setBrand: setBrandState, mounted }}>
+    <AppThemeContext.Provider
+      value={{
+        brand,
+        brands: brandKeys(),
+        setBrand,
+        mode,
+        resolvedMode,
+        setMode: setTheme,
+        availableModes: availableModeSettings(brand),
+        mounted,
+      }}
+    >
       {children}
-    </BrandContext.Provider>
+    </AppThemeContext.Provider>
   )
 }
 
-type AppThemeProviderProps = PropsWithChildren<{
+export type AppThemeProviderProps = PropsWithChildren<{
   defaultBrand?: BrandKey
   defaultMode?: ModeSetting
+  /** Nonce for both synchronous theme bootstrap scripts under CSP. */
+  nonce?: string
 }>
 
 export function AppThemeProvider({
   defaultBrand = DEFAULT_BRAND,
   defaultMode = DEFAULT_MODE,
+  nonce,
   children,
 }: AppThemeProviderProps) {
   return (
-    <BetterThemesProvider
-      attribute="class"
-      defaultTheme={defaultMode}
-      disableTransitionOnChange
-      enableSystem
-      storageKey={MODE_STORAGE_KEY}
-      themes={["light", "dark"]}
-    >
-      <BrandProvider defaultBrand={defaultBrand}>{children}</BrandProvider>
-    </BetterThemesProvider>
+    <>
+      <BrandThemeScript
+        defaultBrand={defaultBrand}
+        defaultMode={defaultMode}
+        nonce={nonce}
+      />
+      <BetterThemesProvider
+        // Never let the persistence layer paint an unconstrained appearance.
+        attribute="data-requested-mode"
+        defaultTheme={defaultMode}
+        enableColorScheme={false}
+        enableSystem
+        nonce={nonce}
+        storageKey={MODE_STORAGE_KEY}
+        themes={["light", "dark"]}
+      >
+        <BrandProvider defaultBrand={defaultBrand} defaultMode={defaultMode}>
+          {children}
+        </BrandProvider>
+      </BetterThemesProvider>
+    </>
   )
 }
 
-export type UseAppThemeResult = {
-  /** Active brand key. */
-  brand: BrandKey
-  /** All brand keys, for building a brand toggler. */
-  brands: BrandKey[]
-  setBrand: (brand: BrandKey) => void
-  /** Current mode setting (may be "system"). */
-  mode: ModeSetting
-  /** Resolved concrete mode after applying "system". */
-  resolvedMode: ColorMode
-  setMode: (mode: ModeSetting) => void
-  /** Mode settings allowed for the active brand (light-only brands get just light). */
-  availableModes: ModeSetting[]
-  /** False during SSR and the first client render; gate brand-dependent UI on it. */
-  mounted: boolean
-}
-
 export function useAppTheme(): UseAppThemeResult {
-  const brandCtx = useContext(BrandContext)
-  if (!brandCtx) {
+  const context = useContext(AppThemeContext)
+  if (!context) {
     throw new Error("useAppTheme must be used within AppThemeProvider")
   }
-  const { theme, systemTheme, setTheme } = useTheme()
-  const { brand, setBrand, mounted } = brandCtx
-
-  const mode = (theme ?? DEFAULT_MODE) as ModeSetting
-  const resolvedMode: ColorMode =
-    mode === "system" ? (systemTheme ?? "light") : mode
-
-  return {
-    brand,
-    brands: brandKeys(),
-    setBrand,
-    mode,
-    resolvedMode,
-    // Light-only brands reject dark/system so the hook contract stays consistent
-    // even if a caller bypasses availableModes.
-    setMode: (next: ModeSetting) => {
-      if (next === "light" || brandSupportsDark(brand)) {
-        setTheme(next)
-      }
-    },
-    availableModes: availableModeSettings(brand),
-    mounted,
-  }
+  return context
 }
 
-/**
- * Pre-hydration script that applies the persisted brand's `data-theme` before
- * the page paints, preventing a flash of the default brand. Render it as early
- * as possible: in `<head>`, or — for the Next.js App Router, which does not
- * allow arbitrary `<head>` children in a layout — as the first child of
- * `<body>`, where it still runs synchronously before any body content renders.
- * better-themes injects its own equivalent script for the mode axis.
- */
+/** Render early in head/body when content precedes AppThemeProvider. The same
+ * atomic bootstrap is included by the provider; neither script persists data. */
 export function BrandThemeScript({
   defaultBrand = DEFAULT_BRAND,
+  defaultMode = DEFAULT_MODE,
+  nonce,
 }: {
   defaultBrand?: BrandKey
+  defaultMode?: ModeSetting
+  nonce?: string
 }) {
-  const attrByBrand: Record<string, string | undefined> = {}
-  for (const key of brandKeys()) {
-    attrByBrand[key] = brandAttr(key)
-  }
-  // Validates the stored key against known brands before falling back to the
-  // default, so a stale/invalid value can't slip through as "no brand".
-  const script = `(function(){try{var d=${JSON.stringify(
-    defaultBrand
-  )};var m=${JSON.stringify(attrByBrand)};var k=localStorage.getItem(${JSON.stringify(
-    BRAND_STORAGE_KEY
-  )});if(!k||!Object.prototype.hasOwnProperty.call(m,k)){k=d;}var a=m[k];var e=document.documentElement;if(a){e.setAttribute('data-theme',a);}else{e.removeAttribute('data-theme');}}catch(e){}})();`
-
+  const brands = Object.fromEntries(
+    brandKeys().map((key) => [
+      key,
+      { attr: brandAttr(key) ?? null, dark: brandSupportsDark(key) },
+    ])
+  )
+  const script = `(function(){var b=${JSON.stringify(defaultBrand)},m=${JSON.stringify(defaultMode)},r=${JSON.stringify(brands)};try{var s=localStorage.getItem(${JSON.stringify(BRAND_STORAGE_KEY)});if(s&&Object.prototype.hasOwnProperty.call(r,s)){b=s;}var t=localStorage.getItem(${JSON.stringify(MODE_STORAGE_KEY)});if(t==='light'||t==='dark'||t==='system'){m=t;}}catch(e){}var e=document.documentElement,a=r[b].attr;if(a){e.setAttribute('data-theme',a);}else{e.removeAttribute('data-theme');}var c=r[b].dark?(m==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):m):'light';e.classList.remove('light','dark');e.classList.add(c);e.style.colorScheme=c;})();`
   return (
     <script
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: required to inline the synchronous pre-hydration brand script
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: synchronous pre-paint brand/capability bootstrap
       dangerouslySetInnerHTML={{ __html: script }}
+      nonce={nonce}
       suppressHydrationWarning
     />
   )

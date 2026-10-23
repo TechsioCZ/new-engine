@@ -203,17 +203,37 @@ export async function installVisualAssets(context, options) {
       await route.fallback()
     }
   )
-  async function whenIdle() {
-    while (pending.size) {
-      await Promise.all([...pending.values()].map(({ promise }) => promise))
+  /** @param {number} [timeoutMs] */
+  async function whenIdle(timeoutMs = 30_000) {
+    let timer
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        reject(
+          new Error(
+            `Visual assets did not settle within ${timeoutMs}ms: ${[...pending.keys()].map((request) => request.url()).join(", ")}`
+          )
+        )
+      }, timeoutMs)
+    })
+    try {
+      while (pending.size) {
+        await Promise.race([
+          Promise.all([...pending.values()].map(({ promise }) => promise)),
+          deadline,
+        ])
+      }
+    } finally {
+      clearTimeout(timer)
     }
     if (errors.length) {
-      throw new AggregateError(errors, "Visual asset replay failed")
+      // Each failure is delivered once. Cleanup must report new errors, not wrap
+      // the already-reported capture error in a second identical AggregateError.
+      throw new AggregateError(errors.splice(0), "Visual asset replay failed")
     }
   }
   async function dispose() {
     closing = true
-    await whenIdle()
+    await whenIdle(5000)
   }
   dispose.whenIdle = whenIdle
   /** @param {string} url */

@@ -1,5 +1,33 @@
 /* CascadeSelect inherits Select controls and the shared popup contract. */
 @theme static {
+  /* Column reference layer: shared surfaces stay consistent across themes. */
+  --color-cascade-select-surface: var(--color-popup-bg);
+  --color-cascade-select-muted: var(--color-surface);
+  --color-cascade-select-divider: var(--color-border-secondary);
+  --color-cascade-select-foreground: var(--color-fg-primary);
+  --color-cascade-select-accent: var(--color-popup-item-fg);
+  --color-cascade-select-highlight: var(--color-popup-item-bg-hover);
+
+  /* Column derived layer */
+  --color-cascade-select-column-bg: var(--color-cascade-select-surface);
+  --color-cascade-select-column-border: var(--color-cascade-select-divider);
+  --color-cascade-select-header-bg: var(--color-cascade-select-muted);
+  --color-cascade-select-header-fg: var(--color-cascade-select-foreground);
+  --color-cascade-select-step-bg: var(--color-cascade-select-surface);
+  --color-cascade-select-step-fg: var(--color-cascade-select-foreground);
+  --color-cascade-select-path-bg: var(--color-cascade-select-highlight);
+  --color-cascade-select-path-border: var(--color-cascade-select-accent);
+  --border-width-cascade-select-trigger: var(--border-width-form-control);
+  --border-width-cascade-select-column: var(--border-width-sm);
+  --border-width-cascade-select-path: var(--border-width-lg);
+  --padding-cascade-select-column: var(--spacing-50);
+  --padding-cascade-select-header: var(--spacing-150);
+  --gap-cascade-select-header: var(--spacing-100);
+  --spacing-cascade-select-step: var(--spacing-250);
+  --text-cascade-select-header-size: var(--text-xs);
+  --font-weight-cascade-select-header: var(--font-weight-semibold);
+  --font-weight-cascade-select-path: var(--font-weight-semibold);
+
   /* === COLORS === */
   --color-cascade-select-trigger-bg-hover: var(--color-select-trigger-bg-hover);
   --color-cascade-select-trigger-fg-base: var(--color-select-trigger-fg-base);
@@ -48,6 +76,47 @@
   --radius-cascade-select-md: var(--radius-select-md);
 }
 
+/* A wide trigger must not force the hierarchy beyond the overlay boundary. */
+@utility cascade-select-viewport {
+  min-inline-size: min(var(--reference-width), var(--available-width));
+  max-inline-size: var(--available-width);
+}
+
+/* Two columns always fit side by side on narrow screens; deeper levels scroll.
+   Each column gives back one border width for the surface edges. */
+@utility cascade-select-column-size {
+  inline-size: min(
+    var(--container-cascade-select-column),
+    calc(
+      var(--available-width, 100vw) /
+      2 -
+      var(--border-width-cascade-select-column)
+    )
+  );
+}
+
+/* Logical borders also separate columns and mark the path in RTL. */
+@utility cascade-select-column-divider {
+  & + & {
+    border-inline-start: var(--border-width-cascade-select-column) solid
+      var(--color-cascade-select-column-border);
+  }
+}
+
+@utility cascade-select-item-path {
+  border-inline-start: var(--border-width-cascade-select-path) solid transparent;
+
+  &[data-active-path] {
+    border-inline-start-color: var(--color-cascade-select-path-border);
+  }
+
+  @media (forced-colors: active) {
+    &[data-active-path] {
+      border-inline-start-color: Highlight;
+    }
+  }
+}
+
 /* === ICONS === */
 @utility token-icon-cascade-select-indicator {
   @apply token-icon-select-indicator;
@@ -63,4 +132,39 @@
 
 @utility token-icon-cascade-select-check {
   @apply token-icon-check;
+}
+
+/* A reduced-motion preference must also override transition-discrete. */
+@media (prefers-reduced-motion: reduce) {
+  [data-scope="cascade-select"][data-part="content"] {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Clear is a sibling action, not part of the selected path's text box. */
+@utility cascade-select-clear-gutter {
+  --cascade-select-clear-size: var(--size-icon-control-md);
+  --cascade-select-trigger-padding: var(--padding-cascade-select-trigger-md);
+  --cascade-select-chevron-size: var(--text-icon-control-md);
+  &[data-size="sm"] {
+    --cascade-select-clear-size: var(--size-icon-control-sm);
+    --cascade-select-trigger-padding: var(--padding-cascade-select-trigger-sm);
+    --cascade-select-chevron-size: var(--text-icon-control-sm);
+  }
+  &[data-size="lg"] {
+    --cascade-select-clear-size: var(--size-icon-control-lg);
+    --cascade-select-chevron-size: var(--text-icon-control-lg);
+  }
+  [data-part="clear-trigger"] {
+    inset-inline-end: calc(
+      var(--cascade-select-trigger-padding) +
+      var(--cascade-select-chevron-size) +
+      var(--border-width-cascade-select-trigger)
+    );
+  }
+  &:has([data-part="clear-trigger"]:not([hidden], [data-readonly]))
+    [data-part="value-text"] {
+    margin-inline-end: var(--cascade-select-clear-size);
+  }
 }

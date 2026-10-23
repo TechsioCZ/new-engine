@@ -9,9 +9,67 @@
  */
 
 @theme static {
-  --padding-tabs-trigger-sm: var(--padding-tabs-trigger-y-sm) var(--padding-tabs-trigger-x-sm);
-  --padding-tabs-trigger-md: var(--padding-tabs-trigger-y-md) var(--padding-tabs-trigger-x-md);
-  --padding-tabs-trigger-lg: var(--padding-tabs-trigger-y-lg) var(--padding-tabs-trigger-x-lg);
+  --padding-tabs-trigger-sm: var(--padding-tabs-trigger-y-sm)
+    var(--padding-tabs-trigger-x-sm);
+  --padding-tabs-trigger-md: var(--padding-tabs-trigger-y-md)
+    var(--padding-tabs-trigger-x-md);
+  --padding-tabs-trigger-lg: var(--padding-tabs-trigger-y-lg)
+    var(--padding-tabs-trigger-x-lg);
 
   --width-tabs-indicator: var(--size-tabs-indicator-width);
+}
+
+/* Safe alignment falls back to start when tabs exceed the scrollport. */
+@utility tabs-list-center {
+  justify-content: safe center;
+}
+
+@utility tabs-list-end {
+  justify-content: safe end;
+}
+
+/* Geometry has one owner; CSS motion remains overridable by reduced motion. */
+@utility tabs-indicator-position {
+  transition-property: left, top, width, height;
+
+  &[data-orientation="horizontal"] {
+    left: var(--tabs-indicator-left, 0px);
+  }
+
+  &[data-orientation="vertical"] {
+    top: var(--tabs-indicator-top, 0px);
+  }
+}
+
+/* Default tabs keep a non-color selected cue without requiring Indicator. */
+@utility tabs-trigger-selected {
+  &[data-selected] {
+    text-decoration-line: underline;
+    text-decoration-thickness: var(--spacing-tabs-indicator-height);
+    text-underline-offset: var(--spacing-tabs-indicator-height);
+  }
+}
+
+/* A scrollable tab list must not clip the focused trigger's ring. */
+@utility tabs-trigger-focus {
+  &:focus-visible {
+    outline-offset: calc(-1 * var(--default-ring-width));
+  }
+}
+
+@theme static {
+  --spacing-tabs-rail-offset: var(--border-width-tabs);
+}
+
+/* Navigation owns typography and an inset press cue; Button motion is not inherited. */
+@theme static {
+  --font-weight-tabs-trigger: var(--font-weight-medium);
+  --border-width-tabs-pressed: var(--border-width-sm);
+  --font-weight-tabs-trigger-selected: var(--font-weight-semibold);
+}
+
+@utility tabs-trigger-press {
+  &:active:not(:disabled):not([data-disabled]) {
+    box-shadow: inset 0 calc(-1 * var(--border-width-tabs-pressed)) currentColor;
+  }
 }

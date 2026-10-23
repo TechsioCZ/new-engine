@@ -5,6 +5,7 @@
   --color-tour-text: var(--color-fg-primary);
   --color-tour-outline: var(--color-border-primary);
   --color-tour-scrim: var(--color-bg-scrim);
+  --color-tour-focus: var(--color-ring-default);
 
   /* Derived layer */
   --color-tour-bg: var(--color-tour-surface);
@@ -15,6 +16,7 @@
   --color-tour-backdrop-bg: var(--color-tour-scrim);
   --color-tour-arrow-bg: var(--color-tour-surface);
   --color-tour-spotlight-border: var(--color-tour-text);
+  --color-tour-ring-focus: var(--color-tour-focus);
   --border-width-tour: var(--border-width-sm);
   --radius-tour: var(--radius-sm);
   --shadow-tour: var(--shadow-primary);
@@ -36,6 +38,12 @@
   --z-tour: 80;
 }
 
+@utility tour-scroll-focus {
+  outline: var(--default-ring-width) var(--default-ring-style)
+    var(--color-tour-ring-focus);
+  outline-offset: calc(-1 * var(--default-ring-width));
+}
+
 @utility tour-layer {
   /* Zag 1.43.3 derives the positioner's inline z-index from Content.
    * Keep explicit backdrop/spotlight/content offsets for the ui-kit stack. */
@@ -55,7 +63,7 @@
   max-width: calc(100vw - var(--spacing-tour-viewport) * 2);
   max-height: calc(100svh - var(--spacing-tour-viewport) * 2);
   overflow-wrap: anywhere;
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
 }
 
@@ -66,6 +74,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: var(--spacing-tour-viewport);
     pointer-events: none;
   }
 
@@ -111,6 +120,12 @@
 
   & > [data-scope="tour"][data-part="content"] {
     pointer-events: auto;
+  }
+
+  &:is([data-type="dialog"], [data-type="floating"])
+    > [data-scope="tour"][data-part="content"] {
+    /* Size against the inset container, not 100vw (which includes gutters). */
+    max-width: 100%;
   }
 }
 

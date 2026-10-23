@@ -2,19 +2,53 @@
  * Checkbox — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
  * This file only declares what Figma does not export yet:
- *   - `--spacing-checkbox-indeterminate-icon` — 60% size for the
- *     indeterminate-state icon (no size-axis equivalent in Figma).
+ *   - `--spacing-checkbox-indeterminate-icon` — width of the mixed-state dash.
+ *   - `--spacing-checkbox-indeterminate-stroke` — dash thickness, kept separate
+ *     from width so mixed selection is a minus rather than a circular dot.
  *   - `--spacing-form-checkbox-gap` — Figma exports `--spacing-form-checkbox`
  *     (no `-gap` suffix); keep this alias name until FormCheckbox TSX
  *     adopts the Figma name.
  *
- * Color, border-width, radius, size, ring, and form-checkbox-text-offset
- * are owned by Figma.
+ * Color, border-width, base radius, size, ring, and form-checkbox-text-offset
+ * come from Figma. The runtime radius cap below keeps small checkboxes from
+ * becoming visually identical to radios in rounded themes.
  */
 
 @theme static {
+  --color-checkbox-readonly: var(--color-form-control-fg-readonly);
+  --color-checkbox-fg-readonly: var(--color-checkbox-readonly);
+  --spacing-form-checkbox-description-sm: calc(
+    var(--size-form-checkbox-control-sm) +
+    var(--spacing-form-checkbox-gap)
+  );
+  --size-form-checkbox-control-sm: var(--dimension-18);
+  --spacing-form-checkbox-description-md: calc(
+    var(--size-form-checkbox-control-md) +
+    var(--spacing-form-checkbox-gap)
+  );
+  --size-form-checkbox-control-md: var(--dimension-24);
+  --spacing-form-checkbox-description-lg: calc(
+    var(--size-form-checkbox-control-lg) +
+    var(--spacing-form-checkbox-gap)
+  );
+  --size-form-checkbox-control-lg: var(--dimension-30);
+
+  /* A checkbox must remain distinct from a radio even in rounded themes. */
+  --radius-checkbox-corner: var(--radius-xs);
+  --radius-checkbox-control: min(
+    var(--radius-checkbox),
+    var(--radius-checkbox-corner)
+  );
+  --spacing-checkbox-mixed-stroke: var(--border-width-lg);
   --spacing-checkbox-indeterminate-icon: 60%;
+  --spacing-checkbox-indeterminate-stroke: var(--spacing-checkbox-mixed-stroke);
   --spacing-form-checkbox-gap: var(--spacing-form-checkbox);
+}
+
+@utility checkbox-focus-outline {
+  outline: var(--default-ring-width) var(--default-ring-style)
+    var(--color-checkbox-ring-focus);
+  outline-offset: var(--default-ring-offset);
 }
 
 @utility token-icon-checkbox {

@@ -2,7 +2,7 @@
  * QuantityField — @techsio/ui-kit molecule.
  *
  * @component QuantityField
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill quantity-field-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -19,7 +19,7 @@ const quantityFieldVariants = tv({
     root: "flex min-w-0 flex-col gap-quantity-field",
     control: "flex min-w-0 flex-wrap items-center gap-quantity-field-control",
     numeric: "min-w-quantity-field-control-min-width flex-1",
-    input: "min-w-0",
+    input: "min-w-0 read-only:enabled:cursor-text!",
     unit: "min-w-0 max-w-full break-words text-quantity-field-unit-fg",
     message: "text-quantity-field-message-fg",
     label: "",
@@ -171,16 +171,19 @@ export function QuantityField({
             data-validation={hasError ? "error" : undefined}
           >
             <NumericInput.Input
+              aria-errormessage={hasError ? errorId : undefined}
               aria-label={ariaLabel}
               aria-labelledby={ariaLabelledBy}
               autoFocus={autoFocus}
               className={styles.input()}
               ref={ref}
             />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
+            {!readOnly && (
+              <NumericInput.TriggerContainer>
+                <NumericInput.IncrementTrigger />
+                <NumericInput.DecrementTrigger />
+              </NumericInput.TriggerContainer>
+            )}
           </NumericInput.Control>
         </NumericInput>
         <span className={styles.unit()} id={unitId}>

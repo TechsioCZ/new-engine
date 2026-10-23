@@ -3,7 +3,11 @@ import type {
   DateValue,
   ZonedDateTime,
 } from "@internationalized/date"
-import { Time, toCalendarDateTime } from "@internationalized/date"
+import {
+  Time,
+  toCalendarDate,
+  toCalendarDateTime,
+} from "@internationalized/date"
 
 export type DatePickerCandidate = DateValue | readonly DateValue[] | null
 export type DatePickerCandidateIndex = 0 | 1
@@ -69,49 +73,7 @@ export function datePickerCoordinatorReducer(
   }
 
   if (action.type === "edit-time" && state.draft?.candidate) {
-    const index = action.index ?? 0
-    const hourCycle = action.hourCycle ?? 24
-    const timeParts = {
-      ...getDatePickerDraftTimeParts(state, hourCycle, index),
-      [action.part]: action.value,
-    }
-    const requiredParts = getRequiredTimeParts(action.granularity, hourCycle)
-    const isComplete = requiredParts.every(
-      (part) => typeof timeParts[part] === "number"
-    )
-    let candidate = state.draft.candidate
-    const endpoint = getCandidateAt(candidate, index)
-
-    if (isComplete && endpoint) {
-      const time = {
-        hour:
-          hourCycle === 12
-            ? ((timeParts.hour ?? 12) % 12) + (timeParts.dayPeriod ?? 0)
-            : (timeParts.hour ?? 0),
-        minute: timeParts.minute ?? 0,
-        second: timeParts.second ?? 0,
-      }
-      const timedEndpoint = isTimedDateValue(endpoint)
-        ? endpoint.set(time)
-        : toCalendarDateTime(
-            endpoint,
-            new Time(time.hour, time.minute, time.second)
-          )
-      candidate = setCandidateAt(candidate, index, timedEndpoint)
-    }
-
-    return {
-      draft: {
-        ...state.draft,
-        candidate,
-        timeGranularity: action.granularity,
-        timeHourCycle: hourCycle,
-        timeParts: {
-          ...state.draft.timeParts,
-          [index]: timeParts,
-        },
-      },
-    }
+    return editDatePickerDraftTime(state, action)
   }
 
   if (action.type === "discard") {
@@ -119,6 +81,58 @@ export function datePickerCoordinatorReducer(
   }
 
   return state
+}
+
+function editDatePickerDraftTime(
+  state: DatePickerCoordinatorState,
+  action: Extract<DatePickerCoordinatorAction, { type: "edit-time" }>
+): DatePickerCoordinatorState {
+  if (!state.draft?.candidate) {
+    return state
+  }
+  const index = action.index ?? 0
+  const hourCycle = action.hourCycle ?? 24
+  const timeParts = {
+    ...getDatePickerDraftTimeParts(state, hourCycle, index),
+    [action.part]: action.value,
+  }
+  const requiredParts = getRequiredTimeParts(action.granularity, hourCycle)
+  const isComplete = requiredParts.every(
+    (part) => typeof timeParts[part] === "number"
+  )
+  let candidate = state.draft.candidate
+  const endpoint = getCandidateAt(candidate, index)
+
+  if (isComplete && endpoint) {
+    const time = {
+      hour:
+        hourCycle === 12
+          ? ((timeParts.hour ?? 12) % 12) + (timeParts.dayPeriod ?? 0)
+          : (timeParts.hour ?? 0),
+      minute: timeParts.minute ?? 0,
+      second: timeParts.second ?? 0,
+    }
+    const timedEndpoint = isTimedDateValue(endpoint)
+      ? endpoint.set(time)
+      : toCalendarDateTime(
+          endpoint,
+          new Time(time.hour, time.minute, time.second)
+        )
+    candidate = setCandidateAt(candidate, index, timedEndpoint)
+  }
+
+  return {
+    draft: {
+      ...state.draft,
+      candidate,
+      timeGranularity: action.granularity,
+      timeHourCycle: hourCycle,
+      timeParts: {
+        ...state.draft.timeParts,
+        [index]: timeParts,
+      },
+    },
+  }
 }
 
 function getCandidateAt(
@@ -190,7 +204,10 @@ export function canConfirmDatePickerDraft(
   isTimeUnavailable?: (
     value: CalendarDateTime | ZonedDateTime,
     index: DatePickerCandidateIndex
-  ) => boolean
+  ) => boolean,
+  min?: DateValue,
+  max?: DateValue,
+  isDateUnavailable?: (date: DateValue) => boolean
 ) {
   if (!isDatePickerDraftDirty(state)) {
     return false
@@ -199,6 +216,17 @@ export function canConfirmDatePickerDraft(
   const candidate = state.draft?.candidate
   if (candidate === null) {
     return true
+  }
+
+  if (
+    !isDatePickerCandidateAllowed(candidate ?? null, {
+      min,
+      max,
+      isTimeUnavailable,
+      isDateUnavailable,
+    })
+  ) {
+    return false
   }
 
   const values = candidateValues(candidate)
@@ -226,7 +254,7 @@ export function canConfirmDatePickerDraft(
     return false
   }
 
-  return timedValues.every((value, index) => {
+  return timedValues.every((_value, index) => {
     if (index > 1) {
       return false
     }
@@ -249,7 +277,7 @@ export function canConfirmDatePickerDraft(
       return false
     }
 
-    return !(isTimeUnavailable?.(value, candidateIndex) ?? false)
+    return true
   })
 }
 
@@ -268,7 +296,7 @@ export function getDatePickerDraftTimeParts(
   const candidateParts = isTimedDateValue(candidate)
     ? {
         dayPeriod:
-          hourCycle === 12 ? (candidate.hour >= 12 ? 12 : 0) : undefined,
+          hourCycle === 12 ? Number(candidate.hour >= 12) * 12 : undefined,
         hour: hourCycle === 12 ? candidate.hour % 12 || 12 : candidate.hour,
         minute: candidate.minute,
         second: candidate.second,
@@ -318,9 +346,7 @@ function areDraftTimePartsDirty(draft: DatePickerDraft) {
       ? {
           dayPeriod:
             draft.timeHourCycle === 12
-              ? baseline.hour >= 12
-                ? 12
-                : 0
+              ? Number(baseline.hour >= 12) * 12
               : undefined,
           hour:
             draft.timeHourCycle === 12
@@ -335,6 +361,44 @@ function areDraftTimePartsDirty(draft: DatePickerDraft) {
       (part) =>
         Object.hasOwn(timeParts, part) &&
         baselineParts[part] !== timeParts[part]
+    )
+  })
+}
+
+export function isDatePickerCandidateAllowed(
+  candidate: DatePickerCandidate,
+  constraints: {
+    min?: DateValue
+    max?: DateValue
+    isDateUnavailable?: (value: DateValue) => boolean
+    isTimeUnavailable?: (
+      value: CalendarDateTime | ZonedDateTime,
+      index: DatePickerCandidateIndex
+    ) => boolean
+  } = {}
+) {
+  const values = candidateValues(candidate)
+  if (
+    isCandidateArray(candidate) &&
+    (values.length !== 2 ||
+      !values[0] ||
+      !values[1] ||
+      values[0].compare(values[1]) > 0)
+  ) {
+    return false
+  }
+  return values.every((value, index) => {
+    // Date-only bounds include the entire boundary day; timed bounds are exact.
+    const compare = (bound: DateValue) =>
+      isTimedDateValue(bound)
+        ? value.compare(bound)
+        : toCalendarDate(value).compare(toCalendarDate(bound))
+    return !(
+      (constraints.min && compare(constraints.min) < 0) ||
+      (constraints.max && compare(constraints.max) > 0) ||
+      constraints.isDateUnavailable?.(value) ||
+      (isTimedDateValue(value) &&
+        constraints.isTimeUnavailable?.(value, index === 0 ? 0 : 1))
     )
   })
 }

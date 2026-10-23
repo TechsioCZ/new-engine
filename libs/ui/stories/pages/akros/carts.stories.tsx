@@ -1,3 +1,5 @@
+import { expect, userEvent, waitFor, within } from "storybook/test"
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -25,10 +27,18 @@ import {
 import { AkrosShell, akrosDocs } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Carts",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -81,11 +91,28 @@ type CartDialog = "save" | "load" | "share" | null
 
 function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
   const toaster = useToast()
-  const [carts, setCarts] = useState(akCarts)
+  const [carts, setCarts] = useState(() =>
+    akCarts.map((entry) => ({
+      ...entry,
+      items: akOrderLines.length,
+      total: akOrderLines.reduce(
+        (sum, line) => sum + line.qty * line.unitPrice,
+        0
+      ),
+    }))
+  )
   const [selectedId, setSelectedId] = useState(initialId)
   const [dialog, setDialog] = useState<CartDialog>(null)
+  const [shareDrafts, setShareDrafts] = useState<
+    Record<string, { recipient: string; message: string }>
+  >({})
+  const [shareDraft, setShareDraft] = useState({ recipient: "", message: "" })
+  const [shareInvalid, setShareInvalid] = useState(false)
   const [name, setName] = useState("")
   const [merge, setMerge] = useState(true)
+  const [liveCarts, setLiveCarts] = useState<
+    Record<string, Record<string, number>>
+  >({})
 
   const cart = carts.find((entry) => entry.id === selectedId) ?? carts[0]
   const readOnly = cart?.state === "ordered"
@@ -95,6 +122,17 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
       (entry) =>
         entry.company === cart?.customer || entry.name === cart?.customer
     )?.email ?? ""
+  const liveQuantities = liveCarts[cart?.customer ?? ""] ?? {
+    "SRB-4X40-ZN": 100,
+  }
+  const sourceTotal = akOrderLines.reduce(
+    (sum, line) => sum + line.qty * line.unitPrice,
+    0
+  )
+  const liveTotal = akOrderLines.reduce(
+    (sum, line) => sum + (liveQuantities[line.code] ?? 0) * line.unitPrice,
+    0
+  )
   const shareLink = `https://www.akros.cz/kosik/sdileny/${cart?.id}-7f3a`
 
   const columns = useMemo<ColumnDef<AkCart, unknown>[]>(
@@ -150,11 +188,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
       <Toaster />
 
       <PageHeader
-        actions={
-          <Button icon="icon-[mdi--cart-plus]" size="sm" variant="primary">
-            Prepare cart for customer
-          </Button>
-        }
+        actions={null}
         breadcrumb={[
           { label: "Home", href: "#" },
           { label: "Customers", href: "#" },
@@ -217,7 +251,17 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
               <Button
                 disabled={readOnly}
                 icon="icon-[mdi--share-variant-outline]"
-                onClick={() => setDialog("share")}
+                onClick={() => {
+                  setShareInvalid(false)
+                  setShareDraft(
+                    shareDrafts[cart.id] ?? {
+                      recipient,
+                      message:
+                        "Dobrý den, posíláme košík připravený podle naší domluvy.",
+                    }
+                  )
+                  setDialog("share")
+                }}
                 size="sm"
                 variant="primary"
               >
@@ -226,42 +270,67 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             </div>
             <DetailList
               items={[
-                { term: "Items", value: String(cart.items) },
-                { term: "Total", value: czk.format(cart.total) },
+                {
+                  term: "Product lines in this demo",
+                  value: String(akOrderLines.length),
+                },
+                { term: "Demo contents total", value: czk.format(sourceTotal) },
                 { term: "Prepared by", value: cart.preparedBy ?? "Customer" },
                 { term: "Customer type", value: cart.customerType },
               ]}
             />
           </SectionCard>
 
+          <SectionCard title="Customer live cart (local demo)">
+            <p className="text-fg-secondary text-sm">
+              Initially contains 100 wood screws. Loading this draft updates
+              only the local quantities below.
+            </p>
+            <DetailList
+              items={akOrderLines.map((line) => ({
+                term: line.name,
+                value: `${liveQuantities[line.code] ?? 0} pcs`,
+              }))}
+            />
+            <p className="font-semibold" role="status">
+              Live cart total: {czk.format(liveTotal)}
+            </p>
+          </SectionCard>
           <SectionCard flush title="Contents">
-            <Table size="sm" variant="line">
-              <Table.Header>
-                <Table.Row>
-                  <Table.ColumnHeader>Product</Table.ColumnHeader>
-                  <Table.ColumnHeader align="end">Qty</Table.ColumnHeader>
-                  <Table.ColumnHeader align="end">Total</Table.ColumnHeader>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {akOrderLines.map((line) => (
-                  <Table.Row key={line.code}>
-                    <Table.Cell>
-                      <span className="flex flex-col gap-50">
-                        <span>{line.name}</span>
-                        <span className="text-fg-secondary text-xs">
-                          {line.code}
-                        </span>
-                      </span>
-                    </Table.Cell>
-                    <Table.Cell align="end">{line.qty}</Table.Cell>
-                    <Table.Cell align="end">
-                      {czk.format(line.qty * line.unitPrice)}
-                    </Table.Cell>
+            <div
+              className="w-full min-w-0 overflow-x-auto"
+              role="region"
+              aria-label="Cart contents"
+              tabIndex={0}
+            >
+              <Table size="sm" variant="line">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Product</Table.ColumnHeader>
+                    <Table.ColumnHeader align="end">Qty</Table.ColumnHeader>
+                    <Table.ColumnHeader align="end">Total</Table.ColumnHeader>
                   </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
+                </Table.Header>
+                <Table.Body>
+                  {akOrderLines.map((line) => (
+                    <Table.Row key={line.code}>
+                      <Table.Cell>
+                        <span className="flex flex-col gap-50">
+                          <span>{line.name}</span>
+                          <span className="text-fg-secondary text-xs">
+                            {line.code}
+                          </span>
+                        </span>
+                      </Table.Cell>
+                      <Table.Cell align="end">{line.qty}</Table.Cell>
+                      <Table.Cell align="end">
+                        {czk.format(line.qty * line.unitPrice)}
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
           </SectionCard>
         </div>
       </div>
@@ -284,7 +353,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
                 toaster.create({
                   type: "success",
                   title: "Cart saved",
-                  description: `${cart.customer} sees “${name}” in their account.`,
+                  description: `“${name}” was saved to this local demo cart. No customer account was changed.`,
                 })
               }}
               variant="primary"
@@ -322,14 +391,23 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             </Button>
             <Button
               onClick={() => {
+                const quantities = merge ? { ...liveQuantities } : {}
+                for (const line of akOrderLines) {
+                  quantities[line.code] =
+                    (quantities[line.code] ?? 0) + line.qty
+                }
+                setLiveCarts((current) => ({
+                  ...current,
+                  [cart.customer]: quantities,
+                }))
                 updateCart({ state: "active" })
                 setDialog(null)
                 toaster.create({
                   type: "success",
                   title: merge
-                    ? "Items added to the live cart"
-                    : "Live cart replaced",
-                  description: `${cart.items} items loaded for ${cart.customer}.`,
+                    ? "Local demo quantities merged"
+                    : "Local demo cart replaced",
+                  description: `${akOrderLines.length} product lines loaded locally for ${cart.customer}. No customer account was changed.`,
                 })
               }}
               variant="primary"
@@ -339,7 +417,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
           </>
         }
         customTrigger
-        description={`Puts “${cart.name}” into ${cart.customer}'s live cart, as if they loaded it themselves.`}
+        description={`Load this demo draft into the local preview of ${cart.customer}'s live cart. No remote account is connected.`}
         onOpenChange={(details) => setDialog(details.open ? "load" : null)}
         open={dialog === "load"}
         size="sm"
@@ -371,17 +449,34 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             <Button
               icon="icon-[mdi--email-fast-outline]"
               onClick={() => {
+                if (
+                  !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                    shareDraft.recipient.trim()
+                  )
+                ) {
+                  setShareInvalid(true)
+                  document.getElementById("share-to")?.focus()
+                  return
+                }
+                setShareDrafts((current) => ({
+                  ...current,
+                  [cart.id]: {
+                    ...shareDraft,
+                    recipient: shareDraft.recipient.trim(),
+                  },
+                }))
                 updateCart({ state: "shared" })
                 setDialog(null)
                 toaster.create({
                   type: "success",
-                  title: "Cart shared",
-                  description: "Sent with the “Shared cart” email template.",
+                  title: "Share draft saved locally",
+                  description:
+                    "The local cart is marked shared. No email was sent.",
                 })
               }}
               variant="primary"
             >
-              Send by email
+              Save share draft
             </Button>
           </>
         }
@@ -402,9 +497,18 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             />
             <Button
               icon="icon-[mdi--content-copy]"
-              onClick={() =>
-                toaster.create({ type: "info", title: "Link copied" })
-              }
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(shareLink)
+                  toaster.create({ type: "success", title: "Link copied" })
+                } catch {
+                  toaster.create({
+                    type: "error",
+                    title: "Could not copy link",
+                    description: "Select and copy the link manually.",
+                  })
+                }
+              }}
               size="sm"
               theme="outlined"
               variant="secondary"
@@ -413,14 +517,32 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             </Button>
           </div>
           <FormInput
-            defaultValue={recipient}
+            value={shareDraft.recipient}
+            onChange={(event) =>
+              setShareDraft((current) => ({
+                ...current,
+                recipient: event.target.value,
+              }))
+            }
+            validateStatus={shareInvalid ? "error" : "default"}
+            helpText={
+              shareInvalid
+                ? "Enter a recipient email address, for example name@example.com."
+                : "Saved in this local demo only; no email is sent."
+            }
             id="share-to"
             key={cart.id}
             label="Recipient"
             type="email"
           />
           <FormTextarea
-            defaultValue="Dobrý den, posíláme košík připravený podle naší domluvy."
+            value={shareDraft.message}
+            onChange={(event) =>
+              setShareDraft((current) => ({
+                ...current,
+                message: event.target.value,
+              }))
+            }
             id="share-message"
             label="Message"
             rows={3}
@@ -432,6 +554,71 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    // The modal keeps the page inert until its exit finishes; wait before
+    // querying background controls.
+    const dialogClosed = () =>
+      waitFor(() => {
+        expect(body.queryByRole("dialog")).not.toBeInTheDocument()
+        expect(canvasElement.closest("[aria-hidden='true'], [inert]")).toBeNull()
+      })
+    await userEvent.click(canvas.getByRole("button", { name: "Share" }))
+    const recipient = body.getByLabelText("Recipient")
+    await userEvent.clear(recipient)
+    await userEvent.type(recipient, "saved@example.com")
+    await userEvent.clear(body.getByLabelText("Message"))
+    await userEvent.type(body.getByLabelText("Message"), "Saved share message")
+    await userEvent.click(
+      body.getByRole("button", { name: "Save share draft" })
+    )
+    await dialogClosed()
+    await userEvent.click(canvas.getByRole("button", { name: "Share" }))
+    await expect(body.getByLabelText("Recipient")).toHaveValue(
+      "saved@example.com"
+    )
+    await expect(body.getByLabelText("Message")).toHaveValue(
+      "Saved share message"
+    )
+    await userEvent.clear(body.getByLabelText("Message"))
+    await userEvent.type(body.getByLabelText("Message"), "Cancelled message")
+    await userEvent.keyboard("{Escape}")
+    await dialogClosed()
+    await userEvent.click(canvas.getByRole("button", { name: "Share" }))
+    await expect(body.getByLabelText("Message")).toHaveValue(
+      "Saved share message"
+    )
+    await userEvent.keyboard("{Escape}")
+    await dialogClosed()
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Load to customer" })
+    )
+    await userEvent.click(body.getByRole("button", { name: /^Load cart$/ }))
+    await dialogClosed()
+    await expect(canvas.getByText("300 pcs", { exact: true })).toBeVisible()
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Load to customer" })
+    )
+    await userEvent.click(
+      body.getByRole("switch", { name: "Merge with the live cart" })
+    )
+    await userEvent.click(body.getByRole("button", { name: /^Load cart$/ }))
+    await dialogClosed()
+    await expect(canvas.getByText("200 pcs", { exact: true })).toBeVisible()
+    await expect(
+      canvas.queryByText("300 pcs", { exact: true })
+    ).not.toBeInTheDocument()
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in carts to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Carts",
   render: () => <CartsPage />,
 }

@@ -13,8 +13,9 @@
  *   1.0.0 §7.1 requires clients to SKIP a non-conforming skill, so top-level lists cannot ship.
  *
  * `toPortableSkill()` converts the first into the second deterministically: every non-spec
- * top-level key moves under `metadata`, lists are joined with single spaces (the same convention
- * Agent Skills uses for `allowed-tools`). The body is copied byte-for-byte.
+ * top-level key moves under `metadata`, lists are joined with single spaces. Required resources
+ * become skill-relative paths; repository-only evidence becomes contributor_sources. A portable
+ * scope notice separates consumer prerequisites from source-checkout contributor instructions.
  *
  * The parser covers the YAML subset these files use — `key: scalar`, `key: >`/`|` block scalars,
  * `key:` + `  - item` lists and `key:` + `  sub: scalar` maps — and throws on anything else, so an
@@ -36,6 +37,67 @@ export const AUTHORED_SKILLS = new Set([
   "ui-release-check",
   "ui-component-usage",
 ])
+
+/** Canonical resources copied by sync; paths resolve from the plugin root. */
+export const BUNDLED_RESOURCES = [
+  {
+    source: "docs/component-contracts.md",
+    path: "references/component-contracts.md",
+    evidence: "libs/ui/docs/component-contracts.md",
+  },
+  {
+    source: "skills/_artifacts/consumer_app_usage_rules.md",
+    path: "references/consumer_app_usage_rules.md",
+    evidence: "libs/ui/skills/_artifacts/consumer_app_usage_rules.md",
+  },
+]
+
+/** Authored workflow bodies stay authored; their dependency declarations are generated. */
+export const AUTHORED_PREREQUISITES = {
+  "ui-new-component": [
+    "component-authoring",
+    "zag-compound-components",
+    "ui-validate",
+  ],
+  "ui-tokens": ["tailwind-token-authoring"],
+  "ui-story": ["storybook-authoring"],
+  "ui-validate": ["component-consistency-validation"],
+  "ui-theme-brand": ["tailwind-token-authoring", "app-token-overrides"],
+  "ui-figma-sync": ["figma-sync-handoff"],
+  "ui-release-check": ["ui-kit-publish-readiness", "ui-validate"],
+  "ui-component-usage": [
+    "component-usage-ux",
+    "ux-guidelines",
+    "app-token-overrides",
+  ],
+}
+
+const COMPONENT_SOURCE_RE =
+  /libs\/ui\/src\/(atoms|molecules|organisms)\/([a-z0-9-]+)\.tsx/g
+
+/** Consumer rules must describe installed declarations, not require source exploration. */
+export function toPortableResource(source, resourcePath) {
+  if (resourcePath !== "references/consumer_app_usage_rules.md") {
+    return source
+  }
+  return source
+    .replace(COMPONENT_SOURCE_RE, "@techsio/ui-kit/$1/$2")
+    .replaceAll(
+      "`libs/ui/src`",
+      "the installed package's exported subpaths/types"
+    )
+}
+
+const RESOURCE_PATHS = BUNDLED_RESOURCES.map(({ path }) => `../../${path}`)
+const PORTABLE_NOTICE = "> Portable scope: "
+const isConsumerSkill = (name) =>
+  name.endsWith("-usage") ||
+  name.startsWith("app-") ||
+  [
+    "component-usage-ux",
+    "ux-guidelines",
+    "framework-consumer-integration",
+  ].includes(name)
 
 export const SPEC_KEYS = [
   "name",
@@ -182,13 +244,133 @@ export function toPortableSkill(source) {
       throw new Error(`cannot move nested mapping "${entry.key}" into metadata`)
     }
   }
+  const name = entries.find((entry) => entry.key === "name")?.value ?? ""
+  const sources = String(metadata.get("sources") ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+  const contributorSources = String(metadata.get("contributor_sources") ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+  const portableSources = []
+  for (const sourcePath of sources) {
+    const resource = BUNDLED_RESOURCES.find(
+      ({ evidence }) => evidence === sourcePath
+    )
+    if (resource) {
+      portableSources.push(`../../${resource.path}`)
+    } else if (
+      sourcePath.startsWith("libs/") ||
+      sourcePath.startsWith(".agents/")
+    ) {
+      contributorSources.push(sourcePath)
+    } else {
+      portableSources.push(sourcePath)
+    }
+  }
+  if (sources.length) {
+    metadata.set("sources", [...new Set(portableSources)].join(" "))
+  }
+  if (contributorSources.length) {
+    metadata.set(
+      "contributor_sources",
+      [...new Set(contributorSources)].join(" ")
+    )
+  }
+  metadata.set(
+    "resources",
+    [
+      ...new Set([
+        ...String(metadata.get("resources") ?? "")
+          .split(/\s+/)
+          .filter(Boolean),
+        ...RESOURCE_PATHS,
+      ]),
+    ].join(" ")
+  )
+  metadata.set("audience", isConsumerSkill(name) ? "consumer" : "contributor")
+  let portableBody = body
+  for (const { evidence, path } of BUNDLED_RESOURCES) {
+    portableBody = portableBody.replaceAll(evidence, `../../${path}`)
+  }
+  if (!portableBody.includes(PORTABLE_NOTICE)) {
+    const scope = isConsumerSkill(name)
+      ? "Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks."
+      : "Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts."
+    portableBody = `\n${PORTABLE_NOTICE}${scope} Resolve ../../references/ paths from this skill's folder, not the app working directory.\n${portableBody}`
+  }
   if (metadata.size > 0) {
     out.push("metadata:")
     for (const [k, v] of metadata) {
       out.push(`  ${k}: ${quote(v)}`)
     }
   }
-  return `---\n${out.join("\n")}\n---\n${body}`
+  return `---\n${out.join("\n")}\n---\n${portableBody}`
+}
+
+/** Refresh only generated prerequisites/scope for plugin-authored workflow skills. */
+export function toAuthoredPortableSkill(source, name) {
+  const dependencies = AUTHORED_PREREQUISITES[name]
+  if (!dependencies) {
+    throw new Error(`unknown authored skill: ${name}`)
+  }
+  const portable = toPortableSkill(source)
+  const { lines, body } = splitSkill(portable)
+  const entries = parseFrontmatter(lines)
+  const updated = entries.flatMap((entry) => {
+    if (entry.key !== "metadata") {
+      return entry.raw
+    }
+    const metadata = { ...entry.value, requires: dependencies.join(" ") }
+    return [
+      "metadata:",
+      ...Object.entries(metadata).map(
+        ([key, value]) => `  ${key}: ${quote(value)}`
+      ),
+    ]
+  })
+  return `---\n${updated.join("\n")}\n---\n${body}`
+}
+
+/** Dependency validation is independent of a monorepo checkout. */
+export function validateSkillPrerequisites(source, name, exists) {
+  const problems = []
+  for (const dependency of String(readSkillField(source, "requires") ?? "")
+    .split(/\s+/)
+    .filter(Boolean)) {
+    if (
+      !(SKILL_NAME_RE.test(dependency) && exists(`../${dependency}/SKILL.md`))
+    ) {
+      problems.push(`missing bundled prerequisite skill "${dependency}"`)
+    }
+  }
+  const declared = String(readSkillField(source, "requires") ?? "").split(/\s+/)
+  for (const dependency of AUTHORED_PREREQUISITES[name] ?? []) {
+    if (!declared.includes(dependency)) {
+      problems.push(`missing authored workflow prerequisite "${dependency}"`)
+    }
+  }
+  const resources = String(readSkillField(source, "resources") ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+  for (const resource of RESOURCE_PATHS) {
+    if (!resources.includes(resource)) {
+      problems.push(`missing bundled resource declaration "${resource}"`)
+    }
+  }
+  for (const resource of resources) {
+    if (
+      !(
+        // Resolve from SKILL.md: plugin-wide, own or sibling-skill references.
+        // Only reference subtrees are allowed; no arbitrary parent traversal.
+        /^(?:\.\.\/\.\.\/|\.\.\/[a-z0-9]+(?:-[a-z0-9]+)*\/)?references\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+\.md$/.test(
+          resource
+        ) && exists(resource)
+      )
+    ) {
+      problems.push(`missing or invalid bundled resource "${resource}"`)
+    }
+  }
+  return problems
 }
 
 /** Validate a SKILL.md against the Agent Skills spec. Returns a list of problems. */

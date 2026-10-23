@@ -6,13 +6,18 @@ description: >
   divider, bottom area, size, layout, direction, section flow, and framework
   link adapters.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/organisms/footer.tsx libs/ui/src/tokens/components/organisms/_footer.css libs/ui/stories/organisms/footer.stories.tsx"
+  sources: ""
+  contributor_sources: "libs/ui/src/organisms/footer.tsx libs/ui/src/tokens/components/organisms/_footer.css libs/ui/stories/organisms/footer.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Footer Usage
 
@@ -153,3 +158,9 @@ rg -n "<footer\\b|<Footer\\.(Container|Section|Link)[^>]*className=.*(grid|gap-|
 rg -P -n "<Footer\\.Link(?![^>]*as=\\{?NextLink)" apps
 rg -n "<Footer[^>]*size=\"(xs|xl)\"|layout=\"(grid|columns)\"" apps
 ```
+
+## Wave 2 contracts
+
+Every Footer slot forwards native DOM/ARIA/event props. Footer.Section renders a semantic section; name important sections with aria-labelledby referring to Footer.Title. Columns stack on mobile and long contact strings wrap. Hover uses readable text tokens, never decorative brand fills. Canonical sizes are sm/md/lg (default md).
+
+Keep footer subsections as groups within the single footer landmark.

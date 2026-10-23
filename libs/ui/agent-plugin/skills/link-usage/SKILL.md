@@ -5,13 +5,18 @@ description: >
   @techsio/ui-kit Link atom for inline or unstyled navigation, including
   external links and framework adapter usage.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration ux-guidelines"
-  sources: "libs/ui/src/atoms/link.tsx libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/link.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/link.tsx libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/link.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Link Usage
 
@@ -174,3 +179,17 @@ rg -P -n "<Link[^>]*href=\"https?://(?![^>]*external)" apps
 rg -n "function .*Link|const .*Link" apps
 rg -n "<LinkButton|<Link\\b" apps
 ```
+
+## Navigation appearance and sizes
+
+Links are underlined in every theme, so navigation never relies on colour alone.
+They use a readable foreground and visible keyboard focus. Canonical text sizes
+are sm/md/lg, default md; `size="current"` inherits paragraph typography for
+inline composition. Link is not a boxed control and does not set field height.
+Use LinkButton for prominent navigation, not manual button classes on Link.
+
+## React 19 refs
+
+Native Link accepts anchor object/callback refs. When `as` selects another
+intrinsic element or a custom adapter, its own ref contract is preserved;
+adapters without ref support do not gain a fabricated ref prop.

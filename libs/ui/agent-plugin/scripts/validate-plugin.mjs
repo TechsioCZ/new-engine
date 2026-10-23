@@ -24,7 +24,10 @@ import {
 } from "node:fs"
 import { dirname, join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
-import { validatePortableSkill } from "./lib/skill-frontmatter.mjs"
+import {
+  validatePortableSkill,
+  validateSkillPrerequisites,
+} from "./lib/skill-frontmatter.mjs"
 
 const pluginDir = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const SPEC = "1.0.0"
@@ -53,7 +56,6 @@ const readJson = (path) => {
     return JSON.parse(readFileSync(join(pluginDir, path), "utf8"))
   } catch (error) {
     fail(path, `not valid JSON (${error.message})`)
-    return
   }
 }
 
@@ -180,11 +182,20 @@ if (existsSync(skillsDir)) {
       continue
     }
     skillCount += 1
-    for (const problem of validatePortableSkill(
-      readFileSync(file, "utf8"),
-      name
-    )) {
+    const source = readFileSync(file, "utf8")
+    for (const problem of validatePortableSkill(source, name)) {
       fail(`skills/${name}/SKILL.md`, problem)
+    }
+    // Resource/dependency checks must also run when the plugin is copied standalone.
+    try {
+      for (const problem of validateSkillPrerequisites(source, name, (path) => {
+        const target = resolve(dirname(file), path)
+        return existsSync(target) && lstatSync(target).isFile()
+      })) {
+        fail(`skills/${name}/SKILL.md`, problem)
+      }
+    } catch (error) {
+      fail(`skills/${name}/SKILL.md`, error.message)
     }
   }
 }
@@ -293,7 +304,7 @@ if (existsSync(join(pluginDir, "mcp.json"))) {
 }
 
 // §8 — top-level layout.
-const SUPPORT_DIRS = new Set(["scripts", ".claude-plugin"])
+const SUPPORT_DIRS = new Set(["scripts", "references", ".claude-plugin"])
 for (const name of readdirSync(pluginDir)) {
   if (
     !lstatSync(join(pluginDir, name)).isDirectory() ||

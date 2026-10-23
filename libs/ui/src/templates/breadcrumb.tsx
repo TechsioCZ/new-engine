@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit template.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.4
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,8 +10,8 @@
  * the breadcrumb-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
-  Fragment,
   type ElementType,
+  Fragment,
   type ReactElement,
   type ReactNode,
   type Ref,
@@ -28,8 +28,7 @@ export type BreadcrumbTemplateLinkProps<T extends ElementType> = Omit<
   "as" | "href" | "children" | "className"
 >
 
-type BreadcrumbTemplateRenderLinkProps =
-  BreadcrumbLinkProps<ElementType>
+type BreadcrumbTemplateRenderLinkProps = BreadcrumbLinkProps<ElementType>
 
 const BreadcrumbTemplateLink = Breadcrumb.Link as (
   props: BreadcrumbTemplateRenderLinkProps
@@ -62,9 +61,7 @@ export type BreadcrumbTemplateProps<T extends ElementType = "a"> = Omit<
   ref?: Ref<HTMLElement>
 }
 
-type BreadcrumbDisplayItem =
-  | BreadcrumbTemplateItem
-  | "ellipsis"
+type BreadcrumbDisplayItem = BreadcrumbTemplateItem | "ellipsis"
 
 function getDisplayItems(
   items: BreadcrumbTemplateItem[],
@@ -85,10 +82,7 @@ function getDisplayItems(
     : []
 }
 
-function getItemKey(
-  item: BreadcrumbDisplayItem,
-  index: number
-) {
+function getItemKey(item: BreadcrumbDisplayItem, index: number) {
   if (item === "ellipsis") {
     return `ellipsis-${index}`
   }
@@ -109,7 +103,16 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
   ref,
   ...breadcrumbProps
 }: BreadcrumbTemplateProps<T>) {
-  const displayItems = getDisplayItems(items, maxItems)
+  const explicitCurrentIndex = items.findIndex((item) => item.isCurrent)
+  // A breadcrumb describes the path *to* the current page, never its descendants.
+  // Trim before collapsing, otherwise a hidden current ancestor becomes a false
+  // current descendant (and two different pages can be announced as current).
+  const pathItems =
+    explicitCurrentIndex < 0 ? items : items.slice(0, explicitCurrentIndex + 1)
+  const itemLimit = Number.isFinite(maxItems)
+    ? Math.max(0, Math.floor(maxItems))
+    : 0
+  const displayItems = getDisplayItems(pathItems, itemLimit)
   const hasExplicitCurrent = displayItems.some(
     (item) => item !== "ellipsis" && item.isCurrent
   )
@@ -145,7 +148,7 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
                   size={item.iconSize ?? iconSize}
                 />
               )}
-              {item.label}
+              <span className="wrap-anywhere min-w-0">{item.label}</span>
             </>
           )
 
@@ -153,18 +156,17 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
             <Fragment key={getItemKey(item, index)}>
               <Breadcrumb.Item>
                 {isCurrent ? (
-                  <Breadcrumb.CurrentLink>
-                    {itemContent}
-                  </Breadcrumb.CurrentLink>
+                  <Breadcrumb.CurrentLink>{itemContent}</Breadcrumb.CurrentLink>
                 ) : (
                   <BreadcrumbTemplateLink
                     {...(linkProps as
                       | BreadcrumbTemplateLinkProps<ElementType>
                       | undefined)}
                     as={linkAs}
-                    children={itemContent}
                     href={item.href || "#"}
-                  />
+                  >
+                    {itemContent}
+                  </BreadcrumbTemplateLink>
                 )}
               </Breadcrumb.Item>
 

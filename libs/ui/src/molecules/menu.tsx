@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.1.1
+ * @componentVersion v1.3.3
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,23 +10,39 @@
  * the menu-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import * as menu from "@zag-js/menu"
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   cloneElement,
   isValidElement,
+  type KeyboardEvent,
+  type PointerEvent,
   type ReactElement,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   useEffect,
   useId,
+  useRef,
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { Icon, type IconType } from "../atoms/icon"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
 
 type ActionMenuItem = {
   type: "action"
   value: string
   label: string
+  icon?: IconType
+  disabled?: boolean
+}
+
+type LinkMenuItem = {
+  type: "link"
+  value: string
+  label: string
+  href: string
+  target?: string
+  rel?: string
   icon?: IconType
   disabled?: boolean
 }
@@ -37,6 +53,7 @@ type RadioMenuItem = {
   label: string
   name: string // radio group name
   checked: boolean
+  disabled?: boolean
 }
 
 type CheckboxMenuItem = {
@@ -44,6 +61,7 @@ type CheckboxMenuItem = {
   value: string
   label: string
   checked: boolean
+  disabled?: boolean
 }
 
 type SeparatorMenuItem = {
@@ -62,6 +80,7 @@ type SubmenuMenuItem = {
 
 export type MenuItem =
   | ActionMenuItem
+  | LinkMenuItem
   | RadioMenuItem
   | CheckboxMenuItem
   | SeparatorMenuItem
@@ -71,13 +90,11 @@ export type MenuItem =
 const menuVariants = tv({
   slots: {
     trigger: "",
-    // Zag sets `min-width: max-content` inline, so this resolves to
-    // max(trigger width, content width) — the panel is never narrower than
-    // the control that opened it.
-    positioner: ["isolate w-(--reference-width)"],
+    // Commands size independently of an icon trigger, within the viewport.
+    positioner: ["popup-layer menu-viewport isolate"],
     content: [
-      "popup-surface-base",
-      "w-full",
+      "popup-surface-base popup-layer",
+      "w-full min-w-0",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
@@ -87,8 +104,8 @@ const menuVariants = tv({
     ],
     item: [
       "popup-item-base",
-      "hover:bg-popup-item-bg-hover",
-      "focus:bg-popup-item-bg-hover",
+      "not-data-disabled:hover:bg-popup-item-bg-hover",
+      "not-data-disabled:focus:bg-popup-item-bg-hover",
       "data-[highlighted]:bg-popup-item-bg-hover",
       "data-[disabled]:cursor-not-allowed data-[disabled]:text-popup-item-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -109,19 +126,19 @@ const menuVariants = tv({
       "h-menu-separator",
       "bg-menu-separator-bg",
     ],
-    itemText: ["min-w-0 flex-grow truncate"],
+    itemText: ["wrap-anywhere min-w-0 flex-grow whitespace-normal"],
     // Trailing, always rendered (empty when unchecked) so toggling a row
     // never reflows its label.
     // Same reasoning as optionItem: the glyph sits on the bare panel, not on
     // a filled selected row, so it follows the checked foreground.
     itemIndicator: [
-      "-translate-y-1/2 absolute end-(--popup-item-x) top-1/2",
+      "absolute end-(--popup-item-x) top-1/2 -translate-y-1/2",
       "flex items-center justify-center",
       "size-(--size-popup-indicator) text-popup-item-fg-checked",
     ],
     itemIcon: ["shrink-0 text-menu-item-icon text-popup-item-fg-muted"],
     submenuIndicator: [
-      "ms-menu-submenu-indicator text-menu-submenu-indicator-fg",
+      "ms-menu-submenu-indicator text-menu-submenu-indicator-fg rtl:rotate-180",
     ],
   },
   variants: {
@@ -187,6 +204,25 @@ function renderMenuItem(
 
   // Handle submenu
   if (menuItem.type === "submenu") {
+    if (menuItem.disabled) {
+      return (
+        <li
+          {...api.getItemProps({ value: menuItem.value, disabled: true })}
+          aria-disabled="true"
+          className={itemSlot()}
+          key={menuItem.value}
+        >
+          {menuItem.icon && (
+            <Icon className={itemIcon()} icon={menuItem.icon} />
+          )}
+          <span className={itemText()}>{menuItem.label}</span>
+          <Icon
+            className={slots.submenuIndicator()}
+            icon="token-icon-menu-submenu"
+          />
+        </li>
+      )
+    }
     return (
       <SubmenuItem
         closeOnSelect={closeOnSelect}
@@ -211,6 +247,7 @@ function renderMenuItem(
           type: menuItem.type,
           value: menuItem.value,
           checked: menuItem.checked,
+          disabled: menuItem.disabled,
           onCheckedChange: (checked) => {
             onCheckedChange?.(menuItem, checked)
           },
@@ -220,6 +257,32 @@ function renderMenuItem(
         <span className={itemIndicator()}>
           {menuItem.checked && <Icon icon="token-icon-check" size="current" />}
         </span>
+      </li>
+    )
+  }
+
+  if (menuItem.type === "link") {
+    return (
+      <li key={menuItem.value} role="none">
+        <a
+          {...api.getItemProps({
+            value: menuItem.value,
+            valueText: menuItem.label,
+            disabled: menuItem.disabled,
+          })}
+          className={itemSlot()}
+          href={menuItem.disabled ? undefined : menuItem.href}
+          rel={
+            menuItem.rel ??
+            (menuItem.target === "_blank" ? "noopener noreferrer" : undefined)
+          }
+          target={menuItem.target}
+        >
+          {menuItem.icon && (
+            <Icon className={itemIcon()} icon={menuItem.icon} />
+          )}
+          <span className={itemText()}>{menuItem.label}</span>
+        </a>
       </li>
     )
   }
@@ -262,6 +325,11 @@ function SubmenuItem({
 }: SubmenuItemProps) {
   const submenuService = useMachine(menu.machine, {
     id: useId(),
+    dir: parentService.prop("dir"),
+    loopFocus: parentService.prop("loopFocus"),
+    typeahead: parentService.prop("typeahead"),
+    navigate: parentService.prop("navigate"),
+    positioning: { overlap: true, fitViewport: true },
     closeOnSelect,
     onSelect,
   })
@@ -302,7 +370,8 @@ function SubmenuItem({
       <li
         className={itemSlot()}
         {...triggerProps}
-        data-disabled={item.disabled || undefined}
+        aria-disabled={item.disabled || undefined}
+        data-disabled={item.disabled ? "" : undefined}
       >
         {item.icon && <Icon className={itemIcon()} icon={item.icon} />}
         <span className={itemText()}>{item.label}</span>
@@ -350,6 +419,8 @@ export type MenuProps = VariantProps<typeof menuVariants> &
     triggerText?: string
     triggerIcon?: IconType
     customTrigger?: ReactNode
+    /** Open with right-click, long press or Shift+F10 instead of left-click. */
+    contextMenu?: boolean
     className?: string
     onCheckedChange?: (item: MenuItem, checked: boolean) => void
     id?: string
@@ -388,10 +459,27 @@ export function Menu({
   triggerText = "Menu",
   triggerIcon,
   customTrigger,
+  contextMenu = false,
+  className,
   size = "md",
   onCheckedChange,
 }: MenuProps) {
   const generatedId = useId()
+  const contextInvoker = useRef<HTMLElement | null>(null)
+  const restoreContextFocus = useRef(false)
+  const contextMenuWasOpen = useRef(false)
+
+  useEffect(() => {
+    if (!contextMenu) {
+      return
+    }
+    const wasOpen = contextMenuWasOpen.current
+    contextMenuWasOpen.current = api.open
+    if (wasOpen && !api.open && restoreContextFocus.current) {
+      contextInvoker.current?.focus({ preventScroll: true })
+      restoreContextFocus.current = false
+    }
+  })
 
   const service = useMachine(menu.machine, {
     id: id || generatedId,
@@ -399,7 +487,7 @@ export function Menu({
     closeOnSelect,
     loopFocus,
     typeahead,
-    positioning,
+    positioning: { fitViewport: true, ...positioning },
     defaultHighlightedValue,
     highlightedValue,
     anchorPoint,
@@ -407,12 +495,26 @@ export function Menu({
     defaultOpen,
     composite,
     navigate: navigate ? (details) => navigate(details.value) : undefined,
-    onSelect,
+    onSelect(details) {
+      restoreContextFocus.current = true
+      onSelect?.(details)
+    },
     onOpenChange,
-    onEscapeKeyDown,
-    onPointerDownOutside,
+    onEscapeKeyDown(event) {
+      onEscapeKeyDown?.(event)
+      if (!event.defaultPrevented) {
+        restoreContextFocus.current = true
+      }
+    },
+    onPointerDownOutside(event) {
+      restoreContextFocus.current = false
+      onPointerDownOutside?.(event)
+    },
     onInteractOutside,
-    onFocusOutside,
+    onFocusOutside(event) {
+      restoreContextFocus.current = false
+      onFocusOutside?.(event)
+    },
     onHighlightChange,
     "aria-label": ariaLabel,
   })
@@ -432,29 +534,69 @@ export function Menu({
     onSelect,
   }
 
+  const triggerProps = contextMenu
+    ? mergeProps(api.getContextTriggerProps(), {
+        "aria-haspopup": "menu",
+        "aria-expanded": api.open,
+        tabIndex: 0,
+        onPointerDown(event: PointerEvent<HTMLElement>) {
+          contextInvoker.current = event.currentTarget
+          restoreContextFocus.current = true
+        },
+        onContextMenu(event: ReactMouseEvent<HTMLElement>) {
+          contextInvoker.current = event.currentTarget
+          restoreContextFocus.current = true
+        },
+        onKeyDown(event: KeyboardEvent<HTMLElement>) {
+          if (
+            event.key === "ContextMenu" ||
+            (event.shiftKey && event.key === "F10")
+          ) {
+            event.preventDefault()
+            const rect = event.currentTarget.getBoundingClientRect()
+            event.currentTarget.dispatchEvent(
+              new globalThis.MouseEvent("contextmenu", {
+                bubbles: true,
+                cancelable: true,
+                clientX: rect.left,
+                clientY: rect.bottom,
+              })
+            )
+          }
+        },
+      })
+    : api.getTriggerProps()
+  const triggerClassName = trigger({ className })
+
   return (
     <>
-      {/* Trigger */}
-      {customTrigger ? (
-        isValidElement(customTrigger) ? (
-          cloneElement(customTrigger as ReactElement, {
-            ...api.getTriggerProps(),
-          })
-        ) : (
-          <button {...api.getTriggerProps()}>{customTrigger}</button>
+      {isValidElement(customTrigger) ? (
+        cloneElement(
+          customTrigger as ReactElement<Record<string, unknown>>,
+          mergeProps(
+            customTrigger.props as Record<string, unknown>,
+            triggerProps,
+            { className: triggerClassName }
+          )
         )
       ) : (
-        <Button {...api.getTriggerProps()} className={trigger()}>
-          {triggerText}
-          {triggerIcon && <Icon className="ms-1" icon={triggerIcon} />}
-          {!triggerIcon && (
-            <span {...api.getIndicatorProps()}>
-              <Icon className="ms-1" icon="token-icon-menu-trigger" />
-            </span>
-          )}
+        <Button
+          {...triggerProps}
+          className={triggerClassName}
+          size={size === "xs" ? "sm" : size}
+        >
+          {typeof customTrigger === "string" ||
+          typeof customTrigger === "number"
+            ? customTrigger
+            : triggerText}
+          <span {...api.getIndicatorProps()}>
+            <Icon
+              icon={triggerIcon ?? "token-icon-menu-trigger"}
+              size="current"
+            />
+          </span>
         </Button>
       )}
-
       <Portal>
         <div className={positioner()} {...api.getPositionerProps()}>
           <ul className={content()} {...api.getContentProps()}>

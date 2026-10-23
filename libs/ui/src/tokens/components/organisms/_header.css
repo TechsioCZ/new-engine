@@ -8,6 +8,28 @@
  * - glyph utilities mapping the menu/close icons.
  */
 
+/* Container-query thresholds must be literal lengths: nested var() aliases
+ * cannot be resolved by Tailwind when it emits container variants. */
+@utility header-desktop {
+  display: none;
+  @container (width >= 48rem) {
+    display: flex;
+  }
+}
+@utility header-hamburger {
+  display: inline-flex;
+  @container (width >= 48rem) {
+    &[aria-controls] {
+      display: none;
+    }
+  }
+}
+@utility header-mobile {
+  @container (width >= 48rem) {
+    display: none;
+  }
+}
+
 :root {
   @media (width < 48rem) {
     --spacing-header-nav-sm: var(--spacing-50);

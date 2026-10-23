@@ -1,10 +1,7 @@
 /*
- * Icon — bound directly to Figma tokens.
- * Source: tokens/figma/{light,dark}/variables.css.
- *
- * Color tokens are exported but not consumed by the TSX (icons inherit from
- * surrounding text color). They're defined here so they're available when
- * stories or call sites opt into colored icons.
+ * Icon — sizes and component color aliases come from Figma tokens.
+ * `color="current"` inherits text; explicit colors consume --color-icon-fg-*.
+ * Semantic glyph aliases below use the MDI and MDI Light families.
  */
 
 @plugin "@iconify/tailwind4";
@@ -60,7 +57,10 @@
 }
 
 @utility token-icon-spinner {
-  @apply icon-[svg-spinners--ring-resize];
+  @apply icon-[mdi--loading];
+  @media (prefers-reduced-motion: no-preference) {
+    @apply animate-spin;
+  }
 }
 @utility token-icon-play {
   @apply icon-[mdi--play];
@@ -165,4 +165,55 @@
 }
 @utility token-icon-decrement {
   @apply token-icon-chevron-down;
+}
+
+/* Meaningful primary icons use semantic text contrast, never the brand tint. */
+@theme static {
+  --color-icon-accent-safe: var(--color-fg-accent-primary);
+  --color-icon-fg-accent-safe: var(--color-icon-accent-safe);
+}
+
+@theme static {
+  --color-icon-secondary-safe: var(--color-fg-accent-secondary);
+  --color-icon-danger-safe: var(--color-danger-fg);
+  --color-icon-success-safe: var(--color-success-fg);
+  --color-icon-warning-safe: var(--color-warning-fg);
+  --color-icon-fg-secondary-safe: var(--color-icon-secondary-safe);
+  --color-icon-fg-danger-safe: var(--color-icon-danger-safe);
+  --color-icon-fg-success-safe: var(--color-icon-success-safe);
+  --color-icon-fg-warning-safe: var(--color-icon-warning-safe);
+}
+
+/* Mask backgrounds are meaningful foreground paint. Preserve the system-mapped
+ * parent foreground, not the author's brand color, under Windows High Contrast.
+ * Pseudo-elements cover native checkbox check/mixed marks as well as icons. */
+@media (forced-colors: active) {
+  :where(span, i, svg):is([class*="token-icon-"], [class*="icon-["]) {
+    color: inherit !important;
+    forced-color-adjust: preserve-parent-color;
+    background-color: currentColor !important;
+  }
+  input[type="checkbox"]::after {
+    forced-color-adjust: none;
+    background-color: CanvasText !important;
+  }
+  input[type="checkbox"]:disabled::after {
+    background-color: GrayText !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(span, i, svg):is([class*="token-icon-"], [class*="icon-["]):is(
+    [data-disabled]:not([data-disabled="false"]),
+    [aria-disabled="true"]
+  ),
+  :is(
+      [data-disabled]:not([data-disabled="false"]),
+      [aria-disabled="true"],
+      :disabled
+    )
+    :where(span, i, svg):is([class*="token-icon-"], [class*="icon-["]) {
+    color: GrayText !important;
+    background-color: GrayText !important;
+  }
 }

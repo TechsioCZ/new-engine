@@ -2,14 +2,14 @@
  * Badge — @techsio/ui-kit atom.
  *
  * @component Badge
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill badge-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the badge-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { HTMLAttributes } from "react"
+import type { ComponentPropsWithRef } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
 
@@ -65,7 +65,7 @@ type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>
 type BadgeSize = NonNullable<VariantProps<typeof badgeVariants>["size"]>
 
 type BaseBadgeProps = Omit<
-  HTMLAttributes<HTMLSpanElement>,
+  ComponentPropsWithRef<"span">,
   "color" | "children"
 > & {
   children: string

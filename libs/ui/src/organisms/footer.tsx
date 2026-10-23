@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.0.3
+ * @componentVersion v1.1.1
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,11 +28,11 @@ import { tv } from "../utils"
 const footerVariants = tv({
   slots: {
     root: "flex w-full items-center justify-center rounded-footer bg-footer-bg",
-    container: "w-full max-w-footer-max bg-footer-container-bg",
-    section: "bg-footer-section-bg",
-    list: "flex list-none flex-col gap-footer-list bg-footer-list-bg",
+    container: "w-full min-w-0 max-w-footer-max bg-footer-container-bg",
+    section: "wrap-anywhere min-w-0 bg-footer-section-bg",
+    list: "flex min-w-0 list-none flex-col gap-footer-list bg-footer-list-bg",
     bottom:
-      "border-t-(length:--border-footer-width) flex w-full items-center justify-between bg-footer-bottom-bg pt-footer-bottom",
+      "border-t-(length:--border-footer-width) flex w-full flex-wrap items-center justify-between gap-footer-list border-footer-bottom-border bg-footer-bottom-bg pt-footer-bottom",
     title:
       "font-footer-title text-footer-title-fg transition-colors duration-200 hover:text-footer-title-fg-hover motion-reduce:transition-none",
     link: "font-footer-link text-footer-link-fg transition-colors duration-200 hover:text-footer-link-fg-hover motion-reduce:transition-none",
@@ -50,10 +50,11 @@ const footerVariants = tv({
     },
     layout: {
       col: {
-        container: "grid grid-cols-(--footer-cols)",
+        container:
+          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-(--footer-cols)",
       },
       row: {
-        container: "flex flex-row",
+        container: "flex flex-wrap",
       },
     },
     sectionFlow: {
@@ -179,12 +180,15 @@ export function Footer({
   direction,
   layout,
   className,
+  ...props
 }: FooterProps) {
   const { root } = footerVariants({ size, direction })
 
   return (
     <FooterContext.Provider value={{ size, sectionFlow, layout }}>
-      <footer className={root({ className })}>{children}</footer>
+      <footer className={root({ className })} {...props}>
+        {children}
+      </footer>
     </FooterContext.Provider>
   )
 }
@@ -192,28 +196,47 @@ export function Footer({
 Footer.Container = function FooterContainer({
   children,
   className,
+  ...props
 }: FooterContainerProps) {
   const { size, layout } = useContext(FooterContext)
   const { container } = footerVariants({ size, layout })
-  return <div className={container({ className })}>{children}</div>
+  return (
+    <div className={container({ className })} {...props}>
+      {children}
+    </div>
+  )
 }
 
 Footer.Section = function FooterSection({
   children,
   className,
+  ...props
 }: FooterSectionProps) {
   const { size, sectionFlow } = useContext(FooterContext)
   const { section } = footerVariants({
     size,
     sectionFlow,
   })
-  return <div className={section({ className })}>{children}</div>
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: Footer content groups are not form fieldsets or standalone page landmarks.
+    <div className={section({ className })} role="group" {...props}>
+      {children}
+    </div>
+  )
 }
 
-Footer.Title = function FooterTitle({ children, className }: FooterTitleProps) {
+Footer.Title = function FooterTitle({
+  children,
+  className,
+  ...props
+}: FooterTitleProps) {
   const { size } = useContext(FooterContext)
   const { title } = footerVariants({ size })
-  return <h3 className={title({ className })}>{children}</h3>
+  return (
+    <h3 className={title({ className })} {...props}>
+      {children}
+    </h3>
+  )
 }
 
 function FooterLink(props: FooterNativeLinkProps): ReactNode
@@ -238,10 +261,18 @@ function FooterLink<T extends ElementType = "a">({
 // Keep native TypeScript declarations from hiding siblings behind a Link export alias.
 Footer.Link = FooterLink satisfies typeof FooterLink
 
-Footer.Text = function FooterText({ children, className }: FooterTextProps) {
+Footer.Text = function FooterText({
+  children,
+  className,
+  ...props
+}: FooterTextProps) {
   const { size } = useContext(FooterContext)
   const { text } = footerVariants({ size })
-  return <p className={text({ className })}>{children}</p>
+  return (
+    <p className={text({ className })} {...props}>
+      {children}
+    </p>
+  )
 }
 
 // Fragments are transparent in the DOM, so their children are list entries in

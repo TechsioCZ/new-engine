@@ -2,37 +2,81 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.1.0
+ * @componentVersion v1.4.3
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the slider-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { normalizeProps, useMachine } from "@zag-js/react"
-import * as slider from "@zag-js/slider"
-import { useId } from "react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
+import {
+  connect as connectSlider,
+  machine as sliderMachine,
+} from "@zag-js/slider"
+import {
+  type ComponentPropsWithRef,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import { joinDescribedBy } from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { slugify, tv } from "../utils"
+
+// Zag dispatches native input events from a watcher that runs after React
+// commits, outside the synchronous reset guard. Remember the reset projection.
+const sliderResetValues = new WeakMap<object, string>()
+
+// Shared lifecycle replaces Zag's nearest-fieldset approximation and eager reset.
+const nativeSliderMachine: typeof sliderMachine = {
+  ...sliderMachine,
+  implementations: {
+    ...sliderMachine.implementations,
+    actions: {
+      ...sliderMachine.implementations?.actions,
+      dispatchChangeEvent(params) {
+        const resetValue = sliderResetValues.get(params.context)
+        sliderResetValues.delete(params.context)
+        // Native form reset is silent; only user-driven values announce events.
+        if (resetValue === JSON.stringify(params.context.get("value"))) {
+          return
+        }
+        sliderMachine.implementations?.actions?.dispatchChangeEvent?.(params)
+      },
+    },
+    effects: {
+      ...sliderMachine.implementations?.effects,
+      trackFormControlState() {
+        /* Shared lifecycle below owns disabled and reset behavior. */
+      },
+    },
+  },
+}
 
 const sliderVariants = tv({
   slots: {
     root: [
-      "flex w-full flex-col gap-slider",
+      "flex w-full min-w-0 flex-col gap-slider",
       "data-[orientation=vertical]:h-full",
       "data-disabled:cursor-not-allowed",
     ],
-    header: ["flex items-center justify-between"],
-    value: ["text-slider-value-size"],
-    label: ["block font-medium"],
+    header: ["flex min-w-0 flex-wrap items-center justify-between gap-slider"],
+    value: ["wrap-anywhere min-w-0 tabular-nums"],
+    label: ["wrap-anywhere block min-w-0 font-medium"],
     control: [
-      "relative grid place-items-center",
+      "relative grid min-h-slider-control place-items-center",
+      "data-markers:mb-slider-marker-label",
       "data-[orientation=vertical]:h-full data-[orientation=vertical]:grid-rows-1",
     ],
     track: [
-      "flex-1 rounded-slider-track bg-slider-track-bg",
+      "form-control-readonly flex-1 rounded-slider-track bg-slider-track-bg",
       "data-[orientation=horizontal]:w-full",
       "data-[orientation=vertical]:h-full",
       "data-disabled:bg-slider-track-bg-disabled",
@@ -52,7 +96,7 @@ const sliderVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     thumb: [
-      "flex items-center justify-center",
+      "form-control-readonly flex items-center justify-center",
       "rounded-slider-thumb bg-slider-thumb-bg",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-slider-ring",
@@ -62,7 +106,7 @@ const sliderVariants = tv({
       "border-(length:--border-width-slider) border-slider-border",
       "data-disabled:border-slider-border-disabled",
       "hover:bg-slider-thumb-bg-hover",
-      "cursor-grab data-disabled:cursor-not-allowed data-dragging:cursor-grabbing",
+      "cursor-grab data-disabled:cursor-not-allowed data-dragging:cursor-grabbing data-readonly:cursor-default",
       "shadow-slider-thumb",
     ],
     markerGroup: ["relative flex h-full items-center"],
@@ -86,18 +130,21 @@ const sliderVariants = tv({
   variants: {
     size: {
       sm: {
+        root: "text-slider-sm",
         track: [
           "h-slider-track-sm data-[orientation=vertical]:w-slider-track-sm",
         ],
         thumb: ["w-slider-thumb-sm", "h-slider-thumb-sm"],
       },
       md: {
+        root: "text-slider-md",
         track: [
           "h-slider-track-md data-[orientation=vertical]:w-slider-track-md",
         ],
         thumb: ["w-slider-thumb-md", "h-slider-thumb-md"],
       },
       lg: {
+        root: "text-slider-lg",
         track: [
           "h-slider-track-lg data-[orientation=vertical]:w-slider-track-lg",
         ],
@@ -110,15 +157,24 @@ const sliderVariants = tv({
   },
 })
 
+/** Ref and focus events target the actual focusable `role="slider"` thumb, not its hidden input. */
+export type SliderThumbProps = Pick<
+  ComponentPropsWithRef<"div">,
+  "ref" | "onFocus" | "onBlur"
+>
+
 export type SliderProps = VariantProps<typeof sliderVariants> & {
   id?: string
   name?: string
+  form?: string
   label?: string
   /**
-   * One accessible name per thumb, for a slider with no visible `label`
+   * One distinct accessible name per thumb, including sliders with a visible `label`
    * (e.g. `["Minimum price", "Maximum price"]`).
    */
   "aria-label"?: string[]
+  "aria-describedby"?: string
+  "aria-errormessage"?: string
   validateStatus?: "default" | "error" | "success" | "warning"
   helpText?: string
   showHelpTextIcon?: boolean
@@ -139,6 +195,9 @@ export type SliderProps = VariantProps<typeof sliderVariants> & {
   showValueText?: boolean
   formatRangeText?: (values: number[]) => string
   formatValue?: (value: number) => string
+  getAriaValueText?: (details: { value: number; index: number }) => string
+  /** Zero-based thumb props. React cleans up callback/object refs on removal; focus handlers compose with Zag. */
+  getThumbProps?: (index: number) => SliderThumbProps
   className?: string
   onChange?: (values: number[]) => void
   onChangeEnd?: (values: number[]) => void
@@ -172,22 +231,43 @@ const countDecimals = (value: number) => {
     return 0
   }
 
-  const [, decimalPart = ""] = value.toString().split(".")
-  return decimalPart.length
+  const [coefficient = "", exponent = "0"] = value
+    .toString()
+    .toLowerCase()
+    .split("e")
+  return Math.max(
+    0,
+    (coefficient.split(".")[1]?.length ?? 0) - Number(exponent)
+  )
 }
 
-const roundToStepPrecision = (value: number, step: number) => {
-  const precision = countDecimals(step)
-  if (precision <= 0) {
-    return Math.round(value)
+// ARIA numbers use decimal notation, not JavaScript's exponent notation.
+// React's ARIA types accept only numbers, although DOM attributes are strings.
+const ariaNumber = (value: number): number => {
+  const text = String(value)
+  const [coefficient = "", exponent] = text.split("e")
+  if (exponent === undefined) {
+    return value
   }
-
-  return Number(value.toFixed(precision))
+  const sign = coefficient.startsWith("-") ? "-" : ""
+  const unsigned = coefficient.replace("-", "")
+  const digits = unsigned.replace(".", "")
+  const point = (unsigned.split(".")[0]?.length ?? 0) + Number(exponent)
+  const decimal =
+    point <= 0
+      ? `0.${"0".repeat(-point)}${digits}`
+      : digits.padEnd(point, "0").slice(0, point) +
+        (point < digits.length ? `.${digits.slice(point)}` : "")
+  return `${sign}${decimal}` as unknown as number
 }
 
 const snapToStep = (value: number, min: number, step: number) => {
   const snappedValue = Math.round((value - min) / step) * step + min
-  return roundToStepPrecision(snappedValue, step)
+  const precision = Math.min(
+    100,
+    Math.max(countDecimals(min), countDecimals(step))
+  )
+  return Number(snappedValue.toFixed(precision))
 }
 
 const resolveThumbCount = (
@@ -347,8 +427,11 @@ const apiValueFallback = (
 export function Slider({
   id,
   name,
+  form,
   label,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
+  "aria-errormessage": ariaErrorMessage,
   validateStatus,
   helpText,
   showHelpTextIcon = true,
@@ -360,7 +443,7 @@ export function Slider({
   max = 100,
   step = 1,
   minStepsBetweenThumbs = 0,
-  disabled = false,
+  disabled: explicitDisabled = false,
   readOnly = false,
   dir = "ltr",
   orientation = "horizontal",
@@ -369,12 +452,28 @@ export function Slider({
   markerCount = 5,
   showValueText = false,
   formatRangeText,
+  getAriaValueText,
+  getThumbProps,
   formatValue = (val: number) => val.toString(),
   className,
   onChange,
   onChangeEnd,
 }: SliderProps) {
   const generatedId = useId()
+  const disabledProbeRef = useRef<HTMLInputElement>(null)
+  const resetting = useRef(false)
+  const [disabledElement, setDisabledElement] =
+    useState<HTMLInputElement | null>(null)
+  const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
+  const probeRef = useMemo(
+    () => (node: HTMLInputElement | null) => {
+      disabledProbeRef.current = node
+      setDisabledElement(node)
+    },
+    []
+  )
+  const interactionBlocked = () =>
+    disabled || readOnly || disabledProbeRef.current?.matches(":disabled")
   const uniqueId = id || generatedId
   const helpTextId = `${uniqueId}-help`
   const thumbCount = resolveThumbCount(value, defaultValue)
@@ -403,10 +502,29 @@ export function Slider({
     fallbackValues
   )
 
-  const service = useMachine(slider.machine, {
+  useEffect(() => {
+    if (
+      !(
+        typeof process !== "undefined" && process.env?.NODE_ENV === "production"
+      ) &&
+      thumbCount > 1 &&
+      (ariaLabel?.length !== thumbCount ||
+        ariaLabel.some((thumbName) => !thumbName.trim()) ||
+        new Set(ariaLabel).size !== thumbCount)
+    ) {
+      console.warn(
+        "[Slider] Provide a distinct aria-label for every thumb, even with a visible label."
+      )
+    }
+  }, [ariaLabel, thumbCount])
+
+  const service = useMachine(nativeSliderMachine, {
     id: uniqueId,
     name,
+    form,
     "aria-label": ariaLabel,
+    getAriaValueText:
+      getAriaValueText ?? (({ value: thumbValue }) => formatValue(thumbValue)),
     value: resolvedValue,
     defaultValue: resolvedDefaultValue,
     min: resolvedConfig.min,
@@ -419,11 +537,54 @@ export function Slider({
     readOnly,
     dir,
     orientation,
-    onValueChange: (details) => onChange?.(details.value),
-    onValueChangeEnd: (details) => onChangeEnd?.(details.value),
+    onValueChange: (details) => {
+      if (!(resetting.current || interactionBlocked())) {
+        onChange?.(details.value)
+      }
+    },
+    onValueChangeEnd: (details) => {
+      if (!(resetting.current || interactionBlocked())) {
+        onChangeEnd?.(details.value)
+      }
+    },
   })
 
-  const api = slider.connect(service, normalizeProps)
+  const api = connectSlider(service, normalizeProps)
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    resetting.current = true
+    try {
+      if (!isControlled) {
+        const initial = service.context.initial("value")
+        if (
+          JSON.stringify(initial) !==
+          JSON.stringify(service.context.get("value"))
+        ) {
+          sliderResetValues.set(service.context, JSON.stringify(initial))
+        }
+        service.context.set("value", initial)
+      }
+      // Reconcile native inputs even when controlled state did not rerender.
+      const inputs =
+        disabledProbeRef.current?.parentElement?.querySelectorAll<HTMLInputElement>(
+          "input[hidden]"
+        ) ?? []
+      const restored = isControlled
+        ? resolvedValue
+        : service.context.get("value")
+      for (const [index, input] of Array.from(inputs).entries()) {
+        input.value = String(restored?.[index] ?? "")
+      }
+    } finally {
+      resetting.current = false
+    }
+  }
+  useEffect(() => {
+    const input = disabledProbeRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
 
   const {
     root,
@@ -444,34 +605,62 @@ export function Slider({
   })
 
   return (
-    <div className={root({ className })} {...api.getRootProps()}>
+    <div
+      className={root({ className })}
+      {...api.getRootProps()}
+      onKeyDownCapture={(event) => {
+        if (interactionBlocked()) {
+          event.stopPropagation()
+        }
+      }}
+      onPointerDownCapture={(event) => {
+        if (interactionBlocked()) {
+          // Cancel native/Zag dragging without canceling the read-only
+          // thumb's focus affordance along with the pointer default.
+          if (readOnly && !disabled) {
+            const target = event.target as HTMLElement
+            target.closest<HTMLElement>('[data-part="thumb"]')?.focus()
+          }
+          event.preventDefault()
+          event.stopPropagation()
+        }
+      }}
+    >
+      <input
+        data-part="disabled-probe"
+        form={form}
+        ref={probeRef}
+        type="hidden"
+      />
       {(label || showValueText) && (
         <div className={header()}>
-          <Label className={labelSlot()} {...api.getLabelProps()}>
+          <Label className={labelSlot()} size={size} {...api.getLabelProps()}>
             {label}
           </Label>
           {showValueText && (
             <output className={valueSlot()} {...api.getValueTextProps()}>
               <b>
                 {formatRangeText
-                  ? formatRangeText(api.value || valueTextValues)
-                  : api.value &&
-                      api.value.length === 2 &&
-                      api.value[0] !== undefined &&
-                      api.value[1] !== undefined
-                    ? `${formatValue(api.value[0])} - ${formatValue(api.value[1])}`
-                    : ""}
+                  ? formatRangeText(api.value ?? valueTextValues)
+                  : (api.value ?? valueTextValues).map(formatValue).join(" – ")}
               </b>{" "}
             </output>
           )}
         </div>
       )}
 
-      <div className={control()} {...api.getControlProps()}>
+      <div
+        className={control()}
+        {...api.getControlProps()}
+        data-markers={
+          showMarkers && orientation === "horizontal" ? "" : undefined
+        }
+      >
         <div
           className={track()}
           {...api.getTrackProps()}
           data-invalid={validateStatus === "error"}
+          data-readonly={readOnly ? "" : undefined}
         >
           <div
             className={range()}
@@ -519,19 +708,52 @@ export function Slider({
         {api.value.map((_, index) => (
           <div
             className={thumb()}
+            // biome-ignore lint/suspicious/noArrayIndexKey: thumb indices are stable value positions, not reorderable items.
             key={`thumb-${index}`}
-            {...api.getThumbProps({ index })}
+            {...mergeProps(
+              api.getThumbProps({ index }),
+              getThumbProps?.(index) ?? {}
+            )}
             // The thumb is the focusable slider; link the help/error text to it.
-            aria-describedby={helpText ? helpTextId : undefined}
+            aria-describedby={joinDescribedBy(
+              ariaDescribedBy,
+              helpText ? helpTextId : undefined
+            )}
+            aria-errormessage={
+              validateStatus === "error"
+                ? joinDescribedBy(
+                    ariaErrorMessage,
+                    helpText ? helpTextId : undefined
+                  )
+                : undefined
+            }
+            aria-invalid={validateStatus === "error" || undefined}
+            aria-labelledby={
+              ariaLabel?.[index] ? undefined : api.getLabelProps().id
+            }
+            aria-readonly={readOnly || undefined}
+            aria-valuemax={ariaNumber(api.getThumbMax(index))}
+            aria-valuemin={ariaNumber(api.getThumbMin(index))}
+            aria-valuenow={ariaNumber(api.value[index] ?? 0)}
+            data-readonly={readOnly ? "" : undefined}
+            role="slider"
+            tabIndex={api.getThumbProps({ index }).tabIndex}
           >
-            <input {...api.getHiddenInputProps({ index })} />
+            <input
+              {...api.getHiddenInputProps({ index })}
+              disabled={disabled}
+            />
           </div>
         ))}
       </div>
       {helpText && (
         <StatusText
           id={helpTextId}
-          showIcon={showHelpTextIcon}
+          showIcon={
+            validateStatus && validateStatus !== "default"
+              ? true
+              : showHelpTextIcon
+          }
           size={size}
           status={validateStatus}
         >

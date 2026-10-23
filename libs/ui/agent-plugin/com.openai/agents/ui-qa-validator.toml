@@ -27,8 +27,4 @@ Write the marker consumed by the git pre-push hook (which rejects any push of li
 until it matches the pushed ref's tip):
 `git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"`
 Validate LAST — any new commit invalidates the marker.
-
-## Known CI trap
-apps/herbatika has 9 pre-existing lint errors on master; any UI diff makes it "affected", so a
-red `herbatica:lint` is NOT caused by the UI change. Never "fix" herbatika from UI work.
 """

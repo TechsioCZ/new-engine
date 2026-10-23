@@ -5,7 +5,7 @@ description: >
   for labeled multi-line text fields with Textarea, Label, StatusText,
   validation status, help text, size, resize, required, and disabled props.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -73,11 +73,11 @@ import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
 Supported props:
 
 ```text
-id: required
+id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
-Textarea props: size, resize, readonly, required, disabled
+Textarea props: size, resize, readOnly (legacy readonly alias), required, disabled
 ```
 
 ## Core Patterns
@@ -148,6 +148,48 @@ Source: libs/ui/src/tokens/components/atoms/_textarea.css
 
 ```sh
 rg -U -n "<Label[\\s\\S]{0,240}<Textarea|<textarea\\b|<FormTextarea[^>]*variant=" apps
-rg -P -n "<FormTextarea(?![^>]*id=)|<FormTextarea(?![^>]*label=)" apps
+rg -P -n "<FormTextarea(?![^>]*label=)" apps
 rg -n "<FormTextarea[^>]*className=.*(border-|bg-|text-|p-|px-|py-)" apps
 ```
+
+## Read-only and feedback contracts
+
+Use `readOnly` for visible, focusable, copyable values that must not change.
+The value keeps full contrast and a subtle surface; disabled wins when both
+are set. Canonical sizes are sm/md/lg, default md, including labels and feedback.
+
+`helpText` renders StatusText with a stable unique ID, merged with caller
+`aria-describedby`. Errors also set `aria-invalid` and `aria-errormessage`;
+the internally generated error reference disappears when wrapper validation clears. Error/warning/success
+icons always remain enabled; `showHelpTextIcon` only customizes neutral help.
+Validate on blur/submit and use actionable copy rather than color alone.
+
+The legacy Raw export also associates plain helper copy and precomposed
+StatusText elements. Existing StatusText IDs are retained; plain copy receives
+the same default status icons and ARIA wiring as the standard entry point.
+
+
+Caller-supplied `aria-errormessage` IDs are preserved independently of
+`validateStatus`, including when the caller supplies the invalid state. Clear
+caller-owned error IDs and invalid state together when removing that message;
+the wrapper only manages the lifecycle of its own generated error reference.
+
+### Generated IDs
+
+Omitting `id` generates a stable, unique control ID and associates the label
+and feedback automatically. Supply a unique explicit ID only when an external
+error summary or another consumer must reference the control.
+
+```tsx
+<FormTextarea label="Delivery instructions" name="instructions" />
+```
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.

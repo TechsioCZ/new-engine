@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit template.
  *
  * @component Carousel
- * @componentVersion v1.2.3
+ * @componentVersion v1.3.4
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,8 +17,10 @@ import {
   type CarouselSlide,
 } from "../molecules/carousel"
 
-export interface CarouselTemplateProps<T extends ElementType>
-  extends Omit<CarouselRootProps<T>, "children" | "slideCount"> {
+export type CarouselTemplateProps<T extends ElementType> = Omit<
+  CarouselRootProps<T>,
+  "children" | "slideCount"
+> & {
   slides: CarouselSlide[]
   showControls?: boolean
   showIndicators?: boolean
@@ -73,28 +75,19 @@ export function CarouselTemplate<T extends ElementType>({
       width={width}
       {...carouselProps}
     >
-      <Carousel.Slides
-        imageAs={imageAs}
-        slides={slides}
-      />
+      <Carousel.Slides imageAs={imageAs} slides={slides} />
 
       {(showControls || showIndicators) && (
         <Carousel.Control>
           {showControls && <Carousel.Previous icon={prevIcon} />}
           {showControls && showIndicators && <div className="flex-1" />}
-          {showIndicators && (
-            <Carousel.Indicators>
-              {slides.map((slide, index) => (
-                <Carousel.Indicator index={index} key={slide.id} />
-              ))}
-            </Carousel.Indicators>
-          )}
+          {showIndicators && <Carousel.Indicators />}
           {showControls && showIndicators && <div className="flex-1" />}
           {showControls && <Carousel.Next icon={nextIcon} />}
         </Carousel.Control>
       )}
 
-      {showAutoplay && <Carousel.Autoplay />}
+      {(Boolean(autoplay) || showAutoplay) && <Carousel.Autoplay />}
     </Carousel>
   )
 }

@@ -11,14 +11,16 @@
  * the plain elements here are layout containers only.
  */
 import type { ReactNode } from "react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Button } from "../../src/atoms/button"
 import { Icon, type IconType } from "../../src/atoms/icon"
+import { StatusText } from "../../src/atoms/status-text"
 import { Tooltip } from "../../src/atoms/tooltip"
 import { Dialog } from "../../src/molecules/dialog"
 import { SearchForm } from "../../src/molecules/search-form"
 import { type TreeNode, TreeView } from "../../src/molecules/tree-view"
+import { contentEntries, customers, orders, storefrontProducts } from "./data"
 
 type FrameProps = {
   /** Full-width bar above every column. */
@@ -45,11 +47,14 @@ export function Frame({ top, left, right, flush, children }: FrameProps) {
       <div className="flex min-h-0 flex-1">
         {left}
         <main
+          aria-label="Page content"
           className={
             flush
-              ? "flex min-w-0 flex-1 flex-col overflow-y-auto"
-              : "flex min-w-0 flex-1 flex-col gap-250 overflow-y-auto p-250"
+              ? "flex min-w-0 flex-1 flex-col overflow-y-auto focus-visible:ring-2 focus-visible:ring-ring-default focus-visible:ring-inset"
+              : "flex min-w-0 flex-1 flex-col gap-250 overflow-y-auto p-250 focus-visible:ring-2 focus-visible:ring-ring-default focus-visible:ring-inset"
           }
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: Page content is the shell's only scroll viewport.
+          tabIndex={0}
         >
           {children}
         </main>
@@ -243,11 +248,11 @@ export function Brand({
   environment = "Production",
 }: BrandProps) {
   return (
-    <div className="flex items-center gap-150">
+    <div className="flex min-w-0 items-center gap-150">
       <span className="flex size-icon-control-lg items-center justify-center rounded-md bg-overlay text-fg-primary">
         <Icon icon="icon-[mdi--hexagon-multiple-outline]" size="md" />
       </span>
-      <span className="flex min-w-0 flex-col">
+      <span className="sr-only sm:not-sr-only sm:flex sm:min-w-0 sm:flex-col">
         <span className="truncate font-semibold text-sm">{workspace}</span>
         <span className="text-fg-secondary text-xs">{environment}</span>
       </span>
@@ -273,20 +278,7 @@ export function TopBar({ start, center, end }: TopBarProps) {
         <div className="flex min-w-0 flex-1 justify-center">{center}</div>
       )}
       <div className="ms-auto flex items-center gap-100">
-        {end ?? (
-          <>
-            <ActionIcon
-              aria-label="Notifications"
-              icon="icon-[mdi--bell-outline]"
-              size="md"
-            />
-            <ActionIcon
-              aria-label="Help"
-              icon="icon-[mdi--help-circle-outline]"
-              size="md"
-            />
-          </>
-        )}
+        {end ?? <DemoUtilities />}
       </div>
     </header>
   )
@@ -298,16 +290,132 @@ export function GlobalSearch({
 }: {
   placeholder?: string
 }) {
+  const [query, setQuery] = useState("")
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<string>()
+  const records = [
+    ...orders.map((order) => ({
+      id: order.id,
+      label: `${order.number} · ${order.customer}`,
+      kind: "Order",
+    })),
+    ...storefrontProducts.map((product) => ({
+      id: product.id,
+      label: product.name,
+      kind: "Product",
+    })),
+    ...customers.map((customer) => ({
+      id: customer.id,
+      label: customer.name,
+      kind: "Customer",
+    })),
+    ...contentEntries.map((entry) => ({
+      id: entry.id,
+      label: entry.title,
+      kind: "Content",
+    })),
+  ]
+  const results = query.trim()
+    ? records
+        .filter((record) =>
+          record.label
+            .toLocaleLowerCase()
+            .includes(query.trim().toLocaleLowerCase())
+        )
+        .slice(0, 8)
+    : []
   return (
-    <SearchForm className="w-full max-w-lg" size="sm">
-      <SearchForm.Control>
-        <SearchForm.Input
-          aria-label="Search the workspace"
-          placeholder={placeholder}
-        />
-        <SearchForm.Button>Search</SearchForm.Button>
-      </SearchForm.Control>
-    </SearchForm>
+    <>
+      <SearchForm
+        className="w-full max-w-lg"
+        onSubmit={() => {
+          setSelected(undefined)
+          setOpen(true)
+        }}
+        onValueChange={setQuery}
+        size="sm"
+        value={query}
+      >
+        <SearchForm.Control>
+          <SearchForm.Input
+            aria-label="Search the workspace"
+            placeholder={placeholder}
+          />
+          <SearchForm.Button>Search</SearchForm.Button>
+        </SearchForm.Control>
+      </SearchForm>
+      <Dialog
+        customTrigger
+        description="Search local sample records; no external index or live account is contacted."
+        onOpenChange={({ open: next }) => setOpen(next)}
+        open={open}
+        title="Workspace search"
+      >
+        {results.length ? (
+          <ul className="flex flex-col gap-100">
+            {results.map((record) => (
+              <li key={`${record.kind}-${record.id}`}>
+                <Button
+                  onClick={() =>
+                    setSelected(
+                      `${record.kind}: ${record.label} · ${record.id}`
+                    )
+                  }
+                  theme="borderless"
+                  variant="secondary"
+                >
+                  {record.kind} · {record.label}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <StatusText role="status">
+            {query.trim()
+              ? `No sample records match “${query}”. Try “Runner”, “Nora” or an order number.`
+              : "Enter a product, customer, order number or content title to search."}
+          </StatusText>
+        )}
+        {selected && (
+          <StatusText role="status">Record preview: {selected}</StatusText>
+        )}
+      </Dialog>
+    </>
+  )
+}
+
+export function DemoUtilities() {
+  const [panel, setPanel] = useState<"help" | "notifications" | null>(null)
+  return (
+    <>
+      <ActionIcon
+        aria-label="Notifications"
+        icon="icon-[mdi--bell-outline]"
+        onClick={() => setPanel("notifications")}
+        size="md"
+      />
+      <ActionIcon
+        aria-label="Help"
+        icon="icon-[mdi--help-circle-outline]"
+        onClick={() => setPanel("help")}
+        size="md"
+      />
+      <Dialog
+        customTrigger
+        description={
+          panel === "help"
+            ? "These examples use local state. Use the Storybook component Docs for API guidance and the navigation menu for layout patterns."
+            : "No unread notifications in this local demo. No account service was contacted."
+        }
+        onOpenChange={({ open }) => {
+          if (!open) {
+            setPanel(null)
+          }
+        }}
+        open={panel !== null}
+        title={panel === "help" ? "Workspace help" : "Notifications"}
+      />
+    </>
   )
 }
 
@@ -321,21 +429,62 @@ export function TopNav({
   selected: string
   onSelect: (id: string) => void
 }) {
+  const [open, setOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
   return (
-    <nav aria-label="Main" className="flex items-center gap-50">
-      {items.map((item) => (
-        <Button
-          aria-current={item.id === selected ? "page" : undefined}
-          className={item.id === selected ? "text-fg-primary" : undefined}
-          key={item.id}
-          onClick={() => onSelect(item.id)}
-          size="sm"
-          theme="borderless"
-          variant={item.id === selected ? "primary" : "secondary"}
-        >
-          {item.label}
-        </Button>
-      ))}
-    </nav>
+    <>
+      <Button
+        className="lg:hidden"
+        icon="icon-[mdi--menu]"
+        onClick={() => setOpen(true)}
+        ref={trigger}
+        size="sm"
+        theme="borderless"
+        variant="secondary"
+      >
+        Menu
+      </Button>
+      <Dialog
+        customTrigger
+        finalFocusEl={() => trigger.current}
+        onOpenChange={(details) => setOpen(details.open)}
+        open={open}
+        placement="left"
+        size="xs"
+        title="Navigation"
+      >
+        <nav aria-label="Mobile main" className="flex flex-col gap-100">
+          {items.map((item) => (
+            <Button
+              aria-current={item.id === selected ? "page" : undefined}
+              key={item.id}
+              onClick={() => {
+                onSelect(item.id)
+                setOpen(false)
+              }}
+              theme="borderless"
+              variant={item.id === selected ? "primary" : "secondary"}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </nav>
+      </Dialog>
+      <nav aria-label="Main" className="hidden items-center gap-50 lg:flex">
+        {items.map((item) => (
+          <Button
+            aria-current={item.id === selected ? "page" : undefined}
+            className={item.id === selected ? "text-fg-primary" : undefined}
+            key={item.id}
+            onClick={() => onSelect(item.id)}
+            size="sm"
+            theme="borderless"
+            variant={item.id === selected ? "primary" : "secondary"}
+          >
+            {item.label}
+          </Button>
+        ))}
+      </nav>
+    </>
   )
 }

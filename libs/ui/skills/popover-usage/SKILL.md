@@ -5,7 +5,7 @@ description: >
   anchored non-blocking content using Zag.js compound parts, placement,
   portalling, close behavior, arrow, title, description, and close trigger.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -158,3 +158,32 @@ rg -n "absolute.*top-full|<Popover\\.Content[^>]*className=.*(bg-|p-|rounded-|sh
 rg -U -P -n "<Popover(?![\\s\\S]{0,500}<Popover\\.Positioner)" apps
 rg -U -n "<Popover[\\s\\S]{0,400}<Form(Input|Textarea|Checkbox)" apps
 ```
+
+## Floating surface and density
+
+Both Content and Positioner use popup-layer and preserve Zag’s layer index.
+The panel and arrow use the opaque shared popup surface and soft popup
+shadow. Panels are bounded to 32rem or the viewport minus edge spacing,
+wrap unbroken strings. Keep content short; use Dialog for content that
+needs scrolling rather than clipping the arrow on an overflowing panel.
+`size` sm/md/lg controls panel padding and body/title typography, not a
+fixed control height. Keep short forms local (prevent real submission),
+with secondary Cancel then primary Save at the end.
+
+Every panel is a dialog and needs its own accessible name, including panels
+with custom triggers. Render `Popover.Title` (or the template's `title` prop)
+for a visible heading. For intentionally heading-free content, pass
+`aria-label` to `Popover.Content` (template: `contentProps={{ "aria-label":
+"Delivery information" }}`). A named trigger does not automatically name
+the dialog.
+
+The template accepts `aria-label` for panels without a visible title. Prefer a
+specific task name; `contentProps["aria-label"]` / `aria-labelledby` can also
+supply it. A plain-text trigger is the fallback name, otherwise the fallback is
+“Additional details”. The icon-only close trigger preserves a caller's
+`aria-label` and `sm`/`md`/`lg` size. Long panels scroll their inner content
+viewport, not the whole surface. The close action and arrow stay outside that
+scroller; close remains visible at every scroll position, with inline clearance
+for its hit area. Content refs and ARIA props still target the dialog surface.
+A modal Popover owns descendant popup portals, including when nested inside
+Dialog or Drawer, so menus remain in its accessible tree and focus scope.

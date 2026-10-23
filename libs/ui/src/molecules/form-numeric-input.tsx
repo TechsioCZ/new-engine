@@ -2,7 +2,7 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.1.2
+ * @componentVersion v1.2.2
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,11 +13,12 @@ import { type ReactNode, useId } from "react"
 import { Label } from "../atoms/label"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 import { StatusText } from "../atoms/status-text"
+import { joinDescribedBy } from "../internal/described-by"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
-interface FormNumericInputProps extends Omit<NumericInputProps, "children"> {
-  id: string
+type FormNumericInputProps = Omit<NumericInputProps, "children"> & {
+  id?: string
   label: ReactNode
   validateStatus?: ValidateStatus
   helpText?: ReactNode
@@ -36,6 +37,8 @@ export function FormNumericInput({
   required,
   disabled,
   describedBy,
+  "aria-describedby": ariaDescribedBy,
+  "aria-errormessage": ariaErrorMessage,
   children,
   ...numericInputProps
 }: FormNumericInputProps) {
@@ -46,10 +49,16 @@ export function FormNumericInput({
   const fieldId = id || generatedId
   const inputId = ids?.input ?? fieldId
   const helpTextId = useId()
-  const mergedDescribedBy =
-    [describedBy, helpText ? helpTextId : undefined]
-      .filter(Boolean)
-      .join(" ") || undefined
+  const hasHelpText =
+    helpText !== undefined &&
+    helpText !== null &&
+    helpText !== false &&
+    helpText !== ""
+  const mergedDescribedBy = joinDescribedBy(
+    describedBy,
+    ariaDescribedBy,
+    hasHelpText ? helpTextId : undefined
+  )
 
   return (
     <div className="flex flex-col gap-form-field-gap">
@@ -63,22 +72,27 @@ export function FormNumericInput({
       </Label>
 
       <NumericInput
+        {...numericInputProps}
+        aria-errormessage={joinDescribedBy(
+          ariaErrorMessage,
+          validateStatus === "error" && hasHelpText ? helpTextId : undefined
+        )}
         describedBy={mergedDescribedBy}
         disabled={disabled}
         id={fieldId}
         ids={ids}
-        invalid={validateStatus === "error"}
+        invalid={validateStatus === "error" || numericInputProps.invalid}
         required={required}
         size={size}
-        {...numericInputProps}
+        validateStatus={validateStatus}
       >
         {children}
       </NumericInput>
 
-      {helpText && (
+      {hasHelpText && (
         <StatusText
           id={helpTextId}
-          showIcon={showHelpTextIcon}
+          showIcon={validateStatus !== "default" || showHelpTextIcon}
           size={size}
           status={validateStatus}
         >

@@ -221,8 +221,75 @@ Source: libs/ui/AGENTS.md
 
 ```sh
 bunx biome check --write libs/ui/stories/atoms/button.stories.tsx
-bunx nx run ui:build
+pnpm --dir libs/ui build
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y
 ```
 
+
+## Shared documentation contract (required)
+
+See `libs/ui/docs/component-contracts.md` for the source of truth.
+
+- Every component needs `tags: ["autodocs"]` and a component description saying
+  what it is, when to choose it, and when to choose an alternative.
+- Every exported story needs a clear name and one sentence in
+  `parameters.docs.description.story` explaining what it demonstrates and why.
+- Exactly one Sizes story demonstrates Small (sm), Medium (md), Large (lg), in
+  that order, with identical realistic copy/value. No separate size stories or
+  xs/current fourth size; document compatibility escapes in prose. Content-width
+  sizing axes and non-control exceptions must be explained explicitly.
+- Playground args/controls must visibly affect the example. Use kit components,
+  realistic copy and token layout classes. No foreign-component showcase, raw
+  code content above the demo, navigation away, real network mutations or form
+  reloads. Model behavior locally; use Docs source panels for code.
+- Keep one primary action per surface; secondary Cancel then primary Save/Create
+  at form end. Separate destructive actions. Do not style every action primary.
+- Validation uses StatusText with default state icons, associated message IDs
+  and meaningful non-color copy. States stories distinguish editable, read-only
+  (focus/copy allowed, no edits) and disabled (not focusable).
+- Test fixed behavior through story play assertions/existing behavior harness.
+  During the shared overhaul never start another Storybook server/build or local
+  browser; use the assigned shared-browser runner for visual review in
+  base/light, base/dark and Akros/light.
+
+## Compound member API and copyable source
+
+Every public compound member needs a named reference section. Register
+`subcomponents` only when Storybook extracts accurate member tables; otherwise
+supply explicit API tables. Document required matching values/items, nesting
+and context, rendered element/ref target, disabled behavior, and label/help
+ownership. Link common DOM props rather than duplicating exhaustive lists.
+Verify representative required-part rows in the rendered Docs, not just source
+metadata. Metadata must identify the public root, never a private story helper.
+
+Private demo wrappers may remain internal, but primary Docs source must be a
+complete runnable example with public subpath imports, required data/state and
+all local helper definitions. Use explicit `parameters.docs.source.code` when
+automatic serialization loses compound anatomy or turns callbacks into empty
+functions. Hotkeys examples include store initialization, registration and
+teardown; Pagination URL builders return real strings. Compile the exact source
+shown by Copy code against public exports and verify the copied browser output.
+
+Curate controls explicitly: text editors for strings; no ref/id/callback
+editors or serialized React elements. Use `control: false` for legitimate public
+props that still belong in API documentation, and `table.disable` for internal
+rows. The global enhancer is a safety net, not a substitute for meaningful
+per-story args and named composition examples.
+
+## Standalone Docs and shared browser contracts
+
+Standalone MDX has no Canvas decorator. Keep Docs registered through `DocsTheme`
+so first-load and live Storybook globals reach the same root theme resolver as
+Canvas. Do not parse URL globals or rely on an embedded story to initialize the
+page. Verify Akros/light and base/light/dark directly, then switch globals
+without navigation. Light-only brands must remain light. API tables that overflow
+at 390px need a named focusable scroll region and working arrow-key scrolling.
+
+Maintained shared contracts live in `test/visual-shared.spec.mjs` and
+`test/visual-popups.spec.mjs`, discovered by the Docker component suite. Popup
+checkpoints capture the whole page, not `#storybook-root`; the capture helper
+checks every visible positioner/content surface against the actual PNG bounds,
+including hierarchical and calendar surfaces. Checkpoint attachments are evidence,
+not approved screenshot baselines. Run them through the serial Docker wrapper
+when the shared overhaul browser rules apply.

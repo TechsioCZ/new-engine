@@ -1,387 +1,182 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { Carousel, type CarouselSlide } from '../../src/molecules/carousel'
+import type { Meta, StoryObj } from "@storybook/react"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import {
+  Carousel,
+  type CarouselRootProps,
+  type CarouselSlide,
+} from "../../src/molecules/carousel"
 
 const sampleImages: CarouselSlide[] = [
   {
-    id: 'slide-1',
-    src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
-    alt: 'Beautiful landscape',
+    id: "mountains",
+    src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80",
+    alt: "Sunlit mountain peaks above a valley in the Alps",
   },
   {
-    id: 'slide-2',
-    src: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
-    alt: 'City skyline',
+    id: "coast",
+    src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    alt: "Turquoise sea beside a sandy beach lined with palms",
   },
   {
-    id: 'slide-3',
-    src: 'https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    alt: 'Ocean view',
+    id: "city",
+    src: "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=1200&q=80",
+    alt: "City skyline and waterfront at dusk",
   },
   {
-    id: 'coffee',
-    src: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600',
-    alt: 'Coffee',
-  },
-  {
-    id: 'architecture',
-    src: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600',
-    alt: 'Architecture',
-  },
-  {
-    id: 'city-panorama',
-    src: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=1200',
-    alt: 'City panorama',
-  },
-  {
-    id: 'beach-wide',
-    src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200',
-    alt: 'Beach panorama',
-  },
-  {
-    id: 'skyscraper',
-    src: 'https://images.unsplash.com/photo-1494145904049-0dca59b4bbad?w=400',
-    alt: 'Skyscraper',
+    id: "coffee",
+    src: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80",
+    alt: "Freshly brewed coffee and coffee-making equipment on a table",
   },
 ]
 
-const mixedSlides: CarouselSlide[] = [
-  {
-    id: 'image-1',
-    src: 'https://picsum.photos/205',
-    alt: 'Sample image',
-  },
-  {
-    id: 'content-1',
-    content: (
-      <div className="flex h-full flex-col items-center justify-center bg-surface-secondary p-lg text-center">
-        <h3 className="mb-md font-bold text-xl text-fg-primary">
-          Custom Content
-        </h3>
-        <p className="text-fg-secondary">
-          This slide has custom JSX content instead of an image
-        </p>
-      </div>
-    ),
-  },
-  {
-    id: 'image-2',
-    src: 'https://picsum.photos/206',
-    alt: 'Another image',
-  },
-]
+const contentSlides: CarouselSlide[] = (
+  [
+    ["weekend", "A weekend away", "Find a slower pace in the mountains."],
+    [
+      "coast",
+      "Follow the coastline",
+      "Explore quiet beaches and seaside trails.",
+    ],
+    [
+      "city",
+      "Stay curious",
+      "Discover a new neighbourhood on your next city break.",
+    ],
+  ] as const
+).map(([id, title, description]) => ({
+  id,
+  content: (
+    <div className="flex size-full flex-col justify-center gap-100 bg-surface p-400 text-fg-primary">
+      <p className="text-sm text-fg-secondary">Ideas for your next trip</p>
+      <h3 className="font-semibold text-xl">{title}</h3>
+      <p className="max-w-sm text-fg-secondary">{description}</p>
+    </div>
+  ),
+}))
 
-const contentSlides: CarouselSlide[] = [
-  {
-    id: 'content-1',
-    content: (
-      <div className="flex flex-col items-center justify-center bg-surface-accent p-lg text-center">
-        <h3 className="mb-md font-bold text-xl text-fg-primary">Welcome</h3>
-        <p className="text-fg-secondary">
-          This is the first slide with custom content
-        </p>
-      </div>
-    ),
-  },
-  {
-    id: 'content-2',
-    content: (
-      <div className="flex flex-col items-center justify-center bg-surface-success p-lg text-center">
-        <h3 className="mb-md font-bold text-xl text-fg-primary">Features</h3>
-        <p className="text-fg-secondary">Explore the amazing features we offer</p>
-      </div>
-    ),
-  },
-  {
-    id: 'content-3',
-    content: (
-      <div className="flex flex-col items-center justify-center bg-surface-info p-lg text-center">
-        <h3 className="mb-md font-bold text-xl text-fg-primary">Get Started</h3>
-        <p className="text-fg-secondary">Ready to begin your journey?</p>
-      </div>
-    ),
-  },
-]
+type StoryArgs = CarouselRootProps & {
+  controls?: "standard" | "minimal"
+  controlPosition?: "top" | "bottom" | "side" | "unset"
+}
 
-const meta: Meta<typeof Carousel> = {
-  title: 'Molecules/Carousel',
+const meta: Meta<StoryArgs> = {
+  title: "Molecules/Carousel",
   component: Carousel,
+  tags: ["autodocs"],
   parameters: {
-    layout: 'centered',
+    layout: "padded",
     docs: {
+      source: {
+        transform: (source: string) =>
+          source.includes(
+            'import { Carousel } from "@techsio/ui-kit/molecules/carousel"'
+          )
+            ? source
+            : `import { Carousel } from "@techsio/ui-kit/molecules/carousel"\n\n${source}`,
+      },
       description: {
-        component: `
-A flexible carousel component using compound component pattern, built with Zag.js that supports multiple orientations, autoplay, and customizable controls.
-
-## Features
-- Compound component pattern for flexibility
-- Horizontal and vertical orientation
-- Autoplay with pause/play controls
-- Loop functionality
-- Multiple slides per page
-- Responsive design
-- Keyboard navigation
-- Touch/mouse drag support
-- Customizable indicators
-- Accessibility support
-
-## Usage Examples
-
-### Basic Usage
-\`\`\`tsx
-<Carousel.Root slideCount={slides.length}>
-  <Carousel.Slides slides={slides} />
-  <Carousel.Control>
-    <Carousel.Previous />
-    <Carousel.Indicators />
-    <Carousel.Next />
-  </Carousel.Control>
-</Carousel.Root>
-\`\`\`
-
-### With Autoplay
-\`\`\`tsx
-<Carousel.Root slideCount={slides.length} autoplay>
-  <Carousel.Autoplay />
-  <Carousel.Slides slides={slides} />
-  <Carousel.Control>
-    <Carousel.Previous />
-    <Carousel.Indicators />
-    <Carousel.Next />
-  </Carousel.Control>
-</Carousel.Root>
-\`\`\`
-
-### Custom Indicators
-\`\`\`tsx
-<Carousel.Root slideCount={slides.length}>
-  <Carousel.Slides slides={slides} />
-  <Carousel.Control>
-    <Carousel.Previous />
-    <Carousel.Indicators>
-      {slides.map((_, index) => (
-        <Carousel.Indicator key={index} index={index} />
-      ))}
-    </Carousel.Indicators>
-    <Carousel.Next />
-  </Carousel.Control>
-</Carousel.Root>
-\`\`\`
-        `,
+        component:
+          "Carousel lets people browse optional images or related content one page at a time, with buttons, keyboard navigation and swipe. Use Gallery for product media with thumbnails and zoom; keep essential information in a static layout. Vertical orientation automatically places up/down controls and indicators on the side.",
       },
     },
   },
-  tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <div className="flex">
+      <div className="mx-auto w-full max-w-lg">
         <Story />
       </div>
     ),
   ],
   argTypes: {
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'full'],
-      description: 'Size of the carousel',
-      table: { defaultValue: { summary: 'md' } },
-    },
+    size: { control: "select", options: ["sm", "md", "lg", "full"] },
     objectFit: {
-      control: 'select',
-      options: ['cover', 'contain', 'fill', 'none'],
-      description: 'How images fit within slides',
-      table: { defaultValue: { summary: 'cover' } },
+      control: "select",
+      options: ["cover", "contain", "fill", "none"],
     },
     aspectRatio: {
-      control: 'select',
-      options: ['square', 'landscape', 'portrait', 'wide', 'none'],
-      description: 'Aspect ratio of slides',
-      table: { defaultValue: { summary: 'square' } },
+      control: "select",
+      options: ["square", "landscape", "portrait", "wide", "none"],
     },
     orientation: {
-      control: 'radio',
-      options: ['horizontal', 'vertical'],
-      description: 'Direction of carousel movement',
-      table: { defaultValue: { summary: 'horizontal' } },
+      control: "inline-radio",
+      options: ["horizontal", "vertical"],
     },
-    loop: {
-      control: 'boolean',
-      description: 'Whether carousel loops infinitely',
-      table: { defaultValue: { summary: 'true' } },
+    dir: { control: "inline-radio", options: ["ltr", "rtl"] },
+    controls: {
+      control: "inline-radio",
+      options: ["standard", "minimal"],
+      description:
+        "Standard navigation includes page indicators; minimal navigation uses two surface-backed arrows.",
     },
-    autoplay: {
-      control: 'boolean',
-      description: 'Whether carousel auto-advances',
-      table: { defaultValue: { summary: 'false' } },
+    controlPosition: {
+      control: "select",
+      options: ["top", "bottom", "side", "unset"],
+      if: { arg: "controls", eq: "standard" },
+      description:
+        "Vertical carousels place top/bottom controls on the leading/trailing side.",
     },
-    slidesPerPage: {
-      control: { type: 'number', min: 1, max: 5 },
-      description: 'Number of slides visible at once',
-      table: { defaultValue: { summary: '1' } },
-    },
+    loop: { control: "boolean" },
+    autoplay: { control: "boolean" },
+    allowMouseDrag: { control: "boolean" },
+    slidesPerPage: { control: { type: "number", min: 1, max: 4, step: 1 } },
     slidesPerMove: {
-      control: { type: 'number', min: 1, max: 5 },
-      description: 'Number of slides to move per navigation',
-      table: { defaultValue: { summary: '1' } },
+      control: { type: "number", min: 1, max: 4, step: 1 },
+      description:
+        "Keep this at or below slidesPerPage to avoid skipping content.",
     },
-    allowMouseDrag: {
-      control: 'boolean',
-      description: 'Allow mouse/touch drag to navigate',
-      table: { defaultValue: { summary: 'true' } },
-    },
+    id: { control: false, table: { disable: true } },
+    children: { control: false, table: { disable: true } },
+    slideCount: { control: false, table: { disable: true } },
+    onPageChange: { control: false },
   },
   args: {
-    size: 'md',
-    objectFit: 'cover',
-    aspectRatio: 'square',
-    orientation: 'horizontal',
+    size: "md",
+    objectFit: "cover",
+    aspectRatio: "landscape",
+    orientation: "horizontal",
+    dir: "ltr",
+    controls: "standard",
+    controlPosition: "bottom",
     loop: true,
     autoplay: false,
     slidesPerPage: 1,
     slidesPerMove: 1,
     allowMouseDrag: true,
+    onPageChange: fn(),
   },
+  render: ({ controls, controlPosition, ...args }) => (
+    <Carousel
+      {...args}
+      aria-label={args["aria-label"] ?? "Travel inspiration"}
+      slideCount={sampleImages.length}
+      height={
+        args.height ??
+        (args.aspectRatio === "none" && args.orientation === "vertical"
+          ? "var(--size-carousel-md)"
+          : undefined)
+      }
+    >
+      <Carousel.Slides slides={sampleImages} />
+      <Carousel.Control controls={controls} controlPosition={controlPosition}>
+        <Carousel.Previous />
+        {controls !== "minimal" && <Carousel.Indicators />}
+        <Carousel.Next />
+      </Carousel.Control>
+      {args.autoplay && <Carousel.Autoplay />}
+    </Carousel>
+  ),
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
-  render: (args) => (
-    <Carousel.Root
-      slideCount={sampleImages.length}
-      size={args.size}
-      objectFit={args.objectFit}
-      aspectRatio={args.aspectRatio}
-      orientation={args.orientation}
-      loop={args.loop}
-      autoplay={args.autoplay}
-      slidesPerPage={args.slidesPerPage}
-      slidesPerMove={args.slidesPerMove}
-      allowMouseDrag={args.allowMouseDrag}
-    >
-      {args.autoplay && <Carousel.Autoplay />}
-      <Carousel.Slides slides={sampleImages} />
-      <Carousel.Control>
-        <Carousel.Previous />
-        <Carousel.Indicators />
-        <Carousel.Next />
-      </Carousel.Control>
-    </Carousel.Root>
-  ),
-}
-
-export const CustomControlLayout: Story = {
-  render: () => (
-    <Carousel.Root slideCount={sampleImages.length} size='md' loop>
-      <Carousel.Slides slides={sampleImages} />
-      <div className="flex justify-between w-full items-center">
-        <Carousel.Previous />
-        <Carousel.Indicators />
-        <Carousel.Next />
-      </div>
-    </Carousel.Root>
-  ),
   parameters: {
     docs: {
       description: {
-        story: 'Demonstrates custom control layouts outside the default Control wrapper.',
-      },
-    },
-  },
-}
-
-export const MinimalControls: Story = {
-  render: () => (
-    <Carousel.Root slideCount={sampleImages.length} loop className='relative'>
-      <Carousel.Slides slides={sampleImages} />
-      <Carousel.Previous className="absolute top-1/2 left-0 -translate-y-1/2 translate-x-1/2 bg-transparent text-xl hover:bg-transparent hover:text-primary"/>
-      <Carousel.Next className="absolute top-1/2 right-0 bg-transparent text-xl hover:bg-transparent hover:text-primary -translate-1/2"/>
-    </Carousel.Root>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Carousel with only navigation arrows, no indicators.',
-      },
-    },
-  },
-}
-
-export const CustomIndicators: Story = {
-  render: () => (
-    <Carousel.Root slideCount={sampleImages.length} loop>
-      <Carousel.Slides slides={sampleImages} />
-      <Carousel.Control>
-        <Carousel.Previous />
-        <Carousel.Indicators>
-          {sampleImages.map((_, index) => (
-            <Carousel.Indicator
-              key={index}
-              index={index}
-              className="rounded-sm border border-reverse"
-            />
-          ))}
-        </Carousel.Indicators>
-        <Carousel.Next />
-      </Carousel.Control>
-    </Carousel.Root>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Demonstrates custom indicator styling with elongated active indicator.',
-      },
-    },
-  },
-}
-
-export const NumberedIndicators: Story = {
-  render: () => (
-    <div className="space-y-md">
-      <Carousel.Root slideCount={sampleImages.length} loop className='overflow-auto'>
-        <Carousel.Slides slides={sampleImages} />
-        <div className="flex justify-center h-8 bg-surface items-center gap-200">
-          <Carousel.Previous />
-          <div className="flex gap-50">
-            {sampleImages.map((_, index) => (
-              <Carousel.Indicator
-                key={index}
-                index={index}
-                className="bg-transparent text-fg-primary hover:bg-transparent hover:text-primary data-[current]:bg-transparent data-[current]:text-primary text-sm font-medium"
-              >
-                {index + 1}
-              </Carousel.Indicator>
-            ))}
-          </div>
-          <Carousel.Next />
-        </div>
-      </Carousel.Root>
-    </div>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Carousel with numbered indicators showing slide position.',
-      },
-    },
-  },
-}
-
-export const MixedContent: Story = {
-  render: () => (
-    <Carousel.Root slideCount={mixedSlides.length} size="md" loop>
-      <Carousel.Slides slides={mixedSlides} />
-      <Carousel.Control>
-        <Carousel.Previous />
-        <Carousel.Indicators />
-        <Carousel.Next />
-      </Carousel.Control>
-    </Carousel.Root>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Demonstrates the hybrid approach with both image sources and custom JSX content in the same carousel.',
+        story:
+          "Change orientation, navigation style and page size to see how the carousel adapts without custom layout or icons.",
       },
     },
   },
@@ -389,297 +184,488 @@ export const MixedContent: Story = {
 
 export const Sizes: Story = {
   render: () => (
-    <div className="space-y-lg">
-      <div>
-        <h3 className="mb-md font-medium text-lg text-fg-primary">Small</h3>
-        <Carousel.Root aria-label="Small carousel" slideCount={3} size="sm">
-          <Carousel.Slides slides={sampleImages.slice(0, 3)} />
-          <Carousel.Control>
-            <Carousel.Previous />
-            <Carousel.Indicators />
-            <Carousel.Next />
-          </Carousel.Control>
-        </Carousel.Root>
-      </div>
-
-      <div>
-        <h3 className="mb-md font-medium text-lg text-fg-primary">Medium (Default)</h3>
-        <Carousel.Root aria-label="Medium carousel" slideCount={3} size="md">
-          <Carousel.Slides slides={sampleImages.slice(0, 3)} />
-          <Carousel.Control>
-            <Carousel.Previous />
-            <Carousel.Indicators />
-            <Carousel.Next />
-          </Carousel.Control>
-        </Carousel.Root>
-      </div>
-
-      <div>
-        <h3 className="mb-md font-medium text-lg text-fg-primary">Large</h3>
-        <Carousel.Root aria-label="Large carousel" slideCount={3} size="lg">
-          <Carousel.Slides slides={sampleImages.slice(0, 3)} />
-          <Carousel.Control>
-            <Carousel.Previous />
-            <Carousel.Indicators />
-            <Carousel.Next />
-          </Carousel.Control>
-        </Carousel.Root>
-      </div>
-    </div>
+    <VariantContainer>
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <VariantGroup key={size} title={size}>
+          <Carousel
+            aria-label={`${size} travel inspiration`}
+            slideCount={sampleImages.length}
+            size={size}
+            aspectRatio="landscape"
+          >
+            <Carousel.Slides slides={sampleImages} />
+            <Carousel.Control>
+              <Carousel.Previous />
+              <Carousel.Indicators />
+              <Carousel.Next />
+            </Carousel.Control>
+          </Carousel>
+        </VariantGroup>
+      ))}
+    </VariantContainer>
   ),
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compare small, medium and large viewports with navigation targets scaled to each size.",
+      },
+    },
+  },
+}
+
+export const States: Story = {
+  name: "Non-looping boundaries",
+  args: { loop: false },
   parameters: {
     docs: {
       description: {
-        story: 'Different size variants of the carousel component.',
+        story:
+          "Browse a finite set of four destinations; previous is disabled at the start and next is disabled at the end.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const previous = canvas.getByRole("button", { name: "Previous slide" })
+    const next = canvas.getByRole("button", { name: "Next slide" })
+    const indicators = canvas.getAllByRole("button", { name: /Go to slide/ })
+    await waitFor(() => expect(next).toBeEnabled())
+    await expect(previous).toBeDisabled()
+    await expect(previous).toHaveAttribute("aria-disabled", "true")
+    await userEvent.click(indicators.at(-1)!)
+    await waitFor(() => expect(next).toBeDisabled())
+    await expect(next).toHaveAttribute("aria-disabled", "true")
+    await userEvent.click(next)
+    await expect(indicators.at(-1)!).toHaveAttribute("aria-current", "true")
+    await userEvent.click(indicators[0]!)
+    await waitFor(() => expect(previous).toBeDisabled())
+    await expect(next).toBeEnabled()
+    await userEvent.click(previous)
+    await expect(indicators[0]!).toHaveAttribute("aria-current", "true")
+    // Let queued indicator focus finish (a disabled-arrow click can also blur).
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    )
+    // Boundary assertions are complete; leave no modality-dependent ring.
+    await userEvent.click(canvasElement)
+    await expect(canvasElement.ownerDocument.body).toHaveFocus()
+  },
+}
+
+export const MinimalControls: Story = {
+  args: { controls: "minimal" },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Two opaque, bordered arrows stay visible over bright or dark photography without an indicator rail.",
+      },
+    },
+  },
+}
+
+export const Vertical: Story = {
+  args: { orientation: "vertical", aspectRatio: "square" },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A vertical carousel uses up/down arrows and a vertical indicator rail on the side, with no consumer overrides.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const previous = canvas.getByRole("button", { name: "Previous slide" })
+    const next = canvas.getByRole("button", { name: "Next slide" })
+    await expect(previous.querySelector("span")).toHaveClass(
+      /token-icon-carousel-prev-vertical/
+    )
+    await expect(next.querySelector("span")).toHaveClass(
+      /token-icon-carousel-next-vertical/
+    )
+    const indicators = canvas.getAllByRole("button", { name: /Go to slide/ })
+    await waitFor(() => expect(indicators).toHaveLength(sampleImages.length))
+    await userEvent.click(indicators[0]!)
+    await userEvent.keyboard("{ArrowDown}")
+    await waitFor(() =>
+      expect(indicators[1]).toHaveAttribute("aria-current", "true")
+    )
+    await userEvent.keyboard("{Home}")
+    await waitFor(() =>
+      expect(indicators[0]).toHaveAttribute("aria-current", "true")
+    )
+    // Queued indicator focus lands after snapping (later on WebKit). Wait until
+    // focus stops moving, then capture the neutral resting view.
+    const doc = canvasElement.ownerDocument
+    let previousFocus = doc.activeElement
+    await waitFor(
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 150))
+        const settled = doc.activeElement === previousFocus
+        previousFocus = doc.activeElement
+        await expect(settled).toBe(true)
+      },
+      { timeout: 5000 }
+    )
+    await userEvent.click(canvasElement)
+    await expect(doc.body).toHaveFocus()
+  },
+}
+
+export const VerticalWide: Story = {
+  name: "Vertical navigation in a short viewport",
+  args: { orientation: "vertical", size: "md", aspectRatio: "wide" },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A wide image keeps its short aspect ratio while the vertical rail occupies a separate column with enough height for every navigation target.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const region = canvas.getByRole("region", { name: "Travel inspiration" })
+    const previous = canvas.getByRole("button", { name: "Previous slide" })
+    const next = canvas.getByRole("button", { name: "Next slide" })
+    const slides = region.querySelector('[data-part="item-group"]')!
+    const rail = region.querySelector('[data-part="control"]')!
+    await waitFor(() => expect(next).toBeEnabled())
+    await waitFor(() => {
+      const bounds = region.getBoundingClientRect()
+      expect(bounds.right).toBeLessThanOrEqual(
+        canvasElement.getBoundingClientRect().right
+      )
+      const railBounds = rail.getBoundingClientRect()
+      expect(railBounds.left).toBeGreaterThanOrEqual(
+        slides.getBoundingClientRect().right
+      )
+      for (const button of [previous, next]) {
+        const target = button.getBoundingClientRect()
+        expect(target.top).toBeGreaterThanOrEqual(bounds.top)
+        expect(target.bottom).toBeLessThanOrEqual(bounds.bottom)
+        expect(target.right).toBeLessThanOrEqual(bounds.right)
+      }
+    })
+    await userEvent.click(next)
+    await waitFor(() =>
+      expect(
+        canvas.getAllByRole("button", { name: /Go to slide/ })[1]
+      ).toHaveAttribute("aria-current", "true")
+    )
+  },
+}
+
+export const NumberedIndicators: Story = {
+  render: ({ controls: _controls, controlPosition, ...args }) => (
+    <Carousel
+      {...args}
+      aria-label="Numbered travel inspiration"
+      slideCount={sampleImages.length}
+    >
+      <Carousel.Slides slides={sampleImages} />
+      {args.autoplay && <Carousel.Autoplay />}
+      <Carousel.Control controlPosition={controlPosition}>
+        <Carousel.Previous />
+        <Carousel.Indicators>
+          {sampleImages.map((slide, index) => (
+            <Carousel.Indicator
+              key={slide.id}
+              index={index}
+              className="font-medium text-sm data-current:underline data-current:decoration-2 data-current:underline-offset-4"
+            >
+              {index + 1}
+            </Carousel.Indicator>
+          ))}
+        </Carousel.Indicators>
+        <Carousel.Next />
+      </Carousel.Control>
+    </Carousel>
+  ),
+  parameters: {
+    controls: { exclude: ["controls", "slidesPerPage", "slidesPerMove"] },
+    docs: {
+      description: {
+        story:
+          "Numbered indicators replace the dots and underline the current page so selection does not rely on color alone.",
+      },
+    },
+  },
+}
+
+export const CustomControlLayout: Story = {
+  args: { controlPosition: "unset" },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "An in-flow navigation rail sits below the image when controls should never cover slide content.",
+      },
+    },
+  },
+}
+
+export const MixedContent: Story = {
+  render: ({ controls, controlPosition: _controlPosition, ...args }) => (
+    <Carousel {...args} aria-label="Travel ideas" slideCount={3}>
+      <Carousel.Slides
+        slides={[sampleImages[0]!, contentSlides[0]!, sampleImages[1]!]}
+      />
+      <Carousel.Control controls={controls} controlPosition="unset">
+        <Carousel.Previous />
+        {controls !== "minimal" && <Carousel.Indicators />}
+        <Carousel.Next />
+      </Carousel.Control>
+      {args.autoplay && <Carousel.Autoplay />}
+    </Carousel>
+  ),
+  parameters: {
+    controls: { exclude: ["controlPosition"] },
+    docs: {
+      description: {
+        story:
+          "Mix photography and editorial content while keeping equal slide heights and controls outside the text.",
       },
     },
   },
 }
 
 export const ObjectFitDemo: Story = {
-  render: () => {
-    const testImage = {
-      id: 'test',
-      src: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
-      alt: 'Portrait for object-fit testing',
-    }
-
-    return (
-      <div className="space-y-lg">
-        <div className="text-center">
-          <h3 className="mb-sm font-semibold text-lg text-fg-primary">Object Fit Variants</h3>
-          <p className="text-fg-secondary text-sm">
-            Portrait image (400×600) in square containers
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-lg">
-          <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">Cover</h4>
-            <p className="mb-md text-fg-muted text-xs">
-              Image covers entire container, may crop
-            </p>
-            <Carousel.Root aria-label="Cover fit"
-              slideCount={1}
-              objectFit="cover"
-              aspectRatio="square"
-              size="md"
-              loop={false}
-            >
-              <Carousel.Slides slides={[testImage]} />
-            </Carousel.Root>
-          </div>
-
-          <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">Contain</h4>
-            <p className="mb-md text-fg-muted text-xs">
-              Entire image visible, may have empty space
-            </p>
-            <Carousel.Root aria-label="Contain fit"
-              slideCount={1}
-              objectFit="contain"
-              aspectRatio="square"
-              size="md"
-              loop={false}
-            >
-              <Carousel.Slides slides={[testImage]} />
-            </Carousel.Root>
-          </div>
-
-          <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">Fill</h4>
-            <p className="mb-md text-fg-muted text-xs">
-              Image stretches to fill, may distort
-            </p>
-            <Carousel.Root aria-label="Fill fit"
-              slideCount={1}
-              objectFit="fill"
-              aspectRatio="square"
-              size="md"
-              loop={false}
-            >
-              <Carousel.Slides slides={[testImage]} />
-            </Carousel.Root>
-          </div>
-
-          <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">None</h4>
-            <p className="mb-md text-fg-muted text-xs">
-              Natural size, no fitting applied
-            </p>
-            <Carousel.Root aria-label="No fit"
-              slideCount={1}
-              objectFit="none"
-              aspectRatio="square"
-              size="md"
-              loop={false}
-            >
-              <Carousel.Slides slides={[testImage]} />
-            </Carousel.Root>
-          </div>
-        </div>
-      </div>
-    )
+  name: "Image fit",
+  render: () => (
+    <VariantContainer>
+      {(["cover", "contain", "fill", "none"] as const).map((fit) => (
+        <VariantGroup key={fit} title={fit}>
+          <Carousel
+            aria-label={`${fit} image fit`}
+            slideCount={1}
+            size="sm"
+            aspectRatio="square"
+            objectFit={fit}
+          >
+            <Carousel.Slides slides={sampleImages.slice(0, 1)} />
+          </Carousel>
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compare cropping, letterboxing, stretching and natural image size before choosing how media fits its viewport.",
+      },
+    },
   },
 }
 
 export const AspectRatioDemo: Story = {
-  render: () => {
-    const landscapeImage = {
-      id: 'landscape',
-      src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
-      alt: 'Mountain landscape',
-    }
+  name: "Aspect ratios",
+  render: () => (
+    <VariantContainer>
+      {(["square", "landscape", "portrait", "wide"] as const).map((ratio) => (
+        <VariantGroup key={ratio} title={ratio}>
+          <Carousel
+            aria-label={`${ratio} image`}
+            slideCount={1}
+            size="sm"
+            aspectRatio={ratio}
+          >
+            <Carousel.Slides slides={sampleImages.slice(0, 1)} />
+          </Carousel>
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "The same photograph appears in four stable viewport shapes so designers can compare cropping and composition.",
+      },
+    },
+  },
+}
 
-    return (
-      <div className="space-y-lg">
-        <div className="text-center">
-          <h3 className="mb-sm font-semibold text-lg text-fg-primary">Aspect Ratio Variants</h3>
-          <p className="text-fg-secondary text-sm">
-            Same landscape image in different aspect ratios
-          </p>
-        </div>
-
-        <div className="space-y-md">
-          <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">Square (1:1)</h4>
-            <Carousel.Root aria-label="Square"
-              slideCount={1}
-              aspectRatio="square"
-              objectFit="cover"
-              size="md"
-              loop={false}
-            >
-              <Carousel.Slides slides={[landscapeImage]} />
-            </Carousel.Root>
-          </div>
-
-          <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">Landscape (16:9)</h4>
-            <Carousel.Root aria-label="Landscape"
-              slideCount={1}
-              aspectRatio="landscape"
-              objectFit="cover"
-              size="md"
-              loop={false}
-            >
-              <Carousel.Slides slides={[landscapeImage]} />
-            </Carousel.Root>
-          </div>
-
-          <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">Portrait (3:4)</h4>
-            <Carousel.Root aria-label="Portrait"
-              slideCount={1}
-              aspectRatio="portrait"
-              objectFit="cover"
-              size="md"
-              loop={false}
-            >
-              <Carousel.Slides slides={[landscapeImage]} />
-            </Carousel.Root>
-          </div>
-
-          <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">Wide (21:9)</h4>
-            <Carousel.Root aria-label="Wide"
-              slideCount={1}
-              aspectRatio="wide"
-              objectFit="cover"
-              size="md"
-              loop={false}
-            >
-              <Carousel.Slides slides={[landscapeImage]} />
-            </Carousel.Root>
-          </div>
-
-          <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">None (natural height)</h4>
-            <Carousel.Root
-              slideCount={1}
-              aspectRatio="none"
-              objectFit="contain"
-              size="md"
-              loop={false}
-            >
-              <Carousel.Slides slides={[landscapeImage]} />
-            </Carousel.Root>
-          </div>
-        </div>
-      </div>
+export const Autoplay: Story = {
+  args: { autoplay: true },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Optional automatic rotation includes a visible pause/play control and starts paused when reduced motion is preferred; hover or focus stops rotation until explicitly restarted.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const next = canvas.getByRole("button", { name: "Next slide" })
+    await userEvent.hover(next)
+    const start = await canvas.findByRole("button", {
+      name: "Start slide rotation",
+    })
+    await userEvent.click(start)
+    await canvas.findByRole("button", { name: "Stop slide rotation" })
+    await userEvent.click(
+      canvas.getAllByRole("button", { name: /Go to slide/ })[0]!
+    )
+    await waitFor(() =>
+      expect(
+        canvas.queryByRole("button", { name: "Stop slide rotation" })
+      ).not.toBeInTheDocument()
     )
   },
 }
 
-export const Vertical: Story = {
-  render: () => (
-    <div className="w-md">
-      <Carousel.Root
-        orientation="vertical"
-        slideCount={4}
-        size="md"
-        loop
-        className="flex flex-row h-96 overflow-visible"
-      >
-        <Carousel.Slides slides={sampleImages.slice(0, 4)} />
-        <Carousel.Control controlPosition="side" className="bg-transparent">
-          <Carousel.Previous icon="icon-[mdi--keyboard-arrow-up]" />
-          <Carousel.Indicators className="flex-col" />
-          <Carousel.Next icon="icon-[mdi--keyboard-arrow-down]" />
-        </Carousel.Control>
-      </Carousel.Root>
-    </div>
-  ),
-}
-
-export const Autoplay: Story = {
-  render: () => (
-    <Carousel.Root slideCount={contentSlides.length} autoplay loop>
-      <Carousel.Autoplay />
-      <Carousel.Slides slides={contentSlides} />
-      <Carousel.Control>
-        <Carousel.Previous />
-        <Carousel.Indicators />
-        <Carousel.Next />
-      </Carousel.Control>
-    </Carousel.Root>
-  ),
-}
-
 export const SlidesPerPage: Story = {
-  render: () => (
-    <Carousel.Root
-      slideCount={sampleImages.length}
-      slidesPerPage={3}
-      size="lg"
-      loop
-      spacing="var(--spacing-200)"
-    >
-      <Carousel.Slides slides={sampleImages} />
-      <Carousel.Control>
-        <Carousel.Previous />
-        <Carousel.Indicators />
-        <Carousel.Next />
-      </Carousel.Control>
-    </Carousel.Root>
-  ),
+  args: {
+    slidesPerPage: 3,
+    size: "lg",
+    aspectRatio: "wide",
+    controlPosition: "unset",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Three destinations share each viewport while page indicators reflect actual snap points rather than the number of images.",
+      },
+    },
+  },
 }
 
 export const SlidesPerMove: Story = {
+  args: {
+    slidesPerPage: 2,
+    slidesPerMove: 2,
+    size: "lg",
+    controlPosition: "unset",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Advance two destinations at a time when the visible pair should be browsed as one page.",
+      },
+    },
+  },
+}
+
+export const SingleSlide: Story = {
+  name: "Single-slide boundaries",
+  args: { loop: true },
+  render: ({ controls, controlPosition, ...args }) => (
+    <Carousel {...args} aria-label="Featured destination" slideCount={1}>
+      <Carousel.Slides slides={sampleImages.slice(0, 1)} />
+      <Carousel.Control controls={controls} controlPosition={controlPosition}>
+        <Carousel.Previous />
+        {controls !== "minimal" && <Carousel.Indicators />}
+        <Carousel.Next />
+      </Carousel.Control>
+      {args.autoplay && <Carousel.Autoplay />}
+    </Carousel>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A single image has no next or previous destination, so both arrows remain disabled even when looping is enabled.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(
+      canvas.getByRole("button", { name: "Previous slide" })
+    ).toBeDisabled()
+    await expect(
+      canvas.getByRole("button", { name: "Next slide" })
+    ).toBeDisabled()
+  },
+}
+
+export const VerticalMinimalControls: Story = {
+  name: "Vertical minimal controls",
+  args: {
+    orientation: "vertical",
+    controls: "minimal",
+    aspectRatio: "portrait",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Minimal up/down arrows sit at opposite ends of the vertical viewport and remain visible without a navigation rail.",
+      },
+    },
+  },
+}
+
+export const NativeMediaFallbacks: Story = {
   render: () => (
-    <Carousel.Root
-      slideCount={sampleImages.length}
-      slidesPerPage={2}
-      slidesPerMove={2}
-      size="lg"
-      loop
+    <Carousel
+      slideCount={3}
+      size="full"
+      objectFit="contain"
+      aria-label="Native media fallback examples"
     >
-      <Carousel.Slides slides={sampleImages} />
-      <Carousel.Control>
+      <Carousel.Slides
+        slides={[
+          {
+            id: "failed",
+            src: "data:image/png;base64,invalid",
+            alt: "Runner low side view",
+            imageProps: { width: 400, height: 300 },
+          },
+          {
+            id: "missing",
+            src: "",
+            alt: "Runner low sole view",
+            imageProps: { width: 400, height: 300 },
+          },
+          {
+            id: "loaded",
+            src: new URL("../../assets/gallery/shoes-1.avif", import.meta.url)
+              .href,
+            alt: "Runner low front view",
+            imageProps: { width: 400, height: 300 },
+          },
+        ]}
+      />
+      <Carousel.Control controlPosition="unset">
         <Carousel.Previous />
         <Carousel.Indicators />
         <Carousel.Next />
       </Carousel.Control>
-    </Carousel.Root>
+    </Carousel>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Native failed and missing sources use the same reserved fallback as adapters. The third slide demonstrates loaded media; contain fitting reaches the actual image through the media wrapper.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const media = canvasElement.querySelectorAll("[data-image-state]")
+    await waitFor(() =>
+      expect(media[0]).toHaveAttribute("data-image-state", "error")
+    )
+    await expect(media[1]).toHaveAttribute("data-image-state", "error")
+    await waitFor(() =>
+      expect(media[2]).toHaveAttribute("data-image-state", "loaded")
+    )
+    for (const item of media) {
+      await expect(getComputedStyle(item.querySelector("img")!).objectFit).toBe(
+        "contain"
+      )
+      await expect(item.getBoundingClientRect().height).toBeGreaterThan(0)
+    }
+  },
 }

@@ -4,13 +4,18 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Label for
   form-control labels with valid size, disabled, required, and htmlFor usage.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/atoms/label.tsx libs/ui/src/tokens/components/atoms/_label.css libs/ui/src/atoms/label.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/label.tsx libs/ui/src/tokens/components/atoms/_label.css libs/ui/src/atoms/label.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Label Usage
 
@@ -170,3 +175,11 @@ rg -P -n "<Label(?![^>]*htmlFor=)" apps
 rg -n "<span[^>]*>\\*</span>|text-red-500.*\\*" apps
 rg -U -n "<Label[\\s\\S]{0,240}<Input" apps
 ```
+
+## Runtime typography and required fields
+
+`font-label` resolves through `--font-weight-label` (700), not a font-family
+alias. The required asterisk has a spoken “required” alternative and a
+readable error foreground; also set `required` on the actual control.
+Canonical sizes are sm/md/lg; `current` is an inherited-size compatibility
+escape hatch. Pair field feedback with the same size of StatusText.

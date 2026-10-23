@@ -6,7 +6,7 @@ description: >
   triggers, content, indicator, orientation, activation mode, variants, fitted,
   and justify props.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.2.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -65,7 +65,7 @@ where actions and feedback live). This section applies them to `Tabs`.
 
 ```tsx
 <Tabs defaultValue="details" variant="line">
-  <Tabs.List>
+  <Tabs.List aria-label="Product information">
     <Tabs.Trigger value="details">Details</Tabs.Trigger>
     <Tabs.Trigger value="reviews">Reviews</Tabs.Trigger>
     <Tabs.Indicator />
@@ -113,7 +113,14 @@ Wrong:
 Correct:
 
 ```tsx
-<Tabs defaultValue="a"><Tabs.Trigger value="a">A</Tabs.Trigger><Tabs.Content value="a" /></Tabs>
+<Tabs defaultValue="overview">
+  <Tabs.List aria-label="Product information">
+    <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+    <Tabs.Trigger value="delivery">Delivery</Tabs.Trigger>
+  </Tabs.List>
+  <Tabs.Content value="overview">Product specifications.</Tabs.Content>
+  <Tabs.Content value="delivery">Dispatch within two working days.</Tabs.Content>
+</Tabs>
 ```
 
 Source: libs/ui/src/molecules/tabs.tsx
@@ -129,7 +136,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Tabs.Trigger value="details" /><Tabs.Content value="details" />
+{/* Partial fragment inside the Setup structure, not a standalone tab group. */}
+<Tabs.Trigger value="details">Details</Tabs.Trigger>
+<Tabs.Content value="details">Product dimensions and materials.</Tabs.Content>
 ```
 
 Source: https://zagjs.com/components/react/tabs
@@ -145,7 +154,14 @@ Wrong:
 Correct:
 
 ```tsx
-<Tabs variant="solid"><Tabs.Trigger value="a" /></Tabs>
+<Tabs variant="solid" defaultValue="overview">
+  <Tabs.List aria-label="Product information">
+    <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+    <Tabs.Trigger value="delivery">Delivery</Tabs.Trigger>
+  </Tabs.List>
+  <Tabs.Content value="overview">Product specifications.</Tabs.Content>
+  <Tabs.Content value="delivery">Dispatch within two working days.</Tabs.Content>
+</Tabs>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_tabs.css
@@ -157,3 +173,45 @@ rg -n "setTab|<Tabs\\.Trigger[^>]*className=.*(bg-|text-|border-|data-\\[selecte
 rg -P -n "<Tabs\\.Trigger(?![^>]*value=)|<Tabs\\.Content(?![^>]*value=)" apps
 rg -n "<Tabs[^>]*variant=\"(primary|underline)\"" apps
 ```
+
+## Template default selection
+
+TabsTemplate selects the first enabled item when defaultValue is omitted. An
+explicit value/defaultValue still takes precedence. Keep trigger values matched
+to content and give every tab list a contextual accessible name where needed.
+Canonical sizes are sm/md/lg (default md). Use headings within panels rather than
+nested tabs, as shown by the sectioned-content story.
+
+Horizontal lists scroll within their available width on narrow surfaces. Trigger
+focus rings are inset so the scroll viewport cannot clip them. Content and root
+containers keep min-width zero; callers should constrain fixed demonstration
+widths with max-w-full. Center/end justification falls back to start when tabs
+overflow, keeping the first tab reachable. Line indicators stay inside the
+scrollport; default tabs underline the selected label even without an Indicator.
+Vertical strips retain their intrinsic label width rather than being squeezed by
+panel content. Panels take the remaining space and wrap long unbroken text;
+keep vertical tab labels short so both columns remain useful on narrow screens.
+
+## Collection changes and keyboard entry
+
+`Tabs.List` is required, not just a layout wrapper: it provides tablist semantics
+and arrow/Home/End handling. Give every list a contextual accessible name.
+`TabsTemplate` accepts `tablistProps` (for example, `aria-labelledby` pointing to
+a visible heading); root ARIA props still apply to the outer root.
+
+Uncontrolled tabs select the first enabled trigger after an empty collection is
+populated. If selection disappears or becomes disabled, the next surviving
+neighbor is selected, then the previous neighbor, then the first enabled tab.
+This preserves surviving panel state. Empty/all-disabled lists have no keyboard
+entry until an enabled trigger appears. Controlled values remain parent-owned:
+an invalid value requests the same fallback through `onValueChange` once per
+invalid-value/fallback pair. A rejecting owner leaves panels unselected, but an
+enabled trigger remains a keyboard entry point. Accept the request to keep panel
+data and selection aligned. Focus only recovers when the affected trigger/panel
+owned it; changes elsewhere do not steal focus. Focused/selected horizontal tabs
+scroll within their own strip, including manual activation and RTL.
+
+Only one trigger drives strip scrolling at a time, so the selected underline
+stays beneath its own tab.
+
+The indicator tracks the selected tab across selection, keyboard navigation, strip scrolling and layout shifts in LTR and RTL, measured in its own containing block instead of a cached rectangle.

@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit template.
  *
  * @component Gallery
- * @componentVersion v1.0.2
+ * @componentVersion v1.1.2
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,10 +11,7 @@
  */
 import type { ElementType, ReactNode } from "react"
 import type { IconType } from "../atoms/icon"
-import {
-  Carousel,
-  type CarouselRootProps,
-} from "../molecules/carousel"
+import { Carousel, type CarouselRootProps } from "../molecules/carousel"
 import {
   Gallery,
   type GalleryItem,
@@ -75,6 +72,7 @@ export type GalleryTemplateProps<T extends ElementType = "img"> = Omit<
 }
 
 export function GalleryTemplate<T extends ElementType = "img">({
+  "aria-label": ariaLabel,
   items,
   orientation,
   carouselWidth,
@@ -117,6 +115,7 @@ export function GalleryTemplate<T extends ElementType = "img">({
     carouselWidth ?? (fitParent ? "100%" : undefined)
   const resolvedCarouselHeight = carouselHeight
   const resolvedCarouselProps = {
+    ...(ariaLabel === undefined ? {} : { "aria-label": ariaLabel }),
     orientation: resolvedOrientation,
     aspectRatio: aspectRatio ?? "portrait",
     size: size ?? "full",
@@ -180,7 +179,7 @@ export function GalleryTemplate<T extends ElementType = "img">({
               )}
             </Carousel.Control>
           )}
-          {showAutoplay && (
+          {(Boolean(autoplay) || showAutoplay) && (
             <Carousel.Autoplay className={autoplayTriggerClassName} />
           )}
         </Gallery.Carousel>

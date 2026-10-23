@@ -1,3 +1,5 @@
+import { expect, userEvent, waitFor, within } from "storybook/test"
+import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Badge } from "../../src/atoms/badge"
@@ -8,16 +10,25 @@ import { Tooltip } from "../../src/atoms/tooltip"
 import { Toaster, useToast } from "../../src/molecules/toast"
 import { SelectTemplate } from "../../src/templates/select"
 import { adminNav, type BoardCard, boardColumns } from "./data"
-import { Brand, Frame, GlobalSearch, NavList, Panel, TopBar } from "./frame"
+import {
+  Brand,
+  Frame,
+  GlobalSearch,
+  NavDrawer,
+  NavList,
+  Panel,
+  TopBar,
+} from "./frame"
 import { EmptyState, PageHeader } from "./shell"
 
 const meta: Meta = {
-  /*
-   * Business is the brand these back-office pages are designed against: it is the
-   * light-only, high-contrast blue scale. Set at meta level so every page opens in
-   * it; the Brand toolbar still switches the whole set to Default or Neo.
-   */
-  globals: { brand: "business", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
   tags: ["autodocs"],
   title: "Pages/Patterns/Board",
   parameters: {
@@ -75,12 +86,13 @@ function cardMenu(columns: typeof boardColumns, currentId: string): MenuItem[] {
 function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
   const toaster = useToast()
   const [nav, setNav] = useState("sales-returns")
+  const [group, setGroup] = useState("status")
   const [columns, setColumns] = useState(
     emptyColumn
       ? boardColumns.map((column) =>
-          column.id === "review" ? { ...column, cards: [] } : column
+          column.id === "review" ? { ...column, cards: [] } : column,
         )
-      : boardColumns
+      : boardColumns,
   )
 
   const move = (card: BoardCard, from: string, to: string) => {
@@ -96,7 +108,16 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
           return { ...column, cards: [card, ...column.cards] }
         }
         return column
-      })
+      }),
+    )
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() =>
+        document
+          .querySelector<HTMLButtonElement>(
+            `button[data-card-id="${CSS.escape(card.id)}"]`,
+          )
+          ?.focus(),
+      ),
     )
     toaster.create({
       type: "success",
@@ -106,6 +127,24 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
       }`,
     })
   }
+
+  const cards = columns.flatMap((column) => column.cards)
+  const displayColumns =
+    group === "status"
+      ? columns
+      : Array.from(
+          new Set(
+            cards.map((card) =>
+              group === "owner" ? card.owner : card.priority,
+            ),
+          ),
+        ).map((key) => ({
+          id: key,
+          title: key,
+          cards: cards.filter(
+            (card) => (group === "owner" ? card.owner : card.priority) === key,
+          ),
+        }))
 
   return (
     <Frame
@@ -120,7 +159,12 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
           />
         </Panel>
       }
-      top={<TopBar center={<GlobalSearch placeholder="Search tickets…" />} />}
+      top={
+        <TopBar
+          center={<GlobalSearch placeholder="Search tickets…" />}
+          start={<NavDrawer nav={adminNav} onSelect={setNav} selected={nav} />}
+        />
+      }
     >
       <Toaster />
 
@@ -128,11 +172,14 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
         actions={
           <>
             <div className="w-2xs">
-              <SelectTemplate defaultValue={["status"]} items={groupItems} size="sm" />
+              <SelectTemplate
+                label="Group tickets"
+                value={[group]}
+                onValueChange={({ value }) => setGroup(value[0] ?? "status")}
+                items={groupItems}
+                size="sm"
+              />
             </div>
-            <Button icon="icon-[mdi--plus]" size="sm" variant="primary">
-              New ticket
-            </Button>
           </>
         }
         breadcrumb={[
@@ -145,7 +192,7 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
       />
 
       <div className="flex min-h-0 flex-1 gap-200 overflow-x-auto pb-200">
-        {columns.map((column) => (
+        {displayColumns.map((column) => (
           <section
             aria-label={column.title}
             className="flex w-2xs shrink-0 flex-col gap-150 rounded-lg border border-border-primary bg-surface p-150"
@@ -185,14 +232,28 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
                         customTrigger={
                           <Button
                             aria-label={`Actions for ${card.title}`}
+                            data-card-id={card.id}
                             icon="icon-[mdi--dots-horizontal]"
                             size="sm"
                             theme="borderless"
                             variant="secondary"
                           />
                         }
-                        items={cardMenu(columns, column.id)}
-                        onSelect={({ value }) => move(card, column.id, value)}
+                        items={cardMenu(
+                          columns,
+                          columns.find((entry) =>
+                            entry.cards.some((item) => item.id === card.id),
+                          )?.id ?? "",
+                        )}
+                        onSelect={({ value }) =>
+                          move(
+                            card,
+                            columns.find((entry) =>
+                              entry.cards.some((item) => item.id === card.id),
+                            )?.id ?? "",
+                            value,
+                          )
+                        }
                       />
                     </div>
                     <p className="text-fg-secondary text-xs">{card.meta}</p>
@@ -209,16 +270,6 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
                 ))}
               </div>
             )}
-
-            <Button
-              block
-              icon="icon-[mdi--plus]"
-              size="sm"
-              theme="borderless"
-              variant="secondary"
-            >
-              Add
-            </Button>
           </section>
         ))}
       </div>
@@ -227,6 +278,31 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const action = canvas.getAllByRole("button", { name: /Actions for/ })[0]!
+    const id = action.getAttribute("data-card-id")!
+    await userEvent.click(action)
+    const menu = within(canvasElement.ownerDocument.body)
+    await userEvent.click(
+      menu.getAllByRole("menuitem", { name: /Move to/ })[0]!,
+    )
+    await waitFor(() =>
+      expect(
+        canvasElement.querySelector('button[data-card-id="' + id + '"]'),
+      ).toHaveFocus(),
+    )
+  },
+
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Move tickets between states or regroup them while retaining keyboard focus and mobile navigation.",
+      },
+    },
+  },
+
   name: "Columns by state",
   render: () => <BoardPage />,
 }

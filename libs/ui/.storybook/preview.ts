@@ -1,14 +1,10 @@
 import type { Decorator, Preview } from "@storybook/react"
 import { createElement, useEffect } from "react"
-import {
-  type BrandKey,
-  brandAttr,
-  brandKeys,
-  brandSupportsDark,
-  getBrand,
-  type ModeSetting,
-} from "../src/theme/theme-config"
+import { brandKeys, getBrand } from "../src/theme/theme-config"
 import "../src/tokens/index.css"
+import { curateControls } from "./controls"
+import { DocsTheme } from "./docs-theme"
+import { applyPreviewTheme } from "./theme.mjs"
 
 const brandItems = brandKeys().map((key) => ({
   value: key,
@@ -22,33 +18,21 @@ const brandItems = brandKeys().map((key) => ({
  * Light-only brands are forced to light regardless of the Mode toolbar.
  */
 const withTheme: Decorator = (Story, context) => {
-  const brand = context.globals.brand as BrandKey
-  const modeSetting = context.globals.mode as ModeSetting
-
+  const { brand, mode } = context.globals
+  const { brandLock } = context.parameters
   useEffect(() => {
-    const root = document.documentElement
-    const mode = brandSupportsDark(brand) ? modeSetting : "light"
-
-    root.classList.remove("light", "dark")
-    if (mode === "light" || mode === "dark") {
-      root.classList.add(mode)
-    }
-
-    const attr = brandAttr(brand)
-    if (attr) {
-      root.setAttribute("data-theme", attr)
-    } else {
-      root.removeAttribute("data-theme")
-    }
-  }, [brand, modeSetting])
+    applyPreviewTheme(document.documentElement, { brand, mode }, brandLock)
+  }, [brand, mode, brandLock])
 
   return createElement(Story)
 }
 
 const preview: Preview = {
   parameters: {
+    docs: { container: DocsTheme },
     backgrounds: { disable: true },
     controls: {
+      exclude: /^(?:id|ref|.*Ref)$/,
       matchers: {
         color: /(background|color)$/i,
         date: /Date$/i,
@@ -57,12 +41,14 @@ const preview: Preview = {
     options: {
       storySort: {
         order: [
+          "Guide",
+          ["Getting Started", "*"],
+          "Overview",
           "Atoms",
           "Molecules",
           "Organisms",
           "Templates",
           "Pages",
-          "Overview",
           "*",
         ],
       },
@@ -103,6 +89,7 @@ const preview: Preview = {
     brand: "base",
     mode: "light",
   },
+  argTypesEnhancers: [curateControls],
   decorators: [withTheme],
 }
 

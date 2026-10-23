@@ -4,13 +4,18 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or
   Iconify classes with the library's supported size and semantic color props.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/atoms/icon.tsx libs/ui/src/tokens/components/atoms/_icon.css libs/ui/stories/atoms/icon.stories.tsx libs/ui/src/atoms/icon.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/icon.tsx libs/ui/src/tokens/components/atoms/_icon.css libs/ui/stories/atoms/icon.stories.tsx libs/ui/src/atoms/icon.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Icon Usage
 
@@ -34,7 +39,7 @@ where actions and feedback live). This section applies them to `Icon`.
 | Need | Use instead |
 | --- | --- |
 | A clickable icon | ActionIcon (with `aria-label`) or Button with `icon` |
-| An icon that carries meaning without text | Icon + visually hidden text, or text instead |
+| An icon that carries meaning without text | Icon with `label`, or visible status text |
 
 **Do**
 
@@ -59,6 +64,19 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 
 <Icon icon="token-icon-status-text-success" size="md" color="success" />
 ```
+
+The component defaults to `size="current"` and `color="current"`, inheriting
+surrounding text. Choose an explicit size for standalone glyphs; the Playground
+uses a recognizable Home icon at `lg` (the system's 24px step), not an error icon.
+The Sizes story compares Small (`sm`), Medium (`md`) and Large (`lg`) in that order with the same icon. The `current`, `xs`, `xl` and `2xl` API sizes remain available for inherited, compact or decorative contexts; they are not canonical control sizes.
+Explicit color props consume `--color-icon-fg-*` component aliases, so app token
+overrides work without changing every icon call site.
+
+The Storybook Gallery searches the curated common token glyphs and Iconify
+examples by visible name, class name or category. Each result shows its exact
+class for copying; clearing the search returns keyboard focus to the search field.
+The gallery is not an exhaustive catalog of every component's private icon aliases. Iconify class names must be statically present in source
+so the CSS generator can include them.
 
 Supported props:
 
@@ -187,3 +205,19 @@ rg -n "<Button[^>]*>\\s*<Icon" apps
 rg -P -n "<Button(?![^>]*aria-label)[^>]*icon=" apps
 rg -P -n "icon=\"(?!token-icon-|icon-\\[)" apps
 ```
+
+## Meaningful primary colour
+
+`color="primary"` uses the contrast-safe semantic accent foreground, not the
+brand's decorative fill colour. For decoration that intentionally uses a tint,
+apply an application token class and keep the glyph hidden from assistive
+technology. Canonical comparison sizes are sm/md/lg. The existing xs/xl/2xl and
+current sizes remain available for non-interactive composition.
+
+Explicit secondary and status colours also use readable semantic foregrounds,
+not decorative brand/status fills. Use colour=current to inherit a surrounding
+control label's already-contrasting foreground.
+
+## Ref and system accessibility
+
+`ref` accepts `Ref<HTMLSpanElement>` (nullable object or callback, including React 19 cleanup). Masked glyphs preserve the system foreground in forced colors; the shared loading glyph is static under reduced motion. Do not replace it with an intrinsically animated SVG.

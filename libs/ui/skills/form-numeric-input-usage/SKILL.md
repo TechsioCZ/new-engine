@@ -5,7 +5,7 @@ description: >
   FormNumericInput for labeled numeric fields using NumericInput compound
   children, validation status, help text, and number-specific constraints.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.2.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -77,7 +77,7 @@ where actions and feedback live). This section applies them to `FormNumericInput
 Supported props:
 
 ```text
-id: required
+id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 children: NumericInput compound parts
 validateStatus: default | error | success | warning
@@ -94,11 +94,15 @@ parts.
 
 ### Express domain constraints with props
 
-Use `min`, `max`, `step`, `precision`, and `locale`, not custom blur parsing.
+Use `min`, `max` and `step` for bounds/stepping, and `precision` and `locale`
+for presentation, not custom blur parsing. Integer-only business rules still
+require explicit app validation; formatting is not validation.
 
 ### Use validateStatus for errors
 
-FormNumericInput maps `validateStatus="error"` to `invalid` on NumericInput.
+FormNumericInput forwards all validation states to NumericInput. Error sets
+`invalid`; success/warning retain their status borders without `aria-invalid`.
+Explicit `invalid` takes precedence, and disabled visuals remain authoritative.
 
 ## Common Mistakes
 
@@ -129,31 +133,82 @@ Wrong:
 Correct:
 
 ```tsx
-<FormNumericInput id="qty" label="Quantity" min={1} />
+<FormNumericInput id="qty" label="Quantity" min={1}>
+  <NumericInput.Control>
+    <NumericInput.Input />
+  </NumericInput.Control>
+</FormNumericInput>
 ```
 
 Source: libs/ui/src/atoms/numeric-input.tsx
 
-### HIGH String value
+### Controlled string drafts
 
-Wrong:
-
-```tsx
-<FormNumericInput id="qty" label="Quantity" value="1" />
-```
-
-Correct:
+String values are supported when the parent must preserve empty or rejected
+drafts. Use onValueChange for text updates; the legacy onChange still receives
+a number (or NaN when cleared). Numeric values provide immediate formatting.
 
 ```tsx
-<FormNumericInput id="qty" label="Quantity" value={1} />
+const [draft, setDraft] = useState("1")
+
+<FormNumericInput
+  label="Quantity"
+  value={draft}
+  onValueChange={({ value }) => setDraft(value)}
+  min={1}
+  max={10}
+  clampValueOnBlur={false}
+>
+  <NumericInput.Control>
+    <NumericInput.Input />
+  </NumericInput.Control>
+</FormNumericInput>
 ```
 
-Source: libs/ui/src/atoms/numeric-input.tsx
+Use `clampValueOnBlur={false}` to retain out-of-range drafts; validate the
+nonempty, finite, in-range number before saving. Blur/Enter commit callbacks do
+not save automatically.
 
 ## Validation Commands
 
 ```sh
-rg -U -P -n "type=\"number\"|<FormNumericInput[^>]*value=\"|<FormNumericInput(?![\\s\\S]{0,500}<NumericInput\\.Input)" apps
-rg -P -n "<FormNumericInput(?![^>]*id=)|<FormNumericInput(?![^>]*label=)" apps
+rg -U -P -n "type=\"number\"|<FormNumericInput(?![\\s\\S]{0,500}<NumericInput\\.Input)" apps
+rg -P -n "<FormNumericInput(?![^>]*label=)" apps
 rg -n "<FormNumericInput[^>]*className=.*(border-|text-|px-|py-|gap-)" apps
 ```
+
+## Read-only and feedback contracts
+
+Use `readOnly` for visible, focusable, copyable values that must not change.
+The value keeps full contrast and a subtle surface; disabled wins when both
+are set. Canonical sizes are sm/md/lg, default md, including labels and feedback.
+
+`helpText` renders StatusText with a stable unique ID, merged with caller
+`aria-describedby`. Errors also set `aria-invalid` and `aria-errormessage`;
+the internally generated error reference disappears when wrapper validation clears. Error/warning/success
+icons always remain enabled; `showHelpTextIcon` only customizes neutral help.
+Validate on blur/submit and use actionable copy rather than color alone.
+
+
+Caller-supplied `aria-errormessage` IDs are preserved independently of
+`validateStatus`, including when the caller supplies the invalid state. Clear
+caller-owned error IDs and invalid state together when removing that message;
+the wrapper only manages the lifecycle of its own generated error reference.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
+
+## Draft and native-handler ownership
+
+The NumericInput children retain composed native event handlers: observation
+does not replace machine typing/blur behavior, and `preventDefault()` cancels the
+matching action. Blur commits report the clamped value. Zero precision and
+`step={1}` do not validate whole-unit quantities; keep fractional drafts visible
+and validate nonempty, finite integer values in the app before saving.

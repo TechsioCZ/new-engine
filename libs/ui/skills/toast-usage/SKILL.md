@@ -6,7 +6,7 @@ description: >
   portal, useToast, toast types, title, description, close trigger, and token
   styling.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -176,3 +176,29 @@ rg -n "fixed bottom|toast\\.success|<Toaster|useToast\\(\\)" apps
 rg -n "bg-green-600|bg-red-600|role=\"alert\"" apps
 rg -n "<Toaster[\\s\\S]{0,200}<Button|function .*Button[\\s\\S]{0,400}<Toaster" apps -U
 ```
+
+## Isolated notification surfaces
+
+Existing applications may keep one global Toaster and useToast. For independent
+roots or previews, wrap each surface in ToastProvider: it owns one store and one
+Toaster, scopes useToast, and clears its store on unmount. Alternatively create a
+store once with createToaster(options) and pass it to `<Toaster store={store} />`.
+Never mount two Toasters for the same store. Region IDs are namespaced per mount.
+
+Supplied titles remain visible for loading notifications. `closable: false`
+omits the close button and blocks Escape dismissal. For progress that must stay until
+completion, also use `type: "loading"` or an infinite duration; `closable` does not
+disable the timer or programmatic dismissal. A supplied action `{ label, onClick }` renders a keyboard
+accessible button and dismisses the toast after activation. Text wraps within the
+viewport and does not push the close button out of view. Status is expressed by
+copy and a decorative status glyph/border on an opaque readable surface.
+
+Toast has no control-size prop: its width is a responsive **content width**,
+not a sm/md/lg axis. Embedded actions use canonical control sizes.
+
+The notification region follows the frontmost mounted kit modal so notification
+actions and the Alt+T shortcut remain inside its focus trap. Outside modals it
+portals to the document body. Its transparent native top-layer host keeps the
+notification placement viewport-relative even inside a translated or partial-snap
+Drawer. This host does not light-dismiss or consume Escape. Notification actors
+and timers survive modal changes; actions must stay visible before receiving focus.

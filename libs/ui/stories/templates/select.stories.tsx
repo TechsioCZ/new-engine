@@ -1,173 +1,187 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import type { SelectItem } from '../../src/molecules/select'
-import { SelectTemplate } from '../../src/templates/select'
+import type { Meta, StoryObj } from "@storybook/react"
+import { expect, within } from "storybook/test"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import type { SelectItem } from "../../src/molecules/select"
+import { SelectTemplate } from "../../src/templates/select"
 
-const defaultItems: SelectItem[] = [
-  { value: 'cz', label: 'Czech Republic' },
-  { value: 'de', label: 'Germany' },
-  { value: 'fr', label: 'France' },
-  { value: 'pl', label: 'Poland' },
+const items: SelectItem[] = [
+  { value: "cz", label: "Czech Republic" },
+  { value: "de", label: "Germany" },
+  { value: "fr", label: "France" },
+  { value: "pl", label: "Poland" },
 ]
-
 const meta: Meta<typeof SelectTemplate> = {
-  title: 'Templates/SelectTemplate',
+  title: "Templates/SelectTemplate",
   component: SelectTemplate,
+  tags: ["autodocs"],
   parameters: {
-    layout: 'centered',
+    controls: { include: ["items", "label", "placeholder", "helpText", "size", "validateStatus", "disabled", "readOnly", "required", "multiple", "showIndicator"] },
+    layout: "padded",
     docs: {
       description: {
-        component: `
-          A ready-to-use select template with props-based API.
-          This template provides a simplified interface for the Select compound component,
-          making it ideal for Storybook controls and rapid prototyping.
-
-          Part of the templates layer in atomic design architecture.
-        `,
+        component:
+          "A ready-to-use Select with a props-only API for labels, validation and option rendering. Use it for standard form choices; use the compound Select when you need custom anatomy, Combobox for searchable choices, or RadioGroup for a few visible options. Canonical sizes are sm/md/lg; xs remains a compatibility alias.",
       },
     },
   },
-  tags: ['autodocs'],
+  decorators: [
+    (Story) => (
+      <div className="mx-auto w-full max-w-sm">
+        <Story />
+      </div>
+    ),
+  ],
   argTypes: {
-    items: {
-      control: 'object',
-      description: 'Array of select items',
-      table: {
-        category: 'Content',
-      },
+    ref: { control: false, table: { disable: true } },
+    id: { control: false, table: { disable: true } },
+    items: { control: "object" },
+    label: { control: "text" },
+    placeholder: { control: "text" },
+    helpText: { description: 'Linked StatusText below the field; its appearance and error association follow validateStatus.', control: "text" },
+    size: { control: "select", options: ["sm", "md", "lg"] },
+    validateStatus: { description: 'Field and helper status; error marks the focusable trigger invalid and links the error message. Default default.',
+      control: "select",
+      options: ["default", "error", "warning", "success"],
     },
-    label: {
-      control: 'text',
-      description: 'Select label text',
-      table: {
-        category: 'Content',
-      },
-    },
-    placeholder: {
-      control: 'text',
-      description: 'Placeholder text when no value is selected',
-      table: {
-        category: 'Content',
-      },
-    },
-    size: {
-      control: 'select',
-      options: ['xs', 'sm', 'md', 'lg'],
-      description: 'Size variant',
-      table: {
-        category: 'Appearance',
-      },
-    },
-    validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status styling',
-      table: {
-        category: 'State',
-      },
-    },
-    disabled: {
-      control: 'boolean',
-      description: 'Disable the select',
-      table: {
-        category: 'State',
-      },
-    },
-    required: {
-      control: 'boolean',
-      description: 'Mark as required field',
-      table: {
-        category: 'State',
-      },
-    },
-    showIndicator: {
-      control: 'boolean',
-      description: 'Show selection indicator for items',
-      table: {
-        category: 'Appearance',
-      },
-    },
-    onValueChange: {
-      action: 'value-changed',
-      table: {
-        category: 'Events',
-      },
-    },
+    disabled: { control: "boolean" },
+    readOnly: { control: "boolean" },
+    required: { control: "boolean" },
+    multiple: { description: 'Allow multiple values (default false). Controlled value is a string array paired with onValueChange.', control: "boolean" },
+    showIndicator: { description: 'Show checkmarks beside selected options (default true); does not hide the trigger chevron.', control: "boolean" },
+  },
+  args: {
+    items,
+    label: "Country",
+    placeholder: "Select a country",
+    helpText: "Choose the country for your delivery address.",
+    size: "md",
+    disabled: false,
+    readOnly: false,
   },
 }
-
 export default meta
-type Story = StoryObj<typeof SelectTemplate>
+type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
-  name: '🎮 Interactive Playground',
-  args: {
-    items: [
-      ...defaultItems,
-      { value: 'es', label: 'Spain', disabled: true },
-    ],
-    label: 'Country',
-    placeholder: 'Select a country',
-    size: 'md',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Explore the props-only API, including helper text, state, size and selection controls.",
+      },
+    },
   },
 }
-
-export const Default: Story = {
-  args: {
-    items: defaultItems,
-    label: 'Country',
-    placeholder: 'Select a country',
-    size: 'md',
-    defaultValue: ['cz'],
-  },
-}
-
 export const Sizes: Story = {
-  render: () => (
-    <div className="flex w-full max-w-container-sm flex-col gap-300">
-      {(['xs', 'sm', 'md', 'lg'] as const).map((size) => (
-        <SelectTemplate
-          defaultValue={['cz']}
-          items={defaultItems}
+  render: (args) => (
+    <VariantContainer>
+      {(["sm", "md", "lg"] as const).map((size, index) => (
+        <VariantGroup
           key={size}
-          label={`Size ${size.toUpperCase()}`}
-          placeholder="Select a country"
-          size={size}
-        />
+          title={
+            ["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? "Medium (md)"
+          }
+          fullWidth
+        >
+          <SelectTemplate {...args} size={size} defaultValue={["de"]} />
+        </VariantGroup>
       ))}
-    </div>
+    </VariantContainer>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The canonical small, medium and large fields use identical copy and selected values.",
+      },
+    },
+  },
 }
-
-export const States: Story = {
-  render: () => (
-    <div className="flex w-full max-w-container-sm flex-col gap-300">
-      <SelectTemplate
-        items={defaultItems}
-        label="Default"
-        placeholder="Select a country"
-        size="md"
-      />
-      <SelectTemplate
-        disabled
-        items={defaultItems}
-        label="Disabled"
-        placeholder="Select a country"
-        size="md"
-      />
-      <SelectTemplate
-        items={defaultItems}
-        label="Error"
-        placeholder="Select a country"
-        size="md"
-        validateStatus="error"
-      />
-      <SelectTemplate
-        items={defaultItems}
-        label="Success"
-        placeholder="Select a country"
-        size="md"
-        validateStatus="success"
-      />
-    </div>
-  ),
+export const Disabled: Story = {
+  args: {
+    disabled: true,
+    defaultValue: ["de"],
+    helpText: "Country selection is unavailable while the address is syncing.",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "An unavailable selection remains visible but is removed from the keyboard tab order.",
+      },
+    },
+  },
+}
+export const ReadOnly: Story = {
+  name: "Read-only",
+  args: {
+    readOnly: true,
+    defaultValue: ["de"],
+    helpText: "This saved delivery country cannot be changed.",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A locked selection preserves its normal focus target and full-contrast value without opening the popup.",
+      },
+    },
+  },
+}
+export const Validation: Story = {
+  args: {
+    validateStatus: "error",
+    helpText: "Choose a delivery country before continuing.",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The template renders a linked StatusText error with its state icon instead of relying on a red border alone.",
+      },
+    },
+  },
+}
+export const Multiple: Story = {
+  args: {
+    multiple: true,
+    closeOnSelect: false,
+    defaultValue: ["cz", "de", "fr"],
+    helpText: "Choose every country you deliver to.",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "All three selected country labels are shown by default, even when values differ from visible labels.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByRole("combobox", { name: "Country" })
+    ).toHaveTextContent("Czech Republic, Germany, France")
+  },
+}
+export const StaticValueText: Story = {
+  args: {
+    multiple: true,
+    defaultValue: ["cz", "de", "fr"],
+    valueText: "3 delivery countries",
+    helpText:
+      "A custom summary can replace the default list of selected labels.",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A static valueText summary is honored just like a render function when there is a selection.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByRole("combobox", { name: "Country" })
+    ).toHaveTextContent("3 delivery countries")
+  },
 }

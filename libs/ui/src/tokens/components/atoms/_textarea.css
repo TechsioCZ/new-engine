@@ -13,12 +13,24 @@
  */
 
 @theme static {
+  /* Read-only reference and public component aliases. */
+  --color-textarea-readonly: var(--color-form-control-readonly);
+  --color-textarea-text-readonly: var(--color-form-control-text);
+  --color-textarea-bg-readonly: var(--color-textarea-readonly);
+  --color-textarea-fg-readonly: var(--color-textarea-text-readonly);
+
   --opacity-borderless: 60%;
 
   /* Validation focus — fall back to base (Figma exports no focus variant). */
-  --color-textarea-border-danger-focus: var(--color-textarea-border-danger-base);
-  --color-textarea-border-success-focus: var(--color-textarea-border-success-base);
-  --color-textarea-border-warning-focus: var(--color-textarea-border-warning-base);
+  --color-textarea-border-danger-focus: var(
+    --color-textarea-border-danger-base
+  );
+  --color-textarea-border-success-focus: var(
+    --color-textarea-border-success-base
+  );
+  --color-textarea-border-warning-focus: var(
+    --color-textarea-border-warning-base
+  );
 
   /* Placeholder-on-danger (not in Figma) */
   /* stylelint-disable scss/operator-no-newline-after -- biome wraps long lines */
@@ -35,4 +47,10 @@
   /* stylelint-enable scss/operator-no-newline-after */
   --color-textarea-bg-borderless-hover: var(--color-textarea-bg);
   --color-textarea-bg-borderless-focus: var(--color-textarea-bg);
+}
+
+/* Feed component overrides into the shared state utility on this surface. */
+@utility textarea-readonly {
+  --color-form-control-bg-readonly: var(--color-textarea-bg-readonly);
+  --color-form-control-fg-readonly: var(--color-textarea-fg-readonly);
 }

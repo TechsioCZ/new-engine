@@ -5,15 +5,23 @@ description: >
   link-based paginated navigation with Zag.js pagination, getPageUrl,
   LinkButton, NextLink adapters, compact mode, variants, and sizes.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/pagination.tsx libs/ui/src/tokens/components/molecules/_pagination.css libs/ui/stories/molecules/pagination.stories.tsx libs/ui/src/molecules/pagination.figma.ts https://zagjs.com/components/react/pagination"
+  sources: "https://zagjs.com/components/react/pagination"
+  contributor_sources: "libs/ui/src/molecules/pagination.tsx libs/ui/src/tokens/components/molecules/_pagination.css libs/ui/stories/molecules/pagination.stories.tsx libs/ui/src/molecules/pagination.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
 
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
+
 # @techsio/ui-kit Pagination Usage
+
+Canonical `sm` / `md` / `lg` sizes use the same control heights and interactive
+text scale as Button, Menu and Tabs, including compact page summaries.
 
 Use Pagination for page-based navigation. Do not use it for infinite scroll or
 stepper/wizard progress.
@@ -149,3 +157,26 @@ rg -P -n "<Pagination(?![^>]*getPageUrl=)|<Pagination[^>]*className=.*(gap-|text
 rg -P -n "<Pagination(?![^>]*linkAs=\\{?NextLink)" apps
 rg -n "createPaginationGetPageUrl|compactLabel|siblingCount|boundaryCount" apps
 ```
+
+## Unavailable destinations and small screens
+
+Unavailable previous/next destinations render a span with role=link,
+aria-disabled=true and tabindex=-1, without href. They are not buttons and cannot
+navigate or invoke the page callback. Navigable pages keep real href values.
+The sm/md/lg scale uses shared field heights, default md; the list may wrap on
+narrow surfaces. Prefer compact mode where horizontal space is very limited.
+Controlled page usage must update page in onPageChange; examples suppress browser
+navigation while updating local page state.
+
+## Bounds and native link activation
+
+Zero results display no numbered pages (compact shows `0 of 0`); both directions
+are noninteractive placeholders without hrefs or tab stops. Count reductions
+clamp an uncontrolled page and notify callbacks once. A controlled invalid page
+requests a correction once per invalid-input/bounds pair and shows a pending
+status without destinations/current-page claims until the owner accepts it.
+Keep result data, page and URL aligned. An invalid uncontrolled page resets to 1
+on pageSize changes. Modified, auxiliary or new-context link activation preserves
+native navigation without changing the original paginator; ordinary primary
+click/Enter activation changes it. RTL swaps only arrow glyphs, not arithmetic.
+Minimal selection has a persistent underline separate from keyboard focus.

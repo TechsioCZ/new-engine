@@ -5,7 +5,7 @@ description: >
   for a focusable error summary that links to invalid fields, without depending
   on a specific form library.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -23,6 +23,17 @@ sources:
 
 Use FormErrorSummary to list validation errors with links that move focus to
 the invalid fields. It is presentational and form-library-agnostic.
+
+## Shared focus contract
+
+The summary is programmatically focusable (`tabIndex=-1`) without adding a tab
+stop. After a failed submit, focus its ref once the errors have rendered. Its
+heading supplies the accessible name. Each link focuses and scrolls its real
+`targetId`, then calls `onFieldFocus`; keep target IDs unique within the document.
+
+This display-only alert has no value, read-only or canonical control-size axis.
+Pair its actionable error list with inline, icon-bearing field feedback; do not
+wrap it in another live region. An empty errors list renders nothing.
 
 ## UX/UI guidelines
 
@@ -68,7 +79,6 @@ import { FormErrorSummary } from "@techsio/ui-kit/molecules/form-error-summary"
     { id: "name", label: "Enter your name", targetId: "name-field" },
     { id: "email", label: "Enter a valid email", targetId: "email-field" },
   ]}
-  onFieldFocus={(targetId) => document.getElementById(targetId)?.focus()}
 />
 ```
 
@@ -77,6 +87,7 @@ Supported props:
 ```text
 title?: string
 errors: { id: string; label: string; targetId: string }[]
+revealField?: (targetId: string) => void | Promise<void>
 onFieldFocus?: (targetId: string) => void
 className
 ```
@@ -86,7 +97,7 @@ className
 ### Link by field id
 
 `targetId` must match the `id` prop of the corresponding `Form*` component. The
-summary renders `<a href="#targetId">`, so focus and scroll are native.
+summary renders a real fragment link, reveals closed native `details` ancestors and focuses/scrolls the target without changing the page URL. For a custom accordion, tab or conditionally mounted field, provide `revealField(targetId): void | Promise<void>`; resolve only after the target mounts. The summary resolves the element after this hook and calls `onFieldFocus` only after successful focus.
 
 ### Keep it form-library-agnostic
 
@@ -129,9 +140,15 @@ errors={[{ id: "email", label: "Enter email", targetId: "email-field" }]}
 
 Source: libs/ui/src/molecules/form-error-summary.tsx
 
+## Regression coverage
+
+Native checkbox/numeric targets, the focusable summary, and empty rendering are
+covered by `tests/form-error-summary.ids.test.ts`, included in the regular
+`pnpm test` Vitest run (no separate Bun invocation is needed).
+
 ## Validation Commands
 
 ```sh
-rg -n "<ul[^>]*>[[:space:]]*\{.*errors|<FormErrorSummary(?![^>]*errors=)" apps
+rg -P -n "<ul[^>]*>[[:space:]]*\{.*errors|<FormErrorSummary\\b(?!\\.)(?![^>]*errors=)" apps
 rg -n "targetId=\"" apps
 ```

@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.3.4"
+  component_version: "1.6.6"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -133,6 +133,33 @@ For external filtering, keep the last `items` while `loading` or `error` is
 shown if the selected value still needs its label. The status replaces the
 option list, and keyboard navigation is unavailable until results return.
 
+### Filtering and opening
+
+Local filtering is case-insensitive and matches labels, including disabled
+options. The first typed character filters immediately, whether the popup was
+closed or was opened by its trigger or arrow keys. Clearing the query restores
+all options; explicitly reopening the popup also restores choices after selection.
+External filtering bypasses this behavior and displays the supplied items.
+
+### Rich option foregrounds
+
+Let the main label, decorative icons, and selection indicator inherit the row's
+color. Use `text-combobox-item-fg-secondary` for secondary text in `renderItem`.
+This token becomes the paired foreground on highlighted and checked surfaces;
+`text-fg-secondary` or a fixed icon color will not adapt to a selected row.
+Keep custom content non-interactive and identify the option with `item.label`.
+
+```tsx
+renderItem={(item) => (
+  <div className="flex min-w-0 flex-col">
+    <span>{item.label}</span>
+    <span className="text-combobox-item-fg-secondary text-sm">
+      {item.data?.subtitle}
+    </span>
+  </div>
+)}
+```
+
 ### Use validation props, not border classes
 
 `validateStatus` controls trigger/input border state and `helpText` renders
@@ -195,3 +222,87 @@ rg -n "<datalist|role=\"listbox\"|<Combobox[^>]*multiple[^>]*value=\"" apps
 rg -n "<Combobox[^>]*className=.*(bg-|text-|border-|p-|px-|py-)" apps
 rg -n "<Combobox[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Submission and immutable fields
+
+Selection mode submits item values, never the visible input label. With
+`multiple`, each selected value uses a separate entry under `name`, so read
+`new FormData(form).getAll(name)`. An empty selection submits an empty entry;
+disabled fields submit nothing. Navigation mode does not submit selection data.
+The visible text input intentionally has no name in selection mode.
+For a field outside its form, pass `inputProps={{ form: "order-form" }}`. That
+association applies to both the visible input and every named hidden selection,
+including empty, multiple and read-only values; disabled selections stay omitted.
+
+Read-only inputs preserve focus and text selection, suppress all opening even
+with open/defaultOpen, and omit clear/dropdown actions. Error help is linked
+with aria-errormessage. Keyboard focus on the input activates the control ring.
+Popup transitions respect reduced motion. Visual/state updates need a Figma-sync
+handoff after stabilization.
+
+Caller aria-label, aria-labelledby and aria-describedby are forwarded to the
+input; caller descriptions merge with linked help and the multiple-selection
+summary. Multiple selections expose every selected label below the control so
+read-only multi-value fields remain inspectable even when the query is empty.
+
+When selection mode becomes read-only, any uncommitted query is discarded and
+the selected labels are restored, including when the query is controlled.
+For a controlled query, `onInputValueChange` also reports the restored label(s)
+so unlocking cannot resurrect the discarded draft. Navigation mode retains its
+search query instead. `required` in selection mode
+uses the selected value(s) for native form validity: arbitrary search text is not
+a selection, and an empty query does not invalidate a nonempty multiple selection.
+Native validation focuses the visible input. Navigation mode validates the query.
+Labels follow the canonical control size rather than a fixed medium size.
+
+## Input integration and selected values
+
+`ref` targets the focusable `HTMLInputElement` (including React 19 callback-ref
+cleanup). `inputProps` accepts native attributes and composed focus/blur/key events;
+value, disabled, readOnly, required, name and the machine input ID stay owned by the
+component. Caller descriptions merge with linked helper/selection descriptions.
+`className`, `style` and other div DOM attributes target the root. SearchSuggestions
+preserves the same API. `onChange` always emits `string[]`, even in single mode;
+scalar `value`/`defaultValue` inputs remain a convenience. A `string[]` React state
+setter can be passed directly.
+
+Multiple mode renders built-in selected tokens independently of the query. Each
+has a named Remove button that returns focus to the input; Backspace on the empty,
+closed input removes the last selection. Read-only values remain visible without
+remove buttons; disabled buttons are not focusable. Do not add duplicate story/app
+chips around this built-in presentation. Labels resolve from the full collection
+or machine selection cache, not the filtered results.
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.
+
+The default query is the latest `defaultInputValue` when provided. With a
+controlled selection and replacement query, accepted/refused selections and
+external parent updates resolve text and selected-option ARIA from the
+authoritative value, not the proposed item or filtered results. Replacing an
+item's label without changing its key refreshes selected text too, including
+after reset; this is not a user edit and emits no value/query callback. An
+active search draft is preserved during collection updates. Without an explicit
+`defaultInputValue`, reset resolves the default selection's latest labels rather
+than its mount-time labels. An explicitly controlled `inputValue` remains
+independently parent-owned.
+
+Uncontrolled native typing retains its text and caret while filtered results
+update, including deferred WebKit synchronization. Programmatic query changes
+and native reset release that edit ownership; an explicit `inputValue` remains
+parent-owned throughout.
+
+A controlled `inputValue` no longer round-trips each keystroke through React:
+native typing stays DOM-owned, so a parent that acknowledges an older query
+after newer keys landed cannot drop characters. External replacement,
+selection, blur and native reset hand authority back to the parent value.
+
+Controlled queries follow an ordered acknowledgement queue: in-order late acknowledgements never drop typing or move the caret, deliberate restores after acknowledgement apply while focused, and edits equal to the current value complete immediately. A restore to a still-unacknowledged value is indistinguishable from its acknowledgement; async parents must discard out-of-order responses.

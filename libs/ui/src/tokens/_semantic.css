@@ -56,28 +56,6 @@
   }
 }
 
-/* Reverse flips whatever its parent theme is. */
-:is(.light, .always-light) .reverse {
-  --theme-sign: -1;
-}
-
-:is(.dark, .always-dark) .reverse {
-  --theme-sign: 1;
-}
-
-/* Reverse on System Light/Dark preference (when no explicit theme class is present) */
-@media (prefers-color-scheme: light) {
-  .reverse:not(.dark):not(.always-dark):not(.light):not(.always-light) {
-    --theme-sign: -1;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .reverse:not(.dark):not(.always-dark):not(.light):not(.always-light) {
-    --theme-sign: 1;
-  }
-}
-
 /* === TAILWIND UTILITY VARIABLES === */
 @theme static {
   /* Colors */
@@ -379,7 +357,7 @@
   /* Disabled fill for form controls and interactive elements */
   --color-fill-disabled: light-dark(
     var(--color-gray-50),
-    var(--color-gray-850)
+    var(--color-gray-800)
   );
 
   /* Spacing */

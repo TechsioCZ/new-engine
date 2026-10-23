@@ -1,11 +1,10 @@
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
-import { Button } from "../../../src/atoms/button"
+
 import { Skeleton } from "../../../src/atoms/skeleton"
 import { Chart } from "../../../src/molecules/chart"
 import { Tabs } from "../../../src/molecules/tabs"
 import { Table } from "../../../src/organisms/table"
-import { SelectTemplate } from "../../../src/templates/select"
 import { PageHeader, SectionCard, StatCard, StatRow } from "../shell"
 import {
   akOrders,
@@ -27,10 +26,18 @@ import {
 } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Home — statistics",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -39,7 +46,7 @@ const meta: Meta = {
           "orders, visits / traffic, one main statistics chart and customer statistics.",
           "",
           "**How it is built** — `AdminShell`, `PageHeader`, `StatCard`, `Chart`,",
-          "`Tabs`, `Table`, `SelectTemplate`, `Skeleton`, `Button`. No custom widgets.",
+          "`Tabs`, `Table`, `Skeleton`, `Button`. No custom widgets.",
           "",
           "**Pattern rules**",
           "- Alerts first: unpaid Comgate orders and failed ABRA transfers are the two",
@@ -48,7 +55,7 @@ const meta: Meta = {
           "  are three scales, so they are three tabs of one chart, never dual axes.",
           "- Customer statistics are a share (B2C new / returning / B2B) and use a donut;",
           "  traffic sources are a ranking and use horizontal bars.",
-          "- The period select scopes every widget on the page at once.",
+          "- This is a fixed 1–14 September 2026 snapshot, not an interactive reporting filter.",
         ]),
       },
     },
@@ -58,13 +65,6 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
-const periods = [
-  { label: "Last 14 days", value: "14d" },
-  { label: "Last 30 days", value: "30d" },
-  { label: "This month", value: "month" },
-  { label: "This year", value: "year" },
-]
-
 const unpaidOnline = akOrders.filter(
   (order) =>
     order.paymentMethod === "comgate" &&
@@ -73,26 +73,11 @@ const unpaidOnline = akOrders.filter(
 const abraFailed = akOrders.filter((order) => order.abra === "error")
 
 function HomePage({ loading }: { loading?: boolean }) {
-  const [period, setPeriod] = useState("14d")
-
   return (
     <AkrosShell selected="home">
       <PageHeader
-        actions={
-          <SelectTemplate
-            items={periods}
-            label="Period"
-            onValueChange={(details) => {
-              const [next] = details.value
-              if (next) {
-                setPeriod(next)
-              }
-            }}
-            size="sm"
-            value={[period]}
-          />
-        }
-        description="Monday 14 September 2026 · every figure below follows the selected period."
+        actions={null}
+        description="Fixed demo snapshot · 1–14 September 2026. Comparisons use the preceding 14 days; operational alerts and latest orders are current as of 14 September."
         title="Overview"
       />
 
@@ -102,11 +87,7 @@ function HomePage({ loading }: { loading?: boolean }) {
       >
         <div className="flex flex-col gap-150">
           <Notice
-            action={
-              <Button size="sm" theme="outlined" variant="secondary">
-                Open unpaid orders
-              </Button>
-            }
+            action={null}
             title={`${unpaidOnline.length} Comgate orders are not paid`}
             tone="danger"
           >
@@ -114,11 +95,7 @@ function HomePage({ loading }: { loading?: boolean }) {
             switch the payment method or cancel.
           </Notice>
           <Notice
-            action={
-              <Button size="sm" theme="outlined" variant="secondary">
-                Review transfers
-              </Button>
-            }
+            action={null}
             title={`${abraFailed.length} order could not be transferred to ABRA`}
             tone="warning"
           >
@@ -239,11 +216,7 @@ function HomePage({ loading }: { loading?: boolean }) {
         </SectionCard>
 
         <SectionCard
-          actions={
-            <Button size="sm" theme="borderless" variant="secondary">
-              Customers
-            </Button>
-          }
+          actions={null}
           description="Customers who ordered in the period."
           title="Customer statistics"
         >
@@ -264,57 +237,65 @@ function HomePage({ loading }: { loading?: boolean }) {
         </SectionCard>
       </div>
 
-      <SectionCard
-        actions={
-          <Button size="sm" theme="borderless" variant="secondary">
-            All orders
-          </Button>
-        }
-        flush
-        title="Latest orders"
-      >
-        <Table size="sm" variant="line">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Order</Table.ColumnHeader>
-              <Table.ColumnHeader>Customer</Table.ColumnHeader>
-              <Table.ColumnHeader>State</Table.ColumnHeader>
-              <Table.ColumnHeader>Payment</Table.ColumnHeader>
-              <Table.ColumnHeader align="end">Total</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {akOrders.slice(0, 5).map((order) => (
-              <Table.Row key={order.id}>
-                <Table.Cell>
-                  <span className="flex flex-col gap-50">
-                    <span className="font-medium">{order.number}</span>
-                    <span className="text-fg-secondary text-xs">
-                      {formatDate(order.placedAt)}
-                    </span>
-                  </span>
-                </Table.Cell>
-                <Table.Cell>{order.company ?? order.customer}</Table.Cell>
-                <Table.Cell>
-                  <OrderStateBadge state={order.state} />
-                </Table.Cell>
-                <Table.Cell>
-                  <PaymentCell
-                    method={order.paymentMethod}
-                    state={order.payment}
-                  />
-                </Table.Cell>
-                <Table.Cell align="end">{czk.format(order.total)}</Table.Cell>
+      <SectionCard actions={null} flush title="Latest orders">
+        <div
+          className="w-full min-w-0 overflow-x-auto"
+          role="region"
+          aria-label="Scrollable records"
+          tabIndex={0}
+        >
+          <Table size="sm" variant="line">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Order</Table.ColumnHeader>
+                <Table.ColumnHeader>Customer</Table.ColumnHeader>
+                <Table.ColumnHeader>State</Table.ColumnHeader>
+                <Table.ColumnHeader>Payment</Table.ColumnHeader>
+                <Table.ColumnHeader align="end">Total</Table.ColumnHeader>
               </Table.Row>
-            ))}
-          </Table.Body>
-        </Table>
+            </Table.Header>
+            <Table.Body>
+              {akOrders.slice(0, 5).map((order) => (
+                <Table.Row key={order.id}>
+                  <Table.Cell>
+                    <span className="flex flex-col gap-50">
+                      <span className="font-medium">{order.number}</span>
+                      <span className="text-fg-secondary text-xs">
+                        {formatDate(order.placedAt)}
+                      </span>
+                    </span>
+                  </Table.Cell>
+                  <Table.Cell>{order.company ?? order.customer}</Table.Cell>
+                  <Table.Cell>
+                    <OrderStateBadge state={order.state} />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <PaymentCell
+                      method={order.paymentMethod}
+                      state={order.payment}
+                    />
+                  </Table.Cell>
+                  <Table.Cell align="end">{czk.format(order.total)}</Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
+        </div>
       </SectionCard>
     </AkrosShell>
   )
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in dashboard to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   render: () => <HomePage />,
 }
 

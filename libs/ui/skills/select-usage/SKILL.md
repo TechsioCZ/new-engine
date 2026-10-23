@@ -6,7 +6,7 @@ description: >
   trigger, value text, clear trigger, item groups, item indicators, validation
   status, size, and multiple mode.
 metadata:
-  component_version: "1.1.4"
+  component_version: "1.3.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -114,7 +114,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Select items={[{ label: "Czechia", value: "CZ" }]} />
+import { SelectTemplate } from "@techsio/ui-kit/templates/select"
+
+<SelectTemplate label="Country" items={[{ label: "Czechia", value: "CZ" }]} />
 ```
 
 Source: libs/ui/src/molecules/select.tsx
@@ -130,7 +132,14 @@ Wrong:
 Correct:
 
 ```tsx
-<Select value={["CZ"]} items={items} />
+import { useState } from "react"
+import { SelectTemplate } from "@techsio/ui-kit/templates/select"
+
+function CountryField() {
+  const [value, setValue] = useState<string[]>(["CZ"])
+  return <SelectTemplate label="Country" items={[{ label: "Czechia", value: "CZ" }]}
+    value={value} onValueChange={({ value }) => setValue(value)} />
+}
 ```
 
 Source: https://zagjs.com/components/react/select
@@ -146,7 +155,10 @@ Wrong:
 Correct:
 
 ```tsx
-<Select validateStatus="error"><Select.Trigger /></Select>
+import { SelectTemplate } from "@techsio/ui-kit/templates/select"
+
+<SelectTemplate label="Country" items={[{ label: "Czechia", value: "CZ" }]}
+  validateStatus="error" helpText="Choose a delivery country before continuing." />
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_select.css
@@ -154,7 +166,57 @@ Source: libs/ui/src/tokens/components/molecules/_select.css
 ## Validation Commands
 
 ```sh
-rg -n "<select\\b|<Select\\b(?!\\.)[^>]*value=\"|<Select\\.Trigger[^>]*className=.*(border-|bg-|p-|text-)" apps
+rg -P -n "<select\\b|<Select\\b(?!\\.)[^>]*value=\"|<Select\\.Trigger[^>]*className=.*(border-|bg-|p-|text-)" apps
 rg -U -P -n "<Select\\b(?!\\.)(?![\\s\\S]{0,700}<Select\\.Item)" apps
-rg -n "<Select\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
+rg -P -n "<Select\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Field contracts
+
+`Select` itself is the root; there is no `Select.Root`. All supported Zag props
+(including `open`, `defaultOpen`, `dir`, `positioning` and `ids`) are forwarded.
+Trigger event handlers are composed with Zag's handlers. Typeahead searches the
+visible string label; provide `displayValue` for a rich ReactNode label.
+`ValueText` honors both static children and render functions, and otherwise
+shows every selected label separated by commas. The hidden select submits values,
+not labels.
+
+Use `Select.StatusText` for help and validation. Each mounted message gets its
+own stable ID; the trigger merges caller descriptions with every mounted message
+and links error messages with `aria-errormessage`. State icons remain enabled.
+
+`readOnly` keeps the trigger focusable, its text selectable and its form value
+intact. It suppresses opening (including `open`/`defaultOpen`), clear and chevron
+affordances and all selection changes. Disabled takes precedence. Canonical sizes
+are sm/md/lg (default md); xs remains a compatibility alias, not a canonical size.
+
+`SelectTemplate` also accepts `helpText` and `triggerProps` for accessible naming
+and caller descriptions. Its `valueText` supports a static summary or render
+function. Visual/API changes need a Figma-sync handoff once this pass stabilizes.
+
+## Authoritative collection updates
+
+`items` is the complete authoritative collection, not a filtered page. Removing
+values prunes the effective selection without choosing a replacement, shows the
+placeholder when empty, and updates native submission/required validity together.
+Uncontrolled fields update themselves and emit `onValueChange` once; controlled
+fields emit the same correction request and safely render/submit the available
+subset until their owner applies it. Keep the full collection while loading if
+selections must survive a partial fetch. Renames/reordering refresh labels;
+becoming disabled retains an existing selection and its submission. Removed or
+disabled highlights clear. The native single-select has an explicit empty option.
+Trigger, Content and Item callbacks run consumer-first; `preventDefault()` cancels
+the machine action, while observational callbacks leave keyboard behavior intact.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
+
+Triggers share the growing control geometry, matching Button, Input and
+Combobox outer heights at every size.

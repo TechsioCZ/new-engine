@@ -51,28 +51,16 @@ jobs:
         # workspace version, so the root CLI installs the matching browser.
         run: timeout 420 pnpm exec playwright install --only-shell chromium
 
-      # Same entry point as local runs: build, serve, then test both themes.
-      - name: Run a11y tests (light and dark themes)
+      # Explicitly report-only; product enforcement lives in the required quality workflow.
+      - name: Collect all supported brand and mode baselines
         id: a11y
-        env:
-          A11Y_REPORT_FAIL_ON_VIOLATIONS: "false"
-        run: pnpm -C libs/ui storybook:a11y
+        run: pnpm -C libs/ui storybook:a11y:report
 
-      # The PR workflow downloads <prefix>-<theme> and reads report.json at its root.
-      - name: Upload baseline report (light)
-        if: always() && steps.a11y.outputs.report-dir != ''
+      - name: Upload brand/mode-keyed baselines and calibration results
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: storybook-a11y-baseline-light
-          path: ${{ steps.a11y.outputs.report-dir }}/light/report.json
-          if-no-files-found: ignore
-          retention-days: 30
-
-      - name: Upload baseline report (dark)
-        if: always() && steps.a11y.outputs.report-dir != ''
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: storybook-a11y-baseline-dark
-          path: ${{ steps.a11y.outputs.report-dir }}/dark/report.json
-          if-no-files-found: ignore
+          name: storybook-a11y-baseline-${{ github.sha }}
+          path: libs/ui/a11y-report
+          if-no-files-found: error
           retention-days: 30

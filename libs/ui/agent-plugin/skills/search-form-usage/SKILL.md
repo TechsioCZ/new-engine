@@ -6,13 +6,18 @@ description: >
   input, submit button, clear button, icon props, and token-backed field
   layout.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/search-form.tsx libs/ui/src/tokens/components/molecules/_search-form.css libs/ui/stories/molecules/search-form.stories.tsx libs/ui/src/molecules/search-form.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/molecules/search-form.tsx libs/ui/src/tokens/components/molecules/_search-form.css libs/ui/stories/molecules/search-form.stories.tsx libs/ui/src/molecules/search-form.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit SearchForm Usage
 
@@ -144,3 +149,26 @@ rg -n "<input[^>]*type=\"search\"|<SearchForm\\.(Control|Input)[^>]*className=.*
 rg -U -P -n "<SearchForm(?![\\s\\S]{0,500}<SearchForm\\.Input)" apps
 rg -n "<SearchForm\\.Button[^>]*type=" apps
 ```
+
+## Field contracts
+
+Root `readOnly` and `disabled` propagate through the compound input and actions.
+Read-only text remains focusable, selectable and submittable; editing and clear
+are blocked. Disabled removes the input and actions from the tab order.
+`SearchForm.Input` may also set native `readOnly`/`disabled`; these states gate
+the compound clear handler as well.
+
+`SearchForm.Label` supplies the accessible input name. The generic `Search`
+aria-label is a fallback only when no visible label is composed; explicit
+consumer `aria-label` and `aria-labelledby` remain available. Clearing restores
+input focus. Without `SearchForm.Button`, both input corners remain rounded.
+
+Set root `validateStatus` and compose `SearchForm.StatusText` for inline help or
+validation. Messages use unique stable IDs, merge caller descriptions and
+register error-message associations; error/warning/success include state icons.
+Canonical sizes are sm/md/lg (default md). Public state/API changes require
+a Figma-sync handoff after stabilization.
+
+The inline clear action reserves one control-height of trailing input space,
+matching its icon target and inset at each size instead of a generic button-width
+reservation. This keeps the editable query area usable in narrow layouts.

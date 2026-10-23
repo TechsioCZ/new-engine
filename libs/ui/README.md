@@ -1,108 +1,137 @@
-# Web Revolution UI Library – Design System README
+# @techsio/ui-kit
 
-Welcome to the Web Revolution UI Library! This guide explains our design system’s fundamentals, folder structure, theming, and customization rules. Follow these guidelines to keep our system consistent, flexible, and easy to maintain.
+React 19 components, Zag.js interactions and Tailwind v4 design tokens.
+Start with **Guide / Getting Started** in Storybook (source:
+[getting-started.mdx](.storybook/getting-started.mdx)).
+[AGENTS.md](AGENTS.md) is the canonical contributor rulebook, and
+[component contracts](docs/component-contracts.md) define shared behavior.
 
----
+## Install and initialize
 
-## 1. Overview
+Use React and React DOM 19.2 or newer. The package has public subpath exports,
+not a root barrel.
 
-Our design system is built with **Tailwind CSS v4** and React. It uses a **multi-layered design token approach** to control all colors, spacing, typography, and other visual aspects. We maintain one shared UI library, and we allow brand-specific customizations via a dedicated `brands` folder inside the library.
-
-**Key Points:**
-
-- **Multi-layered design tokens:** We separate tokens into three layers: global, semantic, and component.
-- **Single UI library:** All shared components live in one library (e.g. `ui`).
-- **Centralized CSS Variables:** All design tokens (CSS variables) are defined in one central place.
-- **Hybrid Structure:** Our UI library is organized into atoms, molecules, and domain-based organisms. Basic components (like buttons) are atoms or molecules; only composite, domain-specific components go into organisms.
-- **Clear Boundaries:** For example, a button is an atom or molecule. We never export a button from an organism.
-
----
-
-## 2. Design Tokens
-
-### Multi-Layered Tokens
-
-1. **Global Tokens:**
-    - These are the raw design values (like our base color palette, spacing scales, etc.).
-    - They are defined in our central tokens files (e.g. `_colors.css`, `_spacing.css`).
-2. **Semantic Tokens:**
-    - These give meaning to global tokens by mapping them to their design role.
-    - For example, `-color-brand-primary` maps to a global blue value.
-    - All components will use semantic tokens rather than raw values.
-3. **Component Tokens:**
-    - These are defined for each component and act as a layer between the component and semantic tokens.
-    - For example, a Button component uses `-button-bg` which is set to `var(--color-brand-primary)`.
-    - **Important:** All component tokens are defined centrally, not near the component code.
-
----
-
-## 3. Folder Structure
-
-Our UI library follows a hybrid approach with three main parts:
-
-### A. Basic Components (Atoms & Molecules)
-
-- **Atoms:**
-Small, reusable components such as buttons, inputs, icons, etc.
-- **Molecules:**
-Simple combinations of atoms like form groups or card headers.
-
-These live in folders such as:
-
-```
-ui/atoms/
-ui/molecules/
-
+```sh
+pnpm add @techsio/ui-kit react react-dom
+pnpm add -D tailwindcss @tailwindcss/postcss postcss
 ```
 
-### B. Domain-Based Organisms
+Process global CSS once through Tailwind v4's PostCSS plugin:
 
-- **Organisms:**
-Larger, composite components that are specific to a business domain (e.g. cart, checkout, navigation).**Note:** Organisms should not export basic building blocks like buttons. If you need a button, use the atom or molecule from the appropriate folder.
-
-Organisms are organized by domain:
-
-```
-ui/organisms/cart/
-ui/organisms/checkout/
-ui/organisms/navigation/
-
+```js
+// postcss.config.mjs
+export default { plugins: { '@tailwindcss/postcss': {} } }
 ```
 
-### C. Brand Customizations
+Choose **one** stylesheet recipe:
 
-- **Brands Folder:**
-Custom, brand-specific overrides live in a dedicated folder. For example, if a brand needs a special Header, its custom component will live under:
-This keeps the shared UI library clean while allowing brands to override only what they need.
+```css
+/* App does not already import Tailwind: */
+@import "@techsio/ui-kit/tokens-with-tailwind";
+```
 
-    ```
-    ui/brands/customer-a/
+```css
+/* App owns its Tailwind import: */
+@import "tailwindcss";
+@import "@techsio/ui-kit/tokens";
+```
 
-    ```
+Both entries register the shipped component JavaScript with a package-relative
+`@source`. Tailwind otherwise excludes dependencies under `node_modules`; an
+unprocessed CSS link or a token-variable import alone cannot generate utilities.
+Do not copy component classes into app source or import both recipes together.
 
+```tsx
+import { Button } from '@techsio/ui-kit/atoms/button'
 
-> Note: Always use kebab-case for folder and component filenames. For example, use customer-a instead of customerA.
->
+export function CheckoutAction() {
+  return <Button>Continue to checkout</Button>
+}
+```
 
----
+## Brands and modes
 
-## 4. Theming and CSS Variables
+Brand selection uses `data-theme` on `html`; mode uses one `.light` or `.dark`
+class. Base has **no** `data-theme` attribute. The source registry is
+[src/theme/theme-config.ts](src/theme/theme-config.ts).
 
-### Centralized Tokens
+| Brand | Root attribute | Modes |
+| --- | --- | --- |
+| base | none | light, dark |
+| neo | `data-theme="neo"` | light, dark |
+| business | `data-theme="business"` | light only |
+| akros | `data-theme="akros"` | light only |
 
-- **All CSS Variables:**
-We define all our design tokens in one central set of CSS files (e.g. in the `tokens/` directory). Do not scatter token definitions next to component code.
-- **Optional Default Theme:**
-We support a “default theme” file that you can import if you want to start with predefined values. However, the core system is theme-agnostic: our self-referencing palette contains only semantic tokens. If you want the default look, import the default theme; otherwise, you can define your own theme based on the semantic tokens.
-- **Using Tailwind’s `@theme`:**
-Our CSS token files use Tailwind’s `@theme` block to generate CSS variables, ensuring consistency with our Tailwind utilities.
+For a fixed Akros app, use `<html lang="en" class="light" data-theme="akros">`.
+No provider is needed for a fixed theme. Do not create an Akros dark scheme.
 
-### How Overrides Work
+For optional persisted switching, create an app client wrapper:
 
-- Brand-specific override files (e.g. `ui/brands/customer-a/theme.css`) can override any semantic token.
-- In your app’s main CSS, import the global tokens first, then the brand override file. This cascade ensures that the brand’s values override the defaults.
+```tsx
+'use client'
 
----
+import type { PropsWithChildren } from 'react'
+import { AppThemeProvider, BrandThemeScript } from '@techsio/ui-kit/theme/theme-provider'
+
+export function ThemeSetup({ children }: PropsWithChildren) {
+  return (
+    <>
+      <BrandThemeScript defaultBrand="akros" />
+      <AppThemeProvider defaultBrand="akros" defaultMode="light">
+        {children}
+      </AppThemeProvider>
+    </>
+  )
+}
+```
+
+Render the script before visible body content. The provider applies mode
+initialization and locks light-only brands to light. Defaults are fallbacks to
+persisted preferences, not forced-brand configuration. `useAppTheme()` from the
+same subpath exposes selection, allowed modes and `mounted`; gate
+preference-dependent markup on `mounted` during SSR. Next App Router layouts
+place the wrapper in `body` and use `suppressHydrationWarning` on `html` because
+pre-hydration scripts update its attributes.
+
+Hook/context/event-owning published entrypoints are client boundaries. Compose
+compound static members such as `Dialog.Trigger` inside an app client wrapper;
+do not access those members on a client reference from a server page. Callbacks
+and render functions belong in client code. Ordinary SSR and RSC are separate
+integration contracts.
+
+## Source layout and token ownership
+
+```text
+libs/ui/
+  src/{atoms,molecules,organisms,templates}/  component modules (flat files)
+  src/theme/                               registry, provider, togglers
+  src/tokens/                              primitive and semantic layers
+  src/tokens/components/{atoms,molecules}/  component reference/derived aliases
+  src/tokens/figma/                         generated exports; do not hand-edit
+  stories/{atoms,molecules,organisms,templates,pages}/
+  .storybook/                              catalog and consumer onboarding
+```
+
+Public imports use `@techsio/ui-kit/<category>/<component>`, not these source
+paths. Built-in brands come from the registry and generated theme mappings;
+there is no library `brands/customer-a` directory. Product-specific composites
+and app-only overrides stay in the consuming app.
+
+Token flow is primitive → semantic → component reference → derived utility.
+Components use component token classes in `tv()`; stories can use semantic
+layout tokens. Keep changes general rather than adding brand-specific component
+branches. App-owned CSS loads **after** the kit and overrides the active root
+selector or a descendant scope with adequate specificity:
+
+```css
+.order-form {
+  --font-weight-button: var(--font-weight-bold);
+}
+```
+
+Do not edit generated Figma CSS or copy all kit variables into app overrides.
+See [app token initialization](skills/app-token-initialization/SKILL.md) and
+[framework integration](skills/framework-consumer-integration/SKILL.md).
 
 ### Component font-weight overrides
 
@@ -134,52 +163,8 @@ When Figma exports the aliases, transfer ownership through the export pipeline
 and remove the duplicate bridge declarations. Do not edit generated
 `tokens/figma/variables.css` by hand.
 
-## 5. Development Guidelines
 
-### Component Development
-
-- **Use Tokens Exclusively:**
-Always use component tokens (e.g. `-button-bg`) in your styles. Do not use semantic tokens directly in component code.
-- **Keep It Simple:**
-Build your atoms and molecules first. Organisms are domain-specific composites and should use the shared atoms/molecules.
-- **Export Only Where Appropriate:**
-For example, if a component is basic (like a Button), it belongs in atoms or molecules. Never export a Button from an organism.
-
-### Brand Customizations
-
-- **Custom Components:**
-If a customer needs a completely custom component, add it to the `brands/` folder. Do not modify the core shared components.
-- **Override Process:**
-When overriding, create a file in the brand folder and map the semantic tokens to the custom values. This way, the core remains untouched.
-
-### Documentation
-
-- We use **Storybook** for our component documentation and previews (for now). We may add other documentation tools later.
-- Our documentation explains all tokens, component usage, and override guidelines. Please refer to Storybook for live examples and further details.
-
----
-
-## 6. Quick Reference
-
-- **Design Tokens:**
-    - Global Tokens: Defined in `tokens/_*.css` files.
-    - Semantic Tokens: Map global tokens to design roles (e.g. `-color-brand-primary`).
-    - Component Tokens: Defined centrally; used in component styling (e.g. `-button-bg`).
-- **Folder Organization:**
-    - **Atoms/Molecules:** `ui/atoms/` and `ui/molecules/`
-    - **Organisms:** Domain-based (e.g. `ui/organisms/cart/`)
-    - **Brands:** Overrides and customizations (e.g. `ui/brands/customer-a/`)
-- **Theming:**
-
-    Import tokens first, then any default or brand-specific theme overrides in your main CSS file.
-
-- **Guidelines:**
-    - Always use the token system.
-    - Never mix token definitions with component code.
-    - Keep overrides in dedicated brand folders.
-    - Basic components (e.g., Button) belong only in atoms/molecules.
-
-## 7. Visual Regression Tests (Playwright + Docker)
+## Visual regression tests (Playwright + Docker)
 
 To keep screenshots stable across machines, run component tests inside Docker.
 
@@ -211,11 +196,11 @@ Optional environment overrides:
 - `TEST_BASE_URL` (default: `http://127.0.0.1:6006` inside the container)
 - `PLAYWRIGHT_STORYBOOK_REBUILD` (default: `1`, rebuilds `storybook-static`; set to `0` to reuse an existing build)
 - `VISUAL_STORYBOOK_STATIC_DIR` (absolute path to another Storybook build, e.g. one built from `master`, to test against the committed baselines; skips the rebuild)
-- `VISUAL_BRANDS` (default: `base,neo,business`; also supports `akros`)
+- `VISUAL_BRANDS` (default: `base,neo,business,akros`; focused development only)
 - `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
 - `PLAYWRIGHT_WORKERS` (override worker count for parallel runs)
 - `VISUAL_ASSET_HAR_PATH` (absolute path to an alternative HAR; its directory and attachments mount read-only)
-- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright`)
+- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright:<Playwright version>-<Dockerfile hash>`)
 - `PLAYWRIGHT_DOCKER_SHM_SIZE` (default: `2g`, improves Playwright stability in Docker)
 - `PLAYWRIGHT_DOCKER_IPC` (default: `host`, improves Playwright stability in Docker)
 - `PLAYWRIGHT_DOCKER_SEQUENTIAL` (default: `0`, runs projects in parallel; set to `1` to run one project at a time and reduce memory spikes)
@@ -238,18 +223,27 @@ Example with parallel workers:
 TEST_BASE_URL=http://127.0.0.1:6006 PLAYWRIGHT_WORKERS=6 pnpm -C libs/ui test:components
 ```
 
-## 8. Publishing and releases
+### Release coverage versus focused development
+
+`pnpm -C libs/ui test:components:release` requires all stories across all 12
+visual projects: base/neo light+dark and business/Akros light, desktop+mobile.
+It rejects brand overrides, story/project filters and snapshot updates, then
+checks unique successful story/project identities. Focused `test:components`
+runs remain available but are not release-readiness evidence. Review new or
+changed baselines; never update them in the validation gate.
+
+During a shared-browser overhaul, follow the assigned browser rules instead of
+starting any local server, build or browser. Use the approved shared `ds-page`
+and serial Docker wrapper, never concurrent ad hoc browser launches.
+
+## Publishing and releases
 
 - Build: `pnpm -C libs/ui build` creates the package without release-only validation.
-- Package output checks: `pnpm -C libs/ui check:package` builds, runs publint against package structure and exports, and runs AreTheTypesWrong across TypeScript module-resolution modes. CI and the release workflow run this command automatically.
+- Package output checks: `pnpm -C libs/ui check:package` builds, runs publint against package structure and exports, and runs AreTheTypesWrong across TypeScript module-resolution modes, verifies emitted client boundaries/compound declarations, and checks CSS generation, SSR and public callback types from a packed installation. CI and the release workflow run this command automatically.
 - Exports only, no barrel: import from explicit subpaths (e.g. `@techsio/ui-kit/atoms/button`, `@techsio/ui-kit/templates/accordion`, `@techsio/ui-kit/utils`). The package root is intentionally not exported.
 - Automated releases: `libs/ui/release.config.mjs` uses semantic-release (tag format `ui-kit-v<version>`) to publish to npm and create GitHub releases without pushing generated version/changelog commits back to the protected branch. While we are <1.0.0, `BREAKING CHANGE` commits are forced to “minor” bumps to stay in 0.x; remove that release rule when stabilizing for 1.0.0+ to restore SemVer majors.
 - Security posture: releases are restricted to GitHub Actions (`GITHUB_ACTIONS` required), npm publishes use trusted publishing through GitHub OIDC (`id-token: write`) and do not require an npm token.
-- CI workflow: `.github/workflows/ui-release.yml` builds `libs/ui` and runs semantic-release on `master`/`main` with the workflow `GITHUB_TOKEN`. Use the manual `force_release` dispatch to publish missed UI changes after a skipped release.
-- Local dry run: `pnpm -C libs/ui semantic-release --dry-run`.
+- CI and release share `.github/workflows/ui-quality.yml`: both TypeScript projects, unit/SSR/tooling tests, token/package checks, full Docker component visuals, and enforced six-theme accessibility. Publication depends on successful validation of the exact checked-out SHA. Manual `force_release` changes affected detection only; it cannot bypass quality checks.
+- Local semantic-release (including `--dry-run`) is intentionally unsupported. Use `pnpm -C libs/ui typecheck`, `test`, and `check:package` locally; never set `GITHUB_ACTIONS=true` to impersonate CI.
 - Commit format: follow Conventional Commits (`feat:`, `fix:`, `chore:`, `BREAKING CHANGE:`) so semantic-release can infer the correct version bump.
 - Required CI secrets: none for npm publishing; npm trusted publishing must be configured on npmjs.com for this repository and workflow path.
-
-## 9. Conclusion
-
-This README serves as the single source of truth for building and maintaining our design system. By adhering to these guidelines, you ensure that our UI remains consistent, flexible, and scalable across multiple brands. If you have any questions or suggestions, please reach out to the design system team.

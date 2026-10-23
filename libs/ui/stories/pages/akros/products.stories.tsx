@@ -1,3 +1,6 @@
+import { expect, userEvent, within } from "storybook/test"
+import { parcelComplete } from "../page-models"
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ReactNode, useMemo, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -24,10 +27,18 @@ import {
 import { AbraOwned, AkrosShell, akrosDocs, Notice } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Products",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -163,16 +174,16 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
             onClick={() =>
               toaster.create({
                 type: "info",
-                title: "ABRA import started",
+                title: "ABRA import preview",
                 description:
-                  "Prices, stock and the category tree refresh in a few minutes.",
+                  "A production import refreshes prices, stock and categories. This demo did not contact ABRA.",
               })
             }
             size="sm"
             theme="outlined"
             variant="secondary"
           >
-            Import from ABRA
+            About ABRA import
           </Button>
         }
         breadcrumb={[
@@ -286,7 +297,14 @@ function DimensionInput({
 }) {
   return (
     <FormNumericInput
-      helpText={unit}
+      helpText={
+        Number.isFinite(value) && value > 0
+          ? unit
+          : `Enter a finite, positive ${label.toLowerCase()} in ${unit} to resolve carrier eligibility.`
+      }
+      validateStatus={
+        Number.isFinite(value) && value > 0 ? "default" : "warning"
+      }
       id={id}
       label={label}
       min={0}
@@ -315,14 +333,28 @@ function ProductEditorPage({ productId }: { productId: string }) {
   const [width, setWidth] = useState(product?.width ?? 0)
   const [height, setHeight] = useState(product?.height ?? 0)
   const [weight, setWeight] = useState(product?.weight ?? 0)
+  const [description, setDescription] = useState(
+    product?.hasDescription
+      ? "Countersunk wood screw with a Torx drive and zinc plating for indoor use."
+      : ""
+  )
+  const [images, setImages] = useState<File[]>([])
+  const [savedImages, setSavedImages] = useState<File[]>([])
+  const [savedRecord, setSavedRecord] = useState(product)
+  const [savedSnapshot, setSavedSnapshot] = useState<string>()
 
   if (!product) {
     return null
   }
 
-  const minQtyInvalid = minQty < saleUnit || minQty % saleUnit !== 0
+  const minQtyInvalid =
+    !Number.isFinite(saleUnit) ||
+    saleUnit <= 0 ||
+    !Number.isFinite(minQty) ||
+    minQty < saleUnit ||
+    minQty % saleUnit !== 0
   const longest = Math.max(length, width, height)
-  const hasDimensions = longest > 0 && weight > 0
+  const hasDimensions = parcelComplete([length, width, height, weight])
   const fits = shippingMethods.map((method) => ({
     method,
     fits:
@@ -338,19 +370,57 @@ function ProductEditorPage({ productId }: { productId: string }) {
       <PageHeader
         actions={
           <Button
-            disabled={minQtyInvalid}
+            disabled={
+              minQtyInvalid ||
+              (images.length === savedImages.length &&
+                images.every((file, index) => file === savedImages[index]) &&
+                savedSnapshot ===
+                  JSON.stringify({
+                    saleUnit,
+                    minQty,
+                    length,
+                    width,
+                    height,
+                    weight,
+                    description,
+                  }))
+            }
             icon="icon-[mdi--content-save-outline]"
-            onClick={() =>
+            onClick={() => {
+              setSavedImages([...images])
+              setSavedRecord({
+                ...product,
+                saleUnit,
+                minQty,
+                length,
+                width,
+                height,
+                weight,
+                hasDescription: Boolean(description.trim()),
+                hasImage: images.length > 0 || product.hasImage,
+              })
+              setSavedSnapshot(
+                JSON.stringify({
+                  saleUnit,
+                  minQty,
+                  length,
+                  width,
+                  height,
+                  weight,
+                  description,
+                })
+              )
               toaster.create({
                 type: "success",
-                title: "Product saved",
-                description: "CMS fields updated. ABRA fields are untouched.",
+                title: "Product draft saved locally",
+                description:
+                  "This demo retained your values; no CMS or ABRA request was sent.",
               })
-            }
+            }}
             size="sm"
             variant="primary"
           >
-            Save
+            Save draft
           </Button>
         }
         breadcrumb={[
@@ -359,7 +429,19 @@ function ProductEditorPage({ productId }: { productId: string }) {
           { label: product.code },
         ]}
         description={product.category}
-        meta={<CompletenessBadge product={product} />}
+        meta={
+          <CompletenessBadge
+            product={{
+              ...product,
+              length,
+              width,
+              height,
+              weight,
+              hasDescription: Boolean(description.trim()),
+              hasImage: images.length > 0 || product.hasImage,
+            }}
+          />
+        }
         title={product.name}
       />
 
@@ -461,7 +543,9 @@ function ProductEditorPage({ productId }: { productId: string }) {
                       key={method.id}
                     >
                       <Icon
-                        className={ok ? "text-fg-accent-success" : "text-fg-secondary"}
+                        className={
+                          ok ? "text-fg-accent-success" : "text-fg-secondary"
+                        }
                         icon={
                           ok
                             ? "icon-[mdi--check-circle-outline]"
@@ -481,7 +565,9 @@ function ProductEditorPage({ productId }: { productId: string }) {
               ) : (
                 <p className="text-fg-secondary text-sm">
                   Enter the dimensions and weight to see which carriers can take
-                  this parcel. Until then only courier delivery is offered.
+                  this parcel. Eligibility remains unresolved until all four
+                  measurements are finite and positive. Incomplete drafts can
+                  still be saved.
                 </p>
               )}
             </div>
@@ -499,11 +585,8 @@ function ProductEditorPage({ productId }: { productId: string }) {
                 value="description"
               >
                 <FormTextarea
-                  defaultValue={
-                    product.hasDescription
-                      ? "Countersunk wood screw with a Torx drive and zinc plating for indoor use."
-                      : ""
-                  }
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
                   helpText="Shown on the product page and sent to the product feeds."
                   id="description"
                   label="Description"
@@ -514,7 +597,12 @@ function ProductEditorPage({ productId }: { productId: string }) {
                 className="flex flex-col gap-200 p-250"
                 value="images"
               >
-                <FileUpload accept="image/*" maxFiles={8}>
+                <FileUpload
+                  accept="image/*"
+                  maxFiles={8}
+                  acceptedFiles={images}
+                  onFileChange={({ acceptedFiles }) => setImages(acceptedFiles)}
+                >
                   <FileUpload.Label>Product images</FileUpload.Label>
                   <FileUpload.HiddenInput />
                   <FileUpload.Dropzone>
@@ -522,12 +610,29 @@ function ProductEditorPage({ productId }: { productId: string }) {
                       <Icon icon="icon-[mdi--image-plus-outline]" size="xl" />
                       <span className="text-sm">Drop images here</span>
                       <span className="text-fg-secondary text-xs">
-                        JPG or PNG, up to 8 images. The first one is the main
-                        image.
+                        Images, up to 8 files. The first one is the main image.
                       </span>
                     </span>
                   </FileUpload.Dropzone>
                   <FileUpload.Trigger>Choose images</FileUpload.Trigger>
+                  <FileUpload.Context>
+                    {(api) => (
+                      <FileUpload.ItemGroup type="accepted">
+                        {api.acceptedFiles.map((file, index) => (
+                          <FileUpload.Item
+                            file={file}
+                            key={`${file.name}-${file.lastModified}-${index}`}
+                          >
+                            <FileUpload.ItemPreview>
+                              <FileUpload.ItemPreviewImage />
+                            </FileUpload.ItemPreview>
+                            <FileUpload.ItemName />
+                            <FileUpload.ItemDeleteTrigger />
+                          </FileUpload.Item>
+                        ))}
+                      </FileUpload.ItemGroup>
+                    )}
+                  </FileUpload.Context>
                 </FileUpload>
               </Tabs.Content>
             </Tabs>
@@ -565,7 +670,10 @@ function ProductEditorPage({ productId }: { productId: string }) {
                 },
                 {
                   term: "In feeds",
-                  value: product.hasImage ? "Yes" : "No — missing image",
+                  value:
+                    savedRecord && missingCmsFields(savedRecord).length === 0
+                      ? "Eligible in saved demo record"
+                      : "No — complete and save image and description",
                 },
               ]}
             />
@@ -577,6 +685,15 @@ function ProductEditorPage({ productId }: { productId: string }) {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in products to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Product list",
   render: () => <ProductsPage />,
 }
@@ -608,6 +725,34 @@ export const EditorSoldPerTen: Story = {
 }
 
 export const EditorMissingDimensions: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const save = canvas.getByRole("button", { name: "Save draft" })
+    await userEvent.click(save)
+    await userEvent.type(
+      canvas.getByRole("textbox", { name: "Description" }),
+      "A complete description"
+    )
+    await expect(save).toBeEnabled()
+    await userEvent.click(save)
+    await userEvent.click(canvas.getByRole("tab", { name: "Images" }))
+    const input =
+      canvasElement.querySelector<HTMLInputElement>('input[type="file"]')!
+    await userEvent.upload(
+      input,
+      new File(
+        [
+          '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="black"/></svg>',
+        ],
+        "product.svg",
+        { type: "image/svg+xml" }
+      )
+    )
+    await expect(save).toBeEnabled()
+    await userEvent.click(save)
+    await expect(save).toBeDisabled()
+    await userEvent.click(canvas.getByRole("tab", { name: "Description" }))
+  },
   name: "Product editor — missing dimensions",
   parameters: {
     docs: {

@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.5
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,6 +21,7 @@ import { tv } from "../utils"
 const skeletonVariants = tv({
   slots: {
     root: ["relative min-w-0 overflow-clip"],
+    shape: "relative min-w-0 overflow-clip",
     rectangle: "w-full",
     circle: ["rounded-full", "shrink-0"],
     textContainer: ["flex", "flex-col"],
@@ -61,13 +62,13 @@ const skeletonVariants = tv({
     },
     speed: {
       slow: {
-        root: "animate-skeleton-pulse-slow",
+        shape: "animate-skeleton-pulse-slow",
       },
       normal: {
-        root: "animate-skeleton-pulse-normal",
+        shape: "animate-skeleton-pulse-normal",
       },
       fast: {
-        root: "animate-skeleton-pulse-fast",
+        shape: "animate-skeleton-pulse-fast",
       },
     },
   },
@@ -78,7 +79,7 @@ const skeletonVariants = tv({
   },
 })
 
-interface SkeletonContextValue {
+type SkeletonContextValue = {
   isLoaded: boolean
   variant?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
@@ -129,8 +130,7 @@ function useSkeletonA11yProps(ariaHidden?: boolean | "true" | "false") {
   return LOADING_STATUS_PROPS
 }
 
-interface SkeletonRootProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonRootProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   isLoaded?: boolean
   variant?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
@@ -152,7 +152,7 @@ export function Skeleton({
   return (
     <SkeletonContext.Provider value={{ isLoaded, variant, speed }}>
       {isLoaded ? (
-        <>{children}</>
+        children
       ) : (
         <div
           {...LOADING_STATUS_PROPS}
@@ -160,15 +160,16 @@ export function Skeleton({
           ref={ref}
           {...props}
         >
-          {children}
+          <div aria-hidden="true" className="contents" inert>
+            {children}
+          </div>
         </div>
       )}
     </SkeletonContext.Provider>
   )
 }
 
-interface SkeletonCircleProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonCircleProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   size?: "sm" | "md" | "lg" | "xl"
   speed?: "slow" | "normal" | "fast"
   isLoaded?: boolean
@@ -203,7 +204,7 @@ Skeleton.Circle = function SkeletonCircle({
   return (
     <div
       {...a11yProps}
-      className={styles.root({
+      className={styles.shape({
         className: styles.circle({ className }),
       })}
       ref={ref}
@@ -212,8 +213,7 @@ Skeleton.Circle = function SkeletonCircle({
   )
 }
 
-interface SkeletonTextProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonTextProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   noOfLines?: number
   size?: "sm" | "md" | "lg" | "xl"
   speed?: "slow" | "normal" | "fast"
@@ -252,7 +252,9 @@ Skeleton.Text = function SkeletonText({
   }
 
   // Guard against invalid values (negative, NaN, Infinity)
-  const lineCount = Number.isFinite(noOfLines) ? Math.max(1, noOfLines) : 1
+  const lineCount = Number.isFinite(noOfLines)
+    ? Math.max(1, Math.floor(noOfLines))
+    : 1
 
   return (
     <div
@@ -267,9 +269,10 @@ Skeleton.Text = function SkeletonText({
 
         return (
           <div
-            className={styles.root({
+            className={styles.shape({
               className: styles.textLine({ className }),
             })}
+            // biome-ignore lint/suspicious/noArrayIndexKey: Fixed, stateless placeholder lines have no reorderable identity.
             key={`skeleton-text-${index}`}
             style={{ width }}
           />
@@ -279,8 +282,10 @@ Skeleton.Text = function SkeletonText({
   )
 }
 
-interface SkeletonRectangleProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonRectangleProps = Omit<
+  ComponentPropsWithoutRef<"div">,
+  "children"
+> & {
   speed?: "slow" | "normal" | "fast"
   isLoaded?: boolean
   variant?: "primary" | "secondary"
@@ -312,11 +317,9 @@ Skeleton.Rectangle = function SkeletonRectangle({
   return (
     <div
       {...a11yProps}
-      className={styles.root({ className: styles.rectangle({ className }) })}
+      className={styles.shape({ className: styles.rectangle({ className }) })}
       ref={ref}
       {...props}
-    >
-      {children}
-    </div>
+    />
   )
 }

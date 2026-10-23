@@ -9,18 +9,18 @@
  */
 import type { ReactNode } from "react"
 import { useState } from "react"
-import { ActionIcon } from "../../src/atoms/action-icon"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Icon, type IconType } from "../../src/atoms/icon"
 import { Dialog } from "../../src/molecules/dialog"
-import { Menu, type MenuItem } from "../../src/molecules/menu"
-import { SearchForm } from "../../src/molecules/search-form"
+import type { MenuItem } from "../../src/molecules/menu"
 import { type TreeNode, TreeView } from "../../src/molecules/tree-view"
 import {
   BreadcrumbTemplate,
   type BreadcrumbTemplateItem,
 } from "../../src/templates/breadcrumb"
+import { DemoMenu } from "./demo-boundary"
+import { DemoUtilities, GlobalSearch } from "./frame"
 
 type BadgeVariant =
   | "success"
@@ -129,7 +129,7 @@ export function AdminShell({
           </TreeView>
         </nav>
 
-        <Menu
+        <DemoMenu
           aria-label="Account"
           customTrigger={
             <Button
@@ -159,30 +159,9 @@ export function AdminShell({
           >
             Menu
           </Button>
-          <SearchForm className="max-w-lg flex-1" size="sm">
-            <SearchForm.Control>
-              <SearchForm.Input
-                aria-label="Search the workspace"
-                placeholder="Search orders, products, customers…"
-              />
-              <SearchForm.Button>Search</SearchForm.Button>
-            </SearchForm.Control>
-          </SearchForm>
+          <GlobalSearch />
           <div className="ms-auto flex items-center gap-100">
-            {topbarActions ?? (
-              <>
-                <ActionIcon
-                  aria-label="Notifications"
-                  icon="icon-[mdi--bell-outline]"
-                  size="md"
-                />
-                <ActionIcon
-                  aria-label="Help"
-                  icon="icon-[mdi--help-circle-outline]"
-                  size="md"
-                />
-              </>
-            )}
+            {topbarActions ?? <DemoUtilities />}
           </div>
         </header>
 
@@ -295,7 +274,7 @@ export function SectionCard({
   return (
     <section
       className={[
-        "flex flex-col gap-200 rounded-lg border border-border-primary bg-surface",
+        "flex min-w-0 flex-col gap-200 rounded-lg border border-border-primary bg-surface",
         flush ? "p-0" : "p-250",
         className ?? "",
       ]
@@ -329,7 +308,8 @@ export function SectionCard({
 
 type StatCardProps = {
   label: string
-  value: string
+  value: ReactNode
+  compact?: boolean
   /** Signed change vs. the previous period, already formatted. */
   delta?: string
   trend?: "up" | "down" | "flat"
@@ -341,6 +321,7 @@ type StatCardProps = {
 export function StatCard({
   label,
   value,
+  compact = false,
   delta,
   trend = "flat",
   icon,
@@ -353,13 +334,21 @@ export function StatCard({
   const trendVariant = trendVariants[trend]
 
   return (
-    <div className="flex flex-1 flex-col gap-100 rounded-lg border border-border-primary bg-surface p-200">
+    <div className="flex min-w-0 flex-1 basis-3xs flex-col gap-100 rounded-lg border border-border-primary bg-surface p-200">
       <div className="flex items-center gap-100 text-fg-secondary">
         {icon && <Icon icon={icon} size="sm" />}
         <span className="text-sm">{label}</span>
       </div>
       <div className="flex flex-wrap items-baseline gap-150">
-        <span className="font-semibold text-xl">{value}</span>
+        <span
+          className={
+            compact
+              ? "whitespace-nowrap font-semibold text-md"
+              : "font-semibold text-xl"
+          }
+        >
+          {value}
+        </span>
         {delta && (
           <Badge size="sm" variant={trendVariant}>
             {delta}
@@ -446,11 +435,16 @@ type DetailItem = { term: string; value: ReactNode }
 /** Read-only key/value block used in detail panes and drawers. */
 export function DetailList({ items }: { items: DetailItem[] }) {
   return (
-    <dl className="grid grid-cols-1 gap-150 sm:grid-cols-2">
+    <dl className="grid min-w-0 grid-cols-1 gap-150 sm:grid-cols-2">
       {items.map((item) => (
-        <div className="flex flex-col gap-50" key={item.term}>
-          <dt className="text-fg-secondary text-xs">{item.term}</dt>
-          <dd className="text-sm">{item.value}</dd>
+        <div
+          className="wrap-anywhere flex min-w-0 flex-col gap-50"
+          key={item.term}
+        >
+          <dt className="wrap-anywhere min-w-0 text-fg-secondary text-xs">
+            {item.term}
+          </dt>
+          <dd className="wrap-anywhere min-w-0 text-sm">{item.value}</dd>
         </div>
       ))}
     </dl>

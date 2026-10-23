@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.0.3
+ * @componentVersion v1.2.4
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,11 +13,15 @@ import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import * as tabs from "@zag-js/tabs"
 import {
   type ComponentPropsWithoutRef,
+  type CSSProperties,
   createContext,
   type Ref,
+  type RefObject,
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
+  useRef,
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -27,39 +31,41 @@ import { tv } from "../utils"
 const tabsVariants = tv({
   slots: {
     root: [
-      "flex w-full",
+      "flex w-full min-w-0 max-w-full",
       "data-[orientation=horizontal]:flex-col",
       "data-[orientation=vertical]:flex-row",
       "bg-tabs-bg",
       "rounded-tabs",
     ],
     list: [
-      "relative flex",
+      "relative flex min-w-0 max-w-full",
       "bg-tabs-list-bg",
-      "data-[orientation=horizontal]:flex-row",
-      "data-[orientation=vertical]:flex-col",
+      "data-[orientation=horizontal]:flex-row data-[orientation=horizontal]:overflow-x-auto",
+      "data-[orientation=vertical]:w-max data-[orientation=vertical]:shrink-0 data-[orientation=vertical]:flex-col",
     ],
     trigger: [
-      "relative flex items-center justify-center",
-      "text-tabs-trigger-fg-base",
+      "relative flex shrink-0 items-center justify-center",
+      "font-tabs-trigger text-tabs-trigger-fg-base data-selected:font-tabs-trigger-selected",
+      "tabs-trigger-press",
       "rounded-tabs-trigger",
       "cursor-pointer",
-      "hover:bg-tabs-trigger-bg-hover",
+      "not-data-disabled:hover:bg-tabs-trigger-bg-hover",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-tabs-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "tabs-trigger-focus",
       "data-[selected]:text-tabs-trigger-fg-selected",
       "data-[disabled]:cursor-not-allowed data-[disabled]:text-tabs-trigger-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     indicator: [
-      "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
-      "data-[orientation=vertical]:h-(--height) data-[orientation=horizontal]:w-(--width)",
+      "tabs-indicator-position absolute rounded-tabs-indicator bg-tabs-indicator-bg",
+      "duration-200 motion-reduce:transition-none",
+      "data-[orientation=vertical]:h-(--tabs-indicator-height) data-[orientation=horizontal]:w-(--tabs-indicator-width)",
       "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
-      "data-[orientation=vertical]:inset-s-0 data-[orientation=horizontal]:bottom-0",
+      "data-[orientation=vertical]:-start-tabs-rail-offset data-[orientation=horizontal]:bottom-0",
     ],
     content: [
-      "text-tabs-content-fg",
+      "wrap-anywhere min-w-0 max-w-full text-tabs-content-fg data-[orientation=vertical]:flex-1",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-tabs-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -68,13 +74,12 @@ const tabsVariants = tv({
   variants: {
     variant: {
       default: {
-        list: "",
+        trigger: "tabs-trigger-selected",
         indicator: "hidden",
       },
       line: {
-        list: "border-b-(length:--border-width-tabs) border-tabs-border-base",
-        indicator:
-          "data-[orientation=horizontal]:-bottom-(--border-width-tabs)",
+        list: "data-[orientation=horizontal]:border-b-(length:--border-width-tabs) data-[orientation=vertical]:border-s-(length:--border-width-tabs) border-tabs-border-base",
+        indicator: "",
       },
       solid: {
         trigger:
@@ -115,10 +120,10 @@ const tabsVariants = tv({
         list: "justify-start",
       },
       center: {
-        list: "justify-center",
+        list: "tabs-list-center",
       },
       end: {
-        list: "justify-end",
+        list: "tabs-list-end",
       },
     },
   },
@@ -159,20 +164,131 @@ function useTabsContext() {
   return context
 }
 
-// Root component
-export interface TabsProps
-  extends VariantProps<typeof tabsVariants>,
-    Omit<ComponentPropsWithoutRef<"div">, "onChange"> {
-  id?: string
-  defaultValue?: string
-  value?: string
-  orientation?: "horizontal" | "vertical"
-  dir?: "ltr" | "rtl"
-  activationMode?: "automatic" | "manual"
-  loopFocus?: boolean
-  onValueChange?: (value: string) => void
-  ref?: Ref<HTMLDivElement>
+function enabledNeighbor(
+  enabled: HTMLButtonElement[],
+  previous: string[],
+  value: string | null
+) {
+  const index = previous.indexOf(value ?? "")
+  const neighbors = [
+    ...previous.slice(Math.max(0, index + 1)),
+    ...previous.slice(0, Math.max(0, index)).reverse(),
+  ]
+  return (
+    neighbors
+      .map((candidate) =>
+        enabled.find((trigger) => trigger.dataset.value === candidate)
+      )
+      .find(Boolean) ?? enabled[0]
+  )
 }
+
+function restoreOwnedTabFocus(
+  root: HTMLElement,
+  previous: HTMLElement | null,
+  target?: HTMLElement
+) {
+  if (!previous) {
+    return false
+  }
+  const unavailable =
+    !previous.isConnected ||
+    previous.matches(":disabled") ||
+    Boolean(previous.closest('[data-part="content"][hidden]'))
+  if (!unavailable) {
+    return false
+  }
+  const active = root.ownerDocument.activeElement
+  if (active === root.ownerDocument.body || root.contains(active)) {
+    target?.focus()
+  }
+  return true
+}
+
+function tabEntry(
+  root: HTMLElement,
+  enabled: HTMLButtonElement[],
+  focusedValue: string | null,
+  target?: HTMLButtonElement
+) {
+  const focused = enabled.find(
+    (trigger) => trigger.dataset.value === focusedValue
+  )
+  const ownsTriggerFocus = enabled.includes(
+    root.ownerDocument.activeElement as HTMLButtonElement
+  )
+  return ownsTriggerFocus ? (focused ?? target) : (target ?? focused)
+}
+
+function reconcileTabSelection(
+  api: TabsContextValue["api"],
+  selected: HTMLButtonElement | undefined,
+  target: HTMLButtonElement | undefined,
+  controlled: boolean,
+  request: RefObject<string | null>
+) {
+  if (selected) {
+    request.current = null
+    return
+  }
+  if (!target) {
+    if (!controlled && api.value) {
+      api.clearValue()
+    }
+    return
+  }
+  const next = target.dataset.value
+  if (next == null) {
+    return
+  }
+  const key = `${api.value ?? ""}:${next}`
+  if (request.current === key) {
+    return
+  }
+  request.current = key
+  api.setValue(next)
+}
+
+function reconcileTabFocus(
+  root: HTMLElement,
+  triggers: HTMLButtonElement[],
+  enabled: HTMLButtonElement[],
+  previous: string[],
+  api: TabsContextValue["api"],
+  target: HTMLButtonElement | undefined,
+  lastFocused: RefObject<HTMLElement | null>,
+  setFocused: (value: string | null) => void
+) {
+  const focused = enabled.find(
+    (trigger) => trigger.dataset.value === api.focusedValue
+  )
+  const replacement =
+    focused ?? enabledNeighbor(enabled, previous, api.focusedValue) ?? target
+  if (!focused && replacement) {
+    setFocused(replacement.dataset.value ?? null)
+  }
+  const entryTarget = tabEntry(root, enabled, api.focusedValue, target)
+  for (const trigger of triggers) {
+    trigger.tabIndex = trigger === entryTarget ? 0 : -1
+  }
+  if (restoreOwnedTabFocus(root, lastFocused.current, replacement)) {
+    lastFocused.current = null
+  }
+}
+
+// Root component
+export type TabsProps = VariantProps<typeof tabsVariants> &
+  Omit<ComponentPropsWithoutRef<"div">, "onChange"> & {
+    id?: string
+    defaultValue?: string
+    value?: string
+    orientation?: "horizontal" | "vertical"
+    dir?: "ltr" | "rtl"
+    activationMode?: "automatic" | "manual"
+    loopFocus?: boolean
+    onValueChange?: (value: string) => void
+    ref?: Ref<HTMLDivElement>
+  }
 
 export function Tabs({
   id,
@@ -195,6 +311,11 @@ export function Tabs({
   const generatedId = useId()
   const uniqueId = id || generatedId
 
+  const rootElement = useRef<HTMLDivElement | null>(null)
+  const previousValues = useRef<string[]>([])
+  const lastFocused = useRef<HTMLElement | null>(null)
+  const recoveryRequest = useRef<string | null>(null)
+
   const service = useMachine(tabs.machine, {
     id: uniqueId,
     value,
@@ -204,7 +325,9 @@ export function Tabs({
     activationMode,
     loopFocus,
     onValueChange: ({ value: nextValue }) => {
-      onValueChange?.(nextValue)
+      if (nextValue != null) {
+        onValueChange?.(nextValue)
+      }
     },
   })
 
@@ -213,6 +336,68 @@ export function Tabs({
   const [contentValues, setContentValues] = useState<ReadonlySet<string>>(
     () => new Set()
   )
+
+  // Observe the rendered collection, including compound consumers and async items.
+  // A removed selection recovers to the next surviving neighbor, then previous.
+  useEffect(() => {
+    const root = rootElement.current
+    if (!root) {
+      return
+    }
+    const reconcile = () => {
+      const triggers = Array.from(
+        root.querySelectorAll<HTMLButtonElement>(
+          '[data-scope="tabs"][data-part="trigger"]'
+        )
+      ).filter(
+        (trigger) =>
+          trigger.closest('[data-scope="tabs"][data-part="root"]') === root
+      )
+      const enabled = triggers.filter((trigger) => !trigger.disabled)
+      const values = triggers.map((trigger) => trigger.dataset.value ?? "")
+      const selected = enabled.find(
+        (trigger) => trigger.dataset.value === api.value
+      )
+      const fallback = enabledNeighbor(
+        enabled,
+        previousValues.current,
+        api.value
+      )
+      const target = selected ?? fallback
+      reconcileTabSelection(
+        api,
+        selected,
+        target,
+        value !== undefined,
+        recoveryRequest
+      )
+      // Controlled owners may reject recovery. Never remove keyboard entry.
+      reconcileTabFocus(
+        root,
+        triggers,
+        enabled,
+        previousValues.current,
+        api,
+        target,
+        lastFocused,
+        (next) => service.context.set("focusedValue", next)
+      )
+      // Keep the pre-removal order until the proposed replacement commits.
+      // MutationObserver may run again before Zag flushes setValue.
+      if (selected || api.value == null) {
+        previousValues.current = values
+      }
+    }
+    reconcile()
+    const observer = new MutationObserver(reconcile)
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["disabled", "hidden"],
+    })
+    return () => observer.disconnect()
+  })
 
   return (
     <TabsContext.Provider
@@ -229,9 +414,29 @@ export function Tabs({
     >
       <div
         className={styles.root({ className })}
-        ref={ref}
-        {...api.getRootProps()}
-        {...props}
+        {...mergeProps(props, api.getRootProps())}
+        onBlurCapture={(event) => {
+          props.onBlurCapture?.(event)
+          if (
+            event.relatedTarget &&
+            !event.currentTarget.contains(event.relatedTarget as Node)
+          ) {
+            lastFocused.current = null
+          }
+        }}
+        onFocusCapture={(event) => {
+          props.onFocusCapture?.(event)
+          lastFocused.current = event.target as HTMLElement
+        }}
+        ref={(node) => {
+          rootElement.current = node
+          if (typeof ref === "function") {
+            return ref(node)
+          }
+          if (ref) {
+            ref.current = node
+          }
+        }}
       >
         {children}
       </div>
@@ -240,7 +445,7 @@ export function Tabs({
 }
 
 // List component
-interface TabsListProps extends ComponentPropsWithoutRef<"div"> {
+type TabsListProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -256,8 +461,8 @@ Tabs.List = function TabsList({
     <div
       className={styles.list({ className })}
       ref={ref}
-      {...api.getListProps()}
-      {...props}
+      {...mergeProps(api.getListProps(), props)}
+      role="tablist"
     >
       {children}
     </div>
@@ -283,9 +488,34 @@ Tabs.Trigger = function TabsTrigger({
 }: TabsTriggerProps) {
   const { api, contentValues, styles } = useTabsContext()
   const triggerProps = mergeProps(
-    props,
-    api.getTriggerProps({ value, disabled })
+    api.getTriggerProps({ value, disabled }),
+    props
   )
+
+  const triggerElement = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => {
+    const trigger = triggerElement.current
+    const list = trigger?.closest<HTMLElement>('[data-part="list"]')
+    if (!(trigger && list)) {
+      return
+    }
+    // In manual activation, focus may differ from selection. Only one trigger
+    // can own strip scrolling, or the two effects undo one another's movement.
+    const scrollValue = list.contains(list.ownerDocument.activeElement)
+      ? (api.focusedValue ?? api.value)
+      : api.value
+    if (scrollValue !== value) {
+      return
+    }
+    const row = trigger.getBoundingClientRect()
+    const viewport = list.getBoundingClientRect()
+    // Scroll only the strip, never the page or surrounding panel.
+    if (row.left < viewport.left) {
+      list.scrollLeft += row.left - viewport.left
+    } else if (row.right > viewport.right) {
+      list.scrollLeft += row.right - viewport.right
+    }
+  }, [api.value, api.focusedValue, value])
 
   return (
     <Button
@@ -294,8 +524,17 @@ Tabs.Trigger = function TabsTrigger({
         contentValues.has(value) ? triggerProps["aria-controls"] : undefined
       }
       className={styles.trigger({ className })}
-      data-disabled={disabled || undefined}
-      ref={ref}
+      composition={true}
+      data-disabled={disabled ? "" : undefined}
+      ref={(node) => {
+        triggerElement.current = node
+        if (typeof ref === "function") {
+          return ref(node)
+        }
+        if (ref) {
+          ref.current = node
+        }
+      }}
       size={size}
       theme={theme}
       type={type}
@@ -306,7 +545,7 @@ Tabs.Trigger = function TabsTrigger({
 }
 
 // Content component
-interface TabsContentProps extends ComponentPropsWithoutRef<"div"> {
+type TabsContentProps = ComponentPropsWithoutRef<"div"> & {
   value: string
   ref?: Ref<HTMLDivElement>
 }
@@ -341,8 +580,120 @@ Tabs.Content = function TabsContent({
   )
 }
 
+type TabsIndicatorRect = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+function measureTabIndicator(indicator: HTMLElement, list: HTMLElement) {
+  const selected = Array.from(
+    list.querySelectorAll<HTMLElement>('[role="tab"][aria-selected="true"]')
+  ).find((trigger) => trigger.closest('[role="tablist"]') === list)
+  if (!selected) {
+    return null
+  }
+  // Both elements scroll with the list. Convert viewport coordinates back to
+  // the indicator's padding-box containing block, not to the visible scrollport.
+  // Physical scrollLeft also works for RTL, where it can be negative.
+  // An ancestor transform such as scale(0.8) shrinks viewport boxes; divide it
+  // out so the CSS lengths are layout lengths and scale only once on paint.
+  const parent = (indicator.offsetParent as HTMLElement | null) ?? list
+  const parentBox = parent.getBoundingClientRect()
+  const box = selected.getBoundingClientRect()
+  const scaleX = parent.offsetWidth ? parentBox.width / parent.offsetWidth : 1
+  const scaleY = parent.offsetHeight
+    ? parentBox.height / parent.offsetHeight
+    : 1
+  return {
+    x:
+      (box.left - parentBox.left) / scaleX -
+      parent.clientLeft +
+      parent.scrollLeft,
+    y: (box.top - parentBox.top) / scaleY - parent.clientTop + parent.scrollTop,
+    width: box.width / scaleX,
+    height: box.height / scaleY,
+  }
+}
+
+function useTabIndicatorRect(ref: RefObject<HTMLDivElement | null>) {
+  const [rect, setRect] = useState<TabsIndicatorRect | null>(null)
+  useLayoutEffect(() => {
+    const indicator = ref.current
+    const list = indicator?.closest<HTMLElement>('[role="tablist"]')
+    if (!(indicator && list)) {
+      return
+    }
+    let frame = 0
+    const measure = () => {
+      const next = measureTabIndicator(indicator, list)
+      setRect((previous) =>
+        previous?.x === next?.x &&
+        previous?.y === next?.y &&
+        previous?.width === next?.width &&
+        previous?.height === next?.height
+          ? previous
+          : next
+      )
+    }
+    const schedule = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    }
+    const resize = new ResizeObserver(schedule)
+    const observeSizes = () => {
+      resize.disconnect()
+      resize.observe(list)
+      for (const trigger of list.querySelectorAll('[role="tab"]')) {
+        if (trigger.closest('[role="tablist"]') === list) {
+          resize.observe(trigger)
+        }
+      }
+    }
+    const mutation = new MutationObserver((records) => {
+      // Our own geometry writes must not feed back into the measurement loop.
+      const changes = records.filter(
+        (record) => !indicator.contains(record.target)
+      )
+      if (changes.some((record) => record.type === "childList")) {
+        observeSizes()
+      }
+      if (changes.length) {
+        schedule()
+      }
+    })
+    mutation.observe(list, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: [
+        "aria-selected",
+        "class",
+        "style",
+        "dir",
+        "data-orientation",
+      ],
+    })
+    observeSizes()
+    // Zag caches offset rectangles on selection/resize only. Scroll and
+    // position-only changes (gap, alignment, direction) need their own refresh.
+    list.addEventListener("scroll", schedule, { passive: true })
+    window.addEventListener("resize", schedule)
+    measure()
+    return () => {
+      cancelAnimationFrame(frame)
+      resize.disconnect()
+      mutation.disconnect()
+      list.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
+    }
+  }, [ref])
+  return rect
+}
+
 // Indicator component
-interface TabsIndicatorProps extends ComponentPropsWithoutRef<"div"> {
+type TabsIndicatorProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -352,13 +703,40 @@ Tabs.Indicator = function TabsIndicator({
   ...props
 }: TabsIndicatorProps) {
   const { api, styles } = useTabsContext()
+  const indicatorElement = useRef<HTMLDivElement | null>(null)
+  const rect = useTabIndicatorRect(indicatorElement)
+  // Keep Zag's anatomy, not its second geometry/animation lifecycle. Its inline
+  // transition ignores reduced motion and can retain the previous tab's used
+  // left/width indefinitely in WebKit even when the target variables are right.
+  const {
+    style: _zagStyle,
+    onTransitionEnd: _zagTransitionEnd,
+    ...indicatorProps
+  } = api.getIndicatorProps()
 
   return (
     <div
       className={styles.indicator({ className })}
-      ref={ref}
-      {...api.getIndicatorProps()}
+      {...indicatorProps}
+      hidden={!rect}
+      style={
+        {
+          "--tabs-indicator-left": `${rect?.x ?? 0}px`,
+          "--tabs-indicator-top": `${rect?.y ?? 0}px`,
+          "--tabs-indicator-width": `${rect?.width ?? 0}px`,
+          "--tabs-indicator-height": `${rect?.height ?? 0}px`,
+        } as CSSProperties
+      }
       {...props}
+      ref={(node) => {
+        indicatorElement.current = node
+        if (typeof ref === "function") {
+          return ref(node)
+        }
+        if (ref) {
+          ref.current = node
+        }
+      }}
     />
   )
 }

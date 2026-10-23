@@ -1,0 +1,25 @@
+/* Keep Controls/ArgTypes at their readable intrinsic width without widening
+ * the Docs page. The wrapper also contains Storybook's reset-controls button. */
+.sbdocs-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sbdocs-content div:has(> .docblock-argstable) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* The shared Docs decorator labels overflowing API tables as keyboard regions. */
+.sbdocs-content [data-api-scroll]:focus-visible {
+  outline: var(--default-ring-width) var(--default-ring-style) var(--color-ring);
+  outline-offset: calc(-1 * var(--default-ring-width));
+}
+.sbdocs-content [data-api-scroll]::before {
+  content: "Scroll horizontally for all properties and controls";
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-fg-secondary);
+  padding-block: var(--spacing-100);
+}

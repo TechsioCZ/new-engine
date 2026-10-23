@@ -28,6 +28,7 @@ test("a rejected draft stays visible, then accepts an authoritative parent updat
   await page.getByRole("button", { name: "Reject update" }).click()
   await expect(input).toHaveValue("5")
   await expect(input).toHaveAttribute("aria-invalid", "true")
+  expect(await input.getAttribute("aria-errormessage")).toBeTruthy()
   expect(await describedText(page, "Order quantity")).toEqual(
     expect.arrayContaining([
       "pieces",
@@ -110,7 +111,7 @@ test("pending and read only block focused wheel, keys, triggers and held trigger
   await expect(input).toHaveValue("2")
   await expect(
     page.getByRole("button", { name: "Increment value" })
-  ).toBeDisabled()
+  ).toHaveCount(0)
   await page.getByRole("button", { name: "Toggle read only" }).click()
   await input.fill("5")
   await input.focus()

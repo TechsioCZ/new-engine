@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.4
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,33 +27,37 @@ import { tv } from "../utils"
 
 const BreadcrumbVariants = tv({
   slots: {
-    root: ["inline-flex flex-wrap items-center", "bg-breadcrumb-bg"],
+    root: [
+      "inline-flex min-w-0 max-w-full flex-wrap items-center",
+      "bg-breadcrumb-bg",
+    ],
     list: [
-      "flex flex-wrap items-center",
-      "break-words",
+      "flex min-w-0 max-w-full flex-wrap items-center",
+      "wrap-anywhere",
       "list-none",
       "text-breadcrumb-item",
     ],
-    item: ["inline-flex min-w-0 items-center", "text-breadcrumb-item"],
+    item: [
+      "wrap-anywhere inline-flex min-w-0 max-w-full items-center",
+      "text-breadcrumb-item",
+    ],
     link: [
-      "inline-flex min-w-0 items-center",
+      "wrap-anywhere inline-flex min-w-0 max-w-full items-center",
       "rounded-breadcrumb-link",
       "text-breadcrumb-item",
       "no-underline",
       "cursor-pointer",
       "hover:text-breadcrumb-item-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-breadcrumb-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "focus-visible:breadcrumb-focus",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     currentLink: [
-      "inline-flex min-w-0 items-center",
+      "wrap-anywhere inline-flex min-w-0 max-w-full items-center",
       "rounded-breadcrumb-link",
       "text-breadcrumb-item-current",
       "cursor-default",
     ],
-    icon: ["inline-flex items-center justify-center"],
+    icon: ["inline-flex shrink-0 items-center justify-center"],
     iconSize: "",
     separator: [
       "inline-flex shrink-0 items-center justify-center",
@@ -232,6 +236,7 @@ export type BreadcrumbLinkProps<T extends ElementType = "a"> = LinkProps<T> & {
 }
 
 Breadcrumb.Link = function BreadcrumbLink<T extends ElementType = "a">({
+  size = "current",
   children,
   className,
   ...props
@@ -239,7 +244,11 @@ Breadcrumb.Link = function BreadcrumbLink<T extends ElementType = "a">({
   const { styles } = useBreadcrumbContext()
 
   return (
-    <Link className={styles.link({ className })} {...(props as LinkProps<T>)}>
+    <Link
+      className={styles.link({ className })}
+      {...(props as LinkProps<T>)}
+      size={size}
+    >
       {children}
     </Link>
   )

@@ -7,7 +7,12 @@ description: >
 metadata:
   plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
+  requires: "component-usage-ux ux-guidelines app-token-overrides"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # ui-kit component usage (router)
 

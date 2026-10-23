@@ -10,8 +10,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "tailwind-token-authoring"
-  sources: "libs/ui/skills/_artifacts/consumer_app_usage_rules.md libs/ui/src/tokens/_semantic.css libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/tokens/components/molecules/_dialog.css libs/ui/src/tokens/components/components.css https://github.com/TechsioCZ/new-engine/issues/72"
+  sources: "../../references/consumer_app_usage_rules.md https://github.com/TechsioCZ/new-engine/issues/72"
+  contributor_sources: "libs/ui/src/tokens/_semantic.css libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/tokens/components/molecules/_dialog.css libs/ui/src/tokens/components/components.css"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit App Token Overrides
 
@@ -31,40 +36,45 @@ Work down the token chain:
 
 ## Core Patterns
 
-### Prefer app semantic overrides
+### Override the shipped semantic source
+
+Import your stylesheet **after** the kit stylesheet. The Figma-backed primary
+surface source is `--color-bg-primary-base`, not the legacy `--color-primary`.
+Use an unlayered selector so it wins over generated brand selectors:
 
 ```css
-@theme static {
-  --color-primary: var(--brand-primary);
-  --color-danger: var(--brand-danger);
+:root, [data-theme] {
+  --color-bg-primary-base: oklch(0.55 0.2 330);
+  --color-bg-primary-hover: oklch(0.47 0.2 330);
+  --color-bg-primary-active: oklch(0.42 0.2 330);
+  --color-fg-on-primary-solid: white;
+  --color-fg-on-primary-solid-neo: white;
 }
 ```
 
-This lets Button, Badge, Dialog, Toast, and other components inherit the app
-scheme.
+Button, selected controls and other primary surfaces inherit these aliases.
+Set **both** foreground sources: Button's `--color-button-fg-primary` reads
+`--color-fg-on-primary-solid-neo` (in every brand, not just Neo); other primary
+surfaces still read `--color-fg-on-primary-solid`. These are independent tokens,
+so setting only one does not recolor every primary foreground. The white text
+above meets 4.5:1 against all three pink surfaces; choose and measure a suitable
+foreground whenever changing those surfaces. Pure magenta (`#ff00ff`), for
+example, requires dark text, not white, to meet 4.5:1.
 
-### Let semantic tokens remove component overrides
+The legacy `--color-primary` affects older consumers only; it does **not**
+recolor Figma-backed buttons. Do not create circular aliases between it and
+`--color-bg-primary-base`.
 
-```css
-@theme static {
-  --color-primary: oklch(0.9 0.5 120);
-}
-```
+When using nested scheme scopes, include `.light`, `.dark`, `.always-light`,
+`.always-dark` and `.reverse` in your app override selector too. These scopes
+intentionally re-resolve the default alias graph; repeat your app semantic
+sources there if they should replace those defaults.
 
-If Button primary should use the app primary color, stop here. Do not also add
-`--color-button-bg-primary: var(--color-primary)` when the UI-kit default chain
-already points Button primary to `--color-primary`.
+### Use component overrides only for exceptions
 
-### Use component overrides only for real exceptions
-
-```css
-@theme static {
-  --color-button-bg-primary: var(--color-cta);
-}
-```
-
-Do this only when Button primary should intentionally reference a different
-token/value than the app's general `--color-primary`.
+For one exceptional primary Button, use `--color-button-bg-primary-base`
+(and its `-hover`/`-active` siblings), not the obsolete
+`--color-button-bg-primary`. Keep text, border and focus contrast accessible.
 
 ### Keep className for layout composition
 
@@ -78,54 +88,11 @@ Layout around components is fine. Component appearance belongs in tokens.
 
 ## Common Mistakes
 
-### HIGH Redundant component token
+### HIGH Legacy semantic alias mistaken for the current source
 
-Wrong:
-
-```css
-@theme static {
-  --color-primary: oklch(0.9 0.5 120);
-  --color-button-bg-primary: var(--color-primary);
-}
-```
-
-Correct:
-
-```css
-@theme static {
-  --color-primary: oklch(0.9 0.5 120);
-}
-```
-
-Do not override component tokens when the corrected semantic layer already
-drives the component to the right value.
-
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
-
-### HIGH Component override used instead of semantic source
-
-Wrong:
-
-```css
-@theme static {
-  --color-button-bg-primary: oklch(0.9 0.5 120);
-  --color-badge-bg-primary: oklch(0.9 0.5 120);
-  --color-link-fg-primary: oklch(0.9 0.5 120);
-}
-```
-
-Correct:
-
-```css
-@theme static {
-  --color-primary: oklch(0.9 0.5 120);
-}
-```
-
-If multiple components should follow the same app primary color, set the
-semantic source once instead of duplicating component overrides.
-
-Source: https://github.com/TechsioCZ/new-engine/issues/72
+Overriding `--color-primary` alone will not recolor modern primary Buttons.
+Override `--color-bg-primary-base` and its hover/active siblings instead, as
+shown above. Verify the computed Button background in every supported mode.
 
 ### HIGH JSX className appearance fix
 
@@ -138,8 +105,8 @@ Wrong:
 Correct:
 
 ```css
-@theme static {
-  --color-button-bg-primary: var(--color-cta);
+:root, [data-theme] {
+  --color-button-bg-primary-base: var(--color-cta);
   --color-button-fg-primary: var(--color-fg-primary);
   --radius-button-md: var(--radius-full);
 }
@@ -148,7 +115,7 @@ Correct:
 Use a component override only when Button really should diverge from semantic
 primary/default mappings. Otherwise fix the semantic token.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### HIGH Font weight token bypassed
 
@@ -168,7 +135,7 @@ Correct:
 
 `--font-weight-*` tokens map to `font-*` classes in TSX.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### MEDIUM Container token misapplied
 
@@ -190,7 +157,7 @@ Correct:
 
 `--container-*` tokens are for width and max-width utilities, not spacing.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### MEDIUM Permanent API gap workaround
 
@@ -209,7 +176,7 @@ express the design, record a Button API/token gap for libs/ui.
 
 Do not normalize one-off class hacks into app code.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ## Validation Commands
 

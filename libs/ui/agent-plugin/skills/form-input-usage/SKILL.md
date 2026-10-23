@@ -5,13 +5,18 @@ description: >
   labeled single-line fields with Label, Input, StatusText, validation status,
   help text, required, disabled, and size props.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux input-usage app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/form-input.tsx libs/ui/src/atoms/input.tsx libs/ui/stories/molecules/form-input.stories.tsx libs/ui/src/molecules/form-input.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/molecules/form-input.tsx libs/ui/src/atoms/input.tsx libs/ui/stories/molecules/form-input.stories.tsx libs/ui/src/molecules/form-input.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit FormInput Usage
 
@@ -74,7 +79,7 @@ import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 Supported props:
 
 ```text
-id: required
+id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
@@ -85,10 +90,10 @@ all Input props except where FormInput sets label/status behavior
 
 ### Input classes and wrapper layout
 
-`FormInput` and `FormInputRaw` merge `className` into the native Input, after
-the existing `p-input-sm md:p-input-md` defaults. Responsive overrides must
-target the same breakpoint when needed. The wrapper does not receive this
-class. Put field-to-field layout on a parent; prefer Input tokens for visuals.
+`FormInput` and `FormInputRaw` merge `className` into the native Input after
+its selected sm/md/lg size classes. Padding follows size, never the viewport;
+sm remains compact at desktop widths. The wrapper does not receive this class.
+Put field-to-field layout on a parent; prefer Input tokens for visuals.
 
 ### Use for complete field rows
 
@@ -157,6 +162,48 @@ Source: libs/ui/src/molecules/form-input.tsx
 
 ```sh
 rg -U -n "<Label[\\s\\S]{0,240}<Input|<FormInput[^>]*variant=|<FormInput[^>]*className=.*(mb-|mt-|gap-|border-|text-)" apps
-rg -P -n "<FormInput(?![^>]*id=)|<FormInput(?![^>]*label=)" apps
+rg -P -n "<FormInput(?![^>]*label=)" apps
 rg -n "<FormInput[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Read-only and feedback contracts
+
+Use `readOnly` for visible, focusable, copyable values that must not change.
+The value keeps full contrast and a subtle surface; disabled wins when both
+are set. Canonical sizes are sm/md/lg, default md, including labels and feedback.
+
+`helpText` renders StatusText with a stable unique ID, merged with caller
+`aria-describedby`. Errors also set `aria-invalid` and `aria-errormessage`;
+the internally generated error reference disappears when wrapper validation clears. Error/warning/success
+icons always remain enabled; `showHelpTextIcon` only customizes neutral help.
+Validate on blur/submit and use actionable copy rather than color alone.
+
+The legacy Raw export also associates plain helper copy and precomposed
+StatusText elements. Existing StatusText IDs are retained; plain copy receives
+the same default status icons and ARIA wiring as the standard entry point.
+
+
+Caller-supplied `aria-errormessage` IDs are preserved independently of
+`validateStatus`, including when the caller supplies the invalid state. Clear
+caller-owned error IDs and invalid state together when removing that message;
+the wrapper only manages the lifecycle of its own generated error reference.
+
+### Generated IDs
+
+Omitting `id` generates a stable, unique control ID and associates the label
+and feedback automatically. Supply a unique explicit ID only when an external
+error summary or another consumer must reference the control.
+
+```tsx
+<FormInput label="Email" name="email" type="email" />
+```
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.

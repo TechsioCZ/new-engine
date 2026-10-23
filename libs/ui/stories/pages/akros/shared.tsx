@@ -7,9 +7,10 @@
  * order state, a payment state, an ABRA transfer and a pickup point look —
  * so the orders list, the order detail and the dashboard tell one story.
  */
-import type { ReactNode } from "react"
+import { type ReactNode, useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
 import { Icon, type IconType } from "../../../src/atoms/icon"
+import { StatusText } from "../../../src/atoms/status-text"
 import { Tooltip } from "../../../src/atoms/tooltip"
 import { AdminShell } from "../shell"
 import {
@@ -43,14 +44,25 @@ export function AkrosShell({
   expanded?: string[]
   children: ReactNode
 }) {
+  const [previewSelection, setPreviewSelection] = useState(selected)
   return (
     <AdminShell
       defaultExpandedNav={expanded}
       environment="Back office"
       nav={akrosNav}
-      selectedNav={selected}
+      onNavChange={setPreviewSelection}
+      selectedNav={previewSelection}
       workspace="Akros"
     >
+      <StatusText size="sm">
+        Akros preview · light-only brand · local demo data, no live operations.
+      </StatusText>
+      {previewSelection !== selected && (
+        <StatusText role="status" size="sm">
+          Navigation preview: {previewSelection}. This example keeps the current
+          page open.
+        </StatusText>
+      )}
       {children}
     </AdminShell>
   )

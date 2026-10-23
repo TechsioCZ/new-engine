@@ -1,13 +1,17 @@
 /**
  * VerticalNavigation — @techsio/ui-kit molecule.
  * @component VerticalNavigation
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.1
  * @skill vertical-navigation-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
 "use client"
 
-import * as collapsible from "@zag-js/collapsible"
+import {
+  type Props as CollapsibleProps,
+  connect,
+  machine,
+} from "@zag-js/collapsible"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import { type ComponentProps, type ElementType, useContext, useId } from "react"
 import { Button } from "../atoms/button"
@@ -139,6 +143,7 @@ VerticalNavigation.Link = function VerticalNavigationLink<
       {...(props as LinkButtonProps<T>)}
       aria-current={current ? "page" : undefined}
       className={verticalNavigationStyles({ size }).link({ className })}
+      composition={true}
       data-current={current || undefined}
       data-current-path={branch?.containsCurrent || undefined}
       data-part="link"
@@ -154,7 +159,7 @@ export type VerticalNavigationBranchProps = Omit<
   "onChange" | "dir"
 > &
   Pick<
-    collapsible.Props,
+    CollapsibleProps,
     "open" | "defaultOpen" | "onOpenChange" | "disabled" | "getRootNode"
   > & { containsCurrent?: boolean }
 
@@ -172,7 +177,7 @@ VerticalNavigation.Branch = function VerticalNavigationBranch({
 }: VerticalNavigationBranchProps) {
   const { dir } = useVerticalNavigationContext()
   const generatedId = useId()
-  const service = useMachine(collapsible.machine, {
+  const service = useMachine(machine, {
     id: id ?? generatedId,
     dir,
     open,
@@ -181,7 +186,7 @@ VerticalNavigation.Branch = function VerticalNavigationBranch({
     disabled,
     getRootNode,
   })
-  const api = collapsible.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
   return (
     <VerticalNavigationBranchContext.Provider value={{ api, containsCurrent }}>
       <li
@@ -208,11 +213,13 @@ VerticalNavigation.BranchTrigger = function VerticalNavigationBranchTrigger({
   ...props
 }: VerticalNavigationBranchTriggerProps) {
   const { size } = useVerticalNavigationContext()
-  const { api } = useVerticalNavigationBranchContext()
+  const { api, containsCurrent } = useVerticalNavigationBranchContext()
   return (
     <Button
       {...mergeProps(props, api.getTriggerProps())}
       className={verticalNavigationStyles({ size }).trigger({ className })}
+      composition={true}
+      data-current-path={containsCurrent || undefined}
       data-part="branch-trigger"
       data-scope="vertical-navigation"
       disabled={disabled || api.disabled}

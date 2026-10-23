@@ -12,6 +12,15 @@
   --color-combobox-status: var(--color-popup-item-fg);
   --color-combobox-group: var(--color-popup-item-fg);
   --color-combobox-divider: var(--color-popup-border);
+  --color-combobox-item-muted: var(--color-popup-item-fg-muted);
+  --color-combobox-item-highlighted: var(--color-popup-item-fg);
+  --color-combobox-item-selected: var(--color-popup-item-fg-selected);
+  --color-combobox-item-disabled: var(--color-popup-item-fg-disabled);
+
+  --color-combobox-item-fg-highlighted: var(--color-combobox-item-highlighted);
+  --color-combobox-item-fg-selected: var(--color-combobox-item-selected);
+  --color-combobox-item-fg-disabled: var(--color-combobox-item-disabled);
+  --color-combobox-item-fg-secondary: var(--color-combobox-item-muted);
 
   --color-combobox-status-fg: var(--color-combobox-status);
   --color-combobox-group-fg: var(--color-combobox-group);
@@ -25,6 +34,42 @@
 
   --text-combobox-group-label-size: var(--text-sm);
   --font-weight-combobox-group-label: var(--font-weight-semibold);
+}
+
+/*
+ * Keep each foreground paired with its surface, including rich descendants.
+ * Checked styles follow highlight styles deliberately: a selected row keeps
+ * its solid surface even while hovered or keyboard-highlighted.
+ */
+@utility combobox-item-base {
+  @apply popup-item-base;
+
+  color: var(--color-combobox-item-fg);
+
+  &:not([data-disabled]) {
+    &:hover,
+    &[data-highlighted] {
+      background-color: var(--color-combobox-item-bg-hover);
+      color: var(--color-combobox-item-fg-highlighted);
+      --color-combobox-item-fg-secondary: var(
+        --color-combobox-item-fg-highlighted
+      );
+    }
+
+    &[data-state="checked"] {
+      background-color: var(--color-combobox-item-bg-selected);
+      color: var(--color-combobox-item-fg-selected);
+      --color-combobox-item-fg-secondary: var(
+        --color-combobox-item-fg-selected
+      );
+    }
+  }
+
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--color-combobox-item-fg-disabled);
+    --color-combobox-item-fg-secondary: var(--color-combobox-item-fg-disabled);
+  }
 }
 
 /* Resolve the popup's size scale on each group label, footer, or status. */
@@ -44,4 +89,35 @@
 
 @utility token-icon-combobox-clear {
   @apply token-icon-close;
+}
+
+/* Input is a standalone control elsewhere, but here its atom-level paint must
+ * not create a second surface. Keep this unlayered: the shared two-tone focus
+ * rule is unlayered too, so a utility-only reset cannot suppress its inner halo.
+ * Geometry and padding still come from the Combobox's size slots.
+ * Command also renders zag's combobox parts, but its control has no surface and
+ * its Input is the field, so scope to the Combobox root (the only one with
+ * data-mode) instead of the shared data-scope. */
+[data-scope="combobox"][data-part="root"][data-mode]
+> [data-part="control"] > [data-part="input"] {
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+/* The control owns the focus indicator for every focusable descendant, including
+ * the clear/chevron actions. Do not remove their hover/active affordances. */
+[data-scope="combobox"][data-part="root"][data-mode]
+> [data-part="control"]
+> :is([data-part="input"], [data-part="trigger"], [data-part="clear-trigger"]) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* A reduced-motion preference must also override transition-discrete. */
+@media (prefers-reduced-motion: reduce) {
+  [data-scope="combobox"][data-part="content"] {
+    transition: none;
+    animation: none;
+  }
 }

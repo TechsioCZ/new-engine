@@ -21,8 +21,11 @@ import {
 function PlaygroundExample({
   hotkey = "mod+Shift+A",
   formatOptions,
+  size,
 }: HotkeysProps) {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
   function openExample() {
@@ -38,21 +41,28 @@ function PlaygroundExample({
     store,
     hotkey,
     action: openExample,
-    options: { preventDefault: true, requireReset: true, stopPropagation: true },
+    enabled: !open,
+    options: {
+      target: getTarget,
+      preventDefault: true,
+      requireReset: true,
+      stopPropagation: true,
+    },
   })
   const registrations = useHotkeyRegistrations({ store })
 
   return (
-    <div className="flex flex-col items-start gap-200">
+    <div className="flex flex-col items-start gap-200" ref={demo}>
       <p>
-        Press the shortcut or use the button. Both open the same dialog, while
-        the keycap adapts to the selected platform.
+        Focus this example’s button, then press the shortcut or activate it.
+        Both open one dialog, while the keycap adapts to the selected platform.
       </p>
       <Button onClick={openExample} ref={trigger}>
         Open example
         <Hotkeys
           aria-hidden="true"
           formatOptions={formatOptions}
+          size={size}
           hotkey={hotkey}
         />
       </Button>
@@ -71,7 +81,8 @@ function PlaygroundExample({
         title="Hotkey activated"
       >
         <p>
-          Keyboard shortcut: <Hotkeys formatOptions={formatOptions} hotkey={hotkey} />
+          Keyboard shortcut:{" "}
+          <Hotkeys formatOptions={formatOptions} hotkey={hotkey} size={size} />
         </p>
       </Dialog>
     </div>
@@ -80,6 +91,8 @@ function PlaygroundExample({
 
 function FormFieldsTechnicalExample() {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [count, setCount] = useState(0)
   const [enableWhileTyping, setEnableWhileTyping] = useState(true)
 
@@ -93,6 +106,7 @@ function FormFieldsTechnicalExample() {
     hotkey: "mod+S",
     action: () => setCount((value) => value + 1),
     options: {
+      target: getTarget,
       enableOnFormTags: enableWhileTyping,
       preventDefault: true,
       requireReset: true,
@@ -100,10 +114,11 @@ function FormFieldsTechnicalExample() {
   })
 
   return (
-    <div className="flex flex-col gap-200">
+    <div className="flex flex-col gap-200" ref={demo}>
       <p>
-        Write a note, then press the save shortcut. The saved count increases
-        without leaving the input. Use the checkbox to pause saving while typing.
+        Focus a control in this example, write a note, then press the save
+        shortcut. The saved count increases without leaving the input. Use the
+        checkbox to pause saving while typing.
       </p>
       <Button onClick={() => setCount((value) => value + 1)}>Save</Button>
       <Hotkeys hotkey="mod+S" />
@@ -165,7 +180,16 @@ const meta = {
   title: "Atoms/Hotkeys",
   component: Hotkeys,
   tags: ["autodocs"],
-  parameters: { layout: "padded", controls: { disable: true } },
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Display-only keyboard shortcut keycaps, with an optional store-based API for registering shortcuts. Use them beside visible action labels; use Button for a clickable action and do not rely on a shortcut as the only way to act. Its sm/md/lg sizes scale typography, not interactive hit areas.",
+      },
+    },
+    layout: "padded",
+    controls: { disable: true },
+  },
   decorators: [
     (Story) => (
       <div className="mx-auto w-full max-w-md">
@@ -174,6 +198,7 @@ const meta = {
     ),
   ],
   argTypes: {
+    size: { control: "select", options: ["sm", "md", "lg"] },
     hotkey: { control: "text" },
     formatOptions: { control: "object" },
     ref: { table: { disable: true } },
@@ -188,12 +213,130 @@ type Story = StoryObj<typeof meta>
 export const Playground: Story = {
   args: { hotkey: "mod+Shift+A" },
   parameters: {
-    controls: { disable: false, include: ["hotkey", "formatOptions"] },
+    docs: {
+      source: {
+        type: "code",
+        language: "tsx",
+        code: `import { useEffect, useRef, useState } from "react"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Hotkeys, type HotkeysProps } from "@techsio/ui-kit/atoms/hotkeys"
+import { createHotkeyStore, useHotkey, useHotkeyRegistrations } from "@techsio/ui-kit/hotkeys"
+import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+
+export function HotkeysExample({
+  hotkey = "mod+Shift+A",
+  formatOptions,
+  size,
+}: HotkeysProps) {
+  const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
+  const [open, setOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
+  function openExample() {
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    store.init({ target: document })
+    return () => store.destroy()
+  }, [store])
+
+  useHotkey({
+    store,
+    hotkey,
+    action: openExample,
+    enabled: !open,
+    options: {
+      target: getTarget,
+      preventDefault: true,
+      requireReset: true,
+      stopPropagation: true,
+    },
+  })
+  const registrations = useHotkeyRegistrations({ store })
+
+  return (
+    <div className="flex flex-col items-start gap-200" ref={demo}>
+      <p>
+        Focus this example’s button, then press the shortcut or activate it.
+        Both open one dialog, while the keycap adapts to the selected platform.
+      </p>
+      <Button onClick={openExample} ref={trigger}>
+        Open example
+        <Hotkeys
+          aria-hidden="true"
+          formatOptions={formatOptions}
+          size={size}
+          hotkey={hotkey}
+        />
+      </Button>
+      <p className="text-fg-secondary">
+        Registered shortcuts:{" "}
+        <output data-testid="hotkeys-playground-registrations">
+          {registrations.length}
+        </output>
+      </p>
+      <Dialog
+        customTrigger
+        description="Both the button and keyboard shortcut open this dialog. Press Escape to close it and try again."
+        finalFocusEl={() => trigger.current}
+        onOpenChange={({ open }) => setOpen(open)}
+        open={open}
+        title="Hotkey activated"
+      >
+        <p>
+          Keyboard shortcut:{" "}
+          <Hotkeys formatOptions={formatOptions} hotkey={hotkey} size={size} />
+        </p>
+      </Dialog>
+    </div>
+  )
+}
+`,
+      },
+      description: {
+        story:
+          "The shortcut and visible button open the same local dialog; controls change the displayed keycap and shortcut.",
+      },
+    },
+    controls: { disable: false, include: ["hotkey", "formatOptions", "size"] },
   },
   render: (args) => <PlaygroundExample {...args} />,
 }
 
+export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare the same shortcut at Small (sm), Medium (md) and Large (lg) without registering an action.",
+      },
+    },
+  },
+  render: () => (
+    <div className="flex flex-wrap gap-300">
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <div className="flex flex-col gap-150" key={size}>
+          <h3>
+            {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
+          </h3>
+          <Hotkeys hotkey="mod+K" size={size} />
+        </div>
+      ))}
+    </div>
+  ),
+}
+
 export const TokenClassOverride: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A foreground override preserves the independent root font-size token.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   args: { className: "text-hotkeys-key-fg" },
   render: (args) => <Hotkeys {...args} />,
@@ -201,6 +344,8 @@ export const TokenClassOverride: Story = {
 
 function PlatformsExample() {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [count, setCount] = useState(0)
   useEffect(() => {
     store.init({ target: document })
@@ -213,18 +358,22 @@ function PlatformsExample() {
     store,
     hotkey: "mod+S",
     action: save,
-    options: { preventDefault: true, requireReset: true },
+    options: { target: getTarget, preventDefault: true, requireReset: true },
   })
   return (
-    <div className="flex flex-col gap-300">
+    <div className="flex flex-col gap-300" ref={demo}>
       <p>
-        Save with the button or the shortcut shown on it. Below are previews
-        of the same shortcut on each platform; your keyboard uses your actual OS.
+        Focus this example’s Save button, then use the button or the shortcut
+        shown on it. Below are previews of the same shortcut on each platform;
+        your keyboard uses your actual OS.
       </p>
       <Button onClick={save}>
         Save <Hotkeys aria-hidden="true" hotkey="mod+S" />
       </Button>
-      <p>Saved: <output data-testid="hotkeys-platform-save-count">{count}</output></p>
+      <p>
+        Saved:{" "}
+        <output data-testid="hotkeys-platform-save-count">{count}</output>
+      </p>
       <VariantContainer>
         <VariantGroup title="macOS">
           <Hotkeys hotkey="mod+S" formatOptions={{ platform: "mac" }} />
@@ -241,11 +390,21 @@ function PlatformsExample() {
 }
 
 export const Platforms: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Platform-specific formatting keeps the same save action recognisable across operating systems.",
+      },
+    },
+  },
   render: () => <PlatformsExample />,
 }
 
 function CompoundExample() {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [bold, setBold] = useState(false)
   useEffect(() => {
     store.init({ target: document })
@@ -258,13 +417,14 @@ function CompoundExample() {
     store,
     hotkey: "Control+B",
     action: toggleBold,
-    options: { preventDefault: true, requireReset: true },
+    options: { target: getTarget, preventDefault: true, requireReset: true },
   })
   return (
-    <div className="flex flex-col items-start gap-200">
+    <div className="flex flex-col items-start gap-200" ref={demo}>
       <p>
-        Press Control+B or click Bold to change the sample text. The shortcut
-        uses individual Root, Key and Separator parts with explicit labels.
+        Focus this example’s Bold button, then press Control+B or click Bold to
+        change the sample text. The shortcut uses individual Root, Key and
+        Separator parts with explicit labels.
       </p>
       <Button aria-pressed={bold} onClick={toggleBold} theme="outlined">
         Bold
@@ -274,24 +434,50 @@ function CompoundExample() {
           <Hotkeys.Key>B</Hotkeys.Key>
         </Hotkeys.Root>
       </Button>
-      <p className={bold ? "font-bold" : "font-normal"} data-testid="hotkeys-sample">
+      <p
+        className={bold ? "font-bold" : "font-normal"}
+        data-testid="hotkeys-sample"
+      >
         A keyboard shortcut can format this text.
       </p>
-      <p>Formatting: <output data-testid="hotkeys-format">{bold ? "Bold" : "Regular"}</output></p>
+      <p>
+        Formatting:{" "}
+        <output data-testid="hotkeys-format">
+          {bold ? "Bold" : "Regular"}
+        </output>
+      </p>
     </div>
   )
 }
 
 export const Compound: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compose individual keycaps and decorative separators for a labelled formatting action.",
+      },
+    },
+  },
   render: () => <CompoundExample />,
 }
 
 export const FormFields: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Typing shortcuts remain opt-in so writing in fields does not accidentally trigger commands.",
+      },
+    },
+  },
   render: () => <FormFieldsExample />,
 }
 
 function FormFieldsExample() {
   const [store] = useState(() => createHotkeyStore())
+  const demo = useRef<HTMLDivElement>(null)
+  const [getTarget] = useState(() => () => demo.current)
   const [draft, setDraft] = useState("")
   const [savedNote, setSavedNote] = useState("")
 
@@ -308,14 +494,19 @@ function FormFieldsExample() {
     store,
     hotkey: "mod+S",
     action: saveNote,
-    options: { preventDefault: true, requireReset: true },
+    options: {
+      target: getTarget,
+      enableOnFormTags: true,
+      preventDefault: true,
+      requireReset: true,
+    },
   })
 
   return (
-    <div className="flex flex-col gap-200">
+    <div className="flex flex-col gap-200" ref={demo}>
       <p>
-        Type a note, then press the shortcut or click Save. The saved note
-        appears below the editor.
+        Focus the note field or Save button, type a note, then press the
+        shortcut or click Save. The saved note appears below the editor.
       </p>
       <Input
         aria-label="Note"
@@ -326,7 +517,10 @@ function FormFieldsExample() {
       <Button onClick={saveNote}>
         Save <Hotkeys aria-hidden="true" hotkey="mod+S" />
       </Button>
-      <p aria-live="polite" className="rounded-sm border border-border-primary p-200">
+      <p
+        aria-live="polite"
+        className="rounded-sm border border-border-primary p-200"
+      >
         Saved note:{" "}
         <output data-testid="hotkeys-saved-note">
           {savedNote || "Nothing saved yet"}
@@ -337,6 +531,14 @@ function FormFieldsExample() {
 }
 
 export const FormFieldsTechnical: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Exercise reset and form-target policies while keeping visible registration feedback.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: () => <FormFieldsTechnicalExample />,
 }
@@ -447,6 +649,14 @@ function SharedStoreExample() {
 
 // Browser regression fixtures stay directly addressable, outside the sidebar and docs.
 export const Lifecycle: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Change callbacks and enabled state without accumulating duplicate shortcut registrations.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: () => (
     <StrictMode>
@@ -455,6 +665,14 @@ export const Lifecycle: Story = {
   ),
 }
 export const DevelopmentStrictMode: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Strict Mode remounts do not duplicate registrations or keyboard actions.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: () => (
     <HotkeysStrictModeFixture>
@@ -478,6 +696,14 @@ function DisplayOnlyExample() {
 }
 
 export const DisplayOnly: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Formatting keycaps alone does not register or intercept keyboard shortcuts.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: () => <DisplayOnlyExample />,
 }
@@ -565,9 +791,9 @@ function FocusedSequenceExample() {
   return (
     <div className="flex flex-col gap-200">
       <p>
-        Click the outlined demo area (or Tab to it), then press G followed by
-        H. The shortcut changes this section to Help; the button below performs
-        the same action.
+        Click the outlined demo area (or Tab to it), then press G followed by H.
+        The shortcut changes this section to Help; the button below performs the
+        same action.
       </p>
       <div
         aria-label="Keyboard shortcut demo"
@@ -581,7 +807,7 @@ function FocusedSequenceExample() {
           Shortcut target: <Hotkeys aria-hidden="true" hotkey="g > h" />
         </p>
         <h4 className="mt-200 font-semibold">
-          Current section: {" "}
+          Current section:{" "}
           <output data-testid="hotkeys-section">
             {section === "help" ? "Help" : "Overview"}
           </output>
@@ -605,14 +831,38 @@ function FocusedSequenceExample() {
 }
 
 export const FocusedSequence: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A focused sequence target keeps multi-key shortcuts local to the intended region.",
+      },
+    },
+  },
   render: () => <FocusedSequenceExample />,
 }
 
 export const FocusedSequenceTechnical: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Inspect sequence registration and scoped focus behavior independently of page-wide shortcuts.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: () => <FocusedSequenceTechnicalExample />,
 }
 export const Hydration: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Server-rendered shortcut labels hydrate consistently before adapting to the client platform.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: () => <HotkeysHydrationFixture />,
 }
@@ -665,6 +915,14 @@ function NativeConflictExample() {
 }
 
 export const NativeConflictPolicy: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Choose whether the browser or the registered shortcut owns a native keyboard combination.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: () => <NativeConflictExample />,
 }

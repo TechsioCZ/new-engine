@@ -1,3 +1,7 @@
+import { expect, userEvent, waitFor, within } from "storybook/test"
+import { paymentPathError } from "../page-models"
+import { StatusText } from "../../../src/atoms/status-text"
+import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { Badge } from "../../../src/atoms/badge"
@@ -28,10 +32,18 @@ import {
 import { AkrosShell, akrosDocs } from "./shared"
 
 const meta: Meta = {
-  globals: { brand: "akros", mode: "light" },
+  decorators: [
+    (Story) => (
+      <DemoBoundary>
+        <Story />
+      </DemoBoundary>
+    ),
+  ],
+
   tags: ["autodocs"],
   title: "Pages/Akros admin/Shipping & payment",
   parameters: {
+    brandLock: "akros",
     layout: "fullscreen",
     docs: {
       description: {
@@ -79,21 +91,24 @@ function NumberField({
   value,
   onChange,
   step,
+  error,
 }: {
   id: string
   label: string
   helpText?: string
-  value: number
-  onChange: (value: number) => void
+  value: string
+  onChange: (value: string) => void
+  error?: string
   step?: number
 }) {
   return (
     <FormNumericInput
-      helpText={helpText}
+      helpText={error ?? helpText}
+      validateStatus={error ? "error" : "default"}
       id={id}
       label={label}
       min={0}
-      onChange={onChange}
+      onValueChange={({ value }) => onChange(value)}
       step={step}
       value={value}
     >
@@ -112,16 +127,74 @@ function ShippingEditor({
   method,
   onClose,
   onSave,
+  payments,
 }: {
   method: ShippingMethod
   onClose: () => void
-  onSave: (method: ShippingMethod) => void
+  onSave: (method: ShippingMethod) => boolean
+  payments: PaymentConfig[]
 }) {
-  const [draft, setDraft] = useState(method)
-  const set = <K extends keyof ShippingMethod>(
+  const [draft, setDraft] = useState({
+    ...method,
+    price: String(method.price),
+    freeFrom: String(method.freeFrom),
+    maxWeight: String(method.maxWeight),
+    maxLength: String(method.maxLength),
+  })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const set = <K extends keyof typeof draft>(
     key: K,
-    value: ShippingMethod[K]
+    value: (typeof draft)[K]
   ) => setDraft((current) => ({ ...current, [key]: value }))
+  const save = () => {
+    const nextErrors: Record<string, string> = {}
+    if (!draft.name.trim()) nextErrors.name = "Enter a checkout name."
+    for (const [key, id, allowZero] of [
+      ["price", "sh-price", true],
+      ["freeFrom", "sh-free", true],
+      ["maxWeight", "sh-weight", false],
+      ["maxLength", "sh-length", false],
+    ] as const) {
+      if (
+        !draft[key].trim() ||
+        !Number.isFinite(Number(draft[key])) ||
+        (allowZero ? Number(draft[key]) < 0 : Number(draft[key]) <= 0)
+      )
+        nextErrors[key] =
+          `Enter a finite number ${allowZero ? "of zero or more" : "greater than zero"}.`
+      if (nextErrors[key]) nextErrors[`${key}Id`] = id
+    }
+    const next = {
+      ...draft,
+      name: draft.name.trim(),
+      price: Number(draft.price),
+      freeFrom: Number(draft.freeFrom),
+      maxWeight: Number(draft.maxWeight),
+      maxLength: Number(draft.maxLength),
+    }
+    const pathError = paymentPathError([next], payments)
+    if (pathError) nextErrors.payments = pathError
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length) {
+      const key = [
+        "name",
+        "price",
+        "freeFrom",
+        "maxWeight",
+        "maxLength",
+        "payments",
+      ].find((field) => nextErrors[field])
+      const id =
+        key === "name"
+          ? "sh-name"
+          : key === "payments"
+            ? `sh-pay-${Object.keys(paymentMethodLabels)[0]}`
+            : nextErrors[`${key}Id`]
+      document.getElementById(id ?? "sh-name")?.focus()
+      return
+    }
+    onSave(next)
+  }
 
   return (
     <Dialog
@@ -130,7 +203,7 @@ function ShippingEditor({
           <Button onClick={onClose} theme="outlined" variant="secondary">
             Cancel
           </Button>
-          <Button onClick={() => onSave(draft)} variant="primary">
+          <Button onClick={save} variant="primary">
             Save method
           </Button>
         </>
@@ -152,6 +225,8 @@ function ShippingEditor({
           <h3 className="font-semibold text-sm">Name & display</h3>
           <FormInput
             id="sh-name"
+            helpText={errors.name}
+            validateStatus={errors.name ? "error" : "default"}
             label="Name in checkout"
             onChange={(event) => set("name", event.target.value)}
             required
@@ -171,6 +246,7 @@ function ShippingEditor({
           <div className="grid grid-cols-1 gap-200 sm:grid-cols-2">
             <NumberField
               helpText="Kč incl. VAT"
+              error={errors.price}
               id="sh-price"
               label="Price"
               onChange={(value) => set("price", value)}
@@ -178,6 +254,7 @@ function ShippingEditor({
             />
             <NumberField
               helpText="Order total in Kč. 0 = never free."
+              error={errors.freeFrom}
               id="sh-free"
               label="Free from"
               onChange={(value) => set("freeFrom", value)}
@@ -203,6 +280,7 @@ function ShippingEditor({
           <div className="grid grid-cols-1 gap-200 sm:grid-cols-2">
             <NumberField
               helpText="kg — heavier carts do not see this method"
+              error={errors.maxWeight}
               id="sh-weight"
               label="Max. weight"
               onChange={(value) => set("maxWeight", value)}
@@ -210,6 +288,7 @@ function ShippingEditor({
             />
             <NumberField
               helpText="cm — the longest side of any product in the cart"
+              error={errors.maxLength}
               id="sh-length"
               label="Max. parcel length"
               onChange={(value) => set("maxLength", value)}
@@ -220,10 +299,22 @@ function ShippingEditor({
 
         <section className="flex flex-col gap-200">
           <h3 className="font-semibold text-sm">Allowed payments</h3>
+          {errors.payments && (
+            <StatusText id="sh-payment-error" status="error">
+              {errors.payments}
+            </StatusText>
+          )}
           {(Object.keys(paymentMethodLabels) as PaymentMethod[]).map(
             (payment) => (
               <FormCheckbox
                 checked={draft.payments.includes(payment)}
+                aria-invalid={errors.payments ? true : undefined}
+                aria-describedby={
+                  errors.payments ? "sh-payment-error" : undefined
+                }
+                aria-errormessage={
+                  errors.payments ? "sh-payment-error" : undefined
+                }
                 id={`sh-pay-${payment}`}
                 key={payment}
                 label={paymentMethodLabels[payment]}
@@ -259,20 +350,42 @@ function ShippingEditor({
   )
 }
 
-function ShippingPaymentsPage({ editId }: { editId?: string }) {
+function ShippingPaymentsPage({
+  editId,
+  initialTab = "shipping",
+}: {
+  editId?: string
+  initialTab?: "shipping" | "payment" | "matrix"
+}) {
   const toaster = useToast()
   const [shipping, setShipping] = useState(shippingMethods)
   const [payments, setPayments] = useState(paymentConfigs)
   const [editing, setEditing] = useState<string | undefined>(editId)
 
+  const [configError, setConfigError] = useState<string>()
+  const commitConfiguration = (
+    nextShipping: ShippingMethod[],
+    nextPayments = payments
+  ) => {
+    const error = paymentPathError(nextShipping, nextPayments)
+    setConfigError(error)
+    if (error) return false
+    setShipping(nextShipping)
+    setPayments(nextPayments)
+    return true
+  }
+
   const editingMethod = shipping.find((method) => method.id === editing)
 
   const toggleShipping = (id: string, enabled: boolean) => {
-    setShipping((current) =>
-      current.map((method) =>
-        method.id === id ? { ...method, enabled } : method
+    if (
+      !commitConfiguration(
+        shipping.map((method) =>
+          method.id === id ? { ...method, enabled } : method
+        )
       )
     )
+      return
     toaster.create({
       type: enabled ? "success" : "info",
       title: enabled ? "Shipping method enabled" : "Shipping method disabled",
@@ -386,13 +499,17 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
         <Switch
           checked={info.getValue<boolean>()}
           onCheckedChange={(checked) => {
-            setPayments((current) =>
-              current.map((entry) =>
-                entry.id === info.row.original.id
-                  ? { ...entry, enabled: checked }
-                  : entry
+            if (
+              !commitConfiguration(
+                shipping,
+                payments.map((entry) =>
+                  entry.id === info.row.original.id
+                    ? { ...entry, enabled: checked }
+                    : entry
+                )
               )
             )
+              return
             toaster.create({
               type: "info",
               title: checked
@@ -412,11 +529,7 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
       <Toaster />
 
       <PageHeader
-        actions={
-          <Button icon="icon-[mdi--plus]" size="sm" variant="primary">
-            New method
-          </Button>
-        }
+        actions={null}
         breadcrumb={[
           { label: "Home", href: "#" },
           { label: "Settings", href: "#" },
@@ -426,7 +539,12 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
         title="Shipping & payment"
       />
 
-      <Tabs defaultValue="shipping" variant="line">
+      {configError && (
+        <StatusText role="alert" status="error">
+          {configError}
+        </StatusText>
+      )}
+      <Tabs defaultValue={initialTab} variant="line">
         <Tabs.List>
           <Tabs.Trigger value="shipping">Shipping</Tabs.Trigger>
           <Tabs.Trigger value="payment">Payment</Tabs.Trigger>
@@ -474,73 +592,88 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
             flush
             title="Shipping × payment"
           >
-            <Table size="sm" variant="line">
-              <Table.Header>
-                <Table.Row>
-                  <Table.ColumnHeader>Shipping</Table.ColumnHeader>
-                  {payments.map((payment) => (
-                    <Table.ColumnHeader align="center" key={payment.id}>
-                      {payment.name}
-                    </Table.ColumnHeader>
-                  ))}
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {shipping.map((method) => (
-                  <Table.Row key={method.id}>
-                    <Table.Cell>
-                      <span className="flex items-center gap-100">
-                        {method.name}
-                        {!method.enabled && (
-                          <Badge size="sm" variant="outline">
-                            Off
-                          </Badge>
-                        )}
-                      </span>
-                    </Table.Cell>
+            <div
+              role="region"
+              aria-label="Shipping and payment combinations"
+              tabIndex={0}
+              className="min-w-0 max-w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-focus-ring"
+            >
+              <Table className="min-w-3xl whitespace-nowrap" size="sm" variant="line">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Shipping</Table.ColumnHeader>
                     {payments.map((payment) => (
-                      <Table.Cell align="center" key={payment.id}>
-                        <Checkbox
-                          aria-label={`${payment.name} with ${method.name}`}
-                          checked={method.payments.includes(payment.id)}
-                          onChange={(event) => {
-                            const checked = event.target.checked
-                            setShipping((current) =>
-                              current.map((entry) =>
-                                entry.id === method.id
-                                  ? {
-                                      ...entry,
-                                      payments: checked
-                                        ? [...entry.payments, payment.id]
-                                        : entry.payments.filter(
-                                            (p) => p !== payment.id
-                                          ),
-                                    }
-                                  : entry
-                              )
-                            )
-                          }}
-                        />
-                      </Table.Cell>
+                      <Table.ColumnHeader align="center" key={payment.id}>
+                        {payment.name}
+                      </Table.ColumnHeader>
                     ))}
                   </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
+                </Table.Header>
+                <Table.Body>
+                  {shipping.map((method) => (
+                    <Table.Row key={method.id}>
+                      <Table.Cell>
+                        <span className="flex items-center gap-100">
+                          {method.name}
+                          {!method.enabled && (
+                            <Badge size="sm" variant="outline">
+                              Off
+                            </Badge>
+                          )}
+                        </span>
+                      </Table.Cell>
+                      {payments.map((payment) => (
+                        <Table.Cell align="center" key={payment.id}>
+                          <Checkbox
+                            aria-label={`${payment.name} with ${method.name}`}
+                            checked={method.payments.includes(payment.id)}
+                            onChange={(event) => {
+                              const checked = event.target.checked
+                              commitConfiguration(
+                                shipping.map((entry) =>
+                                  entry.id === method.id
+                                    ? {
+                                        ...entry,
+                                        payments: checked
+                                          ? [...entry.payments, payment.id]
+                                          : entry.payments.filter(
+                                              (p) => p !== payment.id
+                                            ),
+                                      }
+                                    : entry
+                                )
+                              )
+                            }}
+                          />
+                        </Table.Cell>
+                      ))}
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
           </SectionCard>
         </Tabs.Content>
       </Tabs>
 
       {editingMethod && (
         <ShippingEditor
+          key={editingMethod.id}
+          payments={payments}
           method={editingMethod}
           onClose={() => setEditing(undefined)}
           onSave={(next) => {
-            setShipping((current) =>
-              current.map((method) => (method.id === next.id ? next : method))
+            if (
+              !commitConfiguration(
+                shipping.map((method) =>
+                  method.id === next.id ? next : method
+                )
+              )
             )
+              return false
             setEditing(undefined)
             toaster.create({ type: "success", title: `${next.name} saved` })
+            return true
           }}
         />
       )}
@@ -549,11 +682,74 @@ function ShippingPaymentsPage({ editId }: { editId?: string }) {
 }
 
 export const Default: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare default in shipping payments to choose a suitable presentation for real product content.",
+      },
+    },
+  },
+
   name: "Shipping & payment methods",
   render: () => <ShippingPaymentsPage />,
 }
 
+export const Combinations: Story = {
+  name: "Shipping and payment combinations",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Keep carrier and payment names readable in a keyboard-scrollable matrix on narrow screens instead of compressing every column.",
+      },
+    },
+  },
+  render: () => <ShippingPaymentsPage initialTab="matrix" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const region = canvas.getByRole("region", {
+      name: "Shipping and payment combinations",
+    })
+    const table = within(region).getByRole("table")
+    await expect(region).toHaveAttribute("tabindex", "0")
+    await expect(table).toHaveClass("min-w-3xl", "whitespace-nowrap")
+    await expect(region.getBoundingClientRect().right).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.defaultView?.innerWidth ?? 1440
+    )
+    if (table.getBoundingClientRect().width > region.clientWidth) {
+      await expect(region.scrollWidth).toBeGreaterThan(region.clientWidth)
+    }
+  },
+}
+
 export const EditShipping: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const dialog = within(body.getByRole("dialog"))
+    const name = dialog.getByLabelText(/Name in checkout/)
+    const original = (name as HTMLInputElement).value
+    await userEvent.clear(name)
+    await userEvent.type(name, "   ")
+    await userEvent.click(dialog.getByRole("button", { name: "Save method" }))
+    await expect(name).toHaveAttribute("aria-invalid", "true")
+    await expect(name).toHaveFocus()
+    await userEvent.clear(name)
+    await userEvent.type(name, original)
+    const price = dialog.getByRole("spinbutton", { name: "Price" })
+    await userEvent.clear(price)
+    await userEvent.click(dialog.getByRole("button", { name: "Save method" }))
+    await expect(price).toHaveAttribute("aria-invalid", "true")
+    await userEvent.type(price, "79")
+    await userEvent.click(dialog.getByRole("button", { name: "Save method" }))
+    await waitFor(() =>
+      expect(body.queryByRole("dialog")).not.toBeInTheDocument()
+    )
+    await expect(
+      canvas.getByRole("heading", { name: "Shipping & payment" })
+    ).toBeVisible()
+  },
   name: "Edit a shipping method",
   parameters: {
     docs: {

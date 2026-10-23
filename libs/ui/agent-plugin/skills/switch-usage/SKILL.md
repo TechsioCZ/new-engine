@@ -6,13 +6,18 @@ description: >
   checked/defaultChecked, validation status, help text, required, disabled, and
   read-only state.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/switch.tsx libs/ui/src/tokens/components/molecules/_switch.css libs/ui/stories/molecules/switch.stories.tsx libs/ui/src/molecules/switch.figma.ts https://zagjs.com/components/react/switch"
+  sources: "https://zagjs.com/components/react/switch"
+  contributor_sources: "libs/ui/src/molecules/switch.tsx libs/ui/src/tokens/components/molecules/_switch.css libs/ui/stories/molecules/switch.stories.tsx libs/ui/src/molecules/switch.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Switch Usage
 
@@ -70,6 +75,28 @@ helpText, showHelpTextIcon
 
 ## Core Patterns
 
+### Controlled proposals and native reset
+
+A rejected `onCheckedChange` proposal does not change native submission or
+validity. Native reset restores the initial uncontrolled default after the
+browser reset action, including imperative `form.reset()` while focused.
+Canceled resets do not change state or emit value callbacks. Controlled parents
+retain ownership: reset silently re-syncs the native input to their checked value.
+The label shrinks and safely wraps long/localized words without shrinking the
+track. Enabled unchecked and invalid thumbs have a contrasting state-aware fill.
+
+
+### Sizes, semantics and read-only values
+
+Use `size="sm" | "md" | "lg"` (default `md`) to scale the track, label and feedback.
+The native input has `role="switch"` and reflects `aria-checked`; `dir="rtl"`
+mirrors the thumb travel inside the track. `readOnly` preserves focus and form
+submission but prevents pointer and Space changes; disabled takes priority.
+`aria-describedby` merges caller IDs with inline guidance. Errors set
+`aria-invalid` and `aria-errormessage` on the input. Validation always keeps its
+status icon; `showHelpTextIcon` only changes optional neutral-help icons.
+
+
 ### Use for settings
 
 Feature toggles, notification preferences, and visibility toggles fit Switch.
@@ -81,6 +108,40 @@ The component renders Label and hidden input internally.
 ### Use validateStatus for invalid state
 
 Do not style invalid switch state manually.
+
+## Native input ref and cancellation-safe forms
+
+`ref?: Ref<HTMLInputElement>` targets the focusable native input with
+`role="switch"`, not the track/thumb/label. `inputProps` accepts native
+focus/blur/key/change observers, input ARIA and external `form`; top-level
+`checked`, `defaultChecked`, `disabled`, `readOnly`, `required`, `name`, `value`
+and `id` remain component-owned. Do not use `inputProps` to replace the input
+type or value ownership. Descriptions merge with help text. Consumer event
+handlers run before machine handlers and respect `preventDefault()`.
+
+```tsx
+import { useRef, useState } from "react"
+import { Switch } from "@techsio/ui-kit/molecules/switch"
+
+function Notifications() {
+  const input = useRef<HTMLInputElement>(null)
+  const [enabled, setEnabled] = useState(false)
+  return <Switch ref={input} name="notifications" checked={enabled}
+    onCheckedChange={setEnabled} inputProps={{ form: "preferences" }}>
+    Enable notifications
+  </Switch>
+}
+```
+
+Uncontrolled reset restores its initial default only after native/React reset
+cancellation has settled. Canceled resets do not change the value or emit a
+value callback. The actual native input owner is followed through external-form
+ID changes and reparenting; listeners/pending work are disposed on unmount.
+Controlled `checked` remains parent-owned even when a proposal is rejected;
+applications must explicitly update it when they want a reset. Do not reset by
+activating the input or moving focus. Native nested-fieldset disabling and
+first-legend exceptions apply; read-only is still focusable and submitted.
+Object refs and React 19 callback-ref cleanup are supported.
 
 ## Common Mistakes
 
@@ -140,3 +201,14 @@ rg -n "<Checkbox[\\s\\S]{0,120}(Enable|Disable|notifications|toggle)" apps -U
 rg -n "<Switch[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
 
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.

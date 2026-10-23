@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Image or a
   framework image adapter such as NextImage through the Image atom's as prop.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -64,7 +64,7 @@ where actions and feedback live). This section applies them to `Image`.
 import NextImage from "next/image"
 import { Image } from "@techsio/ui-kit/atoms/image"
 
-<Image as={NextImage} src="/product.jpg" alt="Ceramic bowl" size="full" />
+<Image as={NextImage} src="/product.jpg" alt="Ceramic bowl" width={960} height={640} size="full" />
 ```
 
 Supported props:
@@ -86,6 +86,8 @@ size: sm | md | lg | full | custom
   src={product.image}
   alt={product.title}
   size="full"
+  width={960}
+  height={640}
 />
 ```
 
@@ -100,6 +102,26 @@ provide image behavior when available.
 
 Use `size="custom"` only when layout constraints must come from the parent or
 component token overrides.
+
+### Aspect, fit, and shape
+
+Image renders as a block, stays within its container, and uses `object-cover`
+by default so fixed square slots crop rather than stretch. `full` keeps the
+source aspect ratio unless the consumer deliberately constrains the slot.
+Use `size="custom"` with token utilities when the layout owns the aspect ratio:
+
+```tsx
+<Image src={product.image} alt={product.title} size="custom"
+  className="w-full aspect-video rounded-lg object-contain" />
+```
+
+Use `object-cover` for an immersive crop and `object-contain` when the complete
+product must remain visible. `rounded-none`, `rounded-lg`, and `rounded-full`
+control shape. Width/height reserve intrinsic space and are forwarded through
+`as`; framework adapters must forward `className`, `src`, `alt`, and sizing props.
+NextImage also requires its own width/height or fill contract; the UI-kit size
+prop alone does not satisfy it. The Storybook adapter is a dependency-free
+stand-in, not a claim that Next.js optimization runs in Storybook.
 
 ### Keep alt text meaningful
 
@@ -185,3 +207,44 @@ rg -P -n "<Image(?![^>]*alt=)" apps
 rg -P -n "<Image(?![^>]*as=\\{?NextImage)" apps
 rg -n "from \"next/image\"|from '@techsio/ui-kit/atoms/image'" apps
 ```
+
+## Opt-in resilient media
+
+`Image` remains an unwrapped native/adapter primitive. Use `ImageWithFallback`
+from the same `@techsio/ui-kit/atoms/image` subpath for a reusable neutral media
+box with missing-source and failed-request handling. It keeps the actual image
+mounted (and its ref pointing to that image), hides broken-image paint, and
+shows one decorative missing-image glyph. Meaning comes from the original alt,
+not clipped text in a small thumbnail. `fallbackLabel` can supply a complete
+localized accessible description such as "Ceramic bowl — photo unavailable";
+`alt=""` keeps the fallback decorative. Positive numeric `width` and `height`
+reserve the media box before an adapter supplies its source, including inside
+shrink-to-fit layouts. An inert, accessibility-hidden SVG supplies intrinsic
+sizing, not image content; the actual image remains mounted over it. The box
+uses the supplied dimensions' aspect ratio by default; an `aspect-*` class can
+override it without changing the reserved width. Fixed sm/md/lg slots stay
+square. With dimensions omitted (for example, a fill adapter), the parent must
+provide a definite width and height or aspect ratio. The extra relative span is
+opt-in, never silently added by Image.
+
+```tsx
+import { ImageWithFallback } from "@techsio/ui-kit/atoms/image"
+
+<ImageWithFallback src={product.image ?? ""} alt={product.title}
+  fallbackLabel={`${product.title} — photo unavailable`}
+  width={960} height={640} className="aspect-video" />
+```
+
+`as={NextImage}` (or another adapter) must forward native image `onLoad` and
+`onError` events, className, alt, and dimensions/fill to the real image. Both
+consumer event callbacks still run. A source/srcSet change remounts the request
+state, clearing prior failures without retry loops or remote fallback URLs.
+The adapter's own ref type is preserved; the wrapper does not manufacture ref
+support for ref-less adapters. The media box owns fallback paint; the consumer
+owns application error reporting and retries.
+
+Commerce adapters must use this same composition for **every** entry point:
+`ProductCard.Image as`, Gallery full media, `thumbnailImageAs` and per-thumbnail
+`imageAs`. For thumbnails, keep the button's descriptive accessible name and
+use a decorative `alt=""` fallback rather than long visible text. Do not bypass
+the resilient composition by passing a bare framework image component.

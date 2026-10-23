@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Checkbox atom, including invalid and indeterminate states,
   while preferring form molecules for labeled form rows.
 metadata:
-  component_version: "1.0.3"
+  component_version: "1.2.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -64,7 +64,7 @@ where actions and feedback live). This section applies them to `Checkbox`.
 ```tsx
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 
-<Checkbox name="acceptTerms" required />
+<Checkbox name="selectedProducts" value="TS-2048" aria-label="Select Alpine daypack" />
 ```
 
 Supported component-specific props:
@@ -78,6 +78,22 @@ The component also accepts native checkbox input attributes.
 
 ## Core Patterns
 
+### Canonical sizing
+
+`size="sm" | "md" | "lg"` uses the same box dimensions as FormCheckbox, with
+`md` as the default. The default is now 24px rather than the legacy 16px atom;
+use `sm` explicitly for dense table/list selection (18px). Numeric native
+`size` is not supported. Both checkmarks and mixed dashes scale with the box.
+
+
+### Native read-only behavior
+
+`readOnly` preserves the native checkbox focus target and submitted value while
+blocking pointer and Space toggles. It exposes `aria-readonly` and a neutral,
+full-contrast value surface. Disabled takes precedence. Use FormCheckbox for
+automatically associated inline help and validation.
+
+
 ### Border width tokens
 
 `--border-width-checkbox` controls the normal border, including checked,
@@ -88,10 +104,12 @@ consumer's scope; do not add descendant border rules.
 ### Prefer FormCheckbox for labeled rows
 
 ```tsx
+import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
+
 <FormCheckbox
   name="newsletter"
   label="Send me product updates"
-  helperText="You can unsubscribe anytime."
+  helpText="You can unsubscribe anytime."
 />
 ```
 
@@ -101,7 +119,7 @@ Do not manually recreate label/help/error layout when the molecule exists.
 
 ```tsx
 <Checkbox
-  checked={someSelected}
+  checked={allSelected}
   indeterminate={someSelected && !allSelected}
   aria-label="Select all visible rows"
 />
@@ -115,7 +133,22 @@ Do not manually recreate label/help/error layout when the molecule exists.
 <Checkbox invalid aria-describedby="terms-error" />
 ```
 
-`invalid` maps to `aria-invalid` and `data-invalid`.
+`invalid` maps to `aria-invalid` and `data-invalid`. Associate a visible error
+with `aria-describedby`; a red border alone does not explain the problem.
+
+### Controlled and uncontrolled selection
+
+Use `checked` plus `onChange` for controlled selection, or `defaultChecked` for
+an uncontrolled initial value. Do not supply both. For select-all, compute
+`checked={allSelected}` and `indeterminate={someSelected && !allSelected}`;
+Space or click selects the whole partially selected group. Disabled mixed
+controls use the same disabled surface and icon treatment as disabled checked
+controls. Mixed selection is a horizontal dash, not a dot or checkmark, even
+when the native checked value is also true. The visual mixed state does not
+change the native checked value or form submission semantics. Corners remain
+squarish even when a theme's general small radius would make a small control
+circular; override `--radius-checkbox-control` for an intentional scoped shape.
+Explain why unavailable controls cannot be changed.
 
 ## Common Mistakes
 
@@ -188,6 +221,10 @@ Correct:
 
 or use `FormCheckbox` with a visible label.
 
+## State consistency
+
+Read-only controls do not invoke `onChange` or mutation click handlers. Controlled application state stays unchanged after both pointer/Space activation and unrelated parent rerenders; parents may still intentionally replace the controlled value.
+
 ## Validation Commands
 
 ```sh
@@ -196,3 +233,14 @@ rg -n "<Checkbox[^>]*className=.*(accent-|bg-|border-|text-)" apps
 rg -U -n "<label[^>]*>\\s*<Checkbox|<Checkbox[\\s\\S]*</label>" apps
 rg -P -n "<Checkbox(?![^>]*(aria-label|aria-labelledby|id=))" apps
 ```
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.

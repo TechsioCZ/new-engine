@@ -578,10 +578,19 @@ export function getColumnSizeStyles<T extends RowData>(
     columnSizing !== undefined &&
     Object.hasOwn(columnSizing, column.id)
   const fromTanstack = wasResized || typeof declared === "number"
+  const declaredMinimum = toCssLength(meta?.minWidth)
+  const width = toCssLength(fromTanstack ? column.getSize() : declared)
+  const minWidth =
+    width && declaredMinimum
+      ? `max(${width}, ${declaredMinimum})`
+      : (width ?? declaredMinimum)
 
   return {
-    width: toCssLength(fromTanstack ? column.getSize() : declared),
-    minWidth: toCssLength(meta?.minWidth),
+    width,
+    // Keep declared and resized widths readable in narrow auto-layout tables.
+    // Fixed layout also budgets these minima on the table itself, because
+    // native fixed-layout cells do not enforce their own min-width.
+    minWidth,
     maxWidth: toCssLength(meta?.maxWidth),
   }
 }
@@ -590,8 +599,9 @@ export function getColumnSizeStyles<T extends RowData>(
 
 /**
  * Sticky-positioning styles for a pinned (frozen) column. Applied inline
- * because the offsets are data-driven (`getStart`/`getAfter`). The visual
- * treatment (shadow at the frozen edge) is done via `data-pinned` + tokens.
+ * because the offsets are data-driven (`getStart`/`getAfter`). DataTable
+ * replaces these fallback offsets with measured leaf widths and reserves its
+ * actions width. Edge treatment uses `data-pinned` and component tokens.
  */
 /**
  * Stacking order for sticky cells. A pinned header cell must beat both the
@@ -600,16 +610,8 @@ export function getColumnSizeStyles<T extends RowData>(
  */
 export const DATA_TABLE_Z = {
   pinnedCell: 1,
-  /**
-   * The sticky actions cell sits one level above pinned body cells. Both
-   * freeze at the trailing edge (`getAfter("end")` is 0 for the last
-   * end-pinned column, and the actions cell is `inset-e-0`), and the actions
-   * column is not part of TanStack's column model so `getAfter` cannot
-   * account for its width. At equal z-index the winner came down to DOM
-   * order; this at least makes the actions cell deterministically on top.
-   * The overlap itself is a known limitation — see the dev warning in
-   * DataTable for the `enableColumnPinning` + `stickyActions` combination.
-   */
+  /** Above pinned body cells; DataTable reserves measured actions width in
+   * end-pinned offsets so the two frozen surfaces never share an inset. */
   stickyActionsCell: 2,
   /**
    * Any sticky header-area cell that is not pinned — notably the filter row,

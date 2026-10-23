@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { expect, within } from "storybook/test"
-import type { ComponentPropsWithoutRef } from "react"
+import { expect, userEvent, within } from "storybook/test"
+import {
+  type ComponentPropsWithoutRef,
+  type ElementType,
+  useEffect,
+  useState,
+} from "react"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import {
   Pagination,
@@ -15,10 +20,32 @@ const getStoryPageUrl = ({
   pageSize: number
 }) => `#products?page=${page}&pageSize=${pageSize}`
 
-type StoryPaginationProps = Omit<PaginationProps, "getPageUrl">
+type StoryPaginationProps = Omit<PaginationProps<ElementType>, "getPageUrl">
 
-function StoryPagination(props: StoryPaginationProps) {
-  return <Pagination {...props} getPageUrl={getStoryPageUrl} />
+function StoryPagination({
+  page: controlledPage,
+  onPageChange,
+  ...props
+}: StoryPaginationProps) {
+  const [page, setPage] = useState(controlledPage ?? props.defaultPage ?? 1)
+  useEffect(() => {
+    setPage(controlledPage ?? props.defaultPage ?? 1)
+  }, [controlledPage, props.defaultPage])
+  return (
+    <Pagination
+      {...props}
+      page={page}
+      getPageUrl={getStoryPageUrl}
+      onPageChange={(next) => {
+        setPage(next)
+        onPageChange?.(next)
+      }}
+      onClick={(event) => {
+        event.preventDefault()
+        props.onClick?.(event)
+      }}
+    />
+  )
 }
 
 type StoryLinkProps = ComponentPropsWithoutRef<"a"> & {
@@ -29,13 +56,48 @@ function StoryLink({ replace, ...props }: StoryLinkProps) {
   return <a data-replace={replace ? "true" : undefined} {...props} />
 }
 
+const playgroundSource = `import { useState } from "react"
+import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+
+export function ProductPages() {
+  const [page, setPage] = useState(5)
+  return (
+    <Pagination
+      aria-label="Product pages"
+      count={100}
+      pageSize={10}
+      page={page}
+      onPageChange={setPage}
+      getPageUrl={({ page, pageSize }) =>
+        \`#products?page=\${page}&pageSize=\${pageSize}\`
+      }
+      variant="filled"
+      size="md"
+      onClick={(event) => event.preventDefault()}
+    />
+  )
+}`
+
 const meta: Meta<typeof Pagination> = {
   title: "Molecules/Pagination",
   component: Pagination,
   parameters: {
+    docs: {
+      description: {
+        component:
+          "A navigation landmark for moving through a paged collection with real destination URLs. Use it for long result sets; use Tabs for peer content panels or Steps for a sequential workflow. Unavailable destinations are non-interactive link placeholders; demos suppress real navigation.",
+      },
+    },
     layout: "centered",
   },
   tags: ["autodocs"],
+  decorators: [
+    (Story) => (
+      <div onClick={(event) => event.preventDefault()} role="presentation">
+        <Story />
+      </div>
+    ),
+  ],
   argTypes: {
     page: {
       control: { type: "number", min: 1 },
@@ -47,7 +109,7 @@ const meta: Meta<typeof Pagination> = {
       defaultValue: 1,
     },
     count: {
-      control: { type: "number", min: 1 },
+      control: { type: "number", min: 0 },
       description: "Total number of items",
       defaultValue: 100,
     },
@@ -86,6 +148,8 @@ const meta: Meta<typeof Pagination> = {
       description: "Visual style variant",
       defaultValue: "filled",
     },
+    size: { control: "select", options: ["sm", "md", "lg"] },
+    compact: { control: "boolean" },
     showPrevNext: {
       control: "boolean",
       description: "Show previous/next page buttons",
@@ -106,150 +170,38 @@ const meta: Meta<typeof Pagination> = {
 export default meta
 type Story = StoryObj<typeof Pagination>
 
-export const Default: Story = {}
-
-export const Sizes: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Small (sm)">
-        <div className="space-y-300">
-          <StoryPagination
-            aria-label="Pagination, Small (sm) 1"
-            count={100}
-            defaultPage={5}
-            pageSize={10}
-            size="sm"
-          />
-          <StoryPagination
-            aria-label="Pagination, Small (sm) 2"
-            count={100}
-            defaultPage={5}
-            pageSize={10}
-            size="sm"
-            variant="outlined"
-          />
-          <StoryPagination
-            aria-label="Pagination, Small (sm) 3"
-            count={100}
-            defaultPage={5}
-            pageSize={10}
-            size="sm"
-            variant="minimal"
-          />
-        </div>
-      </VariantGroup>
-
-      <VariantGroup title="Medium (md)">
-        <div className="space-y-300">
-          <StoryPagination
-            aria-label="Pagination, Medium (md) 1"
-            count={100}
-            defaultPage={5}
-            pageSize={10}
-            size="md"
-          />
-          <StoryPagination
-            aria-label="Pagination, Medium (md) 2"
-            count={100}
-            defaultPage={5}
-            pageSize={10}
-            size="md"
-            variant="outlined"
-          />
-          <StoryPagination
-            aria-label="Pagination, Medium (md) 3"
-            count={100}
-            defaultPage={5}
-            pageSize={10}
-            size="md"
-            variant="minimal"
-          />
-        </div>
-      </VariantGroup>
-
-      <VariantGroup title="Large (lg)">
-        <div className="space-y-300">
-          <StoryPagination
-            aria-label="Pagination, Large (lg) 1"
-            count={100}
-            defaultPage={5}
-            pageSize={10}
-            size="lg"
-          />
-          <StoryPagination
-            aria-label="Pagination, Large (lg) 2"
-            count={100}
-            defaultPage={5}
-            pageSize={10}
-            size="lg"
-            variant="outlined"
-          />
-          <StoryPagination
-            aria-label="Pagination, Large (lg) 3"
-            count={100}
-            defaultPage={5}
-            pageSize={10}
-            size="lg"
-            variant="minimal"
-          />
-        </div>
-      </VariantGroup>
-    </VariantContainer>
-  ),
-}
-
-export const CompactMode: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Regular vs Compact">
-        <div className="space-y-300">
-          <StoryPagination
-            aria-label="Pagination, Regular vs Compact 1"
-            count={250}
-            defaultPage={5}
-            pageSize={10}
-          />
-          <StoryPagination
-            aria-label="Pagination, Regular vs Compact 2"
-            compact
-            count={250}
-            defaultPage={5}
-            pageSize={10}
-          />
-        </div>
-      </VariantGroup>
-
-      <VariantGroup title="Compact with sizes">
-        <StoryPagination
-          aria-label="Pagination, Compact with sizes 1"
-          compact
-          count={200}
-          defaultPage={12}
-          pageSize={10}
-          size="sm"
-        />
-        <StoryPagination
-          aria-label="Pagination, Compact with sizes 2"
-          compact
-          count={200}
-          defaultPage={12}
-          pageSize={10}
-          size="md"
-        />
-        <StoryPagination
-          aria-label="Pagination, Compact with sizes 3"
-          compact
-          count={200}
-          defaultPage={12}
-          pageSize={10}
-          size="lg"
-        />
-      </VariantGroup>
-    </VariantContainer>
-  ),
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      source: { code: playgroundSource, language: "tsx", type: "code" },
+      description: {
+        story:
+          "Change paging controls and click page 6 to update the current page without navigating away.",
+      },
+    },
+  },
+  render: (args) => <StoryPagination {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const before = canvasElement.ownerDocument.location.href
+    await userEvent.click(canvas.getByRole("link", { name: /^page 6$/ }))
+    await expect(
+      canvas.getByRole("link", { name: /^page 6$/ })
+    ).toHaveAttribute("aria-current", "page")
+    await expect(canvasElement.ownerDocument.location.href).toBe(before)
+  },
 }
 
 export const StyleVariants: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Filled, outlined and minimal navigation styles preserve the same destinations and current-page semantics.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Filled">
@@ -284,7 +236,102 @@ export const StyleVariants: Story = {
   ),
 }
 
+export const Sizes: Story = {
+  play: async ({ canvasElement }) => {
+    for (const nav of within(canvasElement).getAllByRole("navigation")) {
+      const page = nav.querySelector('[data-part="item"]')
+      const next = nav.querySelector('[data-part="next-trigger"]')
+      if (!(page && next)) throw new Error("Missing pagination controls")
+      await expect(getComputedStyle(page).fontSize).toBe(getComputedStyle(next).fontSize)
+    }
+  },
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "The same five-page collection uses Small (sm), Medium (md) and Large (lg) shared control heights and interactive typography.",
+      },
+    },
+  },
+  render: () => (
+    <VariantContainer>
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <VariantGroup
+          key={size}
+          title={
+            { sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]
+          }
+        >
+          <StoryPagination
+            aria-label={`Project pages, ${size}`}
+            count={50}
+            defaultPage={3}
+            pageSize={10}
+            size={size}
+          />
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+}
+
+export const Default: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "A locally controlled results pager starts on page 5 and follows selected destinations.",
+      },
+    },
+  },
+  render: (args) => <StoryPagination {...args} />,
+}
+
+export const CompactMode: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compact paging shows the current page and total when a full page strip would be too wide.",
+      },
+    },
+  },
+  render: () => (
+    <VariantContainer>
+      <VariantGroup title="Regular vs Compact">
+        <div className="space-y-300">
+          <StoryPagination
+            aria-label="Pagination, Regular vs Compact 1"
+            count={250}
+            defaultPage={5}
+            pageSize={10}
+          />
+          <StoryPagination
+            aria-label="Pagination, Regular vs Compact 2"
+            compact
+            count={250}
+            defaultPage={5}
+            pageSize={10}
+          />
+        </div>
+      </VariantGroup>
+    </VariantContainer>
+  ),
+}
+
 export const EdgeCases: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Very short and long collections keep unavailable destinations non-interactive and meaningfully named.",
+      },
+    },
+  },
   tags: ["ui-semantic-regression"],
   render: () => (
     <VariantContainer>
@@ -333,8 +380,8 @@ export const EdgeCases: Story = {
     </VariantContainer>
   ),
   play: async ({ canvasElement }) => {
-    const disabledLinks = canvasElement.querySelectorAll<HTMLAnchorElement>(
-      'a[aria-disabled="true"]'
+    const disabledLinks = canvasElement.querySelectorAll<HTMLElement>(
+      '[role="link"][aria-disabled="true"]'
     )
     await expect(disabledLinks.length).toBeGreaterThan(0)
     const pageUrl = canvasElement.ownerDocument.location.href
@@ -373,6 +420,15 @@ export const EdgeCases: Story = {
 }
 
 export const CustomLinkComponent: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "A routing adapter receives destination URLs while Pagination retains disabled and current-page semantics.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Custom polymorphic link">
@@ -398,6 +454,15 @@ export const CustomLinkComponent: Story = {
 }
 
 export const RealWorldScenarios: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compare collection counts and page ranges in realistic results-navigation scenarios.",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Table navigation">
@@ -407,7 +472,9 @@ export const RealWorldScenarios: Story = {
               Table content area
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-fg-secondary text-sm">20 items per page</span>
+              <span className="text-fg-secondary text-sm">
+                20 items per page
+              </span>
               <StoryPagination
                 aria-label="Pagination, Table navigation 1"
                 count={456}

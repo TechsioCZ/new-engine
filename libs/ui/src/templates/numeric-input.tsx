@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit template.
  *
  * @component NumericInput
- * @componentVersion v1.1.3
+ * @componentVersion v1.3.5
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,6 +12,11 @@
 import type { Ref } from "react"
 import type { IconType } from "../atoms/icon"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
+import { tv } from "../utils"
+
+const numericInputTemplateVariants = tv({
+  base: "flex min-w-0 items-center gap-numeric-input-md",
+})
 
 export type NumericInputTemplateProps = Omit<
   NumericInputProps,
@@ -66,7 +71,7 @@ export function NumericInputTemplate({
   // Layout for controls on the sides
   return (
     <NumericInput {...numericInputProps} className={className} ref={ref}>
-      <div className="flex items-center gap-50">
+      <div className={numericInputTemplateVariants()}>
         {showControls && <NumericInput.DecrementTrigger icon={decrementIcon} />}
         <NumericInput.Control className="flex-1">
           {showScrubber && <NumericInput.Scrubber />}

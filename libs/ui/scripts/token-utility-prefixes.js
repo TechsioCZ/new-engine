@@ -67,7 +67,7 @@ export const SINGLE_PREFIX_NAMESPACES = {
   radius: ["rounded"],
   shadow: ["shadow"],
   opacity: ["opacity"],
-  border: ["border"],
+  "border-width": ["border"],
 }
 
 /** @param {string[]} prefixes */

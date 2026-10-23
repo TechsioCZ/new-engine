@@ -246,15 +246,15 @@
 }
 
 @utility drawer-backdrop-layer {
-  z-index: calc(var(--z-drawer-layer) + var(--layer-index, 0) - 1);
+  z-index: calc(var(--z-drawer-layer) + var(--layer-index, 0) * 2 - 1);
 }
 
 @utility drawer-positioner-layer {
-  z-index: calc(var(--z-drawer-layer) + var(--layer-index, 0));
+  z-index: calc(var(--z-drawer-layer) + var(--layer-index, 0) * 2);
 }
 
 @utility drawer-content-layer {
-  z-index: calc(var(--z-drawer-layer) + var(--layer-index, 0));
+  z-index: calc(var(--z-drawer-layer) + var(--layer-index, 0) * 2);
 }
 
 @utility drawer-swipe-area-layer {
@@ -366,4 +366,40 @@
   @media (prefers-reduced-motion: reduce) {
     transition-duration: 0s;
   }
+}
+
+/* Keep machine measurements tied to the full panel; only the inner flex
+ * viewport shrinks to the visible detent. Header/footer stay reachable while
+ * Body owns scrolling, including during a drag between snap points. */
+@utility drawer-visible-viewport {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+
+  [data-swipe-direction="down"] > & {
+    margin-bottom: max(0px, var(--drawer-translate-y, 0px));
+  }
+
+  [data-swipe-direction="up"] > & {
+    margin-top: max(0px, calc(-1 * var(--drawer-translate-y, 0px)));
+  }
+
+  [data-swipe-direction="right"] > & {
+    margin-right: max(0px, var(--drawer-translate-x, 0px));
+  }
+
+  [data-swipe-direction="left"] > & {
+    margin-left: max(0px, calc(-1 * var(--drawer-translate-x, 0px)));
+  }
+}
+
+@utility drawer-visible-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-drawer-content-bg);
+  z-index: 1;
 }

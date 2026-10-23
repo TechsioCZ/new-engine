@@ -5,13 +5,18 @@ description: >
   Zag keyboard registrations with @techsio/ui-kit Hotkeys. Covers compound
   keycaps, current callbacks, store ownership, scopes and optional registry readback.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/hotkeys.ts libs/ui/src/atoms/hotkeys.tsx libs/ui/src/tokens/components/atoms/_hotkeys.css libs/ui/stories/atoms/hotkeys.stories.tsx libs/ui/test/hotkeys.spec.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/hotkeys.ts libs/ui/src/atoms/hotkeys.tsx libs/ui/src/tokens/components/atoms/_hotkeys.css libs/ui/stories/atoms/hotkeys.stories.tsx libs/ui/test/hotkeys.spec.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Hotkeys Usage
 
@@ -66,7 +71,7 @@ import { Hotkeys } from "@techsio/ui-kit/atoms/hotkeys"
 The automatic form renders one native Zag-formatted keycap; it does not split
 formatted labels into another shortcut grammar. Explicit children take
 precedence. Root, Key and Separator forward their native attributes and refs.
-Separator defaults to a decorative plus sign. There are no size/theme variants.
+Separator defaults to a decorative plus sign. The root supports sm/md/lg display sizes; there are no theme variants.
 
 `formatOptions` accepts native Zag formatter options such as
 `{ platform: "mac" }`, `style`, `separator` and `sequenceSeparator`.
@@ -212,3 +217,18 @@ twice and its registrations/subscriptions survive:
 pnpm.cmd -C libs/ui exec cross-env NODE_ENV=development storybook build
 pnpm.cmd -C libs/ui test:components hotkeys.spec.ts --project=desktop --grep "development StrictMode"
 ```
+
+## Display sizing
+
+`size="sm" | "md" | "lg"` scales keycap typography; default md. These are
+non-interactive display sizes, not button hit areas. Compound Key parts inherit
+the root typography. Formatting or changing size does not register a shortcut.
+
+## Docs and multiple mounted examples
+
+Independently mounted demos must not all listen globally. Give each command a
+stable focus target through `options.target` and instruct the user to focus a
+control in that example first. Duplicate Docs canvases then cannot both react
+to one key press. Suspend an example's commands with `enabled: !open` while its
+modal owns focus. Dialog itself supplies no implicit shortcut priority; scope
+names on independent stores do not create exclusivity.

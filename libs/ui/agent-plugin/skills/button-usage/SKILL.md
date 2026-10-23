@@ -9,10 +9,15 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "Button"
-  component_version: "0.4.0"
+  component_version: "0.6.1"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/atoms/button.tsx libs/ui/src/tokens/components/atoms/_button.css libs/ui/stories/atoms/button.stories.tsx libs/ui/src/atoms/button.figma.ts"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/button.tsx libs/ui/src/tokens/components/atoms/_button.css libs/ui/stories/atoms/button.stories.tsx libs/ui/src/atoms/button.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Button Usage
 
@@ -137,7 +142,7 @@ change app token overrides first.
 ### Use loading props instead of custom disabling
 
 ```tsx
-<Button isLoading loadingText="Saving" disabled={isSaving}>
+<Button isLoading={isSaving} loadingText="Saving…">
   Save
 </Button>
 ```
@@ -229,3 +234,32 @@ rg -n "<Button[^>]*onClick=.*router\\.push" apps
 rg -n "isLoading|loadingText" apps
 ```
 
+## Shared action contracts
+
+Canonical sizes are `sm`, `md` (default), and `lg`; `current` is only an embedded
+composition escape hatch. Icons inherit the button text size unless `iconSize`
+is supplied. Buttons default to `type="button"`; use `type="submit"` explicitly
+for a form submission. Loading sets `aria-busy` and prevents repeat activation.
+Borderless hover/pressed states use readable neutral text on their interaction
+surface; warning labels do not depend on colour alone.
+
+## Pending actions and composition
+
+`isLoading` retains keyboard focus and the normal tab stop, exposes `aria-busy`
+and `aria-disabled`, and blocks repeat clicks plus native submit/reset defaults.
+Reserve `disabled` for genuinely unavailable actions; do not set it just because
+an action is pending. On a form, start the pending work in `onSubmit`, prevent
+navigation there, and guard the application request too. The pending submitter
+also blocks implicit Enter and `requestSubmit()` for that submitter (or without
+one), without disabling unrelated submit actions. Focus is never restored over
+an intentional move to another control after completion.
+
+Text-bearing buttons use canonical minimum heights and grow when labels wrap.
+Keep enough inline space for localized text; icon-only actions use ActionIcon.
+Internal kit compositions may set `composition` to omit Button-only font weight
+and press scaling, while retaining focus/disabled behavior; the owning component
+must then supply its own typography. `theme="unstyled"` alone retains the
+existing Button typography/press contract for compatibility.
+
+Consumer refs remain attached across ordinary Button rerenders; callback-ref
+cleanup is not triggered merely by a loading or label update.

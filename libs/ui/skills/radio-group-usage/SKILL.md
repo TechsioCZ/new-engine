@@ -6,7 +6,7 @@ description: >
   hidden inputs, controls, text, descriptions, validation status, variants, and
   sizes.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -88,6 +88,36 @@ value/defaultValue, disabled, required, readOnly, onValueChange
 
 ## Core Patterns
 
+### Native ownership and changing choices
+
+Controlled proposals leave every native radio synchronized with the accepted
+value, including rejected pointer/Space/arrow interaction and external clearing.
+`form` is honored for reset ownership, including an external form or an explicit
+owner overriding an ancestor form. Uncontrolled reset restores the initial
+`defaultValue` (or no selection); canceled resets do nothing. Controlled reset
+silently preserves and re-syncs the latest parent value.
+
+Removing or disabling the focused option moves focus to the next enabled
+survivor, or the previous survivor if no next option remains. Background updates
+do not steal focus and focus recovery does not change selection. If no enabled
+options remain, focus falls back to the named radiogroup; keep its Label mounted
+and explain the unavailable/empty choices nearby.
+
+
+### Associated feedback and read-only groups
+
+Every mounted `ItemDescription` and `StatusText` has a unique ID and registers
+with its item or group. Each native input merges these IDs and caller/root
+`aria-describedby`; error messages also populate `aria-errormessage` and invalid
+state. Multiple messages and conditional unmounts are supported.
+`readOnly` keeps native inputs enabled for focus and submission while preventing
+pointer, Space and arrow-key selection. Disabled takes priority. Read-only
+controls use the shared neutral surface, not disabled styling. Validation status
+icons remain present. Solid indicator and border colors use the same on-primary
+pairing as solid option text, including the hover surface; do not substitute a
+fixed white foreground. Sizes remain `sm`, `md`, `lg` with `md` as default.
+
+
 ### Use item group for options
 
 Keep options inside `RadioGroup.ItemGroup` and each item as a label with
@@ -100,6 +130,47 @@ Use `RadioGroup.ItemDescription`, not loose paragraphs.
 ### Use value strings
 
 Radio values are strings; map domain IDs to strings consistently.
+
+## Focus refs and cancellation-safe native forms
+
+The root `ref` is a container ref. Focus an option with
+`RadioGroup.ItemHiddenInput ref?: Ref<HTMLInputElement>` — despite the part's
+name, this is the native focusable radio, not a `type="hidden"` submission
+proxy. Its `onFocus`, `onBlur` and keyboard observers compose with machine
+handlers; consumer cancellation is respected. Keep `RadioGroup.ItemHiddenInput`
+inside every item and preserve the normal radio tab/arrow-key pattern.
+
+```tsx
+import { useRef, useState } from "react"
+import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
+
+function DeliveryChoice() {
+  const firstOption = useRef<HTMLInputElement>(null)
+  const [value, setValue] = useState<string | null>("standard")
+  return <RadioGroup name="delivery" value={value} onValueChange={setValue}>
+    <RadioGroup.Label>Delivery</RadioGroup.Label>
+    <RadioGroup.ItemGroup>
+      <RadioGroup.Item value="standard">
+        <RadioGroup.ItemHiddenInput ref={firstOption} />
+        <RadioGroup.ItemControl />
+        <RadioGroup.ItemText>Standard delivery</RadioGroup.ItemText>
+      </RadioGroup.Item>
+    </RadioGroup.ItemGroup>
+  </RadioGroup>
+}
+```
+
+Native owner reset follows the radio's actual form association, including
+external-owner ID changes/reassociation. Canceling native or React `onReset`
+preserves the current choice; accepted uncontrolled reset restores the initial
+default after cancellation has settled. Controlled `value` stays parent-owned,
+including when a proposal is rejected; app-owned reset explicitly updates that
+state. Reset does not synthesize input activation or move focus. Nested native
+disabled fieldsets and their first-legend exceptions apply; read-only remains
+focusable and submitted. Object refs and React 19 callback cleanup are supported.
+If an actively focused option is removed/disabled, recovery chooses a surviving
+enabled focus target without changing selection; updates never steal outside
+focus.
 
 ## Common Mistakes
 
@@ -158,3 +229,14 @@ rg -U -P -n "<input[^>]*type=\"radio\"|<RadioGroup\\.Item(?![\\s\\S]{0,300}<Radi
 rg -n "<RadioGroup[^>]*variant=\"(primary|outlined)\"|<RadioGroup[^>]*className=.*(border-|bg-|text-)" apps
 rg -n "<RadioGroup[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Silent native form reset
+
+Native reset calls no value-change callbacks and dispatches no native `input`
+or `change` events, in controlled or uncontrolled usage. Uncontrolled controls
+silently restore their default; controlled controls
+keep the latest parent value and re-sync visible/accessibility/native submission
+state to it. Handle the form's `onReset` to intentionally change parent state.
+Canceled resets leave every channel unchanged. Reset does not synthesize events
+or move focus; the first real user edit afterward emits exactly one normal
+callback, including when the same value was entered before reset.

@@ -2,15 +2,19 @@
 name: action-icon-usage
 description: >
   Use when an app needs the @techsio/ui-kit ActionIcon atom — an icon-only,
-  square action button (toolbar/inline actions). Covers variant, size, disabled
+  square action button (toolbar/inline actions). Covers tone, size, disabled
   state, accessible labelling, and token-first styling.
 metadata:
   type: "core"
   library: "@techsio/ui-kit"
   component: "ActionIcon"
-  component_version: "1.1.0"
+  component_version: "1.1.2"
   requires: "ux-guidelines"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # ActionIcon usage
 
@@ -69,4 +73,26 @@ name explicitly: `aria-label={triggerProps["aria-label"] ?? "Next slide"}`.
 ## Styling
 
 Use the component's own token classes; do not reach for semantic tokens or arbitrary Tailwind
-values in app code. Size and variant are props, not ad-hoc classes.
+values in app code. Size and tone are props, not ad-hoc classes.
+
+## Interaction and sizing contract
+
+Sizes sm/md/lg use the shared **icon-control hit area**, not the full boxed-field
+height: they are supporting actions embedded in fields and toolbars. Default md;
+prefer lg for standalone touch actions. Disabled actions do not take hover or
+pressed treatments and are removed from keyboard tab order. Every instance must
+have `aria-label` or `aria-labelledby`; a glyph alone is not a name.
+
+## Supported tone
+
+`tone="neutral" | "danger"`, default `neutral`. Use `danger` for a destructive
+supporting action, not a nonexistent `variant` prop. Sizes are `sm | md | lg`.
+
+```tsx
+import { ActionIcon } from "@techsio/ui-kit/atoms/action-icon"
+
+<ActionIcon icon="token-icon-trash" tone="danger" aria-label="Delete product" />
+```
+
+The pressed danger foreground/background are an explicit paired set of
+`--color-action-icon-{bg,fg}-danger-active` aliases; override both together.

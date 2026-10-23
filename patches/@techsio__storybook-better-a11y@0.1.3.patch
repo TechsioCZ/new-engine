@@ -1,0 +1,23 @@
+diff --git a/dist/699.js b/dist/699.js
+index 145005ef4a5a13e14d511edb8885e6dd224b54dd..c5efd8871f9db498d6b141479476fcf60a802cda 100644
+--- a/dist/699.js
++++ b/dist/699.js
+@@ -799,15 +799,13 @@ async function runAPCACheck(context = apcaChecker_document, options = DEFAULT_AP
+     };
+ }
+ function getSelector(element) {
+-    if (element.id) return `#${element.id}`;
++    if (element.id) return `#${CSS.escape(element.id)}`;
+     const path = [];
+     let current = element;
+     while(current && current !== apcaChecker_document.body){
+         let selector = current.tagName.toLowerCase();
+-        if (current.className) {
+-            const classes = current.className.split(' ').filter(Boolean);
+-            if (classes.length > 0) selector += `.${classes[0]}`;
+-        }
++        const firstClass = current.classList.item(0);
++        if (firstClass) selector += `.${CSS.escape(firstClass)}`;
+         const parent = current.parentElement;
+         if (parent) {
+             const siblings = Array.from(parent.children);

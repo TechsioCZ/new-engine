@@ -6,9 +6,44 @@
  */
 
 @theme static {
+  --color-radio-card-unselected: var(--color-fg-secondary);
+  --color-radio-card-indicator-border-base: var(--color-radio-card-unselected);
+  --color-radio-card-indicator-border-on-selected: var(
+    --color-radio-card-on-primary
+  );
+  --color-radio-card-choice: var(--color-fg-primary);
+  --color-radio-card-on-primary: var(--color-fg-on-primary-solid);
+  --color-radio-card-selected: var(--color-bg-primary-base);
+  --color-radio-card-fg-choice-selected: var(--color-radio-card-choice);
+  --color-radio-card-fg-on-selected: var(--color-radio-card-on-primary);
+  --color-radio-card-indicator-bg-selected: var(--color-radio-card-selected);
+  --color-radio-card-indicator-border-selected: var(--color-radio-card-choice);
   --color-radio-card-item-bg-outline-checked: var(--color-radio-card-item-bg);
 }
 
 @utility token-icon-radio-card-checked {
   @apply token-icon-circle;
+}
+
+/* Preserve the value, not the solid editable surface, in read-only mode. */
+@utility radio-card-readonly {
+  @apply form-control-readonly;
+  &[data-readonly]:not([data-disabled]) {
+    & [data-part="item-text"],
+    & [data-part="item-description"],
+    & [data-part="item-addon"] {
+      color: var(--color-radio-card-fg-choice-selected);
+      user-select: text;
+    }
+  }
+}
+
+/* A hover fill needs its own full-contrast secondary text pairing. */
+@utility radio-card-outline-readable {
+  &[data-state="checked"][data-hover]:not([data-disabled]) {
+    & [data-part="item-description"],
+    & [data-part="item-addon"] {
+      color: var(--color-radio-card-fg-choice-selected);
+    }
+  }
 }

@@ -2,36 +2,43 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.0.3
+ * @componentVersion v1.2.1
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the dialog-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as dialog from "@zag-js/dialog"
+import {
+  connect as connectDialog,
+  machine as dialogMachine,
+} from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type ReactNode, useId } from "react"
+import { type ReactNode, useId, useState } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
+import { OverlayContainerProvider } from "../internal/overlay-portal"
 
 const dialogVariants = tv({
   slots: {
-    backdrop: ["inset-0 z-(--z-dialog-backdrop)"],
-    positioner: ["inset-0 z-(--z-dialog-positioner) flex"],
+    backdrop: ["dialog-backdrop-layer inset-0"],
+    positioner: ["dialog-positioner-layer inset-0 flex"],
     content: [
-      "relative flex flex-col gap-dialog-content p-dialog-content",
+      "relative flex min-w-0 max-w-full flex-col gap-dialog-content p-dialog-content",
       "bg-dialog-content-bg text-dialog-content-fg",
       "border-(length:--border-width-dialog) border-dialog-content-border",
-      "shadow-dialog-content",
-      "overflow-y-auto",
+      "shadow-dialog-panel",
+
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-dialog-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
-    title: ["font-dialog-title text-dialog-title text-dialog-title-fg"],
-    description: ["text-dialog-description text-dialog-description-fg"],
+    scrollViewport: "flex min-h-0 flex-col gap-dialog-content overflow-y-auto",
+    title: [
+      "dialog-heading-typography break-words pe-dialog-title-safe font-dialog-title text-dialog-title-fg",
+    ],
+    description: ["dialog-copy-typography text-dialog-description-fg"],
     trigger: [],
     // Positioning only — the close button is an ActionIcon that owns its size,
     // glyph and neutral hover pill.
@@ -39,12 +46,12 @@ const dialogVariants = tv({
       "absolute end-dialog-close-trigger-offset top-dialog-close-trigger-offset",
     ],
     actions:
-      "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
+      "mt-auto flex shrink-0 flex-wrap justify-end gap-dialog-actions pt-dialog-actions-top",
   },
   variants: {
     placement: {
       center: {
-        positioner: "items-center justify-center",
+        positioner: "items-center justify-center p-dialog-positioner",
         content:
           "max-h-dialog-center-h-max max-w-dialog-center-w-max rounded-dialog-content-center",
       },
@@ -96,13 +103,29 @@ const dialogVariants = tv({
         backdrop: "bg-dialog-backdrop-bg-modal",
       },
       modeless: {
-        backdrop: "bg-transparent",
+        backdrop: "pointer-events-none bg-transparent",
         positioner: "pointer-events-none",
         content: "pointer-events-auto",
       },
     },
   },
   compoundVariants: [
+    ...(["xs", "sm", "md", "lg", "xl", "full"] as const).map((size) => ({
+      placement: "center" as const,
+      size,
+      class: {
+        content:
+          size === "full"
+            ? "w-full"
+            : {
+                xs: "w-dialog-xs",
+                sm: "w-dialog-sm",
+                md: "w-dialog-md",
+                lg: "w-dialog-lg",
+                xl: "w-dialog-xl",
+              }[size],
+      },
+    })),
     // Width for left/right drawers
     {
       placement: ["left", "right"],
@@ -175,7 +198,8 @@ const dialogVariants = tv({
   },
 })
 
-export interface DialogProps extends VariantProps<typeof dialogVariants> {
+export type DialogProps = VariantProps<typeof dialogVariants> & {
+  "aria-label"?: string
   open?: boolean
   onOpenChange?: (details: { open: boolean }) => void
   initialFocusEl?: () => HTMLElement | null
@@ -199,6 +223,7 @@ export interface DialogProps extends VariantProps<typeof dialogVariants> {
 }
 
 export function Dialog({
+  "aria-label": ariaLabel,
   id,
   open,
   onOpenChange,
@@ -211,8 +236,8 @@ export function Dialog({
   behavior = "modal",
   closeOnEscape = true,
   closeOnInteractOutside = true,
-  preventScroll = true,
-  trapFocus = true,
+  preventScroll,
+  trapFocus,
   customTrigger = false,
   triggerText = "Open",
   title,
@@ -221,66 +246,88 @@ export function Dialog({
   hideCloseButton = false,
   actions,
   className,
-  modal = true,
+  modal,
   portal = true,
 }: DialogProps) {
   const generatedId = useId()
   const uniqueId = id || generatedId
+  const isModal = modal ?? behavior !== "modeless"
+  const [contentElement, setContentElement] = useState<HTMLDivElement | null>(
+    null
+  )
 
-  const service = useMachine(dialog.machine, {
+  const service = useMachine(dialogMachine, {
     id: uniqueId,
     onOpenChange,
     role,
     closeOnEscape,
     closeOnInteractOutside,
-    preventScroll,
-    trapFocus,
+    preventScroll: preventScroll ?? isModal,
+    trapFocus: trapFocus ?? isModal,
     initialFocusEl,
     finalFocusEl,
-    modal,
+    modal: isModal,
+    "aria-label": ariaLabel,
     ...(open !== undefined && { open }),
   })
 
-  const api = dialog.connect(service, normalizeProps)
+  const api = connectDialog(service, normalizeProps)
 
   const {
     backdrop,
     positioner,
     content,
+    scrollViewport,
     trigger: triggerSlot,
     title: titleSlot,
     description: descriptionSlot,
     closeTrigger,
     actions: actionsSlot,
-  } = dialogVariants({ placement, size, behavior, position })
+  } = dialogVariants({
+    placement,
+    size,
+    behavior: isModal ? "modal" : "modeless",
+    position,
+  })
 
   const dialogContent = () => (
     <>
-      <div className={backdrop()} {...api.getBackdropProps()} />
+      {isModal && <div className={backdrop()} {...api.getBackdropProps()} />}
       <div className={positioner()} {...api.getPositionerProps()}>
-        <div className={content({ className })} {...api.getContentProps()}>
-          {!hideCloseButton && (
-            <ActionIcon
-              className={closeTrigger()}
-              icon="token-icon-dialog-close"
-              size="md"
-              tone="neutral"
-              {...api.getCloseTriggerProps()}
-              aria-label="Close dialog"
-            />
-          )}
-          {title && (
-            <h2 className={titleSlot()} {...api.getTitleProps()}>
-              {title}
-            </h2>
-          )}
-          {description && (
-            <div className={descriptionSlot()} {...api.getDescriptionProps()}>
-              {description}
+        <div
+          className={content({ className })}
+          {...api.getContentProps()}
+          ref={setContentElement}
+        >
+          <OverlayContainerProvider container={isModal ? contentElement : null}>
+            {!hideCloseButton && (
+              <ActionIcon
+                className={closeTrigger()}
+                icon="token-icon-dialog-close"
+                size="md"
+                tone="neutral"
+                {...api.getCloseTriggerProps()}
+                aria-label="Close dialog"
+              />
+            )}
+            <div className={scrollViewport()}>
+              {title && (
+                <h2 className={titleSlot()} {...api.getTitleProps()}>
+                  {title}
+                </h2>
+              )}
+              {description && (
+                <div
+                  className={descriptionSlot()}
+                  {...api.getDescriptionProps()}
+                >
+                  {description}
+                </div>
+              )}
+              {children}
             </div>
-          )}
-          {children}
-          {actions && <div className={actionsSlot()}>{actions}</div>}
+            {actions && <div className={actionsSlot()}>{actions}</div>}
+          </OverlayContainerProvider>
         </div>
       </div>
     </>

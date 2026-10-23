@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useId, useState } from 'react'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { Badge } from '../../src/atoms/badge'
 import { Button } from '../../src/atoms/button'
 import { Checkbox } from '../../src/atoms/checkbox'
@@ -47,8 +48,9 @@ const meta: Meta = {
   title: 'Overview/Component Comparison',
   parameters: {
     layout: 'fullscreen',
+    docs: { description: { component: 'Compare the same active-brand tokens across representative kit components. Use individual component Docs for API guidance and interaction details.' } },
   },
-  tags: ['comparison'],
+  tags: ['autodocs', 'comparison'],
 }
 
 export default meta
@@ -69,7 +71,7 @@ function ComponentCard({
 }: ComponentCardProps) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border p-300 ${className ?? ''}`}
+      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border p-200 sm:p-300 ${className ?? ''}`}
     >
       <div className="text-fg-secondary text-sm font-semibold">{title}</div>
       <div className={bodyClassName ?? 'flex flex-wrap items-center gap-200'}>
@@ -276,17 +278,54 @@ function ToastPreview() {
 
 function ComponentComparison() {
   const [currentStep, setCurrentStep] = useState(1)
+  const id = useId()
 
   return (
     <div className="min-h-screen bg-base text-fg-primary">
-      <div className="mx-auto flex max-w-5xl flex-col gap-700 p-600">
+      <div className="mx-auto flex max-w-5xl flex-col gap-700 p-200 md:p-600">
         <header className="flex flex-col gap-100">
           <h1 className="text-xl font-semibold">Component Comparison</h1>
           <p className="text-fg-secondary text-sm">
-            Side-by-side snapshots of UI primitives and composites for visual
-            consistency checks.
+            Representative snapshots, not an exhaustive component inventory.
+            Use the linked companion checks below for omitted families and open/selected states.
           </p>
         </header>
+
+        <nav aria-label="Companion comparison coverage" className="space-y-200">
+          <h2 className="font-semibold text-md">Companion checks</h2>
+          <p className="text-fg-secondary text-sm">Use the toolbar to check Akros/light, base/light and base/dark on each linked story. These focused stories cover the families intentionally omitted from this compact overview.</p>
+          <ul className="grid gap-100 sm:grid-cols-2">
+            <li><Link href="./?path=/story/overview-component-comparison--nested-form-popup" target="_top">Dialog with an editable popup</Link> — popup surface and Escape order</li>
+            <li><Link href="./?path=/story/atoms-linkbutton--playground" target="_top">LinkButton</Link> — link focus and disabled state</li>
+            <li><Link href="./?path=/story/molecules-priceblock--playground" target="_top">PriceBlock</Link> — price and currency</li>
+            <li><Link href="./?path=/story/molecules-totalssummary--playground" target="_top">TotalsSummary</Link> — order totals</li>
+            <li><Link href="./?path=/story/molecules-chart--playground" target="_top">Chart</Link> — selected series and tooltip</li>
+            <li><Link href="./?path=/story/molecules-formerrorsummary--playground" target="_top">FormErrorSummary</Link> — error links and focus</li>
+            <li><Link href="./?path=/story/molecules-availabilitystatus--playground" target="_top">AvailabilityStatus</Link> — stock feedback</li>
+            <li><Link href="./?path=/story/molecules-quantityfield--playground" target="_top">QuantityField</Link> — stepper states</li>
+            <li><Link href="./?path=/story/organisms-gallery--playground" target="_top">Gallery</Link> — selected media</li>
+            <li><Link href="./?path=/story/organisms-lineitem--playground" target="_top">LineItem</Link> — quantity and remove actions</li>
+            <li><Link href="./?path=/story/templates-facetfilterpanel--playground" target="_top">FacetFilterPanel</Link> — active filters</li>
+            <li><Link href="./?path=/story/templates-searchsuggestions--playground" target="_top">SearchSuggestions</Link> — query results</li>
+            <li><Link href="./?path=/story/molecules-dialog--controlled-escape" target="_top">Controlled dialog Escape</Link> — popup-first dismissal</li>
+
+            <li><a className="underline" href="./?path=/story/atoms-actionicon--playground" target="_top">ActionIcon</a> — keyboard focus</li>
+            <li><a className="underline" href="./?path=/story/molecules-radiogroup--playground" target="_top">RadioGroup</a> — checked choice</li>
+            <li><a className="underline" href="./?path=/story/molecules-radiocard--playground" target="_top">RadioCard</a> — checked choice</li>
+            <li><a className="underline" href="./?path=/story/molecules-datepicker--playground" target="_top">DatePicker</a> — open calendar</li>
+            <li><a className="underline" href="./?path=/story/molecules-phoneinput--playground" target="_top">PhoneInput</a> — country popup</li>
+            <li><a className="underline" href="./?path=/story/molecules-cascadeselect--playground" target="_top">CascadeSelect</a> — nested selection</li>
+            <li><a className="underline" href="./?path=/story/molecules-drawer--playground" target="_top">Drawer</a> — open surface</li>
+            <li><a className="underline" href="./?path=/story/molecules-fileupload--playground" target="_top">FileUpload</a> — selected files</li>
+            <li><a className="underline" href="./?path=/story/molecules-command--playground" target="_top">Command</a> — open search</li>
+            <li><a className="underline" href="./?path=/story/organisms-sidebar--playground" target="_top">Sidebar</a> — active navigation</li>
+            <li><a className="underline" href="./?path=/story/organisms-datatable--playground" target="_top">DataTable</a> — selection and column popup</li>
+            <li><a className="underline" href="./?path=/story/molecules-verticalnavigation--playground" target="_top">VerticalNavigation</a> — selected branch</li>
+            <li><a className="underline" href="./?path=/story/molecules-tour--playground" target="_top">Tour</a> — active step</li>
+            <li><a className="underline" href="./?path=/story/molecules-popover--nested-popovers" target="_top">Nested popovers</a> — nested opaque surfaces</li>
+            <li><a className="underline" href="./?path=/story/molecules-dialog--nested-overlays" target="_top">Dialog with nested overlays</a> — stacking, Escape and focus restoration</li>
+          </ul>
+        </nav>
 
         <Section
           title="Atoms"
@@ -328,9 +367,10 @@ function ComponentComparison() {
             </Label>
           </ComponentCard>
           <ComponentCard title="NumericInput" bodyClassName="w-full max-w-xs">
+            <Label htmlFor={`${id}-quantity`} size="md">Order quantity</Label>
             <NumericInput defaultValue={12} size="md">
               <NumericInput.Control>
-                <NumericInput.Input />
+                <NumericInput.Input id={`${id}-quantity`} />
                 <NumericInput.TriggerContainer>
                   <NumericInput.IncrementTrigger />
                   <NumericInput.DecrementTrigger />
@@ -386,9 +426,10 @@ function ComponentComparison() {
               title={`NumericInput — ${size}`}
               bodyClassName="flex flex-wrap items-center gap-50"
             >
+              <Label htmlFor={`${id}-quantity-${size}`} size={size}>Quantity ({size})</Label>
               <NumericInput defaultValue={1} size={size}>
                 <NumericInput.Control>
-                  <NumericInput.Input />
+                  <NumericInput.Input id={`${id}-quantity-${size}`} />
                   <NumericInput.TriggerContainer>
                     <NumericInput.IncrementTrigger />
                     <NumericInput.DecrementTrigger />
@@ -419,7 +460,7 @@ function ComponentComparison() {
               <div className="w-48">
                 <Select items={selectItems} size={size}>
                   <Select.Control>
-                    <Select.Trigger>
+                    <Select.Trigger aria-label={`Country (${size})`}>
                       <Select.ValueText placeholder="Choose country" />
                     </Select.Trigger>
                   </Select.Control>
@@ -506,17 +547,18 @@ function ComponentComparison() {
           <ComponentCard
             title="Carousel"
             className="md:col-span-2"
-            bodyClassName="w-fit"
+            bodyClassName="min-w-0 w-full"
           >
-            <div className="mx-auto w-fit">
+            <div className="mx-auto w-full max-w-md">
               <Carousel
+                aria-label="Landscape photos"
                 aspectRatio="landscape"
-                className="w-md"
+                className="w-full min-w-0"
                 size="md"
                 slideCount={carouselSlides.length}
               >
                 <Carousel.Slides
-                  className="w-md"
+                  className="w-full"
                   slides={carouselSlides}
                 />
                 <Carousel.Control
@@ -778,16 +820,16 @@ function ComponentComparison() {
         <Section title="Organisms" gridClassName="grid grid-cols-1 gap-300">
           <ComponentCard title="Header" bodyClassName="w-full">
             <div className="mx-auto w-full max-w-5xl">
-              <Header>
-                <Header.Nav>
+              <Header className="flex-wrap">
+                <Header.Nav className="flex-wrap">
                   <Header.NavItem active>
-                    <Link href="#">Home</Link>
+                    <Link href="#" onClick={(event) => event.preventDefault()}>Home</Link>
                   </Header.NavItem>
                   <Header.NavItem>
-                    <Link href="#">Docs</Link>
+                    <Link href="#" onClick={(event) => event.preventDefault()}>Docs</Link>
                   </Header.NavItem>
                   <Header.NavItem>
-                    <Link href="#">Pricing</Link>
+                    <Link href="#" onClick={(event) => event.preventDefault()}>Pricing</Link>
                   </Header.NavItem>
                 </Header.Nav>
                 <Header.Actions>
@@ -806,17 +848,17 @@ function ComponentComparison() {
                 <Footer.Container>
                   <Footer.Section>
                     <Footer.Title>Company</Footer.Title>
-                    <Footer.Link href="#">About</Footer.Link>
-                    <Footer.Link href="#">Team</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>About</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Team</Footer.Link>
                   </Footer.Section>
                   <Footer.Section>
                     <Footer.Title>Resources</Footer.Title>
-                    <Footer.Link href="#">Docs</Footer.Link>
-                    <Footer.Link href="#">Support</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Docs</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Support</Footer.Link>
                   </Footer.Section>
                   <Footer.Section>
                     <Footer.Title>Legal</Footer.Title>
-                    <Footer.Link href="#">Privacy</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Privacy</Footer.Link>
                     <Footer.Text>2026 Company</Footer.Text>
                   </Footer.Section>
                 </Footer.Container>
@@ -856,5 +898,66 @@ function ComponentComparison() {
 }
 
 export const SideBySide: Story = {
+  parameters: { docs: { description: { story: "Compare control proportions, surfaces and feedback in the selected brand and mode without leaving the preview." } } },
   render: () => <ComponentComparison />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const name of ["Order quantity", "Quantity (sm)", "Quantity (md)"]) {
+      const input = canvas.getByRole("spinbutton", { name })
+      await expect(input).toHaveAccessibleName(name)
+      const control = input.closest('[data-scope="number-input"][data-part="root"]')
+      if (!control) throw new Error("Missing numeric input root")
+      for (const trigger of within(control as HTMLElement).getAllByRole("button")) {
+        await expect(trigger).toHaveAttribute("aria-controls", input.id)
+      }
+    }
+    for (const size of ["sm", "md"]) {
+      await expect(canvas.getByRole("combobox", { name: `Country (${size})` })).toHaveAccessibleName(`Country (${size})`)
+    }
+    const carousel = canvas.getByRole("region", { name: "Landscape photos" })
+    const rect = carousel.getBoundingClientRect()
+    const viewport = canvasElement.ownerDocument.documentElement.clientWidth
+    await expect(rect.left).toBeGreaterThanOrEqual(0)
+    await expect(rect.right).toBeLessThanOrEqual(viewport)
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(viewport)
+  },
+}
+
+
+export const NestedFormPopup: Story = {
+  parameters: { docs: { description: { story: "An editable delivery reference inside a nested popover checks opaque surfaces, managed stacking, popup-first Escape dismissal and focus restoration in the active brand." } } },
+  render: () => <Dialog triggerText="Review delivery" title="Delivery preferences" description="Review the reference used by the delivery team.">
+    <Popover>
+      <Popover.Trigger>Edit delivery reference</Popover.Trigger>
+      <Popover.Positioner><Popover.Content>
+        <Popover.Title>Delivery reference</Popover.Title>
+        <Label htmlFor="comparison-delivery-reference">Reference for driver</Label>
+        <Input id="comparison-delivery-reference" defaultValue="Receiving desk, order PO-2048" />
+        <Popover.CloseTrigger aria-label="Close delivery reference" />
+      </Popover.Content></Popover.Positioner>
+    </Popover>
+  </Dialog>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const opener = canvas.getByRole("button", { name: "Review delivery" })
+    await userEvent.click(opener)
+    const dialog = await body.findByRole("dialog", { name: "Delivery preferences" })
+    const trigger = within(dialog).getByRole("button", { name: "Edit delivery reference" })
+    await userEvent.click(trigger)
+    const popup = await body.findByRole("dialog", { name: "Delivery reference" })
+    await expect(popup).toBeVisible()
+    await expect(within(popup).getByRole("textbox", { name: "Reference for driver" })).toHaveValue("Receiving desk, order PO-2048")
+    const view = canvasElement.ownerDocument.defaultView
+    const modalLayer = dialog.closest('[data-scope="dialog"][data-part="positioner"]')
+    if (!view || !modalLayer) throw new Error("Composition checks need a rendered modal layer")
+    await expect(Number(view.getComputedStyle(popup).zIndex)).toBeGreaterThan(Number(view.getComputedStyle(modalLayer).zIndex))
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(body.queryByRole("dialog", { name: "Delivery reference" })).toBeNull())
+    await expect(dialog).toBeVisible()
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(body.queryByRole("dialog", { name: "Delivery preferences" })).toBeNull())
+    await waitFor(() => expect(opener).toHaveFocus())
+  },
 }

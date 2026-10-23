@@ -3,9 +3,9 @@ name: status-text-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit StatusText
   for inline validation, success, warning, or default status messages with
-  optional token icons and size/alignment props.
+  default-on state icons and size/alignment props.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -73,8 +73,8 @@ Supported props:
 ```text
 status: error | success | warning | default
 size: sm | md | lg
-align: start | center
-showIcon: boolean
+align: start | center (default start)
+showIcon: boolean (default true; do not disable for field validation)
 icon: IconType override
 ```
 
@@ -91,7 +91,7 @@ default -> neutral help text
 
 Do not choose status only from color preference.
 
-### Use showIcon for scannable state
+### State icons are automatic
 
 ```tsx
 <StatusText status="warning" showIcon>
@@ -99,7 +99,10 @@ Do not choose status only from color preference.
 </StatusText>
 ```
 
-Default icons are mapped from status in `status-text.tsx`.
+Default icons are mapped from status in `status-text.tsx`. Error, warning and
+success show them without a showIcon prop. Neutral/default helper text has no
+default icon; pass an explicit icon for informational guidance when needed.
+Icons are aria-hidden. Keep the state meaning in the sentence as well.
 
 ### Use align start for long text
 
@@ -188,3 +191,29 @@ rg -n "<StatusText[^>]*className=.*(text-|gap-|mt-|mb-)" apps
 rg -n "<Badge[^>]*>[^<]{30,}</Badge>" apps
 ```
 
+
+## Field association and wrapping contract
+
+Follow `libs/ui/docs/component-contracts.md`. Put a unique stable id on each
+message and merge it into the focusable field's aria-describedby. For errors
+also set aria-invalid and aria-errormessage; remove error references on clear.
+Compound controls use useDescribedBy/useRegisterDescription/joinDescribedBy.
+StatusText cannot infer an unrelated field's ID.
+
+Default align=start uses a first-line-height frame; the icon inherits the message
+font size and all wrapped lines remain in the text column. No manual offsets or
+extra icon wrappers are needed. Match sm/md/lg to the associated control.
+
+Errors default to role=alert; warning/success use role=status; neutral help has no
+live role. Validate on blur/submit and avoid duplicate enclosing live regions.
+Override role/ARIA if a parent already owns announcements.
+
+## Secondary feedback scale
+
+Feedback uses a deliberately quieter 12/14/16px sm/md/lg scale. Match the
+field size prop rather than choosing a smaller helper size to compensate
+for typography. Icons inherit this message scale and stay on its first line.
+
+## Typography overrides
+
+`--line-height-status-text-sm/md/lg` controls the corresponding message line height through the registered text utility. The default is 1.5; a length override is supported. The decorative icon frame stays aligned to the first line.

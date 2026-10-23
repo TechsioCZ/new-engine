@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
 
 permissions:
@@ -71,7 +72,7 @@ jobs:
       - run: ./node_modules/.bin/nubx --node nx affected -t lint test
       - name: Typecheck affected UI package
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
-        run: pnpm --dir libs/ui exec tsc --noEmit -p tsconfig.json
+        run: pnpm --dir libs/ui typecheck
       - name: Test affected UI asset replay
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
         run: |
@@ -81,6 +82,13 @@ jobs:
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
         run: pnpm --dir libs/ui check:package
 
+  # Deliberately runs on every commit: changes to shared dependencies/workflows
+  # must not silently skip UI checks. The reusable workflow validates this SHA.
+  ui-quality:
+    uses: ./.github/workflows/ui-quality.yml
+    with:
+      sha: ${{ github.sha }}
+
   # Required status check for master (ruleset "Master"). It fails unless every
   # job in `needs` succeeded, so the ruleset has one stable name to require.
   # To make another job blocking, add it to `needs`; don't edit the ruleset.
@@ -89,6 +97,7 @@ jobs:
     if: always()
     needs:
       - main
+      - ui-quality
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

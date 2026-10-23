@@ -2,32 +2,45 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.4.0
+ * @componentVersion v0.6.1
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the button-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { ButtonHTMLAttributes, ReactNode, Ref } from "react"
+import {
+  type ButtonHTMLAttributes,
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
 export const buttonVariants = tv({
   base: [
-    "relative",
+    "button-disabled relative",
     "inline-flex cursor-pointer items-center justify-center",
-    "font-button",
     "transition duration-200 motion-reduce:transition-none",
-    // Press feedback; the tap highlight is disabled globally.
-    "motion-safe:not-disabled:active:scale-97",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
     "focus-visible:outline-button-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:text-button-fg-disabled",
   ],
   variants: {
+    // Internal composition escape hatch: navigation owns its typography/press treatment.
+    // Unlike theme="unstyled", this deliberately omits Button-only visuals.
+    composition: {
+      true: "",
+      false: [
+        "font-button",
+        "motion-safe:not-disabled:not-data-disabled:not-data-loading:active:scale-97",
+      ],
+    },
     variant: {
       primary: "",
       secondary: "",
@@ -39,7 +52,7 @@ export const buttonVariants = tv({
       solid: "disabled:bg-button-bg-disabled",
       light: "disabled:bg-button-bg-disabled",
       borderless:
-        "bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover active:bg-button-bg-borderless-active disabled:hover:bg-button-bg-borderless-base",
+        "bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover hover:text-button-fg-interacting active:bg-button-bg-borderless-active active:text-button-fg-interacting disabled:hover:bg-button-bg-borderless-base",
       outlined:
         "border bg-button-bg-outlined disabled:border-0 disabled:bg-button-bg-disabled disabled:hover:bg-button-bg-disabled",
       unstyled: "",
@@ -48,10 +61,10 @@ export const buttonVariants = tv({
       true: "uppercase",
     },
     size: {
-      sm: "h-form-control-sm gap-button-sm rounded-button-sm p-button-sm text-button-sm",
-      md: "h-form-control-md gap-button-md rounded-button-md p-button-md text-button-md",
-      lg: "h-form-control-lg gap-button-lg rounded-button-lg p-button-lg text-button-lg",
-      current: "gap-button-md text-inherit",
+      sm: "button-size-sm min-w-0 gap-button-sm rounded-button-sm p-button-sm text-button-sm",
+      md: "button-size-md min-w-0 gap-button-md rounded-button-md p-button-md text-button-md",
+      lg: "button-size-lg min-w-0 gap-button-lg rounded-button-lg p-button-lg text-button-lg",
+      current: "button-current-size gap-button-md",
     },
     block: {
       true: "w-full",
@@ -226,7 +239,7 @@ export const buttonVariants = tv({
     {
       variant: "warning",
       theme: "borderless",
-      className: ["text-button-fg-warning-borderless"],
+      className: ["text-button-fg-warning-readable"],
     },
     {
       variant: "danger",
@@ -250,6 +263,7 @@ export const buttonVariants = tv({
     },
   ],
   defaultVariants: {
+    composition: false,
     variant: "primary",
     theme: "solid",
     size: "md",
@@ -257,17 +271,20 @@ export const buttonVariants = tv({
   },
 })
 
-export interface ButtonProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children">,
-    VariantProps<typeof buttonVariants> {
-  icon?: IconType
-  iconPosition?: "left" | "right"
-  iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
-  uppercase?: boolean
-  isLoading?: boolean
-  loadingText?: string
-  children?: ReactNode
-}
+export type ButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "children"
+> &
+  VariantProps<typeof buttonVariants> & {
+    icon?: IconType
+    iconPosition?: "left" | "right"
+    iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
+    uppercase?: boolean
+    isLoading?: boolean
+    loadingText?: string
+    children?: ReactNode
+    ref?: Ref<HTMLButtonElement>
+  }
 
 export function Button({
   variant,
@@ -282,37 +299,78 @@ export function Button({
   uppercase = false,
   children,
   className,
-  disabled: disabledProp,
+  disabled,
+  composition,
+  ref,
+  onClick,
+  type = "button",
   ...props
-}: ButtonProps & { ref?: Ref<HTMLButtonElement> }) {
-  const disabled = isLoading || disabledProp
+}: ButtonProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  // Without deps, every render would detach and reattach consumer refs.
+  useImperativeHandle(ref, () => buttonRef.current as HTMLButtonElement, [])
+
+  // Click guards cover pointer, Enter/Space and implicit Enter submission.
+  // Also guard requestSubmit() paths that do not dispatch a click.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Rebind when the native form association changes.
+  useEffect(() => {
+    const button = buttonRef.current
+    const form = button?.form
+    if (!(isLoading && type === "submit" && form)) {
+      return
+    }
+    function preventPendingSubmit(event: SubmitEvent) {
+      if (!event.submitter || event.submitter === button) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+      }
+    }
+    form.addEventListener("submit", preventPendingSubmit, true)
+    return () => form.removeEventListener("submit", preventPendingSubmit, true)
+  }, [isLoading, type, props.form])
 
   return (
     <button
+      {...props}
+      aria-busy={isLoading || undefined}
+      aria-disabled={
+        disabled || isLoading || props["aria-disabled"] || undefined
+      }
       className={buttonVariants({
         variant,
         theme,
         size,
         block,
         uppercase,
+        composition,
         className,
       })}
+      data-loading={isLoading ? "" : undefined}
       disabled={disabled}
-      {...props}
+      onClick={(event) => {
+        if (isLoading) {
+          event.preventDefault()
+          event.stopPropagation()
+          return
+        }
+        onClick?.(event)
+      }}
+      ref={buttonRef}
+      type={type}
     >
       {isLoading ? (
         <>
-          <Icon className="me-2" icon="token-icon-button-spinner" />
+          <Icon icon="token-icon-button-spinner" size="current" />
           {loadingText || children}
         </>
       ) : (
         <>
           {icon && iconPosition === "left" && (
-            <Icon icon={icon} size={iconSize} />
+            <Icon icon={icon} size={iconSize ?? "current"} />
           )}
           {children}
           {icon && iconPosition === "right" && (
-            <Icon icon={icon} size={iconSize} />
+            <Icon icon={icon} size={iconSize ?? "current"} />
           )}
         </>
       )}

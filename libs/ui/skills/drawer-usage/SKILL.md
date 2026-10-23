@@ -5,7 +5,7 @@ description: >
   transient edge panels, modal or non-modal behavior, snap points, swipe
   gestures, multiple triggers, custom portals, controlled state, and stacks.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.0.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -51,7 +51,7 @@ where actions and feedback live). This section applies them to `Drawer`.
 **Do**
 
 - Open from the edge that matches the content's origin: navigation start, cart/filters/details end.
-- Keep a visible title and close button; footer actions bottom-right like dialogs.
+- Keep a visible title and close button; footer actions bottom-right like dialogs. Footer actions wrap on narrow screens so fixed-height buttons retain legible, single-line labels.
 - Return focus to the trigger on close; preserve page scroll.
 
 **Don't**
@@ -152,6 +152,15 @@ Give each `Drawer.Trigger` a stable `value`. Read `api.triggerValue` through
 `Drawer.Context` or control it with `triggerValue` and
 `onTriggerValueChange`.
 
+An Edit trigger must open labelled editable fields, not a read-only summary.
+Keep a draft per open session, persist it only after valid submission, and reset
+it when reopening after Cancel. Put a neutral
+`<Drawer.CloseTrigger size="md" theme="outlined" variant="tertiary">Cancel</Drawer.CloseTrigger>`
+before the primary Save changes action; a footer submit button can target the
+body form with `form={formId}`. Use `draggable={false}` on editable content to
+avoid competing with text selection, and show a persistent saved confirmation
+outside the panel.
+
 ### Coordinate nested drawers with Stack
 
 Wrap related roots in `Drawer.Stack`. Nested roots inherit the stack store;
@@ -240,3 +249,16 @@ rg -n "<Drawer[^>]*swipeDirection=|modal=\{false\}" apps
 rg -U -n "open[\s\S]{0,120}<Drawer\.Portal" apps
 rg -n "<Drawer\.Content[^>]*className=.*(bg-|w-|h-|rounded-|shadow-)" apps
 ```
+
+At partial snap points, the panel retains its full machine-measured size while
+an inner visible viewport keeps Header and Footer onscreen. Body owns scrolling.
+Nested kit Menu, Popover and Tooltip portals remain inside the drawer's focus
+and accessibility scope.
+
+## Nested-popup focus return
+
+Deferred focus-trap activation preserves focus already inside the drawer or its
+nested popup. Closing restores the opener only after content and focus-trap
+teardown, without overriding intentional outside focus. Explicit `initialFocusEl`
+and `finalFocusEl` remain authoritative; `restoreFocus={false}` opts out of return.
+Do not add a separate timeout-based focus repair in the app.

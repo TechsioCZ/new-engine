@@ -1,123 +1,127 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { expect, fn, userEvent, within } from 'storybook/test'
-import { Button } from '../../src/atoms/button'
-import { NumericInput } from '../../src/atoms/numeric-input'
-import { FormNumericInput } from '../../src/molecules/form-numeric-input'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useId, useState } from "react"
+import { expect, fn, userEvent, within } from "storybook/test"
+import { Button } from "../../src/atoms/button"
+import { NumericInput } from "../../src/atoms/numeric-input"
+import { StatusText } from "../../src/atoms/status-text"
+import { FormNumericInput } from "../../src/molecules/form-numeric-input"
 
 const meta: Meta<typeof FormNumericInput> = {
-  title: 'Molecules/FormNumericInput',
+  title: "Molecules/FormNumericInput",
   component: FormNumericInput,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
         component:
-          'Form wrapper for NumericInput. Provides Label, validation state, and help text while maintaining full compound pattern flexibility.',
+          "FormNumericInput combines a visible label, a numeric editor and associated validation feedback for quantities, prices and measurements. Choose NumericInput for custom compact compositions or FormInput for numeric identifiers.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
+    id: { control: false, table: { disable: true } },
+    ids: { control: false, table: { disable: true } },
+    ref: { control: false, table: { disable: true } },
     // Text inputs
     label: {
-      control: 'text',
-      description: 'Label for the numeric input',
+      control: "text",
+      description: "Label for the numeric input",
     },
     helpText: {
-      control: 'text',
-      description: 'Help text displayed below the input',
+      control: "text",
+      description: "Help text displayed below the input",
     },
 
     // Appearance
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of the numeric input',
-      table: { defaultValue: { summary: 'md' } },
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size of the numeric input",
+      table: { defaultValue: { summary: "md" } },
     },
     validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status of the numeric input',
-      table: { defaultValue: { summary: 'default' } },
+      control: "select",
+      options: ["default", "error", "success", "warning"],
+      description: "Validation status of the numeric input",
+      table: { defaultValue: { summary: "default" } },
     },
     showHelpTextIcon: {
-      control: 'boolean',
+      control: "boolean",
       description:
         'Whether to show an icon with the help text. Defaults to true when validateStatus is not "default".',
-      table: { defaultValue: { summary: 'auto (true when validated)' } },
+      table: { defaultValue: { summary: "auto (true when validated)" } },
     },
 
     // States
     disabled: {
-      control: 'boolean',
-      description: 'Disable the numeric input',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Disable the numeric input",
+      table: { defaultValue: { summary: "false" } },
     },
     required: {
-      control: 'boolean',
-      description: 'Mark as required field',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Mark as required field",
+      table: { defaultValue: { summary: "false" } },
     },
 
     // Numeric options
     min: {
-      control: 'number',
-      description: 'Minimum allowed value',
+      control: "number",
+      description: "Minimum allowed value",
     },
     max: {
-      control: 'number',
-      description: 'Maximum allowed value',
+      control: "number",
+      description: "Maximum allowed value",
     },
     step: {
-      control: 'number',
-      description: 'Step increment value',
-      table: { defaultValue: { summary: '1' } },
+      control: "number",
+      description: "Step increment value",
+      table: { defaultValue: { summary: "1" } },
     },
     precision: {
-      control: 'number',
-      description: 'Number of decimal places',
+      control: "number",
+      description: "Number of decimal places",
     },
 
     // Behavior
     allowMouseWheel: {
-      control: 'boolean',
-      description: 'Allow changing value with mouse wheel',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Allow changing value with mouse wheel",
+      table: { defaultValue: { summary: "true" } },
     },
     allowOverflow: {
-      control: 'boolean',
-      description: 'Allow values outside min/max range',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Allow values outside min/max range",
+      table: { defaultValue: { summary: "false" } },
     },
     clampValueOnBlur: {
-      control: 'boolean',
-      description: 'Clamp value to min/max when input loses focus',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Clamp value to min/max when input loses focus",
+      table: { defaultValue: { summary: "true" } },
     },
     spinOnPress: {
-      control: 'boolean',
-      description: 'Continue incrementing/decrementing while button is held',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Continue incrementing/decrementing while button is held",
+      table: { defaultValue: { summary: "true" } },
     },
     readOnly: {
-      control: 'boolean',
-      description: 'Make input read-only',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Make input read-only",
+      table: { defaultValue: { summary: "false" } },
     },
     locale: {
-      control: 'text',
-      description: 'Locale for number formatting',
-      table: { defaultValue: { summary: 'cs-CZ' } },
+      control: "text",
+      description: "Locale for number formatting",
+      table: { defaultValue: { summary: "cs-CZ" } },
     },
   },
   args: {
-    label: 'Quantity',
-    helpText: 'Enter a value between 0 and 100',
-    size: 'md',
-    validateStatus: 'default',
-    showHelpTextIcon: false,
+    label: "Quantity",
+    helpText: "Enter a value between 0 and 100",
+    size: "md",
+    validateStatus: "default",
+    showHelpTextIcon: true,
     disabled: false,
     required: false,
     readOnly: false,
@@ -128,7 +132,7 @@ const meta: Meta<typeof FormNumericInput> = {
     allowOverflow: false,
     clampValueOnBlur: true,
     spinOnPress: true,
-    locale: 'cs-CZ',
+    locale: "cs-CZ",
   },
 }
 
@@ -136,32 +140,45 @@ export default meta
 type Story = StoryObj<typeof FormNumericInput>
 
 // Playground - Interactive with Controls
+const formDraftChanged = fn()
+const formDraftCommitted = fn()
+const formNumericChanged = fn()
+
 export const Playground: Story = {
-  tags: ['ui-semantic-regression'],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Adjust the numeric options to explore locale formatting, constraints and interaction states.",
+      },
+    },
+  },
+  tags: ["ui-semantic-regression"],
   args: {
-    id: 'form-numeric-playground',
-    label: 'Playground NumericInput',
+    label: "Playground NumericInput",
   },
-  render: (args) => {
-    return (
-      <div className="w-md">
-        <FormNumericInput defaultValue={50} {...args}>
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
-  },
+  render: (args) => (
+    <div className="w-full max-w-md">
+      <FormNumericInput defaultValue={50} {...args}>
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </FormNumericInput>
+    </div>
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    const input = canvas.getByRole('spinbutton', { name: 'Playground NumericInput' })
-    const label = canvas.getByText('Playground NumericInput')
-    await expect(input).toHaveAccessibleDescription('Enter a value between 0 and 100')
+    const input = canvas.getByRole("spinbutton", {
+      name: "Playground NumericInput",
+    })
+    const label = canvas.getByText("Playground NumericInput")
+    await expect(input).toHaveAccessibleDescription(
+      "Enter a value between 0 and 100"
+    )
     await userEvent.click(label)
     await expect(input).toHaveFocus()
     await userEvent.unhover(label)
@@ -171,45 +188,15 @@ export const Playground: Story = {
 }
 
 // With Error - Shows validation error state
-export const WithError: Story = {
-  tags: ['ui-semantic-regression'],
-  render: () => {
-    const [value, setValue] = useState(150)
-    const isInvalid = value < 0 || value > 100
-
-    return (
-      <div className="w-md">
-        <FormNumericInput
-          id="quantity-error"
-          label="Quantity"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          validateStatus={isInvalid ? 'error' : 'default'}
-          helpText={isInvalid ? 'Value must be between 0 and 100' : undefined}
-          allowOverflow
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
-  },
-  play: async ({ canvasElement }) => {
-    const input = within(canvasElement).getByRole('spinbutton', { name: 'Quantity' })
-    await expect(input).toHaveAttribute('aria-invalid', 'true')
-    await expect(input).toHaveAccessibleDescription('Value must be between 0 and 100')
-  },
-}
-
-// Validation States - Shows all validation states
 export const ValidationStates: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Neutral guidance and error, warning and success feedback pair text with appropriate status icons.",
+      },
+    },
+  },
   render: () => {
     const [value1, setValue1] = useState(25)
     const [value2, setValue2] = useState(50)
@@ -218,15 +205,14 @@ export const ValidationStates: Story = {
 
     return (
       <div className="flex flex-col gap-300">
-        <div className="w-md">
+        <div className="w-full max-w-md">
           <FormNumericInput
-            id="quantity-default"
-            label="Default State"
-            value={value1}
-            onChange={setValue1}
-            min={0}
-            max={100}
             helpText="Enter a value between 0 and 100"
+            label="Default State"
+            max={100}
+            min={0}
+            onChange={setValue1}
+            value={value1}
           >
             <NumericInput.Control>
               <NumericInput.Input />
@@ -238,16 +224,15 @@ export const ValidationStates: Story = {
           </FormNumericInput>
         </div>
 
-        <div className="w-md">
+        <div className="w-full max-w-md">
           <FormNumericInput
-            id="quantity-error"
-            label="Error State"
-            value={value2}
-            onChange={setValue2}
-            min={0}
-            max={100}
-            validateStatus="error"
             helpText="Value must be between 0 and 100"
+            label="Error State"
+            max={100}
+            min={0}
+            onChange={setValue2}
+            validateStatus="error"
+            value={value2}
           >
             <NumericInput.Control>
               <NumericInput.Input />
@@ -259,16 +244,15 @@ export const ValidationStates: Story = {
           </FormNumericInput>
         </div>
 
-        <div className="w-md">
+        <div className="w-full max-w-md">
           <FormNumericInput
-            id="quantity-success"
-            label="Success State"
-            value={value3}
-            onChange={setValue3}
-            min={0}
-            max={100}
-            validateStatus="success"
             helpText="Quantity is valid"
+            label="Success State"
+            max={100}
+            min={0}
+            onChange={setValue3}
+            validateStatus="success"
+            value={value3}
           >
             <NumericInput.Control>
               <NumericInput.Input />
@@ -280,16 +264,15 @@ export const ValidationStates: Story = {
           </FormNumericInput>
         </div>
 
-        <div className="w-md">
+        <div className="w-full max-w-md">
           <FormNumericInput
-            id="quantity-warning"
-            label="Warning State"
-            value={value4}
-            onChange={setValue4}
-            min={0}
-            max={100}
-            validateStatus="warning"
             helpText="Quantity is at maximum limit"
+            label="Warning State"
+            max={100}
+            min={0}
+            onChange={setValue4}
+            validateStatus="warning"
+            value={value4}
           >
             <NumericInput.Control>
               <NumericInput.Input />
@@ -306,170 +289,30 @@ export const ValidationStates: Story = {
 }
 
 // Required Field
-export const Required: Story = {
-  render: () => {
-    const [value, setValue] = useState(0)
-
-    return (
-      <div className="w-md">
-        <FormNumericInput
-          id="quantity-required"
-          label="Quantity"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          required
-          helpText="This field is required"
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
+export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Small (sm), Medium (md) and Large (lg) show the same quantity in the canonical size order.",
+      },
+    },
   },
-}
-
-// Disabled State
-export const Disabled: Story = {
-  render: () => {
-    return (
-      <div className="w-md">
-        <FormNumericInput
-          id="quantity-disabled"
-          label="Quantity"
-          defaultValue={42}
-          disabled
-          helpText="This field is disabled"
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
-  },
-}
-
-// Horizontal Layout - Triggers beside input
-export const HorizontalLayout: Story = {
-  render: () => {
-    const [value, setValue] = useState(50)
-
-    return (
-      <div className="w-md">
-        <FormNumericInput
-          id="quantity-horizontal"
-          label="Quantity"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          helpText="Horizontal layout example"
-        >
-          <div className="flex gap-100">
-            <NumericInput.DecrementTrigger
-              className="bg-overlay"
-              icon="icon-[mdi--minus]"
-            />
-            <NumericInput.Control className="flex-1">
-              <NumericInput.Input />
-            </NumericInput.Control>
-            <NumericInput.IncrementTrigger
-              className="bg-overlay"
-              icon="icon-[mdi--plus]"
-            />
-          </div>
-        </FormNumericInput>
-      </div>
-    )
-  },
-}
-
-// Without Triggers - Keyboard and wheel control only
-export const WithoutTriggers: Story = {
-  render: () => {
-    const [value, setValue] = useState(50)
-
-    return (
-      <div className="w-md">
-        <FormNumericInput
-          id="quantity-no-triggers"
-          label="Quantity"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          allowMouseWheel
-          helpText="Use arrow keys or mouse wheel to change value"
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
-  },
-}
-
-// With Scrubber - Drag to change value
-export const WithScrubber: Story = {
-  render: () => {
-    const [value, setValue] = useState(50)
-
-    return (
-      <div className="w-md">
-        <FormNumericInput
-          id="quantity-scrubber"
-          label="Quantity"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          step={5}
-          helpText="Drag left/right on the input to change value"
-        >
-          <NumericInput.Control>
-            <NumericInput.Scrubber />
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
-  },
-}
-
-// All Sizes - Shows all size variants
-export const AllSizes: Story = {
   render: () => {
     const [value1, setValue1] = useState(10)
-    const [value2, setValue2] = useState(20)
-    const [value3, setValue3] = useState(30)
+    const [value2, setValue2] = useState(10)
+    const [value3, setValue3] = useState(10)
 
     return (
       <div className="flex flex-col gap-300">
-        <div className="w-md">
+        <div className="w-full max-w-md">
           <FormNumericInput
-            id="quantity-sm"
-            label="Small Size"
+            label="Small (sm)"
+            max={100}
+            min={0}
+            onChange={setValue1}
             size="sm"
             value={value1}
-            onChange={setValue1}
-            min={0}
-            max={100}
           >
             <NumericInput.Control>
               <NumericInput.Input />
@@ -481,15 +324,14 @@ export const AllSizes: Story = {
           </FormNumericInput>
         </div>
 
-        <div className="w-md">
+        <div className="w-full max-w-md">
           <FormNumericInput
-            id="quantity-md"
-            label="Medium Size"
+            label="Medium (md)"
+            max={100}
+            min={0}
+            onChange={setValue2}
             size="md"
             value={value2}
-            onChange={setValue2}
-            min={0}
-            max={100}
           >
             <NumericInput.Control>
               <NumericInput.Input />
@@ -501,15 +343,14 @@ export const AllSizes: Story = {
           </FormNumericInput>
         </div>
 
-        <div className="w-md">
+        <div className="w-full max-w-md">
           <FormNumericInput
-            id="quantity-lg"
-            label="Large Size"
+            label="Large (lg)"
+            max={100}
+            min={0}
+            onChange={setValue3}
             size="lg"
             value={value3}
-            onChange={setValue3}
-            min={0}
-            max={100}
           >
             <NumericInput.Control>
               <NumericInput.Input />
@@ -526,22 +367,295 @@ export const AllSizes: Story = {
 }
 
 // With Precision - Decimal values
+export const Disabled: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Unavailable quantities leave the tab order and cannot be adjusted.",
+      },
+    },
+  },
+  render: () => (
+    <div className="w-full max-w-md">
+      <FormNumericInput
+        defaultValue={42}
+        disabled
+        helpText="This field is disabled"
+        label="Quantity"
+      >
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </FormNumericInput>
+    </div>
+  ),
+}
+
+// Horizontal Layout - Triggers beside input
+
+export const ReadOnly: Story = {
+  name: "Read-only",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Read-only quantities remain focusable and selectable while typing, wheel, scrubbing and step actions cannot change the value.",
+      },
+    },
+  },
+  render: () => (
+    <div className="w-full max-w-md">
+      <FormNumericInput
+        defaultValue={42}
+        helpText="Contact support to change the confirmed order."
+        label="Confirmed quantity"
+        readOnly
+      >
+        <NumericInput.Control>
+          <NumericInput.Scrubber />
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </FormNumericInput>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("spinbutton")
+    await userEvent.click(input)
+    await expect(input).toHaveFocus()
+    await userEvent.paste("Unwanted replacement")
+    await userEvent.keyboard("7{ArrowUp}{ArrowDown}{Backspace}{Delete}")
+    await expect(input).toHaveValue("42")
+    await expect(input).not.toBeDisabled()
+    await expect(canvas.queryAllByRole("button")).toHaveLength(0)
+  },
+}
+
+export const WithError: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "An associated error identifies the valid range and provides a clear correction.",
+      },
+    },
+  },
+  tags: ["ui-semantic-regression"],
+  render: () => {
+    const [value, setValue] = useState(150)
+    const isInvalid = value < 0 || value > 100
+
+    return (
+      <div className="w-full max-w-md">
+        <FormNumericInput
+          allowOverflow
+          helpText={isInvalid ? "Value must be between 0 and 100" : undefined}
+          label="Quantity"
+          max={100}
+          min={0}
+          onChange={setValue}
+          validateStatus={isInvalid ? "error" : "default"}
+          value={value}
+        >
+          <NumericInput.Control>
+            <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+        </FormNumericInput>
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("spinbutton", {
+      name: "Quantity",
+    })
+    await expect(input).toHaveAttribute("aria-invalid", "true")
+    await expect(input).toHaveAccessibleDescription(
+      "Value must be between 0 and 100"
+    )
+  },
+}
+
+// Validation States - Shows all validation states
+export const Required: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Required quantities include a visible label indicator and helper guidance.",
+      },
+    },
+  },
+  render: () => {
+    const [value, setValue] = useState(0)
+
+    return (
+      <div className="w-full max-w-md">
+        <FormNumericInput
+          helpText="This field is required"
+          label="Quantity"
+          max={100}
+          min={0}
+          onChange={setValue}
+          required
+          value={value}
+        >
+          <NumericInput.Control>
+            <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+        </FormNumericInput>
+      </div>
+    )
+  },
+}
+
+// Disabled State
+export const HorizontalLayout: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Side controls preserve the field label and associated helper text.",
+      },
+    },
+  },
+  render: () => {
+    const [value, setValue] = useState(50)
+
+    return (
+      <div className="w-full max-w-md">
+        <FormNumericInput
+          helpText="Horizontal layout example"
+          label="Quantity"
+          max={100}
+          min={0}
+          onChange={setValue}
+          value={value}
+        >
+          <div className="flex gap-100">
+            <NumericInput.DecrementTrigger icon="icon-[mdi--minus]" />
+            <NumericInput.Control className="flex-1">
+              <NumericInput.Input />
+            </NumericInput.Control>
+            <NumericInput.IncrementTrigger icon="icon-[mdi--plus]" />
+          </div>
+        </FormNumericInput>
+      </div>
+    )
+  },
+}
+
+// Without Triggers - Keyboard and wheel control only
+export const WithoutTriggers: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Direct numeric entry remains available in forms that do not need step buttons.",
+      },
+    },
+  },
+  render: () => {
+    const [value, setValue] = useState(50)
+
+    return (
+      <div className="w-full max-w-md">
+        <FormNumericInput
+          allowMouseWheel
+          helpText="Use arrow keys or mouse wheel to change value"
+          label="Quantity"
+          max={100}
+          min={0}
+          onChange={setValue}
+          value={value}
+        >
+          <NumericInput.Control>
+            <NumericInput.Input />
+          </NumericInput.Control>
+        </FormNumericInput>
+      </div>
+    )
+  },
+}
+
+// With Scrubber - Drag to change value
+export const WithScrubber: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Pointer scrubbing provides an optional alternative to typing or step buttons.",
+      },
+    },
+  },
+  render: () => {
+    const [value, setValue] = useState(50)
+
+    return (
+      <div className="w-full max-w-md">
+        <FormNumericInput
+          helpText="Drag left/right on the input to change value"
+          label="Quantity"
+          max={100}
+          min={0}
+          onChange={setValue}
+          step={5}
+          value={value}
+        >
+          <NumericInput.Control>
+            <NumericInput.Scrubber />
+            <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+        </FormNumericInput>
+      </div>
+    )
+  },
+}
+
+// All Sizes - Shows all size variants
 export const WithPrecision: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Precision limits the displayed decimal places using locale-aware formatting.",
+      },
+    },
+  },
   render: () => {
     const [value, setValue] = useState(3.14)
 
     return (
-      <div className="w-md">
+      <div className="w-full max-w-md">
         <FormNumericInput
-          id="quantity-precision"
-          label="Pi Approximation"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={10}
-          step={0.1}
-          precision={2}
           helpText="Supports 2 decimal places"
+          label="Pi Approximation"
+          max={10}
+          min={0}
+          onChange={setValue}
+          precision={2}
+          step={0.1}
+          value={value}
         >
           <NumericInput.Control>
             <NumericInput.Input />
@@ -558,6 +672,14 @@ export const WithPrecision: Story = {
 
 // Complex Demo - Full featured
 export const ComplexDemo: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A bounded product quantity keeps constraints and feedback next to its editor.",
+      },
+    },
+  },
   render: () => {
     const [value, setValue] = useState(50)
     const isInvalid = value < 0 || value > 100
@@ -566,22 +688,21 @@ export const ComplexDemo: Story = {
       <div className="flex flex-col">
         <div>
           <FormNumericInput
-            id="quantity-complex"
-            label="Product Quantity"
-            value={value}
-            onChange={setValue}
-            min={0}
-            max={100}
-            step={5}
-            required
-            validateStatus={isInvalid ? 'error' : 'default'}
-            helpText={
-              isInvalid
-                ? 'Value must be between 0 and 100'
-                : 'Adjust quantity using buttons, arrow keys, or mouse wheel'
-            }
             allowMouseWheel
             clampValueOnBlur
+            helpText={
+              isInvalid
+                ? "Value must be between 0 and 100"
+                : "Adjust quantity using buttons, arrow keys, or mouse wheel"
+            }
+            label="Product Quantity"
+            max={100}
+            min={0}
+            onChange={setValue}
+            required
+            step={5}
+            validateStatus={isInvalid ? "error" : "default"}
+            value={value}
           >
             <NumericInput.Control>
               <NumericInput.Input />
@@ -593,16 +714,22 @@ export const ComplexDemo: Story = {
           </FormNumericInput>
         </div>
 
-        <div className="bg-surface-secondary rounded-md">
-          <h3 className="text-fg-primary font-semibold mb-100">Current State</h3>
-          <ul className="text-fg-muted text-sm space-y-050">
+        <div className="rounded-md bg-surface-secondary">
+          <h3 className="mb-100 font-semibold text-fg-primary">
+            Current State
+          </h3>
+          <ul className="space-y-050 text-fg-muted text-sm">
             <li>
               Value: <strong>{value}</strong>
             </li>
             <li>
-              Status:{' '}
-              <strong className={isInvalid ? 'text-fg-accent-danger' : 'text-fg-accent-success'}>
-                {isInvalid ? 'Invalid' : 'Valid'}
+              Status:{" "}
+              <strong
+                className={
+                  isInvalid ? "text-fg-accent-danger" : "text-fg-accent-success"
+                }
+              >
+                {isInvalid ? "Invalid" : "Valid"}
               </strong>
             </li>
             <li>Step: 5</li>
@@ -614,36 +741,36 @@ export const ComplexDemo: Story = {
   },
 }
 
-
-const formDraftChanged = fn()
-const formDraftCommitted = fn()
-const formNumericChanged = fn()
-
 export const ControlledDraft: Story = {
-  render: function Render() {
-    const [value, setValue] = useState('2')
-    const [committedValue, setCommittedValue] = useState('')
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "String-controlled drafts retain empty and rejected text until the parent accepts an update.",
+      },
+    },
+  },
+  render() {
+    const [value, setValue] = useState("2")
+    const [committedValue, setCommittedValue] = useState("")
     const [numericValue, setNumericValue] = useState(2)
     const [rejected, setRejected] = useState(false)
 
     return (
-      <div lang="cs" className="w-md max-w-full flex flex-col gap-100">
+      <div className="flex w-full max-w-md flex-col gap-100" lang="cs">
         <FormNumericInput
-          id="form-controlled-draft"
-          label="Form draft quantity"
-          value={value}
-          locale="cs-CZ"
-          formatOptions={{ useGrouping: false, maximumFractionDigits: 2 }}
-          min={0}
-          max={10}
           allowOverflow={false}
           clampValueOnBlur={false}
-          validateStatus={rejected ? 'error' : 'default'}
+          formatOptions={{ useGrouping: false, maximumFractionDigits: 2 }}
           helpText={
             rejected
-              ? 'Toto množství nelze dodat. Zvolte prosím jiné množství.'
-              : 'Zadejte požadované množství. Desetinná čísla oddělujte čárkou.'
+              ? "Toto množství nelze dodat. Zvolte prosím jiné množství."
+              : "Zadejte požadované množství. Desetinná čísla oddělujte čárkou."
           }
+          label="Form draft quantity"
+          locale="cs-CZ"
+          max={10}
+          min={0}
           onChange={(next) => {
             setNumericValue(next)
             formNumericChanged(next)
@@ -657,6 +784,8 @@ export const ControlledDraft: Story = {
             setCommittedValue(details.value)
             formDraftCommitted(details)
           }}
+          validateStatus={rejected ? "error" : "default"}
+          value={value}
         >
           <NumericInput.Control>
             <NumericInput.Input />
@@ -666,22 +795,90 @@ export const ControlledDraft: Story = {
             </NumericInput.TriggerContainer>
           </NumericInput.Control>
         </FormNumericInput>
-        <p data-testid="form-draft-value">Draft: {value === '' ? '(empty)' : value}</p>
+        <p data-testid="form-draft-value">
+          Draft: {value === "" ? "(empty)" : value}
+        </p>
         <p data-testid="form-committed-value">Committed: {committedValue}</p>
         <p data-testid="form-numeric-value">Numeric: {String(numericValue)}</p>
         <div className="flex flex-wrap gap-100">
-          <Button onClick={() => setRejected(true)}>Reject draft</Button>
+          <Button onClick={() => setRejected(true)} variant="secondary">
+            Reject draft
+          </Button>
           <Button
-            theme="outlined"
             onClick={() => {
-              setValue('2')
+              setValue("2")
               setRejected(false)
             }}
+            theme="outlined"
           >
             Reset from parent
           </Button>
         </div>
       </div>
     )
+  },
+}
+
+export const CallerOwnedError: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Caller-owned errors stay associated when wrapper validation clears, until the caller clears its own error.",
+      },
+    },
+  },
+  render() {
+    const id = useId()
+    const [localError, setLocalError] = useState(true)
+    const [callerError, setCallerError] = useState(true)
+    return (
+      <div className="flex w-full max-w-md flex-col gap-200">
+        {callerError && (
+          <StatusText id={id} status="error">
+            Choose a quantity available in stock.
+          </StatusText>
+        )}
+        <FormNumericInput
+          aria-describedby={callerError ? id : undefined}
+          aria-errormessage={callerError ? id : undefined}
+          helpText={
+            localError ? "Check the delivery details before saving." : undefined
+          }
+          invalid={callerError || undefined}
+          label="Delivery details"
+          validateStatus={localError ? "error" : "default"}
+        >
+          <NumericInput.Control>
+            <NumericInput.Input />
+          </NumericInput.Control>
+        </FormNumericInput>
+        <Button onClick={() => setLocalError(false)} variant="secondary">
+          Clear field validation
+        </Button>
+        <Button onClick={() => setCallerError(false)} variant="secondary">
+          Clear caller error
+        </Button>
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("spinbutton")
+    const callerId = canvas
+      .getByText("Choose a quantity available in stock.")
+      .closest('[role="alert"]')?.id
+    await expect(input.getAttribute("aria-errormessage")?.split(" ")).toContain(
+      callerId
+    )
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Clear field validation" })
+    )
+    await expect(input).toHaveAttribute("aria-invalid", "true")
+    await expect(input).toHaveAttribute("aria-errormessage", callerId)
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Clear caller error" })
+    )
+    await expect(input).not.toHaveAttribute("aria-errormessage")
   },
 }

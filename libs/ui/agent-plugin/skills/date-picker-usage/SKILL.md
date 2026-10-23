@@ -6,13 +6,18 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.3.7"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/date-picker.tsx libs/ui/src/tokens/components/molecules/_date-picker.css libs/ui/stories/molecules/date-picker.stories.tsx https://zagjs.com/components/react/date-input https://zagjs.com/components/react/date-picker https://react-aria.adobe.com/internationalized/date/"
+  sources: "https://zagjs.com/components/react/date-input https://zagjs.com/components/react/date-picker https://react-aria.adobe.com/internationalized/date/"
+  contributor_sources: "libs/ui/src/molecules/date-picker.tsx libs/ui/src/tokens/components/molecules/_date-picker.css libs/ui/stories/molecules/date-picker.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit DatePicker Usage
 
@@ -20,6 +25,23 @@ Use DatePicker when a user should type a locale-aware date in segments or pick
 it from a calendar. Set `granularity` to `hour`, `minute`, or `second` when the
 same field must also collect a time. Use separate domain controls when date and
 time have independent lifecycles.
+
+## Shared field contract
+
+Use canonical `sm`, `md` (default), and `lg`. Compose `DatePicker.StatusText`
+under the root to associate helper/error text with every focusable date segment.
+Each message gets a unique ID; caller segment descriptions are preserved, errors
+set `aria-invalid` and `aria-errormessage`, and non-neutral feedback has an icon.
+
+Read-only preserves focusable, copyable date segments and submitted values while
+hiding calendar/clear actions and preventing all commits. Activating read-only or
+disabled while a calendar is open closes it and discards its draft. Read-only is
+not a calendar browsing mode. Popup positioner and content use the shared layer.
+Footer actions keep secondary Cancel before primary Confirm.
+
+If read-only is enabled while the calendar owns focus, the popup closes without
+committing its draft and focus returns to a surviving date segment. Focus already
+moved to another control is not stolen.
 
 ## UX/UI guidelines
 
@@ -211,6 +233,21 @@ Date-only range selection commits after the second valid endpoint. The first
 endpoint stays private and the popup remains open. `numOfMonths` defaults to
 two in range mode and one in single mode.
 
+### Select neighboring-month days
+
+Muted days at the beginning or end of a calendar grid remain selectable and
+navigate that panel to the selected month. They obey the same `min`, `max`,
+`isDateUnavailable`, disabled, and read-only rules as other days. Muted does not
+mean disabled; unavailable days also have a strike-through.
+
+### Edit popup times with the keyboard
+
+Hour, minute, and second inputs accept typing. ArrowUp/ArrowDown increment or
+decrement by one and wrap within the field (0–23 or 1–12 hours, 0–59 minutes
+and seconds); Home/End select the field minimum/maximum. Wrapping does not
+change the calendar date or AM/PM. Select AM/PM separately in 12-hour mode.
+Keyboard edits remain drafts until Confirm, just like pointer edits.
+
 ### Treat timed popups as transactions
 
 In `hour`, `minute`, and `second` modes, calendar and time edits stay private
@@ -250,9 +287,7 @@ null             -> empty string
 range null       -> two empty strings
 ```
 
-Do not add another hidden input with the same name. `required` and `invalid`
-communicate field state, but hidden-input native constraint validation is not
-part of the contract.
+Do not add another hidden input with the same name. An unnamed native validation proxy participates in required validation, including incomplete segments, and routes invalid-submission focus to the first editable/incomplete segment. Disabled and read-only fields are exempt. Application/server validation is still required.
 
 ### Preserve the accessible compound anatomy
 
@@ -374,3 +409,36 @@ rg -n '<DatePicker\.Root[^>]*selectionMode="range"[^>]*name=' apps
 rg -U -P -n '<DatePicker\.Root(?![\s\S]{0,900}<DatePicker\.Segments)' apps
 rg -U -P -n '<DatePicker\.Root[^>]*name=(?![\s\S]{0,900}<DatePicker\.Calendar)' apps
 ```
+
+All user-originated commits share inclusive min/max and availability validation. Date-only bounds include the whole boundary day; timed bounds compare exact date-times. Unavailable segment edits remain private invalid drafts with feedback; they do not alter accepted values or canonical form inputs. Calendar labels use the explicit field timezone, and localized numerals are normalized before parsing while display remains localized. Zoned values are converted to the field `timeZone` before calendar coordinates and popup clock drafts are derived; floating dates/times stay floating. Opening or cancelling preserves the accepted wire value; confirming a zoned draft emits the same instant in the field timezone (with that zone's offset and identifier).
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.
+
+## Controlled edits and popup focus
+
+Keep `value` authoritative: a refused segmented edit restores its displayed date
+without another value proposal. Blur and native reset discard incomplete segment
+drafts without committing a new date. Controlled and uncontrolled resets retain
+the same serialized-value ownership as the visible segments.
+
+Keyboard selection that closes the calendar restores focus to its trigger after
+the popup and any focus trap finish closing, including inside Dialog or Drawer.
+Intentional focus outside the popup is preserved; do not add competing delayed
+focus handlers.
+
+On narrow fields, timed and zoned ranges wrap their start and end endpoints
+into labeled groups instead of hiding the end behind horizontal scrolling.
+
+Keep empty segment placeholders at readable contrast on every field surface.
+
+Empty segments keep the shared placeholder color; a focused empty segment switches to the value color so it stays readable on the focus fill.
+
+Read-only segments block only value edits; copy, select-all and navigation shortcuts keep working.

@@ -1,12 +1,12 @@
-import { expect, test, type Locator, type Page } from "@playwright/test"
+import { expect, type Locator, type Page, test } from "@playwright/test"
 
 const stories = {
   clearAndForm: "molecules-datepicker--clear-and-form-serialization",
   controlled: "molecules-datepicker--controlled-parent-behaviors",
   controlledRange: "molecules-datepicker--controlled-date-range",
   controlledTimedResync: "molecules-datepicker--controlled-timed-resync",
-  dateOnlyOpen: "molecules-datepicker--date-only-calendar",
-  dateRangeOpen: "molecules-datepicker--date-range-calendar",
+  dateOnly: "molecules-datepicker--date-only-calendar",
+  dateRange: "molecules-datepicker--date-range-calendar",
   locales: "molecules-datepicker--locales-and-long-labels",
   localizedUnavailableRange:
     "molecules-datepicker--localized-unavailable-range",
@@ -16,15 +16,17 @@ const stories = {
     "molecules-datepicker--rejecting-controlled-date-range",
   sizes: "molecules-datepicker--sizes",
   states: "molecules-datepicker--states",
-  timedOpen: "molecules-datepicker--initially-open-timed-draft",
-  timedRangeOpen: "molecules-datepicker--initially-open-date-time-range",
+  timed: "molecules-datepicker--initially-open-timed-draft",
+  timedRange: "molecules-datepicker--initially-open-date-time-range",
   timedVariants: "molecules-datepicker--transactional-time-granularities",
   typedValues: "molecules-datepicker--typed-date-time-values",
   zonedRange: "molecules-datepicker--zoned-date-time-range",
 } as const
 
 const inputStories = {
-  allVariants: "atoms-input--all-variants",
+  playground: "atoms-input--playground",
+  sizes: "atoms-input--sizes",
+  variants: "atoms-input--variants",
 } as const
 
 const pickerRootSelector = '[data-scope="date-picker"][data-part="root"]'
@@ -41,6 +43,21 @@ async function openStory(page: Page, storyId: string, args?: string) {
   await expect(page.locator(pickerRootSelector).first()).toBeVisible()
 }
 
+// Calendar examples intentionally start closed so their editable fields remain
+// usable in Docs. Exercise the real trigger instead of assuming defaultOpen.
+async function openCalendarStory(page: Page, storyId: string) {
+  await openStory(page, storyId)
+  const trigger = page.locator(
+    '[data-scope="date-picker"][data-part="trigger"]'
+  )
+  await expect(trigger).toHaveAccessibleName("Open calendar")
+  await expect(trigger).toHaveAttribute("aria-expanded", "false")
+  await expect(page.locator(contentSelector)).toHaveCount(0)
+  await trigger.click()
+  await expect(trigger).toHaveAttribute("aria-expanded", "true")
+  await expect(page.locator(contentSelector)).toBeVisible()
+}
+
 function pickerByLabel(page: Page, label: string) {
   return page.locator(pickerRootSelector).filter({ hasText: label })
 }
@@ -49,7 +66,7 @@ function hiddenValue(root: Locator) {
   return root.locator('input[type="hidden"]')
 }
 
-async function getControlStyles(control: Locator) {
+function getControlStyles(control: Locator) {
   return control.evaluate((node) => {
     const styles = getComputedStyle(node)
 
@@ -74,6 +91,12 @@ async function chooseDifferentDay(page: Page) {
 }
 
 test.describe("DatePicker browser behavior", () => {
+  test.beforeEach(async ({ page }) => {
+    // Empty calendars must not depend on the host's current month. Unlike fake
+    // timers, a fixed wall clock leaves Zag's RAF/focus scheduling running.
+    await page.clock.setFixedTime(new Date("2026-09-01T12:00:00Z"))
+  })
+
   test("matches the shared Input size and validation presentation", async ({
     page,
   }) => {
@@ -85,22 +108,36 @@ test.describe("DatePicker browser behavior", () => {
       nodes.map((node) => getComputedStyle(node).fontSize)
     )
 
-    await page.goto(
-      `/iframe.html?id=${inputStories.allVariants}&viewMode=story`,
-      { waitUntil: "domcontentloaded" }
-    )
+    await page.goto(`/iframe.html?id=${inputStories.sizes}&viewMode=story`, {
+      waitUntil: "domcontentloaded",
+    })
     const inputs = page.locator("input")
     await expect(inputs.first()).toBeVisible()
-    const inputFontSizes = await inputs
-      .evaluateAll((nodes) =>
-        nodes.slice(0, 3).map((node) => getComputedStyle(node).fontSize)
-      )
-    const inputPlaceholderColor = await inputs
-      .first()
-      .evaluate((node) => getComputedStyle(node, "::placeholder").color)
+    const inputFontSizes = await inputs.evaluateAll((nodes) =>
+      nodes.slice(0, 3).map((node) => getComputedStyle(node).fontSize)
+    )
     expect(datePickerFontSizes).toEqual(inputFontSizes)
 
-    const inputError = inputs.nth(4)
+    // Sizes now demonstrates filled values without placeholders. Measure a real
+    // placeholder pseudo-element instead of the browser's unrendered fallback.
+    await page.goto(
+      `/iframe.html?id=${inputStories.playground}&viewMode=story`,
+      {
+        waitUntil: "domcontentloaded",
+      }
+    )
+    const placeholderInput = page.getByPlaceholder("e.g. Alex Morgan")
+    await expect(placeholderInput).toBeVisible()
+    const inputPlaceholderColor = await placeholderInput.evaluate(
+      (node) => getComputedStyle(node, "::placeholder").color
+    )
+
+    await page.goto(`/iframe.html?id=${inputStories.variants}&viewMode=story`, {
+      waitUntil: "domcontentloaded",
+    })
+    const inputError = page.getByRole("textbox", {
+      name: "Contact name — error",
+    })
     await inputError.evaluate((node) => {
       node.style.transition = "none"
     })
@@ -111,7 +148,7 @@ test.describe("DatePicker browser behavior", () => {
     const inputErrorFocusStyles = await getControlStyles(inputError)
 
     await openStory(page, stories.states)
-    const invalidRoot = pickerByLabel(page, "Invalid")
+    const invalidRoot = pickerByLabel(page, "Delivery date")
     const invalidControl = invalidRoot.locator(
       '[data-scope="date-input"][data-part="control"]'
     )
@@ -154,7 +191,7 @@ test.describe("DatePicker browser behavior", () => {
     )
   })
 
-  test("keeps read-only styling neutral and exposes required semantics", async ({
+  test("uses the distinct full-contrast read-only surface and exposes required semantics", async ({
     page,
   }) => {
     await openStory(page, stories.playground)
@@ -163,14 +200,38 @@ test.describe("DatePicker browser behavior", () => {
     )
 
     await openStory(page, stories.states)
-    const readOnlyControlStyles = await getControlStyles(
-      pickerByLabel(page, "Read only").locator(
-        '[data-scope="date-input"][data-part="control"]'
-      )
+    const readOnlyRoot = pickerByLabel(page, "Read only")
+    const readOnlyControl = readOnlyRoot.locator(
+      '[data-scope="date-input"][data-part="control"]'
     )
+    await expect(readOnlyControl).toHaveAttribute("data-readonly")
+    const readOnlyControlStyles = await getControlStyles(readOnlyControl)
+    const expectedReadOnlyStyles = await readOnlyControl.evaluate((node) => {
+      const probe = document.createElement("span")
+      probe.style.backgroundColor = "var(--color-form-control-bg-readonly)"
+      probe.style.color = "var(--color-form-control-fg-readonly)"
+      node.append(probe)
+      const style = getComputedStyle(probe)
+      const result = {
+        backgroundColor: style.backgroundColor,
+        color: style.color,
+      }
+      probe.remove()
+      return result
+    })
+    // Read-only is a distinct, full-contrast surface, not the editable surface
+    // and not disabled dimming (component-contracts.md section 2).
     expect(readOnlyControlStyles.backgroundColor).toBe(
+      expectedReadOnlyStyles.backgroundColor
+    )
+    expect(readOnlyControlStyles.backgroundColor).not.toBe(
       defaultControlStyles.backgroundColor
     )
+    await expect(readOnlyControl).toHaveCSS(
+      "color",
+      expectedReadOnlyStyles.color
+    )
+    await expect(readOnlyControl).toHaveCSS("opacity", "1")
 
     const requiredRoot = pickerByLabel(page, "Required")
     await expect(
@@ -180,8 +241,111 @@ test.describe("DatePicker browser behavior", () => {
     ).toHaveAttribute("aria-required", "true")
   })
 
-  test("keeps the calendar heading compact and accessible", async ({ page }) => {
-    await openStory(page, stories.dateOnlyOpen)
+  test("keeps read-only dates selectable and copyable without allowing edits", async ({
+    page,
+  }) => {
+    await openStory(page, stories.states)
+    const root = pickerByLabel(page, "Read only")
+    const day = root.getByRole("spinbutton", { name: "Day", exact: true })
+    await expect(day).toHaveAttribute("contenteditable", "false")
+    await day.focus()
+    await expect(day).toBeFocused()
+
+    const blockedShortcuts = await day.evaluate((node) => {
+      const shortcuts: KeyboardEventInit[] = [
+        { key: "Tab" },
+        { key: "Tab", shiftKey: true },
+        { key: "Escape" },
+      ]
+      for (const modifiers of [
+        {},
+        { shiftKey: true },
+        { ctrlKey: true },
+        { metaKey: true },
+      ]) {
+        for (const key of ["ArrowLeft", "ArrowRight", "Home", "End"]) {
+          shortcuts.push({ key, ...modifiers })
+        }
+      }
+      for (const modifiers of [{ ctrlKey: true }, { metaKey: true }]) {
+        for (const key of ["a", "c"]) {
+          shortcuts.push({ key, ...modifiers })
+        }
+      }
+      return shortcuts.filter((shortcut) => {
+        const event = new KeyboardEvent("keydown", {
+          ...shortcut,
+          bubbles: true,
+          cancelable: true,
+        })
+        node.dispatchEvent(event)
+        return event.defaultPrevented
+      })
+    })
+    expect(blockedShortcuts).toEqual([])
+
+    await day.press("ControlOrMeta+a")
+    expect(
+      await day.evaluate((node) =>
+        node.ownerDocument.getSelection()?.toString()
+      )
+    ).toContain("31")
+    await day.evaluate((node) => {
+      node.ownerDocument.addEventListener(
+        "copy",
+        (event) => {
+          node.setAttribute(
+            "data-copied-text",
+            node.ownerDocument.getSelection()?.toString() ?? ""
+          )
+          // Observe the real copy command without changing the shared clipboard.
+          event.preventDefault()
+        },
+        { once: true }
+      )
+    })
+    await day.press("ControlOrMeta+c")
+    await expect
+      .poll(() => day.getAttribute("data-copied-text"))
+      .toContain("31")
+
+    for (const key of [
+      "1",
+      "Backspace",
+      "Delete",
+      "ArrowUp",
+      "ArrowDown",
+      "PageUp",
+      "PageDown",
+      "Home",
+      "End",
+      "ControlOrMeta+z",
+    ]) {
+      await day.press(key)
+    }
+    const pasteBlocked = await day.evaluate((node) => {
+      const data = new DataTransfer()
+      data.setData("text/plain", "2027-01-01")
+      const event = new ClipboardEvent("paste", {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: data,
+      })
+      node.dispatchEvent(event)
+      return event.defaultPrevented
+    })
+    expect(pasteBlocked).toBe(true)
+    await expect(day).toHaveText("31")
+    await expect(hiddenValue(root)).toHaveValue("2026-08-31")
+    await expect(page.locator(contentSelector)).toHaveCount(0)
+    await day.press("Tab")
+    await expect(day).not.toBeFocused()
+  })
+
+  test("keeps the calendar heading compact and accessible", async ({
+    page,
+  }) => {
+    await openCalendarStory(page, stories.dateOnly)
 
     const viewTrigger = page.locator(
       '[data-scope="date-picker"][data-part="view-trigger"]'
@@ -319,10 +483,10 @@ test.describe("DatePicker browser behavior", () => {
         content.evaluate((node) => {
           const rect = node.getBoundingClientRect()
           return !(
-            4 >= rect.left &&
-            4 <= rect.right &&
-            4 >= rect.top &&
-            4 <= rect.bottom
+            rect.left <= 4 &&
+            rect.right >= 4 &&
+            rect.top <= 4 &&
+            rect.bottom >= 4
           )
         })
       )
@@ -331,10 +495,254 @@ test.describe("DatePicker browser behavior", () => {
     await expect(content).toHaveCount(0)
   })
 
+  for (const [direction, value, heading] of [
+    ["previous", "2026-07-31", "Jul 2026"],
+    ["next", "2026-09-01", "Sep 2026"],
+  ] as const) {
+    test(`selects a visible ${direction}-month day and navigates the timed draft`, async ({
+      page,
+    }) => {
+      await openCalendarStory(page, stories.timed)
+      const hidden = hiddenValue(page.locator(pickerRootSelector).first())
+      const outsideDay = page.locator(
+        `${contentSelector} [data-part="table-cell-trigger"][data-value^="${value}"]`
+      )
+      await expect(outsideDay).toHaveAttribute("data-outside-range")
+      await expect(outsideDay).not.toHaveAttribute("data-disabled")
+      await outsideDay.click()
+      await expect(
+        page.locator(`${contentSelector} [data-part="view-trigger"]`)
+      ).toHaveText(heading)
+      await expect(hidden).toHaveValue("2026-08-31T14:30:00")
+      await page.getByRole("button", { name: "Confirm", exact: true }).click()
+      await expect(hidden).toHaveValue(`${value}T14:30:00`)
+    })
+  }
+
+  test("commits an adjacent-month date immediately and reopens in that month", async ({
+    page,
+  }) => {
+    await openStory(page, stories.playground, "defaultOpen:true;locale:en-US")
+    const root = page.locator(pickerRootSelector).first()
+    await page
+      .locator(
+        `${contentSelector} [data-part="table-cell-trigger"][data-value="2026-09-01"]`
+      )
+      .click()
+    await expect(hiddenValue(root)).toHaveValue("2026-09-01")
+    await expect(page.locator(contentSelector)).toHaveCount(0)
+    await root.getByRole("button", { name: "Open calendar" }).click()
+    await expect(
+      page.locator(`${contentSelector} [data-part="view-trigger"]`)
+    ).toHaveText("Sep 2026")
+  })
+
+  test("navigates a range panel when starting on an adjacent-month day", async ({
+    page,
+  }) => {
+    await openCalendarStory(page, stories.dateRange)
+    const panels = page.locator(
+      '[data-selection-mode="range"][data-view="day"] > [data-index]'
+    )
+    const previousDay = panels
+      .first()
+      .locator('[data-part="table-cell-trigger"][data-value="2026-08-31"]')
+    await expect(previousDay).not.toHaveAttribute("data-disabled")
+    await previousDay.click()
+    await expect(panels.first()).toContainText("Aug 2026")
+    await expect(panels.last()).toContainText("Oct 2026")
+    await panels
+      .last()
+      .locator('[data-part="table-cell-trigger"][data-value="2026-10-10"]')
+      .click()
+    const hidden = hiddenValue(page.locator(pickerRootSelector).first())
+    await expect(hidden.nth(0)).toHaveValue("2026-08-31")
+    await expect(hidden.nth(1)).toHaveValue("2026-10-10")
+  })
+
+  for (const scenario of [
+    {
+      direction: "previous",
+      start: "2026-08-31",
+      end: "2026-08-30",
+      headings: ["Aug 2026", "Oct 2026"],
+      arrow: "ArrowLeft",
+    },
+    {
+      direction: "next",
+      start: "2026-10-01",
+      end: "2026-10-02",
+      headings: ["Oct 2026", "Nov 2026"],
+      arrow: "ArrowRight",
+    },
+  ] as const) {
+    for (const activation of ["pointer", "Enter"] as const) {
+      test(`keeps range keyboard focus after ${activation} activation of a ${scenario.direction}-month start`, async ({
+        page,
+      }) => {
+        await openCalendarStory(page, stories.dateRange)
+        const content = page.locator(contentSelector)
+        const panels = content.locator('[data-part="calendar"] > [data-index]')
+        const adjacentDay = panels
+          .first()
+          .locator(
+            `[data-part="table-cell-trigger"][data-value="${scenario.start}"]`
+          )
+        await expect(adjacentDay).toHaveAttribute("data-outside-range")
+        if (activation === "pointer") {
+          await adjacentDay.click()
+        } else {
+          await adjacentDay.focus()
+          await page.keyboard.press("Enter")
+        }
+
+        await expect(panels.locator('[data-part="view-trigger"]')).toHaveText([
+          ...scenario.headings,
+        ])
+        const tabStop = content.locator(
+          '[data-part="table-cell-trigger"][tabindex="0"]'
+        )
+        await expect(tabStop).toHaveCount(1)
+        await expect(tabStop).toHaveAttribute("data-value", scenario.start)
+        await expect(tabStop).toBeFocused()
+        const hidden = hiddenValue(page.locator(pickerRootSelector).first())
+        await expect(hidden.nth(0)).toHaveValue("2026-09-05")
+        await expect(hidden.nth(1)).toHaveValue("2026-09-18")
+
+        await page.keyboard.press(scenario.arrow)
+        await expect(tabStop).toHaveCount(1)
+        await expect(tabStop).toHaveAttribute("data-value", scenario.end)
+        await expect(tabStop).toBeFocused()
+        await page.keyboard.press("Enter")
+        await expect(hidden.nth(0)).toHaveValue(
+          scenario.direction === "previous" ? scenario.end : scenario.start
+        )
+        await expect(hidden.nth(1)).toHaveValue(
+          scenario.direction === "previous" ? scenario.start : scenario.end
+        )
+        await expect(content).toHaveCount(0)
+      })
+    }
+  }
+
+  test("keeps adjacent-month dates subject to bounds and availability", async ({
+    page,
+  }) => {
+    await openCalendarStory(page, stories.localizedUnavailableRange)
+    for (const value of ["2026-08-31", "2026-11-01", "2026-09-14"]) {
+      const day = page
+        .locator(
+          `${contentSelector} [data-part="table-cell-trigger"][data-value^="${value}"]`
+        )
+        .first()
+      await expect(day).toHaveAttribute("data-disabled")
+      await expect(day).toHaveAttribute("aria-disabled", "true")
+    }
+    await expect(
+      page
+        .locator(
+          `${contentSelector} [data-part="table-cell-trigger"][data-value="2026-09-30"]`
+        )
+        .last()
+    ).not.toHaveAttribute("data-disabled")
+  })
+
+  for (const globals of [
+    "brand:akros",
+    "brand:base;mode:light",
+    "brand:base;mode:dark",
+  ]) {
+    test(`provides an opaque elevated popup in ${globals}`, async ({
+      page,
+    }) => {
+      await openCalendarStory(page, `${stories.timed}&globals=${globals}`)
+      const surface = await page.locator(contentSelector).evaluate((node) => {
+        const style = getComputedStyle(node)
+        const canvas = document.createElement("canvas")
+        const context = canvas.getContext("2d")
+        if (!(context && node.parentElement)) {
+          throw new Error("Expected a canvas context and floating positioner")
+        }
+        context.fillStyle = style.backgroundColor
+        context.fillRect(0, 0, 1, 1)
+        return {
+          alpha: context.getImageData(0, 0, 1, 1).data[3],
+          border: Number.parseFloat(style.borderTopWidth),
+          shadow: style.boxShadow,
+          z: Number(getComputedStyle(node.parentElement).zIndex),
+        }
+      })
+      expect(surface.alpha).toBe(255)
+      expect(surface.border).toBeGreaterThan(0)
+      expect(surface.shadow).not.toBe("none")
+      expect(surface.z).toBeGreaterThanOrEqual(50)
+    })
+  }
+
+  test("edits popup time using arrows, Home, End and typing without committing early", async ({
+    page,
+  }) => {
+    await openStory(
+      page,
+      stories.playground,
+      "granularity:second;defaultOpen:true;hourCycle:24"
+    )
+    const hidden = hiddenValue(page.locator(pickerRootSelector).first())
+    const content = page.locator(contentSelector)
+    for (const [label, min, max] of [
+      ["Hour", "0", "23"],
+      ["Minute", "0", "59"],
+      ["Second", "0", "59"],
+    ] as const) {
+      const input = content.getByRole("spinbutton", {
+        name: label,
+        exact: true,
+      })
+      await input.press("End")
+      await expect(input).toHaveValue(max)
+      await input.press("ArrowUp")
+      await expect(input).toHaveValue(min)
+      await input.press("ArrowDown")
+      await expect(input).toHaveValue(max)
+      await input.press("Home")
+      await expect(input).toHaveValue(min)
+      await input.fill("12")
+      await expect(input).toHaveValue("12")
+      await input.press("ArrowUp")
+      await expect(input).toHaveValue("13")
+      await input.press("ArrowDown")
+      await expect(input).toHaveValue("12")
+    }
+    await expect(hidden).toHaveValue("2026-08-31T14:30:45")
+    await content.getByRole("button", { name: "Confirm", exact: true }).click()
+    await expect(hidden).toHaveValue("2026-08-31T12:12:12")
+  })
+
+  test("wraps 12-hour time independently of the day period and cancels keyboard edits", async ({
+    page,
+  }) => {
+    await openStory(page, stories.timedVariants)
+    const root = pickerByLabel(page, "Appointment hour")
+    await root.getByRole("button", { name: "Open calendar" }).click()
+    const content = page.locator(contentSelector)
+    const hour = content.getByRole("spinbutton", { name: "Hour", exact: true })
+    await hour.press("End")
+    await expect(hour).toHaveValue("12")
+    await hour.press("ArrowUp")
+    await expect(hour).toHaveValue("1")
+    await hour.press("ArrowDown")
+    await expect(hour).toHaveValue("12")
+    await hour.press("Home")
+    await expect(hour).toHaveValue("1")
+    await expect(content.getByLabel("Day period")).toHaveValue("12")
+    await content.getByRole("button", { name: "Cancel", exact: true }).click()
+    await expect(hiddenValue(root)).toHaveValue("2026-08-31T14:00:00")
+  })
+
   test("commits date-only selection immediately and owns one scalar hidden value", async ({
     page,
   }) => {
-    await openStory(page, stories.dateOnlyOpen)
+    await openCalendarStory(page, stories.dateOnly)
 
     const root = page.locator(pickerRootSelector).first()
     const hidden = hiddenValue(root)
@@ -353,7 +761,7 @@ test.describe("DatePicker browser behavior", () => {
   test("keeps a date range private until its second endpoint and lays out two coordinated months", async ({
     page,
   }, testInfo) => {
-    await openStory(page, stories.dateRangeOpen)
+    await openCalendarStory(page, stories.dateRange)
 
     const root = page.locator(pickerRootSelector).first()
     const hidden = hiddenValue(root)
@@ -406,7 +814,7 @@ test.describe("DatePicker browser behavior", () => {
   test("keeps range panels aligned, independently navigable, and opens a period chooser from either heading", async ({
     page,
   }) => {
-    await openStory(page, stories.dateRangeOpen)
+    await openCalendarStory(page, stories.dateRange)
 
     const panels = page.locator(
       '[data-selection-mode="range"][data-view] > [data-index]'
@@ -437,7 +845,7 @@ test.describe("DatePicker browser behavior", () => {
   test("commits indexed direct range entry only after both groups are complete", async ({
     page,
   }) => {
-    await openStory(page, stories.dateRangeOpen)
+    await openStory(page, stories.dateRange)
 
     const root = page.locator(pickerRootSelector).first()
     const hidden = hiddenValue(root)
@@ -486,7 +894,7 @@ test.describe("DatePicker browser behavior", () => {
   test("commits both timed range endpoints through one confirm action", async ({
     page,
   }) => {
-    await openStory(page, stories.timedRangeOpen)
+    await openCalendarStory(page, stories.timedRange)
 
     const root = page.locator(pickerRootSelector).first()
     const hidden = hiddenValue(root)
@@ -670,7 +1078,7 @@ test.describe("DatePicker browser behavior", () => {
   test("discards one timed range transaction on Escape and Cancel", async ({
     page,
   }) => {
-    await openStory(page, stories.timedRangeOpen)
+    await openCalendarStory(page, stories.timedRange)
 
     const root = page.locator(pickerRootSelector).first()
     const hidden = hiddenValue(root)
@@ -694,7 +1102,7 @@ test.describe("DatePicker browser behavior", () => {
   test("keeps timed edits private across cancel, confirm, and draft clear", async ({
     page,
   }) => {
-    await openStory(page, stories.timedOpen)
+    await openCalendarStory(page, stories.timed)
 
     let root = page.locator(pickerRootSelector).first()
     let hidden = hiddenValue(root)
@@ -710,7 +1118,7 @@ test.describe("DatePicker browser behavior", () => {
     await expect(page.locator(contentSelector)).toHaveCount(0)
     await expect(hidden).toHaveValue(baseline)
 
-    await openStory(page, stories.timedOpen)
+    await openCalendarStory(page, stories.timed)
     root = page.locator(pickerRootSelector).first()
     hidden = hiddenValue(root)
     await chooseDifferentDay(page)
@@ -722,7 +1130,7 @@ test.describe("DatePicker browser behavior", () => {
     await expect(page.locator(contentSelector)).toHaveCount(0)
     await expect(hidden).toHaveValue(/T16:30:00$/)
 
-    await openStory(page, stories.timedOpen)
+    await openCalendarStory(page, stories.timed)
     root = page.locator(pickerRootSelector).first()
     hidden = hiddenValue(root)
     await root
@@ -737,7 +1145,7 @@ test.describe("DatePicker browser behavior", () => {
   test("renders small timed editing controls for single and range transactions", async ({
     page,
   }) => {
-    await openStory(page, stories.timedOpen)
+    await openCalendarStory(page, stories.timed)
 
     const content = page.locator(contentSelector)
     const timeGroup = content
@@ -802,7 +1210,7 @@ test.describe("DatePicker browser behavior", () => {
       expect(cancelBox.height).toBeLessThanOrEqual(36)
     }
 
-    await openStory(page, stories.timedRangeOpen)
+    await openCalendarStory(page, stories.timedRange)
     const rangeTimeInputs = page.locator(
       `${contentSelector} [data-part="time-control"] input[type="number"]`
     )
@@ -856,7 +1264,7 @@ test.describe("DatePicker browser behavior", () => {
   test("resynchronizes an open timed draft from an external controlled value", async ({
     page,
   }) => {
-    await openStory(page, stories.controlledTimedResync)
+    await openCalendarStory(page, stories.controlledTimedResync)
 
     const root = pickerByLabel(page, "Externally synchronized appointment")
     await expect(page.locator(contentSelector)).toBeVisible()
@@ -916,7 +1324,7 @@ test.describe("DatePicker browser behavior", () => {
   test("restores a rejected controlled range after closing the popup", async ({
     page,
   }) => {
-    await openStory(page, stories.rejectingControlledRange)
+    await openCalendarStory(page, stories.rejectingControlledRange)
 
     const root = page.locator(pickerRootSelector).first()
     const hidden = hiddenValue(root)
@@ -935,13 +1343,19 @@ test.describe("DatePicker browser behavior", () => {
       await segment.pressSequentially(value)
     }
 
+    // Leave the segment editor before selecting days: its queued focus/display
+    // synchronization must not race the first calendar selection.
+    await page.locator(contentSelector).locator("button").first().focus()
+    await expect(firstEndpoint.locator('[data-type="year"]')).toHaveText("2026")
     await expect(hidden.nth(0)).toHaveValue("")
     await expect(hidden.nth(1)).toHaveValue("")
-    await page
-      .locator(
-        '[data-scope="date-picker"][data-part="table-cell-trigger"][data-value="2026-09-19"]'
-      )
-      .click()
+    const rangeStart = page.locator(
+      '[data-scope="date-picker"][data-part="table-cell-trigger"][data-value="2026-09-19"]'
+    )
+    await rangeStart.click()
+    await expect(rangeStart).toHaveAttribute("data-selected")
+    await expect(rangeStart).toHaveAttribute("data-range-start")
+    await expect(rangeStart).not.toHaveAttribute("data-range-end")
     await page
       .locator(
         '[data-scope="date-picker"][data-part="table-cell-trigger"][data-value="2026-09-20"]'
@@ -1011,11 +1425,21 @@ test.describe("DatePicker browser behavior", () => {
     const readOnlyClearTrigger = readOnlyRoot.locator(
       '[data-scope="date-picker"][data-part="clear-trigger"]'
     )
-    await expect(readOnlyClearTrigger).toBeDisabled()
-    await expect(readOnlyClearTrigger).toBeHidden()
-    await readOnlyClearTrigger.evaluate((trigger: HTMLButtonElement) =>
-      trigger.click()
-    )
+    // Mutation affordances are omitted, rather than left as disabled tab stops.
+    await expect(readOnlyClearTrigger).toHaveCount(0)
+    await expect(
+      readOnlyRoot.locator('[data-scope="date-picker"][data-part="trigger"]')
+    ).toHaveCount(0)
+    const readOnlyDay = readOnlyRoot.getByRole("spinbutton", {
+      name: "Day",
+      exact: true,
+    })
+    await readOnlyDay.focus()
+    await expect(readOnlyDay).toBeFocused()
+    await readOnlyDay.press("ArrowUp")
+    await readOnlyDay.press("Delete")
+    await expect(readOnlyDay).toHaveText("31")
+    await expect(page.locator(contentSelector)).toHaveCount(0)
     await expect(hiddenValue(readOnlyRoot)).toHaveValue("2026-08-31")
 
     await openStory(page, stories.typedValues)
@@ -1032,7 +1456,7 @@ test.describe("DatePicker browser behavior", () => {
   test("renders localized unavailable range days and preserves zoned endpoints", async ({
     page,
   }) => {
-    await openStory(page, stories.localizedUnavailableRange)
+    await openCalendarStory(page, stories.localizedUnavailableRange)
 
     await expect(page.locator("thead abbr").first()).toHaveAttribute(
       "title",

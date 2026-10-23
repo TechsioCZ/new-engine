@@ -12,8 +12,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux"
-  sources: "libs/ui/stories/pages/crud-workflow.stories.tsx libs/ui/stories/pages/cms-record-editor.stories.tsx libs/ui/stories/pages/cms-content-list.stories.tsx libs/ui/stories/pages/settings.stories.tsx libs/ui/stories/pages/system-states.stories.tsx libs/ui/stories/pages/layouts.stories.tsx libs/ui/stories/pages/checkout.stories.tsx libs/ui/src/molecules/toast.tsx libs/ui/src/molecules/dialog.tsx libs/ui/src/organisms/table.tsx libs/ui/src/organisms/data-table.tsx libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
+  resources: "references/component-selection.md references/feedback-and-actions.md references/formatting.md references/states.md references/ux-writing.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: "../../references/consumer_app_usage_rules.md"
+  contributor_sources: "libs/ui/stories/pages/crud-workflow.stories.tsx libs/ui/stories/pages/cms-record-editor.stories.tsx libs/ui/stories/pages/cms-content-list.stories.tsx libs/ui/stories/pages/settings.stories.tsx libs/ui/stories/pages/system-states.stories.tsx libs/ui/stories/pages/layouts.stories.tsx libs/ui/stories/pages/checkout.stories.tsx libs/ui/src/molecules/toast.tsx libs/ui/src/molecules/dialog.tsx libs/ui/src/organisms/table.tsx libs/ui/src/organisms/data-table.tsx"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit UX Guidelines
 
@@ -64,8 +69,10 @@ Delete        row action (danger, last) → alertdialog "Delete this <object>?"
 ### Full-page record editor (reference: Pages/CMS/Record editor)
 
 ```text
-PageHeader actions top-right: [Back to list] [Preview] [Save]   (header stays visible)
-Save disabled until the form is dirty; Badge "Unsaved changes" next to the status
+Editor-scoped sticky row: dirty/saved status + [Save] (only this row stays in view)
+Save disabled until the form is dirty; row says "Unsaved changes" / "All changes saved locally"
+PageHeader actions top-right: [Back to list] (the PageHeader scrolls normally)
+Badge "Unsaved changes" also identifies the dirty record near its status
 Leaving while dirty → alertdialog [Keep editing] [Discard changes]
 Delete lives in a separate section at the bottom — never beside Save
 Save → toast "<Object> saved" (user stays on the page)
@@ -158,3 +165,30 @@ bottom-right, consistently across the app.
 [ ] Empty, loading and error states exist for every list and async section
 [ ] The component matches its intent (see component-selection)
 ```
+
+## Shared control contracts
+
+`../../references/component-contracts.md` defines the implementation contract.
+
+- Inline field guidance uses StatusText. Errors, warnings and success always
+  retain their default decorative icon; neutral help has no icon by default.
+  Write the meaning in text and associate every message with the focusable
+  control through aria-describedby; errors also use aria-invalid and
+  aria-errormessage. Multiline copy starts beside the first-line icon and wraps
+  in the text column, not below the icon.
+- Read-only means value visible, focusable and copyable, not editable. Keep
+  normal contrast and focus rings, with a subtle surface; use text/default
+  cursors, never not-allowed or disabled dimming. All value-holding controls
+  must support it, including choice controls and uploads. Hide/inert clear,
+  stepper, dropdown, calendar and remove actions. Text selection, copy, reveal,
+  file preview/download can remain. Pickers do not open by default; any explicit
+  open-for-view exception cannot commit changes. Disabled is unavailable and
+  removed from tab order, with disabled visuals and not-allowed cursor.
+- Canonical interactive sizes are sm/md/lg, default md. Dense layouts choose sm;
+  do not shrink the entire type scale or introduce xs controls ad hoc.
+- Floating panels are opaque, bordered and elevated above underlying surfaces;
+  hover tint and checked selection must remain visually distinct.
+- Documentation uses realistic copy, one primary per surface, no navigations
+  away, and one ordered Small (sm)/Medium (md)/Large (lg) Sizes matrix. Every
+  story explains what/why, and every component has an autodocs description
+  explaining when to choose it over alternatives.

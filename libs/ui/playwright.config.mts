@@ -20,7 +20,7 @@ const expectTimeout = 30_000
 
 export default defineConfig({
   testDir: "./test",
-  testMatch: "*.spec.ts",
+  testMatch: ["*.spec.ts", "visual-*.spec.mjs"],
   globalSetup: "./test/docker-only.global-setup.js",
   reporter: "html",
   updateSnapshots: "none",

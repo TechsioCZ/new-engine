@@ -1,673 +1,453 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
-import { Menu, type MenuItem } from '../../src/molecules/menu'
+import { Menu, type MenuItem } from "../../src/molecules/menu"
 
-const meta: Meta<typeof Menu> = {
-  title: 'Molecules/Menu',
+const items: MenuItem[] = [
+  {
+    type: "action",
+    value: "edit",
+    label: "Edit project",
+    icon: "token-icon-file-document",
+  },
+  {
+    type: "action",
+    value: "copy",
+    label: "Copy link",
+    icon: "token-icon-copy",
+  },
+  { type: "separator", id: "share" },
+  {
+    type: "submenu",
+    value: "share",
+    label: "Share project",
+    items: [
+      { type: "action", value: "email", label: "Send by email" },
+      { type: "action", value: "invite", label: "Invite teammate" },
+    ],
+  },
+  {
+    type: "submenu",
+    value: "archive",
+    label: "Archived projects",
+    disabled: true,
+    items: [{ type: "action", value: "restore", label: "Restore project" }],
+  },
+]
+const meta = {
+  title: "Molecules/Menu",
   component: Menu,
+  tags: ["autodocs"],
   parameters: {
-    layout: 'centered',
+    layout: "centered",
+    docs: {
+      description: {
+        component:
+          "A keyboard-accessible popup of contextual actions, including nested commands and checked options. Choose Menu for transient commands; use Select for a form value and links for persistent navigation. Legacy xs remains available for compatibility; sm, md and lg are the canonical sizes.",
+      },
+    },
   },
   argTypes: {
-    size: {
-      control: { type: 'select' },
-      options: ['sm', 'md', 'lg'],
-    },
-    triggerText: {
-      control: { type: 'text' },
-    },
-    customTrigger: {
-      control: { type: 'boolean' },
-    },
+    size: { control: "select", options: ["sm", "md", "lg"] },
+    dir: { control: "select", options: ["ltr", "rtl"] },
+    triggerText: { control: "text" },
+    contextMenu: { control: "boolean" },
+    closeOnSelect: { control: "boolean" },
+    customTrigger: { control: false },
+    id: { table: { disable: true } },
   },
-}
-
+  args: { items, triggerText: "Project actions", size: "md", onSelect: fn() },
+} satisfies Meta<typeof Menu>
 export default meta
 type Story = StoryObj<typeof meta>
 
-const basicItems: MenuItem[] = [
-  {
-    type: 'action',
-    value: 'new-file',
-    label: 'New File',
-    icon: 'token-icon-plus',
-  },
-  {
-    type: 'action',
-    value: 'open',
-    label: 'Open...',
-    icon: 'token-icon-folder',
-  },
-  { type: 'separator', id: 'separator-1' },
-  { type: 'action', value: 'save', label: 'Save', icon: 'token-icon-save' },
-  {
-    type: 'action',
-    value: 'save-as',
-    label: 'Save As...',
-    icon: 'token-icon-save',
-  },
-  { type: 'separator', id: 'separator-2' },
-  { type: 'action', value: 'exit', label: 'Exit', icon: 'token-icon-close' },
-]
-
-export const Default: Story = {
-  args: {
-    items: basicItems,
-    triggerText: 'File',
-  },
-}
-
-export const Small: Story = {
-  args: {
-    items: basicItems,
-    triggerText: 'File',
-    size: 'sm',
-  },
-}
-
-export const Large: Story = {
-  args: {
-    items: basicItems,
-    triggerText: 'File',
-    size: 'lg',
-  },
-}
-
-export const WithCustomPositioning: Story = {
-  args: {
-    items: basicItems,
-    triggerText: 'File',
-    positioning: {
-      placement: 'top',
-    },
-  },
-}
-
-const itemsWithDisabled: MenuItem[] = [
-  {
-    type: 'action',
-    value: 'cut',
-    label: 'Cut',
-    icon: 'icon-[mdi--content-cut]',
-  },
-  { type: 'action', value: 'copy', label: 'Copy', icon: 'token-icon-copy' },
-  {
-    type: 'action',
-    value: 'paste',
-    label: 'Paste',
-    icon: 'token-icon-clipboard',
-    disabled: true,
-  },
-  { type: 'separator', id: 'separator' },
-  {
-    type: 'action',
-    value: 'delete',
-    label: 'Delete',
-    icon: 'token-icon-trash',
-  },
-]
-
-export const WithDisabledItems: Story = {
-  args: {
-    items: itemsWithDisabled,
-    triggerText: 'Edit',
-  },
-}
-
-const contextMenuItems: MenuItem[] = [
-  { type: 'action', value: 'undo', label: 'Undo', icon: 'token-icon-undo' },
-  { type: 'action', value: 'redo', label: 'Redo', icon: 'token-icon-redo' },
-  { type: 'separator', id: 'separator-1' },
-  { type: 'action', value: 'cut', label: 'Cut', icon: 'token-icon-scissors' },
-  { type: 'action', value: 'copy', label: 'Copy', icon: 'token-icon-copy' },
-  {
-    type: 'action',
-    value: 'paste',
-    label: 'Paste',
-    icon: 'token-icon-clipboard',
-  },
-  { type: 'separator', id: 'separator-2' },
-  { type: 'action', value: 'select-all', label: 'Select All' },
-]
-
-export const ContextMenu: Story = {
-  args: {
-    items: contextMenuItems,
-    triggerText: 'Right Click',
-  },
-}
-
-export const CustomTrigger: Story = {
-  args: {
-    items: basicItems,
-    customTrigger: (
-      <Button size="sm">Custom Trigger</Button>
-    ),
-  },
-}
-
-export const WithSelectHandler: Story = {
-  args: {
-    items: basicItems,
-    triggerText: 'Actions',
-    onSelect: (details: { value: string }) => {
-      alert(`You selected: ${details.value}`)
-    },
-  },
-}
-
-const viewMenuItems: MenuItem[] = [
-  {
-    type: 'checkbox',
-    value: 'show-sidebar',
-    label: 'Show Sidebar',
-    checked: true,
-  },
-  {
-    type: 'checkbox',
-    value: 'show-toolbar',
-    label: 'Show Toolbar',
-    checked: true,
-  },
-  {
-    type: 'checkbox',
-    value: 'show-statusbar',
-    label: 'Show Status Bar',
-    checked: false,
-  },
-  { type: 'separator', id: 'separator-1' },
-  {
-    type: 'radio',
-    value: 'list-view',
-    label: 'List View',
-    name: 'view-mode',
-    checked: true,
-  },
-  {
-    type: 'radio',
-    value: 'grid-view',
-    label: 'Grid View',
-    name: 'view-mode',
-    checked: false,
-  },
-  {
-    type: 'radio',
-    value: 'detail-view',
-    label: 'Detail View',
-    name: 'view-mode',
-    checked: false,
-  },
-]
-
-export const WithOptionsMenu: Story = {
-  args: {
-    items: viewMenuItems,
-    triggerText: 'View',
-    onCheckedChange: (_item: MenuItem, _checked: boolean) => {},
-  },
-}
-
-// Story pro keyboard navigation
-export const KeyboardNavigation: Story = {
-  args: {
-    items: basicItems,
-    triggerText: 'Press Arrow Keys',
-    typeahead: true,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Use arrow keys to navigate, Enter to select, and type to search',
-      },
-    },
-  },
-}
-
-// Story pro positioning
-const positioningItems: MenuItem[] = [
-  { type: 'action', value: 'top', label: 'Top placement' },
-  { type: 'action', value: 'right', label: 'Right placement' },
-  { type: 'action', value: 'bottom', label: 'Bottom placement' },
-  { type: 'action', value: 'left', label: 'Left placement' },
-]
-
-export const DifferentPlacements: Story = {
-  render: () => (
-    <div className="grid grid-cols-2 gap-16 p-20">
-      <Menu
-        items={positioningItems}
-        triggerText="Top"
-        positioning={{ placement: 'top' }}
-      />
-      <Menu
-        items={positioningItems}
-        triggerText="Right"
-        positioning={{ placement: 'right' }}
-      />
-      <Menu
-        items={positioningItems}
-        triggerText="Bottom"
-        positioning={{ placement: 'bottom' }}
-      />
-      <Menu
-        items={positioningItems}
-        triggerText="Left"
-        positioning={{ placement: 'left' }}
-      />
+export const Playground: Story = {
+  render: (args) => (
+    <div className="flex min-w-0 max-w-full justify-center">
+      <Menu {...args} />
     </div>
   ),
+  parameters: {
+    layout: "padded",
+    docs: {
+      description: {
+        story:
+          "Explore action menus, size, direction and dismissal using working controls.",
+      },
+    },
+  },
+  play: async ({ canvasElement, args }) => {
+    const trigger = within(canvasElement).getByRole("button", {
+      name: String(args.triggerText),
+    })
+    const body = within(canvasElement.ownerDocument.body)
+    trigger.focus()
+    await userEvent.keyboard(
+      args.contextMenu ? "{Shift>}{F10}{/Shift}" : "{ArrowDown}"
+    )
+    const menu = await body.findByRole("menu")
+    await waitFor(() => expect(menu).toBeVisible())
+    await expect(
+      body.getByRole("menuitem", { name: "Archived projects" })
+    ).toHaveTextContent("Archived projects")
+    await userEvent.keyboard("{End}")
+    await waitFor(() =>
+      expect(
+        body.getByRole("menuitem", { name: "Share project" })
+      ).toHaveAttribute("data-highlighted", "")
+    )
+    const document = canvasElement.ownerDocument.documentElement
+    await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(trigger).toHaveFocus())
+  },
 }
 
-// Story pro mixed content
-const mixedContentItems: MenuItem[] = [
-  {
-    type: 'action',
-    value: 'profile',
-    label: 'My Profile',
-    icon: 'token-icon-user',
+export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The same project commands at Small (sm), Medium (md) and Large (lg) keep trigger and popup sizing aligned.",
+      },
+    },
   },
-  {
-    type: 'action',
-    value: 'settings',
-    label: 'Settings',
-    icon: 'token-icon-settings',
+  render: () => (
+    <VariantContainer>
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <VariantGroup
+          key={size}
+          title={
+            { sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]
+          }
+        >
+          <Menu items={items} size={size} triggerText="Project actions" />
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+}
+export const WithDisabledItems: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Unavailable submenu commands remain announced as disabled and cannot open through pointer or keyboard input.",
+      },
+    },
   },
-  { type: 'separator', id: 'sep-1' },
-  {
-    type: 'checkbox',
-    value: 'notifications',
-    label: 'Enable Notifications',
-    checked: true,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Project actions" })
+    )
+    const body = within(canvasElement.ownerDocument.body)
+    const disabled = await body.findByRole("menuitem", {
+      name: "Archived projects",
+    })
+    await expect(disabled).toHaveAttribute("aria-disabled", "true")
+    await expect(disabled).toHaveAttribute("data-disabled", "")
+    await userEvent.hover(disabled)
+    await userEvent.click(disabled)
+    await expect(
+      body.queryByRole("menuitem", { name: "Restore project" })
+    ).not.toBeInTheDocument()
+    await userEvent.keyboard("{Escape}")
   },
-  { type: 'checkbox', value: 'sounds', label: 'Enable Sounds', checked: false },
-  { type: 'separator', id: 'sep-2' },
-  {
-    type: 'radio',
-    value: 'light',
-    label: 'Light Theme',
-    name: 'theme',
-    checked: true,
+}
+export const ContextMenu: Story = {
+  args: { contextMenu: true, triggerText: "Right-click project actions" },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Right-click, long press, or focus the target and press Shift+F10 to open contextual commands without left-click activation.",
+      },
+    },
   },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("button", {
+      name: "Right-click project actions",
+    })
+    await userEvent.click(trigger)
+    await expect(
+      within(canvasElement.ownerDocument.body).queryByRole("menu")
+    ).not.toBeInTheDocument()
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}")
+    await waitFor(async () => {
+      await expect(
+        await within(canvasElement.ownerDocument.body).findByRole("menu")
+      ).toBeVisible()
+    })
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(trigger).toHaveFocus())
+  },
+}
+export const CustomTrigger: Story = {
+  args: {
+    customTrigger: (
+      <Button onClick={fn()} theme="outlined">
+        More project actions
+      </Button>
+    ),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A named consumer button retains its click handler while receiving menu keyboard and expansion behavior.",
+      },
+    },
+  },
+  play: async ({ args, canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", {
+        name: "More project actions",
+      })
+    )
+    if (
+      args.customTrigger &&
+      typeof args.customTrigger === "object" &&
+      "props" in args.customTrigger
+    ) {
+      await expect(
+        (args.customTrigger.props as { onClick: () => void }).onClick
+      ).toHaveBeenCalled()
+    }
+    await waitFor(async () => {
+      await expect(
+        await within(canvasElement.ownerDocument.body).findByRole("menu")
+      ).toBeVisible()
+    })
+    await userEvent.keyboard("{Escape}")
+  },
+}
+const optionItems: MenuItem[] = [
+  { type: "checkbox", value: "sidebar", label: "Show sidebar", checked: true },
   {
-    type: 'radio',
-    value: 'dark',
-    label: 'Dark Theme',
-    name: 'theme',
+    type: "checkbox",
+    value: "activity",
+    label: "Show activity",
     checked: false,
   },
+  { type: "separator", id: "view" },
   {
-    type: 'radio',
-    value: 'system',
-    label: 'System Theme',
-    name: 'theme',
-    checked: false,
+    type: "radio",
+    value: "list",
+    name: "view",
+    label: "List view",
+    checked: true,
   },
-  { type: 'separator', id: 'sep-3' },
   {
-    type: 'action',
-    value: 'logout',
-    label: 'Logout',
-    icon: 'token-icon-logout',
+    type: "radio",
+    value: "grid",
+    name: "view",
+    label: "Grid view",
+    checked: false,
   },
 ]
-
-export const ComplexMenu: Story = {
-  args: {
-    items: mixedContentItems,
-    triggerText: 'Account',
-    triggerIcon: 'token-icon-user',
+export const WithOptionsMenu: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Controlled checkbox and radio commands update their checked indicators without closing the menu.",
+      },
+    },
+  },
+  render: (args) => {
+    const [options, setOptions] = useState(optionItems)
+    return (
+      <Menu
+        {...args}
+        closeOnSelect={false}
+        items={options}
+        triggerText="View options"
+        onCheckedChange={(item, checked) =>
+          setOptions((previous) =>
+            previous.map((option) => {
+              if (option.type !== "checkbox" && option.type !== "radio")
+                return option
+              if (item.type !== "checkbox" && item.type !== "radio")
+                return option
+              if (option.value === item.value) return { ...option, checked }
+              if (
+                option.type === "radio" &&
+                item.type === "radio" &&
+                option.name === item.name &&
+                checked
+              )
+                return { ...option, checked: false }
+              return option
+            })
+          )
+        }
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "View options" })
+    )
+    const body = within(canvasElement.ownerDocument.body)
+    const checkbox = await body.findByRole("menuitemcheckbox", {
+      name: "Show sidebar",
+    })
+    await userEvent.click(checkbox)
+    await expect(checkbox).toHaveAttribute("aria-checked", "false")
+    await userEvent.click(
+      body.getByRole("menuitemradio", { name: "Grid view" })
+    )
+    await expect(
+      body.getByRole("menuitemradio", { name: "Grid view" })
+    ).toHaveAttribute("aria-checked", "true")
+    await expect(
+      body.getByRole("menuitemradio", { name: "List view" })
+    ).toHaveAttribute("aria-checked", "false")
+    await userEvent.keyboard("{Escape}")
   },
 }
-
-// Story pro long menu with scroll
-const longMenuItems: MenuItem[] = Array.from({ length: 20 }, (_, i) => ({
-  type: 'action' as const,
-  value: `item-${i}`,
-  label: `Menu Item ${i + 1}`,
-  icon: i % 3 === 0 ? 'token-icon-star' : undefined,
-}))
-
+export const NestedMenu: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Nested sharing commands open next to their parent and share the popup elevation contract.",
+      },
+    },
+  },
+}
+export const RTLSupport: Story = {
+  args: { dir: "rtl" },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Right-to-left menus mirror submenu arrows, placement and keyboard movement together.",
+      },
+    },
+  },
+}
 export const ScrollableMenu: Story = {
   args: {
-    items: longMenuItems,
-    triggerText: 'Long Menu',
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Menu with many items shows scrollbar when exceeding max height',
-      },
-    },
-  },
-}
-
-// Story pro nested menu
-const nestedMenuItems: MenuItem[] = [
-  {
-    type: 'action',
-    value: 'new-file',
-    label: 'New File',
-    icon: 'token-icon-plus',
-  },
-  {
-    type: 'action',
-    value: 'open',
-    label: 'Open...',
-    icon: 'token-icon-folder',
-  },
-  { type: 'separator', id: 'sep-1' },
-  {
-    type: 'submenu',
-    value: 'recent',
-    label: 'Recent Files',
-    icon: 'token-icon-clock',
-    items: [
-      { type: 'action', value: 'recent-1', label: 'project-config.json' },
-      { type: 'action', value: 'recent-2', label: 'README.md' },
-      { type: 'action', value: 'recent-3', label: 'package.json' },
-      { type: 'separator', id: 'sep-recent' },
-      { type: 'action', value: 'clear-recent', label: 'Clear Recent Files' },
-    ],
-  },
-  { type: 'separator', id: 'sep-2' },
-  {
-    type: 'submenu',
-    value: 'share',
-    label: 'Share',
-    icon: 'token-icon-share',
-    items: [
-      {
-        type: 'action',
-        value: 'email',
-        label: 'Email',
-        icon: 'token-icon-email',
-      },
-      {
-        type: 'action',
-        value: 'link',
-        label: 'Copy Link',
-        icon: 'token-icon-link',
-      },
-      { type: 'separator', id: 'sep-share' },
-      {
-        type: 'submenu',
-        value: 'social',
-        label: 'Social Media',
-        icon: 'token-icon-share',
-        items: [
-          { type: 'action', value: 'twitter', label: 'Twitter' },
-          { type: 'action', value: 'facebook', label: 'Facebook' },
-          { type: 'action', value: 'linkedin', label: 'LinkedIn' },
-        ],
-      },
-    ],
-  },
-  {
-    type: 'action',
-    value: 'print',
-    label: 'Print...',
-    icon: 'token-icon-print',
-  },
-  { type: 'separator', id: 'sep-3' },
-  { type: 'action', value: 'exit', label: 'Exit', icon: 'token-icon-close' },
-]
-
-export const NestedMenu: Story = {
-  args: {
-    items: nestedMenuItems,
-    triggerText: 'File',
-    onSelect: (_details: { value: string }) => {},
+    items: Array.from({ length: 24 }, (_, i) => ({
+      type: "action",
+      value: `project-${i}`,
+      label: `Open project ${i + 1}`,
+    })),
   },
   parameters: {
     docs: {
       description: {
         story:
-          'Menu with nested submenus. Supports multiple levels of nesting.',
+          "Long command lists scroll inside the opaque popup rather than extending beyond the viewport.",
       },
     },
   },
 }
 
-// Story pro complex nested menu (like categories)
-const categoryMenuItems: MenuItem[] = [
-  { type: 'action', value: 'all', label: 'All Products' },
-  { type: 'separator', id: 'sep-categories' },
-  {
-    type: 'submenu',
-    value: 'electronics',
-    label: 'Electronics',
-    items: [
-      {
-        type: 'submenu',
-        value: 'computers',
-        label: 'Computers & Tablets',
-        items: [
-          { type: 'action', value: 'laptops', label: 'Laptops' },
-          { type: 'action', value: 'desktops', label: 'Desktop Computers' },
-          { type: 'action', value: 'tablets', label: 'Tablets' },
-          {
-            type: 'submenu',
-            value: 'accessories',
-            label: 'Computer Accessories',
-            items: [
-              { type: 'action', value: 'keyboards', label: 'Keyboards' },
-              { type: 'action', value: 'mice', label: 'Mice & Trackpads' },
-              { type: 'action', value: 'monitors', label: 'Monitors' },
-              { type: 'action', value: 'webcams', label: 'Webcams' },
-            ],
-          },
-        ],
-      },
-      {
-        type: 'submenu',
-        value: 'phones',
-        label: 'Phones & Accessories',
-        items: [
-          { type: 'action', value: 'smartphones', label: 'Smartphones' },
-          { type: 'action', value: 'cases', label: 'Phone Cases' },
-          { type: 'action', value: 'chargers', label: 'Chargers & Cables' },
-          { type: 'action', value: 'headphones', label: 'Headphones' },
-        ],
-      },
-      { type: 'action', value: 'cameras', label: 'Cameras & Photo' },
-      { type: 'action', value: 'tv', label: 'TV & Home Theater' },
-    ],
+export const NavigationAndDisabledOptions: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "Native link items reach the navigation callback while disabled checkable rows remain unchanged and out of keyboard highlighting." } } },
+  render: () => {
+    const [result, setResult] = useState("No navigation yet")
+    return <div className="space-y-200"><Menu triggerText="Account commands" navigate={(value) => setResult(`Opened ${value} in this preview`)} items={[
+      { type: "link", value: "orders", label: "Order history", href: "#orders" },
+      { type: "checkbox", value: "locked", label: "Locked preference", checked: false, disabled: true },
+      { type: "radio", name: "view", value: "locked-view", label: "Unavailable view", checked: false, disabled: true },
+      { type: "action", value: "done", label: "Done" },
+    ]} /><p role="status">{result}</p></div>
   },
-  {
-    type: 'submenu',
-    value: 'clothing',
-    label: 'Clothing & Fashion',
-    items: [
-      {
-        type: 'submenu',
-        value: 'mens',
-        label: "Men's Clothing",
-        items: [
-          { type: 'action', value: 'mens-shirts', label: 'Shirts' },
-          { type: 'action', value: 'mens-pants', label: 'Pants' },
-          { type: 'action', value: 'mens-shoes', label: 'Shoes' },
-          { type: 'action', value: 'mens-accessories', label: 'Accessories' },
-        ],
-      },
-      {
-        type: 'submenu',
-        value: 'womens',
-        label: "Women's Clothing",
-        items: [
-          { type: 'action', value: 'womens-dresses', label: 'Dresses' },
-          { type: 'action', value: 'womens-tops', label: 'Tops' },
-          { type: 'action', value: 'womens-shoes', label: 'Shoes' },
-          { type: 'action', value: 'womens-bags', label: 'Bags & Purses' },
-        ],
-      },
-      { type: 'action', value: 'kids', label: "Kids' Clothing" },
-      { type: 'action', value: 'sports', label: 'Sportswear' },
-    ],
-  },
-  {
-    type: 'submenu',
-    value: 'home',
-    label: 'Home & Garden',
-    items: [
-      { type: 'action', value: 'furniture', label: 'Furniture' },
-      { type: 'action', value: 'kitchen', label: 'Kitchen & Dining' },
-      { type: 'action', value: 'bedding', label: 'Bedding & Bath' },
-      { type: 'action', value: 'decor', label: 'Home Decor' },
-      { type: 'action', value: 'garden', label: 'Garden & Outdoor' },
-    ],
-  },
-]
-
-export const CategoryMenu: Story = {
-  args: {
-    items: categoryMenuItems,
-    triggerText: 'Shop by Category',
-    triggerIcon: 'token-icon-grid',
-    onSelect: (details: { value: string }) => {
-      alert(`Navigate to category: ${details.value}`)
-    },
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Complex nested menu structure suitable for e-commerce categories with multiple levels of hierarchy.',
-      },
-    },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const trigger = canvas.getByRole("button", { name: "Account commands" })
+    await userEvent.click(trigger)
+    await waitFor(async () => expect(await body.findByRole("menu")).toHaveFocus())
+    const link = await body.findByRole("menuitem", { name: "Order history" })
+    await expect(link.tagName).toBe("A")
+    await expect(body.getByRole("menuitemcheckbox")).toHaveAttribute("aria-disabled", "true")
+    await expect(body.getByRole("menuitemradio")).toHaveAttribute("aria-disabled", "true")
+    await userEvent.keyboard("{Home}{Enter}")
+    await expect(canvas.getByRole("status")).toHaveTextContent("Opened orders in this preview")
   },
 }
 
-// Story pro mixed nested menu with options
-const mixedNestedItems: MenuItem[] = [
-  {
-    type: 'action',
-    value: 'dashboard',
-    label: 'Dashboard',
-    icon: 'token-icon-home',
-  },
-  { type: 'separator', id: 'sep-1' },
-  {
-    type: 'submenu',
-    value: 'view',
-    label: 'View',
-    icon: 'token-icon-eye',
-    items: [
-      {
-        type: 'checkbox',
-        value: 'show-sidebar',
-        label: 'Show Sidebar',
-        checked: true,
-      },
-      {
-        type: 'checkbox',
-        value: 'show-toolbar',
-        label: 'Show Toolbar',
-        checked: true,
-      },
-      { type: 'separator', id: 'sep-view' },
-      {
-        type: 'submenu',
-        value: 'theme',
-        label: 'Theme',
-        items: [
-          {
-            type: 'radio',
-            value: 'light',
-            label: 'Light',
-            name: 'theme',
-            checked: true,
-          },
-          {
-            type: 'radio',
-            value: 'dark',
-            label: 'Dark',
-            name: 'theme',
-            checked: false,
-          },
-          {
-            type: 'radio',
-            value: 'system',
-            label: 'System',
-            name: 'theme',
-            checked: false,
-          },
-        ],
-      },
-      {
-        type: 'submenu',
-        value: 'layout',
-        label: 'Layout',
-        items: [
-          {
-            type: 'radio',
-            value: 'comfortable',
-            label: 'Comfortable',
-            name: 'layout',
-            checked: true,
-          },
-          {
-            type: 'radio',
-            value: 'compact',
-            label: 'Compact',
-            name: 'layout',
-            checked: false,
-          },
-          {
-            type: 'radio',
-            value: 'spacious',
-            label: 'Spacious',
-            name: 'layout',
-            checked: false,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    type: 'submenu',
-    value: 'tools',
-    label: 'Tools',
-    icon: 'token-icon-settings',
-    items: [
-      {
-        type: 'action',
-        value: 'import',
-        label: 'Import Data...',
-        icon: 'token-icon-download',
-      },
-      {
-        type: 'action',
-        value: 'export',
-        label: 'Export Data...',
-        icon: 'token-icon-upload',
-      },
-      { type: 'separator', id: 'sep-tools' },
-      {
-        type: 'action',
-        value: 'preferences',
-        label: 'Preferences...',
-        icon: 'token-icon-settings',
-      },
-    ],
-  },
-  { type: 'separator', id: 'sep-2' },
-  { type: 'action', value: 'help', label: 'Help', icon: 'token-icon-help' },
-]
-
-export const MixedNestedMenu: Story = {
-  args: {
-    items: mixedNestedItems,
-    triggerText: 'Application',
-    onSelect: (_details: { value: string }) => {},
-    onCheckedChange: (_item: MenuItem, _checked: boolean) => {},
-  },
+export const LongLabels: Story = {
+  tags: ["ui-runtime-regression"],
+  render: Playground.render,
   parameters: {
+    layout: "padded",
+    controls: { disable: true },
     docs: {
       description: {
         story:
-          'Nested menu with mixed content types including checkboxes and radio buttons in submenus.',
+          "Long command labels and their trigger stay inside the phone viewport at 200% text size while preserving keyboard navigation and dismissal.",
       },
     },
+  },
+  args: { triggerText: "File commands", items: [{ type: "action", value: "download", label: "Download the complete catalog including archived products and regional delivery exceptions" }, { type: "action", value: "reference", label: "AKROS-2026-" + "AB1234567890".repeat(8) }] },
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument.documentElement
+    const previousFontSize = document.style.fontSize
+    const trigger = within(canvasElement).getByRole("button", {
+      name: "File commands",
+    })
+    const body = within(canvasElement.ownerDocument.body)
+    document.style.fontSize = "200%"
+    try {
+      await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
+      trigger.focus()
+      await userEvent.keyboard("{ArrowDown}")
+      const menu = await body.findByRole("menu")
+      const reference = body.getByRole("menuitem", { name: /^AKROS-2026-/ })
+      // Focus can precede the starting-style frame even with reduced motion.
+      await waitFor(() => {
+        expect(menu).toHaveFocus()
+        expect(menu).toBeVisible()
+        expect(
+          body.getByRole("menuitem", {
+            name: "Download the complete catalog including archived products and regional delivery exceptions",
+          })
+        ).toBeVisible()
+        expect(reference).toBeVisible()
+      })
+      await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
+      await userEvent.keyboard("{End}")
+      await waitFor(() => expect(reference).toHaveAttribute("data-highlighted"))
+      await userEvent.keyboard("{Escape}")
+      // Menu retains its closed content for CSS discrete transitions.
+      // Dismissal means hidden/inaccessible, not necessarily unmounted.
+      await waitFor(() => {
+        expect(menu).toHaveAttribute("data-state", "closed")
+        expect(menu).not.toBeVisible()
+        expect(body.queryByRole("menu")).toBeNull()
+        expect(trigger).toHaveAttribute("aria-expanded", "false")
+      })
+      await waitFor(() => expect(trigger).toHaveFocus())
+      await expect(document.scrollWidth).toBeLessThanOrEqual(document.clientWidth)
+    } finally {
+      document.style.fontSize = previousFontSize
+    }
+  },
+}
+
+export const SubmenuKeyboardPolicy: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story: "A root's disabled looping and typeahead policies apply recursively to submenu commands." } } },
+  args: { triggerText: "Keyboard policy", loopFocus: false, typeahead: false, items: [{ type: "submenu", value: "actions", label: "More commands", items: [{ type: "action", value: "alpha", label: "Alpha command" }, { type: "action", value: "bravo", label: "Bravo command" }] }] },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Keyboard policy" }))
+    await waitFor(async () => expect(await body.findByRole("menu")).toHaveFocus())
+    await userEvent.keyboard("{Home}{ArrowRight}")
+    const first = await body.findByRole("menuitem", { name: "Alpha command" })
+    const second = body.getByRole("menuitem", { name: "Bravo command" })
+    await waitFor(() => expect(first).toHaveAttribute("data-highlighted"))
+    await userEvent.keyboard("b")
+    await expect(first).toHaveAttribute("data-highlighted")
+    await userEvent.keyboard("{End}{ArrowDown}")
+    await expect(second).toHaveAttribute("data-highlighted")
+    await userEvent.keyboard("{Escape}{Escape}")
   },
 }

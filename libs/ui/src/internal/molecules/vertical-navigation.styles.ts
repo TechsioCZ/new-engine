@@ -6,9 +6,9 @@ export const verticalNavigationStyles = tv({
     list: "flex min-w-0 list-none flex-col gap-vertical-navigation-list",
     item: "min-w-0",
     row: "vertical-navigation-row flex min-w-0 items-start gap-vertical-navigation-row rounded-vertical-navigation-item bg-vertical-navigation-item-bg data-current-path:font-vertical-navigation-path",
-    link: "vertical-navigation-control focus-visible:vertical-navigation-focus flex min-w-0 flex-1 items-center justify-start gap-vertical-navigation-row whitespace-normal rounded-vertical-navigation-item bg-vertical-navigation-item-bg text-start text-inherit hover:bg-vertical-navigation-item-bg-hover data-current:bg-vertical-navigation-item-bg-current data-current-path:font-vertical-navigation-path data-current:font-vertical-navigation-current data-current:text-vertical-navigation-item-fg-current data-disabled:text-vertical-navigation-item-fg-disabled data-disabled:hover:bg-vertical-navigation-item-bg",
+    link: "vertical-navigation-press vertical-navigation-control focus-visible:vertical-navigation-focus flex min-w-0 flex-1 items-center justify-start gap-vertical-navigation-row whitespace-normal rounded-vertical-navigation-item bg-vertical-navigation-item-bg text-start font-vertical-navigation text-inherit hover:bg-vertical-navigation-item-bg-hover data-current:bg-vertical-navigation-item-bg-current data-current-path:font-vertical-navigation-path data-current:font-vertical-navigation-current data-current:text-vertical-navigation-item-fg-current data-disabled:text-vertical-navigation-item-fg-disabled data-disabled:hover:bg-vertical-navigation-item-bg",
     trigger:
-      "vertical-navigation-control focus-visible:vertical-navigation-focus flex w-full min-w-0 items-center justify-between whitespace-normal rounded-vertical-navigation-item bg-vertical-navigation-item-bg text-start text-inherit hover:bg-vertical-navigation-item-bg-hover disabled:text-vertical-navigation-item-fg-disabled disabled:hover:bg-vertical-navigation-item-bg",
+      "vertical-navigation-press vertical-navigation-control focus-visible:vertical-navigation-focus flex w-full min-w-0 items-center justify-between whitespace-normal rounded-vertical-navigation-item bg-vertical-navigation-item-bg text-start font-vertical-navigation text-inherit hover:bg-vertical-navigation-item-bg-hover disabled:text-vertical-navigation-item-fg-disabled disabled:hover:bg-vertical-navigation-item-bg data-current-path:font-vertical-navigation-path",
     indicator: "inline-flex shrink-0 data-[state=open]:rotate-180",
     content:
       "data-guide:vertical-navigation-guide min-w-0 rounded-vertical-navigation-group py-vertical-navigation-group data-indented:ms-vertical-navigation-indent",
@@ -37,6 +37,14 @@ export const verticalNavigationStyles = tv({
           "min-h-vertical-navigation-item-md px-vertical-navigation-item-x-md py-vertical-navigation-item-y-md",
         indicator: "text-vertical-navigation-icon-md",
         groupLabel: "px-vertical-navigation-item-x-md",
+      },
+      lg: {
+        root: "text-vertical-navigation-lg",
+        link: "min-h-vertical-navigation-item-lg px-vertical-navigation-item-x-lg py-vertical-navigation-item-y-lg",
+        trigger:
+          "min-h-vertical-navigation-item-lg px-vertical-navigation-item-x-lg py-vertical-navigation-item-y-lg",
+        indicator: "text-vertical-navigation-icon-lg",
+        groupLabel: "px-vertical-navigation-item-x-lg",
       },
     },
     tone: {

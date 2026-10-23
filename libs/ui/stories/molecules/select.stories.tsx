@@ -1,957 +1,670 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { Button } from '../../src/atoms/button'
-import { Icon } from '../../src/atoms/icon'
-import type { IconType } from '../../src/atoms/icon'
-import { Badge } from '../../src/atoms/badge'
-import { Select, type SelectItem } from '../../src/molecules/select'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useId, useState } from "react"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { StatusText } from "../../src/atoms/status-text"
+import {
+  Select,
+  type SelectItem,
+  type SelectProps,
+} from "../../src/molecules/select"
 
-// Mock data
+import { SelectTemplate } from "../../src/templates/select"
+
 const countries: SelectItem[] = [
-	{ label: 'United States', value: 'us' },
-	{ label: 'Canada', value: 'ca' },
-	{ label: 'Mexico', value: 'mx' },
-	{ label: 'Brazil', value: 'br' },
-	{ label: 'Argentina', value: 'ar' },
-	{ label: 'Chile', value: 'cl' },
-	{ label: 'Germany', value: 'de' },
-	{ label: 'France', value: 'fr' },
-	{ label: 'United Kingdom', value: 'gb' },
-	{ label: 'Italy', value: 'it' },
-	{ label: 'Spain', value: 'es' },
-	{ label: 'Japan', value: 'jp' },
-	{ label: 'China', value: 'cn' },
-	{ label: 'India', value: 'in', disabled: true },
-	{ label: 'Australia', value: 'au' },
+  { label: "United States", value: "us" },
+  { label: "Canada", value: "ca" },
+  { label: "Czech Republic", value: "cz" },
+  { label: "Germany", value: "de" },
+  { label: "France", value: "fr" },
+  { label: "United Kingdom", value: "gb" },
+  { label: "Spain (not available)", value: "es", disabled: true },
 ]
 
-const languages: SelectItem[] = [
-	{ label: 'English', value: 'en' },
-	{ label: 'Spanish', value: 'es' },
-	{ label: 'French', value: 'fr' },
-	{ label: 'German', value: 'de' },
-	{ label: 'Portuguese', value: 'pt' },
-	{ label: 'Italian', value: 'it' },
-	{ label: 'Dutch', value: 'nl' },
-	{ label: 'Russian', value: 'ru' },
-	{ label: 'Japanese', value: 'ja' },
-	{ label: 'Chinese', value: 'zh' },
-]
-
-const teamMembers: SelectItem[] = [
-	{
-		label: 'Jessica Jones',
-		value: 'jessica',
-		avatar: 'https://i.pravatar.cc/150?u=jessica',
-		role: 'Designer',
-	},
-	{
-		label: 'Kenneth Johnson',
-		value: 'kenneth',
-		avatar: 'https://i.pravatar.cc/150?u=kenneth',
-		role: 'Developer',
-	},
-	{
-		label: 'Kate Wilson',
-		value: 'kate',
-		avatar: 'https://i.pravatar.cc/150?u=kate',
-		role: 'Product Manager',
-	},
-	{
-		label: 'Michael Brown',
-		value: 'michael',
-		avatar: 'https://i.pravatar.cc/150?u=michael',
-		role: 'Developer',
-	},
-]
-
-const meta: Meta<typeof Select> = {
-	title: 'Molecules/Select',
-	component: Select,
-	parameters: {
-		layout: 'centered',
-		docs: {
-			description: {
-				component: `
-A compound pattern Select component built with Zag.js that provides maximum flexibility and customization.
-
-## Features
-- **Compound Pattern**: Full control over rendering each part
-- **Custom Content**: Add avatars, icons, badges to items
-- **Item Groups**: Organize items into labeled groups
-- **Render Props**: Custom value display with render function
-- **Accessible**: Full keyboard navigation and screen reader support
-
-## Sub-components
-- \`Select\` / \`Select.Root\` - Main wrapper
-- \`Select.Label\` - Label text
-- \`Select.Control\` - Trigger container
-- \`Select.Trigger\` - Button that opens dropdown
-- \`Select.ValueText\` - Displays selected value
-- \`Select.ClearTrigger\` - Clear selection button
-- \`Select.Positioner\` - Dropdown positioning (auto Portal)
-- \`Select.Content\` - Dropdown content
-- \`Select.ItemGroup\` - Group container
-- \`Select.ItemGroupLabel\` - Group label
-- \`Select.Item\` - Selectable item
-- \`Select.ItemText\` - Item text
-- \`Select.ItemIndicator\` - Checkmark indicator
-- \`Select.StatusText\` - Status/helper text with auto error detection
-				`,
-			},
-		},
-	},
-	tags: ['autodocs'],
-	argTypes: {
-		size: {
-			control: { type: 'select' },
-			options: ['xs', 'sm', 'md', 'lg'],
-			description: 'Size of the select',
-			table: { defaultValue: { summary: 'md' } },
-		},
-		validateStatus: {
-			control: { type: 'select' },
-			options: ['default', 'error', 'success', 'warning'],
-			description: 'Validation status of the select',
-			table: { defaultValue: { summary: 'default' } },
-		},
-		disabled: {
-			control: 'boolean',
-			description: 'Whether the select is disabled',
-			table: { defaultValue: { summary: 'false' } },
-		},
-		readOnly: {
-			control: 'boolean',
-			description: 'Whether the select is read-only',
-			table: { defaultValue: { summary: 'false' } },
-		},
-		multiple: {
-			control: 'boolean',
-			description: 'Whether multiple options can be selected',
-			table: { defaultValue: { summary: 'false' } },
-		},
-		closeOnSelect: {
-			control: 'boolean',
-			description: 'Whether the dropdown closes on selection',
-			table: { defaultValue: { summary: 'true' } },
-		},
-		loopFocus: {
-			control: 'boolean',
-			description: 'Whether keyboard navigation should loop',
-			table: { defaultValue: { summary: 'true' } },
-		},
-	},
-	decorators: [
-		(Story, context) => {
-			const { title, description } = context.parameters
-
-			return (
-				<div className="flex w-80 flex-col gap-6 p-4">
-					{title && <h3 className="font-medium text-lg">{title}</h3>}
-					{description && (
-						<p className="mb-2 text-gray-600 text-sm">{description}</p>
-					)}
-					<div className="space-y-4">
-						<Story />
-					</div>
-				</div>
-			)
-		},
-	],
+type DemoProps = Omit<SelectProps, "children"> & { helpText?: string }
+function CountrySelect({ helpText, ...props }: DemoProps) {
+  return (
+    <Select {...props}>
+      <Select.Label>Country</Select.Label>
+      <Select.Control>
+        <Select.Trigger>
+          <Select.ValueText placeholder="Select a country" />
+        </Select.Trigger>
+        <Select.ClearTrigger />
+      </Select.Control>
+      <Select.Positioner>
+        <Select.Content>
+          {props.items.map((item) => (
+            <Select.Item item={item} key={item.value}>
+              <Select.ItemText />
+              <Select.ItemIndicator />
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select.Positioner>
+      {helpText && <Select.StatusText>{helpText}</Select.StatusText>}
+    </Select>
+  )
 }
 
+const meta: Meta<typeof Select> = {
+  title: "Molecules/Select",
+  component: Select,
+  tags: ["autodocs"],
+  parameters: {
+    controls: { include: ["size", "validateStatus", "disabled", "readOnly", "multiple", "closeOnSelect", "loopFocus", "items"] },
+    layout: "padded",
+    docs: {
+      description: {
+        component: `Choose one or more values from a known list with a keyboard-accessible popup. Use SelectTemplate for a props-only API, Combobox for searchable lists, RadioGroup for a few visible choices, or CascadeSelect for a hierarchy. Canonical sizes are sm/md/lg; legacy xs remains supported.
+
+### Compound member reference
+
+| Member | Contract and rendered/ref target |
+| --- | --- |
+| \`Select\` | Root provider and layout \`div\` (root \`ref\`); accepts required \`items\` collection. There is no \`Select.Root\`. |
+| \`Select.Label\` | Visible \`label\` associated with the trigger; keep it under Select. |
+| \`Select.Control\` | Layout \`div\`; contains Trigger and optional sibling ClearTrigger, never nest ClearTrigger inside the trigger button. |
+| \`Select.Trigger\` | Focusable \`button\` / \`HTMLButtonElement\` ref. Caller \`aria-labelledby\` wins; an explicit \`aria-label\` omits the generated label reference. |
+| \`Select.ValueText\` | \`span\` / \`HTMLSpanElement\` ref inside Trigger; displays selected items or \`placeholder\`, not an editable input. |
+| \`Select.ClearTrigger\` | Optional clear \`button\` / \`HTMLButtonElement\` ref; sibling of Trigger. |
+| \`Select.Positioner\` | Floating layout \`div\` / \`HTMLDivElement\` ref wrapping Content; \`portalled={false}\` keeps it inline. |
+| \`Select.Content\` | Listbox \`ul\` / \`HTMLUListElement\` ref containing options. Keep under Positioner. |
+| \`Select.Item\` | Option \`li\` / \`HTMLLIElement\` ref; required \`item\` must belong to the root's \`items\`. Contains ItemText and optional ItemIndicator. |
+| \`Select.ItemText\` / \`Select.ItemIndicator\` | Presentational text/indicator \`span\` parts inside Item. ItemText defaults to its item's label. |
+| \`Select.ItemGroup\` / \`Select.ItemGroupLabel\` | Optional grouped-option \`div\` parts; use matching \`id\` / \`htmlFor\` to name the group. |
+| \`Select.StatusText\` | Helper/validation feedback registered with the trigger's description. |
+| Hidden native select | Automatically rendered by Select, not a public \`Select.HiddenInput\` member. Root \`name\`, \`form\`, \`required\`, \`multiple\` and disabled state govern native submission. |
+
+\`value\` / \`defaultValue\` are arrays of item \`value\` strings, even in single-select mode. Every selected value must exist in \`items\`; use \`onValueChange={({ value }) => ...}\` for controlled state. Rich labels need \`displayValue\` for native text/typeahead. Preserve this nesting:
+
+\`\`\`tsx
+import { Select } from "@techsio/ui-kit/molecules/select"
+
+const items = [{ label: "Canada", value: "ca" }];
+
+export function CountryExample() {
+  return (
+    <Select items={items} defaultValue={["ca"]} name="country">
+      <Select.Label>Country</Select.Label>
+      <Select.Control>
+        <Select.Trigger>
+          <Select.ValueText placeholder="Select a country" />
+        </Select.Trigger>
+        <Select.ClearTrigger />
+      </Select.Control>
+      <Select.Positioner>
+        <Select.Content>
+          {items.map((item) => (
+            <Select.Item key={item.value} item={item}>
+              <Select.ItemText />
+              <Select.ItemIndicator />
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select.Positioner>
+    </Select>
+  )
+}
+\`\`\`
+`,
+      },
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="mx-auto w-full max-w-sm">
+        <Story />
+      </div>
+    ),
+  ],
+  argTypes: {
+    ref: { control: false, table: { disable: true } },
+    id: { control: false, table: { disable: true } },
+    size: { control: "select", options: ["sm", "md", "lg"] },
+    validateStatus: { description: 'Style the field and linked StatusText; error sets aria-invalid and associates mounted error messages.',
+      control: "select",
+      options: ["default", "error", "warning", "success"],
+    },
+    disabled: { control: "boolean" },
+    readOnly: { description: 'Keep the selected value focusable and submitted, but prevent opening, clearing and selection.', control: "boolean" },
+    multiple: { description: 'Select several values; value/defaultValue and onValueChange always use string arrays. Default false.', control: "boolean" },
+    closeOnSelect: { description: 'Close the popup after selection (default true); set false to keep browsing, especially in multiple mode.', control: "boolean" },
+    loopFocus: { description: 'Wrap arrow-key navigation at the first/last option (default true).', control: "boolean" },
+    items: { description: 'Authoritative options. Removed selections clear with a change notification; controlled parents should apply the correction.', control: "object" },
+    children: { control: false },
+  },
+  args: {
+    items: countries,
+    size: "md",
+    disabled: false,
+    readOnly: false,
+    multiple: false,
+    validateStatus: "default",
+    onValueChange: fn(),
+  },
+}
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
-	args: {
-		items: countries,
-		size: 'md',
-		validateStatus: 'default',
-		disabled: false,
-		readOnly: false,
-		multiple: false,
-		closeOnSelect: true,
-		loopFocus: true,
-	},
-	render: (args) => (
-		<Select {...args}>
-			<Select.Label>Select a country</Select.Label>
-			<Select.Control>
-				<Select.Trigger>
-					<Select.ValueText placeholder="Choose a country" />
-				</Select.Trigger>
-				<Select.ClearTrigger />
-			</Select.Control>
-			<Select.Positioner>
-				<Select.Content>
-					{args.items?.map((item) => (
-						<Select.Item key={item.value} item={item}>
-							<Select.ItemText />
-							<Select.ItemIndicator />
-						</Select.Item>
-					))}
-				</Select.Content>
-			</Select.Positioner>
-			<Select.StatusText>Helper text goes here</Select.StatusText>
-		</Select>
-	),
-}
-
-export const WithDefaultValue: Story = {
-	render: () => (
-		<Select items={countries} defaultValue={['us']}>
-			<Select.Label>Select a country</Select.Label>
-			<Select.Control>
-				<Select.Trigger>
-					<Select.ValueText placeholder="Choose a country" />
-				</Select.Trigger>
-				<Select.ClearTrigger />
-			</Select.Control>
-			<Select.Positioner>
-				<Select.Content>
-					{countries.map((item) => (
-						<Select.Item key={item.value} item={item}>
-							<Select.ItemText />
-							<Select.ItemIndicator />
-						</Select.Item>
-					))}
-				</Select.Content>
-			</Select.Positioner>
-		</Select>
-	),
+  render: (args) => (
+    <CountrySelect
+      {...args}
+      helpText={
+        args.validateStatus === "error"
+          ? "Choose a delivery country before continuing."
+          : args.validateStatus === "warning"
+            ? "Delivery to this country may take longer."
+            : args.validateStatus === "success"
+              ? "Delivery country confirmed."
+              : "Choose the country for your delivery address."
+      }
+    />
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Explore selection, validation, multiple values and state controls with a realistic delivery field.",
+      },
+    },
+  },
 }
 
 export const Sizes: Story = {
-	render: () => (
-		<>
-			<Select items={countries} size="xs">
-				<Select.Label>Extra Small</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.slice(0, 5).map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-			</Select>
-
-			<Select items={countries} size="sm">
-				<Select.Label>Small</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.slice(0, 5).map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-			</Select>
-
-			<Select items={countries} size="md">
-				<Select.Label>Medium (default)</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.slice(0, 5).map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-			</Select>
-
-			<Select items={countries} size="lg">
-				<Select.Label>Large</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.slice(0, 5).map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-			</Select>
-		</>
-	),
+  render: (args) => (
+    <VariantContainer>
+      {(["sm", "md", "lg"] as const).map((size, index) => (
+        <VariantGroup
+          key={size}
+          title={
+            ["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? "Medium (md)"
+          }
+          fullWidth
+        >
+          <CountrySelect
+            {...args}
+            size={size}
+            defaultValue={["de"]}
+            helpText="Choose the country for your delivery address."
+          />
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+  parameters: {
+    controls: { exclude: ["size"] },
+    docs: {
+      description: {
+        story:
+          "Small, medium and large use the same country, copy and field anatomy so the canonical scale is easy to compare.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    for (const control of canvasElement.querySelectorAll('[data-scope="select"][data-part="control"]')) {
+      const value = control.querySelector('[data-part="value-text"]')?.getBoundingClientRect()
+      const clear = control.querySelector('[data-part="clear-trigger"]')?.getBoundingClientRect()
+      if (!value || !clear) throw new Error("Missing value or clear action")
+      await expect(value.right).toBeLessThanOrEqual(clear.x)
+    }
+  },
 }
 
-export const States: Story = {
-	render: () => (
-		<>
-			<Select items={countries} disabled>
-				<Select.Label>Disabled</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-			</Select>
+export const Disabled: Story = {
+  args: { disabled: true, defaultValue: ["de"] },
+  render: (args) => (
+    <CountrySelect
+      {...args}
+      helpText="Country selection is unavailable while the address is syncing."
+    />
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A temporarily unavailable field keeps its value visible but removes all control tab stops.",
+      },
+    },
+  },
+}
 
-			<Select items={countries} validateStatus="error">
-				<Select.Label>Invalid</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-				<Select.StatusText>Please select a valid country</Select.StatusText>
-			</Select>
-
-			<Select items={countries} required>
-				<Select.Label>Required</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-				<Select.StatusText>This field is required</Select.StatusText>
-			</Select>
-
-			<Select items={countries} readOnly defaultValue={["us"]}>
-				<Select.Label>Read-only</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-			</Select>
-		</>
-	),
+export const ReadOnly: Story = {
+  name: "Read-only",
+  args: { readOnly: true, defaultValue: ["de"], defaultOpen: true },
+  render: (args) => (
+    <CountrySelect
+      {...args}
+      helpText="This saved delivery country cannot be changed."
+    />
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A read-only selection stays focusable and copyable, never opens, and omits clear and dropdown affordances.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const trigger = canvas.getByRole("combobox", { name: "Country" })
+    await userEvent.click(trigger)
+    await userEvent.keyboard("{ArrowDown}f{Enter}{Space}")
+    await expect(trigger).toHaveTextContent("Germany")
+    await expect(trigger).toHaveAttribute("aria-expanded", "false")
+    await expect(trigger).not.toBeDisabled()
+    await expect(
+      canvas.queryByRole("button", { name: "Clear selection" })
+    ).toBeNull()
+  },
 }
 
 export const ValidationStates: Story = {
-	name: 'Validation States (error, success, warning)',
-	render: () => (
-		<>
-			<Select items={countries} validateStatus="error">
-				<Select.Label>Error State</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.slice(0, 5).map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-				<Select.StatusText showIcon>Please fix the error</Select.StatusText>
-			</Select>
-
-			<Select items={countries} validateStatus="success">
-				<Select.Label>Success State</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.slice(0, 5).map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-				<Select.StatusText showIcon>Selection saved successfully</Select.StatusText>
-			</Select>
-
-			<Select items={countries} validateStatus="warning">
-				<Select.Label>Warning State</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.slice(0, 5).map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-				<Select.StatusText showIcon>This option is deprecated</Select.StatusText>
-			</Select>
-
-			<Select items={countries} validateStatus="default">
-				<Select.Label>Default State</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Select..." />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{countries.slice(0, 5).map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<Select.ItemText />
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-				<Select.StatusText>Helper text for this field</Select.StatusText>
-			</Select>
-		</>
-	),
-}
-
-export const WithIcons: Story = {
-	name: 'With Icons (Compound Benefit)',
-	render: () => {
-		const languagesWithIcons: SelectItem[] = [
-			{ label: 'English', value: 'en', icon: 'icon-[cif--gb]' },
-			{ label: 'Spanish', value: 'es', icon: 'icon-[cif--es]' },
-			{ label: 'French', value: 'fr', icon: 'icon-[cif--fr]' },
-			{ label: 'German', value: 'de', icon: 'icon-[cif--de]' },
-		]
-
-		return (
-			<Select items={languagesWithIcons}>
-				<Select.Label>Select a language</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Choose a language">
-							{(items) => (
-								<span className="flex items-center gap-2">
-									<Icon icon={items[0]?.icon as IconType} size="sm" />
-									{items[0]?.label}
-								</span>
-							)}
-						</Select.ValueText>
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{languagesWithIcons.map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<span className="flex items-center gap-2">
-									<Icon icon={item.icon as IconType} size="sm" />
-									<Select.ItemText />
-								</span>
-								<Select.ItemIndicator />
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-			</Select>
-		)
-	},
-}
-
-export const WithAvatars: Story = {
-	name: 'With Avatars (Compound Benefit)',
-	render: () => (
-		<Select items={teamMembers} defaultValue={['jessica']}>
-			<Select.Label>Select team member</Select.Label>
-			<Select.Control>
-				<Select.Trigger>
-					<Select.ValueText placeholder="Choose a member">
-						{(items) => (
-							<span className="flex items-center gap-2">
-								<img
-									src={items[0]?.avatar as string}
-									alt=""
-									className="h-6 w-6 rounded-full object-cover"
-								/>
-								<span>{items[0]?.label}</span>
-							</span>
-						)}
-					</Select.ValueText>
-				</Select.Trigger>
-				<Select.ClearTrigger />
-			</Select.Control>
-			<Select.Positioner>
-				<Select.Content>
-					{teamMembers.map((item) => (
-						<Select.Item key={item.value} item={item}>
-							<span className="flex items-center gap-2">
-								<img
-									src={item.avatar as string}
-									alt=""
-									className="h-6 w-6 rounded-full object-cover"
-								/>
-								<span className="flex flex-col">
-									<Select.ItemText />
-									<span className="text-xs text-gray-500">
-										{item.role as string}
-									</span>
-								</span>
-							</span>
-							<Select.ItemIndicator />
-						</Select.Item>
-					))}
-				</Select.Content>
-			</Select.Positioner>
-		</Select>
-	),
-}
-
-export const WithItemGroups: Story = {
-	name: 'With Item Groups (Compound Benefit)',
-	render: () => {
-		const europeCountries = countries.filter((c) =>
-			['de', 'fr', 'gb', 'it', 'es'].includes(c.value)
-		)
-		const americaCountries = countries.filter((c) =>
-			['us', 'ca', 'mx', 'br', 'ar'].includes(c.value)
-		)
-		const asiaCountries = countries.filter((c) =>
-			['jp', 'cn', 'in'].includes(c.value)
-		)
-
-		return (
-			<Select items={countries}>
-				<Select.Label>Select a country</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Choose a country" />
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						<Select.ItemGroup id="europe">
-							<Select.ItemGroupLabel htmlFor="europe">Europe</Select.ItemGroupLabel>
-							{europeCountries.map((item) => (
-								<Select.Item key={item.value} item={item}>
-									<Select.ItemText />
-									<Select.ItemIndicator />
-								</Select.Item>
-							))}
-						</Select.ItemGroup>
-
-						<Select.ItemGroup id="americas">
-							<Select.ItemGroupLabel htmlFor="americas">Americas</Select.ItemGroupLabel>
-							{americaCountries.map((item) => (
-								<Select.Item key={item.value} item={item}>
-									<Select.ItemText />
-									<Select.ItemIndicator />
-								</Select.Item>
-							))}
-						</Select.ItemGroup>
-
-						<Select.ItemGroup id="asia">
-							<Select.ItemGroupLabel htmlFor="asia">Asia</Select.ItemGroupLabel>
-							{asiaCountries.map((item) => (
-								<Select.Item key={item.value} item={item}>
-									<Select.ItemText />
-									<Select.ItemIndicator />
-								</Select.Item>
-							))}
-						</Select.ItemGroup>
-					</Select.Content>
-				</Select.Positioner>
-			</Select>
-		)
-	},
-}
-
-export const CustomItemContent: Story = {
-	name: 'Custom Item Content (Compound Benefit)',
-	render: () => {
-		const plans: SelectItem[] = [
-			{
-				label: 'Free',
-				value: 'free',
-				price: '$0',
-				features: '5 projects, 1GB storage',
-			},
-			{
-				label: 'Pro',
-				value: 'pro',
-				price: '$19/mo',
-				features: 'Unlimited projects, 100GB storage',
-			},
-			{
-				label: 'Enterprise',
-				value: 'enterprise',
-				price: '$99/mo',
-				features: 'Custom limits, priority support',
-			},
-		]
-
-		return (
-			<Select items={plans}>
-				<Select.Label>Select a plan</Select.Label>
-				<Select.Control>
-					<Select.Trigger>
-						<Select.ValueText placeholder="Choose a plan">
-							{(items) => (
-								<span className="flex items-center justify-between w-full">
-									<span>{items[0]?.label}</span>
-									<span className="text-sm text-gray-500">
-										{items[0]?.price as string}
-									</span>
-								</span>
-							)}
-						</Select.ValueText>
-					</Select.Trigger>
-				</Select.Control>
-				<Select.Positioner>
-					<Select.Content>
-						{plans.map((item) => (
-							<Select.Item key={item.value} item={item}>
-								<span className="flex flex-col flex-1">
-									<span className="flex items-center gap-2">
-										<Select.ItemText />
-									</span>
-									<span className="text-xs text-gray-500">
-										{item.features as string}
-									</span>
-								</span>
-								<span className="flex items-center gap-2">
-									<span className="text-sm font-medium">
-										{item.price as string}
-									</span>
-									<Select.ItemIndicator />
-								</span>
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Positioner>
-			</Select>
-		)
-	},
-}
-
-export const Controlled: Story = {
-	render: () => {
-		const [value, setValue] = useState<string[]>(['fr'])
-
-		return (
-			<>
-				<Select
-					items={languages}
-					value={value}
-					onValueChange={(details) => setValue(details.value)}
-				>
-					<Select.Label>Select a language</Select.Label>
-					<Select.Control>
-						<Select.Trigger>
-							<Select.ValueText placeholder="Choose a language" />
-						</Select.Trigger>
-						<Select.ClearTrigger />
-					</Select.Control>
-					<Select.Positioner>
-						<Select.Content>
-							{languages.map((item) => (
-								<Select.Item key={item.value} item={item}>
-									<Select.ItemText />
-									<Select.ItemIndicator />
-								</Select.Item>
-							))}
-						</Select.Content>
-					</Select.Positioner>
-				</Select>
-
-				<div className="text-sm">
-					<strong>Selected:</strong> {value.join(', ') || 'None'}
-				</div>
-
-				<div className="flex gap-2">
-					<Button size="sm" onClick={() => setValue(['en'])}>
-						Set to English
-					</Button>
-					<Button size="sm" variant="secondary" onClick={() => setValue([])}>
-						Clear
-					</Button>
-				</div>
-			</>
-		)
-	},
+  render: (args) => (
+    <VariantContainer>
+      {(["error", "warning", "success"] as const).map((status) => (
+        <VariantGroup title={status} key={status} fullWidth>
+          <CountrySelect
+            {...args}
+            validateStatus={status}
+            defaultValue={status === "error" ? [] : ["de"]}
+            helpText={
+              status === "error"
+                ? "Choose a delivery country before continuing."
+                : status === "warning"
+                  ? "Delivery to this country may take longer."
+                  : "Delivery country confirmed."
+            }
+          />
+        </VariantGroup>
+      ))}
+    </VariantContainer>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Validation messages include state icons and stable descriptions, with error messages linked directly to the focusable trigger.",
+      },
+    },
+  },
 }
 
 export const Multiple: Story = {
-	render: () => (
-		<Select items={languages} multiple closeOnSelect={false}>
-			<Select.Label>Select languages</Select.Label>
-			<Select.Control>
-				<Select.Trigger>
-					<Select.ValueText placeholder="Choose languages">
-						{(items) =>
-							items.length > 0 ? (
-								<span>{items.map((i) => i.label).join(', ')}</span>
-							) : (
-								'Choose languages'
-							)
-						}
-					</Select.ValueText>
-				</Select.Trigger>
-				<Select.ClearTrigger />
-			</Select.Control>
-			<Select.Positioner>
-				<Select.Content>
-					{languages.map((item) => (
-						<Select.Item key={item.value} item={item}>
-							<Select.ItemText />
-							<Select.ItemIndicator />
-						</Select.Item>
-					))}
-				</Select.Content>
-			</Select.Positioner>
-		</Select>
-	),
+  args: {
+    multiple: true,
+    closeOnSelect: false,
+    defaultValue: ["cz", "de", "fr"],
+  },
+  render: (args) => (
+    <CountrySelect {...args} helpText="Choose every country you deliver to." />
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Multiple selection displays every selected label rather than silently hiding all but the first value.",
+      },
+    },
+  },
+}
+
+export const Controlled: Story = {
+  render: function ControlledSelect(args) {
+    const [value, setValue] = useState(["de"])
+    return (
+      <CountrySelect
+        {...args}
+        value={value}
+        onValueChange={(details) => {
+          setValue(details.value)
+          args.onValueChange?.(details)
+        }}
+        helpText="Your selection updates immediately."
+      />
+    )
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The parent owns the selected values through value and onValueChange.",
+      },
+    },
+  },
+}
+
+export const WithItemGroups: Story = {
+  render: (args) => (
+    <Select {...args}>
+      <Select.Label>Country</Select.Label>
+      <Select.Control>
+        <Select.Trigger>
+          <Select.ValueText placeholder="Select a country" />
+        </Select.Trigger>
+      </Select.Control>
+      <Select.Positioner>
+        <Select.Content>
+          {[
+            { id: "europe", label: "Europe", values: ["cz", "de", "fr", "gb"] },
+            { id: "america", label: "North America", values: ["us", "ca"] },
+          ].map((group) => (
+            <Select.ItemGroup id={group.id} key={group.id}>
+              <Select.ItemGroupLabel htmlFor={group.id}>
+                {group.label}
+              </Select.ItemGroupLabel>
+              {countries
+                .filter((item) => group.values.includes(item.value))
+                .map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    <Select.ItemText />
+                    <Select.ItemIndicator />
+                  </Select.Item>
+                ))}
+            </Select.ItemGroup>
+          ))}
+        </Select.Content>
+      </Select.Positioner>
+    </Select>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Named option groups make a longer list easier to scan without changing its selection behavior.",
+      },
+    },
+  },
+}
+
+const triggerClick = fn()
+export const ComposedTriggerHandler: Story = {
+  render: (args) => (
+    <Select {...args}>
+      <Select.Label>Country</Select.Label>
+      <Select.Control>
+        <Select.Trigger onClick={triggerClick}>
+          <Select.ValueText placeholder="Select a country" />
+        </Select.Trigger>
+      </Select.Control>
+      <Select.Positioner>
+        <Select.Content>
+          {countries.map((item) => (
+            <Select.Item item={item} key={item.value}>
+              <Select.ItemText />
+              <Select.ItemIndicator />
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select.Positioner>
+    </Select>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A consumer click handler runs alongside Zag's trigger handler without replacing the popup interaction.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    triggerClick.mockClear()
+    const trigger = within(canvasElement).getByRole("combobox", {
+      name: "Country",
+    })
+    await userEvent.click(trigger)
+    await expect(triggerClick).toHaveBeenCalledOnce()
+    await expect(trigger).toHaveAttribute("aria-expanded", "true")
+    await userEvent.keyboard("{Escape}")
+  },
 }
 
 export const WithinForm: Story = {
-	render: () => {
-		const [formState, setFormState] = useState({
-			country: [] as string[],
-			language: [] as string[],
-		})
-		const [submittedData, setSubmittedData] = useState<null | typeof formState>(
-			null
-		)
-
-		const handleSubmit = (e: React.FormEvent) => {
-			e.preventDefault()
-			setSubmittedData(formState)
-		}
-
-		return (
-			<form onSubmit={handleSubmit} className="space-y-4">
-				<Select
-					items={countries}
-					required
-					validateStatus={formState.country.length === 0 ? "error" : "default"}
-					value={formState.country}
-					onValueChange={(details) =>
-						setFormState((prev) => ({ ...prev, country: details.value }))
-					}
-				>
-					<Select.Label>Country</Select.Label>
-					<Select.Control>
-						<Select.Trigger>
-							<Select.ValueText placeholder="Select a country" />
-						</Select.Trigger>
-						<Select.ClearTrigger />
-					</Select.Control>
-					<Select.Positioner>
-						<Select.Content>
-							{countries.map((item) => (
-								<Select.Item key={item.value} item={item}>
-									<Select.ItemText />
-									<Select.ItemIndicator />
-								</Select.Item>
-							))}
-						</Select.Content>
-					</Select.Positioner>
-					{formState.country.length === 0 && (
-						<Select.StatusText>Please select a country</Select.StatusText>
-					)}
-				</Select>
-
-				<Select
-					items={languages}
-					multiple
-					closeOnSelect={false}
-					value={formState.language}
-					onValueChange={(details) =>
-						setFormState((prev) => ({ ...prev, language: details.value }))
-					}
-				>
-					<Select.Label>Languages</Select.Label>
-					<Select.Control>
-						<Select.Trigger>
-							<Select.ValueText placeholder="Select languages">
-								{(items) =>
-									items.length > 0
-										? items.map((i) => i.label).join(', ')
-										: 'Select languages'
-								}
-							</Select.ValueText>
-						</Select.Trigger>
-						<Select.ClearTrigger />
-					</Select.Control>
-					<Select.Positioner>
-						<Select.Content>
-							{languages.map((item) => (
-								<Select.Item key={item.value} item={item}>
-									<Select.ItemText />
-									<Select.ItemIndicator />
-								</Select.Item>
-							))}
-						</Select.Content>
-					</Select.Positioner>
-					<Select.StatusText>You can select multiple languages</Select.StatusText>
-				</Select>
-
-				<Button type="submit" variant="primary">
-					Submit Form
-				</Button>
-
-				{submittedData && (
-					<div className="mt-4 rounded-md border border-green-200 bg-green-50/10 p-4">
-						<h4 className="mb-2 font-medium">Form Submitted:</h4>
-						<p>
-							<strong>Country:</strong>{' '}
-							{countries.find((c) => c.value === submittedData.country[0])
-								?.label || 'None'}
-						</p>
-						<p>
-							<strong>Languages:</strong>{' '}
-							{submittedData.language
-								.map((l) => languages.find((lang) => lang.value === l)?.label)
-								.join(', ') || 'None'}
-						</p>
-					</div>
-				)}
-			</form>
-		)
-	},
+  render: function DeliveryForm(args) {
+    const [saved, setSaved] = useState(false)
+    return (
+      <form
+        className="flex flex-col gap-300"
+        onSubmit={(event) => {
+          event.preventDefault()
+          setSaved(true)
+        }}
+      >
+        <CountrySelect
+          {...args}
+          name="country"
+          defaultValue={["de"]}
+          helpText="Choose the country for your delivery address."
+        />
+        <div className="flex justify-end gap-150">
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={() => setSaved(false)}
+          >
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit">
+            Save delivery country
+          </Button>
+        </div>
+        {saved && (
+          <StatusText status="success">Delivery country saved.</StatusText>
+        )}
+      </form>
+    )
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The native hidden select submits country codes while the local form demonstrates secondary Cancel and primary Save actions without reloading.",
+      },
+    },
+  },
 }
 
-export const ConditionalRendering: Story = {
-	name: 'Conditional Rendering (Compound Benefit)',
-	render: () => {
-		const [showPremium, setShowPremium] = useState(false)
+export const MachineOptions: Story = {
+  args: {
+    dir: "rtl",
+    defaultOpen: true,
+    ids: {
+      trigger: "delivery-country-trigger",
+      content: "delivery-country-popup",
+    },
+    positioning: { placement: "bottom-end", gutter: 12 },
+  },
+  render: (args) => (
+    <CountrySelect
+      {...args}
+      helpText="Choose the country for your delivery address."
+    />
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Zag direction, initial open state, custom element IDs and positioning are forwarded to the actual control and popup.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("combobox", {
+      name: "Country",
+    })
+    await expect(trigger).toHaveAttribute("id", "delivery-country-trigger")
+    await expect(trigger).toHaveAttribute("dir", "rtl")
+    await expect(trigger).toHaveAttribute("aria-expanded", "true")
+    await expect(trigger).toHaveAttribute(
+      "aria-controls",
+      "delivery-country-popup"
+    )
+  },
+}
 
-		const basicItems: SelectItem[] = [
-			{ label: 'Free Plan', value: 'free' },
-			{ label: 'Basic Plan', value: 'basic' },
-		]
+export const AccessibleDescriptions: Story = {
+  render: function LinkedDescriptions(args) {
+    const [invalid, setInvalid] = useState(true)
+    const externalId = useId()
+    return (
+      <div className="flex flex-col gap-300">
+        <span id={externalId}>Delivery settings.</span>
+        <Select {...args} validateStatus={invalid ? "error" : "default"}>
+          <Select.Label>Country</Select.Label>
+          <Select.Control>
+            <Select.Trigger aria-describedby={externalId}>
+              <Select.ValueText placeholder="Select a country" />
+            </Select.Trigger>
+          </Select.Control>
+          <Select.StatusText status="default">
+            Choose a supported delivery country.
+          </Select.StatusText>
+          {invalid && (
+            <Select.StatusText status="error">
+              Choose a country before saving your address.
+            </Select.StatusText>
+          )}
+        </Select>
+        <Button
+          variant="secondary"
+          onClick={() => setInvalid((value) => !value)}
+        >
+          Toggle validation
+        </Button>
+      </div>
+    )
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Multiple messages have unique IDs, preserve an external description and unregister their error association when validation clears.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const trigger = canvas.getByRole("combobox", { name: "Country" })
+    const error = canvas.getByRole("alert")
+    await expect(trigger).toHaveAttribute("aria-errormessage", error.id)
+    await expect(trigger).toHaveAccessibleDescription(
+      "Delivery settings. Choose a supported delivery country. Choose a country before saving your address."
+    )
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Toggle validation" })
+    )
+    await expect(trigger).not.toHaveAttribute("aria-errormessage")
+    await expect(trigger).toHaveAccessibleDescription(
+      "Delivery settings. Choose a supported delivery country."
+    )
+  },
+}
 
-		const premiumItems: SelectItem[] = [
-			{ label: 'Pro Plan', value: 'pro' },
-			{ label: 'Enterprise Plan', value: 'enterprise' },
-		]
+export const KeyboardTypeahead: Story = {
+  render: (args) => <CountrySelect {...args} />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Typing a country label selects the matching option even when its submitted country code starts with a different letter.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const trigger = canvas.getByRole("combobox", { name: "Country" })
+    trigger.focus()
+    await userEvent.keyboard("g")
+    await expect(trigger).toHaveTextContent("Germany")
+  },
+}
 
-		const allItems = [...basicItems, ...(showPremium ? premiumItems : [])]
+function ChangingCountries() {
+  const [removed, setRemoved] = useState(false)
+  const [value, setValue] = useState(["a"])
+  const [changes, setChanges] = useState(0)
+  const items = removed ? [{ label: "Beta renamed", value: "b" }] : [
+    { label: "Alpha", value: "a" }, { label: "Beta", value: "b" },
+  ]
+  return <form className="flex flex-col gap-200" onSubmit={(event) => event.preventDefault()}>
+    <CountrySelect items={items} name="uncontrolled" required defaultValue={["a"]}
+      onValueChange={() => setChanges((count) => count + 1)} />
+    <SelectTemplate label="Controlled country" items={items} name="controlled" required
+      value={value} onValueChange={({ value: next }) => setValue(next)} />
+    <SelectTemplate label="Multiple countries" items={items} name="multiple" multiple
+      defaultValue={["a", "b"]} />
+    <Button variant="secondary" onClick={() => setRemoved(true)}>Replace countries</Button>
+    <output aria-label="Collection changes">{changes}</output>
+  </form>
+}
 
-		return (
-			<>
-				<div className="mb-4">
-					<Button
-						size="sm"
-						variant="secondary"
-						onClick={() => setShowPremium(!showPremium)}
-					>
-						{showPremium ? 'Hide' : 'Show'} Premium Plans
-					</Button>
-				</div>
+export const CollectionUpdates: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "Replace the authoritative options while open: removed values clear once, valid multiple values survive with refreshed labels, and native forms never invent a replacement." } } },
+  render: () => <ChangingCountries />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole("combobox", { name: "Country" }))
+    const replace = canvas.getByRole("button", { name: "Replace countries" })
+    // Keyboard focus remains owned by the open listbox while the application updates data.
+    replace.click()
+    await waitFor(() => expect(canvas.getByRole("status", { name: "Collection changes" })).toHaveTextContent("1"))
+    const form = canvasElement.querySelector("form")
+    if (!form) throw new Error("Missing collection form")
+    await expect(new FormData(form).get("uncontrolled")).toBe("")
+    await expect(new FormData(form).get("controlled")).toBe("")
+    await expect(new FormData(form).getAll("multiple")).toEqual(["b"])
+    await expect(form.querySelector<HTMLSelectElement>('select[name="uncontrolled"]')?.checkValidity()).toBe(false)
+    await expect(canvas.getByRole("combobox", { name: "Country" })).toHaveTextContent("Select a country")
+    await expect(canvas.getByRole("combobox", { name: "Multiple countries" })).toHaveTextContent("Beta renamed")
+    for (const node of canvasElement.ownerDocument.querySelectorAll("[aria-activedescendant]")) {
+      await expect(canvasElement.ownerDocument.getElementById(node.getAttribute("aria-activedescendant") ?? "")).not.toBeNull()
+    }
+    await userEvent.keyboard("{Escape}")
+    await expect(body.queryByRole("listbox")).toBeNull()
+  },
+}
 
-				<Select items={allItems}>
-					<Select.Label>Select a plan</Select.Label>
-					<Select.Control>
-						<Select.Trigger>
-							<Select.ValueText placeholder="Choose a plan" />
-						</Select.Trigger>
-					</Select.Control>
-					<Select.Positioner>
-						<Select.Content>
-							<Select.ItemGroup id="basic-plans">
-								<Select.ItemGroupLabel htmlFor="basic-plans">
-									Basic Plans
-								</Select.ItemGroupLabel>
-								{basicItems.map((item) => (
-									<Select.Item key={item.value} item={item}>
-										<Select.ItemText />
-										<Select.ItemIndicator />
-									</Select.Item>
-								))}
-							</Select.ItemGroup>
+function ObservedCountry() {
+  const [clicks, setClicks] = useState(0)
+  const [keys, setKeys] = useState(0)
+  const [cancel, setCancel] = useState(false)
+  return <div className="flex flex-col gap-200">
+    <Select items={countries}>
+      <Select.Label>Observed country</Select.Label>
+      <Select.Control><Select.Trigger onClick={(event) => { setClicks((n) => n + 1); if (cancel) event.preventDefault() }}>
+        <Select.ValueText />
+      </Select.Trigger></Select.Control>
+      <Select.Positioner><Select.Content onKeyDown={(event) => { setKeys((n) => n + 1); if (cancel || event.key === "Home") event.preventDefault() }}>
+        {countries.map((item) => <Select.Item key={item.value} item={item}><Select.ItemText /><Select.ItemIndicator /></Select.Item>)}
+      </Select.Content></Select.Positioner>
+    </Select>
+    <Button variant="secondary" onClick={() => setCancel((next) => !next)}>Toggle cancellation</Button>
+    <output aria-label="Observed events">{clicks} clicks, {keys} keys</output>
+  </div>
+}
 
-							{showPremium && (
-								<Select.ItemGroup id="premium-plans">
-									<Select.ItemGroupLabel htmlFor="premium-plans">
-										Premium Plans
-									</Select.ItemGroupLabel>
-									{premiumItems.map((item) => (
-										<Select.Item key={item.value} item={item}>
-											<span className="flex items-center gap-2">
-												<Select.ItemText />
-												<Badge variant="warning">
-													Premium
-												</Badge>
-											</span>
-											<Select.ItemIndicator />
-										</Select.Item>
-									))}
-								</Select.ItemGroup>
-							)}
-						</Select.Content>
-					</Select.Positioner>
-				</Select>
-			</>
-		)
-	},
+export const ComposedEvents: Story = {
+  parameters: { controls: { disable: true }, docs: { description: { story:
+    "Consumer click and key observers preserve machine opening/navigation; preventDefault explicitly cancels a machine action." } } },
+  render: () => <ObservedCountry />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const trigger = canvas.getByRole("combobox", { name: "Observed country" })
+    await userEvent.click(trigger)
+    await expect(trigger).toHaveAttribute("aria-expanded", "true")
+    await waitFor(() => expect(body.getByRole("listbox")).toHaveFocus())
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{Home}{Enter}")
+    await waitFor(() => expect(trigger).toHaveTextContent("Canada"))
+    await expect(canvas.getByRole("status", { name: "Observed events" })).toHaveTextContent("1 clicks, 4 keys")
+    await userEvent.click(canvas.getByRole("button", { name: "Toggle cancellation" }))
+    await userEvent.click(trigger)
+    await expect(trigger).toHaveAttribute("aria-expanded", "false")
+    await expect(body.queryByRole("listbox")).toBeNull()
+  },
 }

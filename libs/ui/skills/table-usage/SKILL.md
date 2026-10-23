@@ -6,7 +6,7 @@ description: >
   headers, numeric cells, selected rows, variants, interactive rows, sticky
   header/first column, column borders, and size props.
 metadata:
-  component_version: "1.2.2"
+  component_version: "1.3.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -172,3 +172,13 @@ rg -n "<Table\\.Cell[^>]*className=\"[^\"]*text-right|<Table\\.ColumnHeader[^>]*
 rg -n "<Table[^>]*variant=\"(default|bordered)\"|captionPlacement=\"(left|right)\"" apps
 ```
 
+
+## Wave 2 contracts
+
+All Table ref props accept React Ref<T>, including createRef<T>() objects and callback refs. With interactive=true, rows that supply onClick join the tab order and activate with Enter or Space; keyboard events from nested controls do not activate the row. Provide a visible destination/action label and do not rely on row hover alone. A caller may override tabIndex/onKeyDown; preventDefault cancels built-in activation. Canonical sizes are sm/md/lg (default md).
+
+Wrap wide tables in a labelled, keyboard-focusable `overflow-x-auto` region. Keep native table semantics; do not force block layout on rows or allow the entire page to overflow on mobile.
+
+Table.Row selected exposes aria-selected as well as the visual data-selected state. Keep selection in application state and supply selected on each selectable row, including false for rows that are not selected.
+
+Frozen first cells composite the row stripe/hover/selection tint over an opaque table surface; other body cells remain transparent so row-level styling is preserved.

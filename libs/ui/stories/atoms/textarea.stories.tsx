@@ -1,168 +1,261 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Textarea } from '../../src/atoms/textarea'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useId } from "react"
+import { expect, userEvent, within } from "storybook/test"
+import { Label } from "../../src/atoms/label"
+import { StatusText } from "../../src/atoms/status-text"
+import { Textarea, type TextareaProps } from "../../src/atoms/textarea"
 
-const meta: Meta<typeof Textarea> = {
-  title: 'Atoms/Textarea',
-  component: Textarea,
-  parameters: {
-    layout: 'centered',
-  },
-  tags: ['autodocs'],
+function Field({
+  label = "Delivery instructions",
+  helpText,
+  variant = "default",
+  size = "md",
+  ...props
+}: TextareaProps & { label?: string; helpText?: string }) {
+  const id = useId()
+  const messageId = `${id}-message`
+  return (
+    <div className="flex flex-col gap-form-field-gap">
+      <Label disabled={props.disabled} htmlFor={id} size={size}>
+        {label}
+      </Label>
+      <Textarea
+        {...props}
+        aria-describedby={helpText ? messageId : undefined}
+        aria-errormessage={
+          variant === "error" && helpText ? messageId : undefined
+        }
+        aria-invalid={variant === "error" || undefined}
+        id={id}
+        size={size}
+        variant={variant}
+      />
+      {helpText && (
+        <StatusText
+          id={messageId}
+          size={size}
+          status={variant === "borderless" ? "default" : variant}
+        >
+          {helpText}
+        </StatusText>
+      )}
+    </div>
+  )
 }
 
+const meta: Meta<typeof Textarea> = {
+  title: "Atoms/Textarea",
+  component: Textarea,
+  tags: ["autodocs"],
+  parameters: {
+    layout: "padded",
+    docs: {
+      description: {
+        component:
+          "Textarea is a low-level multiline text control for custom compositions. Supply a visible label and associated feedback; choose FormTextarea for complete form fields or Input for single-line text.",
+      },
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="mx-auto w-full min-w-0 max-w-md">
+        <Story />
+      </div>
+    ),
+  ],
+  argTypes: {
+    size: { control: "select", options: ["sm", "md", "lg"] },
+    variant: {
+      control: "select",
+      options: ["default", "error", "warning", "success", "borderless"],
+    },
+    disabled: { control: "boolean" },
+    readOnly: { control: "boolean" },
+    placeholder: { control: "text" },
+    resize: { control: "select", options: ["none", "y", "x", "both", "auto"] },
+    rows: { control: "number" },
+    id: { control: false },
+    ref: { control: false },
+  },
+}
 export default meta
 type Story = StoryObj<typeof Textarea>
 
 export const Playground: Story = {
-  args: {
-    placeholder: 'Enter your text...',
-    size: 'md',
-    variant: 'default',
-    resize: 'y',
-    disabled: false,
-    readonly: false,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Adjust size, state and text properties to try this multiline field in a realistic form.",
+      },
+    },
   },
-  argTypes: {
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of the textarea',
+  args: {
+    placeholder: "Add instructions for the courier…",
+    size: "md",
+    variant: "default",
+    readOnly: false,
+    disabled: false,
+    rows: 3,
+    resize: "y",
+  },
+  render: (args) => <Field {...args} />,
+}
+
+export const Variants: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Meaningful inline feedback includes a state icon and remains associated with its field, even when the message wraps.",
+      },
     },
-    variant: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning', 'borderless'],
-      description: 'Visual variant for validation states',
-    },
-    resize: {
-      control: 'select',
-      options: ['none', 'y', 'x', 'both', 'auto'],
-      description: 'Resize behavior (auto = grows with content)',
-    },
-    disabled: {
-      control: 'boolean',
-      description: 'Disable the textarea',
-    },
-    readonly: {
-      control: 'boolean',
-      description: 'Make textarea read-only (still focusable, sent on submit)',
-    },
-    placeholder: {
-      control: 'text',
-      description: 'Placeholder text',
-    },
+  },
+  render: () => (
+    <div className="flex flex-col gap-300">
+      {(
+        [
+          ["default", "Shown to the courier with your order."],
+          [
+            "error",
+            "Add delivery instructions or enter ‘No special instructions’ so the courier knows what to do.",
+          ],
+          ["warning", "Keep private information out of delivery instructions."],
+          ["success", "Delivery instructions saved."],
+        ] as const
+      ).map(([state, message]) => (
+        <Field
+          defaultValue="Leave the parcel at reception."
+          helpText={message}
+          key={state}
+          label={`Delivery instructions — ${state}`}
+          variant={state}
+        />
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("textbox", {
+      name: "Delivery instructions — error",
+    })
+    await expect(input).toHaveAttribute("aria-invalid", "true")
+    const messageId = input.getAttribute("aria-errormessage")
+    await expect(messageId).toBeTruthy()
+    await expect(input.getAttribute("aria-describedby")).toContain(messageId)
+    await expect(
+      canvas.getByRole("alert").querySelector('[aria-hidden="true"]')
+    ).not.toBeNull()
   },
 }
 
 export const Sizes: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Small, medium and large share identical copy so field, label and message sizing can be compared directly.",
+      },
+    },
+  },
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="Sizes">
-        <Textarea size="sm" placeholder="Small textarea" />
-        <Textarea placeholder="Medium textarea (default)" />
-        <Textarea size="lg" placeholder="Large textarea" />
-      </VariantGroup>
-    </VariantContainer>
+    <div className="flex flex-col gap-300">
+      {(
+        [
+          ["sm", "Small (sm)"],
+          ["md", "Medium (md)"],
+          ["lg", "Large (lg)"],
+        ] as const
+      ).map(([size, label]) => (
+        <Field
+          defaultValue="Leave the parcel at reception."
+          helpText="Shown to the courier with your order."
+          key={size}
+          label={label}
+          size={size}
+        />
+      ))}
+    </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const fields = canvas.getAllByRole("textbox")
+    await expect(new Set(fields.map((field) => field.id)).size).toBe(3)
+    await userEvent.click(canvas.getByText("Small (sm)"))
+    await expect(fields[0]).toHaveFocus()
+  },
 }
 
-export const ValidationStates: Story = {
+export const Disabled: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Disabled fields are unavailable and removed from keyboard navigation; the helper explains why.",
+      },
+    },
+  },
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="Validation States">
-        <Textarea variant="default" placeholder="Default state" />
-        <Textarea variant="error" placeholder="Error state" />
-        <Textarea variant="success" placeholder="Success state" />
-        <Textarea variant="warning" placeholder="Warning state" />
-        <Textarea variant="borderless" placeholder="Borderless variant" />
-      </VariantGroup>
-    </VariantContainer>
+    <Field
+      defaultValue="Leave the parcel at reception."
+      disabled
+      helpText="Available after the order is confirmed."
+      label="Delivery instructions"
+    />
   ),
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole("textbox")).toBeDisabled()
+  },
 }
 
-export const AllVariants: Story = {
+export const ReadOnly: Story = {
+  name: "Read-only",
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Read-only values retain normal contrast, focus and text selection while native editing is blocked.",
+      },
+    },
+  },
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="Sizes">
-        <Textarea size="sm" placeholder="Small textarea" />
-        <Textarea size="md" placeholder="Medium textarea" />
-        <Textarea size="lg" placeholder="Large textarea" />
-      </VariantGroup>
-
-      <VariantGroup title="Resize Modes">
-        <Textarea resize="y" placeholder="Vertical resize" />
-        <Textarea resize="x" placeholder="Horizontal resize" />
-        <Textarea resize="none" placeholder="No resize" />
-        <Textarea resize="both" placeholder="Resize both" />
-        <Textarea resize="auto" placeholder="Auto-sizing - grows with content" />
-      </VariantGroup>
-
-      <VariantGroup title="Validation States">
-        <Textarea variant="default" placeholder="Default state" />
-        <Textarea variant="error" placeholder="Error state" />
-        <Textarea variant="success" placeholder="Success state" />
-        <Textarea variant="warning" placeholder="Warning state" />
-        <Textarea variant="borderless" placeholder="Borderless variant" />
-      </VariantGroup>
-
-      <VariantGroup title="Interactivity">
-        <Textarea placeholder="Normal state" />
-        <Textarea aria-label="Disabled textarea" disabled value="Disabled textarea" />
-        <Textarea aria-label="Readonly textarea" readonly value="Readonly textarea" />
-      </VariantGroup>
-    </VariantContainer>
+    <Field
+      defaultValue="Leave the parcel at reception."
+      helpText="Contact support to change the confirmed order."
+      label="Delivery instructions"
+      readOnly
+    />
   ),
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("textbox")
+    await userEvent.click(input)
+    await expect(input).toHaveFocus()
+    await userEvent.paste("Unwanted replacement")
+    await userEvent.keyboard("Changed{Backspace}{Delete}")
+    await expect(input).toHaveValue("Leave the parcel at reception.")
+    await expect(input).not.toBeDisabled()
+  },
 }
 
 export const AutoSizing: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Content-sized notes grow as lines are added without forcing a one-line control height.",
+      },
+    },
+  },
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="Auto-sizing Textareas">
-        <div className="w-80">
-          <Textarea
-            aria-label="Auto-sizing notes"
-            resize="auto"
-            size="sm"
-            defaultValue="This auto-sizing textarea starts with content. Try adding more lines - it will grow automatically!"
-          />
-        </div>
-
-      </VariantGroup>
-
-    </VariantContainer>
-  ),
-}
-
-export const UseCaseCombinations: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Real-world Use Cases">
-        <Textarea
-          size="lg"
-          resize="y"
-          placeholder="Product description - admin interface"
-        />
-        <Textarea
-          variant="error"
-          size="md"
-          placeholder="Order notes with validation error"
-        />
-        <Textarea
-          aria-label="Stored product description"
-          readonly
-          variant="borderless"
-          defaultValue="This is a read-only display of database content that maintains the same visual structure as editable fields."
-        />
-        <Textarea
-          variant="success"
-          placeholder="Successfully submitted product review"
-        />
-        <Textarea
-          size="sm"
-          resize="both"
-          placeholder="Compact notepad with resizing"
-        />
-      </VariantGroup>
-    </VariantContainer>
+    <Field
+      defaultValue="Leave the parcel at reception."
+      label="Delivery instructions"
+      resize="auto"
+    />
   ),
 }

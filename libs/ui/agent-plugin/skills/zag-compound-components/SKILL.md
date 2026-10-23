@@ -10,8 +10,13 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-authoring tailwind-token-authoring"
-  sources: "libs/ui/AGENTS.md libs/ui/src/molecules/accordion.tsx libs/ui/src/molecules/carousel.tsx libs/ui/src/molecules/select.tsx libs/ui/src/molecules/tree-view.tsx libs/ui/src/organisms/header.tsx https://chakra-ui.com/docs/components/accordion https://chakra-ui.com/docs/components/menu https://github.com/TechsioCZ/new-engine/issues/295"
+  sources: "https://chakra-ui.com/docs/components/accordion https://chakra-ui.com/docs/components/menu https://github.com/TechsioCZ/new-engine/issues/295"
+  contributor_sources: "libs/ui/AGENTS.md libs/ui/src/molecules/accordion.tsx libs/ui/src/molecules/carousel.tsx libs/ui/src/molecules/select.tsx libs/ui/src/molecules/tree-view.tsx libs/ui/src/organisms/header.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 This skill builds on `component-authoring` and `tailwind-token-authoring`. Read
 them first for component slice and token rules.
@@ -250,7 +255,7 @@ Source: https://chakra-ui.com/docs/components/accordion
 
 ```sh
 bunx biome check --write libs/ui/src/molecules/carousel.tsx
-bunx nx run ui:build
+pnpm --dir libs/ui build
 pnpm --dir libs/ui validate:tokens
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y

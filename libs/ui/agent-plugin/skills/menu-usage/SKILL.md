@@ -5,13 +5,18 @@ description: >
   action, radio, checkbox, separator, or submenu items using the Zag.js menu
   wrapper, Button trigger, icons, and supported open/highlight/select props.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.3.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/molecules/menu.tsx libs/ui/src/tokens/components/molecules/_menu.css libs/ui/stories/molecules/menu.stories.tsx libs/ui/src/molecules/menu.figma.ts https://zagjs.com/components/react/menu"
+  sources: "https://zagjs.com/components/react/menu"
+  contributor_sources: "libs/ui/src/molecules/menu.tsx libs/ui/src/tokens/components/molecules/_menu.css libs/ui/stories/molecules/menu.stories.tsx libs/ui/src/molecules/menu.figma.ts"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Menu Usage
 
@@ -150,3 +155,35 @@ rg -n "<Menu[^>]*className=.*(bg-|text-|rounded-|p-|shadow-)" apps
 rg -n "customTrigger=|type: \"submenu\"|onCheckedChange" apps
 ```
 
+## Popup and trigger contracts
+
+Canonical sizes are sm/md/lg (default md). Legacy xs is retained only for
+compatibility. The trigger and popup rows follow the root size. Popup Content and
+Positioner use the shared opaque popup surface and managed elevation.
+
+`contextMenu` uses right-click/long press or Shift+F10/ContextMenu on the focusable
+trigger, not left-click. A custom trigger must be a named interactive element;
+its event handlers are composed with Zag behavior, including preventDefault.
+Boolean customTrigger values fall back to the named built-in trigger rather than
+producing an empty button. className is applied to the trigger. Disabled submenus
+remain unavailable commands and do not mount a child machine. RTL direction
+propagates to nested menus and mirrors their directional glyphs.
+
+Checkbox/radio items are controlled: update the items array in onCheckedChange.
+For radio commands, clear the previous checked item in the same name group.
+
+Nested popups may overlap their parent when necessary on narrow viewports; their
+positioning is capped to the available viewport so flipped submenus do not clip
+commands off-screen.
+
+Navigation items use `{ type: "link", value, label, href, target?, rel?, disabled? }`.
+They render native anchors so keyboard navigation and the optional `navigate`
+callback work; `navigate` receives the item value. Checkboxes and radio items
+also accept `disabled`. Submenus inherit direction, focus looping, typeahead,
+and navigation from the root. Escape or selection restores context-menu focus
+to its invoker; clicking or focusing outside does not steal focus back.
+
+Menus size to their content (bounded by the available viewport width) instead
+of inheriting the trigger width, so icon-only triggers open readable menus.
+
+Construct native MouseEvents explicitly so the dismissal path is unambiguous to readers and static analysis; no behaviour change.

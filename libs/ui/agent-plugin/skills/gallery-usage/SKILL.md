@@ -6,13 +6,18 @@ description: >
   controlled page, orientation, thumbnail image adapters, thumbnail aria labels,
   empty state, and NextImage support.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux carousel-usage framework-consumer-integration app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/organisms/gallery.tsx libs/ui/src/tokens/components/organisms/_gallery.css libs/ui/stories/organisms/gallery.stories.tsx"
+  sources: ""
+  contributor_sources: "libs/ui/src/organisms/gallery.tsx libs/ui/src/tokens/components/organisms/_gallery.css libs/ui/stories/organisms/gallery.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Gallery Usage
 
@@ -138,7 +143,10 @@ Wrong:
 Correct:
 
 ```tsx
-<Gallery thumbnailSize={64}><Gallery.Thumbnails /></Gallery>
+<Gallery items={items} thumbnailSize={64}>
+  <Gallery.Main><Gallery.Carousel /></Gallery.Main>
+  <Gallery.Thumbnails />
+</Gallery>
 ```
 
 Source: libs/ui/src/tokens/components/organisms/_gallery.css
@@ -150,3 +158,14 @@ rg -n "setActive|setPage|<Gallery\\.Thumbnail[^>]*className=.*(h-|w-|rounded-|bo
 rg -U -P -n "<Gallery(?![\\s\\S]{0,800}<Gallery\\.Thumbnails)" apps
 rg -P -n "<Gallery(?![^>]*(thumbnailImageAs|carouselProps=\\{\\{[^}]*imageAs))" apps
 ```
+
+## Wave 2 contracts
+
+Gallery is the compound organism, not GalleryTemplate: configure nested media through carouselProps and compose Gallery.Main, Gallery.Carousel, Gallery.Slides and Gallery.Thumbnails. carouselWidth, fitParent and showControls belong to GalleryTemplate only. Gallery.Carousel defaults to aria-label="Product images"; provide a specific name through carouselProps or the slot when multiple galleries appear. Thumbnail dimming uses unitless brightness factors (0.7 at rest, 1 on hover/current), not rem dimensions. thumbnailSize is a media dimension in pixels, not a sm/md/lg control scale.
+
+Gallery is a single-image selector: `slidesPerPage` and `slidesPerMove` are fixed to 1 (including at runtime). Use Carousel directly for multi-slide pages. The active thumbnail is kept visible within its rail without moving page focus or scrolling the document.
+
+Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
+the initial measurement still runs.
+
+Forward the template name to its carousel landmark.

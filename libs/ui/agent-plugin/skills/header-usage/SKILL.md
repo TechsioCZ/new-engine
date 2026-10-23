@@ -6,13 +6,18 @@ description: >
   nav, nav items, actions, hamburger, active state, size, direction, and token
   styling.
 metadata:
-  component_version: "1.0.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
-  sources: "libs/ui/src/organisms/header.tsx libs/ui/src/tokens/components/organisms/_header.css libs/ui/stories/organisms/header.stories.tsx"
+  sources: ""
+  contributor_sources: "libs/ui/src/organisms/header.tsx libs/ui/src/tokens/components/organisms/_header.css libs/ui/stories/organisms/header.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Header Usage
 
@@ -57,7 +62,7 @@ where actions and feedback live). This section applies them to `Header`.
   <Header.Desktop>
     <Header.Container position="start">
       <Header.Nav>
-        <Header.NavItem active><Link as={NextLink} href="/">Home</Link></Header.NavItem>
+        <Header.NavItem active><Link as={NextLink} aria-current="page" href="/">Home</Link></Header.NavItem>
       </Header.Nav>
       <Header.Actions><Header.ActionItem><Button>Account</Button></Header.ActionItem></Header.Actions>
     </Header.Container>
@@ -150,3 +155,14 @@ rg -n "<a[^>]*href=|<Header\\.Hamburger|<Header\\.Mobile" apps
 rg -n "<Header[^>]*size=\"(xs|xl)\"|position=\"(left|right)\".*Header\\.Container" apps
 ```
 
+
+## Wave 2 contracts
+
+Header.Desktop, Header.Mobile and Header.Hamburger use the header container’s content width (48rem breakpoint), not the viewport. Compose exactly one Mobile slot with its Hamburger. The trigger exposes aria-controls/aria-expanded; Escape closes an open menu and restores trigger focus. A custom Mobile id is synchronized with aria-controls. Canonical sizes are sm/md/lg (default md); place primary navigation inside the responsive slots.
+
+Header.NavItem active controls styling only. Mark the actual current destination link with aria-current="page"; inactive destinations omit it.
+
+Hamburger forwards Button props (including localized `aria-label`, event handlers and a React 19 `ref`). Prevent the click default to cancel toggling. On transition to desktop, the menu closes and focus moves to desktop navigation when the hidden mobile region held focus. Render Hamburger before Mobile so the next Tab enters the open navigation.
+
+Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
+the initial measurement still runs.

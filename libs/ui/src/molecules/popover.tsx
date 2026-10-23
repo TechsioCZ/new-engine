@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.0.2
+ * @componentVersion v1.1.1
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,7 +17,7 @@ import {
   type Placement as PopoverPlacement,
   type PositioningOptions as PopoverPositioningOptions,
 } from "@zag-js/popover"
-import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -31,24 +31,32 @@ import {
   useLayoutEffect,
   useState,
 } from "react"
+import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
+import {
+  OverlayContainerProvider,
+  OverlayPortal as Portal,
+} from "../internal/overlay-portal"
 import { tv } from "../utils"
 
 const popoverVariants = tv({
   slots: {
     trigger: ["p-popover-trigger"],
     indicator: ["data-[state=open]:rotate-180"],
-    positioner: ["absolute"],
+    positioner: ["absolute", "popup-layer"],
     content: [
       "bg-popover-bg",
       "text-popover-fg",
       "rounded-popover",
       "outline-hidden",
-      "z-50",
-      "relative",
+      "popup-layer",
+      "popover-viewport",
+      "relative flex flex-col",
     ],
+    scrollViewport: "popover-scroll-viewport",
+    chrome: "contents",
     arrow: "",
     arrowTip: "",
     title: ["font-popover-title", "leading-none", "mb-popover-title"],
@@ -56,7 +64,7 @@ const popoverVariants = tv({
       "text-popover-description text-popover-description-fg",
       "leading-normal",
     ],
-    closeTrigger: ["absolute end-2 top-2"],
+    closeTrigger: ["absolute end-popover-close top-popover-close"],
   },
   variants: {
     shadow: {
@@ -72,15 +80,15 @@ const popoverVariants = tv({
     },
     size: {
       sm: {
-        content: "p-popover-sm text-sm",
+        content: "p-popover-sm text-popover-body-sm",
         title: "text-popover-title-sm",
       },
       md: {
-        content: "p-popover-md",
+        content: "p-popover-md text-popover-body-md",
         title: "text-popover-title-md",
       },
       lg: {
-        content: "p-popover-lg text-lg",
+        content: "p-popover-lg text-popover-body-lg",
         title: "text-popover-title-lg",
       },
     },
@@ -103,6 +111,8 @@ type PopoverContextValue = {
 }
 
 const PopoverContext = createContext<PopoverContextValue | null>(null)
+// Chrome stays outside the content scroller even when composed through wrappers.
+const PopoverChromeContext = createContext<HTMLElement | null>(null)
 
 function usePopoverContext() {
   const context = useContext(PopoverContext)
@@ -334,6 +344,9 @@ Popover.Content = function PopoverContent({
   ...props
 }: PopoverContentProps) {
   const { api, descriptionId, placement, styles, titleId } = usePopoverContext()
+  const [chromeContainer, setChromeContainer] = useState<HTMLDivElement | null>(
+    null
+  )
   const machineContentProps =
     api.getContentProps() as ComponentPropsWithoutRef<"div">
   const contentProps = mergeProps(
@@ -368,7 +381,20 @@ Popover.Content = function PopoverContent({
       data-state={api.open ? "open" : "closed"}
       ref={ref}
     >
-      {children}
+      <OverlayContainerProvider
+        container={
+          (contentProps["aria-modal"] === true ||
+            contentProps["aria-modal"] === "true") &&
+          api.open
+            ? chromeContainer
+            : null
+        }
+      >
+        <PopoverChromeContext.Provider value={chromeContainer}>
+          <div className={styles.scrollViewport()}>{children}</div>
+        </PopoverChromeContext.Provider>
+      </OverlayContainerProvider>
+      <div className={styles.chrome()} ref={setChromeContainer} />
     </div>
   )
 }
@@ -384,13 +410,15 @@ Popover.Arrow = function PopoverArrow({
   ...props
 }: PopoverArrowProps) {
   const { api, styles } = usePopoverContext()
+  const chromeContainer = useContext(PopoverChromeContext)
   const arrowProps = mergeProps(props, api.getArrowProps())
-
-  return (
+  const arrow = (
     <div {...arrowProps} className={styles.arrow({ className })} ref={ref}>
       {children ?? <Popover.ArrowTip />}
     </div>
   )
+
+  return chromeContainer ? createPortal(arrow, chromeContainer) : arrow
 }
 
 export type PopoverArrowTipProps = ComponentPropsWithoutRef<"div"> & {
@@ -480,6 +508,7 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   ...props
 }: PopoverCloseTriggerProps) {
   const { api, styles } = usePopoverContext()
+  const chromeContainer = useContext(PopoverChromeContext)
   const { onClick: onMachineClick, ...machineCloseTriggerProps } =
     api.getCloseTriggerProps() as ComponentPropsWithoutRef<"button">
   const buttonProps = mergeProps(props, machineCloseTriggerProps)
@@ -491,23 +520,7 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   }
 
   // Icon-only close → shared ActionIcon (neutral pill). Labeled close keeps Button.
-  if (!children) {
-    return (
-      <ActionIcon
-        {...buttonProps}
-        aria-label="Close popover"
-        className={styles.closeTrigger({ className })}
-        icon={icon ?? "token-icon-close"}
-        onClick={handleClick}
-        ref={ref}
-        size="md"
-        tone="neutral"
-        type={type}
-      />
-    )
-  }
-
-  return (
+  const closeTrigger = children ? (
     <Button
       {...buttonProps}
       className={styles.closeTrigger({ className })}
@@ -520,7 +533,23 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
     >
       {children}
     </Button>
+  ) : (
+    <ActionIcon
+      {...buttonProps}
+      aria-label={props["aria-label"] ?? "Close popover"}
+      className={styles.closeTrigger({ className })}
+      icon={icon ?? "token-icon-close"}
+      onClick={handleClick}
+      ref={ref}
+      size={size === "current" ? "md" : size}
+      tone="neutral"
+      type={type}
+    />
   )
+
+  return chromeContainer
+    ? createPortal(closeTrigger, chromeContainer)
+    : closeTrigger
 }
 
 export type PopoverContextProps = {

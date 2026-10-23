@@ -1,3 +1,5 @@
+@import "./_action-icon.css";
+
 /*
  * Button — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
@@ -12,6 +14,10 @@
  */
 
 @theme static {
+  --color-button-interacting: var(--color-fg-primary);
+  --color-button-fg-interacting: var(--color-button-interacting);
+  --color-button-warning-readable: var(--color-warning-fg);
+  --color-button-fg-warning-readable: var(--color-button-warning-readable);
   --font-weight-button: var(--font-weight-medium);
   --padding-button-sm: var(--padding-button-y-sm) var(--padding-button-x-sm);
   --padding-button-md: var(--padding-button-y-md) var(--padding-button-x-md);
@@ -20,4 +26,41 @@
 
 @utility token-icon-button-spinner {
   @apply token-icon-spinner;
+}
+
+/* Anchors and native buttons share the same unavailable presentation. Hover
+ * and pressed selectors must never restore an interactive colour. */
+@utility button-disabled {
+  &:is(:disabled, [data-disabled=""], [aria-disabled="true"]),
+  &:is(:disabled, [data-disabled=""], [aria-disabled="true"]):is(
+      :hover,
+      :active
+    ) {
+    color: var(--color-button-fg-disabled);
+    background-color: var(--color-button-bg-disabled);
+    border-color: var(--color-button-border-disabled);
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* Compatibility sizing inherits typography, not text colour. */
+@utility button-current-size {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Text-bearing actions grow with wrapped/localized labels, unlike icon buttons.
+ * The shared canonical heights remain minimum geometry, not clipping boxes. */
+@utility button-size-sm {
+  height: auto;
+  min-height: var(--height-form-control-sm);
+}
+@utility button-size-md {
+  height: auto;
+  min-height: var(--height-form-control-md);
+}
+@utility button-size-lg {
+  height: auto;
+  min-height: var(--height-form-control-lg);
 }

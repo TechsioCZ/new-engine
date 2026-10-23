@@ -10,6 +10,12 @@
  * `color/fg/secondary` semantic instead of overriding here.
  */
 
+/* The icon inherits the message font size and sits in a first-line-height
+ * frame. No pixel offsets: sm/md/lg and custom line heights stay aligned. */
+@theme static {
+  --height-status-text-icon-line: 1lh;
+}
+
 @utility token-icon-status-text-success {
   @apply token-icon-success;
 }
@@ -18,4 +24,16 @@
 }
 @utility token-icon-status-text-error {
   @apply token-icon-error;
+}
+
+/* Read the public aliases on the message itself, so scoped application
+ * overrides do not freeze through an inherited intermediate alias. */
+@utility status-text-leading-sm {
+  line-height: var(--line-height-status-text-sm);
+}
+@utility status-text-leading-md {
+  line-height: var(--line-height-status-text-md);
+}
+@utility status-text-leading-lg {
+  line-height: var(--line-height-status-text-lg);
 }

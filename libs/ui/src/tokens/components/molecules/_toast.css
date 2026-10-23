@@ -28,3 +28,63 @@
 @utility token-icon-toast-close {
   @apply token-icon-close;
 }
+
+/* Opaque neutral surfaces preserve text contrast for every notification type.
+ * Semantic borders and decorative glyphs distinguish status without tinting copy. */
+@theme static {
+  --height-toast-title-line: 1lh;
+  --text-toast-title-size: var(--text-toast-title);
+  --text-toast-description-size: var(--text-toast-description);
+  --color-toast-error: var(--color-danger-fg);
+  --color-toast-success: var(--color-success-fg);
+  --color-toast-info: var(--color-info-fg);
+  --color-toast-warning: var(--color-warning-fg);
+  --color-toast-surface: var(--color-fill-surface);
+  --color-toast-text: var(--color-fg-primary);
+  --color-toast-bg-surface: var(--color-toast-surface);
+  --color-toast-fg-readable: var(--color-toast-text);
+  --color-toast-fg-error: var(--color-toast-error);
+  --color-toast-fg-success: var(--color-toast-success);
+  --color-toast-fg-info: var(--color-toast-info);
+  --color-toast-fg-warning: var(--color-toast-warning);
+  --color-toast-border-error: var(--color-toast-error);
+  --color-toast-border-success: var(--color-toast-success);
+  --color-toast-border-info: var(--color-toast-info);
+  --color-toast-border-warning: var(--color-toast-warning);
+}
+
+/* A transparent native top-layer host keeps fixed groups viewport-relative,
+ * without moving them outside their owning modal's accessibility/focus scope. */
+@utility toast-notification-viewport {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: transparent;
+  color: inherit;
+  pointer-events: none;
+
+  &::backdrop {
+    background: transparent;
+    pointer-events: none;
+  }
+}
+
+@utility toast-responsive-width {
+  width: min(
+    var(--spacing-toast-width),
+    calc(
+      100vw -
+      var(--viewport-offset-left, var(--spacing-300)) -
+      var(--viewport-offset-right, var(--spacing-300)) -
+      env(safe-area-inset-left, 0px) -
+      env(safe-area-inset-right, 0px)
+    )
+  );
+}

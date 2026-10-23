@@ -3,12 +3,20 @@ import { type Ref, useRef, useState } from "react"
 import { fn } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
+import { Hotkeys } from "../../src/atoms/hotkeys"
+import { Icon, type IconType } from "../../src/atoms/icon"
 import {
   Command,
   type CommandItem,
   type CommandProps,
 } from "../../src/molecules/command"
 import { Dialog } from "../../src/molecules/dialog"
+
+const actionIcons: Record<string, IconType> = {
+  overview: "token-icon-home",
+  orders: "token-icon-shopping-bag",
+  settings: "icon-[mdi--cog-outline]",
+}
 
 const actions: CommandItem[] = [
   {
@@ -52,6 +60,13 @@ function CommandResults({ grouped = false }: { grouped?: boolean }) {
                       .filter((item) => item.group === group)
                       .map((item) => (
                         <Command.Item item={item} key={item.value}>
+                          <Icon
+                            icon={
+                              actionIcons[item.value] ??
+                              "token-icon-file-document"
+                            }
+                            size="md"
+                          />
                           <Command.ItemText />
                         </Command.Item>
                       ))}
@@ -59,6 +74,12 @@ function CommandResults({ grouped = false }: { grouped?: boolean }) {
                 ))
               : api.collection.items.map((item) => (
                   <Command.Item item={item} key={item.value}>
+                    <Icon
+                      icon={
+                        actionIcons[item.value] ?? "token-icon-file-document"
+                      }
+                      size="md"
+                    />
                     <Command.ItemText />
                   </Command.Item>
                 ))
@@ -66,6 +87,15 @@ function CommandResults({ grouped = false }: { grouped?: boolean }) {
         </Command.Context>
       </Command.List>
       <Command.Empty>No matching actions</Command.Empty>
+      <p className="flex flex-wrap items-center gap-150 border-t border-border-primary px-100 pt-150 text-fg-secondary text-xs">
+        <span>
+          <Hotkeys hotkey="ArrowUp" /> <Hotkeys hotkey="ArrowDown" /> to
+          navigate
+        </span>
+        <span>
+          <Hotkeys hotkey="Enter" /> to run an action
+        </span>
+      </p>
     </>
   )
 }
@@ -129,7 +159,16 @@ const meta = {
   title: "Molecules/Command",
   component: Command,
   tags: ["autodocs"],
-  parameters: { layout: "padded", controls: { disable: true } },
+  parameters: {
+    layout: "padded",
+    controls: { disable: true },
+    docs: {
+      description: {
+        component:
+          "Command is a command palette: a searchable, keyboard-first list of application actions and destinations, often opened with ⌘K (Ctrl+K on Windows/Linux). Type to filter by label or keyword, use ↑/↓ to navigate, and press Enter or click to run an action. Unlike Combobox, it runs actions rather than choosing a form value; use Select for a fixed set of form choices and Menu for a short action list that does not need search. Compose Command with Dialog for a modal palette, and add Hotkeys only when the application actually registers those shortcuts. Your application owns action handlers, permissions and whether selection closes the palette.",
+      },
+    },
+  },
   decorators: [
     (Story) => (
       <div className="mx-auto w-full max-w-md">
@@ -159,13 +198,26 @@ type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
   parameters: {
-    controls: { disable: false, include: ["disabled", "loopFocus"] },
+    controls: { disable: false, include: ["disabled", "loopFocus", "locale"] },
+    docs: {
+      description: {
+        story:
+          "An inline action search filters navigation destinations by label or keyword; try invoice, then press Enter to update the demo workspace.",
+      },
+    },
   },
   render: (args) => <CommandExample {...args} />,
 }
 
 export const States: Story = {
-  tags: ["!dev", "!autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compare an unavailable command surface with an empty search, so disabled and no-result behavior can be designed deliberately.",
+      },
+    },
+  },
   render: (args) => (
     <VariantContainer>
       <VariantGroup title="Disabled">
@@ -179,6 +231,14 @@ export const States: Story = {
 }
 
 export const Grouped: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Navigation and Account headings follow the filtered actions, making a longer palette easier to scan without leaving empty groups.",
+      },
+    },
+  },
   render: (args) => (
     <CommandExample
       {...args}
@@ -189,6 +249,14 @@ export const Grouped: Story = {
 }
 
 export const DisabledItems: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Orders remains visible but unavailable; keyboard navigation skips it and the explanatory text tells users why.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   args: {
     items: actions.map((item) => ({
@@ -196,10 +264,23 @@ export const DisabledItems: Story = {
       disabled: item.value === "orders",
     })),
   },
-  render: (args) => <CommandExample {...args} />,
+  render: (args) => (
+    <CommandExample
+      {...args}
+      description="Orders is unavailable while the order service is offline. Search invoice to see it, or choose another available destination."
+    />
+  ),
 }
 
 export const Localized: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Locale-aware matching finds Czech labels without accents and searches alternate keywords, keeping translated actions discoverable.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   args: {
     locale: "cs",
@@ -264,11 +345,27 @@ function ChangingItemsExample(args: CommandProps) {
 }
 
 export const ChangingItems: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Disable or remove an action after searching to verify that stale highlighted results cannot be activated.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: (args) => <ChangingItemsExample {...args} />,
 }
 
 export const InlineFocus: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "An inline Command participates in normal Tab order rather than trapping focus like a modal palette.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: (args) => (
     <div className="flex flex-col items-start gap-200">
@@ -297,6 +394,14 @@ function ControlledQueryExample(args: CommandProps) {
 }
 
 export const ControlledQuery: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "An external button updates a controlled query while typing and the keyboard result collection stay synchronized.",
+      },
+    },
+  },
   tags: ["!dev", "!autodocs"],
   render: (args) => <ControlledQueryExample {...args} />,
 }
@@ -309,7 +414,8 @@ function DialogExample(args: CommandProps) {
     <div className="flex flex-col items-start gap-200">
       <p>
         A searchable dialog without shortcuts. It stays open after an action so
-        you can select it again. Escape closes it and returns focus to the opener.
+        you can select it again. Escape closes it and returns focus to the
+        opener.
       </p>
       <Button onClick={() => setOpen(true)} ref={triggerRef}>
         Open command palette
@@ -334,4 +440,14 @@ function DialogExample(args: CommandProps) {
   )
 }
 
-export const InDialog: Story = { render: (args) => <DialogExample {...args} /> }
+export const InDialog: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A button opens a modal command palette with search focused; Escape closes it and restores focus, while repeated selections stay available in this demo.",
+      },
+    },
+  },
+  render: (args) => <DialogExample {...args} />,
+}

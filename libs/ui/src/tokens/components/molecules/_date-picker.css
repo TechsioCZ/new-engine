@@ -7,13 +7,13 @@
  */
 @theme static {
   /* Reference layer */
-  --color-date-picker-surface: var(--color-fill-overlay);
+  --color-date-picker-surface: var(--color-popup-bg);
   --color-date-picker-fill: var(--color-form-control-bg);
   --color-date-picker-fill-hover: var(--color-form-control-bg-hover);
   --color-date-picker-fill-active: var(--color-form-control-bg-focus);
   --color-date-picker-accent: var(--color-bg-primary-base);
   --color-date-picker-accent-hover: var(--color-bg-primary-hover);
-  --color-date-picker-accent-foreground: var(--color-fg-light);
+  --color-date-picker-accent-foreground: var(--color-fg-on-primary-solid-neo);
   --color-date-picker-text: var(--color-fg-primary);
   --color-date-picker-text-muted: var(--color-fg-secondary);
   --color-date-picker-placeholder: var(--color-form-control-fg-placeholder);
@@ -37,7 +37,9 @@
   --color-date-picker-control-bg: var(--color-date-picker-fill);
   --color-date-picker-control-bg-hover: var(--color-date-picker-fill-hover);
   --color-date-picker-control-bg-focus: var(--color-date-picker-fill-active);
-  --color-date-picker-control-bg-readonly: var(--color-date-picker-fill);
+  --color-date-picker-control-bg-readonly: var(
+    --color-form-control-bg-readonly
+  );
   --color-date-picker-control-bg-disabled: var(
     --color-form-control-bg-disabled
   );
@@ -63,6 +65,11 @@
   --color-date-picker-segment-fg-placeholder: var(
     --color-date-picker-placeholder
   );
+  /* A focused empty segment sits on the tinted focus fill; muted placeholder
+   * text would drop below AA there, so it switches to the value color. */
+  --color-date-picker-segment-fg-placeholder-focus: var(
+    --color-date-picker-text
+  );
   --color-date-picker-range-separator-fg: var(--color-date-picker-text-muted);
   --color-date-picker-trigger-bg: var(--color-date-picker-fill);
   --color-date-picker-trigger-bg-hover: var(--color-date-picker-fill-hover);
@@ -70,9 +77,9 @@
   --color-date-picker-trigger-fg: var(--color-date-picker-text);
   --color-date-picker-trigger-fg-disabled: var(--color-date-picker-disabled);
   --color-date-picker-trigger-ring: var(--color-date-picker-ring);
-  --color-date-picker-content-bg: var(--color-date-picker-surface);
+  --color-date-picker-content-bg: var(--color-popup-bg);
   --color-date-picker-content-fg: var(--color-date-picker-text);
-  --color-date-picker-content-border: var(--color-date-picker-border);
+  --color-date-picker-content-border: var(--color-popup-border);
   --color-date-picker-navigation-bg-hover: var(--color-date-picker-fill-hover);
   --color-date-picker-navigation-fg: var(--color-date-picker-text);
   --color-date-picker-navigation-fg-disabled: var(--color-date-picker-disabled);
@@ -117,7 +124,7 @@
   --radius-date-picker-content: var(--radius-popover);
   --radius-date-picker-day: var(--radius-button-sm);
   --radius-date-picker-time: var(--radius-form-control-sm);
-  --shadow-date-picker-content: var(--shadow-popover);
+  --shadow-date-picker-content: var(--shadow-popup);
 
   --gap-date-picker-root: var(--spacing-form-field-gap);
   --gap-date-picker-control: var(--spacing-100);
@@ -177,11 +184,55 @@
   --opacity-date-picker-disabled: var(--opacity-disabled);
 }
 
-@utility date-picker-scrollbar-hidden {
-  scrollbar-width: none;
+/* Range layout responds to the field's width, not the viewport. Both endpoints
+ * remain visible at rest; segment focus order and editable spans stay intact. */
+@utility date-picker-field-container {
+  container-type: inline-size;
+}
 
-  &::-webkit-scrollbar {
-    display: none;
+@utility date-picker-range-control {
+  &[data-selection-mode="range"] {
+    @apply form-control-size-md;
+    &[data-size="sm"] {
+      @apply form-control-size-sm;
+    }
+    &[data-size="lg"] {
+      @apply form-control-size-lg;
+    }
+  }
+}
+
+@utility date-picker-range-segments {
+  &[data-selection-mode="range"] {
+    flex-wrap: wrap;
+    overflow: visible;
+    row-gap: var(--gap-date-picker-control);
+
+    [data-part="segment-group"] {
+      min-inline-size: 0;
+      max-inline-size: 100%;
+      flex-wrap: wrap;
+    }
+
+    @container (inline-size < 40rem) {
+      flex-direction: column;
+      align-items: stretch;
+
+      [data-part="range-separator"] {
+        display: none;
+      }
+    }
+  }
+}
+
+@utility date-picker-range-label {
+  display: none;
+
+  @container (inline-size < 40rem) {
+    display: block;
+    flex-basis: 100%;
+    font-size: var(--text-date-picker-time-label);
+    color: var(--color-date-picker-range-separator-fg);
   }
 }
 
@@ -222,4 +273,9 @@
     margin: 0;
     appearance: none;
   }
+}
+
+/* Set the content layer too: Zag copies it onto its floating positioner. */
+@utility date-picker-popup-layer {
+  z-index: calc(var(--z-popup) + var(--layer-index, 0));
 }
