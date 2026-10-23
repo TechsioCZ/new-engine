@@ -245,18 +245,22 @@ export const AutoplayWithoutNavigation: Story = {
     const visibleSlide = () =>
       canvasElement.querySelector('[data-part="item"]:not([inert])')
         ?.getAttribute("data-index")
-    const before = visibleSlide()
+    const slides = canvasElement.querySelector<HTMLElement>(
+      '[data-part="item-group"]'
+    )
+    if (!slides) throw new Error("Carousel slides are required")
+    const startOffset = slides.scrollLeft
     await userEvent.click(toggle, { skipHover: true })
     await waitFor(() =>
       expect(toggle).toHaveAccessibleName("Stop slide rotation")
     )
     // 800 ms configuration must survive an explicit restart under reduced
     // motion too; Zag's default four-second interval would miss this deadline.
+    // Watch the scroll offset the tick starts moving, not the in-view slide:
+    // that waits for a smooth scroll plus an IntersectionObserver callback,
+    // which a loaded WebKit can push past the deadline.
     await waitFor(
-      () => {
-        expect(visibleSlide()).toBeTruthy()
-        expect(visibleSlide()).not.toBe(before)
-      },
+      () => expect(slides.scrollLeft).not.toBe(startOffset),
       { timeout: 1800 }
     )
     await userEvent.click(toggle, { skipHover: true })
@@ -265,10 +269,6 @@ export const AutoplayWithoutNavigation: Story = {
     )
     // Rotation is verified above, but elapsed time must not choose the final
     // destination. Scroll the paused carousel to its exact last snap point.
-    const slides = canvasElement.querySelector<HTMLElement>(
-      '[data-part="item-group"]'
-    )
-    if (!slides) throw new Error("Carousel slides are required")
     slides.scrollTo({
       left: slides.scrollWidth - slides.clientWidth,
       behavior: "instant",
