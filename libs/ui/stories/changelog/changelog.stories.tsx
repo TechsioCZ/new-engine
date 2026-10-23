@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Combobox v1.6.6
+- Scope the single-surface reset to the Combobox itself. Command shares the same zag parts, so the reset stripped its search field border and focus ring; Command keeps its standalone input styling again.
+
 ### Combobox v1.6.5
 - The control owns one surface and one focus ring: the nested input, clear and chevron buttons no longer paint their own background, rounded halo or outline inside it. SearchSuggestions inherits the fix.
 

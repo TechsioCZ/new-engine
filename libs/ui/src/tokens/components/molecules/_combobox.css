@@ -94,8 +94,12 @@
 /* Input is a standalone control elsewhere, but here its atom-level paint must
  * not create a second surface. Keep this unlayered: the shared two-tone focus
  * rule is unlayered too, so a utility-only reset cannot suppress its inner halo.
- * Geometry and padding still come from the Combobox's size slots. */
-[data-scope="combobox"][data-part="control"] > [data-part="input"] {
+ * Geometry and padding still come from the Combobox's size slots.
+ * Command also renders zag's combobox parts, but its control has no surface and
+ * its Input is the field, so scope to the Combobox root (the only one with
+ * data-mode) instead of the shared data-scope. */
+[data-scope="combobox"][data-part="root"][data-mode]
+> [data-part="control"] > [data-part="input"] {
   background-color: transparent;
   border: 0;
   border-radius: 0;
@@ -103,7 +107,8 @@
 
 /* The control owns the focus indicator for every focusable descendant, including
  * the clear/chevron actions. Do not remove their hover/active affordances. */
-[data-scope="combobox"][data-part="control"]
+[data-scope="combobox"][data-part="root"][data-mode]
+> [data-part="control"]
 > :is([data-part="input"], [data-part="trigger"], [data-part="clear-trigger"]) {
   outline: none;
   box-shadow: none;
