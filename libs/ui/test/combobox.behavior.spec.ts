@@ -1,4 +1,15 @@
-import { expect, type Locator, test } from "@playwright/test"
+import { expect, type Locator, type Page, test } from "@playwright/test"
+
+// Stories with play functions drive the same Combobox the test drives. Wait for
+// the play to finish so it cannot close a popup the test just opened.
+async function openStory(page: Page, url: string) {
+  await page.goto(url)
+  await page.waitForFunction(
+    () =>
+      Reflect.get(window, "__STORYBOOK_PREVIEW__")?.currentRender?.phase ===
+      "finished"
+  )
+}
 
 const nonEmptyAttribute = /.+/
 
@@ -6,7 +17,8 @@ for (const opening of ["typing", "trigger", "keyboard"] as const) {
   test(`local filtering applies immediately when opened by ${opening}`, async ({
     page,
   }) => {
-    await page.goto(
+    await openStory(
+      page,
       "/iframe.html?id=molecules-combobox--playground&viewMode=story"
     )
     const input = page.getByRole("combobox", { name: "Select country" })
@@ -39,7 +51,8 @@ for (const opening of ["typing", "trigger", "keyboard"] as const) {
 }
 
 test("reopening after a selection restores all choices", async ({ page }) => {
-  await page.goto(
+  await openStory(
+    page,
     "/iframe.html?id=molecules-combobox--playground&viewMode=story"
   )
   const input = page.getByRole("combobox", { name: "Select country" })
@@ -57,7 +70,10 @@ test("reopening after a selection restores all choices", async ({ page }) => {
 test("loading does not let keyboard selection reach unrendered options", async ({
   page,
 }) => {
-  await page.goto("/iframe.html?id=molecules-combobox--loading&viewMode=story")
+  await openStory(
+    page,
+    "/iframe.html?id=molecules-combobox--loading&viewMode=story"
+  )
 
   const input = page.getByRole("combobox", { name: "Loading results" })
   await expect(page.getByRole("status")).toBeVisible()
@@ -75,7 +91,8 @@ test("loading does not let keyboard selection reach unrendered options", async (
 })
 
 test("available options remain keyboard selectable", async ({ page }) => {
-  await page.goto(
+  await openStory(
+    page,
     "/iframe.html?id=molecules-combobox--playground&viewMode=story"
   )
 
@@ -97,7 +114,8 @@ test("available options remain keyboard selectable", async ({ page }) => {
 test("loading keeps the selected label without exposing hidden options", async ({
   page,
 }) => {
-  await page.goto(
+  await openStory(
+    page,
     "/iframe.html?id=molecules-combobox--loading-with-selection&viewMode=story"
   )
 
@@ -118,7 +136,8 @@ test("loading keeps the selected label without exposing hidden options", async (
 test("error does not let keyboard selection reach unrendered options", async ({
   page,
 }) => {
-  await page.goto(
+  await openStory(
+    page,
     "/iframe.html?id=molecules-combobox--error-retry&viewMode=story"
   )
 
@@ -139,7 +158,8 @@ test("error does not let keyboard selection reach unrendered options", async ({
 test("retry remains available when results are in an error state", async ({
   page,
 }) => {
-  await page.goto(
+  await openStory(
+    page,
     "/iframe.html?id=molecules-combobox--error-retry&viewMode=story"
   )
 
@@ -215,7 +235,8 @@ for (const [brand, mode] of [
   test(`rich item foregrounds remain readable in ${brand} ${mode}`, async ({
     page,
   }) => {
-    await page.goto(
+    await openStory(
+      page,
       `/iframe.html?id=molecules-combobox--rich-item&viewMode=story&globals=brand:${brand};mode:${mode}`
     )
     const selected = page.getByRole("option", { name: "Czech Republic" })
@@ -242,13 +263,9 @@ for (const [brand, mode] of [
 test("reset authority play preserves queries and submitted parent values", async ({
   page,
 }) => {
-  await page.goto(
+  await openStory(
+    page,
     "/iframe.html?id=molecules-combobox--reset-authority&viewMode=story"
-  )
-  await page.waitForFunction(
-    () =>
-      Reflect.get(window, "__STORYBOOK_PREVIEW__")?.currentRender?.phase ===
-      "finished"
   )
   await expect(
     page.getByRole("combobox", { name: "Initial country query" })
@@ -271,7 +288,8 @@ test("reset authority play preserves queries and submitted parent values", async
 test("external filtering displays only the latest debounced query", async ({
   page,
 }) => {
-  await page.goto(
+  await openStory(
+    page,
     "/iframe.html?id=molecules-combobox--external-filtering&viewMode=story"
   )
   const input = page.getByRole("combobox", {
