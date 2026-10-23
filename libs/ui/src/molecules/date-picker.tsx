@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.7
+ * @componentVersion v1.3.8
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -757,7 +757,10 @@ export function DatePicker({
       resolvedOpen && isTimed && selectionMode === "range" && rangeInputDraft
         ? toCompleteDatePickerRange(rangeInputDraft)
         : null
-    if (selectionMode === "range") {
+    // Opening hands the range to the calendar, so a partial segment draft is
+    // discarded. Closing must keep it: outside dismissal is deferred by frames,
+    // and can land after the user has already typed into the segments.
+    if (resolvedOpen && selectionMode === "range") {
       setRangeInputDraft(null)
     }
     if (!(resolvedOpen && usesPopupDraft)) {
@@ -891,6 +894,9 @@ export function DatePicker({
           return
         }
 
+        // A complete calendar range supersedes any typed segment draft, even
+        // when a controlled parent refuses the proposal.
+        setRangeInputDraft(null)
         commitValue(nextRange)
         requestOpen(false)
         return

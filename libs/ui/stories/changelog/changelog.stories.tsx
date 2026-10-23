@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DatePicker v1.3.8
+- Closing the calendar no longer discards a range endpoint already typed into the segments. Outside dismissal is deferred by animation frames, so on a slow device it could land after the start date was typed and wipe it; opening the calendar still discards a partial typed range.
+
 ### Menu v1.3.5
 - Reduced motion now opens and closes the panel without any transition. Before, every panel property still animated over 200 ms from its starting styles, and WebKit could leave the panel transparent for over a second inside a Dialog. Focus is handed back from a panel only after the menu itself has closed.
 
