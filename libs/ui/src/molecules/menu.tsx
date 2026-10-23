@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.3.3
+ * @componentVersion v1.3.4
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,6 +13,7 @@ import * as menu from "@zag-js/menu"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   cloneElement,
+  type FocusEvent,
   isValidElement,
   type KeyboardEvent,
   type PointerEvent,
@@ -163,6 +164,23 @@ const menuVariants = tv({
     size: "md",
   },
 })
+
+// Zag moves focus into the content on the next animation frame after every
+// navigation key. When Escape closes the menu inside that frame, WebKit still
+// lets the late call focus the now-hidden content and then drops focus to
+// <body>. Hand focus back to the element Zag had already restored it to.
+function returnFocusFromClosedContent(event: FocusEvent<HTMLElement>) {
+  const content = event.currentTarget
+  const previous = event.relatedTarget
+  if (
+    content.hidden &&
+    previous instanceof HTMLElement &&
+    previous.isConnected &&
+    !content.contains(previous)
+  ) {
+    previous.focus({ preventScroll: true })
+  }
+}
 
 // === ITEM RENDERER (shared by root menu and submenus) ===
 type MenuItemRenderContext = {
@@ -380,7 +398,12 @@ function SubmenuItem({
 
       <Portal>
         <div className={positioner()} {...submenuApi.getPositionerProps()}>
-          <ul className={content()} {...submenuApi.getContentProps()}>
+          <ul
+            className={content()}
+            {...mergeProps(submenuApi.getContentProps(), {
+              onFocus: returnFocusFromClosedContent,
+            })}
+          >
             {item.items.map((menuItem) =>
               renderMenuItem(menuItem, itemContext)
             )}
@@ -599,7 +622,12 @@ export function Menu({
       )}
       <Portal>
         <div className={positioner()} {...api.getPositionerProps()}>
-          <ul className={content()} {...api.getContentProps()}>
+          <ul
+            className={content()}
+            {...mergeProps(api.getContentProps(), {
+              onFocus: returnFocusFromClosedContent,
+            })}
+          >
             {items.map((item) => renderMenuItem(item, itemContext))}
           </ul>
         </div>

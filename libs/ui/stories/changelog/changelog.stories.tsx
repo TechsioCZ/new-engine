@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Menu v1.3.4
+- Escape right after a navigation key keeps focus on the trigger in Safari. A late internal focus call could land on the closed menu, and focus then fell to the page body.
+
 ### Combobox v1.6.6
 - Scope the single-surface reset to the Combobox itself. Command shares the same zag parts, so the reset stripped its search field border and focus ring; Command keeps its standalone input styling again.
 
