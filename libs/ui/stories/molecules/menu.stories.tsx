@@ -374,8 +374,11 @@ export const NavigationAndDisabledOptions: Story = {
     await expect(link.tagName).toBe("A")
     await expect(body.getByRole("menuitemcheckbox")).toHaveAttribute("aria-disabled", "true")
     await expect(body.getByRole("menuitemradio")).toHaveAttribute("aria-disabled", "true")
-    await userEvent.keyboard("{Home}{Enter}")
-    await expect(canvas.getByRole("status")).toHaveTextContent("Opened orders in this preview")
+    // Each key acts on visible state: wait for the highlight before activating it.
+    await userEvent.keyboard("{Home}")
+    await waitFor(() => expect(link).toHaveAttribute("data-highlighted"))
+    await userEvent.keyboard("{Enter}")
+    await waitFor(() => expect(canvas.getByRole("status")).toHaveTextContent("Opened orders in this preview"))
   },
 }
 
@@ -445,13 +448,17 @@ export const SubmenuKeyboardPolicy: Story = {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Keyboard policy" }))
     await waitFor(async () => expect(await body.findByRole("menu")).toHaveFocus())
-    await userEvent.keyboard("{Home}{ArrowRight}")
+    await userEvent.keyboard("{Home}")
+    await waitFor(() => expect(body.getByRole("menuitem", { name: "More commands" })).toHaveAttribute("data-highlighted"))
+    await userEvent.keyboard("{ArrowRight}")
     const first = await body.findByRole("menuitem", { name: "Alpha command" })
     const second = body.getByRole("menuitem", { name: "Bravo command" })
     await waitFor(() => expect(first).toHaveAttribute("data-highlighted"))
     await userEvent.keyboard("b")
     await expect(first).toHaveAttribute("data-highlighted")
-    await userEvent.keyboard("{End}{ArrowDown}")
+    await userEvent.keyboard("{End}")
+    await waitFor(() => expect(second).toHaveAttribute("data-highlighted"))
+    await userEvent.keyboard("{ArrowDown}")
     await expect(second).toHaveAttribute("data-highlighted")
     await userEvent.keyboard("{Escape}{Escape}")
   },
