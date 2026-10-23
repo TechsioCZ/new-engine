@@ -660,6 +660,9 @@ export const Default: Story = {
         if (!indicator) throw new Error("Missing selected-tab indicator")
         const selectedBox = tab.getBoundingClientRect()
         const indicatorBox = indicator.getBoundingClientRect()
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          await expect(getComputedStyle(indicator).transitionProperty).toBe("none")
+        }
         await expect(Math.abs(selectedBox.left - indicatorBox.left)).toBeLessThan(2)
         await expect(Math.abs(selectedBox.width - indicatorBox.width)).toBeLessThan(2)
         await expect(Math.abs(selectedBox.bottom - indicatorBox.bottom)).toBeLessThan(3)

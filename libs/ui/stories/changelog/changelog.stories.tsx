@@ -16,6 +16,12 @@ const CHANGELOG = `
 ### Combobox v1.6.5
 - The control owns one surface and one focus ring: the nested input, clear and chevron buttons no longer paint their own background, rounded halo or outline inside it. SearchSuggestions inherits the fix.
 
+### Tabs v1.2.4
+- Keep one indicator geometry owner and respect reduced motion so WebKit cannot retain the previous tab's animated position. Measure in layout coordinates so a scaled ancestor no longer shortens or shifts the indicator.
+
+### DataTable v1.4.6
+- Verify the virtual window moves, then restore the first logical row and scroll origin for a deterministic WebKit example.
+
 ### Tabs v1.2.3
 - The indicator tracks the selected tab across selection, keyboard navigation, strip scrolling and layout shifts in LTR and RTL, measured in its own containing block instead of a cached rectangle.
 

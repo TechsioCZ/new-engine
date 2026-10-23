@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.2.3
+ * @componentVersion v1.2.4
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,6 +13,7 @@ import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import * as tabs from "@zag-js/tabs"
 import {
   type ComponentPropsWithoutRef,
+  type CSSProperties,
   createContext,
   type Ref,
   type RefObject,
@@ -57,8 +58,9 @@ const tabsVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     indicator: [
-      "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
-      "data-[orientation=vertical]:h-(--height) data-[orientation=horizontal]:w-(--width)",
+      "tabs-indicator-position absolute rounded-tabs-indicator bg-tabs-indicator-bg",
+      "duration-200 motion-reduce:transition-none",
+      "data-[orientation=vertical]:h-(--tabs-indicator-height) data-[orientation=horizontal]:w-(--tabs-indicator-width)",
       "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
       "data-[orientation=vertical]:-start-tabs-rail-offset data-[orientation=horizontal]:bottom-0",
     ],
@@ -595,14 +597,23 @@ function measureTabIndicator(indicator: HTMLElement, list: HTMLElement) {
   // Both elements scroll with the list. Convert viewport coordinates back to
   // the indicator's padding-box containing block, not to the visible scrollport.
   // Physical scrollLeft also works for RTL, where it can be negative.
+  // An ancestor transform such as scale(0.8) shrinks viewport boxes; divide it
+  // out so the CSS lengths are layout lengths and scale only once on paint.
   const parent = (indicator.offsetParent as HTMLElement | null) ?? list
   const parentBox = parent.getBoundingClientRect()
   const box = selected.getBoundingClientRect()
+  const scaleX = parent.offsetWidth ? parentBox.width / parent.offsetWidth : 1
+  const scaleY = parent.offsetHeight
+    ? parentBox.height / parent.offsetHeight
+    : 1
   return {
-    x: box.left - parentBox.left - parent.clientLeft + parent.scrollLeft,
-    y: box.top - parentBox.top - parent.clientTop + parent.scrollTop,
-    width: box.width,
-    height: box.height,
+    x:
+      (box.left - parentBox.left) / scaleX -
+      parent.clientLeft +
+      parent.scrollLeft,
+    y: (box.top - parentBox.top) / scaleY - parent.clientTop + parent.scrollTop,
+    width: box.width / scaleX,
+    height: box.height / scaleY,
   }
 }
 
@@ -694,20 +705,28 @@ Tabs.Indicator = function TabsIndicator({
   const { api, styles } = useTabsContext()
   const indicatorElement = useRef<HTMLDivElement | null>(null)
   const rect = useTabIndicatorRect(indicatorElement)
-  const indicatorProps = api.getIndicatorProps()
+  // Keep Zag's anatomy, not its second geometry/animation lifecycle. Its inline
+  // transition ignores reduced motion and can retain the previous tab's used
+  // left/width indefinitely in WebKit even when the target variables are right.
+  const {
+    style: _zagStyle,
+    onTransitionEnd: _zagTransitionEnd,
+    ...indicatorProps
+  } = api.getIndicatorProps()
 
   return (
     <div
       className={styles.indicator({ className })}
       {...indicatorProps}
       hidden={!rect}
-      style={{
-        ...indicatorProps.style,
-        "--left": `${rect?.x ?? 0}px`,
-        "--top": `${rect?.y ?? 0}px`,
-        "--width": `${rect?.width ?? 0}px`,
-        "--height": `${rect?.height ?? 0}px`,
-      }}
+      style={
+        {
+          "--tabs-indicator-left": `${rect?.x ?? 0}px`,
+          "--tabs-indicator-top": `${rect?.y ?? 0}px`,
+          "--tabs-indicator-width": `${rect?.width ?? 0}px`,
+          "--tabs-indicator-height": `${rect?.height ?? 0}px`,
+        } as CSSProperties
+      }
       {...props}
       ref={(node) => {
         indicatorElement.current = node

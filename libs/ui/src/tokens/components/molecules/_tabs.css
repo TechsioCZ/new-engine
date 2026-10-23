@@ -28,6 +28,19 @@
   justify-content: safe end;
 }
 
+/* Geometry has one owner; CSS motion remains overridable by reduced motion. */
+@utility tabs-indicator-position {
+  transition-property: left, top, width, height;
+
+  &[data-orientation="horizontal"] {
+    left: var(--tabs-indicator-left, 0px);
+  }
+
+  &[data-orientation="vertical"] {
+    top: var(--tabs-indicator-top, 0px);
+  }
+}
+
 /* Default tabs keep a non-color selected cue without requiring Indicator. */
 @utility tabs-trigger-selected {
   &[data-selected] {
