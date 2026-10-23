@@ -28,7 +28,7 @@ const loadingText = figma.selectedInstance.getString("loadingText")
 // template exposes as metadata rather than embedding its rendered JSX.
 function iconToken(propName) {
   const swap = figma.selectedInstance.getInstanceSwap(propName)
-  if (!swap || swap.type !== "INSTANCE") {
+  if (swap?.type !== "INSTANCE") {
     return
   }
   const props = swap.executeTemplate().metadata?.props

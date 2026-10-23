@@ -35,7 +35,7 @@ const runningInContainer = () => {
   )
 }
 
-export default async function dockerOnlyGlobalSetup() {
+export default function dockerOnlyGlobalSetup() {
   const dockerRunnerFlag = process.env.PLAYWRIGHT_DOCKER === "1"
   if (!(dockerRunnerFlag && runningInContainer())) {
     throw new Error(

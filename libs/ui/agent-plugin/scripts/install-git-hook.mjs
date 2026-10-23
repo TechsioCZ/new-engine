@@ -252,7 +252,7 @@ if (!isUiKitSourceRepo(topLevel)) {
     const { existing } = backupSlots()
     try {
       if (existing.length) {
-        const newest = existing[existing.length - 1]
+        const newest = existing.at(-1)
         renameSync(newest, target)
         note(
           `removed the ui-kit pre-push hook from this non-ui-kit repo and restored "${newest}".`

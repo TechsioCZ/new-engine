@@ -15,7 +15,7 @@ export default {
   imports: [
     'import { Pagination } from "@techsio/ui-kit/molecules/pagination"',
   ],
-  example: figma.code`<Pagination count={100} defaultPage={1} getPageUrl={(page) => \`?page=${page}\`} pageSize={10}${figma.helpers.react.renderProp(
+  example: figma.code`<Pagination count={100} defaultPage={1} getPageUrl={(page) => \`?page=\${page}\`} pageSize={10}${figma.helpers.react.renderProp(
     "size",
     size
   )}/>`,

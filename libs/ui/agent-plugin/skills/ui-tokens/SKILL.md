@@ -21,7 +21,7 @@ Deep guidance: the bundled `tailwind-token-authoring` skill and, in-repo,
 
 ## Cascade (defined in `src/tokens/_tokens-base.css`)
 
-primitives (`_base/_colors/_spacing/_typography/_layout.css`)
+primitives (`_base/_spacing/_typography/_layout.css`)
 → `_semantic.css`
 → component tokens (`components/components.css` → `components/<level>/_<name>.css`)
 → `figma/variables.css` (generated — never hand-edit)
