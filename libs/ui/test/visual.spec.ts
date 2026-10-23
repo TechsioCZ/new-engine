@@ -5,6 +5,7 @@ import { expect, type Page, type TestInfo, test } from "@playwright/test"
 import { PNG } from "pngjs"
 import { installVisualAssets } from "./visual-assets.mjs"
 import { visualCaptureTiles } from "./visual-capture.mjs"
+import { visualStories } from "./visual-completion.mjs"
 import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
   assertFloatingContainment,
@@ -15,7 +16,13 @@ import {
 import { resolveVisualTheme } from "./visual-projects.mjs"
 import { freezeVisualSvgImages } from "./visual-svg.mjs"
 
-type StorybookEntry = { id: string; name: string; title: string; type: string }
+type StorybookEntry = {
+  id: string
+  name: string
+  title: string
+  type: string
+  tags?: string[]
+}
 type VisualBrand = "base" | "neo" | "business" | "akros"
 type StorybookIndex = { entries: Record<string, StorybookEntry> }
 type StoryReporter = { type?: string; status?: string }
@@ -392,9 +399,9 @@ try {
   throw error
 }
 
-const stories = Object.values(storybookIndex.entries)
-  .filter((entry) => entry.type === "story")
-  .sort((a, b) => a.id.localeCompare(b.id, "en"))
+const stories = visualStories(storybookIndex.entries).sort((a, b) =>
+  a.id.localeCompare(b.id, "en")
+)
 const storyFilter = (process.env.TEST_STORIES ?? "")
   .split(",")
   .map((id) => id.trim())

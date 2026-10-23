@@ -8,6 +8,7 @@ import {
   assertReleaseSelection,
   assertVisualCompletion,
   parseReleaseShard,
+  visualStories,
 } from "../test/visual-completion.mjs"
 import { createVisualMatrix } from "../test/visual-projects.mjs"
 
@@ -94,10 +95,10 @@ function reportTests(suites, file) {
 
 /** @param {{errors: unknown[], stats: {unexpected: number, flaky: number}, suites: ReportSuite[]}[]} reports */
 function verifyCompletion(reports) {
-  const stories = Object.values(
+  const stories = visualStories(
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
       .entries
-  ).filter((entry) => entry.type === "story")
+  )
   const requireComplete = selectedStories.length === 0 && extraArgs.length === 0
   if (requireComplete && !releaseShard) {
     assertVisualCompletion(reports, stories, projects)
@@ -115,10 +116,10 @@ function verifyCompletion(reports) {
 }
 
 function verifyReviewedBaselines() {
-  const entries = Object.values(
+  const entries = visualStories(
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
       .entries
-  ).filter((entry) => entry.type === "story")
+  )
   const directory = path.join(uiRoot, "test/visual.spec.ts-snapshots")
   assertPrimaryBaselines(
     entries,

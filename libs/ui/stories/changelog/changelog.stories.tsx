@@ -1552,12 +1552,46 @@ const meta = {
 
 export default meta
 
+// The live history changes with every component release, so its screenshot would go stale on each
+// version bump. Playground opts out of visual baselines; RendererFixture covers the same renderer
+// with fixed content. Fixture headings use made-up names so check-skill-sync never matches them.
+const RENDERER_FIXTURE = `
+## @techsio/ui-kit — Unreleased
+
+### Example v2.1.0
+- Adds a \`size\` prop and keeps \`variant="primary"\` as the default.
+- A long bullet wraps across lines without overflowing its container, even when it carries an unbroken token such as \`data-example-attribute-with-a-very-long-name-that-cannot-break\`.
+  An indented line continues the previous bullet.
+
+### Example v2.0.0
+A paragraph between entries keeps its own spacing.
+
+## @techsio/ui-kit — 1.0.0 (2026-01-01)
+
+### Sample v1.0.0
+- First release.
+`
+
 export const Playground: StoryObj<typeof Changelog> = {
+  tags: ["visual-skip"],
   parameters: {
     docs: {
       description: {
         story:
           "Browse the authored component history with navigable headings, readable lists and inline API names.",
+      },
+    },
+  },
+}
+
+export const RendererFixture: StoryObj<typeof Changelog> = {
+  name: "Renderer fixture",
+  args: { source: RENDERER_FIXTURE },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Fixed sample content for the changelog renderer: release and entry headings, wrapped bullets, inline code and paragraphs.",
       },
     },
   },

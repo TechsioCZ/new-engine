@@ -3,7 +3,10 @@
 //   node scripts/verify-component-shards.mjs <directory with one folder per shard>
 import fs from "node:fs"
 import path from "node:path"
-import { assertVisualCompletion } from "../test/visual-completion.mjs"
+import {
+  assertVisualCompletion,
+  visualStories,
+} from "../test/visual-completion.mjs"
 import { createVisualMatrix } from "../test/visual-projects.mjs"
 
 const root = process.argv[2]
@@ -37,9 +40,7 @@ const indexes = indexFiles.map((file) => fs.readFileSync(file, "utf8"))
 if (new Set(indexes).size !== 1) {
   throw new Error("Shards were built from different Storybook indexes")
 }
-const stories = Object.values(JSON.parse(indexes[0]).entries).filter(
-  (entry) => entry.type === "story"
-)
+const stories = visualStories(JSON.parse(indexes[0]).entries)
 assertVisualCompletion(
   reportFiles.map((file) => JSON.parse(fs.readFileSync(file, "utf8"))),
   stories,
