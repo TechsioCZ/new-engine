@@ -710,6 +710,21 @@ export const Default: Story = {
     await expect(returns).not.toHaveAttribute("aria-invalid", "true")
     await userEvent.click(canvas.getByRole("tab", { name: "General" }))
     await expectSelectedIndicator("General")
+    // Focusing each clicked control scrolls <main> and the tab strip by
+    // engine-rounded amounts (WebKit lands on either of two offsets 1px
+    // apart). Capture from the scroll origin, not wherever focus left it.
+    const main = canvas.getByRole("main", { name: "Page content" })
+    const tablist = canvas.getByRole("tablist")
+    await waitFor(async () => {
+      main.scrollTo({ top: 0, left: 0, behavior: "instant" })
+      tablist.scrollTo({ top: 0, left: 0, behavior: "instant" })
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      )
+      await expect(main.scrollTop).toBe(0)
+      await expect(tablist.scrollLeft).toBe(0)
+    })
+    await expectSelectedIndicator("General")
   },
 
   parameters: {

@@ -738,7 +738,15 @@ export const InfiniteScrollVirtualized: Story = {
           expect(rows[0]).toHaveAttribute("aria-rowindex", "2")
         }
         expect(stableSamples).toBeGreaterThanOrEqual(3)
-      }, { timeout: 5000 })
+        // On an iOS user agent the virtualizer defers above-the-fold size
+        // corrections while the container is "scrolling" (until 150ms pass
+        // without a scroll event), then writes them as a scrollTop jump.
+        // Go idle long enough for that flush and require the offset to hold;
+        // otherwise a correction measured at 3000 lands after the return to 0.
+        await new Promise((resolve) => setTimeout(resolve, 400))
+        await nextFrame()
+        expect(region.scrollTop).toBe(scrollTop)
+      }, { timeout: 10_000 })
     }
     await settleMeasuredRows(0)
     await settleMeasuredRows(3000)
