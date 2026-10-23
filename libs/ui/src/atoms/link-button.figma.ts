@@ -25,7 +25,7 @@ const size = figma.selectedInstance.getEnum("size", {
 // no text component property — the label is a plain text layer
 const childrenLayer = figma.selectedInstance.findText("Label")
 const children =
-  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
+  childrenLayer.type === "ERROR" ? undefined : childrenLayer.textContent
 const disabled = figma.selectedInstance.getEnum("state", {
   default: false,
   hover: false,

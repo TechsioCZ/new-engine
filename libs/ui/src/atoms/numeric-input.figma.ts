@@ -35,13 +35,13 @@ export default {
   ],
   example: figma.code`<NumericInput defaultValue={42}${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )} id="quantity"${figma.helpers.react.renderProp(
     "invalid",
-    invalid,
+    invalid
   )}${figma.helpers.react.renderProp(
     "readOnly",
-    readOnly,
+    readOnly
   )}${figma.helpers.react.renderProp("size", size)}>
         <NumericInput.Control>
           <NumericInput.Input />

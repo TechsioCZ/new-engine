@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -1119,12 +1119,10 @@ PhoneInput.StatusText = function PhoneInputStatusText({
   const id = props.id ?? messageId
   const resolvedStatus = status ?? validateStatus
   useRegisterDescription(id, registerDescription)
-  useEffect(
-    () =>
-      resolvedStatus === "error"
-        ? errorDescriptions.registerDescription(id)
-        : undefined,
-    [id, resolvedStatus, errorDescriptions.registerDescription]
+  useRegisterDescription(
+    id,
+    errorDescriptions.registerDescription,
+    resolvedStatus === "error"
   )
 
   return (

@@ -47,6 +47,19 @@ export function parseReleaseShard(value) {
   return { index, total }
 }
 
+/** Stories that own screenshot baselines. Live documents whose content changes
+ * with every release, such as the changelog, opt out with the "visual-skip" tag
+ * and cover their renderer with a fixed fixture story instead.
+ * @template {{type: string, tags?: string[]}} Entry
+ * @param {Record<string, Entry>} entries
+ * @returns {Entry[]}
+ */
+export function visualStories(entries) {
+  return Object.values(entries).filter(
+    (entry) => entry.type === "story" && !entry.tags?.includes("visual-skip")
+  )
+}
+
 /** Fail before expensive browser work; never create baselines in the release gate.
  * @param {{id: string}[]} stories
  * @param {{name: string, brand: string, isMobile: boolean, colorScheme: string}[]} projects

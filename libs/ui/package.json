@@ -108,7 +108,7 @@
     "@internationalized/date": "^3.12.4",
     "@tanstack/charts": "^1.1.0",
     "@tanstack/react-table": "^9.2.8",
-    "@tanstack/react-virtual": "^3.14.14",
+    "@tanstack/react-virtual": "^3.14.21",
     "@zag-js/accordion": "^1.45.0",
     "@zag-js/carousel": "^1.45.0",
     "@zag-js/cascade-select": "^1.45.0",

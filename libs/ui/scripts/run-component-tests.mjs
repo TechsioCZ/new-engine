@@ -8,6 +8,7 @@ import {
   assertReleaseSelection,
   assertVisualCompletion,
   parseReleaseShard,
+  visualStories,
 } from "../test/visual-completion.mjs"
 import { createVisualMatrix } from "../test/visual-projects.mjs"
 
@@ -94,10 +95,10 @@ function reportTests(suites, file) {
 
 /** @param {{errors: unknown[], stats: {unexpected: number, flaky: number}, suites: ReportSuite[]}[]} reports */
 function verifyCompletion(reports) {
-  const stories = Object.values(
+  const stories = visualStories(
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
       .entries
-  ).filter((entry) => entry.type === "story")
+  )
   const requireComplete = selectedStories.length === 0 && extraArgs.length === 0
   if (requireComplete && !releaseShard) {
     assertVisualCompletion(reports, stories, projects)
@@ -115,10 +116,10 @@ function verifyCompletion(reports) {
 }
 
 function verifyReviewedBaselines() {
-  const entries = Object.values(
+  const entries = visualStories(
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
       .entries
-  ).filter((entry) => entry.type === "story")
+  )
   const directory = path.join(uiRoot, "test/visual.spec.ts-snapshots")
   assertPrimaryBaselines(
     entries,
@@ -127,7 +128,7 @@ function verifyReviewedBaselines() {
   )
 }
 
-function main() {
+function ensureStorybookBuild() {
   if (
     storybookOverride === undefined &&
     process.env.PLAYWRIGHT_STORYBOOK_REBUILD !== "0"
@@ -148,9 +149,9 @@ function main() {
   if (!fs.existsSync(path.join(storybookDir, "iframe.html"))) {
     throw new Error(`Storybook build not found: ${storybookDir}`)
   }
-  if (process.env.VISUAL_RELEASE_READINESS === "1") {
-    verifyReviewedBaselines()
-  }
+}
+
+function ensureDockerImage() {
   if (docker(["image", "inspect", imageName]).status !== 0) {
     run("docker", [
       "build",
@@ -163,7 +164,9 @@ function main() {
     ])
   }
   console.log(`Using Docker image: ${imageName}`)
+}
 
+function startContainer() {
   const env = {
     CI: "true",
     PLAYWRIGHT_DOCKER: "1",
@@ -227,7 +230,10 @@ function main() {
     "node:node",
     "/app/test",
   ])
+}
 
+/** @returns {{reportNames: string[], status: number}} */
+function runPlaywrightProjects() {
   const reportNames = []
   let status = 0
   for (const project of sequentialProjects
@@ -262,7 +268,10 @@ function main() {
       break
     }
   }
+  return { reportNames, status }
+}
 
+function copyResultsToHost() {
   if (updatesSnapshots) {
     run("docker", [
       "cp",
@@ -284,20 +293,34 @@ function main() {
       path.join(uiRoot, "test-results/visual-reports/index.json")
     )
   }
+}
+
+/** @param {string[]} reportNames */
+function readReports(reportNames) {
+  return reportNames.map((name) =>
+    JSON.parse(
+      run("docker", ["exec", containerName, "cat", `${reportRoot}/${name}`], {
+        stdio: "pipe",
+        // Full-matrix JSON reports exceed spawnSync's 1 MiB default buffer.
+        maxBuffer: 512 * 1024 * 1024,
+      }).stdout.toString()
+    )
+  )
+}
+
+function main() {
+  ensureStorybookBuild()
+  if (process.env.VISUAL_RELEASE_READINESS === "1") {
+    verifyReviewedBaselines()
+  }
+  ensureDockerImage()
+  startContainer()
+  const { reportNames, status } = runPlaywrightProjects()
+  copyResultsToHost()
   if (status !== 0) {
     return status
   }
-  verifyCompletion(
-    reportNames.map((name) =>
-      JSON.parse(
-        run("docker", ["exec", containerName, "cat", `${reportRoot}/${name}`], {
-          stdio: "pipe",
-          // Full-matrix JSON reports exceed spawnSync's 1 MiB default buffer.
-          maxBuffer: 512 * 1024 * 1024,
-        }).stdout.toString()
-      )
-    )
-  )
+  verifyCompletion(readReports(reportNames))
   return 0
 }
 

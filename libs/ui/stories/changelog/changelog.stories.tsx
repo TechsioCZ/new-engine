@@ -13,6 +13,39 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### SearchForm v1.1.2
+- Error and hint messages are linked to the search field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
+
+### DatePicker v1.3.10
+- Error and hint messages are linked to the date field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
+
+### PhoneInput v1.1.3
+- Error and hint messages are linked to the phone field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
+
+### CascadeSelect v1.1.7
+- Error and hint messages are linked to the trigger in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the trigger still reported itself as valid.
+
+### RadioCard v1.1.4
+- Item descriptions and error messages are linked to their radios in the same update that shows them, instead of one render later.
+
+### RadioGroup v1.1.4
+- Item descriptions and error messages are linked to their radios in the same update that shows them, instead of one render later.
+
+### FileUpload v1.1.5
+- A new error message and the browse trigger's aria-invalid, aria-errormessage and aria-describedby now appear in the same update. Before, the message was linked one render later, so assistive tech could briefly read the error text while the trigger still reported itself as valid.
+
+### DatePicker v1.3.9
+- Clicking or tabbing into the date segments closes an open calendar at once. The calendar's own outside check ran a few frames late; with a parent that keeps the calendar open, that late check restarted a range the user had half picked.
+
+### DatePicker v1.3.8
+- Closing the calendar no longer discards a range endpoint already typed into the segments. Outside dismissal is deferred by animation frames, so on a slow device it could land after the start date was typed and wipe it; opening the calendar still discards a partial typed range.
+
+### Menu v1.3.5
+- Reduced motion now opens and closes the panel without any transition. Before, every panel property still animated over 200 ms from its starting styles, and WebKit could leave the panel transparent for over a second inside a Dialog. Focus is handed back from a panel only after the menu itself has closed.
+
+### Menu v1.3.4
+- Escape right after a navigation key keeps focus on the trigger in Safari. A late internal focus call could land on the closed menu, and focus then fell to the page body.
+
 ### Combobox v1.6.6
 - Scope the single-surface reset to the Combobox itself. Command shares the same zag parts, so the reset stripped its search field border and focus ring; Command keeps its standalone input styling again.
 
@@ -1546,12 +1579,46 @@ const meta = {
 
 export default meta
 
+// The live history changes with every component release, so its screenshot would go stale on each
+// version bump. Playground opts out of visual baselines; RendererFixture covers the same renderer
+// with fixed content. Fixture headings use made-up names so check-skill-sync never matches them.
+const RENDERER_FIXTURE = `
+## @techsio/ui-kit — Unreleased
+
+### Example v2.1.0
+- Adds a \`size\` prop and keeps \`variant="primary"\` as the default.
+- A long bullet wraps across lines without overflowing its container, even when it carries an unbroken token such as \`data-example-attribute-with-a-very-long-name-that-cannot-break\`.
+  An indented line continues the previous bullet.
+
+### Example v2.0.0
+A paragraph between entries keeps its own spacing.
+
+## @techsio/ui-kit — 1.0.0 (2026-01-01)
+
+### Sample v1.0.0
+- First release.
+`
+
 export const Playground: StoryObj<typeof Changelog> = {
+  tags: ["visual-skip"],
   parameters: {
     docs: {
       description: {
         story:
           "Browse the authored component history with navigable headings, readable lists and inline API names.",
+      },
+    },
+  },
+}
+
+export const RendererFixture: StoryObj<typeof Changelog> = {
+  name: "Renderer fixture",
+  args: { source: RENDERER_FIXTURE },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Fixed sample content for the changelog renderer: release and entry headings, wrapped bullets, inline code and paragraphs.",
       },
     },
   },

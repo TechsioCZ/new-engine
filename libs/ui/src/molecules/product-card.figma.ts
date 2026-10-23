@@ -11,10 +11,12 @@ const layout = figma.selectedInstance.getEnum("layout", {
 
 export default {
   id: "ProductCard",
-  imports: ['import { ProductCard } from "@techsio/ui-kit/molecules/product-card"'],
+  imports: [
+    'import { ProductCard } from "@techsio/ui-kit/molecules/product-card"',
+  ],
   example: figma.code`<ProductCard${figma.helpers.react.renderProp(
     "layout",
-    layout,
+    layout
   )}>
         <ProductCard.Image alt="Product" src="/product.jpg"/>
         <ProductCard.Name>Product Name</ProductCard.Name>

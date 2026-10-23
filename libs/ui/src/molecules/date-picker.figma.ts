@@ -39,16 +39,16 @@ export default {
   ],
   example: figma.code`<DatePicker.Root${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "invalid",
-    invalid,
+    invalid
   )}${figma.helpers.react.renderProp(
     "readOnly",
-    readOnly,
+    readOnly
   )}${figma.helpers.react.renderProp(
     "selectionMode",
-    selectionMode,
+    selectionMode
   )}${figma.helpers.react.renderProp("size", size)}>
         <DatePicker.Label>Label</DatePicker.Label>
         <DatePicker.Control>

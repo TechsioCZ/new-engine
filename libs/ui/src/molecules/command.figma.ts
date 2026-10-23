@@ -16,24 +16,28 @@ const label = figma.selectedInstance.getString("Label")
 const emptyMessage = figma.selectedInstance.getString("Empty message")
 const disabled = state === "disabled"
 const defaultInputValue = state === "empty" ? "no-such-action" : undefined
-const items =
-  state === "empty"
-    ? []
-    : state === "grouped"
-      ? [
-          { value: "overview", label: "Overview", group: "Navigation" },
-          { value: "orders", label: "Orders", group: "Navigation" },
-          { value: "settings", label: "Settings", group: "Account" },
-        ]
-      : [
-          { value: "overview", label: "Overview" },
-          {
-            value: "orders",
-            label: "Orders",
-            ...(state === "disabled-item" ? { disabled: true } : {}),
-          },
-          { value: "settings", label: "Settings" },
-        ]
+function commandItems() {
+  if (state === "empty") {
+    return []
+  }
+  if (state === "grouped") {
+    return [
+      { value: "overview", label: "Overview", group: "Navigation" },
+      { value: "orders", label: "Orders", group: "Navigation" },
+      { value: "settings", label: "Settings", group: "Account" },
+    ]
+  }
+  return [
+    { value: "overview", label: "Overview" },
+    {
+      value: "orders",
+      label: "Orders",
+      ...(state === "disabled-item" ? { disabled: true } : {}),
+    },
+    { value: "settings", label: "Settings" },
+  ]
+}
+const items = commandItems()
 
 const results =
   state === "grouped"

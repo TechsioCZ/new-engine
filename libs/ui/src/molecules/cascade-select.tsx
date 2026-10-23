@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.6
+ * @componentVersion v1.1.7
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -1171,10 +1171,10 @@ CascadeSelect.StatusText = function CascadeSelectStatusText({
   const id = providedId || generatedId
   const effectiveSize = sizeProp ?? size
   const effectiveStatus = statusProp ?? validateStatus
-  useEffect(
-    () =>
-      effectiveStatus === "error" ? errors.registerDescription(id) : undefined,
-    [effectiveStatus, errors.registerDescription, id]
+  useRegisterDescription(
+    id,
+    errors.registerDescription,
+    effectiveStatus === "error"
   )
 
   useRegisterDescription(id, registerDescription)

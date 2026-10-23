@@ -12,10 +12,12 @@ const size = figma.selectedInstance.getEnum("size", {
 
 export default {
   id: "Pagination",
-  imports: ['import { Pagination } from "@techsio/ui-kit/molecules/pagination"'],
-  example: figma.code`<Pagination count={100} defaultPage={1} getPageUrl={(page) => \`?page=${page}\`} pageSize={10}${figma.helpers.react.renderProp(
+  imports: [
+    'import { Pagination } from "@techsio/ui-kit/molecules/pagination"',
+  ],
+  example: figma.code`<Pagination count={100} defaultPage={1} getPageUrl={(page) => \`?page=\${page}\`} pageSize={10}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}/>`,
   metadata: { nestable: true },
 }

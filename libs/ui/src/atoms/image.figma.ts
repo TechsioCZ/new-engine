@@ -16,7 +16,7 @@ export default {
   imports: ['import { Image } from "@techsio/ui-kit/atoms/image"'],
   example: figma.code`<Image alt="Description"${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )} src="/image.jpg"/>`,
   metadata: { nestable: true },
 }

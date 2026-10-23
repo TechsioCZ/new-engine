@@ -32,13 +32,13 @@ export default {
   imports: ['import { Textarea } from "@techsio/ui-kit/atoms/textarea"'],
   example: figma.code`<Textarea${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "readonly",
-    readonly,
+    readonly
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("variant", variant)}/>`,
   metadata: { nestable: true },
 }

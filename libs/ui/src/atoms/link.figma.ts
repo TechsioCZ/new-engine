@@ -7,7 +7,7 @@ import figma from "figma"
 // no text component property — the label is a plain text layer
 const childrenLayer = figma.selectedInstance.findText("Link text")
 const children =
-  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
+  childrenLayer.type === "ERROR" ? undefined : childrenLayer.textContent
 
 export default {
   id: "Link",

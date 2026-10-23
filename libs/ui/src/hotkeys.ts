@@ -15,8 +15,6 @@ import {
   useSyncExternalStore,
 } from "react"
 
-// biome-ignore lint/performance/noBarrelFile: This behavior entrypoint also exposes its native store factory.
-export { createHotkeyStore } from "@zag-js/hotkeys"
 export type {
   CommandDefinition,
   HotkeyAction,
@@ -26,6 +24,8 @@ export type {
   HotkeyStore,
   HotkeyStoreOptions,
 } from "@zag-js/hotkeys"
+// biome-ignore lint/performance/noBarrelFile: This behavior entrypoint also exposes its native store factory.
+export { createHotkeyStore } from "@zag-js/hotkeys"
 
 export type UseHotkeyProps = Omit<CommandDefinition, "id"> & {
   store: HotkeyStore

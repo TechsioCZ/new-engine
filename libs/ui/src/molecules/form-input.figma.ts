@@ -30,13 +30,13 @@ export default {
   imports: ['import { FormInput } from "@techsio/ui-kit/molecules/form-input"'],
   example: figma.code`<FormInput${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )} id="field" label="Label"${figma.helpers.react.renderProp(
     "required",
-    required,
+    required
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}/>`,
   metadata: { nestable: true },
 }

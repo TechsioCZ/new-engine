@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.1.4
+ * @componentVersion v1.1.5
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -1159,12 +1159,10 @@ FileUpload.StatusText = function FileUploadStatusText({
   const resolvedStatus = status ?? (invalid ? "error" : "default")
   const errorLive = props.role === "status" ? "polite" : "assertive"
   useRegisterDescription(id, descriptions.registerDescription)
-  useEffect(
-    () =>
-      resolvedStatus === "error"
-        ? errorDescriptions.registerDescription(id)
-        : undefined,
-    [id, resolvedStatus, errorDescriptions.registerDescription]
+  useRegisterDescription(
+    id,
+    errorDescriptions.registerDescription,
+    resolvedStatus === "error"
   )
   return (
     <StatusText

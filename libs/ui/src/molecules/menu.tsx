@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.3.3
+ * @componentVersion v1.3.5
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,6 +13,7 @@ import * as menu from "@zag-js/menu"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   cloneElement,
+  type FocusEvent,
   isValidElement,
   type KeyboardEvent,
   type PointerEvent,
@@ -95,7 +96,9 @@ const menuVariants = tv({
     content: [
       "popup-surface-base popup-layer",
       "w-full min-w-0",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
+      // Without transition-none, duration-200 alone animates every property
+      // (transition-property defaults to all) from the starting styles.
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale] motion-reduce:transition-none motion-reduce:duration-0",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
       "data-[state=open]:starting:scale-98 data-[state=open]:starting:opacity-0",
@@ -163,6 +166,27 @@ const menuVariants = tv({
     size: "md",
   },
 })
+
+// Zag moves focus into the content on the next animation frame after every
+// navigation key. When Escape closes the menu inside that frame, WebKit still
+// lets the late call focus the now-hidden content and then drops focus to
+// <body>. Hand focus back to the element Zag had already restored it to.
+// Only a panel that both the machine and the DOM consider closed qualifies,
+// so focus that arrives while the menu opens is never redirected.
+const returnFocusFromClosedContent =
+  (service: menu.Service) => (event: FocusEvent<HTMLElement>) => {
+    const content = event.currentTarget
+    const previous = event.relatedTarget
+    if (
+      !service.state.hasTag("open") &&
+      content.hidden &&
+      previous instanceof HTMLElement &&
+      previous.isConnected &&
+      !content.contains(previous)
+    ) {
+      previous.focus({ preventScroll: true })
+    }
+  }
 
 // === ITEM RENDERER (shared by root menu and submenus) ===
 type MenuItemRenderContext = {
@@ -380,7 +404,12 @@ function SubmenuItem({
 
       <Portal>
         <div className={positioner()} {...submenuApi.getPositionerProps()}>
-          <ul className={content()} {...submenuApi.getContentProps()}>
+          <ul
+            className={content()}
+            {...mergeProps(submenuApi.getContentProps(), {
+              onFocus: returnFocusFromClosedContent(submenuService),
+            })}
+          >
             {item.items.map((menuItem) =>
               renderMenuItem(menuItem, itemContext)
             )}
@@ -599,7 +628,12 @@ export function Menu({
       )}
       <Portal>
         <div className={positioner()} {...api.getPositionerProps()}>
-          <ul className={content()} {...api.getContentProps()}>
+          <ul
+            className={content()}
+            {...mergeProps(api.getContentProps(), {
+              onFocus: returnFocusFromClosedContent(service),
+            })}
+          >
             {items.map((item) => renderMenuItem(item, itemContext))}
           </ul>
         </div>

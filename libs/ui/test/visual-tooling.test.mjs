@@ -24,6 +24,7 @@ import {
   assertReleaseSelection,
   assertVisualCompletion,
   parseReleaseShard,
+  visualStories,
 } from "./visual-completion.mjs"
 import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
@@ -118,6 +119,23 @@ const successful = (projectName, id) => ({
   status: "expected",
   annotations: [{ type: "visual-story-id", description: id }],
   results: [{ status: "passed" }],
+})
+
+test("visual-skip stories and docs entries own no screenshot baselines", () => {
+  const entries = {
+    a: {
+      id: "guide-changelog--playground",
+      type: "story",
+      tags: ["visual-skip"],
+    },
+    b: { id: "guide-changelog--renderer-fixture", type: "story", tags: [] },
+    c: { id: "guide-changelog--docs", type: "docs" },
+    d: { id: "atoms-button--playground", type: "story" },
+  }
+  assert.deepEqual(
+    visualStories(entries).map((story) => story.id),
+    ["guide-changelog--renderer-fixture", "atoms-button--playground"]
+  )
 })
 
 test("completion requires exact unique successfully executed story/project identities", () => {

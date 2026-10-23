@@ -1416,13 +1416,18 @@ export const FieldRegressions: Story = {
         name: "Open calendar",
       })
     )
-    const popupHour =
-      canvasElement.ownerDocument.querySelector<HTMLInputElement>(
-        '[data-scope="date-picker"][data-part="content"] input[aria-label="Hour"]'
-      )!
+    const body = within(canvasElement.ownerDocument.body)
+    // The trigger requests a controlled open; Zag renders the popup a few
+    // tasks later, so wait for it instead of querying it synchronously.
+    const appointmentPopup = (
+      await body.findByRole("grid", { name: "August 2026" })
+    ).closest<HTMLElement>('[data-scope="date-picker"][data-part="content"]')!
+    const popupHour = within(appointmentPopup).getByRole("spinbutton", {
+      name: "Hour",
+    })
+    await expect(popupHour).toBeEnabled()
     await userEvent.clear(popupHour)
     await userEvent.type(popupHour, "23")
-    const body = within(canvasElement.ownerDocument.body)
     await expect(body.getByRole("button", { name: "Confirm" })).toBeDisabled()
     await expect(popupHour).toHaveAttribute("aria-invalid", "true")
     await expect(appointment).toHaveValue("2026-08-31T16:30:00")
@@ -1434,7 +1439,9 @@ export const FieldRegressions: Story = {
     await expect(midnightRoot.getByRole("spinbutton", { name: "Hour" })).toHaveTextContent("23")
     await userEvent.click(midnightRoot.getByRole("button", { name: "Open calendar" }))
     await waitFor(() => expect(body.getByRole("grid", { name: "February 2026" })).toBeVisible())
-    const midnightPopup = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-part="content"]')!
+    const midnightPopup = body
+      .getByRole("grid", { name: "February 2026" })
+      .closest<HTMLElement>('[data-scope="date-picker"][data-part="content"]')!
     await expect(within(midnightPopup).getByRole("spinbutton", { name: "Hour" })).toHaveValue(23)
     await expect(within(midnightPopup).getByRole("spinbutton", { name: "Minute" })).toHaveValue(30)
     await expect(midnight).toHaveValue("2026-03-01T00:30:00+01:00[Europe/Prague]")

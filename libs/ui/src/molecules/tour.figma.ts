@@ -30,7 +30,7 @@ const actionIconOpening = /<ActionIcon\b/
 // Adapt only the emitted atom tag; keep its dynamic props and child sections.
 function actionTrigger(layerName, action) {
   const child = instance.findInstance(layerName)
-  if (!child || child.type !== "INSTANCE") {
+  if (child?.type !== "INSTANCE") {
     return
   }
   return child.executeTemplate().example.map((section) => {
@@ -48,7 +48,7 @@ function actionTrigger(layerName, action) {
 
 function closeTrigger() {
   const child = instance.findInstance("Close")
-  if (!child || child.type !== "INSTANCE") {
+  if (child?.type !== "INSTANCE") {
     return
   }
   return child.executeTemplate().example.map((section) => {

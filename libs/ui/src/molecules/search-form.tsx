@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -508,10 +508,7 @@ SearchForm.StatusText = function SearchFormStatusText({
   const id = props.id ?? `${generatedId}-status`
   const status = statusProp ?? validateStatus
   useRegisterDescription(id, descriptions.registerDescription)
-  useEffect(
-    () => (status === "error" ? errors.registerDescription(id) : undefined),
-    [status, errors.registerDescription, id]
-  )
+  useRegisterDescription(id, errors.registerDescription, status === "error")
   return (
     <StatusText {...props} id={id} size={sizeProp ?? size} status={status} />
   )

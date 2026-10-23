@@ -50,7 +50,9 @@ export default {
     <Drawer.Positioner>
       <Drawer.Content${
         // Without the header there is no Drawer.Title, so name the dialog here.
-        showHeader ? "" : figma.helpers.react.renderProp("aria-label", title ?? "Drawer")
+        showHeader
+          ? ""
+          : figma.helpers.react.renderProp("aria-label", title ?? "Drawer")
       }>
         ${
           showGrabber
