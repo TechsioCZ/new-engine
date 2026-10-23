@@ -97,33 +97,52 @@ function effectiveGitCwd(command, startCwd) {
     }
   }
 
-  // Environment assignments prefixed before the git executable (`GIT_DIR=… git …`, incl. via `env`
-  // or other leading `NAME=value` tokens). Only GIT_DIR selects the repository — GIT_WORK_TREE just
-  // relocates the working tree, exactly like `--work-tree`, so it can't retarget a push. A
-  // command-line `--git-dir` overrides the env var, so we seed gitDir here and let the flag loop win.
+  // Env selectors come first so a command-line `--git-dir` overrides GIT_DIR.
+  for (const [name, value] of [
+    ...envRepoSelectors(tokens, gitIdx),
+    ...flagRepoSelectors(tokens, gitIdx),
+  ]) {
+    apply(name, value)
+  }
+  return { dir, gitDir, trusted }
+}
+
+/**
+ * Environment assignments prefixed before the git executable (`GIT_DIR=… git …`, incl. via `env`
+ * or other leading `NAME=value` tokens). Only GIT_DIR selects the repository — GIT_WORK_TREE just
+ * relocates the working tree, exactly like `--work-tree`, so it can't retarget a push. A
+ * command-line `--git-dir` overrides the env var, so these are applied before the flag selectors.
+ */
+function envRepoSelectors(tokens, gitIdx) {
+  const selectors = []
   for (let i = 0; i < gitIdx; i++) {
     const m = /^GIT_DIR=(.*)$/.exec(tokens[i])
     if (m) {
-      apply("--git-dir", m[1])
+      selectors.push(["--git-dir", m[1]])
     }
   }
+  return selectors
+}
 
+/** The `-C` / `--git-dir` selectors among git's global flags, in command order. */
+function flagRepoSelectors(tokens, gitIdx) {
+  const selectors = []
   for (let i = gitIdx + 1; i < tokens.length; i++) {
     const t = tokens[i]
     // Space form: `-C <dir>` / `--git-dir <dir>` (git requires the space for the short `-C`).
     if ((t === "-C" || t === "--git-dir") && tokens[i + 1] !== undefined) {
-      apply(t, tokens[i + 1])
-      i++
+      selectors.push([t, tokens[i + 1]])
+      i += 1
       continue
     }
     // Attached form (long option only): `--git-dir=<dir>`. Missing this leaves the target at the
     // consumer cwd, so `git --git-dir=/path/to/ui-kit/.git push --no-verify` would slip through.
     if (t.startsWith("--git-dir=")) {
-      apply("--git-dir", t.slice("--git-dir=".length))
+      selectors.push(["--git-dir", t.slice("--git-dir=".length)])
       continue
     }
     if (GIT_GLOBAL_WITH_VALUE.has(t)) {
-      i++
+      i += 1
       continue
     }
     if (t.startsWith("-")) {
@@ -131,7 +150,7 @@ function effectiveGitCwd(command, startCwd) {
     }
     break // first non-flag token = the subcommand; the selectors only precede it
   }
-  return { dir, gitDir, trusted }
+  return selectors
 }
 
 /**
@@ -251,7 +270,7 @@ function gitSubcommand(command) {
   for (let i = gitIdx + 1; i < tokens.length; i++) {
     const t = tokens[i]
     if (GIT_GLOBAL_WITH_VALUE.has(t)) {
-      i++
+      i += 1
       continue
     }
     if (t.startsWith("-")) {
@@ -275,6 +294,35 @@ const gitConfig = (key, cwd) => {
 }
 
 /**
+ * Scan git's global flags: collect inline `-c alias.x=...` definitions (part of this very
+ * command, so they must be honoured) and find the index of the subcommand token.
+ */
+function scanGlobalFlags(tokens, gitIdx) {
+  const inline = new Map()
+  let i = gitIdx + 1
+  for (; i < tokens.length; i++) {
+    const t = tokens[i]
+    if (t === "-c" && tokens[i + 1]) {
+      const [k, ...v] = tokens[i + 1].split("=")
+      if (k.startsWith("alias.")) {
+        inline.set(k.slice("alias.".length), v.join("="))
+      }
+      i += 1
+      continue
+    }
+    if (GIT_GLOBAL_WITH_VALUE.has(t)) {
+      i += 1
+      continue
+    }
+    if (t.startsWith("-")) {
+      continue
+    }
+    break // first non-flag token = the subcommand
+  }
+  return { inline, subIdx: i }
+}
+
+/**
  * Expand git aliases in a command so the guard sees what git will actually run.
  * Bounded to a few rounds — aliases can chain, but we are not writing an interpreter.
  */
@@ -288,30 +336,8 @@ function expandAliases(command, cwd) {
       return expanded
     }
 
-    // Inline `-c alias.x=...` definitions are part of this very command — honour them.
-    const inline = new Map()
-    let i = gitIdx + 1
-    for (; i < tokens.length; i++) {
-      const t = tokens[i]
-      if (t === "-c" && tokens[i + 1]) {
-        const [k, ...v] = tokens[i + 1].split("=")
-        if (k.startsWith("alias.")) {
-          inline.set(k.slice("alias.".length), v.join("="))
-        }
-        i++
-        continue
-      }
-      if (GIT_GLOBAL_WITH_VALUE.has(t)) {
-        i++
-        continue
-      }
-      if (t.startsWith("-")) {
-        continue
-      }
-      break // first non-flag token = the subcommand
-    }
-
-    const sub = tokens[i]
+    const { inline, subIdx } = scanGlobalFlags(tokens, gitIdx)
+    const sub = tokens[subIdx]
     if (!sub) {
       return expanded
     }
@@ -323,9 +349,9 @@ function expandAliases(command, cwd) {
 
     // Replace the subcommand with its definition and go round again (aliases can nest).
     const next = [
-      ...tokens.slice(0, i),
+      ...tokens.slice(0, subIdx),
       definition,
-      ...tokens.slice(i + 1),
+      ...tokens.slice(subIdx + 1),
     ].join(" ")
     if (next === expanded) {
       return expanded
@@ -334,6 +360,100 @@ function expandAliases(command, cwd) {
   }
 
   return expanded
+}
+
+/** The shell command from a hook payload, or null when it is not a git command. */
+function gitCommandFrom(input) {
+  // Claude Code passes a string; Codex's shell tool passes an argv array.
+  const rawCommand = input?.tool_input?.command ?? input?.tool_input?.cmd ?? ""
+  const command = Array.isArray(rawCommand) ? rawCommand.join(" ") : rawCommand
+  if (typeof command !== "string" || !/\bgit\b/.test(command)) {
+    return null
+  }
+  return command
+}
+
+/**
+ * A target we can't resolve before the shell expands the command (e.g. `git -C "$UI_KIT_DIR" …`
+ * or `git --git-dir "$X/.git" …`), or a git dir with no derivable worktree. We can neither
+ * confirm the target repo nor read its config to expand its aliases, so we fail closed: refuse
+ * anything that could push there — a literal `push --no-verify`, or a NON-built-in subcommand
+ * that could be an alias expanding to it in that repo (`alias.publish = push --no-verify`). A
+ * built-in subcommand can't be an alias, and a bare `push` without `--no-verify` still runs the
+ * target's pre-push hook, so both stay allowed.
+ */
+function checkUnresolvedTarget(command) {
+  const sub = gitSubcommand(command)
+  const literalPushSkip = IS_PUSH.test(command) && SKIPS_HOOKS.test(command)
+  const possibleAlias = sub !== "" && !GIT_BUILTINS.has(sub)
+  if (!(literalPushSkip || possibleAlias)) {
+    return 0
+  }
+  process.stderr.write(
+    [
+      "BLOCKED: this command targets a git repo through a path the guard cannot resolve (a shell",
+      "variable/expansion, or a `--git-dir` with no verifiable worktree), so it cannot confirm the",
+      "command is not a push that skips the ui-kit gate.",
+      possibleAlias
+        ? `\`${sub}\` is not a git built-in — it may be an alias expanding to \`push --no-verify\` in that repo.`
+        : "`--no-verify` is not permitted on a push.",
+      "Use a literal path (not a shell variable) so the target can be verified, then push normally.",
+    ].join("\n")
+  )
+  return 2
+}
+
+/** Block a push to the ui-kit repo that skips hooks, directly or through an alias. */
+function checkUiKitPush(command, target) {
+  const resolved = expandAliases(command, target)
+
+  // Check the raw text AND the alias-resolved text. The resolved form catches an alias stored in
+  // config (`alias.publish = push --no-verify`, whose call site shows neither token); the raw form
+  // catches a definition inlined into this very command (`git -c alias.x='push --no-verify' x`),
+  // where the flags are inside a quoted value that no whitespace tokenizer can see into.
+  const hit = (re) => re.test(command) || re.test(resolved)
+
+  if (!(hit(IS_PUSH) && hit(SKIPS_HOOKS))) {
+    return 0
+  }
+  const viaAlias = resolved !== command
+  process.stderr.write(
+    [
+      "BLOCKED: this command skips the pre-push hook that enforces the ui-kit quality gate.",
+      viaAlias ? `The git alias expands to: ${resolved.trim()}` : "",
+      "`--no-verify` is not permitted. Run the `ui-validate` skill and push normally.",
+    ]
+      .filter(Boolean)
+      .join("\n")
+  )
+  return 2
+}
+
+/** Exit code for a hook payload: 0 = allow, 2 = block. */
+function evaluate(input) {
+  const command = gitCommandFrom(input)
+  if (command === null) {
+    return 0
+  }
+
+  const cwd = input?.cwd || process.cwd()
+  // Honour the repo selectors: the command may target the ui-kit repo from a different cwd via
+  // `git -C <dir>` or `git --git-dir <dir>`.
+  const { dir: gitCwd, gitDir, trusted } = effectiveGitCwd(command, cwd)
+  // The real worktree the command hits. null = target can't be proven (shell-expansion value, or a
+  // git dir we can't resolve to a worktree) — fail closed.
+  const target = trusted ? resolveTargetWorktree({ dir: gitCwd, gitDir }) : null
+
+  if (target === null) {
+    return checkUnresolvedTarget(command)
+  }
+
+  // Scope out only when we can prove the target is a non-ui-kit repo (resolvable target).
+  if (!isUiKitSourceRepo(target)) {
+    return 0
+  }
+
+  return checkUiKitPush(command, target)
 }
 
 let raw = ""
@@ -347,76 +467,5 @@ process.stdin.on("end", () => {
   } catch {
     process.exit(0)
   }
-
-  // Claude Code passes a string; Codex's shell tool passes an argv array.
-  const rawCommand = input?.tool_input?.command ?? input?.tool_input?.cmd ?? ""
-  const command = Array.isArray(rawCommand) ? rawCommand.join(" ") : rawCommand
-  if (typeof command !== "string" || !/\bgit\b/.test(command)) {
-    process.exit(0)
-  }
-
-  const cwd = input?.cwd || process.cwd()
-  // Honour the repo selectors: the command may target the ui-kit repo from a different cwd via
-  // `git -C <dir>` or `git --git-dir <dir>`.
-  const { dir: gitCwd, gitDir, trusted } = effectiveGitCwd(command, cwd)
-  // The real worktree the command hits. null = target can't be proven (shell-expansion value, or a
-  // git dir we can't resolve to a worktree) — fall through to the fail-closed branch below.
-  const target = trusted ? resolveTargetWorktree({ dir: gitCwd, gitDir }) : null
-
-  if (target === null) {
-    // A target we can't resolve before the shell expands the command (e.g. `git -C "$UI_KIT_DIR" …`
-    // or `git --git-dir "$X/.git" …`), or a git dir with no derivable worktree. We can neither
-    // confirm the target repo nor read its config to expand its aliases, so we fail closed: refuse
-    // anything that could push there — a literal `push --no-verify`, or a NON-built-in subcommand
-    // that could be an alias expanding to it in that repo (`alias.publish = push --no-verify`). A
-    // built-in subcommand can't be an alias, and a bare `push` without `--no-verify` still runs the
-    // target's pre-push hook, so both stay allowed.
-    const sub = gitSubcommand(command)
-    const literalPushSkip = IS_PUSH.test(command) && SKIPS_HOOKS.test(command)
-    const possibleAlias = sub !== "" && !GIT_BUILTINS.has(sub)
-    if (literalPushSkip || possibleAlias) {
-      process.stderr.write(
-        [
-          "BLOCKED: this command targets a git repo through a path the guard cannot resolve (a shell",
-          "variable/expansion, or a `--git-dir` with no verifiable worktree), so it cannot confirm the",
-          "command is not a push that skips the ui-kit gate.",
-          possibleAlias
-            ? `\`${sub}\` is not a git built-in — it may be an alias expanding to \`push --no-verify\` in that repo.`
-            : "`--no-verify` is not permitted on a push.",
-          "Use a literal path (not a shell variable) so the target can be verified, then push normally.",
-        ].join("\n")
-      )
-      process.exit(2)
-    }
-    process.exit(0)
-  }
-
-  // Scope out only when we can prove the target is a non-ui-kit repo (resolvable target).
-  if (!isUiKitSourceRepo(target)) {
-    process.exit(0)
-  }
-
-  const resolved = expandAliases(command, target)
-
-  // Check the raw text AND the alias-resolved text. The resolved form catches an alias stored in
-  // config (`alias.publish = push --no-verify`, whose call site shows neither token); the raw form
-  // catches a definition inlined into this very command (`git -c alias.x='push --no-verify' x`),
-  // where the flags are inside a quoted value that no whitespace tokenizer can see into.
-  const hit = (re) => re.test(command) || re.test(resolved)
-
-  if (hit(IS_PUSH) && hit(SKIPS_HOOKS)) {
-    const viaAlias = resolved !== command
-    process.stderr.write(
-      [
-        "BLOCKED: this command skips the pre-push hook that enforces the ui-kit quality gate.",
-        viaAlias ? `The git alias expands to: ${resolved.trim()}` : "",
-        "`--no-verify` is not permitted. Run the `ui-validate` skill and push normally.",
-      ]
-        .filter(Boolean)
-        .join("\n")
-    )
-    process.exit(2)
-  }
-
-  process.exit(0)
+  process.exit(evaluate(input))
 })
