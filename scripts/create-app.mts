@@ -66,11 +66,16 @@ function step(message: string) {
   console.log(`\n▸ ${message}`)
 }
 
-/** "AppName" -> "app-name", "My Shop 2" -> "my-shop-2" */
+/**
+ * "AppName" -> "app-name", "TechSio App" -> "techsio-app". camelCase is split
+ * only in single-word names; spaces already separate the words.
+ */
 function toSlug(name: string) {
-  return name
-    .trim()
-    .replace(CAMEL_BOUNDARY_RE, "$1-$2")
+  const trimmed = name.trim()
+  const words = trimmed.includes(" ")
+    ? trimmed
+    : trimmed.replace(CAMEL_BOUNDARY_RE, "$1-$2")
+  return words
     .toLowerCase()
     .replace(NON_ALPHANUMERIC_RE, "-")
     .replace(EDGE_DASHES_RE, "")
@@ -163,9 +168,12 @@ function generate(options: Options, versions: Versions) {
     TECHSIO_APP_TITLE: options.title,
     ...(versions.uiKit ? { TECHSIO_UI_KIT_VERSION: versions.uiKit } : {}),
   }
+  // --ignore-workspace: the generator must not inherit this repository's
+  // pnpm settings (strict peers, build allowlist) from the root workspace.
   const generated = run(
     "pnpm",
     [
+      "--ignore-workspace",
       `--package=node@runtime:${generatorNodeMajor(versions.generator)}`,
       `--package=${GENERATOR}@${versions.generator}`,
       "dlx",
