@@ -88,7 +88,15 @@ function run(
   env: NodeJS.ProcessEnv = process.env
 ) {
   console.log(`$ ${command} ${args.join(" ")}`)
-  return spawnSync(command, args, { cwd, env, stdio: "inherit" }).status === 0
+  const result = spawnSync(command, args, { cwd, env, stdio: "inherit" })
+  if (result.error) {
+    const reason =
+      (result.error as NodeJS.ErrnoException).code === "ENOENT"
+        ? `\`${command}\` or the directory ${cwd} does not exist`
+        : result.error.message
+    console.error(`✖ Could not start ${command}: ${reason}`)
+  }
+  return result.status === 0
 }
 
 function output(command: string, args: string[]) {
@@ -133,10 +141,13 @@ function preflight(options: Options) {
   if (existsSync(options.appDir)) {
     fail(`${options.appPath} already exists`)
   }
-  if (options.verify && output("git", ["status", "--porcelain"]) !== "") {
+  // Only the production build needs a clean tree, and it runs only when the
+  // scaffold is committed.
+  const builds = options.verify && options.commits
+  if (builds && output("git", ["status", "--porcelain"]) !== "") {
     fail(
       "The Git working tree must be clean: the production build only runs on a committed tree.\n" +
-        "  Commit or stash your changes, or pass --no-verify."
+        "  Commit or stash your changes, or pass --no-branch (check without build) or --no-verify."
     )
   }
   if (options.commits) {
