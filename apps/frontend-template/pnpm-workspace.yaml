@@ -1,0 +1,10 @@
+# Standalone project root: this app installs from its own lockfile and consumes
+# the published @techsio/ui-kit, so it can be copied out of the monorepo as-is.
+minimumReleaseAge: 1440
+
+strictPeerDependencies: true
+
+allowBuilds:
+  "@tailwindcss/oxide": true
+  sharp: true
+  unrs-resolver: true
