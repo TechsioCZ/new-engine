@@ -22,7 +22,7 @@
 // Runs on Node.js 24+ type stripping: keep the syntax erasable (no enums).
 
 import { execFileSync, spawnSync } from "node:child_process"
-import { existsSync, readFileSync, rmSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { parseArgs } from "node:util"
 
@@ -157,12 +157,15 @@ function generatorNodeMajor(version: string) {
   return major
 }
 
+/** Generate the workspace; returns false when the generator or overlay fails. */
 function generate(options: Options, versions: Versions) {
   step(
     `Generating ${options.appPath} with ${GENERATOR}@${versions.generator}` +
       ` and @techsio/ui-kit@${versions.uiKit ?? "latest"}`
   )
   rmSync(options.appDir, { force: true, recursive: true })
+  // apps/ has no tracked files, so a fresh checkout does not have it.
+  mkdirSync(join(ROOT, "apps"), { recursive: true })
   const env = {
     ...process.env,
     TECHSIO_APP_TITLE: options.title,
@@ -186,8 +189,11 @@ function generate(options: Options, versions: Versions) {
     env
   )
   if (!generated) {
-    fail(`The UltraModern.js generator failed for ${options.appPath}`)
+    console.error(
+      `✖ ${GENERATOR}@${versions.generator} failed to generate ${options.appPath}`
+    )
   }
+  return generated
 }
 
 function installAndCheck(appDir: string) {
@@ -242,10 +248,14 @@ function readDevPort(appDir: string) {
 }
 
 function installedUiKit(appDir: string) {
-  const manifest = JSON.parse(
-    readFileSync(join(appDir, "apps", SHELL_APP, "package.json"), "utf8")
-  ) as { dependencies?: Record<string, string> }
-  return manifest.dependencies?.["@techsio/ui-kit"]
+  try {
+    const manifest = JSON.parse(
+      readFileSync(join(appDir, "apps", SHELL_APP, "package.json"), "utf8")
+    ) as { dependencies?: Record<string, string> }
+    return manifest.dependencies?.["@techsio/ui-kit"] ?? "not added"
+  } catch {
+    return "not generated"
+  }
 }
 
 function reportSuccess(
@@ -291,10 +301,14 @@ function main() {
   preflight(options)
 
   if (!options.verify) {
-    generate(options, { generator: npmView(GENERATOR, "dist-tags.latest") })
-    const installed =
-      options.install && run("pnpm", ["install"], options.appDir)
-    const next = installed ? "pnpm dev" : "pnpm install"
+    const latest = { generator: npmView(GENERATOR, "dist-tags.latest") }
+    if (!generate(options, latest)) {
+      fail(`The UltraModern.js generator failed for ${options.appPath}`)
+    }
+    if (options.install && !run("pnpm", ["install"], options.appDir)) {
+      fail(`pnpm install failed in ${options.appPath}`)
+    }
+    const next = options.install ? "pnpm dev" : "pnpm install"
     console.log(
       `\n✔ Created ${options.appPath} (not verified). Next: cd ${options.appPath} && ${next}`
     )
@@ -309,7 +323,10 @@ function main() {
   ]
   const failures: string[] = []
   for (const versions of attempts) {
-    generate(options, versions)
+    if (!generate(options, versions)) {
+      failures.push(`${GENERATOR}@${versions.generator} (generation failed)`)
+      continue
+    }
     // A commit exists once an earlier attempt got past `check`.
     const amend = options.commits && failures.length > 0 && hasScaffoldCommit()
     if (verifyAttempt(options, amend)) {
