@@ -3,7 +3,7 @@
 Clean Next.js starter on the TechSio Design System (`@techsio/ui-kit`).
 
 - Next.js 16 (App Router, Turbopack, React Compiler) · React 19
-- Tailwind CSS v4 with UI-kit tokens, default `base` brand
+- Tailwind CSS v4 with UI-kit tokens, default `business` brand
 - TypeScript 7 · oxlint · oxfmt
 - Node.js 24 LTS · pnpm
 
@@ -33,7 +33,7 @@ src/
   app/
     globals.css     # imports the token layer
     icon.svg
-    layout.tsx      # <html class="light">: base brand, light mode
+    layout.tsx      # <html class="light" data-theme="business">
     page.tsx
   styles/tokens/
     index.css       # Tailwind + UI-kit tokens + app overrides

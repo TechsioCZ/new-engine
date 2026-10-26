@@ -4,8 +4,8 @@
 
 - This file applies to `apps/frontend-template`.
 - Root `AGENTS.md` still applies unless this file overrides it.
-- This is a clean starter: copy it to start a new frontend project, then rename
-  the package and replace the hello page.
+- This is the source template for `pnpm create-app "AppName"` (see
+  `scripts/create-app.mts`). Changes here apply to every app generated later.
 
 ## Project Context
 
@@ -21,8 +21,9 @@
 
 ## Theme & Tokens
 
-- The UI-kit `base` brand is the default theme: no `data-theme` attribute, mode
-  via the `light` / `dark` class on `<html>`.
+- The UI-kit `business` brand is the default theme:
+  `<html class="light" data-theme="business">`. Business is light-only; switch
+  brands by changing `data-theme` (`base` has no attribute and supports dark).
 - `src/styles/tokens/index.css` owns the Tailwind import, the UI-kit token
   import, and app-owned token overrides. Start overrides at the semantic layer
   (`--color-bg-primary-base`, …) before touching component tokens.
@@ -52,7 +53,7 @@
 - `pnpm check` runs `oxfmt --check`, `oxlint` and `tsc --noEmit`. Run it before
   handoff. `pnpm format` and `pnpm lint:fix` apply fixes.
 - Formatting and linting use oxfmt and oxlint, not Biome; the root Biome config
-  excludes this directory.
+  excludes `apps/`.
 
 ## DX, DRY, and Modularity
 

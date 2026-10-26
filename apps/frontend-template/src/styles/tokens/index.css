@@ -9,9 +9,9 @@
 @source "../../../node_modules/@techsio/ui-kit/dist/**/*.js";
 
 /*
- * App token layer. The UI-kit "base" brand is the default theme (no
- * data-theme attribute), so nothing is overridden yet. Add app-owned
- * semantic overrides here, after the kit import, e.g.:
+ * App token layer. The default theme is the UI-kit "business" brand
+ * (data-theme="business" on <html>, light-only), so nothing is overridden yet.
+ * Add app-owned semantic overrides here, after the kit import, e.g.:
  *
  * :root, [data-theme], .light, .dark, .always-light, .always-dark, .reverse {
  *   --color-bg-primary-base: var(--brand-primary);
