@@ -1,45 +1,60 @@
 #!/usr/bin/env node
-// Scaffold a new frontend app in apps/<slug> from apps/frontend-template.
+// Scaffold a new UltraModern.js app in apps/<slug> with the TechSio Design System.
 //
 //   pnpm create-app "AppName" [--no-branch] [--no-install] [--no-verify]
 //
 // Steps:
 //   1. create a `feat/<slug>-init` branch (skip with --no-branch)
-//   2. copy the template's git-tracked files and rename the app
-//   3. pin Node.js to the current LTS major (.node-version, engines, @types/node)
-//   4. upgrade every other dependency to its latest release; the template's
-//      pnpm minimumReleaseAge still applies (skip install with --no-install)
-//   5. format, check and build (skip with --no-verify)
+//   2. run the official UltraModern.js generator (presetUltramodern workspace)
+//      with the TechSio overlay from scripts/ultramodern-overlay: @techsio/ui-kit,
+//      app shell with Sidebar navigation, Business theme with brand and
+//      light/dark switching, cs/en locales
+//   3. install, regenerate route metadata and run the workspace `check`
+//      (--no-install stops after generating; --no-verify after installing)
+//   4. commit the scaffold and run the production `build`, which needs a clean
+//      Git tree (skipped with --no-branch)
 //
-// If the upgraded app fails step 5, the template's known-good package.json and
-// lockfile are restored, verified again, and the failing upgrade set is reported.
+// The newest generator and UI-kit releases are tried first. If they fail
+// verification, the app is regenerated on the known-good versions below and
+// the failing versions are reported. Node.js is provisioned by pnpm
+// (`node@runtime:`), so no global Node.js 26 or mise install is required.
 //
 // Runs on Node.js 24+ type stripping: keep the syntax erasable (no enums).
 
 import { execFileSync, spawnSync } from "node:child_process"
-import {
-  copyFileSync,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  readlinkSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs"
-import { dirname, join, relative } from "node:path"
+import { existsSync, readFileSync, rmSync } from "node:fs"
+import { join } from "node:path"
 import { parseArgs } from "node:util"
 
 const ROOT = join(import.meta.dirname, "..")
-const TEMPLATE = "apps/frontend-template"
-const NODE_INDEX_URL = "https://nodejs.org/dist/index.json"
+const OVERLAY = join(import.meta.dirname, "ultramodern-overlay")
+const GENERATOR = "@bleedingdev/modern-js-ultramodern-create"
+const SHELL_APP = "shell-super-app"
 const NAME_RE = /^[A-Za-z][A-Za-z0-9 _-]*$/
+const CAMEL_BOUNDARY_RE = /([a-z0-9])([A-Z])/g
+const NON_ALPHANUMERIC_RE = /[^a-z0-9]+/g
+const EDGE_DASHES_RE = /^-+|-+$/g
+const MAJOR_VERSION_RE = /\d+/
+const USAGE =
+  'Usage: pnpm create-app "AppName" [--no-branch] [--no-install] [--no-verify]'
 
-type PackageJson = {
-  name: string
-  engines?: Record<string, string>
-  dependencies?: Record<string, string>
-  devDependencies?: Record<string, string>
+// Last versions verified together; bump after a successful `pnpm create-app`.
+const KNOWN_GOOD: Versions = {
+  generator: "3.9.3-ultramodern.9",
+  uiKit: "0.57.0",
+}
+
+type Versions = { generator: string; uiKit?: string }
+
+type Options = {
+  title: string
+  slug: string
+  appPath: string
+  appDir: string
+  /** Create a branch, commit the scaffold and run the production build. */
+  commits: boolean
+  install: boolean
+  verify: boolean
 }
 
 function fail(message: string): never {
@@ -55,142 +70,31 @@ function step(message: string) {
 function toSlug(name: string) {
   return name
     .trim()
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(CAMEL_BOUNDARY_RE, "$1-$2")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(NON_ALPHANUMERIC_RE, "-")
+    .replace(EDGE_DASHES_RE, "")
 }
 
-function run(command: string, args: string[], cwd: string) {
-  console.log(`$ ${command} ${args.join(" ")}`)
-  return spawnSync(command, args, { cwd, stdio: "inherit" }).status === 0
-}
-
-function runAll(commands: [string, string[]][], cwd: string) {
-  return commands.every(([command, args]) => run(command, args, cwd))
-}
-
-function copyTrackedTemplate(target: string) {
-  const files = execFileSync("git", ["ls-files", "-z", TEMPLATE], {
-    cwd: ROOT,
-    encoding: "utf8",
-  })
-    .split("\0")
-    .filter(Boolean)
-
-  if (files.length === 0) {
-    fail(`${TEMPLATE} has no tracked files`)
-  }
-
-  for (const file of files) {
-    const source = join(ROOT, file)
-    const destination = join(target, relative(TEMPLATE, file))
-    mkdirSync(dirname(destination), { recursive: true })
-
-    if (lstatSync(source).isSymbolicLink()) {
-      symlinkSync(readlinkSync(source), destination)
-    } else {
-      copyFileSync(source, destination)
-    }
-  }
-
-  return files.length
-}
-
-/** Replace text that must exist in the template, so template drift fails loudly. */
-function replaceIn(appDir: string, file: string, from: string, to: string) {
-  const path = join(appDir, file)
-  const content = readFileSync(path, "utf8")
-
-  if (!content.includes(from)) {
-    fail(`${TEMPLATE}/${file} no longer contains ${JSON.stringify(from)}`)
-  }
-
-  writeFileSync(path, content.replaceAll(from, to))
-}
-
-function readPackageJson(appDir: string): PackageJson {
-  return JSON.parse(readFileSync(join(appDir, "package.json"), "utf8"))
-}
-
-function writePackageJson(appDir: string, pkg: PackageJson) {
-  writeFileSync(
-    join(appDir, "package.json"),
-    `${JSON.stringify(pkg, null, 2)}\n`
-  )
-}
-
-function renameApp(appDir: string, slug: string, title: string) {
-  writePackageJson(appDir, { ...readPackageJson(appDir), name: slug })
-  replaceIn(
-    appDir,
-    "src/app/layout.tsx",
-    `title: "TechSio Frontend Template"`,
-    `title: "${title}"`
-  )
-  replaceIn(appDir, "src/app/page.tsx", ">Frontend template<", `>${title}<`)
-  replaceIn(appDir, "README.md", "# Frontend Template", `# ${title}`)
-  replaceIn(
-    appDir,
-    "AGENTS.md",
-    "# Frontend Template Guidelines",
-    `# ${title} Guidelines`
-  )
-  replaceIn(appDir, "AGENTS.md", `\`${TEMPLATE}\``, `\`apps/${slug}\``)
-  replaceIn(
-    appDir,
-    "AGENTS.md",
-    `- This is the source template for \`pnpm create-app "AppName"\` (see
-  \`scripts/create-app.mts\`). Changes here apply to every app generated later.`,
-    `- Generated from \`${TEMPLATE}\` by \`pnpm create-app\`.`
-  )
-}
-
-async function resolveNodeLtsMajor() {
-  try {
-    const response = await fetch(NODE_INDEX_URL)
-    const releases = (await response.json()) as {
-      version: string
-      lts: string | false
-    }[]
-    const latestLts = releases.find((release) => release.lts)
-
-    return latestLts?.version.slice(1).split(".")[0] ?? null
-  } catch {
-    return null
-  }
-}
-
-function pinNodeLts(appDir: string, major: string) {
-  writeFileSync(join(appDir, ".node-version"), `${major}\n`)
-  const pkg = readPackageJson(appDir)
-  writePackageJson(appDir, {
-    ...pkg,
-    engines: { ...pkg.engines, node: `>=${major}` },
-  })
-}
-
-function dependencyVersions(appDir: string) {
-  const pkg = readPackageJson(appDir)
-  return { ...pkg.dependencies, ...pkg.devDependencies }
-}
-
-function describeUpgrades(
-  before: Record<string, string>,
-  after: Record<string, string>
+function run(
+  command: string,
+  args: string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env
 ) {
-  return Object.keys(after)
-    .filter((name) => before[name] !== after[name])
-    .map((name) => `  ${name}: ${before[name] ?? "(new)"} -> ${after[name]}`)
+  console.log(`$ ${command} ${args.join(" ")}`)
+  return spawnSync(command, args, { cwd, env, stdio: "inherit" }).status === 0
 }
 
-const VERIFY: [string, string[]][] = [
-  ["pnpm", ["format"]],
-  ["pnpm", ["check"]],
-  ["pnpm", ["build"]],
-]
+function output(command: string, args: string[]) {
+  return execFileSync(command, args, { cwd: ROOT, encoding: "utf8" }).trim()
+}
 
-async function main() {
+function npmView(spec: string, field: string) {
+  return output("npm", ["view", spec, field])
+}
+
+function parseOptions(): Options {
   const { positionals, values } = parseArgs({
     allowPositionals: true,
     options: {
@@ -203,102 +107,222 @@ async function main() {
   const title = positionals.join(" ").trim()
   if (!NAME_RE.test(title)) {
     fail(
-      'Usage: pnpm create-app "AppName" [--no-branch] [--no-install] [--no-verify]\n' +
-        "  The name must start with a letter and contain only letters, digits, spaces, '-' or '_'."
+      `${USAGE}\n  The name must start with a letter and contain only letters, digits, spaces, '-' or '_'.`
     )
   }
 
   const slug = toSlug(title)
-  const appPath = `apps/${slug}`
-  const appDir = join(ROOT, appPath)
-
-  if (existsSync(appDir)) {
-    fail(`${appPath} already exists`)
+  const install = !values["no-install"]
+  return {
+    title,
+    slug,
+    appPath: `apps/${slug}`,
+    appDir: join(ROOT, "apps", slug),
+    commits: !values["no-branch"],
+    install,
+    verify: install && !values["no-verify"],
   }
+}
 
-  if (!values["no-branch"]) {
-    step(`Creating branch feat/${slug}-init`)
-    if (!run("git", ["switch", "-c", `feat/${slug}-init`], ROOT)) {
+function preflight(options: Options) {
+  if (existsSync(options.appDir)) {
+    fail(`${options.appPath} already exists`)
+  }
+  if (options.verify && output("git", ["status", "--porcelain"]) !== "") {
+    fail(
+      "The Git working tree must be clean: the production build only runs on a committed tree.\n" +
+        "  Commit or stash your changes, or pass --no-verify."
+    )
+  }
+  if (options.commits) {
+    step(`Creating branch feat/${options.slug}-init`)
+    if (!run("git", ["switch", "-c", `feat/${options.slug}-init`], ROOT)) {
       fail("Could not create the branch (pass --no-branch to skip)")
     }
   }
+}
 
-  step(`Copying ${TEMPLATE} -> ${appPath}`)
-  console.log(`  ${copyTrackedTemplate(appDir)} files`)
-  renameApp(appDir, slug, title)
-
-  step("Resolving the Node.js LTS release")
-  const nodeMajor = await resolveNodeLtsMajor()
-  if (nodeMajor) {
-    pinNodeLts(appDir, nodeMajor)
-    console.log(`  Node.js ${nodeMajor} (LTS)`)
-  } else {
-    console.warn("  Could not reach nodejs.org; keeping the template's Node.js")
+/** Major Node.js version that satisfies the generator's `engines.node`. */
+function generatorNodeMajor(version: string) {
+  const engines = npmView(`${GENERATOR}@${version}`, "engines.node")
+  const major = engines.match(MAJOR_VERSION_RE)?.[0]
+  if (!major) {
+    fail(`Cannot read engines.node of ${GENERATOR}@${version}`)
   }
+  return major
+}
 
-  if (values["no-install"]) {
-    console.log(`\n✔ Created ${appPath}. Next: cd ${appPath} && pnpm install`)
-    return
+function generate(options: Options, versions: Versions) {
+  step(
+    `Generating ${options.appPath} with ${GENERATOR}@${versions.generator}` +
+      ` and @techsio/ui-kit@${versions.uiKit ?? "latest"}`
+  )
+  rmSync(options.appDir, { force: true, recursive: true })
+  const env = {
+    ...process.env,
+    TECHSIO_APP_TITLE: options.title,
+    ...(versions.uiKit ? { TECHSIO_UI_KIT_VERSION: versions.uiKit } : {}),
   }
-
-  const knownGoodPackageJson = readFileSync(join(appDir, "package.json"))
-  const knownGoodLockfile = readFileSync(join(appDir, "pnpm-lock.yaml"))
-  const before = dependencyVersions(appDir)
-
-  step("Upgrading dependencies to their latest releases")
-  const typesNode = nodeMajor ? `@types/node@${nodeMajor}` : "@types/node"
-  const upgraded = runAll(
+  const generated = run(
+    "pnpm",
     [
-      ["pnpm", ["update", "--latest", "!@types/node"]],
-      ["pnpm", ["add", "--save-dev", typesNode]],
+      `--package=node@runtime:${generatorNodeMajor(versions.generator)}`,
+      `--package=${GENERATOR}@${versions.generator}`,
+      "dlx",
+      "ultramodern-create",
+      options.slug,
+      "--codesmith-overlay",
+      OVERLAY,
     ],
-    appDir
+    join(ROOT, "apps"),
+    env
   )
-  if (!upgraded) {
-    fail(`Dependency upgrade failed in ${appPath}`)
+  if (!generated) {
+    fail(`The UltraModern.js generator failed for ${options.appPath}`)
   }
+}
 
-  const after = dependencyVersions(appDir)
-  const upgrades = describeUpgrades(before, after)
-  const upgradeSummary =
-    upgrades.length > 0
-      ? upgrades.join("\n")
-      : "  (no direct dependency changes; only transitive lockfile updates)"
-  console.log(upgradeSummary)
-
-  if (values["no-verify"]) {
-    console.log(
-      `\n✔ Created ${appPath} (not verified). Next: cd ${appPath} && pnpm dev`
-    )
-    return
-  }
-
-  step("Verifying the upgraded app (format, check, build)")
-  if (runAll(VERIFY, appDir)) {
-    console.log(`\n✔ Created ${appPath}. Next: cd ${appPath} && pnpm dev`)
-    return
-  }
-
-  step("Upgraded app failed verification; restoring the template's versions")
-  writeFileSync(join(appDir, "package.json"), knownGoodPackageJson)
-  writeFileSync(join(appDir, "pnpm-lock.yaml"), knownGoodLockfile)
-
-  const restored = runAll(
-    [["pnpm", ["install", "--frozen-lockfile"]], ...VERIFY],
-    appDir
-  )
-  if (!restored) {
-    fail(
-      `${appPath} also fails with the template's versions; fix ${TEMPLATE} first`
-    )
-  }
-
-  console.log(
-    `\n✔ Created ${appPath} on the template's versions.\n` +
-      "  These upgrades broke format, check or build and were rolled back:\n" +
-      `${upgradeSummary}\n` +
-      `  Next: cd ${appPath} && pnpm dev`
+function installAndCheck(appDir: string) {
+  step("Installing and checking the workspace")
+  return (
+    run("pnpm", ["install"], appDir) &&
+    run(
+      "pnpm",
+      [
+        "exec",
+        "ultramodern-create",
+        "ultramodern",
+        "routes-generate",
+        "--app",
+        SHELL_APP,
+        "--manifest-only",
+      ],
+      appDir
+    ) &&
+    run("pnpm", ["check"], appDir)
   )
 }
 
-await main()
+/** Commit the scaffold; later attempts amend it so the branch keeps one commit. */
+function commitScaffold(options: Options, amend: boolean) {
+  step(amend ? "Amending the scaffold commit" : "Committing the scaffold")
+  const message = `feat(apps): scaffold ${options.slug} on UltraModern.js with the TechSio Design System`
+  const committed =
+    run("git", ["add", "--all", options.appPath], ROOT) &&
+    run(
+      "git",
+      amend ? ["commit", "--amend", "--no-edit"] : ["commit", "-m", message],
+      ROOT
+    )
+  if (!committed) {
+    fail("Could not commit the scaffold")
+  }
+}
+
+function readDevPort(appDir: string) {
+  try {
+    const overlay = JSON.parse(
+      readFileSync(
+        join(appDir, "topology/local-overlays/development.json"),
+        "utf8"
+      )
+    ) as { ports?: Record<string, number> }
+    return overlay.ports?.[SHELL_APP]
+  } catch {
+    return
+  }
+}
+
+function installedUiKit(appDir: string) {
+  const manifest = JSON.parse(
+    readFileSync(join(appDir, "apps", SHELL_APP, "package.json"), "utf8")
+  ) as { dependencies?: Record<string, string> }
+  return manifest.dependencies?.["@techsio/ui-kit"]
+}
+
+function reportSuccess(
+  options: Options,
+  versions: Versions,
+  failures: string[]
+) {
+  const port = readDevPort(options.appDir)
+  const lines = [
+    `\n✔ Created ${options.appPath} (UltraModern.js ${versions.generator}, @techsio/ui-kit ${installedUiKit(options.appDir)}).`,
+  ]
+  if (!options.commits) {
+    lines.push(
+      "  The production build was skipped: it needs the scaffold committed."
+    )
+  }
+  if (failures.length > 0) {
+    lines.push(
+      `  Rolled back from versions that failed verification: ${failures.join("; ")}`
+    )
+  }
+  lines.push(
+    `  Next: cd ${options.appPath} && pnpm dev${port ? `  (http://localhost:${port}/en)` : ""}`
+  )
+  console.log(lines.join("\n"))
+}
+
+/** Check, then (when committing) commit and build. Returns whether it passed. */
+function verifyAttempt(options: Options, amend: boolean) {
+  if (!installAndCheck(options.appDir)) {
+    return false
+  }
+  if (!options.commits) {
+    return true
+  }
+  commitScaffold(options, amend)
+  step("Building for production")
+  return run("pnpm", ["build"], options.appDir)
+}
+
+function main() {
+  const options = parseOptions()
+  preflight(options)
+
+  if (!options.verify) {
+    generate(options, { generator: npmView(GENERATOR, "dist-tags.latest") })
+    const installed =
+      options.install && run("pnpm", ["install"], options.appDir)
+    const next = installed ? "pnpm dev" : "pnpm install"
+    console.log(
+      `\n✔ Created ${options.appPath} (not verified). Next: cd ${options.appPath} && ${next}`
+    )
+    return
+  }
+
+  // The latest attempt leaves the UI-kit version to the overlay (newest release
+  // outside the 24h minimumReleaseAge); the fallback pins both.
+  const attempts: Versions[] = [
+    { generator: npmView(GENERATOR, "dist-tags.latest") },
+    KNOWN_GOOD,
+  ]
+  const failures: string[] = []
+  for (const versions of attempts) {
+    generate(options, versions)
+    // A commit exists once an earlier attempt got past `check`.
+    const amend = options.commits && failures.length > 0 && hasScaffoldCommit()
+    if (verifyAttempt(options, amend)) {
+      reportSuccess(options, versions, failures)
+      return
+    }
+    failures.push(
+      `${GENERATOR}@${versions.generator} + @techsio/ui-kit@${installedUiKit(options.appDir)}`
+    )
+  }
+
+  fail(
+    `${options.appPath} fails verification even on the known-good versions (${failures.join("; ")}).\n` +
+      "  Fix scripts/ultramodern-overlay or update KNOWN_GOOD in scripts/create-app.mts."
+  )
+
+  function hasScaffoldCommit() {
+    return output("git", ["log", "-1", "--format=%s"]).startsWith(
+      `feat(apps): scaffold ${options.slug} `
+    )
+  }
+}
+
+main()

@@ -16,7 +16,8 @@
       "!**/*.stories.tsx",
       "!**/.storybook/main.ts",
       "!**/libs/ui/src/tokens/index.css",
-      "!apps"
+      "!apps",
+      "!scripts/ultramodern-overlay/files"
     ]
   },
   "vcs": {
