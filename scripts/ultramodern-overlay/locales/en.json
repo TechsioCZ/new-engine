@@ -1,0 +1,33 @@
+{
+  "shell": {
+    "home": {
+      "badge": "TechSio Design System",
+      "lede": "This app runs on UltraModern.js with the @techsio/ui-kit shell: sidebar navigation, brand and light/dark switching.",
+      "title": "Hello from TechSio Design System"
+    },
+    "nav": {
+      "close": "Close navigation",
+      "home": "Overview",
+      "label": "Navigation",
+      "settings": "Settings",
+      "toggle": "Toggle navigation"
+    },
+    "settings": {
+      "description": "Application settings.",
+      "lede": "Add the settings of your application here.",
+      "title": "Settings"
+    },
+    "theme": {
+      "brand": "Theme",
+      "brands": {
+        "akros": "Akros",
+        "base": "Default",
+        "business": "Business",
+        "neo": "Neo"
+      },
+      "lightOnly": "This theme has no dark mode",
+      "useDark": "Switch to dark mode",
+      "useLight": "Switch to light mode"
+    }
+  }
+}
