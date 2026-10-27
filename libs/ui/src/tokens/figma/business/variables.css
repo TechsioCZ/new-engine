@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-12T18:12:50.928Z
+ * Exported at: 2026-10-27T19:02:56.040Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -112,8 +112,8 @@
   --color-fg-on-accent-solid: var(--color-fg-reverse);
   --color-fg-on-danger: var(--color-base-dark);
   --color-fg-on-primary-indicator: var(--color-fg-primary);
-  --color-fg-on-primary-solid: var(--color-fg-light);
-  --color-fg-on-primary-solid-neo: var(--color-fg-reverse);
+  --color-fg-on-primary-solid: var(--color-white);
+  --color-fg-on-primary-solid-neo: var(--color-white);
   --color-fg-on-secondary: var(--color-base-dark);
   --color-fg-on-selected: var(--color-white);
   --color-fg-on-tertiary: var(--color-base-dark);
@@ -196,9 +196,9 @@
   --color-secondary-light-active: var(--color-bg-light-secondary-active);
   --color-secondary-light-disabled: var(--color-bg-disabled);
   --color-secondary-light-hover: var(--color-bg-light-secondary-hover);
-  --color-shadow-1: oklch(0.145 0 0);
-  --color-shadow-2: oklch(0.145 0 0);
-  --color-shadow-3: oklch(0.145 0 0);
+  --color-shadow-1: oklch(0 0 0 / 0.16);
+  --color-shadow-2: oklch(0 0 0 / 0.06);
+  --color-shadow-3: oklch(0 0 0 / 0.1);
   --color-sky-300: oklch(0.828 0.101 230.318);
   --color-slate-950: oklch(0.208 0.04 265.755);
   --color-success: var(--color-success-500);
@@ -410,10 +410,7 @@
   --ring-width: 0.13rem;
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-primary:
-    var(--offset-shadow-1) var(--color-shadow-1),
-    var(--offset-shadow-2) var(--color-shadow-2),
-    var(--offset-shadow-3) var(--color-shadow-3);
+  --shadow-primary: var(--offset-shadow-1) var(--color-shadow-1), var(--offset-shadow-2) var(--color-shadow-2), var(--offset-shadow-3) var(--color-shadow-3);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.04);
   --size-1: 0.06rem;
