@@ -881,7 +881,7 @@ export const NativeFormReset: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Reset categories" }))
     await waitFor(() => expect(new FormData(form).get("empty")).toBe(""))
     for (const field of ["default", "multiple", "controlled", "external"]) {
-      await expect(new FormData(form).get(field)).toBe("home,furniture")
+      await waitFor(() => expect(new FormData(form).get(field)).toBe("home,furniture"))
     }
     await expect(canvas.getByRole("combobox", { name: "Initially empty category" })).toHaveTextContent("Choose an option")
     for (const name of ["Default category", "Controlled category", "Externally associated category"]) {
