@@ -6,6 +6,7 @@
     "node": ">=24"
   },
   "scripts": {
+    "create-app": "node scripts/create-app.mts",
     "lint:nx": "NX_DAEMON=false nubx --node nx show projects > /dev/null && eslint --config eslint.nx.config.cjs \"libs/**/*.{ts,tsx,js,jsx}\"",
     "nx:affected": "NX_DAEMON=false nubx --node nx affected -t lint test",
     "knip": "knip",

@@ -34,6 +34,23 @@ pnpm --dir libs/ui check:package     # build and validate the published output
 `mise run dev:install` runs the same install inside the pinned pnpm toolchain
 container.
 
+## Creating an app
+
+```sh
+pnpm create-app "AppName"   # apps/app-name on branch feat/app-name-init
+```
+
+`scripts/create-app.mts` runs the official UltraModern.js generator
+(`@bleedingdev/modern-js-ultramodern-create`, `presetUltramodern` workspace)
+with the TechSio overlay in `scripts/ultramodern-overlay`: `@techsio/ui-kit`,
+an app shell with Sidebar navigation, the Business theme with brand and
+light/dark switching, and cs/en locales. It then installs, runs the
+workspace `check`, commits the scaffold and runs the production `build`. The
+newest generator and UI-kit releases are tried first, with a fallback to the
+last known-good versions. pnpm provisions the Node.js version the generator
+needs, and the generated workspace is linted and formatted by its own oxlint
+and oxfmt, so root Biome excludes `apps/` and the overlay's app files.
+
 ## Releases
 
 - `@techsio/ui-kit` is released by semantic-release from `master`

@@ -1,0 +1,33 @@
+{
+  "shell": {
+    "home": {
+      "badge": "TechSio Design System",
+      "lede": "Aplikace běží na UltraModern.js s shellem z @techsio/ui-kit: boční navigace, přepínání brandu a světlého/tmavého režimu.",
+      "title": "Hello from TechSio Design System"
+    },
+    "nav": {
+      "close": "Zavřít navigaci",
+      "home": "Přehled",
+      "label": "Navigace",
+      "settings": "Nastavení",
+      "toggle": "Přepnout navigaci"
+    },
+    "settings": {
+      "description": "Nastavení aplikace.",
+      "lede": "Sem přidejte nastavení své aplikace.",
+      "title": "Nastavení"
+    },
+    "theme": {
+      "brand": "Téma",
+      "brands": {
+        "akros": "Akros",
+        "base": "Výchozí",
+        "business": "Business",
+        "neo": "Neo"
+      },
+      "lightOnly": "Toto téma nemá tmavý režim",
+      "useDark": "Přepnout na tmavý režim",
+      "useLight": "Přepnout na světlý režim"
+    }
+  }
+}

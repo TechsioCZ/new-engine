@@ -1,0 +1,9 @@
+{
+  "name": "@techsio/ultramodern-overlay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CodeSmith overlay that adds the TechSio Design System app shell to a generated UltraModern.js workspace.",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "index.cjs"
+}

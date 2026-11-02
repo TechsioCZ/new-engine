@@ -15,7 +15,9 @@
       "!**/check-env-variables.js",
       "!**/*.stories.tsx",
       "!**/.storybook/main.ts",
-      "!**/libs/ui/src/tokens/index.css"
+      "!**/libs/ui/src/tokens/index.css",
+      "!apps",
+      "!scripts/ultramodern-overlay/files"
     ]
   },
   "vcs": {
