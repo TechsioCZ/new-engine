@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-12T18:12:50.929Z
+ * Exported at: 2026-10-27T19:02:56.041Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -196,9 +196,9 @@
   --color-secondary-light-active: var(--color-bg-light-secondary-active);
   --color-secondary-light-disabled: var(--color-bg-disabled);
   --color-secondary-light-hover: var(--color-bg-light-secondary-hover);
-  --color-shadow-1: oklch(0.145 0 0);
-  --color-shadow-2: var(--color-shadow-1);
-  --color-shadow-3: var(--color-shadow-1);
+  --color-shadow-1: oklch(0 0 0 / 0.16);
+  --color-shadow-2: oklch(0 0 0 / 0.06);
+  --color-shadow-3: oklch(0 0 0 / 0.1);
   --color-sky-300: var(--color-tertiary-400);
   --color-slate-950: var(--color-black);
   --color-success: var(--color-success-500);
@@ -235,7 +235,7 @@
   --color-warning-600: oklch(0.772 0.174 64.552);
   --color-warning-700: oklch(0.645 0.165 49.971);
   --color-warning-800: oklch(0.47 0.149 39.364);
-  --color-warning-900: var(--color-danger-900);
+  --color-warning-900: oklch(0.382 0.082 70.849);
   --color-warning-active: var(--color-bg-warning-active);
   --color-warning-disabled: var(--color-bg-disabled);
   --color-warning-hover: var(--color-bg-warning-hover);
@@ -410,10 +410,7 @@
   --ring-width: 0.13rem;
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-primary:
-    var(--offset-shadow-1) var(--color-shadow-1),
-    var(--offset-shadow-2) var(--color-shadow-2),
-    var(--offset-shadow-3) var(--color-shadow-3);
+  --shadow-primary: var(--offset-shadow-1) var(--color-shadow-1), var(--offset-shadow-2) var(--color-shadow-2), var(--offset-shadow-3) var(--color-shadow-3);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.04);
   --size-1: 0.06rem;

@@ -64,14 +64,18 @@ test.describe("Drawer behavior", () => {
 
     const trigger = page.getByRole("button", { name: "Open drawer" })
     await trigger.click()
-    await expect(
-      page.getByRole("dialog", { name: "Playground drawer" })
-    ).toBeVisible()
+    const dialog = page.getByRole("dialog", { name: "Playground drawer" })
+    await expect(dialog).toBeVisible()
+    // Mobile WebKit can paint the dialog before the drawer takes focus and
+    // starts listening for Escape; press it only once focus is inside.
+    await expect
+      .poll(() =>
+        dialog.evaluate((node) => node.contains(document.activeElement))
+      )
+      .toBe(true)
 
     await page.keyboard.press("Escape")
-    await expect(
-      page.getByRole("dialog", { name: "Playground drawer" })
-    ).toHaveCount(0)
+    await expect(dialog).toHaveCount(0)
     await expect(trigger).toBeFocused()
   })
 

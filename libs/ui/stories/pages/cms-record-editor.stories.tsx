@@ -92,7 +92,8 @@ function RecordEditorPage({
   const [leaving, setLeaving] = useState(false)
   const [metaTitle, setMetaTitle] = useState("")
   const [metaDescription, setMetaDescription] = useState("")
-  const [publishAt, setPublishAt] = useState("")
+  // An empty native datetime field renders today's date in WebKit; keep it fixed.
+  const [publishAt, setPublishAt] = useState("2026-10-15T09:00")
   const [author, setAuthor] = useState(["nora"])
   const [placement, setPlacement] = useState(["apparel-outerwear"])
   const [savedDraft, setSavedDraft] = useState({
