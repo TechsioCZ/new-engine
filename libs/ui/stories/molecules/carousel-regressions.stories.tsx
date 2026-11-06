@@ -242,7 +242,7 @@ export const ControlFreeRtl: Story = {
 
 export const IndependentCollections: Story = {
   render: () => (
-    <div className="flex flex-col gap-400">
+    <div className="flex flex-col gap-400 p-200">
       <CollectionExample label="First editable collection" />
       <CollectionExample label="Second editable collection" />
     </div>
@@ -265,5 +265,22 @@ export const IndependentCollections: Story = {
     await userEvent.keyboard("{ArrowRight}")
     await waitFor(() => expect(examples[0]).toHaveAttribute("data-page", "1"))
     await expect(examples[1]).toHaveAttribute("data-page", "0")
+    await waitFor(() => {
+      const focused = canvasElement.ownerDocument.activeElement
+      if (!(focused instanceof HTMLElement)) {
+        throw new Error("The first carousel must retain keyboard focus.")
+      }
+      expect(examples[0]).toContainElement(focused)
+      const style = getComputedStyle(focused)
+      const outline = Number.parseFloat(style.outlineWidth)
+      expect(outline).toBeGreaterThan(0)
+      const reserve = outline + Math.max(0, Number.parseFloat(style.outlineOffset))
+      const bounds = focused.getBoundingClientRect()
+      const root = canvasElement.getBoundingClientRect()
+      expect(bounds.left - reserve).toBeGreaterThanOrEqual(root.left - 1)
+      expect(bounds.right + reserve).toBeLessThanOrEqual(root.right + 1)
+      expect(bounds.top - reserve).toBeGreaterThanOrEqual(root.top - 1)
+      expect(bounds.bottom + reserve).toBeLessThanOrEqual(root.bottom + 1)
+    })
   },
 }
