@@ -1,6 +1,6 @@
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { expect, within } from "storybook/test"
+import { expect, waitFor, within } from "storybook/test"
 
 import { Skeleton } from "../../../src/atoms/skeleton"
 import { Chart } from "../../../src/molecules/chart"
@@ -155,8 +155,8 @@ function HomePage({ loading }: { loading?: boolean }) {
           </Tabs.List>
           <Tabs.Content className="p-250" value="revenue">
             {loading ? (
-              <Skeleton isLoaded={false}>
-                <Skeleton.Rectangle />
+              <Skeleton aria-label="Loading main statistics chart" isLoaded={false}>
+                <Skeleton.Rectangle className="h-70" />
               </Skeleton>
             ) : (
               <Chart
@@ -327,5 +327,14 @@ export const Loading: Story = {
     },
   },
   render: () => <HomePage loading />,
-  play: checkRevenueFits,
+  play: async (context) => {
+    await checkRevenueFits(context)
+    const chart = within(context.canvasElement).getByRole("status", {
+      name: "Loading main statistics chart",
+    })
+    await waitFor(() => {
+      expect(chart.getBoundingClientRect().height).toBeGreaterThanOrEqual(280)
+      expect(chart.getBoundingClientRect().width).toBeGreaterThan(0)
+    })
+  },
 }
