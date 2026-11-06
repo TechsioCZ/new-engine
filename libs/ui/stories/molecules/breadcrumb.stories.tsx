@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { VariantGroup } from "../../.storybook/decorator"
 import {
   Breadcrumb,
   type BreadcrumbRootProps,
@@ -24,7 +24,7 @@ const meta: Meta<typeof Breadcrumb> = {
   decorators: [
     (Story) => (
       <div
-        className="max-w-container-md bg-surface p-400"
+        className="max-w-container-md bg-surface p-150 sm:p-400"
         onClickCapture={(event) => {
           const link =
             event.target instanceof Element
@@ -148,7 +148,7 @@ export const Variants: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <div className="flex flex-col items-start gap-400">
       <VariantGroup title="Link treatment" fullWidth>
         <DemoBreadcrumb aria-label="Plain breadcrumb" variant="plain" />
         <DemoBreadcrumb
@@ -156,7 +156,7 @@ export const Variants: Story = {
           variant="underline"
         />
       </VariantGroup>
-    </VariantContainer>
+    </div>
   ),
 }
 
@@ -171,7 +171,7 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <div className="flex flex-col items-start gap-400">
       <VariantGroup title="Small" fullWidth>
         <DemoBreadcrumb aria-label="Small breadcrumb" size="sm" />
       </VariantGroup>
@@ -181,7 +181,7 @@ export const Sizes: Story = {
       <VariantGroup title="Large" fullWidth>
         <DemoBreadcrumb aria-label="Large breadcrumb" size="lg" />
       </VariantGroup>
-    </VariantContainer>
+    </div>
   ),
 }
 

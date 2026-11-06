@@ -1,7 +1,7 @@
 import type { ComponentPropsWithoutRef } from "react"
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { VariantGroup } from "../../.storybook/decorator"
 import {
   BreadcrumbTemplate,
   type BreadcrumbTemplateItem,
@@ -51,7 +51,7 @@ A ready-to-use location trail driven by an array of ancestor pages. The last ite
   decorators: [
     (Story) => (
       <div
-        className="max-w-container-md bg-surface p-400"
+        className="max-w-container-md bg-surface p-150 sm:p-400"
         onClickCapture={(event) => {
           const link =
             event.target instanceof Element
@@ -174,7 +174,7 @@ export const Variants: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <div className="flex flex-col items-start gap-400">
       <VariantGroup title="Variants">
         <div className="flex flex-col gap-300">
           <BreadcrumbTemplate
@@ -189,7 +189,7 @@ export const Variants: Story = {
           />
         </div>
       </VariantGroup>
-    </VariantContainer>
+    </div>
   ),
 }
 
@@ -202,11 +202,11 @@ export const Sizes: Story = {
     }
   },
   parameters: { controls: { disable: true }, docs: { description: { story: "Compare Small (sm), Medium (md) and Large (lg) using the same location trail." } } },
-  render: () => <VariantContainer>
+  render: () => <div className="flex flex-col items-start gap-400">
     {(["sm", "md", "lg"] as const).map((size) => <VariantGroup key={size} title={{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}>
       <BreadcrumbTemplate aria-label={`Product location ${size}`} items={defaultItems} size={size} />
     </VariantGroup>)}
-  </VariantContainer>,
+  </div>,
 }
 
 export const CustomSeparator: Story = {

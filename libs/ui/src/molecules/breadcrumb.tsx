@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.6
+ * @componentVersion v1.0.7
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -20,6 +20,9 @@ import {
   type ReactNode,
   type Ref,
   useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import {
@@ -206,6 +209,45 @@ function getBreadcrumbChildren(children: ReactNode): ReactNode[] {
   )
 }
 
+function markBreadcrumbRows(list: HTMLOListElement) {
+  let previousCenter: number | undefined
+  for (const child of list.children) {
+    const bounds = child.getBoundingClientRect()
+    if (bounds.width === 0 && bounds.height === 0) {
+      continue
+    }
+    const center = bounds.top + bounds.height / 2
+    if (child.classList.contains("breadcrumb-segment")) {
+      child.toggleAttribute(
+        "data-wrap-start",
+        previousCenter !== undefined && Math.abs(center - previousCenter) > 1
+      )
+    }
+    previousCenter = center
+  }
+}
+
+function observeBreadcrumbRows(list: HTMLOListElement) {
+  let active = true
+  const update = () => {
+    if (active) {
+      markBreadcrumbRows(list)
+    }
+  }
+  update()
+  const observer =
+    typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update)
+  observer?.observe(list)
+  for (const child of list.children) {
+    observer?.observe(child)
+  }
+  list.ownerDocument.fonts?.ready.then(update)
+  return () => {
+    active = false
+    observer?.disconnect()
+  }
+}
+
 export type BreadcrumbListProps = ComponentPropsWithoutRef<"ol"> & {
   ref?: Ref<HTMLOListElement>
 }
@@ -217,6 +259,31 @@ Breadcrumb.List = function BreadcrumbList({
   ...props
 }: BreadcrumbListProps) {
   const { styles } = useBreadcrumbContext()
+  const listRef = useRef<HTMLOListElement | null>(null)
+  const mergedRef = useMemo(
+    () => (node: HTMLOListElement | null) => {
+      listRef.current = node
+      const cleanup = typeof ref === "function" ? ref(node) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = node
+      }
+      return () => {
+        listRef.current = null
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
+  // Custom children can replace the observed hosts after any render.
+  useLayoutEffect(() =>
+    listRef.current ? observeBreadcrumbRows(listRef.current) : undefined
+  )
   const items = getBreadcrumbChildren(children)
   const segments: ReactNode[] = []
 
@@ -253,7 +320,7 @@ Breadcrumb.List = function BreadcrumbList({
   }
 
   return (
-    <ol className={styles.list({ className })} ref={ref} {...props}>
+    <ol className={styles.list({ className })} ref={mergedRef} {...props}>
       {segments}
     </ol>
   )

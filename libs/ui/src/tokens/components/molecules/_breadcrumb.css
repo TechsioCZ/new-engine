@@ -9,6 +9,10 @@
 /* Keep each separator with its following item at the list's own gap. */
 @utility breadcrumb-segment {
   gap: inherit;
+  /* Preserve its width: hiding decoration must not change where the row wraps. */
+  &[data-wrap-start] > ol > li[aria-hidden="true"]:first-child {
+    visibility: hidden;
+  }
 }
 
 /* Keep focus dimensions locally overridable without arbitrary TSX utilities. */

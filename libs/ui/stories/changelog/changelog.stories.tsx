@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Breadcrumb v1.0.7
+- Hide only the decorative separator at a wrapped row boundary, preserving its space, every destination and visible focus. Recompute after resizing or font changes without changing the caller's list ref.
+
 ### Breadcrumb v1.0.6
 - Keep separators with the next trail item so wrapped mobile rows do not leave an orphaned separator at the end of the previous line.
 

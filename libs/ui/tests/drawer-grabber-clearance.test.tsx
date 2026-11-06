@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import postcss from "postcss"
 import { cloneElement, type ReactElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -18,18 +18,6 @@ const read = (path: string) =>
 const css = postcss.parse(
   read("../src/tokens/components/molecules/_drawer.css")
 )
-const proposalPath = new URL(
-  "../build/council-full-v4-review/build/fixes/molecules-drawer-business.json",
-  import.meta.url
-)
-// The parent owns integration. After integration these checks resolve the same
-// aliases from _business.css and no longer need the staged, ignored proposal.
-const proposal = existsSync(proposalPath)
-  ? (JSON.parse(readFileSync(proposalPath, "utf8")) as {
-      aliases: Record<string, string>
-    })
-  : { aliases: {} }
-
 function utility(name: string) {
   const node = css.nodes.find(
     (candidate) =>
@@ -56,7 +44,7 @@ function tokens(business: boolean) {
       }
     })
   }
-  return business ? { ...values, ...proposal.aliases } : values
+  return values
 }
 
 // Arithmetic over authored spacing aliases, not a substitute for browser layout.
