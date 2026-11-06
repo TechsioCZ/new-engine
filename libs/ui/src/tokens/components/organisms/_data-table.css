@@ -230,7 +230,6 @@
 
 /* End-pinned columns reserve this actions column's measured width. */
 @utility data-table-actions-sticky {
-  @apply data-table-pinned-end;
   inset-inline-end: 0;
   @container data-table (width < 48rem) {
     inset-inline-end: auto;

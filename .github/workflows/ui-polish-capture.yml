@@ -18,17 +18,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Exercise pinned boundaries across the complete DataTable catalogue
-          # and the refined app views, including real iPhone touch projects.
-          - { label: boundaries-1, brand: "base,neo,business,akros", shard: "1/4" }
-          - { label: boundaries-2, brand: "base,neo,business,akros", shard: "2/4" }
-          - { label: boundaries-3, brand: "base,neo,business,akros", shard: "3/4" }
-          - { label: boundaries-4, brand: "base,neo,business,akros", shard: "4/4" }
+          # Refresh the full Business catalogue after aligning field padding.
+          # Shared components/pages also retain the other brands' coverage.
+          - { label: business-final-1, brand: business, shard: "1/3", selection: full }
+          - { label: business-final-2, brand: business, shard: "2/3", selection: full }
+          - { label: business-final-3, brand: business, shard: "3/3", selection: full }
+          - { label: shared-final-1, brand: "base,neo,akros", shard: "1/3", selection: shared }
+          - { label: shared-final-2, brand: "base,neo,akros", shard: "2/3", selection: shared }
+          - { label: shared-final-3, brand: "base,neo,akros", shard: "3/3", selection: shared }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
       PLAYWRIGHT_WORKERS: "2"
       VISUAL_BRANDS: ${{ matrix.brand }}
       PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}
+      VISUAL_SELECTION: ${{ matrix.selection }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
@@ -53,9 +56,17 @@ jobs:
             "pages-e-commerce-dashboard-home--default",
             "pages-e-commerce-dashboard-home--loading",
             "overview-business-theme--playground",
+            "molecules-colorselect--focus-recovery",
           ];
           const ids = stories.filter(({ id }) =>
-            id.startsWith("organisms-datatable--") || selected.includes(id)
+            process.env.VISUAL_SELECTION === "full" ||
+            id.startsWith("organisms-datatable--") ||
+            id.startsWith("molecules-select--") ||
+            id.startsWith("molecules-dialog--") ||
+            id.startsWith("templates-selecttemplate--") ||
+            id.startsWith("templates-comprehensive-form--") ||
+            id.startsWith("pages-") ||
+            selected.includes(id)
           ).map(({ id }) => id);
           for (const id of selected) {
             if (!ids.includes(id)) throw new Error(`Missing selected story: ${id}`);

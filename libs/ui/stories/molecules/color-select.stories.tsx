@@ -390,7 +390,7 @@ export const FocusRecovery: Story = {
     },
   },
   render: () => (
-    <div className="pb-200">
+    <div className="px-200 pb-200">
       <RecoveringColors />
     </div>
   ),
@@ -420,11 +420,15 @@ export const FocusRecovery: Story = {
     ).toHaveLength(0)
     const group = canvas.getByRole("radiogroup", { name: "Available colors" })
     const style = getComputedStyle(group)
+    await expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThan(0)
     const outline =
       Number.parseFloat(style.outlineWidth) +
       Math.max(0, Number.parseFloat(style.outlineOffset))
-    await expect(group.getBoundingClientRect().bottom + outline).toBeLessThanOrEqual(
-      canvasElement.getBoundingClientRect().bottom
-    )
+    const bounds = group.getBoundingClientRect()
+    const root = canvasElement.getBoundingClientRect()
+    await expect(bounds.bottom + outline).toBeLessThanOrEqual(root.bottom)
+    await expect(bounds.top - outline).toBeGreaterThanOrEqual(root.top)
+    await expect(bounds.left - outline).toBeGreaterThanOrEqual(root.left)
+    await expect(bounds.right + outline).toBeLessThanOrEqual(root.right)
   },
 }

@@ -1,12 +1,13 @@
 import { DemoBoundary } from "./demo-boundary"
+import { parseDate } from "@internationalized/date"
 import type { Meta, StoryObj } from "@storybook/react"
 import type { ColumnFiltersState } from "@tanstack/react-table"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { expect, userEvent, waitFor, within } from "storybook/test"
+import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test"
 
 import { Button } from "../../src/atoms/button"
 import { Input } from "../../src/atoms/input"
-import { FormInput } from "../../src/molecules/form-input"
+import { DatePicker } from "../../src/molecules/date-picker"
 import { SelectTemplate } from "../../src/templates/select"
 import { Table } from "../../src/organisms/table"
 import type { ColumnDef } from "../../src/organisms/data-table"
@@ -91,7 +92,7 @@ function OrderValueFilter({
   const operator = value.operator ?? (numeric ? "equals" : "contains")
   const needsValue = operator !== "empty" && operator !== "notEmpty"
   return (
-    <fieldset className="flex min-w-0 flex-col gap-100">
+    <fieldset className="flex min-w-0 flex-col gap-150">
       <legend className="mb-100 font-medium text-sm">{label}</legend>
       <SelectTemplate
         items={numeric ? NUMBER_FILTER_OPERATORS : TEXT_FILTER_OPERATORS}
@@ -140,6 +141,7 @@ function OrdersDashboard() {
       ...previous.filter((filter) => filter.id !== id),
       { id, value },
     ])
+  const placedDate = filterValue<{ from?: string }>("placedAt").from
 
   useEffect(() => {
     const viewport = orderList.current?.querySelector<HTMLElement>(
@@ -356,13 +358,26 @@ function OrdersDashboard() {
                   value={filterValue<{ values?: string[] }>(id).values ?? []}
                 />
               ))}
-              <FormInput
-                label="Placed on"
-                onChange={(event) => updateFilter("placedAt", { from: event.target.value, to: event.target.value })}
+              <DatePicker.Root
+                locale="en-GB"
+                onValueChange={({ valueAsString }) => updateFilter("placedAt", { from: valueAsString, to: valueAsString })}
                 size="sm"
-                type="date"
-                value={filterValue<{ from?: string }>("placedAt").from ?? ""}
-              />
+                value={placedDate ? parseDate(placedDate) : null}
+              >
+                <DatePicker.Label>Placed on</DatePicker.Label>
+                <DatePicker.Control>
+                  <DatePicker.Segments />
+                  <DatePicker.IndicatorGroup>
+                    <DatePicker.ClearTrigger />
+                    <DatePicker.Trigger />
+                  </DatePicker.IndicatorGroup>
+                </DatePicker.Control>
+                <DatePicker.Positioner>
+                  <DatePicker.Content>
+                    <DatePicker.Calendar />
+                  </DatePicker.Content>
+                </DatePicker.Positioner>
+              </DatePicker.Root>
             </div>
           </section>
         )}
@@ -449,7 +464,7 @@ function OrdersDashboard() {
           translations={{ searchPlaceholder: "Search orders, customers…" }}
         />
         {showEndFade && (
-          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 end-0 z-30 w-100 bg-linear-to-l from-surface to-transparent rtl:bg-linear-to-r" />
+          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 end-0 z-30 w-200 bg-linear-to-l from-border-primary to-transparent rtl:bg-linear-to-r" />
         )}
         </div>
       </section>
@@ -486,6 +501,11 @@ export const Default: Story = {
       (canvasElement.ownerDocument.defaultView?.innerWidth ?? 0) >= 1280
     ) {
       await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
+      await waitFor(() => {
+        expect(getComputedStyle(canvas.getByRole("columnheader", { name: "Order" })).boxShadow)
+          .toBe("none")
+        expect(getComputedStyle(actions).boxShadow).toBe("none")
+      })
       const items = canvas.getByRole("button", { name: "Items" })
       await expect(items.getBoundingClientRect().height).toBeLessThanOrEqual(
         Number.parseFloat(getComputedStyle(items).lineHeight) + 1
@@ -507,6 +527,26 @@ export const Default: Story = {
     )
     await userEvent.click(within(panel).getByRole("button", { name: "Reset filters" }))
     await expect(orderFilter).toHaveValue("")
+    const day = within(panel).getByRole("spinbutton", { name: "Day" })
+    // Segmented date input consumes textInput, including mobile keyboard entry.
+    // userEvent.keyboard alone does not emit that browser event.
+    for (const [name, digits] of [["Day", "11"], ["Month", "09"], ["Year", "2026"]] as const) {
+      const segment = within(panel).getByRole("spinbutton", { name })
+      segment.focus()
+      for (const digit of digits) {
+        fireEvent(segment, new InputEvent("textInput", {
+          bubbles: true, cancelable: true, data: digit,
+        }))
+      }
+    }
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll('tbody tr[data-index]').length).toBe(2)
+    )
+    await userEvent.click(within(panel).getByRole("button", { name: "Reset filters" }))
+    await expect(day).toHaveTextContent("dd")
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll('tbody tr[data-index]').length).toBe(orders.length)
+    )
     await checkScrollHint()
     const actionsBounds = actions.getBoundingClientRect()
     for (const content of canvasElement.querySelectorAll(
@@ -534,7 +574,7 @@ export const Default: Story = {
         ? identity.getBoundingClientRect().right
         : viewport.getBoundingClientRect().left
       expect(total.getBoundingClientRect().left).toBeGreaterThanOrEqual(boundary - 1)
-      if (frozen) {
+      if (frozen && viewport.scrollWidth > viewport.clientWidth + 1) {
         expect(identityStyles.boxShadow).not.toBe("none")
         expect(Number.parseFloat(getComputedStyle(viewport).scrollPaddingInlineStart))
           .toBeCloseTo(identity.getBoundingClientRect().width, 0)

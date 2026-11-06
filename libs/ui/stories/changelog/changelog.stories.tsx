@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.9
+- Frozen-edge shadows appear only when the table actually overflows its scrollport, so a fully visible table does not suggest hidden columns.
+
 ### DataTable v1.4.8
 - Frozen column boundaries now have direction-aware shadows. Scroll padding follows the measured active pinned bands, and columns released by the fit calculation do not keep a frozen-edge shadow.
 

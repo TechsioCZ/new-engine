@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.8
+ * @componentVersion v1.4.9
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -3070,6 +3070,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   )
   const [renderedActionsWidth, setRenderedActionsWidth] = useState(0)
   const [viewportWidth, setViewportWidth] = useState(0)
+  const [tableOverflows, setTableOverflows] = useState(false)
   useIsomorphicLayoutEffect(() => {
     const host = scrollRef.current
     if (!host) {
@@ -3080,6 +3081,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     )
     const measure = () => {
       setViewportWidth(host.clientWidth)
+      setTableOverflows(host.scrollWidth > host.clientWidth + 1)
       const widths: Record<string, number> = {}
       for (const cell of cells) {
         const width = cell.getBoundingClientRect().width
@@ -3157,7 +3159,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       fittingPins.has(leaf.id)
     )
   const pinEdge = (column: Column<T, unknown>): "start" | "end" | undefined => {
-    if (!activePinned(column)) {
+    if (!(tableOverflows && activePinned(column))) {
       return
     }
     const side = column.getIsPinned()
@@ -3192,6 +3194,13 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         : 0),
     renderedActionsWidth
   )
+  const stickyActionsClass = stickyActions
+    ? `data-table-actions-sticky sticky ${
+        tableOverflows && renderedActionsWidth > 0
+          ? "data-table-pinned-end"
+          : ""
+      }`
+    : undefined
   const pinningStyles = (
     column: Column<T, unknown>,
     kind: "header" | "body" = "body"
@@ -3451,9 +3460,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           })}
           {hasActionsColumn && groupIndex === 0 && (
             <Table.ColumnHeader
-              className={
-                stickyActions ? "data-table-actions-sticky sticky" : undefined
-              }
+              className={stickyActionsClass}
               data-actions-column=""
               numeric
               rowSpan={table.getHeaderGroups().length}
@@ -3524,7 +3531,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <td
               className={
                 stickyActions
-                  ? `${styles.filterCell()} data-table-actions-sticky sticky bg-data-table-filter-row-bg`
+                  ? `${styles.filterCell()} ${stickyActionsClass} bg-data-table-filter-row-bg`
                   : styles.filterCell()
               }
               style={{
@@ -3685,7 +3692,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       // `bg-inherit` alone was transparent on striped/selected rows.
       className={
         stickyActions
-          ? "data-table-frozen-cell data-table-actions-sticky sticky"
+          ? `data-table-frozen-cell ${stickyActionsClass}`
           : undefined
       }
       numeric
@@ -4016,7 +4023,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "data-table-frozen-cell data-table-actions-sticky sticky"
+                  ? `data-table-frozen-cell ${stickyActionsClass}`
                   : undefined
               }
               numeric
@@ -4139,7 +4146,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "data-table-actions-sticky sticky bg-data-table-footer-bg"
+                  ? `${stickyActionsClass} bg-data-table-footer-bg`
                   : undefined
               }
               numeric
