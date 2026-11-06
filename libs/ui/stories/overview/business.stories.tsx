@@ -310,5 +310,10 @@ export const Playground: Story = {
     } finally {
       boundary.remove()
     }
+    // The primary capture is a resting view; error focus was checked above.
+    await userEvent.click(
+      canvas.getByRole("heading", { name: "Business components" })
+    )
+    canvasElement.ownerDocument.defaultView?.scrollTo(0, 0)
   },
 }

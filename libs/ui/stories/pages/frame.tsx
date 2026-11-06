@@ -385,7 +385,7 @@ export function GlobalSearch({
         ) : (
           <StatusText role="status">
             {query.trim()
-              ? `No sample records match “${query}”. Try “Runner”, “Nora” or an order number.`
+              ? `No records match “${query}”. Try a product name, customer name or order number.`
               : "Enter a product, customer, order number or content title to search."}
           </StatusText>
         )}

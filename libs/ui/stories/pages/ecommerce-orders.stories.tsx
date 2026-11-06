@@ -342,8 +342,17 @@ export const Default: Story = {
       name: "Search workspace records",
     })
     await expect(field).toBeVisible()
-    await userEvent.type(field, "Nora")
-    await expect(field).toHaveValue("Nora")
+    await userEvent.type(field, "Runner")
+    await expect(
+      within(dialog).getByRole("button", { name: "Product · Runner low" })
+    ).toBeVisible()
+    await userEvent.clear(field)
+    await userEvent.type(field, "zz-no-match")
+    await expect(within(dialog).getByRole("status")).toHaveTextContent(
+      "No records match"
+    )
+    await userEvent.clear(field)
+    await userEvent.type(field, "Runner")
     await userEvent.keyboard("{Escape}")
     await expect(body.queryByRole("dialog")).toBeNull()
     await expect(search).toHaveFocus()

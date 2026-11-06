@@ -230,10 +230,12 @@ const checkOpenSuggestions = (text: string): NonNullable<Story["play"]> =>
     await expect(await body.findByText(text, { exact: true })).toBeVisible()
     const panel = canvasElement.querySelector('[data-scope="combobox"][data-part="content"]')
     if (!panel) throw new Error("Missing search suggestions panel")
-    const root = canvasElement.getBoundingClientRect()
-    const popup = panel.getBoundingClientRect()
-    await expect(popup.bottom).toBeLessThanOrEqual(root.bottom)
-    await expect(popup.right).toBeLessThanOrEqual(root.right)
+    await waitFor(() => {
+      const root = canvasElement.getBoundingClientRect()
+      const popup = panel.getBoundingClientRect()
+      expect(popup.bottom).toBeLessThanOrEqual(root.bottom)
+      expect(popup.right).toBeLessThanOrEqual(root.right)
+    })
   }
 
 function FilteredCatalog(args: SearchSuggestionsProps<ProductDetails>) {

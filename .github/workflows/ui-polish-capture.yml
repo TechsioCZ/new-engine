@@ -18,12 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Re-capture every page with document-origin framing, plus the reviewed
-          # component refinements and inline search-suggestion states.
-          - { label: pages-1, brand: "base,neo,business,akros", shard: "1/4" }
-          - { label: pages-2, brand: "base,neo,business,akros", shard: "2/4" }
-          - { label: pages-3, brand: "base,neo,business,akros", shard: "3/4" }
-          - { label: pages-4, brand: "base,neo,business,akros", shard: "4/4" }
+          # All other page cases have receipts from the document-origin capture.
+          # Re-run the corrected state checks and resting component overview.
+          - { label: state-fixes, brand: "base,neo,business,akros", shard: "" }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
       PLAYWRIGHT_WORKERS: "2"
@@ -50,16 +47,17 @@ jobs:
           const available = new Set(stories.map(({ id }) => id));
           const refinements = [
             "overview-business-theme--playground",
-            "pages-e-commerce-dashboard-home--default",
-            "pages-e-commerce-dashboard-home--loading",
             "pages-e-commerce-orders-dashboard--default",
-            "molecules-combobox--sizes",
-            "molecules-productcard--with-quantity-input",
+            "pages-akros-admin-home-statistics--default",
+            "pages-akros-admin-home-statistics--loading",
+            "templates-searchsuggestions--grouped-results",
+            "templates-searchsuggestions--without-group-labels",
+            "templates-searchsuggestions--loading",
+            "templates-searchsuggestions--empty",
+            "templates-searchsuggestions--error-with-retry",
+            "templates-searchsuggestions--narrow-layout",
           ];
-          const ids = [...new Set([
-            ...refinements,
-            ...stories.filter(({ title }) => title.startsWith("Pages/") || title === "Templates/SearchSuggestions").map(({ id }) => id),
-          ])];
+          const ids = refinements;
           for (const id of ids) {
             if (!available.has(id)) throw new Error(`Missing review story: ${id}`);
           }

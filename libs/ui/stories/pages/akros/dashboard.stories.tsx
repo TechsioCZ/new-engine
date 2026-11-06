@@ -288,7 +288,9 @@ function HomePage({ loading }: { loading?: boolean }) {
 }
 
 const checkRevenueFits: NonNullable<Story["play"]> = async ({ canvasElement }) => {
-  const amount = within(canvasElement).getByText(czk.format(2_513_000))
+  const amount = within(canvasElement).getByText(
+    czk.format(2_513_000).replace(/\s+/g, " ")
+  )
   const container = amount.parentElement
   if (!container) throw new Error("Missing revenue value container")
   await expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth + 1)
