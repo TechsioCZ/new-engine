@@ -437,6 +437,12 @@ export const EditUnpaidReminder: Story = {
     await expect(
       canvas.getByRole("heading", { name: "Customer emails" })
     ).toBeVisible()
+    // Keep the save regression check, then capture the named editing state.
+    const template = emailTemplates.find((item) => item.id === "em-unpaid")
+    if (!template) throw new Error("Missing unpaid-payment email template")
+    const row = canvas.getByRole("row", { name: new RegExp(template.name) })
+    await userEvent.click(within(row).getByRole("button", { name: "Edit template" }))
+    await expect(body.getByRole("dialog")).toBeVisible()
   },
   name: "Edit the unpaid-payment email",
   parameters: {

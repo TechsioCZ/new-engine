@@ -325,7 +325,7 @@ function ProductGrid({ products }: { products: StorefrontProduct[] }) {
                     children: product.badge.label,
                   },
                 ]
-              : undefined
+              : [{ children: "Campaign", className: "invisible", "aria-hidden": true }]
           }
           cartButtonText={
             product.stock === "out-of-stock" ? "Notify me" : "Add to cart"

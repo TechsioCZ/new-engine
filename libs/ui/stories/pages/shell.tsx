@@ -290,14 +290,16 @@ export function SectionCard({
             .filter(Boolean)
             .join(" ")}
         >
-          <div className="flex min-w-0 flex-1 flex-col gap-50">
+          <div className="flex min-w-0 flex-1 basis-3xs flex-col gap-50">
             {title && <h2 className="font-semibold text-md">{title}</h2>}
             {description && (
               <p className="text-fg-secondary text-sm">{description}</p>
             )}
           </div>
           {actions && (
-            <div className="flex items-center gap-100">{actions}</div>
+            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-100">
+              {actions}
+            </div>
           )}
         </div>
       )}
@@ -346,6 +348,7 @@ export function StatCard({
               ? "whitespace-nowrap font-semibold text-md"
               : "font-semibold text-lg tabular-nums tracking-tight sm:text-xl"
           }
+          data-part="stat-value"
         >
           {value}
         </span>
@@ -374,14 +377,16 @@ export function StatRow({
   mobileColumns?: 1 | 2
 }) {
   return (
-    <div
-      className={
-        mobileColumns === 2
-          ? "grid grid-cols-2 gap-200 xl:grid-cols-4"
-          : "grid grid-cols-1 gap-200 sm:grid-cols-2 xl:grid-cols-4"
-      }
-    >
-      {children}
+    <div className="@container/metrics min-w-0">
+      <div
+        className={
+          mobileColumns === 2
+            ? "grid @metrics-row/metrics:grid-cols-4 grid-cols-2 gap-200"
+            : "grid @metrics-pair/metrics:grid-cols-2 @metrics-row/metrics:grid-cols-4 grid-cols-1 gap-200"
+        }
+      >
+        {children}
+      </div>
     </div>
   )
 }

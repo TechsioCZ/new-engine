@@ -227,7 +227,10 @@ const checkOpenSuggestions = (text: string): NonNullable<Story["play"]> =>
     const canvas = within(canvasElement)
     const body = within(canvasElement.ownerDocument.body)
     await expect(canvas.getByRole("combobox", { name: "Search catalog" })).toHaveAttribute("aria-expanded", "true")
-    await expect(await body.findByText(text, { exact: true })).toBeVisible()
+    // Presence precedes visibility while the popup's opening transition runs.
+    await waitFor(() =>
+      expect(body.getByText(text, { exact: true })).toBeVisible()
+    )
     const panel = canvasElement.querySelector('[data-scope="combobox"][data-part="content"]')
     if (!panel) throw new Error("Missing search suggestions panel")
     await waitFor(() => {

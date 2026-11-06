@@ -18,9 +18,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # All other page cases have receipts from the document-origin capture.
-          # Re-run the corrected state checks and resting component overview.
-          - { label: state-fixes, brand: "base,neo,business,akros", shard: "" }
+          # Shared metric/header layouts affect pages; rating and combobox changes
+          # also need their direct consumers in both browser engines.
+          - { label: responsive-1, brand: "base,neo,business,akros", shard: "1/4" }
+          - { label: responsive-2, brand: "base,neo,business,akros", shard: "2/4" }
+          - { label: responsive-3, brand: "base,neo,business,akros", shard: "3/4" }
+          - { label: responsive-4, brand: "base,neo,business,akros", shard: "4/4" }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
       PLAYWRIGHT_WORKERS: "2"
@@ -45,19 +48,17 @@ jobs:
           const index = JSON.parse(fs.readFileSync("libs/ui/storybook-static/index.json", "utf8"));
           const stories = visualStories(index.entries);
           const available = new Set(stories.map(({ id }) => id));
-          const refinements = [
-            "overview-business-theme--playground",
-            "pages-e-commerce-orders-dashboard--default",
-            "pages-akros-admin-home-statistics--default",
-            "pages-akros-admin-home-statistics--loading",
-            "templates-searchsuggestions--grouped-results",
-            "templates-searchsuggestions--without-group-labels",
-            "templates-searchsuggestions--loading",
-            "templates-searchsuggestions--empty",
-            "templates-searchsuggestions--error-with-retry",
-            "templates-searchsuggestions--narrow-layout",
+          const prefixes = [
+            "pages-", "atoms-rating--", "molecules-combobox",
+            "molecules-command", "molecules-form-combobox--",
+            "templates-searchsuggestions--", "molecules-productcard--",
+            "templates-productcardtemplate--", "templates-akrosproductcardcomposition--",
+            "overview-business-theme--",
+            "molecules-dialog--combobox-inside-dialog",
           ];
-          const ids = refinements;
+          const ids = stories.map(({ id }) => id).filter(id => prefixes.some(prefix => id.startsWith(prefix)));
+          if (!ids.includes("pages-akros-admin-home-statistics--default")) throw new Error("Missing revenue review");
+          if (!ids.includes("atoms-rating--half-stars")) throw new Error("Missing fractional rating review");
           for (const id of ids) {
             if (!available.has(id)) throw new Error(`Missing review story: ${id}`);
           }

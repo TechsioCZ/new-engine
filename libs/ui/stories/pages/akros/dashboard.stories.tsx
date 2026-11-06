@@ -115,6 +115,7 @@ function HomePage({ loading }: { loading?: boolean }) {
           value={count.format(840)}
         />
         <StatCard
+          compact
           delta="+11.5%"
           hint="Net of VAT, without shipping"
           icon="icon-[mdi--cash-multiple]"
@@ -288,6 +289,7 @@ function HomePage({ loading }: { loading?: boolean }) {
 }
 
 const checkRevenueFits: NonNullable<Story["play"]> = async ({ canvasElement }) => {
+  await canvasElement.ownerDocument.fonts.ready
   const amount = within(canvasElement).getByText(
     czk.format(2_513_000).replace(/\s+/g, " ")
   )

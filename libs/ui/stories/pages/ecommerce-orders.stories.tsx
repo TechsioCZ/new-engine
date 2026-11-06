@@ -1,6 +1,6 @@
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 
 import { Table } from "../../src/organisms/table"
@@ -73,13 +73,30 @@ const filterColumnWidth =
 function OrdersDashboard() {
   const [nav, setNav] = useState("sales-orders")
   const [showFilters, setShowFilters] = useState(false)
+  const orderList = useRef<HTMLElement>(null)
+  const [showScrollHint, setShowScrollHint] = useState(false)
+
+  useEffect(() => {
+    const viewport = orderList.current?.querySelector<HTMLElement>(
+      'section[aria-label="Scrollable records"]'
+    )
+    const table = viewport?.querySelector("table")
+    if (!viewport || !table) return
+    const measure = () =>
+      setShowScrollHint(viewport.scrollWidth > viewport.clientWidth + 1)
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport)
+    observer.observe(table)
+    measure()
+    return () => observer.disconnect()
+  }, [])
 
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
     () => [
       {
         accessorKey: "number",
         header: "Order",
-        meta: { type: "string", width: showFilters ? filterColumnWidth : 100 },
+        meta: { type: "string", width: showFilters ? filterColumnWidth : 90 },
         cell: (info) => (
           <span className="font-medium">{info.getValue<string>()}</span>
         ),
@@ -87,7 +104,7 @@ function OrdersDashboard() {
       {
         accessorKey: "customer",
         header: "Customer",
-        meta: { type: "string", width: showFilters ? filterColumnWidth : 220 },
+        meta: { type: "string", width: showFilters ? filterColumnWidth : 190 },
         cell: (info) => (
           <span className="flex flex-col gap-50">
             <span>{info.getValue<string>()}</span>
@@ -103,7 +120,7 @@ function OrdersDashboard() {
         meta: {
           type: "enum",
           options: orderStatusOptions,
-          width: showFilters ? filterColumnWidth : 140,
+          width: showFilters ? filterColumnWidth : 120,
         },
         cell: (info) => <StatusBadge status={info.getValue<string>()} />,
       },
@@ -113,7 +130,7 @@ function OrdersDashboard() {
         meta: {
           type: "enum",
           options: channelOptions,
-          width: showFilters ? filterColumnWidth : 140,
+          width: showFilters ? filterColumnWidth : 120,
         },
       },
       {
@@ -122,7 +139,7 @@ function OrdersDashboard() {
         meta: {
           type: "int",
           align: "end",
-          width: showFilters ? filterColumnWidth : 80,
+          width: showFilters ? filterColumnWidth : 100,
         },
       },
       {
@@ -138,7 +155,7 @@ function OrdersDashboard() {
       {
         accessorKey: "placedAt",
         header: "Placed",
-        meta: { type: "date", width: showFilters ? filterColumnWidth : 130 },
+        meta: { type: "date", width: showFilters ? filterColumnWidth : 140 },
         cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
@@ -205,8 +222,8 @@ function OrdersDashboard() {
         <RevenueChart height={160} />
       </SectionCard>
 
-      <section aria-label="Order list" className="min-w-0">
-        <p className="mb-100 text-fg-secondary text-xs">
+      <section aria-label="Order list" className="min-w-0" ref={orderList}>
+        <p className="mb-100 text-fg-secondary text-xs" hidden={!showScrollHint}>
           Scroll horizontally to see all order details.
         </p>
         <DataTable
@@ -308,10 +325,28 @@ export const Default: Story = {
     await waitFor(() =>
       expect(actions.scrollWidth).toBeLessThanOrEqual(actions.clientWidth)
     )
+    const viewport = canvas.getByRole("region", { name: "Scrollable records" })
+    const hint = canvas.getByText("Scroll horizontally to see all order details.")
+    const checkScrollHint = () =>
+      waitFor(() =>
+        expect(hint.hidden).toBe(viewport.scrollWidth <= viewport.clientWidth + 1)
+      )
+    await checkScrollHint()
+    if (
+      canvasElement.ownerDocument.documentElement.dataset.theme === "business" &&
+      (canvasElement.ownerDocument.defaultView?.innerWidth ?? 0) >= 1280
+    ) {
+      await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
+      const items = canvas.getByRole("button", { name: "Items" })
+      await expect(items.getBoundingClientRect().height).toBeLessThanOrEqual(
+        Number.parseFloat(getComputedStyle(items).lineHeight) + 1
+      )
+    }
     const filters = canvas.getByRole("button", { name: "Filters" })
     await expect(filters).toHaveAttribute("aria-pressed", "false")
     await userEvent.click(filters)
     await expect(canvas.getByRole("row", { name: "Column filters" })).toBeVisible()
+    await checkScrollHint()
     for (const viewport of canvasElement.querySelectorAll(
       ".data-table-filter-viewport"
     )) {
@@ -334,6 +369,7 @@ export const Default: Story = {
     }
     await userEvent.click(filters)
     await expect(canvas.queryByRole("row", { name: "Column filters" })).toBeNull()
+    await checkScrollHint()
     const search = canvas.getByRole("button", { name: "Search workspace" })
     await userEvent.click(search)
     const body = within(canvasElement.ownerDocument.body)
