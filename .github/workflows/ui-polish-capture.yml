@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           # The full component capture at f3255be covers the unchanged runtime.
-          # Only these four stories changed after that capture.
+          # Only these five stories changed after that capture.
           - { label: refinements, brand: "base,neo,business,akros", shard: "" }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
@@ -47,6 +47,7 @@ jobs:
           const ids = [
             "overview-business-theme--playground",
             "pages-e-commerce-dashboard-home--default",
+            "pages-e-commerce-dashboard-home--loading",
             "pages-e-commerce-orders-dashboard--default",
             "molecules-combobox--sizes",
           ];
