@@ -136,4 +136,24 @@ describe("business theme", () => {
       expect(projected.get(name), name).toBe(value)
     }
   })
+
+  it("resets business typography and radius literals at a different brand boundary", () => {
+    const scopes = postcss.parse(
+      readFileSync(
+        new URL("../src/tokens/_scheme-scopes.css", import.meta.url),
+        "utf8"
+      )
+    )
+    const defaults = new Map<string, string>()
+    scopes.walkRules(":where([data-theme])", (rule) => {
+      rule.walkDecls((decl) => {
+        defaults.set(decl.prop, decl.value)
+      })
+    })
+    expect(defaults.get("--text-md")).toBe("1.25rem")
+    expect(defaults.get("--text-xl")).toBe("1.88rem")
+    expect(defaults.get("--radius-sm")).toBe("0.5rem")
+    expect(defaults.get("--radius-md")).toBe("0.75rem")
+    expect(defaults.has("--font-sans")).toBe(false)
+  })
 })

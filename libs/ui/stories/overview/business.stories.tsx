@@ -228,5 +228,25 @@ export const Playground: Story = {
     await expect(
       canvas.getByRole("textbox", { name: "Custom domain" })
     ).toBeDisabled()
+
+    // An empty fixture checks the real CSS cascade without adding demo UI.
+    const boundary = canvasElement.ownerDocument.createElement("div")
+    canvasElement.append(boundary)
+    try {
+      for (const brand of ["base", "neo", "business"]) {
+        boundary.setAttribute("data-theme", brand)
+        const styles = getComputedStyle(boundary)
+        await expect(styles.getPropertyValue("--text-md").trim()).toBe(
+          brand === "business" ? "1rem" : "1.25rem"
+        )
+        await expect(
+          Number.parseFloat(styles.getPropertyValue("--radius-sm"))
+        ).toBe(
+          brand === "business" ? 0.375 : 0.5
+        )
+      }
+    } finally {
+      boundary.remove()
+    }
   },
 }
