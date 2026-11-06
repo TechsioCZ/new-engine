@@ -290,7 +290,7 @@ export function SectionCard({
             .filter(Boolean)
             .join(" ")}
         >
-          <div className="flex flex-col gap-50">
+          <div className="flex min-w-0 flex-1 flex-col gap-50">
             {title && <h2 className="font-semibold text-md">{title}</h2>}
             {description && (
               <p className="text-fg-secondary text-sm">{description}</p>

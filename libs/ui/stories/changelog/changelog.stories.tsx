@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Input v1.1.3
+- Inline padding has its own size tokens, so the business theme can give text more room without increasing field height or covering embedded controls. Caller padding classes still override the defaults.
+
+### SearchForm v1.1.3
+- The clear action follows the input's inline padding token, keeping its inset aligned when a theme changes horizontal spacing.
+
 ### SearchForm v1.1.2
 - Error and hint messages are linked to the search field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
 

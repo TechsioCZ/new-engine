@@ -118,8 +118,10 @@
   --color-button-border-secondary: var(--color-border-control);
   --color-button-border-tertiary: var(--color-border-control);
   --color-button-fg-secondary-borderless: var(--color-fg-secondary);
-  --padding-input-inline: var(--dimension-12);
-  --height-form-control-sm: max(2rem, calc(1lh + 0.625rem));
+  --padding-input-inline-sm: var(--dimension-12);
+  --padding-input-inline-md: var(--dimension-12);
+  --padding-input-inline-lg: var(--dimension-16);
+  --height-form-control-sm: max(2rem, calc(1lh + 0.5rem));
   --height-form-control-md: max(2.5rem, calc(1lh + 0.875rem));
   --height-form-control-lg: max(3rem, calc(1lh + 1rem));
   --padding-button-x-sm: var(--dimension-12);
@@ -143,15 +145,12 @@
   --color-shadow-2: oklch(0.21 0.025 250 / 0.04);
   --color-shadow-3: oklch(0.21 0.025 250 / 0.04);
   --shadow-dialog-content: var(--shadow-md);
+  --shadow-dialog-elevation: var(--shadow-md);
   --opacity-chart-area: 0.24;
   --opacity-chart-grid: 0.08;
 }
 
 @scope ([data-theme="business"]) to ([data-theme]) {
-  :where(.p-input-sm, .p-input-md, .p-input-lg) {
-    padding-inline: var(--padding-input-inline);
-  }
-
   /* Keep the validated series strokes; subordinate filled areas to the data. */
   .chart-base .ts-chart__area > path {
     fill-opacity: var(--opacity-chart-area);

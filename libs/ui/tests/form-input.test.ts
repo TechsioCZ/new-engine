@@ -31,6 +31,7 @@ describe.each([
     const input = html.match(INPUT_TAG)?.[0]
     expect(input).toContain("consumer-input-marker")
     expect(input).toContain("p-input-md")
+    expect(input).toContain("px-input-inline-md")
     expect(input).not.toContain("md:p-input-md")
     expect(html.match(WRAPPER_TAG)?.[0]).not.toContain("consumer-input-marker")
   })
@@ -52,6 +53,7 @@ describe.each([
     expect(classes).toContain("md:p-input-sm")
     expect(classes).not.toContain("p-input-sm")
     expect(classes).not.toContain("p-input-md")
+    expect(classes).not.toContain("px-input-inline-md")
     expect(classes).not.toContain("md:p-input-md")
     const id = input?.match(ID_ATTRIBUTE)?.[1]
     expect(id).toBeTruthy()

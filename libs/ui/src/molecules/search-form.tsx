@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -71,19 +71,19 @@ const searchFormVariants = tv({
         root: "gap-search-form-sm",
         button: "h-form-control-sm",
         input: "data-clearable:pe-(--height-form-control-sm)",
-        clearButton: "end-(length:--padding-input-sm)",
+        clearButton: "end-(length:--padding-input-inline-sm)",
       },
       md: {
         root: "gap-search-form-md",
         button: "h-form-control-md",
         input: "data-clearable:pe-(--height-form-control-md)",
-        clearButton: "end-(length:--padding-input-md)",
+        clearButton: "end-(length:--padding-input-inline-md)",
       },
       lg: {
         root: "gap-search-form-lg",
         button: "h-form-control-lg",
         input: "data-clearable:pe-(--height-form-control-lg)",
-        clearButton: "end-(length:--padding-input-lg)",
+        clearButton: "end-(length:--padding-input-inline-lg)",
       },
     },
     gapped: {

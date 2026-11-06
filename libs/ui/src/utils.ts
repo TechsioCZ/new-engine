@@ -28,6 +28,7 @@ export const tv: TV = createTV({
         { outline: [(value: string) => value.startsWith("(style:")] },
       ],
       p: [{ p: ["input-sm", "input-md", "input-lg"] }],
+      px: [{ px: ["input-inline-sm", "input-inline-md", "input-inline-lg"] }],
     },
   },
 })

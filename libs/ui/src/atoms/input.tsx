@@ -2,7 +2,7 @@
  * Input — @techsio/ui-kit atom.
  *
  * @component Input
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -50,9 +50,9 @@ const inputVariants = tv({
   ],
   variants: {
     size: {
-      sm: "h-form-control-sm rounded-input-sm p-input-sm text-input-sm",
-      md: "h-form-control-md rounded-input-md p-input-md text-input-md",
-      lg: "h-form-control-lg rounded-input-lg p-input-lg text-input-lg",
+      sm: "h-form-control-sm rounded-input-sm p-input-sm px-input-inline-sm text-input-sm",
+      md: "h-form-control-md rounded-input-md p-input-md px-input-inline-md text-input-md",
+      lg: "h-form-control-lg rounded-input-lg p-input-lg px-input-inline-lg text-input-lg",
     },
     variant: {
       default: "",

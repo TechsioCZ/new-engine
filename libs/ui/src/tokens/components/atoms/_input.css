@@ -21,6 +21,11 @@
   --font-weight-input: var(--font-weight-normal);
   --font-weight-input-placeholder: var(--font-weight-normal);
   --spacing-form-field-gap: var(--spacing-form-field);
+
+  /* Independent inline padding preserves field height and embedded controls. */
+  --padding-input-inline-sm: var(--padding-input-sm);
+  --padding-input-inline-md: var(--padding-input-md);
+  --padding-input-inline-lg: var(--padding-input-lg);
 }
 
 /* Feed component overrides into the shared state utility on this surface. */

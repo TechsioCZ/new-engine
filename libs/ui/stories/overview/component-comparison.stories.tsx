@@ -71,7 +71,7 @@ function ComponentCard({
 }: ComponentCardProps) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border p-200 sm:p-300 ${className ?? ''}`}
+      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border-primary bg-surface p-200 sm:p-300 ${className ?? ''}`}
     >
       <div className="text-fg-secondary text-sm font-semibold">{title}</div>
       <div className={bodyClassName ?? 'flex flex-wrap items-center gap-200'}>
