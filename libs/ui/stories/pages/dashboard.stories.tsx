@@ -170,7 +170,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         />
         <StatCard
           delta="−1.8%"
-          hint="Sessions that reached a paid order"
+          hint="Sessions with a paid order"
           icon="icon-[mdi--cart-percent]"
           label="Conversion"
           trend="down"

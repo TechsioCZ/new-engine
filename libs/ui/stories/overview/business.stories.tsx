@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
@@ -23,24 +23,26 @@ function BusinessReview({ size }: ReviewProps) {
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-400 p-250 sm:p-400">
       <header className="flex flex-col gap-100">
         <div className="flex flex-wrap items-center gap-150">
-          <h1 className="font-semibold text-xl">Workspace settings</h1>
+          <h1 className="font-semibold text-xl">Business components</h1>
         </div>
         <p className="max-w-prose text-fg-secondary text-sm">
-          Manage your workspace, reporting preferences and billing details.
+          Forms, actions and states for commerce workspaces.
         </p>
       </header>
 
       <div className="grid min-w-0 grid-cols-1 items-start gap-300 lg:grid-cols-2">
         <section className="flex min-w-0 flex-col gap-250 rounded-lg border border-border-primary bg-surface p-300">
           <div className="flex flex-col gap-50">
-            <h2 className="font-semibold text-lg">Workspace details</h2>
+            <h2 className="font-semibold text-lg">Workspace form</h2>
             <p className="text-fg-secondary text-sm">
-              Update the information shared with your team.
+              An editable example with required-field validation.
             </p>
           </div>
+          {/* This example owns validation for its one required field. */}
           <form
             className="flex flex-col gap-250"
             noValidate
+            onChange={() => setSaved(false)}
             onReset={() => {
               setSaved(false)
               setNameError(false)
@@ -70,6 +72,11 @@ function BusinessReview({ size }: ReviewProps) {
                   : undefined
               }
               name="workspace"
+              onChange={(event) => {
+                if (event.currentTarget.value.trim()) {
+                  setNameError(false)
+                }
+              }}
               required
               size={size}
               validateStatus={nameError ? "error" : "default"}
@@ -127,7 +134,7 @@ function BusinessReview({ size }: ReviewProps) {
 
         <div className="flex min-w-0 flex-col gap-300">
           <section className="flex flex-col gap-250 rounded-lg border border-border-primary bg-surface p-300">
-            <h2 className="font-semibold text-lg">Action hierarchy</h2>
+            <h2 className="font-semibold text-lg">Button states</h2>
             <div className="flex flex-wrap items-center gap-150">
               <Button icon="icon-[mdi--plus]" size={size}>
                 Create order
@@ -149,7 +156,7 @@ function BusinessReview({ size }: ReviewProps) {
                 Unavailable
               </Button>
               <Button isLoading size={size} theme="outlined">
-                Saving
+                Loading example
               </Button>
               <Hotkeys size="sm">
                 <Hotkeys.Key>⌘</Hotkeys.Key>
@@ -159,7 +166,7 @@ function BusinessReview({ size }: ReviewProps) {
           </section>
 
           <section className="flex flex-col gap-200 rounded-lg border border-border-primary bg-surface p-300">
-            <h2 className="font-semibold text-lg">Status at a glance</h2>
+            <h2 className="font-semibold text-lg">Order statuses</h2>
             <div className="flex flex-wrap gap-100">
               <Badge variant="success">Paid</Badge>
               <Badge variant="primary">Processing</Badge>
@@ -168,12 +175,12 @@ function BusinessReview({ size }: ReviewProps) {
               <Badge variant="outline">Draft</Badge>
             </div>
             <p className="text-fg-secondary text-sm">
-              Payment and fulfilment updates for your orders.
+              Payment and fulfilment labels.
             </p>
           </section>
 
           <section className="flex flex-col gap-250 rounded-lg border border-border-primary bg-surface p-300">
-            <h2 className="font-semibold text-lg">Field states</h2>
+            <h2 className="font-semibold text-lg">Field examples</h2>
             <FormInput
               autoComplete="email"
               defaultValue="nora@"
@@ -253,16 +260,30 @@ export const Playground: Story = {
     })
     await userEvent.click(reports)
     await expect(reports).not.toBeChecked()
-    const checkboxControl = canvasElement.querySelector(
-      '[data-scope="checkbox"][data-part="control"]'
-    )
+    const checkboxControl = reports
+      .closest('[data-scope="checkbox"][data-part="root"]')
+      ?.querySelector('[data-scope="checkbox"][data-part="control"]')
     if (!checkboxControl) {
       throw new Error("The weekly reports checkbox control is missing.")
     }
-    await expect(getComputedStyle(checkboxControl).borderColor).toBe(
-      getComputedStyle(workspace).borderColor
+    await waitFor(() =>
+      expect(getComputedStyle(checkboxControl).borderColor).toBe(
+        getComputedStyle(workspace).borderColor
+      )
     )
-    await userEvent.click(reports)
+    const notifications = canvas.getByRole("switch", {
+      name: "Order notifications",
+    })
+    await userEvent.click(notifications)
+    await expect(notifications).not.toBeChecked()
+    await userEvent.click(canvas.getByRole("button", { name: "Reset" }))
+    await expect(workspace).toHaveValue("Northwind Commerce")
+    await expect(workspace).not.toHaveAttribute("aria-invalid", "true")
+    await expect(canvas.queryByText("Workspace details saved.")).toBeNull()
+    await expect(notifications).toBeChecked()
+    await expect(reports).toBeChecked()
+    await userEvent.click(canvas.getByRole("button", { name: "Save changes" }))
+    await expect(canvas.getByText("Workspace details saved.")).toBeVisible()
     await expect(
       canvas.getByRole("textbox", { name: "Workspace ID" })
     ).toHaveAttribute("readonly")

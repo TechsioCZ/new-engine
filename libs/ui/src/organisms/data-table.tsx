@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.6
+ * @componentVersion v1.4.7
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -3006,7 +3006,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    * what the declared columns leave over — usually nothing, so the actions
    * column collapsed to 0 px. It is not in TanStack's column model and its
    * content (expand toggle, row actions, custom render) varies, so measure the
-   * widest rendered actions cell and declare that on the header instead.
+   * widest rendered actions cell or header label and declare that on the header.
    * Children are measured edge to edge rather than via `scrollWidth`, because
    * the cell content is end-aligned and overflows to the start side.
    */
@@ -3037,11 +3037,26 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return
     }
     const cellStyle = getComputedStyle(cell)
-    const width = Math.ceil(
+    let width =
       widest +
-        Number.parseFloat(cellStyle.paddingLeft) +
-        Number.parseFloat(cellStyle.paddingRight)
+      Number.parseFloat(cellStyle.paddingLeft) +
+      Number.parseFloat(cellStyle.paddingRight)
+    const headerLabel = scrollRef.current?.querySelector<HTMLElement>(
+      '[data-part="actions-column-label"]'
     )
+    const header = headerLabel?.parentElement
+    if (headerLabel && header) {
+      const headerStyle = getComputedStyle(header)
+      width = Math.max(
+        width,
+        headerLabel.getBoundingClientRect().width +
+          Number.parseFloat(headerStyle.paddingLeft) +
+          Number.parseFloat(headerStyle.paddingRight) +
+          Number.parseFloat(headerStyle.borderLeftWidth) +
+          Number.parseFloat(headerStyle.borderRightWidth)
+      )
+    }
+    width = Math.ceil(width)
     if (width !== fixedActionsWidth) {
       setFixedActionsWidth(width)
     }
@@ -3408,7 +3423,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   : undefined),
               }}
             >
-              {translations.actionsLabel}
+              <span
+                className="whitespace-nowrap"
+                data-part="actions-column-label"
+              >
+                {translations.actionsLabel}
+              </span>
             </Table.ColumnHeader>
           )}
         </Table.Row>

@@ -14,9 +14,22 @@ jobs:
   capture:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: business-1, brand: business, shard: "1/4", selection: all }
+          - { label: business-2, brand: business, shard: "2/4", selection: all }
+          - { label: business-3, brand: business, shard: "3/4", selection: all }
+          - { label: business-4, brand: business, shard: "4/4", selection: all }
+          - { label: base-shared, brand: base, shard: "", selection: shared }
+          - { label: neo-shared, brand: neo, shard: "", selection: shared }
+          - { label: akros-shared, brand: akros, shard: "", selection: shared }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
       PLAYWRIGHT_WORKERS: "2"
+      VISUAL_BRANDS: ${{ matrix.brand }}
+      PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
@@ -26,14 +39,10 @@ jobs:
           cache: pnpm
       - name: Install the UI toolchain
         run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
-      # The full Business capture at 06a668e34 covers the unchanged component
-      # tokens. This follow-up captures the three stories refined since then.
-      - name: Capture the refined business pages on both devices
-        env:
-          VISUAL_BRANDS: business
-          TEST_STORIES: overview-business-theme--playground,pages-e-commerce-dashboard-home--default,pages-e-commerce-orders-dashboard--default
-        run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts
+      - name: Build the checked-out Storybook
+        run: pnpm --dir libs/ui exec storybook build
       - name: Select shared page and review stories
+        if: matrix.selection == 'shared'
         run: |
           node --input-type=module <<'JS' >> "$GITHUB_ENV"
           import fs from "node:fs";
@@ -41,15 +50,15 @@ jobs:
           const index = JSON.parse(fs.readFileSync("libs/ui/storybook-static/index.json", "utf8"));
           const stories = visualStories(index.entries).filter(({ title }) =>
             title.startsWith("Pages/") ||
+            title === "Organisms/DataTable" ||
             title === "Overview/Component Comparison" ||
             title === "Overview/Business theme"
           );
           if (!stories.length) throw new Error("No shared review stories were selected");
           console.log(`TEST_STORIES=${stories.map(({ id }) => id).join(",")}`);
           JS
-      - name: Capture changed shared layouts across the other brands
+      - name: Capture candidate screenshots in the pinned runner
         env:
-          VISUAL_BRANDS: base,neo,akros
           PLAYWRIGHT_STORYBOOK_REBUILD: "0"
         run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts
       - name: Collect changed screenshots with their source revision
@@ -68,6 +77,8 @@ jobs:
           for (const file of files) fs.copyFileSync(file, path.join(output, path.basename(file)));
           fs.writeFileSync(path.join(output, "capture-manifest.json"), JSON.stringify({
             head: process.env.GITHUB_SHA,
+            brand: process.env.VISUAL_BRANDS,
+            shard: process.env.PLAYWRIGHT_RELEASE_SHARD,
             files: files.map(file => path.basename(file)),
           }, null, 2));
           console.log(`Collected ${files.length} changed screenshots.`);
@@ -75,7 +86,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
-          name: business-ui-baselines-${{ github.sha }}
+          name: business-ui-baselines-${{ github.sha }}-${{ matrix.label }}
           path: |
             libs/ui/build/council-baselines
             libs/ui/test-results

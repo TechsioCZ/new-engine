@@ -151,6 +151,11 @@
 }
 
 @scope ([data-theme="business"]) to ([data-theme]) {
+  /* A complete ring remains recognizable at the compact button text size. */
+  .token-icon-button-spinner {
+    @apply icon-[mdi--progress-helper];
+  }
+
   /* Keep the validated series strokes; subordinate filled areas to the data. */
   .chart-base .ts-chart__area > path {
     fill-opacity: var(--opacity-chart-area);

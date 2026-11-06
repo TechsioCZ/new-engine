@@ -1,7 +1,7 @@
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 
 import { Table } from "../../src/organisms/table"
 import type { ColumnDef } from "../../src/organisms/data-table"
@@ -66,6 +66,10 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
+// Follow the filter's control floor, including the Business touch-size override.
+const filterColumnWidth =
+  "max(220px, calc(var(--spacing-data-table-filter-sm) + 2 * var(--padding-data-table-filter-cell-x) + 2 * var(--border-width-data-table)))"
+
 function OrdersDashboard() {
   const [nav, setNav] = useState("sales-orders")
   const [showFilters, setShowFilters] = useState(false)
@@ -75,7 +79,7 @@ function OrdersDashboard() {
       {
         accessorKey: "number",
         header: "Order",
-        meta: { type: "string", width: showFilters ? 190 : 100 },
+        meta: { type: "string", width: showFilters ? filterColumnWidth : 100 },
         cell: (info) => (
           <span className="font-medium">{info.getValue<string>()}</span>
         ),
@@ -83,7 +87,7 @@ function OrdersDashboard() {
       {
         accessorKey: "customer",
         header: "Customer",
-        meta: { type: "string", width: 220 },
+        meta: { type: "string", width: showFilters ? filterColumnWidth : 220 },
         cell: (info) => (
           <span className="flex flex-col gap-50">
             <span>{info.getValue<string>()}</span>
@@ -99,7 +103,7 @@ function OrdersDashboard() {
         meta: {
           type: "enum",
           options: orderStatusOptions,
-          width: showFilters ? 190 : 140,
+          width: showFilters ? filterColumnWidth : 140,
         },
         cell: (info) => <StatusBadge status={info.getValue<string>()} />,
       },
@@ -109,24 +113,32 @@ function OrdersDashboard() {
         meta: {
           type: "enum",
           options: channelOptions,
-          width: showFilters ? 190 : 140,
+          width: showFilters ? filterColumnWidth : 140,
         },
       },
       {
         accessorKey: "items",
         header: "Items",
-        meta: { type: "int", align: "end", width: showFilters ? 190 : 80 },
+        meta: {
+          type: "int",
+          align: "end",
+          width: showFilters ? filterColumnWidth : 80,
+        },
       },
       {
         accessorKey: "total",
         header: "Total",
-        meta: { type: "number", align: "end", width: showFilters ? 190 : 110 },
+        meta: {
+          type: "number",
+          align: "end",
+          width: showFilters ? filterColumnWidth : 110,
+        },
         cell: (info) => currency.format(info.getValue<number>()),
       },
       {
         accessorKey: "placedAt",
         header: "Placed",
-        meta: { type: "date", width: showFilters ? 190 : 130 },
+        meta: { type: "date", width: showFilters ? filterColumnWidth : 130 },
         cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
@@ -170,7 +182,7 @@ function OrdersDashboard() {
         />
         <StatCard
           delta="−1.8%"
-          hint="Checkout completion"
+          hint="Sessions with a paid order"
           icon="icon-[mdi--cart-percent]"
           label="Conversion"
           trend="down"
@@ -193,8 +205,8 @@ function OrdersDashboard() {
         <RevenueChart height={160} />
       </SectionCard>
 
-      <SectionCard flush>
-        <p className="px-200 pt-150 text-fg-secondary text-xs">
+      <section aria-label="Order list" className="min-w-0">
+        <p className="mb-100 text-fg-secondary text-xs">
           Scroll horizontally to see all order details.
         </p>
         <DataTable
@@ -274,7 +286,7 @@ function OrdersDashboard() {
           striped
           translations={{ searchPlaceholder: "Search orders, customers…" }}
         />
-      </SectionCard>
+      </section>
     </AdminShell>
   )
 }
@@ -292,6 +304,10 @@ export const Default: Story = {
   render: () => <OrdersDashboard />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    const actions = canvas.getByRole("columnheader", { name: "Actions" })
+    await waitFor(() =>
+      expect(actions.scrollWidth).toBeLessThanOrEqual(actions.clientWidth)
+    )
     const filters = canvas.getByRole("button", { name: "Filters" })
     await expect(filters).toHaveAttribute("aria-pressed", "false")
     await userEvent.click(filters)

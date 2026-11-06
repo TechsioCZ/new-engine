@@ -61,6 +61,9 @@ const CHANGELOG = `
 ### Tabs v1.2.4
 - Keep one indicator geometry owner and respect reduced motion so WebKit cannot retain the previous tab's animated position. Measure in layout coordinates so a scaled ancestor no longer shortens or shifts the indicator.
 
+### DataTable v1.4.7
+- Fixed-layout action columns now reserve room for their heading as well as row controls, so a small expand button cannot make the Actions label clip.
+
 ### DataTable v1.4.6
 - Verify the virtual window moves, then restore the first logical row and scroll origin for a deterministic WebKit example.
 
