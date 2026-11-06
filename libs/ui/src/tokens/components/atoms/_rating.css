@@ -21,6 +21,13 @@
   @apply icon-[mdi--star-half-full];
 }
 
+@utility rating-fractional-fill {
+  clip-path: inset(0 var(--rating-item-clip, 0%) 0 0);
+  &:dir(rtl) {
+    clip-path: inset(0 0 0 var(--rating-item-clip, 0%));
+  }
+}
+
 @utility rating-focus-outline {
   outline: var(--default-ring-width) var(--default-ring-style)
     var(--color-rating-ring);

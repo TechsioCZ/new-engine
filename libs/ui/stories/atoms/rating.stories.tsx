@@ -210,6 +210,11 @@ export const HalfStars: Story = {
     await expect(image).not.toHaveAttribute("tabindex")
     await expect(canvas.queryByRole("radio")).not.toBeInTheDocument()
     await expect(canvasElement.querySelector("input")).toBeNull()
+    const fraction = image.querySelector('[data-part="fractional-glyph"]')
+    await expect(fraction).toHaveStyle("--rating-item-clip: 40%")
+    await expect(
+      image.querySelectorAll('[aria-hidden="true"][data-highlighted]')
+    ).toHaveLength(4)
   },
 }
 

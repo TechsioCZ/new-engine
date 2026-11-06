@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.6
+ * @componentVersion v1.6.7
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -77,7 +77,7 @@ const comboboxVariants = tv({
       "data-[validation=warning]:border-combobox-border-warning",
     ],
     input: [
-      "relative h-full min-w-0 flex-1 border-none bg-combobox-input-bg-base",
+      "relative h-full min-w-0 flex-1 truncate border-none bg-combobox-input-bg-base",
       "hover:bg-combobox-input-bg-hover focus-visible:outline-hidden",
       "focus:bg-combobox-input-bg-focus",
       "placeholder:text-combobox-fg-placeholder",

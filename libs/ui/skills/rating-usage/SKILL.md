@@ -5,7 +5,7 @@ description: >
   accessible rating capture or display using the Zag.js rating-group wrapper,
   supported value/count/allowHalf/readOnly/displayOnly/disabled props, and token styling.
 metadata:
-  component_version: "1.3.2"
+  component_version: "1.3.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -89,7 +89,8 @@ use a meaningful question when collecting scores.
 `count` is a positive integer (invalid/nonfinite counts fall back to a usable
 scale). Scores clamp to `0..count`; editable values round to the nearest whole
 or half star according to `allowHalf`. Read-only averages retain fractional
-precision. Uncontrolled initialization, runtime scale/precision changes and
+precision, with the final star's fill matching the fraction in either direction.
+Uncontrolled initialization, runtime scale/precision changes and
 native reset share this policy. Each actual editable uncontrolled correction
 emits one `onChange`; reset emits none and restores the initial default under the **current**
 constraints. Canceled resets do not change the score. Controlled invalid values

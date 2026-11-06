@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,6 +12,7 @@
 import { connect, type IntlTranslations, machine } from "@zag-js/rating-group"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import {
+  type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
   useId,
@@ -165,10 +166,14 @@ const rating = tv({
       "focus-visible:rating-focus-outline",
     ],
     glyph: [
-      "token-icon-rating pointer-events-none text-rating-fg-empty",
+      "token-icon-rating pointer-events-none col-start-1 row-start-1 text-rating-fg-empty",
       "transition-colors duration-200 motion-reduce:transition-none",
       "data-highlighted:not-data-half:token-icon-rating-selected data-highlighted:not-data-disabled:text-rating-fg-selected",
       "data-half:token-icon-rating-half rtl:data-half:-scale-x-100",
+      "data-disabled:text-rating-fg-disabled",
+    ],
+    fractionalGlyph: [
+      "token-icon-rating-selected rating-fractional-fill pointer-events-none col-start-1 row-start-1 text-rating-fg-selected",
       "data-disabled:text-rating-fg-disabled",
     ],
     valueText:
@@ -180,16 +185,19 @@ const rating = tv({
         root: "gap-rating-sm",
         control: "gap-rating-sm",
         glyph: "text-rating-sm",
+        fractionalGlyph: "text-rating-sm",
       },
       md: {
         root: "gap-rating-md",
         control: "gap-rating-md",
         glyph: "text-rating-md",
+        fractionalGlyph: "text-rating-md",
       },
       lg: {
         root: "gap-rating-lg",
         control: "gap-rating-lg",
         glyph: "text-rating-lg",
+        fractionalGlyph: "text-rating-lg",
       },
     },
     isDisplay: { true: { item: "cursor-default" }, false: {} },
@@ -346,6 +354,7 @@ export function Rating({
           errorMessageId={errorMessageId}
           invalid={invalid}
           isDisplay={isDisplay}
+          showExactValue={readOnly}
           styles={styles}
           translations={translations}
         />
@@ -425,6 +434,7 @@ function RatingItems({
   api,
   styles,
   isDisplay,
+  showExactValue,
   describedBy,
   errorMessageId,
   invalid,
@@ -433,6 +443,7 @@ function RatingItems({
   api: ReturnType<typeof connect>
   styles: ReturnType<typeof rating>
   isDisplay: boolean
+  showExactValue: boolean
   describedBy?: string
   errorMessageId?: string
   invalid: boolean
@@ -442,6 +453,8 @@ function RatingItems({
     <>
       {api.items.map((index) => {
         const itemProps = api.getItemProps({ index })
+        const fill = Math.max(0, Math.min(1, api.value - index + 1))
+        const glyphProps = getRatingGlyphProps(itemProps, fill, showExactValue)
         const checked = api.value > 0 && Math.ceil(api.value) === index
         const tabIndex = index === Math.max(1, Math.ceil(api.value)) ? 0 : -1
         const focusableProps = {
@@ -465,8 +478,22 @@ function RatingItems({
             <span
               aria-hidden="true"
               className={styles.glyph()}
-              {...pickDataAttributes(itemProps)}
+              {...glyphProps}
             />
+            {showExactValue && fill > 0 && fill < 1 && (
+              <span
+                aria-hidden="true"
+                className={styles.fractionalGlyph()}
+                data-disabled={itemProps["data-disabled"]}
+                data-part="fractional-glyph"
+                dir={itemProps.dir}
+                style={
+                  {
+                    "--rating-item-clip": `${Math.round((1 - fill) * 100)}%`,
+                  } as CSSProperties
+                }
+              />
+            )}
           </span>
         )
       })}
@@ -478,4 +505,20 @@ function pickDataAttributes(props: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(props).filter(([key]) => key.startsWith("data-"))
   )
+}
+
+function getRatingGlyphProps(
+  itemProps: Record<string, unknown>,
+  fill: number,
+  showExactValue: boolean
+) {
+  return {
+    ...pickDataAttributes(itemProps),
+    ...(showExactValue
+      ? {
+          "data-highlighted": fill === 1 ? "" : undefined,
+          "data-half": undefined,
+        }
+      : {}),
+  }
 }

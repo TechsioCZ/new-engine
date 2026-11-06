@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Rating v1.3.3
+- Read-only fractional scores now fill the last star to match the displayed number, including right-to-left layouts. Editable whole- and half-star behavior is unchanged.
+
+### Combobox v1.6.7
+- Long placeholder and selected text use an ellipsis inside the input instead of ending mid-word at the trailing controls.
+
 ### Input v1.1.3
 - Inline padding has its own size tokens, so the business theme can give text more room without increasing field height or covering embedded controls. Caller padding classes still override the defaults.
 
