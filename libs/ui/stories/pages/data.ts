@@ -799,6 +799,8 @@ export const metricCurrency = new Intl.NumberFormat("en-GB", {
   maximumFractionDigits: 0,
 })
 
+export const count = new Intl.NumberFormat("en-GB")
+
 export const compactNumber = new Intl.NumberFormat("en-GB", {
   notation: "compact",
 })

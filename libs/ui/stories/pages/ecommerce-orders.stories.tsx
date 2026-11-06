@@ -10,6 +10,7 @@ import {
   adminNav,
   channelOptions,
   currency,
+  count,
   metricCurrency,
   type Order,
   orderLines,
@@ -74,7 +75,7 @@ function OrdersDashboard() {
       {
         accessorKey: "number",
         header: "Order",
-        meta: { type: "string", width: 100 },
+        meta: { type: "string", width: showFilters ? 190 : 100 },
         cell: (info) => (
           <span className="font-medium">{info.getValue<string>()}</span>
         ),
@@ -95,33 +96,41 @@ function OrdersDashboard() {
       {
         accessorKey: "status",
         header: "Status",
-        meta: { type: "enum", options: orderStatusOptions, width: 140 },
+        meta: {
+          type: "enum",
+          options: orderStatusOptions,
+          width: showFilters ? 190 : 140,
+        },
         cell: (info) => <StatusBadge status={info.getValue<string>()} />,
       },
       {
         accessorKey: "channel",
         header: "Channel",
-        meta: { type: "enum", options: channelOptions, width: 140 },
+        meta: {
+          type: "enum",
+          options: channelOptions,
+          width: showFilters ? 190 : 140,
+        },
       },
       {
         accessorKey: "items",
         header: "Items",
-        meta: { type: "int", align: "end", width: 80 },
+        meta: { type: "int", align: "end", width: showFilters ? 190 : 80 },
       },
       {
         accessorKey: "total",
         header: "Total",
-        meta: { type: "number", align: "end", width: 110 },
+        meta: { type: "number", align: "end", width: showFilters ? 190 : 110 },
         cell: (info) => currency.format(info.getValue<number>()),
       },
       {
         accessorKey: "placedAt",
         header: "Placed",
-        meta: { type: "date", width: 130 },
+        meta: { type: "date", width: showFilters ? 190 : 130 },
         cell: (info) => formatDate(info.getValue<string>()),
       },
     ],
-    [],
+    [showFilters],
   )
 
   return (
@@ -157,7 +166,7 @@ function OrdersDashboard() {
           icon="icon-[mdi--receipt-text-outline]"
           label="Orders"
           trend="up"
-          value="2 418"
+          value={count.format(2418)}
         />
         <StatCard
           delta="−1.8%"
@@ -185,7 +194,7 @@ function OrdersDashboard() {
       </SectionCard>
 
       <SectionCard flush>
-        <p className="px-200 pt-150 text-fg-secondary text-xs lg:hidden">
+        <p className="px-200 pt-150 text-fg-secondary text-xs">
           Scroll horizontally to see all order details.
         </p>
         <DataTable
@@ -200,6 +209,7 @@ function OrdersDashboard() {
           enableSorting
           getRowId={(row) => row.id}
           getRowLabel={(row) => `Order ${row.original.number}`}
+          tableLayout="fixed"
           toolbarActions={[
             {
               id: "filters",
@@ -286,6 +296,13 @@ export const Default: Story = {
     await expect(filters).toHaveAttribute("aria-pressed", "false")
     await userEvent.click(filters)
     await expect(canvas.getByRole("row", { name: "Column filters" })).toBeVisible()
+    for (const viewport of canvasElement.querySelectorAll(
+      ".data-table-filter-viewport"
+    )) {
+      await expect(viewport.scrollWidth).toBeLessThanOrEqual(
+        viewport.clientWidth + 1
+      )
+    }
     await userEvent.click(filters)
     await expect(canvas.queryByRole("row", { name: "Column filters" })).toBeNull()
     const search = canvas.getByRole("button", { name: "Search workspace" })

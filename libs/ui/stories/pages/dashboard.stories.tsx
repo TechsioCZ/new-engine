@@ -11,6 +11,7 @@ import { Table } from "../../src/organisms/table"
 import {
   adminNav,
   currency,
+  count,
   metricCurrency,
   orders,
   products,
@@ -157,7 +158,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           icon="icon-[mdi--receipt-text-outline]"
           label="Orders"
           trend="up"
-          value="2 418"
+          value={count.format(2418)}
         />
         <StatCard
           delta="+1.9%"

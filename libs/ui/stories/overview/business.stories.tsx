@@ -16,18 +16,17 @@ type ReviewProps = { size: "sm" | "md" | "lg" }
 
 function BusinessReview({ size }: ReviewProps) {
   const [saved, setSaved] = useState(false)
+  const [nameError, setNameError] = useState(false)
   const [notifications, setNotifications] = useState(true)
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-400 p-250 sm:p-400">
       <header className="flex flex-col gap-100">
         <div className="flex flex-wrap items-center gap-150">
-          <h1 className="font-semibold text-xl">Business theme</h1>
-          <Badge variant="outline">Component review</Badge>
+          <h1 className="font-semibold text-xl">Workspace settings</h1>
         </div>
         <p className="max-w-prose text-fg-secondary text-sm">
-          The same controls, colors and spacing used across your workspace.
-          Try a size, edit the form, or tab through the actions.
+          Manage your workspace, reporting preferences and billing details.
         </p>
       </header>
 
@@ -36,26 +35,44 @@ function BusinessReview({ size }: ReviewProps) {
           <div className="flex flex-col gap-50">
             <h2 className="font-semibold text-lg">Workspace details</h2>
             <p className="text-fg-secondary text-sm">
-              Clear labels, helpful feedback and one primary action.
+              Update the information shared with your team.
             </p>
           </div>
           <form
             className="flex flex-col gap-250"
+            noValidate
             onReset={() => {
               setSaved(false)
+              setNameError(false)
               setNotifications(true)
             }}
             onSubmit={(event) => {
               event.preventDefault()
+              const form = event.currentTarget
+              if (!String(new FormData(form).get("workspace") ?? "").trim()) {
+                setNameError(true)
+                setSaved(false)
+                form
+                  .querySelector<HTMLInputElement>('[name="workspace"]')
+                  ?.focus()
+                return
+              }
+              setNameError(false)
               setSaved(true)
             }}
           >
             <FormInput
               defaultValue="Northwind Commerce"
               label="Workspace name"
+              helpText={
+                nameError
+                  ? "Enter a workspace name to save your changes."
+                  : undefined
+              }
               name="workspace"
               required
               size={size}
+              validateStatus={nameError ? "error" : "default"}
             />
             <SelectTemplate
               defaultValue={["eur"]}
@@ -151,7 +168,7 @@ function BusinessReview({ size }: ReviewProps) {
               <Badge variant="outline">Draft</Badge>
             </div>
             <p className="text-fg-secondary text-sm">
-              Status labels stay readable without competing with actions.
+              Payment and fulfilment updates for your orders.
             </p>
           </section>
 
@@ -220,8 +237,32 @@ export const Playground: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    const workspace = canvas.getByRole("textbox", { name: /Workspace name/ })
+    await userEvent.clear(workspace)
+    await userEvent.click(canvas.getByRole("button", { name: "Save changes" }))
+    await expect(workspace).toHaveAttribute("aria-invalid", "true")
+    await expect(workspace).toHaveFocus()
+    await expect(
+      canvas.getByText("Enter a workspace name to save your changes.")
+    ).toBeVisible()
+    await userEvent.type(workspace, "Northwind Commerce")
     await userEvent.click(canvas.getByRole("button", { name: "Save changes" }))
     await expect(canvas.getByText("Workspace details saved.")).toBeVisible()
+    const reports = canvas.getByRole("checkbox", {
+      name: "Include weekly sales reports",
+    })
+    await userEvent.click(reports)
+    await expect(reports).not.toBeChecked()
+    const checkboxControl = canvasElement.querySelector(
+      '[data-scope="checkbox"][data-part="control"]'
+    )
+    if (!checkboxControl) {
+      throw new Error("The weekly reports checkbox control is missing.")
+    }
+    await expect(getComputedStyle(checkboxControl).borderColor).toBe(
+      getComputedStyle(workspace).borderColor
+    )
+    await userEvent.click(reports)
     await expect(
       canvas.getByRole("textbox", { name: "Workspace ID" })
     ).toHaveAttribute("readonly")
