@@ -13,12 +13,78 @@
  */
 
 @theme static {
+  --color-data-table-pinned-shadow: var(--color-data-table-border);
+  --shadow-data-table-pinned-start: var(--spacing-50) 0 var(--spacing-100)
+    calc(-1 * var(--spacing-50)) var(--color-data-table-pinned-shadow);
+  --shadow-data-table-pinned-end: calc(-1 * var(--spacing-50)) 0
+    var(--spacing-100) calc(-1 * var(--spacing-50))
+    var(--color-data-table-pinned-shadow);
   --padding-data-table-toolbar: var(--padding-data-table-toolbar-y)
     var(--padding-data-table-toolbar-x);
   --padding-data-table-filter-cell: var(--padding-data-table-filter-cell-y)
     var(--padding-data-table-filter-cell-x);
   --padding-data-table-pagination: var(--padding-data-table-pagination-y)
     var(--padding-data-table-pagination-x);
+}
+
+@utility data-table-pinned-start {
+  box-shadow: var(--shadow-data-table-pinned-start);
+  /* Keep a visible inner boundary even when collapsed neighbouring cells
+   * paint over an outer box shadow. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: var(--spacing-100);
+    border-inline-end: var(--border-width-data-table) solid
+      var(--color-data-table-border);
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-data-table-pinned-shadow)
+    );
+    pointer-events: none;
+  }
+  &:where([dir="rtl"], [dir="rtl"] *) {
+    box-shadow: var(--shadow-data-table-pinned-end);
+    &::after {
+      background: linear-gradient(
+        to left,
+        transparent,
+        var(--color-data-table-pinned-shadow)
+      );
+    }
+  }
+}
+
+@utility data-table-pinned-end {
+  box-shadow: var(--shadow-data-table-pinned-end);
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--spacing-100);
+    border-inline-start: var(--border-width-data-table) solid
+      var(--color-data-table-border);
+    background: linear-gradient(
+      to left,
+      transparent,
+      var(--color-data-table-pinned-shadow)
+    );
+    pointer-events: none;
+  }
+  &:where([dir="rtl"], [dir="rtl"] *) {
+    box-shadow: var(--shadow-data-table-pinned-start);
+    &::after {
+      background: linear-gradient(
+        to right,
+        transparent,
+        var(--color-data-table-pinned-shadow)
+      );
+    }
+  }
 }
 
 /*
@@ -164,8 +230,13 @@
 
 /* End-pinned columns reserve this actions column's measured width. */
 @utility data-table-actions-sticky {
+  @apply data-table-pinned-end;
   inset-inline-end: 0;
   @container data-table (width < 48rem) {
     inset-inline-end: auto;
+    box-shadow: none;
+    &::after {
+      display: none;
+    }
   }
 }

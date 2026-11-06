@@ -369,15 +369,26 @@ export function GlobalSearch({
             {results.map((record) => (
               <li key={`${record.kind}-${record.id}`}>
                 <Button
+                  aria-label={`${record.kind} · ${record.label}`}
+                  className="w-full justify-between text-start"
+                  icon="icon-[mdi--chevron-right]"
+                  iconPosition="right"
                   onClick={() =>
                     setSelected(
                       `${record.kind}: ${record.label} · ${record.id}`
                     )
                   }
-                  theme="borderless"
+                  theme="outlined"
                   variant="secondary"
                 >
-                  {record.kind} · {record.label}
+                  <span className="flex min-w-0 flex-1 flex-col gap-50">
+                    <span className="font-medium text-fg-primary">
+                      {record.label}
+                    </span>
+                    <span className="text-fg-secondary text-xs">
+                      {record.kind}
+                    </span>
+                  </span>
                 </Button>
               </li>
             ))}

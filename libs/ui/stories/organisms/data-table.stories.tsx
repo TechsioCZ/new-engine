@@ -560,6 +560,15 @@ export const FrozenColumnWidths: Story = {
         position: bothFit ? "sticky" : "relative",
       })
       expect(lastName.style.insetInlineStart).toBe(bothFit ? "200px" : "auto")
+      const boundary = bothFit ? lastName : firstName
+      expect(getComputedStyle(boundary).boxShadow).not.toBe("none")
+      expect(getComputedStyle(boundary, "::after").content).toBe('""')
+      expect(Number.parseFloat(getComputedStyle(region).scrollPaddingInlineStart))
+        .toBe(bothFit ? 440 : 200)
+      if (!bothFit) {
+        expect(getComputedStyle(lastName).boxShadow).toBe("none")
+        expect(getComputedStyle(lastName, "::after").content).toBe("none")
+      }
     })
     await expect(Math.round(firstName.getBoundingClientRect().width)).toBe(200)
     const firstLeft = firstName.getBoundingClientRect().left

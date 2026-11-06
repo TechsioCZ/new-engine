@@ -18,9 +18,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The responsive batch passed 1,956 cases. Its twelve email-editor
-          # failures were inline tab panels misclassified as floating popups.
-          - { label: dialog-scroll, brand: "base,neo,business,akros", shard: "" }
+          # Exercise pinned boundaries across the complete DataTable catalogue
+          # and the refined app views, including real iPhone touch projects.
+          - { label: boundaries-1, brand: "base,neo,business,akros", shard: "1/4" }
+          - { label: boundaries-2, brand: "base,neo,business,akros", shard: "2/4" }
+          - { label: boundaries-3, brand: "base,neo,business,akros", shard: "3/4" }
+          - { label: boundaries-4, brand: "base,neo,business,akros", shard: "4/4" }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
       PLAYWRIGHT_WORKERS: "2"
@@ -45,9 +48,18 @@ jobs:
           const index = JSON.parse(fs.readFileSync("libs/ui/storybook-static/index.json", "utf8"));
           const stories = visualStories(index.entries);
           const available = new Set(stories.map(({ id }) => id));
-          const ids = [
-            "pages-akros-admin-customer-emails--edit-unpaid-reminder",
+          const selected = [
+            "pages-e-commerce-orders-dashboard--default",
+            "pages-e-commerce-dashboard-home--default",
+            "pages-e-commerce-dashboard-home--loading",
+            "overview-business-theme--playground",
           ];
+          const ids = stories.filter(({ id }) =>
+            id.startsWith("organisms-datatable--") || selected.includes(id)
+          ).map(({ id }) => id);
+          for (const id of selected) {
+            if (!ids.includes(id)) throw new Error(`Missing selected story: ${id}`);
+          }
           for (const id of ids) {
             if (!available.has(id)) throw new Error(`Missing review story: ${id}`);
           }
@@ -56,7 +68,7 @@ jobs:
       - name: Capture candidate screenshots in the pinned runner
         env:
           PLAYWRIGHT_STORYBOOK_REBUILD: "0"
-        run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts test/visual-popups.spec.mjs
+        run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts
       - name: Collect changed screenshots with their source revision
         if: always()
         run: |

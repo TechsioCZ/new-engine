@@ -1329,6 +1329,12 @@
       var(--padding-table-cell-md-x);
     --padding-table-cell-lg: var(--padding-table-cell-lg-y)
       var(--padding-table-cell-lg-x);
+    --color-data-table-pinned-shadow: var(--color-data-table-border);
+    --shadow-data-table-pinned-start: var(--spacing-50) 0 var(--spacing-100)
+      calc(-1 * var(--spacing-50)) var(--color-data-table-pinned-shadow);
+    --shadow-data-table-pinned-end: calc(-1 * var(--spacing-50)) 0
+      var(--spacing-100) calc(-1 * var(--spacing-50))
+      var(--color-data-table-pinned-shadow);
     --padding-data-table-toolbar: var(--padding-data-table-toolbar-y)
       var(--padding-data-table-toolbar-x);
     --padding-data-table-filter-cell: var(--padding-data-table-filter-cell-y)

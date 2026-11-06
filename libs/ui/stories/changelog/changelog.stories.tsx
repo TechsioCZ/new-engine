@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.8
+- Frozen column boundaries now have direction-aware shadows. Scroll padding follows the measured active pinned bands, and columns released by the fit calculation do not keep a frozen-edge shadow.
+
 ### Rating v1.3.3
 - Read-only fractional scores now fill the last star to match the displayed number, including right-to-left layouts. Editable whole- and half-star behavior is unchanged.
 

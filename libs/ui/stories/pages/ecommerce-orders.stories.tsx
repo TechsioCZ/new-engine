@@ -1,11 +1,22 @@
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
+import type { ColumnFiltersState } from "@tanstack/react-table"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 
+import { Button } from "../../src/atoms/button"
+import { Input } from "../../src/atoms/input"
+import { FormInput } from "../../src/molecules/form-input"
+import { SelectTemplate } from "../../src/templates/select"
 import { Table } from "../../src/organisms/table"
 import type { ColumnDef } from "../../src/organisms/data-table"
 import { DataTable } from "../../src/organisms/data-table"
+import {
+  type DataTableFilterValue,
+  type NumberFilterValue,
+  NUMBER_FILTER_OPERATORS,
+  TEXT_FILTER_OPERATORS,
+} from "../../src/organisms/data-table.fields"
 import {
   adminNav,
   channelOptions,
@@ -66,15 +77,69 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
-// Follow the filter's control floor, including the Business touch-size override.
-const filterColumnWidth =
-  "max(220px, calc(var(--spacing-data-table-filter-sm) + 2 * var(--padding-data-table-filter-cell-x) + 2 * var(--border-width-data-table)))"
+function OrderValueFilter({
+  label,
+  numeric = false,
+  value,
+  onChange,
+}: {
+  label: string
+  numeric?: boolean
+  value: NumberFilterValue
+  onChange: (value: NumberFilterValue) => void
+}) {
+  const operator = value.operator ?? (numeric ? "equals" : "contains")
+  const needsValue = operator !== "empty" && operator !== "notEmpty"
+  return (
+    <fieldset className="flex min-w-0 flex-col gap-100">
+      <legend className="mb-100 font-medium text-sm">{label}</legend>
+      <SelectTemplate
+        items={numeric ? NUMBER_FILTER_OPERATORS : TEXT_FILTER_OPERATORS}
+        onValueChange={({ value: next }) =>
+          onChange({ operator: next[0], value: value.value })
+        }
+        size="sm"
+        triggerProps={{ "aria-label": `${label} condition` }}
+        value={[operator]}
+      />
+      <Input
+        aria-label={`${label} filter`}
+        disabled={!needsValue}
+        onChange={(event) => onChange({ ...value, operator, value: event.target.value })}
+        placeholder={`Filter ${label.toLowerCase()}…`}
+        size="sm"
+        type={numeric ? "number" : "text"}
+        value={needsValue ? (value.value ?? "") : ""}
+      />
+      {operator === "between" && (
+        <Input
+          aria-label={`${label} upper bound`}
+          onChange={(event) => onChange({ ...value, operator, to: event.target.value })}
+          placeholder="Up to…"
+          size="sm"
+          type="number"
+          value={value.to ?? ""}
+        />
+      )}
+    </fieldset>
+  )
+}
 
 function OrdersDashboard() {
   const [nav, setNav] = useState("sales-orders")
   const [showFilters, setShowFilters] = useState(false)
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const orderList = useRef<HTMLElement>(null)
   const [showScrollHint, setShowScrollHint] = useState(false)
+  const [showEndFade, setShowEndFade] = useState(false)
+  const [pinIdentity, setPinIdentity] = useState(true)
+  const filterValue = <T extends DataTableFilterValue,>(id: string) =>
+    (columnFilters.find((filter) => filter.id === id)?.value ?? {}) as T
+  const updateFilter = (id: string, value: DataTableFilterValue) =>
+    setColumnFilters((previous) => [
+      ...previous.filter((filter) => filter.id !== id),
+      { id, value },
+    ])
 
   useEffect(() => {
     const viewport = orderList.current?.querySelector<HTMLElement>(
@@ -82,13 +147,31 @@ function OrdersDashboard() {
     )
     const table = viewport?.querySelector("table")
     if (!viewport || !table) return
-    const measure = () =>
+    const measure = () => {
       setShowScrollHint(viewport.scrollWidth > viewport.clientWidth + 1)
+      setShowEndFade(
+        viewport.scrollWidth > viewport.clientWidth + Math.abs(viewport.scrollLeft) + 1
+      )
+      // Keep the full Total / Placed / Actions group visible at the last
+      // scroll position. Release the identity pin only if that group needs it.
+      const trailing = table.querySelectorAll<HTMLElement>(
+        'thead [data-leaf-column="number"], thead [data-leaf-column="total"], thead [data-leaf-column="placedAt"], thead [data-actions-column]'
+      )
+      const required = [...trailing].reduce(
+        (sum, cell) => sum + cell.getBoundingClientRect().width,
+        0
+      )
+      setPinIdentity(required <= viewport.clientWidth + 1)
+    }
     const observer = new ResizeObserver(measure)
     observer.observe(viewport)
     observer.observe(table)
+    viewport.addEventListener("scroll", measure, { passive: true })
     measure()
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      viewport.removeEventListener("scroll", measure)
+    }
   }, [])
 
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
@@ -96,7 +179,7 @@ function OrdersDashboard() {
       {
         accessorKey: "number",
         header: "Order",
-        meta: { type: "string", width: showFilters ? filterColumnWidth : 90 },
+        meta: { type: "string", width: 80 },
         cell: (info) => (
           <span className="font-medium">{info.getValue<string>()}</span>
         ),
@@ -104,7 +187,7 @@ function OrdersDashboard() {
       {
         accessorKey: "customer",
         header: "Customer",
-        meta: { type: "string", width: showFilters ? filterColumnWidth : 190 },
+        meta: { type: "string", width: 190 },
         cell: (info) => (
           <span className="flex flex-col gap-50">
             <span>{info.getValue<string>()}</span>
@@ -120,7 +203,7 @@ function OrdersDashboard() {
         meta: {
           type: "enum",
           options: orderStatusOptions,
-          width: showFilters ? filterColumnWidth : 120,
+          width: 120,
         },
         cell: (info) => <StatusBadge status={info.getValue<string>()} />,
       },
@@ -130,7 +213,7 @@ function OrdersDashboard() {
         meta: {
           type: "enum",
           options: channelOptions,
-          width: showFilters ? filterColumnWidth : 120,
+          width: 120,
         },
       },
       {
@@ -139,7 +222,7 @@ function OrdersDashboard() {
         meta: {
           type: "int",
           align: "end",
-          width: showFilters ? filterColumnWidth : 100,
+          width: 100,
         },
       },
       {
@@ -148,18 +231,31 @@ function OrdersDashboard() {
         meta: {
           type: "number",
           align: "end",
-          width: showFilters ? filterColumnWidth : 110,
+          width: 90,
         },
-        cell: (info) => currency.format(info.getValue<number>()),
+        cell: (info) => (
+          <span className="whitespace-nowrap tabular-nums">
+            {currency.format(info.getValue<number>())}
+          </span>
+        ),
       },
       {
         accessorKey: "placedAt",
         header: "Placed",
-        meta: { type: "date", width: showFilters ? filterColumnWidth : 140 },
-        cell: (info) => formatDate(info.getValue<string>()),
+        meta: { type: "date", width: 110 },
+        cell: (info) => {
+          const date = formatDate(info.getValue<string>())
+          const year = date.slice(-4)
+          return (
+            <time className="flex flex-col gap-50 whitespace-nowrap" dateTime={info.getValue<string>()}>
+              <span>{date.slice(0, -5)}</span>
+              <span className="text-fg-secondary text-xs">{year}</span>
+            </time>
+          )
+        },
       },
     ],
-    [showFilters],
+    [],
   )
 
   return (
@@ -223,19 +319,68 @@ function OrdersDashboard() {
       </SectionCard>
 
       <section aria-label="Order list" className="min-w-0" ref={orderList}>
+        {showFilters && (
+          <section aria-label="Order filters" className="mb-150 rounded-lg border border-border-primary bg-surface p-200">
+            <div className="mb-200 flex items-center justify-between gap-150">
+              <h2 className="font-semibold text-sm">Order filters</h2>
+              <Button onClick={() => setColumnFilters([])} size="sm" theme="borderless">
+                Reset filters
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 items-start gap-200 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                { id: "number", label: "Order" },
+                { id: "customer", label: "Customer" },
+                { id: "items", label: "Items", numeric: true },
+                { id: "total", label: "Total", numeric: true },
+              ].map(({ id, label, numeric }) => (
+                <OrderValueFilter
+                  key={id}
+                  label={label}
+                  numeric={numeric}
+                  onChange={(value) => updateFilter(id, value)}
+                  value={filterValue<NumberFilterValue>(id)}
+                />
+              ))}
+              {[
+                { id: "status", label: "Status", options: orderStatusOptions },
+                { id: "channel", label: "Channel", options: channelOptions },
+              ].map(({ id, label, options }) => (
+                <SelectTemplate
+                  items={[{ label: id === "status" ? "All statuses" : "All channels", value: "" }, ...options]}
+                  key={id}
+                  label={label}
+                  placeholder={id === "status" ? "All statuses" : "All channels"}
+                  onValueChange={({ value }) => updateFilter(id, { values: value[0] ? value : [] })}
+                  size="sm"
+                  value={filterValue<{ values?: string[] }>(id).values ?? []}
+                />
+              ))}
+              <FormInput
+                label="Placed on"
+                onChange={(event) => updateFilter("placedAt", { from: event.target.value, to: event.target.value })}
+                size="sm"
+                type="date"
+                value={filterValue<{ from?: string }>("placedAt").from ?? ""}
+              />
+            </div>
+          </section>
+        )}
         <p className="mb-100 text-fg-secondary text-xs" hidden={!showScrollHint}>
           Scroll horizontally to see all order details.
         </p>
+        <div className="relative">
         <DataTable
-          columnPinning={{ start: ["number"], end: [] }}
+          columnFilters={columnFilters}
+          columnPinning={{ start: pinIdentity ? ["number"] : [], end: [] }}
           columns={columns}
           data={orders}
-          enableColumnFilters={showFilters}
           enableColumnPinning
           enableExpanding
           enableGlobalFilter
           enablePagination
           enableSorting
+          onColumnFiltersChange={setColumnFilters}
           getRowId={(row) => row.id}
           getRowLabel={(row) => `Order ${row.original.number}`}
           tableLayout="fixed"
@@ -303,6 +448,10 @@ function OrdersDashboard() {
           striped
           translations={{ searchPlaceholder: "Search orders, customers…" }}
         />
+        {showEndFade && (
+          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 end-0 z-30 w-100 bg-linear-to-l from-surface to-transparent rtl:bg-linear-to-r" />
+        )}
+        </div>
       </section>
     </AdminShell>
   )
@@ -344,16 +493,21 @@ export const Default: Story = {
     }
     const filters = canvas.getByRole("button", { name: "Filters" })
     await expect(filters).toHaveAttribute("aria-pressed", "false")
+    const initialWidth = viewport.scrollWidth
     await userEvent.click(filters)
-    await expect(canvas.getByRole("row", { name: "Column filters" })).toBeVisible()
+    const panel = canvas.getByRole("region", { name: "Order filters" })
+    await expect(panel).toBeVisible()
+    await expect(viewport.scrollWidth).toBe(initialWidth)
+    const orderFilter = within(panel).getByRole("textbox", { name: "Order filter" })
+    const firstOrder = orders[0]
+    if (!firstOrder) throw new Error("The order fixture must contain a row.")
+    await userEvent.type(orderFilter, firstOrder.number)
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll('tbody tr[data-index]').length).toBe(1)
+    )
+    await userEvent.click(within(panel).getByRole("button", { name: "Reset filters" }))
+    await expect(orderFilter).toHaveValue("")
     await checkScrollHint()
-    for (const viewport of canvasElement.querySelectorAll(
-      ".data-table-filter-viewport"
-    )) {
-      await expect(viewport.scrollWidth).toBeLessThanOrEqual(
-        viewport.clientWidth + 1
-      )
-    }
     const actionsBounds = actions.getBoundingClientRect()
     for (const content of canvasElement.querySelectorAll(
       '[data-part="actions-cell-content"]'
@@ -368,8 +522,28 @@ export const Default: Story = {
       await expect(bounds.right).toBeLessThanOrEqual(actionsBounds.right + 1)
     }
     await userEvent.click(filters)
-    await expect(canvas.queryByRole("row", { name: "Column filters" })).toBeNull()
+    await expect(canvas.queryByRole("region", { name: "Order filters" })).toBeNull()
     await checkScrollHint()
+    viewport.scrollLeft = viewport.scrollWidth
+    await waitFor(() => {
+      const identity = canvas.getByRole("columnheader", { name: "Order" })
+      const total = canvas.getByRole("columnheader", { name: "Total" })
+      const identityStyles = getComputedStyle(identity)
+      const frozen = identityStyles.insetInlineStart !== "auto"
+      const boundary = frozen
+        ? identity.getBoundingClientRect().right
+        : viewport.getBoundingClientRect().left
+      expect(total.getBoundingClientRect().left).toBeGreaterThanOrEqual(boundary - 1)
+      if (frozen) {
+        expect(identityStyles.boxShadow).not.toBe("none")
+        expect(Number.parseFloat(getComputedStyle(viewport).scrollPaddingInlineStart))
+          .toBeCloseTo(identity.getBoundingClientRect().width, 0)
+      }
+    })
+    for (const cell of viewport.querySelectorAll('tbody tr[data-index] td:nth-child(6)')) {
+      await expect(cell.scrollWidth).toBeLessThanOrEqual(cell.clientWidth + 1)
+    }
+    viewport.scrollLeft = 0
     const search = canvas.getByRole("button", { name: "Search workspace" })
     await userEvent.click(search)
     const body = within(canvasElement.ownerDocument.body)

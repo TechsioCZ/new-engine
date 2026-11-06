@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.7
+ * @componentVersion v1.4.8
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -112,8 +112,6 @@ import {
   getColumnSizeStyles,
   getPinningStyles,
   type Header,
-  isFirstEndPinned,
-  isLastStartPinned,
   type Row,
   resolveColumnType,
   type TanstackTable,
@@ -1154,11 +1152,12 @@ const BUILTIN_COLUMN_IDS = new Set<string>([
 type DataTableStyles = ReturnType<typeof dataTableVariants>
 
 /** Sticky-edge classes for a pinned cell (opaque bg + edge shadow). */
-function pinClass<T extends RowData>(
-  column: Column<T, unknown>,
-  kind: "header" | "body"
+function pinClass(
+  kind: "header" | "body",
+  active: boolean,
+  edge?: "start" | "end"
 ) {
-  if (!column.getIsPinned()) {
+  if (!active) {
     return
   }
   return [
@@ -1172,11 +1171,11 @@ function pinClass<T extends RowData>(
     // even stripe is fully transparent, so scrolled content bled through the
     // frozen column. See `data-table-frozen-cell`.
     kind === "header" ? "bg-data-table-header-bg" : "data-table-frozen-cell",
-    isLastStartPinned(column)
-      ? "border-e-(length:--border-width-data-table) border-data-table-border"
+    edge === "start"
+      ? "border-e-(length:--border-width-data-table) border-data-table-border data-table-pinned-start"
       : "",
-    isFirstEndPinned(column)
-      ? "border-s-(length:--border-width-data-table) border-data-table-border"
+    edge === "end"
+      ? "border-s-(length:--border-width-data-table) border-data-table-border data-table-pinned-end"
       : "",
   ].join(" ")
 }
@@ -1358,8 +1357,12 @@ function DataTableBodyCell<T extends RowData>({
   indentColumnId,
   rowLabel,
   pinningStyle,
+  activePin,
+  pinEdge,
 }: {
   pinningStyle?: CSSProperties
+  activePin: boolean
+  pinEdge?: "start" | "end"
   cell: Cell<T, unknown>
   span: { colSpan?: number; rowSpan?: number } | undefined
   row: Row<T>
@@ -1387,7 +1390,7 @@ function DataTableBodyCell<T extends RowData>({
   return (
     <Table.Cell
       align={column.columnDef.meta?.align}
-      className={pinClass(column, "body")}
+      className={pinClass("body", activePin, pinEdge)}
       colSpan={span?.colSpan}
       data-pinned={pinned || undefined}
       rowSpan={span?.rowSpan}
@@ -3148,6 +3151,47 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     header: stickyHeader ? "sticky" : "relative",
     body: "static",
   } as const
+  const activePinned = (column: Column<T, unknown>) =>
+    Boolean(column.getIsPinned()) &&
+    (column.columns.length ? column.getLeafColumns() : [column]).every((leaf) =>
+      fittingPins.has(leaf.id)
+    )
+  const pinEdge = (column: Column<T, unknown>): "start" | "end" | undefined => {
+    if (!activePinned(column)) {
+      return
+    }
+    const side = column.getIsPinned()
+    const siblings = leafColumns.filter(
+      (leaf) => leaf.getIsPinned() === side && fittingPins.has(leaf.id)
+    )
+    const descendants = column.columns.length
+      ? column.getLeafColumns()
+      : [column]
+    const boundary = side === "start" ? siblings.at(-1) : siblings[0]
+    if (side === "start" && boundary && descendants.includes(boundary)) {
+      return "start"
+    }
+    if (side === "end" && boundary && descendants.includes(boundary)) {
+      return "end"
+    }
+    return undefined
+  }
+  const startPinnedWidth = leafColumns.reduce(
+    (sum, leaf) =>
+      sum +
+      (leaf.getIsPinned() === "start" && fittingPins.has(leaf.id)
+        ? (renderedWidths[leaf.id] ?? leaf.getSize())
+        : 0),
+    0
+  )
+  const endPinnedWidth = leafColumns.reduce(
+    (sum, leaf) =>
+      sum +
+      (leaf.getIsPinned() === "end" && fittingPins.has(leaf.id)
+        ? (renderedWidths[leaf.id] ?? leaf.getSize())
+        : 0),
+    renderedActionsWidth
+  )
   const pinningStyles = (
     column: Column<T, unknown>,
     kind: "header" | "body" = "body"
@@ -3313,7 +3357,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         // simply stopped sticking, grouped or not. `sticky` is itself a
         // positioned value, so it already gives the resize handle the same
         // context; `relative` is only needed when sticky isn't in play.
-        className={`group/header ${stickyHeader ? "" : "relative"} ${pinClass(column, "header") ?? ""} ${dropClass}`}
+        className={`group/header ${stickyHeader ? "" : "relative"} ${pinClass("header", activePinned(column), pinEdge(column)) ?? ""} ${dropClass}`}
         // The reorderable path keys `SortableHeaderContent` instead, where this
         // key is simply ignored; the non-reorderable path renders this element
         // straight into the header-group map and is the one that needs it.
@@ -3441,7 +3485,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         >
           {leafColumns.map((column) => (
             <td
-              className={`${styles.filterCell()} ${pinClass(column, "header") ?? ""}`}
+              className={`${styles.filterCell()} ${pinClass("header", activePinned(column), pinEdge(column)) ?? ""}`}
               data-pinned={column.getIsPinned() || undefined}
               key={column.id}
               style={{
@@ -3753,6 +3797,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         (type === "boolean" || type === "enum" || type === "multiEnum")
       return (
         <DataTableBodyCell
+          activePin={activePinned(column)}
           cell={cell}
           columnSizing={columnSizing}
           dnd={dnd}
@@ -3767,6 +3812,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           enableRowReorder={enableRowReorder}
           indentColumnId={indentColumnId}
           key={cell.id}
+          pinEdge={pinEdge(column)}
           pinningStyle={pinningStyles(column)}
           row={row}
           rowLabel={rowLabel}
@@ -4252,7 +4298,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           })}
           onScroll={handleScroll}
           ref={scrollRef}
-          style={maxHeight ? { maxHeight } : undefined}
+          style={{
+            maxHeight,
+            scrollPaddingInlineStart: startPinnedWidth,
+            scrollPaddingInlineEnd: endPinnedWidth,
+          }}
           // biome-ignore lint/a11y/noNoninteractiveTabindex: Scroll regions need keyboard focus to reveal offscreen records.
           tabIndex={0}
         >

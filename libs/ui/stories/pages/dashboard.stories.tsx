@@ -179,7 +179,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         />
       </StatRow>
 
-      <div className="grid grid-cols-1 items-start gap-250 xl:grid-cols-3">
+      <div className="grid grid-cols-1 items-stretch gap-250 xl:grid-cols-3">
         <SectionCard
           className="xl:col-span-2"
           actions={
@@ -215,7 +215,8 @@ function DashboardPage({ loading }: { loading?: boolean }) {
                   <span className="flex min-w-0 flex-1 flex-col gap-50">
                     <span className="truncate text-sm">{order.customer}</span>
                     <span className="text-fg-secondary text-xs">
-                      {order.number} · {formatDate(order.placedAt)}
+                      <span className="block">{order.number}</span>
+                      <span className="block whitespace-nowrap">{formatDate(order.placedAt)}</span>
                     </span>
                   </span>
                   <span className="w-1/4 shrink-0">
