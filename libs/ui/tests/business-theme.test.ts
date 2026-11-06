@@ -67,6 +67,11 @@ describe("business theme", () => {
     }
   })
 
+  it("keeps small status labels at body-label size and medium weight", () => {
+    expect(tokens.get("--text-badge-sm")).toBe("var(--text-sm)")
+    expect(tokens.get("--font-weight-badge-sm")).toBe("var(--font-weight-medium)")
+  })
+
   it("preserves the mobile input font floor and grows controls for touch", () => {
     expect(tokens.get("--text-input-sm")).toBe("max(16px, var(--text-sm))")
     const coarse = css.nodes.find(

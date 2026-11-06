@@ -3840,6 +3840,8 @@
       --text-input-lg: var(--text-lg);
       --text-label-md: var(--text-sm);
       --text-label-lg: var(--text-md);
+      --text-badge-sm: var(--text-sm);
+      --font-weight-badge-sm: var(--font-weight-medium);
       --font-weight-label: var(--font-weight-medium);
       --font-weight-button: var(--font-weight-medium);
       --border-width-form-control: var(--border-width-sm);

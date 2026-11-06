@@ -425,7 +425,7 @@ function OrdersDashboard() {
               id: "filters",
               label: "Filters",
               icon: "icon-[mdi--filter-variant]",
-              theme: "outlined",
+              theme: showFilters ? "light" : "outlined",
               "aria-pressed": showFilters,
               onClick: () => setShowFilters((visible) => !visible),
             },
@@ -543,6 +543,8 @@ export const Default: Story = {
     await userEvent.click(filters)
     const panel = canvas.getByRole("region", { name: "Order filters" })
     await expect(panel).toBeVisible()
+    await expect(filters).toHaveAttribute("aria-pressed", "true")
+    await expect(filters).toHaveClass("bg-button-bg-primary-light-base")
     await expect(viewport.scrollWidth).toBe(initialWidth)
     if (canvasElement.ownerDocument.documentElement.dataset.theme === "business") {
       const controls = [...panel.querySelectorAll<HTMLElement>(
@@ -599,6 +601,8 @@ export const Default: Story = {
     }
     await userEvent.click(filters)
     await expect(canvas.queryByRole("region", { name: "Order filters" })).toBeNull()
+    await expect(filters).toHaveAttribute("aria-pressed", "false")
+    await expect(filters).not.toHaveClass("bg-button-bg-primary-light-base")
     await checkScrollHint()
     viewport.scrollLeft = viewport.scrollWidth
     await waitFor(() => {

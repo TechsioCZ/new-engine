@@ -290,6 +290,11 @@ export const Playground: Story = {
     await expect(
       canvas.getByRole("textbox", { name: "Custom domain" })
     ).toBeDisabled()
+    for (const status of ["Paid", "Fulfilled", "Pending", "Refunded", "Cancelled", "Draft"]) {
+      const styles = getComputedStyle(canvas.getByText(status, { exact: true }))
+      await expect(Number.parseFloat(styles.fontSize)).toBeGreaterThanOrEqual(14)
+      await expect(Number.parseInt(styles.fontWeight, 10)).toBeGreaterThanOrEqual(500)
+    }
 
     // An empty fixture checks the real CSS cascade without adding demo UI.
     const boundary = canvasElement.ownerDocument.createElement("div")
