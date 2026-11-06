@@ -112,7 +112,7 @@ export const Playground: Story = {
     const segments = canvasElement.querySelectorAll(".breadcrumb-segment")
     await expect(segments).toHaveLength(2)
     for (const segment of segments) {
-      const [item, separator] = segment.querySelectorAll("li")
+      const [separator, item] = segment.querySelectorAll("li")
       if (!(separator && item)) throw new Error("Missing breadcrumb segment")
       await expect(item).toHaveAttribute("role", "listitem")
       await expect(separator).toHaveAttribute("aria-hidden", "true")

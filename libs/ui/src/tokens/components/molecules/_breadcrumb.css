@@ -6,7 +6,7 @@
   --outline-breadcrumb-focus-offset: var(--default-ring-offset);
 }
 
-/* Keep each separator with its preceding item at the list's own gap. */
+/* Keep each separator with its following item at the list's own gap. */
 @utility breadcrumb-segment {
   gap: inherit;
 }

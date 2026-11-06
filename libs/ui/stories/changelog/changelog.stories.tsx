@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Breadcrumb v1.0.6
+- Keep separators with the next trail item so wrapped mobile rows do not leave an orphaned separator at the end of the previous line.
+
 ### ActionIcon v1.1.3
 - Keep Business action surfaces and glyph sizes consistent, with a component-local large touch target.
 

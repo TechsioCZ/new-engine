@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.5
+ * @componentVersion v1.0.6
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -224,10 +224,10 @@ Breadcrumb.List = function BreadcrumbList({
     const child = items[index]
     const next = items[index + 1]
     if (
-      isValidElement<ComponentPropsWithoutRef<"li">>(child) &&
-      (child.type === Breadcrumb.Item || child.type === Breadcrumb.Ellipsis) &&
-      isValidElement(next) &&
-      next.type === Breadcrumb.Separator
+      isValidElement(child) &&
+      child.type === Breadcrumb.Separator &&
+      isValidElement<ComponentPropsWithoutRef<"li">>(next) &&
+      (next.type === Breadcrumb.Item || next.type === Breadcrumb.Ellipsis)
     ) {
       // Keep both public <li> hosts (and their refs) intact, but wrap them as
       // one flex segment. Presentation-only list hosts keep valid HTML without
@@ -235,14 +235,14 @@ Breadcrumb.List = function BreadcrumbList({
       segments.push(
         <li className={styles.segment()} key={child.key} role="presentation">
           <ol className="contents" role="presentation">
-            {cloneElement(child, {
+            {child}
+            {cloneElement(next, {
               // Explicit listitem prevents the presentation-only inner list
               // from suppressing the ancestor item's required-owned role.
               role:
-                child.props.role ??
-                (child.type === Breadcrumb.Item ? "listitem" : "presentation"),
+                next.props.role ??
+                (next.type === Breadcrumb.Item ? "listitem" : "presentation"),
             })}
-            {next}
           </ol>
         </li>
       )
