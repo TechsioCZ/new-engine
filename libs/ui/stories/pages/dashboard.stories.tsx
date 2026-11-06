@@ -171,7 +171,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         />
         <StatCard
           delta="−1.8%"
-          hint="Sessions with a paid order"
+          hint="Paid sessions"
           icon="icon-[mdi--cart-percent]"
           label="Conversion"
           trend="down"
@@ -351,6 +351,15 @@ function DashboardPage({ loading }: { loading?: boolean }) {
 
 const checkCatalogue: NonNullable<Story["play"]> = async ({ canvasElement }) => {
   const canvas = within(canvasElement)
+  const comparisons = canvasElement.querySelectorAll('[data-part="stat-comparison"]')
+  await expect(comparisons).toHaveLength(4)
+  for (const comparison of comparisons) {
+    const [delta, caption] = comparison.children
+    if (!delta || !caption) throw new Error("A KPI comparison needs its change and caption.")
+    await expect(caption.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      delta.getBoundingClientRect().bottom
+    )
+  }
   const latest = canvas.queryByRole("list", { name: "Latest orders" })
   if (latest) {
     const rows = within(latest).getAllByRole("listitem")

@@ -356,7 +356,7 @@ export function StatCard({
         </span>
       </div>
       {(delta || hint) && (
-        <div className="flex flex-wrap items-center gap-100">
+        <div className="flex min-w-0 flex-col items-start gap-100" data-part="stat-comparison">
           {delta && (
             <Badge size="sm" variant={trendVariant}>
               {delta}

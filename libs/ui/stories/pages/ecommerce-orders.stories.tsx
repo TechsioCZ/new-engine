@@ -334,7 +334,7 @@ function OrdersDashboard() {
         />
         <StatCard
           delta="−1.8%"
-          hint="Sessions with a paid order"
+          hint="Paid sessions"
           icon="icon-[mdi--cart-percent]"
           label="Conversion"
           trend="down"
@@ -522,6 +522,15 @@ export const Default: Story = {
   render: () => <OrdersDashboard />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    const comparisons = canvasElement.querySelectorAll('[data-part="stat-comparison"]')
+    await expect(comparisons).toHaveLength(4)
+    for (const comparison of comparisons) {
+      const [delta, caption] = comparison.children
+      if (!delta || !caption) throw new Error("A KPI comparison needs its change and caption.")
+      await expect(caption.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+        delta.getBoundingClientRect().bottom
+      )
+    }
     const actions = canvas.getByRole("columnheader", { name: "Actions" })
     await waitFor(() =>
       expect(actions.scrollWidth).toBeLessThanOrEqual(actions.clientWidth)
