@@ -18,20 +18,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Refresh the full Business catalogue after aligning field padding.
-          # Shared components/pages also retain the other brands' coverage.
-          - { label: business-final-1, brand: business, shard: "1/3", selection: full }
-          - { label: business-final-2, brand: business, shard: "2/3", selection: full }
-          - { label: business-final-3, brand: business, shard: "3/3", selection: full }
-          - { label: shared-final-1, brand: "base,neo,akros", shard: "1/3", selection: shared }
-          - { label: shared-final-2, brand: "base,neo,akros", shard: "2/3", selection: shared }
-          - { label: shared-final-3, brand: "base,neo,akros", shard: "3/3", selection: shared }
+          # The full Business refresh runs at c3852c721. Only table hover and
+          # the page-local continuation cue changed after that source.
+          - { label: hover-1, brand: "base,neo,business,akros", shard: "1/4" }
+          - { label: hover-2, brand: "base,neo,business,akros", shard: "2/4" }
+          - { label: hover-3, brand: "base,neo,business,akros", shard: "3/4" }
+          - { label: hover-4, brand: "base,neo,business,akros", shard: "4/4" }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
       PLAYWRIGHT_WORKERS: "2"
       VISUAL_BRANDS: ${{ matrix.brand }}
       PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}
-      VISUAL_SELECTION: ${{ matrix.selection }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
@@ -59,12 +56,7 @@ jobs:
             "molecules-colorselect--focus-recovery",
           ];
           const ids = stories.filter(({ id }) =>
-            process.env.VISUAL_SELECTION === "full" ||
             id.startsWith("organisms-datatable--") ||
-            id.startsWith("molecules-select--") ||
-            id.startsWith("molecules-dialog--") ||
-            id.startsWith("templates-selecttemplate--") ||
-            id.startsWith("templates-comprehensive-form--") ||
             id.startsWith("pages-") ||
             selected.includes(id)
           ).map(({ id }) => id);
@@ -79,7 +71,7 @@ jobs:
       - name: Capture candidate screenshots in the pinned runner
         env:
           PLAYWRIGHT_STORYBOOK_REBUILD: "0"
-        run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts
+        run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts test/visual-table-hover.spec.mjs
       - name: Collect changed screenshots with their source revision
         if: always()
         run: |

@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.9
+ * @componentVersion v1.4.10
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -1536,6 +1536,7 @@ function rowDragClass(
   const { className, striped, tintNestedRows, rowIndex } = opts
   return [
     "group/row",
+    "hover:bg-data-table-row-bg-hover",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-primary",
     /* Publish the row's current tint as a custom property. Frozen cells
      * composite it over an opaque surface (`data-table-frozen-cell`), which

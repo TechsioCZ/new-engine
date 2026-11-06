@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.10
+- Non-clickable rows now receive the same hover tint as their frozen cells, rather than highlighting only the frozen bands.
+
 ### DataTable v1.4.9
 - Frozen-edge shadows appear only when the table actually overflows its scrollport, so a fully visible table does not suggest hidden columns.
 

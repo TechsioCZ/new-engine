@@ -133,6 +133,7 @@ function OrdersDashboard() {
   const orderList = useRef<HTMLElement>(null)
   const [showScrollHint, setShowScrollHint] = useState(false)
   const [showEndFade, setShowEndFade] = useState(false)
+  const [scrollEdge, setScrollEdge] = useState({ top: 0, height: 0 })
   const [pinIdentity, setPinIdentity] = useState(true)
   const filterValue = <T extends DataTableFilterValue,>(id: string) =>
     (columnFilters.find((filter) => filter.id === id)?.value ?? {}) as T
@@ -154,6 +155,16 @@ function OrdersDashboard() {
       setShowEndFade(
         viewport.scrollWidth > viewport.clientWidth + Math.abs(viewport.scrollLeft) + 1
       )
+      const wrapper = orderList.current?.querySelector('[data-order-table]')
+      if (wrapper) {
+        const top = viewport.getBoundingClientRect().top - wrapper.getBoundingClientRect().top
+        const height = viewport.clientHeight
+        setScrollEdge((previous) =>
+          Math.abs(previous.top - top) < 0.5 && previous.height === height
+            ? previous
+            : { top, height }
+        )
+      }
       // Keep the full Total / Placed / Actions group visible at the last
       // scroll position. Release the identity pin only if that group needs it.
       const trailing = table.querySelectorAll<HTMLElement>(
@@ -384,7 +395,7 @@ function OrdersDashboard() {
         <p className="mb-100 text-fg-secondary text-xs" hidden={!showScrollHint}>
           Scroll horizontally to see all order details.
         </p>
-        <div className="relative">
+        <div className="relative" data-order-table="">
         <DataTable
           columnFilters={columnFilters}
           columnPinning={{ start: pinIdentity ? ["number"] : [], end: [] }}
@@ -464,7 +475,7 @@ function OrdersDashboard() {
           translations={{ searchPlaceholder: "Search orders, customers…" }}
         />
         {showEndFade && (
-          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 end-0 z-30 w-200 bg-linear-to-l from-border-primary to-transparent rtl:bg-linear-to-r" />
+          <span aria-hidden="true" className="pointer-events-none absolute end-0 z-30 w-200 bg-linear-to-l from-border-primary to-transparent rtl:bg-linear-to-r" style={scrollEdge} />
         )}
         </div>
       </section>

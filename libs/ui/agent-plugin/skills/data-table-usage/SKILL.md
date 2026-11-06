@@ -8,7 +8,7 @@ description: >
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
 metadata:
-  component_version: "1.4.9"
+  component_version: "1.4.10"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -467,6 +467,8 @@ Pinned boundaries have direction-aware shadows only while the table actually
 overflows its scrollport. Scroll padding reserves the
 measured active pinned bands when keyboard focus reveals an offscreen cell.
 Columns temporarily released by the fit calculation have no frozen-edge shadow.
+Hover tints the whole row, including non-clickable rows, so frozen and scrolling
+cells retain the same treatment.
 
 On narrow screens, pinned columns that fit stay frozen (start-side identity
 columns first); pins that would leave no scrollable room scroll with the data
