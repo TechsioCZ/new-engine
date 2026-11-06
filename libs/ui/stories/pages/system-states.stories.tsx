@@ -1,6 +1,6 @@
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { fn } from "storybook/test"
+import { expect, fn, waitFor, within } from "storybook/test"
 import type { ReactNode } from "react"
 import { useState } from "react"
 import { Badge } from "../../src/atoms/badge"
@@ -400,8 +400,8 @@ export const LoadingPage: Story = {
         <StatCard label="Conversion" value="—" />
       </StatRow>
       <SectionCard title="Revenue trend">
-        <Skeleton isLoaded={false}>
-          <Skeleton.Rectangle />
+        <Skeleton aria-label="Loading revenue chart" isLoaded={false}>
+          <Skeleton.Rectangle className="h-64" />
         </Skeleton>
       </SectionCard>
       <SectionCard title="Latest orders">
@@ -411,6 +411,13 @@ export const LoadingPage: Story = {
       </SectionCard>
     </StateShell>
   ),
+  play: async ({ canvasElement }) => {
+    const chart = within(canvasElement).getByRole("status", { name: "Loading revenue chart" })
+    await waitFor(() => {
+      expect(chart.getBoundingClientRect().height).toBeGreaterThanOrEqual(200)
+      expect(chart.getBoundingClientRect().width).toBeGreaterThan(0)
+    })
+  },
 }
 
 export const FirstRun: Story = {

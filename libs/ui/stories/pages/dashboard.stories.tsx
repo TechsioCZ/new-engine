@@ -1,7 +1,7 @@
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { Badge } from "../../src/atoms/badge"
 
 import { Icon } from "../../src/atoms/icon"
@@ -192,8 +192,8 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           title="Revenue trend"
         >
           {loading ? (
-            <Skeleton isLoaded={false}>
-              <Skeleton.Rectangle />
+            <Skeleton aria-label="Loading revenue chart" isLoaded={false}>
+              <Skeleton.Rectangle className="h-64" />
             </Skeleton>
           ) : (
             <RevenueChart />
@@ -415,5 +415,12 @@ export const Loading: Story = {
     },
   },
   render: () => <DashboardPage loading />,
-  play: checkCatalogue,
+  play: async (context) => {
+    await checkCatalogue(context)
+    const chart = within(context.canvasElement).getByRole("status", { name: "Loading revenue chart" })
+    await waitFor(() => {
+      expect(chart.getBoundingClientRect().height).toBeGreaterThanOrEqual(200)
+      expect(chart.getBoundingClientRect().width).toBeGreaterThan(0)
+    })
+  },
 }

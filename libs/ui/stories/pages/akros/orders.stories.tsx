@@ -1,6 +1,7 @@
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
+import { expect, waitFor, within } from "storybook/test"
 import { Badge } from "../../../src/atoms/badge"
 import { Button } from "../../../src/atoms/button"
 import { Dialog } from "../../../src/molecules/dialog"
@@ -30,6 +31,11 @@ import {
   PaymentCell,
   ShippingCell,
 } from "./shared"
+
+// Fixed columns must budget their complete filter, including cell padding.
+// Keep one table scrollport rather than cutting controls inside each cell.
+const filterColumnWidth = (minimum: number) =>
+  `max(${minimum}px, calc(var(--spacing-data-table-filter-sm) + 2 * var(--padding-data-table-filter-cell-x)))`
 
 const meta: Meta = {
   decorators: [
@@ -171,7 +177,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
       {
         accessorKey: "number",
         header: "Order",
-        meta: { type: "string", width: 150 },
+        meta: { type: "string", width: filterColumnWidth(150) },
         cell: (info) => (
           <span className="flex flex-col gap-50">
             <span className="font-medium">{info.getValue<string>()}</span>
@@ -184,7 +190,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
       {
         accessorKey: "customer",
         header: "Customer",
-        meta: { type: "string", width: 220 },
+        meta: { type: "string", width: filterColumnWidth(220) },
         cell: (info) => (
           <span className="flex flex-col gap-50">
             <span className="flex items-center gap-100">
@@ -202,13 +208,13 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
       {
         accessorKey: "state",
         header: "State",
-        meta: { type: "enum", options: orderStateOptions, width: 150 },
+        meta: { type: "enum", options: orderStateOptions, width: filterColumnWidth(150) },
         cell: (info) => <OrderStateBadge state={info.row.original.state} />,
       },
       {
         accessorKey: "payment",
         header: "Payment",
-        meta: { type: "enum", options: paymentStateOptions, width: 170 },
+        meta: { type: "enum", options: paymentStateOptions, width: filterColumnWidth(170) },
         cell: (info) => (
           <PaymentCell
             method={info.row.original.paymentMethod}
@@ -219,7 +225,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
       {
         accessorKey: "carrier",
         header: "Shipping / pickup point",
-        meta: { type: "enum", options: carrierOptions, width: 280 },
+        meta: { type: "enum", options: carrierOptions, width: filterColumnWidth(280) },
         cell: (info) => (
           <ShippingCell
             carrier={info.row.original.carrier}
@@ -231,13 +237,13 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
       {
         accessorKey: "total",
         header: "Total",
-        meta: { type: "number", align: "end", width: 130 },
+        meta: { type: "number", align: "end", width: filterColumnWidth(130) },
         cell: (info) => czk.format(info.getValue<number>()),
       },
       {
         accessorKey: "abra",
         header: "ABRA",
-        meta: { type: "enum", options: abraStateOptions, width: 160 },
+        meta: { type: "enum", options: abraStateOptions, width: filterColumnWidth(160) },
         cell: (info) => (
           <AbraBadge
             document={info.row.original.abraDocument}
@@ -332,9 +338,8 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
                     getRowId={(row) => row.id}
                     getRowLabel={(row) => `Order ${row.original.number}`}
                     onRowSelectionChange={setSelection}
-                    // Declared widths are exact: under "auto" the enum filter
-                    // selects stretched State/Payment/ABRA and pushed the
-                    // shipping column under the pinned actions.
+                    // Explicit width budgets retain fixed layout while keeping
+                    // every typed filter complete within its visible cell.
                     tableLayout="fixed"
                     renderEmpty={() => (
                       <p className="p-350 text-center text-fg-secondary text-sm">
@@ -427,6 +432,19 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
   )
 }
 
+async function checkFilterContainment({ canvasElement }: { canvasElement: HTMLElement }) {
+  const row = within(canvasElement).getByRole("row", { name: "Column filters" })
+  await waitFor(() => {
+    const viewports = [...row.children].flatMap((cell) =>
+      cell.firstElementChild ? [cell.firstElementChild] : []
+    )
+    expect(viewports).toHaveLength(7)
+    for (const viewport of viewports) {
+      expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
+    }
+  })
+}
+
 export const Default: Story = {
   parameters: {
     docs: {
@@ -439,6 +457,7 @@ export const Default: Story = {
 
   name: "All orders",
   render: () => <OrdersPage />,
+  play: checkFilterContainment,
 }
 
 export const UnpaidComgate: Story = {
@@ -452,6 +471,7 @@ export const UnpaidComgate: Story = {
     },
   },
   render: () => <OrdersPage initialView="unpaid-online" />,
+  play: checkFilterContainment,
 }
 
 export const NotInAbra: Story = {
@@ -465,4 +485,5 @@ export const NotInAbra: Story = {
     },
   },
   render: () => <OrdersPage initialView="abra" />,
+  play: checkFilterContainment,
 }

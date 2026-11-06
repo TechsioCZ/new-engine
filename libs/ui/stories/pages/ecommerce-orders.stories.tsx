@@ -136,6 +136,7 @@ function OrdersDashboard() {
   const [scrollEdge, setScrollEdge] = useState({ top: 0, height: 0 })
   const [pinIdentity, setPinIdentity] = useState(true)
   const [showFullDates, setShowFullDates] = useState(false)
+  const [identityWidth, setIdentityWidth] = useState(80)
   const filterValue = <T extends DataTableFilterValue,>(id: string) =>
     (columnFilters.find((filter) => filter.id === id)?.value ?? {}) as T
   const updateFilter = (id: string, value: DataTableFilterValue) =>
@@ -152,6 +153,21 @@ function OrdersDashboard() {
     const table = viewport?.querySelector("table")
     if (!viewport || !table) return
     const measure = () => {
+      // Other themes have larger type. Budget the unbroken label, sort icon
+      // and actual cell padding without widening the compact Business column.
+      const identity = table.querySelector<HTMLElement>('thead [data-leaf-column="number"]')
+      const sort = identity?.querySelector("button")
+      if (identity && sort) {
+        const cellStyle = getComputedStyle(identity)
+        const gap = Number.parseFloat(getComputedStyle(sort).columnGap) || 0
+        const parts = [...sort.children]
+        const contentWidth = parts.reduce((sum, part) => sum + part.getBoundingClientRect().width, 0)
+        setIdentityWidth(Math.max(80, Math.ceil(
+          contentWidth + gap * Math.max(0, parts.length - 1) +
+          Number.parseFloat(cellStyle.paddingInlineStart) +
+          Number.parseFloat(cellStyle.paddingInlineEnd)
+        )))
+      }
       // The wider date column fits the complete table budget at this width.
       setShowFullDates(viewport.clientWidth >= 960)
       setShowScrollHint(viewport.scrollWidth > viewport.clientWidth + 1)
@@ -194,8 +210,8 @@ function OrdersDashboard() {
     () => [
       {
         accessorKey: "number",
-        header: "Order",
-        meta: { type: "string", width: 80 },
+        header: () => <span className="whitespace-nowrap">Order</span>,
+        meta: { type: "string", width: identityWidth },
         cell: (info) => (
           <span className="font-medium">{info.getValue<string>()}</span>
         ),
@@ -278,7 +294,7 @@ function OrdersDashboard() {
         },
       },
     ],
-    [showFullDates],
+    [showFullDates, identityWidth],
   )
 
   return (
@@ -511,6 +527,13 @@ export const Default: Story = {
       expect(actions.scrollWidth).toBeLessThanOrEqual(actions.clientWidth)
     )
     const viewport = canvas.getByRole("region", { name: "Scrollable records" })
+    const orderHeading = canvas.getByRole("button", { name: "Order" })
+    await waitFor(() => {
+      expect(orderHeading.getBoundingClientRect().height).toBeLessThanOrEqual(
+        Number.parseFloat(getComputedStyle(orderHeading).lineHeight) + 1
+      )
+      expect(orderHeading.scrollWidth).toBeLessThanOrEqual(orderHeading.clientWidth + 1)
+    })
     const hint = canvas.getByText("Scroll horizontally to see all order details.")
     const checkScrollHint = () =>
       waitFor(() =>
