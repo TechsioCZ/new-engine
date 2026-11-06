@@ -206,13 +206,13 @@ function DashboardPage({ loading }: { loading?: boolean }) {
               <Skeleton.Text noOfLines={6} />
             </Skeleton>
           ) : (
-            <ul className="flex flex-col gap-150">
+            <ul aria-label="Latest orders" className="flex flex-col gap-150">
               {orders.slice(0, 5).map((order) => (
                 <li
                   className="flex items-center justify-between gap-150"
                   key={order.id}
                 >
-                  <span className="flex min-w-0 flex-col gap-50">
+                  <span className="flex min-w-0 flex-1 flex-col gap-50">
                     <span className="truncate text-sm">{order.customer}</span>
                     <span className="text-fg-secondary text-xs">
                       {order.number} · {formatDate(order.placedAt)}
@@ -350,6 +350,17 @@ function DashboardPage({ loading }: { loading?: boolean }) {
 
 const checkCatalogue: NonNullable<Story["play"]> = async ({ canvasElement }) => {
   const canvas = within(canvasElement)
+  const latest = canvas.queryByRole("list", { name: "Latest orders" })
+  if (latest) {
+    const rows = within(latest).getAllByRole("listitem")
+    const firstStatus = rows[0]?.children[1]?.getBoundingClientRect()
+    for (const row of rows) {
+      const status = row.children[1]?.getBoundingClientRect()
+      if (!firstStatus || !status) throw new Error("Missing order status slot")
+      await expect(Math.abs(status.left - firstStatus.left)).toBeLessThanOrEqual(1)
+      await expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth)
+    }
+  }
   const compact = canvasElement.ownerDocument.defaultView?.matchMedia(
     "(width < 40rem)"
   ).matches

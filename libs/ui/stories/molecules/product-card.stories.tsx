@@ -681,7 +681,7 @@ export const WithQuantityInput: Story = {
     docs: {
       description: {
         story:
-          "A quantity stepper sits beside the purchase action so shoppers can choose an amount without leaving the product card.",
+          "A quantity stepper and full-width purchase action let shoppers choose an amount without leaving the product card.",
       },
     },
   },
@@ -700,7 +700,7 @@ export const WithQuantityInput: Story = {
           Limited Edition - 5 Available
         </ProductCard.Stock>
       </div>
-      <ProductCard.Actions>
+      <ProductCard.Actions className="flex-col">
         <NumericInput id="product-quantity" defaultValue={1} min={1} max={5}>
           <NumericInput.Control>
             <NumericInput.Input aria-label="Quantity" />
@@ -714,7 +714,7 @@ export const WithQuantityInput: Story = {
           buttonVariant="cart"
           icon="token-icon-cart-button"
           onClick={fn()}
-          className="flex-1"
+          className="w-full"
         >
           Add to Cart
         </DemoProductButton>
@@ -729,6 +729,20 @@ export const WithQuantityInput: Story = {
       </ProductCard.Actions>
     </ProductCard>
   ),
+  play: async ({ canvasElement }) => {
+    await expectCoherentCards(canvasElement)
+    const canvas = within(canvasElement)
+    const quantity = canvas.getByRole("spinbutton", { name: "Quantity" })
+    const purchase = canvas.getByRole("button", { name: "Add to Cart" })
+    const card = canvas.getByRole("heading", { name: "Swiss Luxury Watch" }).closest('[data-layout]')
+    if (!card) throw new Error("Missing product card")
+    const cardBox = card.getBoundingClientRect()
+    const purchaseBox = purchase.getBoundingClientRect()
+    await expect(purchaseBox.left).toBeGreaterThanOrEqual(cardBox.left)
+    await expect(purchaseBox.right).toBeLessThanOrEqual(cardBox.right)
+    await expect(purchaseBox.top).toBeGreaterThanOrEqual(quantity.getBoundingClientRect().bottom)
+    await expect(purchase.scrollWidth).toBeLessThanOrEqual(purchase.clientWidth)
+  },
 }
 
 export const MinimalCard: Story = {

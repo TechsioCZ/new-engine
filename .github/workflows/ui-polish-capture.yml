@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           # The full component capture at f3255be covers the unchanged runtime.
-          # These five stories include the responsive Catalogue follow-up.
+          # Refine the Catalogue, aligned order summaries and stacked product actions.
           - { label: refinements, brand: "base,neo,business,akros", shard: "" }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
@@ -50,6 +50,7 @@ jobs:
             "pages-e-commerce-dashboard-home--loading",
             "pages-e-commerce-orders-dashboard--default",
             "molecules-combobox--sizes",
+            "molecules-productcard--with-quantity-input",
           ];
           for (const id of ids) {
             if (!available.has(id)) throw new Error(`Missing review story: ${id}`);
