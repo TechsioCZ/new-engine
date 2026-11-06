@@ -29,7 +29,7 @@ jobs:
       - name: Capture every business component on both devices
         env:
           VISUAL_BRANDS: business
-        run: pnpm --dir libs/ui test:components:update -- test/visual.spec.ts
+        run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts
       - name: Select shared page and review stories
         run: |
           node --input-type=module <<'JS' >> "$GITHUB_ENV"
@@ -48,7 +48,7 @@ jobs:
         env:
           VISUAL_BRANDS: base,neo,akros
           PLAYWRIGHT_STORYBOOK_REBUILD: "0"
-        run: pnpm --dir libs/ui test:components:update -- test/visual.spec.ts
+        run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts
       - name: Collect changed screenshots with their source revision
         if: always()
         run: |
