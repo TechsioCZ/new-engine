@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.7
+ * @componentVersion v1.0.8
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -40,7 +40,7 @@ const BreadcrumbVariants = tv({
       "bg-breadcrumb-bg",
     ],
     list: [
-      "flex min-w-0 max-w-full flex-wrap items-center",
+      "breadcrumb-list flex min-w-0 max-w-full flex-wrap items-center",
       "wrap-anywhere",
       "list-none",
       "text-breadcrumb-item",
@@ -93,7 +93,7 @@ const BreadcrumbVariants = tv({
     size: {
       sm: {
         root: "p-breadcrumb-sm text-breadcrumb-sm",
-        list: "gap-breadcrumb-sm",
+        list: "breadcrumb-list-sm",
         link: "gap-breadcrumb-link-sm",
         currentLink: "gap-breadcrumb-link-sm",
         iconSize: "text-breadcrumb-icon-sm",
@@ -103,7 +103,7 @@ const BreadcrumbVariants = tv({
       },
       md: {
         root: "p-breadcrumb-md text-breadcrumb-md",
-        list: "gap-breadcrumb-md",
+        list: "breadcrumb-list-md",
         link: "gap-breadcrumb-link-md",
         currentLink: "gap-breadcrumb-link-md",
         iconSize: "text-breadcrumb-icon-md",
@@ -113,7 +113,7 @@ const BreadcrumbVariants = tv({
       },
       lg: {
         root: "p-breadcrumb-lg text-breadcrumb-lg",
-        list: "gap-breadcrumb-lg",
+        list: "breadcrumb-list-lg",
         link: "gap-breadcrumb-link-lg",
         currentLink: "gap-breadcrumb-link-lg",
         iconSize: "text-breadcrumb-icon-lg",
@@ -296,9 +296,9 @@ Breadcrumb.List = function BreadcrumbList({
       isValidElement<ComponentPropsWithoutRef<"li">>(next) &&
       (next.type === Breadcrumb.Item || next.type === Breadcrumb.Ellipsis)
     ) {
-      // Keep both public <li> hosts (and their refs) intact, but wrap them as
-      // one flex segment. Presentation-only list hosts keep valid HTML without
-      // adding a nested list to the accessibility tree.
+      // The destination sizes the segment; its real separator host is positioned
+      // in the preceding gap. Presentation-only wrappers preserve both public
+      // <li> hosts and refs without adding a list to the accessibility tree.
       segments.push(
         <li className={styles.segment()} key={child.key} role="presentation">
           <ol className="contents" role="presentation">

@@ -45,6 +45,19 @@
   outline-offset: calc(-1 * var(--border-width-tour));
 }
 
+@utility tour-title-safe {
+  /* Reserve the close control's overlap plus a gap, including touch sizing. */
+  padding-inline-end: max(
+    var(--spacing-tour-title),
+    calc(
+      var(--size-icon-control-md) +
+      var(--spacing-tour-close) +
+      var(--spacing-tour-content) -
+      var(--padding-tour)
+    )
+  );
+}
+
 @utility tour-description {
   /* Keep the padding needed by nested focus rings without indenting the copy. */
   margin-inline: calc(-1 * var(--padding-tour-description));

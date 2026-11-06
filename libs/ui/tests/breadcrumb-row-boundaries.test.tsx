@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, createRef, type Ref } from "react"
+import { act, createRef, type ReactNode, type Ref } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { Breadcrumb } from "../src/molecules/breadcrumb"
@@ -9,7 +9,10 @@ let rowOffset = 0
 let resized: (() => void) | undefined
 const disconnected = vi.fn()
 
-async function mount(callerRef?: Ref<HTMLOListElement>) {
+async function mount(
+  callerRef?: Ref<HTMLOListElement>,
+  separator: ReactNode = <Breadcrumb.Separator />
+) {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true)
   vi.stubGlobal(
     "ResizeObserver",
@@ -42,7 +45,7 @@ async function mount(callerRef?: Ref<HTMLOListElement>) {
           <Breadcrumb.Item>
             <Breadcrumb.Link href="/">Home</Breadcrumb.Link>
           </Breadcrumb.Item>
-          <Breadcrumb.Separator />
+          {separator}
           <Breadcrumb.Item>
             <Breadcrumb.Link href="/products">Products</Breadcrumb.Link>
           </Breadcrumb.Item>
@@ -101,6 +104,52 @@ describe("Breadcrumb decorative row boundaries", () => {
     root = undefined
     expect(disconnected).toHaveBeenCalledOnce()
     expect(ref.current).toBeNull()
+  })
+
+  it("preserves the custom separator host, content, props, events and ref", async () => {
+    const ref = createRef<HTMLLIElement>()
+    const clicked = vi.fn()
+    const { canvas } = await mount(
+      undefined,
+      <Breadcrumb.Separator
+        className="custom-separator"
+        data-testid="custom-separator"
+        onClick={clicked}
+        ref={ref}
+        title="Section divider"
+      >
+        <span data-testid="custom-marker">/</span>
+      </Breadcrumb.Separator>
+    )
+    const separator = canvas.querySelector('[data-testid="custom-separator"]')
+    expect(ref.current).toBe(separator)
+    expect(separator?.tagName).toBe("LI")
+    expect(separator?.classList.contains("custom-separator")).toBe(true)
+    expect(separator?.getAttribute("title")).toBe("Section divider")
+    expect(separator?.getAttribute("aria-hidden")).toBe("true")
+    expect(
+      separator?.querySelector('[data-testid="custom-marker"]')?.textContent
+    ).toBe("/")
+    expect(
+      separator?.parentElement?.parentElement?.classList.contains(
+        "breadcrumb-segment"
+      )
+    ).toBe(true)
+    await act(() => ref.current?.click())
+    expect(clicked).toHaveBeenCalledOnce()
+    await act(() => root?.unmount())
+    root = undefined
+    expect(ref.current).toBeNull()
+  })
+
+  it("detaches a callback List ref without a cleanup return", async () => {
+    const caller = vi.fn<(node: HTMLOListElement | null) => void>()
+    const { canvas } = await mount(caller)
+    expect(caller).toHaveBeenCalledWith(canvas.querySelector("nav > ol"))
+    await act(() => root?.unmount())
+    root = undefined
+    expect(caller).toHaveBeenLastCalledWith(null)
+    expect(caller).toHaveBeenCalledTimes(2)
   })
 
   it("preserves React 19 callback-ref cleanup without an extra null callback", async () => {

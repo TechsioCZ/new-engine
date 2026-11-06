@@ -43,7 +43,9 @@ async function assertRows(nav: Locator, firstName: string, direction: string) {
   if (!first) {
     throw new Error("The first Breadcrumb destination must be measurable")
   }
-  let previousCenter = first.y + first.height / 2
+  const inlineStart = (box: { x: number; width: number }) =>
+    direction === "rtl" ? box.x + box.width : box.x
+  let previous = first
   let wrapped = false
   for (const segment of await nav.locator(".breadcrumb-segment").all()) {
     const children = segment.locator("ol > li")
@@ -51,37 +53,59 @@ async function assertRows(nav: Locator, firstName: string, direction: string) {
     const separator = children.nth(0)
     const destination = children.nth(1)
     await expect(separator).toHaveAttribute("aria-hidden", "true")
+    await expect(separator).toHaveCSS("position", "absolute")
     await expect(destination).toHaveAttribute("role", "listitem")
+    await expect(destination).toBeVisible()
     await assertWithinViewport(segment)
+    await assertWithinViewport(destination)
     const a = await separator.evaluate((element) => {
       const { x, y, width, height } = element.getBoundingClientRect()
       return { x, y, width, height }
     })
     const b = await destination.boundingBox()
-    if (!b) {
+    const host = await segment.boundingBox()
+    if (!(b && host)) {
       throw new Error("Breadcrumb destinations must remain visible")
     }
+    // A hidden separator must not leave an in-flow spacer beside its destination.
+    expect(Math.abs(host.x - b.x)).toBeLessThanOrEqual(1)
+    expect(Math.abs(host.width - b.width)).toBeLessThanOrEqual(1)
     expect(a.width).toBeGreaterThan(0)
     expect(a.height).toBeGreaterThan(0)
     expect(Math.abs(a.y + a.height / 2 - b.y - b.height / 2)).toBeLessThan(1)
-    const center = b.y + b.height / 2
-    const beginsRow = Math.abs(center - previousCenter) > 1
+    const beginsRow =
+      Math.abs(b.y + b.height / 2 - previous.y - previous.height / 2) > 1
     if (beginsRow) {
       wrapped = true
       await expect(segment).toHaveAttribute("data-wrap-start", "")
+      expect(Math.abs(inlineStart(b) - inlineStart(first))).toBeLessThanOrEqual(
+        1
+      )
     } else {
       await expect(segment).not.toHaveAttribute("data-wrap-start")
+      await assertWithinViewport(separator)
+      const icon = await separator.locator(":scope > *").first().boundingBox()
+      if (!icon) {
+        throw new Error("Same-row separator artwork must remain visible")
+      }
+      await assertWithinViewport(separator.locator(":scope > *").first())
+      const gapStart =
+        direction === "rtl" ? b.x + b.width : previous.x + previous.width
+      const gapEnd = direction === "rtl" ? previous.x : b.x
+      expect(icon.x).toBeGreaterThanOrEqual(gapStart - 1)
+      expect(icon.x + icon.width).toBeLessThanOrEqual(gapEnd + 1)
+      expect(
+        Math.abs(icon.x + icon.width / 2 - (gapStart + gapEnd) / 2)
+      ).toBeLessThanOrEqual(1)
+      expect(
+        Math.abs(icon.y + icon.height / 2 - b.y - b.height / 2)
+      ).toBeLessThanOrEqual(1)
     }
     await expect(separator).toHaveCSS(
       "visibility",
       beginsRow ? "hidden" : "visible"
     )
-    previousCenter = center
-    if (direction === "rtl") {
-      expect(a.x).toBeGreaterThanOrEqual(b.x + b.width - 1)
-    } else {
-      expect(a.x + a.width).toBeLessThanOrEqual(b.x + 1)
-    }
+    previous = b
   }
   return wrapped
 }
@@ -97,6 +121,9 @@ for (const { brand, trail, repetition } of cases) {
     })
     await expect(nav.getByRole("list")).toHaveCount(1)
     await expect(nav.getByRole("listitem")).toHaveCount(trail.count)
+    await expect(nav.getByRole("link")).toHaveCount(trail.count - 1)
+    await expect(nav.getByRole("list")).toHaveCSS("flex-wrap", "wrap")
+    await expect(nav.getByRole("list")).toHaveCSS("overflow-x", "visible")
     await expect(nav.locator(".breadcrumb-segment")).toHaveCount(
       trail.count - 1
     )
@@ -111,6 +138,14 @@ for (const { brand, trail, repetition } of cases) {
         await assertWithinViewport(nav)
         sawWrappedRow =
           (await assertRows(nav, trail.first, direction)) || sawWrappedRow
+        for (const link of await nav.getByRole("link").all()) {
+          await expect(link).toBeVisible()
+          await assertWithinViewport(link)
+          await link.focus()
+          await expect(link).toBeFocused()
+        }
+        await expect(nav.locator('[aria-current="page"]')).toBeVisible()
+        await assertWithinViewport(nav.locator('[aria-current="page"]'))
       }
     }
     if (trail.requiresWrap) {

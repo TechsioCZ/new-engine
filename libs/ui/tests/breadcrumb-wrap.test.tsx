@@ -42,6 +42,30 @@ function trail(fragment: boolean, collapsed = false) {
 }
 
 describe("Breadcrumb wrapping", () => {
+  it.each(["sm", "md", "lg"] as const)(
+    "selects the matching gap geometry without changing %s typography",
+    (size) => {
+      const canvas = document.createElement("div")
+      canvas.innerHTML = renderToStaticMarkup(
+        <Breadcrumb size={size}>
+          <Breadcrumb.List>
+            <Breadcrumb.Item>Docs</Breadcrumb.Item>
+            <Breadcrumb.Separator />
+            <Breadcrumb.Item>Components</Breadcrumb.Item>
+          </Breadcrumb.List>
+        </Breadcrumb>
+      )
+      const list = canvas.querySelector("nav > ol")
+      expect(list?.classList.contains("breadcrumb-list")).toBe(true)
+      expect(list?.classList.contains(`breadcrumb-list-${size}`)).toBe(true)
+      expect(
+        canvas
+          .querySelector("nav")
+          ?.classList.contains(`text-breadcrumb-${size}`)
+      ).toBe(true)
+    }
+  )
+
   it.each([false, true])(
     "keeps separators with the following item across fragments=%s",
     (fragment) => {
@@ -54,8 +78,12 @@ describe("Breadcrumb wrapping", () => {
           ?.getAttribute("data-testid")
       ).toBe("first")
       for (const [index, segment] of segments.entries()) {
+        expect(segment.getAttribute("role")).toBe("presentation")
         const list = segment.querySelector("ol")
+        expect(list?.getAttribute("role")).toBe("presentation")
+        expect(list?.classList.contains("contents")).toBe(true)
         const [separator, item] = [...(list?.children ?? [])]
+        expect(list?.children).toHaveLength(2)
         expect(separator?.getAttribute("aria-hidden")).toBe("true")
         expect(item?.getAttribute("data-testid")).toBe(
           index === 0 ? "middle" : "current"

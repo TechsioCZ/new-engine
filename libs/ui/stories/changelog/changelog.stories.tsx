@@ -13,6 +13,15 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Breadcrumb v1.0.8
+- Place real separators in the inter-item gap so wrapped destinations align without a hanging spacer, while preserving custom separator content, refs, focus and RTL.
+
+### Tabs v1.2.6
+- Paint overflow cues from the actual scrollable edges, including negative RTL scrolling in WebKit, without covering labels or focus rings. Give Storybook comparisons consistent insets and fitted widths.
+
+### Tour v1.0.11
+- Reserve logical title clearance from the themed close-control target, panel inset and gap so long mobile headings remain readable without covering the close button. Keep internal action constraints in Docs rather than the visible guidance.
+
 ### Breadcrumb v1.0.7
 - Hide only the decorative separator at a wrapped row boundary, preserving its space, every destination and visible focus. Recompute after resizing or font changes without changing the caller's list ref.
 

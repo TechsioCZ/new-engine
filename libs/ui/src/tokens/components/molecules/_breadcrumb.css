@@ -6,11 +6,43 @@
   --outline-breadcrumb-focus-offset: var(--default-ring-offset);
 }
 
-/* Keep each separator with its following item at the list's own gap. */
+@utility breadcrumb-list-sm {
+  --breadcrumb-item-gap: var(--spacing-breadcrumb-sm);
+  --breadcrumb-separator-size: var(--text-breadcrumb-separator-icon-sm);
+}
+
+@utility breadcrumb-list-md {
+  --breadcrumb-item-gap: var(--spacing-breadcrumb-md);
+  --breadcrumb-separator-size: var(--text-breadcrumb-separator-icon-md);
+}
+
+@utility breadcrumb-list-lg {
+  --breadcrumb-item-gap: var(--spacing-breadcrumb-lg);
+  --breadcrumb-separator-size: var(--text-breadcrumb-separator-icon-lg);
+}
+
+@utility breadcrumb-list {
+  /* Preserve the existing two gaps plus default icon between destinations. */
+  --breadcrumb-column-gap: calc(
+    2 *
+    var(--breadcrumb-item-gap) +
+    var(--breadcrumb-separator-size)
+  );
+  gap: var(--breadcrumb-item-gap) var(--breadcrumb-column-gap);
+}
+
 @utility breadcrumb-segment {
-  gap: inherit;
-  /* Preserve its width: hiding decoration must not change where the row wraps. */
-  &[data-wrap-start] > ol > li[aria-hidden="true"]:first-child {
+  position: relative;
+
+  /* Only the destination takes up space, including at the start of a new row. */
+  & > ol > li:first-child {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 100%;
+    inline-size: var(--breadcrumb-column-gap);
+  }
+
+  &[data-wrap-start] > ol > li:first-child {
     visibility: hidden;
   }
 }

@@ -347,9 +347,8 @@ function ControlsExample(props: Omit<TourRootProps, "children" | "steps">) {
           description: (
             <div className="flex flex-col gap-200">
               <p>
-                Try editing with the arrow keys. Update step changes the last
-                step; Jump to end opens it. Replace steps is available there
-                because the active step id must remain in the new list.
+                Edit your name with the arrow keys. Choose Update step to change
+                the final heading, or Jump to end to preview it.
               </p>
               <Input aria-label="Your name" defaultValue="Ada" />
             </div>
@@ -431,7 +430,7 @@ function ControlsExample(props: Omit<TourRootProps, "children" | "steps">) {
 }
 
 export const CustomControls: Story = {
-  parameters: { docs: { description: { story: "Custom tour actions preserve clear back, next and dismissal choices." } } },
+  parameters: { docs: { description: { story: "Custom tour actions preserve clear back, next and dismissal choices. Update step changes the final heading; Jump to end opens that step. Replace steps is enabled there because the active step id must remain in the replacement list." } } },
   render: (args) => <ControlsExample {...args} />,
 }
 
@@ -476,6 +475,18 @@ export const LongContent: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Start tour" }))
     const panel = await within(canvasElement.ownerDocument.body).findByRole("alertdialog", { name: "A guide with longer content" })
+    const title = panel.querySelector<HTMLElement>('[data-part="title"]')
+    if (!title) throw new Error("Missing tour title")
+    const close = within(panel).getByRole("button", { name: "close tour" })
+    const closeRect = close.getBoundingClientRect()
+    const titleRange = title.ownerDocument.createRange()
+    titleRange.selectNodeContents(title)
+    for (const line of titleRange.getClientRects()) {
+      const overlapsClose =
+        line.left < closeRect.right && line.right > closeRect.left &&
+        line.top < closeRect.bottom && line.bottom > closeRect.top
+      await expect(overlapsClose).toBe(false)
+    }
     const description = panel.querySelector<HTMLElement>('[data-part="description"]')
     if (!description) throw new Error("Missing tour description")
     await expect(description).toHaveAccessibleName("Tour guidance")

@@ -28,7 +28,8 @@
   --spacing-tabs-overflow-cue: var(--dimension-12);
 }
 
-/* Local covers hide each edge shadow at its scroll limit, including in RTL.
+/* Local covers are the no-measurement fallback. Measured physical edges replace
+ * them because local backgrounds do not reliably track negative RTL scrolling.
  * Backgrounds stay behind labels and focus rings; no mask or overlay clips them. */
 @utility tabs-list-overflow {
   &[data-orientation="horizontal"] {
@@ -65,6 +66,26 @@
       var(--spacing-tabs-overflow-cue) 100%;
     background-repeat: no-repeat;
     background-attachment: local, local, scroll, scroll;
+
+    &[data-overflow-left] {
+      --tabs-overflow-left-cue: var(--spacing-tabs-overflow-cue);
+      --tabs-overflow-right-cue: var(--spacing-tabs-overflow-cue);
+
+      background-attachment: scroll;
+      background-size:
+        0 100%,
+        0 100%,
+        var(--tabs-overflow-left-cue) 100%,
+        var(--tabs-overflow-right-cue) 100%;
+    }
+
+    &[data-overflow-left="false"] {
+      --tabs-overflow-left-cue: 0px;
+    }
+
+    &[data-overflow-right="false"] {
+      --tabs-overflow-right-cue: 0px;
+    }
   }
 }
 

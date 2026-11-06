@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react"
+import type { Decorator, Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer } from "../../.storybook/decorator"
@@ -31,6 +31,12 @@ export function ProjectTabs() {
     </Tabs>
   )
 }`
+
+const withExampleInset: Decorator = (Story) => (
+  <div className="w-full min-w-0 p-200">
+    <Story />
+  </div>
+)
 
 const meta: Meta<typeof Tabs> = {
   title: "Molecules/Tabs",
@@ -301,6 +307,7 @@ export const AllVariants: Story = {
 
 // Sizes showcase
 export const Sizes: Story = {
+  decorators: [withExampleInset],
   parameters: {
     controls: { disable: true },
     docs: {
@@ -482,6 +489,7 @@ export const Controlled: Story = {
 
 // Justify options
 export const FittedTabs: Story = {
+  decorators: [withExampleInset],
   parameters: {
     controls: { disable: true },
     docs: {
@@ -495,12 +503,7 @@ export const FittedTabs: Story = {
     <VariantContainer>
       <div className="w-full max-w-2xl">
         <h3 className="text-lg font-semibold mb-150">Fitted - Line variant</h3>
-        <Tabs
-          defaultValue="tab1"
-          variant="line"
-          fitted
-          className="w-md max-w-full"
-        >
+        <Tabs defaultValue="tab1" variant="line" fitted>
           <Tabs.List>
             <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
             <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
@@ -544,6 +547,7 @@ export const FittedTabs: Story = {
 
 // Disabled tabs
 export const JustifyOptions: Story = {
+  decorators: [withExampleInset],
   parameters: {
     controls: { disable: true },
     docs: {
@@ -813,6 +817,7 @@ export const SectionedContent: Story = {
 
 
 export const ScrollableAlignment: Story = {
+  decorators: [withExampleInset],
   parameters: {
     controls: { disable: true },
     docs: {
