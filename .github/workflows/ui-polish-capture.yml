@@ -26,9 +26,12 @@ jobs:
           cache: pnpm
       - name: Install the UI toolchain
         run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
-      - name: Capture every business component on both devices
+      # The full Business capture at 06a668e34 covers the unchanged component
+      # tokens. This follow-up captures the three stories refined since then.
+      - name: Capture the refined business pages on both devices
         env:
           VISUAL_BRANDS: business
+          TEST_STORIES: overview-business-theme--playground,pages-e-commerce-dashboard-home--default,pages-e-commerce-orders-dashboard--default
         run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts
       - name: Select shared page and review stories
         run: |
