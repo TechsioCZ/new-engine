@@ -125,7 +125,18 @@
   --padding-select-trigger-sm: var(--padding-input-inline-sm);
   --padding-select-trigger-md: var(--padding-input-inline-md);
   --padding-select-trigger-lg: var(--padding-input-inline-lg);
-  --height-form-control-sm: max(2rem, calc(1lh + 0.5rem));
+  /* Include the border in the fixed field height, just as growing triggers
+   * include it around their line box and block padding. */
+  --height-form-control-sm: max(
+    2rem,
+    calc(
+      1lh +
+      2 *
+      var(--padding-form-control-block-sm) +
+      2 *
+      var(--border-width-form-control)
+    )
+  );
   --height-form-control-md: max(2.5rem, calc(1lh + 0.875rem));
   --height-form-control-lg: max(3rem, calc(1lh + 1rem));
   --padding-button-x-sm: var(--dimension-12);

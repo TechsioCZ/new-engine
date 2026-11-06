@@ -135,6 +135,7 @@ function OrdersDashboard() {
   const [showEndFade, setShowEndFade] = useState(false)
   const [scrollEdge, setScrollEdge] = useState({ top: 0, height: 0 })
   const [pinIdentity, setPinIdentity] = useState(true)
+  const [showFullDates, setShowFullDates] = useState(false)
   const filterValue = <T extends DataTableFilterValue,>(id: string) =>
     (columnFilters.find((filter) => filter.id === id)?.value ?? {}) as T
   const updateFilter = (id: string, value: DataTableFilterValue) =>
@@ -151,6 +152,8 @@ function OrdersDashboard() {
     const table = viewport?.querySelector("table")
     if (!viewport || !table) return
     const measure = () => {
+      // The wider date column fits the complete table budget at this width.
+      setShowFullDates(viewport.clientWidth >= 960)
       setShowScrollHint(viewport.scrollWidth > viewport.clientWidth + 1)
       setShowEndFade(
         viewport.scrollWidth > viewport.clientWidth + Math.abs(viewport.scrollLeft) + 1
@@ -255,9 +258,16 @@ function OrdersDashboard() {
       {
         accessorKey: "placedAt",
         header: "Placed",
-        meta: { type: "date", width: 110 },
+        meta: { type: "date", width: showFullDates ? 170 : 110 },
         cell: (info) => {
           const date = formatDate(info.getValue<string>())
+          if (showFullDates) {
+            return (
+              <time className="whitespace-nowrap" dateTime={info.getValue<string>()}>
+                {date}
+              </time>
+            )
+          }
           const year = date.slice(-4)
           return (
             <time className="flex flex-col gap-50 whitespace-nowrap" dateTime={info.getValue<string>()}>
@@ -268,7 +278,7 @@ function OrdersDashboard() {
         },
       },
     ],
-    [],
+    [showFullDates],
   )
 
   return (
@@ -316,7 +326,7 @@ function OrdersDashboard() {
         />
         <StatCard
           delta="+4"
-          hint="Awaiting fulfilment > 24 h"
+          hint={"Awaiting fulfilment >\u00a024\u00a0h"}
           icon="icon-[mdi--clock-alert-outline]"
           label="At risk"
           trend="down"
@@ -509,13 +519,18 @@ export const Default: Story = {
     await checkScrollHint()
     if (
       canvasElement.ownerDocument.documentElement.dataset.theme === "business" &&
-      (canvasElement.ownerDocument.defaultView?.innerWidth ?? 0) >= 1280
+      viewport.clientWidth >= 960
     ) {
       await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
       await waitFor(() => {
         expect(getComputedStyle(canvas.getByRole("columnheader", { name: "Order" })).boxShadow)
           .toBe("none")
         expect(getComputedStyle(actions).boxShadow).toBe("none")
+        const date = viewport.querySelector("tbody time")
+        if (!date) throw new Error("The Orders fixture must show a placed date.")
+        expect(date.getBoundingClientRect().height).toBeLessThanOrEqual(
+          Number.parseFloat(getComputedStyle(date).lineHeight) + 1
+        )
       })
       const items = canvas.getByRole("button", { name: "Items" })
       await expect(items.getBoundingClientRect().height).toBeLessThanOrEqual(
@@ -529,6 +544,16 @@ export const Default: Story = {
     const panel = canvas.getByRole("region", { name: "Order filters" })
     await expect(panel).toBeVisible()
     await expect(viewport.scrollWidth).toBe(initialWidth)
+    if (canvasElement.ownerDocument.documentElement.dataset.theme === "business") {
+      const controls = [...panel.querySelectorAll<HTMLElement>(
+        'input[aria-label$="filter"], [data-scope="select"][data-part="trigger"], [data-scope="date-picker"][data-part="control"]'
+      )]
+      await waitFor(() => {
+        const heights = controls.map((control) => control.getBoundingClientRect().height)
+        expect(heights.length).toBe(11)
+        expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1)
+      })
+    }
     const orderFilter = within(panel).getByRole("textbox", { name: "Order filter" })
     const firstOrder = orders[0]
     if (!firstOrder) throw new Error("The order fixture must contain a row.")

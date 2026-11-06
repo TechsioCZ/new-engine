@@ -25,7 +25,7 @@ for (const [brand, mode] of [
       frozen: getComputedStyle(element.querySelector("td")).backgroundImage,
     }))
     const hasHover = await page.evaluate(
-      () => matchMedia("(hover: hover)").matches
+      () => matchMedia("(hover: hover) and (pointer: fine)").matches
     )
     await row.locator("td").first().hover()
     if (hasHover) {

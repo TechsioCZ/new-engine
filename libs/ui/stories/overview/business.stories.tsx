@@ -34,7 +34,7 @@ function BusinessReview({ size }: ReviewProps) {
           <div className="flex flex-col gap-50">
             <h2 className="font-semibold text-lg">Workspace form</h2>
             <p className="text-fg-secondary text-sm">
-              An editable example with required-field validation.
+              Edit details and try field validation.
             </p>
           </div>
           {/* This example owns validation for its one required field. */}

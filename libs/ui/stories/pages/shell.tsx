@@ -284,22 +284,24 @@ export function SectionCard({
       {(title || actions) && (
         <div
           className={[
-            "flex flex-wrap items-start justify-between gap-150",
+            "flex min-w-0 flex-col gap-50",
             flush ? "px-250 pt-250" : "",
           ]
             .filter(Boolean)
             .join(" ")}
         >
-          <div className="flex min-w-0 flex-1 basis-3xs flex-col gap-50">
-            {title && <h2 className="font-semibold text-md">{title}</h2>}
-            {description && (
-              <p className="text-fg-secondary text-sm">{description}</p>
-            )}
-          </div>
-          {actions && (
-            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-100">
-              {actions}
+          {(title || actions) && (
+            <div className="flex flex-wrap items-start justify-between gap-150">
+              {title && <h2 className="min-w-0 flex-1 basis-3xs font-semibold text-md">{title}</h2>}
+              {actions && (
+                <div className="ms-auto flex min-w-0 max-w-full flex-wrap items-center gap-100">
+                  {actions}
+                </div>
+              )}
             </div>
+          )}
+          {description && (
+            <p className="text-fg-secondary text-sm">{description}</p>
           )}
         </div>
       )}

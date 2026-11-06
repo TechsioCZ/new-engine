@@ -133,7 +133,11 @@ describe("business theme", () => {
       }
     })
     for (const [name, value] of tokens) {
-      expect(projected.get(name), name).toBe(value)
+      // Formatting adds indentation to multiline calc() values in @scope.
+      // Preserve operators and references while ignoring that indentation.
+      expect(projected.get(name)?.replace(/\s+/g, " ").trim(), name).toBe(
+        value.replace(/\s+/g, " ").trim()
+      )
     }
   })
 
