@@ -319,6 +319,19 @@ export const Default: Story = {
         viewport.clientWidth + 1
       )
     }
+    const actionsBounds = actions.getBoundingClientRect()
+    for (const content of canvasElement.querySelectorAll(
+      '[data-part="actions-cell-content"]'
+    )) {
+      const control = content.firstElementChild
+      if (!control) {
+        throw new Error("An order row is missing its expand control.")
+      }
+      const bounds = control.getBoundingClientRect()
+      await expect(bounds.width).toBeGreaterThan(0)
+      await expect(bounds.left).toBeGreaterThanOrEqual(actionsBounds.left - 1)
+      await expect(bounds.right).toBeLessThanOrEqual(actionsBounds.right + 1)
+    }
     await userEvent.click(filters)
     await expect(canvas.queryByRole("row", { name: "Column filters" })).toBeNull()
     const search = canvas.getByRole("button", { name: "Search workspace" })
@@ -334,5 +347,7 @@ export const Default: Story = {
     await userEvent.keyboard("{Escape}")
     await expect(body.queryByRole("dialog")).toBeNull()
     await expect(search).toHaveFocus()
+    // Verify restoration above, then leave the default capture in a pointer state.
+    await userEvent.click(canvas.getByRole("heading", { name: "Orders" }))
   },
 }

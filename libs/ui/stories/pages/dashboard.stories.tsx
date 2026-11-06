@@ -95,7 +95,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
     >
       <PageHeader
         actions={<></>}
-        description="Saturday, 12 September 2026 · everything below is scoped to the last 30 days."
+        description="Saturday, 12 September 2026"
         meta={
           <Badge size="sm" variant="warning">
             3 alerts

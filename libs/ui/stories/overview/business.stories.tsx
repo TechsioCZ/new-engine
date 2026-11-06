@@ -2,15 +2,14 @@ import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { ActionIcon } from "../../src/atoms/action-icon"
-import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
-import { Hotkeys } from "../../src/atoms/hotkeys"
 import { StatusText } from "../../src/atoms/status-text"
 import { FormCheckbox } from "../../src/molecules/form-checkbox"
 import { FormInput } from "../../src/molecules/form-input"
 import { FormTextarea } from "../../src/molecules/form-textarea"
 import { Switch } from "../../src/molecules/switch"
 import { SelectTemplate } from "../../src/templates/select"
+import { StatusBadge } from "../pages/shell"
 
 type ReviewProps = { size: "sm" | "md" | "lg" }
 
@@ -158,21 +157,22 @@ function BusinessReview({ size }: ReviewProps) {
               <Button isLoading size={size} theme="outlined">
                 Loading example
               </Button>
-              <Hotkeys size="sm">
-                <Hotkeys.Key>⌘</Hotkeys.Key>
-                <Hotkeys.Key>S</Hotkeys.Key>
-              </Hotkeys>
             </div>
           </section>
 
           <section className="flex flex-col gap-200 rounded-lg border border-border-primary bg-surface p-300">
             <h2 className="font-semibold text-lg">Order statuses</h2>
             <div className="flex flex-wrap gap-100">
-              <Badge variant="success">Paid</Badge>
-              <Badge variant="primary">Processing</Badge>
-              <Badge variant="warning">Awaiting payment</Badge>
-              <Badge variant="danger">Cancelled</Badge>
-              <Badge variant="outline">Draft</Badge>
+              {[
+                "paid",
+                "fulfilled",
+                "pending",
+                "refunded",
+                "cancelled",
+                "draft",
+              ].map((status) => (
+                <StatusBadge key={status} status={status} />
+              ))}
             </div>
             <p className="text-fg-secondary text-sm">
               Payment and fulfilment labels.

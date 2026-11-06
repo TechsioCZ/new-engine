@@ -211,8 +211,20 @@ export const Sizes: Story = {
       Number.parseFloat(getComputedStyle(label).fontSize)
     )
     await expect(fonts).toHaveLength(3)
-    await expect(fonts[0]).toBeLessThan(fonts[1] ?? 0)
+    const business =
+      canvasElement.closest('[data-theme="business"]') !== null
+    if (business) {
+      // Compact Business uses the same readable label size for sm and md.
+      await expect(fonts[0]).toBe(fonts[1])
+    } else {
+      await expect(fonts[0]).toBeLessThan(fonts[1] ?? 0)
+    }
     await expect(fonts[1]).toBeLessThan(fonts[2] ?? 0)
+    const heights = canvas.getAllByRole("combobox").map((input) =>
+      input.getBoundingClientRect().height
+    )
+    await expect(heights[0]).toBeLessThanOrEqual(heights[1] ?? 0)
+    await expect(heights[0]).toBeLessThan(heights[2] ?? 0)
   },
 }
 

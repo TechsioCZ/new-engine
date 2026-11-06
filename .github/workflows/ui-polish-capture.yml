@@ -18,13 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { label: business-1, brand: business, shard: "1/4", selection: all }
-          - { label: business-2, brand: business, shard: "2/4", selection: all }
-          - { label: business-3, brand: business, shard: "3/4", selection: all }
-          - { label: business-4, brand: business, shard: "4/4", selection: all }
-          - { label: base-shared, brand: base, shard: "", selection: shared }
-          - { label: neo-shared, brand: neo, shard: "", selection: shared }
-          - { label: akros-shared, brand: akros, shard: "", selection: shared }
+          # The full component capture at f3255be covers the unchanged runtime.
+          # Only these four stories changed after that capture.
+          - { label: refinements, brand: "base,neo,business,akros", shard: "" }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
       PLAYWRIGHT_WORKERS: "2"
@@ -41,21 +37,23 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
       - name: Build the checked-out Storybook
         run: pnpm --dir libs/ui exec storybook build
-      - name: Select shared page and review stories
-        if: matrix.selection == 'shared'
+      - name: Select the refined stories
         run: |
           node --input-type=module <<'JS' >> "$GITHUB_ENV"
           import fs from "node:fs";
           import { visualStories } from "./libs/ui/test/visual-completion.mjs";
           const index = JSON.parse(fs.readFileSync("libs/ui/storybook-static/index.json", "utf8"));
-          const stories = visualStories(index.entries).filter(({ title }) =>
-            title.startsWith("Pages/") ||
-            title === "Organisms/DataTable" ||
-            title === "Overview/Component Comparison" ||
-            title === "Overview/Business theme"
-          );
-          if (!stories.length) throw new Error("No shared review stories were selected");
-          console.log(`TEST_STORIES=${stories.map(({ id }) => id).join(",")}`);
+          const available = new Set(visualStories(index.entries).map(({ id }) => id));
+          const ids = [
+            "overview-business-theme--playground",
+            "pages-e-commerce-dashboard-home--default",
+            "pages-e-commerce-orders-dashboard--default",
+            "molecules-combobox--sizes",
+          ];
+          for (const id of ids) {
+            if (!available.has(id)) throw new Error(`Missing review story: ${id}`);
+          }
+          console.log(`TEST_STORIES=${ids.join(",")}`);
           JS
       - name: Capture candidate screenshots in the pinned runner
         env:
