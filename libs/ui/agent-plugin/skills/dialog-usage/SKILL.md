@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/dialog"
   contributor_sources: "libs/ui/src/molecules/dialog.tsx libs/ui/src/tokens/components/molecules/_dialog.css libs/ui/stories/molecules/dialog.stories.tsx libs/ui/src/molecules/dialog.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -63,6 +63,22 @@ where actions and feedback live). This section applies them to `Dialog`.
 **Copy and states**
 
 - Buttons follow ux-guidelines/ux-writing#button-labels; descriptions are one or two sentences about consequences.
+
+**Behaviour (from the UX spec)**
+
+- On close focus returns to the trigger; if the trigger is gone (its row was deleted), pass `finalFocusEl` pointing at the next logical element.
+- Closing or Escape never confirms. A failed save keeps the dialog open with the draft and the error on the field.
+- Use `behavior="modeless"` only when working beside the dialog is the point; modal is the default.
+- `placement="right"` is the current, canonical CRUD drawer API — not legacy, whatever older design notes say.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `behavior=modal` | `behavior="modal"` (default) |
+| — (not in Figma) | `behavior="modeless"`, `placement`, `size`, `role="alertdialog"` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Dialog → UX guidelines*.
 
 ## Setup
 

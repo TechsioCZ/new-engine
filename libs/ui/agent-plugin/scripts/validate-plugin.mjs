@@ -25,6 +25,7 @@ import {
 import { dirname, join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
+  AUTHORED_SKILLS,
   validatePortableSkill,
   validateSkillPrerequisites,
 } from "./lib/skill-frontmatter.mjs"
@@ -196,6 +197,99 @@ if (existsSync(skillsDir)) {
       }
     } catch (error) {
       fail(`skills/${name}/SKILL.md`, error.message)
+    }
+  }
+}
+
+// UX guidelines: every component usage skill ships the component's UX page as
+// references/ux.md (the same file Storybook renders as "<Component> → UX guidelines").
+// Skills still waiting for their page are listed below; the list may only shrink.
+const UX_PAGE_PENDING = new Set([
+  "accordion-usage",
+  "action-icon-usage",
+  "availability-status-usage",
+  "badge-usage",
+  "breadcrumb-usage",
+  "carousel-usage",
+  "cascade-select-usage",
+  "chart-usage",
+  "checkbox-usage",
+  "color-select-usage",
+  "combobox-usage",
+  "command-usage",
+  "date-picker-usage",
+  "drawer-usage",
+  "facet-filter-panel-usage",
+  "file-upload-usage",
+  "footer-usage",
+  "form-checkbox-usage",
+  "form-error-summary-usage",
+  "form-input-usage",
+  "form-numeric-input-usage",
+  "form-textarea-usage",
+  "gallery-usage",
+  "header-usage",
+  "hotkeys-usage",
+  "icon-usage",
+  "image-usage",
+  "label-usage",
+  "line-item-usage",
+  "link-button-usage",
+  "link-usage",
+  "menu-usage",
+  "numeric-input-usage",
+  "pagination-usage",
+  "phone-input-usage",
+  "popover-usage",
+  "price-block-usage",
+  "product-card-usage",
+  "quantity-field-usage",
+  "radio-card-usage",
+  "radio-group-usage",
+  "rating-usage",
+  "search-form-usage",
+  "search-suggestions-usage",
+  "sidebar-usage",
+  "skeleton-usage",
+  "slider-usage",
+  "status-text-usage",
+  "steps-usage",
+  "switch-usage",
+  "table-usage",
+  "tabs-usage",
+  "textarea-usage",
+  "toast-usage",
+  "tooltip-usage",
+  "totals-summary-usage",
+  "tour-usage",
+  "tree-view-usage",
+  "vertical-navigation-usage",
+])
+if (existsSync(skillsDir)) {
+  for (const name of readdirSync(skillsDir)) {
+    if (!name.endsWith("-usage") || AUTHORED_SKILLS.has(name)) {
+      continue
+    }
+    const hasPage = existsSync(join(skillsDir, name, "references", "ux.md"))
+    if (!(hasPage || UX_PAGE_PENDING.has(name))) {
+      fail(
+        `skills/${name}`,
+        "missing references/ux.md (the component's UX guidelines page)"
+      )
+    }
+    if (hasPage && UX_PAGE_PENDING.has(name)) {
+      fail(
+        `skills/${name}`,
+        "has references/ux.md — remove it from UX_PAGE_PENDING in validate-plugin.mjs"
+      )
+    }
+  }
+  for (const name of UX_PAGE_PENDING) {
+    if (!existsSync(join(skillsDir, name, "SKILL.md"))) {
+      fail(
+        "validate-plugin.mjs",
+        `UX_PAGE_PENDING lists unknown skill "${name}"`
+      )
     }
   }
 }

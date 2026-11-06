@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### UX guidelines (docs only)
+- New \`UX/\` section in Storybook: Introduction, Writing, Formatting, States, Feedback and actions, Component selection, and the new Value lifecycle and Accessibility pages.
+- Button, Input, Dialog, Select and DataTable have a **UX guidelines** page next to their stories, edited from the Figma UX descriptions in TechsioCZ/UX_docs. Each page maps Figma variants to code props.
+- The same Markdown ships in the techsio-ui-kit-ai plugin (v0.3.0): \`ux-guidelines\` references and \`<component>-usage/references/ux.md\`.
+- Gallery guidance no longer promises zoom or fullscreen; Steps guidance names steps with short nouns consistently.
+
 ### SearchForm v1.1.2
 - Error and hint messages are linked to the search field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
 

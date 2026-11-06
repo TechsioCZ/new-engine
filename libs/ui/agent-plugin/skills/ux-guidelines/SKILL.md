@@ -12,7 +12,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux"
-  resources: "references/component-selection.md references/feedback-and-actions.md references/formatting.md references/states.md references/ux-writing.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  resources: "references/introduction.md references/accessibility.md references/component-selection.md references/feedback-and-actions.md references/formatting.md references/states.md references/ux-writing.md references/value-lifecycle.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "../../references/consumer_app_usage_rules.md"
   contributor_sources: "libs/ui/stories/pages/crud-workflow.stories.tsx libs/ui/stories/pages/cms-record-editor.stories.tsx libs/ui/stories/pages/cms-content-list.stories.tsx libs/ui/stories/pages/settings.stories.tsx libs/ui/stories/pages/system-states.stories.tsx libs/ui/stories/pages/layouts.stories.tsx libs/ui/stories/pages/checkout.stories.tsx libs/ui/src/molecules/toast.tsx libs/ui/src/molecules/dialog.tsx libs/ui/src/organisms/table.tsx libs/ui/src/organisms/data-table.tsx"
   audience: "consumer"
@@ -29,7 +29,13 @@ consistent. Each component skill ends with a **UX/UI guidelines** section that
 applies these rules to that component.
 
 Load order: `component-usage-ux` (pick the component) → this skill (the house
-rules) → `<component>-usage` (the API).
+rules) → `<component>-usage` (the API). These rules are level 2 of the three
+levels in [introduction](references/introduction.md): the component API wins
+over them, and they win over a component's own UX page.
+
+The same reference files render in Storybook under `UX/`, and each component
+with a UX page ships it as `<component>-usage/references/ux.md`. Load that file
+when reviewing a component's anatomy, states or behaviour in depth.
 
 ## The rules in one screen
 
@@ -50,6 +56,8 @@ rules) → `<component>-usage` (the API).
 | Destructive | Separate from Save; confirm irreversible deletes in an `alertdialog` that names the record | [feedback-and-actions](references/feedback-and-actions.md#destructive-actions) |
 | Toasts | One `<Toaster />`, bottom-end (bottom-right), for confirming mutations; never for validation | [feedback-and-actions](references/feedback-and-actions.md#choosing-the-feedback-surface) |
 | Component choice | Pick by intent; each component has a documented "use instead" | [component-selection](references/component-selection.md) |
+| Draft vs confirmed | Hover, focus and browsing never commit; failure keeps the draft; Cancel restores the last confirmed value; an older response never overwrites a newer one | [value-lifecycle](references/value-lifecycle.md) |
+| Accessibility | Lasting names (not placeholders); focus ≠ selected ≠ hover; nothing hover- or drag-only; never colour alone | [accessibility](references/accessibility.md) |
 
 ## Core Patterns
 
@@ -164,6 +172,8 @@ bottom-right, consistently across the app.
 [ ] Destructive actions are separated and confirmed (or undoable)
 [ ] Empty, loading and error states exist for every list and async section
 [ ] The component matches its intent (see component-selection)
+[ ] Failed commits keep the user's draft; stale async responses are discarded
+[ ] Icon-only controls name their action and object; nothing is hover- or drag-only
 ```
 
 ## Shared control contracts

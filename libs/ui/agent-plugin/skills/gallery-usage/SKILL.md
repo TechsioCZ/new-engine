@@ -31,7 +31,7 @@ where actions and feedback live). This section applies them to `Gallery`.
 
 **Use it when**
 
-- Product detail images with thumbnails, zoom/fullscreen and variant switching.
+- Product detail images with thumbnails and variant switching. Gallery has no zoom or fullscreen view; don't promise either in copy or icons.
 
 **Use something else when**
 

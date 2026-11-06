@@ -15,6 +15,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/select.tsx"
   - "libs/ui/src/tokens/components/molecules/_select.css"
@@ -61,6 +63,26 @@ where actions and feedback live). This section applies them to `Select`.
 **Copy and states**
 
 - Options in sentence case, parallel grammar; the same option names as the status vocabulary.
+
+**Behaviour (from the UX spec)**
+
+- Opening the list and moving through options never commits; closing without choosing keeps the previous value.
+- Clearing a required Select leaves a missing value that validation reports, never an "empty" option that looks chosen.
+- A saved value that is no longer in `items` is shown as unavailable with the fix — don't silently drop or replace it.
+- With remote options, show waiting, no matches and error separately, and discard responses older than the latest query.
+- Don't use `size="xs"` for app form fields; sm/md/lg are canonical.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=xs…lg` | `size` |
+| `state=error` / `success` / `warning` | `validateStatus` |
+| `state=disabled` | `disabled` |
+| `state=readonly` | `readOnly` |
+| `required=true` | `required` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Select → UX guidelines*.
 
 ## Setup
 

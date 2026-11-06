@@ -1,3 +1,5 @@
+<!-- Source: house rules authored in libs/ui (no UX_docs counterpart). Storybook: UX/Writing. -->
+
 # UX writing
 
 Copy is part of the component API: the same action must be called the same

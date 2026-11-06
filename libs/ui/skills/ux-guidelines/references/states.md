@@ -1,3 +1,5 @@
+<!-- Source: house rules authored in libs/ui (no UX_docs counterpart). Storybook: UX/States. -->
+
 # Interaction states
 
 Every interactive component has the same state vocabulary. Style comes from
