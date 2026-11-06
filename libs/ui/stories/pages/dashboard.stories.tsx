@@ -5,28 +5,20 @@ import { Badge } from "../../src/atoms/badge"
 
 import { Icon } from "../../src/atoms/icon"
 import { Skeleton } from "../../src/atoms/skeleton"
-import { Chart } from "../../src/molecules/chart"
 import { Popover } from "../../src/molecules/popover"
 import { Tabs } from "../../src/molecules/tabs"
 import { Table } from "../../src/organisms/table"
 import {
   adminNav,
   currency,
+  metricCurrency,
   orders,
   products,
-  revenueByChannel,
   formatDate,
 } from "./data"
+import { RevenueChart } from "./revenue-chart"
 import {
-  Brand,
-  Frame,
-  GlobalSearch,
-  NavDrawer,
-  NavList,
-  Panel,
-  TopBar,
-} from "./frame"
-import {
+  AdminShell,
   PageHeader,
   SectionCard,
   StatCard,
@@ -95,19 +87,10 @@ function DashboardPage({ loading }: { loading?: boolean }) {
   const [nav, setNav] = useState("dashboard")
 
   return (
-    <Frame
-      left={
-        <Panel label="Main navigation" side="start">
-          <Brand />
-          <NavList nav={adminNav} onSelect={setNav} selected={nav} />
-        </Panel>
-      }
-      top={
-        <TopBar
-          center={<GlobalSearch />}
-          start={<NavDrawer nav={adminNav} onSelect={setNav} selected={nav} />}
-        />
-      }
+    <AdminShell
+      nav={adminNav}
+      onNavChange={setNav}
+      selectedNav={nav}
     >
       <PageHeader
         actions={<></>}
@@ -122,11 +105,11 @@ function DashboardPage({ loading }: { loading?: boolean }) {
 
       <SectionCard
         actions={null}
-        description="Things that will get worse if nobody touches them today."
+        description="Resolve these items to keep orders moving."
         title="Needs attention"
       >
-        <div className="flex flex-col gap-150">
-          <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
+        <div className="flex flex-col divide-y divide-border-primary">
+          <div className="flex items-center gap-150 py-150">
             <Icon
               className="text-fg-accent-danger"
               icon="icon-[mdi--alert-circle-outline]"
@@ -136,7 +119,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
               12 marketplace SKUs rejected by the feed since 9 September
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
+          <div className="flex items-center gap-150 py-150">
             <Icon
               className="text-fg-accent-warning"
               icon="icon-[mdi--clock-alert-outline]"
@@ -146,7 +129,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
               17 paid orders have been awaiting fulfilment for over 24 hours
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
+          <div className="flex items-center gap-150 py-150">
             <Icon
               className="text-fg-accent-warning"
               icon="icon-[mdi--package-variant-closed-remove]"
@@ -166,7 +149,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           icon="icon-[mdi--cash-multiple]"
           label="Revenue"
           trend="up"
-          value={currency.format(327_400)}
+          value={metricCurrency.format(327_400)}
         />
         <StatCard
           delta="+3.1%"
@@ -182,7 +165,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           icon="icon-[mdi--calculator-variant-outline]"
           label="Average order"
           trend="up"
-          value={currency.format(135)}
+          value={metricCurrency.format(135)}
         />
         <StatCard
           delta="−1.8%"
@@ -203,7 +186,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
               title="How revenue is counted"
             />
           }
-          description="Stacked by channel — one measure, one scale."
+          description="Revenue by sales channel, April to September."
           title="Revenue trend"
         >
           {loading ? (
@@ -211,17 +194,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
               <Skeleton.Rectangle />
             </Skeleton>
           ) : (
-            <Chart
-              ariaLabel="Monthly revenue by sales channel"
-              data={revenueByChannel}
-              formatValue={(value) => `${Number(value) / 1000}k €`}
-              height={260}
-              legendLabel="Channel"
-              series="channel"
-              type="area"
-              x="month"
-              y="revenue"
-            />
+            <RevenueChart />
           )}
         </SectionCard>
 
@@ -255,7 +228,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
       </div>
 
       <SectionCard
-        description="Two questions that share a shape, so they share a widget."
+        description="Low stock and best sellers over the last 30 days."
         title="Catalogue"
       >
         <Tabs defaultValue="low-stock" variant="line">
@@ -320,7 +293,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           </Tabs.Content>
         </Tabs>
       </SectionCard>
-    </Frame>
+    </AdminShell>
   )
 }
 

@@ -43,21 +43,26 @@ const declarations = (entries, includeLiterals = false) =>
     .join("\n")
 const corrections = new Map()
 const brandCorrections = new Map()
-postcss
-  .parse(readFileSync(path.join(root, "_foundation-overrides.css"), "utf8"))
-  .walkDecls((decl) => {
-    if (!decl.prop.startsWith("--")) {
-      return
-    }
-    const selector = decl.parent.selector
-    if (selector?.startsWith("[data-theme=")) {
-      const entries = brandCorrections.get(selector) ?? new Map()
-      entries.set(decl.prop, decl.value)
-      brandCorrections.set(selector, entries)
-    } else if (decl.parent.name === "theme" || selector?.includes(":root")) {
-      corrections.set(decl.prop, decl.value)
-    }
-  })
+for (const file of ["_foundation-overrides.css", "_business.css"]) {
+  postcss
+    .parse(readFileSync(path.join(root, file), "utf8"))
+    .walkDecls((decl) => {
+      if (!decl.prop.startsWith("--")) {
+        return
+      }
+      const selector = decl.parent.selector
+      if (
+        selector?.startsWith("[data-theme=") &&
+        decl.parent.parent?.type !== "atrule"
+      ) {
+        const entries = brandCorrections.get(selector) ?? new Map()
+        entries.set(decl.prop, decl.value)
+        brandCorrections.set(selector, entries)
+      } else if (decl.parent.name === "theme" || selector?.includes(":root")) {
+        corrections.set(decl.prop, decl.value)
+      }
+    })
+}
 const brands = postcss.parse(
   readFileSync(path.join(root, "figma/brand-overrides.css"), "utf8")
 )

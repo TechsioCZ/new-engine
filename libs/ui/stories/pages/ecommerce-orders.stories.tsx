@@ -1,8 +1,8 @@
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useMemo, useState } from "react"
+import { expect, userEvent, within } from "storybook/test"
 
-import { Chart } from "../../src/molecules/chart"
 import { Table } from "../../src/organisms/table"
 import type { ColumnDef } from "../../src/organisms/data-table"
 import { DataTable } from "../../src/organisms/data-table"
@@ -10,13 +10,14 @@ import {
   adminNav,
   channelOptions,
   currency,
+  metricCurrency,
   type Order,
   orderLines,
   orderStatusOptions,
   orders,
-  revenueByChannel,
   formatDate,
 } from "./data"
+import { RevenueChart } from "./revenue-chart"
 import {
   AdminShell,
   PageHeader,
@@ -66,13 +67,14 @@ type Story = StoryObj
 
 function OrdersDashboard() {
   const [nav, setNav] = useState("sales-orders")
+  const [showFilters, setShowFilters] = useState(false)
 
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
     () => [
       {
         accessorKey: "number",
         header: "Order",
-        meta: { type: "string", width: 130 },
+        meta: { type: "string", width: 100 },
         cell: (info) => (
           <span className="font-medium">{info.getValue<string>()}</span>
         ),
@@ -91,26 +93,26 @@ function OrdersDashboard() {
         ),
       },
       {
-        accessorKey: "channel",
-        header: "Channel",
-        meta: { type: "enum", options: channelOptions, width: 150 },
-      },
-      {
-        accessorKey: "items",
-        header: "Items",
-        meta: { type: "int", align: "end", width: 120 },
-      },
-      {
-        accessorKey: "total",
-        header: "Total",
-        meta: { type: "number", align: "end", width: 150 },
-        cell: (info) => currency.format(info.getValue<number>()),
-      },
-      {
         accessorKey: "status",
         header: "Status",
         meta: { type: "enum", options: orderStatusOptions, width: 140 },
         cell: (info) => <StatusBadge status={info.getValue<string>()} />,
+      },
+      {
+        accessorKey: "channel",
+        header: "Channel",
+        meta: { type: "enum", options: channelOptions, width: 140 },
+      },
+      {
+        accessorKey: "items",
+        header: "Items",
+        meta: { type: "int", align: "end", width: 80 },
+      },
+      {
+        accessorKey: "total",
+        header: "Total",
+        meta: { type: "number", align: "end", width: 110 },
+        cell: (info) => currency.format(info.getValue<number>()),
       },
       {
         accessorKey: "placedAt",
@@ -147,7 +149,7 @@ function OrdersDashboard() {
           icon="icon-[mdi--cash-multiple]"
           label="Revenue"
           trend="up"
-          value={currency.format(327_400)}
+          value={metricCurrency.format(327_400)}
         />
         <StatCard
           delta="+3.1%"
@@ -176,29 +178,21 @@ function OrdersDashboard() {
       </StatRow>
 
       <SectionCard
-        description="Stacked by channel — one measure, one scale, no dual axes."
+        description="Revenue by sales channel, April to September."
         title="Revenue by channel"
       >
-        <Chart
-          ariaLabel="Monthly revenue by sales channel"
-          data={revenueByChannel}
-          formatValue={(value) => `${Number(value) / 1000}k €`}
-          height={280}
-          legendLabel="Channel"
-          series="channel"
-          type="area"
-          x="month"
-          y="revenue"
-          yLabel="Revenue"
-        />
+        <RevenueChart height={160} />
       </SectionCard>
 
       <SectionCard flush>
+        <p className="px-200 pt-150 text-fg-secondary text-xs lg:hidden">
+          Scroll horizontally to see all order details.
+        </p>
         <DataTable
           columnPinning={{ start: ["number"], end: [] }}
           columns={columns}
           data={orders}
-          enableColumnFilters
+          enableColumnFilters={showFilters}
           enableColumnPinning
           enableExpanding
           enableGlobalFilter
@@ -206,6 +200,16 @@ function OrdersDashboard() {
           enableSorting
           getRowId={(row) => row.id}
           getRowLabel={(row) => `Order ${row.original.number}`}
+          toolbarActions={[
+            {
+              id: "filters",
+              label: "Filters",
+              icon: "icon-[mdi--filter-variant]",
+              theme: "outlined",
+              "aria-pressed": showFilters,
+              onClick: () => setShowFilters((visible) => !visible),
+            },
+          ]}
           renderExpandedRow={(row) => {
             const lines = orderLines.filter(
               (line) => line.orderId === row.original.id,
@@ -276,4 +280,26 @@ export const Default: Story = {
   },
 
   render: () => <OrdersDashboard />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const filters = canvas.getByRole("button", { name: "Filters" })
+    await expect(filters).toHaveAttribute("aria-pressed", "false")
+    await userEvent.click(filters)
+    await expect(canvas.getByRole("row", { name: "Column filters" })).toBeVisible()
+    await userEvent.click(filters)
+    await expect(canvas.queryByRole("row", { name: "Column filters" })).toBeNull()
+    const search = canvas.getByRole("button", { name: "Search workspace" })
+    await userEvent.click(search)
+    const body = within(canvasElement.ownerDocument.body)
+    const dialog = body.getByRole("dialog", { name: "Workspace search" })
+    const field = within(dialog).getByRole("searchbox", {
+      name: "Search workspace records",
+    })
+    await expect(field).toBeVisible()
+    await userEvent.type(field, "Nora")
+    await expect(field).toHaveValue("Nora")
+    await userEvent.keyboard("{Escape}")
+    await expect(body.queryByRole("dialog")).toBeNull()
+    await expect(search).toHaveFocus()
+  },
 }

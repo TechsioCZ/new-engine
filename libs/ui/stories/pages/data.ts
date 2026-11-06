@@ -793,6 +793,12 @@ export const currency = new Intl.NumberFormat("en-GB", {
   maximumFractionDigits: 2,
 })
 
+export const metricCurrency = new Intl.NumberFormat("en-GB", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+})
+
 export const compactNumber = new Intl.NumberFormat("en-GB", {
   notation: "compact",
 })

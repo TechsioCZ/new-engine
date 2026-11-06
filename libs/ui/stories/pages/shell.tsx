@@ -334,35 +334,41 @@ export function StatCard({
   const trendVariant = trendVariants[trend]
 
   return (
-    <div className="flex min-w-0 flex-1 basis-3xs flex-col gap-100 rounded-lg border border-border-primary bg-surface p-200">
+    <div className="flex min-w-0 flex-col gap-100 rounded-lg border border-border-primary bg-surface p-200">
       <div className="flex items-center gap-100 text-fg-secondary">
         {icon && <Icon icon={icon} size="sm" />}
         <span className="text-sm">{label}</span>
       </div>
-      <div className="flex flex-wrap items-baseline gap-150">
+      <div className="flex min-w-0 items-baseline">
         <span
           className={
             compact
               ? "whitespace-nowrap font-semibold text-md"
-              : "font-semibold text-xl"
+              : "font-semibold text-lg tabular-nums tracking-tight sm:text-xl"
           }
         >
           {value}
         </span>
-        {delta && (
-          <Badge size="sm" variant={trendVariant}>
-            {delta}
-          </Badge>
-        )}
       </div>
-      {hint && <span className="text-fg-secondary text-xs">{hint}</span>}
+      {(delta || hint) && (
+        <div className="flex flex-wrap items-center gap-100">
+          {delta && (
+            <Badge size="sm" variant={trendVariant}>
+              {delta}
+            </Badge>
+          )}
+          {hint && <span className="text-fg-secondary text-xs">{hint}</span>}
+        </div>
+      )}
     </div>
   )
 }
 
 /** Responsive KPI row — tiles wrap instead of shrinking below readability. */
 export function StatRow({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap gap-200">{children}</div>
+  return (
+    <div className="grid grid-cols-2 gap-200 xl:grid-cols-4">{children}</div>
+  )
 }
 
 type EmptyStateProps = {
@@ -466,7 +472,7 @@ const statusVariants: Record<string, BadgeVariant> = {
   pending: "warning",
   archived: "outline",
   discontinued: "outline",
-  refunded: "warning",
+  refunded: "outline",
   cancelled: "danger",
   churned: "danger",
 }
