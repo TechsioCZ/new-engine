@@ -124,7 +124,13 @@ const meta = {
   },
   decorators: [
     (Story, { args }) => (
-      <div className="mx-auto w-full max-w-sm">
+      <div
+        className={
+          args.defaultOpen && !args.readOnly
+            ? "mx-auto min-h-screen w-full max-w-sm"
+            : "mx-auto w-full max-w-sm"
+        }
+      >
         <Story
           args={{
             ...args,
@@ -215,6 +221,20 @@ const meta = {
 
 export default meta
 type Story = StoryObj<typeof meta>
+
+const checkOpenSuggestions = (text: string): NonNullable<Story["play"]> =>
+  async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(canvas.getByRole("combobox", { name: "Search catalog" })).toHaveAttribute("aria-expanded", "true")
+    await expect(await body.findByText(text, { exact: true })).toBeVisible()
+    const panel = canvasElement.querySelector('[data-scope="combobox"][data-part="content"]')
+    if (!panel) throw new Error("Missing search suggestions panel")
+    const root = canvasElement.getBoundingClientRect()
+    const popup = panel.getBoundingClientRect()
+    await expect(popup.bottom).toBeLessThanOrEqual(root.bottom)
+    await expect(popup.right).toBeLessThanOrEqual(root.right)
+  }
 
 function FilteredCatalog(args: SearchSuggestionsProps<ProductDetails>) {
   const [query, setQuery] = useState("")
@@ -332,9 +352,11 @@ export const GroupedResults: Story = {
     },
   },
   args: { defaultOpen: true },
+  play: checkOpenSuggestions("Everyday trainers"),
 }
 
 export const WithoutGroupLabels: Story = {
+  play: checkOpenSuggestions("Footwear"),
   parameters: {
     docs: {
       description: {
@@ -357,6 +379,7 @@ export const WithoutGroupLabels: Story = {
 }
 
 export const Loading: Story = {
+  play: checkOpenSuggestions("Searching catalog..."),
   parameters: {
     docs: {
       description: {
@@ -373,6 +396,7 @@ export const Loading: Story = {
 }
 
 export const Empty: Story = {
+  play: checkOpenSuggestions("No matching products"),
   parameters: {
     docs: {
       description: {
@@ -390,6 +414,7 @@ export const Empty: Story = {
 }
 
 export const ErrorWithRetry: Story = {
+  play: checkOpenSuggestions("Search is temporarily unavailable"),
   parameters: {
     docs: {
       description: {
@@ -416,6 +441,7 @@ export const ErrorWithRetry: Story = {
 }
 
 export const NarrowLayout: Story = {
+  play: checkOpenSuggestions("Everyday trainers"),
   parameters: {
     docs: {
       description: {

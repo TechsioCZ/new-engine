@@ -1,5 +1,6 @@
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
+import { expect, within } from "storybook/test"
 
 import { Skeleton } from "../../../src/atoms/skeleton"
 import { Chart } from "../../../src/molecules/chart"
@@ -286,6 +287,17 @@ function HomePage({ loading }: { loading?: boolean }) {
   )
 }
 
+const checkRevenueFits: NonNullable<Story["play"]> = async ({ canvasElement }) => {
+  const amount = within(canvasElement).getByText(czk.format(2_513_000))
+  const container = amount.parentElement
+  if (!container) throw new Error("Missing revenue value container")
+  await expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth + 1)
+  const valueBox = amount.getBoundingClientRect()
+  const bounds = container.getBoundingClientRect()
+  await expect(valueBox.left).toBeGreaterThanOrEqual(bounds.left)
+  await expect(valueBox.right).toBeLessThanOrEqual(bounds.right + 1)
+}
+
 export const Default: Story = {
   parameters: {
     docs: {
@@ -297,6 +309,7 @@ export const Default: Story = {
   },
 
   render: () => <HomePage />,
+  play: checkRevenueFits,
 }
 
 export const Loading: Story = {
@@ -310,4 +323,5 @@ export const Loading: Story = {
     },
   },
   render: () => <HomePage loading />,
+  play: checkRevenueFits,
 }

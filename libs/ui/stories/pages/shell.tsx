@@ -365,9 +365,24 @@ export function StatCard({
 }
 
 /** Responsive KPI row — tiles wrap instead of shrinking below readability. */
-export function StatRow({ children }: { children: ReactNode }) {
+export function StatRow({
+  children,
+  mobileColumns = 1,
+}: {
+  children: ReactNode
+  /** Two columns suit short metrics; long localized amounts need full width. */
+  mobileColumns?: 1 | 2
+}) {
   return (
-    <div className="grid grid-cols-2 gap-200 xl:grid-cols-4">{children}</div>
+    <div
+      className={
+        mobileColumns === 2
+          ? "grid grid-cols-2 gap-200 xl:grid-cols-4"
+          : "grid grid-cols-1 gap-200 sm:grid-cols-2 xl:grid-cols-4"
+      }
+    >
+      {children}
+    </div>
   )
 }
 

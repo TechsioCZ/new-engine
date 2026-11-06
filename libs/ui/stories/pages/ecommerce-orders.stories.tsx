@@ -163,7 +163,7 @@ function OrdersDashboard() {
         title="Orders"
       />
 
-      <StatRow>
+      <StatRow mobileColumns={2}>
         <StatCard
           delta="+12.4%"
           hint="vs. previous 30 days"

@@ -961,7 +961,7 @@ test.describe
                 actual = await root.screenshot(options)
               }
               await beforeCapture?.()
-              if (fullPage) {
+              if (fullPage && suffix) {
                 const surfaces = await visibleFloatingSurfaces(page)
                 assertFloatingContainment(surfaces, PNG.sync.read(actual))
               }
@@ -974,7 +974,13 @@ test.describe
               expect(snapshot.passed, snapshot.message).toBe(true)
             }
           }
-          await capture()
+          // Locator screenshots scroll oversized roots into view and move sticky
+          // page chrome into the middle of the PNG. Capture pages from the origin.
+          const captureDocument = story.title.startsWith("Pages/")
+          if (captureDocument) {
+            await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }))
+          }
+          await capture("", captureDocument)
           const hasVisiblePortal = (await visibleFloatingSurfaces(page)).some(
             (surface) => surface.external
           )

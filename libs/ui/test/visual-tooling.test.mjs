@@ -1131,6 +1131,13 @@ test("floating captures reject missing, clipped and out-of-PNG content or positi
   }
 })
 
+test("page captures start at the document origin instead of scrolling an oversized root", () => {
+  const primary = read("./visual.spec.ts")
+  assert.match(primary, /const captureDocument = story.title.startsWith\("Pages\/"\)/)
+  assert.match(primary, /window.scrollTo\(\{ top: 0, left: 0, behavior: "instant" \}\)/)
+  assert.match(primary, /await capture\("", captureDocument\)/)
+})
+
 test("primary screenshot comparisons retain story annotations and deterministic popup checkpoints", () => {
   const primary = read("./visual.spec.ts")
   assert.match(primary, /type: "visual-story-id",\s+description: story.id/)

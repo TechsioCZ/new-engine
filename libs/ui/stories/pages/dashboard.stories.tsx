@@ -144,7 +144,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         </div>
       </SectionCard>
 
-      <StatRow>
+      <StatRow mobileColumns={2}>
         <StatCard
           delta="+12.4%"
           hint="vs. previous 30 days"
