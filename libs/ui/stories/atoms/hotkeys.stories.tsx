@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { StrictMode, useEffect, useRef, useState } from "react"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Checkbox } from "../../src/atoms/checkbox"
 import { Hotkeys, type HotkeysProps } from "../../src/atoms/hotkeys"
@@ -192,8 +192,10 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="mx-auto w-full max-w-md">
-        <Story />
+      <div className="p-150">
+        <div className="mx-auto w-full max-w-md">
+          <Story />
+        </div>
       </div>
     ),
   ],
@@ -374,7 +376,9 @@ function PlatformsExample() {
         Saved:{" "}
         <output data-testid="hotkeys-platform-save-count">{count}</output>
       </p>
-      <VariantContainer>
+      {/* Short previews keep one even rhythm; the shared matrix spacing is
+          sized for full component variants. */}
+      <div className="flex flex-col gap-300">
         <VariantGroup title="macOS">
           <Hotkeys hotkey="mod+S" formatOptions={{ platform: "mac" }} />
         </VariantGroup>
@@ -384,7 +388,7 @@ function PlatformsExample() {
         <VariantGroup title="Linux">
           <Hotkeys hotkey="mod+S" formatOptions={{ platform: "linux" }} />
         </VariantGroup>
-      </VariantContainer>
+      </div>
     </div>
   )
 }
@@ -580,7 +584,7 @@ function LifecycleRegistrations({ store }: { store: HotkeyStore }) {
   const registrations = useHotkeyRegistrations({ store })
   return (
     <div className="flex flex-col gap-200">
-      <div className="flex flex-wrap gap-100">
+      <div className="flex flex-wrap gap-150">
         <Button onClick={() => setAmount((value) => value + 1)}>
           Increase amount
         </Button>
@@ -601,15 +605,26 @@ function LifecycleRegistrations({ store }: { store: HotkeyStore }) {
           Toggle keyup
         </Button>
       </div>
-      <output data-testid="hotkeys-count">{count}</output>
-      <output data-testid="hotkeys-amount">{amount}</output>
-      <output data-testid="hotkeys-enabled">{String(enabled)}</output>
-      <output data-testid="hotkeys-registrations">
-        {registrations
-          .map((command) => `${command.id}:${command.label}`)
-          .sort()
-          .join(",")}
-      </output>
+      <p>
+        Actions run: <output data-testid="hotkeys-count">{count}</output>
+      </p>
+      <p>
+        Amount per action:{" "}
+        <output data-testid="hotkeys-amount">{amount}</output>
+      </p>
+      <p>
+        Shortcuts enabled:{" "}
+        <output data-testid="hotkeys-enabled">{String(enabled)}</output>
+      </p>
+      <p>
+        Registered commands:{" "}
+        <output data-testid="hotkeys-registrations">
+          {registrations
+            .map((command) => `${command.id}:${command.label}`)
+            .sort()
+            .join(",")}
+        </output>
+      </p>
     </div>
   )
 }
@@ -637,11 +652,20 @@ function SharedStoreExample() {
       <Button onClick={() => setMounted((value) => !value)}>
         Toggle consumer
       </Button>
-      <output data-testid="hotkeys-shared-count">{sharedCount}</output>
-      <output data-testid="hotkeys-owner-setups">{ownerSetups}</output>
-      <output data-testid="hotkeys-registry-size">
-        {registrations.length}
-      </output>
+      <p>
+        Shared actions run:{" "}
+        <output data-testid="hotkeys-shared-count">{sharedCount}</output>
+      </p>
+      <p>
+        Owner setups:{" "}
+        <output data-testid="hotkeys-owner-setups">{ownerSetups}</output>
+      </p>
+      <p>
+        Registered shortcuts:{" "}
+        <output data-testid="hotkeys-registry-size">
+          {registrations.length}
+        </output>
+      </p>
       {mounted && <LifecycleRegistrations store={store} />}
     </div>
   )
@@ -685,12 +709,16 @@ function DisplayOnlyExample() {
   const [store] = useState(() => createHotkeyStore())
   const registrations = useHotkeyRegistrations({ store })
   return (
-    <div className="flex flex-col gap-200">
+    <div className="flex flex-col items-start gap-200">
+      <p>Two keycaps rendered without registering a shortcut:</p>
       <Hotkeys hotkey="mod+K" />
       <Hotkeys hotkey="mod+K" />
-      <output data-testid="hotkeys-registry-size">
-        {registrations.length}
-      </output>
+      <p>
+        Registered shortcuts:{" "}
+        <output data-testid="hotkeys-registry-size">
+          {registrations.length}
+        </output>
+      </p>
     </div>
   )
 }
@@ -899,17 +927,28 @@ function NativeConflictExample() {
   const registrations = useHotkeyRegistrations({ store })
   return (
     <div className="flex flex-col gap-200">
+      <p>
+        Focus Conflict target, then press the shortcut or activate the button.
+        The second action replaces the first binding and runs instead.
+      </p>
       <Button
         aria-label="Conflict target"
         onClick={() => setResult("second")}
         ref={setTarget}
       >
-        <Hotkeys hotkey="mod+K" />
+        Conflict target
+        <Hotkeys aria-hidden="true" hotkey="mod+K" />
       </Button>
-      <output data-testid="hotkeys-conflict-result">{result}</output>
-      <output data-testid="hotkeys-registry-size">
-        {registrations.length}
-      </output>
+      <p>
+        Last action:{" "}
+        <output data-testid="hotkeys-conflict-result">{result}</output>
+      </p>
+      <p>
+        Registered shortcuts:{" "}
+        <output data-testid="hotkeys-registry-size">
+          {registrations.length}
+        </output>
+      </p>
     </div>
   )
 }

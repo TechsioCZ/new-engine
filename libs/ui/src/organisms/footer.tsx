@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -32,7 +32,7 @@ const footerVariants = tv({
     section: "wrap-anywhere min-w-0 bg-footer-section-bg",
     list: "flex min-w-0 list-none flex-col gap-footer-list bg-footer-list-bg",
     bottom:
-      "border-t-(length:--border-footer-width) flex w-full flex-wrap items-center justify-between gap-footer-list border-footer-bottom-border bg-footer-bottom-bg pt-footer-bottom",
+      "footer-bottom-layout border-t-(length:--border-footer-width) flex w-full flex-col flex-wrap items-start justify-between gap-footer-list border-footer-bottom-border bg-footer-bottom-bg sm:flex-row sm:items-center",
     title:
       "font-footer-title text-footer-title-fg transition-colors duration-200 hover:text-footer-title-fg-hover motion-reduce:transition-none",
     link: "font-footer-link text-footer-link-fg transition-colors duration-200 hover:text-footer-link-fg-hover motion-reduce:transition-none",
@@ -74,7 +74,7 @@ const footerVariants = tv({
         title: "text-footer-title-sm",
         link: "text-footer-link-sm",
         text: "text-footer-sm",
-        bottom: "p-footer-bottom-sm",
+        bottom: "footer-bottom-sm",
         divider: "my-footer-divider-sm",
       },
       md: {
@@ -85,7 +85,7 @@ const footerVariants = tv({
         title: "text-footer-title-md",
         link: "text-footer-link-md",
         text: "text-footer-md",
-        bottom: "p-footer-bottom-md",
+        bottom: "footer-bottom-md",
         divider: "my-footer-divider-md",
       },
       lg: {
@@ -96,7 +96,7 @@ const footerVariants = tv({
         title: "text-footer-title-lg",
         link: "text-footer-link-lg",
         text: "text-footer-lg",
-        bottom: "p-footer-bottom-lg",
+        bottom: "footer-bottom-lg",
         divider: "my-footer-divider-lg",
       },
     },

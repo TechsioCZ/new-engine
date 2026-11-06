@@ -97,6 +97,41 @@ function CartRow({ unavailable = false, error, ...props }: CartRowProps) {
   )
 }
 
+async function expectContainedPrices(canvasElement: HTMLElement) {
+  for (const item of canvasElement.querySelectorAll('[data-scope="line-item"]')) {
+    const title = item.querySelector('[data-part="title"]')!
+    const price = item.querySelector('[data-part="price"]')!
+    const bounds = item.getBoundingClientRect()
+    const priceBounds = price.getBoundingClientRect()
+    await expect(priceBounds.left).toBeGreaterThanOrEqual(bounds.left)
+    await expect(priceBounds.right).toBeLessThanOrEqual(bounds.right + 1)
+    await expect(price.scrollWidth).toBeLessThanOrEqual(price.clientWidth + 1)
+    if (bounds.width < 512) {
+      await expect(priceBounds.top).toBeGreaterThanOrEqual(title.getBoundingClientRect().bottom)
+    }
+  }
+}
+
+async function expectRemovalAlignment(item: Element) {
+  const body = item.querySelector('[data-part="body"]')!
+  const remove = item.querySelector<HTMLElement>('[data-part="remove"]')!
+  const bounds = remove.getBoundingClientRect()
+  if (item.getBoundingClientRect().width < 512) {
+    const padding = Number.parseFloat(getComputedStyle(remove).paddingLeft)
+    await expect(bounds.left + padding).toBeCloseTo(
+      body.getBoundingClientRect().left,
+      0
+    )
+  }
+  if (
+    matchMedia("(pointer: coarse)").matches &&
+    remove.closest("[data-theme]")?.getAttribute("data-theme") === "business"
+  ) {
+    await expect(bounds.height).toBeGreaterThanOrEqual(44)
+    await expect(bounds.width).toBeGreaterThanOrEqual(44)
+  }
+}
+
 const meta: Meta<typeof LineItem> = {
   title: "Organisms/LineItem",
   component: LineItem,
@@ -131,6 +166,7 @@ export default meta
 type Story = StoryObj<typeof LineItem>
 
 export const Playground: Story = {
+  play: async ({ canvasElement }) => expectContainedPrices(canvasElement),
   parameters: {
     docs: {
       description: {
@@ -163,6 +199,44 @@ export const ReadOnly: Story = {
 }
 export const Pending: Story = {
   args: { pending: true, pendingLabel: "Ukládáme položku" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const item = canvasElement.querySelector('[data-scope="line-item"]')!
+    const body = item.querySelector('[data-part="body"]')!
+    const pending = canvas.getByText("Ukládáme položku").closest<HTMLElement>("[id]")!
+    const quantityMessage = canvas.getByText("Ukládáme množství")
+    await expect(pending).not.toBeNull()
+    await expect(pending.getBoundingClientRect().left).toBeCloseTo(
+      body.getBoundingClientRect().left,
+      0
+    )
+    await expect(pending.getBoundingClientRect().right).toBeLessThanOrEqual(
+      body.getBoundingClientRect().right + 1
+    )
+    await expect(pending.scrollWidth).toBeLessThanOrEqual(pending.clientWidth + 1)
+    await expect(getComputedStyle(pending).fontSize).toBe(
+      getComputedStyle(quantityMessage).fontSize
+    )
+    await expect(getComputedStyle(pending).color).toBe(
+      getComputedStyle(quantityMessage).color
+    )
+    await expect(getComputedStyle(pending).fontSize).toBe(
+      getComputedStyle(item.querySelector('[data-part="options"]')!).fontSize
+    )
+    await expect(pending.closest("[inert]")).toBeNull()
+    await expect(item.getAttribute("aria-describedby")?.split(" ")).toContain(
+      pending.id
+    )
+    await expect(item.querySelector('[data-part="quantity"]')).toHaveAttribute("inert")
+    await expect(item.querySelector('[data-part="actions"]')).toHaveAttribute("inert")
+    await expect(item.querySelector('[data-part="quantity"] input')).toBeDisabled()
+    await expect(item.querySelector('[data-part="remove"]')).toBeDisabled()
+    const controls = item.querySelector('[data-part="controls"]')!
+    await expect(
+      pending.getBoundingClientRect().top - body.getBoundingClientRect().bottom
+    ).toBeCloseTo(Number.parseFloat(getComputedStyle(controls).rowGap), 0)
+    await expectRemovalAlignment(item)
+  },
   render: (args) => (
     <div className="w-xl max-w-full">
       <CartRow {...args} />
@@ -204,6 +278,13 @@ export const ItemError: Story = {
       quantity.getAttribute("aria-describedby")?.split(" ")
     ).toContain(message.id)
     await expect(message.querySelector('[aria-hidden="true"]')).not.toBeNull()
+    const item = quantity.closest('[data-scope="line-item"]')!
+    await expectRemovalAlignment(item)
+    if (item.getBoundingClientRect().width >= 512) {
+      const field = item.querySelector('[data-part="quantity"]')!
+      const actions = item.querySelector('[data-part="actions"]')!
+      await expect(actions.getBoundingClientRect().top).toBeCloseTo(field.getBoundingClientRect().top, 0)
+    }
   },
   parameters: {
     docs: {
@@ -223,6 +304,7 @@ export const ItemError: Story = {
   ),
 }
 export const Layouts: Story = {
+  play: async ({ canvasElement }) => expectContainedPrices(canvasElement),
   parameters: {
     docs: {
       description: {
@@ -244,6 +326,7 @@ export const Layouts: Story = {
   ),
 }
 export const LongContent: Story = {
+  play: async ({ canvasElement }) => expectContainedPrices(canvasElement),
   args: { title: longProductTitle, layout: "compact" },
   render: (args) => (
     <div className="w-sm max-w-full">

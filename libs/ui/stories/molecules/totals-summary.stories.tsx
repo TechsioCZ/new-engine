@@ -58,6 +58,7 @@ const meta: Meta<typeof TotalsSummary> = {
   title: "Molecules/TotalsSummary",
   component: TotalsSummary,
   tags: ["autodocs"],
+  decorators: [(Story) => <div className="p-200"><Story /></div>],
   parameters: {
     layout: "padded",
     docs: {
@@ -216,6 +217,14 @@ export const Pending: Story = {
 }
 
 export const CustomRows: Story = {
+  play: async ({ canvasElement }) => {
+    const summary = canvasElement.querySelector('[data-scope="totals-summary"]')
+    const label = summary?.querySelector("dl > div:last-child dt")
+    const value = summary?.querySelector("dl > div:last-child dd")
+    if (!(label && value)) throw new Error("Missing summary total")
+    await expect(label.getBoundingClientRect().width).toBeGreaterThan(value.getBoundingClientRect().width)
+    await expect(summary?.scrollWidth).toBe(summary?.clientWidth)
+  },
   parameters: {
     docs: {
       description: {
@@ -292,7 +301,7 @@ function PendingFocusExample() {
       </div>
       <TotalsSummary
         rows={completeRows}
-        totalLabel="Total including tax"
+        totalLabel="Celkem včetně DPH"
         totalValue="1 587 Kč"
         {...(pending
           ? { pending: true, pendingLabel: "Updating summary" }
@@ -377,6 +386,9 @@ export const PendingFocusLifecycle: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    await expect(
+      canvas.getByText("Celkem včetně DPH", { exact: true })
+    ).toBeVisible()
     const start = canvas.getByRole("button", { name: "Update summary" })
     await userEvent.click(start)
     const status = canvas

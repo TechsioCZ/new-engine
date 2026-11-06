@@ -83,6 +83,7 @@ const IGNORE_PATTERNS = [
   /^(bg|text|border|decoration)-(transparent|current|black|white|inherit)$/,
 
   // Standard typography
+  /^text-(wrap|nowrap|balance|pretty)$/,
   /^text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl|left|center|right|justify|start|end)$/,
   /^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/,
   /^font-(sans|serif|mono)$/,

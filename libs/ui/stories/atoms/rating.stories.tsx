@@ -100,6 +100,27 @@ export const Sizes: Story = {
       ))}
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const controls = within(canvasElement).getAllByRole("radiogroup")
+    let previousSize = 0
+    for (const control of controls) {
+      const item = within(control).getAllByRole("radio")[0]
+      const glyph = item?.firstElementChild
+      if (!(item && glyph)) throw new Error("Missing rating size sample")
+      const size = Number.parseFloat(getComputedStyle(glyph).fontSize)
+      await expect(size).toBeGreaterThan(previousSize)
+      await expect(item.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+        32
+      )
+      if (canvasElement.closest('[data-theme="business"]')) {
+        await expect(size).toBeGreaterThanOrEqual(20)
+        await expect(
+          Number.parseFloat(getComputedStyle(control).columnGap)
+        ).toBeLessThanOrEqual(4)
+      }
+      previousSize = size
+    }
+  },
 }
 export const States: Story = {
   parameters: describe(
@@ -182,8 +203,19 @@ export const ReadOnly: Story = {
     selected.focus()
     await expect(selected).toHaveFocus()
     await userEvent.keyboard("{ArrowRight} ")
-    await userEvent.click(canvas.getAllByRole("radio")[0]!)
+    await expect(selected).toHaveAttribute("tabindex", "0")
+    await expect(getComputedStyle(selected).outlineStyle).not.toBe("none")
+    await expect(
+      Number.parseFloat(getComputedStyle(selected).outlineWidth)
+    ).toBeGreaterThan(0)
+    const first = canvas.getAllByRole("radio")[0]!
+    await userEvent.click(first)
+    await expect(first).toHaveFocus()
+    await expect(first).toHaveAttribute("tabindex", "-1")
     await expect(selected).toBeChecked()
+    // Transparent theme tokens can retain Lab syntax in computed styles.
+    const background = getComputedStyle(canvas.getByRole("radiogroup")).backgroundColor
+    await expect(background).toMatch(/^rgba\([^)]*,\s*0\)$|^[a-z-]+\([^)]*\/\s*0\)$/)
     await expect(
       new FormData(canvasElement.querySelector("form")!).get("saved-score")
     ).toBe("4")
@@ -254,9 +286,26 @@ export const FractionalDirections: Story = {
       const image = canvas.getByRole("img", {
         name: `${direction} product rating: 4.6 out of 5`,
       })
+      const score = image.parentElement?.querySelector("bdi")
+      if (!score) throw new Error("Missing isolated rating score")
+      await expect(score).toHaveTextContent("4.6 / 5")
+      await expect(getComputedStyle(score).direction).toBe("ltr")
+      const items = image.querySelectorAll('[data-part="item"]')
+      const first = items[0]?.getBoundingClientRect()
+      const last = items[items.length - 1]?.getBoundingClientRect()
+      if (!(first && last)) throw new Error("Missing rating star row")
+      await expect(first.x < last.x).toBe(direction === "LTR")
       const fraction = image.querySelector('[data-part="fractional-glyph"]')
       if (!fraction) throw new Error("Missing fractional rating glyph")
       await expect(getComputedStyle(fraction).clipPath).toBe(clip)
+      const outline = fraction.previousElementSibling
+      if (!outline) throw new Error("Missing fractional rating outline")
+      const filledBounds = fraction.getBoundingClientRect()
+      const outlineBounds = outline.getBoundingClientRect()
+      await expect(filledBounds.width).toBe(outlineBounds.width)
+      await expect(filledBounds.height).toBe(outlineBounds.height)
+      await expect(filledBounds.x).toBe(outlineBounds.x)
+      await expect(filledBounds.y).toBe(outlineBounds.y)
     }
   },
 }
@@ -295,7 +344,7 @@ export const InteractiveHalfScore: Story = {
 }
 export const TenPointScale: Story = {
   parameters: describe(
-    "A ten-point scale wraps within narrow containers without shrinking its interaction targets or clipping later scores."
+    "A ten-point scale stays on one row in narrow containers: targets compress toward the 24px minimum before wrapping, never clipping later scores."
   ),
   render: () => (
     <div className="w-full max-w-xs">
@@ -314,6 +363,10 @@ export const TenPointScale: Story = {
     if (!control) throw new Error("Missing rating control")
     await expect(inputs).toHaveLength(10)
     await expect(control.scrollWidth).toBeLessThanOrEqual(control.clientWidth)
+    const rows = new Set(
+      inputs.map((input) => Math.round(input.getBoundingClientRect().top))
+    )
+    await expect(rows.size).toBe(1)
     for (const input of inputs) {
       const bounds = input.getBoundingClientRect()
       await expect(bounds.width).toBeGreaterThanOrEqual(24)
@@ -460,8 +513,8 @@ export const FieldsetLifecycle: Story = {
     const [disabled, setDisabled] = useState(true)
     return (
       <div className="grid gap-200">
-        <fieldset disabled={disabled}>
-          <legend>
+        <fieldset className="grid gap-200" disabled={disabled}>
+          <legend className="mb-200">
             <Rating
               labelText="Legend rating"
               defaultValue={2}
@@ -494,6 +547,24 @@ export const FieldsetLifecycle: Story = {
     const later = canvas.getByRole("radiogroup", {
       name: "Later legend rating",
     })
+    const fieldset = exempt.closest("fieldset")
+    if (!fieldset) throw new Error("Missing rating fieldset")
+    const gap = Number.parseFloat(getComputedStyle(fieldset).rowGap)
+    await expect(gap).toBeGreaterThan(0)
+    // The first legend sits outside the fieldset's content grid.
+    for (const [before, after] of [
+      [exempt, nested],
+      [nested, later],
+    ] as const) {
+      const previous = before.parentElement
+      const next = after.parentElement
+      if (!(previous && next)) throw new Error("Missing rating group")
+      // Layout can quantize the computed gap by one 1/64px unit.
+      await expect(
+        next.getBoundingClientRect().top -
+          previous.getBoundingClientRect().bottom
+      ).toBeGreaterThanOrEqual(gap - 1 / 64)
+    }
     await waitFor(() =>
       expect(within(nested).getAllByRole("radio")[0]).toHaveAttribute(
         "aria-disabled",
@@ -538,7 +609,7 @@ export const AggregateDisplay: Story = {
     ),
   },
   render: (args) => (
-    <form>
+    <form className="flex flex-col items-start gap-150">
       <Button>Before summary</Button>
       <ProductCard>
         <ProductCard.Rating
@@ -563,6 +634,11 @@ export const AggregateDisplay: Story = {
     await expect(canvasElement.querySelector("input")).toBeNull()
     await expect(canvas.queryByRole("radio")).toBeNull()
     const before = canvas.getByRole("button", { name: "Before summary" })
+    const after = canvas.getByRole("button", { name: "After summary" })
+    const card = summary.closest('[data-layout="column"]')
+    if (!card) throw new Error("Missing aggregate rating card")
+    await expect(card.getBoundingClientRect().top - before.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(8)
+    await expect(after.getBoundingClientRect().top - card.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(8)
     before.focus()
     summary.focus()
     await expect(before).toHaveFocus()

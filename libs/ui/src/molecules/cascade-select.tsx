@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.7
+ * @componentVersion v1.1.8
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -116,15 +116,15 @@ export const cascadeSelectVariants = tv({
       "data-disabled:text-cascade-select-fg-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
       "data-[validation=error]:border-cascade-select-border-error data-[validation=error]:outline-cascade-select-border-error",
-      "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
+      "data-[validation=error]:outline-(style:--default-ring-style) not-focus-visible:data-[validation=error]:outline-(length:--border-width-cascade-select-status-outline)",
       "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=success]:border-(length:--border-width-validation)",
       "data-[validation=success]:border-cascade-select-border-success data-[validation=success]:outline-cascade-select-border-success",
-      "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
+      "data-[validation=success]:outline-(style:--default-ring-style) not-focus-visible:data-[validation=success]:outline-(length:--border-width-cascade-select-status-outline)",
       "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=warning]:border-(length:--border-width-validation)",
       "data-[validation=warning]:border-cascade-select-border-warning data-[validation=warning]:outline-cascade-select-border-warning",
-      "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
+      "data-[validation=warning]:outline-(style:--default-ring-style) not-focus-visible:data-[validation=warning]:outline-(length:--border-width-cascade-select-status-outline)",
       "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
@@ -159,7 +159,7 @@ export const cascadeSelectVariants = tv({
       "data-disabled:cursor-not-allowed data-disabled:text-popup-item-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    itemText: "min-w-0 flex-grow truncate",
+    itemText: "wrap-anywhere min-w-0 flex-grow whitespace-normal",
     branchIndicator: [
       "flex size-(--size-popup-indicator) shrink-0 items-center justify-center last:-me-(--size-popup-indicator)",
       "rtl:rotate-180",
@@ -169,9 +169,10 @@ export const cascadeSelectVariants = tv({
       "text-popup-item-fg-selected",
     ],
     valueText: [
-      "min-w-0 flex-grow truncate font-normal",
+      "wrap-anywhere min-w-0 flex-grow whitespace-normal font-normal",
       "data-placeholder:text-cascade-select-placeholder",
     ],
+    statusText: "mt-cascade-select-status-margin",
     indicator: [
       "shrink-0 text-cascade-select-trigger-fg-base group-hover:text-cascade-select-trigger-fg-hover",
       "data-[state=open]:rotate-180",
@@ -1160,6 +1161,7 @@ type CascadeSelectStatusTextProps = Omit<StatusTextProps, "size" | "status"> & {
 }
 
 CascadeSelect.StatusText = function CascadeSelectStatusText({
+  className,
   id: providedId,
   size: sizeProp,
   status: statusProp,
@@ -1170,6 +1172,7 @@ CascadeSelect.StatusText = function CascadeSelectStatusText({
   const generatedId = useId()
   const id = providedId || generatedId
   const effectiveSize = sizeProp ?? size
+  const styles = cascadeSelectVariants({ size: effectiveSize })
   const effectiveStatus = statusProp ?? validateStatus
   useRegisterDescription(
     id,
@@ -1183,6 +1186,7 @@ CascadeSelect.StatusText = function CascadeSelectStatusText({
     <StatusText
       align="start"
       {...props}
+      className={styles.statusText({ className })}
       id={id}
       size={effectiveSize === "xs" ? "sm" : effectiveSize}
       status={effectiveStatus}

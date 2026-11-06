@@ -630,6 +630,7 @@ function dateLikeEditor(
       size={size}
       type={inputType}
       value={(value as string) ?? ""}
+      variant={error ? "error" : "default"}
       {...editorKeyHandlers(commit, cancel)}
     />
   )
@@ -659,6 +660,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
       onChange={(e) => setValue(e.target.value)}
       size={size}
       value={(value as string) ?? ""}
+      variant={error ? "error" : "default"}
       {...editorKeyHandlers(commit, cancel)}
     />
   ),
@@ -805,6 +807,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
           size={size}
           type="date"
           value={v.from ?? ""}
+          variant={error ? "error" : "default"}
           {...editorKeyHandlers(commit, cancel)}
         />
         <Input
@@ -818,6 +821,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
           size={size}
           type="date"
           value={v.to ?? ""}
+          variant={error ? "error" : "default"}
           {...editorKeyHandlers(commit, cancel)}
         />
       </>

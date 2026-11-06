@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { VariantGroup } from "../../.storybook/decorator"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { iconLabels, iconOptions } from "../helpers/icon-options"
 
@@ -55,24 +55,48 @@ export const Variants: Story = {
     docs: {
       description: {
         story:
-          "Neutral supporting actions and destructive removal actions share a consistent interaction surface.",
+          "The same close glyph isolates neutral and destructive tone on a consistent interaction surface.",
       },
     },
   },
   render: () => (
-    <VariantContainer>
+    <div className="flex flex-col gap-250">
       <VariantGroup title="Neutral">
         <ActionIcon aria-label="Close details" icon="token-icon-close" />
       </VariantGroup>
       <VariantGroup title="Danger">
         <ActionIcon
-          aria-label="Remove attachment"
-          icon="token-icon-trash"
+          aria-label="Discard draft"
+          icon="token-icon-close"
           tone="danger"
         />
       </VariantGroup>
-    </VariantContainer>
+    </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const neutral = canvas.getByRole("button", { name: "Close details" })
+    const danger = canvas.getByRole("button", { name: "Discard draft" })
+    const neutralGroup = canvas.getByRole("heading", {
+      name: "Neutral",
+    }).parentElement
+    const dangerGroup = canvas.getByRole("heading", {
+      name: "Danger",
+    }).parentElement
+    if (!(neutralGroup && dangerGroup)) {
+      throw new Error("Missing ActionIcon variant groups")
+    }
+    // Compact examples should not inherit the shared matrix's 800 section gap.
+    const gap =
+      dangerGroup.getBoundingClientRect().top -
+      neutralGroup.getBoundingClientRect().bottom
+    await expect(gap).toBeGreaterThan(0)
+    await expect(gap).toBeLessThanOrEqual(neutral.getBoundingClientRect().height)
+    // Destructive intent is visible at rest, not only on hover.
+    await expect(getComputedStyle(danger).color).not.toBe(
+      getComputedStyle(neutral).color
+    )
+  },
 }
 export const Sizes: Story = {
   parameters: {
@@ -85,7 +109,7 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <div className="flex flex-col gap-250">
       {(["sm", "md", "lg"] as const).map((size) => (
         <VariantGroup
           key={size}
@@ -100,8 +124,23 @@ export const Sizes: Story = {
           />
         </VariantGroup>
       ))}
-    </VariantContainer>
+    </div>
   ),
+  play: async ({ canvasElement }) => {
+    const buttons = within(canvasElement).getAllByRole("button")
+    let previousGlyph = 0
+    let previousTarget = 0
+    for (const button of buttons) {
+      const glyph = button.firstElementChild
+      if (!glyph) throw new Error("Missing ActionIcon size glyph")
+      const glyphSize = Number.parseFloat(getComputedStyle(glyph).fontSize)
+      const targetSize = button.getBoundingClientRect().width
+      await expect(glyphSize).toBeGreaterThan(previousGlyph)
+      await expect(targetSize).toBeGreaterThanOrEqual(previousTarget)
+      previousGlyph = glyphSize
+      previousTarget = targetSize
+    }
+  },
 }
 export const States: Story = {
   parameters: {
@@ -113,10 +152,23 @@ export const States: Story = {
     },
   },
   args: { disabled: true },
+  render: (args) => (
+    <div className="flex gap-300">
+      <VariantGroup title="Available">
+        <ActionIcon aria-label="Close preview" icon="token-icon-close" />
+      </VariantGroup>
+      <VariantGroup title="Disabled">
+        <ActionIcon {...args} />
+      </VariantGroup>
+    </div>
+  ),
   play: async ({ args, canvasElement }) => {
     const button = within(canvasElement).getByRole("button", {
       name: "Close details",
     })
+    await expect(
+      within(canvasElement).getByRole("button", { name: "Close preview" })
+    ).toBeEnabled()
     await expect(button).toBeDisabled()
     await userEvent.click(button)
     await expect(args.onClick).not.toHaveBeenCalled()

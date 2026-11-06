@@ -65,7 +65,7 @@ const meta: Meta<typeof ColorSelect> = {
   },
   decorators: [
     (Story) => (
-      <div className="mx-auto w-full max-w-sm">
+      <div className="mx-auto w-full max-w-sm p-200">
         <Story />
       </div>
     ),
@@ -145,6 +145,26 @@ export const Sizes: Story = {
     await expect(fonts).toHaveLength(3)
     await expect(fonts[0]).toBeLessThan(fonts[1] ?? 0)
     await expect(fonts[1]).toBeLessThan(fonts[2] ?? 0)
+    if (canvasElement.closest('[data-theme="business"]')) {
+      await expect(fonts[0]).toBeGreaterThanOrEqual(13)
+      const large = canvas.getAllByRole("radiogroup")[2]
+      if (!large) throw new Error("Missing large color selection")
+      const columns = Number.parseInt(
+        getComputedStyle(large).getPropertyValue("--cols-num"),
+        10
+      )
+      const swatches = within(large).getAllByRole("radio")
+      const rowCounts = new Map<number, number>()
+      for (const swatch of swatches) {
+        const top = Math.round(swatch.getBoundingClientRect().top)
+        rowCounts.set(top, (rowCounts.get(top) ?? 0) + 1)
+      }
+      await expect([...rowCounts.values()]).toEqual(
+        Array.from({ length: Math.ceil(swatches.length / columns) }, (_, row) =>
+          Math.min(columns, swatches.length - row * columns)
+        )
+      )
+    }
     for (const caption of canvas.getAllByText("Chestnut", { exact: true })) {
       await expect(caption.getBoundingClientRect().height).toBeLessThanOrEqual(
         Number.parseFloat(getComputedStyle(caption).lineHeight) + 1
@@ -198,6 +218,16 @@ export const ReadOnly: Story = {
     )
     await expect(navy).toHaveAttribute("aria-checked", "true")
     await expect(navy).not.toBeDisabled()
+    const sand = canvas.getByRole("radio", { name: "Select color Sand" })
+    await expect(sand).toHaveFocus()
+    await expect(sand).toHaveAttribute("aria-checked", "false")
+    await expect(canvas.getAllByRole("radio", { checked: true })).toHaveLength(1)
+    const group = canvas.getByRole("radiogroup", { name: "Fabric color" })
+    await expect(group).toHaveAttribute("aria-readonly", "true")
+    await expect(getComputedStyle(group).backgroundColor).toBe("rgba(0, 0, 0, 0)")
+    await expect(
+      Number.parseFloat(getComputedStyle(sand).outlineWidth)
+    ).toBeGreaterThan(0)
   },
 }
 
@@ -223,6 +253,27 @@ export const Layouts: Story = {
       },
     },
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const list = canvas.getAllByRole("radiogroup")[1]
+    if (!list) throw new Error("Missing list color selection")
+    const edge = list.getBoundingClientRect().left
+    for (const swatch of within(list).getAllByRole("radio")) {
+      await expect(
+        Math.abs(swatch.getBoundingClientRect().left - edge)
+      ).toBeLessThanOrEqual(1)
+    }
+    for (const caption of within(list).getAllByText(
+      /^(Navy|Sand|Chestnut|Forest)$/
+    )) {
+      const container = caption.parentElement
+      if (!container) throw new Error("Missing color caption container")
+      await expect(getComputedStyle(container).textAlign).toBe("start")
+      await expect(
+        Math.abs(caption.getBoundingClientRect().left - edge)
+      ).toBeLessThanOrEqual(1)
+    }
+  },
 }
 
 export const Radius: Story = {
@@ -246,6 +297,24 @@ export const Radius: Story = {
           "Corner radius changes swatch shape independently of its control size.",
       },
     },
+  },
+  play: async ({ canvasElement }) => {
+    if (!canvasElement.closest('[data-theme="business"]')) return
+    const canvas = within(canvasElement)
+    const groups = canvas.getAllByRole("radiogroup")
+    const large = groups[2] && within(groups[2]).getAllByRole("radio")[0]
+    const circular = groups[3] && within(groups[3]).getAllByRole("radio")[0]
+    if (!(large && circular)) throw new Error("Missing radius examples")
+    const largeRadius = Number.parseFloat(
+      getComputedStyle(large).borderTopLeftRadius
+    )
+    await expect(largeRadius).toBeGreaterThan(0)
+    await expect(largeRadius).toBeLessThan(
+      large.getBoundingClientRect().width / 2
+    )
+    await expect(getComputedStyle(circular).borderTopLeftRadius).not.toBe(
+      getComputedStyle(large).borderTopLeftRadius
+    )
   },
 }
 

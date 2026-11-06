@@ -163,8 +163,25 @@ export const Disabled: Story = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    for (const input of within(canvasElement).getAllByRole("switch"))
+    for (const input of within(canvasElement).getAllByRole("switch")) {
       await expect(input).toBeDisabled()
+      const help = canvasElement.ownerDocument.getElementById(
+        input.getAttribute("aria-describedby") ?? ""
+      )
+      const label = input.closest("label")?.querySelector('[data-part="label"]')
+      if (!(help && label)) throw new Error("Missing disabled switch guidance")
+      await expect(help).toHaveAttribute("data-disabled")
+      if (help.closest("[data-theme]")?.getAttribute("data-theme") === "business") {
+        await expect(getComputedStyle(help).color).toBe(
+          getComputedStyle(label).color
+        )
+      }
+    }
+    const thumbs = Array.from(canvasElement.querySelectorAll('[data-part="thumb"]'))
+    await expect(thumbs).toHaveLength(2)
+    const [offThumb, onThumb] = thumbs
+    if (!(offThumb && onThumb)) throw new Error("Missing disabled switch thumbs")
+    await expect(getComputedStyle(offThumb).backgroundColor).toBe(getComputedStyle(onThumb).backgroundColor)
   },
 }
 export const ReadOnly: Story = {

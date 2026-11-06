@@ -36,7 +36,7 @@ function CollectionExample({
         </Button>
         <Input
           aria-label={`Caption ${index + 1}`}
-          defaultValue="Editable caption"
+          defaultValue={slidesPerPage > 1 ? "Caption" : "Editable caption"}
           size="sm"
         />
         <Textarea
@@ -51,7 +51,7 @@ function CollectionExample({
           suppressContentEditableWarning
           aria-label={`Rich caption ${index + 1}`}
         >
-          <span>Editable rich caption</span>
+          <span>{slidesPerPage > 1 ? "Rich caption" : "Editable rich caption"}</span>
         </div>
         <Input
           aria-label={`Rating ${index + 1}`}
@@ -219,6 +219,57 @@ export const Playground: Story = {
 
 export const MultipleVisibleSlides: Story = {
   render: () => <CollectionExample slidesPerPage={2} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const expectVisibleSlides = () => {
+      for (const slide of [1, 2]) {
+        const caption = canvas.getByRole("textbox", { name: `Caption ${slide}` })
+        expect(caption).toBeVisible()
+        expect(caption).toHaveValue("Caption")
+        expect(
+          canvas.getByRole("textbox", { name: `Rich caption ${slide}` })
+        ).toHaveTextContent("Rich caption")
+      }
+      const slides = canvasElement.querySelectorAll('[data-part="item"]')
+      expect(slides).toHaveLength(4)
+      for (const [index, slide] of Array.from(slides).entries()) {
+        if (index < 2) {
+          expect(slide).not.toHaveAttribute("aria-hidden", "true")
+          expect(slide).not.toHaveAttribute("inert")
+        } else {
+          expect(slide).toHaveAttribute("aria-hidden", "true")
+          expect(slide).toHaveAttribute("inert")
+          expect(
+            canvas.queryByRole("textbox", { name: `Caption ${index + 1}` })
+          ).not.toBeInTheDocument()
+        }
+      }
+      expect(canvas.getByRole("button", { name: "Previous slide" })).toBeDisabled()
+      expect(canvas.getByRole("button", { name: "Next slide" })).toBeEnabled()
+      expect(
+        canvas.getByRole("button", { name: "Go to slide 1" })
+      ).toHaveAttribute("aria-current", "true")
+    }
+    // Slide accessibility follows asynchronous viewport measurement, not just React's commit.
+    await waitFor(expectVisibleSlides)
+    const originalSlides = Array.from(
+      canvasElement.querySelectorAll('[data-part="item"]')
+    )
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Replace all slide IDs" })
+    )
+    await waitFor(() => {
+      expectVisibleSlides()
+      const replacements = canvasElement.querySelectorAll('[data-part="item"]')
+      for (const [index, slide] of Array.from(replacements).entries()) {
+        expect(slide).not.toBe(originalSlides[index])
+      }
+    })
+    await userEvent.click(canvas.getByRole("button", { name: "Open slide 2" }))
+    await expect(canvas.getByRole("status")).toHaveTextContent(
+      "Opened slide 2 locally."
+    )
+  },
   parameters: {
     docs: {
       description: {

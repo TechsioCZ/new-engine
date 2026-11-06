@@ -8,6 +8,7 @@ import {
   NumericInput,
   type NumericInputProps,
 } from "../../src/atoms/numeric-input"
+import { StatusText } from "../../src/atoms/status-text"
 import { FormNumericInput } from "../../src/molecules/form-numeric-input"
 
 const draftChanged = fn()
@@ -256,6 +257,21 @@ export const Sizes: Story = {
       </div>
     )
   },
+  play: async ({ canvasElement }) => {
+    const inputs = within(canvasElement).getAllByRole("spinbutton")
+    let previousSize = 0
+    for (const input of inputs) {
+      const control = input.closest('[data-part="control"]')
+      const glyph = control?.querySelector('button > span[aria-hidden="true"]')
+      if (!glyph) throw new Error("Missing numeric stepper glyph")
+      const size = Number.parseFloat(getComputedStyle(glyph).fontSize)
+      await expect(size).toBeGreaterThan(previousSize)
+      if (canvasElement.closest('[data-theme="business"]')) {
+        await expect(size).toBeGreaterThanOrEqual(20)
+      }
+      previousSize = size
+    }
+  },
 }
 
 export const Disabled: Story = {
@@ -286,6 +302,19 @@ export const Disabled: Story = {
           </NumericInput.Control>
         </NumericInput>
       </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("spinbutton")
+    const control = input.closest('[data-part="control"]')
+    const divider = control?.querySelector(
+      '[data-part="trigger-container"], .border-s'
+    )
+    if (!(control && divider))
+      throw new Error("Missing disabled numeric stepper divider")
+    await expect(input).toBeDisabled()
+    await expect(getComputedStyle(divider).borderInlineStartColor).toBe(
+      getComputedStyle(control).borderInlineStartColor
     )
   },
 }
@@ -337,6 +366,21 @@ export const ReadOnly: Story = {
     await expect(input).toHaveValue("42")
     await expect(input).not.toBeDisabled()
     await expect(canvas.queryAllByRole("button")).toHaveLength(0)
+    if (canvasElement.closest('[data-theme="business"]')) {
+      const control = input.closest('[data-part="control"]')
+      const helper = canvas.getByText(
+        "Contact support to change the confirmed order."
+      )
+      if (!control) throw new Error("Missing read-only numeric control")
+      const style = getComputedStyle(control)
+      const focusExtent =
+        Number.parseFloat(style.outlineWidth) +
+        Number.parseFloat(style.outlineOffset)
+      await expect(
+        helper.getBoundingClientRect().top -
+          control.getBoundingClientRect().bottom
+      ).toBeGreaterThan(focusExtent)
+    }
   },
 }
 
@@ -645,16 +689,53 @@ export const CustomLayoutHorizontal: Story = {
           onChange={setValue}
           value={value}
         >
-          <div className="flex gap-50">
-            <NumericInput.DecrementTrigger icon="icon-[mdi--minus]" />
+          <div className="flex items-center gap-100">
+            <NumericInput.DecrementTrigger
+              aria-label="Decrease quantity"
+              className="size-icon-control-lg flex-none rounded-numeric-input-md border-(length:--border-width-form-control) border-numeric-input-border hover:border-numeric-input-border-hover"
+              icon="icon-[mdi--minus]"
+              theme="outlined"
+              variant="secondary"
+            />
             <NumericInput.Control className="flex-1">
               <NumericInput.Input />
             </NumericInput.Control>
-            <NumericInput.IncrementTrigger icon="icon-[mdi--plus]" />
+            <NumericInput.IncrementTrigger
+              aria-label="Increase quantity"
+              className="size-icon-control-lg flex-none rounded-numeric-input-md border-(length:--border-width-form-control) border-numeric-input-border hover:border-numeric-input-border-hover"
+              icon="icon-[mdi--plus]"
+              theme="outlined"
+              variant="secondary"
+            />
           </div>
         </NumericInput>
       </div>
     )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("spinbutton")
+    const increase = canvas.getByRole("button", { name: "Increase quantity" })
+    const decrease = canvas.getByRole("button", { name: "Decrease quantity" })
+    const control = input.closest('[data-part="control"]')
+    if (!control) throw new Error("Missing numeric control")
+    const fieldStyle = getComputedStyle(control)
+    for (const button of [increase, decrease]) {
+      const style = getComputedStyle(button)
+      await expect(style.borderTopLeftRadius).toBe(fieldStyle.borderTopLeftRadius)
+      await expect(style.borderTopColor).toBe(fieldStyle.borderTopColor)
+      await expect(style.borderTopWidth).toBe(fieldStyle.borderTopWidth)
+      await expect(Number.parseFloat(style.borderTopWidth)).toBeGreaterThan(0)
+      await expect(button.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+        24
+      )
+    }
+    await userEvent.click(increase)
+    await expect(input).toHaveValue("51")
+    await userEvent.click(decrease)
+    await expect(input).toHaveValue("50")
+    input.blur()
+    await userEvent.unhover(decrease)
   },
 }
 
@@ -792,7 +873,12 @@ export const CallbackCompatibility: Story = {
           Draft: {draft === "" ? "(empty)" : draft}
         </p>
         <p data-testid="numeric-value">Numeric: {String(numeric)}</p>
-        <p className="wrap-anywhere" data-testid="callback-counts">{JSON.stringify(counts)}</p>
+        <div className="grid gap-50">
+          <StatusText>Callback counts</StatusText>
+          <pre className="whitespace-pre-wrap break-normal" data-testid="callback-counts">
+            {JSON.stringify(counts, null, 2)}
+          </pre>
+        </div>
         <Button onClick={() => setDraft("2")} theme="outlined">
           Reset parent value
         </Button>
@@ -815,45 +901,50 @@ export const UncontrolledDefaults: Story = {
     return (
       <VariantContainer>
         <VariantGroup fullWidth title="Legacy numeric default">
-          <Label htmlFor={`${instanceId}-numeric-default-number`}>
-            Numeric default quantity
-          </Label>
-          <NumericInput
-            defaultValue={2}
-            id={`${instanceId}-numeric-default-number`}
-            max={10}
-            min={0}
-            onChange={legacyChanged}
-          >
-            <NumericInput.Control>
-              <NumericInput.Input />
-              <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger />
-                <NumericInput.DecrementTrigger />
-              </NumericInput.TriggerContainer>
-            </NumericInput.Control>
-          </NumericInput>
+          {/* Label and field form one unit; the group gap separates titles. */}
+          <div className="flex w-full max-w-md flex-col gap-50">
+            <Label htmlFor={`${instanceId}-numeric-default-number`}>
+              Numeric default quantity
+            </Label>
+            <NumericInput
+              defaultValue={2}
+              id={`${instanceId}-numeric-default-number`}
+              max={10}
+              min={0}
+              onChange={legacyChanged}
+            >
+              <NumericInput.Control>
+                <NumericInput.Input />
+                <NumericInput.TriggerContainer>
+                  <NumericInput.IncrementTrigger />
+                  <NumericInput.DecrementTrigger />
+                </NumericInput.TriggerContainer>
+              </NumericInput.Control>
+            </NumericInput>
+          </div>
         </VariantGroup>
         <VariantGroup fullWidth title="String default">
-          <Label htmlFor={`${instanceId}-numeric-default-string`}>
-            String default quantity
-          </Label>
-          <NumericInput
-            clampValueOnBlur={false}
-            defaultValue="2"
-            id={`${instanceId}-numeric-default-string`}
-            max={10}
-            min={0}
-            onValueChange={draftChanged}
-          >
-            <NumericInput.Control>
-              <NumericInput.Input />
-              <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger />
-                <NumericInput.DecrementTrigger />
-              </NumericInput.TriggerContainer>
-            </NumericInput.Control>
-          </NumericInput>
+          <div className="flex w-full max-w-md flex-col gap-50">
+            <Label htmlFor={`${instanceId}-numeric-default-string`}>
+              String default quantity
+            </Label>
+            <NumericInput
+              clampValueOnBlur={false}
+              defaultValue="2"
+              id={`${instanceId}-numeric-default-string`}
+              max={10}
+              min={0}
+              onValueChange={draftChanged}
+            >
+              <NumericInput.Control>
+                <NumericInput.Input />
+                <NumericInput.TriggerContainer>
+                  <NumericInput.IncrementTrigger />
+                  <NumericInput.DecrementTrigger />
+                </NumericInput.TriggerContainer>
+              </NumericInput.Control>
+            </NumericInput>
+          </div>
         </VariantGroup>
       </VariantContainer>
     )
@@ -916,17 +1007,26 @@ export const PrecisionZero: Story = {
       },
     },
   },
-  render: () => (
-    <NumericInput defaultValue={1.75} locale="en-US" precision={0}>
-      <NumericInput.Control>
-        <NumericInput.Input aria-label="Whole units" />
-        <NumericInput.TriggerContainer>
-          <NumericInput.IncrementTrigger />
-          <NumericInput.DecrementTrigger />
-        </NumericInput.TriggerContainer>
-      </NumericInput.Control>
-    </NumericInput>
-  ),
+  render() {
+    const id = useId()
+    return (
+      <div className="flex w-full max-w-md flex-col gap-50">
+        <Label htmlFor={id}>Whole units (precision: 0)</Label>
+        <NumericInput defaultValue={1.75} id={id} locale="en-US" precision={0}>
+          <NumericInput.Control>
+            <NumericInput.Input aria-label="Whole units" />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+          <NumericInput.StatusText>
+            Initial value: 1.75. Whole-unit formatting displays 2; typed fractional drafts remain editable.
+          </NumericInput.StatusText>
+        </NumericInput>
+      </div>
+    )
+  },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole("spinbutton")).toHaveValue("2")
   },
@@ -1140,21 +1240,36 @@ export const NativeEventComposition: Story = {
     controls: { disable: true },
     docs: { description: { story: "Input handlers observe before Zag. An observational onBlur preserves clamping and commit; preventDefault() cancels that machine action." } },
   },
-  render: () => (
-    <div className="grid w-full max-w-sm gap-200">
-      <NumericInput defaultValue={2} min={0} max={10} onValueCommit={observedCommit}>
-        <NumericInput.Control>
-          <NumericInput.Input aria-label="Observed blur" onBlur={observedBlur} />
-        </NumericInput.Control>
-      </NumericInput>
-      <NumericInput defaultValue={2} min={0} max={10}>
-        <NumericInput.Control>
-          <NumericInput.Input aria-label="Canceled blur" onBlur={event => { canceledBlur(); event.preventDefault() }} />
-        </NumericInput.Control>
-      </NumericInput>
-      <Button>Continue</Button>
-    </div>
-  ),
+  render() {
+    const id = useId()
+    return (
+      <div className="grid w-full max-w-sm gap-200">
+        <div className="grid gap-50">
+          <Label htmlFor={`${id}-observed`}>Observed blur</Label>
+          <NumericInput defaultValue={2} id={`${id}-observed`} min={0} max={10} onValueCommit={observedCommit}>
+            <NumericInput.Control>
+              <NumericInput.Input aria-label="Observed blur" onBlur={observedBlur} />
+            </NumericInput.Control>
+            <NumericInput.StatusText>
+              Observes blur; clamps to 0–10 and commits.
+            </NumericInput.StatusText>
+          </NumericInput>
+        </div>
+        <div className="grid gap-50">
+          <Label htmlFor={`${id}-canceled`}>Canceled blur</Label>
+          <NumericInput defaultValue={2} id={`${id}-canceled`} min={0} max={10}>
+            <NumericInput.Control>
+              <NumericInput.Input aria-label="Canceled blur" onBlur={event => { canceledBlur(); event.preventDefault() }} />
+            </NumericInput.Control>
+            <NumericInput.StatusText>
+              Cancels blur with preventDefault(); keeps the typed draft.
+            </NumericInput.StatusText>
+          </NumericInput>
+        </div>
+        <Button>Continue</Button>
+      </div>
+    )
+  },
   play: async ({ canvasElement }) => {
     observedBlur.mockClear()
     observedCommit.mockClear()
@@ -1186,6 +1301,7 @@ function NativeResetTrackerField({
   wrapped: boolean
   authority: ResetAuthority
 }) {
+  const id = useId()
   const initialValue = wrapped ? 50 : 20
   const [value, setValue] = useState(initialValue)
   const [nativeChanges, setNativeChanges] = useState(0)
@@ -1218,10 +1334,17 @@ function NativeResetTrackerField({
           {editor}
         </FormNumericInput>
       ) : (
-        <NumericInput {...fieldProps}>{editor}</NumericInput>
+        <div className="grid gap-50">
+          <Label htmlFor={id}>{label}</Label>
+          <NumericInput {...fieldProps} id={id}>{editor}</NumericInput>
+        </div>
       )}
-      <output aria-label="Native changes">{nativeChanges}</output>
-      <output aria-label="Value proposals">{proposals}</output>
+      <StatusText>
+        Native changes: <output aria-label="Native changes">{nativeChanges}</output>
+      </StatusText>
+      <StatusText>
+        Value proposals: <output aria-label="Value proposals">{proposals}</output>
+      </StatusText>
       <Button type="reset" variant="secondary">Reset quantity</Button>
       {authority !== "uncontrolled" && (
         <Button onClick={() => setValue(60)} variant="secondary">
@@ -1329,6 +1452,7 @@ export const NativeResetTracker: Story = {
 }
 
 function ControlledRefusalField({ wrapped }: { wrapped: boolean }) {
+  const id = useId()
   const [value, setValue] = useState(2)
   const earlierProposal = useRef<number | undefined>(undefined)
   const label = `${wrapped ? "FormNumericInput" : "NumericInput"} selective quantity`
@@ -1359,9 +1483,14 @@ function ControlledRefusalField({ wrapped }: { wrapped: boolean }) {
           {editor}
         </FormNumericInput>
       ) : (
-        <NumericInput {...fieldProps}>{editor}</NumericInput>
+        <div className="grid gap-50">
+          <Label htmlFor={id}>{label}</Label>
+          <NumericInput {...fieldProps} id={id}>{editor}</NumericInput>
+        </div>
       )}
-      <output aria-label="Accepted quantity">{value}</output>
+      <StatusText>
+        Accepted quantity: <output aria-label="Accepted quantity">{value}</output>
+      </StatusText>
       <Button
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => {
@@ -1471,13 +1600,16 @@ export const DeferredParentAcknowledgement: Story = {
     },
   },
   render() {
+    const id = useId()
     const [value, setValue] = useState("2")
     const committed = useRef("2")
     const nativeProposal = useRef("2")
     return (
-      <form className="grid w-full max-w-md gap-100">
+      <form className="grid w-full max-w-md gap-200">
+        <Label htmlFor={id}>Deferred quantity</Label>
         <NumericInput
           clampValueOnBlur={false}
+          id={id}
           locale="en-US"
           max={10}
           min={1}
@@ -1496,7 +1628,9 @@ export const DeferredParentAcknowledgement: Story = {
             <NumericInput.Input aria-label="Deferred quantity" />
           </NumericInput.Control>
         </NumericInput>
-        <output aria-label="Parent value">{value}</output>
+        <StatusText>
+          Parent value: <output aria-label="Parent value">{value}</output>
+        </StatusText>
         <Button
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => setValue(nativeProposal.current)}

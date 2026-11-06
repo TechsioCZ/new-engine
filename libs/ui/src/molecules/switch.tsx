@@ -2,7 +2,7 @@
  * Switch — @techsio/ui-kit molecule.
  *
  * @component Switch
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill switch-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -90,16 +90,17 @@ const switchVariants = tv({
       "data-[state=unchecked]:bg-switch-thumb-bg-unchecked",
       "switch-thumb-boundary data-invalid:not-data-readonly:not-data-disabled:data-[state=unchecked]:bg-switch-thumb-bg-invalid",
       "transform transition-transform duration-200 motion-reduce:transition-none",
-      "data-[disabled]:bg-switch-thumb-bg-unavailable",
+      "data-disabled:data-[state=unchecked]:bg-switch-thumb-bg-unavailable data-[disabled]:bg-switch-thumb-bg-unavailable",
       "data-[state=checked]:translate-x-switch-translate-track",
       "rtl:data-[state=checked]:-translate-x-switch-translate-track",
       "data-readonly:not-data-disabled:bg-switch-thumb-bg-readonly",
     ],
     label: [
-      "wrap-anywhere min-w-0 flex-1 select-none data-readonly:select-text",
+      "wrap-anywhere min-w-0 select-none data-readonly:select-text",
       "text-switch-label-fg",
       "data-[disabled]:text-switch-label-fg-disabled",
     ],
+    help: "data-disabled:data-[status=default]:text-switch-help-fg-disabled",
     hiddenInput: "sr-only",
   },
   variants: {
@@ -202,7 +203,7 @@ export function Switch({
   )
 
   const inputRef = useChoiceInputRef(ref)
-  const { root, control, thumb, label, hiddenInput } = switchVariants({
+  const { root, control, thumb, label, help, hiddenInput } = switchVariants({
     size,
   })
 
@@ -249,6 +250,8 @@ export function Switch({
       </Label>
       {helpText && (
         <StatusText
+          className={help()}
+          data-disabled={api.disabled ? "" : undefined}
           id={helpTextId}
           showIcon={validateStatus !== "default" || showHelpTextIcon}
           size={size}

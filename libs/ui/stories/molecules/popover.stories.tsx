@@ -44,6 +44,12 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+function expectNoOverlap(first: Element, second: Element) {
+  const a = first.getBoundingClientRect()
+  const b = second.getBoundingClientRect()
+  expect(a.bottom <= b.top || b.bottom <= a.top || a.right <= b.left || b.right <= a.left).toBe(true)
+}
+
 export const Playground: Story = {
   parameters: { docs: { description: { story: "Explore placement, size, surface and dismissal controls with realistic delivery information." } } },
   args: {
@@ -55,10 +61,10 @@ export const Variants: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Compare border, shadow and arrow choices without changing the content hierarchy." } } },
   args: {},
   render: () => (
-    <div className="space-y-400">
+    <div className="space-y-950">
       <div>
         <h3 className="mb-200 text-sm font-semibold">Visual Styles</h3>
-        <div className="flex flex-wrap gap-200">
+        <div className="flex flex-wrap gap-x-200 gap-y-950">
           <PopoverTemplate
             border={true}
             id="border-shadow-popover"
@@ -120,7 +126,7 @@ export const Variants: Story = {
 
 export const Sizes: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Small (sm), Medium (md) and Large (lg) use identical content to compare panel density, body text and headings." } } },
-  render: () => <div className="flex flex-wrap gap-400">{([["sm", "Small (sm)"], ["md", "Medium (md)"], ["lg", "Large (lg)"]] as const).map(([size, label]) => <section className="space-y-200" key={size}><h3 className="font-semibold text-sm">{label}</h3><PopoverTemplate size={size} title="Delivery details" trigger="Delivery details" description="Standard delivery takes 2–4 business days."><p>Track your order from your account.</p></PopoverTemplate></section>)}</div>,
+  render: () => <div className="flex flex-wrap gap-400">{([["sm", "Small (sm)"], ["md", "Medium (md)"], ["lg", "Large (lg)"]] as const).map(([size, label]) => <section className="space-y-200 pb-950 last:pb-0 sm:pb-0" key={size}><h3 className="font-semibold text-sm">{label}</h3><PopoverTemplate size={size} title="Delivery details" trigger="Delivery details" description="Standard delivery takes 2–4 business days."><p>Track your order from your account.</p></PopoverTemplate></section>)}</div>,
 }
 
 export const Disabled: Story = {
@@ -188,6 +194,29 @@ export const WithForm: Story = {
         <div className="flex justify-end gap-100"><Button onClick={() => setOpen(false)} size="sm" variant="secondary">Cancel</Button><Button size="sm" type="submit">Save contact</Button></div>
       </form>
     </PopoverTemplate>{saved && <StatusText status="success">Delivery contact saved for this preview.</StatusText>}</div>
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("button", { name: "Edit delivery contact" })
+    await userEvent.click(trigger)
+    const panel = await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: "Delivery contact" })
+    const input = within(panel).getByRole("textbox", { name: /^Full name/ })
+    await waitFor(() => expect(input).toHaveFocus())
+    await waitFor(() => {
+      const viewport = panel.querySelector<HTMLElement>(".popover-scroll-viewport")
+      if (!viewport) throw new Error("Missing popover scroll viewport")
+      const styles = canvasElement.ownerDocument.defaultView?.getComputedStyle(input)
+      const clearance = Number.parseFloat(styles?.outlineWidth ?? "0") * 2 + Number.parseFloat(styles?.outlineOffset ?? "0")
+      expect(clearance).toBeGreaterThan(0)
+      const rect = input.getBoundingClientRect()
+      const bounds = viewport.getBoundingClientRect()
+      expect(rect.left - bounds.left).toBeGreaterThanOrEqual(clearance - 0.5)
+      expect(bounds.right - rect.right).toBeGreaterThanOrEqual(clearance - 0.5)
+    })
+    await userEvent.click(within(panel).getByRole("button", { name: "Cancel" }))
+    await waitFor(() => expect(panel).not.toBeInTheDocument())
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await userEvent.unhover(trigger)
+    trigger.blur()
   },
 }
 
@@ -280,7 +309,7 @@ export const AsyncContent: Story = {
         }}
         trigger="Load Async Content"
       >
-        <div aria-busy={loading} className="flex min-h-24 w-3xs items-center justify-center">
+        <div aria-busy={loading} className="flex w-3xs items-center py-200">
           {loading ? (
             <div className="flex items-center gap-100">
               <Icon
@@ -291,15 +320,7 @@ export const AsyncContent: Story = {
               <StatusText role="status">Loading tracking details…</StatusText>
             </div>
           ) : data ? (
-            <div className="text-center">
-              <Icon
-                className="mx-auto mb-100"
-                color="success"
-                icon="token-icon-check"
-                size="lg"
-              />
-              <StatusText status="success">{data}</StatusText>
-            </div>
+            <StatusText role="status" status="success">{data}</StatusText>
           ) : (
             <p>Waiting to load...</p>
           )}
@@ -321,7 +342,7 @@ export const AsyncContent: Story = {
 
 export const PositioningBehaviors: Story = {
   decorators: [(Story) => <StorySurface className="max-w-4xl"><Story /></StorySurface>],
-  parameters: { layout: "fullscreen", controls: { disable: true }, docs: { description: { story: "Flip keeps the panel inside the viewport; non-portalled bounded examples illustrate the clipping trade-off." } } },
+  parameters: { layout: "fullscreen", controls: { disable: true }, docs: { description: { story: "Flip keeps the panel inside the viewport; bounded non-portalled examples preserve room for the full panel with sliding enabled or disabled." } } },
   args: {},
   render: () => (
     <div className="grid w-full min-w-0 justify-items-start gap-400">
@@ -343,9 +364,10 @@ export const PositioningBehaviors: Story = {
           Bounded containers simulate narrow viewport. Compare slide behavior:
         </p>
         <div className="flex flex-wrap gap-200">
-          <div className="relative h-48 w-full min-w-0 max-w-sm overflow-hidden border border-border border-dashed">
+          <div className="relative flex justify-center h-48 w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
             <div>
               <PopoverTemplate
+                contentClassName="min-w-3xs"
                 id="slide-true-popover"
                 placement="bottom"
                 portalled={false}
@@ -358,9 +380,10 @@ export const PositioningBehaviors: Story = {
             </div>
           </div>
 
-          <div className="relative h-48 w-full min-w-0 max-w-sm overflow-hidden border border-border border-dashed">
+          <div className="relative flex justify-center h-48 w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
             <div>
               <PopoverTemplate
+                contentClassName="min-w-3xs"
                 id="slide-false-popover"
                 placement="bottom"
                 portalled={false}
@@ -392,6 +415,34 @@ export const PositioningBehaviors: Story = {
     await expect(Number.parseInt(styles?.zIndex ?? "0", 10)).toBeGreaterThanOrEqual(60)
     await userEvent.keyboard("{Escape}")
     await waitFor(() => expect(panel).not.toBeInTheDocument())
+    for (const [triggerName, title] of [["slide=true", "Slide Enabled"], ["slide=false", "Slide Disabled"]] as const) {
+      await userEvent.click(canvas.getByRole("button", { name: triggerName }))
+      const bounded = await body.findByRole("dialog", { name: title })
+      await waitFor(() => {
+        const container = bounded.closest<HTMLElement>("[data-popover-bounds]")
+        if (!container) throw new Error("Missing bounded popover container")
+        const bounds = container.getBoundingClientRect()
+        const rect = bounded.getBoundingClientRect()
+        expect(rect.left).toBeGreaterThanOrEqual(bounds.left)
+        expect(rect.right).toBeLessThanOrEqual(bounds.right)
+        expect(rect.top).toBeGreaterThanOrEqual(bounds.top)
+        expect(rect.bottom).toBeLessThanOrEqual(bounds.bottom)
+        expect(rect.left).toBeGreaterThanOrEqual(0)
+        expect(rect.right).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientWidth)
+        const heading = within(bounded).getByText(title)
+        const word = canvasElement.ownerDocument.createRange()
+        const text = heading.firstChild
+        if (!text) throw new Error("Missing bounded popover heading")
+        word.setStart(text, title.indexOf(" ") + 1)
+        word.setEnd(text, title.length)
+        expect(word.getClientRects()).toHaveLength(1)
+        const viewport = bounded.querySelector<HTMLElement>(".popover-scroll-viewport")
+        expect(viewport).not.toBeNull()
+        expect(viewport?.scrollHeight).toBeLessThanOrEqual((viewport?.clientHeight ?? 0) + 1)
+      })
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() => expect(bounded).not.toBeInTheDocument())
+    }
   },
 }
 
@@ -399,17 +450,19 @@ export const SameWidthDemo: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Match a panel to its trigger when the content belongs to the same compact column." } } },
   args: {},
   render: () => (
-    <div className="flex items-start gap-400">
-      <PopoverTemplate
-        id="short-trigger-popover"
-        sameWidth={true}
-        title="Same Width"
-        trigger="Medium Length Trigger"
-      >
-        <p className="text-sm">
-          This popover exactly matches the trigger button width.
-        </p>
-      </PopoverTemplate>
+    <div className="flex w-full flex-col items-start gap-x-400 gap-y-950 sm:flex-row sm:flex-wrap">
+      <div className="pb-950">
+        <PopoverTemplate
+          id="short-trigger-popover"
+          sameWidth={true}
+          title="Same Width"
+          trigger="Medium Length Trigger"
+        >
+          <p className="text-sm">
+            This popover exactly matches the trigger button width.
+          </p>
+        </PopoverTemplate>
+      </div>
 
       <PopoverTemplate
         id="long-trigger-popover"
@@ -421,6 +474,33 @@ export const SameWidthDemo: Story = {
       </PopoverTemplate>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const triggers = ["Medium Length Trigger", "Very Long Trigger Button Text Here"].map((name) => canvas.getByRole("button", { name }))
+    for (const trigger of triggers) {
+      const text = canvasElement.ownerDocument.createRange()
+      text.selectNodeContents(trigger)
+      await expect(text.getClientRects()).toHaveLength(1)
+    }
+    for (const [index, trigger] of triggers.entries()) {
+      await userEvent.click(trigger)
+      const panel = await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: "Same Width" })
+      await waitFor(() => {
+        const other = triggers[1 - index]
+        if (!other) throw new Error("Missing sibling popover trigger")
+        expectNoOverlap(panel, other)
+        const rect = panel.getBoundingClientRect()
+        expect(Math.abs(rect.width - trigger.getBoundingClientRect().width)).toBeLessThanOrEqual(1)
+        expect(rect.left).toBeGreaterThanOrEqual(0)
+        expect(rect.right).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientWidth)
+      })
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() => expect(panel).not.toBeInTheDocument())
+      await waitFor(() => expect(trigger).toHaveFocus())
+      await userEvent.unhover(trigger)
+      trigger.blur()
+    }
+  },
 }
 
 export const EdgePositioning: Story = {
@@ -499,7 +579,7 @@ export const OverflowPaddingDemo: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Reserve breathing room between the floating panel and the viewport edge." } } },
   args: {},
   render: () => (
-    <div className="flex w-md flex-col gap-400">
+    <div className="flex w-full max-w-md flex-col gap-400">
       <div className="mb-200">
         <h3 className="mb-100 font-semibold">Overflow Padding</h3>
         <p>
@@ -508,25 +588,29 @@ export const OverflowPaddingDemo: Story = {
           shifts to maintain this gap.
         </p>
       </div>
-      <PopoverTemplate
-        id="8px-padding-popover"
-        overflowPadding={8}
-        placement="bottom"
-        title="Standard Gap"
-        trigger="Default Padding (8px)"
-      >
-        <p>8px minimum gap from viewport edges.</p>
-      </PopoverTemplate>
+      <div className="pb-950">
+        <PopoverTemplate
+          id="8px-padding-popover"
+          overflowPadding={8}
+          placement="bottom"
+          title="Standard Gap"
+          trigger="Default Padding (8px)"
+        >
+          <p>8px minimum gap from viewport edges.</p>
+        </PopoverTemplate>
+      </div>
 
-      <PopoverTemplate
-        id="24px-padding-popover"
-        overflowPadding={24}
-        placement="bottom"
-        title="Large Gap"
-        trigger="Large Padding (24px)"
-      >
-        <p>24px minimum gap from viewport edges.</p>
-      </PopoverTemplate>
+      <div className="pb-950">
+        <PopoverTemplate
+          id="24px-padding-popover"
+          overflowPadding={24}
+          placement="bottom"
+          title="Large Gap"
+          trigger="Large Padding (24px)"
+        >
+          <p>24px minimum gap from viewport edges.</p>
+        </PopoverTemplate>
+      </div>
 
       <PopoverTemplate
         id="0px-padding-popover"
@@ -542,22 +626,23 @@ export const OverflowPaddingDemo: Story = {
 }
 
 export const NestedPopovers: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "Nested panels dismiss one level at a time with Escape and restore focus to the original trigger." } } },
+  decorators: [(Story) => <StorySurface className="max-w-4xl"><Story /></StorySurface>],
+  parameters: { layout: "fullscreen", controls: { disable: true }, docs: { description: { story: "Nested panels dismiss one level at a time with Escape and restore focus to the original trigger." } } },
   tags: ["ui-runtime-regression"],
   args: {},
   render: () => (
     <PopoverTemplate
       id="level1-popover"
-      placement="bottom"
+      placement="bottom-start"
       title="First Level"
       trigger="Level 1"
     >
       <div className="mt-200 space-y-200">
-        <p>This is the first level popover.</p>
+        <p className="text-sm">This is the first level popover.</p>
 
         <PopoverTemplate
           id="level2-popover"
-          placement="right"
+          placement="bottom-start"
           size="sm"
           title="Second Level"
           trigger="Open Level 2"
@@ -567,7 +652,7 @@ export const NestedPopovers: Story = {
 
             <PopoverTemplate
               id="level3-popover"
-              placement="right"
+              placement="bottom-start"
               size="sm"
               title="Third Level"
               trigger="Open Level 3"
@@ -591,7 +676,15 @@ export const NestedPopovers: Story = {
     await userEvent.click(within(first).getByRole("button", { name: "Open Level 2" }))
     const second = await page.findByRole("dialog", { name: "Second Level" })
     await userEvent.click(within(second).getByRole("button", { name: "Open Level 3" }))
-    await expect(await page.findByRole("dialog", { name: "Third Level" })).toBeVisible()
+    const third = await page.findByRole("dialog", { name: "Third Level" })
+    await expect(third).toBeVisible()
+    await waitFor(() => {
+      const firstBody = within(first).getByText("This is the first level popover.")
+      const secondBody = within(second).getByText("This is nested inside the first popover.")
+      expectNoOverlap(firstBody, second)
+      expectNoOverlap(firstBody, third)
+      expectNoOverlap(secondBody, third)
+    })
 
     await userEvent.keyboard("{Escape}")
     await waitFor(() => {
@@ -619,6 +712,7 @@ export const LongContent: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "A long attachment name and review list wrap and scroll within the available viewport without obscuring the close control." } } },
   render: (args) => <Popover {...args}><Popover.Trigger>Review attachment</Popover.Trigger><Popover.Positioner><Popover.Content>
     <Popover.Title>Attachment details</Popover.Title><Popover.CloseTrigger aria-label="Dismiss attachment details" size="sm" />
+    <Popover.Description className="mb-200">Scroll to review all 15 attachments.</Popover.Description>
     <p>{"Catalog-2026-" + "AB1234567890".repeat(30)}</p>
     <div className="space-y-200">{Array.from({ length: 15 }, (_, index) => <p key={index}>Attachment {index + 1}: review availability and regional delivery information.</p>)}</div>
   </Popover.Content></Popover.Positioner></Popover>,
@@ -630,6 +724,7 @@ export const LongContent: Story = {
       expect(rect.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight)
     })
     const close = within(panel).getByRole("button", { name: "Dismiss attachment details" })
+    await expect(within(panel).getByText("Scroll to review all 15 attachments.")).toBeVisible()
     const scrollViewport = panel.querySelector<HTMLElement>(".popover-scroll-viewport")
     expect(scrollViewport).not.toBeNull()
     for (const fraction of [0.5, 1]) {
@@ -642,6 +737,13 @@ export const LongContent: Story = {
       })
       await expect(close).toBeVisible()
     }
+    await waitFor(() => {
+      if (!scrollViewport) throw new Error("Missing popover scroll viewport")
+      const last = within(panel).getByText("Attachment 15: review availability and regional delivery information.").getBoundingClientRect()
+      const bounds = scrollViewport.getBoundingClientRect()
+      expect(last.top).toBeGreaterThanOrEqual(bounds.top)
+      expect(last.bottom).toBeLessThanOrEqual(bounds.bottom)
+    })
     await userEvent.click(close)
     await waitFor(() => expect(panel).not.toBeInTheDocument())
   },

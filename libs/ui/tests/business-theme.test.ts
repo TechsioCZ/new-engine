@@ -7,6 +7,27 @@ import { describe, expect, it } from "vitest"
 const tokenAlias = /^var\(--/
 const variableReference = /var\(\s*(--[\w-]+)/g
 const relativeImport = /^["'](\.[^"']+)["']/
+const formattedVariable = /var\(\s*(--[\w-]+)\s*\)/g
+const quotedValue = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g
+const openingPadding = /\(\s+/g
+const closingPadding = /\s+\)/g
+const whitespace = /\s+/g
+
+function normalizedValue(value: string | undefined) {
+  return value
+    ?.split(quotedValue)
+    .map((part, index) =>
+      index % 2
+        ? part
+        : part
+            .replace(formattedVariable, "var($1)")
+            .replace(openingPadding, "(")
+            .replace(closingPadding, ")")
+            .replace(whitespace, " ")
+    )
+    .join("")
+    .trim()
+}
 
 const css = postcss.parse(
   readFileSync(new URL("../src/tokens/_business.css", import.meta.url), "utf8")
@@ -69,7 +90,9 @@ describe("business theme", () => {
 
   it("keeps small status labels at body-label size and medium weight", () => {
     expect(tokens.get("--text-badge-sm")).toBe("var(--text-sm)")
-    expect(tokens.get("--font-weight-badge-sm")).toBe("var(--font-weight-medium)")
+    expect(tokens.get("--font-weight-badge-sm")).toBe(
+      "var(--font-weight-medium)"
+    )
   })
 
   it("preserves the mobile input font floor and grows controls for touch", () => {
@@ -79,6 +102,17 @@ describe("business theme", () => {
     )
     expect(coarse?.toString()).toContain("--height-form-control-sm: max(")
     expect(coarse?.toString()).toContain("2.75rem")
+    if (coarse?.type !== "atrule") {
+      throw new Error("Missing touch overrides")
+    }
+    let largeTarget: string | undefined
+    coarse.walkDecls("--size-action-icon-target-lg", (declaration) => {
+      largeTarget = declaration.value
+    })
+    expect(coarse.toString()).not.toContain("--size-icon-control-lg:")
+    expect(normalizedValue(largeTarget)).toBe(
+      "max(var(--height-form-control-md), var(--height-form-control-lg))"
+    )
   })
 
   it("does not target other brands or change the root theme", () => {
@@ -122,6 +156,64 @@ describe("business theme", () => {
     }
   })
 
+  it("normalizes formatted references without removing calc operator spacing", () => {
+    expect(normalizedValue("var(\n --color-date-picker-transparent\n)")).toBe(
+      "var(--color-date-picker-transparent)"
+    )
+    expect(normalizedValue("calc(1px + 2px)")).not.toBe(
+      normalizedValue("calc(1px+2px)")
+    )
+  })
+
+  it("restores the disabled calendar trigger background at nested brand boundaries", () => {
+    const base = postcss.parse(
+      readFileSync(
+        new URL(
+          "../src/tokens/components/molecules/_date-picker.css",
+          import.meta.url
+        ),
+        "utf8"
+      )
+    )
+    let fallback: string | undefined
+    base.walkAtRules("theme", (theme) => {
+      theme.walkDecls("--color-date-picker-trigger-bg-disabled", (decl) => {
+        fallback = decl.value
+      })
+    })
+    expect(normalizedValue(fallback)).toBe(
+      "var(--color-date-picker-control-bg-disabled)"
+    )
+    const scopes = postcss.parse(
+      readFileSync(
+        new URL("../src/tokens/_scheme-scopes.css", import.meta.url),
+        "utf8"
+      )
+    )
+    let boundaryDefault: string | undefined
+    scopes.walkRules((rule) => {
+      if (rule.selector.includes(":root")) {
+        rule.walkDecls("--color-date-picker-trigger-bg-disabled", (decl) => {
+          boundaryDefault = decl.value
+        })
+      }
+    })
+    expect(normalizedValue(boundaryDefault)).toBe(normalizedValue(fallback))
+    expect(
+      normalizedValue(tokens.get("--color-date-picker-trigger-bg-disabled"))
+    ).toBe("var(--color-date-picker-transparent)")
+  })
+
+  it("ignores function padding without changing operators or quoted content", () => {
+    expect(normalizedValue("calc(\n var( --spacing ) * 1.5 \n)")).toBe(
+      normalizedValue("calc(var(--spacing) * 1.5)")
+    )
+    expect(normalizedValue("calc(1px+2px)")).not.toBe(
+      normalizedValue("calc(1px + 2px)")
+    )
+    expect(normalizedValue('"( keep  spaces )"')).toBe('"( keep  spaces )"')
+  })
+
   it("projects business overrides into generated local scheme boundaries", () => {
     const scopes = postcss.parse(
       readFileSync(
@@ -138,10 +230,10 @@ describe("business theme", () => {
       }
     })
     for (const [name, value] of tokens) {
-      // Formatting adds indentation to multiline calc() values in @scope.
-      // Preserve operators and references while ignoring that indentation.
-      expect(projected.get(name)?.replace(/\s+/g, " ").trim(), name).toBe(
-        value.replace(/\s+/g, " ").trim()
+      // Formatting adds indentation and can wrap long var() references.
+      // Preserve operators and references while ignoring that whitespace.
+      expect(normalizedValue(projected.get(name)), name).toBe(
+        normalizedValue(value)
       )
     }
   })

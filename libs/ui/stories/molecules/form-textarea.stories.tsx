@@ -20,7 +20,7 @@ const meta: Meta<typeof FormTextarea> = {
   },
   decorators: [
     (Story) => (
-      <div className="mx-auto w-full min-w-0 max-w-md">
+      <div className="w-full min-w-0 max-w-md p-200">
         <Story />
       </div>
     ),
@@ -242,7 +242,6 @@ export const FeedbackLifecycle: Story = {
     const id = useId()
     return (
       <div className="flex flex-col gap-200">
-        <p id={id}>Only used for this order.</p>
         <FormTextarea
           aria-describedby={id}
           helpText={
@@ -251,7 +250,14 @@ export const FeedbackLifecycle: Story = {
           label="Delivery instructions"
           validateStatus={invalid ? "error" : "default"}
         />
-        <Button onClick={() => setInvalid(false)} variant="secondary">
+        <StatusText id={id}>Only used for this order.</StatusText>
+        <Button
+          className="self-start"
+          onClick={() => setInvalid(false)}
+          size="sm"
+          theme="outlined"
+          variant="secondary"
+        >
           Clear validation
         </Button>
       </div>
@@ -300,10 +306,22 @@ export const CallerOwnedError: Story = {
           label="Delivery details"
           validateStatus={localError ? "error" : "default"}
         />
-        <Button onClick={() => setLocalError(false)} variant="secondary">
+        <Button
+          className="self-start"
+          onClick={() => setLocalError(false)}
+          size="sm"
+          theme="outlined"
+          variant="secondary"
+        >
           Clear field validation
         </Button>
-        <Button onClick={() => setCallerError(false)} variant="secondary">
+        <Button
+          className="self-start"
+          onClick={() => setCallerError(false)}
+          size="sm"
+          theme="outlined"
+          variant="secondary"
+        >
           Clear caller error
         </Button>
       </div>

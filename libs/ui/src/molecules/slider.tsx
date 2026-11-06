@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.4.3
+ * @componentVersion v1.4.4
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -67,7 +67,12 @@ const sliderVariants = tv({
       "data-[orientation=vertical]:h-full",
       "data-disabled:cursor-not-allowed",
     ],
-    header: ["flex min-w-0 flex-wrap items-center justify-between gap-slider"],
+    header: [
+      "flex min-w-0 flex-wrap items-center justify-between gap-slider",
+      "data-[orientation=vertical]:min-h-slider-header-vertical data-[orientation=vertical]:flex-col data-[orientation=vertical]:justify-center data-[orientation=vertical]:gap-0",
+    ],
+    message:
+      "data-[orientation=vertical]:w-fit data-[orientation=vertical]:max-w-full data-[orientation=vertical]:self-center data-[orientation=vertical]:text-start",
     value: ["wrap-anywhere min-w-0 tabular-nums"],
     label: ["wrap-anywhere block min-w-0 font-medium"],
     control: [
@@ -84,7 +89,6 @@ const sliderVariants = tv({
       "data-disabled:border-slider-border-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
       "hover:bg-slider-track-bg-hover",
-      "data-[invalid=true]:border-(length:--border-width-validation)",
       "data-[invalid=true]:border-slider-border-error",
     ],
     range: [
@@ -122,6 +126,9 @@ const sliderVariants = tv({
     ],
     markerText: [
       "absolute top-full",
+      "data-[orientation=horizontal]:mt-slider-marker-label-offset",
+      "data-[orientation=horizontal]:data-[edge=start]:start-0",
+      "data-[orientation=horizontal]:data-[edge=end]:end-0",
       "data-[orientation=vertical]:start-full data-[orientation=vertical]:top-0",
       "data-[orientation=vertical]:h-full",
       "data-[orientation=vertical]:p-marker-text",
@@ -594,6 +601,7 @@ export function Slider({
     range,
     thumb,
     header,
+    message,
     value: valueSlot,
     markerGroup,
     marker,
@@ -633,7 +641,7 @@ export function Slider({
         type="hidden"
       />
       {(label || showValueText) && (
-        <div className={header()}>
+        <div className={header()} data-orientation={orientation}>
           <Label className={labelSlot()} size={size} {...api.getLabelProps()}>
             {label}
           </Label>
@@ -677,6 +685,8 @@ export function Slider({
                       ((resolvedConfig.max - resolvedConfig.min) /
                         (markerCount - 1)) *
                         index
+                const endEdge = index === markerCount - 1 ? "end" : undefined
+                const edge = index === 0 ? "start" : endEdge
                 return (
                   <div
                     className={marker()}
@@ -695,6 +705,7 @@ export function Slider({
                     )}
                     <span
                       className={markerText()}
+                      data-edge={edge}
                       data-orientation={orientation}
                     >
                       {markerValue}
@@ -748,6 +759,8 @@ export function Slider({
       </div>
       {helpText && (
         <StatusText
+          className={message()}
+          data-orientation={orientation}
           id={helpTextId}
           showIcon={
             validateStatus && validateStatus !== "default"

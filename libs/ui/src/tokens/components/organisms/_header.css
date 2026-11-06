@@ -1,12 +1,17 @@
-/*
- * Header — runtime tokens come entirely from
- * libs/ui/src/tokens/figma/variables.css.
- *
- * Kept:
- * - `:root @media (width < 48rem)` nav-spacing override (responsive,
- *   conditional value — can't be expressed as a Figma variable).
- * - glyph utilities mapping the menu/close icons.
- */
+/* Header container modes, mobile panel framing, and icon mappings. */
+@theme static {
+  /* Reference layer */
+  --color-header-mobile-outline: var(--color-border-primary);
+  --spacing-header-mobile-inset: var(--dimension-12);
+
+  /* Derived layer */
+  --color-header-mobile-border: var(--color-header-mobile-outline);
+  --border-width-header-mobile: var(--dimension-1);
+  --padding-header-mobile: var(--spacing-header-mobile-inset);
+  --spacing-header-mobile-nav-sm: var(--spacing-50);
+  --spacing-header-mobile-nav-md: var(--spacing-100);
+  --spacing-header-mobile-nav-lg: var(--spacing-150);
+}
 
 /* Container-query thresholds must be literal lengths: nested var() aliases
  * cannot be resolved by Tailwind when it emits container variants. */
@@ -25,16 +30,17 @@
   }
 }
 @utility header-mobile {
+  /* Panel rhythm follows the container's mobile mode, not the viewport. */
+  --spacing-header-nav-sm: var(--spacing-header-mobile-nav-sm);
+  --spacing-header-nav-md: var(--spacing-header-mobile-nav-md);
+  --spacing-header-nav-lg: var(--spacing-header-mobile-nav-lg);
+
+  border: var(--border-width-header-mobile) solid
+    var(--color-header-mobile-border);
+  padding-block: var(--padding-header-mobile);
+
   @container (width >= 48rem) {
     display: none;
-  }
-}
-
-:root {
-  @media (width < 48rem) {
-    --spacing-header-nav-sm: var(--spacing-50);
-    --spacing-header-nav-md: var(--spacing-100);
-    --spacing-header-nav-lg: var(--spacing-150);
   }
 }
 

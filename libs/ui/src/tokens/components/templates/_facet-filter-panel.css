@@ -34,6 +34,10 @@
   --padding-facet-filter-panel-group: var(--spacing-200);
   --padding-facet-filter-panel-active: var(--spacing-150);
   --padding-facet-filter-panel-count: var(--spacing-100);
+  --spacing-facet-filter-panel-action-inset: var(--padding-button-x-sm);
+  --padding-facet-filter-panel-overflow-inline: var(
+    --spacing-facet-filter-panel-action-inset
+  );
   --text-facet-filter-panel-title: var(--text-md);
   --text-facet-filter-panel-active-title: var(--text-sm);
   --text-facet-filter-panel-status: var(--text-sm);

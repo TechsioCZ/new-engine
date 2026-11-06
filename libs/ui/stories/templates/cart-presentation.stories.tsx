@@ -8,6 +8,32 @@ import { PriceBlock } from "../../src/molecules/price-block"
 import { QuantityField } from "../../src/molecules/quantity-field"
 import { TotalsSummary } from "../../src/molecules/totals-summary"
 import { LineItem } from "../../src/organisms/line-item"
+import { tv } from "../../src/utils"
+
+const cartPresentationQuantity = tv({
+  base: "max-w-cart-presentation-quantity!",
+})
+
+async function expectCompactBusinessQuantity(canvasElement: HTMLElement) {
+  if (
+    canvasElement.closest<HTMLElement>("[data-theme]")?.dataset.theme !==
+    "business"
+  )
+    return
+
+  const quantity = canvasElement.querySelector<HTMLElement>(
+    '[data-scope="line-item"] [data-part="quantity"]:has(input)'
+  )
+  if (!quantity) throw new Error("The editable cart quantity must be present")
+  const rem = Number.parseFloat(
+    getComputedStyle(canvasElement.ownerDocument.documentElement).fontSize
+  )
+  // A 1–10 quantity must not grow to fill the desktop cart row. The cap still
+  // leaves room for touch-sized steppers, the full unit label and draft errors.
+  await expect(quantity.getBoundingClientRect().width).toBeLessThanOrEqual(
+    15 * rem + 1
+  )
+}
 
 function CartExample({ readOnly = false }: { readOnly?: boolean }) {
   const [quantity, setQuantity] = useState("2")
@@ -66,7 +92,10 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
           </LineItem.Heading>
           <LineItem.Options>100 ks · pozink · kód MS-008</LineItem.Options>
           <LineItem.Controls>
-            <LineItem.Quantity readOnlyLabel={`${quantity} balení`}>
+            <LineItem.Quantity
+              className={cartPresentationQuantity()}
+              readOnlyLabel={`${quantity} balení`}
+            >
               <QuantityField
                 ref={quantityRef}
                 helperText={retainedPriceNote}
@@ -169,6 +198,7 @@ export const Playground: Story = {
       await expect(canvas.queryByRole("button")).not.toBeInTheDocument()
       return
     }
+    await expectCompactBusinessQuantity(canvasElement)
     const input = canvas.getByRole("spinbutton")
     await userEvent.click(input)
     // Let Zag finish its focus/selection frame before replacing the draft.
@@ -225,6 +255,9 @@ export const Playground: Story = {
   },
 }
 export const CartAndRecap: Story = {
+  play: async ({ canvasElement }) => {
+    await expectCompactBusinessQuantity(canvasElement)
+  },
   parameters: {
     docs: {
       description: {

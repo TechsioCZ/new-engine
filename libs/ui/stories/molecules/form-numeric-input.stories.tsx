@@ -527,6 +527,20 @@ export const Required: Story = {
 
 // Disabled State
 export const HorizontalLayout: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("spinbutton")
+    const increment = canvas.getByRole("button", { name: "increment value" })
+    const decrement = canvas.getByRole("button", { name: "decrease value" })
+    await userEvent.click(increment)
+    await expect(input).toHaveValue("51")
+    await userEvent.click(decrement)
+    await expect(input).toHaveValue("50")
+    for (const button of [increment, decrement]) {
+      await expect(getComputedStyle(button).borderTopStyle).toBe("solid")
+      await expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(input.getBoundingClientRect().height)
+    }
+  },
   parameters: {
     docs: {
       description: {
@@ -549,11 +563,21 @@ export const HorizontalLayout: Story = {
           value={value}
         >
           <div className="flex gap-100">
-            <NumericInput.DecrementTrigger icon="icon-[mdi--minus]" />
-            <NumericInput.Control className="flex-1">
+            <NumericInput.DecrementTrigger
+              className="flex-none"
+              icon="icon-[mdi--minus]"
+              iconSize="md"
+              theme="outlined"
+            />
+            <NumericInput.Control className="min-w-0 flex-1">
               <NumericInput.Input />
             </NumericInput.Control>
-            <NumericInput.IncrementTrigger icon="icon-[mdi--plus]" />
+            <NumericInput.IncrementTrigger
+              className="flex-none"
+              icon="icon-[mdi--plus]"
+              iconSize="md"
+              theme="outlined"
+            />
           </div>
         </FormNumericInput>
       </div>
@@ -685,7 +709,7 @@ export const ComplexDemo: Story = {
     const isInvalid = value < 0 || value > 100
 
     return (
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-200">
         <div>
           <FormNumericInput
             allowMouseWheel
@@ -798,7 +822,7 @@ export const ControlledDraft: Story = {
         <p data-testid="form-draft-value">
           Draft: {value === "" ? "(empty)" : value}
         </p>
-        <p data-testid="form-committed-value">Committed: {committedValue}</p>
+        <p data-testid="form-committed-value">Committed: {committedValue || "—"}</p>
         <p data-testid="form-numeric-value">Numeric: {String(numericValue)}</p>
         <div className="flex flex-wrap gap-100">
           <Button onClick={() => setRejected(true)} variant="secondary">

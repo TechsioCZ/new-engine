@@ -7,6 +7,7 @@ import { Link } from "../../src/atoms/link"
 import { Dialog } from "../../src/molecules/dialog"
 import {
   SearchSuggestions,
+  searchSuggestionsResultVariants,
   type SearchSuggestionGroup,
   type SearchSuggestionsProps,
 } from "../../src/templates/search-suggestions"
@@ -50,23 +51,26 @@ const groups: SearchSuggestionGroup<ProductDetails>[] = [
   },
 ]
 
+const resultStyles = searchSuggestionsResultVariants()
 const resultSlot: SearchSuggestionsProps<ProductDetails>["resultSlot"] = (
   item
 ) => (
-  <span className="flex min-w-0 flex-1 items-center gap-150">
+  <span className={resultStyles.row()}>
     {item.data?.image && (
       <Image
         alt=""
-        className="shrink-0 object-cover"
+        className={resultStyles.image()}
         size="sm"
         src={item.data.image}
       />
     )}
-    <span className="flex min-w-0 flex-1 flex-col">
-      <span className="truncate">{item.label}</span>
-      <span className="text-(length:--text-base)">{item.data?.subtitle}</span>
+    <span className={resultStyles.body()}>
+      <span className={resultStyles.title()}>{item.label}</span>
+      <span className={resultStyles.subtitle()}>{item.data?.subtitle}</span>
     </span>
-    {item.data?.price && <span className="shrink-0">{item.data.price}</span>}
+    {item.data?.price && (
+      <span className={resultStyles.price()}>{item.data.price}</span>
+    )}
   </span>
 )
 
@@ -105,7 +109,7 @@ const meta = {
         "navigate",
       ],
     },
-    layout: "padded",
+    layout: "fullscreen",
     docs: {
       description: {
         component: `Search a catalog with grouped, rich suggestions that navigate to products, categories or articles. Use this for live search navigation; use SearchForm for explicit query submission, Combobox for selecting form values, or Command for app actions. Queries support sm/md/lg sizing, linked validation and focusable, copyable read-only states. Demo navigation is intercepted so Storybook stays on the page.
@@ -127,16 +131,18 @@ const meta = {
       <div
         className={
           args.defaultOpen && !args.readOnly
-            ? "mx-auto min-h-screen w-full max-w-sm"
-            : "mx-auto w-full max-w-sm"
+            ? "min-h-screen w-full min-w-0 p-200"
+            : "w-full min-w-0 p-200"
         }
       >
-        <Story
-          args={{
-            ...args,
-            allResultsLink: args.allResultsLink ?? allResultsLink,
-          }}
-        />
+        <div className="mx-auto w-full max-w-sm">
+          <Story
+            args={{
+              ...args,
+              allResultsLink: args.allResultsLink ?? allResultsLink,
+            }}
+          />
+        </div>
       </div>
     ),
   ],
@@ -212,7 +218,7 @@ const meta = {
   args: {
     groups,
     label: "Search catalog",
-    placeholder: "Search products and categories",
+    placeholder: "Search catalog",
     resultSlot,
     navigate: fn(),
     onInputValueChange: fn(),
@@ -222,10 +228,33 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+// Locator captures include the canvas, not Storybook's external layout padding.
+// Keep the complete control outline inside that canvas even after keyboard use.
+const checkControlFraming = async (canvasElement: HTMLElement) => {
+  const controls = canvasElement.querySelectorAll<HTMLElement>(
+    '[data-scope="combobox"][data-part="control"]'
+  )
+  await expect(controls.length).toBeGreaterThan(0)
+  for (const control of controls) {
+    const root = canvasElement.getBoundingClientRect()
+    const box = control.getBoundingClientRect()
+    const style = getComputedStyle(control)
+    const outline = Math.max(
+      0,
+      Number.parseFloat(style.outlineWidth) +
+        Number.parseFloat(style.outlineOffset)
+    )
+    await expect(box.left - outline).toBeGreaterThan(root.left)
+    await expect(box.right + outline).toBeLessThan(root.right)
+    await expect(box.bottom + outline).toBeLessThan(root.bottom)
+  }
+}
+
 const checkOpenSuggestions = (text: string): NonNullable<Story["play"]> =>
   async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const body = within(canvasElement.ownerDocument.body)
+    await checkControlFraming(canvasElement)
     await expect(canvas.getByRole("combobox", { name: "Search catalog" })).toHaveAttribute("aria-expanded", "true")
     // Presence precedes visibility while the popup's opening transition runs.
     await waitFor(() =>
@@ -292,6 +321,7 @@ export const Playground: Story = {
     await userEvent.clear(input)
     await waitFor(() => expect(body.getAllByRole("option")).toHaveLength(3))
     await userEvent.keyboard("{Escape}")
+    await checkControlFraming(canvasElement)
   },
 }
 
@@ -357,7 +387,15 @@ export const GroupedResults: Story = {
     },
   },
   args: { defaultOpen: true },
-  play: checkOpenSuggestions("Everyday trainers"),
+  play: async (context) => {
+    await checkOpenSuggestions("Everyday trainers")(context)
+    const body = within(context.canvasElement.ownerDocument.body)
+    const title = body.getByText("Everyday trainers", { exact: true })
+    const subtitle = body.getByText("In stock", { exact: true })
+    await expect(
+      Number.parseFloat(getComputedStyle(subtitle).fontSize)
+    ).toBeLessThan(Number.parseFloat(getComputedStyle(title).fontSize))
+  },
 }
 
 export const WithoutGroupLabels: Story = {
@@ -468,12 +506,16 @@ export const InDialog: Story = {
     docs: {
       description: {
         story:
-          "Inline search suggestions preserve modal focus containment and dismiss before their parent dialog.",
+          "A top-aligned search dialog leaves room below the query for results while preserving modal focus containment and dismissing suggestions before their parent dialog.",
       },
     },
   },
   render: (args) => (
-    <Dialog title="Search catalog" triggerText="Open search">
+    <Dialog
+      className="self-start"
+      title="Search catalog"
+      triggerText="Open search"
+    >
       <SearchSuggestions {...args} />
     </Dialog>
   ),

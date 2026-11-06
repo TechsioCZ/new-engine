@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.3.3
+ * @componentVersion v1.3.4
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -159,9 +159,9 @@ const rating = tv({
   slots: {
     root: "grid min-w-0 max-w-full items-center",
     control:
-      "form-control-readonly focus-visible:rating-focus-outline inline-flex w-fit max-w-full flex-wrap items-center",
+      "rating-readonly form-control-readonly focus-visible:rating-focus-outline inline-flex w-fit max-w-full flex-wrap items-center",
     item: [
-      "inline-grid min-h-rating-target min-w-rating-target shrink-0 place-items-center",
+      "rating-item-fluid inline-grid min-h-rating-target place-items-center",
       "cursor-pointer data-disabled:cursor-not-allowed",
       "focus-visible:rating-focus-outline",
     ],
@@ -183,19 +183,22 @@ const rating = tv({
     size: {
       sm: {
         root: "gap-rating-sm",
-        control: "gap-rating-sm",
+        control: "gap-rating-control-sm",
+        item: "text-rating-sm",
         glyph: "text-rating-sm",
         fractionalGlyph: "text-rating-sm",
       },
       md: {
         root: "gap-rating-md",
-        control: "gap-rating-md",
+        control: "gap-rating-control-md",
+        item: "text-rating-md",
         glyph: "text-rating-md",
         fractionalGlyph: "text-rating-md",
       },
       lg: {
         root: "gap-rating-lg",
-        control: "gap-rating-lg",
+        control: "gap-rating-control-lg",
+        item: "text-rating-lg",
         glyph: "text-rating-lg",
         fractionalGlyph: "text-rating-lg",
       },
@@ -345,7 +348,7 @@ export function Rating({
         aria-errormessage={errorMessageId}
         aria-invalid={invalid || undefined}
         data-disabled={disabled ? "" : undefined}
-        data-readonly={readOnly && !disabled ? "" : undefined}
+        data-readonly={readOnly && !(disabled || isDisplay) ? "" : undefined}
         ref={controlRef}
       >
         <RatingItems
@@ -365,7 +368,9 @@ export function Rating({
         data-disabled={disabled ? "" : undefined}
         id={scoreId}
       >
-        {Math.max(0, api.value)} / {normalizedCount}
+        <bdi dir="ltr">
+          {Math.max(0, api.value)} / {normalizedCount}
+        </bdi>
       </span>
       {helpText && (
         <StatusText id={helpTextId} size={size} status={validateStatus}>

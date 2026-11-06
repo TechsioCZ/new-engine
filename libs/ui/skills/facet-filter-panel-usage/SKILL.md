@@ -2,7 +2,7 @@
 name: facet-filter-panel-usage
 description: Use for controlled catalog facet presentation with generic option and range groups, active filters, overflow, and an inline panel or Dialog drawer.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.2.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

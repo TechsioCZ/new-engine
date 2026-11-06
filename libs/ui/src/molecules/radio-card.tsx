@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.1.4
+ * @componentVersion v1.1.5
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -208,7 +208,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-sm",
         itemIndicator: "size-radio-card-indicator-sm",
         itemIndicatorMark: "size-radio-card-indicator-mark-sm",
-        itemAddon: ["p-radio-card-addon-sm", "text-radio-card-addon-sm"],
+        itemAddon: ["radio-card-addon-sm", "text-radio-card-addon-sm"],
       },
       md: {
         root: "gap-radio-card-stack-md",
@@ -221,7 +221,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-md",
         itemIndicator: "size-radio-card-indicator-md",
         itemIndicatorMark: "size-radio-card-indicator-mark-md",
-        itemAddon: ["p-radio-card-addon-md", "text-radio-card-addon-md"],
+        itemAddon: ["radio-card-addon-md", "text-radio-card-addon-md"],
       },
       lg: {
         root: "gap-radio-card-stack-lg",
@@ -234,7 +234,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-lg",
         itemIndicator: "size-radio-card-indicator-lg",
         itemIndicatorMark: "size-radio-card-indicator-mark-lg",
-        itemAddon: ["p-radio-card-addon-lg", "text-radio-card-addon-lg"],
+        itemAddon: ["radio-card-addon-lg", "text-radio-card-addon-lg"],
       },
     },
     itemOrientation: {

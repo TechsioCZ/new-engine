@@ -6,7 +6,11 @@ import {
   useEffect,
   useState,
 } from "react"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import {
+  StorySurface,
+  VariantContainer,
+  VariantGroup,
+} from "../../.storybook/decorator"
 import {
   Pagination,
   type PaginationProps,
@@ -88,14 +92,16 @@ const meta: Meta<typeof Pagination> = {
           "A navigation landmark for moving through a paged collection with real destination URLs. Use it for long result sets; use Tabs for peer content panels or Steps for a sequential workflow. Unavailable destinations are non-interactive link placeholders; demos suppress real navigation.",
       },
     },
-    layout: "centered",
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div onClick={(event) => event.preventDefault()} role="presentation">
-        <Story />
-      </div>
+      <StorySurface>
+        <div onClick={(event) => event.preventDefault()} role="presentation">
+          <Story />
+        </div>
+      </StorySurface>
     ),
   ],
   argTypes: {
@@ -277,6 +283,20 @@ export const Sizes: Story = {
 }
 
 export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const navigation = within(canvasElement).getByRole("navigation")
+    const controls = Array.from(navigation.querySelectorAll<HTMLElement>('[data-part="item"], [data-part="prev-trigger"], [data-part="next-trigger"]')).filter((control) => control.getBoundingClientRect().width > 0)
+    const firstControl = controls[0]
+    if (!firstControl) {
+      throw new Error("Pagination controls were not rendered")
+    }
+    const rowTop = firstControl.getBoundingClientRect().top
+    for (const control of controls) {
+      await expect(control.getBoundingClientRect().top).toBe(rowTop)
+    }
+    await expect(navigation.scrollWidth).toBeLessThanOrEqual(navigation.clientWidth)
+    await expect(within(navigation).getByRole("link", { current: "page" })).toBeVisible()
+  },
   parameters: {
     controls: { disable: true },
     docs: {
@@ -302,7 +322,7 @@ export const CompactMode: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Regular vs Compact">
-        <div className="space-y-300">
+        <div className="w-full min-w-0 space-y-300">
           <StoryPagination
             aria-label="Pagination, Regular vs Compact 1"
             count={250}
@@ -334,9 +354,9 @@ export const EdgeCases: Story = {
   },
   tags: ["ui-semantic-regression"],
   render: () => (
-    <VariantContainer>
+    <div className="flex w-full min-w-0 flex-col gap-300">
       <VariantGroup title="Very few pages">
-        <div className="space-y-300">
+        <div className="w-full min-w-0 space-y-300">
           <StoryPagination
             aria-label="Pagination, Very few pages 1"
             count={5}
@@ -361,7 +381,7 @@ export const EdgeCases: Story = {
       </VariantGroup>
 
       <VariantGroup title="Many pages">
-        <div className="space-y-300">
+        <div className="w-full min-w-0 space-y-300">
           <StoryPagination
             aria-label="Pagination, Many pages 1"
             count={1000}
@@ -377,7 +397,7 @@ export const EdgeCases: Story = {
           />
         </div>
       </VariantGroup>
-    </VariantContainer>
+    </div>
   ),
   play: async ({ canvasElement }) => {
     const disabledLinks = canvasElement.querySelectorAll<HTMLElement>(
@@ -432,10 +452,10 @@ export const CustomLinkComponent: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Custom polymorphic link">
-        <div className="space-y-300">
+        <div className="w-full min-w-0 space-y-300">
           <p className="text-fg-secondary text-sm">
-            `Pagination` stays navigation-only, but can forward extra props to a
-            custom link component.
+            <code>Pagination</code> stays navigation-only, but can forward extra
+            props to a custom link component.
           </p>
           <Pagination
             count={500}
@@ -463,16 +483,29 @@ export const RealWorldScenarios: Story = {
       },
     },
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const card = canvas.getByText("Table content area").parentElement
+    if (!card) throw new Error("Missing table navigation card")
+    const viewportWidth = canvasElement.ownerDocument.documentElement.clientWidth
+    await expect(card.getBoundingClientRect().left).toBeGreaterThanOrEqual(0)
+    await expect(card.getBoundingClientRect().right).toBeLessThanOrEqual(viewportWidth)
+    await expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth)
+    for (const navigation of canvas.getAllByRole("navigation")) {
+      await expect(navigation.scrollWidth).toBeLessThanOrEqual(navigation.clientWidth)
+      await expect(within(navigation).getByRole("link", { current: "page" })).toBeVisible()
+    }
+  },
   render: () => (
-    <VariantContainer>
+    <div className="flex w-full min-w-0 flex-col gap-300">
       <VariantGroup title="Table navigation">
-        <div className="space-y-300">
-          <div className="space-y-300 rounded border bg-base p-300">
+        <div className="w-full min-w-0 space-y-300">
+          <div className="space-y-300 rounded border border-border-primary bg-base p-300">
             <div className="flex h-32 items-center justify-center rounded bg-surface text-fg-primary text-sm">
               Table content area
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-fg-secondary text-sm">
+            <div className="flex flex-col items-start gap-200 sm:flex-row sm:items-center">
+              <span className="shrink-0 text-fg-secondary text-sm">
                 20 items per page
               </span>
               <StoryPagination
@@ -487,7 +520,7 @@ export const RealWorldScenarios: Story = {
       </VariantGroup>
 
       <VariantGroup title="Without prev/next buttons">
-        <div className="space-y-300">
+        <div className="w-full min-w-0 space-y-300">
           <StoryPagination
             aria-label="Pagination, Without prev/next buttons 1"
             count={150}
@@ -513,6 +546,6 @@ export const RealWorldScenarios: Story = {
           />
         </div>
       </VariantGroup>
-    </VariantContainer>
+    </div>
   ),
 }

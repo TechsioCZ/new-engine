@@ -108,6 +108,25 @@ describe("bounded navigation state", () => {
     expect(html).not.toContain("href=")
     expect(html).not.toContain('aria-current="page"')
   })
+  it.each([false, true])(
+    "preserves numbered destinations when showPrevNext is %s",
+    (showPrevNext) => {
+      const html = renderToStaticMarkup(
+        h(Pagination, {
+          count: 100,
+          pageSize: 10,
+          defaultPage: 5,
+          siblingCount: 0,
+          showPrevNext,
+          getPageUrl: href,
+        })
+      )
+      expect(html).toContain('href="#page-1"')
+      expect(html).toContain('href="#page-10"')
+      expect(html.includes(' data-responsive-pages="')).toBe(showPrevNext)
+    }
+  )
+
   it("gives minimal current pages a persistent non-color cue", () => {
     expect(paginationVariants({ variant: "minimal" }).link()).toContain(
       "data-selected:underline"

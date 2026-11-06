@@ -2,7 +2,7 @@
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,7 +28,7 @@ const colorSelectVariants = tv({
   slots: {
     root: "grid w-full min-w-0 gap-color-select-md",
     group: [
-      "form-control-readonly grid min-w-0 items-start justify-items-stretch",
+      "grid min-w-0 items-start justify-items-stretch",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-offset-(length:--default-ring-offset) focus-visible:outline-color-select-ring",
     ],
@@ -104,6 +104,8 @@ const colorSelectVariants = tv({
     layout: {
       list: {
         group: "grid-cols-1",
+        cell: "justify-items-start",
+        labelContainer: "text-start",
       },
       grid: {
         group: "color-select-grid",

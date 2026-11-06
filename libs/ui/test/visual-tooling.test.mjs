@@ -29,7 +29,10 @@ import {
 import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
   assertFloatingContainment,
+  captureCheckpointImage,
+  documentedStateCheckpointStories,
   popupCheckpointStories,
+  tooltipCheckpointStories,
   visibleFloatingSurfaces,
 } from "./visual-popup-capture.mjs"
 import {
@@ -960,8 +963,75 @@ test("oversized visual roots tile the entire document region without gaps or exc
     primary,
     /for \(const tile of tiles.length \? tiles : \[null\]\)/
   )
-  assert.match(primary, /clip: tile.clip/)
+  assert.match(primary, /await captureCheckpointImage\(page, root, options, \{/)
+  assert.match(
+    primary,
+    /fullPage,\s+framing,\s+tile,\s+ready: beforeCapture,\s+appearance,/
+  )
 })
+
+for (const mode of [
+  "tile",
+  "document",
+  "appearance-document",
+  "prepared-inline",
+  "marked-inline",
+  "root",
+]) {
+  test(`checkpoint capture preserves ${mode} geometry and observational readiness`, async () => {
+    const events = []
+    const image = Buffer.from("captured pixels")
+    const options = { animations: "disabled" }
+    const clip = { x: 4, y: 8, width: 300, height: 500 }
+    const screenshot = (target) => (actualOptions) => {
+      events.push(target)
+      assert.deepEqual(
+        actualOptions,
+        mode === "root"
+          ? options
+          : {
+              ...options,
+              fullPage: true,
+              ...(["tile", "prepared-inline", "marked-inline"].includes(mode)
+                ? { clip }
+                : {}),
+            }
+      )
+      return image
+    }
+    const prepared = ["appearance-document", "prepared-inline"].includes(mode)
+    const actual = await captureCheckpointImage(
+      { screenshot: screenshot("page") },
+      { screenshot: screenshot("root") },
+      options,
+      {
+        fullPage: mode === "document",
+        tile: mode === "tile" ? { clip } : null,
+        framing: mode.endsWith("inline")
+          ? { includesMarkers: mode === "marked-inline", bounds: clip }
+          : null,
+        appearance: prepared
+          ? {
+              prepare: () => {
+                events.push("prepare")
+              },
+              fullPage: mode === "appearance-document",
+            }
+          : undefined,
+        ready: () => {
+          events.push("ready")
+        },
+      }
+    )
+    assert.equal(actual, image)
+    assert.deepEqual(events, [
+      ...(prepared ? ["prepare"] : []),
+      "ready",
+      mode === "root" ? "root" : "page",
+      "ready",
+    ])
+  })
+}
 
 test("release preflight requires exact reviewed baselines for each story and device", () => {
   const stories = [{ id: "atoms-button--playground" }]
@@ -1056,10 +1126,15 @@ test("role-free popup ownership excludes hidden surfaces and nested inline panel
   }
   const surfaces = await visibleFloatingSurfaces(page)
   assert.ok(selected.includes('[data-part="positioner"] [data-part="content"]'))
+  assert.ok(selected.includes('[role="dialog"]'))
+  assert.equal(selected.includes('[role="status"]'), false)
   assert.equal(surfaces.length, 1)
   assert.equal(surfaces[0].role, null)
   assert.equal(surfaces[0].scope, "custom-calendar")
-  assert.equal(surfaces.some((surface) => surface.scope === "tabs"), false)
+  assert.equal(
+    surfaces.some((surface) => surface.scope === "tabs"),
+    false
+  )
   assert.equal(surfaces[0].external, true)
   assertFloatingContainment(surfaces, { width: 390, height: 844 })
 
@@ -1101,6 +1176,36 @@ test("role-free popup ownership excludes hidden surfaces and nested inline panel
     width: 390,
     height: 844,
   })
+  // A rounded popup may clip around a real inner scrollport. Its offscreen
+  // rows are reachable; the scrollport itself must still fit the outer clip.
+  const scrollport = {
+    parentElement: element,
+    style: { overflowY: "auto" },
+    getBoundingClientRect: () => bounds,
+  }
+  descendant.parentElement = scrollport
+  element.style = { overflowY: "hidden" }
+  assertFloatingContainment(await visibleFloatingSurfaces(page), {
+    width: 390,
+    height: 844,
+  })
+  scrollport.getBoundingClientRect = () => ({ ...bounds, bottom: 160 })
+  const clippedScrollport = await visibleFloatingSurfaces(page)
+  assert.deepEqual(Array.from(clippedScrollport[0].clippedDescendants), [
+    "Phones",
+  ])
+  const innerClip = {
+    parentElement: scrollport,
+    style: { overflowY: "hidden" },
+    getBoundingClientRect: () => bounds,
+  }
+  descendant.parentElement = innerClip
+  scrollport.getBoundingClientRect = () => bounds
+  const clippedBeforeScrollport = await visibleFloatingSurfaces(page)
+  assert.deepEqual(Array.from(clippedBeforeScrollport[0].clippedDescendants), [
+    "Phones",
+  ])
+  descendant.parentElement = element
   element.style = {}
   element.querySelectorAll = () => []
   parent.style = { overflowX: "hidden" }
@@ -1110,6 +1215,211 @@ test("role-free popup ownership excludes hidden surfaces and nested inline panel
   assert.throws(
     () => assertFloatingContainment(clipped, { width: 390, height: 844 }),
     /clipped by an ancestor/
+  )
+})
+
+test("only grouped Toast roots float, and their essential controls cannot escape", async () => {
+  const rect = (x, y, width, height) => ({
+    x,
+    y,
+    width,
+    height,
+    left: x,
+    top: y,
+    right: x + width,
+    bottom: y + height,
+  })
+  const bounds = rect(12, 24, 360, 100)
+  const group = {
+    parentElement: null,
+    style: {},
+    getBoundingClientRect: () => rect(0, 0, 390, 844),
+  }
+  const toast = {
+    parentElement: group,
+    style: {},
+    getAttribute: (name) =>
+      ({
+        "data-scope": "toast",
+        "data-part": "root",
+        role: "status",
+      })[name] ?? null,
+    getBoundingClientRect: () => bounds,
+    getClientRects: () => [bounds],
+    closest: (selector) =>
+      selector.includes('[data-part="group"]') ? group : null,
+    querySelectorAll: () => [close],
+  }
+  let closeBounds = rect(330, 32, 24, 24)
+  const close = {
+    parentElement: toast,
+    style: {},
+    matches: (selector) => selector.includes("close-trigger"),
+    getAttribute: (name) =>
+      name === "aria-label" ? "Close notification" : null,
+    getBoundingClientRect: () => closeBounds,
+  }
+  const inlineStatus = {
+    ...toast,
+    getAttribute: (name) => (name === "role" ? "status" : null),
+    closest: () => null,
+  }
+  const orphan = { ...toast, closest: () => null }
+  const page = {
+    evaluate: async (evaluate) =>
+      runInNewContext(`(${evaluate.toString()})()`, {
+        document: {
+          getElementById: () => ({ contains: () => false }),
+          querySelectorAll: () => [toast, inlineStatus, orphan],
+        },
+        getComputedStyle: (node) => ({
+          display: "block",
+          visibility: "visible",
+          ...node.style,
+        }),
+        scrollX: 0,
+        scrollY: 0,
+      }),
+  }
+  const surfaces = await visibleFloatingSurfaces(page)
+  assert.equal(surfaces.length, 1)
+  assert.equal(surfaces[0].scope, "toast")
+  assert.equal(surfaces[0].role, "status")
+  assertFloatingContainment(surfaces, { width: 390, height: 844 })
+  closeBounds = rect(330, 130, 24, 24)
+  const escapedClose = await visibleFloatingSurfaces(page)
+  assert.throws(
+    () => assertFloatingContainment(escapedClose, { width: 390, height: 844 }),
+    /descendants are clipped by an ancestor/
+  )
+})
+
+test("drawer detents use the visible viewport without hiding clipped essential controls", async () => {
+  const rect = (y, height) => ({
+    x: 10,
+    y,
+    left: 10,
+    top: y,
+    right: 210,
+    bottom: y + height,
+    width: 200,
+    height,
+  })
+  let snapOffset = 200
+  let closeBounds = rect(560, 30)
+  let titleBounds = rect(220, 30)
+  let grabberBounds = rect(202, 6)
+  const positioner = {
+    parentElement: null,
+    style: {},
+    getAttribute: () => "drawer",
+    getBoundingClientRect: () => rect(0, 844),
+  }
+  const element = {
+    parentElement: positioner,
+    style: {
+      getPropertyValue: (name) =>
+        name.endsWith("-y") ? `${snapOffset}px` : "0px",
+    },
+    getAttribute: (name) =>
+      ({ "data-scope": "drawer", "data-part": "content", role: "dialog" })[
+        name
+      ] ?? null,
+    getBoundingClientRect: () => rect(200, 800),
+    getClientRects: () => [rect(200, 800)],
+    closest: (selector) =>
+      selector.includes("positioner") ? positioner : null,
+    querySelector: () => viewport,
+    querySelectorAll: () => [close, title, grabber],
+  }
+  const viewport = {
+    parentElement: element,
+    style: {},
+    getBoundingClientRect: () => rect(200, 400),
+  }
+  const close = {
+    parentElement: viewport,
+    style: {},
+    getBoundingClientRect: () => closeBounds,
+    getAttribute: (name) => (name === "aria-label" ? "Close drawer" : null),
+    matches: (selector) => selector.includes("close-trigger"),
+  }
+  const title = {
+    parentElement: viewport,
+    style: {},
+    getBoundingClientRect: () => titleBounds,
+    getAttribute: (name) => (name === "aria-label" ? "Product filters" : null),
+    matches: (selector) => selector.includes("title"),
+  }
+  const grabber = {
+    parentElement: viewport,
+    style: {},
+    getBoundingClientRect: () => grabberBounds,
+    getAttribute: (name) => (name === "aria-label" ? "Resize drawer" : null),
+    matches: (selector) => selector.includes("grabber"),
+  }
+  const page = {
+    evaluate: async (evaluate) =>
+      runInNewContext(`(${evaluate.toString()})()`, {
+        document: {
+          getElementById: () => ({ contains: () => false }),
+          querySelectorAll: () => [element],
+        },
+        getComputedStyle: (node) => ({
+          display: "block",
+          visibility: "visible",
+          ...node.style,
+        }),
+        scrollX: 0,
+        scrollY: 0,
+      }),
+  }
+  const surfaces = await visibleFloatingSurfaces(page)
+  assert.equal(surfaces[0].height, 400)
+  assertFloatingContainment(surfaces, { width: 390, height: 844 })
+  viewport.style = { overflowY: "auto" }
+  viewport.clientHeight = 400
+  viewport.scrollHeight = 600
+  viewport.scrollTop = 80
+  titleBounds = rect(140, 30)
+  grabberBounds = rect(122, 6)
+  assertFloatingContainment(await visibleFloatingSurfaces(page), {
+    width: 390,
+    height: 844,
+  })
+  // Neither declared scrolling without movement nor a non-overflowing region
+  // permits a misplaced header. The close control remains mandatory below.
+  viewport.scrollTop = 0
+  const unscrolledHeader = await visibleFloatingSurfaces(page)
+  assert.throws(
+    () =>
+      assertFloatingContainment(unscrolledHeader, { width: 390, height: 844 }),
+    /descendants are clipped/
+  )
+  viewport.scrollTop = 80
+  viewport.scrollHeight = 400
+  const nonScrollingHeader = await visibleFloatingSurfaces(page)
+  assert.throws(
+    () =>
+      assertFloatingContainment(nonScrollingHeader, {
+        width: 390,
+        height: 844,
+      }),
+    /descendants are clipped/
+  )
+  viewport.scrollHeight = 600
+  closeBounds = rect(590, 30)
+  const clipped = await visibleFloatingSurfaces(page)
+  assert.throws(
+    () => assertFloatingContainment(clipped, { width: 390, height: 844 }),
+    /descendants are clipped/
+  )
+  closeBounds = rect(560, 30)
+  snapOffset = 0
+  const ordinary = await visibleFloatingSurfaces(page)
+  assert.throws(
+    () => assertFloatingContainment(ordinary, { width: 390, height: 844 }),
+    /exceeds capture height/
   )
 })
 
@@ -1164,7 +1474,15 @@ test("primary screenshot comparisons retain story annotations and deterministic 
   assert.match(primary, /await visibleFloatingSurfaces\(page\)/)
   assert.match(
     primary,
-    /await checkStoryPopupCheckpoints\(page, story.id, \(suffix\) =>\s+capture\(suffix, true\)/
+    /await checkStoryPopupCheckpoints\(\s*page,\s*story.id,\s*async \(suffix, beforeCapture, appearance\) =>/
+  )
+  assert.ok(
+    primary.includes(
+      "await capture(suffix, floating, beforeCapture, appearance)"
+    )
+  )
+  assert.ok(
+    primary.includes("!documentedStateCheckpointStories.includes(story.id)")
   )
   assert.match(
     primary,
@@ -1185,6 +1503,63 @@ test("primary screenshot comparisons retain story annotations and deterministic 
     checkpoints,
     /getByRole\("treeitem", \{ name: "Phones", exact: true \}\)\s*\)\.toBeInViewport\(\{ ratio: 1 \}\)/
   )
+})
+
+test("documented state checkpoints are unique and preserve readiness and inline framing", () => {
+  assert.equal(
+    new Set(documentedStateCheckpointStories).size,
+    documentedStateCheckpointStories.length
+  )
+  for (const id of [
+    "atoms-hotkeys--playground",
+    "atoms-hotkeys--form-fields-technical",
+    "molecules-datepicker--sizes",
+    "molecules-tour--floating-placements",
+    "molecules-menu--long-labels",
+    "molecules-dialog--nested-overlays",
+    "molecules-popover--positioning-behaviors",
+    "organisms-gallery--media-lifecycle-and-refs",
+    "organisms-header--narrow-container",
+    "templates-popover--sizes",
+  ]) {
+    assert.ok(documentedStateCheckpointStories.includes(id), id)
+  }
+  const checkpoints = read("./visual-popup-capture.mjs")
+  assert.match(checkpoints, /requires a readiness check/)
+  assert.match(
+    checkpoints,
+    /await beforeCapture\(\)\s+await capture\(suffix, beforeCapture, appearance\)/
+  )
+})
+
+test("tooltip checkpoints capture every documented popup size, variant and activation state", () => {
+  assert.deepEqual(tooltipCheckpointStories, [
+    ["atoms-tooltip--sizes", ["sm", "md", "lg"]],
+    ["atoms-tooltip--variants", ["default", "outline"]],
+    ["atoms-tooltip--states", ["enabled"]],
+    ["atoms-tooltip--long-content", ["long-content"]],
+    ["atoms-tooltip--keyboard-description", ["keyboard"]],
+  ])
+  const checkpoints = read("./visual-popup-capture.mjs")
+  assert.match(
+    checkpoints,
+    /await expect\(triggers\).toHaveCount\(states.length\)/
+  )
+  assert.match(checkpoints, /await page.keyboard.press\("Tab"\)/)
+  assert.match(checkpoints, /await button.focus\(\)/)
+  assert.match(
+    checkpoints,
+    /await trigger.hover\(\)\s+await page.mouse.move\(0, 0\)\s+await trigger.hover\(\)/
+  )
+  assert.ok(
+    checkpoints.includes(':not(:has(:disabled, [aria-disabled="true"]))')
+  )
+  assert.match(checkpoints, /toBeInViewport\(\{ ratio: 1 \}\)/)
+  assert.match(
+    checkpoints,
+    /await capture\(`--tooltip-\$\{state\}-open`, beforeCapture\)/
+  )
+  assert.match(checkpoints, /await expect\(tooltip\).toHaveCount\(0\)/)
 })
 
 test("native-form lifecycle matrix uses all maintained adapters without disabling mobile keyboard coverage", () => {

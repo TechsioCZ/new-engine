@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.2.4
+ * @componentVersion v1.2.5
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -39,14 +39,14 @@ const tabsVariants = tv({
     ],
     list: [
       "relative flex min-w-0 max-w-full",
-      "bg-tabs-list-bg",
+      "tabs-list-overflow bg-tabs-list-bg",
       "data-[orientation=horizontal]:flex-row data-[orientation=horizontal]:overflow-x-auto",
       "data-[orientation=vertical]:w-max data-[orientation=vertical]:shrink-0 data-[orientation=vertical]:flex-col",
     ],
     trigger: [
-      "relative flex shrink-0 items-center justify-center",
+      "relative flex shrink-0 items-center justify-center data-[orientation=vertical]:justify-start data-[orientation=vertical]:text-start",
       "font-tabs-trigger text-tabs-trigger-fg-base data-selected:font-tabs-trigger-selected",
-      "tabs-trigger-press",
+      "tabs-trigger-press tabs-trigger-disabled",
       "rounded-tabs-trigger",
       "cursor-pointer",
       "not-data-disabled:hover:bg-tabs-trigger-bg-hover",

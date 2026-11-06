@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react"
+import type { Decorator, Meta, StoryObj } from "@storybook/react"
 import { useRef, useState } from "react"
 import {
   expect,
@@ -8,6 +8,7 @@ import {
   waitFor,
   within,
 } from "storybook/test"
+import { StorySurface } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Combobox } from "../../src/molecules/combobox"
 
@@ -16,12 +17,18 @@ const items = [
   { label: "Germany", value: "de" },
 ]
 
+const withStorySurface: Decorator = (Story) => (
+  <StorySurface className="max-w-sm"><Story /></StorySurface>
+)
+
 const meta = {
   title: "Molecules/Combobox/Input synchronization",
   component: Combobox,
+  decorators: [withStorySurface],
   tags: ["autodocs"],
   args: { items, onInputValueChange: fn() },
   parameters: {
+    layout: "fullscreen",
     controls: { disable: true },
     docs: {
       description: {
@@ -97,7 +104,9 @@ function DelayedControlledQuery({
       >
         Replace query externally
       </Button>
-      <output aria-label="Parent query">{query}</output>
+      <p className="text-fg-secondary text-sm">
+        Parent query: <output aria-label="Parent query">{query}</output>
+      </p>
     </div>
   )
 }

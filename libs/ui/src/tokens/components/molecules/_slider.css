@@ -11,7 +11,14 @@
   --text-slider-md: var(--text-md);
   --text-slider-lg: var(--text-lg);
   --spacing-slider-control: var(--height-form-control-md);
-  --spacing-slider-marker-label: var(--spacing-50);
+  --spacing-slider-vertical-heading: calc(var(--text-slider-lg) * 3.5);
+  --spacing-slider-header-vertical: var(--spacing-slider-vertical-heading);
+  --spacing-slider-marker-offset: var(--dimension-4);
+  --spacing-slider-marker-label-offset: var(--spacing-slider-marker-offset);
+  --spacing-slider-marker-label: calc(
+    var(--spacing-50) +
+    var(--spacing-slider-marker-label-offset)
+  );
   --spacing-slider-track-sm: var(--size-slider-track-sm);
   --spacing-slider-track-md: var(--size-slider-track-md);
   --spacing-slider-track-lg: var(--size-slider-track-lg);

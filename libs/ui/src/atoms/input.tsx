@@ -2,7 +2,7 @@
  * Input — @techsio/ui-kit atom.
  *
  * @component Input
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -90,7 +90,21 @@ const inputVariants = tv({
         "text-input-fg-disabled",
       ],
     },
+    readOnly: {
+      true: "",
+    },
   },
+  compoundVariants: [
+    {
+      // Validation borders stay authoritative on read-only fields.
+      variant: "default",
+      readOnly: true,
+      class: [
+        "hover:border-input-border-readonly-hover",
+        "focus:border-input-border-readonly-focus",
+      ],
+    },
+  ],
   defaultVariants: {
     size: "md",
     variant: "default",
@@ -159,6 +173,7 @@ export function Input({
         variant,
         disabled,
         hideSearchClear: readOnly || hideSearchClear,
+        readOnly: Boolean(readOnly),
         withButtonInside,
         className,
       })}

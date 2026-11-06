@@ -2,7 +2,7 @@
  * QuantityField — @techsio/ui-kit molecule.
  *
  * @component QuantityField
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill quantity-field-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -17,11 +17,15 @@ const descriptionSeparator = /\s+/
 const quantityFieldVariants = tv({
   slots: {
     root: "flex min-w-0 flex-col gap-quantity-field",
-    control: "flex min-w-0 flex-wrap items-center gap-quantity-field-control",
-    numeric: "min-w-quantity-field-control-min-width flex-1",
-    input: "min-w-0 read-only:enabled:cursor-text!",
-    unit: "min-w-0 max-w-full break-words text-quantity-field-unit-fg",
+    control:
+      "flex min-w-0 flex-wrap items-center gap-quantity-field-control pe-quantity-field-control-end",
+    numeric: "min-w-quantity-field-numeric-min-width flex-1",
+    numericControl: "min-w-0 flex-1",
+    input: "min-w-0 flex-1 read-only:enabled:cursor-text!",
+    unit: "min-w-0 max-w-full shrink-0 break-words text-quantity-field-unit-fg",
     message: "text-quantity-field-message-fg",
+    pendingMessage:
+      "mt-quantity-field-pending font-quantity-field-pending text-quantity-field-message-fg",
     label: "",
   },
   variants: {
@@ -167,7 +171,7 @@ export function QuantityField({
           value={value}
         >
           <NumericInput.Control
-            className={styles.numeric()}
+            className={styles.numericControl()}
             data-validation={hasError ? "error" : undefined}
           >
             <NumericInput.Input
@@ -204,7 +208,7 @@ export function QuantityField({
         <StatusText
           aria-atomic="true"
           aria-live="polite"
-          className={styles.message()}
+          className={styles.pendingMessage()}
           id={pendingId}
           role="status"
           size={size}

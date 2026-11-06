@@ -31,8 +31,40 @@
   &:hover {
     --table-row-tint: var(--color-table-row-bg-hover);
   }
+
+  /* Cell-local borders avoid collapsed-row outline paint without replacing
+   * consumer cell shadows (for example DataTable's pinned-column cue). */
+  &:focus-visible {
+    --table-row-focus-color: var(--color-table-ring);
+    outline: none;
+
+    & > :is(td, th)::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-block: var(--default-ring-width) var(--default-ring-style)
+        var(--table-row-focus-color);
+      pointer-events: none;
+    }
+    & > :first-child::before {
+      border-inline-start: var(--default-ring-width) var(--default-ring-style)
+        var(--table-row-focus-color);
+    }
+    & > :last-child::before {
+      border-inline-end: var(--default-ring-width) var(--default-ring-style)
+        var(--table-row-focus-color);
+    }
+
+    @media (forced-colors: active) {
+      --table-row-focus-color: Highlight;
+    }
+  }
 }
 @utility table-frozen-cell {
+  border-block-end: var(--border-table-width) solid var(--color-table-border);
+  /* Collapsed borders can paint behind an opaque sticky cell. */
+  box-shadow: inset 0 calc(-1 * var(--border-table-width)) 0
+    var(--color-table-border);
   background-color: var(--color-table-bg);
   background-image: linear-gradient(
     var(--table-row-tint, transparent),

@@ -266,6 +266,8 @@ export const ReadOnly: Story = {
     ...Playground.args,
     id: "readonly-slider",
     readOnly: true,
+    helpText: "Current price range — read-only.",
+    "aria-label": ["Current price range"],
     defaultValue: [25],
     showValueText: true,
   },
@@ -277,6 +279,9 @@ export const ReadOnly: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const thumb = canvas.getByRole("slider")
+    await expect(thumb).toHaveAccessibleDescription(
+      "Current price range — read-only."
+    )
     await userEvent.tab()
     await expect(thumb).toHaveFocus()
     thumb.blur()
@@ -360,6 +365,16 @@ export const WithValidation: Story = {
 }
 
 export const WithMarkers: Story = {
+  play: async ({ canvasElement }) => {
+    const root = canvasElement.querySelector('[data-scope="slider"][data-part="root"]')
+    if (!root) throw new Error("Missing slider root")
+    const bounds = root.getBoundingClientRect()
+    for (const label of root.querySelectorAll('[data-edge]')) {
+      const box = label.getBoundingClientRect()
+      await expect(box.left).toBeGreaterThanOrEqual(bounds.left - 1)
+      await expect(box.right).toBeLessThanOrEqual(bounds.right + 1)
+    }
+  },
   parameters: {
     docs: {
       description: {
@@ -389,6 +404,37 @@ export const WithMarkers: Story = {
 }
 
 export const VerticalOrientation: Story = {
+  play: async ({ canvasElement }) => {
+    const roots = Array.from(canvasElement.querySelectorAll('[data-scope="slider"][data-part="root"]'))
+    const [firstColumn, secondColumn] = roots.map(root => root.getBoundingClientRect())
+    if (firstColumn && secondColumn && Math.abs(firstColumn.top - secondColumn.top) < 1) {
+      const tops = roots.map(root => {
+        const track = root.querySelector('[data-part="track"]')
+        if (!track) throw new Error("Missing vertical track")
+        return track.getBoundingClientRect().top
+      })
+      await expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(1)
+    }
+    for (const root of roots) {
+      const output = root.querySelector("output")
+      if (!output) throw new Error("Missing vertical value")
+      const bounds = root.getBoundingClientRect()
+      const value = output.getBoundingClientRect()
+      await expect(Math.abs(value.left + value.width / 2 - bounds.left - bounds.width / 2)).toBeLessThan(1)
+      const warning = root.querySelector<HTMLElement>('[data-status="warning"]')
+      if (warning) {
+        const icon = warning.firstElementChild
+        const text = warning.lastElementChild?.firstChild
+        if (!(icon && text)) throw new Error("Missing vertical warning content")
+        const firstCharacter = document.createRange()
+        firstCharacter.setStart(text, 0)
+        firstCharacter.setEnd(text, 1)
+        const separation = firstCharacter.getBoundingClientRect().left - icon.getBoundingClientRect().right
+        const gap = Number.parseFloat(getComputedStyle(warning).columnGap)
+        await expect(Math.abs(separation - gap)).toBeLessThan(1)
+      }
+    }
+  },
   parameters: {
     docs: {
       description: {
@@ -492,7 +538,7 @@ export const Controlled: Story = {
     return (
       <div className="w-full max-w-sm">
         <Slider {...args} value={values} onChange={handleChange} />
-        <div className="mt-400 rounded border bg-surface-secondary p-200">
+        <div className="mt-400 rounded border border-border-primary bg-surface-secondary p-200">
           <p className="text-fg-secondary text-sm">Component State:</p>
           <p className="font-mono text-lg">[{values.join(", ")}]</p>
           <div>
@@ -546,7 +592,7 @@ export const DynamicBoundsControlled: Story = {
             Reset bounds
           </Button>
         </div>
-        <div className="rounded border bg-surface-secondary p-200 text-sm">
+        <div className="rounded border border-border-primary bg-surface-secondary p-200 text-sm">
           <p className="text-fg-secondary">Values (controlled):</p>
           <p className="font-mono">[{values.join(", ")}]</p>
         </div>
@@ -744,6 +790,26 @@ export const MinStepsBetweenThumbs: Story = {
 }
 
 export const RTLSupport: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const ltrThumbs = canvas.getAllByRole("slider", { name: /^LTR Direction/ })
+    const rtlThumbs = canvas.getAllByRole("slider", { name: /^RTL Direction/ })
+    await expect(ltrThumbs).toHaveLength(2)
+    await expect(rtlThumbs).toHaveLength(2)
+    for (const [index, ltrThumb] of ltrThumbs.entries()) {
+      const rtlThumb = rtlThumbs[index]
+      const ltrTrack = ltrThumb.closest('[data-part="root"]')?.querySelector('[data-part="track"]')
+      const rtlTrack = rtlThumb?.closest('[data-part="root"]')?.querySelector('[data-part="track"]')
+      if (!(rtlThumb && ltrTrack && rtlTrack)) throw new Error("Missing direction comparison")
+      await expect(ltrThumb).toHaveAttribute("aria-valuenow", index === 0 ? "20" : "65")
+      await expect(rtlThumb).toHaveAttribute("aria-valuenow", index === 0 ? "20" : "65")
+      const ltr = ltrThumb.getBoundingClientRect()
+      const rtl = rtlThumb.getBoundingClientRect()
+      const fromLeft = ltr.left + ltr.width / 2 - ltrTrack.getBoundingClientRect().left
+      const fromRight = rtlTrack.getBoundingClientRect().right - rtl.left - rtl.width / 2
+      await expect(Math.abs(fromLeft - fromRight)).toBeLessThan(1)
+    }
+  },
   parameters: {
     docs: {
       description: {
@@ -760,7 +826,7 @@ export const RTLSupport: Story = {
           id="ltr-slider"
           dir="ltr"
           label="LTR Direction (English)"
-          defaultValue={[20, 80]}
+          defaultValue={[20, 65]}
           helpText="Left to right direction"
           aria-label={[
             "LTR Direction (English) minimum",
@@ -772,7 +838,7 @@ export const RTLSupport: Story = {
           id="rtl-slider"
           dir="rtl"
           label="RTL Direction (العربية)"
-          defaultValue={[20, 80]}
+          defaultValue={[20, 65]}
           helpText="Right to left direction"
           aria-label={[
             "RTL Direction (العربية) minimum",
@@ -1069,11 +1135,11 @@ function NativeFieldsetExample() {
   return (
     <form className="flex w-full max-w-md flex-col gap-300" aria-label="Native slider form">
       <fieldset disabled={disabled}>
-        <legend>
+        <legend className="w-full">
           <Slider name="legend" label="Legend exception" defaultValue={[25]} />
         </legend>
-        <fieldset>
-          <legend>Nested group</legend>
+        <fieldset className="mt-400">
+          <legend className="mb-200 font-medium text-label-md">Nested group</legend>
           <Slider name="nested" label="Nested disabled slider" defaultValue={[25]} />
         </fieldset>
       </fieldset>
@@ -1099,6 +1165,16 @@ export const NativeFieldset: Story = {
     const form = canvas.getByRole("form", { name: "Native slider form" }) as HTMLFormElement
     const legend = canvas.getByRole("slider", { name: "Legend exception" })
     const nested = canvas.getByRole("slider", { name: "Nested disabled slider" })
+    const group = canvas.getByText("Nested group")
+    const nestedLabel = canvas.getByText("Nested disabled slider", { selector: "label" })
+    const labelStyle = getComputedStyle(nestedLabel)
+    await expect(getComputedStyle(group).fontSize).toBe(labelStyle.fontSize)
+    await expect(group.getBoundingClientRect().top - legend.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(Number.parseFloat(labelStyle.fontSize) * 2)
+    const tracks = Array.from(form.querySelectorAll('[data-part="track"]'))
+    await expect(tracks).toHaveLength(2)
+    const [legendTrack, nestedTrack] = tracks
+    if (!(legendTrack && nestedTrack)) throw new Error("Missing fieldset tracks")
+    await expect(Math.abs(legendTrack.getBoundingClientRect().width - nestedTrack.getBoundingClientRect().width)).toBeLessThan(1)
     await expect(legend).toHaveAttribute("tabindex", "0")
     await expect(legend).not.toHaveAttribute("aria-disabled", "true")
     await waitFor(() => expect(nested).not.toHaveAttribute("tabindex", "0"))

@@ -560,15 +560,30 @@ function OverlayControls() {
   const toast = useToast()
   const [notificationStatus, setNotificationStatus] = useState("No catalog changes yet.")
   return <div className="space-y-200">
-    <Tooltip content="Only this hint closes first." openDelay={0} closeDelay={0} closeOnClick={false} closeOnPointerDown={false} ids={{ content: "overlay-hint" }} positioning={{ placement: "top", gutter: 12 }}><Button variant="secondary">Explain action</Button></Tooltip>
-    <Menu triggerText="Nested commands" items={[{ type: "action", value: "duplicate", label: "Duplicate catalog" }]} />
+    <div className="flex flex-wrap items-center gap-200">
+      <Tooltip content="Only this hint closes first." openDelay={0} closeDelay={0} closeOnClick={false} closeOnPointerDown={false} ids={{ content: "overlay-hint" }} positioning={{ placement: "top", gutter: 12 }}><Button variant="secondary">Explain action</Button></Tooltip>
+      <Menu triggerText="Nested commands" items={[{ type: "action", value: "duplicate", label: "Duplicate catalog" }]} />
+    </div>
     <SelectTemplate size="sm" label="Shipping method" placeholder="Choose shipping" items={[{ value: "standard", label: "Standard delivery" }, { value: "express", label: "Express delivery" }]} />
     <Combobox size="sm" label="Destination" items={[{ id: "cz", value: "cz", label: "Czech Republic" }, { id: "sk", value: "sk", label: "Slovakia" }]} />
     <Button variant="secondary" onClick={() => { setNotificationStatus("Catalog updated for this preview."); toast.create({ title: "Catalog updated", duration: Infinity, action: { label: "Undo", onClick: () => setNotificationStatus("Catalog update undone.") } }) }}>Notify</Button>
     <StatusText role="status">{notificationStatus}</StatusText>
-    <Dialog title="Nested confirmation" triggerText="Open nested dialog" description="The child backdrop sits above its parent panel."><p>Press Escape to return to the host.</p></Dialog>
-    <Drawer size="sm"><Drawer.Trigger>Open nested drawer</Drawer.Trigger><Drawer.Portal><Drawer.Backdrop /><Drawer.Positioner><Drawer.Content><Drawer.Header><Drawer.Title>Nested drawer</Drawer.Title></Drawer.Header><Drawer.Body>Press Escape to return to the host.</Drawer.Body><Drawer.Footer><Drawer.CloseTrigger>Close nested drawer</Drawer.CloseTrigger></Drawer.Footer></Drawer.Content></Drawer.Positioner></Drawer.Portal></Drawer>
+    <div className="flex flex-wrap items-center gap-200">
+      <Dialog title="Nested confirmation" triggerText="Open nested dialog" description="The child backdrop sits above its parent panel."><p>Press Escape to return to the host.</p></Dialog>
+      <Drawer size="sm"><Drawer.Trigger size="sm">Open nested drawer</Drawer.Trigger><Drawer.Portal><Drawer.Backdrop /><Drawer.Positioner><Drawer.Content><Drawer.Header><Drawer.Title>Nested drawer</Drawer.Title></Drawer.Header><Drawer.Body>Press Escape to return to the host.</Drawer.Body><Drawer.Footer><Drawer.CloseTrigger>Close nested drawer</Drawer.CloseTrigger></Drawer.Footer></Drawer.Content></Drawer.Positioner></Drawer.Portal></Drawer>
+    </div>
   </div>
+}
+
+function expectSeparatedButtons(first: HTMLElement, second: HTMLElement) {
+  const firstBounds = first.getBoundingClientRect()
+  const secondBounds = second.getBoundingClientRect()
+  const gap =
+    secondBounds.top >= firstBounds.bottom
+      ? secondBounds.top - firstBounds.bottom
+      : secondBounds.left - firstBounds.right
+  expect(gap).toBeGreaterThan(0)
+  expect(Math.abs(firstBounds.height - secondBounds.height)).toBeLessThan(1)
 }
 
 export const NestedOverlays: Story = {
@@ -585,6 +600,14 @@ export const NestedOverlays: Story = {
       const modal = await body.findByRole("dialog", { name: `${host === "dialog" ? "Dialog" : "Drawer"} overlay host` })
       await waitFor(() => expect(modal.contains(canvasElement.ownerDocument.activeElement)).toBe(true))
       const hintTrigger = within(modal).getByRole("button", { name: "Explain action" })
+      expectSeparatedButtons(
+        hintTrigger,
+        within(modal).getByRole("button", { name: "Nested commands" })
+      )
+      expectSeparatedButtons(
+        within(modal).getByRole("button", { name: "Open nested dialog" }),
+        within(modal).getByRole("button", { name: "Open nested drawer" })
+      )
       await userEvent.keyboard("{Tab}")
       hintTrigger.focus()
       await expect(await body.findByRole("tooltip")).toHaveAttribute("id", "overlay-hint")
@@ -619,11 +642,66 @@ export const NestedOverlays: Story = {
 }
 
 export const LongContent: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "A long review scrolls inside a viewport-bounded panel while its dismissal and publishing actions remain reachable." } } },
+  tags: ["ui-runtime-regression"],
+  parameters: { controls: { disable: true }, docs: { description: { story: "A long review scrolls inside a viewport-bounded panel while its heading, dismissal and publishing actions remain reachable. A footer divider marks the scroll boundary." } } },
   render: () => {
     const [open, setOpen] = useState(false)
     const [published, setPublished] = useState(false)
-    return <div className="space-y-200"><Dialog title="Review catalog" triggerText="Review long catalog" open={open} onOpenChange={({open}) => setOpen(open)} actions={<Button onClick={() => {setPublished(true);setOpen(false)}}>Publish changes</Button>}><div className="space-y-200">{Array.from({ length: 24 }, (_, index) => <p key={index}>Review product {index + 1}: confirm its availability and delivery details before publishing.</p>)}</div></Dialog>{published && <StatusText status="success">Catalog published for this preview.</StatusText>}</div>
+    return (
+      <div className="space-y-200">
+        <Dialog
+          title="Review catalog"
+          triggerText="Review long catalog"
+          open={open}
+          onOpenChange={({ open }) => setOpen(open)}
+          actions={
+            <div className="flex w-full justify-end border-t border-border-primary pt-150">
+              <Button onClick={() => { setPublished(true); setOpen(false) }}>
+                Publish changes
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-200">
+            {Array.from({ length: 24 }, (_, index) => (
+              <p key={index}>
+                Review product {index + 1}: confirm its availability and delivery
+                details before publishing.
+              </p>
+            ))}
+          </div>
+        </Dialog>
+        {published && <StatusText status="success">Catalog published for this preview.</StatusText>}
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const page = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole("button", { name: "Review long catalog" }))
+    const dialog = await page.findByRole("dialog", { name: "Review catalog" })
+    const viewport = dialog.querySelector<HTMLElement>(".dialog-scroll-viewport")
+    if (!viewport) throw new Error("Missing dialog scroll viewport")
+    const heading = within(dialog).getByRole("heading", { name: "Review catalog" })
+    const publish = within(dialog).getByRole("button", { name: "Publish changes" })
+    const footer = publish.parentElement
+    if (!footer) throw new Error("Missing review footer")
+    await expect(Number.parseFloat(getComputedStyle(footer).borderTopWidth)).toBeGreaterThan(0)
+    viewport.scrollTop = viewport.scrollHeight
+    await waitFor(() => {
+      expect(viewport.scrollTop).toBeGreaterThan(0)
+      const panelBounds = dialog.getBoundingClientRect()
+      const viewportBounds = viewport.getBoundingClientRect()
+      const headingBounds = heading.getBoundingClientRect()
+      const lastProduct = within(dialog).getByText(/^Review product 24:/).getBoundingClientRect()
+      expect(headingBounds.top).toBeGreaterThanOrEqual(panelBounds.top)
+      expect(headingBounds.bottom).toBeLessThanOrEqual(viewportBounds.top)
+      expect(lastProduct.top).toBeGreaterThanOrEqual(viewportBounds.top)
+      expect(lastProduct.bottom).toBeLessThanOrEqual(viewportBounds.bottom + 1)
+      expect(publish.getBoundingClientRect().bottom).toBeLessThanOrEqual(panelBounds.bottom)
+    })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Close dialog" }))
+    await waitFor(() => expect(dialog).not.toBeInTheDocument())
   },
 }
 

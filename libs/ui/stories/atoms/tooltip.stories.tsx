@@ -91,7 +91,7 @@ export const KeyboardDescription: Story = {
         closeOnPointerDown={false}
       >
         <>
-          <StatefulTooltipTrigger aria-describedby="tooltip-caller-description" />
+          <StatefulTooltipTrigger variant="secondary" aria-describedby="tooltip-caller-description" />
         </>
       </Tooltip>
     </div>

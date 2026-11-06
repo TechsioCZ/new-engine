@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.5
+ * @componentVersion v1.3.6
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -157,7 +157,7 @@ const numericInputVariants = tv({
     // shows the field behind it as a hairline between the two arrows.
     triggerContainer: [
       "flex flex-row self-stretch",
-      "border-numeric-input-border border-s",
+      "border-numeric-input-border border-s group-data-disabled:border-numeric-input-border-disabled",
     ],
     // Unified neutral icon-control treatment: transparent base (matches the
     // field, no "disabled" gray), neutral arrows, subtle neutral hover pill —
@@ -171,6 +171,7 @@ const numericInputVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
       "disabled:cursor-not-allowed disabled:text-numeric-input-trigger-fg-disabled",
     ],
+    triggerIcon: "",
     scrubber: "absolute inset-0 cursor-ew-resize",
   },
   variants: {
@@ -179,18 +180,21 @@ const numericInputVariants = tv({
         root: "gap-numeric-input-sm text-numeric-input-sm",
         container: "h-form-control-sm rounded-numeric-input-sm",
         trigger: "text-numeric-input-sm",
+        triggerIcon: "numeric-input-trigger-icon-sm",
         input: "ps-numeric-input-input-sm text-numeric-input-sm",
       },
       md: {
         root: "gap-numeric-input-md text-numeric-input-md",
         container: "h-form-control-md rounded-numeric-input-md",
         trigger: "text-numeric-input-md",
+        triggerIcon: "numeric-input-trigger-icon-md",
         input: "ps-numeric-input-input-md text-numeric-input-md",
       },
       lg: {
         root: "gap-numeric-input-lg text-numeric-input-lg",
         container: "h-form-control-lg rounded-numeric-input-lg",
         trigger: "text-numeric-input-lg",
+        triggerIcon: "numeric-input-trigger-icon-lg",
         input: "ps-numeric-input-input-lg text-numeric-input-lg",
       },
     },
@@ -222,8 +226,6 @@ type NumericInputContextValue = {
   errors: DescribedBy
   errorMessageId?: string
 }
-
-const triggerIconSizes = { sm: "xs", md: "sm", lg: "md" } as const
 
 const NumericInputContext = createContext<NumericInputContextValue | null>(null)
 
@@ -772,8 +774,7 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   children,
   ...props
 }: NumericInputIncrementTriggerProps) {
-  const { api, styles, size, readOnly, disabled } = useNumericInputContext()
-  const resolvedIconSize = iconSize ?? triggerIconSizes[size ?? "md"]
+  const { api, styles, readOnly, disabled } = useNumericInputContext()
   if (readOnly) {
     return null
   }
@@ -781,10 +782,12 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   return (
     <Button
       block={block}
-      className={styles.trigger({ className })}
+      className={styles.trigger({
+        className: [iconSize === undefined && styles.triggerIcon(), className],
+      })}
       icon={icon}
       iconPosition={iconPosition}
-      iconSize={resolvedIconSize}
+      iconSize={iconSize ?? "current"}
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}
@@ -847,8 +850,7 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   children,
   ...props
 }: NumericInputDecrementTriggerProps) {
-  const { api, styles, size, readOnly, disabled } = useNumericInputContext()
-  const resolvedIconSize = iconSize ?? triggerIconSizes[size ?? "md"]
+  const { api, styles, readOnly, disabled } = useNumericInputContext()
   if (readOnly) {
     return null
   }
@@ -856,10 +858,12 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   return (
     <Button
       block={block}
-      className={styles.trigger({ className })}
+      className={styles.trigger({
+        className: [iconSize === undefined && styles.triggerIcon(), className],
+      })}
       icon={icon}
       iconPosition={iconPosition}
-      iconSize={resolvedIconSize}
+      iconSize={iconSize ?? "current"}
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}

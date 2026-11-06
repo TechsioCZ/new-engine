@@ -614,3 +614,130 @@ test("scrolls to a target and keeps its spotlight aligned after scrolling", asyn
   await target.click()
   await expect(page.getByRole("alertdialog")).toBeVisible()
 })
+
+async function expectConfiguredSpotlightOffset(
+  page: Page,
+  offset = { x: 10, y: 10 }
+) {
+  const fixture = page.locator("[data-tour-spotlight-offset-x]")
+  await expect(fixture).toHaveAttribute(
+    "data-tour-spotlight-offset-x",
+    String(offset.x)
+  )
+  await expect(fixture).toHaveAttribute(
+    "data-tour-spotlight-offset-y",
+    String(offset.y)
+  )
+}
+
+for (const offset of [undefined, { x: 28, y: 36 }]) {
+  const args = offset
+    ? `&args=spotlightOffset.x:${offset.x};spotlightOffset.y:${offset.y}`
+    : ""
+  const label = offset ? "custom" : "default"
+
+  test(`scrolling reveals the whole ${label}-offset spotlight, not just the target`, async ({
+    page,
+  }) => {
+    // Fractional layout leaves the bare target flush with the bottom edge here.
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto(
+      `/iframe.html?id=molecules-tour--scroll-target&viewMode=story&embed=true${args}`
+    )
+    await expectConfiguredSpotlightOffset(page, offset)
+    await page.getByRole("button", { name: "Start tour" }).click()
+    await expect(
+      page.getByRole("alertdialog", { name: "Further down the page" })
+    ).toBeVisible()
+    const target = page.getByRole("button", { name: "Target below the fold" })
+    const spotlight = page.locator('[data-scope="tour"][data-part="spotlight"]')
+    const overflow = (element: Element) => {
+      const box = element.getBoundingClientRect()
+      const { clientWidth, clientHeight } = document.documentElement
+      return Math.max(
+        -box.left,
+        -box.top,
+        box.right - clientWidth,
+        box.bottom - clientHeight
+      )
+    }
+    await expect.poll(() => target.evaluate(overflow)).toBeLessThanOrEqual(1)
+    await expect.poll(() => spotlight.evaluate(overflow)).toBeLessThanOrEqual(1)
+    await expect
+      .poll(async () => {
+        const targetRect = await target.boundingBox()
+        const spotlightRect = await spotlight.boundingBox()
+        return targetRect && spotlightRect
+          ? Math.max(
+              Math.abs(targetRect.x - spotlightRect.x - (offset?.x ?? 10)),
+              Math.abs(targetRect.y - spotlightRect.y - (offset?.y ?? 10)),
+              Math.abs(
+                spotlightRect.x +
+                  spotlightRect.width -
+                  (targetRect.x + targetRect.width) -
+                  (offset?.x ?? 10)
+              ),
+              Math.abs(
+                spotlightRect.y +
+                  spotlightRect.height -
+                  (targetRect.y + targetRect.height) -
+                  (offset?.y ?? 10)
+              )
+            )
+          : Number.POSITIVE_INFINITY
+      })
+      .toBeLessThan(1)
+    await expect.poll(() => spotlight.evaluate(overflow)).toBeLessThanOrEqual(1)
+  })
+
+  test(`reserves ${label} offsets before a late target's first native scroll`, async ({
+    page,
+  }) => {
+    const recorded: string[][] = []
+    await page.exposeFunction("recordTourMargins", (margins: string[]) => {
+      recorded.push(margins)
+    })
+    await page.addInitScript(() => {
+      const nativeScroll = Element.prototype.scrollIntoView
+      Element.prototype.scrollIntoView = function (options) {
+        if (this.textContent?.trim() === "New target") {
+          const computed = getComputedStyle(this)
+          const margins = ["top", "right", "bottom", "left"].map((side) =>
+            computed.getPropertyValue(`scroll-margin-${side}`)
+          )
+          const record = (
+            window as typeof window & {
+              recordTourMargins: (values: string[]) => Promise<void>
+            }
+          ).recordTourMargins
+          record(margins).catch(() => undefined)
+        }
+        nativeScroll.call(this, options)
+      }
+    })
+    await page.goto(
+      `/iframe.html?id=molecules-tour--late-target&viewMode=story&embed=true${args}`
+    )
+    await expectConfiguredSpotlightOffset(page, offset)
+    await page.getByRole("button", { name: "Start tour" }).click()
+    await page.getByRole("button", { name: "Reveal target" }).click()
+    await expect(
+      page.getByRole("alertdialog", { name: "The target is ready" })
+    ).toBeVisible()
+    const { x, y } = offset ?? { x: 10, y: 10 }
+    await expect
+      .poll(() => recorded[0])
+      .toEqual([`${y}px`, `${x}px`, `${y}px`, `${x}px`])
+    const target = page.getByRole("button", { name: "New target", exact: true })
+    await expect(target).toHaveAttribute("data-tour-highlighted", "")
+    await page.getByRole("button", { name: "Close tour" }).click()
+    await expect(target).not.toHaveAttribute("data-tour-highlighted")
+    expect(
+      await target.evaluate((element: HTMLElement) =>
+        ["top", "right", "bottom", "left"].map((side) =>
+          element.style.getPropertyValue(`scroll-margin-${side}`)
+        )
+      )
+    ).toEqual(["", "", "", ""])
+  })
+}

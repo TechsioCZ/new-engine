@@ -80,3 +80,45 @@
     }
   }
 }
+
+/* One description changes the geometry of the whole list: every indicator must
+ * share its column centre, including neighbours with short, title-only triggers.
+ * Keep connectors out of the text row without changing vertical or Lines layouts. */
+@utility steps-description-connectors {
+  @variant max-sm {
+    &[data-orientation="horizontal"]:has(
+        > [data-part="item"] [data-part="description"]
+      ) {
+      & > [data-part="item"]:has([data-part="indicator"]) {
+        & > [data-part="trigger"] {
+          inline-size: 100%;
+        }
+        & > [data-part="separator"] {
+          position: absolute;
+          inset-block-start: 0;
+          inset-inline-start: calc(
+            (
+              100% +
+              var(
+                --steps-connector-indicator-size,
+                var(--size-steps-indicator-md)
+              )
+            ) /
+            2 +
+            var(--spacing-steps-item)
+          );
+          inline-size: calc(
+            100% +
+            var(--spacing-steps-list) -
+            var(
+              --steps-connector-indicator-size,
+              var(--size-steps-indicator-md)
+            ) -
+            2 *
+            var(--spacing-steps-item)
+          );
+        }
+      }
+    }
+  }
+}

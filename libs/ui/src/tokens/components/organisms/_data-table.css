@@ -90,26 +90,19 @@
 /*
  * DataTable — nested-row tint.
  *
- * `tintNestedRows` shades a row by `row.depth` as an inset box-shadow rather
- * than a background, so it composes with `striped`'s zebra background instead
- * of losing the Tailwind-merge conflict against it (two `bg-*` utilities on
- * one element can't both render; a shadow layers on top of whichever
- * background is already there). Reads `--color-data-table-row-bg-nested`,
- * which aliases `--color-table-row-bg-hover` in Figma — the depth shading can
- * now be retargeted without this file knowing which Table token backs it.
- */
-/*
- * Verified: box-shadow on a `<tr>` *does* paint under `border-collapse` in
- * Blink (Chromium 149) — a differential screenshot of a plain vs tinted row in
- * a collapsed table measures 255,255,255 vs 178,178,178. This has been
- * reported several times as a no-op; it is not one in Chrome. Not verified in
- * WebKit/Safari, so if the tint is ever confirmed missing there, the fix is a
- * `background-image` gradient layer (as `data-table-frozen-cell` uses), which
- * composes with `striped` without the Tailwind-merge conflict a `background`
- * would cause.
+ * Paint the overlay on cells: a collapsed row's inset shadow is not painted
+ * consistently in WebKit. Ordinary cells composite over the row's stripe,
+ * hover or selection background. Frozen cells paint the same nested overlay
+ * over their opaque copy of that background, without tinting it twice.
  */
 @utility data-table-row-nested-tint {
-  box-shadow: inset 0 0 0 9999px var(--color-data-table-row-bg-nested);
+  --dt-row-nested-tint: var(--color-data-table-row-bg-nested);
+  & > :where(td:not(.data-table-frozen-cell)) {
+    background-image: linear-gradient(
+      var(--dt-row-nested-tint),
+      var(--dt-row-nested-tint)
+    );
+  }
 }
 
 /*
@@ -132,11 +125,18 @@
  * without either knowing about the other.
  */
 @utility data-table-frozen-cell {
+  border-block-end: var(--border-width-data-table) solid
+    var(--color-data-table-border);
   background-color: var(--color-data-table-pinned-cell-bg);
-  background-image: linear-gradient(
-    var(--dt-row-tint, transparent),
-    var(--dt-row-tint, transparent)
-  );
+  background-image:
+    linear-gradient(
+      var(--dt-row-nested-tint, transparent),
+      var(--dt-row-nested-tint, transparent)
+    ),
+    linear-gradient(
+      var(--dt-row-tint, transparent),
+      var(--dt-row-tint, transparent)
+    );
 }
 
 @theme static {
@@ -159,6 +159,10 @@
 }
 
 @theme static {
+  --text-data-table-action: var(--text-button-sm);
+  --text-data-table-expand-icon: var(--text-data-table-action);
+  --spacing-data-table-tree-step: var(--dimension-16);
+  --spacing-data-table-tree-level: var(--spacing-data-table-tree-step);
   --spacing-data-table-search: var(--container-3xs);
   --spacing-data-table-filter-sm: calc(var(--height-form-control-sm) * 5);
   --spacing-data-table-filter-md: calc(var(--height-form-control-md) * 5);
@@ -203,18 +207,34 @@
   }
 }
 
-@utility data-table-editor {
-  /* Fixed-width tables scroll a constrained editor rather than hiding values
-   * or painting over the adjacent cell. Auto layout reserves its full width. */
-  &[data-layout="fixed"] {
-    overflow-x: auto;
+@theme static {
+  --spacing-data-table-detail-inset-sm: var(--padding-table-cell-sm-x);
+  --spacing-data-table-detail-inset-md: var(--padding-table-cell-md-x);
+  --spacing-data-table-detail-inset-lg: var(--padding-table-cell-lg-x);
+}
+
+@utility data-table-detail-viewport {
+  --dt-detail-cell-inset: var(--spacing-data-table-detail-inset-md);
+  /* Match Table.Cell's existing padding without changing the detail gutter. */
+  :where(.p-table-cell-sm) > & {
+    --dt-detail-cell-inset: var(--spacing-data-table-detail-inset-sm);
   }
-  /* A switch needs no text-entry minimum. Let its complete associated
-   * feedback wrap, rather than forcing it underneath sticky row actions. */
-  &[data-type="boolean"] > .data-table-editor-value {
-    min-width: 0;
-    max-width: 100%;
-    overflow-wrap: anywhere;
+  :where(.p-table-cell-lg) > & {
+    --dt-detail-cell-inset: var(--spacing-data-table-detail-inset-lg);
+  }
+  /* The named scrollport is the query container, not the overflowing table.
+   * Leave both cell gutters inside it, including after horizontal scrolling. */
+  position: sticky;
+  inset-inline-start: var(--dt-detail-cell-inset);
+  box-sizing: border-box;
+  inline-size: calc(100cqi - 2 * var(--dt-detail-cell-inset));
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  & > * {
+    min-inline-size: 0;
+    max-inline-size: 100%;
   }
 }
 
@@ -225,6 +245,52 @@
   }
   &[data-size="lg"] {
     min-width: var(--spacing-data-table-editor-lg);
+  }
+}
+
+@utility data-table-editor {
+  /* Fixed-width tables scroll a constrained editor rather than hiding values
+   * or painting over the adjacent cell. Auto layout reserves its full width. */
+  &[data-layout="fixed"] {
+    overflow-x: auto;
+  }
+  /* A boolean editor needs a readable feedback measure in auto layout, too.
+   * The table can scroll; the message must not collapse to single words. */
+  &[data-layout="auto"][data-type="boolean"]:has([role="alert"]) {
+    min-width: var(--spacing-data-table-editor-md);
+    &[data-size="sm"] {
+      min-width: var(--spacing-data-table-editor-sm);
+    }
+    &[data-size="lg"] {
+      min-width: var(--spacing-data-table-editor-lg);
+    }
+  }
+  /* A switch itself needs no text-entry minimum. */
+  &[data-type="boolean"] > .data-table-editor-value {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@utility data-table-pagination-controls {
+  & > button {
+    white-space: nowrap;
+  }
+  & > nav > ul {
+    flex-wrap: nowrap;
+    max-width: none;
+  }
+  & > nav {
+    min-width: 0;
+    overflow-x: auto;
+  }
+  @container data-table-pagination (width < 48rem) {
+    width: 100%;
+    flex-wrap: wrap;
+    & > nav {
+      flex-basis: 100%;
+    }
   }
 }
 

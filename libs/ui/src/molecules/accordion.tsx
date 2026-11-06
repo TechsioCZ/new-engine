@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -33,9 +33,10 @@ const accordionVariants = tv({
     item: "min-w-0 max-w-full",
     heading: "min-w-0 max-w-full",
     indicator: "shrink-0",
-    title: "wrap-anywhere grid min-w-0 max-w-full place-items-start text-start",
+    title:
+      "wrap-anywhere grid min-w-0 max-w-full place-items-start text-wrap text-start",
     titleTrigger: [
-      "wrap-anywhere relative flex w-full min-w-0 max-w-full cursor-pointer items-center justify-between",
+      "wrap-anywhere relative flex w-full min-w-0 max-w-full cursor-pointer items-center justify-between text-wrap",
       "rounded-none",
       "gap-accordion-trigger font-accordion-trigger",
       "bg-accordion-title-bg text-accordion-title-fg",
@@ -48,7 +49,7 @@ const accordionVariants = tv({
     content: [
       "bg-accordion-content-bg font-accordion-panel text-accordion-panel-fg",
       "border-t-(length:--border-width-accordion) border-accordion-panel-border",
-      "leading-accordion-panel",
+      "text-wrap leading-accordion-panel",
     ],
     icon: [
       "shrink-0 transition-transform data-[state=expanded]:rotate-180 motion-reduce:transition-none",

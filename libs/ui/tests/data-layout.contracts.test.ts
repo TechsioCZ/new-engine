@@ -55,6 +55,32 @@ const renderTable = (overrides: Partial<DataTableProps<RecordRow>> = {}) =>
     })
   )
 
+describe("fixed-layout table header containment", () => {
+  it.each([
+    { enableSorting: false, columnSorting: true },
+    { enableSorting: true, columnSorting: false },
+  ])(
+    "truncates unsortable headers with %j",
+    ({ enableSorting, columnSorting }) => {
+      const html = renderTable({
+        tableLayout: "fixed",
+        enableSorting,
+        columns: [
+          {
+            accessorKey: "first",
+            header: "A very long unsortable header",
+            enableSorting: columnSorting,
+            meta: { width: 120 },
+          },
+        ],
+      })
+      expect(html).toMatch(
+        /<span[^>]*class="[^"]*\btruncate\b[^"]*"[^>]*>A very long unsortable header<\/span>/
+      )
+    }
+  )
+})
+
 describe("chart information alternatives and valid geometry", () => {
   it("keeps a captioned, formatted dataset alternative when tooltips are disabled", () => {
     const html = renderChart({

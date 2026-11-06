@@ -223,6 +223,14 @@ export const NarrowColumnFilters: Story = {
     const canvas = within(canvasElement)
     for (const layout of ["fixed", "auto"] as const) {
       const table = canvas.getByRole("table", { name: `${layout} layout filters` })
+      for (const header of table.querySelectorAll("thead th button")) {
+        await expect(getComputedStyle(header).whiteSpace).toBe("nowrap")
+      }
+      for (const name of ["Age", "Visits"]) {
+        const sort = within(table).getByRole("button", { name })
+        await expect(getComputedStyle(sort).whiteSpace).toBe("nowrap")
+        await expect(sort.scrollHeight).toBeLessThanOrEqual(Number.parseFloat(getComputedStyle(sort).lineHeight) + 1)
+      }
       const filterRow = within(table).getByRole("row", { name: "Column filters" })
       const cells = within(filterRow).getAllByRole("cell")
       for (const cell of cells) {
@@ -305,7 +313,7 @@ export const GlobalSearch: Story = {
 /* ── 5b. Toolbar: search fills the row, custom actions trail it ──────────── */
 
 export const ToolbarActions: Story = {
-  parameters: { docs: { description: { story: "Keep the main create action in the toolbar while filters remain associated with the records they affect." } } },
+  parameters: { docs: { description: { story: "Outlined secondary actions sit beside search without competing with its primary submit button; Export is primary in the actions-only example." } } },
   args: {
     ...base,
     enableGlobalFilter: true,
@@ -323,12 +331,14 @@ export const ToolbarActions: Story = {
         id: "export",
         label: "Export",
         icon: "icon-[mdi--tray-arrow-down]",
-        variant: "warning",
+        variant: "secondary",
+        theme: "outlined",
         onClick: fn(),
       },
       {
         id: "filters",
-        label: "Filtry",
+        label: "Filters",
+        theme: "outlined",
         icon: "token-icon-chevron-down",
         iconPosition: "right",
         variant: "secondary",
@@ -353,7 +363,7 @@ export const ToolbarActions: Story = {
         canvas.getByLabelText("Submit search"),
         canvas.getByRole("button", { name: "Refresh" }),
         canvas.getByRole("button", { name: "Export" }),
-        canvas.getByRole("button", { name: "Filtry" }),
+        canvas.getByRole("button", { name: "Filters" }),
       ]
       const rects = controls.map((control) => control.getBoundingClientRect())
       const viewport = canvasElement.ownerDocument.documentElement.clientWidth
@@ -379,7 +389,7 @@ export const ToolbarActions: Story = {
  * other two, so a table configured this way silently dropped its actions.
  */
 export const ToolbarActionsOnly: Story = {
-  parameters: { docs: { description: { story: "A toolbar can hold local actions without showing an unused search field." } } },
+  parameters: { docs: { description: { story: "A toolbar can hold a primary Export action without showing an unused search field; the search-toolbar example uses an outlined secondary Export instead." } } },
   args: {
     ...base,
     toolbarActions: [
@@ -387,7 +397,7 @@ export const ToolbarActionsOnly: Story = {
         id: "export",
         label: "Export",
         icon: "icon-[mdi--tray-arrow-down]",
-        variant: "warning",
+        variant: "primary",
         onClick: fn(),
       },
     ],
@@ -914,6 +924,11 @@ export const ColumnReorder: Story = {
     await expect(
       canvas.getAllByLabelText(/^Drag to reorder /).length
     ).toBeGreaterThan(0)
+    const header = canvas.getByRole("columnheader", { name: /First name/ })
+    const sort = within(header).getByRole("button", { name: "First name" })
+    const body = canvasElement.querySelector("tbody tr td")!
+    const bodyStart = body.getBoundingClientRect().left + Number.parseFloat(getComputedStyle(body).paddingLeft)
+    await expect(sort.getBoundingClientRect().left).toBeCloseTo(bodyStart, 0)
   },
 }
 
@@ -1239,9 +1254,19 @@ export const TreeStructureTinted: Story = {
       (r) => r.getAttribute("data-depth") === "1"
     )
     await expect(childRow).toBeTruthy()
-    await expect(
-      childRow && getComputedStyle(childRow).boxShadow
-    ).not.toBe("none")
+    if (!childRow) throw new Error("Expanded child row must be present")
+    // Tint is cell-painted so ordinary and frozen cells agree in WebKit, too.
+    for (const cell of childRow.children) {
+      const style = getComputedStyle(cell)
+      await expect(style.backgroundImage).not.toBe("none")
+      await expect(style.getPropertyValue("--dt-row-nested-tint").trim()).not.toBe("")
+    }
+    const parentCell = rows[0]!.firstElementChild!
+    const childCell = childRow!.firstElementChild!
+    await expect(Number.parseFloat(getComputedStyle(childCell).paddingInlineStart) - Number.parseFloat(getComputedStyle(parentCell).paddingInlineStart)).toBeGreaterThanOrEqual(16)
+    const actions = childRow!.lastElementChild!
+    await expect(getComputedStyle(actions).getPropertyValue("--dt-row-tint").trim()).toBe(getComputedStyle(childRow!).getPropertyValue("--dt-row-tint").trim())
+    await expect(Number.parseFloat(getComputedStyle(actions).borderBottomWidth)).toBeGreaterThan(0)
   },
 }
 
@@ -1455,15 +1480,71 @@ export const Pagination: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByText(/of\s+500/i)).toBeInTheDocument()
-    // With 500 rows and a page size of 5, page 2 always exists — hard-assert it
-    // so a broken pager fails the story instead of silently skipping.
-    // Pager items render as <a> without href, so they expose no `link` role;
-    // scope to the pagination widget and match the page number as text.
-    const pager = canvasElement.querySelector(
-      '[data-scope="pagination"]'
-    ) as HTMLElement
-    await userEvent.click(within(pager).getByText("2"))
-    await expect(args.onPaginationChange).toHaveBeenCalled()
+    // With 500 rows and a page size of 5, these destinations must stay usable
+    // in both responsive layouts. Return to page 2 for the captured state.
+    const pager = canvas.getByRole("navigation", { name: "pagination" })
+    const navigation = within(pager)
+    const locationBefore = canvasElement.ownerDocument.defaultView?.location.href
+    await userEvent.click(navigation.getByRole("link", { name: "page 2" }))
+    await expect(args.onPaginationChange).toHaveBeenCalledWith({ pageIndex: 1, pageSize: 5 })
+    await expect(canvas.getByText("6–10 of 500")).toBeVisible()
+    await userEvent.click(navigation.getByRole("link", { name: "next page" }))
+    await expect(canvas.getByText("11–15 of 500")).toBeVisible()
+    await userEvent.click(navigation.getByRole("link", { name: "previous page" }))
+    await expect(canvas.getByText("6–10 of 500")).toBeVisible()
+    await expect(navigation.getByRole("link", { name: "page 2" })).toHaveAttribute("aria-current", "page")
+    await expect(canvasElement.ownerDocument.defaultView?.location.href).toBe(locationBefore)
+
+    const controls = pager.parentElement!
+    const bar = controls.parentElement!
+    const sizeSelect = canvas.getByRole("combobox", { name: "Rows per page" })
+    await canvasElement.ownerDocument.fonts.ready
+    await waitFor(async () => {
+      const barStyle = getComputedStyle(bar)
+      expect(barStyle.containerName.split(" ")).toContain("data-table-pagination")
+      // The CSS query measures this named ancestor's content box in rem, not
+      // the controls' shrink-to-fit width or the browser viewport.
+      const contentWidth = Number.parseFloat(barStyle.width) - (barStyle.boxSizing === "border-box"
+        ? Number.parseFloat(barStyle.paddingLeft) + Number.parseFloat(barStyle.paddingRight)
+          + Number.parseFloat(barStyle.borderLeftWidth) + Number.parseFloat(barStyle.borderRightWidth)
+        : 0)
+      const rem = Number.parseFloat(getComputedStyle(canvasElement.ownerDocument.documentElement).fontSize)
+      const stacked = contentWidth < 48 * rem
+      expect(getComputedStyle(controls).flexWrap).toBe(stacked ? "wrap" : "nowrap")
+      expect(getComputedStyle(pager).flexBasis).toBe(stacked ? "100%" : "auto")
+      const pagerBounds = pager.getBoundingClientRect()
+      const selectBounds = sizeSelect.getBoundingClientRect()
+      const controlsBounds = controls.getBoundingClientRect()
+      if (stacked) {
+        expect(selectBounds.top).toBeGreaterThanOrEqual(pagerBounds.bottom)
+        expect(selectBounds.left).toBeCloseTo(pagerBounds.left, 0)
+      } else {
+        expect(selectBounds.left).toBeGreaterThanOrEqual(pagerBounds.right)
+        expect(selectBounds.top + selectBounds.height / 2).toBeCloseTo(pagerBounds.top + pagerBounds.height / 2, 0)
+      }
+      for (const control of [pager, sizeSelect]) {
+        await expect(control).toBeVisible()
+        const bounds = control.getBoundingClientRect()
+        expect(bounds.width).toBeGreaterThan(0)
+        expect(bounds.left).toBeGreaterThanOrEqual(controlsBounds.left)
+        expect(bounds.right).toBeLessThanOrEqual(controlsBounds.right)
+      }
+      const items = [...pager.querySelectorAll("li")].filter(
+        (item) => item.getClientRects().length > 0
+      )
+      expect(items.length).toBeGreaterThanOrEqual(3)
+      const first = items[0]!.getBoundingClientRect()
+      for (const item of items) {
+        const bounds = item.getBoundingClientRect()
+        expect(bounds.top + bounds.height / 2).toBeCloseTo(first.top + first.height / 2, 0)
+        expect(bounds.left).toBeGreaterThanOrEqual(pagerBounds.left)
+        expect(bounds.right).toBeLessThanOrEqual(pagerBounds.right)
+      }
+      for (const link of navigation.getAllByRole("link")) {
+        await expect(link).toBeVisible()
+        await expect(link).toHaveAttribute("href", "#")
+      }
+    })
   },
 }
 
@@ -1898,7 +1979,7 @@ export const LoadingSkeletons: Story = {
 /* ── 33. Loading more (infinite scroll footer) ───────────────────────────── */
 
 export const LoadingMore: Story = {
-  parameters: { docs: { description: { story: "An appended skeleton row keeps existing records visible while another page is fetched." } } },
+  parameters: { docs: { description: { story: "Existing records stay visible while another page is pending. Scroll to the end of the bounded list to see its appended skeleton row." } } },
   args: {
     columns,
     data: people,
@@ -1939,14 +2020,13 @@ export const AccessibleSemantics: Story = {
     ...base,
     enableSorting: true,
     enableRowSelection: true,
-    enableExpanding: true,
-    getSubRows: () => undefined,
     getRowLabel: (row) => `${row.original.firstName} ${row.original.lastName}`,
     onRowClick: fn(),
     onSortingChange: fn(),
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
+    await expect(canvas.queryByRole("columnheader", { name: "Actions" })).not.toBeInTheDocument()
     // Sortable headers expose their sort state to assistive tech.
     const ageHeader = canvas.getByRole("columnheader", { name: /Age/i })
     await expect(ageHeader).toHaveAttribute("aria-sort", "none")
@@ -2024,7 +2104,13 @@ export const EditorValidation: EmployeeStory = {
         expect(error?.scrollWidth ?? 0).toBeLessThanOrEqual((error?.clientWidth ?? 0) + 1)
       })
     }
-    await expect(canvas.getByText("Confirm the employee is active before saving.")).toBeVisible()
+    const approvalMessage = canvas.getByText("Confirm the employee is active before saving.")
+    await expect(approvalMessage).toBeVisible()
+    await expect(approvalMessage.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(approvalMessage).lineHeight)).toBeLessThanOrEqual(4)
+    const editors = [...canvasElement.querySelectorAll("[data-editor-control]")]
+    for (const editor of editors) {
+      await expect(editor.getBoundingClientRect().top).toBeCloseTo(editors[0]!.getBoundingClientRect().top, 0)
+    }
   },
 }
 
@@ -2139,7 +2225,7 @@ export const ShrinkingServerTotal: Story = {
       <DataTable {...base} data={records.slice(pagination.pageIndex * pagination.pageSize, (pagination.pageIndex + 1) * pagination.pageSize)}
         enablePagination manualPagination rowCount={count} pagination={pagination} onPaginationChange={setPagination} pageSizeOptions={[2, 5, 10]} loading={loading} />
       <Button theme="outlined" onClick={() => { setLoading(true); setCount(0) }}>Start refetch</Button>
-      <Button theme="outlined" onClick={() => { setCount(4); setLoading(false) }}>Delete last-page record</Button>
+      <Button theme="outlined" variant="danger" onClick={() => { setCount(4); setLoading(false) }}>Delete last-page record</Button>
     </div>
   },
   play: async ({ canvasElement }) => {
@@ -2166,7 +2252,7 @@ export const ShrinkingServerTotal: Story = {
 }
 
 export const GroupedFixedWidths: Story = {
-  parameters: { docs: { description: { story: "A leaf colgroup keeps mixed grouped and ungrouped fixed widths intact; only leaf headers expose resize handles." } } },
+  parameters: { docs: { description: { story: "A leaf colgroup keeps mixed grouped and ungrouped fixed widths intact; only leaf headers expose resize handles. Identity is the grouped header; People and Contact details are intentional footer labels." } } },
   args: {
     ...base, tableLayout: "fixed", enableColumnResizing: true,
     columns: [
@@ -2309,9 +2395,9 @@ export const VariableHeightVirtualRows: Story = {
     ...base, data: bigData, enableVirtualization: true, maxHeight: "26rem",
     enableExpanding: true, expanded: { "row-1": true },
     columns: [{ accessorKey: "firstName", header: "Person" }, {
-      accessorKey: "email", header: "Notes", cell: ({ row }) => <div>{Array.from({ length: row.index % 3 + 1 }, (_, index) => <p key={`note-${index}`}>Contact preferences and delivery instructions for {row.original.firstName}.</p>)}</div>,
+      accessorKey: "email", header: "Notes", meta: { minWidth: "var(--container-3xs)" }, cell: ({ row }) => <div>{Array.from({ length: row.index % 3 + 1 }, (_, index) => <p key={`note-${index}`}>Contact preferences and delivery instructions for {row.original.firstName}.</p>)}</div>,
     }],
-    renderExpandedRow: (row) => <div className="p-400"><p>Delivery details for {row.original.firstName}</p><p>Preferred collection at the workshop reception.</p></div>,
+    renderExpandedRow: (row) => <div><p>Delivery details for {row.original.firstName}</p><p>Preferred collection at the workshop reception.</p></div>,
   },
 }
 

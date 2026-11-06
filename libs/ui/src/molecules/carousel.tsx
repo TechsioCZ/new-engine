@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.3.4
+ * @componentVersion v1.3.5
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -234,7 +234,7 @@ const carouselVariants = tv({
     media: "",
     root: ["carousel-side-layout relative w-full", "rounded-carousel"],
     control: [
-      "flex items-center gap-carousel-control p-carousel-control",
+      "flex items-center justify-center gap-carousel-control p-carousel-control",
       "data-[orientation=vertical]:flex-col",
       "border border-carousel-control-border shadow-carousel-control",
       "bg-carousel-control-bg",

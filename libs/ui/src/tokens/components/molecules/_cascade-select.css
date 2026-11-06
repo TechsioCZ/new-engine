@@ -7,6 +7,9 @@
   --color-cascade-select-foreground: var(--color-fg-primary);
   --color-cascade-select-accent: var(--color-popup-item-fg);
   --color-cascade-select-highlight: var(--color-popup-item-bg-hover);
+  --border-width-cascade-select-status-ring: var(--default-ring-width);
+  --spacing-cascade-select-hierarchy-hint: var(--dimension-0);
+  --spacing-cascade-select-status-offset: var(--dimension-0);
 
   /* Column derived layer */
   --color-cascade-select-column-bg: var(--color-cascade-select-surface);
@@ -17,6 +20,15 @@
   --color-cascade-select-step-fg: var(--color-cascade-select-foreground);
   --color-cascade-select-path-bg: var(--color-cascade-select-highlight);
   --color-cascade-select-path-border: var(--color-cascade-select-accent);
+  --spacing-cascade-select-column-peek: var(
+    --spacing-cascade-select-hierarchy-hint
+  );
+  --spacing-cascade-select-status-margin: var(
+    --spacing-cascade-select-status-offset
+  );
+  --border-width-cascade-select-status-outline: var(
+    --border-width-cascade-select-status-ring
+  );
   --border-width-cascade-select-trigger: var(--border-width-form-control);
   --border-width-cascade-select-column: var(--border-width-sm);
   --border-width-cascade-select-path: var(--border-width-lg);
@@ -78,8 +90,14 @@
 
 /* A wide trigger must not force the hierarchy beyond the overlay boundary. */
 @utility cascade-select-viewport {
+  --cascade-select-column-peek: 0px;
   min-inline-size: min(var(--reference-width), var(--available-width));
   max-inline-size: var(--available-width);
+
+  /* A partial preceding column makes deeper overflow discoverable. */
+  &:has(> [data-part="column"][data-depth="2"]) {
+    --cascade-select-column-peek: var(--spacing-cascade-select-column-peek);
+  }
 }
 
 /* Two columns always fit side by side on narrow screens; deeper levels scroll.
@@ -88,7 +106,7 @@
   inline-size: min(
     var(--container-cascade-select-column),
     calc(
-      var(--available-width, 100vw) /
+      (var(--available-width, 100vw) - var(--cascade-select-column-peek, 0px)) /
       2 -
       var(--border-width-cascade-select-column)
     )

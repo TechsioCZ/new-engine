@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -34,9 +34,10 @@ const dialogVariants = tv({
       "focus-visible:outline-dialog-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
-    scrollViewport: "flex min-h-0 flex-col gap-dialog-content overflow-y-auto",
+    scrollViewport:
+      "dialog-scroll-viewport flex min-h-0 flex-col gap-dialog-content overflow-y-auto",
     title: [
-      "dialog-heading-typography break-words pe-dialog-title-safe font-dialog-title text-dialog-title-fg",
+      "dialog-heading-typography shrink-0 break-words pe-dialog-title-safe font-dialog-title text-dialog-title-fg",
     ],
     description: ["dialog-copy-typography text-dialog-description-fg"],
     trigger: [],
@@ -310,22 +311,24 @@ export function Dialog({
                 aria-label="Close dialog"
               />
             )}
-            <div className={scrollViewport()}>
-              {title && (
-                <h2 className={titleSlot()} {...api.getTitleProps()}>
-                  {title}
-                </h2>
-              )}
-              {description && (
-                <div
-                  className={descriptionSlot()}
-                  {...api.getDescriptionProps()}
-                >
-                  {description}
-                </div>
-              )}
-              {children}
-            </div>
+            {title && (
+              <h2 className={titleSlot()} {...api.getTitleProps()}>
+                {title}
+              </h2>
+            )}
+            {(description || children) && (
+              <div className={scrollViewport()}>
+                {description && (
+                  <div
+                    className={descriptionSlot()}
+                    {...api.getDescriptionProps()}
+                  >
+                    {description}
+                  </div>
+                )}
+                {children}
+              </div>
+            )}
             {actions && <div className={actionsSlot()}>{actions}</div>}
           </OverlayContainerProvider>
         </div>

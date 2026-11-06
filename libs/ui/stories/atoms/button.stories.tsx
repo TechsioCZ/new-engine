@@ -301,6 +301,22 @@ export const States: Story = {
       </VariantContainer>
     )
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const disabled = canvas.getByRole("button", { name: "Solid" })
+    const loading = canvas.getByRole("button", { name: "Primary" })
+    const danger = canvas.getByRole("button", { name: "Danger" })
+    await expect(loading).toHaveAttribute("aria-busy", "true")
+    await expect(loading).toHaveAttribute("aria-disabled", "true")
+    // Busy keeps the variant fill; only genuinely unavailable buttons go grey.
+    const disabledFill = getComputedStyle(disabled).backgroundColor
+    await expect(getComputedStyle(loading).backgroundColor).not.toBe(
+      disabledFill
+    )
+    await expect(getComputedStyle(danger).backgroundColor).not.toBe(
+      disabledFill
+    )
+  },
 }
 
 export const AllVariants: Story = {
@@ -318,32 +334,68 @@ export const AllVariants: Story = {
       {(["solid", "light", "outlined", "borderless", "unstyled"] as const).map(
         (theme) => (
           <VariantGroup key={theme} title={`${theme} variants`}>
-            {(
-              ["primary", "secondary", "tertiary", "warning", "danger"] as const
-            ).map((variant) => (
-              <Button
-                data-variant={variant}
-                data-theme-treatment={theme}
-                key={variant}
-                theme={theme}
-                variant={variant}
-              >
-                {variant === "danger"
-                  ? "Delete project"
-                  : variant === "warning"
-                    ? "Review warning"
-                    : variant === "secondary"
-                      ? "View activity"
-                      : variant === "tertiary"
-                        ? "Explore details"
-                        : "Save changes"}
-              </Button>
-            ))}
+            <div className="grid w-full grid-cols-2 justify-items-start gap-200 sm:flex sm:flex-wrap sm:gap-400">
+              {(
+                ["primary", "secondary", "tertiary", "warning", "danger"] as const
+              ).map((variant) => (
+                <Button
+                  data-variant={variant}
+                  data-theme-treatment={theme}
+                  key={variant}
+                  theme={theme}
+                  variant={variant}
+                >
+                  {variant === "danger"
+                    ? "Delete project"
+                    : variant === "warning"
+                      ? "Review warning"
+                      : variant === "secondary"
+                        ? "View activity"
+                        : variant === "tertiary"
+                          ? "Explore details"
+                          : "Save changes"}
+                </Button>
+              ))}
+            </div>
           </VariantGroup>
         )
       )}
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      document.documentElement.clientWidth
+    )
+    if (document.defaultView?.matchMedia("(min-width: 40rem)").matches) {
+      return
+    }
+    for (const theme of ["solid", "light", "outlined", "borderless", "unstyled"]) {
+      const buttons = Array.from(
+        canvasElement.querySelectorAll<HTMLButtonElement>(
+          `button[data-theme-treatment="${theme}"]`
+        )
+      )
+      await expect(buttons).toHaveLength(5)
+      const bounds = buttons.map((button) => button.getBoundingClientRect())
+      const [first, second, third, fourth] = bounds
+      if (!(first && second && third && fourth)) {
+        throw new Error("All button matrix rows must have measurable controls")
+      }
+      for (const [index, bound] of bounds.entries()) {
+        await expect(bound.width).toBeGreaterThan(0)
+        await expect(bound.right).toBeLessThanOrEqual(
+          document.documentElement.clientWidth
+        )
+        await expect(
+          Math.abs(bound.left - (index % 2 === 0 ? first.left : second.left))
+        ).toBeLessThanOrEqual(1)
+      }
+      await expect(second.left).toBeGreaterThan(first.left)
+      await expect(Math.abs(first.top - second.top)).toBeLessThanOrEqual(1)
+      await expect(Math.abs(third.top - fourth.top)).toBeLessThanOrEqual(1)
+    }
+  },
 }
 
 export const IconButtons: Story = {
@@ -359,16 +411,16 @@ export const IconButtons: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Icon buttons">
-        <Button icon="icon-[mdi--thumb-up]">LIKE</Button>
+        <Button icon="icon-[mdi--thumb-up]">Like</Button>
         <Button icon="icon-[mdi--send]" iconPosition="right">
-          SEND
+          Send
         </Button>
         <Button icon="icon-[mdi--magnify]" aria-label="Search" />
         <Button variant="secondary" icon="icon-[mdi--pencil]">
-          EDIT
+          Edit
         </Button>
         <Button variant="danger" icon="icon-[mdi--delete]">
-          DELETE
+          Delete
         </Button>
       </VariantGroup>
     </VariantContainer>

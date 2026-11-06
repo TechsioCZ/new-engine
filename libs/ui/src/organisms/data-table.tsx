@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.10
+ * @componentVersion v1.4.11
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -180,6 +180,7 @@ const dataTableVariants = tv({
     ],
     scroll: ["@container/data-table relative w-full overflow-auto"],
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
+    headerText: ["min-w-0"],
     cellContent: ["min-w-0 max-w-full"],
     columnDropIndicator: [
       // A real cell border changes native auto-table widths, feeding back into
@@ -206,7 +207,7 @@ const dataTableVariants = tv({
       "active:cursor-grabbing",
     ],
     resizeHandle: [
-      "w-(length:--size-data-table-resize-handle) absolute inset-e-0 top-0 h-full cursor-col-resize touch-none select-none",
+      "w-(length:--size-data-table-resize-handle) focus-visible:data-table-scroll-focus absolute inset-e-0 top-0 h-full cursor-col-resize touch-none select-none",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
       "bg-data-table-resize-handle-bg hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100",
@@ -225,6 +226,7 @@ const dataTableVariants = tv({
     ],
     emptyViewport: ["data-table-empty-viewport wrap-anywhere min-w-0"],
     actionsCell: ["flex items-center justify-end gap-100"],
+    expandButton: ["text-data-table-expand-icon"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
       "p-data-table-empty text-center text-data-table-empty-fg",
@@ -232,14 +234,16 @@ const dataTableVariants = tv({
     /* Same background as the toolbar so the header and footer frame the table
      * as one pair; without it the bar falls through to --color-table-bg. */
     paginationBar: [
-      "flex flex-wrap items-center justify-between gap-data-table-pagination",
+      "@container/data-table-pagination flex flex-wrap items-center justify-between gap-data-table-pagination",
       "bg-data-table-pagination-bg text-data-table-pagination-fg",
       "p-data-table-pagination",
       "border-t-(length:--border-width-data-table) border-data-table-border",
     ],
-    detailBox: ["w-full p-data-table-detail"],
+    detailBox: ["data-table-detail-viewport p-data-table-detail"],
     paginationInfo: ["whitespace-nowrap text-data-table-sm"],
-    paginationControls: ["flex items-center gap-data-table-pagination"],
+    paginationControls: [
+      "data-table-pagination-controls flex min-w-0 items-center gap-data-table-pagination",
+    ],
   },
   variants: {
     /**
@@ -252,8 +256,9 @@ const dataTableVariants = tv({
     },
     fixedLayout: {
       true: {
-        headerLabel: "min-w-0 max-w-full whitespace-normal",
-        sortButton: "wrap-anywhere min-w-0 max-w-full whitespace-normal",
+        headerLabel: "min-w-0 max-w-full",
+        headerText: "truncate",
+        sortButton: "min-w-0 max-w-full",
         sortIcon: "shrink-0",
         cellContent: "wrap-anywhere",
       },
@@ -1224,8 +1229,11 @@ function HeaderSortLabel<T extends RowData>({
 
   // Grouped tables insert empty alignment placeholders above ungrouped leaves.
   // They are not another copy of the leaf's sortable header.
-  if (header.isPlaceholder || !canSort) {
-    return <>{label}</>
+  if (header.isPlaceholder) {
+    return null
+  }
+  if (!canSort) {
+    return <span className={styles.headerText()}>{label}</span>
   }
 
   let sortIconName: IconType = "icon-[mdi--unfold-more-horizontal]"
@@ -1243,7 +1251,7 @@ function HeaderSortLabel<T extends RowData>({
       onClick={(event) => column.getToggleSortingHandler()?.(event)}
       type="button"
     >
-      {label}
+      <span className={styles.headerText()}>{label}</span>
       <Icon
         className={styles.sortIcon()}
         data-active={!!sortDir}
@@ -1301,6 +1309,7 @@ function renderCellContent<T extends RowData>({
         className={styles.editorControl()}
         data-editor-control=""
         data-layout={tableLayout}
+        data-size={size}
         data-type={resolveColumnType(column.columnDef.meta)}
       >
         <div className="data-table-editor-value" data-size={size}>
@@ -1384,14 +1393,17 @@ function DataTableBodyCell<T extends RowData>({
   const isDragCol = column.id === DRAG_COLUMN_ID
   const indent =
     row.depth > 0 && column.id === indentColumnId
-      ? { paddingInlineStart: `${row.depth * 1.5}rem` }
+      ? {
+          paddingInlineStart: `calc(var(--padding-table-cell-${size}-x) + ${row.depth} * var(--spacing-data-table-tree-level))`,
+        }
       : undefined
 
   return (
     <Table.Cell
       align={column.columnDef.meta?.align}
-      className={pinClass("body", activePin, pinEdge)}
+      className={`data-editing:align-top ${pinClass("body", activePin, pinEdge) ?? ""}`}
       colSpan={span?.colSpan}
+      data-editing={Boolean(editor) || undefined}
       data-pinned={pinned || undefined}
       rowSpan={span?.rowSpan}
       style={{
@@ -3389,6 +3401,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         }}
       >
         <div className={styles.headerLabel()}>
+          <HeaderSortLabel
+            enableSorting={enableSorting}
+            header={header}
+            locked={locked}
+            styles={styles}
+          />
           {dnd && (
             <HeaderDragHandle
               handleRef={dnd.handleRef}
@@ -3396,12 +3414,6 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               styles={styles}
             />
           )}
-          <HeaderSortLabel
-            enableSorting={enableSorting}
-            header={header}
-            locked={locked}
-            styles={styles}
-          />
         </div>
         {enableColumnResizing &&
         !header.isPlaceholder &&
@@ -3691,11 +3703,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     <Table.Cell
       // Composites the row tint over an opaque surface, like pinned cells —
       // `bg-inherit` alone was transparent on striped/selected rows.
-      className={
-        stickyActions
-          ? `data-table-frozen-cell ${stickyActionsClass}`
-          : undefined
-      }
+      className={`data-editing:align-top ${stickyActions ? `data-table-frozen-cell ${stickyActionsClass}` : ""}`}
+      data-editing={editingRowId === row.id || undefined}
       numeric
       style={
         // Pinned body cells carry `pinnedCell` from `getPinningStyles`;
@@ -3712,6 +3721,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             aria-controls={expandAriaControls(row.id)}
             aria-expanded={row.getIsExpanded()}
             aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
+            className={styles.expandButton()}
             disabled={locked}
             // Gated like every other affordance: expanding a row *above* the
             // one being edited inserts a detail row and shifts the edited row

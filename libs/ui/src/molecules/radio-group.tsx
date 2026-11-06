@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.1.4
+ * @componentVersion v1.1.5
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -95,7 +95,7 @@ const radioGroupVariants = tv({
       "data-readonly:not-data-disabled:cursor-default data-readonly:select-text",
     ],
     itemControl: [
-      "form-control-readonly form-control-disabled row-start-1 self-center",
+      "form-control-readonly form-control-disabled row-start-1 self-start",
       "inline-grid shrink-0 place-items-center rounded-radio-group-control",
       "border-(length:--border-width-radio-group)",
       "border-radio-group-item-border-base",
@@ -168,7 +168,7 @@ const radioGroupVariants = tv({
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-sm data-[orientation=vertical]:gap-radio-group-stack-vertical-sm",
         item: "gap-x-radio-group-item-sm",
-        itemControl: "size-radio-group-control-sm",
+        itemControl: "radio-group-control-align-sm size-radio-group-control-sm",
         itemContent: "gap-radio-group-item-content-sm",
         itemIndicator: "size-radio-group-indicator-sm",
         itemText: "text-radio-group-item-sm",
@@ -179,7 +179,7 @@ const radioGroupVariants = tv({
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-md data-[orientation=vertical]:gap-radio-group-stack-vertical-md",
         item: "gap-x-radio-group-item-md",
-        itemControl: "size-radio-group-control-md",
+        itemControl: "radio-group-control-align-md size-radio-group-control-md",
         itemContent: "gap-radio-group-item-content-md",
         itemIndicator: "size-radio-group-indicator-md",
         itemText: "text-radio-group-item-md",
@@ -190,7 +190,7 @@ const radioGroupVariants = tv({
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-lg data-[orientation=vertical]:gap-radio-group-stack-vertical-lg",
         item: "gap-x-radio-group-item-lg",
-        itemControl: "size-radio-group-control-lg",
+        itemControl: "radio-group-control-align-lg size-radio-group-control-lg",
         itemContent: "gap-radio-group-item-content-lg",
         itemIndicator: "size-radio-group-indicator-lg",
         itemText: "text-radio-group-item-lg",

@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit template.
  *
  * @component Gallery
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -18,6 +18,13 @@ import {
   type GalleryProps,
   type GalleryRenderThumbnailParams,
 } from "../organisms/gallery"
+import { tv } from "../utils"
+
+const galleryTemplateVariants = tv({
+  slots: {
+    autoplayTrigger: "gallery-template-autoplay-inset",
+  },
+})
 
 function resolveSlides(
   items: GalleryItem[],
@@ -109,6 +116,7 @@ export function GalleryTemplate<T extends ElementType = "img">({
   thumbnailImageAs,
   ...galleryProps
 }: GalleryTemplateProps<T>) {
+  const { autoplayTrigger } = galleryTemplateVariants()
   const resolvedItems = resolveSlides(items, renderSlide)
   const resolvedOrientation = orientation ?? "vertical"
   const resolvedCarouselWidth =
@@ -180,7 +188,11 @@ export function GalleryTemplate<T extends ElementType = "img">({
             </Carousel.Control>
           )}
           {(Boolean(autoplay) || showAutoplay) && (
-            <Carousel.Autoplay className={autoplayTriggerClassName} />
+            <Carousel.Autoplay
+              className={autoplayTrigger({
+                className: autoplayTriggerClassName,
+              })}
+            />
           )}
         </Gallery.Carousel>
       </Gallery.Main>

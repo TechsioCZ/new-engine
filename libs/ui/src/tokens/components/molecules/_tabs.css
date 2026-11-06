@@ -17,6 +17,64 @@
     var(--padding-tabs-trigger-x-lg);
 
   --width-tabs-indicator: var(--size-tabs-indicator-width);
+
+  /* Business opts into quiet edge cues and a navigation-owned disabled fill. */
+  --color-tabs-overflow: var(--color-transparent);
+  --color-tabs-unavailable: var(--color-button-bg-disabled);
+  --color-tabs-overflow-bg-cue: var(--color-tabs-overflow);
+  --color-tabs-overflow-bg-cover: var(--color-tabs-list-bg);
+  --color-tabs-trigger-bg-disabled: var(--color-tabs-unavailable);
+  --spacing-tabs-overflow-cover: var(--dimension-32);
+  --spacing-tabs-overflow-cue: var(--dimension-12);
+}
+
+/* Local covers hide each edge shadow at its scroll limit, including in RTL.
+ * Backgrounds stay behind labels and focus rings; no mask or overlay clips them. */
+@utility tabs-list-overflow {
+  &[data-orientation="horizontal"] {
+    background-image:
+      linear-gradient(
+        to right,
+        var(--color-tabs-overflow-bg-cover) 40%,
+        transparent
+      ),
+      linear-gradient(
+        to left,
+        var(--color-tabs-overflow-bg-cover) 40%,
+        transparent
+      ),
+      radial-gradient(
+        farthest-side at 0 50%,
+        var(--color-tabs-overflow-bg-cue),
+        transparent
+      ),
+      radial-gradient(
+        farthest-side at 100% 50%,
+        var(--color-tabs-overflow-bg-cue),
+        transparent
+      );
+    background-position:
+      left center,
+      right center,
+      left center,
+      right center;
+    background-size:
+      var(--spacing-tabs-overflow-cover) 100%,
+      var(--spacing-tabs-overflow-cover) 100%,
+      var(--spacing-tabs-overflow-cue) 100%,
+      var(--spacing-tabs-overflow-cue) 100%;
+    background-repeat: no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
+}
+
+/* Outrank Button's unavailable selectors, including hover/active, without
+ * changing the trigger's native disabled behavior or other Button consumers. */
+@utility tabs-trigger-disabled {
+  &[data-scope="tabs"][data-part="trigger"][data-disabled],
+  &[data-scope="tabs"][data-part="trigger"][data-disabled]:is(:hover, :active) {
+    background-color: var(--color-tabs-trigger-bg-disabled);
+  }
 }
 
 /* Safe alignment falls back to start when tabs exceed the scrollport. */

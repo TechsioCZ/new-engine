@@ -351,6 +351,14 @@ export const States: Story = {
       "Enter a quantity between 1 and 10 before ordering."
     )
     await expect(invalid.getAttribute("aria-errormessage")).toBeTruthy()
+    const readOnly = canvas.getByRole("spinbutton", {
+      name: "Read-only quantity",
+    })
+    await expect(readOnly).toHaveAttribute("readonly")
+    await expect(readOnly).not.toBeDisabled()
+    await expect(
+      readOnly.closest('[data-part="control"]')?.querySelectorAll("button")
+    ).toHaveLength(0)
     for (const [label, outward, inward] of [
       ["Minimum quantity", "decrement-trigger", "increment-trigger"],
       ["Maximum quantity", "increment-trigger", "decrement-trigger"],
@@ -429,7 +437,7 @@ export const WithExternalLabel: Story = {
     docs: {
       description: {
         story:
-          "An external label names and focuses the real input rather than the decorative root.",
+          "An external label names and focuses the real input. Side controls use custom minus/plus icons around a centered value.",
       },
     },
   },
@@ -443,6 +451,8 @@ export const WithExternalLabel: Story = {
         aria-label="Fallback quantity"
         aria-labelledby="order-quantity-label"
         controlsPosition="sides"
+        decrementIcon="token-icon-minus"
+        incrementIcon="token-icon-plus"
         defaultValue={3}
         id="order-quantity"
         ids={{ input: "order-quantity-input" }}
@@ -454,7 +464,21 @@ export const WithExternalLabel: Story = {
     const input = canvas.getByRole("spinbutton", { name: "Order quantity" })
     await userEvent.click(canvas.getByText("Order quantity"))
     await expect(input).toHaveFocus()
+    const control = input.closest<HTMLElement>('[data-part="control"]')
+    await expect(control).not.toBeNull()
+    const buttons = canvas.getAllByRole("button")
+    await expect(buttons).toHaveLength(2)
+    for (const button of buttons) {
+      await expect(control).toContainElement(button)
+    }
+    await expect(getComputedStyle(input).textAlign).toBe("center")
+    await expect(buttons[0]!.querySelector(".token-icon-minus")).not.toBeNull()
+    await expect(buttons[1]!.querySelector(".token-icon-plus")).not.toBeNull()
     await userEvent.keyboard("{ArrowUp}")
+    await waitFor(() => expect(input).toHaveAttribute("aria-valuenow", "4"))
+    await userEvent.click(buttons[0]!)
+    await waitFor(() => expect(input).toHaveAttribute("aria-valuenow", "3"))
+    await userEvent.click(buttons[1]!)
     await waitFor(() => expect(input).toHaveAttribute("aria-valuenow", "4"))
   },
 }

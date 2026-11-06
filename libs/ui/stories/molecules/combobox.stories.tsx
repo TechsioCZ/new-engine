@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
+import { StorySurface, VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
 import { Button } from '../../src/atoms/button'
 import { Icon } from '../../src/atoms/icon'
@@ -22,6 +22,7 @@ const countries: ComboboxItem[] = [
 const meta: Meta<typeof Combobox> = {
   title: 'Molecules/Combobox',
   component: Combobox,
+  decorators: [(Story) => <StorySurface className="max-w-sm"><Story /></StorySurface>],
   render: (args) => (
     <div className="mx-auto w-full max-w-sm">
       <Combobox {...args} />
@@ -29,7 +30,7 @@ const meta: Meta<typeof Combobox> = {
   ),
   parameters: {
     controls: { include: ["label", "placeholder", "helpText", "size", "validateStatus", "showHelpTextIcon", "disabled", "readOnly", "required", "multiple", "clearable", "closeOnSelect", "inputBehavior", "selectionBehavior"] },
-    layout: 'padded',
+    layout: 'fullscreen',
     docs: {
       description: {
         component: 'Combobox combines a text input with a keyboard-operable list of suggestions for choosing from long or searchable lists; use Select for short lists that do not need filtering, or SearchSuggestions for catalog navigation.',
@@ -225,6 +226,31 @@ export const Sizes: Story = {
     )
     await expect(heights[0]).toBeLessThanOrEqual(heights[1] ?? 0)
     await expect(heights[0]).toBeLessThan(heights[2] ?? 0)
+    if (business) {
+      const large = canvas.getAllByRole("combobox")[2]!
+      large.focus()
+      await userEvent.keyboard("{ArrowDown}")
+      const body = within(canvasElement.ownerDocument.body)
+      const list = await body.findByRole("listbox")
+      const options = within(list).getAllByRole("option")
+      await waitFor(() => {
+        expect(list.closest('[data-part="content"]')).toHaveAttribute("data-placement")
+        expect(options[0]!.getBoundingClientRect().height).toBeLessThanOrEqual(44)
+      })
+      // Height remains flexible and the final option remains reachable by scrolling.
+      const last = options.at(-1)!
+      last.scrollIntoView({ block: "nearest" })
+      await waitFor(() => {
+        const viewport = list.getBoundingClientRect()
+        const row = last.getBoundingClientRect()
+        expect(row.top).toBeGreaterThanOrEqual(viewport.top - 1)
+        expect(row.bottom).toBeLessThanOrEqual(viewport.bottom + 1)
+      })
+      await expect(last).toHaveTextContent("USA")
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() => expect(list).not.toBeVisible())
+      large.blur()
+    }
   },
 }
 
@@ -309,7 +335,7 @@ export const ControlledStringValue: Story = {
     const [value, setValue] = useState('cz')
 
     return (
-      <div className="mx-auto grid w-full max-w-sm gap-150">
+      <div className="mx-auto grid w-full max-w-sm gap-300">
         <Combobox
           label="Controlled country"
           placeholder="Choose a country..."
@@ -319,7 +345,7 @@ export const ControlledStringValue: Story = {
             setValue(Array.isArray(nextValue) ? (nextValue[0] ?? '') : nextValue)
           }}
         />
-        <Button onClick={() => setValue('')}>Clear selection</Button>
+        <Button onClick={() => setValue('')} theme="outlined">Clear selection</Button>
         <Combobox
           label="Empty default country"
           placeholder="Choose a country..."
@@ -644,17 +670,53 @@ export const NativeFormValues: Story = {
     await expect(new FormData(canvas.getByRole("form", { name: "Multiple selection" }) as HTMLFormElement).getAll("country")).toEqual(["us", "de"])
     await expect(new FormData(canvas.getByRole("form", { name: "Read-only selection" }) as HTMLFormElement).getAll("country")).toEqual(["us", "de"])
     await expect(new FormData(canvas.getByRole("form", { name: "Disabled selection" }) as HTMLFormElement).getAll("country")).toEqual([])
+    const editable = within(canvas.getByRole("form", { name: "Multiple selection" })).getAllByRole("listitem")
+    const saved = within(canvas.getByRole("form", { name: "Read-only selection" })).getAllByRole("listitem")
+    for (const [index, chip] of saved.entries()) {
+      const style = getComputedStyle(chip)
+      await expect(Number.parseFloat(style.paddingInlineStart)).toBeGreaterThan(0)
+      await expect(Number.parseFloat(style.paddingInlineEnd)).toBeGreaterThan(0)
+      await expect(Math.abs(chip.getBoundingClientRect().height - editable[index]!.getBoundingClientRect().height)).toBeLessThanOrEqual(1)
+    }
   },
 }
 
 export const Disabled: Story = {
   args: { items: countries, label: "Country", defaultValue: "us", disabled: true, helpText: "Country selection is unavailable while the address is syncing." },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("combobox", { name: "Country" })
+    await expect(input).toBeDisabled()
+    await expect(input).toHaveValue("USA")
+    await expect(canvas.queryByRole("button", { name: "Clear value" })).toBeNull()
+    const chevron = canvasElement.querySelector<HTMLElement>(".token-icon-combobox-chevron")!
+    await expect(chevron).not.toBeNull()
+    await expect(getComputedStyle(chevron).color).toBe(getComputedStyle(input).color)
+  },
   parameters: { docs: { description: { story: "A disabled country field cannot receive focus or participate in form submission." } } },
 }
 
 export const ReadOnly: Story = {
   name: "Read-only",
   args: { items: countries, label: "Country", defaultValue: "us", readOnly: true, defaultOpen: true, helpText: "This saved delivery country cannot be changed." },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("combobox", { name: "Country" })
+    await expect(input).toHaveAttribute("readonly")
+    await expect(input).not.toBeDisabled()
+    await expect(canvas.queryByRole("button", { name: "Clear value" })).toBeNull()
+    await expect(canvasElement.querySelector('[data-part="trigger"]')).toBeNull()
+    input.focus()
+    await userEvent.keyboard("{ArrowRight}Germany")
+    await expect(input).toHaveFocus()
+    await expect(input).toHaveValue("USA")
+    await expect(within(canvasElement.ownerDocument.body).queryByRole("listbox")).toBeNull()
+    const control = input.closest<HTMLElement>('[data-part="control"]')!
+    await expect(control).toHaveAttribute("data-readonly")
+    await expect(getComputedStyle(control).outlineStyle).not.toBe("none")
+    await expect(Number.parseFloat(getComputedStyle(control).outlineWidth)).toBeGreaterThan(0)
+    input.blur()
+  },
   parameters: { docs: { description: { story: "A read-only country remains focusable and copyable without opening suggestions or showing mutation affordances." } } },
 }
 

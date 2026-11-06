@@ -402,7 +402,7 @@ export const VerticalOrientation: Story = {
           <Tabs.Trigger value="tab4">Team</Tabs.Trigger>
           <Tabs.Indicator />
         </Tabs.List>
-        <Tabs.Content value="tab1">
+        <Tabs.Content className="pt-0" value="tab1">
           <div className="p-200">
             <h3 className="text-lg font-semibold mb-50">Overview</h3>
             <p className="text-fg-secondary">
@@ -410,7 +410,7 @@ export const VerticalOrientation: Story = {
             </p>
           </div>
         </Tabs.Content>
-        <Tabs.Content value="tab2">
+        <Tabs.Content className="pt-0" value="tab2">
           <div className="p-200">
             <h3 className="text-lg font-semibold mb-50">Analytics</h3>
             <p className="text-fg-secondary">
@@ -418,7 +418,7 @@ export const VerticalOrientation: Story = {
             </p>
           </div>
         </Tabs.Content>
-        <Tabs.Content value="tab3">
+        <Tabs.Content className="pt-0" value="tab3">
           <div className="p-200">
             <h3 className="text-lg font-semibold mb-50">Settings</h3>
             <p className="text-fg-secondary">
@@ -426,7 +426,7 @@ export const VerticalOrientation: Story = {
             </p>
           </div>
         </Tabs.Content>
-        <Tabs.Content value="tab4">
+        <Tabs.Content className="pt-0" value="tab4">
           <div className="p-200">
             <h3 className="text-lg font-semibold mb-50">Team</h3>
             <p className="text-fg-secondary">Manage your team members.</p>
@@ -639,13 +639,28 @@ export const WithIcons: Story = {
     <div className="w-full max-w-2xl">
       <Tabs defaultValue="tab1" variant="line">
         <Tabs.List>
-          <Tabs.Trigger icon="icon-[mdi--home]" iconSize="sm" value="tab1">
+          <Tabs.Trigger
+            className="gap-150"
+            icon="icon-[mdi--home]"
+            iconSize="md"
+            value="tab1"
+          >
             Home
           </Tabs.Trigger>
-          <Tabs.Trigger icon="icon-[mdi--account]" iconSize="sm" value="tab2">
+          <Tabs.Trigger
+            className="gap-150"
+            icon="icon-[mdi--account]"
+            iconSize="md"
+            value="tab2"
+          >
             Profile
           </Tabs.Trigger>
-          <Tabs.Trigger icon="icon-[mdi--cog]" iconSize="sm" value="tab3">
+          <Tabs.Trigger
+            className="gap-150"
+            icon="icon-[mdi--cog]"
+            iconSize="md"
+            value="tab3"
+          >
             Settings
           </Tabs.Trigger>
           <Tabs.Indicator />

@@ -57,8 +57,9 @@ const meta: Meta<typeof Textarea> = {
     },
   },
   decorators: [
+    // Gutter keeps the full focus ring inside narrow captures.
     (Story) => (
-      <div className="mx-auto w-full min-w-0 max-w-md">
+      <div className="mx-auto w-full min-w-0 max-w-md px-200 py-100">
         <Story />
       </div>
     ),
@@ -126,8 +127,11 @@ export const Variants: Story = {
         ] as const
       ).map(([state, message]) => (
         <Field
-          defaultValue="Leave the parcel at reception."
+          defaultValue={state === "error" ? "" : "Leave the parcel at reception."}
           helpText={message}
+          placeholder={
+            state === "error" ? "Add instructions for the courier…" : undefined
+          }
           key={state}
           label={`Delivery instructions — ${state}`}
           variant={state}
@@ -140,6 +144,18 @@ export const Variants: Story = {
     const input = canvas.getByRole("textbox", {
       name: "Delivery instructions — error",
     })
+    await expect(input).toHaveValue("")
+    await expect(input).toHaveAttribute(
+      "placeholder",
+      "Add instructions for the courier…"
+    )
+    for (const state of ["default", "warning", "success"]) {
+      await expect(
+        canvas.getByRole("textbox", {
+          name: `Delivery instructions — ${state}`,
+        })
+      ).toHaveValue("Leave the parcel at reception.")
+    }
     await expect(input).toHaveAttribute("aria-invalid", "true")
     const messageId = input.getAttribute("aria-errormessage")
     await expect(messageId).toBeTruthy()
@@ -183,8 +199,15 @@ export const Sizes: Story = {
     const canvas = within(canvasElement)
     const fields = canvas.getAllByRole("textbox")
     await expect(new Set(fields.map((field) => field.id)).size).toBe(3)
+    const [small] = fields
+    if (!small) throw new Error("The small textarea example must be rendered")
     await userEvent.click(canvas.getByText("Small (sm)"))
-    await expect(fields[0]).toHaveFocus()
+    await expect(small).toHaveFocus()
+    // Compare all sizes at rest after verifying the label association.
+    small.blur()
+    for (const field of fields) {
+      await expect(field).not.toHaveFocus()
+    }
   },
 }
 

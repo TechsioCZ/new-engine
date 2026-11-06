@@ -139,7 +139,7 @@ Supports fixed dimensions and parent-fill layout via \`fitParent\`. Choose compo
       "overflow-hidden rounded-md border border-border-primary bg-base",
     thumbnailsClassName:
       "rounded-md border border-border-primary bg-base px-100",
-    thumbnailsListClassName: "gap-100 py-100",
+    thumbnailsListClassName: "gap-100 py-100 md:py-100",
     fitParent: true,
   },
 }
@@ -149,6 +149,32 @@ export default meta
 type Story = StoryObj<typeof GalleryTemplate>
 
 export const Playground: Story = {
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    if (args.showThumbnails === false) {
+      await expect(canvas.queryAllByRole("button", {
+        name: /^Show slide \d+$/,
+      })).toHaveLength(0)
+      await expect(canvas.getByRole("region")).toBeVisible()
+      return
+    }
+    const thumbnails = canvas.getAllByRole("button", {
+      name: /^Show slide \d+$/,
+    })
+    const first = thumbnails[0]!
+    const last = thumbnails[thumbnails.length - 1]!
+    const rail = first.parentElement!.parentElement!.parentElement!
+    // The story adds a border; keep breathing room even after the rail stacks.
+    await waitFor(() => {
+      const bounds = rail.getBoundingClientRect()
+      expect(first.getBoundingClientRect().top - bounds.top).toBeGreaterThan(
+        2
+      )
+      expect(
+        bounds.bottom - last.getBoundingClientRect().bottom
+      ).toBeGreaterThan(2)
+    })
+  },
   parameters: {
     docs: {
       description: {
@@ -169,6 +195,47 @@ export const Playground: Story = {
 }
 
 export const MediaSizes: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const size of ["sm", "md", "lg"]) {
+      const carousel = canvas.getByRole("region", {
+        name: `Product images ${size}`,
+      })
+      // The capped carousel wrapper is centered inside the wider story frame.
+      const wrapper = carousel.parentElement!
+      const stage = wrapper.parentElement!
+      await waitFor(() => {
+        const media = wrapper.getBoundingClientRect()
+        const frame = stage.getBoundingClientRect()
+        expect(Math.abs(media.left + media.right - frame.left - frame.right))
+          .toBeLessThanOrEqual(2)
+      })
+      const thumbnails = within(stage.parentElement!).getAllByRole("button", {
+        name: /^Show slide \d+$/,
+      })
+      const first = thumbnails[0]!
+      const last = thumbnails[thumbnails.length - 1]!
+      const list = first.parentElement!
+      // Overflow must remain start-aligned and scrollable; center only if it fits.
+      await waitFor(() => {
+        if (list.scrollWidth <= list.clientWidth + 1) {
+          const row = list.getBoundingClientRect()
+          expect(
+            Math.abs(
+              first.getBoundingClientRect().left +
+                last.getBoundingClientRect().right -
+                row.left -
+                row.right
+            )
+          ).toBeLessThanOrEqual(2)
+        } else {
+          expect(first.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+            list.getBoundingClientRect().left - 1
+          )
+        }
+      })
+    }
+  },
   parameters: {
     controls: { disable: true },
     docs: {
@@ -186,7 +253,13 @@ export const MediaSizes: Story = {
             {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
           </h2>
           <StoryFrame>
-            <GalleryTemplate {...args} aria-label={`Product images ${size}`} size={size} />
+            <GalleryTemplate
+              {...args}
+              aria-label={`Product images ${size}`}
+              mainClassName={`${args.mainClassName ?? ""} justify-center`}
+              thumbnailsListClassName={`${args.thumbnailsListClassName ?? ""} justify-center-safe`}
+              size={size}
+            />
           </StoryFrame>
         </section>
       ))}
@@ -215,6 +288,15 @@ export const AutoplayOnly: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const toggle = canvas.getByRole("button")
+    if (toggle.closest('[data-theme="business"]')) {
+      const carousel = canvas.getByRole("region", { name: "Product images" })
+      await waitFor(() => {
+        const frame = carousel.getBoundingClientRect()
+        const control = toggle.getBoundingClientRect()
+        expect(control.top - frame.top).toBeGreaterThanOrEqual(8)
+        expect(frame.right - control.right).toBeGreaterThanOrEqual(8)
+      })
+    }
     // Reduced motion starts paused; otherwise pause the initial rotation.
     toggle.focus()
     if (/stop|pause/i.test(toggle.getAttribute("aria-label") ?? "")) {

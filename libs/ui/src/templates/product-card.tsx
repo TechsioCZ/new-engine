@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit template.
  *
  * @component ProductCard
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -18,7 +18,9 @@ import { tv } from "../utils"
 const styles = tv({
   slots: {
     prices: "flex flex-wrap items-baseline gap-product-card-badges",
-    rating: "flex items-center gap-product-card-badges",
+    rating: "flex items-end gap-product-card-badges",
+    actions: "grid grid-cols-1 sm:flex sm:flex-wrap",
+    action: "w-full sm:w-max",
   },
 })
 
@@ -152,10 +154,11 @@ export function ProductCardTemplate<T extends ElementType = "a">({
       )}
 
       {showActions && (onAddToCart || onViewDetails || onAddToWishlist) && (
-        <ProductCard.Actions>
+        <ProductCard.Actions className={slots.actions()}>
           {onAddToCart && (
             <ProductCard.Button
               buttonVariant="cart"
+              className={slots.action()}
               icon="token-icon-cart-button"
               onClick={onAddToCart}
             >
@@ -165,6 +168,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
           {onViewDetails && (
             <ProductCard.Button
               buttonVariant="detail"
+              className={slots.action()}
               icon="token-icon-detail-button"
               onClick={onViewDetails}
             >
@@ -174,6 +178,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
           {onAddToWishlist && (
             <ProductCard.Button
               buttonVariant="wishlist"
+              className={slots.action()}
               icon="token-icon-wishlist-button"
               onClick={onAddToWishlist}
             >

@@ -41,8 +41,16 @@
   }
 }
 
-/* Only task content scrolls; close and arrow chrome remain on the surface. */
+/* Only task content scrolls; close and arrow chrome remain on the surface.
+ * Reserve the full focus paint inside the scroller without moving content. */
 @utility popover-scroll-viewport {
+  --popover-focus-clearance: calc(
+    var(--default-ring-width) *
+    2 +
+    var(--default-ring-offset)
+  );
+  margin: calc(var(--popover-focus-clearance) * -1);
+  padding: var(--popover-focus-clearance);
   min-height: 0;
   min-width: 0;
   overflow-y: auto;

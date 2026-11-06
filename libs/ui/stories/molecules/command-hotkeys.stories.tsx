@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useEffect, useRef, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
+import { StorySurface } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Hotkeys } from "../../src/atoms/hotkeys"
 import { Icon, type IconType } from "../../src/atoms/icon"
@@ -249,7 +250,10 @@ function PaletteExample({
             No matching actions. Try “save” or “documentation”.
           </Command.Empty>
           <p className="flex flex-wrap items-center gap-150 border-border-primary border-t pt-150 text-fg-secondary text-xs">
-            <span>↑ ↓ to navigate</span>
+            <span>
+              <Hotkeys hotkey="ArrowUp" /> <Hotkeys hotkey="ArrowDown" /> to
+              navigate
+            </span>
             <span>
               <Hotkeys hotkey="Enter" /> to run
             </span>
@@ -266,9 +270,10 @@ function PaletteExample({
 const meta = {
   title: "Molecules/Command/With Hotkey",
   component: PaletteExample,
+  decorators: [(Story) => <StorySurface><Story /></StorySurface>],
   tags: ["autodocs"],
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     controls: { disable: true },
     docs: {
       description: {

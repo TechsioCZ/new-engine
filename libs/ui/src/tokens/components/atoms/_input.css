@@ -17,6 +17,9 @@
   --color-input-text-readonly: var(--color-form-control-text);
   --color-input-bg-readonly: var(--color-input-readonly);
   --color-input-fg-readonly: var(--color-input-text-readonly);
+  /* Read-only hover/focus border; defaults keep the editable response. */
+  --color-input-border-readonly-hover: var(--color-input-border-hover);
+  --color-input-border-readonly-focus: var(--color-input-border-focus);
 
   --font-weight-input: var(--font-weight-normal);
   --font-weight-input-placeholder: var(--font-weight-normal);

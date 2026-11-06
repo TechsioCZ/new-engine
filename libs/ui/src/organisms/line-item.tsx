@@ -3,7 +3,7 @@
 /**
  * LineItem — @techsio/ui-kit organism.
  * @component LineItem
- * @componentVersion v1.0.2
+ * @componentVersion v1.0.3
  * @skill line-item-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -21,20 +21,24 @@ import { tv } from "../utils"
 
 const lineItemVariants = tv({
   slots: {
-    root: "grid min-w-0 gap-line-item text-line-item-content-fg has-[>[data-part=image]]:grid-cols-line-item",
+    root: "@container/line-item grid min-w-0 gap-line-item text-line-item-content-fg has-[>[data-part=image]]:grid-cols-line-item",
     image:
       "size-line-item-image overflow-hidden rounded-line-item-image [&>img]:size-full [&>img]:object-contain",
     body: "flex min-w-0 flex-col gap-line-item-content",
-    heading: "flex min-w-0 flex-wrap items-start gap-line-item-heading",
-    title:
-      "min-w-0 break-words font-line-item-title text-line-item-title-size [[data-part=heading]>&]:flex-1 [[data-part=heading]>&]:basis-line-item-title-min-width",
-    price: "min-w-0 max-w-full",
+    heading:
+      "line-item-heading flex min-w-0 flex-wrap items-start gap-line-item-heading",
+    title: "min-w-0 break-words font-line-item-title text-line-item-title-size",
+    price: "min-w-0 max-w-full shrink-0",
     options: "break-words text-line-item-detail-size text-line-item-options-fg",
-    controls: "flex min-w-0 flex-wrap items-end gap-line-item-controls",
-    quantity: "min-w-0 max-w-full flex-1 basis-line-item-quantity-width",
+    controls:
+      "line-item-controls flex min-w-0 flex-wrap items-start gap-line-item-controls",
+    remove: "line-item-remove",
+    quantity:
+      "line-item-quantity min-w-0 max-w-full flex-1 basis-line-item-quantity-width",
     quantityLabel: "break-words text-line-item-detail-size",
     actions: "flex flex-wrap items-center gap-line-item-controls",
-    pending: "col-span-full text-line-item-content-fg",
+    pending:
+      "line-item-pending min-w-0 text-line-item-content-fg text-line-item-detail-size",
   },
   variants: {
     layout: {
@@ -126,7 +130,12 @@ export function LineItem({
       >
         {children}
         {pending ? (
-          <StatusText className={styles.pending()} id={pendingId}>
+          <StatusText
+            className={styles.pending()}
+            data-part="pending"
+            id={pendingId}
+            size="sm"
+          >
             {pendingLabel}
           </StatusText>
         ) : null}
@@ -262,9 +271,10 @@ LineItem.Remove = function LineItemRemove({
   disabled,
   size = "sm",
   theme = "borderless",
+  className,
   ...props
 }: LineItemRemoveProps) {
-  const { title, readOnly, pending } = useLineItemContext()
+  const { title, readOnly, pending, styles } = useLineItemContext()
   if (readOnly) {
     return null
   }
@@ -272,6 +282,11 @@ LineItem.Remove = function LineItemRemove({
     <Button
       {...props}
       aria-label={`${label}: ${title}`}
+      className={
+        theme === "borderless" && size === "sm"
+          ? styles.remove({ className })
+          : className
+      }
       data-part="remove"
       disabled={pending || disabled}
       onClick={(event) => {

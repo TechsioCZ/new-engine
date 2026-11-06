@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { VerticalNavigation } from "../../src/molecules/vertical-navigation"
 
+const separatorPattern = /<hr\b[^>]*>/
+
 describe("VerticalNavigation server rendering", () => {
   it.each(["sm", "md", "lg"] as const)(
     "propagates canonical %s sizing to links and disclosure controls",
@@ -28,6 +30,34 @@ describe("VerticalNavigation server rendering", () => {
       expect(html).toContain(`min-h-vertical-navigation-item-${size}`)
       expect(html).toContain(`py-vertical-navigation-item-y-${size}`)
       expect(html).toContain(`text-vertical-navigation-icon-${size}`)
+    }
+  )
+
+  it.each(["sm", "md", "lg"] as const)(
+    "separates %s section clearance from nested-group spacing",
+    (size) => {
+      const html = renderToStaticMarkup(
+        h(
+          VerticalNavigation,
+          { size },
+          h(
+            VerticalNavigation.Group,
+            null,
+            h(
+              VerticalNavigation.Branch,
+              { defaultOpen: true },
+              h(VerticalNavigation.BranchTrigger, null, "Fasteners"),
+              h(VerticalNavigation.BranchContent, { tone: "subtle" }, "Nuts")
+            )
+          ),
+          h(VerticalNavigation.Separator)
+        )
+      )
+      const separator = html.match(separatorPattern)?.[0]
+      expect(separator).toContain("my-vertical-navigation-section")
+      expect(separator).not.toContain("my-vertical-navigation-group")
+      expect(html).toContain("gap-vertical-navigation-group")
+      expect(html).toContain("py-vertical-navigation-group")
     }
   )
 

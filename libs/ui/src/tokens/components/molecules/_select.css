@@ -1,13 +1,21 @@
 /*
  * Select — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
- * Kept here:
- *   - `--color-select-danger` — helper-text color seed (Figma has only
- *     border validation colors).
+ * Runtime-only aliases preserve the shared popup defaults outside Business.
  */
 
 @theme static {
   --color-select-danger: var(--color-danger);
+  --spacing-select-popup-large: var(--padding-popup-item-y-lg);
+  --font-weight-select-group: var(--font-weight-medium);
+
+  --padding-select-item-block-lg: var(--spacing-select-popup-large);
+  --font-weight-select-item-group-label: var(--font-weight-select-group);
+}
+
+@utility select-popup-lg {
+  @apply popup-size-lg;
+  --popup-item-y: var(--padding-select-item-block-lg);
 }
 
 /* === ICONS === */
@@ -24,14 +32,6 @@
 
 @utility token-icon-select-clear {
   @apply token-icon-close;
-}
-
-/* A reduced-motion preference must also override transition-discrete. */
-@media (prefers-reduced-motion: reduce) {
-  [data-scope="select"][data-part="content"] {
-    transition: none;
-    animation: none;
-  }
 }
 
 /* The clear action is a sibling button; reserve its hit target before the chevron. */

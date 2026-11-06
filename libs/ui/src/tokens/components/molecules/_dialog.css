@@ -32,6 +32,18 @@
   --z-dialog-positioner: 50;
 }
 
+/* Allow outlines to occupy the scroll viewport's own padding instead of being
+ * clipped at its edges. Negative margins preserve the existing content inset. */
+@utility dialog-scroll-viewport {
+  --dialog-focus-clearance: calc(
+    var(--default-ring-width) *
+    2 +
+    var(--default-ring-offset)
+  );
+  margin: calc(var(--dialog-focus-clearance) * -1);
+  padding: var(--dialog-focus-clearance);
+}
+
 /* Semantic tokens for dialog icons */
 @utility token-icon-dialog-close {
   @apply token-icon-close;

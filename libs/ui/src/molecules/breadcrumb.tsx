@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.4
+ * @componentVersion v1.0.5
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,9 +10,14 @@
  * the breadcrumb-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
+  Children,
   type ComponentPropsWithoutRef,
+  cloneElement,
   createContext,
   type ElementType,
+  Fragment,
+  isValidElement,
+  type ReactNode,
   type Ref,
   useContext,
 } from "react"
@@ -37,6 +42,7 @@ const BreadcrumbVariants = tv({
       "list-none",
       "text-breadcrumb-item",
     ],
+    segment: "breadcrumb-segment inline-flex min-w-0 max-w-full items-center",
     item: [
       "wrap-anywhere inline-flex min-w-0 max-w-full items-center",
       "text-breadcrumb-item",
@@ -190,6 +196,16 @@ export function Breadcrumb({
   )
 }
 
+function getBreadcrumbChildren(children: ReactNode): ReactNode[] {
+  return Children.toArray(
+    Children.map(children, (child) =>
+      isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment
+        ? getBreadcrumbChildren(child.props.children)
+        : child
+    )
+  )
+}
+
 export type BreadcrumbListProps = ComponentPropsWithoutRef<"ol"> & {
   ref?: Ref<HTMLOListElement>
 }
@@ -201,10 +217,44 @@ Breadcrumb.List = function BreadcrumbList({
   ...props
 }: BreadcrumbListProps) {
   const { styles } = useBreadcrumbContext()
+  const items = getBreadcrumbChildren(children)
+  const segments: ReactNode[] = []
+
+  for (let index = 0; index < items.length; index += 1) {
+    const child = items[index]
+    const next = items[index + 1]
+    if (
+      isValidElement<ComponentPropsWithoutRef<"li">>(child) &&
+      (child.type === Breadcrumb.Item || child.type === Breadcrumb.Ellipsis) &&
+      isValidElement(next) &&
+      next.type === Breadcrumb.Separator
+    ) {
+      // Keep both public <li> hosts (and their refs) intact, but wrap them as
+      // one flex segment. Presentation-only list hosts keep valid HTML without
+      // adding a nested list to the accessibility tree.
+      segments.push(
+        <li className={styles.segment()} key={child.key} role="presentation">
+          <ol className="contents" role="presentation">
+            {cloneElement(child, {
+              // Explicit listitem prevents the presentation-only inner list
+              // from suppressing the ancestor item's required-owned role.
+              role:
+                child.props.role ??
+                (child.type === Breadcrumb.Item ? "listitem" : "presentation"),
+            })}
+            {next}
+          </ol>
+        </li>
+      )
+      index += 1
+    } else {
+      segments.push(child)
+    }
+  }
 
   return (
     <ol className={styles.list({ className })} ref={ref} {...props}>
-      {children}
+      {segments}
     </ol>
   )
 }

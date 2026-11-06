@@ -43,8 +43,58 @@ export const Playground: Story = {
 }
 
 export const Sizes: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "Small (sm), Medium (md) and Large (lg) pair identical labels and values with quieter helper text at each size." } } },
-  render: () => <VariantContainer>{([["sm", "Small (sm)"], ["md", "Medium (md)"], ["lg", "Large (lg)"]] as const).map(([size, label]) => <VariantGroup key={size} title={label}><LabeledField size={size}>Full name</LabeledField></VariantGroup>)}</VariantContainer>,
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story: "Small (sm), Medium (md) and Large (lg) pair labels with matching field and helper sizes. Business keeps Small and Medium labels at the same readable size; Large uses a larger label.",
+      },
+    },
+  },
+  render: () => (
+    <VariantContainer>
+      <div className="grid gap-400">
+        {([
+          ["sm", "Small field (sm)"],
+          ["md", "Medium field (md)"],
+          ["lg", "Large field (lg)"],
+        ] as const).map(([size, label]) => (
+          <VariantGroup key={size} title={label}>
+            <LabeledField size={size}>Full name</LabeledField>
+          </VariantGroup>
+        ))}
+      </div>
+    </VariantContainer>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const headings = canvas.getAllByRole("heading", { level: 3 })
+    await expect(headings).toHaveLength(3)
+
+    // Keep adjacent field examples together instead of inheriting the shared
+    // matrix's display-sized section margins.
+    const maximumGap = Number.parseFloat(getComputedStyle(canvasElement).fontSize) * 3
+    for (let index = 1; index < headings.length; index += 1) {
+      const previousGroup = headings[index - 1]?.parentElement
+      const currentGroup = headings[index]?.parentElement
+      if (!(previousGroup && currentGroup)) {
+        throw new Error("Each field heading must belong to its example group")
+      }
+      const previous = previousGroup.getBoundingClientRect()
+      const current = currentGroup.getBoundingClientRect()
+      await expect(current.top - previous.bottom).toBeLessThanOrEqual(maximumGap)
+    }
+
+    const labels = canvas.getAllByText("Full name", { selector: "label" })
+    const fields = canvas.getAllByRole("textbox")
+    await expect(fields).toHaveLength(labels.length)
+    for (const [index, label] of labels.entries()) {
+      const field = fields[index]
+      if (!field) throw new Error("Every label must have its corresponding field")
+      await userEvent.click(label)
+      await expect(field).toHaveFocus()
+    }
+  },
 }
 
 export const States: Story = {

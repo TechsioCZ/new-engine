@@ -17,7 +17,7 @@ export const verticalNavigationStyles = tv({
     groupLabel:
       "mb-vertical-navigation-label font-vertical-navigation-label text-vertical-navigation-label-fg text-vertical-navigation-label-sm",
     separator:
-      "my-vertical-navigation-group h-vertical-navigation-separator border-0 bg-vertical-navigation-separator-bg",
+      "my-vertical-navigation-section h-vertical-navigation-separator border-0 bg-vertical-navigation-separator-bg",
   },
   variants: {
     variant: { primary: {}, secondary: {} },

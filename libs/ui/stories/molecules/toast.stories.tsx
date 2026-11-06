@@ -2,7 +2,7 @@ import type { Options } from "@zag-js/toast"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
-import { VariantContainer } from "../../.storybook/decorator"
+import { StorySurface, VariantContainer } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { ToastProvider, useToast } from "../../src/molecules/toast"
 
@@ -114,6 +114,77 @@ export const Playground: Story = {
   },
 }
 
+const toastVariants = [
+  {
+    type: "info",
+    label: "Show info toast",
+    title: "Shipping rates updated",
+    description: "New rates apply to orders placed from today.",
+  },
+  {
+    type: "success",
+    label: "Show success toast",
+    title: "Order confirmed",
+    description: "The receipt was sent to the customer.",
+  },
+  {
+    type: "warning",
+    label: "Show warning toast",
+    title: "Stock running low",
+    description: "Only 3 units of this product remain.",
+  },
+  {
+    type: "error",
+    label: "Show error toast",
+    title: "Payment failed",
+    description: "The card was declined. Try another payment method.",
+  },
+  {
+    type: "loading",
+    label: "Show loading toast",
+    title: "Uploading product images",
+    description: "Keep this page open until the upload finishes.",
+  },
+] as const
+
+export const Variants: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Each documented type as a persistent, closable notification. Show one at a time to compare its icon and border.",
+      },
+    },
+  },
+  render: () => {
+    const toaster = useToast()
+    return (
+      <VariantContainer>
+        <div className="flex flex-wrap gap-200">
+          {toastVariants.map(({ label, ...options }) => (
+            <Button
+              key={options.type}
+              size="sm"
+              variant="secondary"
+              theme="outlined"
+              onClick={() => {
+                toaster.create({
+                  ...options,
+                  duration: Number.POSITIVE_INFINITY,
+                  closable: true,
+                })
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      </VariantContainer>
+    )
+  },
+}
+
 export const UpdateExample: Story = {
   parameters: {
     docs: {
@@ -196,6 +267,7 @@ export const UpdateExample: Story = {
 
 export const RemoveVsDismiss: Story = {
   parameters: {
+    layout: "fullscreen",
     docs: {
       description: {
         story:
@@ -214,13 +286,13 @@ export const RemoveVsDismiss: Story = {
     })
 
     return (
-      <VariantContainer>
+      <StorySurface>
         <div className="space-y-200">
           <p className="text-fg-secondary text-sm">
             Compare remove (instant) vs dismiss (with animation)
           </p>
 
-          <div className="grid grid-cols-2 gap-200">
+          <div className="grid grid-cols-1 gap-300 sm:grid-cols-2">
             <div className="space-y-100">
               <h3 className="font-semibold">Remove (Instant)</h3>
               <Button
@@ -284,7 +356,7 @@ export const RemoveVsDismiss: Story = {
             </div>
           </div>
         </div>
-      </VariantContainer>
+      </StorySurface>
     )
   },
 }
@@ -374,6 +446,7 @@ export const PauseResumeExample: Story = {
 
 export const BatchOperations: Story = {
   parameters: {
+    layout: "fullscreen",
     docs: {
       description: {
         story:
@@ -386,7 +459,7 @@ export const BatchOperations: Story = {
     const [toastIds, setToastIds] = useState<string[]>([])
 
     return (
-      <VariantContainer>
+      <StorySurface>
         <div className="space-y-200">
           <p className="text-fg-secondary text-sm">
             Create multiple toasts and control them all at once
@@ -446,7 +519,7 @@ export const BatchOperations: Story = {
             )}
           </div>
         </div>
-      </VariantContainer>
+      </StorySurface>
     )
   },
 }
@@ -531,13 +604,15 @@ export const WithAction: Story = {
   },
   render: () => {
     const toaster = useToast()
-    const [restored, setRestored] = useState(false)
+    const [projectStatus, setProjectStatus] = useState<
+      "available" | "archived" | "restored"
+    >("available")
     return (
       <div className="flex flex-col gap-200">
         <Button
           variant="secondary"
           onClick={() => {
-            setRestored(false)
+            setProjectStatus("archived")
             toaster.create({
               type: "info",
               title: "Project archived",
@@ -545,7 +620,7 @@ export const WithAction: Story = {
               duration: Infinity,
               action: {
                 label: "Undo archive",
-                onClick: () => setRestored(true),
+                onClick: () => setProjectStatus("restored"),
               },
             })
           }}
@@ -553,18 +628,27 @@ export const WithAction: Story = {
           Archive project
         </Button>
         <p aria-live="polite">
-          {restored
-            ? "Project restored."
-            : "The project is available in this preview."}
+          {projectStatus === "archived"
+            ? "Project archived."
+            : projectStatus === "restored"
+              ? "Project restored."
+              : "The project is available in this preview."}
         </p>
       </div>
     )
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    await expect(
+      canvas.getByText("The project is available in this preview.")
+    ).toBeVisible()
     await userEvent.click(
       canvas.getByRole("button", { name: "Archive project" })
     )
+    await expect(canvas.getByText("Project archived.")).toBeVisible()
+    await expect(
+      canvas.queryByText("The project is available in this preview.")
+    ).not.toBeInTheDocument()
     await userEvent.click(
       await within(canvasElement.ownerDocument.body).findByRole("button", {
         name: "Undo archive",

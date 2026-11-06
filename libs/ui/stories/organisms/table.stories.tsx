@@ -1,11 +1,54 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { createRef, useState } from 'react'
+import { createRef, type ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { expect, userEvent, within } from 'storybook/test'
 import { Table } from '../../src/organisms/table'
 import { Checkbox } from '../../src/atoms/checkbox'
 import { Button } from '../../src/atoms/button'
 import { StatusText } from '../../src/atoms/status-text'
 import { VariantContainer } from '../../.storybook/decorator'
+
+function TablePreview({
+  children,
+  className = '',
+  scrollClassName = '',
+  label = 'Scrollable table preview',
+}: {
+  children: ReactNode
+  className?: string
+  scrollClassName?: string
+  label?: string
+}) {
+  const regionRef = useRef<HTMLDivElement>(null)
+  const hintId = useId()
+  const [overflows, setOverflows] = useState(false)
+
+  useEffect(() => {
+    const region = regionRef.current
+    if (!region) return
+    const measure = () => setOverflows(region.scrollWidth > region.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(region)
+    for (const table of region.querySelectorAll('table')) observer.observe(table)
+    return () => observer.disconnect()
+  }, [children])
+
+  return (
+    <div className={`w-full min-w-0 ${className}`}>
+      {overflows && <p className="mb-100 px-(--padding-table-cell-md-x) pt-100 text-sm text-fg-secondary" id={hintId}>Scroll horizontally to view all columns.</p>}
+      <div
+        aria-describedby={overflows ? hintId : undefined}
+        aria-label={label}
+        className={`w-full min-w-0 overflow-x-auto ${scrollClassName}`}
+        ref={regionRef}
+        role="region"
+        tabIndex={0}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
 
 const meta = {
   title: 'Organisms/Table',
@@ -16,7 +59,7 @@ const meta = {
     layout: 'padded',
   },
   tags: ['autodocs'],
-  decorators: [(Story) => <div className="w-full min-w-0 overflow-x-auto" role="region" aria-label="Scrollable table preview" tabIndex={0}><Story /></div>],
+  decorators: [(Story, context) => context.parameters.tableScrollPreview === false ? <Story /> : <TablePreview><Story /></TablePreview>],
   argTypes: {
     variant: {
       control: 'select',
@@ -171,6 +214,7 @@ export const Sizes: Story = {
 
     return (
     <VariantContainer>
+      <div className="flex w-full flex-col gap-300">
       {sizes.map((size) => (
         <Table key={size} size={size}>
           <Table.Caption>{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]} — Product inventory</Table.Caption>
@@ -192,6 +236,7 @@ export const Sizes: Story = {
           </Table.Body>
         </Table>
       ))}
+      </div>
     </VariantContainer>
   )},
 }
@@ -355,7 +400,11 @@ export const WithFooter: Story = {
 }
 
 export const StickyHeader: Story = {
-  parameters: { docs: { description: { story: "A sticky header preserves column context while records scroll within a bounded region." } } },
+  play: async ({ canvasElement }) => {
+    const firstProduct = within(canvasElement).getByRole('cell', { name: 'Product 1' })
+    await expect(getComputedStyle(firstProduct).whiteSpace).toBe('nowrap')
+  },
+  parameters: { tableScrollPreview: false, docs: { description: { story: "A sticky header preserves column context while records scroll within a bounded region." } } },
   args: {
     variant: 'line',
     size: 'md',
@@ -364,11 +413,9 @@ export const StickyHeader: Story = {
   render: (args) => {
     return (
       // h-100 resolves to the theme's --spacing-100 token, not 400px.
-      <div
-        aria-label="Products, sticky header"
-        className="h-[400px] overflow-auto"
-        role="region"
-        tabIndex={0}
+      <TablePreview
+        label="Products, sticky header"
+        scrollClassName="h-[400px] overflow-y-auto"
       >
         <Table {...args}>
           <Table.Caption>Scroll to see sticky header effect</Table.Caption>
@@ -383,7 +430,7 @@ export const StickyHeader: Story = {
           <Table.Body>
             {manyProducts.map((product) => (
               <Table.Row key={product.id}>
-                <Table.Cell>{product.name}</Table.Cell>
+                <Table.Cell className="whitespace-nowrap">{product.name}</Table.Cell>
                 <Table.Cell>{product.category}</Table.Cell>
                 <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
                 <Table.Cell numeric>{product.stock}</Table.Cell>
@@ -391,7 +438,7 @@ export const StickyHeader: Story = {
             ))}
           </Table.Body>
         </Table>
-      </div>
+      </TablePreview>
     )
   },
 }
@@ -562,18 +609,24 @@ export const CaptionBottom: Story = {
 }
 
 export const WithStickyColumn: Story = {
-  parameters: { docs: { description: { story: "A sticky identity column keeps products recognizable while additional attributes scroll." } } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const sku = canvas.getByRole('cell', { name: 'SKU-123456' })
+    await expect(getComputedStyle(sku).whiteSpace).toBe('nowrap')
+    const product = canvas.getByRole('cell', { name: 'Laptop' })
+    await expect(getComputedStyle(product).position).toBe('sticky')
+    await expect(Number.parseFloat(getComputedStyle(product).borderBottomWidth)).toBeGreaterThan(0)
+  },
+  parameters: { tableScrollPreview: false, docs: { description: { story: "A sticky identity column keeps products recognizable while additional attributes scroll." } } },
   args: {
     variant: 'striped',
     size: 'md',
     interactive: true,
   },
   render: (args) => (
-    <div
-      aria-label="Products, sticky first column"
-      className="max-w-lg overflow-auto"
-      role="region"
-      tabIndex={0}
+    <TablePreview
+      label="Products, sticky first column"
+      className="max-w-lg"
     >
       <Table {...args} stickyFirstColumn>
         <Table.Caption>
@@ -601,7 +654,7 @@ export const WithStickyColumn: Story = {
               </Table.Cell>
               <Table.Cell>{product.category}</Table.Cell>
               <Table.Cell>Tech Corp</Table.Cell>
-              <Table.Cell>SKU-{product.id}23456</Table.Cell>
+              <Table.Cell className="whitespace-nowrap">SKU-{product.id}23456</Table.Cell>
               <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
               <Table.Cell numeric>{product.stock}</Table.Cell>
               <Table.Cell>Warehouse A</Table.Cell>
@@ -610,7 +663,7 @@ export const WithStickyColumn: Story = {
           ))}
         </Table.Body>
       </Table>
-    </div>
+    </TablePreview>
   ),
 }
 
@@ -743,18 +796,18 @@ export const WithSelectionAndActions: Story = {
     return (
       <div>
         {undoProducts && <div className="mb-200 flex flex-wrap items-center justify-between gap-200 rounded-md bg-surface p-200">
-          <StatusText status="success" size="sm">Selected products deleted from this demo.</StatusText>
+          <StatusText status="success" size="md">Selected products deleted from this demo.</StatusText>
           <Button theme="outlined" variant="secondary" size="sm" onClick={() => {
             setProducts(undoProducts)
             setUndoProducts(null)
           }}>Undo delete</Button>
         </div>}
         {selection.length > 0 && (
-          <div className="mb-200 p-200 bg-surface rounded-md flex justify-between items-center">
+          <div className="mb-200 p-200 bg-surface rounded-md flex flex-col items-stretch gap-200 sm:flex-row sm:justify-between sm:items-center" role="group" aria-label="Selected product actions">
             <span>
-              <strong>{selection.length}</strong> products selected
+              <strong>{selection.length}</strong> {selection.length === 1 ? 'product' : 'products'} selected
             </span>
-            <div className="flex gap-200">
+            <div className="flex flex-col gap-200 sm:flex-row">
               <Button
                 variant="danger"
                 theme="solid"
@@ -820,6 +873,7 @@ export const WithSelectionAndActions: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole("checkbox", { name: "Select Laptop" }))
+    await expect(canvas.getByRole("group", { name: "Selected product actions" })).toHaveTextContent("1 product selected")
     await userEvent.click(canvas.getByRole("button", { name: "Delete selected products" }))
     await expect(canvas.queryByRole("checkbox", { name: "Select Laptop" })).not.toBeInTheDocument()
     await userEvent.click(canvas.getByRole("button", { name: "Undo delete" }))

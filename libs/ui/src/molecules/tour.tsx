@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.9
+ * @componentVersion v1.0.10
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -50,7 +50,7 @@ const tourStyles = tv({
     arrowTip: "bg-tour-arrow-bg",
     title: "shrink-0 pe-tour-title font-tour-title text-tour-title-size",
     description:
-      "focus-visible:tour-scroll-focus min-h-0 overflow-y-auto overscroll-contain text-tour-body-size text-tour-description-fg",
+      "tour-description focus-visible:tour-scroll-focus min-h-0 overflow-y-auto overscroll-contain p-tour-description text-tour-body-size text-tour-description-fg",
     progressText: "shrink-0 text-tour-progress-fg text-tour-progress-size",
     actions:
       "flex shrink-0 flex-wrap items-center justify-end gap-tour-actions pt-tour-actions",
@@ -95,6 +95,137 @@ export type TourRootProps = Omit<Props, "id" | "steps" | "stepId"> & {
   steps: TourStep[]
 }
 
+function scrollTargetIntoView(
+  target: HTMLElement,
+  spotlightOffset: NonNullable<Props["spotlightOffset"]>
+) {
+  // Late targets scroll before Zag adds data-tour-highlighted. Reserve the
+  // configured ring only for this native scroll, including nested scrollports.
+  const computed = target.ownerDocument.defaultView?.getComputedStyle(target)
+  const margins = [
+    ["scroll-margin-top", spotlightOffset.y],
+    ["scroll-margin-right", spotlightOffset.x],
+    ["scroll-margin-bottom", spotlightOffset.y],
+    ["scroll-margin-left", spotlightOffset.x],
+  ] as const
+  const overrides = margins.flatMap(([property, offset]) => {
+    const current = Number.parseFloat(
+      computed?.getPropertyValue(property) ?? "0"
+    )
+    if (current >= offset) {
+      return []
+    }
+    return [
+      {
+        property,
+        value: target.style.getPropertyValue(property),
+        priority: target.style.getPropertyPriority(property),
+        reserved: `${Math.max(0, offset)}px`,
+      },
+    ]
+  })
+  const originalStyle = target.style.cssText
+  let reservedStyle = originalStyle
+  try {
+    for (const { property, reserved } of overrides) {
+      target.style.setProperty(property, reserved, "important")
+    }
+    reservedStyle = target.style.cssText
+    target.scrollIntoView({
+      behavior: "instant",
+      block: "nearest",
+      inline: "nearest",
+    })
+  } finally {
+    if (overrides.length > 0 && target.style.cssText === reservedStyle) {
+      // Preserve shorthand/logical declaration order as well as their values.
+      target.style.cssText = originalStyle
+    } else {
+      restoreMargins()
+    }
+  }
+
+  function restoreMargins() {
+    for (const { property, value, priority, reserved } of overrides) {
+      if (
+        target.style.getPropertyValue(property) === reserved &&
+        target.style.getPropertyPriority(property) === "important"
+      ) {
+        if (value) {
+          target.style.setProperty(property, value, priority)
+        } else {
+          target.style.removeProperty(property)
+        }
+      }
+    }
+  }
+}
+
+function highlightLateTarget(target: HTMLElement) {
+  if (target.hasAttribute("data-tour-highlighted")) {
+    return
+  }
+  target.setAttribute("data-tour-highlighted", "")
+  let changedExternally = false
+  const observer = new MutationObserver(() => {
+    changedExternally = true
+  })
+  observer.observe(target, {
+    attributes: true,
+    attributeFilter: ["data-tour-highlighted"],
+  })
+  let cleaned = false
+  return () => {
+    if (cleaned) {
+      return
+    }
+    cleaned = true
+    const hasExternalWrite =
+      changedExternally || observer.takeRecords().length > 0
+    observer.disconnect()
+    if (
+      !hasExternalWrite &&
+      target.getAttribute("data-tour-highlighted") === ""
+    ) {
+      target.removeAttribute("data-tour-highlighted")
+    }
+  }
+}
+
+const tourMachine: typeof machine = {
+  ...machine,
+  implementations: {
+    ...machine.implementations,
+    actions: {
+      ...machine.implementations?.actions,
+      setResolvedTarget(params) {
+        machine.implementations?.actions?.setResolvedTarget?.(params)
+        const { context, refs } = params
+        const target = context.get("resolvedTarget")
+        if (!target) {
+          return
+        }
+        // Zag's late-resolution action skips its normal target-attribute sync.
+        // Register our attribute with the existing step/unmount cleanup path.
+        const cleanup = highlightLateTarget(target)
+        if (cleanup) {
+          const previousCleanup = refs.get("targetCleanup")
+          refs.set("targetCleanup", () => {
+            previousCleanup?.()
+            cleanup()
+          })
+        }
+      },
+      scrollToTarget({ context, prop }) {
+        const target = context.get("resolvedTarget")
+        if (target) {
+          scrollTargetIntoView(target, prop("spotlightOffset"))
+        }
+      },
+    },
+  },
+}
+
 export function Tour({
   children,
   getRootNode,
@@ -106,7 +237,7 @@ export function Tour({
   const generatedId = useId()
   const previousFocus = useRef<HTMLElement | null>(null)
   const effectCleanup = useRef<(() => void) | undefined>(undefined)
-  const service: Service = useMachine(machine, {
+  const service: Service = useMachine(tourMachine, {
     ...props,
     // Zag 1.43.3 unconditionally clears inert for existing targets and skips
     // late targets. Own both paths below so cleanup preserves application writes.

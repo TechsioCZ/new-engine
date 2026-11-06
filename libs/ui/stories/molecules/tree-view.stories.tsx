@@ -219,7 +219,7 @@ export const Sizes: Story = {
   render: () => (
     <div className="flex flex-col gap-300">
         <TreeView data={fileSystemData} size="sm" className="w-full max-w-md" selectionMode="single">
-          <h3>Small (sm)</h3><TreeView.Label>Project files</TreeView.Label>
+          <h3 className="mb-100">Small (sm)</h3><TreeView.Label>Project files</TreeView.Label>
           <TreeView.Tree>
             {fileSystemData.map((node, index) => (
               <TreeView.Node key={node.id} node={node} indexPath={[index]} />
@@ -227,7 +227,7 @@ export const Sizes: Story = {
           </TreeView.Tree>
         </TreeView>
         <TreeView data={fileSystemData} size="md" className="w-full max-w-md" selectionMode="single">
-          <h3>Medium (md)</h3><TreeView.Label>Project files</TreeView.Label>
+          <h3 className="mb-100">Medium (md)</h3><TreeView.Label>Project files</TreeView.Label>
           <TreeView.Tree>
             {fileSystemData.map((node, index) => (
               <TreeView.Node key={node.id} node={node} indexPath={[index]} />
@@ -235,7 +235,7 @@ export const Sizes: Story = {
           </TreeView.Tree>
         </TreeView>
         <TreeView data={fileSystemData} size="lg" className="w-full max-w-md" selectionMode="single">
-          <h3>Large (lg)</h3><TreeView.Label>Project files</TreeView.Label>
+          <h3 className="mb-100">Large (lg)</h3><TreeView.Label>Project files</TreeView.Label>
           <TreeView.Tree>
             {fileSystemData.map((node, index) => (
               <TreeView.Node key={node.id} node={node} indexPath={[index]} />
@@ -432,7 +432,7 @@ export const Controlled: Story = {
               </TreeView.Tree>
             </TreeView>
 
-          <div className="flex flex-col gap-100">
+          <div className="flex w-full min-w-0 flex-col gap-150 md:w-3xs md:shrink-0">
             <div className="p-100 bg-surface-secondary rounded-md">
               <h4 className="text-sm font-semibold mb-xs">Expanded Nodes:</h4>
               <ul className="text-xs space-y-xs">
@@ -699,7 +699,7 @@ export const ExpandVsSelectionTest: Story = {
                 }}
                 className='w-full'
               >
-                <TreeView.Label>expandOnClick = false</TreeView.Label>
+                <TreeView.Label className="block min-h-form-control-lg">expandOnClick = false</TreeView.Label>
                 <TreeView.Tree>
                   {fileSystemData.map((node, index) => (
                     <TreeView.Node key={node.id} node={node} indexPath={[index]} />
@@ -721,7 +721,7 @@ export const ExpandVsSelectionTest: Story = {
                 }}
                 className='w-full'
               >
-                <TreeView.Label>expandOnClick = true (default)</TreeView.Label>
+                <TreeView.Label className="block min-h-form-control-lg">expandOnClick = true (default)</TreeView.Label>
                 <TreeView.Tree>
                   {fileSystemData.map((node, index) => (
                     <TreeView.Node key={node.id} node={node} indexPath={[index]} />

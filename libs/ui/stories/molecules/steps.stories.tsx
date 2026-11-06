@@ -1,13 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useEffect, useId, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import {
+  StorySurface,
+  VariantContainer,
+  VariantGroup,
+} from "../../.storybook/decorator"
 import { Badge } from "../../src/atoms/badge"
 import { Icon, type IconType } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
 import { Label } from "../../src/atoms/label"
 import { StatusText } from "../../src/atoms/status-text"
-import { Steps } from "../../src/molecules/steps"
+import { Steps, type StepsProps } from "../../src/molecules/steps"
 
 type DemoStep = {
   actionLabel: string
@@ -65,9 +69,24 @@ async function expectResponsiveSteps(canvasElement: HTMLElement) {
   if (document.defaultView?.matchMedia("(max-width: 39.999rem)").matches) {
     for (const item of canvasElement.querySelectorAll('[data-part="item"][data-orientation="horizontal"]')) {
       const indicator = item.querySelector('[data-part="indicator"]')?.getBoundingClientRect()
-      const separator = item.querySelector('[data-part="separator"]')?.getBoundingClientRect()
-      if (!indicator || !separator?.width) continue
+      if (!indicator) continue
+      if (item.parentElement?.querySelector('[data-part="description"]')) {
+        const column = item.getBoundingClientRect()
+        await expect(Math.abs(indicator.x + indicator.width / 2 - column.x - column.width / 2)).toBeLessThan(1)
+      }
+      const separatorElement = item.querySelector('[data-part="separator"]')
+      if (!separatorElement || separatorElement.hasAttribute("data-last")) continue
+      await expect(separatorElement).toBeVisible()
+      const separator = separatorElement.getBoundingClientRect()
+      await expect(separator.width).toBeGreaterThan(0)
+      await expect(separator.height).toBeGreaterThan(0)
       await expect(Math.abs(indicator.y + indicator.height / 2 - separator.y - separator.height / 2)).toBeLessThan(1)
+      const nextIndicator = item.nextElementSibling?.querySelector('[data-part="indicator"]')?.getBoundingClientRect()
+      if (!nextIndicator) throw new Error("A connecting separator must have a next indicator")
+      const [first, second] = [indicator, nextIndicator].sort((a, b) => a.left - b.left)
+      if (!(first && second)) throw new Error("Both adjacent step indicators must be rendered")
+      await expect(separator.left).toBeGreaterThanOrEqual(first.right)
+      await expect(separator.right).toBeLessThanOrEqual(second.left)
     }
   }
 }
@@ -943,6 +962,78 @@ export const Description: Story = {
   ),
 }
 
+function MixedDescriptionFixture({
+  dir,
+  orientation,
+  size,
+  variant,
+}: Pick<StepsProps, "dir" | "orientation" | "size" | "variant">) {
+  return (
+    <div className="flex flex-col gap-600" style={{ width: 320, maxWidth: "100%" }}>
+      {[0, 1, 2].map((describedIndex) => (
+        <section className="flex flex-col gap-200" key={describedIndex}>
+          <h3 className="text-sm text-fg-secondary">
+            Description on step {describedIndex + 1} only
+          </h3>
+          <Steps
+            count={3}
+            data-description-index={describedIndex}
+            defaultStep={1}
+            dir={dir}
+            orientation={orientation}
+            size={size}
+            variant={variant}
+          >
+            <Steps.List>
+              {["Brief", "Go", "Done"].map((title, index) => (
+                <Steps.Item index={index} key={title}>
+                  <Steps.Trigger>
+                    <Steps.Indicator />
+                    <Steps.ItemText>
+                      <Steps.Title>{title}</Steps.Title>
+                      {index === describedIndex && (
+                        <Steps.Description>
+                          Define scope and ownership.
+                        </Steps.Description>
+                      )}
+                    </Steps.ItemText>
+                  </Steps.Trigger>
+                  <Steps.Separator />
+                </Steps.Item>
+              ))}
+            </Steps.List>
+          </Steps>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+export const MixedDescriptions: Story = {
+  parameters: {
+    layout: "fullscreen",
+    docs: {
+      description: {
+        story:
+          "A single description aligns every indicator in its mobile column, including adjacent short titles. Each position is shown in a 320px list.",
+      },
+    },
+  },
+  tags: ["ui-semantic-regression"],
+  args: { dir: "ltr", orientation: "horizontal", size: "md", variant: "subtle" },
+  render: (args) => <MixedDescriptionFixture {...args} />,
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll('[data-part="description"]')).toHaveLength(3)
+    await expect(canvasElement.querySelectorAll('[data-part="indicator"]')).toHaveLength(9)
+    await expectResponsiveSteps(canvasElement)
+  },
+}
+
+export const MixedDescriptionsRtl: Story = {
+  ...MixedDescriptions,
+  args: { ...MixedDescriptions.args, dir: "rtl" },
+}
+
 export const WithIcon: Story = {
   play: async ({ canvasElement }) => expectResponsiveSteps(canvasElement),
   parameters: {
@@ -1003,15 +1094,32 @@ export const WithIcon: Story = {
 
 export const Lines: Story = {
   play: async ({ canvasElement }) => {
+    await canvasElement.ownerDocument.fonts.ready
     await expectResponsiveSteps(canvasElement)
-    for (const title of canvasElement.querySelectorAll('[data-part="title"]')) {
+    const frame = canvasElement.getBoundingClientRect()
+    const steps = canvasElement.querySelector('[data-scope="steps"][data-part="root"]')
+    if (!steps) throw new Error("Lines must render a Steps root")
+    const box = steps.getBoundingClientRect()
+    await expect(box.left).toBeGreaterThan(frame.left)
+    await expect(box.top).toBeGreaterThan(frame.top)
+    await expect(box.right).toBeLessThan(frame.right)
+    const canvas = within(canvasElement)
+    for (const { title } of demoSteps) {
+      const trigger = canvas.getByRole("button", { name: title })
+      const label = within(trigger).getByText(title, { exact: true })
+      await expect(label).toBeVisible()
       const range = canvasElement.ownerDocument.createRange()
-      range.selectNodeContents(title)
+      range.selectNodeContents(label)
       await expect(range.getClientRects().length).toBe(1)
+      const text = range.getBoundingClientRect()
+      const column = trigger.parentElement?.getBoundingClientRect()
+      if (!column) throw new Error("Lines labels must retain their step columns")
+      await expect(text.left).toBeGreaterThanOrEqual(column.left)
+      await expect(text.right).toBeLessThanOrEqual(column.right)
     }
   },
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     controls: { disable: true },
     docs: {
       description: {
@@ -1021,7 +1129,7 @@ export const Lines: Story = {
     },
   },
   render: () => (
-    <div className="mx-auto w-5xl max-w-full">
+    <StorySurface className="max-w-5xl">
       <Steps
         count={demoSteps.length}
         defaultStep={1}
@@ -1062,7 +1170,7 @@ export const Lines: Story = {
           </Steps.Navigation>
         </Steps.Panels>
       </Steps>
-    </div>
+    </StorySurface>
   ),
 }
 

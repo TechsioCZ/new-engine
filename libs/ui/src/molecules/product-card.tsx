@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

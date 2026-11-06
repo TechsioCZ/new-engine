@@ -13,6 +13,141 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### ActionIcon v1.1.3
+- Keep Business action surfaces and glyph sizes consistent, with a component-local large touch target.
+
+### Button v0.6.2
+- Keep loading buttons visibly busy in their selected variant while preserving disabled interaction guards.
+
+### Checkbox v1.2.3
+- Align the checked and indeterminate glyphs inside their existing control bounds.
+
+### Input v1.1.4
+- Give read-only fields a distinct surface without removing keyboard focus or caller styling.
+
+### NumericInput v1.3.6
+- Align numeric controls, labels and horizontal compositions through component-local tokens.
+
+### Rating v1.3.4
+- Keep exact fractional scores and keyboard focus while isolating score text in RTL and removing the read-only field fill.
+
+### Skeleton v1.0.6
+- Refine placeholder radii and hierarchy while preserving reduced-motion and loading semantics.
+
+### Textarea v1.0.5
+- Distinguish read-only text surfaces while retaining editable focus and validation behavior.
+
+### Accordion v1.2.2
+- Refine disclosure spacing and component-local presentation without changing the composition API.
+
+### Breadcrumb v1.0.5
+- Keep breadcrumb destinations readable within constrained layouts without dropping navigation semantics.
+
+### Carousel v1.3.5
+- Preserve image proportions inside the carousel viewport.
+
+### CascadeSelect v1.1.8
+- Refine constrained selection controls and popup presentation through component-local tokens.
+
+### Chart v1.2.1
+- Improve legend layout and temporal tick selection without losing intraday or multiyear labels.
+
+### ColorSelect v1.1.4
+- Refine color-choice spacing and component-local presentation while retaining selection semantics.
+
+### Combobox v1.6.8
+- Keep selection popups attached to their modal owner and preserve the single control surface.
+
+### DatePicker v1.3.11
+- Reveal the initially selected calendar day and keep focused days visible in constrained calendars.
+
+### Dialog v1.2.2
+- Keep dialog content scrollable within the viewport with clearer control and body spacing.
+
+### FileUpload v1.1.6
+- Refine upload presentation while retaining the existing file selection contract.
+
+### FormCheckbox v1.3.2
+- Preserve checkbox form typing while refining its labelled composition.
+
+### FormErrorSummary v1.2.1
+- Refine summary spacing and emphasis without changing error destinations.
+
+### Menu v1.3.6
+- Keep tall parent menus and submenus reachable through native scrolling, keyboard return and pointer transit.
+
+### Pagination v1.1.3
+- Preserve every numbered destination in arrowless layouts and wrap lists that cannot be condensed safely.
+
+### PriceBlock v1.0.2
+- Refine price hierarchy and wrapping through component-specific styling.
+
+### QuantityField v1.0.3
+- Retain a usable editable width beside quantity actions in constrained rows.
+
+### RadioCard v1.1.5
+- Keep read-only hover styling behind the public component token and preserve brand-specific overrides.
+
+### RadioGroup v1.1.5
+- Refine radio labels, descriptions and control spacing without changing selection behavior.
+
+### SearchForm v1.1.4
+- Keep the clear control aligned with the field through its component padding tokens.
+
+### Select v1.3.3
+- Refine selection control and popup presentation while retaining form and accessibility behavior.
+
+### Slider v1.4.4
+- Refine range-control spacing and local state styling without changing its value contract.
+
+### Steps v1.2.4
+- Keep step labels and mixed descriptions aligned without overflowing narrow layouts.
+
+### Switch v1.2.2
+- Refine switch control and label presentation without changing state ownership.
+
+### Tabs v1.2.5
+- Refine tab spacing and local state styling while retaining the existing indicator and keyboard model.
+
+### Toast v1.1.3
+- Refine notification hierarchy and action presentation without changing lifecycle ownership.
+
+### TotalsSummary v1.0.2
+- Keep total labels and amounts aligned within the available width.
+
+### Tour v1.0.10
+- Reveal highlighted targets with native nearest scrolling and restore only the margins owned by the tour.
+
+### DataTable v1.4.11
+- Keep expanded details inside the visible scrollport, paint nested tint consistently, and align validation feedback with row actions.
+
+### Footer v1.1.2
+- Refine footer spacing and readable link presentation through component-local tokens.
+
+### Header v1.2.2
+- Align header typography across sizes and keep mobile panel spacing local to the panel.
+
+### LineItem v1.0.3
+- Keep pending feedback typography consistent and tighten control relationships without reducing removal targets.
+
+### Sidebar v1.0.1
+- Refine sidebar presentation and preserve logical edge and tooltip behavior.
+
+### Table v1.3.2
+- Keep sticky-cell separators and row focus paint visible without intercepting interaction.
+
+### FacetFilterPanel v1.2.2
+- Refine filter spacing and drawer composition without changing controlled close ownership.
+
+### Gallery v1.1.3
+- Refine gallery sizing and image presentation while preserving the existing media lifecycle.
+
+### ProductCard v1.3.3
+- Clamp linked titles on the anchor itself so their focus indicator is not clipped by its parent.
+
+### SearchSuggestions v1.0.4
+- Keep suggestion results readable in constrained layouts and attached to their modal owner.
+
 ### DataTable v1.4.10
 - Non-clickable rows now receive the same hover tint as their frozen cells, rather than highlighting only the frozen bands.
 

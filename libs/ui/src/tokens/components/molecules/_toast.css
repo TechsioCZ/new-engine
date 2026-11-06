@@ -33,6 +33,10 @@
  * Semantic borders and decorative glyphs distinguish status without tinting copy. */
 @theme static {
   --height-toast-title-line: 1lh;
+  --spacing-toast-header-gap: var(--spacing-toast-content);
+  --gap-toast-header: var(--spacing-toast-header-gap);
+  --size-toast-close-layout: var(--size-icon-control-sm);
+  --spacing-toast-close-frame: var(--size-toast-close-layout);
   --text-toast-title-size: var(--text-toast-title);
   --text-toast-description-size: var(--text-toast-description);
   --color-toast-error: var(--color-danger-fg);

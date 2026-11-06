@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type Ref, useRef, useState } from "react"
-import { fn } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { StorySurface, VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Hotkeys } from "../../src/atoms/hotkeys"
 import { Icon, type IconType } from "../../src/atoms/icon"
@@ -11,6 +11,11 @@ import {
   type CommandProps,
 } from "../../src/molecules/command"
 import { Dialog } from "../../src/molecules/dialog"
+import { tv } from "../../src/utils"
+
+const commandDialogVariants = tv({
+  base: "command-dialog-viewport",
+})
 
 const actionIcons: Record<string, IconType> = {
   overview: "token-icon-home",
@@ -160,7 +165,7 @@ const meta = {
   component: Command,
   tags: ["autodocs"],
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     controls: { disable: true },
     docs: {
       description: {
@@ -171,9 +176,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="mx-auto w-full max-w-md">
+      <StorySurface>
         <Story />
-      </div>
+      </StorySurface>
     ),
   ],
   argTypes: {
@@ -202,7 +207,7 @@ export const Playground: Story = {
     docs: {
       description: {
         story:
-          "An inline action search filters navigation destinations by label or keyword; try invoice, then press Enter to update the demo workspace.",
+          "An inline action search filters navigation destinations by label or keyword. No action is highlighted initially, so Enter does nothing until you type or navigate with ↑/↓. Try invoice, then press Enter to update the demo workspace.",
       },
     },
   },
@@ -421,6 +426,7 @@ function DialogExample(args: CommandProps) {
         Open command palette
       </Button>
       <Dialog
+        className={commandDialogVariants()}
         customTrigger
         description="Search and run an action."
         finalFocusEl={() => triggerRef.current}
@@ -450,4 +456,76 @@ export const InDialog: Story = {
     },
   },
   render: (args) => <DialogExample {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const document = canvasElement.ownerDocument
+    const body = within(document.body)
+    const opener = canvas.getByRole("button", {
+      name: "Open command palette",
+    })
+    await userEvent.click(opener)
+    const dialog = await body.findByRole("dialog", {
+      name: "Command palette",
+    })
+    const palette = within(dialog)
+    const input = palette.getByRole("combobox", { name: "Actions" })
+    await waitFor(() => expect(input).toHaveFocus())
+
+    // At rest there is deliberately no Enter target, not an invisible one.
+    await expect(input).not.toHaveAttribute("aria-activedescendant")
+    await expect(dialog.querySelectorAll("[data-highlighted]")).toHaveLength(0)
+    await userEvent.keyboard("{Enter}")
+    await expect(input).not.toHaveAttribute("aria-activedescendant")
+    await expect(palette.getByTestId("command-result")).toHaveTextContent(
+      "Overview"
+    )
+
+    // Regress the original full-viewport Business mobile capture, not its crop.
+    const view = document.defaultView
+    if (
+      dialog.closest("[data-theme]")?.getAttribute("data-theme") ===
+        "business" &&
+      view?.innerWidth === 393 &&
+      view.innerHeight === 659
+    ) {
+      const viewport = dialog.querySelector(".dialog-scroll-viewport")
+      const status = palette
+        .getByTestId("command-result")
+        .closest('[aria-live="polite"]')
+      await expect(viewport).not.toBeNull()
+      await expect(status).not.toBeNull()
+      if (!(viewport && status)) {
+        throw new Error("Command dialog viewport and status must be present")
+      }
+      const statusBounds = status.getBoundingClientRect()
+      const viewportBounds = viewport.getBoundingClientRect()
+      await expect(statusBounds.top).toBeGreaterThanOrEqual(viewportBounds.top)
+      await expect(statusBounds.bottom).toBeLessThanOrEqual(
+        viewportBounds.bottom
+      )
+    }
+
+    await userEvent.keyboard("{ArrowDown}")
+    await expect(
+      palette.getByRole("option", { name: "Overview" })
+    ).toHaveAttribute("data-highlighted", "")
+    const query = "invoice"
+    for (const [index, character] of Array.from(query).entries()) {
+      await userEvent.type(input, character)
+      await waitFor(() => expect(input).toHaveValue(query.slice(0, index + 1)))
+    }
+    await waitFor(() =>
+      expect(palette.getByRole("option", { name: "Orders" })).toHaveAttribute(
+        "data-highlighted",
+        ""
+      )
+    )
+    await userEvent.keyboard("{Enter}")
+    await expect(palette.getByTestId("command-result")).toHaveTextContent(
+      "Orders"
+    )
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(opener).toHaveFocus())
+    await expect(body.queryByRole("dialog", { name: "Command palette" })).toBeNull()
+  },
 }

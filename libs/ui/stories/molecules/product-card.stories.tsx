@@ -30,6 +30,10 @@ const productImages = {
 async function expectCoherentCards(canvasElement: HTMLElement) {
   const document = canvasElement.ownerDocument
   await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth)
+  for (const card of canvasElement.querySelectorAll('[data-layout="column"]')) {
+    await expect(card.getBoundingClientRect().width).toBeLessThanOrEqual(448)
+    await expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1)
+  }
   for (const control of canvasElement.querySelectorAll('[data-scope="rating-group"][data-part="control"], [role="img"][aria-description="Average rating"]')) {
     const stars = [...control.querySelectorAll(':scope > [data-part="item"]')]
     const first = stars[0]?.getBoundingClientRect()
@@ -48,14 +52,17 @@ function DemoActions({ children }: { children: ReactNode }) {
   )
   return (
     <ActionContext.Provider value={setMessage}>
-      <div className="flex w-full min-w-0 flex-col gap-200">
+      <div className="flex w-full min-w-0 flex-col gap-200 p-200">
         {children}
         <StatusText role="status">{message}</StatusText>
       </div>
     </ActionContext.Provider>
   )
 }
-function DemoProductButton(props: ComponentProps<typeof ProductCard.Button>) {
+function DemoProductButton({
+  feedback,
+  ...props
+}: ComponentProps<typeof ProductCard.Button> & { feedback?: string }) {
   const announce = useContext(ActionContext)
   const [selected, setSelected] = useState(false)
   const [count, setCount] = useState(0)
@@ -66,6 +73,10 @@ function DemoProductButton(props: ComponentProps<typeof ProductCard.Button>) {
       aria-pressed={wishlist ? selected : undefined}
       onClick={(event) => {
         props.onClick?.(event)
+        if (feedback) {
+          announce(feedback)
+          return
+        }
         const next = !selected
         setSelected(next)
         if (!wishlist && props.buttonVariant !== "detail") setCount(count + 1)
@@ -92,6 +103,7 @@ const meta: Meta<typeof ProductCard> = {
   ],
   title: "Molecules/ProductCard",
   component: ProductCard,
+  play: async ({ canvasElement }) => expectCoherentCards(canvasElement),
   parameters: {
     layout: "padded",
     docs: {
@@ -242,7 +254,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     return (
       <ProductCard
         layout={args.layout}
-        className={args.layout === "row" ? "w-full max-w-lg" : ""}
+        className={args.layout === "row" ? "w-lg max-w-full" : "w-sm max-w-full"}
       >
         <ProductCard.Image
           src={productImages[args.imageSrc]}
@@ -258,7 +270,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
         <ProductCard.Name>{args.productName}</ProductCard.Name>
         {args.showRating && (
           <ProductCard.Rating
-            rating={{ value: args.rating, displayOnly: true }}
+            rating={{ value: args.rating, displayOnly: true, size: "sm" }}
           />
         )}
         {args.showStock && (
@@ -283,6 +295,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
 
 export const Badges: Story = {
   play: async ({ canvasElement }) => {
+    await expectCoherentCards(canvasElement)
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole("button", { name: "Add to Cart" }))
     await expect(canvas.getByRole("status")).toHaveTextContent(
@@ -306,7 +319,7 @@ export const Badges: Story = {
       { variant: "info" as const, label: "Eco friendly" },
     ]
     return (
-      <ProductCard>
+      <ProductCard className="w-sm max-w-full">
         <ProductCard.Image
           src={productImages.tshirt}
           alt="Premium Cotton T-Shirt"
@@ -343,7 +356,7 @@ export const BadgesWithCustomColors: Story = {
   name: "Badges - Custom Colors",
   render: () => {
     return (
-      <ProductCard>
+      <ProductCard className="w-sm max-w-full">
         <ProductCard.Image src={productImages.shoes} alt="Running Shoes" />
         <ProductCard.Name>Limited Edition Running Shoes</ProductCard.Name>
         <ProductCard.Badges>
@@ -390,6 +403,14 @@ export const BadgesWithCustomColors: Story = {
 }
 
 export const StockStates: Story = {
+  play: async ({ canvasElement }) => {
+    await expectCoherentCards(canvasElement)
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "Notify Me" }))
+    await expect(canvas.getByRole("status")).toHaveTextContent(
+      "Stock notification requested in this local preview only."
+    )
+  },
   parameters: {
     docs: {
       description: {
@@ -403,7 +424,7 @@ export const StockStates: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="In Stock">
-        <ProductCard>
+        <ProductCard className="w-sm max-w-full">
           <ProductCard.Image src={productImages.tshirt} alt="T-Shirt" />
           <ProductCard.Name>Cotton T-Shirt</ProductCard.Name>
           <ProductCard.Price>$24.99</ProductCard.Price>
@@ -420,7 +441,7 @@ export const StockStates: Story = {
       </VariantGroup>
 
       <VariantGroup title="Limited Stock">
-        <ProductCard>
+        <ProductCard className="w-sm max-w-full">
           <ProductCard.Image src={productImages.shoes} alt="Running Shoes" />
           <ProductCard.Name>Running Shoes</ProductCard.Name>
           <ProductCard.Price>$89.99</ProductCard.Price>
@@ -439,7 +460,7 @@ export const StockStates: Story = {
       </VariantGroup>
 
       <VariantGroup title="Out of Stock">
-        <ProductCard>
+        <ProductCard className="w-sm max-w-full">
           <ProductCard.Image src={productImages.watch} alt="Luxury Watch" />
           <ProductCard.Name>Luxury Watch</ProductCard.Name>
           <ProductCard.Price>$499.99</ProductCard.Price>
@@ -449,7 +470,8 @@ export const StockStates: Story = {
           <ProductCard.Actions>
             <DemoProductButton
               buttonVariant="detail"
-              icon="token-icon-detail-button"
+              icon="token-icon-product-card-notify"
+              feedback="Stock notification requested in this local preview only."
             >
               Notify Me
             </DemoProductButton>
@@ -474,7 +496,7 @@ export const AllButtonVariants: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Cart Button">
-        <ProductCard>
+        <ProductCard className="w-xs max-w-full">
           <ProductCard.Image src={productImages.shoes} alt="Running Shoes" />
           <ProductCard.Name>Running Shoes</ProductCard.Name>
           <ProductCard.Price>$89.99</ProductCard.Price>
@@ -491,7 +513,7 @@ export const AllButtonVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Detail Button">
-        <ProductCard>
+        <ProductCard className="w-xs max-w-full">
           <ProductCard.Image src={productImages.watch} alt="Luxury Watch" />
           <ProductCard.Name>Luxury Watch</ProductCard.Name>
           <ProductCard.Price>$499.99</ProductCard.Price>
@@ -508,7 +530,7 @@ export const AllButtonVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Wishlist Button">
-        <ProductCard>
+        <ProductCard className="w-xs max-w-full">
           <ProductCard.Image src={productImages.headphones} alt="Headphones" />
           <ProductCard.Name>Wireless Headphones</ProductCard.Name>
           <ProductCard.Price>$199.99</ProductCard.Price>
@@ -525,16 +547,15 @@ export const AllButtonVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Custom Button">
-        <ProductCard>
+        <ProductCard className="w-xs max-w-full">
           <ProductCard.Image src={productImages.camera} alt="Camera" />
           <ProductCard.Name>Professional Camera</ProductCard.Name>
           <ProductCard.Price>$1,299.99</ProductCard.Price>
           <ProductCard.Actions>
             <DemoProductButton
               buttonVariant="custom"
-              icon="token-icon-share"
               onClick={fn()}
-              className="bg-accent text-accent-fg hover:bg-accent-hover"
+              theme="outlined"
             >
               Share Product
             </DemoProductButton>
@@ -559,10 +580,10 @@ export const LayoutVariants: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Column Layout (Default)">
-        <ProductCard layout="column">
+        <ProductCard layout="column" className="w-sm max-w-full">
           <ProductCard.Image src={productImages.tshirt} alt="T-Shirt" />
           <ProductCard.Name>Cotton T-Shirt</ProductCard.Name>
-          <ProductCard.Rating rating={{ defaultValue: 4, displayOnly: true }} />
+          <ProductCard.Rating rating={{ defaultValue: 4, displayOnly: true, size: "sm" }} />
           <ProductCard.Stock status="in-stock">In Stock</ProductCard.Stock>
           <ProductCard.Price>$24.99</ProductCard.Price>
           <ProductCard.Actions>
@@ -585,7 +606,7 @@ export const LayoutVariants: Story = {
               className="row-span-6"
             />
             <ProductCard.Name>Running Shoes</ProductCard.Name>
-            <ProductCard.Rating rating={{ defaultValue: 5, displayOnly: true }} />
+            <ProductCard.Rating rating={{ defaultValue: 5, displayOnly: true, size: "sm" }} />
             <ProductCard.Stock status="limited-stock">
               Limited Stock
             </ProductCard.Stock>
@@ -607,6 +628,7 @@ export const LayoutVariants: Story = {
 
 export const CustomComposition: Story = {
   play: async ({ canvasElement }) => {
+    await expectCoherentCards(canvasElement)
     const canvas = within(canvasElement)
     await expect(
       canvas.getByText("$1,329", { selector: "p" })
@@ -627,7 +649,7 @@ export const CustomComposition: Story = {
   },
 
   render: () => (
-    <ProductCard>
+    <ProductCard className="w-sm max-w-full">
       <ProductCard.Image src={productImages.camera} alt="DSLR Camera" />
 
       <div className="mb-100 flex gap-100">
@@ -646,9 +668,9 @@ export const CustomComposition: Story = {
         </ProductCard.Price>
       </div>
 
-      <div className="flex items-center gap-100">
-        <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true }} />
-        <span className="text-100 text-fg-muted">(245 reviews)</span>
+      <div className="flex flex-wrap items-start gap-100">
+        <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true, size: "sm" }} />
+        <span className="inline-flex min-h-rating-target items-center text-100 text-fg-muted">(245 reviews)</span>
       </div>
 
       <ProductCard.Stock status="limited-stock">
@@ -756,10 +778,8 @@ export const MinimalCard: Story = {
   },
 
   render: () => (
-    <ProductCard>
-      <ProductCard.Name className="text-center">
-        Travel Backpack
-      </ProductCard.Name>
+    <ProductCard className="w-sm max-w-full">
+      <ProductCard.Name>Travel Backpack</ProductCard.Name>
       <ProductCard.Image src={productImages.backpack} alt="Travel Backpack" />
       <ProductCard.Price>$79.99</ProductCard.Price>
     </ProductCard>
@@ -768,6 +788,7 @@ export const MinimalCard: Story = {
 
 export const ComplexCard: Story = {
   play: async ({ canvasElement }) => {
+    await expectCoherentCards(canvasElement)
     const canvas = within(canvasElement)
     await expect(
       canvas.getByText("$2,449", { selector: "p" })
@@ -788,7 +809,7 @@ export const ComplexCard: Story = {
   },
 
   render: () => (
-    <ProductCard className="w-full max-w-md">
+    <ProductCard className="w-sm max-w-full">
       <div className="relative">
         <ProductCard.Image
           src={productImages.camera}
@@ -810,9 +831,9 @@ export const ComplexCard: Story = {
         Professional Camera Kit with Accessories
       </ProductCard.Name>
 
-      <div className="mb-100 flex items-center gap-100">
-        <ProductCard.Rating rating={{ defaultValue: 4.9, displayOnly: true }} />
-        <span className="text-50 text-fg-muted">(512 reviews)</span>
+      <div className="mb-100 flex flex-wrap items-start gap-100">
+        <ProductCard.Rating rating={{ defaultValue: 4.9, displayOnly: true, size: "sm" }} />
+        <span className="inline-flex min-h-rating-target items-center text-50 text-fg-muted">(512 reviews)</span>
       </div>
 
       <div className="mb-200 flex flex-col gap-100">
@@ -837,6 +858,7 @@ export const ComplexCard: Story = {
           <NumericInput
             className="min-w-0 flex-1"
             id="product-quantity"
+            size="sm"
             defaultValue={1}
             min={1}
             max={10}
@@ -877,11 +899,11 @@ export const ComplexCard: Story = {
         </div>
       </ProductCard.Actions>
 
-      <div className="border-border-primary border-t pt-100">
-        <span className="text-50 text-fg-muted">
-          ✓ 2-year warranty • ✓ 30-day returns • ✓ Expert support
-        </span>
-      </div>
+      <ul className="flex flex-wrap gap-x-150 gap-y-50 border-border-primary border-t pt-100 text-sm text-fg-muted">
+        <li>✓ 2-year warranty</li>
+        <li>✓ 30-day returns</li>
+        <li>✓ Expert support</li>
+      </ul>
     </ProductCard>
   ),
 }
@@ -900,7 +922,7 @@ export const ActionLayouts: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Horizontal Actions">
-        <ProductCard>
+        <ProductCard className="w-sm max-w-full">
           <ProductCard.Image src={productImages.shoes} alt="Shoes" />
           <ProductCard.Name>Running Shoes</ProductCard.Name>
           <ProductCard.Price>$89.99</ProductCard.Price>
@@ -930,7 +952,7 @@ export const ActionLayouts: Story = {
       </VariantGroup>
 
       <VariantGroup title="Vertical Actions">
-        <ProductCard>
+        <ProductCard className="w-sm max-w-full">
           <ProductCard.Image src={productImages.headphones} alt="Headphones" />
           <ProductCard.Name>Wireless Headphones</ProductCard.Name>
           <ProductCard.Price>$199.99</ProductCard.Price>
@@ -956,7 +978,7 @@ export const ActionLayouts: Story = {
       </VariantGroup>
 
       <VariantGroup title="Mixed Layout">
-        <ProductCard>
+        <ProductCard className="w-sm max-w-full">
           <ProductCard.Image src={productImages.watch} alt="Watch" />
           <ProductCard.Name>Luxury Watch</ProductCard.Name>
           <ProductCard.Price>$999.99</ProductCard.Price>
@@ -1005,9 +1027,9 @@ export const CustomRowSpan: Story = {
             className="h-fit row-span-2"
           />
         </div>
-        <div className="col-2 row-3 place-self-end">
+        <div className="col-2 row-span-3 self-start">
           <ProductCard.Price>$1,299.99</ProductCard.Price>
-          <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true }} />
+          <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true, size: "sm" }} />
           <ProductCard.Actions>
             <DemoProductButton buttonVariant="cart" icon="token-icon-cart-button">
               Add to Cart
@@ -1021,7 +1043,7 @@ export const CustomRowSpan: Story = {
     docs: {
       description: {
         story:
-          "Demonstrates simple className override - changing row-span-6 to row-span-3 and aspect-auto to aspect-video.",
+          "Groups the title and image across three rows beside top-aligned buying details, while preserving source-order stacking on narrow cards.",
       },
     },
   },
@@ -1048,7 +1070,7 @@ export const CustomGridLayout: Story = {
           <Badge variant="info">Noise Cancelling</Badge>
         </ProductCard.Badges>
         <ProductCard.Price>$349.99</ProductCard.Price>
-        <ProductCard.Rating rating={{ defaultValue: 4.9, displayOnly: true }} />
+        <ProductCard.Rating rating={{ defaultValue: 4.9, displayOnly: true, size: "sm" }} />
         <ProductCard.Stock status="limited-stock">
           Only 5 left in stock!
         </ProductCard.Stock>
@@ -1078,7 +1100,7 @@ export const CustomGridLayout: Story = {
 
 export const NativeMediaFallback: Story = {
   render: () => (
-    <ProductCard>
+    <ProductCard className="w-sm max-w-full">
       <ProductCard.Image
         src="data:image/png;base64,invalid"
         alt="Runner low side view"
@@ -1121,8 +1143,8 @@ function CardMediaLifecycleExample() {
   const [events, setEvents] = useState("Waiting for media")
   const image = useRef<HTMLImageElement>(null)
   return (
-    <div className="flex flex-col gap-200">
-      <ProductCard>
+    <div className="flex w-sm max-w-full flex-col gap-200">
+      <ProductCard className="w-sm max-w-full">
         <ProductCard.Image
           as={CardMediaAdapter}
           assetId="runner-side"
@@ -1164,6 +1186,7 @@ export const AdapterMediaLifecycle: Story = {
     },
   },
   play: async ({ canvasElement }) => {
+    await expectCoherentCards(canvasElement)
     const canvas = within(canvasElement)
     let image = canvasElement.querySelector<HTMLImageElement>(
       '[data-asset-id="runner-side"]'

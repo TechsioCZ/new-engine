@@ -32,6 +32,12 @@
   --color-chart-series-4: var(--color-violet-500);
   --color-chart-series-5: var(--color-rose-500);
   --color-chart-series-6: var(--color-cyan-600);
+  --color-chart-focus: var(--color-ring);
+  --spacing-chart-focus: var(--default-ring-offset);
+
+  --color-chart-focus-ring: var(--color-chart-focus);
+  --spacing-chart-focus-offset: var(--spacing-chart-focus);
+  --border-width-chart-focus: var(--default-ring-width);
 
   /* Derived layer — chart chrome and tooltip surface. Axis/tick/legend text
    * renders at small sizes inside the SVG, so it wears primary ink rather than
@@ -72,6 +78,11 @@
   --ts-chart-4: var(--color-chart-series-4);
   --ts-chart-5: var(--color-chart-series-5);
   --ts-chart-6: var(--color-chart-series-6);
+
+  & svg[role="img"]:focus-visible {
+    outline: var(--border-width-chart-focus) solid var(--color-chart-focus-ring);
+    outline-offset: var(--spacing-chart-focus-offset);
+  }
 }
 
 /*

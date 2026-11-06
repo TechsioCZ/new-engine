@@ -2,7 +2,7 @@
  * FacetFilterPanel - @techsio/ui-kit template.
  *
  * @component FacetFilterPanel
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill facet-filter-panel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -27,13 +27,15 @@ const facetFilterPanelStyles = tv({
       "focus-visible:facet-filter-panel-scroll-focus",
     ],
     content: "flex min-h-0 flex-col gap-facet-filter-panel",
+    header:
+      "flex flex-wrap items-baseline justify-between gap-facet-filter-panel-active",
     title:
       "font-facet-filter-panel-title text-facet-filter-panel-title text-facet-filter-panel-title-fg",
     pending:
       "text-(length:--text-facet-filter-panel-status) text-facet-filter-panel-muted-fg",
     groups: "min-h-0 gap-facet-filter-panel-group bg-facet-filter-panel-bg",
     rangeGroup:
-      "border-b-(length:--border-width-facet-filter-panel) border-facet-filter-panel-border p-facet-filter-panel-group",
+      "border-b-(length:--border-width-facet-filter-panel) border-facet-filter-panel-border p-facet-filter-panel-group last:border-b-0",
     optionList: "flex flex-col gap-facet-filter-panel-item",
     optionLabel:
       "flex min-w-0 flex-1 items-center justify-between gap-facet-filter-panel-item",
@@ -42,7 +44,8 @@ const facetFilterPanelStyles = tv({
       "shrink-0 text-facet-filter-panel-count text-facet-filter-panel-muted-fg",
     empty:
       "text-(length:--text-facet-filter-panel-status) text-facet-filter-panel-muted-fg",
-    overflowAction: "mt-facet-filter-panel-overflow self-start",
+    overflowAction:
+      "mt-facet-filter-panel-overflow self-start px-facet-filter-panel-overflow-inline",
     drawerTrigger: "self-start",
     drawerContent: "min-w-0",
     triggerCount:
@@ -121,6 +124,7 @@ export type FacetFilterPanelProps = {
   size?: "sm" | "md" | "lg"
   pending?: boolean
   pendingLabel?: ReactNode
+  readOnlyLabel?: ReactNode
   activeFiltersLabel?: ReactNode
   resetLabel?: ReactNode
   showMoreLabel?: (hiddenCount: number) => ReactNode
@@ -256,6 +260,7 @@ function FacetFilterPanelContent({
   size = "md",
   pending = false,
   pendingLabel,
+  readOnlyLabel = "Read-only",
   activeFiltersLabel = "Active filters",
   resetLabel = "Clear filters",
   showMoreLabel = (hiddenCount) => `Show ${hiddenCount} more`,
@@ -300,10 +305,17 @@ function FacetFilterPanelContent({
 
   return (
     <div aria-busy={pending || undefined} className={styles.content()}>
-      {showTitle ? (
-        <h2 className={styles.title()} id={titleId}>
-          {title}
-        </h2>
+      {showTitle || (readOnly && readOnlyLabel) ? (
+        <div className={styles.header()}>
+          {showTitle ? (
+            <h2 className={styles.title()} id={titleId}>
+              {title}
+            </h2>
+          ) : null}
+          {readOnly && readOnlyLabel ? (
+            <span className={styles.empty()}>{readOnlyLabel}</span>
+          ) : null}
+        </div>
       ) : null}
 
       {pending && pendingLabel ? (
@@ -585,10 +597,11 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
             )}
           </div>
           <div className={styles.activeList()}>
-            {items.map((item) =>
+            {items.map((item, index) =>
               readOnly ? (
                 <span className={styles.optionText()} key={item.id}>
                   {item.label}
+                  {index < items.length - 1 ? "," : null}
                 </span>
               ) : (
                 <Button

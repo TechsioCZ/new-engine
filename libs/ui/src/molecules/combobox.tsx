@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.7
+ * @componentVersion v1.6.8
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -51,7 +51,10 @@ import {
   subscribeOwnerFormReset,
   syncReactFormControl,
 } from "../internal/form-control-lifecycle"
-import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import {
+  OverlayPortal as Portal,
+  useActiveModalContainer,
+} from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { tv } from "../utils"
 
@@ -61,7 +64,7 @@ const comboboxVariants = tv({
     label: ["block font-label"],
     control: [
       "form-control-base relative flex w-full min-w-0 items-center overflow-clip",
-      "bg-combobox-bg-base",
+      "combobox-readonly-control bg-combobox-bg-base",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
       "data-focus:border-combobox-border-focus data-focus:bg-combobox-bg-focus",
@@ -136,10 +139,12 @@ const comboboxVariants = tv({
       "px-(--popup-item-x) py-(--popup-item-y)",
       "text-combobox-status-fg",
     ],
+    clearTrigger: ["text-combobox-clear-fg"],
     triggerIndicator: [
       "text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover",
       "motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none",
       "rotate-none group-data-[state=open]:rotate-180",
+      "group-data-disabled:text-combobox-fg-disabled group-data-disabled:group-hover:text-combobox-fg-disabled",
     ],
     helper: [
       "data-[validation=success]:text-combobox-success-fg",
@@ -148,6 +153,7 @@ const comboboxVariants = tv({
     selectedList: ["m-0 flex min-w-0 list-none flex-wrap gap-combobox-sm p-0"],
     selectedItem: [
       "flex min-w-0 max-w-full items-center rounded-combobox-sm border border-combobox-footer-border bg-combobox-bg-base ps-combobox-input-sm",
+      "combobox-selected-item data-readonly:pe-combobox-input-sm",
     ],
     selectedLabel: ["wrap-anywhere min-w-0 text-combobox-status-fg"],
     multiple: [],
@@ -174,21 +180,21 @@ const comboboxVariants = tv({
         control: "h-form-control-sm rounded-combobox-sm text-input-sm",
         input: "p-combobox-input-sm",
         content: "popup-size-sm text-combobox-item-sm",
-        triggerIndicator: "text-icon-control-sm",
+        triggerIndicator: "text-combobox-chevron-sm",
       },
       md: {
         root: "gap-combobox-md",
         control: "h-form-control-md rounded-combobox-md text-input-md",
         input: "p-combobox-input-md",
         content: "popup-size-md text-combobox-item-md",
-        triggerIndicator: "text-icon-control-md",
+        triggerIndicator: "text-combobox-chevron-md",
       },
       lg: {
         root: "gap-combobox-lg",
         control: "h-form-control-lg rounded-combobox-lg text-input-lg",
         input: "p-combobox-input-lg",
-        content: "popup-size-lg text-combobox-item-lg",
-        triggerIndicator: "text-icon-control-lg",
+        content: "combobox-popup-lg text-combobox-item-lg",
+        triggerIndicator: "text-combobox-chevron-lg",
       },
     },
   },
@@ -451,13 +457,17 @@ function ComboboxClearTrigger<T>({
   size,
   disabled,
   readOnly,
-}: Pick<ComboboxProps<T>, "clearable" | "size" | "disabled" | "readOnly"> & {
+  className,
+}: Pick<
+  ComboboxProps<T>,
+  "clearable" | "size" | "disabled" | "readOnly" | "className"
+> & {
   api: ComboboxApi<T>
   clearIcon: IconType
   navigation: boolean
 }) {
   const hasValue = navigation ? Boolean(api.inputValue) : api.value.length > 0
-  if (readOnly || !(clearable && hasValue)) {
+  if (disabled || readOnly || !(clearable && hasValue)) {
     return null
   }
   return (
@@ -467,6 +477,7 @@ function ComboboxClearTrigger<T>({
       tone="neutral"
       {...api.getClearTriggerProps()}
       aria-label={api.getClearTriggerProps()["aria-label"] ?? "Clear value"}
+      className={className}
       disabled={disabled || readOnly}
       hidden={false}
       onClick={(event) => {
@@ -512,7 +523,7 @@ function ComboboxStatus({
   if (state === "loading") {
     return (
       <div className={styles.status()} role="status">
-        <Icon icon="token-icon-spinner" size="current" />
+        <Icon icon="token-icon-combobox-spinner" size="md" />
         <span>{loadingMessage}</span>
       </div>
     )
@@ -552,7 +563,7 @@ export function Combobox<T = unknown>({
   "aria-labelledby": ariaLabelledBy,
   "aria-describedby": ariaDescribedBy,
   label,
-  size,
+  size = "md",
   placeholder = "Select option",
   disabled: explicitDisabled = false,
   readOnly = false,
@@ -615,6 +626,11 @@ export function Combobox<T = unknown>({
     null
   )
   const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
+  const activeModal = useActiveModalContainer()
+  // Inline popups inside a modal render in its overlay container, which keeps
+  // focus containment while escaping the modal's scroll viewport.
+  const popupPortalled =
+    portalled || !!(disabledElement && activeModal?.contains(disabledElement))
   // Selection projection must not depend on the filtered popup collection.
   const fullCollection = useMemo(
     () =>
@@ -802,8 +818,7 @@ export function Combobox<T = unknown>({
     loopFocus,
     navigate,
     composite: false,
-    // Keep inline popups inside modal focus containment without clipping to its scroll area.
-    positioning: { strategy: portalled ? "absolute" : "fixed" },
+    positioning: { strategy: popupPortalled ? "absolute" : "fixed" },
     // The listbox scrolls; content remains Zag's dismissal boundary.
     scrollToIndexFn: ({ getElement }) => {
       getElement()?.scrollIntoView({ block: "nearest", inline: "nearest" })
@@ -1083,6 +1098,7 @@ export function Combobox<T = unknown>({
         className={control()}
         {...api.getControlProps()}
         data-focus-visible={focusVisible ? "" : undefined}
+        data-readonly={readOnly || undefined}
         data-validation={validateStatus}
         onBlurCapture={() => setFocusVisible(false)}
         onFocusCapture={(event) =>
@@ -1160,6 +1176,7 @@ export function Combobox<T = unknown>({
 
         <ComboboxClearTrigger
           api={api}
+          className={styles.clearTrigger()}
           clearable={clearable}
           clearIcon={clearIcon}
           disabled={disabled}
@@ -1198,7 +1215,7 @@ export function Combobox<T = unknown>({
           />
         ))}
 
-      <Portal disabled={!portalled}>
+      <Portal disabled={!popupPortalled}>
         <div {...api.getPositionerProps()} className={positioner()}>
           <div {...contentProps} className={content()} data-status={state}>
             <ComboboxStatus
@@ -1254,7 +1271,12 @@ export function Combobox<T = unknown>({
                   ?.label ??
                 selectedValue
               return (
-                <li className={styles.selectedItem()} key={selectedValue}>
+                <li
+                  className={styles.selectedItem()}
+                  data-readonly={readOnly || undefined}
+                  data-size={size ?? "md"}
+                  key={selectedValue}
+                >
                   <span className={styles.selectedLabel()}>
                     {selectedLabel}
                   </span>

@@ -57,6 +57,13 @@ const paneItems: NavigationItem[] = [
   },
 ]
 
+// This application's brand, rail, pane, and toolbar rows share a rhythm;
+// Sidebar.Header itself stays intrinsic for other compositions.
+const shellHeaderStyle: CSSProperties = {
+  minBlockSize: "var(--spacing-700)",
+  paddingBlock: "var(--padding-sidebar-section-compact)",
+}
+
 function preventNavigation(event: MouseEvent<HTMLAnchorElement>) {
   event.preventDefault()
 }
@@ -89,6 +96,7 @@ function NavigationLink({
             aria-current={active ? "page" : undefined}
             aria-label={item.label}
             block
+            className={`sidebar-navigation-link ${!api.isDesktop || api.isExpanded(side) ? "justify-start" : "justify-center"}`}
             href={item.href}
             icon={item.icon}
             onClick={preventNavigation}
@@ -129,12 +137,12 @@ function StandardPanel({
 }) {
   return (
     <Sidebar.Panel aria-label={label} side={side}>
-      <Sidebar.Header>
+      <Sidebar.Header className="justify-center" style={shellHeaderStyle}>
         <div className="flex items-center gap-100">
           <LinkButton
             aria-label="Commerce workspace"
             block
-            className="min-w-0 flex-1"
+            className="sidebar-navigation-link min-w-0 flex-1 justify-start group-data-[state=collapsed]/sidebar-panel:justify-center"
             href="#workspace"
             icon="icon-[mdi--storefront-outline]"
             onClick={preventNavigation}
@@ -175,6 +183,7 @@ function StandardPanel({
         <LinkButton
           aria-label="Account settings"
           block
+          className="sidebar-navigation-link justify-start group-data-[state=collapsed]/sidebar-panel:justify-center"
           href="#settings"
           icon="icon-[mdi--cog-outline]"
           onClick={preventNavigation}
@@ -198,7 +207,10 @@ function DashboardHeader({
   title: string
 }) {
   return (
-    <Header className="border-b border-border-primary bg-base p-200">
+    <Header
+      className="border-b border-border-primary bg-base p-200"
+      style={shellHeaderStyle}
+    >
       <div className="flex w-full items-center gap-200">
         <Sidebar.Trigger
           aria-label={`Toggle ${side} navigation`}
@@ -213,7 +225,7 @@ function DashboardHeader({
 
 function DashboardContent({ title }: { title: string }) {
   return (
-    <div className="grid min-h-screen content-start gap-300 bg-base p-300">
+    <div className="grid content-start gap-300 bg-base p-300">
       <section aria-labelledby="dashboard-heading" className="grid gap-100">
         <h1 className="text-fg-primary" id="dashboard-heading">
           {title}
@@ -371,7 +383,7 @@ function FocusTransferExample() {
   return (
     <Sidebar defaultExpanded={["start"]}>
       <Sidebar.Panel aria-label="Focus test navigation" side="start">
-        <Sidebar.Header>
+        <Sidebar.Header className="justify-center" style={shellHeaderStyle}>
           <div className="flex items-center gap-100">
             <LinkButton
               aria-label="Focus workspace"
@@ -418,7 +430,10 @@ function FocusTransferExample() {
         </Sidebar.Content>
       </Sidebar.Panel>
       <Sidebar.Inset>
-        <Header className="border-b border-border-primary bg-base p-200">
+        <Header
+          className="border-b border-border-primary bg-base p-200"
+          style={shellHeaderStyle}
+        >
           <div className="flex w-full items-center gap-200">
             <Sidebar.Trigger
               aria-label="Toggle focus navigation primary"
@@ -494,6 +509,8 @@ function PaneSwitcher({
           <LinkButton
             aria-current={active ? "page" : undefined}
             aria-label={item.label}
+            block
+            className="sidebar-navigation-link"
             href={item.href}
             icon={item.icon}
             onClick={(event) => {
@@ -523,9 +540,11 @@ function TwoPanePanel() {
           role="navigation"
           size="rail"
         >
-          <Sidebar.Header className="min-h-700 justify-center">
+          <Sidebar.Header className="justify-center" style={shellHeaderStyle}>
             <LinkButton
               aria-label="Commerce workspace"
+              block
+              className="sidebar-navigation-link"
               href="#workspace"
               icon="icon-[mdi--storefront-outline]"
               onClick={preventNavigation}
@@ -550,6 +569,8 @@ function TwoPanePanel() {
           <Sidebar.Footer>
             <LinkButton
               aria-label="Account settings"
+              block
+              className="sidebar-navigation-link"
               href="#settings"
               icon="icon-[mdi--cog-outline]"
               onClick={preventNavigation}
@@ -567,8 +588,13 @@ function TwoPanePanel() {
           size="content"
           visibility="expanded"
         >
-          <Sidebar.Header className="min-h-700 justify-center">
-            <strong className="text-fg-primary">{activeItem.label}</strong>
+          <Sidebar.Header className="justify-center" style={shellHeaderStyle}>
+            <div className="flex items-center gap-100">
+              <strong className="min-w-0 flex-1 text-fg-primary">
+                {activeItem.label}
+              </strong>
+              <Sidebar.CloseTrigger aria-label="Close workspace navigation" />
+            </div>
           </Sidebar.Header>
           <Sidebar.Content>
             <Sidebar.Menu>
@@ -578,6 +604,7 @@ function TwoPanePanel() {
                     <LinkButton
                       aria-current={index === 0 ? "page" : undefined}
                       block
+                      className="justify-start"
                       href={`#${activeItem.label.toLowerCase()}-${index}`}
                       onClick={preventNavigation}
                       size="sm"
@@ -629,7 +656,10 @@ export const RightSidebar14: Story = {
 
 function DualSidebarHeader() {
   return (
-    <Header className="border-b border-border-primary bg-base p-200">
+    <Header
+      className="border-b border-border-primary bg-base p-200"
+      style={shellHeaderStyle}
+    >
       <div className="flex w-full items-center gap-200">
         <Sidebar.Trigger
           aria-label="Toggle start navigation"
@@ -639,6 +669,7 @@ function DualSidebarHeader() {
         <strong className="text-fg-primary">Operations</strong>
         <Sidebar.Trigger
           aria-label="Toggle end navigation"
+          icon="icon-[mdi--dots-horizontal]"
           side="end"
           tooltip="Toggle context navigation"
         />
@@ -694,14 +725,19 @@ export const LogicalEdgesRtl: Story = {
 
 type SidebarOffsetStyle = CSSProperties & {
   "--spacing-sidebar-offset"?: string
+  "--height-sidebar-viewport"?: string
 }
 
 const sidebarOffsetStyle: SidebarOffsetStyle = {
   "--spacing-sidebar-offset": "var(--spacing-700)",
+  // Recompute here: the inherited derived size resolved against a zero offset.
+  "--height-sidebar-viewport": "calc(100dvh - var(--spacing-sidebar-offset))",
 }
 
 const stickyHeaderStyle: CSSProperties = {
-  height: "var(--spacing-700)",
+  ...shellHeaderStyle,
+  blockSize: "var(--spacing-sidebar-offset)",
+  flexShrink: 0,
 }
 
 export const StickySiteHeaderSidebar16: Story = {

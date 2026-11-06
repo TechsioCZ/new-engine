@@ -17,6 +17,47 @@
   --radio-group-item-grid: min-content minmax(0, 1fr);
 }
 
+/* Center the control on the first text line, not the full description block. */
+@utility radio-group-control-align-sm {
+  margin-block-start: max(
+    0px,
+    calc(
+      (
+        var(--text-radio-group-item-sm) *
+        1.5 -
+        var(--size-radio-group-control-sm)
+      ) /
+      2
+    )
+  );
+}
+@utility radio-group-control-align-md {
+  margin-block-start: max(
+    0px,
+    calc(
+      (
+        var(--text-radio-group-item-md) *
+        1.5 -
+        var(--size-radio-group-control-md)
+      ) /
+      2
+    )
+  );
+}
+@utility radio-group-control-align-lg {
+  margin-block-start: max(
+    0px,
+    calc(
+      (
+        var(--text-radio-group-item-lg) *
+        1.5 -
+        var(--size-radio-group-control-lg)
+      ) /
+      2
+    )
+  );
+}
+
 @utility token-icon-radio-group-checked {
   @apply token-icon-circle;
 }

@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -62,11 +62,9 @@ const tableVariants = tv({
     },
     interactive: {
       true: {
-        row: [
-          "table-row-interactive cursor-pointer hover:bg-table-row-bg-hover",
-          "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-          "focus-visible:-outline-offset-(length:--default-ring-width) focus-visible:outline-table-ring",
-        ],
+        row: "table-row-interactive cursor-pointer hover:bg-table-row-bg-hover",
+        columnHeader: "relative",
+        cell: "relative",
       },
     },
     size: {

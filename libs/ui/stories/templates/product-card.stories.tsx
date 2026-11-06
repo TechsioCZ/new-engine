@@ -139,6 +139,26 @@ const meta: Meta<ProductCardTemplateProps> = {
 export default meta
 type Story = StoryObj<ProductCardTemplateProps>
 
+async function expectAlignedRatingSummary(
+  canvasElement: HTMLElement,
+  value: number,
+  reviewCount: number
+) {
+  const canvas = within(canvasElement)
+  const stars = canvas.getByRole("img", { name: `${value} out of 5` })
+  const score = canvas.getByText(`${value} / 5`)
+  const reviews = canvas.getByText(`(${reviewCount})`)
+  const scoreBounds = score.getBoundingClientRect()
+  const reviewBounds = reviews.getBoundingClientRect()
+  await expect(reviews).toBeVisible()
+  await expect(
+    Math.abs(reviewBounds.bottom - scoreBounds.bottom)
+  ).toBeLessThanOrEqual(1)
+  await expect(stars.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+    scoreBounds.top
+  )
+}
+
 export const Playground: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -146,6 +166,17 @@ export const Playground: Story = {
     await expect(
       canvas.getByRole("img", { name: "4.5 out of 5" })
     ).toBeVisible()
+    await expectAlignedRatingSummary(canvasElement, 4.5, 128)
+    const view = canvasElement.ownerDocument.defaultView!
+    if (view.matchMedia("(width < 40rem)").matches) {
+      const buttons = canvas.getAllByRole("button")
+      const actions = buttons[0]!.parentElement!.getBoundingClientRect()
+      for (const button of buttons) {
+        const bounds = button.getBoundingClientRect()
+        await expect(Math.abs(bounds.left - actions.left)).toBeLessThanOrEqual(1)
+        await expect(Math.abs(bounds.right - actions.right)).toBeLessThanOrEqual(1)
+      }
+    }
   },
 
   parameters: {
@@ -210,6 +241,9 @@ export const Default: Story = {
 }
 
 export const OnSale: Story = {
+  play: async ({ canvasElement }) => {
+    await expectAlignedRatingSummary(canvasElement, 4.8, 542)
+  },
   parameters: {
     docs: {
       description: {
@@ -240,6 +274,9 @@ export const OnSale: Story = {
 }
 
 export const OutOfStock: Story = {
+  play: async ({ canvasElement }) => {
+    await expectAlignedRatingSummary(canvasElement, 5, 23)
+  },
   parameters: {
     docs: {
       description: {

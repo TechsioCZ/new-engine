@@ -418,6 +418,8 @@ export const Sizes: Story = {
       await expect(clear).not.toBeNull()
       await expect(indicator).not.toBeNull()
       if (!(value && clear && indicator)) continue
+      await expect(getComputedStyle(value).whiteSpace).toBe("normal")
+      await expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth + 1)
       await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(
         clear.getBoundingClientRect().left
       )
@@ -541,6 +543,15 @@ export const States: Story = {
 }
 
 export const OpenHierarchy: Story = {
+  play: async ({ canvasElement }) => {
+    const tree = await within(canvasElement.ownerDocument.body).findByRole("tree")
+    const labels = tree.querySelectorAll<HTMLElement>('[data-part="item-text"]')
+    await expect(labels.length).toBeGreaterThan(0)
+    for (const label of labels) {
+      await expect(getComputedStyle(label).whiteSpace).toBe("normal")
+      await expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth + 1)
+    }
+  },
   parameters: {
     controls: { disable: true },
     docs: {
@@ -563,6 +574,27 @@ export const OpenHierarchy: Story = {
 
 export const DeepHierarchy: Story = {
   args: { defaultOpen: true },
+  play: async ({ args, canvasElement }) => {
+    if (!args.defaultOpen) return
+    const tree = await within(canvasElement.ownerDocument.body).findByRole("tree")
+    const columns = tree.querySelectorAll<HTMLElement>('[data-part="column"]')
+    await expect(columns).toHaveLength(3)
+    const first = columns.item(0)
+    const last = columns.item(2)
+    await waitFor(() => {
+      const left = tree.getBoundingClientRect().left + tree.clientLeft
+      const right = left + tree.clientWidth
+      const deepest = last.getBoundingClientRect()
+      expect(deepest.left).toBeGreaterThanOrEqual(left - 1)
+      expect(deepest.right).toBeLessThanOrEqual(right + 1)
+      const peek = Number.parseFloat(
+        getComputedStyle(tree).getPropertyValue("--cascade-select-column-peek")
+      )
+      if (peek > 0 && tree.scrollWidth > tree.clientWidth) {
+        expect(first.getBoundingClientRect().right).toBeGreaterThan(left + 1)
+      }
+    })
+  },
   parameters: {
     controls: { include: ["defaultOpen"] },
     docs: {

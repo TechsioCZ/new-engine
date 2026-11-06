@@ -2,7 +2,7 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,6 +26,7 @@ import {
   barX,
   barY,
   type ChartAxisOptions,
+  type ChartColorLegend,
   type ChartColorOptions,
   type ChartPoint,
   type ChartScene,
@@ -113,9 +114,9 @@ export type ChartProps<TDatum> = {
   yLabel?: string
   /** Formats value-axis tick labels (e.g. currency). */
   formatValue?: (value: number) => string
-  /** Fixed pixel height. When omitted, `aspectRatio` controls sizing. */
+  /** Fixed pixel height. Polar charts default to 360px unless an aspectRatio is supplied. */
   height?: number
-  /** Width/height ratio used when `height` is omitted. Defaults to 16/9. */
+  /** Width/height ratio used when `height` is omitted. Cartesian charts default to 16/9. */
   aspectRatio?: number
   /** Deterministic first-frame width for SSR and hidden containers. */
   initialWidth?: number
@@ -169,6 +170,47 @@ const DONUT_INNER_RADIUS_RATIO = 0.6
 
 /** Padding the polar layout insets by; mirrors the `inset` passed to polar(). */
 const POLAR_INSET = 8
+
+function readableColorLegend(label?: string): ChartColorLegend {
+  const legend = colorLegend({
+    itemWidth: 0,
+    items: colorLegendItems({
+      justify: "start",
+      label: { fontSize: 14, fillOpacity: 1 },
+    }),
+  })
+  if (!label) {
+    return legend
+  }
+  // Upstream measures its title at 11px; enlarging it only at SVG render time
+  // leaves too little space above the first row. Reserve the readable line here.
+  const titleHeight = 28
+  return {
+    height: (count, context) => legend.height(count, context) + titleHeight,
+    render: (context) => ({
+      kind: "group",
+      key: "legend-title-group",
+      ariaHidden: true,
+      children: [
+        {
+          kind: "label",
+          key: "legend-label",
+          text: label,
+          x: context.bounds.x,
+          y: context.bounds.y + READABLE_TICK_LABELS.fontSize,
+          anchor: context.direction === "rtl" ? "end" : "start",
+          fontSize: READABLE_TICK_LABELS.fontSize,
+          fontWeight: 600,
+          style: { fill: context.theme.foreground },
+        },
+        legend.render({
+          ...context,
+          bounds: { ...context.bounds, y: context.bounds.y + titleHeight },
+        }),
+      ],
+    }),
+  }
+}
 
 function toAccessor<TDatum, TValue>(
   accessor: ChartAccessor<TDatum, TValue>
@@ -269,7 +311,10 @@ function resolveXAxis<TDatum>(
     return {
       scale: () => scaleUtc(),
       nice: true,
-      axis: { label: xLabel, tickLabels: READABLE_TICK_LABELS },
+      axis: {
+        label: xLabel,
+        tickLabels: READABLE_TICK_LABELS,
+      },
     }
   }
   if (values.length > 0 && values.every((value) => typeof value === "number")) {
@@ -430,12 +475,7 @@ function resolveBuild<TDatum>(
         domain: config.seriesDomain,
         legend:
           showLegend && config.type !== "line"
-            ? colorLegend({
-                label: config.legendLabel,
-                items: colorLegendItems({
-                  label: { fontSize: 14, fillOpacity: 1 },
-                }),
-              })
+            ? readableColorLegend(config.legendLabel)
             : undefined,
       },
       svgAnimation: config.animate,
@@ -895,6 +935,21 @@ function ChartLineLegend({
   )
 }
 
+function chartDimensions(
+  isPolar: boolean,
+  height: number | undefined,
+  aspectRatio: number | undefined
+) {
+  if (height != null) {
+    return { height }
+  }
+  if (aspectRatio != null) {
+    return { aspectRatio }
+  }
+  // Leave enough room for a wrapped legend and a readable mobile disk.
+  return isPolar ? { height: 360 } : { aspectRatio: 16 / 9 }
+}
+
 export function Chart<TDatum>({
   type = "line",
   data,
@@ -1038,9 +1093,8 @@ export function Chart<TDatum>({
         <TanstackChart
           ariaDescription={ariaDescription}
           ariaLabel={ariaLabel}
-          aspectRatio={height == null ? (aspectRatio ?? 16 / 9) : undefined}
+          {...chartDimensions(isPolar, height, aspectRatio)}
           definition={definition}
-          height={height}
           initialWidth={initialWidth}
           onSelect={handleSelect}
           renderSvg={isPolar ? renderReadableChartSvg : renderCartesianChartSvg}

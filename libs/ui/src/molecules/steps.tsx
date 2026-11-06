@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.2.3
+ * @componentVersion v1.2.4
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -44,7 +44,7 @@ const stepsVariants = tv({
       "sm:data-[orientation=vertical]:flex-row sm:data-[orientation=vertical]:items-start",
     ],
     list: [
-      "flex w-full min-w-0 max-w-full gap-steps-list",
+      "steps-description-connectors flex w-full min-w-0 max-w-full gap-steps-list",
       "data-[orientation=horizontal]:items-start",
       "data-[orientation=vertical]:flex-col sm:data-[orientation=vertical]:w-auto sm:data-[orientation=vertical]:min-w-steps-list-vertical",
     ],
@@ -64,7 +64,7 @@ const stepsVariants = tv({
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-steps-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "data-[orientation=vertical]:items-start",
+      "data-[orientation=vertical]:items-center",
       "data-disabled:cursor-not-allowed",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
@@ -851,6 +851,8 @@ Steps.Description = function StepsDescription({
   return (
     <span
       className={styles.description({ className })}
+      data-part="description"
+      data-scope="steps"
       ref={ref}
       {...props}
       {...getStepStatusDataProps(state)}

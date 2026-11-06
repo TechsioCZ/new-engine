@@ -86,6 +86,25 @@ test("brand-local corrections resolve inside nested scheme scopes without replac
   assert.match(neo.get("--color-fg-on-primary-solid"), LIGHT_DARK)
 })
 
+test("Business badge sizes keep the readable small type scale through medium", () => {
+  const css = postcss.parse(
+    readFileSync(
+      new URL("../src/tokens/_scheme-scopes.css", import.meta.url),
+      "utf8"
+    )
+  )
+  let business
+  css.walkAtRules("scope", (scope) => {
+    if (scope.params !== '([data-theme="business"]) to ([data-theme])') {
+      return
+    }
+    business = new Map()
+    scope.walkDecls((decl) => business.set(decl.prop, decl.value))
+  })
+  assert.equal(business.get("--text-badge-sm"), "var(--text-sm)")
+  assert.equal(business.get("--text-badge-md"), "var(--text-sm)")
+})
+
 test("cycles fail in the effective scope, including unused self cycles", () => {
   for (const content of [
     ":root { --a: var(--a); }",

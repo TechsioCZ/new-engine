@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -435,6 +435,7 @@ SearchForm.Button = function SearchFormButton({
       className={styles.button({ className })}
       icon={effectiveIcon}
       iconPosition={iconPosition}
+      iconSize={children ? "current" : "md"}
       size={size}
       type="submit"
       {...props}

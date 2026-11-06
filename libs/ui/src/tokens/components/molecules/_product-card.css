@@ -53,6 +53,18 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+
+  /* A linked name clamps its own text, not an ancestor of its focus outline. */
+  &:has(> a) {
+    overflow: visible;
+    display: block;
+    & > a {
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+  }
 }
 
 @utility token-icon-cart-button {
@@ -65,6 +77,10 @@
 
 @utility token-icon-wishlist-button {
   @apply token-icon-heart;
+}
+
+@utility token-icon-product-card-notify {
+  @apply icon-[mdi--bell-outline];
 }
 
 /* Linked names retain the card's typography rather than Link's larger defaults. */

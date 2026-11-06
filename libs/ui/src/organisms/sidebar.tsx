@@ -2,7 +2,7 @@
  * Sidebar - @techsio/ui-kit organism.
  *
  * @component Sidebar
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill sidebar-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -276,7 +276,7 @@ Sidebar.Trigger = function SidebarTrigger({
       {...props}
       {...desktopStateProps}
       aria-label={ariaLabel}
-      className={trigger({ className })}
+      className={trigger({ className: ["sidebar-trigger-icon", className] })}
       data-side={side}
       data-sidebar-trigger=""
       data-sidebar-trigger-value={triggerValue}
@@ -322,7 +322,9 @@ Sidebar.Trigger = function SidebarTrigger({
     <Tooltip
       content={tooltip ?? ariaLabel}
       dir={context.dir}
-      placement={getTooltipPlacement(side, context.dir)}
+      placement={
+        context.isDesktop ? getTooltipPlacement(side, context.dir) : "bottom"
+      }
     >
       {button}
     </Tooltip>

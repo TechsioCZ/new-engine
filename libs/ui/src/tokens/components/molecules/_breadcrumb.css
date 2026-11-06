@@ -6,6 +6,11 @@
   --outline-breadcrumb-focus-offset: var(--default-ring-offset);
 }
 
+/* Keep each separator with its preceding item at the list's own gap. */
+@utility breadcrumb-segment {
+  gap: inherit;
+}
+
 /* Keep focus dimensions locally overridable without arbitrary TSX utilities. */
 @utility breadcrumb-focus {
   outline-style: var(--outline-breadcrumb-focus-style);

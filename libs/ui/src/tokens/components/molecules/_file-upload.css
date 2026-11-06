@@ -98,6 +98,12 @@
   outline-offset: var(--spacing-file-upload-focus-offset);
 }
 
+@utility file-upload-dropzone-disabled-content {
+  &[data-disabled] [data-status="default"] {
+    color: var(--color-file-upload-dropzone-disabled-fg);
+  }
+}
+
 @utility file-upload-dropzone-border-width {
   border-width: var(--border-width-file-upload-dropzone);
 }
