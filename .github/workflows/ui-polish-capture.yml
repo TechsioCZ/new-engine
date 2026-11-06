@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           # The full component capture at f3255be covers the unchanged runtime.
-          # Only these five stories changed after that capture.
+          # These five stories include the responsive Catalogue follow-up.
           - { label: refinements, brand: "base,neo,business,akros", shard: "" }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
