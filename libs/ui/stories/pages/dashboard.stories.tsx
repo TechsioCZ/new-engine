@@ -193,7 +193,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         >
           {loading ? (
             <Skeleton aria-label="Loading revenue chart" isLoaded={false}>
-              <Skeleton.Rectangle className="h-64" />
+              <Skeleton.Rectangle className="h-chart-placeholder" />
             </Skeleton>
           ) : (
             <RevenueChart />

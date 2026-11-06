@@ -39,6 +39,12 @@
    *
    * Chart overrides upstream label opacity at the scene boundary. */
   --text-chart-data: var(--text-sm);
+  /* Reserve the chart footprint while its data is loading. */
+  --height-chart-placeholder: var(--container-3xs);
+  --height-chart-placeholder-lg: calc(
+    var(--height-chart-placeholder) +
+    var(--dimension-24)
+  );
   --gap-chart-legend: var(--spacing-200);
   --gap-chart-item: var(--spacing-100);
   --color-chart-fg: var(--color-fg-primary);

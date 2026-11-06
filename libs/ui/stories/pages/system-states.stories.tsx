@@ -401,7 +401,7 @@ export const LoadingPage: Story = {
       </StatRow>
       <SectionCard title="Revenue trend">
         <Skeleton aria-label="Loading revenue chart" isLoaded={false}>
-          <Skeleton.Rectangle className="h-64" />
+          <Skeleton.Rectangle className="h-chart-placeholder" />
         </Skeleton>
       </SectionCard>
       <SectionCard title="Latest orders">

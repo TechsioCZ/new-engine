@@ -156,7 +156,7 @@ function HomePage({ loading }: { loading?: boolean }) {
           <Tabs.Content className="p-250" value="revenue">
             {loading ? (
               <Skeleton aria-label="Loading main statistics chart" isLoaded={false}>
-                <Skeleton.Rectangle className="h-70" />
+                <Skeleton.Rectangle className="h-chart-placeholder-lg" />
               </Skeleton>
             ) : (
               <Chart
