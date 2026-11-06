@@ -18,9 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The responsive batch at 794684925 is independent and stays running.
-          # This follow-up checks only the new direction and focus-crop fixes.
-          - { label: focus-direction, brand: "base,neo,business,akros", shard: "" }
+          # The responsive batch passed 1,956 cases. Its twelve email-editor
+          # failures were inline tab panels misclassified as floating popups.
+          - { label: dialog-scroll, brand: "base,neo,business,akros", shard: "" }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
       PLAYWRIGHT_WORKERS: "2"
@@ -46,9 +46,7 @@ jobs:
           const stories = visualStories(index.entries);
           const available = new Set(stories.map(({ id }) => id));
           const ids = [
-            "atoms-rating--half-stars",
-            "atoms-rating--fractional-directions",
-            "molecules-colorselect--focus-recovery",
+            "pages-akros-admin-customer-emails--edit-unpaid-reminder",
           ];
           for (const id of ids) {
             if (!available.has(id)) throw new Error(`Missing review story: ${id}`);
@@ -58,7 +56,7 @@ jobs:
       - name: Capture candidate screenshots in the pinned runner
         env:
           PLAYWRIGHT_STORYBOOK_REBUILD: "0"
-        run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts
+        run: pnpm --dir libs/ui exec node scripts/run-component-tests.mjs --update-snapshots=all test/visual.spec.ts test/visual-popups.spec.mjs
       - name: Collect changed screenshots with their source revision
         if: always()
         run: |

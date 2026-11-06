@@ -994,7 +994,7 @@ test("release preflight requires exact reviewed baselines for each story and dev
   )
 })
 
-test("role-free portal anatomy is discovered and hidden surfaces are excluded", async () => {
+test("role-free popup ownership excludes hidden surfaces and nested inline panels", async () => {
   const bounds = {
     x: 12,
     y: 20,
@@ -1007,6 +1007,7 @@ test("role-free portal anatomy is discovered and hidden surfaces are excluded", 
   }
   const parent = {
     parentElement: null,
+    getAttribute: (name) => (name === "data-scope" ? "custom-calendar" : null),
     getBoundingClientRect: () => bounds,
     style: {},
   }
@@ -1029,7 +1030,19 @@ test("role-free portal anatomy is discovered and hidden surfaces are excluded", 
           getElementById: () => ({ contains: () => false }),
           querySelectorAll: (selector) => {
             selected = selector
-            return [element, { ...element, style: { display: "none" } }]
+            return [
+              element,
+              { ...element, style: { display: "none" } },
+              {
+                ...element,
+                getAttribute: (name) =>
+                  ({
+                    "data-scope": "tabs",
+                    "data-part": "content",
+                    role: "tabpanel",
+                  })[name] ?? null,
+              },
+            ]
           },
         },
         getComputedStyle: (node) => ({
@@ -1046,6 +1059,7 @@ test("role-free portal anatomy is discovered and hidden surfaces are excluded", 
   assert.equal(surfaces.length, 1)
   assert.equal(surfaces[0].role, null)
   assert.equal(surfaces[0].scope, "custom-calendar")
+  assert.equal(surfaces.some((surface) => surface.scope === "tabs"), false)
   assert.equal(surfaces[0].external, true)
   assertFloatingContainment(surfaces, { width: 390, height: 844 })
 
@@ -1133,8 +1147,14 @@ test("floating captures reject missing, clipped and out-of-PNG content or positi
 
 test("page captures start at the document origin instead of scrolling an oversized root", () => {
   const primary = read("./visual.spec.ts")
-  assert.match(primary, /const captureDocument = story.title.startsWith\("Pages\/"\)/)
-  assert.match(primary, /window.scrollTo\(\{ top: 0, left: 0, behavior: "instant" \}\)/)
+  assert.match(
+    primary,
+    /const captureDocument = story.title.startsWith\("Pages\/"\)/
+  )
+  assert.match(
+    primary,
+    /window.scrollTo\(\{ top: 0, left: 0, behavior: "instant" \}\)/
+  )
   assert.match(primary, /await capture\("", captureDocument\)/)
 })
 

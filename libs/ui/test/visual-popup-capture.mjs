@@ -10,8 +10,17 @@ import { openContractStory } from "./visual-shared-contracts.mjs"
 export function visibleFloatingSurfaces(page) {
   return page.evaluate(() => {
     const root = document.getElementById("storybook-root")
+    const floatingRoles = [
+      "dialog",
+      "menu",
+      "listbox",
+      "tooltip",
+      "tree",
+      "application",
+    ]
     const selector =
-      '[data-part="positioner"] [data-part="content"], [role="dialog"], [role="menu"], [role="listbox"], [role="tooltip"], [role="tree"], [role="application"]'
+      '[data-part="positioner"] [data-part="content"], ' +
+      floatingRoles.map((role) => `[role="${role}"]`).join(", ")
     const isClipped = (element, box, includeScrollports = true) => {
       let clipped = false
       for (
@@ -51,11 +60,22 @@ export function visibleFloatingSurfaces(page) {
           return []
         }
         const positioner = element.closest('[data-part="positioner"]')
+        const scope = element.getAttribute("data-scope")
+        const role = element.getAttribute("role")
+        // A dialog's positioner also contains inline tab/accordion panels.
+        // Role-free popup anatomy must belong to its nearest positioner,
+        // rather than treating every nested "content" part as another popup.
+        if (
+          !floatingRoles.includes(role) &&
+          (!positioner || positioner.getAttribute("data-scope") !== scope)
+        ) {
+          return []
+        }
         const positionerBox = positioner?.getBoundingClientRect()
         return [
           {
-            scope: element.getAttribute("data-scope"),
-            role: element.getAttribute("role"),
+            scope,
+            role,
             part: element.getAttribute("data-part"),
             external: !root?.contains(element),
             clipped: isClipped(element, box),
