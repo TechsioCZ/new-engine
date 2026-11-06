@@ -351,6 +351,7 @@ export function Rating({
         <RatingItems
           api={api}
           describedBy={describedBy}
+          dir={dir}
           errorMessageId={errorMessageId}
           invalid={invalid}
           isDisplay={isDisplay}
@@ -432,6 +433,7 @@ function getRatingControlProps(
 
 function RatingItems({
   api,
+  dir,
   styles,
   isDisplay,
   showExactValue,
@@ -441,6 +443,7 @@ function RatingItems({
   translations,
 }: {
   api: ReturnType<typeof connect>
+  dir: NonNullable<RatingProps["dir"]>
   styles: ReturnType<typeof rating>
   isDisplay: boolean
   showExactValue: boolean
@@ -486,7 +489,7 @@ function RatingItems({
                 className={styles.fractionalGlyph()}
                 data-disabled={itemProps["data-disabled"]}
                 data-part="fractional-glyph"
-                dir={itemProps.dir}
+                dir={dir}
                 style={
                   {
                     "--rating-item-clip": `${Math.round((1 - fill) * 100)}%`,

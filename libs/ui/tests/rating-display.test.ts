@@ -41,6 +41,7 @@ describe("precise read-only ratings", () => {
     expect(html.match(FRACTIONAL_GLYPH)?.[0]).toContain(
       "--rating-item-clip:40%"
     )
+    expect(html.match(FRACTIONAL_GLYPH)?.[0]).toContain('dir="rtl"')
     expect(html).toContain('role="radio"')
   })
 

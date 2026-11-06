@@ -23,7 +23,7 @@
 
 @utility rating-fractional-fill {
   clip-path: inset(0 var(--rating-item-clip, 0%) 0 0);
-  &:dir(rtl) {
+  &[dir="rtl"] {
     clip-path: inset(0 0 0 var(--rating-item-clip, 0%));
   }
 }

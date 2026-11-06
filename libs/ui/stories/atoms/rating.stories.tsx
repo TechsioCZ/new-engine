@@ -211,10 +211,53 @@ export const HalfStars: Story = {
     await expect(canvas.queryByRole("radio")).not.toBeInTheDocument()
     await expect(canvasElement.querySelector("input")).toBeNull()
     const fraction = image.querySelector('[data-part="fractional-glyph"]')
-    await expect(fraction).toHaveStyle("--rating-item-clip: 40%")
+    if (!fraction) throw new Error("Missing fractional rating glyph")
+    await expect(
+      getComputedStyle(fraction).getPropertyValue("--rating-item-clip").trim()
+    ).toBe("40%")
     await expect(
       image.querySelectorAll('[aria-hidden="true"][data-highlighted]')
     ).toHaveLength(4)
+  },
+}
+
+export const FractionalDirections: Story = {
+  parameters: describe(
+    "Fractional averages follow the component's explicit direction, including an RTL region on an English page."
+  ),
+  render: () => (
+    <VariantContainer>
+      <VariantGroup title="Left to right">
+        <Rating
+          labelText="LTR product rating"
+          displayOnly
+          dir="ltr"
+          value={4.6}
+        />
+      </VariantGroup>
+      <VariantGroup title="Right to left">
+        <Rating
+          labelText="RTL product rating"
+          displayOnly
+          dir="rtl"
+          value={4.6}
+        />
+      </VariantGroup>
+    </VariantContainer>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const [direction, clip] of [
+      ["LTR", "inset(0px 40% 0px 0px)"],
+      ["RTL", "inset(0px 0px 0px 40%)"],
+    ]) {
+      const image = canvas.getByRole("img", {
+        name: `${direction} product rating: 4.6 out of 5`,
+      })
+      const fraction = image.querySelector('[data-part="fractional-glyph"]')
+      if (!fraction) throw new Error("Missing fractional rating glyph")
+      await expect(getComputedStyle(fraction).clipPath).toBe(clip)
+    }
   },
 }
 
