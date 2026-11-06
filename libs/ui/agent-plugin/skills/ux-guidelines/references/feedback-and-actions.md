@@ -1,3 +1,5 @@
+<!-- Source: house rules authored in libs/ui (no UX_docs counterpart). Storybook: UX/Feedback and actions. -->
+
 # Actions and feedback: where things live
 
 The same kind of action must appear in the same place on every screen, so

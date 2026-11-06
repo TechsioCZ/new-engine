@@ -48,7 +48,7 @@ where actions and feedback live). This section applies them to `Steps`.
 
 **Do**
 
-- Name steps by what the user does (`Shipping`, `Payment`, `Review`).
+- Name each step with a short noun for its stage (`Shipping`, `Payment`, `Review`).
 - Actions at the bottom: `Back` at the start, `Continue` at the end; the last step's button is the real action (`Place order`).
 - Validate each step before continuing; let users go back without losing data.
 - Allow jumping back to completed steps.
@@ -60,7 +60,7 @@ where actions and feedback live). This section applies them to `Steps`.
 
 **Copy and states**
 
-- Step titles are nouns; progress text `Step 2 of 4` for assistive tech.
+- Step titles are short nouns (see Do); progress text `Step 2 of 4` for assistive tech.
 
 ## Setup
 

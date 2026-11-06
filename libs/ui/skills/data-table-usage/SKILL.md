@@ -17,6 +17,8 @@ requires:
   - app-token-overrides
   - table-usage
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/organisms/data-table.tsx"
   - "libs/ui/src/organisms/data-table.helpers.ts"
@@ -71,6 +73,25 @@ where actions and feedback live). This section applies them to `DataTable`.
 - Column headers are short nouns in sentence case, with units when shared (`Price (€)`).
 - Inline edit success → toast `<Object> saved`; errors stay on the cell editor.
 - Search placeholder `Search <objects>…`.
+
+**Behaviour (from the UX spec)**
+
+- Keep at most three own toolbar actions; move the rest into a `Menu`.
+- Inline edit: Cancel restores the last saved value, and moving focus never silently commits another row's edit.
+- If a sort, filter or page request fails, revert the indicator and keep the previous rows; `sort=none` means sortable but unsorted.
+- A truncated value needed for a decision must be fully readable without hover (focus, detail panel or wider column).
+- Expand toggles use a chevron (never ×), and expanding never selects the row.
+- The page-size select needs an accessible name; cell links and buttons don't make it an ARIA grid — no `role="grid"`.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| toolbar / filter row / pagination `size=md` | `size="sm" \| "md" \| "lg"` (shared by nested controls) |
+| `Table.IconButton` | `ActionIcon` with `aria-label` (no Table.IconButton exists) |
+| `state=loading` | `loading` / `loadingMore` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/DataTable → UX guidelines*.
 
 ## Setup
 

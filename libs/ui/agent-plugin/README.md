@@ -1,4 +1,4 @@
-# techsio-ui-kit-ai v0.2.0
+# techsio-ui-kit-ai v0.3.0
 
 Agent plugin for the **@techsio/ui-kit** design system, packaged to the
 **[Agent Plugins 1.0.0](https://agent-plugins.org)** standard
@@ -39,9 +39,18 @@ compositions (`Pages/*`) and the kit's components:
   bottom-right with the primary last, danger zone separated; one `<Toaster />` at bottom-end;
   which feedback surface (inline, FormErrorSummary, toast, alertdialog) for which event.
 - **Component selection** — intent → component, with the look-alike to avoid.
+- **Value lifecycle** — draft, pending, confirmed and rejected values: browsing never commits,
+  failure keeps the draft, Cancel restores the last confirmed value, stale responses are dropped.
+- **Accessibility** — lasting names, focus ≠ selected ≠ hover, nothing hover- or drag-only,
+  never colour alone.
 
 Every `<component>-usage` skill applies these rules in its own **UX/UI guidelines** section:
-when to use it, what to use instead, do, don't, copy and states.
+when to use it, what to use instead, do, don't, copy and states, plus a Figma → code table.
+Components with a full UX page also ship it as `references/ux.md` (anatomy, states,
+behaviour, edge cases). The same Markdown files render in Storybook — the house rules under
+`UX/`, each component's page as **UX guidelines** next to its stories — so edit them once in
+`libs/ui/skills/`. `scripts/validate-plugin.mjs` fails when a usage skill has no page and isn't
+listed in its temporary `UX_PAGE_PENDING` allowlist.
 
 > **Note on slash commands:** Codex deprecated `~/.codex/prompts` custom prompts in favor of
 > skills. Skills ARE the slash commands now — invoke them explicitly with `$skill-name` (or
