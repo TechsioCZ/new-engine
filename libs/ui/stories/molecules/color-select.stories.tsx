@@ -389,7 +389,11 @@ export const FocusRecovery: Story = {
       },
     },
   },
-  render: () => <RecoveringColors />,
+  render: () => (
+    <div className="pb-200">
+      <RecoveringColors />
+    </div>
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     canvas.getByRole("radio", { name: "Select color Sand" }).focus()
@@ -414,5 +418,13 @@ export const FocusRecovery: Story = {
     await expect(
       canvas.queryAllByRole("radio", { checked: true })
     ).toHaveLength(0)
+    const group = canvas.getByRole("radiogroup", { name: "Available colors" })
+    const style = getComputedStyle(group)
+    const outline =
+      Number.parseFloat(style.outlineWidth) +
+      Math.max(0, Number.parseFloat(style.outlineOffset))
+    await expect(group.getBoundingClientRect().bottom + outline).toBeLessThanOrEqual(
+      canvasElement.getBoundingClientRect().bottom
+    )
   },
 }
