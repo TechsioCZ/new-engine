@@ -18,14 +18,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Refresh consistent KPI caption placement after the app review.
+          # Refresh KPI captions and every corrected loading chart.
           # Shared themes also exercise the recovered carousel focus outline.
-          - { label: kpi-business-1, brand: business, shard: "1/3", selection: full }
-          - { label: kpi-business-2, brand: business, shard: "2/3", selection: full }
-          - { label: kpi-business-3, brand: business, shard: "3/3", selection: full }
-          - { label: kpi-shared-1, brand: "base,neo,akros", shard: "1/3", selection: shared }
-          - { label: kpi-shared-2, brand: "base,neo,akros", shard: "2/3", selection: shared }
-          - { label: kpi-shared-3, brand: "base,neo,akros", shard: "3/3", selection: shared }
+          - { label: loading-kpi-business-1, brand: business, shard: "1/3", selection: full }
+          - { label: loading-kpi-business-2, brand: business, shard: "2/3", selection: full }
+          - { label: loading-kpi-business-3, brand: business, shard: "3/3", selection: full }
+          - { label: loading-kpi-shared-1, brand: "base,neo,akros", shard: "1/3", selection: shared }
+          - { label: loading-kpi-shared-2, brand: "base,neo,akros", shard: "2/3", selection: shared }
+          - { label: loading-kpi-shared-3, brand: "base,neo,akros", shard: "3/3", selection: shared }
     env:
       STORYBOOK_DISABLE_TELEMETRY: "1"
       PLAYWRIGHT_WORKERS: "2"
