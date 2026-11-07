@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.20
+- Reserve pagination scrollport clearance for full focus outlines and contrast halos while preserving control positions and targets; reveal keyboard-focused links within narrow navigation without moving pointer targets, focus or ancestor scroll.
+
 ### DataTable v1.4.19
 - Limit pointer-completion reveal to the activated field container so opening another column's popup cannot scroll a previously focused field back into view.
 

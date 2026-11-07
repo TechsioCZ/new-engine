@@ -294,12 +294,29 @@ export const Sizes: Story = {
             bounds.left >= editorBounds.right - 1 ||
             bounds.right <= editorBounds.left + 1
           await expect(separated).toBe(true)
+          await expect(bounds.width).toBeGreaterThanOrEqual(24)
+          await expect(bounds.height).toBeGreaterThanOrEqual(24)
           if (window.matchMedia("(pointer: coarse)").matches) {
-            const mediumControl = inputs[1]?.closest('[data-part="control"]')
-            if (!mediumControl) throw new Error("Missing medium touch field")
-            await expect(bounds.width).toBeGreaterThanOrEqual(
-              mediumControl.getBoundingClientRect().height - 1
-            )
+            // Font-relative target aliases resolve in the button, not a sibling field.
+            const probe = button.ownerDocument.createElement("span")
+            Object.assign(probe.style, {
+              position: "absolute",
+              insetInlineStart: "0",
+              insetBlockStart: "0",
+              visibility: "hidden",
+              pointerEvents: "none",
+              blockSize: "0",
+              inlineSize: "var(--spacing-numeric-input-trigger-touch-min)",
+            })
+            let targetWidth = 0
+            button.append(probe)
+            try {
+              targetWidth = probe.getBoundingClientRect().width
+            } finally {
+              probe.remove()
+            }
+            await expect(targetWidth).toBeGreaterThanOrEqual(24)
+            await expect(bounds.width).toBeGreaterThanOrEqual(targetWidth - 1)
           }
         }
       }

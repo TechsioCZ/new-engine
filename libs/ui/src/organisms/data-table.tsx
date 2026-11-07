@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.19
+ * @componentVersion v1.4.20
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -587,6 +587,38 @@ function handleTableFieldActivation(event: MouseEvent<HTMLElement>) {
   ) {
     // Only finish reveal for the activated control, not stale focus in another column.
     revealTableField(scroller, active)
+  }
+}
+
+function revealTablePaginationControl(host: HTMLElement, element: HTMLElement) {
+  const nav = element.closest("nav")
+  if (
+    !isHTMLElement(nav) ||
+    nav.parentElement !== host ||
+    element.ownerDocument.activeElement !== element ||
+    !element.matches(":focus-visible") ||
+    nav.scrollWidth <= nav.clientWidth
+  ) {
+    return
+  }
+  const viewport = nav.getBoundingClientRect()
+  const style = getComputedStyle(nav)
+  const start = Number.parseFloat(style.scrollPaddingInlineStart) || 0
+  const end = Number.parseFloat(style.scrollPaddingInlineEnd) || 0
+  const rtl = style.direction === "rtl"
+  const left = viewport.left + nav.clientLeft + (rtl ? end : start)
+  const right =
+    viewport.left + nav.clientLeft + nav.clientWidth - (rtl ? start : end)
+  const rect = element.getBoundingClientRect()
+  if (rect.width <= 0 || rect.width > right - left) {
+    return
+  }
+  const delta =
+    rect.left < left ? rect.left - left : Math.max(0, rect.right - right)
+  if (delta !== 0) {
+    // Native focus can leave a middle link clipped in a narrow Chromium nav.
+    // Move only this horizontal scrollport, including native negative RTL offsets.
+    nav.scrollLeft += delta
   }
 }
 
@@ -5068,6 +5100,7 @@ DataTable.Pagination = function DataTablePagination() {
         }}
         onFocusCapture={(event) => {
           focusedControl.current = event.target
+          revealTablePaginationControl(event.currentTarget, event.target)
         }}
         ref={controlsRef}
       >

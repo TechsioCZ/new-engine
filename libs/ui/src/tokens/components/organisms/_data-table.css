@@ -150,6 +150,12 @@
 @theme static {
   --color-data-table-focus: var(--color-ring);
   --color-data-table-scroll-ring: var(--color-data-table-focus);
+  --spacing-data-table-focus-paint: calc(
+    var(--default-ring-offset) +
+    var(--default-ring-width) *
+    2
+  );
+  --padding-data-table-pagination-focus: var(--spacing-data-table-focus-paint);
 }
 @utility data-table-scroll-focus {
   outline-style: var(--default-ring-style);
@@ -463,8 +469,15 @@
     max-width: none;
   }
   & > nav {
+    box-sizing: content-box;
     min-width: 0;
+    margin: calc(-1 * var(--padding-data-table-pagination-focus));
+    padding: var(--padding-data-table-pagination-focus);
+    scroll-padding: var(--padding-data-table-pagination-focus);
     overflow-x: auto;
+  }
+  & > nav :is(a, button) {
+    scroll-margin-inline: var(--padding-data-table-pagination-focus);
   }
   @container data-table-pagination (width < 48rem) {
     width: 100%;

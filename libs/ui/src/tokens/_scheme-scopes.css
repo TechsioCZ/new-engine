@@ -1498,6 +1498,12 @@
     --color-data-table-skeleton-bg: var(--color-data-table-skeleton);
     --color-data-table-focus: var(--color-ring);
     --color-data-table-scroll-ring: var(--color-data-table-focus);
+    --spacing-data-table-focus-paint: calc(
+    var(--default-ring-offset) +
+    var(--default-ring-width) *
+    2
+  );
+    --padding-data-table-pagination-focus: var(--spacing-data-table-focus-paint);
     --text-data-table-action: var(--text-button-sm);
     --text-data-table-expand-icon: var(--text-data-table-action);
     --color-data-table-editor-label: var(--color-fg-secondary);
