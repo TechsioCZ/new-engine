@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.18
+ * @componentVersion v1.4.19
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -580,7 +580,12 @@ function handleTableFieldFocus(event: FocusEvent<HTMLElement>) {
 function handleTableFieldActivation(event: MouseEvent<HTMLElement>) {
   const scroller = event.currentTarget
   const active = scroller.ownerDocument.activeElement
-  if (scroller.contains(event.target as Node) && isHTMLElement(active)) {
+  if (
+    scroller.contains(event.target as Node) &&
+    isHTMLElement(active) &&
+    active.parentElement?.contains(event.target as Node)
+  ) {
+    // Only finish reveal for the activated control, not stale focus in another column.
     revealTableField(scroller, active)
   }
 }

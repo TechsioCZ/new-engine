@@ -75,7 +75,11 @@ for (const [brand, mode] of [
     await expect(field).toBeFocused()
   })
 
-  for (const story of ["typed-column-filters", "large-field-alignment"]) {
+  for (const [story, expectedState] of [
+    ["typed-column-filters", "--state-skills-filter-open"],
+    ["large-field-alignment", "--state-skills-editor-open"],
+    ["column-filters-with-conditions", "--state-number-condition-open"],
+  ] as const) {
     test(`${brand} ${mode} ${story} popup activation survives owning-table focus reveal`, async ({
       page,
     }) => {
@@ -91,11 +95,7 @@ for (const [brand, mode] of [
         }
       )
       expect(handled).toBe(true)
-      expect(states).toContain(
-        story === "typed-column-filters"
-          ? "--state-skills-filter-open"
-          : "--state-skills-editor-open"
-      )
+      expect(states).toContain(expectedState)
     })
   }
 }

@@ -176,6 +176,43 @@ describe("DataTable scoped horizontal field focus reveal", () => {
     expect(field.value).toBe("React")
   })
 
+  it("does not reveal a stale focused field when another column activates its popup", async () => {
+    const activated = vi.fn()
+    const canvas = await mount(
+      <DataTable
+        columns={[
+          ...columns,
+          { id: "role", header: "Role", accessorFn: () => "Admin" },
+        ]}
+        data={data}
+        enableColumnFilters
+        renderHeaderFilter={(column) =>
+          column.id === "email" ? (
+            <input aria-label="Previous filter" defaultValue="nasa" />
+          ) : (
+            <button aria-label="Other popup" onClick={activated} type="button">
+              Open
+            </button>
+          )
+        }
+      />
+    )
+    const field = required(canvas.querySelector<HTMLInputElement>("input"))
+    const trigger = required(
+      canvas.querySelector<HTMLButtonElement>(
+        'button[aria-label="Other popup"]'
+      )
+    )
+    const scroller = geometry(field, 411)
+    await interact(() => field.focus())
+    scroller.scrollLeft = 600
+    // Menu triggers can retain the previous input's focus until opening.
+    await interact(() => trigger.click())
+    expect(activated).toHaveBeenCalledOnce()
+    expect(document.activeElement).toBe(field)
+    expect(scroller.scrollLeft).toBe(600)
+  })
+
   it("reveals a left-clipped RTL filter using negative native scrollLeft", async () => {
     const canvas = await mount(
       <div dir="rtl">

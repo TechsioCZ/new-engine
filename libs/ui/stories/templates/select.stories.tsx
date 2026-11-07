@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import type { SelectItem } from "../../src/molecules/select"
 import { SelectTemplate } from "../../src/templates/select"
@@ -262,7 +262,7 @@ export const LongLabels: Story = {
     } finally {
       await userEvent.keyboard("{Escape}")
     }
-    await expect(trigger).toHaveFocus()
+    await waitFor(() => expect(trigger).toHaveFocus())
   },
 }
 

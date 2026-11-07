@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.19
+- Limit pointer-completion reveal to the activated field container so opening another column's popup cannot scroll a previously focused field back into view.
+
 ### DataTable v1.4.18
 - Reveal focused inline filters and editors within their owning table without changing widths or ancestor scroll, distinguish empty blurred native date editors while preserving native entry and validation, and make reorder grips taller and clearer without changing row spacing or drag behavior.
 
