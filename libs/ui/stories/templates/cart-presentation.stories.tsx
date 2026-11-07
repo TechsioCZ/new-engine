@@ -61,7 +61,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
     : `Ceny platí pro poslední platné množství: ${pricedQuantity} balení. Pro přepočet zadejte platné množství.`
   if (removed)
     return (
-      <div className="flex flex-col gap-200">
+      <div className="mx-auto flex w-xl max-w-full flex-col gap-200">
         <StatusText role="status">Košík je prázdný.</StatusText>
         <Button
           className="self-start max-w-full"
@@ -79,7 +79,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
     )
   const title = "Montážní sada M8"
   return (
-    <div className="flex w-xl max-w-full flex-col gap-400">
+    <div className="mx-auto flex w-xl max-w-full flex-col gap-400">
       <LineItem title={title} readOnly={locked}>
         <LineItem.Body>
           <LineItem.Heading>
@@ -279,7 +279,7 @@ export const CartAndRecap: Story = {
   },
 
   render: () => (
-    <VariantContainer>
+    <VariantContainer className="mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-800 space-y-0 lg:grid-cols-2">
       <VariantGroup
         fullWidth
         title="Košík: úprava množství a nevybraná doprava"
@@ -310,7 +310,7 @@ function MultipleItemCart() {
     destination.current = null
   }, [items])
   return (
-    <div className="flex w-full max-w-lg flex-col gap-400">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-400">
       {items.map((title, index) => (
         <LineItem title={title} key={title}>
           <LineItem.Body>

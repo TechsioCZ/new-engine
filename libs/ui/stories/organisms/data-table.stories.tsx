@@ -316,10 +316,48 @@ export const NarrowColumnFilters: Story = {
         }
       }
       if (layout === "auto") {
-        // Return to the first field so the comparison starts at its logical beginning.
+        // Focus alone only reveals the input and can leave the caption/header clipped.
+        // Keep real focus and filter state while returning to the logical scroll start.
         const first = within(table).getByLabelText("Filter value for Age")
-        first.focus()
-        await waitFor(() => expect(first).toHaveFocus())
+        const region = canvas.getByRole("region", { name: "auto layout filters" })
+        first.focus({ preventScroll: true })
+        region.scrollTo({ left: 0, behavior: "instant" })
+        await waitFor(() => {
+          expect(first).toHaveFocus()
+          expect(first).toHaveValue(36)
+          expect(within(table).getByLabelText("Filter upper bound for Age"))
+            .toHaveValue(40)
+          expect(within(table).getByLabelText("Filter value for Visits"))
+            .toHaveValue(812)
+          expect(Math.abs(region.scrollLeft)).toBeLessThanOrEqual(1)
+          const viewport = region.getBoundingClientRect()
+          const left = Math.max(0, viewport.left + region.clientLeft)
+          const right = Math.min(
+            viewport.left + region.clientLeft + region.clientWidth,
+            canvasElement.ownerDocument.documentElement.clientWidth
+          )
+          const sort = within(table).getByRole("button", { name: "Age" })
+          const bounds = [
+            first.getBoundingClientRect(),
+            sort.querySelector('[aria-hidden="true"]')!.getBoundingClientRect(),
+          ]
+          // Measure the actual caption/label ink, not the overflowing table boxes.
+          for (const content of [
+            table.querySelector("caption")!,
+            sort.querySelector("span")!,
+          ]) {
+            const text = canvasElement.ownerDocument.createRange()
+            text.selectNodeContents(content)
+            const fragments = Array.from(text.getClientRects())
+            expect(fragments.length).toBeGreaterThan(0)
+            bounds.push(...fragments)
+          }
+          for (const rect of bounds) {
+            expect(rect.width).toBeGreaterThan(0)
+            expect(rect.left).toBeGreaterThanOrEqual(left - 1)
+            expect(rect.right).toBeLessThanOrEqual(right + 1)
+          }
+        })
       }
     }
   },
