@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.15
+ * @componentVersion v1.4.16
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -1533,7 +1533,7 @@ function renderCellContent<T extends RowData>({
     )
   }
   const content = flexRender(column.columnDef.cell, cell.getContext())
-  return tableLayout === "fixed" || editing ? (
+  return (
     <div
       className={styles.cellContent({
         className: editing ? "data-table-readonly-value" : undefined,
@@ -1542,8 +1542,6 @@ function renderCellContent<T extends RowData>({
     >
       {content}
     </div>
-  ) : (
-    content
   )
 }
 

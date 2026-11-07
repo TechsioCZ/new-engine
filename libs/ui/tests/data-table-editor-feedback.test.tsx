@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, type ReactNode } from "react"
+import { act, type ReactNode, useEffect, useState } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { type ColumnDef, DataTable } from "../src/organisms/data-table"
@@ -382,6 +382,71 @@ describe("DataTable rejected-save row alignment", () => {
     expect(canvas.querySelector('[role="alert"]')).toBeNull()
     expect(canvas.querySelector("[data-editing]")).toBeNull()
   })
+})
+
+describe("DataTable unrelated custom-cell lifetime", () => {
+  it.each([
+    { tableLayout: "auto", action: "Save row" },
+    { tableLayout: "auto", action: "Cancel edit" },
+    { tableLayout: "fixed", action: "Save row" },
+    { tableLayout: "fixed", action: "Cancel edit" },
+  ] as const)(
+    "retains local state and DOM identity through $action in $tableLayout layout",
+    async ({ tableLayout, action }) => {
+      const mounted = vi.fn()
+      const unmounted = vi.fn()
+      const onEditCommit = vi.fn().mockResolvedValue(undefined)
+      const onEditCancel = vi.fn()
+      function LocalChoice() {
+        const [choice, setChoice] = useState(0)
+        useEffect(() => {
+          mounted()
+          return () => unmounted()
+        }, [])
+        return (
+          <button
+            aria-label="Unrelated local choice"
+            onClick={() => setChoice((value) => value + 1)}
+            type="button"
+          >
+            Choice {choice}
+          </button>
+        )
+      }
+      const canvas = await mount(
+        <DataTable
+          columns={[
+            { accessorKey: "name", header: "Name", meta: { editable: true } },
+            { id: "choice", header: "Choice", cell: LocalChoice },
+          ]}
+          data={[{ name: "Ada" }]}
+          enableInlineEdit
+          onEditCancel={onEditCancel}
+          onEditCommit={onEditCommit}
+          tableLayout={tableLayout}
+        />
+      )
+      await click(canvas, "Unrelated local choice")
+      const choice = button(canvas, "Unrelated local choice")
+      expect(choice.textContent).toBe("Choice 1")
+      expect(mounted).toHaveBeenCalledOnce()
+      await click(canvas, "Edit row 0")
+      expect(button(canvas, "Unrelated local choice")).toBe(choice)
+      expect(choice.textContent).toBe("Choice 1")
+      expect(mounted).toHaveBeenCalledOnce()
+      expect(unmounted).not.toHaveBeenCalled()
+      await act(() => change(input(canvas, "Edit Name"), "Augusta"))
+      await click(canvas, action)
+      expect(button(canvas, "Unrelated local choice")).toBe(choice)
+      expect(choice.textContent).toBe("Choice 1")
+      expect(mounted).toHaveBeenCalledOnce()
+      expect(unmounted).not.toHaveBeenCalled()
+      expect(onEditCommit).toHaveBeenCalledTimes(action === "Save row" ? 1 : 0)
+      expect(onEditCancel).toHaveBeenCalledTimes(
+        action === "Cancel edit" ? 1 : 0
+      )
+    }
+  )
 })
 
 describe("DataTable drag handle discoverability", () => {

@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.16
+- Keep non-editable custom cells mounted through row edit, save and cancel transitions in both table layouts, preserving their local state and DOM identity while changing only alignment classes.
+
 ### Slider v1.4.7
 - Keep disabled labels quiet while giving readable value outputs component-local secondary-foreground tokens, preserving readonly presentation, fieldset behavior and caller color overrides.
 
