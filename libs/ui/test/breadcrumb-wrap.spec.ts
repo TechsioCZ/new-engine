@@ -54,7 +54,8 @@ async function assertRows(nav: Locator, firstName: string, direction: string) {
     const destination = children.nth(1)
     await expect(separator).toHaveAttribute("aria-hidden", "true")
     await expect(separator).toHaveCSS("position", "absolute")
-    await expect(destination).toHaveAttribute("role", "listitem")
+    await expect(segment).toHaveRole("listitem")
+    await expect(destination).toHaveAttribute("role", "presentation")
     await expect(destination).toBeVisible()
     await assertWithinViewport(segment)
     await assertWithinViewport(destination)
@@ -108,6 +109,91 @@ async function assertRows(nav: Locator, firstName: string, direction: string) {
     previous = b
   }
   return wrapped
+}
+
+for (const brand of ["base", "business"]) {
+  for (const content of ["large icon", "wide custom content"]) {
+    test(`${brand}: intrinsic ${content} stays between destinations and releases its gap`, async ({
+      page,
+    }) => {
+      await openContractStory(page, "molecules-breadcrumb--playground", {
+        brand,
+      })
+      const nav = page.getByRole("navigation", {
+        name: "breadcrumb",
+        exact: true,
+      })
+      const list = nav.getByRole("list")
+      const separator = nav
+        .locator(".breadcrumb-segment > ol > li:first-child")
+        .first()
+      const originalContent = await separator.innerHTML()
+      const ordinaryGap = await list.evaluate((element) =>
+        Number.parseFloat(getComputedStyle(element).columnGap)
+      )
+
+      // Exercise the existing story's real separator host and observer. The unit
+      // test separately verifies iconSize="2xl" selects this same Icon class.
+      await separator.evaluate((element, kind) => {
+        if (kind === "large icon") {
+          const icon = element.firstElementChild
+          if (!icon) {
+            throw new Error("Missing separator icon")
+          }
+          for (const name of [...icon.classList]) {
+            if (name.startsWith("text-breadcrumb-separator-icon-")) {
+              icon.classList.remove(name)
+            }
+          }
+          icon.classList.add("text-icon-2xl")
+        } else {
+          const marker = document.createElement("span")
+          marker.textContent = "Section divider"
+          marker.style.cssText =
+            "display: inline-block; width: 96.25px; white-space: nowrap"
+          element.replaceChildren(marker)
+        }
+      }, content)
+      await expect
+        .poll(() =>
+          list.evaluate((element) =>
+            Number.parseFloat(getComputedStyle(element).columnGap)
+          )
+        )
+        .toBeGreaterThan(ordinaryGap)
+
+      let sawWrappedRow = false
+      for (const width of [768, 320, 393, 768]) {
+        await page.setViewportSize({ width, height: 720 })
+        for (const direction of ["ltr", "rtl"]) {
+          await nav.evaluate((element, dir) => {
+            element.setAttribute("dir", dir)
+            // Ancestor transforms must not feed scaled pixels into the flex gap.
+            element.style.transform = "scale(0.75)"
+            element.style.transformOrigin = "center"
+          }, direction)
+          sawWrappedRow =
+            (await assertRows(nav, "Docs", direction)) || sawWrappedRow
+        }
+      }
+      expect(sawWrappedRow).toBe(true)
+      await separator.evaluate((element, html) => {
+        element.innerHTML = html
+      }, originalContent)
+      await expect
+        .poll(() =>
+          list.evaluate((element) =>
+            Number.parseFloat(getComputedStyle(element).columnGap)
+          )
+        )
+        .toBeCloseTo(ordinaryGap, 3)
+      await assertRows(nav, "Docs", "rtl")
+      await expect(nav.getByRole("listitem")).toHaveCount(3)
+      await expect(nav.locator('[aria-current="page"]')).toHaveText(
+        "Breadcrumb"
+      )
+    })
+  }
 }
 
 for (const { brand, trail, repetition } of cases) {

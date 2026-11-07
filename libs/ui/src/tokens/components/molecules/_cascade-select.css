@@ -93,8 +93,17 @@
 /* A wide trigger must not force the hierarchy beyond the overlay boundary. */
 @utility cascade-select-viewport {
   --cascade-select-column-peek: 0px;
+  --_cascade-select-layout-width: var(--available-width);
   min-inline-size: min(var(--reference-width), var(--available-width));
-  max-inline-size: var(--available-width);
+  max-inline-size: var(--_cascade-select-layout-width);
+
+  /* Modal-owned portals keep their hierarchy within the owning field width. */
+  :where([role="dialog"]) & {
+    --_cascade-select-layout-width: min(
+      var(--reference-width),
+      var(--available-width)
+    );
+  }
 
   /* A partial preceding column makes deeper overflow discoverable. */
   &:has(> [data-part="column"][data-depth="2"]) {
@@ -108,7 +117,10 @@
   inline-size: min(
     var(--container-cascade-select-column),
     calc(
-      (var(--available-width, 100vw) - var(--cascade-select-column-peek, 0px)) /
+      (
+        var(--_cascade-select-layout-width, var(--available-width, 100vw)) -
+        var(--cascade-select-column-peek, 0px)
+      ) /
       2 -
       var(--border-width-cascade-select-column)
     )

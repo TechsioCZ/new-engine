@@ -11,7 +11,7 @@ const css = postcss.parse(
   read("../src/tokens/components/molecules/_popover.css")
 )
 const whitespace = /\s+/g
-const constrainedContentClass = /contentClassName="min-w-3xs"/g
+const constrainedContentClass = /contentClassName="w-xs max-w-full"/g
 
 function utility(name: string) {
   let result: AtRule | undefined
@@ -148,6 +148,7 @@ describe("Popover constrained layout regressions", () => {
     const molecule = read("../stories/molecules/popover.stories.tsx")
     const template = read("../stories/templates/popover.stories.tsx")
     expect(molecule.match(constrainedContentClass)).toHaveLength(2)
+    expect(molecule.match(/h-56 w-full min-w-0 max-w-sm/g)).toHaveLength(2)
     expect(molecule).toContain("slide={false}")
     expect(molecule).toContain("rect.left - focusPaint + 1")
     expect(template).toContain("space-y-200 pb-950 last:pb-0 sm:pb-0")

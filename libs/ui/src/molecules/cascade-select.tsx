@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.10
+ * @componentVersion v1.1.11
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -867,6 +867,9 @@ CascadeSelect.Content = function CascadeSelectContent({
         {
           ...contentProps,
           role: "tree",
+          // Zag supplies listbox ARIA; tree does not support aria-readonly.
+          // Keep readonly on the combobox and in the machine's interaction guards.
+          "aria-readonly": undefined,
           "aria-activedescendant": highlightedId,
         },
         props

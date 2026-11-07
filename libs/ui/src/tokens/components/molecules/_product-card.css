@@ -26,6 +26,11 @@
 
   --spacing-product-card-max: 100%;
 
+  --color-product-card-original-price: var(--color-fg-secondary);
+  --color-product-card-original-price-fg: var(--color-product-card-original-price);
+  --text-product-card-original-price: var(--text-sm);
+  --text-product-card-original-price-size: var(--text-product-card-original-price);
+
   /* Fixed media geometry keeps catalog rows comparable regardless of source image. */
   --aspect-product-card-media: 4 / 3;
   --aspect-product-card-image: var(--aspect-product-card-media);
@@ -118,11 +123,6 @@
       grid-row: auto;
       justify-self: stretch;
       height: auto;
-    }
-  }
-  &[data-layout="row"] > * + * {
-    @container product-card (width < 28rem) {
-      margin-block-start: var(--spacing-product-card-col-layout);
     }
   }
 }

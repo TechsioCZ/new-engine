@@ -4,8 +4,11 @@ import { createRoot } from "react-dom/client"
 import { userEvent, within } from "storybook/test"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import meta, {
+  Disabled,
   ErrorState,
   Playground,
+  PopupLifecycleContracts,
+  ReadOnly,
   SuccessState,
   ValidationWorkflow,
 } from "../stories/templates/comprehensive-form.stories"
@@ -120,6 +123,194 @@ describe("Comprehensive Form fixture clarity", () => {
       expect(canvas.textContent).toContain(
         "Enquiry prepared for Alex Morgan. This demo did not send any data."
       )
+      expect(canvas.querySelectorAll('[data-status="success"]')).toHaveLength(1)
+      expect(canvas.textContent).not.toContain(
+        "These details are ready to send."
+      )
+    })
+  })
+
+  it("confirms readiness once without painting every valid field or claiming submission", async () => {
+    await withMountedStory(SuccessState, (canvas) => {
+      const fields = within(canvas)
+      const confirmations = canvas.querySelectorAll('[data-status="success"]')
+      expect(confirmations).toHaveLength(1)
+      expect(confirmations[0]?.getAttribute("role")).toBe("status")
+      expect(confirmations[0]?.textContent).toBe(
+        "These details are ready to send. No data has been sent."
+      )
+      expect(canvas.querySelector('[data-validation="success"]')).toBeNull()
+      expect(canvas.textContent).not.toContain("Enquiry prepared for")
+      const descriptions = [
+        [
+          fields.getByRole("textbox", { name: fullName }),
+          "Use the name we should address in our reply.",
+        ],
+        [
+          fields.getByRole("textbox", { name: emailAddress }),
+          "We will only use this to reply to your enquiry.",
+        ],
+        [
+          fields.getByRole("combobox", { name: "Team" }),
+          "Choose the team best placed to help.",
+        ],
+        [
+          fields.getByRole("combobox", { name: "Project category" }),
+          "Choose the closest category, or leave it empty.",
+        ],
+        [
+          fields.getByRole("spinbutton", { name: "Estimated quantity" }),
+          "An estimate is fine; we will confirm it with you.",
+        ],
+        [
+          fields.getByRole("slider"),
+          "Use the arrow keys for a rough budget estimate.",
+        ],
+        [
+          fields.getByRole("textbox", { name: projectDetails }),
+          "Include quantities, delivery dates and any special requirements.",
+        ],
+        [
+          fields.getByRole("checkbox", { name: contactConsent }),
+          "Your details are not shared with other companies.",
+        ],
+      ] as const
+      for (const [control, hint] of descriptions) {
+        const help = fields.getByText(hint).closest<HTMLElement>("[id]")
+        expect(help?.id).toBeTruthy()
+        expect(control.getAttribute("aria-describedby")?.split(" ")).toContain(
+          help?.id
+        )
+      }
+    })
+  })
+
+  it("clears readiness on edits and preserves invalid submission and Cancel after success", async () => {
+    await withMountedStory(SuccessState, async (canvas) => {
+      const fields = within(canvas)
+      await act(async () =>
+        userEvent.clear(fields.getByRole("textbox", { name: fullName }))
+      )
+      expect(canvas.textContent).not.toContain(
+        "These details are ready to send."
+      )
+      await submit(canvas)
+      expect(fields.getByRole("alert", { name: "There is a problem" })).toBe(
+        document.activeElement
+      )
+      expect(
+        fields.getByRole("link", { name: "Enter your full name." })
+      ).toBeTruthy()
+      expect(
+        fields
+          .getByRole("textbox", { name: fullName })
+          .getAttribute("aria-invalid")
+      ).toBe("true")
+      expect(canvas.textContent).not.toContain("Enquiry prepared for")
+      await act(async () =>
+        userEvent.click(fields.getByRole("button", { name: "Cancel" }))
+      )
+      expect(
+        fields.queryByRole("alert", { name: "There is a problem" })
+      ).toBeNull()
+      expect(canvas.textContent).toContain("Enquiry cleared. No data was sent.")
+      expect(canvas.textContent).not.toContain(
+        "These details are ready to send."
+      )
+      expect(
+        (fields.getByRole("textbox", { name: fullName }) as HTMLInputElement)
+          .value
+      ).toBe("")
+      expect(
+        (
+          fields.getByRole("checkbox", {
+            name: contactConsent,
+          }) as HTMLInputElement
+        ).checked
+      ).toBe(false)
+    })
+  })
+
+  it.each([
+    ["disabled", Disabled, true],
+    ["read-only", ReadOnly, false],
+  ] as const)(
+    "propagates %s state to labels and the budget value without dimming read-only fields",
+    async (_name, story, disabled) => {
+      await withMountedStory(story, (canvas) => {
+        for (const scope of ["select", "combobox", "slider"]) {
+          const label = canvas.querySelector(
+            `[data-scope="${scope}"][data-part="label"]`
+          )
+          expect(label).not.toBeNull()
+          expect(label?.classList.contains("text-label-fg-disabled")).toBe(
+            disabled
+          )
+        }
+        const budgetValue = canvas.querySelector(
+          '[data-scope="slider"][data-part="value-text"]'
+        )
+        expect(budgetValue?.textContent?.trim()).toBe("25")
+        expect(budgetValue?.hasAttribute("data-disabled")).toBe(disabled)
+        expect(
+          budgetValue?.classList.contains(
+            "data-disabled:text-label-fg-disabled"
+          )
+        ).toBe(true)
+      })
+    }
+  )
+
+  it("updates disabled labels from ancestor fieldsets without dimming the first legend exemption", async () => {
+    await withMountedStory(PopupLifecycleContracts, async (canvas) => {
+      const fields = within(canvas)
+      const toggle = fields.getByRole("button", {
+        name: "Toggle ancestor disabled",
+      })
+      for (const disabled of [true, false]) {
+        await act(async () => userEvent.click(toggle))
+        for (const scope of ["select", "combobox"]) {
+          const label = canvas.querySelector(
+            `[data-scope="${scope}"][data-part="label"]`
+          )
+          expect(label?.classList.contains("text-label-fg-disabled")).toBe(
+            disabled
+          )
+        }
+        const sliderLabels = canvas.querySelectorAll(
+          '[data-scope="slider"][data-part="label"]'
+        )
+        expect(sliderLabels).toHaveLength(2)
+        expect(
+          sliderLabels[0]?.classList.contains("text-label-fg-disabled")
+        ).toBe(false)
+        expect(
+          sliderLabels[1]?.classList.contains("text-label-fg-disabled")
+        ).toBe(disabled)
+      }
+    })
+  })
+
+  it("uses the shared label size and separates lifecycle controls from owner resets", async () => {
+    await withMountedStory(PopupLifecycleContracts, (canvas) => {
+      const fields = within(canvas)
+      const labels = ["select", "combobox", "cascade-select"].map((scope) =>
+        canvas.querySelector(`[data-scope="${scope}"][data-part="label"]`)
+      )
+      for (const label of labels) {
+        expect(label?.classList.contains("text-label-md")).toBe(true)
+      }
+      const setup = fields.getByRole("group", { name: "Lifecycle controls" })
+      const resets = fields.getByRole("group", { name: "Owner resets" })
+      expect(within(setup).getAllByRole("button")).toHaveLength(3)
+      expect(within(resets).getAllByRole("button")).toHaveLength(2)
+      for (const owner of ["a", "b"]) {
+        const button = within(resets).getByRole("button", {
+          name: `Reset owner ${owner}`,
+        }) as HTMLButtonElement
+        expect(button.type).toBe("reset")
+        expect(button.form?.getAttribute("aria-label")).toBe(`Owner ${owner}`)
+      }
     })
   })
 

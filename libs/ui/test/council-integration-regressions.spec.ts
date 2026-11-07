@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test"
+import { blockingViolations } from "../.storybook/a11y-policy.mjs"
 import { openContractStory } from "./visual-shared-contracts.mjs"
 import { assertWithinViewport } from "./visual-viewport.mjs"
 
-const playErrorPattern = /TestingLibraryElementError|AssertionError/
+const playErrorPattern =
+  /TestingLibraryElementError|AssertionError|Error: expect/
 const thumbnailNamePattern = /^Show slide \d+$/
 
 test("arrowless pagination wraps all destinations inside a narrow consumer", async ({
@@ -88,6 +90,170 @@ test("GalleryTemplate accepts hidden thumbnails without a play error", async ({
   await expect(page.getByRole("region")).toBeVisible()
   expect(errors).toEqual([])
 })
+
+for (const brand of ["base", "neo", "business", "akros"]) {
+  for (const component of ["select", "cascadeselect"]) {
+    test(`${brand} ${component} keeps keyboard option focus without a panel halo`, async ({
+      page,
+    }) => {
+      await openContractStory(page, `molecules-${component}--playground`, {
+        brand,
+      })
+      const scope = component === "select" ? "select" : "cascade-select"
+      const trigger = page.locator(
+        `#storybook-root [data-scope="${scope}"][data-part="trigger"]`
+      )
+      await trigger.focus()
+      await page.keyboard.press("ArrowDown")
+      const popup = page.locator(".popup-surface-base:visible").first()
+      await expect(popup).toBeVisible()
+      await popup.evaluate((element) => {
+        element.style.setProperty(
+          "--shadow-popup",
+          "rgb(17, 34, 51) 0px 3px 7px 0px"
+        )
+      })
+      await popup.focus()
+      await expect(popup).toBeFocused()
+      await expect(popup).toHaveCSS(
+        "box-shadow",
+        "rgb(17, 34, 51) 0px 3px 7px 0px"
+      )
+      const highlighted = popup.locator("[data-highlighted]").first()
+      await expect(highlighted).toBeVisible()
+      await page.emulateMedia({ forcedColors: "active" })
+      if (
+        await page.evaluate(() => matchMedia("(forced-colors: active)").matches)
+      ) {
+        await expect(highlighted).toHaveCSS("outline-style", "solid")
+        await expect(highlighted).toHaveCSS("outline-width", "2px")
+      }
+      await page.emulateMedia({ forcedColors: "none" })
+      await page.keyboard.press("Escape")
+      await expect(trigger).toBeFocused()
+      expect(
+        await trigger.evaluate((element) => getComputedStyle(element).boxShadow)
+      ).not.toBe("none")
+    })
+  }
+
+  for (const host of ["dialog", "drawer"]) {
+    test(`${brand} cascade hierarchy stays within its ${host} field`, async ({
+      page,
+    }) => {
+      const errors: string[] = []
+      page.on("console", (message) => {
+        if (
+          message.type() === "error" &&
+          playErrorPattern.test(message.text())
+        ) {
+          errors.push(message.text())
+        }
+      })
+      await openContractStory(
+        page,
+        "templates-comprehensive-form--modal-popup-contracts",
+        { brand }
+      )
+      expect(errors).toEqual([])
+      await page
+        .getByRole("button", { name: `Open popup ${host}`, exact: true })
+        .click()
+      const modal = page.getByRole("dialog", {
+        name: `Popup ${host}`,
+        exact: true,
+      })
+      const trigger = modal.getByRole("combobox", {
+        name: "Modal category",
+        exact: true,
+      })
+      await trigger.click()
+      await page.getByRole("treeitem", { name: "Group", exact: true }).click()
+      const popup = modal.locator(".popup-surface-base:visible")
+      await expect(popup).toBeVisible()
+      await expect(popup.locator('[data-part="column"]')).toHaveCount(2)
+      await expect
+        .poll(async () => {
+          const [panel, field, owner] = await Promise.all([
+            popup.boundingBox(),
+            trigger.boundingBox(),
+            modal.boundingBox(),
+          ])
+          if (!(panel && field && owner)) {
+            return Number.POSITIVE_INFINITY
+          }
+          return Math.max(
+            panel.width - field.width,
+            owner.x - panel.x,
+            panel.x + panel.width - owner.x - owner.width
+          )
+        })
+        .toBeLessThanOrEqual(1)
+      await assertWithinViewport(popup)
+      await expect(
+        modal.getByRole("treeitem", { name: "Leaf", exact: true })
+      ).toBeVisible()
+    })
+  }
+}
+
+const accessibilityStories = [
+  "molecules-breadcrumb--playground",
+  "molecules-cascadeselect--long-labels",
+  "organisms-datatable--grouped-fixed-widths",
+  "overview-component-comparison--side-by-side",
+]
+
+for (const brand of ["base", "neo", "business", "akros"]) {
+  for (const storyId of accessibilityStories) {
+    test(`${brand} ${storyId} passes the required accessibility policy`, async ({
+      page,
+    }) => {
+      await openContractStory(page, storyId, { brand })
+      if (storyId === "overview-component-comparison--side-by-side") {
+        const inventory = page.getByRole("region", {
+          name: "Product inventory table",
+        })
+        await expect(inventory).toHaveAttribute("tabindex", "0")
+        await expect(inventory).toHaveCSS("overflow-x", "auto")
+      }
+      await page.waitForFunction(
+        (id) =>
+          (
+            window as unknown as {
+              __TECHSIO_A11Y_RESULTS__?: { storyId: string }
+            }
+          ).__TECHSIO_A11Y_RESULTS__?.storyId === id,
+        storyId,
+        { timeout: 30_000 }
+      )
+      const result = await page.evaluate(
+        () =>
+          (
+            window as unknown as {
+              __TECHSIO_A11Y_RESULTS__?: {
+                storyId: string
+                results: { violations: { id: string }[] }
+              }
+            }
+          ).__TECHSIO_A11Y_RESULTS__
+      )
+      expect(result?.storyId).toBe(storyId)
+      if (!Array.isArray(result?.results?.violations)) {
+        throw new Error("Missing browser accessibility results")
+      }
+      const blocking = blockingViolations(result.results.violations)
+      expect(
+        blocking,
+        JSON.stringify(
+          result.results.violations.filter((violation) =>
+            blocking.includes(violation.id)
+          )
+        )
+      ).toEqual([])
+    })
+  }
+}
 
 test("linked product titles clamp text without clipping their focus outline", async ({
   page,

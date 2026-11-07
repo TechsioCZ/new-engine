@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, within } from "storybook/test"
-import { VariantGroup } from "../../.storybook/decorator"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import {
   Breadcrumb,
   type BreadcrumbRootProps,
@@ -114,7 +114,8 @@ export const Playground: Story = {
     for (const segment of segments) {
       const [separator, item] = segment.querySelectorAll("li")
       if (!(separator && item)) throw new Error("Missing breadcrumb segment")
-      await expect(item).toHaveAttribute("role", "listitem")
+      await expect(canvas.getAllByRole("listitem")).toContain(segment)
+      await expect(item).toHaveAttribute("role", "presentation")
       await expect(separator).toHaveAttribute("aria-hidden", "true")
       const a = separator.getBoundingClientRect()
       const b = item.getBoundingClientRect()
@@ -148,7 +149,7 @@ export const Variants: Story = {
     },
   },
   render: () => (
-    <div className="flex flex-col items-start gap-400">
+    <VariantContainer className="items-start gap-400 space-y-0">
       <VariantGroup title="Link treatment" fullWidth>
         <DemoBreadcrumb aria-label="Plain breadcrumb" variant="plain" />
         <DemoBreadcrumb
@@ -156,7 +157,7 @@ export const Variants: Story = {
           variant="underline"
         />
       </VariantGroup>
-    </div>
+    </VariantContainer>
   ),
 }
 
@@ -171,7 +172,7 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <div className="flex flex-col items-start gap-400">
+    <VariantContainer className="items-start gap-400 space-y-0">
       <VariantGroup title="Small" fullWidth>
         <DemoBreadcrumb aria-label="Small breadcrumb" size="sm" />
       </VariantGroup>
@@ -181,7 +182,7 @@ export const Sizes: Story = {
       <VariantGroup title="Large" fullWidth>
         <DemoBreadcrumb aria-label="Large breadcrumb" size="lg" />
       </VariantGroup>
-    </div>
+    </VariantContainer>
   ),
 }
 

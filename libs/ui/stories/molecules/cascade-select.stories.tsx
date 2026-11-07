@@ -783,14 +783,17 @@ export const ParentSelection: Story = {
     const branch = await within(canvasElement.ownerDocument.body).findByRole("treeitem", { name: "Electronics" })
     const check = branch.querySelector<HTMLElement>('[data-part="item-indicator"]')
     const arrow = branch.querySelector<HTMLElement>('[data-part="branch-indicator"]')
-    await expect(check).toBeVisible()
-    await expect(arrow).toBeVisible()
-    if (!(check && arrow)) return
-    const checkRect = check.getBoundingClientRect()
-    const arrowRect = arrow.getBoundingClientRect()
-    await expect(Math.max(checkRect.left, arrowRect.left)).toBeGreaterThanOrEqual(
-      Math.min(checkRect.right, arrowRect.right)
-    )
+    await waitFor(() => {
+      expect(branch).toHaveAttribute("data-state", "checked")
+      expect(check).toBeVisible()
+      expect(arrow).toBeVisible()
+      if (!(check && arrow)) throw new Error("Missing parent selection indicators")
+      const checkRect = check.getBoundingClientRect()
+      const arrowRect = arrow.getBoundingClientRect()
+      expect(Math.max(checkRect.left, arrowRect.left)).toBeGreaterThanOrEqual(
+        Math.min(checkRect.right, arrowRect.right)
+      )
+    })
     await userEvent.keyboard("{Escape}")
   },
   parameters: {
@@ -901,7 +904,7 @@ function ChangingHierarchy() {
       defaultValue={[["a", "leaf"], ["b", "leaf"]]} />
     <Button variant="secondary" onClick={() => setPhase(1)}>Rename and reorder categories</Button>
     <Button variant="secondary" onClick={() => setPhase(2)}>Remove Alpha</Button>
-    <output aria-label="Hierarchy changes">{changes}</output>
+    <output aria-label="Hierarchy changes" className="text-fg-secondary text-sm">Hierarchy changes: {changes}</output>
   </form>
 }
 

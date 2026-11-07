@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import meta, {
   ActionLayouts,
+  AdapterMediaLifecycle,
   Badges,
   BadgesWithCustomColors,
   ComplexCard,
@@ -106,6 +107,80 @@ describe("ProductCard story presentation contracts", () => {
       decorator(() => <p>Preview</p>, {} as never)
     )
     expect(element.querySelector(".p-200 > p")?.textContent).toBe("Preview")
+  })
+
+  it("recovers adapter media with an actual source while retaining the error fallback and image ref contract", async () => {
+    const host = document.createElement("div")
+    document.body.append(host)
+    const root = createRoot(host)
+    try {
+      await act(async () => root.render(storyElement(AdapterMediaLifecycle)))
+      const initialImage = host.querySelector<HTMLImageElement>(
+        '[data-asset-id="runner-side"]'
+      )
+      const media = initialImage?.closest<HTMLElement>("[data-image-state]")
+      if (!(initialImage && media)) {
+        throw new Error("Missing adapter image or reserved media box")
+      }
+      const reservation = media.querySelector(
+        "[data-image-reservation]"
+      )?.outerHTML
+      expect(media.dataset.imageState).toBe("loading")
+      expect(initialImage.hasAttribute("src")).toBe(false)
+
+      await act(() => {
+        initialImage.dispatchEvent(new Event("error"))
+      })
+      expect(media.dataset.imageState).toBe("error")
+      expect(initialImage.alt).toBe("")
+      expect(initialImage.getAttribute("aria-hidden")).toBe("true")
+      expect(
+        media.querySelector("[data-image-fallback]")?.getAttribute("aria-label")
+      ).toBe("Runner low adapter side view")
+      expect(host.querySelector('[role="status"]')?.textContent).toContain(
+        "Image failed"
+      )
+
+      const recover = host.querySelector("button")
+      if (!recover) {
+        throw new Error("Missing media recovery action")
+      }
+      await act(async () => recover.click())
+      const recoveredImage = host.querySelector<HTMLImageElement>(
+        '[data-asset-id="runner-side"]'
+      )
+      const recoveredMedia =
+        recoveredImage?.closest<HTMLElement>("[data-image-state]")
+      if (!(recoveredImage && recoveredMedia)) {
+        throw new Error("Missing replacement adapter image or media box")
+      }
+      expect(recoveredImage).not.toBe(initialImage)
+      expect(recoveredImage.dataset.requestedSrc).toBe("recovered-card")
+      expect(
+        recoveredImage
+          .getAttribute("src")
+          ?.startsWith("https://images.unsplash.com/")
+      ).toBe(true)
+      expect(recoveredMedia.dataset.imageState).toBe("loading")
+      expect(recoveredMedia.querySelector("[data-image-fallback]")).toBeNull()
+      expect(
+        recoveredMedia.querySelector("[data-image-reservation]")?.outerHTML
+      ).toBe(reservation)
+
+      // Happy DOM does not decode the remote image; browser play waits for a real load.
+      await act(() => {
+        recoveredImage.dispatchEvent(new Event("load"))
+      })
+      expect(recoveredMedia.dataset.imageState).toBe("loaded")
+      expect(recoveredImage.alt).toBe("Runner low adapter side view")
+      expect(recoveredImage.hasAttribute("aria-hidden")).toBe(false)
+      expect(host.querySelector('[role="status"]')?.textContent).toBe(
+        "Loaded on image ref"
+      )
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
   })
 
   it("announces a local stock notification rather than viewing details or adding a cart item", async () => {

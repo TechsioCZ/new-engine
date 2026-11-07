@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.13
+ * @componentVersion v1.4.14
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -1370,7 +1370,9 @@ function DataTableBodyCell<T extends RowData>({
   pinningStyle,
   activePin,
   pinEdge,
+  headers,
 }: {
+  headers: string
   pinningStyle?: CSSProperties
   activePin: boolean
   pinEdge?: "start" | "end"
@@ -1407,6 +1409,7 @@ function DataTableBodyCell<T extends RowData>({
       colSpan={span?.colSpan}
       data-editing={Boolean(editor) || undefined}
       data-pinned={pinned || undefined}
+      headers={headers}
       rowSpan={span?.rowSpan}
       style={{
         ...getPinningStyles(column),
@@ -1636,6 +1639,22 @@ function sortState<T extends RowData>(
     return "descending" as const
   }
   return "none" as const
+}
+
+/** Only real label cells participate in native header associations. */
+function headerCellAttributes<T extends RowData>(
+  header: Header<T, unknown>,
+  instanceId: string
+) {
+  return {
+    id: header.isPlaceholder
+      ? undefined
+      : `${instanceId}-header-${encodeURIComponent(header.id)}`,
+    scope:
+      !header.isPlaceholder && header.column.columns.length === 0
+        ? ("col" as const)
+        : undefined,
+  }
 }
 
 /** Enter/Space activates a clickable row, ignoring keys bubbling from controls. */
@@ -2660,6 +2679,32 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       table.getVisibleLeafColumns(),
     [headerGroups]
   )
+  // Use the rendered header tree, not column ancestry: reorder and pinning can
+  // split a group into several header cells. Explicit associations also avoid
+  // scope="colgroup", which would describe the fixed-width sizing colgroup
+  // (all leaves), rather than these independently rendered label groups.
+  const columnHeaderIds = useMemo(() => {
+    const ids = new Map<string, string[]>()
+    const visit = (header: Header<T, unknown>, ancestors: string[]) => {
+      const headers = header.isPlaceholder
+        ? ancestors
+        : [
+            ...ancestors,
+            `${instanceId}-header-${encodeURIComponent(header.id)}`,
+          ]
+      if (header.subHeaders.length === 0) {
+        ids.set(header.column.id, headers)
+      } else {
+        for (const child of header.subHeaders) {
+          visit(child, headers)
+        }
+      }
+    }
+    for (const header of headerGroups[0]?.headers ?? []) {
+      visit(header, [])
+    }
+    return ids
+  }, [headerGroups, instanceId])
   const columnCount = leafColumns.length
   const logicalRows = rows.flatMap((row, index) => [
     { row, index, detail: false },
@@ -3369,8 +3414,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       ? undefined
       : sortState(column, enableSorting)
     const dropClass = dnd?.dropSide ? styles.columnDropIndicator() : ""
+    // Alignment placeholders are empty grid cells, not unnamed column headers.
+    // Keep their box (including sticky/pinned positioning) without inventing a
+    // second label or hiding the real leaf header below it.
+    const HeaderCell = header.isPlaceholder ? Table.Cell : Table.ColumnHeader
     return (
-      <Table.ColumnHeader
+      <HeaderCell
         align={column.columnDef.meta?.align}
         aria-sort={ariaSort}
         // `relative` gives the absolutely-positioned resize handle a local
@@ -3381,7 +3430,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         // simply stopped sticking, grouped or not. `sticky` is itself a
         // positioned value, so it already gives the resize handle the same
         // context; `relative` is only needed when sticky isn't in play.
-        className={`group/header ${stickyHeader ? "" : "relative"} ${pinClass("header", activePinned(column), pinEdge(column)) ?? ""} ${dropClass}`}
+        className={`group/header ${stickyHeader ? "sticky top-0 z-10" : "relative"} ${pinClass("header", activePinned(column), pinEdge(column)) ?? ""} ${dropClass}`}
         // The reorderable path keys `SortableHeaderContent` instead, where this
         // key is simply ignored; the non-reorderable path renders this element
         // straight into the header-group map and is the one that needs it.
@@ -3392,6 +3441,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         data-pinned={column.getIsPinned() || undefined}
         key={header.id}
         ref={dnd?.nodeRef as unknown as RefObject<HTMLTableCellElement>}
+        {...headerCellAttributes(header, instanceId)}
         style={{
           ...OPAQUE_HEADER_BG,
           ...stickyRowOffset(stickyHeader, headerOffsets, groupIndex),
@@ -3432,7 +3482,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             type="button"
           />
         ) : null}
-      </Table.ColumnHeader>
+      </HeaderCell>
     )
   }
 
@@ -3813,7 +3863,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     dnd?: { dragHandleProps: DataTableDragHandleProps }
   ) => {
     const rowLabel = getRowLabel?.(row) ?? `row ${row.id}`
-    return cells.map((cell) => {
+    return cells.map((cell, cellIndex) => {
       const span = getCellSpan?.(cell, { row, rows, rowIndex })
       if (span?.hidden) {
         return null
@@ -3839,6 +3889,15 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           editorErrorId={`${instanceId}-err-${row.id}-${column.id}`}
           enableColumnResizing={enableColumnResizing}
           enableRowReorder={enableRowReorder}
+          headers={[
+            ...new Set(
+              cells
+                .slice(cellIndex, cellIndex + (span?.colSpan ?? 1))
+                .flatMap(
+                  (covered) => columnHeaderIds.get(covered.column.id) ?? []
+                )
+            ),
+          ].join(" ")}
           indentColumnId={indentColumnId}
           key={cell.id}
           pinEdge={pinEdge(column)}

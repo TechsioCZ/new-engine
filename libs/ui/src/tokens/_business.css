@@ -232,6 +232,12 @@
   --padding-search-suggestions-group-y-sm: var(--dimension-6);
   --padding-search-suggestions-group-y-md: var(--dimension-8);
 
+  /* Product names anchor browsing; prices lead the purchase decision. */
+  --font-weight-product-card-name: var(--font-weight-semibold);
+  --font-weight-product-card-price: var(--font-weight-bold);
+  --spacing-product-card-col-layout: var(--dimension-8);
+  --spacing-product-card-padding: var(--dimension-12);
+
   /* Only the purchase action is filled; supporting actions remain quiet. */
   --color-product-card-button-detail-bg-base: var(
     --color-button-bg-borderless-base

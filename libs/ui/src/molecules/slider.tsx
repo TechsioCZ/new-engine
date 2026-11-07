@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.4.5
+ * @componentVersion v1.4.6
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -73,7 +73,10 @@ const sliderVariants = tv({
     ],
     message:
       "data-[orientation=vertical]:w-fit data-[orientation=vertical]:max-w-full data-[orientation=vertical]:self-center data-[orientation=vertical]:text-start",
-    value: ["wrap-anywhere min-w-0 tabular-nums"],
+    value: [
+      "wrap-anywhere min-w-0 tabular-nums",
+      "data-disabled:text-label-fg-disabled",
+    ],
     label: ["wrap-anywhere block min-w-0 font-medium"],
     control: [
       "relative grid min-h-slider-control place-items-center",
@@ -642,11 +645,20 @@ export function Slider({
       />
       {(label || showValueText) && (
         <div className={header()} data-orientation={orientation}>
-          <Label className={labelSlot()} size={size} {...api.getLabelProps()}>
+          <Label
+            className={labelSlot()}
+            disabled={disabled}
+            size={size}
+            {...api.getLabelProps()}
+          >
             {label}
           </Label>
           {showValueText && (
-            <output className={valueSlot()} {...api.getValueTextProps()}>
+            <output
+              className={valueSlot()}
+              {...api.getValueTextProps()}
+              data-disabled={disabled ? "" : undefined}
+            >
               <b>
                 {formatRangeText
                   ? formatRangeText(api.value ?? valueTextValues)

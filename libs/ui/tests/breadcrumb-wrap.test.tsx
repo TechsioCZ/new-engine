@@ -78,7 +78,7 @@ describe("Breadcrumb wrapping", () => {
           ?.getAttribute("data-testid")
       ).toBe("first")
       for (const [index, segment] of segments.entries()) {
-        expect(segment.getAttribute("role")).toBe("presentation")
+        expect(segment.getAttribute("role")).toBeNull()
         const list = segment.querySelector("ol")
         expect(list?.getAttribute("role")).toBe("presentation")
         expect(list?.classList.contains("contents")).toBe(true)
@@ -88,7 +88,7 @@ describe("Breadcrumb wrapping", () => {
         expect(item?.getAttribute("data-testid")).toBe(
           index === 0 ? "middle" : "current"
         )
-        expect(item?.getAttribute("role")).toBe("listitem")
+        expect(item?.getAttribute("role")).toBe("presentation")
       }
       expect(canvas.querySelectorAll('a[href="/docs"]')).toHaveLength(1)
       expect(canvas.querySelectorAll('a[href="/components"]')).toHaveLength(1)
@@ -119,6 +119,7 @@ describe("Breadcrumb wrapping", () => {
       segments[1]
         ?.querySelector('[data-testid="current"]')
         ?.getAttribute("role")
-    ).toBe("listitem")
+    ).toBe("presentation")
+    expect(segments[0]?.getAttribute("aria-hidden")).toBe("true")
   })
 })

@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit template.
  *
  * @component ProductCard
- * @componentVersion v1.3.4
+ * @componentVersion v1.3.5
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,6 +19,9 @@ const styles = tv({
   slots: {
     name: "min-h-0",
     prices: "flex flex-wrap items-baseline gap-product-card-badges",
+    currentPrice: "mt-0",
+    originalPrice:
+      "text-product-card-original-price-fg text-product-card-original-price-size",
     rating: "flex min-w-0 items-end justify-between gap-product-card-badges",
     reviews: "shrink-0 text-sm",
     actions: "grid grid-cols-1 sm:flex sm:flex-wrap",
@@ -120,13 +123,13 @@ export function ProductCardTemplate<T extends ElementType = "a">({
       {(price || originalPrice) && (
         <div className={slots.prices()}>
           {originalPrice && (
-            <del>
+            <del className={slots.originalPrice()}>
               <span className="sr-only">{originalPriceLabel}: </span>
               {originalPrice}
             </del>
           )}
           {price && (
-            <ProductCard.Price>
+            <ProductCard.Price className={slots.currentPrice()}>
               <span className="sr-only">{currentPriceLabel}: </span>
               {price}
             </ProductCard.Price>

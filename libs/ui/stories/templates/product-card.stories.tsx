@@ -148,7 +148,11 @@ async function expectAlignedRatingSummary(
   const stars = canvas.getByRole("img", { name: `${value} out of 5` })
   const score = canvas.getByText(`${value} / 5`)
   const reviews = canvas.getByText(`(${reviewCount})`)
-  const scoreBounds = score.getBoundingClientRect()
+  // The score query finds its inline bdi, not the grid item's line box.
+  // items-end aligns that line box with the review line box, not glyph bottoms.
+  const scoreLine = score.closest("span")
+  if (!scoreLine) throw new Error("Missing rating score line box")
+  const scoreBounds = scoreLine.getBoundingClientRect()
   const reviewBounds = reviews.getBoundingClientRect()
   const summary = reviews.parentElement!
   const summaryBounds = summary.getBoundingClientRect()
@@ -171,6 +175,37 @@ async function expectAlignedRatingSummary(
   )
 }
 
+function textBaseline(element: HTMLElement) {
+  // An empty inline-block's bottom sits on the surrounding text baseline.
+  // Unlike a text bounding box, this is independent of font size/descenders.
+  const probe = element.ownerDocument.createElement("span")
+  probe.setAttribute("aria-hidden", "true")
+  probe.style.cssText =
+    "display:inline-block;vertical-align:baseline;width:0;height:0;margin:0;padding:0;border:0"
+  element.append(probe)
+  try {
+    return probe.getBoundingClientRect().bottom
+  } finally {
+    probe.remove()
+  }
+}
+
+async function expectAlignedSalePrices(canvasElement: HTMLElement) {
+  const original = canvasElement.querySelector("del")
+  const prices = original?.parentElement
+  const current = prices?.querySelector("p")
+  if (!(original && prices && current)) {
+    throw new Error("Missing original/current sale prices")
+  }
+  await expect(original).toBeVisible()
+  await expect(current).toBeVisible()
+  await expect(getComputedStyle(prices).alignItems).toBe("baseline")
+  // Unequal font sizes can have different bottoms on the same baseline.
+  await expect(
+    Math.abs(textBaseline(original) - textBaseline(current))
+  ).toBeLessThanOrEqual(1)
+}
+
 export const Playground: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -179,6 +214,7 @@ export const Playground: Story = {
       canvas.getByRole("img", { name: "4.5 out of 5" })
     ).toBeVisible()
     await expectAlignedRatingSummary(canvasElement, 4.5, 128)
+    await expectAlignedSalePrices(canvasElement)
     const view = canvasElement.ownerDocument.defaultView!
     if (view.matchMedia("(width < 40rem)").matches) {
       const buttons = canvas.getAllByRole("button")
@@ -255,6 +291,7 @@ export const Default: Story = {
 export const OnSale: Story = {
   play: async ({ canvasElement }) => {
     await expectAlignedRatingSummary(canvasElement, 4.8, 542)
+    await expectAlignedSalePrices(canvasElement)
   },
   parameters: {
     docs: {

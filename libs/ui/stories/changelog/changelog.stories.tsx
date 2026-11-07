@@ -13,6 +13,27 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.14
+- Render grouped-header placeholders as neutral cells and associate each data cell with its actual rendered group and leaf headers, retaining fixed widths, pinning, reordering and spanning cells.
+
+### Breadcrumb v1.0.10
+- Reserve the measured intrinsic separator footprint while preserving wrapped-row alignment and cleanup; expose each destination once through valid direct list-item ownership without changing public li hosts or refs.
+
+### CascadeSelect v1.1.11
+- Keep modal-owned hierarchy columns within their field width and omit unsupported read-only ARIA from the tree, while preserving combobox state, read-only interaction guards and ordinary viewport-based hierarchy sizing.
+
+### Combobox v1.6.10
+- Propagate effective disabled state to the existing label so disabled fields and fieldset-owned controls present consistent label styling without dimming read-only values.
+
+### ProductCard v1.3.5
+- Strengthen Business title and price hierarchy, use consistent row/column spacing, and make commerce examples show muted original prices and real adapter-media recovery.
+
+### Select v1.3.5
+- Propagate effective disabled state to the existing label while preserving native fieldset behavior, read-only presentation and control-based popup anchors.
+
+### Slider v1.4.6
+- Apply existing disabled label colors to the label and output using effective disabled state, while preserving read-only values and fieldset legend exemptions.
+
 ### QuantityField v1.0.5
 - Keep trailing spacing with the unit label so a wrapped unit leaves the full compact row width available to the numeric editor and touch steppers.
 

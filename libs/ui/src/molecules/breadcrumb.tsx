@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.9
+ * @componentVersion v1.0.10
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -227,24 +227,82 @@ function markBreadcrumbRows(list: HTMLOListElement) {
   }
 }
 
+function getSeparatorFootprint(separator: HTMLElement) {
+  // Computed layout pixels, unlike client rects, are not scaled by transforms.
+  const style = getComputedStyle(separator)
+  const width = Number.parseFloat(style.width) || 0
+  if (style.boxSizing === "border-box") {
+    return width
+  }
+  return (
+    width +
+    (Number.parseFloat(style.paddingLeft) || 0) +
+    (Number.parseFloat(style.paddingRight) || 0) +
+    (Number.parseFloat(style.borderLeftWidth) || 0) +
+    (Number.parseFloat(style.borderRightWidth) || 0)
+  )
+}
+
 function observeBreadcrumbRows(list: HTMLOListElement) {
   let active = true
+  const measuredGap = "--_breadcrumb-measured-gap"
+  const originalGap = list.style.getPropertyValue(measuredGap)
+  const originalPriority = list.style.getPropertyPriority(measuredGap)
+  const separators = Array.from(
+    list.querySelectorAll<HTMLElement>(
+      ":scope > .breadcrumb-segment > ol > li:first-child"
+    )
+  )
   const update = () => {
-    if (active) {
-      markBreadcrumbRows(list)
+    if (!active) {
+      return
     }
+    // A uniform flex gap cannot read an absolutely positioned child's intrinsic
+    // width in CSS. Measure the real hosts, including hidden row-start dividers.
+    const width = Math.max(0, ...separators.map(getSeparatorFootprint))
+    const gap = `${width}px`
+    if (list.style.getPropertyValue(measuredGap) !== gap) {
+      list.style.setProperty(measuredGap, gap)
+    }
+    markBreadcrumbRows(list)
+  }
+  let frame: number | undefined
+  const scheduleUpdate = () => {
+    if (!active || frame !== undefined) {
+      return
+    }
+    // Gap writes can resize observed rows; never write during observer delivery.
+    frame = requestAnimationFrame(() => {
+      frame = undefined
+      update()
+    })
   }
   update()
   const observer =
-    typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update)
+    typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(scheduleUpdate)
   observer?.observe(list)
-  for (const child of list.children) {
-    observer?.observe(child)
+  for (const child of [...list.children, ...separators]) {
+    observer?.observe(child, { box: "border-box" })
   }
   list.ownerDocument.fonts?.ready.then(update)
   return () => {
     active = false
+    if (frame !== undefined) {
+      cancelAnimationFrame(frame)
+    }
     observer?.disconnect()
+    if (originalGap) {
+      list.style.setProperty(measuredGap, originalGap, originalPriority)
+    } else {
+      list.style.removeProperty(measuredGap)
+    }
+    for (const child of list.children) {
+      if (child.classList.contains("breadcrumb-segment")) {
+        child.removeAttribute("data-wrap-start")
+      }
+    }
   }
 }
 
@@ -296,20 +354,28 @@ Breadcrumb.List = function BreadcrumbList({
       isValidElement<ComponentPropsWithoutRef<"li">>(next) &&
       (next.type === Breadcrumb.Item || next.type === Breadcrumb.Ellipsis)
     ) {
-      // The destination sizes the segment; its real separator host is positioned
-      // in the preceding gap. Presentation-only wrappers preserve both public
-      // <li> hosts and refs without adding a list to the accessibility tree.
+      // Semantic ARIA belongs to the owning item. Leaving it on a retained
+      // presentational host can restore that host's implicit list-item role.
+      const semanticProps = Object.fromEntries(
+        Object.entries(next.props).filter(([name]) => name.startsWith("aria-"))
+      )
+      const presentationProps = Object.fromEntries(
+        Object.keys(semanticProps).map((name) => [name, undefined])
+      )
       segments.push(
-        <li className={styles.segment()} key={child.key} role="presentation">
+        <li
+          {...semanticProps}
+          aria-hidden={
+            next.type === Breadcrumb.Ellipsis ? true : next.props["aria-hidden"]
+          }
+          className={styles.segment()}
+          hidden={next.props.hidden}
+          key={child.key}
+          role={next.props.role}
+        >
           <ol className="contents" role="presentation">
             {child}
-            {cloneElement(next, {
-              // Explicit listitem prevents the presentation-only inner list
-              // from suppressing the ancestor item's required-owned role.
-              role:
-                next.props.role ??
-                (next.type === Breadcrumb.Item ? "listitem" : "presentation"),
-            })}
+            {cloneElement(next, { ...presentationProps, role: "presentation" })}
           </ol>
         </li>
       )

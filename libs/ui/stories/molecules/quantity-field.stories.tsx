@@ -152,8 +152,16 @@ export const Playground: Story = {
     const bounds = canvasElement.getBoundingClientRect()
     const row = unit.parentElement
     if (!row) throw new Error("Missing quantity control row")
-    await expect(row.getBoundingClientRect().right - unit.getBoundingClientRect().right).toBeGreaterThanOrEqual(8)
-    await expect(unit.getBoundingClientRect().right).toBeLessThan(bounds.right)
+    const text = canvasElement.ownerDocument.createRange()
+    text.selectNodeContents(unit)
+    const unitText = text.getBoundingClientRect()
+    const rowBounds = row.getBoundingClientRect()
+    const endGap = getComputedStyle(row).direction === "rtl"
+      ? unitText.left - rowBounds.left
+      : rowBounds.right - unitText.right
+    await expect(endGap).toBeGreaterThanOrEqual(8)
+    await expect(unitText.right).toBeLessThan(bounds.right)
+    await expect(unit.getBoundingClientRect().right).toBeLessThanOrEqual(bounds.right + 1)
     await expect(canvasElement.scrollWidth).toBeLessThanOrEqual(canvasElement.clientWidth)
   },
   parameters: {

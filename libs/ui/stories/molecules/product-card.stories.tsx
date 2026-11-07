@@ -660,25 +660,25 @@ export const CustomComposition: Story = {
     <ProductCard className="w-sm max-w-full">
       <ProductCard.Image src={productImages.camera} alt="DSLR Camera" />
 
-      <div className="mb-100 flex gap-100">
+      <div className="flex flex-wrap gap-100">
         <Badge variant="info">-30%</Badge>
         <Badge variant="success">Free Shipping</Badge>
       </div>
 
       <ProductCard.Name>Professional DSLR Camera</ProductCard.Name>
 
-      <div className="flex flex-wrap items-baseline gap-100">
-        <del className="text-100 text-fg-muted">
+      <div className="flex flex-wrap items-baseline gap-150">
+        <del className="text-sm text-fg-secondary">
           <span className="sr-only">Original price </span>$1,899
         </del>
-        <ProductCard.Price>
+        <ProductCard.Price className="mt-0">
           <span className="sr-only">Current price </span>$1,329
         </ProductCard.Price>
       </div>
 
       <div className="flex flex-wrap items-start gap-100">
         <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true, size: "sm" }} />
-        <span className="inline-flex min-h-rating-target items-center text-100 text-fg-muted">(245 reviews)</span>
+        <span className="inline-flex min-h-rating-target items-center text-sm text-fg-secondary">(245 reviews)</span>
       </div>
 
       <ProductCard.Stock status="limited-stock">
@@ -849,30 +849,30 @@ export const ComplexCard: Story = {
         Professional Camera Kit with Accessories
       </ProductCard.Name>
 
-      <div className="mb-100 flex flex-wrap items-start gap-100">
-        <ProductCard.Rating rating={{ defaultValue: 4.9, displayOnly: true, size: "sm" }} />
-        <span className="inline-flex min-h-rating-target items-center text-50 text-fg-muted">(512 reviews)</span>
+      <div className="flex flex-wrap items-start gap-100">
+        <ProductCard.Rating rating={{ defaultValue: 4.9, displayOnly: true, size: "sm", className: "flex flex-wrap items-center" }} />
+        <span className="inline-flex min-h-rating-target items-center text-sm text-fg-secondary">(512 reviews)</span>
       </div>
 
-      <div className="mb-200 flex flex-col gap-100">
-        <div className="flex flex-wrap items-baseline gap-100">
-          <del className="text-fg-muted">
+      <div className="flex flex-col gap-100">
+        <div className="flex flex-wrap items-baseline gap-150">
+          <del className="text-sm text-fg-secondary">
             <span className="sr-only">Original price </span>$3,499
           </del>
-          <ProductCard.Price>
+          <ProductCard.Price className="mt-0">
             <span className="sr-only">Current price </span>$2,449
           </ProductCard.Price>
           <Badge variant="danger">Save $1,050</Badge>
         </div>
-        <span className="text-50 text-success-fg">Free shipping included</span>
+        <span className="text-sm text-success-fg">Free shipping included</span>
       </div>
 
       <ProductCard.Stock status="limited-stock">
         Only 2 units left - Order soon!
       </ProductCard.Stock>
 
-      <ProductCard.Actions>
-        <div className="mb-100 flex flex-col gap-100 sm:flex-row sm:items-center">
+      <ProductCard.Actions className="flex-col gap-200">
+        <div className="flex w-full flex-col gap-100 sm:flex-row sm:items-center">
           <NumericInput
             className="min-w-0 flex-1"
             id="product-quantity"
@@ -893,7 +893,7 @@ export const ComplexCard: Story = {
             buttonVariant="cart"
             icon="token-icon-cart-button"
             onClick={fn()}
-            className="flex-1"
+            className="w-full flex-1"
           >
             Add to Cart
           </DemoProductButton>
@@ -917,7 +917,7 @@ export const ComplexCard: Story = {
         </div>
       </ProductCard.Actions>
 
-      <ul className="flex flex-wrap gap-x-150 gap-y-50 border-border-primary border-t pt-100 text-sm text-fg-muted">
+      <ul className="grid gap-50 border-border-primary border-t pt-100 text-sm text-fg-secondary">
         <li>✓ 2-year warranty</li>
         <li>✓ 30-day returns</li>
         <li>✓ Expert support</li>
@@ -1154,7 +1154,16 @@ function CardMediaAdapter({
   assetId,
   ...props
 }: ComponentPropsWithRef<"img"> & { assetId: string }) {
-  return <img {...props} data-requested-src={src} data-asset-id={assetId} />
+  // Keep the initial request pending for the explicit error exercise, but a
+  // successful recovery must load real media rather than fake a load on src-less img.
+  return (
+    <img
+      {...props}
+      src={src === "recovered-card" ? productImages.shoes : undefined}
+      data-requested-src={src}
+      data-asset-id={assetId}
+    />
+  )
 }
 function CardMediaLifecycleExample() {
   const [source, setSource] = useState("pending-card")
@@ -1203,7 +1212,13 @@ export const AdapterMediaLifecycle: Story = {
       },
     },
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const brand = globals.brand ?? "base"
+    // The theme provider commits its root attribute after the initial mount.
+    // Compare media states within one theme, not across that initial transition.
+    await waitFor(() => expect(
+      canvasElement.ownerDocument.documentElement.getAttribute("data-theme")
+    ).toBe(brand === "base" ? null : brand))
     await expectCoherentCards(canvasElement)
     const canvas = within(canvasElement)
     let image = canvasElement.querySelector<HTMLImageElement>(
@@ -1228,16 +1243,18 @@ export const AdapterMediaLifecycle: Story = {
     image = canvasElement.querySelector<HTMLImageElement>(
       '[data-asset-id="runner-side"]'
     )!
-    await expect(image.closest("[data-image-state]")).toHaveAttribute(
-      "data-image-state",
-      "loading"
-    )
-    image.dispatchEvent(new Event("load"))
-    await waitFor(() =>
-      expect(
+    await expect(image).toHaveAttribute("data-requested-src", "recovered-card")
+    await expect(image).toHaveAttribute("src", productImages.shoes)
+    await waitFor(async () => {
+      await expect(image.closest("[data-image-state]")).toHaveAttribute(
+        "data-image-state",
+        "loaded"
+      )
+      await expect(image.naturalWidth).toBeGreaterThan(0)
+      await expect(
         canvas.getByRole("status", { name: "Card media lifecycle" })
       ).toHaveTextContent("Loaded on image ref")
-    )
+    }, { timeout: 10_000 })
     const recovered = image
       .closest<HTMLElement>("[data-image-state]")!
       .getBoundingClientRect()

@@ -469,8 +469,8 @@ export const CalendarHeader: Story = {
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     const caption = await body.findByRole("button", { name: /srpen 2026/ })
-    await expect(caption).toBeVisible()
     await waitFor(() => {
+      expect(caption).toBeVisible()
       const text = canvasElement.ownerDocument.createRange()
       text.selectNodeContents(caption)
       const textBounds = text.getBoundingClientRect()

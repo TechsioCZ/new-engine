@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit template.
  *
  * @component Select
- * @componentVersion v1.3.4
+ * @componentVersion v1.3.5
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

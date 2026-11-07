@@ -131,7 +131,11 @@ function EnquiryForm({
       : initialData
   )
   const [errors, setErrors] = useState<FormErrorSummaryError[]>([])
-  const [feedback, setFeedback] = useState("")
+  const [feedback, setFeedback] = useState(
+    validateStatus === "success"
+      ? "These details are ready to send. No data has been sent."
+      : ""
+  )
   const [submission, setSubmission] = useState(0)
   const fieldId = (field: string) => `${prefix}-${field}`
   useEffect(() => {
@@ -148,17 +152,17 @@ function EnquiryForm({
   }
   const errorFor = (field: string) =>
     errors.find((error) => error.id === field)?.label
+  // Readiness belongs to the form; keep field hints neutral until correction is needed.
+  const fieldStatus = validateStatus === "success" ? "default" : validateStatus
   const statusFor = (field: string) =>
-    errorFor(field) ? ("error" as const) : validateStatus
+    errorFor(field) ? ("error" as const) : fieldStatus
   const messageFor = (field: keyof typeof initialErrorMessages, hint: string) =>
     errorFor(field) ??
     (validateStatus === "error"
       ? initialErrorMessages[field]
       : validateStatus === "warning"
         ? "Please confirm these details before sending."
-        : validateStatus === "success"
-          ? "These details are ready to send."
-          : hint)
+        : hint)
   const shared = { size, disabled, readOnly }
   return (
     <form
@@ -233,7 +237,7 @@ function EnquiryForm({
           positioning={{ getAnchorElement: () => teamControlRef.current }}
           value={data.department ? [data.department] : []}
           onValueChange={({ value }) => update("department", value[0] ?? "")}
-          validateStatus={validateStatus}
+          validateStatus={fieldStatus}
         >
           <Select.Label>Team</Select.Label>
           <Select.Control ref={teamControlRef}>
@@ -266,7 +270,7 @@ function EnquiryForm({
           onChange={(value) =>
             update("topic", Array.isArray(value) ? (value[0] ?? "") : value)
           }
-          validateStatus={validateStatus}
+          validateStatus={fieldStatus}
           helpText={messageFor(
             "topic",
             "Choose the closest category, or leave it empty."
@@ -279,7 +283,7 @@ function EnquiryForm({
           onValueChange={({ value }) => update("quantity", value)}
           min={1}
           max={1000}
-          validateStatus={validateStatus}
+          validateStatus={fieldStatus}
           helpText={messageFor(
             "quantity",
             "An estimate is fine; we will confirm it with you."
@@ -301,7 +305,7 @@ function EnquiryForm({
           max={100}
           value={data.budget}
           onChange={(value) => update("budget", value)}
-          validateStatus={validateStatus}
+          validateStatus={fieldStatus}
           helpText={messageFor(
             "budget",
             "Use the arrow keys for a rough budget estimate."
@@ -342,7 +346,14 @@ function EnquiryForm({
           "Your details are not shared with other companies."
         )}
       />
-      {feedback && <StatusText status="success">{feedback}</StatusText>}
+      {feedback && (
+        <StatusText
+          className="rounded-md border border-border-primary bg-surface p-200"
+          status="success"
+        >
+          {feedback}
+        </StatusText>
+      )}
       {readOnly && (
         <StatusText>
           This enquiry is read-only. You can inspect the details but cannot send
@@ -563,7 +574,7 @@ export const AllFormInputs: Story = {
       expect(gap).toBeLessThanOrEqual(9)
     })
     await userEvent.keyboard("{Escape}")
-    await expect(select).toHaveFocus()
+    await waitFor(() => expect(select).toHaveFocus())
     select.blur()
   },
   parameters: {
@@ -608,7 +619,7 @@ export const SuccessState: Story = {
     docs: {
       description: {
         story:
-          "Positive feedback uses both words and status icons at the size of its associated field.",
+          "A complete valid enquiry shows one form-level readiness confirmation, while field hints stay available. Send prepares a local confirmation; no data leaves this demo.",
       },
     },
   },
@@ -674,7 +685,7 @@ function PopupLifecycleFixture() {
             name="cascade"
             form={form}
           >
-            <CascadeSelect.Label>Lifecycle cascade</CascadeSelect.Label>
+            <CascadeSelect.Label size="md">Lifecycle cascade</CascadeSelect.Label>
             <CascadeSelect.Control>
               <CascadeSelect.Trigger>
                 <CascadeSelect.ValueText />
@@ -735,31 +746,46 @@ function PopupLifecycleFixture() {
           </SearchForm>
         </fieldset>
       </fieldset>
-      <div className="flex flex-wrap gap-150">
-        <Button
-          variant="secondary"
-          onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
+      <div className="flex flex-col gap-200 border-border-primary border-t pt-200">
+        <div
+          aria-label="Lifecycle controls"
+          className="flex flex-wrap gap-150"
+          role="group"
         >
-          Reassociate owner
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => setCancel((current) => !current)}
+          <Button
+            theme="outlined"
+            variant="secondary"
+            onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
+          >
+            Reassociate owner
+          </Button>
+          <Button
+            theme="outlined"
+            variant="secondary"
+            onClick={() => setCancel((current) => !current)}
+          >
+            Toggle cancellation
+          </Button>
+          <Button
+            theme="outlined"
+            variant="secondary"
+            onClick={() => setDisabled((current) => !current)}
+          >
+            Toggle ancestor disabled
+          </Button>
+        </div>
+        <div
+          aria-label="Owner resets"
+          className="flex flex-wrap gap-150"
+          role="group"
         >
-          Toggle cancellation
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => setDisabled((current) => !current)}
-        >
-          Toggle ancestor disabled
-        </Button>
-        <Button variant="secondary" type="reset" form={`${prefix}-a`}>
-          Reset owner a
-        </Button>
-        <Button variant="secondary" type="reset" form={`${prefix}-b`}>
-          Reset owner b
-        </Button>
+          <Button variant="secondary" type="reset" form={`${prefix}-a`}>
+            Reset owner a
+          </Button>
+          <Button variant="secondary" type="reset" form={`${prefix}-b`}>
+            Reset owner b
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -957,6 +983,7 @@ export const ModalPopupContracts: Story = {
       category.focus()
       await userEvent.keyboard("{ArrowDown}")
       const tree = await body.findByRole("tree")
+      await waitFor(() => expect(tree).toHaveFocus())
       await expect(modal.contains(tree)).toBe(true)
       await expect(tree.closest('[aria-hidden="true"], [inert]')).toBeNull()
       await userEvent.keyboard("{Escape}")
@@ -964,7 +991,8 @@ export const ModalPopupContracts: Story = {
       const search = within(modal).getByRole("combobox", {
         name: "Modal suggestions",
       })
-      search.focus()
+      await userEvent.tab()
+      await waitFor(() => expect(search).toHaveFocus())
       await userEvent.keyboard("{ArrowDown}")
       const list = await body.findByRole("listbox")
       await expect(modal.contains(list)).toBe(true)
@@ -975,8 +1003,14 @@ export const ModalPopupContracts: Story = {
         ).toBeVisible()
       )
       await userEvent.keyboard("{Escape}")
-      await expect(search).toHaveFocus()
+      await waitFor(() => expect(list).not.toBeVisible())
+      await waitFor(() => expect(search).toHaveAttribute("aria-expanded", "false"))
+      await waitFor(() => expect(search).toHaveFocus())
       await expect(modal).toBeVisible()
+      // Let the closed popup release its dismissal layer before Escape targets the modal.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
       await userEvent.keyboard("{Escape}")
       await waitFor(() => expect(modal).not.toBeInTheDocument())
       await waitFor(() => expect(trigger).toHaveFocus())

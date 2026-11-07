@@ -364,10 +364,10 @@ export const PositioningBehaviors: Story = {
           Bounded containers simulate narrow viewport. Compare slide behavior:
         </p>
         <div className="flex flex-wrap gap-200">
-          <div className="relative flex justify-center h-48 w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
+          <div className="relative flex justify-center h-56 w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
             <div>
               <PopoverTemplate
-                contentClassName="min-w-3xs"
+                contentClassName="w-xs max-w-full"
                 id="slide-true-popover"
                 placement="bottom"
                 portalled={false}
@@ -380,10 +380,10 @@ export const PositioningBehaviors: Story = {
             </div>
           </div>
 
-          <div className="relative flex justify-center h-48 w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
+          <div className="relative flex justify-center h-56 w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
             <div>
               <PopoverTemplate
-                contentClassName="min-w-3xs"
+                contentClassName="w-xs max-w-full"
                 id="slide-false-popover"
                 placement="bottom"
                 portalled={false}
@@ -402,7 +402,8 @@ export const PositioningBehaviors: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(canvas.getByRole("button", { name: "Flip Demo" }))
+    const flipTrigger = canvas.getByRole("button", { name: "Flip Demo" })
+    await userEvent.click(flipTrigger)
     const panel = await body.findByRole("dialog", { name: "Auto Flip" })
     await waitFor(() => {
       const positioner = panel.closest<HTMLElement>('[data-part="positioner"]')
@@ -415,10 +416,15 @@ export const PositioningBehaviors: Story = {
     await expect(Number.parseInt(styles?.zIndex ?? "0", 10)).toBeGreaterThanOrEqual(60)
     await userEvent.keyboard("{Escape}")
     await waitFor(() => expect(panel).not.toBeInTheDocument())
+    await waitFor(() => expect(flipTrigger).toHaveFocus())
     for (const [triggerName, title] of [["slide=true", "Slide Enabled"], ["slide=false", "Slide Disabled"]] as const) {
-      await userEvent.click(canvas.getByRole("button", { name: triggerName }))
+      const trigger = canvas.getByRole("button", { name: triggerName })
+      await userEvent.click(trigger)
       const bounded = await body.findByRole("dialog", { name: title })
       await waitFor(() => {
+        expect(bounded).toBeVisible()
+        const positioner = bounded.closest<HTMLElement>('[data-part="positioner"]')
+        expect(positioner?.style.getPropertyValue("--x")).not.toBe("")
         const container = bounded.closest<HTMLElement>("[data-popover-bounds]")
         if (!container) throw new Error("Missing bounded popover container")
         const bounds = container.getBoundingClientRect()
@@ -442,6 +448,7 @@ export const PositioningBehaviors: Story = {
       })
       await userEvent.keyboard("{Escape}")
       await waitFor(() => expect(bounded).not.toBeInTheDocument())
+      await waitFor(() => expect(trigger).toHaveFocus())
     }
   },
 }

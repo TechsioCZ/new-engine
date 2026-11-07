@@ -344,17 +344,24 @@ export const InteractiveHalfScore: Story = {
 }
 export const TenPointScale: Story = {
   parameters: describe(
-    "A ten-point scale stays on one row in narrow containers: targets compress toward the 24px minimum before wrapping, never clipping later scores."
+    "A ten-point scale keeps every choice on one row with full interaction targets. On narrow viewports, the named, keyboard-focusable region scrolls horizontally rather than shrinking targets or clipping later scores."
   ),
   render: () => (
-    <div className="w-full max-w-xs">
-      <Rating
-        labelText="Rate your delivery"
-        defaultValue={7}
-        count={10}
-        size="lg"
-        allowHalf={false}
-      />
+    <div
+      aria-label="Ten-point rating scale"
+      className="w-md max-w-full overflow-x-auto"
+      role="region"
+      tabIndex={0}
+    >
+      <div className="w-md">
+        <Rating
+          labelText="Rate your delivery"
+          defaultValue={7}
+          count={10}
+          size="lg"
+          allowHalf={false}
+        />
+      </div>
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -367,10 +374,28 @@ export const TenPointScale: Story = {
       inputs.map((input) => Math.round(input.getBoundingClientRect().top))
     )
     await expect(rows.size).toBe(1)
+    const region = within(canvasElement).getByRole("region", {
+      name: "Ten-point rating scale",
+    })
+    await expect(region.clientWidth).toBeLessThanOrEqual(canvasElement.clientWidth)
+    await expect(getComputedStyle(region).overflowX).toBe("auto")
+    await expect(region).toHaveAttribute("tabindex", "0")
+    region.focus()
+    await expect(region).toHaveFocus()
+    region.blur()
+    const controlBounds = control.getBoundingClientRect()
     for (const input of inputs) {
       const bounds = input.getBoundingClientRect()
+      await expect(input).toBeVisible()
       await expect(bounds.width).toBeGreaterThanOrEqual(24)
       await expect(bounds.height).toBeGreaterThanOrEqual(24)
+      // Use the shared one-CSS-pixel geometry budget for fractional flex tracks.
+      await expect(Math.max(
+        controlBounds.left - bounds.left,
+        bounds.right - controlBounds.right,
+        controlBounds.top - bounds.top,
+        bounds.bottom - controlBounds.bottom
+      )).toBeLessThanOrEqual(1)
     }
   },
 }

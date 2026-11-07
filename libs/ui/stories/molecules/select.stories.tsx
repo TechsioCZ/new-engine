@@ -663,7 +663,7 @@ function ChangingCountries() {
     <SelectTemplate label="Multiple countries" items={items} name="multiple" multiple
       defaultValue={["a", "b"]} />
     <Button variant="secondary" onClick={() => setRemoved(true)}>Replace countries</Button>
-    <output aria-label="Collection changes">{changes}</output>
+    <output aria-label="Collection changes" className="text-fg-secondary text-sm">Collection changes: {changes}</output>
   </form>
 }
 

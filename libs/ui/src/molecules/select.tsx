@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.3.4
+ * @componentVersion v1.3.5
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -518,10 +518,11 @@ type SelectLabelProps = ComponentPropsWithoutRef<"label"> & {
 }
 
 Select.Label = function SelectLabel({ children, ...props }: SelectLabelProps) {
-  const { api, size } = useSelectContext()
+  const { api, size, disabled } = useSelectContext()
 
   return (
     <Label
+      disabled={disabled}
       size={toControlSize(size)}
       {...mergeProps(api.getLabelProps(), props)}
     >

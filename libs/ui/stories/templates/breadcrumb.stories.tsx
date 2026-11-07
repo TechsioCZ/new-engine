@@ -1,7 +1,7 @@
 import type { ComponentPropsWithoutRef } from "react"
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, within } from "storybook/test"
-import { VariantGroup } from "../../.storybook/decorator"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import {
   BreadcrumbTemplate,
   type BreadcrumbTemplateItem,
@@ -174,7 +174,7 @@ export const Variants: Story = {
     },
   },
   render: () => (
-    <div className="flex flex-col items-start gap-400">
+    <VariantContainer className="items-start gap-400 space-y-0">
       <VariantGroup title="Variants">
         <div className="flex flex-col gap-300">
           <BreadcrumbTemplate
@@ -189,7 +189,7 @@ export const Variants: Story = {
           />
         </div>
       </VariantGroup>
-    </div>
+    </VariantContainer>
   ),
 }
 
@@ -202,11 +202,11 @@ export const Sizes: Story = {
     }
   },
   parameters: { controls: { disable: true }, docs: { description: { story: "Compare Small (sm), Medium (md) and Large (lg) using the same location trail." } } },
-  render: () => <div className="flex flex-col items-start gap-400">
+  render: () => <VariantContainer className="items-start gap-400 space-y-0">
     {(["sm", "md", "lg"] as const).map((size) => <VariantGroup key={size} title={{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}>
       <BreadcrumbTemplate aria-label={`Product location ${size}`} items={defaultItems} size={size} />
     </VariantGroup>)}
-  </div>,
+  </VariantContainer>,
 }
 
 export const CustomSeparator: Story = {

@@ -29,6 +29,13 @@
   );
   --color-label-fg-required: var(--color-label-required);
 
+  /* Resting borderless text sits on a translucent fill, not bare white.
+   * Keep headroom on raised surfaces; hover/pressed own their foreground. */
+  --color-button-fg-primary-borderless: light-dark(
+    var(--color-neutral-600),
+    var(--color-fg-accent-primary)
+  );
+
   /* Readable text, not primary palette steps (yellow is not text on white).
    * Explicit light/dark lightness keeps every brand and interaction legible. */
   --color-link: light-dark(
@@ -57,6 +64,17 @@
     oklch(from var(--color-primary-500) 0.4 calc(c * 0.65) h),
     oklch(from var(--color-primary-500) 0.85 calc(c * 0.65) h)
   );
+}
+
+/* Brands keep their existing accent, including when scheme scopes regenerate. */
+[data-theme="neo"] {
+  --color-button-fg-primary-borderless: var(--color-fg-accent-primary);
+}
+[data-theme="business"] {
+  --color-button-fg-primary-borderless: var(--color-fg-accent-primary);
+}
+[data-theme="akros"] {
+  --color-button-fg-primary-borderless: var(--color-fg-accent-primary);
 }
 
 /* Wave 3: runtime corrections awaiting the matching Figma export. */
@@ -175,11 +193,13 @@
 }
 
 /* Two-tone focus: at least one edge contrasts with both bright fills and dark
- * surfaces. Do not replace validation outlines while the control is resting. */
+ * surfaces. Popup panels/options own focus through their highlighted option,
+ * including a system-color outline; do not replace their elevation with a halo.
+ * Do not replace validation outlines while the control is resting. */
 :where(button, a, input, select, textarea, [tabindex], [data-part]):is(
   :focus-visible,
   [data-focus-visible]
-):not(:disabled, [data-disabled]) {
+):not(:disabled, [data-disabled], .popup-surface-base, .popup-item-base) {
   box-shadow:
     0 0 0 calc(var(--default-ring-offset) + var(--default-ring-width) * 2)
     var(--color-focus-contrast),

@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.9
+ * @componentVersion v1.6.10
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -1091,6 +1091,7 @@ export function Combobox<T = unknown>({
       {label && (
         <Label
           className={labelStyles()}
+          disabled={disabled}
           required={required}
           size={size}
           {...api.getLabelProps()}

@@ -212,11 +212,12 @@ describe("table leaf widths, row semantics and announcements", () => {
     // The alignment cell above Amount is not a second sortable/resizable leaf.
     const rows = [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)]
     const placeholder = rows[0]?.[1]?.match(
-      /<th\b[^>]*data-leaf-column="amount"[^>]*>[\s\S]*?<\/th>/
+      /<td\b[^>]*data-leaf-column="amount"[^>]*>[\s\S]*?<\/td>/
     )?.[0]
     expect(placeholder).toBeDefined()
     expect(placeholder).not.toContain("<button")
     expect(placeholder).not.toContain("aria-sort=")
+    expect(placeholder).not.toContain('scope="col"')
     expect(rows[1]?.[1]).toContain('data-leaf-column="amount"')
     expect(rows[1]?.[1]).toContain('aria-label="Resize Amount"')
   })

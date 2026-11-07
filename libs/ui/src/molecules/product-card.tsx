@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.3.4
+ * @componentVersion v1.3.5
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -70,7 +70,7 @@ const productCardVariants = tv({
         imageSlot: "aspect-product-card-image",
       },
       row: {
-        root: "product-card-row grid w-full grid-cols-(--product-card-layout-row-grid) gap-x-product-card-row-layout",
+        root: "product-card-row grid w-full grid-cols-(--product-card-layout-row-grid) gap-x-product-card-row-layout gap-y-product-card-col-layout",
         imageSlot: "row-span-6 aspect-product-card-image h-full",
       },
     },

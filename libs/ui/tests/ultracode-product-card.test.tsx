@@ -216,7 +216,12 @@ describe("ProductCard hierarchy regressions", () => {
         throw new Error("Missing original product price")
       }
       expect(previous.textContent).toBe(`Original price ${original}`)
-      expect(previous.classList.contains("text-fg-muted")).toBe(true)
+      expect(previous.classList.contains("text-fg-secondary")).toBe(true)
+      const currentPrice = [...host.querySelectorAll("p")].find((price) =>
+        price.textContent?.includes(`Current price ${current}`)
+      )
+      // Auto block margins opt a price out of flex baseline alignment.
+      expect(currentPrice?.classList.contains("mt-auto")).toBe(false)
       expect(previous.parentElement?.classList.contains("items-baseline")).toBe(
         true
       )

@@ -866,7 +866,12 @@ function ComponentComparison() {
             </div>
           </ComponentCard>
           <ComponentCard title="Table" bodyClassName="w-full">
-            <div className="w-full overflow-x-auto">
+            <div
+              aria-label="Product inventory table"
+              className="w-full overflow-x-auto"
+              role="region"
+              tabIndex={0}
+            >
               <Table variant="line">
                 <Table.Caption>Product Inventory</Table.Caption>
                 <Table.Header>
