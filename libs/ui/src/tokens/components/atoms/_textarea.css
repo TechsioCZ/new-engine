@@ -18,6 +18,14 @@
   --color-textarea-text-readonly: var(--color-form-control-text);
   --color-textarea-bg-readonly: var(--color-textarea-readonly);
   --color-textarea-fg-readonly: var(--color-textarea-text-readonly);
+  /* Read-only hover/focus border; defaults keep the editable response. */
+  --color-textarea-border-readonly-hover: var(--color-textarea-border-hover);
+  --color-textarea-border-readonly-focus: var(--color-textarea-border-focus);
+
+  /* Independent inline padding; defaults keep the uniform Figma padding. */
+  --padding-textarea-inline-sm: var(--padding-textarea-sm);
+  --padding-textarea-inline-md: var(--padding-textarea-md);
+  --padding-textarea-inline-lg: var(--padding-textarea-lg);
 
   --opacity-borderless: 60%;
 

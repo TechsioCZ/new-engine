@@ -5,7 +5,7 @@ description: >
   Zag keyboard registrations with @techsio/ui-kit Hotkeys. Covers compound
   keycaps, current callbacks, store ownership, scopes and optional registry readback.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

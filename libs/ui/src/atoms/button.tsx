@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.6.1
+ * @componentVersion v0.6.2
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,6 +30,7 @@ export const buttonVariants = tv({
     "focus-visible:outline-button-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:text-button-fg-disabled",
+    "not-disabled:data-loading:cursor-progress",
   ],
   variants: {
     // Internal composition escape hatch: navigation owns its typography/press treatment.
@@ -271,6 +272,19 @@ export const buttonVariants = tv({
   },
 })
 
+// Glyphs follow the button size; `current` keeps inheriting the label.
+const buttonIconVariants = tv({
+  variants: {
+    size: {
+      sm: "text-button-icon-sm",
+      md: "text-button-icon-md",
+      lg: "text-button-icon-lg",
+      current: "",
+    },
+  },
+  defaultVariants: { size: "md" },
+})
+
 export type ButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "children"
@@ -329,6 +343,8 @@ export function Button({
     return () => form.removeEventListener("submit", preventPendingSubmit, true)
   }, [isLoading, type, props.form])
 
+  const iconClassName = buttonIconVariants({ size })
+
   return (
     <button
       {...props}
@@ -360,17 +376,29 @@ export function Button({
     >
       {isLoading ? (
         <>
-          <Icon icon="token-icon-button-spinner" size="current" />
+          <Icon
+            className={iconClassName}
+            icon="token-icon-button-spinner"
+            size="current"
+          />
           {loadingText || children}
         </>
       ) : (
         <>
           {icon && iconPosition === "left" && (
-            <Icon icon={icon} size={iconSize ?? "current"} />
+            <Icon
+              className={iconSize ? undefined : iconClassName}
+              icon={icon}
+              size={iconSize ?? "current"}
+            />
           )}
           {children}
           {icon && iconPosition === "right" && (
-            <Icon icon={icon} size={iconSize ?? "current"} />
+            <Icon
+              className={iconSize ? undefined : iconClassName}
+              icon={icon}
+              size={iconSize ?? "current"}
+            />
           )}
         </>
       )}

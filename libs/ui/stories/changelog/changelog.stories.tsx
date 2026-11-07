@@ -13,6 +13,36 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### ActionIcon v1.1.3
+- Give destructive actions a visible resting tone and keep glyph sizing separate from hit areas, with component-local Business refinements.
+
+### Button v0.6.2
+- Size leading, trailing and loading glyphs independently of labels; keep busy buttons distinct from disabled buttons.
+
+### Checkbox v1.2.3
+- Scale the check glyph with its control size instead of inheriting row typography.
+
+### Hotkeys v1.1.1
+- Preserve keycap and separator shapes in narrow layouts and clarify the spacing between keys.
+
+### Image v1.2.1
+- Make fallback glyphs more recognizable without changing the image adapter or recovery behavior.
+
+### Input v1.1.4
+- Separate inline padding from field height and keep read-only border treatment independent from editable and validation states.
+
+### NumericInput v1.3.7
+- Preserve space for steppers in narrow fields, size their glyphs independently, retain coarse-pointer targets, and keep explicit input ids synchronized.
+
+### Rating v1.3.5
+- Match read-only fractional stars to the exact score, preserve explicit fill direction and isolate numeric values in RTL; fit long scales without shrinking below their glyphs.
+
+### Skeleton v1.0.6
+- Allow theme-owned rectangle rounding while preserving caller radius overrides and square defaults elsewhere.
+
+### Textarea v1.0.5
+- Separate inline padding from block padding and preserve validation borders and visible focus on read-only fields.
+
 ### SearchForm v1.1.2
 - Error and hint messages are linked to the search field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
 

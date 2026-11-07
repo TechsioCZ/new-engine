@@ -1,0 +1,73 @@
+/* Business atom refinements. Shared palette, typography and control geometry
+ * remain owned by the existing theme; only atom-specific aliases change here. */
+[data-theme="business"] {
+  --color-input-readonly: var(--color-fill-base);
+  --color-input-border-readonly-hover: var(--color-input-border-base);
+  --color-input-border-readonly-focus: var(--color-input-border-base);
+  --padding-input-inline-sm: var(--dimension-12);
+  --padding-input-inline-md: var(--dimension-12);
+  --padding-input-inline-lg: var(--dimension-16);
+
+  --color-textarea-readonly: var(--color-fill-base);
+  --color-textarea-border-readonly-hover: var(--color-textarea-border);
+  --color-textarea-border-readonly-focus: var(--color-textarea-border);
+  --padding-textarea-sm: var(--dimension-8);
+  --padding-textarea-md: var(--dimension-10);
+  --padding-textarea-lg: var(--dimension-12);
+  --padding-textarea-inline-sm: var(--padding-input-inline-sm);
+  --padding-textarea-inline-md: var(--padding-input-inline-md);
+  --padding-textarea-inline-lg: var(--padding-input-inline-lg);
+
+  --text-button-sm: var(--text-sm);
+  --text-button-md: var(--text-sm);
+  --text-button-lg: var(--text-md);
+  --font-weight-button: var(--font-weight-medium);
+  --border-width-button-md: var(--border-width-sm);
+  --border-width-button-lg: var(--border-width-sm);
+  --color-button-border-primary: var(--color-border-control);
+  --color-button-border-secondary: var(--color-border-control);
+  --color-button-border-tertiary: var(--color-border-control);
+  --color-button-fg-secondary-borderless: var(--color-fg-secondary);
+  --color-button-fg-tertiary-borderless: light-dark(
+    var(--color-tertiary-700),
+    var(--color-fg-accent-tertiary)
+  );
+  --padding-button-x-sm: var(--dimension-12);
+  --padding-button-x-md: var(--dimension-16);
+  --padding-button-x-lg: var(--dimension-24);
+  --text-button-glyph-sm: var(--dimension-16);
+  --text-button-glyph-md: var(--dimension-18);
+  --text-button-glyph-lg: var(--dimension-20);
+
+  --color-action-icon-surface: var(--color-fill-overlay);
+  --text-action-icon-glyph-sm: var(--dimension-18);
+  --text-action-icon-glyph-md: var(--dimension-20);
+  --text-action-icon-glyph-lg: var(--dimension-24);
+  --text-numeric-input-icon-sm: var(--dimension-20);
+  --text-numeric-input-icon-md: var(--dimension-22);
+  --text-numeric-input-icon-lg: var(--dimension-24);
+  --spacing-numeric-input-sm: var(--dimension-8);
+  --spacing-numeric-input-md: var(--dimension-8);
+  --spacing-numeric-input-lg: var(--dimension-8);
+
+  --text-rating-sm: var(--dimension-20);
+  --text-rating-md: var(--dimension-24);
+  --text-rating-lg: var(--dimension-28);
+  --spacing-rating-items-sm: var(--dimension-2);
+  --spacing-rating-items-md: var(--dimension-2);
+  --spacing-rating-items-lg: var(--dimension-4);
+  --color-skeleton-bg-primary: var(--color-border-primary);
+  --color-skeleton-bg-secondary: var(--color-skeleton-secondary);
+  --color-skeleton-secondary: color-mix(
+    in srgb,
+    var(--color-border-primary) 20%,
+    var(--color-fill-overlay)
+  );
+  --radius-skeleton-rectangle: var(--radius-skeleton-text);
+  --text-hotkeys-sm: calc((var(--text-xs) + var(--text-sm)) / 2);
+  --color-hotkeys-outline: color-mix(
+    in oklab,
+    var(--color-border-control) 45%,
+    var(--color-fill-surface)
+  );
+}

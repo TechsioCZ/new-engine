@@ -13,6 +13,7 @@ import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Checkbox, type CheckboxProps } from "../../src/atoms/checkbox"
+import { Label } from "../../src/atoms/label"
 
 function CheckboxDocs() {
   return (
@@ -164,19 +165,26 @@ export const Sizes: Story = {
   },
   render: () => <VariantContainer>
     {(["sm", "md", "lg"] as const).map((size, index) => <VariantGroup key={size} title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}>
+      <Checkbox size={size} aria-label="Select trail socks" />
       <Checkbox size={size} aria-label="Select Alpine daypack" defaultChecked />
       <Checkbox size={size} aria-label="Select all products" indeterminate />
     </VariantGroup>)}
   </VariantContainer>,
   play: async ({ canvasElement }) => {
     const inputs = within(canvasElement).getAllByRole("checkbox")
-    for (let index = 2; index < inputs.length; index += 2) {
+    for (let index = 3; index < inputs.length; index += 3) {
       const current = inputs[index]
-      const previous = inputs[index - 2]
+      const previous = inputs[index - 3]
       if (!current || !previous) throw new Error("Missing size target")
       await expect(current.getBoundingClientRect().width).toBeGreaterThan(previous.getBoundingClientRect().width)
     }
-    for (const input of inputs.filter((_, index) => index % 2)) await expect(input).toBePartiallyChecked()
+    for (const [index, input] of inputs.entries()) {
+      if (index % 3 === 0) await expect(input).not.toBeChecked()
+      if (index % 3 === 2) await expect(input).toBePartiallyChecked()
+    }
+    // The check glyph scales with the box rather than inheriting row text.
+    const glyphSizes = inputs.filter((_, index) => index % 3 === 1).map((input) => Number.parseFloat(getComputedStyle(input, "::after").width))
+    for (let index = 1; index < glyphSizes.length; index += 1) await expect(glyphSizes[index]).toBeGreaterThan(glyphSizes[index - 1] ?? 0)
   },
 }
 
@@ -404,17 +412,22 @@ export const ReadOnly: Story = {
     const [refreshed, setRefreshed] = useState(false)
     return (
       <div className="flex flex-col gap-200">
-        <Checkbox
-          {...args}
-          checked={checked}
-          aria-label={
-            refreshed ? "Saved product selection" : "Product selection"
-          }
-          onChange={(event) => {
-            args.onChange?.(event)
-            setChecked(event.currentTarget.checked)
-          }}
-        />
+        <Label className="flex items-center gap-150">
+          <Checkbox
+            {...args}
+            aria-label={undefined}
+            checked={checked}
+            onChange={(event) => {
+              args.onChange?.(event)
+              setChecked(event.currentTarget.checked)
+            }}
+          />
+          {refreshed ? "Saved product selection" : "Product selection"}
+        </Label>
+        <Label className="flex items-center gap-150">
+          <Checkbox checked readOnly />
+          Confirmed selection (read-only)
+        </Label>
         <Button variant="secondary" onClick={() => setRefreshed(true)}>
           Refresh selection label
         </Button>
@@ -423,7 +436,13 @@ export const ReadOnly: Story = {
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
-    const input = canvas.getByRole("checkbox")
+    const input = canvas.getByRole("checkbox", { name: "Product selection" })
+    const confirmed = canvas.getByRole("checkbox", {
+      name: "Confirmed selection (read-only)",
+    })
+    await expect(confirmed).toBeChecked()
+    await userEvent.click(confirmed)
+    await expect(confirmed).toBeChecked()
     input.focus()
     await expect(input).toHaveFocus()
     await userEvent.click(input)

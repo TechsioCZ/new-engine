@@ -7,7 +7,8 @@ import {
   useState,
 } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { VariantGroup } from "../../.storybook/decorator"
+import { AtomVariantContainer as VariantContainer } from "./variant-container"
 import { Image, ImageWithFallback } from "../../src/atoms/image"
 import { Button } from "../../src/atoms/button"
 import { Badge } from "../../src/atoms/badge"
@@ -90,10 +91,13 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="Square thumbnails">
+    <VariantContainer className="w-full items-stretch space-y-0 gap-400">
+      <VariantGroup title="Square thumbnails" fullWidth>
         {(["sm", "md", "lg"] as const).map((size) => (
-          <figure className="flex flex-col gap-100" key={size}>
+          <figure className="flex items-center gap-200" key={size}>
+            <figcaption className="w-400 shrink-0 text-fg-primary text-md">
+              {size}
+            </figcaption>
             <Image
               src={landscape}
               alt={alt}
@@ -102,9 +106,6 @@ export const Sizes: Story = {
               height={640}
               className="rounded-md"
             />
-            <figcaption className="text-sm text-fg-secondary">
-              {size}
-            </figcaption>
           </figure>
         ))}
       </VariantGroup>
@@ -128,6 +129,26 @@ export const Sizes: Story = {
       </VariantGroup>
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const thumbnails = within(canvasElement).getByRole("heading", {
+      name: "Square thumbnails",
+    }).parentElement!
+    const images = Array.from(thumbnails.querySelectorAll("img"))
+    await expect(images).toHaveLength(3)
+    const boxes = images.map((image) => image.getBoundingClientRect())
+    for (const [index, box] of boxes.entries()) {
+      await expect(box.width).toBeGreaterThan(0)
+      await expect(box.width).toBeCloseTo(box.height, 1)
+      await expect(box.left).toBeCloseTo(boxes[0]!.left, 1)
+      await expect(box.right).toBeLessThanOrEqual(
+        canvasElement.getBoundingClientRect().right
+      )
+      if (index > 0) {
+        await expect(box.top).toBeGreaterThan(boxes[index - 1]!.bottom)
+        await expect(box.width).toBeGreaterThan(boxes[index - 1]!.width)
+      }
+    }
+  },
 }
 
 export const AspectAndFit: Story = {
@@ -142,13 +163,13 @@ export const AspectAndFit: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <VariantContainer className="w-full items-stretch space-y-0 gap-400">
       <VariantGroup title="Cover: fills the slot, crops edges" fullWidth>
         <Image
           src={landscape}
           alt={alt}
           size="custom"
-          className="aspect-wide w-full rounded-lg object-cover"
+          className="aspect-wide w-full rounded-lg border border-border-primary bg-fill-secondary object-cover"
         />
       </VariantGroup>
       <VariantGroup title="Contain: preserves the entire image" fullWidth>
@@ -156,7 +177,7 @@ export const AspectAndFit: Story = {
           src={landscape}
           alt={alt}
           size="custom"
-          className="aspect-wide w-full rounded-lg bg-fill-secondary object-contain"
+          className="aspect-wide w-full rounded-lg border border-border-primary bg-fill-secondary object-contain"
         />
       </VariantGroup>
     </VariantContainer>
@@ -253,6 +274,7 @@ function ResilientImagesExample() {
           src={src}
           alt="Mountain landscape"
           fallbackLabel="Mountain landscape — photo unavailable"
+          className="rounded-lg"
           size="md"
           width={960}
           height={640}
@@ -264,13 +286,21 @@ function ResilientImagesExample() {
           src={src}
           alt="Mountain landscape from adapter"
           fallbackLabel="Mountain landscape from adapter — photo unavailable"
+          className="rounded-lg"
           size="md"
           width={960}
           height={640}
           onError={() => setErrors((value) => value + 1)}
           onLoad={() => setLoads((value) => value + 1)}
         />
-        <ImageWithFallback src="" alt="" size="sm" width={80} height={80} />
+        <ImageWithFallback
+          src=""
+          alt=""
+          className="rounded-lg"
+          size="md"
+          width={80}
+          height={80}
+        />
       </div>
       <Button
         onClick={() => setSrc(src === brokenPhoto ? localPhoto : brokenPhoto)}
@@ -310,6 +340,17 @@ export const FailedAndRecovery: Story = {
       })
     ).toBeVisible()
     await expect(canvas.getByTestId("image-errors")).toHaveTextContent("2")
+    const boxes = Array.from(
+      canvasElement.querySelectorAll<HTMLElement>("[data-image-state]")
+    )
+    await expect(boxes).toHaveLength(3)
+    const before = boxes.map((box) => box.getBoundingClientRect())
+    for (const box of before) {
+      await expect(box.width).toBeGreaterThan(0)
+      await expect(box.height).toBeGreaterThan(0)
+      await expect(box.width).toBeCloseTo(before[0]?.width ?? 0, 1)
+      await expect(box.height).toBeCloseTo(before[0]?.height ?? 0, 1)
+    }
     await userEvent.click(
       canvas.getByRole("button", { name: "Load working photo" })
     )
@@ -324,6 +365,15 @@ export const FailedAndRecovery: Story = {
     }) as HTMLImageElement
     await expect(image.naturalWidth).toBeGreaterThan(0)
     await expect(image).not.toHaveAttribute("aria-hidden")
+    const recovered = canvasElement.querySelectorAll<HTMLElement>(
+      "[data-image-state]"
+    )
+    await expect(recovered).toHaveLength(3)
+    for (const [index, box] of Array.from(recovered).entries()) {
+      const after = box.getBoundingClientRect()
+      await expect(after.width).toBeCloseTo(before[index]?.width ?? 0, 1)
+      await expect(after.height).toBeCloseTo(before[index]?.height ?? 0, 1)
+    }
   },
 }
 
@@ -434,7 +484,14 @@ function PrimitiveRefsExample() {
         size="sm"
         ref={resilient}
       />
-      <output data-testid="primitive-ref-targets">{targets}</output>
+      <div className="flex flex-col gap-50 text-sm text-fg-secondary">
+        <label className="text-fg-primary" htmlFor="primitive-ref-targets">
+          DOM ref targets (in display order)
+        </label>
+        <output id="primitive-ref-targets" data-testid="primitive-ref-targets">
+          {targets}
+        </output>
+      </div>
     </div>
   )
 }

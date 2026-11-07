@@ -2,7 +2,7 @@
  * Image — @techsio/ui-kit atom.
  *
  * @component Image
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill image-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

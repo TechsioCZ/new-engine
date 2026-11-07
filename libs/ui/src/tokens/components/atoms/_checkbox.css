@@ -5,6 +5,7 @@
  *   - `--spacing-checkbox-indeterminate-icon` — width of the mixed-state dash.
  *   - `--spacing-checkbox-indeterminate-stroke` — dash thickness, kept separate
  *     from width so mixed selection is a minus rather than a circular dot.
+ *   - `--text-checkbox-icon-{sm,md,lg}` — check glyph size per box size.
  *   - `--spacing-form-checkbox-gap` — Figma exports `--spacing-form-checkbox`
  *     (no `-gap` suffix); keep this alias name until FormCheckbox TSX
  *     adopts the Figma name.
@@ -32,6 +33,14 @@
     var(--spacing-form-checkbox-gap)
   );
   --size-form-checkbox-control-lg: var(--dimension-30);
+
+  /* The check glyph scales with its box instead of inheriting row text. */
+  --text-checkbox-glyph-sm: calc(var(--size-form-checkbox-control-sm) * 0.8);
+  --text-checkbox-glyph-md: calc(var(--size-form-checkbox-control-md) * 0.8);
+  --text-checkbox-glyph-lg: calc(var(--size-form-checkbox-control-lg) * 0.8);
+  --text-checkbox-icon-sm: var(--text-checkbox-glyph-sm);
+  --text-checkbox-icon-md: var(--text-checkbox-glyph-md);
+  --text-checkbox-icon-lg: var(--text-checkbox-glyph-lg);
 
   /* A checkbox must remain distinct from a radio even in rounded themes. */
   --radius-checkbox-corner: var(--radius-xs);
