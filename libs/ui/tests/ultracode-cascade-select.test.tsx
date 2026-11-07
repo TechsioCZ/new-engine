@@ -343,6 +343,63 @@ describe("CascadeSelect clear and hierarchy presentation", () => {
     )
   })
 
+  it("paints only measured continuation edges without taking column space or intercepting input", () => {
+    const continuation = utility("cascade-select-continuation")
+    expect(cascadeSelectVariants().content().split(" ")).toContain(
+      "cascade-select-continuation"
+    )
+    let shared: Rule | undefined
+    let start: Rule | undefined
+    let end: Rule | undefined
+    let focus: Rule | undefined
+    let rtl: Rule | undefined
+    continuation.walkRules((rule) => {
+      if (
+        rule.selector.replaceAll(CSS_WHITESPACE, " ") ===
+          "&::before, &::after" &&
+        rule.parent === continuation
+      ) {
+        shared = rule
+      } else if (rule.selector === "&[data-overflow-start]::before") {
+        start = rule
+      } else if (rule.selector === "&[data-overflow-end]::after") {
+        end = rule
+      } else if (rule.selector.includes(":focus-visible")) {
+        focus = rule
+      } else if (rule.selector === "&:dir(rtl)") {
+        rtl = rule
+      }
+    })
+    if (!(shared && start && end && focus && rtl)) {
+      throw new Error(
+        "Missing conditional, logical or focus-safe continuation rules"
+      )
+    }
+    expect(declaration(shared, "content")).toBe("none")
+    expect(declaration(shared, "position")).toBe("absolute")
+    expect(declaration(shared, "pointer-events")).toBe("none")
+    expect(declaration(shared, "inline-size")).toBe(
+      "var(--spacing-cascade-select-continuation-width)"
+    )
+    expect(declaration(shared, "translate")).toBe(
+      "var(--_cascade-select-continuation-offset, 0px) 0"
+    )
+    expect(declaration(start, "content")).toBe('""')
+    expect(declaration(start, "inset-inline-start")).toBe("0")
+    expect(declaration(end, "content")).toBe('""')
+    expect(declaration(end, "inset-inline-end")).toBe("0")
+    expect(declaration(focus, "opacity")).toBe("0")
+    expect(declaration(rtl, "--_cascade-select-continuation-start")).toBe(
+      "to left"
+    )
+    expect(declaration(rtl, "--_cascade-select-continuation-end")).toBe(
+      "to right"
+    )
+    for (const property of ["mask", "overflow", "scroll-snap-type"]) {
+      expect(declaration(continuation, property)).toBeUndefined()
+    }
+  })
+
   it("keeps full heading words intrinsic and aligns level numbers to the first line", () => {
     const heading = utility("cascade-select-column-heading")
     expect(declaration(heading, "overflow-wrap")).toBe("break-word")

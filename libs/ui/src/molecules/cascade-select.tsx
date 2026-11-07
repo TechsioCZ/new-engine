@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.13
+ * @componentVersion v1.1.14
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -131,7 +131,7 @@ export const cascadeSelectVariants = tv({
     clearTrigger:
       "cascade-select-clear-surface absolute end-cascade-select-right top-1/2 -translate-y-1/2 data-readonly:hidden",
     content: [
-      "popup-surface-base cascade-select-viewport flex w-max snap-x snap-proximity overflow-x-auto p-0",
+      "popup-surface-base cascade-select-viewport cascade-select-continuation flex w-max snap-x snap-proximity overflow-x-auto p-0",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
@@ -814,6 +814,45 @@ CascadeSelect.Content = function CascadeSelectContent({
     const view = content.ownerDocument.defaultView ?? window
     let frame = 0
     let columnToReveal: HTMLElement | null = null
+    const updateOverflow = () => {
+      const columns = content.querySelectorAll<HTMLElement>(
+        '[data-scope="cascade-select"][data-part="column"]'
+      )
+      const first = columns.item(0)
+      const last = columns.item(columns.length - 1)
+      const surface = content.getBoundingClientRect()
+      const left = surface.left + content.clientLeft
+      const right = left + content.clientWidth
+      const firstBounds = first?.getBoundingClientRect()
+      const lastBounds = last?.getBoundingClientRect()
+      // Compare physical edges rather than scrollLeft, whose RTL conventions
+      // vary. Ignore subpixel rounding at an otherwise fully revealed edge.
+      const hiddenLeft = Boolean(
+        firstBounds &&
+          lastBounds &&
+          Math.min(firstBounds.left, lastBounds.left) < left - 1
+      )
+      const hiddenRight = Boolean(
+        firstBounds &&
+          lastBounds &&
+          Math.max(firstBounds.right, lastBounds.right) > right + 1
+      )
+      const rtl = first?.dir === "rtl"
+      // No scrollLeft normalization is needed to cancel the scroll translation:
+      // a negative RTL offset moves the paint back by the same physical amount.
+      content.style.setProperty(
+        "--_cascade-select-continuation-offset",
+        `${content.scrollLeft}px`
+      )
+      content.toggleAttribute(
+        "data-overflow-start",
+        rtl ? hiddenRight : hiddenLeft
+      )
+      content.toggleAttribute(
+        "data-overflow-end",
+        rtl ? hiddenLeft : hiddenRight
+      )
+    }
     const revealColumn = () => {
       const columns = content.querySelectorAll<HTMLElement>(
         '[data-scope="cascade-select"][data-part="column"]'
@@ -841,6 +880,7 @@ CascadeSelect.Content = function CascadeSelectContent({
           ? target.left - left
           : Math.max(0, target.right - right)
       content.scrollBy({ left: delta, behavior: "instant" })
+      updateOverflow()
     }
     const scheduleReveal = () => {
       view.cancelAnimationFrame(frame)
@@ -850,15 +890,27 @@ CascadeSelect.Content = function CascadeSelectContent({
       })
     }
     scheduleReveal()
+    // Native scrolling updates only the cues; never pull the user back to the
+    // highlighted column while they inspect an ancestor with pointer/touch input.
+    content.addEventListener("scroll", updateOverflow, { passive: true })
     // Test DOMs may lack ResizeObserver; the initial reveal still runs.
     const observer =
       typeof ResizeObserver === "undefined"
         ? undefined
         : new ResizeObserver(scheduleReveal)
     observer?.observe(content)
+    for (const column of content.querySelectorAll<HTMLElement>(
+      '[data-scope="cascade-select"][data-part="column"]'
+    )) {
+      observer?.observe(column)
+    }
     return () => {
       view.cancelAnimationFrame(frame)
       observer?.disconnect()
+      content.removeEventListener("scroll", updateOverflow)
+      content.removeAttribute("data-overflow-start")
+      content.removeAttribute("data-overflow-end")
+      content.style.removeProperty("--_cascade-select-continuation-offset")
     }
   }, [api.open, contentId, getRootNode, highlightedId, keyboardNavigation])
 

@@ -310,7 +310,7 @@ function MultipleItemCart() {
     destination.current = null
   }, [items])
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-400">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-400 px-100">
       {items.map((title, index) => (
         <LineItem title={title} key={title}>
           <LineItem.Body>

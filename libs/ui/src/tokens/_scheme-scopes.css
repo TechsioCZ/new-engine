@@ -572,6 +572,7 @@
     --border-width-cascade-select-status-ring: var(--default-ring-width);
     --spacing-cascade-select-hierarchy-hint: var(--dimension-0);
     --spacing-cascade-select-status-offset: var(--dimension-0);
+    --spacing-cascade-select-edge: var(--spacing-150);
     --color-cascade-select-column-bg: var(--color-cascade-select-surface);
     --color-cascade-select-column-border: var(--color-cascade-select-divider);
     --color-cascade-select-header-bg: var(--color-cascade-select-muted);
@@ -580,6 +581,13 @@
     --color-cascade-select-step-fg: var(--color-cascade-select-foreground);
     --color-cascade-select-path-bg: var(--color-cascade-select-highlight);
     --color-cascade-select-path-border: var(--color-cascade-select-accent);
+    --color-cascade-select-continuation-bg: var(--color-cascade-select-surface);
+    --color-cascade-select-continuation-border: var(
+    --color-cascade-select-divider
+  );
+    --spacing-cascade-select-continuation-width: var(
+    --spacing-cascade-select-edge
+  );
     --spacing-cascade-select-column-peek: var(
     --spacing-cascade-select-hierarchy-hint
   );

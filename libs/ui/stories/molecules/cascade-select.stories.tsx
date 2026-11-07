@@ -955,6 +955,7 @@ function CascadeErrorRegistry() {
       <CascadeSelect.Label>Category with feedback</CascadeSelect.Label>
       <CascadeSelect.Control><CascadeSelect.Trigger aria-errormessage={`${id}-caller`}>
         <CascadeSelect.ValueText placeholder="Choose an option" />
+        <CascadeSelect.Indicator />
       </CascadeSelect.Trigger></CascadeSelect.Control>
       <CascadeSelect.StatusText id={`${id}-hint`} status="default">Choose the most specific category.</CascadeSelect.StatusText>
       {phase > 0 && <CascadeSelect.StatusText id={`${id}-first`} status={phase === 3 ? "default" : "error"}>Choose a category before saving.</CascadeSelect.StatusText>}
@@ -974,6 +975,7 @@ export const ErrorAssociations: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const trigger = canvas.getByRole("combobox", { name: "Category with feedback" })
+    await expect(trigger.querySelector('[data-part="indicator"]')).toBeVisible()
     await userEvent.click(canvas.getByRole("button", { name: "Show errors" }))
     await waitFor(() => expect(trigger.getAttribute("aria-errormessage")?.split(" ")).toHaveLength(3))
     await expect(trigger).toHaveAttribute("aria-invalid", "true")

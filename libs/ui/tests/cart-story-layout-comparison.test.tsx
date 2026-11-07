@@ -82,6 +82,12 @@ describe("Cart story layout comparison", () => {
     expect(recap?.textContent).toContain("Doručení na adresu, platba kartou.")
   })
 
+  it("reserves local inline clearance for the multi-item action's focus paint", () => {
+    const surface = fixture(multipleItems()).firstElementChild
+    expect(surface?.classList.contains("px-100")).toBe(true)
+    expect(surface?.classList.contains("overflow-hidden")).toBe(false)
+  })
+
   it("keeps the same borderless Remove styling and genuine focus outline in both editable fixtures", () => {
     const singleRemove = fixture(playground()).querySelector(
       '[data-part="remove"]'

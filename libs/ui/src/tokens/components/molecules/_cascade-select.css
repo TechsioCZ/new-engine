@@ -10,6 +10,7 @@
   --border-width-cascade-select-status-ring: var(--default-ring-width);
   --spacing-cascade-select-hierarchy-hint: var(--dimension-0);
   --spacing-cascade-select-status-offset: var(--dimension-0);
+  --spacing-cascade-select-edge: var(--spacing-150);
 
   /* Column derived layer */
   --color-cascade-select-column-bg: var(--color-cascade-select-surface);
@@ -20,6 +21,13 @@
   --color-cascade-select-step-fg: var(--color-cascade-select-foreground);
   --color-cascade-select-path-bg: var(--color-cascade-select-highlight);
   --color-cascade-select-path-border: var(--color-cascade-select-accent);
+  --color-cascade-select-continuation-bg: var(--color-cascade-select-surface);
+  --color-cascade-select-continuation-border: var(
+    --color-cascade-select-divider
+  );
+  --spacing-cascade-select-continuation-width: var(
+    --spacing-cascade-select-edge
+  );
   --spacing-cascade-select-column-peek: var(
     --spacing-cascade-select-hierarchy-hint
   );
@@ -109,6 +117,73 @@
   /* A partial preceding column makes deeper overflow discoverable. */
   &:has(> [data-part="column"][data-depth="2"]) {
     --cascade-select-column-peek: var(--spacing-cascade-select-column-peek);
+  }
+}
+
+/* Measured translation cancels only this surface's native scrolling, keeping
+   inert paint at its edges even when the hierarchy exceeds several viewports.
+   Absolute pseudo-elements leave column sizing, :only-child and snaps intact. */
+@utility cascade-select-continuation {
+  position: relative;
+  --_cascade-select-continuation-start: to right;
+  --_cascade-select-continuation-end: to left;
+
+  &:dir(rtl) {
+    --_cascade-select-continuation-start: to left;
+    --_cascade-select-continuation-end: to right;
+  }
+
+  &::before,
+  &::after {
+    content: none;
+    position: absolute;
+    inset-block: 0;
+    inline-size: var(--spacing-cascade-select-continuation-width);
+    translate: var(--_cascade-select-continuation-offset, 0px) 0;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  &[data-overflow-start]::before {
+    content: "";
+    inset-inline-start: 0;
+    border-inline-start: var(--border-width-cascade-select-column) solid
+      var(--color-cascade-select-continuation-border);
+    background: linear-gradient(
+      var(--_cascade-select-continuation-start),
+      var(--color-cascade-select-continuation-bg),
+      transparent
+    );
+  }
+
+  &[data-overflow-end]::after {
+    content: "";
+    inset-inline-end: 0;
+    border-inline-end: var(--border-width-cascade-select-column) solid
+      var(--color-cascade-select-continuation-border);
+    background: linear-gradient(
+      var(--_cascade-select-continuation-end),
+      var(--color-cascade-select-continuation-bg),
+      transparent
+    );
+  }
+
+  /* Never paint over the tree's keyboard ring or a custom focused control. */
+  &:where(:focus-visible, :has(:focus-visible))::before,
+  &:where(:focus-visible, :has(:focus-visible))::after {
+    opacity: 0;
+  }
+
+  @media (forced-colors: active) {
+    &::before {
+      border-inline-start-color: CanvasText;
+      border-inline-start-style: dashed;
+    }
+    &::after {
+      border-inline-end-color: CanvasText;
+      border-inline-end-style: dashed;
+    }
   }
 }
 

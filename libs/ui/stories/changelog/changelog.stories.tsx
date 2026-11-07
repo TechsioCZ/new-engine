@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### CascadeSelect v1.1.14
+- Mark measured horizontal overflow with inert logical-edge continuation cues, keeping full hierarchy labels, native scrolling, column sizing, selected checkmarks and keyboard focus unobscured.
+
 ### CascadeSelect v1.1.13
 - Let a sole hierarchy column fill its popup while preserving intrinsic heading room, viewport and modal caps, and multicolumn scrolling.
 

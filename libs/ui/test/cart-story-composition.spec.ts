@@ -86,7 +86,38 @@ for (const width of [393, 1280]) {
       ).toBeLessThanOrEqual(1)
       expect(geometry.left).toBeGreaterThanOrEqual(geometry.start - 1)
       expect(geometry.right).toBeLessThanOrEqual(geometry.end + 1)
-      await expect(example.locator('[data-part="remove"]')).toHaveCount(1)
+      const remove = example.locator('[data-part="remove"]')
+      await expect(remove).toHaveCount(1)
+      if (story === "multiple-items") {
+        await expect(remove).toBeFocused()
+        const focus = await remove.evaluate((element) => {
+          const root = element.closest("#storybook-root")
+          if (!root) {
+            throw new Error("Missing cart capture boundary")
+          }
+          const bounds = element.getBoundingClientRect()
+          const frame = root.getBoundingClientRect()
+          const style = getComputedStyle(element)
+          const clearance = Math.max(
+            0,
+            Number.parseFloat(style.outlineWidth) * 2 +
+              Number.parseFloat(style.outlineOffset)
+          )
+          return {
+            left: bounds.left - clearance,
+            right: bounds.right + clearance,
+            top: bounds.top - clearance,
+            bottom: bounds.bottom + clearance,
+            frame: frame.toJSON(),
+          }
+        })
+        expect(focus.left, JSON.stringify(focus)).toBeGreaterThanOrEqual(
+          focus.frame.left - 1
+        )
+        expect(focus.right).toBeLessThanOrEqual(focus.frame.right + 1)
+        expect(focus.top).toBeGreaterThanOrEqual(focus.frame.top - 1)
+        expect(focus.bottom).toBeLessThanOrEqual(focus.frame.bottom + 1)
+      }
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth - innerWidth

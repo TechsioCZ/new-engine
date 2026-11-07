@@ -726,14 +726,30 @@ export const LongContent: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Review attachment" }))
     const panel = await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: "Attachment details" })
-    await waitFor(() => {
-      const rect = panel.getBoundingClientRect()
-      expect(rect.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight)
-    })
     const close = within(panel).getByRole("button", { name: "Dismiss attachment details" })
     await expect(within(panel).getByText("Scroll to review all 15 attachments.")).toBeVisible()
     const scrollViewport = panel.querySelector<HTMLElement>(".popover-scroll-viewport")
     expect(scrollViewport).not.toBeNull()
+    const positioner = panel.closest<HTMLElement>('[data-part="positioner"]')
+    const view = canvasElement.ownerDocument.defaultView
+    if (!(scrollViewport && positioner && view)) throw new Error("Missing popover positioning or scroll viewport")
+    await waitFor(async () => {
+      // Zag initially mounts offscreen, which also satisfies a bottom-only check.
+      // Wait for committed placement and observe sizing before either one-shot scroll.
+      expect(positioner.style.getPropertyValue("--x")).not.toBe("")
+      expect(positioner.style.getPropertyValue("--y")).not.toBe("")
+      const rect = panel.getBoundingClientRect()
+      expect(rect.top).toBeGreaterThanOrEqual(0)
+      expect(rect.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight)
+      const geometry = () => {
+        const panelRect = panel.getBoundingClientRect()
+        const viewportRect = scrollViewport.getBoundingClientRect()
+        return [panelRect.x, panelRect.y, panelRect.width, panelRect.height, viewportRect.width, viewportRect.height, scrollViewport.clientHeight, scrollViewport.scrollHeight]
+      }
+      const before = geometry()
+      await new Promise<void>((resolve) => view.requestAnimationFrame(() => view.requestAnimationFrame(() => resolve())))
+      expect(geometry()).toEqual(before)
+    })
     for (const fraction of [0.5, 1]) {
       if (scrollViewport) scrollViewport.scrollTop = scrollViewport.scrollHeight * fraction
       await waitFor(() => {
