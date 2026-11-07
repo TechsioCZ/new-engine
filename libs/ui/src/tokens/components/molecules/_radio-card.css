@@ -75,7 +75,7 @@
 
 /* A hover fill needs its own full-contrast secondary text pairing. */
 @utility radio-card-outline-readable {
-  &[data-state="checked"][data-hover]:not([data-disabled]) {
+  &[data-state="checked"][data-hover]:not([data-disabled], [data-readonly]) {
     & [data-part="item-description"],
     & [data-part="item-addon"] {
       color: var(--color-radio-card-fg-choice-selected);

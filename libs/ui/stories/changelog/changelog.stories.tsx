@@ -13,6 +13,21 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Slider v1.4.7
+- Keep disabled labels quiet while giving readable value outputs component-local secondary-foreground tokens, preserving readonly presentation, fieldset behavior and caller color overrides.
+
+### CascadeSelect v1.1.12
+- Give long hierarchy headings intrinsic column space before wrapping, align quieter step numbers with their first line, and retain short-label two-column sizing and modal viewport caps.
+
+### ColorSelect v1.1.6
+- Distinguish disabled swatches with dashed borders rather than desaturating product colors, and restrict editable hover paint without removing genuine focus or selected indicators.
+
+### DataTable v1.4.15
+- Give fixed headers a compact inset for complete labels, use full-size filter popups without losing drafts or endpoint focus, and top-align editing rows with readable recovery feedback; retain explicit widths, header associations and the native inline fallback without ResizeObserver.
+
+### RadioCard v1.1.7
+- Restrict editable hover paint to enabled, writable cards while retaining readonly token overrides, selected footer colors and genuine keyboard focus.
+
 ### DataTable v1.4.14
 - Render grouped-header placeholders as neutral cells and associate each data cell with its actual rendered group and leaf headers, retaining fixed widths, pinning, reordering and spanning cells.
 

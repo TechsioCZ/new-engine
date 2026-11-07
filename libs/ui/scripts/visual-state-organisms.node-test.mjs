@@ -17,7 +17,7 @@ const expectedCounts = {
   "organisms-sidebar--logical-edges-rtl": 2,
   "organisms-sidebar--sticky-site-header-sidebar-16": 1,
   "organisms-datatable--column-filters-with-conditions": 3,
-  "organisms-datatable--narrow-column-filters": 1,
+  "organisms-datatable--narrow-column-filters": 2,
   "organisms-datatable--typed-column-filters": 3,
   "organisms-datatable--custom-filter-template": 1,
   "organisms-datatable--pagination": 1,
@@ -55,6 +55,16 @@ test("each documented appearance has a unique descriptive checkpoint suffix", ()
       assert.match(suffix, checkpointSuffixPattern)
     }
   }
+})
+
+test("narrow filters capture the full range popup as well as its condition menu", () => {
+  assert.deepEqual(
+    stateCheckpointSuffixes["organisms-datatable--narrow-column-filters"],
+    [
+      "--state-narrow-number-filter-open",
+      "--state-narrow-number-condition-open",
+    ]
+  )
 })
 
 test("header matrix and logical sidebar edges are not sampled", () => {

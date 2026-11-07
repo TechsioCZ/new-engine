@@ -51,6 +51,7 @@ const filterCheckpoints = {
   "organisms-datatable--narrow-column-filters": [
     {
       appearance: "narrow-number-condition",
+      compactAppearance: "narrow-number-filter",
       condition: "Age",
       table: "fixed layout filters",
       choices: numberConditions,
@@ -134,7 +135,10 @@ export const stateCheckpointSuffixes = {
   ...Object.fromEntries(
     Object.entries(filterCheckpoints).map(([id, states]) => [
       id,
-      states.map(({ appearance }) => `--state-${appearance}-open`),
+      states.flatMap(({ appearance, compactAppearance }) => [
+        ...(compactAppearance ? [`--state-${compactAppearance}-open`] : []),
+        `--state-${appearance}-open`,
+      ]),
     ])
   ),
   ...Object.fromEntries(
@@ -207,14 +211,46 @@ function comboboxTrigger(field) {
 }
 
 /** @param {Page} page @param {Capture} capture
- * @param {{appearance: string, field?: string, condition?: string, table?: string, multiple?: boolean, choices: string[]}} state
+ * @param {{appearance: string, compactAppearance?: string, field?: string, condition?: string, table?: string, multiple?: boolean, choices: string[]}} state
  * @param {boolean} [invalid]
  */
 async function popupCheckpoint(page, capture, state, invalid = false) {
   const root = page.locator("#storybook-root")
-  const container = state.table
+  let container = state.table
     ? root.getByRole("table", { name: state.table, exact: true })
     : root
+  let compactTrigger
+  let compactSurface
+  if (state.compactAppearance) {
+    compactTrigger = container.getByRole("button", {
+      name: `Filter ${state.condition}`,
+      exact: true,
+    })
+    await compactTrigger.click()
+    compactSurface = page.getByRole("dialog", {
+      name: `Filter ${state.condition}`,
+      exact: true,
+    })
+    container = compactSurface
+    await checkpoint(capture, state.compactAppearance, async () => {
+      await assertActive(compactSurface)
+      await expect(compactTrigger).toHaveAttribute("aria-expanded", "true")
+      for (const field of await compactSurface.getByRole("spinbutton").all()) {
+        await expect(field).toBeVisible()
+        await expect(field).toBeInViewport({ ratio: 1 })
+      }
+      await expect(
+        compactSurface.getByLabel(`Filter value for ${state.condition}`, {
+          exact: true,
+        })
+      ).toHaveValue("36")
+      await expect(
+        compactSurface.getByLabel(`Filter upper bound for ${state.condition}`, {
+          exact: true,
+        })
+      ).toHaveValue("40")
+    })
+  }
   const field =
     state.multiple && state.field === "Filter Skills"
       ? container.getByPlaceholder(state.field, { exact: true })
@@ -262,6 +298,12 @@ async function popupCheckpoint(page, capture, state, invalid = false) {
   await page.keyboard.press("Escape")
   await expect(surface).toHaveCount(0)
   await expect(trigger).toHaveAttribute("aria-expanded", "false")
+  if (compactTrigger && compactSurface) {
+    await expect(trigger).toBeFocused()
+    await page.keyboard.press("Escape")
+    await expect(compactSurface).toBeHidden()
+    await expect(compactTrigger).toBeFocused()
+  }
 }
 
 /** @param {Page} page @param {string} id @param {Capture} capture */

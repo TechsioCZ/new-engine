@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.14
+ * @componentVersion v1.4.15
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -75,6 +75,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { createPortal } from "react-dom"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
 import { Checkbox } from "../atoms/checkbox"
@@ -83,6 +84,7 @@ import { Skeleton } from "../atoms/skeleton"
 import { StatusText } from "../atoms/status-text"
 import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
+import { Popover } from "../molecules/popover"
 import { SearchForm } from "../molecules/search-form"
 import type { SelectItem } from "../molecules/select"
 import { tv } from "../utils"
@@ -179,6 +181,7 @@ const dataTableVariants = tv({
       "flex min-w-0 max-w-full flex-wrap items-center justify-end gap-data-table-toolbar",
     ],
     scroll: ["@container/data-table relative w-full overflow-auto"],
+    headerCell: "",
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
     headerText: ["min-w-0"],
     cellContent: ["min-w-0 max-w-full"],
@@ -214,7 +217,7 @@ const dataTableVariants = tv({
     ],
     filterRow: ["bg-data-table-filter-row-bg"],
     filterCell: [
-      "p-data-table-filter-cell",
+      "data-table-filter-cell p-data-table-filter-cell",
       "border-b-(length:--border-width-data-table) border-data-table-border",
     ],
     filterViewport: ["data-table-filter-viewport"],
@@ -258,9 +261,10 @@ const dataTableVariants = tv({
     },
     fixedLayout: {
       true: {
+        headerCell: "data-table-fixed-header",
         headerLabel: "min-w-0 max-w-full",
-        headerText: "truncate",
-        sortButton: "min-w-0 max-w-full",
+        headerText: "max-w-full shrink-0 truncate",
+        sortButton: "data-table-sort-label min-w-0 max-w-full flex-wrap",
         sortIcon: "shrink-0",
         cellContent: "wrap-anywhere",
       },
@@ -1210,6 +1214,202 @@ function HeaderDragHandle({
   )
 }
 
+/** Keep one filter instance: inline when it fits, in a standard popup otherwise. */
+function ColumnFilter({
+  children,
+  columnName,
+  active,
+  disabled,
+  direction,
+  size,
+  tableLayout,
+  styles,
+}: {
+  children: ReactNode
+  columnName: string
+  active: boolean
+  disabled: boolean
+  direction: "ltr" | "rtl"
+  size: DataTableControlSize
+  tableLayout: "auto" | "fixed"
+  styles: DataTableStyles
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const controlRef = useRef<HTMLDivElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
+  const restoreControlFocus = useRef<{
+    element: HTMLElement
+    start: number | null
+    end: number | null
+    direction: "forward" | "backward" | "none" | null
+  } | null>(null)
+  const [host, setHost] = useState<HTMLDivElement | null>(null)
+  const [compact, setCompact] = useState(false)
+  const [open, setOpen] = useState(false)
+  const hasFilter = children != null
+
+  useIsomorphicLayoutEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) {
+      return
+    }
+    // Own only the portal target, never move React-owned child nodes. Creating
+    // it after hydration also keeps server rendering free of DOM/portal access.
+    const target = viewport.ownerDocument.createElement("div")
+    viewport.append(target)
+    setHost(target)
+    return () => {
+      target.remove()
+      setHost(null)
+    }
+  }, [hasFilter])
+
+  useIsomorphicLayoutEffect(() => {
+    const destination = compact ? popupRef.current : viewportRef.current
+    if (!(host && destination)) {
+      return
+    }
+    if (host.parentNode !== destination) {
+      destination.append(host)
+    }
+    const focus = restoreControlFocus.current
+    restoreControlFocus.current = null
+    if (!focus) {
+      return
+    }
+    // Reparenting can blur even a retained DOM node. Restore that exact
+    // endpoint (and its text selection), not the first input in the filter.
+    const element = host.contains(focus.element)
+      ? focus.element
+      : controlRef.current?.querySelector<HTMLElement>(
+          "input:not(:disabled), button:not(:disabled), [tabindex='0']"
+        )
+    element?.focus({ preventScroll: true })
+    if (
+      element === focus.element &&
+      focus.start !== null &&
+      focus.end !== null &&
+      element.matches("input, textarea")
+    ) {
+      const field = element as HTMLInputElement | HTMLTextAreaElement
+      field.setSelectionRange(
+        focus.start,
+        focus.end,
+        focus.direction ?? undefined
+      )
+    }
+  }, [compact, host])
+
+  useEffect(() => {
+    if (disabled) {
+      setOpen(false)
+    }
+  }, [disabled])
+
+  useIsomorphicLayoutEffect(() => {
+    const viewport = viewportRef.current
+    const control = controlRef.current
+    if (!(viewport && control)) {
+      return
+    }
+    const measure = () => {
+      // Computed min-width resolves the current size/theme tokens even when
+      // the popup is closed. Never infer usable space from TanStack's default
+      // model width: native layout, CSS widths and resizing can all differ.
+      const minimum = Number.parseFloat(getComputedStyle(control).minWidth)
+      if (tableLayout === "fixed" && viewport.clientWidth === 0) {
+        return
+      }
+      // Popup positioning also requires ResizeObserver. Keep the native
+      // scrollable inline controls as the fallback when it is unavailable.
+      const nextCompact =
+        typeof ResizeObserver !== "undefined" &&
+        tableLayout === "fixed" &&
+        viewport.clientWidth > 0 &&
+        viewport.clientWidth < minimum
+      if (nextCompact === compact) {
+        return
+      }
+      const element = viewport.ownerDocument.activeElement as HTMLElement | null
+      const focused =
+        element && (viewport.contains(element) || control.contains(element))
+      const field = element?.matches("input, textarea")
+        ? (element as HTMLInputElement | HTMLTextAreaElement)
+        : null
+      restoreControlFocus.current = focused
+        ? {
+            element,
+            start: field?.selectionStart ?? null,
+            end: field?.selectionEnd ?? null,
+            direction: field?.selectionDirection ?? null,
+          }
+        : null
+      // Keep a focused inline control reachable when it moves into the popup.
+      setOpen(nextCompact && !!focused)
+      setCompact(nextCompact)
+    }
+    measure()
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure)
+    observer?.observe(viewport)
+    observer?.observe(control)
+    return () => observer?.disconnect()
+  }, [tableLayout, size, compact, children, host])
+
+  const control = (
+    <div className={styles.filterControl()} data-size={size} ref={controlRef}>
+      {children}
+    </div>
+  )
+
+  if (children == null) {
+    return null
+  }
+  return (
+    <div
+      className={styles.filterViewport()}
+      data-compact={compact || undefined}
+      data-layout={tableLayout}
+      ref={viewportRef}
+    >
+      {host && createPortal(control, host)}
+      {compact && (
+        <Popover
+          dir={direction}
+          initialFocusEl={() => {
+            const element = controlRef.current?.ownerDocument.activeElement
+            return element && controlRef.current?.contains(element)
+              ? (element as HTMLElement)
+              : null
+          }}
+          onOpenChange={(details) => setOpen(details.open)}
+          open={open && !disabled}
+          placement="bottom-start"
+          size={size}
+        >
+          <Popover.Trigger
+            aria-label={`Filter ${columnName}`}
+            className="data-table-filter-trigger"
+            data-active={active || undefined}
+            data-size={size}
+            disabled={disabled}
+            icon="icon-[mdi--filter-variant]"
+            size={size}
+            theme={active ? "solid" : "outlined"}
+            variant="secondary"
+          />
+          <Popover.Positioner forceMount>
+            <Popover.Content aria-label={`Filter ${columnName}`}>
+              <Popover.Title>{columnName}</Popover.Title>
+              <div ref={popupRef} />
+            </Popover.Content>
+          </Popover.Positioner>
+        </Popover>
+      )}
+    </div>
+  )
+}
+
 /** Header label with the optional sort toggle + direction icon. */
 function HeaderSortLabel<T extends RowData>({
   header,
@@ -1235,7 +1435,11 @@ function HeaderSortLabel<T extends RowData>({
     return null
   }
   if (!canSort) {
-    return <span className={styles.headerText()}>{label}</span>
+    return (
+      <span className={styles.headerText()} title={columnLabel(column)}>
+        {label}
+      </span>
+    )
   }
 
   let sortIconName: IconType = "icon-[mdi--unfold-more-horizontal]"
@@ -1251,6 +1455,7 @@ function HeaderSortLabel<T extends RowData>({
       data-disabled={locked || undefined}
       disabled={locked}
       onClick={(event) => column.getToggleSortingHandler()?.(event)}
+      title={columnLabel(column)}
       type="button"
     >
       <span className={styles.headerText()}>{label}</span>
@@ -1278,7 +1483,9 @@ function renderCellContent<T extends RowData>({
   tableLayout,
   isDragCol,
   rowLabel,
+  editing,
 }: {
+  editing: boolean
   cell: Cell<T, unknown>
   column: Column<T, unknown>
   rowLabel: string
@@ -1326,8 +1533,15 @@ function renderCellContent<T extends RowData>({
     )
   }
   const content = flexRender(column.columnDef.cell, cell.getContext())
-  return tableLayout === "fixed" ? (
-    <div className={styles.cellContent()}>{content}</div>
+  return tableLayout === "fixed" || editing ? (
+    <div
+      className={styles.cellContent({
+        className: editing ? "data-table-readonly-value" : undefined,
+      })}
+      data-size={size}
+    >
+      {content}
+    </div>
   ) : (
     content
   )
@@ -1371,7 +1585,9 @@ function DataTableBodyCell<T extends RowData>({
   activePin,
   pinEdge,
   headers,
+  editing,
 }: {
+  editing: boolean
   headers: string
   pinningStyle?: CSSProperties
   activePin: boolean
@@ -1407,7 +1623,7 @@ function DataTableBodyCell<T extends RowData>({
       align={column.columnDef.meta?.align}
       className={`data-editing:align-top ${pinClass("body", activePin, pinEdge) ?? ""}`}
       colSpan={span?.colSpan}
-      data-editing={Boolean(editor) || undefined}
+      data-editing={editing || undefined}
       data-pinned={pinned || undefined}
       headers={headers}
       rowSpan={span?.rowSpan}
@@ -1431,6 +1647,7 @@ function DataTableBodyCell<T extends RowData>({
         tableLayout,
         isDragCol,
         rowLabel,
+        editing,
       })}
     </Table.Cell>
   )
@@ -3430,7 +3647,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         // simply stopped sticking, grouped or not. `sticky` is itself a
         // positioned value, so it already gives the resize handle the same
         // context; `relative` is only needed when sticky isn't in play.
-        className={`group/header ${stickyHeader ? "sticky top-0 z-10" : "relative"} ${pinClass("header", activePinned(column), pinEdge(column)) ?? ""} ${dropClass}`}
+        className={`group/header ${styles.headerCell()} ${stickyHeader ? "sticky top-0 z-10" : "relative"} ${pinClass("header", activePinned(column), pinEdge(column)) ?? ""} ${dropClass}`}
         // The reorderable path keys `SortableHeaderContent` instead, where this
         // key is simply ignored; the non-reorderable path renders this element
         // straight into the header-group map and is the one that needs it.
@@ -3558,6 +3775,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           {leafColumns.map((column) => (
             <td
               className={`${styles.filterCell()} ${pinClass("header", activePinned(column), pinEdge(column)) ?? ""}`}
+              data-layout={tableLayout}
               data-pinned={column.getIsPinned() || undefined}
               key={column.id}
               style={{
@@ -3581,14 +3799,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               }}
             >
               {column.getCanFilter() ? (
-                <div
-                  className={styles.filterViewport()}
-                  data-layout={tableLayout}
+                <ColumnFilter
+                  active={column.getIsFiltered()}
+                  columnName={columnLabel(column)}
+                  direction={direction}
+                  disabled={locked}
+                  size={size}
+                  styles={styles}
+                  tableLayout={tableLayout}
                 >
-                  <div className={styles.filterControl()} data-size={size}>
-                    {renderColumnFilter(column)}
-                  </div>
-                </div>
+                  {renderColumnFilter(column)}
+                </ColumnFilter>
               ) : null}
             </td>
           ))}
@@ -3880,6 +4101,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           cell={cell}
           columnSizing={columnSizing}
           dnd={dnd}
+          editing={editingRowId === row.id}
           editor={renderCellEditor(row, column)}
           editorError={
             editingRowId === row.id && !ownsFeedback

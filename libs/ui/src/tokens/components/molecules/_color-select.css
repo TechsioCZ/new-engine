@@ -9,6 +9,9 @@
  *   - `--padding-color-select-atom` (composite "0 0") and
  *     `--size-color-select-icon` (50%) — runtime/percent values Figma
  *     can't model.
+ *
+ * Disabled swatches use a dashed control border, never a filter on the product
+ * color. The checkmark and captions remain fully readable in every state.
  */
 
 :root {
@@ -52,8 +55,10 @@
   @apply token-icon-check-bold;
 }
 
-@utility select-disabled {
-  @apply grayscale-75;
+@utility color-select-disabled {
+  &:disabled {
+    border-style: dashed;
+  }
 }
 
 @utility color-select-grid {

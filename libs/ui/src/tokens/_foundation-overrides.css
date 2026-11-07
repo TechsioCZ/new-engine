@@ -57,6 +57,13 @@
   );
 }
 
+/* Disabled explanations are readable feedback, not disabled control labels.
+ * Legacy form descriptions still use the label utility; rebind its alias only
+ * on feedback itself so scoped StatusText foreground overrides keep working. */
+[data-status][data-disabled] {
+  --color-label-fg-disabled: var(--color-status-text-fg);
+}
+
 /* Brand selectors are unlayered; override the legacy link alias there too. */
 :root,
 [data-theme] {

@@ -594,6 +594,7 @@
     --border-width-cascade-select-path: var(--border-width-lg);
     --padding-cascade-select-column: var(--spacing-50);
     --padding-cascade-select-header: var(--spacing-150);
+    --padding-cascade-select-header-inline: var(--spacing-100);
     --spacing-cascade-select-clear-inset: var(--spacing-100);
     --padding-cascade-select-clear: var(--spacing-cascade-select-clear-inset);
     --gap-cascade-select-header: var(--spacing-100);
@@ -1267,6 +1268,8 @@
     --color-product-card-button-wishlist-bg-hover
   );
     --border-product-card-width: var(--border-width-product-card);
+    --color-slider-value-disabled: var(--color-fg-secondary);
+    --color-slider-value-fg-disabled: var(--color-slider-value-disabled);
     --text-slider-sm: var(--text-sm);
     --text-slider-md: var(--text-md);
     --text-slider-lg: var(--text-lg);
@@ -1500,6 +1503,18 @@
     --spacing-data-table-filter-sm: calc(var(--height-form-control-sm) * 5);
     --spacing-data-table-filter-md: calc(var(--height-form-control-md) * 5);
     --spacing-data-table-filter-lg: calc(var(--height-form-control-lg) * 5);
+    --spacing-data-table-filter-gutter: calc(
+    var(--padding-popover-lg) *
+    2 +
+    var(--spacing-popover-viewport) *
+    2
+  );
+    --spacing-data-table-header-inline: var(--dimension-8);
+    --padding-data-table-header-inline: var(--spacing-data-table-header-inline);
+    --spacing-data-table-filter-touch: var(--dimension-44);
+    --size-data-table-filter-target: var(--spacing-data-table-filter-touch);
+    --spacing-data-table-feedback: var(--container-3xs);
+    --spacing-data-table-feedback-width: var(--spacing-data-table-feedback);
     --spacing-data-table-editor-sm: calc(var(--height-form-control-sm) * 4);
     --spacing-data-table-editor-md: calc(var(--height-form-control-md) * 4);
     --spacing-data-table-editor-lg: calc(var(--height-form-control-lg) * 4);
@@ -4108,6 +4123,7 @@
     --padding-search-suggestions-group-y-sm: var(--dimension-6);
     --padding-search-suggestions-group-y-md: var(--dimension-8);
     --font-weight-product-card-name: var(--font-weight-semibold);
+    --font-weight-line-item-title: var(--font-weight-semibold);
     --font-weight-product-card-price: var(--font-weight-bold);
     --spacing-product-card-col-layout: var(--dimension-8);
     --spacing-product-card-padding: var(--dimension-12);
@@ -4231,7 +4247,7 @@
     --color-select-selection-ink: var(--color-primary-700);
     --color-select-item-bg-selected: var(--color-select-selection-surface);
     --color-select-item-fg-selected: var(--color-select-selection-ink);
-    --color-switch-help-disabled: var(--color-fg-disabled);
+    --color-switch-help-disabled: var(--color-fg-secondary);
     --color-tabs-overflow: var(--color-tabs-list-bg);
     --color-tabs-overflow-bg-cue: var(--color-tabs-overflow);
     --color-tabs-unavailable: var(--color-transparent);

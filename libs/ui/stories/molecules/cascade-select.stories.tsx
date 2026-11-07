@@ -672,7 +672,7 @@ export const LongLabels: Story = {
     docs: {
       description: {
         story:
-          "Full selected paths and long column headings wrap without hiding labels. Compare direction and size controls, or close the hierarchy to inspect the selected path and clear action.",
+          "Unbreakable headings claim a wider column before wrapping, with level numbers aligned to the first line. Scroll horizontally to review earlier levels; the full selected path and clear action remain available when the hierarchy is closed.",
       },
     },
   },
@@ -694,9 +694,16 @@ export const LongLabels: Story = {
     const tree = await within(canvasElement.ownerDocument.body).findByRole("tree")
     const headings = tree.querySelectorAll<HTMLElement>('[data-part="column-header"] > span:last-child')
     await expect(headings).toHaveLength(3)
+    await expect(headings.item(1)).toHaveTextContent("InternationalKitchenAndGardenEquipment")
+    await expect(getComputedStyle(tree).overflowX).toBe("auto")
     for (const heading of headings) {
-      await expect(getComputedStyle(heading).overflowWrap).toBe("anywhere")
+      await expect(getComputedStyle(heading).overflowWrap).toBe("break-word")
       await expect(heading.scrollWidth).toBeLessThanOrEqual(heading.clientWidth + 1)
+      const step = heading.previousElementSibling
+      if (!(step instanceof HTMLElement)) throw new Error("Missing column step")
+      await expect(Math.abs(
+        step.getBoundingClientRect().top - heading.getBoundingClientRect().top
+      )).toBeLessThanOrEqual(1)
     }
   },
 }

@@ -234,6 +234,7 @@
 
   /* Product names anchor browsing; prices lead the purchase decision. */
   --font-weight-product-card-name: var(--font-weight-semibold);
+  --font-weight-line-item-title: var(--font-weight-semibold);
   --font-weight-product-card-price: var(--font-weight-bold);
   --spacing-product-card-col-layout: var(--dimension-8);
   --spacing-product-card-padding: var(--dimension-12);
@@ -370,7 +371,7 @@
   --color-select-selection-ink: var(--color-primary-700);
   --color-select-item-bg-selected: var(--color-select-selection-surface);
   --color-select-item-fg-selected: var(--color-select-selection-ink);
-  --color-switch-help-disabled: var(--color-fg-disabled);
+  --color-switch-help-disabled: var(--color-fg-secondary);
   --color-tabs-overflow: var(--color-tabs-list-bg);
   --color-tabs-overflow-bg-cue: var(--color-tabs-overflow);
   --color-tabs-unavailable: var(--color-transparent);

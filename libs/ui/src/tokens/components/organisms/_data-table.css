@@ -172,23 +172,88 @@
   --spacing-data-table-filter-sm: calc(var(--height-form-control-sm) * 5);
   --spacing-data-table-filter-md: calc(var(--height-form-control-md) * 5);
   --spacing-data-table-filter-lg: calc(var(--height-form-control-lg) * 5);
+  --spacing-data-table-filter-gutter: calc(
+    var(--padding-popover-lg) *
+    2 +
+    var(--spacing-popover-viewport) *
+    2
+  );
+  --spacing-data-table-header-inline: var(--dimension-8);
+  --padding-data-table-header-inline: var(--spacing-data-table-header-inline);
+  --spacing-data-table-filter-touch: var(--dimension-44);
+  --size-data-table-filter-target: var(--spacing-data-table-filter-touch);
+  --spacing-data-table-feedback: var(--container-3xs);
+  --spacing-data-table-feedback-width: var(--spacing-data-table-feedback);
   /* Reserve room for values, padding and steppers, not just control chrome. */
   --spacing-data-table-editor-sm: calc(var(--height-form-control-sm) * 4);
   --spacing-data-table-editor-md: calc(var(--height-form-control-md) * 4);
   --spacing-data-table-editor-lg: calc(var(--height-form-control-lg) * 4);
 }
 
-@utility data-table-filter-viewport {
-  /* Fixed cells cannot grow to the control minimum. Keep the complete filter
-   * reachable by scrolling inside its cell; auto layout still reserves room. */
+@utility data-table-fixed-header {
+  /* Keep full short labels readable in fixed 80px leaves across type scales. */
+  padding-inline: var(--padding-data-table-header-inline);
+}
+
+@utility data-table-sort-label {
+  row-gap: 0;
+}
+
+@utility data-table-filter-cell {
+  /* Leave a full-size target in an 80px leaf, including the large size. This
+   * inset is stable across modes so measuring cannot create a resize loop. */
   &[data-layout="fixed"] {
+    padding-inline: var(--spacing-100);
+  }
+}
+
+@utility data-table-filter-trigger {
+  --dt-filter-target: max(
+    var(--height-form-control-md),
+    var(--size-icon-control-md),
+    var(--size-data-table-filter-target)
+  );
+  min-inline-size: var(--dt-filter-target);
+  min-block-size: var(--dt-filter-target);
+  &[data-size="sm"] {
+    --dt-filter-target: max(
+      var(--height-form-control-sm),
+      var(--size-icon-control-sm),
+      var(--size-data-table-filter-target)
+    );
+  }
+  &[data-size="lg"] {
+    --dt-filter-target: max(
+      var(--height-form-control-lg),
+      var(--size-icon-control-lg),
+      var(--size-data-table-filter-target)
+    );
+  }
+}
+
+@utility data-table-filter-viewport {
+  /* The runtime measures this available width without enlarging fixed leaves.
+   * Until measured (or without JS), native scrolling keeps controls reachable. */
+  &[data-layout="fixed"]:not([data-compact]) {
     overflow-x: auto;
   }
 }
 
 @utility data-table-filter-control {
   --data-table-filter-min: var(--spacing-data-table-filter-md);
-  min-width: var(--data-table-filter-min);
+  flex-wrap: wrap;
+  min-width: min(
+    var(--data-table-filter-min),
+    calc(100vw - var(--spacing-data-table-filter-gutter))
+  );
+  /* Two bounds need more room. On small screens let the full-size controls
+   * wrap inside the popup instead of creating another input-sliver viewport. */
+  &:has(> input:nth-of-type(2)) {
+    min-width: min(
+      calc(var(--data-table-filter-min) * 1.5),
+      calc(100vw - var(--spacing-data-table-filter-gutter))
+    );
+  }
   &[data-size="sm"] {
     --data-table-filter-min: var(--spacing-data-table-filter-sm);
   }
@@ -256,14 +321,21 @@
 /* Keep recovery feedback below its actions at a readable measure. An explicit
  * inline size also lets fixed-layout action measurement reserve its full width. */
 @utility data-table-action-feedback {
-  inline-size: var(--spacing-data-table-editor-md);
+  inline-size: var(--spacing-data-table-feedback-width);
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+@utility data-table-readonly-value {
+  /* Align readonly text with the first line inside neighbouring controls,
+   * rather than centering it against the height of a recovery message. */
+  --dt-control-height: var(--height-form-control-md);
+  padding-block-start: max(0px, calc((var(--dt-control-height) - 1lh) / 2));
   &[data-size="sm"] {
-    inline-size: var(--spacing-data-table-editor-sm);
+    --dt-control-height: var(--height-form-control-sm);
   }
   &[data-size="lg"] {
-    inline-size: var(--spacing-data-table-editor-lg);
+    --dt-control-height: var(--height-form-control-lg);
   }
 }
 

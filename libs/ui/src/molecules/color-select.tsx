@@ -2,7 +2,7 @@
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.1.5
+ * @componentVersion v1.1.6
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -36,10 +36,10 @@ const colorSelectVariants = tv({
     cell: "grid w-full min-w-0 justify-items-center gap-color-select-label",
     atom: [
       "form-control-readonly form-control-disabled relative cursor-pointer p-color-select-atom",
-      "disabled:cursor-not-allowed",
+      "color-select-disabled disabled:cursor-not-allowed disabled:shadow-none",
       "aspect-square min-w-0 overflow-clip",
       "border-2 transition duration-200 motion-reduce:transition-none",
-      "border-color-select-border shadow-color-select hover:border-color-select-border-hover",
+      "border-color-select-border shadow-color-select not-disabled:not-data-readonly:not-data-[selected=true]:hover:border-color-select-border-hover",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-color-select-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -110,11 +110,6 @@ const colorSelectVariants = tv({
       },
       grid: {
         group: "color-select-grid",
-      },
-    },
-    disabled: {
-      true: {
-        atom: "select-disabled hover:border-color-select-border",
       },
     },
   },
@@ -232,7 +227,7 @@ export const ColorSelect = ({
     labelContainer,
     labelText,
     countText,
-  } = colorSelectVariants({ layout, size, radius, disabled })
+  } = colorSelectVariants({ layout, size, radius })
   const checkboxReadOnly =
     (selectionMode === "multiple" && immutable) || undefined
   const invalid = validateStatus === "error"
@@ -313,7 +308,7 @@ export const ColorSelect = ({
               aria-invalid={invalid || undefined}
               aria-label={`Select color ${colorItem.label ?? colorItem.color}`}
               aria-readonly={checkboxReadOnly}
-              className={`${atom()} ${colorItem.disabled ? "select-disabled" : ""}`}
+              className={atom()}
               data-readonly={readOnly ? "" : undefined}
               data-selected={colorItem.selected}
               disabled={colorItem.disabled || disabled}

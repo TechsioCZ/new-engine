@@ -34,6 +34,7 @@
   --border-width-cascade-select-path: var(--border-width-lg);
   --padding-cascade-select-column: var(--spacing-50);
   --padding-cascade-select-header: var(--spacing-150);
+  --padding-cascade-select-header-inline: var(--spacing-100);
   --spacing-cascade-select-clear-inset: var(--spacing-100);
   --padding-cascade-select-clear: var(--spacing-cascade-select-clear-inset);
   --gap-cascade-select-header: var(--spacing-100);
@@ -111,10 +112,13 @@
   }
 }
 
-/* Two columns always fit side by side on narrow screens; deeper levels scroll.
-   Each column gives back one border width for the surface edges. */
+/* Short headings retain the two-column measure. An unbreakable heading can
+   claim a wider column instead of becoming a narrow stack of fragments.
+   Each column still fits the viewport (or owning modal field), with a peek of
+   its preceding level when scrolling is needed. */
 @utility cascade-select-column-size {
-  inline-size: min(
+  inline-size: min-content;
+  min-inline-size: min(
     var(--container-cascade-select-column),
     calc(
       (
@@ -125,6 +129,21 @@
       var(--border-width-cascade-select-column)
     )
   );
+  max-inline-size: min(
+    var(--container-cascade-select-column),
+    calc(
+      var(--_cascade-select-layout-width, var(--available-width, 100vw)) -
+      var(--cascade-select-column-peek, 0px) -
+      2 *
+      var(--border-width-cascade-select-column)
+    )
+  );
+}
+
+/* Unlike anywhere, break-word preserves the word's intrinsic contribution to
+   column sizing, then wraps the full label once the column reaches its cap. */
+@utility cascade-select-column-heading {
+  overflow-wrap: break-word;
 }
 
 /* Logical borders also separate columns and mark the path in RTL. */

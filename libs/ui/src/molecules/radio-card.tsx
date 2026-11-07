@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.1.6
+ * @componentVersion v1.1.7
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -62,8 +62,8 @@ const radioCardVariants = tv({
       "text-radio-card-item-fg",
       "shadow-radio-card-item",
       "transition-colors duration-200 motion-reduce:transition-none",
-      "data-hover:bg-radio-card-item-bg-hover",
-      "data-hover:border-radio-card-item-border-hover",
+      "data-hover:not-data-readonly:not-data-disabled:bg-radio-card-item-bg-hover",
+      "data-hover:not-data-readonly:not-data-disabled:not-data-invalid:border-radio-card-item-border-hover",
       "data-disabled:cursor-not-allowed",
       "data-disabled:bg-radio-card-item-bg-disabled",
       "data-disabled:border-radio-card-item-border-disabled",
@@ -136,8 +136,8 @@ const radioCardVariants = tv({
           "radio-card-outline-readable",
           "data-[state=checked]:bg-radio-card-item-bg-outline-checked",
           "data-[state=checked]:border-radio-card-item-border-outline-checked",
-          "data-hover:data-[state=checked]:bg-radio-card-item-bg-outline-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-card-item-border-outline-checked-hover",
+          "data-hover:not-data-readonly:not-data-disabled:data-[state=checked]:bg-radio-card-item-bg-outline-checked-hover",
+          "data-hover:not-data-readonly:not-data-disabled:not-data-invalid:data-[state=checked]:border-radio-card-item-border-outline-checked-hover",
         ],
         itemIndicator: [
           "data-[state=checked]:border-radio-card-indicator-border-selected",
@@ -150,8 +150,8 @@ const radioCardVariants = tv({
         item: [
           "data-[state=checked]:bg-radio-card-item-bg-subtle-checked",
           "data-[state=checked]:border-radio-card-item-border-subtle-checked",
-          "data-hover:data-[state=checked]:bg-radio-card-item-bg-subtle-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-card-item-border-subtle-checked-hover",
+          "data-hover:not-data-readonly:not-data-disabled:data-[state=checked]:bg-radio-card-item-bg-subtle-checked-hover",
+          "data-hover:not-data-readonly:not-data-disabled:not-data-invalid:data-[state=checked]:border-radio-card-item-border-subtle-checked-hover",
         ],
         itemText: [
           "data-[state=checked]:text-radio-card-item-fg-subtle-checked",
@@ -174,8 +174,8 @@ const radioCardVariants = tv({
         item: [
           "data-[state=checked]:bg-radio-card-item-bg-solid-checked",
           "data-[state=checked]:border-radio-card-item-border-solid-checked",
-          "data-hover:data-[state=checked]:bg-radio-card-item-bg-solid-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-card-item-border-solid-checked-hover",
+          "data-hover:not-data-readonly:not-data-disabled:data-[state=checked]:bg-radio-card-item-bg-solid-checked-hover",
+          "data-hover:not-data-readonly:not-data-disabled:not-data-invalid:data-[state=checked]:border-radio-card-item-border-solid-checked-hover",
         ],
         itemText: [
           "data-[state=checked]:text-radio-card-item-fg-solid-checked",

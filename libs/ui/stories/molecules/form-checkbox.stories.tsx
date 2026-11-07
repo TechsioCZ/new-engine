@@ -168,7 +168,8 @@ export const Disabled: Story = {
     const label = canvasElement.querySelector('[data-part="label"]')
     if (!label) throw new Error("Missing disabled checkbox label")
     for (const description of within(canvasElement).getAllByText("Your administrator manages this preference.")) {
-      await expect(getComputedStyle(description).color).toBe(getComputedStyle(label).color)
+      await expect(description.closest("[data-status]")).toHaveAttribute("data-disabled")
+      await expect(getComputedStyle(description).color).not.toBe(getComputedStyle(label).color)
     }
   },
 }

@@ -130,6 +130,36 @@ describe("CartPresentation local composition", () => {
     expect(element.textContent).toContain("2 balení")
   })
 
+  it("keeps multi-item Undo subordinate while retaining focus on the surviving item", async () => {
+    const host = document.createElement("div")
+    document.body.append(host)
+    const root = createRoot(host)
+    try {
+      await act(async () => root.render(decorate(storyElement(MultipleItems))))
+      await act(async () =>
+        query<HTMLButtonElement>(host, '[data-part="remove"]').click()
+      )
+      const restore = button(host, "Vrátit poslední odebraný produkt")
+      expect(restore.classList.contains("bg-button-bg-outlined")).toBe(true)
+      expect(restore.classList.contains("bg-button-bg-secondary-base")).toBe(
+        false
+      )
+      expect(restore.classList.contains("self-start")).toBe(true)
+      expect(restore.classList.contains("max-w-full")).toBe(true)
+      expect(document.activeElement?.getAttribute("aria-label")).toBe(
+        "Odebrat: Podložky M8"
+      )
+      await act(async () => restore.click())
+      expect(document.activeElement?.getAttribute("aria-label")).toBe(
+        "Odebrat: Montážní sada M8"
+      )
+      expect(host.querySelectorAll('[data-scope="line-item"]')).toHaveLength(2)
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
   it("preserves review, edit and remove/restore focus behavior in RTL", async () => {
     const host = document.createElement("div")
     host.dir = "rtl"
@@ -143,7 +173,10 @@ describe("CartPresentation local composition", () => {
       expect(host.querySelector('[data-part="remove"]')).toBeNull()
       expect(host.textContent).toContain("Celkem včetně DPH")
       expect(host.textContent).toContain("587")
-      await act(async () => button(host, "Upravit košík").click())
+      const edit = button(host, "Upravit košík")
+      expect(edit.classList.contains("bg-button-bg-outlined")).toBe(true)
+      expect(edit.classList.contains("bg-button-bg-secondary-base")).toBe(false)
+      await act(async () => edit.click())
       expect(query<HTMLInputElement>(host, "input").value).toBe("2")
       await act(async () =>
         query<HTMLButtonElement>(host, '[data-part="remove"]').click()
@@ -154,6 +187,12 @@ describe("CartPresentation local composition", () => {
       )
       expect(inset.contains(restore)).toBe(true)
       expect(document.activeElement).toBe(restore)
+      expect(restore.classList.contains("bg-button-bg-outlined")).toBe(true)
+      expect(restore.classList.contains("bg-button-bg-secondary-base")).toBe(
+        false
+      )
+      expect(restore.classList.contains("self-start")).toBe(true)
+      expect(restore.classList.contains("max-w-full")).toBe(true)
       await act(async () => restore.click())
       const input = query<HTMLInputElement>(host, "input")
       expect(document.activeElement).toBe(input)

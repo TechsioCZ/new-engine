@@ -199,7 +199,7 @@ export const ColumnFiltersWithConditions: Story = {
 }
 
 export const NarrowColumnFilters: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "Fixed-layout filters scroll within narrow columns without covering their neighbours. Auto layout keeps enough room for the complete controls." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Narrow fixed columns open full-size filters in a popup without widening the column or covering neighbouring controls. Auto layout keeps its complete inline filters." } } },
   args: {
     ...base,
     data: people.slice(0, 3),
@@ -223,50 +223,90 @@ export const NarrowColumnFilters: Story = {
     const canvas = within(canvasElement)
     for (const layout of ["fixed", "auto"] as const) {
       const table = canvas.getByRole("table", { name: `${layout} layout filters` })
-      for (const header of table.querySelectorAll("thead th button")) {
-        await expect(getComputedStyle(header).whiteSpace).toBe("nowrap")
-      }
       for (const name of ["Age", "Visits"]) {
         const sort = within(table).getByRole("button", { name })
+        const label = sort.querySelector("span")!
         await expect(getComputedStyle(sort).whiteSpace).toBe("nowrap")
-        await expect(sort.scrollHeight).toBeLessThanOrEqual(Number.parseFloat(getComputedStyle(sort).lineHeight) + 1)
+        // The sort icon may wrap; the meaningful label must not become A…/V….
+        await expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth + 1)
+        if (layout === "fixed") {
+          await expect(sort.closest("th")!.getBoundingClientRect().width).toBeCloseTo(80, 0)
+        }
       }
       const filterRow = within(table).getByRole("row", { name: "Column filters" })
       const cells = within(filterRow).getAllByRole("cell")
       for (const cell of cells) {
-        const viewport = cell.firstElementChild
-        await expect(viewport).not.toBeNull()
-        if (!viewport) {
-          throw new Error("Missing filter viewport")
-        }
+        const viewport = cell.firstElementChild!
         const cellBounds = cell.getBoundingClientRect()
         const bounds = viewport.getBoundingClientRect()
         await expect(bounds.left).toBeGreaterThanOrEqual(cellBounds.left)
         await expect(bounds.right).toBeLessThanOrEqual(cellBounds.right)
-        if (layout === "fixed") {
-          await expect(getComputedStyle(viewport).overflowX).toBe("auto")
-          if (cell !== cells[2]) {
-            await expect(viewport.scrollWidth).toBeGreaterThan(viewport.clientWidth)
-          }
-        } else {
-          await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
+        await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
+      }
+      for (const [name, value] of [["Age", "36"], ["Visits", "812"]] as const) {
+        const trigger = layout === "fixed" ? within(table).getByRole("button", { name: `Filter ${name}` }) : null
+        if (trigger) {
+          const bounds = trigger.getBoundingClientRect()
+          const cell = trigger.closest("td")!.getBoundingClientRect()
+          await expect(bounds.left).toBeGreaterThanOrEqual(cell.left)
+          await expect(bounds.right).toBeLessThanOrEqual(cell.right)
+          await expect(bounds.width).toBeGreaterThanOrEqual(44)
+          await expect(bounds.height).toBeGreaterThanOrEqual(44)
+          await expect(canvasElement.ownerDocument.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2)?.closest("button")).toBe(trigger)
+          trigger.focus()
+          await userEvent.keyboard("{Enter}")
+        }
+        const scope = trigger ? within(await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: `Filter ${name}` })) : within(table)
+        const input = scope.getByLabelText(`Filter value for ${name}`)
+        if (trigger) {
+          await waitFor(() => expect(input).toHaveFocus())
+        }
+        await userEvent.type(input, value)
+        await expect(input).toHaveValue(Number(value))
+        await userEvent.tab()
+        const condition = scope.getByRole("button", { name: new RegExp(`Filter condition for ${name}:`) })
+        await expect(condition).toHaveFocus()
+        await expect(condition).toBeVisible()
+        const viewport = trigger ? input.closest('[role="dialog"]')! : condition.closest("td")!
+        const conditionBounds = condition.getBoundingClientRect()
+        const viewportBounds = viewport.getBoundingClientRect()
+        await expect(conditionBounds.left).toBeGreaterThanOrEqual(viewportBounds.left - 1)
+        await expect(conditionBounds.right).toBeLessThanOrEqual(viewportBounds.right + 1)
+        if (name === "Age") {
+          await userEvent.keyboard("{Enter}")
+          await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole("menuitemradio", { name: "Between" }))
+          const upper = scope.getByLabelText("Filter upper bound for Age")
+          await userEvent.type(upper, "40")
+          await expect(upper).toHaveValue(40)
+          await waitFor(() => {
+            const fieldViewportBounds = viewport.getBoundingClientRect()
+            for (const field of [input, upper]) {
+              const bounds = field.getBoundingClientRect()
+              expect(bounds.left).toBeGreaterThanOrEqual(fieldViewportBounds.left - 1)
+              expect(bounds.right).toBeLessThanOrEqual(fieldViewportBounds.right + 1)
+            }
+          })
+        }
+        await waitFor(() => expect(table.querySelectorAll("tbody tr")).toHaveLength(1))
+        await expect(within(table).getByText("Ada")).toBeVisible()
+        if (trigger) {
+          await userEvent.keyboard("{Escape}")
+          await waitFor(() => expect(trigger).toHaveFocus())
+          await expect(trigger).toHaveAttribute("data-active", "true")
+          // Reopening restores the actual filter, not an empty replacement.
+          await userEvent.keyboard("{Enter}")
+          await waitFor(() => expect(scope.getByLabelText(`Filter value for ${name}`)).toHaveFocus())
+          await expect(scope.getByLabelText(`Filter value for ${name}`)).toHaveValue(Number(value))
+          await userEvent.keyboard("{Escape}")
+          await waitFor(() => expect(trigger).toHaveFocus())
         }
       }
-      const input = within(table).getByLabelText("Filter value for Age")
-      await userEvent.type(input, "36")
-      await expect(input).toHaveValue(36)
-      await userEvent.tab()
-      const condition = within(table).getByRole("button", { name: /Filter condition for Age:/ })
-      await expect(condition).toHaveFocus()
-      await expect(condition).toBeVisible()
-      const viewport = cells[0]?.firstElementChild
-      if (!viewport) {
-        throw new Error("Missing age filter viewport")
+      if (layout === "auto") {
+        // Return to the first field so the comparison starts at its logical beginning.
+        const first = within(table).getByLabelText("Filter value for Age")
+        first.focus()
+        await waitFor(() => expect(first).toHaveFocus())
       }
-      const conditionBounds = condition.getBoundingClientRect()
-      const viewportBounds = viewport.getBoundingClientRect()
-      await expect(conditionBounds.left).toBeGreaterThanOrEqual(viewportBounds.left - 1)
-      await expect(conditionBounds.right).toBeLessThanOrEqual(viewportBounds.right + 1)
     }
   },
 }
@@ -2192,7 +2232,10 @@ export const AsyncSaveRecovery: Story = {
       expect(Math.abs(saveRect.top - input.getBoundingClientRect().top)).toBeLessThanOrEqual(1)
       expect(Math.abs(saveRect.top - cancelRect.top)).toBeLessThanOrEqual(1)
       expect(errorRect.top).toBeGreaterThanOrEqual(saveRect.bottom - 1)
-      expect(errorRect.width).toBeGreaterThanOrEqual(saveRect.width + cancelRect.width - 1)
+      expect(errorRect.width).toBeGreaterThanOrEqual(Math.max(240, saveRect.width + cancelRect.width - 1))
+      const readonly = canvas.getByText("ada@calc.io")
+      expect(getComputedStyle(readonly.closest("td")!).verticalAlign).toBe("top")
+      expect(Math.abs(readonly.getBoundingClientRect().top - input.getBoundingClientRect().top)).toBeLessThanOrEqual(1)
       expect(errorRect.left).toBeGreaterThanOrEqual(viewport.left - 1)
       expect(errorRect.right).toBeLessThanOrEqual(viewport.right + 1)
       expect(error.scrollWidth).toBeLessThanOrEqual(error.clientWidth + 1)

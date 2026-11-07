@@ -321,6 +321,69 @@ describe("DataTable native editor feedback", () => {
   )
 })
 
+describe("DataTable rejected-save row alignment", () => {
+  it("aligns readonly neighbours with editors while preserving caller feedback and the retry draft", async () => {
+    let rejectSave: (reason: Error) => void = () => {
+      throw new Error("Save has not started")
+    }
+    const onEditCommit = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            rejectSave = reject
+          })
+      )
+      .mockResolvedValue(undefined)
+    const copy =
+      "The server could not save Augusta’s profile. Your changes are still here; check the connection and try Save again."
+    const canvas = await mount(
+      <DataTable
+        columns={[
+          { accessorKey: "name", header: "Name", meta: { editable: true } },
+          { accessorKey: "email", header: "Email" },
+        ]}
+        data={[
+          { name: "Ada", email: "ada@calc.io" },
+          { name: "Grace", email: "grace@navy.mil" },
+        ]}
+        enableInlineEdit
+        onEditCommit={onEditCommit}
+        translations={{ saveErrorLabel: copy }}
+      />
+    )
+    await click(canvas, "Edit row 0")
+    await act(() => change(input(canvas, "Edit Name"), "Augusta"))
+    const edited = required(canvas.querySelector("tbody tr"))
+    const idle = required(canvas.querySelectorAll("tbody tr")[1])
+    const readonly = required(
+      edited.querySelector(".data-table-readonly-value")
+    )
+    expect(readonly.textContent).toBe("ada@calc.io")
+    expect(readonly.getAttribute("data-size")).toBe("md")
+    for (const cell of edited.querySelectorAll("td")) {
+      expect(cell.getAttribute("data-editing")).toBe("true")
+      expect(cell.classList.contains("data-editing:align-top")).toBe(true)
+    }
+    expect(idle.querySelector("[data-editing]")).toBeNull()
+    await click(canvas, "Save row")
+    await act(() => rejectSave(new Error("offline")))
+    const error = required(canvas.querySelector('[role="alert"]'))
+    expect(error.textContent).toBe(copy)
+    expect(error.classList.contains("data-table-action-feedback")).toBe(true)
+    expect(button(canvas, "Save row").getAttribute("aria-describedby")).toBe(
+      error.id
+    )
+    expect(input(canvas, "Edit Name").value).toBe("Augusta")
+    expect(readonly.isConnected).toBe(true)
+    await click(canvas, "Save row")
+    expect(onEditCommit).toHaveBeenCalledTimes(2)
+    expect(onEditCommit.mock.calls[1]?.[0].draft.name).toBe("Augusta")
+    expect(canvas.querySelector('[role="alert"]')).toBeNull()
+    expect(canvas.querySelector("[data-editing]")).toBeNull()
+  })
+})
+
 describe("DataTable drag handle discoverability", () => {
   it("shows row and column grips at rest while preserving hover and focus affordances", async () => {
     const canvas = await mount(

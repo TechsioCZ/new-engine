@@ -4,9 +4,13 @@
  * Kept here (namespace aliases — h-/w- utilities can't read --size-*):
  *   - track sizes, marker size, vertical marker height.
  *   - `--padding-marker-text` composite built from the Figma offset.
+ *   - readable disabled value output, separate from the quiet control label.
  */
 
 @theme static {
+  --color-slider-value-disabled: var(--color-fg-secondary);
+  --color-slider-value-fg-disabled: var(--color-slider-value-disabled);
+
   --text-slider-sm: var(--text-sm);
   --text-slider-md: var(--text-md);
   --text-slider-lg: var(--text-lg);

@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.4.6
+ * @componentVersion v1.4.7
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -75,7 +75,7 @@ const sliderVariants = tv({
       "data-[orientation=vertical]:w-fit data-[orientation=vertical]:max-w-full data-[orientation=vertical]:self-center data-[orientation=vertical]:text-start",
     value: [
       "wrap-anywhere min-w-0 tabular-nums",
-      "data-disabled:text-label-fg-disabled",
+      "data-disabled:text-slider-value-fg-disabled",
     ],
     label: ["wrap-anywhere block min-w-0 font-medium"],
     control: [

@@ -1,6 +1,6 @@
 import { CalendarDate } from "@internationalized/date"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useEffect, useId, useRef, useState } from "react"
+import { type Ref, useEffect, useId, useRef, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
@@ -891,7 +891,7 @@ export const PopupLifecycleContracts: Story = {
   },
 }
 
-function ModalPopupFields() {
+function ModalPopupFields({ triggerRef }: { triggerRef: Ref<HTMLButtonElement> }) {
   return (
     <div className="flex min-w-0 flex-col gap-200">
       <CascadeSelect
@@ -905,7 +905,7 @@ function ModalPopupFields() {
       >
         <CascadeSelect.Label>Modal category</CascadeSelect.Label>
         <CascadeSelect.Control>
-          <CascadeSelect.Trigger>
+          <CascadeSelect.Trigger ref={triggerRef}>
             <CascadeSelect.ValueText />
             <CascadeSelect.Indicator />
           </CascadeSelect.Trigger>
@@ -944,32 +944,40 @@ export const ModalPopupContracts: Story = {
       },
     },
   },
-  render: () => (
-    <div className="flex flex-wrap gap-200">
-      <Dialog title="Popup dialog" triggerText="Open popup dialog">
-        <ModalPopupFields />
-      </Dialog>
-      <Drawer>
-        <Drawer.Trigger>Open popup drawer</Drawer.Trigger>
-        <Drawer.Portal>
-          <Drawer.Backdrop />
-          <Drawer.Positioner>
-            <Drawer.Content>
-              <Drawer.Header>
-                <Drawer.Title>Popup drawer</Drawer.Title>
-              </Drawer.Header>
-              <Drawer.Body>
-                <ModalPopupFields />
-              </Drawer.Body>
-              <Drawer.Footer>
-                <Drawer.CloseTrigger>Close drawer</Drawer.CloseTrigger>
-              </Drawer.Footer>
-            </Drawer.Content>
-          </Drawer.Positioner>
-        </Drawer.Portal>
-      </Drawer>
-    </div>
-  ),
+  render: function ModalPopupFixture() {
+    const dialogCategory = useRef<HTMLButtonElement>(null)
+    const drawerCategory = useRef<HTMLButtonElement>(null)
+    return (
+      <div className="flex flex-wrap gap-200">
+        <Dialog
+          initialFocusEl={() => dialogCategory.current}
+          title="Popup dialog"
+          triggerText="Open popup dialog"
+        >
+          <ModalPopupFields triggerRef={dialogCategory} />
+        </Dialog>
+        <Drawer initialFocusEl={() => drawerCategory.current}>
+          <Drawer.Trigger>Open popup drawer</Drawer.Trigger>
+          <Drawer.Portal>
+            <Drawer.Backdrop />
+            <Drawer.Positioner>
+              <Drawer.Content>
+                <Drawer.Header>
+                  <Drawer.Title>Popup drawer</Drawer.Title>
+                </Drawer.Header>
+                <Drawer.Body>
+                  <ModalPopupFields triggerRef={drawerCategory} />
+                </Drawer.Body>
+                <Drawer.Footer>
+                  <Drawer.CloseTrigger>Close drawer</Drawer.CloseTrigger>
+                </Drawer.Footer>
+              </Drawer.Content>
+            </Drawer.Positioner>
+          </Drawer.Portal>
+        </Drawer>
+      </div>
+    )
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const body = within(canvasElement.ownerDocument.body)
@@ -980,7 +988,7 @@ export const ModalPopupContracts: Story = {
       const category = within(modal).getByRole("combobox", {
         name: "Modal category",
       })
-      category.focus()
+      await waitFor(() => expect(category).toHaveFocus())
       await userEvent.keyboard("{ArrowDown}")
       const tree = await body.findByRole("tree")
       await waitFor(() => expect(tree).toHaveFocus())

@@ -260,6 +260,61 @@ describe("CascadeSelect clear and hierarchy presentation", () => {
     expect(classes).not.toContain("p-cascade-select-column")
   })
 
+  it("lets intrinsic headings widen columns within the viewport and modal field caps", () => {
+    const sizing = utility("cascade-select-column-size")
+    expect(declaration(sizing, "inline-size")).toBe("min-content")
+    expect(
+      declaration(sizing, "min-inline-size")?.replaceAll(CSS_WHITESPACE, "")
+    ).toBe(
+      "min(var(--container-cascade-select-column),calc((var(--_cascade-select-layout-width,var(--available-width,100vw))-var(--cascade-select-column-peek,0px))/2-var(--border-width-cascade-select-column)))"
+    )
+    expect(
+      declaration(sizing, "max-inline-size")?.replaceAll(CSS_WHITESPACE, "")
+    ).toBe(
+      "min(var(--container-cascade-select-column),calc(var(--_cascade-select-layout-width,var(--available-width,100vw))-var(--cascade-select-column-peek,0px)-2*var(--border-width-cascade-select-column)))"
+    )
+    expect(cascadeSelectVariants().column().split(" ")).not.toContain("min-w-0")
+    const viewport = utility("cascade-select-viewport")
+    expect(declaration(viewport, "max-inline-size")).toBe(
+      "var(--_cascade-select-layout-width)"
+    )
+    let modalWidth: string | undefined
+    viewport.walkRules(':where([role="dialog"]) &', (rule) => {
+      rule.walkDecls("--_cascade-select-layout-width", (decl) => {
+        modalWidth = decl.value
+      })
+    })
+    expect(modalWidth?.replaceAll(CSS_WHITESPACE, "")).toBe(
+      "min(var(--reference-width),var(--available-width))"
+    )
+    const content = cascadeSelectVariants().content().split(" ")
+    expect(content).toEqual(
+      expect.arrayContaining(["overflow-x-auto", "snap-x", "snap-proximity"])
+    )
+  })
+
+  it("keeps full heading words intrinsic and aligns level numbers to the first line", () => {
+    const heading = utility("cascade-select-column-heading")
+    expect(declaration(heading, "overflow-wrap")).toBe("break-word")
+    for (const property of [
+      "line-clamp",
+      "-webkit-line-clamp",
+      "text-overflow",
+      "overflow",
+      "max-block-size",
+    ]) {
+      expect(declaration(heading, property)).toBeUndefined()
+    }
+    const header = cascadeSelectVariants().columnHeader().split(" ")
+    expect(header).toContain("items-start")
+    expect(header).toContain("px-cascade-select-header-inline")
+    expect(header).toContain("py-cascade-select-header")
+    expect(header).not.toContain("items-center")
+    expect(cascadeSelectVariants().columnStep().split(" ")).toContain(
+      "font-normal"
+    )
+  })
+
   it("keeps long column headings fully visible and allows wrapping in RTL", () => {
     const canvas = field({ dir: "rtl", defaultOpen: true })
     const headings = canvas.querySelectorAll<HTMLElement>(
@@ -271,7 +326,7 @@ describe("CascadeSelect clear and hierarchy presentation", () => {
     )
     for (const heading of headings) {
       expect([...heading.classList]).toEqual(
-        expect.arrayContaining(["min-w-0", "wrap-anywhere"])
+        expect.arrayContaining(["min-w-0", "cascade-select-column-heading"])
       )
       expect(heading.classList.contains("truncate")).toBe(false)
     }

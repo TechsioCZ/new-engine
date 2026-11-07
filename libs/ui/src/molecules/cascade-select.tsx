@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.11
+ * @componentVersion v1.1.12
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -140,13 +140,14 @@ export const cascadeSelectVariants = tv({
       "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
     column: [
-      "cascade-select-column-size flex min-w-0 shrink-0 grow snap-start flex-col",
+      "cascade-select-column-size flex shrink-0 grow snap-start flex-col",
       "cascade-select-column-divider bg-cascade-select-column-bg",
     ],
     columnHeader:
-      "flex items-center gap-cascade-select-header border-cascade-select-column-border border-b bg-cascade-select-header-bg p-cascade-select-header font-cascade-select-header text-cascade-select-header-fg text-cascade-select-header-size",
+      "flex items-start gap-cascade-select-header border-cascade-select-column-border border-b bg-cascade-select-header-bg px-cascade-select-header-inline py-cascade-select-header font-cascade-select-header text-cascade-select-header-fg text-cascade-select-header-size",
+    columnHeading: "cascade-select-column-heading min-w-0",
     columnStep:
-      "flex size-cascade-select-step shrink-0 items-center justify-center rounded-full bg-cascade-select-step-bg text-cascade-select-step-fg",
+      "flex size-cascade-select-step shrink-0 items-center justify-center rounded-full bg-cascade-select-step-bg font-normal text-cascade-select-step-fg",
     list: "py-cascade-select-column",
     item: [
       "popup-item-base cascade-select-item-path",
@@ -1099,7 +1100,7 @@ function CascadeSelectTreeNode({
           <span aria-hidden="true" className={styles.columnStep()}>
             {indexPath.length + 1}
           </span>
-          <span className="wrap-anywhere min-w-0" id={headingId}>
+          <span className={styles.columnHeading()} id={headingId}>
             {indexPath.length === 0 ? rootLabel : node.label}
           </span>
         </div>

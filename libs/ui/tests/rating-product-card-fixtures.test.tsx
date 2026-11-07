@@ -58,6 +58,16 @@ describe("TenPointScale fixture", () => {
 })
 
 describe("ProductCardTemplate alignment contracts", () => {
+  it("gives the preview a bounded responsive width rather than a text-sized media panel", () => {
+    expect(templateMeta.parameters?.layout).toBe("padded")
+    const canvas = mount(
+      <ProductCardTemplate {...templateMeta.args} {...OnSale.args} />
+    )
+    const card = canvas.querySelector('[data-layout="column"]')
+    expect(card?.classList.contains("w-sm")).toBe(true)
+    expect(card?.classList.contains("max-w-full")).toBe(true)
+  })
+
   function saleCanvas() {
     return mount(
       <ProductCardTemplate {...templateMeta.args} {...OnSale.args} />

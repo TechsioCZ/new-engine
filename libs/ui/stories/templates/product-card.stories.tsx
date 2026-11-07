@@ -19,7 +19,7 @@ const meta: Meta<ProductCardTemplateProps> = {
   title: "Templates/ProductCardTemplate",
   component: ProductCardTemplate,
   parameters: {
-    layout: "centered",
+    layout: "padded",
     docs: {
       description: {
         component:
@@ -28,7 +28,12 @@ const meta: Meta<ProductCardTemplateProps> = {
     },
   },
   tags: ["autodocs"],
-  args: { onAddToCart: fn(), onViewDetails: fn(), onAddToWishlist: fn() },
+  args: {
+    className: "w-sm max-w-full",
+    onAddToCart: fn(),
+    onViewDetails: fn(),
+    onAddToWishlist: fn(),
+  },
   argTypes: {
     layout: {
       control: "select",

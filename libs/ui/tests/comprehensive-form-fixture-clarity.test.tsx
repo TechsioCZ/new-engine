@@ -254,9 +254,14 @@ describe("Comprehensive Form fixture clarity", () => {
         expect(budgetValue?.hasAttribute("data-disabled")).toBe(disabled)
         expect(
           budgetValue?.classList.contains(
-            "data-disabled:text-label-fg-disabled"
+            "data-disabled:text-slider-value-fg-disabled"
           )
         ).toBe(true)
+        expect(
+          budgetValue?.classList.contains(
+            "data-disabled:text-label-fg-disabled"
+          )
+        ).toBe(false)
       })
     }
   )

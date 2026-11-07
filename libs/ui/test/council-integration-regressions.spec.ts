@@ -197,19 +197,119 @@ for (const brand of ["base", "neo", "business", "akros"]) {
   }
 }
 
+for (const story of [
+  "playground",
+  "default",
+  "on-sale",
+  "out-of-stock",
+  "linked-sale-card",
+]) {
+  test(`product card ${story} fits the padded preview without document overflow`, async ({
+    page,
+  }) => {
+    await openContractStory(page, `templates-productcardtemplate--${story}`, {
+      brand: "business",
+    })
+    const card = page.locator('#storybook-root > [data-layout="column"]')
+    await expect(card).toHaveCount(1)
+    await assertWithinViewport(card)
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth)
+    ).toBeLessThanOrEqual(await page.evaluate(() => innerWidth))
+  })
+}
+
+for (const direction of ["ltr", "rtl"]) {
+  test(`compact ${direction} filters retain the upper-bound control and focus through width changes`, async ({
+    page,
+  }) => {
+    await openContractStory(
+      page,
+      "organisms-datatable--narrow-column-filters",
+      {
+        brand: "business",
+        args: `dir:${direction}`,
+      }
+    )
+    const table = page.getByRole("table", { name: "fixed layout filters" })
+    const trigger = table.getByRole("button", {
+      name: "Filter Age",
+      exact: true,
+    })
+    await trigger.click()
+    const popup = page.getByRole("dialog", { name: "Filter Age", exact: true })
+    await popup.getByLabel("Filter value for Age", { exact: true }).fill("36")
+    await popup
+      .getByRole("button", { name: /^Filter condition for Age:/ })
+      .click()
+    await page
+      .getByRole("menuitemradio", { name: "Between", exact: true })
+      .click()
+    const upper = popup.getByLabel("Filter upper bound for Age", {
+      exact: true,
+    })
+    await upper.fill("40")
+    await expect(upper).toHaveValue("40")
+    await upper.focus()
+    await upper.evaluate((field) =>
+      field.setAttribute("data-resize-owner", "upper")
+    )
+    const column = table.locator("colgroup col").first()
+    await column.evaluate((element) => {
+      ;(element as HTMLElement).style.width = "320px"
+    })
+    const retained = page.locator('[data-resize-owner="upper"]')
+    await expect(trigger).toHaveCount(0)
+    await expect(retained).toBeFocused()
+    await expect(
+      table.getByLabel("Filter upper bound for Age", { exact: true })
+    ).toHaveAttribute("data-resize-owner", "upper")
+    await retained.fill("42")
+    await expect(
+      table.getByLabel("Filter value for Age", { exact: true })
+    ).toHaveValue("36")
+    await column.evaluate((element) => {
+      ;(element as HTMLElement).style.width = "80px"
+    })
+    await expect(popup).toBeVisible()
+    await expect(retained).toBeFocused()
+    await expect(retained).toHaveValue("42")
+    await expect(
+      popup.getByLabel("Filter value for Age", { exact: true })
+    ).toHaveValue("36")
+    await page.keyboard.press("Escape")
+    await expect(trigger).toBeFocused()
+  })
+}
+
 const accessibilityStories = [
   "molecules-breadcrumb--playground",
   "molecules-cascadeselect--long-labels",
   "organisms-datatable--grouped-fixed-widths",
   "overview-component-comparison--side-by-side",
+  "molecules-slider--disabled",
+  "molecules-slider--all-variants",
+  "molecules-formcheckbox--disabled",
+  "molecules-formcheckbox--indeterminate",
+  "molecules-switch--disabled",
+  "templates-comprehensive-form--disabled",
+  "templates-facetfilterpanel--disabled",
+  "templates-facetfilterpanel--pending",
 ]
 
-for (const brand of ["base", "neo", "business", "akros"]) {
+for (const [brand, mode] of [
+  ["base", "light"],
+  ["base", "dark"],
+  ["neo", "light"],
+  ["neo", "dark"],
+  ["business", "light"],
+  ["akros", "light"],
+]) {
   for (const storyId of accessibilityStories) {
-    test(`${brand} ${storyId} passes the required accessibility policy`, async ({
+    test(`${brand} ${mode} ${storyId} passes the required accessibility policy`, async ({
       page,
     }) => {
-      await openContractStory(page, storyId, { brand })
+      await openContractStory(page, storyId, { brand, mode })
       if (storyId === "overview-component-comparison--side-by-side") {
         const inventory = page.getByRole("region", {
           name: "Product inventory table",

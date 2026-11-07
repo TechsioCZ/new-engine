@@ -64,8 +64,10 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
       <div className="flex flex-col gap-200">
         <StatusText role="status">Košík je prázdný.</StatusText>
         <Button
+          className="self-start max-w-full"
           ref={restoreRef}
-          variant="secondary"
+          theme="outlined"
+          variant="tertiary"
           onClick={() => {
             focusRequest.current = "quantity"
             setRemoved(false)
@@ -156,7 +158,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
         }
         actions={
           readOnly ? undefined : reviewing ? (
-            <Button variant="secondary" onClick={() => setReviewing(false)}>
+            <Button theme="outlined" variant="tertiary" onClick={() => setReviewing(false)}>
               Upravit košík
             </Button>
           ) : (
@@ -337,8 +339,10 @@ function MultipleItemCart() {
       )}
       {removed.length > 0 && (
         <Button
+          className="self-start max-w-full"
           ref={restoreRef}
-          variant="secondary"
+          theme="outlined"
+          variant="tertiary"
           onClick={() => {
             const title = removed[removed.length - 1]
             if (!title) return
