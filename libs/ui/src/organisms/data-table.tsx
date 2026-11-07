@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.17
+ * @componentVersion v1.4.18
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -63,6 +63,7 @@ import {
   createContext,
   type FocusEvent,
   Fragment,
+  type MouseEvent,
   type ReactNode,
   type Ref,
   type RefObject,
@@ -201,7 +202,7 @@ const dataTableVariants = tv({
       "data-[active=true]:text-data-table-sort-icon-fg-active",
     ],
     dragHandle: [
-      "inline-flex cursor-grab items-center rounded-data-table text-data-table-drag-handle-fg",
+      "w-(length:--spacing-data-table-drag-handle) inline-flex cursor-grab items-center justify-center rounded-data-table text-data-table-drag-handle-fg",
       "opacity-data-table-drag-handle transition-opacity duration-200 motion-reduce:transition-none",
       "hover:bg-data-table-row-bg-hover hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100 group-hover/row:opacity-100",
@@ -505,6 +506,83 @@ function revealTableDragHandle(element: Element) {
   // Physical coordinate deltas also work with the negative scrollLeft used
   // by RTL scrollers, without assuming a logical start is on the left.
   scroller.scrollLeft += delta
+}
+
+// Native caret reveal can leave most of a wide field outside the scrollport.
+// Correct only this table's horizontal scroll, once per focus transition: never
+// scroll ancestors or fight a user's subsequent wheel/touch/scrollbar movement.
+function revealTableField(scroller: HTMLElement, element: HTMLElement) {
+  const cell = element.closest("td, th")
+  if (
+    element.ownerDocument.activeElement !== element ||
+    !scroller.contains(element) ||
+    element.closest("table")?.parentElement !== scroller ||
+    !cell ||
+    !(
+      element.closest(".data-table-filter-control, [data-editor-control]") ||
+      element.matches(
+        "input:not([type=hidden]), textarea, select, [contenteditable=true], [role=combobox]"
+      )
+    ) ||
+    scroller.scrollWidth <= scroller.clientWidth
+  ) {
+    return
+  }
+  const cellStyle = getComputedStyle(cell)
+  if (
+    cellStyle.position === "sticky" &&
+    [cellStyle.insetInlineStart, cellStyle.insetInlineEnd].some(
+      (inset) => inset && inset !== "auto"
+    )
+  ) {
+    // Scrolling cannot move an editor inside an actively pinned cell.
+    return
+  }
+  const viewport = scroller.getBoundingClientRect()
+  const style = getComputedStyle(scroller)
+  const start = Number.parseFloat(style.scrollPaddingInlineStart) || 0
+  const end = Number.parseFloat(style.scrollPaddingInlineEnd) || 0
+  const rtl = style.direction === "rtl"
+  const left = viewport.left + scroller.clientLeft + (rtl ? end : start)
+  const right =
+    viewport.left +
+    scroller.clientLeft +
+    scroller.clientWidth -
+    (rtl ? start : end)
+  const fieldStyle = getComputedStyle(element)
+  const clearance = Math.max(
+    0,
+    (Number.parseFloat(fieldStyle.outlineWidth) || 0) +
+      (Number.parseFloat(fieldStyle.outlineOffset) || 0)
+  )
+  const rect = element.getBoundingClientRect()
+  if (rect.width <= 0 || rect.width + clearance * 2 > right - left) {
+    return
+  }
+  const delta =
+    rect.left - clearance < left
+      ? rect.left - clearance - left
+      : Math.max(0, rect.right + clearance - right)
+  if (delta !== 0) {
+    // Physical deltas also work with native negative RTL scrollLeft.
+    scroller.scrollLeft += delta
+  }
+}
+
+function handleTableFieldFocus(event: FocusEvent<HTMLElement>) {
+  // A widget can focus its input on pointer-down. Moving its pressed trigger
+  // before pointer-up would retarget the click, especially in mobile WebKit.
+  if (!event.currentTarget.matches(":active")) {
+    revealTableField(event.currentTarget, event.target)
+  }
+}
+
+function handleTableFieldActivation(event: MouseEvent<HTMLElement>) {
+  const scroller = event.currentTarget
+  const active = scroller.ownerDocument.activeElement
+  if (scroller.contains(event.target as Node) && isHTMLElement(active)) {
+    revealTableField(scroller, active)
+  }
 }
 
 function handleTableDragFocus(event: FocusEvent<HTMLButtonElement>) {
@@ -1213,7 +1291,11 @@ function HeaderDragHandle({
       ref={handleRef}
       type="button"
     >
-      <Icon icon="icon-[mdi--drag-vertical]" size="current" />
+      <Icon
+        className="text-(length:--text-data-table-drag-handle)"
+        icon="icon-[mdi--drag-vertical]"
+        size="current"
+      />
     </button>
   )
 }
@@ -1512,7 +1594,11 @@ function renderCellContent<T extends RowData>({
         type="button"
         {...dnd.dragHandleProps}
       >
-        <Icon icon="icon-[mdi--drag-horizontal]" size="current" />
+        <Icon
+          className="text-(length:--text-data-table-drag-handle)"
+          icon="icon-[mdi--drag-vertical]"
+          size="current"
+        />
       </button>
     )
   }
@@ -4602,12 +4688,15 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               </div>
             </DataTable.Toolbar>
           ))}
+        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions lint/a11y/useKeyWithClickEvents: Pointer activation finishes descendant focus reveal; keyboard focus already reveals immediately. */}
         <section
           aria-label={caption ? undefined : translations.scrollLabel}
           aria-labelledby={caption ? `${instanceId}-caption` : undefined}
           className={styles.scroll({
             className: "focus-visible:data-table-scroll-focus",
           })}
+          onClick={handleTableFieldActivation}
+          onFocus={handleTableFieldFocus}
           onScroll={handleScroll}
           ref={scrollRef}
           style={{

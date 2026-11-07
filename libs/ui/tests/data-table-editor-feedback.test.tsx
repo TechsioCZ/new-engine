@@ -463,7 +463,18 @@ describe("DataTable drag handle discoverability", () => {
     const rowGrip = button(canvas, "Drag to reorder row 0")
     expect(columnGrip.closest("thead")).not.toBeNull()
     expect(rowGrip.closest("tbody")).not.toBeNull()
+    expect(
+      rowGrip.querySelector('[class~="icon-[mdi--drag-vertical]"]')
+    ).not.toBeNull()
     for (const grip of [columnGrip, rowGrip]) {
+      expect(
+        grip.classList.contains("w-(length:--spacing-data-table-drag-handle)")
+      ).toBe(true)
+      expect(
+        grip
+          .querySelector('[aria-hidden="true"]')
+          ?.classList.contains("text-(length:--text-data-table-drag-handle)")
+      ).toBe(true)
       expect(grip.classList.contains("opacity-0")).toBe(false)
       expect(grip.classList.contains("opacity-data-table-drag-handle")).toBe(
         true

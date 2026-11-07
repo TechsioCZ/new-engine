@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.18
+- Reveal focused inline filters and editors within their owning table without changing widths or ancestor scroll, distinguish empty blurred native date editors while preserving native entry and validation, and make reorder grips taller and clearer without changing row spacing or drag behavior.
+
 ### CascadeSelect v1.1.14
 - Mark measured horizontal overflow with inert logical-edge continuation cues, keeping full hierarchy labels, native scrolling, column sizing, selected checkmarks and keyboard focus unobscured.
 

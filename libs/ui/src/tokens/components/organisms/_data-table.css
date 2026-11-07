@@ -165,7 +165,12 @@
   --color-data-table-editor-label-fg: var(--color-data-table-editor-label);
   --text-data-table-editor-label: var(--text-table-caption-sm);
   --spacing-data-table-date-range: var(--spacing-200);
-  --opacity-data-table-drag-handle: var(--opacity-text-secondary);
+  --opacity-data-table-grip: 100%;
+  --opacity-data-table-drag-handle: var(--opacity-data-table-grip);
+  --text-data-table-grip: var(--dimension-20);
+  --text-data-table-drag-handle: var(--text-data-table-grip);
+  --spacing-data-table-grip-inline: 1em;
+  --spacing-data-table-drag-handle: var(--spacing-data-table-grip-inline);
   --spacing-data-table-tree-step: var(--dimension-16);
   --spacing-data-table-tree-level: var(--spacing-data-table-tree-step);
   --spacing-data-table-search: var(--container-3xs);
@@ -322,6 +327,74 @@
   & > * {
     min-inline-size: 0;
     max-inline-size: 100%;
+  }
+}
+
+@theme static {
+  --color-data-table-date-placeholder: var(--color-input-fg-placeholder);
+  --color-data-table-date-empty-fg: var(--color-data-table-date-placeholder);
+  --spacing-data-table-date-inset-sm: var(--padding-input-inline-sm);
+  --spacing-data-table-date-inset-md: var(--padding-input-inline-md);
+  --spacing-data-table-date-inset-lg: var(--padding-input-inline-lg);
+  --padding-data-table-date-empty-sm: var(--spacing-data-table-date-inset-sm);
+  --padding-data-table-date-empty-md: var(--spacing-data-table-date-inset-md);
+  --padding-data-table-date-empty-lg: var(--spacing-data-table-date-inset-lg);
+  --text-data-table-date-control-sm: var(--text-input-sm);
+  --text-data-table-date-control-md: var(--text-input-md);
+  --text-data-table-date-control-lg: var(--text-input-lg);
+  --text-data-table-date-empty-sm: var(--text-data-table-date-control-sm);
+  --text-data-table-date-empty-md: var(--text-data-table-date-control-md);
+  --text-data-table-date-empty-lg: var(--text-data-table-date-control-lg);
+  --font-weight-data-table-date-placeholder: var(
+    --font-weight-input-placeholder
+  );
+  --font-weight-data-table-date-empty: var(
+    --font-weight-data-table-date-placeholder
+  );
+  --border-width-data-table-date-control: var(--border-width-input);
+  --border-width-data-table-date-empty: var(
+    --border-width-data-table-date-control
+  );
+}
+
+@utility data-table-date-editor {
+  --dt-date-inset: var(--padding-data-table-date-empty-md);
+  --dt-date-text: var(--text-data-table-date-empty-md);
+  &[data-size="sm"] {
+    --dt-date-inset: var(--padding-data-table-date-empty-sm);
+    --dt-date-text: var(--text-data-table-date-empty-sm);
+  }
+  &[data-size="lg"] {
+    --dt-date-inset: var(--padding-data-table-date-empty-lg);
+    --dt-date-text: var(--text-data-table-date-empty-lg);
+  }
+  /* Hide only the empty, blurred native text, not the control, picker target,
+   * border or validation feedback. Focus restores the native editing display. */
+  &[data-empty]:not(:focus-within) {
+    & > input {
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+    }
+    & > .data-table-date-empty-label {
+      visibility: visible;
+    }
+  }
+}
+
+@utility data-table-date-empty-label {
+  visibility: hidden;
+  inset-block: 0;
+  inset-inline-start: calc(
+    var(--dt-date-inset, var(--padding-data-table-date-empty-md)) +
+    var(--border-width-data-table-date-empty)
+  );
+  display: flex;
+  align-items: center;
+  color: var(--color-data-table-date-empty-fg);
+  font-size: var(--dt-date-text, var(--text-data-table-date-empty-md));
+  font-weight: var(--font-weight-data-table-date-empty);
+  &::after {
+    content: attr(data-empty-label);
   }
 }
 
