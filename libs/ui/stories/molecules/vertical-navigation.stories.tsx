@@ -771,7 +771,9 @@ export const WithinDrawer: Story = {
               <CategoryNavigation {...args} />
             </Drawer.Body>
             <Drawer.Footer>
-              <Drawer.CloseTrigger>Close catalog</Drawer.CloseTrigger>
+              <Drawer.CloseTrigger size="md" theme="outlined" variant="secondary">
+                Close catalog
+              </Drawer.CloseTrigger>
             </Drawer.Footer>
           </Drawer.Content>
         </Drawer.Positioner>

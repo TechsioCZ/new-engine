@@ -60,6 +60,16 @@ export const Playground: Story = {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole("contentinfo", { name: "Store information" })).toBeInTheDocument()
     await expect(canvas.getByRole("group", { name: "Workshop" })).toBeInTheDocument()
+    const footer = canvas.getByRole("contentinfo", { name: "Store information" })
+    const content = footer.firstElementChild!
+    const bottom = footer.lastElementChild!
+    const contentBounds = content.getBoundingClientRect()
+    const bottomBounds = bottom.getBoundingClientRect()
+    await expect(bottomBounds.top - contentBounds.bottom).toBeGreaterThanOrEqual(16)
+    await expect(bottom.firstElementChild!.getBoundingClientRect().left).toBeCloseTo(contentBounds.left, 0)
+    if (canvasElement.ownerDocument.defaultView!.matchMedia("(width < 40rem)").matches) {
+      await expect(bottom.lastElementChild!.getBoundingClientRect().top).toBeGreaterThan(bottom.firstElementChild!.getBoundingClientRect().bottom)
+    }
   },
 }
 export const Sizes: Story = {

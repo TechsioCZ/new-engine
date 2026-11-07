@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

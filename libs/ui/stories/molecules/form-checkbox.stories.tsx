@@ -165,6 +165,12 @@ export const Disabled: Story = {
   play: async ({ canvasElement }) => {
     for (const input of within(canvasElement).getAllByRole("checkbox"))
       await expect(input).toBeDisabled()
+    const label = canvasElement.querySelector('[data-part="label"]')
+    if (!label) throw new Error("Missing disabled checkbox label")
+    for (const description of within(canvasElement).getAllByText("Your administrator manages this preference.")) {
+      await expect(description.closest("[data-status]")).toHaveAttribute("data-disabled")
+      await expect(getComputedStyle(description).color).not.toBe(getComputedStyle(label).color)
+    }
   },
 }
 export const ReadOnly: Story = {

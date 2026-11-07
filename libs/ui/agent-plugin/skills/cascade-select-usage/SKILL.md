@@ -6,7 +6,7 @@ description: >
   compound parts, parent or multiple selection, validation, and keyboard
   navigation.
 metadata:
-  component_version: "1.1.7"
+  component_version: "1.1.14"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -271,13 +271,21 @@ Hierarchy metadata reconciliation preserves in-flight keyboard highlighting
 across ordinary rerenders. Trigger hover text shares the Select foreground
 alias rather than the accent text color.
 
-On narrow viewports the panel stays within the overlay's available width and
-two columns always fit side by side (each at most half the available width);
-deeper levels scroll horizontally with snapping, revealing the deepest open
-column or the keyboard-focused one. Desktop geometry is unchanged.
+The panel stays within the overlay's available width or the owning modal field.
+Short headings retain the normal two-column minimum; long headings can claim
+intrinsic room up to the column cap before wrapping. A sole column fills the
+popup. Deeper levels scroll horizontally with snapping, revealing the deepest
+open column for pointer input or the keyboard's current column.
 
-The trigger reserves size-aware space for the clear action, so long selected
-paths truncate with an ellipsis before the clear button.
+Measured overflow adds a narrow continuation cue only at logical edges with
+hidden hierarchy content, including in RTL. Native scrolling updates these inert
+cues without pulling the user back to the selected leaf. Cues take no layout or
+hit-target space and disappear during visible keyboard focus, preserving the
+tree ring and any custom focused controls. Keep the full labels and hierarchy;
+use CascadeSelect continuation tokens to adjust paint instead of clipping text.
+
+The trigger reserves size-aware space for the clear action. Long selected paths
+wrap, with each separator kept beside its preceding segment.
 
 Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
 the initial measurement still runs.

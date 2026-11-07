@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.3.5
+ * @componentVersion v1.3.7
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -94,7 +94,7 @@ const menuVariants = tv({
     // Commands size independently of an icon trigger, within the viewport.
     positioner: ["popup-layer menu-viewport isolate"],
     content: [
-      "popup-surface-base popup-layer",
+      "popup-surface-base popup-layer menu-content-surface",
       "w-full min-w-0",
       // Without transition-none, duration-200 alone animates every property
       // (transition-property defaults to all) from the starting styles.
@@ -106,7 +106,7 @@ const menuVariants = tv({
       "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
     item: [
-      "popup-item-base",
+      "popup-item-base menu-item",
       "not-data-disabled:hover:bg-popup-item-bg-hover",
       "not-data-disabled:focus:bg-popup-item-bg-hover",
       "data-[highlighted]:bg-popup-item-bg-hover",
@@ -126,7 +126,7 @@ const menuVariants = tv({
     optionItem: ["data-[state=checked]:text-popup-item-fg-checked"],
     separator: [
       "my-menu-separator-margin",
-      "h-menu-separator",
+      "h-menu-separator border-0",
       "bg-menu-separator-bg",
     ],
     itemText: ["wrap-anywhere min-w-0 flex-grow whitespace-normal"],
@@ -328,6 +328,139 @@ function renderMenuItem(
 }
 
 // === SUBMENU COMPONENT ===
+const submenuOverflowPadding = 8
+
+function getSubmenuPositioning(
+  trigger: HTMLLIElement | null,
+  positioner: HTMLDivElement | null
+) {
+  const parent = trigger?.closest<HTMLElement>(
+    '[data-scope="menu"][data-part="content"]'
+  )
+  if (!(trigger && parent && positioner)) {
+    return { anchor: trigger, overlap: false }
+  }
+
+  const bounds = parent.getBoundingClientRect()
+  const viewport = parent.ownerDocument.documentElement
+  // Keep the parent's width as a floor: a side-constrained child must not
+  // shrink enough to alternate between row and panel anchors on each update.
+  const width = Math.max(positioner.offsetWidth, bounds.width)
+  const sideSpace =
+    Math.max(bounds.left, viewport.clientWidth - bounds.right) -
+    submenuOverflowPadding
+  if (sideSpace >= width) {
+    return { anchor: trigger, overlap: false }
+  }
+
+  const content = positioner.firstElementChild
+  const style =
+    content && parent.ownerDocument.defaultView?.getComputedStyle(content)
+  const chrome = style
+    ? [
+        style.paddingTop,
+        style.paddingBottom,
+        style.borderTopWidth,
+        style.borderBottomWidth,
+      ].reduce((sum, value) => sum + (Number.parseFloat(value) || 0), 0)
+    : 0
+  const rowHeight =
+    content
+      ?.querySelector<HTMLElement>('[role^="menuitem"]')
+      ?.getBoundingClientRect().height || trigger.getBoundingClientRect().height
+  const verticalSpace =
+    Math.max(bounds.top, viewport.clientHeight - bounds.bottom) -
+    submenuOverflowPadding
+
+  // A whole-panel anchor clears every parent row only if at least one child
+  // command (including panel chrome) fits outside it. A viewport-tall parent
+  // instead needs row anchoring and overlapping shift to keep its child usable.
+  return verticalSpace >= rowHeight + chrome
+    ? { anchor: parent, overlap: false }
+    : { anchor: trigger, overlap: true }
+}
+
+function getSubmenuPositioningProp(
+  prop: menu.Service["prop"],
+  resolvePositioning: () => ReturnType<typeof getSubmenuPositioning>,
+  onModeChange?: () => void
+): typeof prop {
+  const { overlap } = resolvePositioning()
+  const positioning = {
+    ...prop("positioning"),
+    overlap,
+    getAnchorElement() {
+      const next = resolvePositioning()
+      if (next.overlap !== overlap) {
+        onModeChange?.()
+      }
+      return next.anchor
+    },
+  }
+  return ((key) =>
+    key === "positioning" ? positioning : prop(key)) as typeof prop
+}
+
+function createSubmenuMachine(
+  resolvePositioning: () => ReturnType<typeof getSubmenuPositioning>
+): typeof menu.machine {
+  return {
+    ...menu.machine,
+    implementations: {
+      ...menu.machine.implementations,
+      actions: {
+        ...menu.machine.implementations?.actions,
+        reposition(params) {
+          menu.machine.implementations?.actions?.reposition?.({
+            ...params,
+            prop: getSubmenuPositioningProp(params.prop, resolvePositioning),
+          })
+        },
+      },
+      effects: {
+        ...menu.machine.implementations?.effects,
+        trackPositioning(params) {
+          let cleanup: VoidFunction | undefined
+          let disposed = false
+          let queued = false
+          const start = () => {
+            cleanup?.()
+            const nextCleanup =
+              menu.machine.implementations?.effects?.trackPositioning?.({
+                ...params,
+                prop: getSubmenuPositioningProp(
+                  params.prop,
+                  resolvePositioning,
+                  () => {
+                    // Popper captures overlap when its middleware is created. Rebuild
+                    // only on a mode change; retain its own resize/scroll observers.
+                    if (disposed || queued) {
+                      return
+                    }
+                    queued = true
+                    queueMicrotask(() => {
+                      queued = false
+                      if (!disposed) {
+                        start()
+                      }
+                    })
+                  }
+                ),
+              })
+            cleanup =
+              typeof nextCleanup === "function" ? nextCleanup : undefined
+          }
+          start()
+          return () => {
+            disposed = true
+            cleanup?.()
+          }
+        },
+      },
+    },
+  }
+}
+
 type SubmenuItemProps = {
   item: SubmenuMenuItem
   parentApi: menu.Api
@@ -347,13 +480,26 @@ function SubmenuItem({
   onSelect,
   closeOnSelect = true,
 }: SubmenuItemProps) {
-  const submenuService = useMachine(menu.machine, {
+  const triggerRef = useRef<HTMLLIElement>(null)
+  const positionerRef = useRef<HTMLDivElement>(null)
+  const submenuMachine = createSubmenuMachine(() =>
+    getSubmenuPositioning(triggerRef.current, positionerRef.current)
+  )
+  const submenuService = useMachine(submenuMachine, {
     id: useId(),
     dir: parentService.prop("dir"),
     loopFocus: parentService.prop("loopFocus"),
     typeahead: parentService.prop("typeahead"),
     navigate: parentService.prop("navigate"),
-    positioning: { overlap: true, fitViewport: true },
+    positioning: {
+      fitViewport: true,
+      overflowPadding: submenuOverflowPadding,
+      flip: [
+        parentService.prop("dir") === "rtl" ? "right-start" : "left-start",
+        "bottom-start",
+        "top-start",
+      ],
+    },
     closeOnSelect,
     onSelect,
   })
@@ -396,6 +542,7 @@ function SubmenuItem({
         {...triggerProps}
         aria-disabled={item.disabled || undefined}
         data-disabled={item.disabled ? "" : undefined}
+        ref={triggerRef}
       >
         {item.icon && <Icon className={itemIcon()} icon={item.icon} />}
         <span className={itemText()}>{item.label}</span>
@@ -403,7 +550,11 @@ function SubmenuItem({
       </li>
 
       <Portal>
-        <div className={positioner()} {...submenuApi.getPositionerProps()}>
+        <div
+          className={positioner()}
+          {...submenuApi.getPositionerProps()}
+          ref={positionerRef}
+        >
           <ul
             className={content()}
             {...mergeProps(submenuApi.getContentProps(), {

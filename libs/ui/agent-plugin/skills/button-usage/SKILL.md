@@ -9,7 +9,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "Button"
-  component_version: "0.6.1"
+  component_version: "0.6.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
   sources: ""
   contributor_sources: "libs/ui/src/atoms/button.tsx libs/ui/src/tokens/components/atoms/_button.css libs/ui/stories/atoms/button.stories.tsx libs/ui/src/atoms/button.figma.ts"

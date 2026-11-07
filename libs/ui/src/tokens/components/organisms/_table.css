@@ -18,18 +18,66 @@
     var(--padding-table-cell-lg-x);
 }
 
-/* Publish the row tint; only the frozen cell composites it over the surface. */
+/* Stripe records, not headings or totals. Keep these selectors weak so hover
+ * and selection win, and publish the same tint to the opaque frozen cell. */
 @utility table-row-striped {
-  &:nth-child(odd) {
+  &:where(tbody > tr) {
+    background-color: var(--table-row-tint, transparent);
+  }
+  :where(tbody > &:nth-child(odd)) {
     --table-row-tint: var(--color-table-row-striped-primary);
   }
-  &:nth-child(even) {
+  :where(tbody > &:nth-child(even)) {
     --table-row-tint: var(--color-table-row-striped-secondary);
   }
 }
 @utility table-row-interactive {
-  &:hover {
+  &:where(tbody > tr:hover:not([data-selected="true"])) {
     --table-row-tint: var(--color-table-row-bg-hover);
+    background-color: var(--color-table-row-bg-hover);
+  }
+
+  /* Cell-local borders avoid collapsed-row outline paint without replacing
+   * consumer cell shadows (for example DataTable's pinned-column cue). */
+  &:focus-visible {
+    --table-row-focus-color: var(--color-table-ring);
+    outline: none;
+
+    & > :is(td, th)::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-block: var(--default-ring-width) var(--default-ring-style)
+        var(--table-row-focus-color);
+      pointer-events: none;
+    }
+    & > :first-child::before {
+      border-inline-start: var(--default-ring-width) var(--default-ring-style)
+        var(--table-row-focus-color);
+    }
+    & > :last-child::before {
+      border-inline-end: var(--default-ring-width) var(--default-ring-style)
+        var(--table-row-focus-color);
+    }
+
+    @media (forced-colors: active) {
+      --table-row-focus-color: Highlight;
+    }
+  }
+}
+/* A frozen column needs cell-owned dividers. Collapsed borders belong to the
+ * table grid and can scroll behind sticky cells; adding an inset shadow then
+ * double-paints just the frozen column. Keep this border model opt-in so
+ * ordinary Table and DataTable layouts retain their existing row borders. */
+@utility table-frozen-grid {
+  &:is(table) {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  & > :is(thead, tbody, tfoot) > tr > :is(td, th) {
+    /* Preserve the row's token border and consumer row-border overrides. */
+    border-block-end: inherit;
   }
 }
 @utility table-frozen-cell {
@@ -38,6 +86,10 @@
     var(--table-row-tint, transparent),
     var(--table-row-tint, transparent)
   );
+  tfoot > tr > & {
+    background-color: var(--color-table-footer-bg);
+    background-image: none;
+  }
   tr[data-selected="true"] > & {
     background-image: linear-gradient(
       var(--color-table-row-bg-selected),

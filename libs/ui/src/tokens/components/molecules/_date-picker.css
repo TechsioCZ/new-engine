@@ -74,6 +74,9 @@
   --color-date-picker-trigger-bg: var(--color-date-picker-fill);
   --color-date-picker-trigger-bg-hover: var(--color-date-picker-fill-hover);
   --color-date-picker-trigger-bg-active: var(--color-date-picker-fill-active);
+  --color-date-picker-trigger-bg-disabled: var(
+    --color-date-picker-control-bg-disabled
+  );
   --color-date-picker-trigger-fg: var(--color-date-picker-text);
   --color-date-picker-trigger-fg-disabled: var(--color-date-picker-disabled);
   --color-date-picker-trigger-ring: var(--color-date-picker-ring);
@@ -191,6 +194,26 @@
 }
 
 @utility date-picker-range-control {
+  /* A coarse-pointer icon target can be as tall as the field itself. Keep its
+   * background inside both normal and validation borders without clipping the
+   * button, shrinking its target, or changing the segment scroll container. */
+  --date-picker-control-indicator-size: var(--size-icon-control-md);
+  min-height: calc(
+    var(--date-picker-control-indicator-size) +
+    max(
+      var(--border-width-date-picker-control),
+      var(--border-width-validation)
+    ) *
+    2
+  );
+
+  &[data-size="sm"] {
+    --date-picker-control-indicator-size: var(--size-icon-control-sm);
+  }
+  &[data-size="lg"] {
+    --date-picker-control-indicator-size: var(--size-icon-control-lg);
+  }
+
   &[data-selection-mode="range"] {
     @apply form-control-size-md;
     &[data-size="sm"] {
@@ -239,6 +262,44 @@
 @utility date-picker-segment-size {
   min-width: var(--size-date-picker-segment);
   min-height: var(--size-date-picker-segment);
+}
+
+/* Resolve the fallback at the trigger, so nested theme scopes keep their own
+ * disabled surface unless the theme explicitly overrides this component. */
+@utility date-picker-trigger-disabled {
+  &:disabled {
+    background-color: var(
+      --color-date-picker-trigger-bg-disabled,
+      var(--color-date-picker-control-bg-disabled)
+    );
+  }
+}
+
+/* Fine-pointer calendars also need the full localized caption. Let long month
+ * names and year ranges wrap instead of silently truncating their text. */
+@utility date-picker-calendar-caption {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Four touch-sized navigation buttons and a localized caption cannot share
+ * the compact calendar's single row. Keep every hit target and give the caption
+ * its own row instead of clipping the month and year between the arrows. */
+@utility date-picker-day-navigation {
+  @media (pointer: coarse) {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    justify-items: center;
+
+    > [data-part="view-trigger"] {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      max-inline-size: 100%;
+      white-space: normal;
+      overflow: visible;
+      overflow-wrap: anywhere;
+    }
+  }
 }
 
 @utility token-icon-date-picker-calendar {

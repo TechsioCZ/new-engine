@@ -225,7 +225,7 @@ export const FeedbackLifecycle: Story = {
     const id = useId()
     return (
       <div className="flex flex-col gap-200">
-        <p id={id}>Only used for this order.</p>
+        <StatusText id={id}>Only used for this order.</StatusText>
         <FormInput
           aria-describedby={id}
           helpText={

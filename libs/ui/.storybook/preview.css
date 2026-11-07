@@ -1,0 +1,6 @@
+@import "../src/tokens/index.css";
+
+@theme static {
+  --spacing-story-popover-bounds: calc(var(--dimension-56) * 4);
+  --height-story-popover-bounds: var(--spacing-story-popover-bounds);
+}

@@ -181,7 +181,7 @@ describe("ProductCard public contracts", () => {
     )
     expect(html).toContain('href="/products/m8"')
     expect(html).toContain("<h3")
-    expect(html).toContain("<del>")
+    expect(html).toMatch(/<del(?:\s[^>]*)?>/)
     expect(html.indexOf("Původní cena")).toBeLessThan(html.indexOf("299 Kč"))
     expect(html.indexOf("Aktuální cena")).toBeLessThan(html.indexOf("249 Kč"))
     expect(html).not.toContain("<button")

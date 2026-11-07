@@ -5,7 +5,7 @@ description: >
   for labeled multi-line text fields with Textarea, Label, StatusText,
   validation status, help text, size, resize, required, and disabled props.
 metadata:
-  component_version: "1.1.3"
+  component_version: "1.1.4"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

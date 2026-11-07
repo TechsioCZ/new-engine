@@ -9,6 +9,41 @@ import {
 
 const WHITESPACE = /\s+/g
 
+describe("native text wrapping utilities", () => {
+  for (const value of ["wrap", "nowrap", "balance", "pretty"]) {
+    it(`accepts token-free text-${value} supported by Tailwind`, async () => {
+      const compiler = await compile("@tailwind utilities;")
+      const css = compiler.build([`text-${value}`])
+      assert.ok(css.replace(WHITESPACE, "").includes(`text-wrap:${value};`))
+      assert.deepEqual(findMissingTokens(`text-${value}`, new Set()), [])
+      assert.deepEqual(
+        findMissingTokens(`data-[state=open]:text-${value}`, new Set()),
+        []
+      )
+    })
+  }
+  it("still requires tokens for unknown text utilities", () => {
+    assert.ok(findMissingTokens("text-wrapping", new Set()).length > 0)
+  })
+})
+
+describe("native background clipping utilities", () => {
+  for (const value of ["border", "padding", "content", "text"]) {
+    it(`accepts token-free bg-clip-${value} supported by Tailwind`, async () => {
+      const compiler = await compile("@tailwind utilities;")
+      const css = compiler.build([`bg-clip-${value}`])
+      const expected = value === "text" ? "text" : `${value}-box`
+      assert.ok(
+        css.replace(WHITESPACE, "").includes(`background-clip:${expected};`)
+      )
+      assert.deepEqual(findMissingTokens(`bg-clip-${value}`, new Set()), [])
+    })
+  }
+  it("still rejects unknown background clipping names", () => {
+    assert.ok(findMissingTokens("bg-clip-missing", new Set()).length > 0)
+  })
+})
+
 describe("fractional dimension utilities", () => {
   for (const [prefix, property] of [
     ["w", "width"],

@@ -145,11 +145,13 @@ export default meta
 type Story = StoryObj<typeof PhoneInput>
 
 function PhoneInputExample({
+  controlTestId,
   countryTriggerProps,
   helpText = "Use a number we can reach for delivery updates.",
   label = "Phone number",
   ...props
 }: ComponentProps<typeof PhoneInput> & {
+  controlTestId?: string
   countryTriggerProps?: ComponentProps<typeof PhoneInput.CountryTrigger>
   helpText?: string
   label?: string
@@ -158,7 +160,7 @@ function PhoneInputExample({
     <div className="w-full min-w-0 max-w-sm">
       <PhoneInput {...props}>
         <PhoneInput.Label>{label}</PhoneInput.Label>
-        <PhoneInput.Control>
+        <PhoneInput.Control data-testid={controlTestId}>
           <PhoneInput.CountryPicker triggerProps={countryTriggerProps} />
           <PhoneInput.Input placeholder="900 123 456" />
         </PhoneInput.Control>
@@ -373,12 +375,16 @@ export const AccessibleCountryNames: Story = {
           />
         </VariantGroup>
         <VariantGroup fullWidth title="External country label">
-          <span id={billingCountryLabelId}>Country for billing phone</span>
-          <PhoneInputExample
-            {...args}
-            countryTriggerProps={{ "aria-labelledby": billingCountryLabelId }}
-            label="Billing phone"
-          />
+          <div className="grid w-full min-w-0 max-w-sm gap-100">
+            <span className="font-medium text-label-md" id={billingCountryLabelId}>
+              Country for billing phone
+            </span>
+            <PhoneInputExample
+              {...args}
+              countryTriggerProps={{ "aria-labelledby": billingCountryLabelId }}
+              label="Billing phone"
+            />
+          </div>
         </VariantGroup>
       </VariantContainer>
     )
@@ -401,6 +407,15 @@ export const AccessibleCountryNames: Story = {
       name: "Country for billing phone",
     })
     await expect(externallyLabelledTrigger).not.toHaveAttribute("aria-label")
+
+    const deliveryInput = canvas.getByRole("textbox", { name: "Delivery phone" })
+    const billingInput = canvas.getByRole("textbox", { name: "Billing phone" })
+    await expect(
+      Math.abs(
+        deliveryInput.getBoundingClientRect().width -
+          billingInput.getBoundingClientRect().width
+      )
+    ).toBeLessThan(1)
 
     await userEvent.click(defaultTrigger)
     await userEvent.click(await body.findByRole("option", { name: /Czechia/ }))
@@ -1191,8 +1206,9 @@ function ResetOwnershipPhone({
   const [country, setCountry] = useState<"SK" | "CZ">("SK")
   const label = `Reset ${controlValue ? "controlled" : "default"} value / ${controlCountry ? "controlled" : "default"} country`
   return (
-    <form className="grid gap-100" onSubmit={(event) => event.preventDefault()}>
+    <form className="grid w-full max-w-sm gap-100" onSubmit={(event) => event.preventDefault()}>
       <PhoneInputExample
+        controlTestId="reset-phone-control"
         label={label}
         countries={countries}
         defaultCountry="SK"
@@ -1206,7 +1222,7 @@ function ResetOwnershipPhone({
             setCountry(details.country)
         }}
       />
-      <Button type="reset">Reset {label}</Button>
+      <Button type="reset">{label}</Button>
     </form>
   )
 }
@@ -1242,10 +1258,20 @@ export const ResetOwnership: Story = {
         const input = canvas.getByRole("textbox", {
           name: label,
         }) as HTMLInputElement
+        const form = input.form
+        if (!form) throw new Error("Missing phone form")
+        const formCanvas = within(form)
+        const control = formCanvas.getByTestId("reset-phone-control")
+        await expect(control).toContainElement(input)
         await userEvent.clear(input)
         await userEvent.paste("+420777123456")
-        input.form?.reset()
-        const formCanvas = within(input.form as HTMLFormElement)
+        await waitFor(() =>
+          expect(new FormData(form).get("phone")).toBe("+420777123456")
+        )
+        form.reset()
+        const resetButton = formCanvas.getByRole("button", { name: label })
+        await expect(resetButton.textContent).not.toContain("Reset Reset")
+        await expect(Math.abs(resetButton.getBoundingClientRect().width - control.getBoundingClientRect().width)).toBeLessThan(1)
         await waitFor(() =>
           expect(
             formCanvas.getByRole("combobox", {
@@ -1259,6 +1285,17 @@ export const ResetOwnership: Story = {
             : "777123456"
           : "900 123 456"
         await waitFor(() => expect(input).toHaveValue(expectedValue))
+        const expectedFormValue = controlValue
+          ? controlCountry
+            ? "+420777123456"
+            : expectedValue
+          : `+${controlCountry ? "420" : "421"}900123456`
+        await waitFor(() =>
+          expect(new FormData(form).get("phone")).toBe(expectedFormValue)
+        )
+        await expect(canvas.getByRole("textbox", { name: label })).toBe(input)
+        await expect(formCanvas.getByTestId("reset-phone-control")).toBe(control)
+        await expect(control).toContainElement(input)
       }
     }
   },

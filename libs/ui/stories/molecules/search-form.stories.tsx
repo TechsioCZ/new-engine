@@ -197,6 +197,13 @@ export const WithLabel: Story = {
 }
 
 export const IconButton: Story = {
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole("button", { name: "Search" })
+    const icon = button.querySelector("span")
+    if (!icon) throw new Error("Missing search icon")
+    await expect(icon.getBoundingClientRect().width).toBeGreaterThanOrEqual(16)
+    await expect(icon.getBoundingClientRect().height).toBeGreaterThanOrEqual(16)
+  },
   render: (args) => (
     <SearchForm {...args}>
       <SearchForm.Label>Search products</SearchForm.Label>
@@ -269,6 +276,10 @@ export const WithClearButton: Story = {
     )
     await expect(input).toHaveValue("")
     await expect(input).toHaveFocus()
+    // Exercise clearing, then restore the nonempty state promised by this
+    // story so the clear action is present in the visual checkpoint.
+    await userEvent.type(input, "Mounting kit")
+    await expect(canvas.getByRole("button", { name: "Clear search: Mounting kit" })).toBeVisible()
   },
 }
 

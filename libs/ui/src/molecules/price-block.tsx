@@ -2,7 +2,7 @@
  * PriceBlock — @techsio/ui-kit molecule.
  *
  * @component PriceBlock
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill price-block-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,7 +16,7 @@ import { tv } from "../utils"
 
 const priceBlockVariants = tv({
   slots: {
-    root: "flex min-w-0 flex-col gap-price-block",
+    root: "flex min-w-0 flex-col gap-price-block data-[state=on-request]:gap-price-block-on-request",
     primaryRow: "flex min-w-0 flex-wrap items-baseline gap-price-block-primary",
     prefix:
       "break-words text-price-block-prefix-fg text-price-block-prefix-size",
@@ -25,8 +25,7 @@ const priceBlockVariants = tv({
     original:
       "break-words text-price-block-original-fg text-price-block-original-size",
     metadata:
-      "flex min-w-0 flex-wrap items-center gap-price-block-metadata text-price-block-metadata-fg text-price-block-metadata-size",
-    separator: "text-price-block-separator-fg",
+      "flex min-w-0 flex-wrap items-center gap-price-block-metadata gap-x-price-block-metadata-inline text-price-block-metadata-fg text-price-block-metadata-size",
     detail:
       "break-words text-price-block-detail-fg text-price-block-detail-size",
     pending: "w-price-block-pending max-w-full gap-price-block-pending",
@@ -133,11 +132,6 @@ function PriceMetadata({
   return (
     <div className={styles.metadata()}>
       {taxLabel ? <span>{taxLabel}</span> : null}
-      {taxLabel && unitLabel ? (
-        <span aria-hidden="true" className={styles.separator()}>
-          ·
-        </span>
-      ) : null}
       {unitLabel ? <span>{unitLabel}</span> : null}
     </div>
   )

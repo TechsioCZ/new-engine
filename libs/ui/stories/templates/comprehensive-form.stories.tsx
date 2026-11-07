@@ -1,6 +1,6 @@
 import { CalendarDate } from "@internationalized/date"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useEffect, useId, useRef, useState } from "react"
+import { type Ref, useEffect, useId, useRef, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
@@ -37,7 +37,7 @@ const meta: Meta<FormArgs> = {
   title: "Templates/Comprehensive Form",
   tags: ["autodocs"],
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     docs: {
       description: {
         component:
@@ -45,7 +45,14 @@ const meta: Meta<FormArgs> = {
       },
     },
   },
-  decorators: [(Story) => <div className="mx-auto w-full min-w-0 max-w-3xl"><Story /></div>],
+  // Keep the mobile inset inside the captured root, not Storybook's body padding.
+  decorators: [
+    (Story) => (
+      <div className="w-full min-w-0 p-200">
+        <div className="mx-auto w-full min-w-0 max-w-3xl"><Story /></div>
+      </div>
+    ),
+  ],
   argTypes: {
     size: { control: "select", options: ["sm", "md", "lg"] },
     validateStatus: {
@@ -75,6 +82,27 @@ const initialData = {
   consent: false,
   budget: [25],
 }
+const representativeData = {
+  ...initialData,
+  name: "Alex Morgan",
+  email: "alex@example.com",
+  message:
+    "Office supplies for a new team of 25 people, delivered in September.",
+  department: "sales",
+  topic: "office",
+  quantity: "25",
+  consent: true,
+}
+const initialErrorMessages = {
+  name: "Enter your full name.",
+  email: "Enter a valid email address, such as alex@example.com.",
+  department: "Choose the team best placed to handle your enquiry.",
+  topic: "Choose a project category, or clear it if you are unsure.",
+  quantity: "Enter a whole-number estimate between 1 and 1,000.",
+  budget: "Choose a budget estimate between 0 and 100 thousand euros.",
+  message: "Tell us about your project in at least 10 characters.",
+  consent: "Allow us to contact you about this enquiry.",
+}
 const departments = [
   { label: "Sales", value: "sales" },
   { label: "Technical support", value: "support" },
@@ -86,26 +114,28 @@ const topics = [
   { label: "Custom order", value: "custom" },
 ]
 
-function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
+function EnquiryForm({
+  size,
+  validateStatus,
+  disabled,
+  readOnly,
+  headingLevel = "h2",
+}: FormArgs & { headingLevel?: "h2" | "h4" }) {
+  const Heading = headingLevel
   const prefix = useId()
   const summaryRef = useRef<HTMLDivElement>(null)
+  const teamControlRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState(
-    readOnly || disabled
-      ? {
-          ...initialData,
-          name: "Alex Morgan",
-          email: "alex@example.com",
-          message:
-            "Office supplies for a new team of 25 people, delivered in September.",
-          department: "sales",
-          topic: "office",
-          quantity: "25",
-          consent: true,
-        }
+    readOnly || disabled || validateStatus === "success"
+      ? representativeData
       : initialData
   )
   const [errors, setErrors] = useState<FormErrorSummaryError[]>([])
-  const [feedback, setFeedback] = useState("")
+  const [feedback, setFeedback] = useState(
+    validateStatus === "success"
+      ? "These details are ready to send. No data has been sent."
+      : ""
+  )
   const [submission, setSubmission] = useState(0)
   const fieldId = (field: string) => `${prefix}-${field}`
   useEffect(() => {
@@ -122,17 +152,17 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
   }
   const errorFor = (field: string) =>
     errors.find((error) => error.id === field)?.label
+  // Readiness belongs to the form; keep field hints neutral until correction is needed.
+  const fieldStatus = validateStatus === "success" ? "default" : validateStatus
   const statusFor = (field: string) =>
-    errorFor(field) ? ("error" as const) : validateStatus
-  const messageFor = (field: string, hint: string) =>
+    errorFor(field) ? ("error" as const) : fieldStatus
+  const messageFor = (field: keyof typeof initialErrorMessages, hint: string) =>
     errorFor(field) ??
     (validateStatus === "error"
-      ? "Check this value before sending your enquiry."
+      ? initialErrorMessages[field]
       : validateStatus === "warning"
         ? "Please confirm these details before sending."
-        : validateStatus === "success"
-          ? "These details are ready to send."
-          : hint)
+        : hint)
   const shared = { size, disabled, readOnly }
   return (
     <form
@@ -164,13 +194,13 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
       }}
     >
       <div>
-        <h2 className="font-semibold text-xl">Plan your next project</h2>
+        <Heading className="font-semibold text-xl">Plan your next project</Heading>
         <p className="text-fg-secondary">
           Tell our team what you need. Required fields are marked.
         </p>
       </div>
       <FormErrorSummary className="w-full min-w-0" errors={errors} ref={summaryRef} />
-      <div className="grid grid-cols-1 gap-300 md:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-300 md:grid-cols-2">
         <FormInput
           {...shared}
           id={fieldId("name")}
@@ -203,12 +233,14 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
         <Select
           {...shared}
           items={departments}
+          // The popup belongs to the control, not its helper or stretched grid row.
+          positioning={{ getAnchorElement: () => teamControlRef.current }}
           value={data.department ? [data.department] : []}
           onValueChange={({ value }) => update("department", value[0] ?? "")}
-          validateStatus={validateStatus}
+          validateStatus={fieldStatus}
         >
           <Select.Label>Team</Select.Label>
-          <Select.Control>
+          <Select.Control ref={teamControlRef}>
             <Select.Trigger>
               <Select.ValueText placeholder="Choose a team" />
             </Select.Trigger>
@@ -230,6 +262,7 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
         </Select>
         <Combobox
           {...shared}
+          className="gap-select"
           label="Project category"
           placeholder="Search categories"
           items={topics}
@@ -237,7 +270,7 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
           onChange={(value) =>
             update("topic", Array.isArray(value) ? (value[0] ?? "") : value)
           }
-          validateStatus={validateStatus}
+          validateStatus={fieldStatus}
           helpText={messageFor(
             "topic",
             "Choose the closest category, or leave it empty."
@@ -250,7 +283,7 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
           onValueChange={({ value }) => update("quantity", value)}
           min={1}
           max={1000}
-          validateStatus={validateStatus}
+          validateStatus={fieldStatus}
           helpText={messageFor(
             "quantity",
             "An estimate is fine; we will confirm it with you."
@@ -272,7 +305,7 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
           max={100}
           value={data.budget}
           onChange={(value) => update("budget", value)}
-          validateStatus={validateStatus}
+          validateStatus={fieldStatus}
           helpText={messageFor(
             "budget",
             "Use the arrow keys for a rough budget estimate."
@@ -313,7 +346,14 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
           "Your details are not shared with other companies."
         )}
       />
-      {feedback && <StatusText status="success">{feedback}</StatusText>}
+      {feedback && (
+        <StatusText
+          className="rounded-md border border-border-primary bg-surface p-200"
+          status="success"
+        >
+          {feedback}
+        </StatusText>
+      )}
       {readOnly && (
         <StatusText>
           This enquiry is read-only. You can inspect the details but cannot send
@@ -442,7 +482,7 @@ export const Sizes: Story = {
           key={size}
           title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}
         >
-          <EnquiryForm {...args} size={size} />
+          <EnquiryForm {...args} headingLevel="h4" size={size} />
         </VariantGroup>
       ))}
     </VariantContainer>
@@ -477,7 +517,7 @@ export const ReadOnly: Story = {
 }
 export const AllFormInputs: Story = {
   ...Playground,
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     const input = canvas.getByRole("textbox", { name: /Full name/ })
     const select = canvas.getByRole("combobox", { name: "Team" })
@@ -491,6 +531,51 @@ export const AllFormInputs: Story = {
       await expect(Math.abs(control.getBoundingClientRect().height - height))
         .toBeLessThanOrEqual(1)
     }
+    if (!combobox) throw new Error("Missing category control")
+    // The fields stack on mobile; compare their row baselines only side by side.
+    const selectRect = select.getBoundingClientRect()
+    const categoryRect = combobox.getBoundingClientRect()
+    if (
+      categoryRect.left > selectRect.right ||
+      selectRect.left > categoryRect.right
+    ) {
+      await expect(
+        Math.abs(selectRect.top - categoryRect.top)
+      ).toBeLessThanOrEqual(1)
+      const teamHelp = select
+        .closest('[data-part="root"]')
+        ?.querySelector<HTMLElement>("[data-select-description]")
+      const categoryHelp = combobox.parentElement?.querySelector<HTMLElement>(
+        '[id$="-help"]'
+      )
+      if (!teamHelp || !categoryHelp) {
+        throw new Error("Missing paired field guidance")
+      }
+      await expect(
+        Math.abs(
+          teamHelp.getBoundingClientRect().top -
+            categoryHelp.getBoundingClientRect().top
+        )
+      ).toBeLessThanOrEqual(1)
+    }
+    if (args.disabled || args.readOnly) return
+    await userEvent.click(select)
+    const listbox = await within(canvasElement.ownerDocument.body).findByRole(
+      "listbox"
+    )
+    await waitFor(() => {
+      const triggerRect = select.getBoundingClientRect()
+      const popupRect = listbox.getBoundingClientRect()
+      const gap = popupRect.top >= triggerRect.bottom
+        ? popupRect.top - triggerRect.bottom
+        : triggerRect.top - popupRect.bottom
+      expect(gap).toBeGreaterThanOrEqual(-1)
+      // Floating coordinates may round across one CSS pixel in WebKit.
+      expect(gap).toBeLessThanOrEqual(9)
+    })
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(select).toHaveFocus())
+    select.blur()
   },
   parameters: {
     docs: {
@@ -534,7 +619,7 @@ export const SuccessState: Story = {
     docs: {
       description: {
         story:
-          "Positive feedback uses both words and status icons at the size of its associated field.",
+          "A complete valid enquiry shows one form-level readiness confirmation, while field hints stay available. Send prepares a local confirmation; no data leaves this demo.",
       },
     },
   },
@@ -567,16 +652,18 @@ function PopupLifecycleFixture() {
           }}
         />
       ))}
-      <fieldset disabled={disabled}>
-        <legend>
+      <fieldset className="min-w-0" disabled={disabled}>
+        <legend className="w-full min-w-0">
           <Slider
             label="Legend exemption"
             defaultValue={[10]}
             aria-label={["Legend exemption"]}
           />
         </legend>
-        <fieldset className="flex min-w-0 flex-col gap-200">
-          <legend>Popup lifecycle fields</legend>
+        <fieldset className="mt-300 flex min-w-0 flex-col gap-200">
+          <legend className="pb-200 font-semibold text-lg">
+            Popup lifecycle fields
+          </legend>
           <SelectTemplate
             label="Lifecycle select"
             name="select"
@@ -598,7 +685,7 @@ function PopupLifecycleFixture() {
             name="cascade"
             form={form}
           >
-            <CascadeSelect.Label>Lifecycle cascade</CascadeSelect.Label>
+            <CascadeSelect.Label size="md">Lifecycle cascade</CascadeSelect.Label>
             <CascadeSelect.Control>
               <CascadeSelect.Trigger>
                 <CascadeSelect.ValueText />
@@ -659,31 +746,46 @@ function PopupLifecycleFixture() {
           </SearchForm>
         </fieldset>
       </fieldset>
-      <div className="flex flex-wrap gap-150">
-        <Button
-          variant="secondary"
-          onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
+      <div className="flex flex-col gap-200 border-border-primary border-t pt-200">
+        <div
+          aria-label="Lifecycle controls"
+          className="flex flex-wrap gap-150"
+          role="group"
         >
-          Reassociate owner
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => setCancel((current) => !current)}
+          <Button
+            theme="outlined"
+            variant="secondary"
+            onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
+          >
+            Reassociate owner
+          </Button>
+          <Button
+            theme="outlined"
+            variant="secondary"
+            onClick={() => setCancel((current) => !current)}
+          >
+            Toggle cancellation
+          </Button>
+          <Button
+            theme="outlined"
+            variant="secondary"
+            onClick={() => setDisabled((current) => !current)}
+          >
+            Toggle ancestor disabled
+          </Button>
+        </div>
+        <div
+          aria-label="Owner resets"
+          className="flex flex-wrap gap-150"
+          role="group"
         >
-          Toggle cancellation
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => setDisabled((current) => !current)}
-        >
-          Toggle ancestor disabled
-        </Button>
-        <Button variant="secondary" type="reset" form={`${prefix}-a`}>
-          Reset owner a
-        </Button>
-        <Button variant="secondary" type="reset" form={`${prefix}-b`}>
-          Reset owner b
-        </Button>
+          <Button variant="secondary" type="reset" form={`${prefix}-a`}>
+            Reset owner a
+          </Button>
+          <Button variant="secondary" type="reset" form={`${prefix}-b`}>
+            Reset owner b
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -789,7 +891,7 @@ export const PopupLifecycleContracts: Story = {
   },
 }
 
-function ModalPopupFields() {
+function ModalPopupFields({ triggerRef }: { triggerRef: Ref<HTMLButtonElement> }) {
   return (
     <div className="flex min-w-0 flex-col gap-200">
       <CascadeSelect
@@ -803,7 +905,7 @@ function ModalPopupFields() {
       >
         <CascadeSelect.Label>Modal category</CascadeSelect.Label>
         <CascadeSelect.Control>
-          <CascadeSelect.Trigger>
+          <CascadeSelect.Trigger ref={triggerRef}>
             <CascadeSelect.ValueText />
             <CascadeSelect.Indicator />
           </CascadeSelect.Trigger>
@@ -842,32 +944,40 @@ export const ModalPopupContracts: Story = {
       },
     },
   },
-  render: () => (
-    <div className="flex flex-wrap gap-200">
-      <Dialog title="Popup dialog" triggerText="Open popup dialog">
-        <ModalPopupFields />
-      </Dialog>
-      <Drawer>
-        <Drawer.Trigger>Open popup drawer</Drawer.Trigger>
-        <Drawer.Portal>
-          <Drawer.Backdrop />
-          <Drawer.Positioner>
-            <Drawer.Content>
-              <Drawer.Header>
-                <Drawer.Title>Popup drawer</Drawer.Title>
-              </Drawer.Header>
-              <Drawer.Body>
-                <ModalPopupFields />
-              </Drawer.Body>
-              <Drawer.Footer>
-                <Drawer.CloseTrigger>Close drawer</Drawer.CloseTrigger>
-              </Drawer.Footer>
-            </Drawer.Content>
-          </Drawer.Positioner>
-        </Drawer.Portal>
-      </Drawer>
-    </div>
-  ),
+  render: function ModalPopupFixture() {
+    const dialogCategory = useRef<HTMLButtonElement>(null)
+    const drawerCategory = useRef<HTMLButtonElement>(null)
+    return (
+      <div className="flex flex-wrap gap-200">
+        <Dialog
+          initialFocusEl={() => dialogCategory.current}
+          title="Popup dialog"
+          triggerText="Open popup dialog"
+        >
+          <ModalPopupFields triggerRef={dialogCategory} />
+        </Dialog>
+        <Drawer initialFocusEl={() => drawerCategory.current}>
+          <Drawer.Trigger>Open popup drawer</Drawer.Trigger>
+          <Drawer.Portal>
+            <Drawer.Backdrop />
+            <Drawer.Positioner>
+              <Drawer.Content>
+                <Drawer.Header>
+                  <Drawer.Title>Popup drawer</Drawer.Title>
+                </Drawer.Header>
+                <Drawer.Body>
+                  <ModalPopupFields triggerRef={drawerCategory} />
+                </Drawer.Body>
+                <Drawer.Footer>
+                  <Drawer.CloseTrigger>Close drawer</Drawer.CloseTrigger>
+                </Drawer.Footer>
+              </Drawer.Content>
+            </Drawer.Positioner>
+          </Drawer.Portal>
+        </Drawer>
+      </div>
+    )
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const body = within(canvasElement.ownerDocument.body)
@@ -878,9 +988,10 @@ export const ModalPopupContracts: Story = {
       const category = within(modal).getByRole("combobox", {
         name: "Modal category",
       })
-      category.focus()
+      await waitFor(() => expect(category).toHaveFocus())
       await userEvent.keyboard("{ArrowDown}")
       const tree = await body.findByRole("tree")
+      await waitFor(() => expect(tree).toHaveFocus())
       await expect(modal.contains(tree)).toBe(true)
       await expect(tree.closest('[aria-hidden="true"], [inert]')).toBeNull()
       await userEvent.keyboard("{Escape}")
@@ -888,7 +999,8 @@ export const ModalPopupContracts: Story = {
       const search = within(modal).getByRole("combobox", {
         name: "Modal suggestions",
       })
-      search.focus()
+      await userEvent.tab()
+      await waitFor(() => expect(search).toHaveFocus())
       await userEvent.keyboard("{ArrowDown}")
       const list = await body.findByRole("listbox")
       await expect(modal.contains(list)).toBe(true)
@@ -899,8 +1011,14 @@ export const ModalPopupContracts: Story = {
         ).toBeVisible()
       )
       await userEvent.keyboard("{Escape}")
-      await expect(search).toHaveFocus()
+      await waitFor(() => expect(list).not.toBeVisible())
+      await waitFor(() => expect(search).toHaveAttribute("aria-expanded", "false"))
+      await waitFor(() => expect(search).toHaveFocus())
       await expect(modal).toBeVisible()
+      // Let the closed popup release its dismissal layer before Escape targets the modal.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
       await userEvent.keyboard("{Escape}")
       await waitFor(() => expect(modal).not.toBeInTheDocument())
       await waitFor(() => expect(trigger).toHaveFocus())

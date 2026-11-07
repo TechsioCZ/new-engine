@@ -10,7 +10,7 @@
   --color-image-placeholder-text: var(--color-fg-secondary);
   --color-image-bg-fallback: var(--color-image-placeholder);
   --color-image-fg-fallback: var(--color-image-placeholder-text);
-  --text-image-fallback-icon: var(--text-icon-lg);
+  --text-image-fallback-icon: var(--text-icon-2xl);
 }
 
 /* Follow the box's preferred ratio, including a caller's aspect-* override. */

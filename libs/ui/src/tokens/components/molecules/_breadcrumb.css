@@ -6,6 +6,75 @@
   --outline-breadcrumb-focus-offset: var(--default-ring-offset);
 }
 
+@utility breadcrumb-list-sm {
+  --breadcrumb-item-gap: var(--spacing-breadcrumb-sm);
+  --breadcrumb-separator-size: var(--text-breadcrumb-separator-icon-sm);
+}
+
+@utility breadcrumb-list-md {
+  --breadcrumb-item-gap: var(--spacing-breadcrumb-md);
+  --breadcrumb-separator-size: var(--text-breadcrumb-separator-icon-md);
+}
+
+@utility breadcrumb-list-lg {
+  --breadcrumb-item-gap: var(--spacing-breadcrumb-lg);
+  --breadcrumb-separator-size: var(--text-breadcrumb-separator-icon-lg);
+}
+
+@utility breadcrumb-list {
+  /* Preserve the existing two gaps plus default icon between destinations. */
+  --breadcrumb-default-column-gap: calc(
+    2 *
+    var(--breadcrumb-item-gap, var(--spacing-breadcrumb-md)) +
+    var(--breadcrumb-separator-size, var(--text-breadcrumb-separator-icon-md))
+  );
+  --breadcrumb-column-gap: max(
+    var(--breadcrumb-default-column-gap),
+    var(--_breadcrumb-measured-gap, 0px)
+  );
+  gap: var(--breadcrumb-item-gap, var(--spacing-breadcrumb-md))
+    var(--breadcrumb-column-gap);
+}
+
+@utility breadcrumb-segment {
+  position: relative;
+
+  /* Only the destination takes up space, including at the start of a new row. */
+  & > ol > li:first-child {
+    position: absolute;
+    inset-block: 0;
+    /* Intrinsic sizing stays independent of the measured gap so it can shrink. */
+    inline-size: max-content;
+    min-inline-size: var(
+      --breadcrumb-default-column-gap,
+      calc(
+        2 *
+        var(--spacing-breadcrumb-md) +
+        var(--text-breadcrumb-separator-icon-md)
+      )
+    );
+    padding-inline: var(--breadcrumb-item-gap, var(--spacing-breadcrumb-md));
+    inset-inline-end: 100%;
+    inset-inline-start: calc(
+      0px -
+      var(
+        --breadcrumb-column-gap,
+        calc(
+          2 *
+          var(--spacing-breadcrumb-md) +
+          var(--text-breadcrumb-separator-icon-md)
+        )
+      )
+    );
+    /* Auto margins center in the logical gap even for CSS-only RTL. */
+    margin-inline: auto;
+  }
+
+  &[data-wrap-start] > ol > li:first-child {
+    visibility: hidden;
+  }
+}
+
 /* Keep focus dimensions locally overridable without arbitrary TSX utilities. */
 @utility breadcrumb-focus {
   outline-style: var(--outline-breadcrumb-focus-style);

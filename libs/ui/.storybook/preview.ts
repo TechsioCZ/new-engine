@@ -1,7 +1,7 @@
 import type { Decorator, Preview } from "@storybook/react"
 import { createElement, useEffect } from "react"
 import { brandKeys, getBrand } from "../src/theme/theme-config"
-import "../src/tokens/index.css"
+import "./preview.css"
 import { curateControls } from "./controls"
 import { DocsTheme } from "./docs-theme"
 import { applyPreviewTheme } from "./theme.mjs"

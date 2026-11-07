@@ -55,6 +55,33 @@ const renderTable = (overrides: Partial<DataTableProps<RecordRow>> = {}) =>
     })
   )
 
+describe("fixed-layout table header containment", () => {
+  it.each([
+    { enableSorting: false, columnSorting: true },
+    { enableSorting: true, columnSorting: false },
+  ])(
+    "wraps complete unsortable headers with %j",
+    ({ enableSorting, columnSorting }) => {
+      const html = renderTable({
+        tableLayout: "fixed",
+        enableSorting,
+        columns: [
+          {
+            accessorKey: "first",
+            header: "A very long unsortable header",
+            enableSorting: columnSorting,
+            meta: { width: 120 },
+          },
+        ],
+      })
+      expect(html).toMatch(
+        /<span[^>]*class="[^"]*\bwhitespace-normal\b[^"]*"[^>]*>A very long unsortable header<\/span>/
+      )
+      expect(html).not.toContain("truncate")
+    }
+  )
+})
+
 describe("chart information alternatives and valid geometry", () => {
   it("keeps a captioned, formatted dataset alternative when tooltips are disabled", () => {
     const html = renderChart({
@@ -186,11 +213,12 @@ describe("table leaf widths, row semantics and announcements", () => {
     // The alignment cell above Amount is not a second sortable/resizable leaf.
     const rows = [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)]
     const placeholder = rows[0]?.[1]?.match(
-      /<th\b[^>]*data-leaf-column="amount"[^>]*>[\s\S]*?<\/th>/
+      /<td\b[^>]*data-leaf-column="amount"[^>]*>[\s\S]*?<\/td>/
     )?.[0]
     expect(placeholder).toBeDefined()
     expect(placeholder).not.toContain("<button")
     expect(placeholder).not.toContain("aria-sort=")
+    expect(placeholder).not.toContain('scope="col"')
     expect(rows[1]?.[1]).toContain('data-leaf-column="amount"')
     expect(rows[1]?.[1]).toContain('aria-label="Resize Amount"')
   })

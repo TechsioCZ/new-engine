@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Image or a
   framework image adapter such as NextImage through the Image atom's as prop.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

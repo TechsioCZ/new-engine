@@ -24,9 +24,18 @@ export function HotkeysHydrationFixture() {
 
   return (
     <div className="flex flex-col gap-200">
-      <output data-testid="hotkeys-server-label">{serverLabel}</output>
+      <p>
+        Server label:{" "}
+        <output data-testid="hotkeys-server-label">{serverLabel}</output>
+      </p>
+      <p>Hydrated label:</p>
       <div data-testid="hotkeys-hydrated-label" ref={container} />
-      <output data-testid="hotkeys-hydration-errors">{errors.join(",")}</output>
+      <p>
+        Hydration errors (blank when none):{" "}
+        <output data-testid="hotkeys-hydration-errors">
+          {errors.join(",")}
+        </output>
+      </p>
     </div>
   )
 }

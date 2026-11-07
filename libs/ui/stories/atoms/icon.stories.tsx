@@ -76,6 +76,7 @@ export const Playground: Story = {
 
 export const Sizes: Story = {
   parameters: {
+    layout: "padded",
     controls: { disable: true },
     docs: {
       description: {
@@ -85,25 +86,51 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="System icon sizes">
-        {(["sm", "md", "lg"] as const).map((size) => (
-          <div className="flex flex-col items-center gap-150 p-150" key={size}>
-            <div className="flex h-600 items-center justify-center">
-              <Icon icon="token-icon-home" size={size} />
-            </div>
-            <span className="font-medium text-fg-primary text-sm">
-              {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
-            </span>
+    <div className="mx-auto w-full max-w-md">
+      <VariantContainer>
+        <VariantGroup title="System icon sizes" fullWidth>
+          <div className="grid w-full min-w-0 grid-cols-3 gap-200">
+            {(["sm", "md", "lg"] as const).map((size) => (
+              <div
+                className="flex min-w-0 flex-col items-center gap-150"
+                key={size}
+              >
+                <div className="flex h-600 items-center justify-center">
+                  <Icon icon="token-icon-home" size={size} />
+                </div>
+                <span className="text-center font-medium text-fg-primary text-sm">
+                  {{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </VariantGroup>
-    </VariantContainer>
+        </VariantGroup>
+      </VariantContainer>
+    </div>
   ),
+  play: async ({ canvasElement }) => {
+    const icons = Array.from(
+      canvasElement.querySelectorAll<HTMLElement>(".token-icon-home")
+    )
+    await expect(icons).toHaveLength(3)
+    await expect(canvasElement.scrollWidth).toBeLessThanOrEqual(
+      canvasElement.clientWidth
+    )
+    const bounds = icons.map((icon) => icon.getBoundingClientRect())
+    const centers = bounds.map(({ top, height }) => top + height / 2)
+    await expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1)
+    const [small, medium, large] = bounds
+    if (!(small && medium && large)) {
+      throw new Error("All three icon sizes must be rendered")
+    }
+    await expect(small.width).toBeLessThan(medium.width)
+    await expect(medium.width).toBeLessThan(large.width)
+  },
 }
 
 export const Colors: Story = {
   parameters: {
+    layout: "padded",
     controls: { disable: true },
     docs: {
       description: {
@@ -113,26 +140,51 @@ export const Colors: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="Theme-aware colors">
-        {(
-          [
-            "current",
-            "primary",
-            "secondary",
-            "success",
-            "danger",
-            "warning",
-          ] as const
-        ).map((color) => (
-          <div className="flex flex-col items-center gap-150 p-150" key={color}>
-            <Icon icon="token-icon-home" size="lg" color={color} />
-            <span className="text-fg-primary text-sm">{color}</span>
+    <div className="mx-auto w-full max-w-md">
+      <VariantContainer>
+        <VariantGroup title="Theme-aware colors" fullWidth>
+          <div className="grid w-full min-w-0 grid-cols-3 gap-200">
+            {(
+              [
+                "current",
+                "primary",
+                "secondary",
+                "success",
+                "danger",
+                "warning",
+              ] as const
+            ).map((color) => (
+              <div
+                className="flex min-w-0 flex-col items-center gap-150"
+                key={color}
+              >
+                <Icon icon="token-icon-home" size="2xl" color={color} />
+                <span className="text-fg-primary text-sm">{color}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </VariantGroup>
-    </VariantContainer>
+        </VariantGroup>
+      </VariantContainer>
+    </div>
   ),
+  play: async ({ canvasElement }) => {
+    const icons = Array.from(
+      canvasElement.querySelectorAll<HTMLElement>(".token-icon-home")
+    )
+    await expect(icons).toHaveLength(6)
+    await expect(canvasElement.scrollWidth).toBeLessThanOrEqual(
+      canvasElement.clientWidth
+    )
+    const bounds = icons.map((icon) => icon.getBoundingClientRect())
+    for (const [column, firstRow] of bounds.slice(0, 3).entries()) {
+      const secondRow = bounds[column + 3]
+      if (!secondRow) {
+        throw new Error("Each icon color column must contain two rows")
+      }
+      await expect(Math.abs(firstRow.left - secondRow.left)).toBeLessThan(1)
+      await expect(secondRow.top).toBeGreaterThan(firstRow.bottom)
+    }
+  },
 }
 
 function IconGallery({
@@ -311,20 +363,28 @@ export const AccessibleMeaning: Story = {
   },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Standalone image">
-        <Icon
-          icon="token-icon-check-circle"
-          size="lg"
-          color="success"
-          label="In stock"
-        />
-      </VariantGroup>
-      <VariantGroup title="Decorative beside text">
-        <span className="inline-flex items-center gap-100">
-          <Icon icon="token-icon-check-circle" size="lg" color="success" />
-          In stock
-        </span>
-      </VariantGroup>
+      <div className="flex flex-col gap-300">
+        <VariantGroup title="Standalone image" fullWidth>
+          <figure className="flex flex-col items-start gap-100">
+            <Icon
+              icon="token-icon-check-circle"
+              size="lg"
+              color="success"
+              label="In stock"
+              className="self-start"
+            />
+            <figcaption className="text-fg-secondary text-sm">
+              Accessible name: In stock
+            </figcaption>
+          </figure>
+        </VariantGroup>
+        <VariantGroup title="Decorative beside text">
+          <span className="inline-flex items-center gap-100">
+            <Icon icon="token-icon-check-circle" size="lg" color="success" />
+            In stock
+          </span>
+        </VariantGroup>
+      </div>
     </VariantContainer>
   ),
   play: async ({ canvasElement }) => {
@@ -332,23 +392,39 @@ export const AccessibleMeaning: Story = {
     await expect(canvas.getAllByRole("img", { name: "In stock" })).toHaveLength(
       1
     )
+    await expect(canvas.getByText("Accessible name: In stock")).toBeVisible()
     await expect(
       canvasElement.querySelectorAll('[aria-hidden="true"]')
     ).toHaveLength(1)
   },
 }
 
-
 export const LoadingMotion: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "The shared loading glyph uses CSS rotation only when motion is allowed; reduced motion keeps a meaningful static glyph instead of an animated SVG mask." } } },
-  render: () => <Icon icon="token-icon-spinner" label="Loading order details" size="md" />,
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "The shared loading glyph uses CSS rotation only when motion is allowed; reduced motion keeps a meaningful static glyph instead of an animated SVG mask.",
+      },
+    },
+  },
+  render: () => (
+    <Icon icon="token-icon-spinner" label="Loading order details" size="md" />
+  ),
   play: async ({ canvasElement }) => {
-    const icon = within(canvasElement).getByRole("img", { name: "Loading order details" })
+    const icon = within(canvasElement).getByRole("img", {
+      name: "Loading order details",
+    })
     const view = canvasElement.ownerDocument.defaultView
     if (!view) throw new Error("Icon checks need a rendered document")
     const style = view.getComputedStyle(icon)
     await expect(style.maskImage).not.toBe("none")
-    await expect(decodeURIComponent(style.maskImage)).not.toMatch(/<animate(?:Transform)?\b/)
+    const mask = decodeURIComponent(style.maskImage)
+    await expect(mask).toMatch(/viewBox=["']0 0 24 24["']/)
+    await expect(mask).toMatch(/fill-rule=["']evenodd["']/)
+    await expect(mask).toMatch(/fill-opacity=["']0?\.25["']/)
+    await expect(mask).not.toMatch(/<animate(?:Transform)?\b/)
     if (view.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       await expect(style.animationName).toBe("none")
     } else {

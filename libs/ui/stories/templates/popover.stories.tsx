@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useId, useState } from "react"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { Input } from "../../src/atoms/input"
 import { Label } from "../../src/atoms/label"
 import { StatusText } from "../../src/atoms/status-text"
@@ -117,7 +117,7 @@ export const Sizes: Story = {
           ["lg", "Large (lg)"],
         ] as const
       ).map(([size, label]) => (
-        <section key={size} className="space-y-200">
+        <section key={size} className="space-y-200 pb-950 last:pb-0 sm:pb-0">
           <h3 className="font-semibold text-sm">{label}</h3>
           <PopoverTemplate
             title="Delivery details"
@@ -147,39 +147,43 @@ export const WithCloseButton: Story = {
     const [saved, setSaved] = useState(false)
     return (
       <div className="space-y-200">
-        <PopoverTemplate
-          title="Delivery contact"
-          trigger="Edit delivery contact"
-          showCloseButton
-          open={open}
-          onOpenChange={({ open }) => setOpen(open)}
-        >
-          <form
-            className="space-y-200"
-            onSubmit={(event) => {
-              event.preventDefault()
-              setSaved(true)
-              setOpen(false)
-            }}
+        <div className="popover-form-preview">
+          <PopoverTemplate
+            title="Delivery contact"
+            trigger="Edit delivery contact"
+            placement="bottom-start"
+            showCloseButton
+            open={open}
+            onOpenChange={({ open }) => setOpen(open)}
           >
-            <Label htmlFor={id} size="sm" required>
-              Full name
-            </Label>
-            <Input id={id} size="sm" defaultValue="Mara Nováková" required />
-            <div className="flex justify-end gap-100">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button size="sm" type="submit">
-                Save contact
-              </Button>
-            </div>
-          </form>
-        </PopoverTemplate>
+            <form
+              className="space-y-200"
+              onSubmit={(event) => {
+                event.preventDefault()
+                setSaved(true)
+                setOpen(false)
+              }}
+            >
+              <Label htmlFor={id} size="sm" required>
+                Full name
+              </Label>
+              <Input id={id} size="sm" defaultValue="Mara Nováková" required />
+              <div className="flex justify-end gap-100">
+                <Button
+                  size="sm"
+                  theme="outlined"
+                  variant="tertiary"
+                  onClick={() => setOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button size="sm" type="submit">
+                  Save contact
+                </Button>
+              </div>
+            </form>
+          </PopoverTemplate>
+        </div>
         {saved && (
           <StatusText status="success">
             Delivery contact saved for this preview.
@@ -191,16 +195,38 @@ export const WithCloseButton: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(
-      canvas.getByRole("button", { name: "Edit delivery contact" })
-    )
+    const trigger = canvas.getByRole("button", { name: "Edit delivery contact" })
+    await userEvent.click(trigger)
     const panel = await body.findByRole("dialog", { name: "Delivery contact" })
+    const close = within(panel).getByRole("button", { name: "Close popover" })
+    await waitFor(() => {
+      const viewport = panel.querySelector<HTMLElement>(".popover-scroll-viewport")
+      if (!viewport) throw new Error("Missing popover scroll viewport")
+      expect(viewport.getBoundingClientRect().right).toBeLessThanOrEqual(
+        close.getBoundingClientRect().left + 1
+      )
+    })
+    await userEvent.click(close)
+    await waitFor(() => expect(panel).not.toBeInTheDocument())
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await userEvent.click(trigger)
+    const reopened = await body.findByRole("dialog", { name: "Delivery contact" })
     await userEvent.click(
-      within(panel).getByRole("button", { name: "Save contact" })
+      within(reopened).getByRole("button", { name: "Save contact" })
     )
-    await expect(await canvas.findByRole("status")).toHaveTextContent(
-      "Delivery contact saved"
-    )
+    const status = await canvas.findByRole("status")
+    await expect(status).toHaveTextContent("Delivery contact saved")
+    await waitFor(() => expect(reopened).not.toBeInTheDocument())
+    await userEvent.click(trigger)
+    const editing = await body.findByRole("dialog", { name: "Delivery contact" })
+    await waitFor(() => {
+      expect(editing.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        status.getBoundingClientRect().top + 1
+      )
+    })
+    await userEvent.click(within(editing).getByRole("button", { name: "Cancel" }))
+    await waitFor(() => expect(editing).not.toBeInTheDocument())
+    await waitFor(() => expect(trigger).toHaveFocus())
   },
 }
 

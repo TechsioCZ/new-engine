@@ -382,11 +382,12 @@ export const SnapPointsAndSwipe: Story = {
               <div className="flex flex-wrap gap-100">
                 {api.snapPoints.map((snapPoint) => (
                   <Button
+                    aria-pressed={api.snapPoint === snapPoint}
                     key={String(snapPoint)}
                     onClick={() => api.setSnapPoint(snapPoint)}
                     size="sm"
-                    theme="outlined"
-                    variant="tertiary"
+                    theme={api.snapPoint === snapPoint ? "solid" : "outlined"}
+                    variant={api.snapPoint === snapPoint ? "primary" : "tertiary"}
                   >
                     {Number(snapPoint) * 100}%
                   </Button>

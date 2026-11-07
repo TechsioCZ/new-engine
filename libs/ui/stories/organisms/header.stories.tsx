@@ -4,20 +4,21 @@ import { expect, userEvent, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
 import { Link } from "../../src/atoms/link"
 import { Header } from "../../src/organisms/header"
+import "./header.preview.css"
 
 function Navigation({ label }: { label: string }) {
   return (
     <Header.Nav aria-label={label}>
-      <Header.NavItem active><Link size="current" aria-current="page" href="/catalog">Catalog</Link></Header.NavItem>
-      <Header.NavItem><Link size="current" href="/services">Services</Link></Header.NavItem>
-      <Header.NavItem><Link size="current" href="/contact">Contact</Link></Header.NavItem>
+      <Header.NavItem active><Link className="no-underline hover:underline" size="current" aria-current="page" href="/catalog">Catalog</Link></Header.NavItem>
+      <Header.NavItem><Link className="no-underline hover:underline" size="current" href="/services">Services</Link></Header.NavItem>
+      <Header.NavItem><Link className="no-underline hover:underline" size="current" href="/contact">Contact</Link></Header.NavItem>
     </Header.Nav>
   )
 }
 function StoreHeader({ navigationName, ...props }: React.ComponentProps<typeof Header> & { navigationName?: string }) {
   return (
     <Header {...props} className="items-center gap-200 p-200">
-      <Link href="/" className="shrink-0 font-semibold">Workshop</Link>
+      <Link href="/" size="current" className="shrink-0 font-semibold no-underline hover:underline">Workshop</Link>
       <Header.Desktop>
         <Navigation label={navigationName ? `${navigationName} main navigation` : "Main navigation"} />
         <Header.Actions>
@@ -64,8 +65,8 @@ export const Sizes: Story = {
     docs: { description: { story: "Compare Small (sm), Medium (md) and Large (lg) using the same navigation and account action." } },
   },
   render: (args) => <div className="flex flex-col gap-400">
-    {(["sm", "md", "lg"] as const).map((size) => <section key={size}>
-      <h2 className="p-200">{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
+    {(["sm", "md", "lg"] as const).map((size) => <section key={size} className="header-size-preview" data-header-preview-size={size}>
+      <h2 className="p-200 text-md">{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}</h2>
       <StoreHeader {...args} size={size} navigationName={`Header ${size}`} />
     </section>)}
   </div>,
@@ -94,8 +95,8 @@ export const LocalizedHamburger: Story = {
   parameters: { docs: { description: { story: "Hamburger forwards localized labels, refs and consumer click handlers, including default prevention that cancels toggling." } } },
   render: () => {
     const [allowOpening, setAllowOpening] = useState(false)
-    return <div className="max-w-sm">
-      <Header>
+    return <div className="flex max-w-sm flex-col gap-300 p-200">
+      <Header className="items-center p-200">
         <Header.Hamburger aria-label="Otevřít nabídku" data-custom="menu"
           ref={(node) => { node?.setAttribute("data-ref-attached", "true") }}
           onClick={(event) => { if (!allowOpening) event.preventDefault() }} />

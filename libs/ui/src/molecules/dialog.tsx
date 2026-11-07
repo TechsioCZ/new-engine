@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.3
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,7 +25,7 @@ const dialogVariants = tv({
     backdrop: ["dialog-backdrop-layer inset-0"],
     positioner: ["dialog-positioner-layer inset-0 flex"],
     content: [
-      "relative flex min-w-0 max-w-full flex-col gap-dialog-content p-dialog-content",
+      "dialog-content-layout relative flex min-h-0 min-w-0 max-w-full flex-col gap-dialog-content p-dialog-content",
       "bg-dialog-content-bg text-dialog-content-fg",
       "border-(length:--border-width-dialog) border-dialog-content-border",
       "shadow-dialog-panel",
@@ -34,9 +34,10 @@ const dialogVariants = tv({
       "focus-visible:outline-dialog-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
-    scrollViewport: "flex min-h-0 flex-col gap-dialog-content overflow-y-auto",
+    scrollViewport:
+      "dialog-scroll-viewport flex min-h-0 min-w-0 flex-col gap-dialog-content overflow-y-auto",
     title: [
-      "dialog-heading-typography break-words pe-dialog-title-safe font-dialog-title text-dialog-title-fg",
+      "dialog-heading-typography shrink-0 break-words font-dialog-title text-dialog-title-fg",
     ],
     description: ["dialog-copy-typography text-dialog-description-fg"],
     trigger: [],
@@ -50,26 +51,31 @@ const dialogVariants = tv({
   },
   variants: {
     placement: {
+      // Each placement owns its max-height. The stock class merger does not
+      // recognize the centered token as an override for max-h-full.
+      // Auto block-axis margins align fitting panels, but resolve to zero when
+      // the panel is taller than the scrollport so its start stays reachable.
       center: {
-        positioner: "items-center justify-center p-dialog-positioner",
+        positioner: "items-start justify-center p-dialog-positioner",
         content:
-          "max-h-dialog-center-h-max max-w-dialog-center-w-max rounded-dialog-content-center",
+          "my-auto max-h-dialog-center-h-max max-w-dialog-center-w-max rounded-dialog-content-center",
       },
       left: {
         positioner: "items-stretch justify-start",
-        content: "h-full rounded-dialog-content-side border-s-0",
+        content: "h-full max-h-full rounded-dialog-content-side border-s-0",
       },
       right: {
         positioner: "items-stretch justify-end",
-        content: "h-full rounded-dialog-content-side border-e-0",
+        content: "h-full max-h-full rounded-dialog-content-side border-e-0",
       },
       top: {
         positioner: "items-start justify-stretch",
-        content: "w-full rounded-dialog-content-edge border-t-0",
+        content: "max-h-full w-full rounded-dialog-content-edge border-t-0",
       },
       bottom: {
-        positioner: "items-end justify-stretch",
-        content: "w-full rounded-dialog-content-edge border-b-0",
+        positioner: "items-start justify-stretch",
+        content:
+          "mt-auto max-h-full w-full rounded-dialog-content-edge border-b-0",
       },
     },
     position: {
@@ -295,7 +301,12 @@ export function Dialog({
       {isModal && <div className={backdrop()} {...api.getBackdropProps()} />}
       <div className={positioner()} {...api.getPositionerProps()}>
         <div
-          className={content({ className })}
+          className={content({
+            className: [
+              !(title || hideCloseButton) && "pt-dialog-content-close-safe",
+              className,
+            ],
+          })}
           {...api.getContentProps()}
           ref={setContentElement}
         >
@@ -310,22 +321,29 @@ export function Dialog({
                 aria-label="Close dialog"
               />
             )}
-            <div className={scrollViewport()}>
-              {title && (
-                <h2 className={titleSlot()} {...api.getTitleProps()}>
-                  {title}
-                </h2>
-              )}
-              {description && (
-                <div
-                  className={descriptionSlot()}
-                  {...api.getDescriptionProps()}
-                >
-                  {description}
-                </div>
-              )}
-              {children}
-            </div>
+            {title && (
+              <h2
+                className={titleSlot({
+                  className: !hideCloseButton && "pe-dialog-title-safe",
+                })}
+                {...api.getTitleProps()}
+              >
+                {title}
+              </h2>
+            )}
+            {(description || children) && (
+              <div className={scrollViewport()}>
+                {description && (
+                  <div
+                    className={descriptionSlot()}
+                    {...api.getDescriptionProps()}
+                  >
+                    {description}
+                  </div>
+                )}
+                {children}
+              </div>
+            )}
             {actions && <div className={actionsSlot()}>{actions}</div>}
           </OverlayContainerProvider>
         </div>

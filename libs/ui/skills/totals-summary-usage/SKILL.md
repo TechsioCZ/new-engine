@@ -5,7 +5,7 @@ description: >
   to present prepared cart or checkout rows, unresolved fees, discounts,
   a labeled total and actions blocked while updating.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

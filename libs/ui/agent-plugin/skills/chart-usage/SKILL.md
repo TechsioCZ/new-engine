@@ -8,7 +8,7 @@ description: >
   data/x/y/series channels, with token-driven series colors, legend, tooltip,
   value formatting and selection callbacks.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -1,5 +1,6 @@
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
+import { expect, waitFor, within } from "storybook/test"
 
 import { Skeleton } from "../../../src/atoms/skeleton"
 import { Chart } from "../../../src/molecules/chart"
@@ -114,6 +115,7 @@ function HomePage({ loading }: { loading?: boolean }) {
           value={count.format(840)}
         />
         <StatCard
+          compact
           delta="+11.5%"
           hint="Net of VAT, without shipping"
           icon="icon-[mdi--cash-multiple]"
@@ -153,8 +155,8 @@ function HomePage({ loading }: { loading?: boolean }) {
           </Tabs.List>
           <Tabs.Content className="p-250" value="revenue">
             {loading ? (
-              <Skeleton isLoaded={false}>
-                <Skeleton.Rectangle />
+              <Skeleton aria-label="Loading main statistics chart" isLoaded={false}>
+                <Skeleton.Rectangle className="h-chart-placeholder-lg" />
               </Skeleton>
             ) : (
               <Chart
@@ -286,6 +288,20 @@ function HomePage({ loading }: { loading?: boolean }) {
   )
 }
 
+const checkRevenueFits: NonNullable<Story["play"]> = async ({ canvasElement }) => {
+  await canvasElement.ownerDocument.fonts.ready
+  const amount = within(canvasElement).getByText(
+    czk.format(2_513_000).replace(/\s+/g, " ")
+  )
+  const container = amount.parentElement
+  if (!container) throw new Error("Missing revenue value container")
+  await expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth + 1)
+  const valueBox = amount.getBoundingClientRect()
+  const bounds = container.getBoundingClientRect()
+  await expect(valueBox.left).toBeGreaterThanOrEqual(bounds.left)
+  await expect(valueBox.right).toBeLessThanOrEqual(bounds.right + 1)
+}
+
 export const Default: Story = {
   parameters: {
     docs: {
@@ -297,6 +313,7 @@ export const Default: Story = {
   },
 
   render: () => <HomePage />,
+  play: checkRevenueFits,
 }
 
 export const Loading: Story = {
@@ -310,4 +327,14 @@ export const Loading: Story = {
     },
   },
   render: () => <HomePage loading />,
+  play: async (context) => {
+    await checkRevenueFits(context)
+    const chart = within(context.canvasElement).getByRole("status", {
+      name: "Loading main statistics chart",
+    })
+    await waitFor(() => {
+      expect(chart.getBoundingClientRect().height).toBeGreaterThanOrEqual(280)
+      expect(chart.getBoundingClientRect().width).toBeGreaterThan(0)
+    })
+  },
 }

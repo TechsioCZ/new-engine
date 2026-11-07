@@ -284,9 +284,9 @@ export function TopBar({ start, center, end }: TopBarProps) {
   )
 }
 
-/** Global search, sized for a top bar. */
+/** A compact global trigger keeps search usable in every shell and viewport. */
 export function GlobalSearch({
-  placeholder = "Search orders, products, customers…",
+  placeholder = "Search workspace records",
 }: {
   placeholder?: string
 }) {
@@ -326,45 +326,69 @@ export function GlobalSearch({
     : []
   return (
     <>
-      <SearchForm
-        className="w-full max-w-lg"
-        onSubmit={() => {
-          setSelected(undefined)
-          setOpen(true)
-        }}
-        onValueChange={setQuery}
-        size="sm"
-        value={query}
-      >
-        <SearchForm.Control>
-          <SearchForm.Input
-            aria-label="Search the workspace"
-            placeholder={placeholder}
-          />
-          <SearchForm.Button>Search</SearchForm.Button>
-        </SearchForm.Control>
-      </SearchForm>
+      <div className="min-w-0 flex-1 sm:max-w-sm">
+        <Button
+          aria-label="Search workspace"
+          className="w-full justify-start"
+          icon="icon-[mdi--magnify]"
+          onClick={() => {
+            setSelected(undefined)
+            setOpen(true)
+          }}
+          size="sm"
+          theme="outlined"
+        >
+          <span className="sm:hidden">Search</span>
+          <span className="hidden sm:inline">Search workspace</span>
+        </Button>
+      </div>
       <Dialog
         customTrigger
-        description="Search local sample records; no external index or live account is contacted."
+        description="Find orders, products, customers and content."
         onOpenChange={({ open: next }) => setOpen(next)}
         open={open}
         title="Workspace search"
       >
+        <SearchForm
+          className="w-full"
+          onSubmit={() => setSelected(undefined)}
+          onValueChange={setQuery}
+          size="sm"
+          value={query}
+        >
+          <SearchForm.Control>
+            <SearchForm.Input
+              aria-label="Search workspace records"
+              placeholder={placeholder}
+            />
+            <SearchForm.Button>Search</SearchForm.Button>
+          </SearchForm.Control>
+        </SearchForm>
         {results.length ? (
           <ul className="flex flex-col gap-100">
             {results.map((record) => (
               <li key={`${record.kind}-${record.id}`}>
                 <Button
+                  aria-label={`${record.kind} · ${record.label}`}
+                  className="w-full justify-between text-start"
+                  icon="icon-[mdi--chevron-right]"
+                  iconPosition="right"
                   onClick={() =>
                     setSelected(
                       `${record.kind}: ${record.label} · ${record.id}`
                     )
                   }
-                  theme="borderless"
+                  theme="outlined"
                   variant="secondary"
                 >
-                  {record.kind} · {record.label}
+                  <span className="flex min-w-0 flex-1 flex-col gap-50">
+                    <span className="font-medium text-fg-primary">
+                      {record.label}
+                    </span>
+                    <span className="text-fg-secondary text-xs">
+                      {record.kind}
+                    </span>
+                  </span>
                 </Button>
               </li>
             ))}
@@ -372,7 +396,7 @@ export function GlobalSearch({
         ) : (
           <StatusText role="status">
             {query.trim()
-              ? `No sample records match “${query}”. Try “Runner”, “Nora” or an order number.`
+              ? `No records match “${query}”. Try a product name, customer name or order number.`
               : "Enter a product, customer, order number or content title to search."}
           </StatusText>
         )}

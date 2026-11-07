@@ -2,7 +2,7 @@
  * Header — @techsio/ui-kit organism.
  *
  * @component Header
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.3
  * @skill header-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -88,6 +88,7 @@ const headerVariants = tv({
     },
     size: {
       sm: {
+        root: "text-header-sm",
         nav: "gap-header-nav-sm",
         navItem: "p-header-item-sm text-header-item-sm",
         actions: "gap-header-actions-sm",
@@ -96,6 +97,7 @@ const headerVariants = tv({
           "h-form-control-sm p-header-hamburger-sm text-header-hamburger-sm",
       },
       md: {
+        root: "text-header-md",
         nav: "gap-header-nav-md",
         navItem: "p-header-item-md text-header-item-md",
         actions: "gap-header-actions-md",
@@ -104,6 +106,7 @@ const headerVariants = tv({
           "h-form-control-md p-header-hamburger-md text-header-hamburger-md",
       },
       lg: {
+        root: "text-header-lg",
         nav: "gap-header-nav-lg",
         navItem: "p-header-item-lg text-header-item-lg",
         actions: "gap-header-actions-lg",

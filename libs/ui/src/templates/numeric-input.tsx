@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit template.
  *
  * @component NumericInput
- * @componentVersion v1.3.5
+ * @componentVersion v1.3.7
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -15,7 +15,11 @@ import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 import { tv } from "../utils"
 
 const numericInputTemplateVariants = tv({
-  base: "flex min-w-0 items-center gap-numeric-input-md",
+  slots: {
+    inputWrapper: "relative flex h-full min-w-0 flex-1",
+    sideInput: "text-center",
+    sideTrigger: "flex-none self-stretch",
+  },
 })
 
 export type NumericInputTemplateProps = Omit<
@@ -68,20 +72,36 @@ export function NumericInputTemplate({
     )
   }
 
-  // Layout for controls on the sides
+  // The shared control owns the border and focus ring for all three parts.
+  const styles = numericInputTemplateVariants()
   return (
     <NumericInput {...numericInputProps} className={className} ref={ref}>
-      <div className={numericInputTemplateVariants()}>
-        {showControls && <NumericInput.DecrementTrigger icon={decrementIcon} />}
-        <NumericInput.Control className="flex-1">
+      <NumericInput.Control>
+        {showControls && (
+          <NumericInput.DecrementTrigger
+            className={styles.sideTrigger()}
+            icon={decrementIcon}
+          />
+        )}
+        <div className={styles.inputWrapper()}>
           {showScrubber && <NumericInput.Scrubber />}
           <NumericInput.Input
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledBy}
+            className={
+              showControls && !numericInputProps.readOnly
+                ? styles.sideInput()
+                : undefined
+            }
           />
-        </NumericInput.Control>
-        {showControls && <NumericInput.IncrementTrigger icon={incrementIcon} />}
-      </div>
+        </div>
+        {showControls && (
+          <NumericInput.IncrementTrigger
+            className={styles.sideTrigger()}
+            icon={incrementIcon}
+          />
+        )}
+      </NumericInput.Control>
     </NumericInput>
   )
 }

@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.1.5
+ * @componentVersion v1.1.6
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -63,7 +63,7 @@ const fileUploadStyles = tv({
       "focus-visible:file-upload-focus text-file-upload-dropzone-fg",
       "data-dragging:file-upload-dropzone-border-solid data-dragging:border-file-upload-dropzone-dragging-border data-dragging:bg-file-upload-dropzone-dragging-bg",
       "data-invalid:border-file-upload-dropzone-invalid-border",
-      "data-disabled:cursor-not-allowed data-disabled:border-file-upload-dropzone-disabled-border data-disabled:bg-file-upload-dropzone-disabled-bg data-disabled:text-file-upload-dropzone-disabled-fg",
+      "file-upload-dropzone-disabled-content data-disabled:cursor-not-allowed data-disabled:border-file-upload-dropzone-disabled-border data-disabled:bg-file-upload-dropzone-disabled-bg data-disabled:text-file-upload-dropzone-disabled-fg",
       "form-control-readonly data-readonly:cursor-default",
     ],
     trigger: "",

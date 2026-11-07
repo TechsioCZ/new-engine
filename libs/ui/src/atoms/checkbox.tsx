@@ -2,7 +2,7 @@
  * Checkbox — @techsio/ui-kit atom.
  *
  * @component Checkbox
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -58,9 +58,9 @@ const checkboxVariants = tv({
   ],
   variants: {
     size: {
-      sm: "size-form-checkbox-control-sm",
-      md: "size-form-checkbox-control-md",
-      lg: "size-form-checkbox-control-lg",
+      sm: "size-form-checkbox-control-sm text-checkbox-icon-sm",
+      md: "size-form-checkbox-control-md text-checkbox-icon-md",
+      lg: "size-form-checkbox-control-lg text-checkbox-icon-lg",
     },
   },
   defaultVariants: { size: "md" },

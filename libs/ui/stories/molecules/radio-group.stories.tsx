@@ -86,6 +86,7 @@ const meta: Meta<typeof RadioGroup> = {
   title: "Molecules/RadioGroup",
   component: RadioGroup,
   tags: ["autodocs"],
+  decorators: [(Story) => <div className="p-200"><Story /></div>],
   parameters: {
     layout: "padded",
     docs: {
@@ -161,6 +162,15 @@ export const Playground: Story = {
     await waitFor(() => expect(input).toHaveAccessibleDescription(
       "Choose how you would like to receive your order. Arrives in 3–5 business days."
     ))
+    for (const item of canvasElement.querySelectorAll('[data-part="item"]')) {
+      const title = item.querySelector('[data-part="item-text"]')
+      const control = item.querySelector('[data-part="item-control"]')
+      if (!(title && control)) throw new Error("Missing radio group control")
+      const text = title.getBoundingClientRect()
+      const circle = control.getBoundingClientRect()
+      const firstLineCenter = text.top + Number.parseFloat(getComputedStyle(title).lineHeight) / 2
+      await expect(Math.abs(firstLineCenter - circle.top - circle.height / 2)).toBeLessThan(1)
+    }
   },
 }
 export const Variants: Story = {
@@ -177,13 +187,24 @@ export const Variants: Story = {
     </VariantContainer>
   ),
   play: async ({ canvasElement }) => {
-    for (const control of canvasElement.querySelectorAll<HTMLElement>(
+    const checkedControls = canvasElement.querySelectorAll<HTMLElement>(
       '[data-part="item-control"][data-state="checked"]'
-    )) {
+    )
+    await expect(checkedControls).toHaveLength(3)
+    for (const control of checkedControls) {
       for (const hovered of [false, true]) {
         if (hovered) await userEvent.hover(control)
         await waitFor(async () => {
           await expect(indicatorContrast(control)).toBeGreaterThanOrEqual(3)
+          if (
+            control.closest("[data-theme]")?.getAttribute("data-theme") === "business"
+          ) {
+            const item = control.closest('[data-part="item"]')
+            if (!item) throw new Error("Missing radio item surface")
+            // An inverted white dot can pass against its blue control while
+            // still reading as a hollow center against the surrounding paper.
+            await expect(indicatorContrast(control, item)).toBeGreaterThanOrEqual(3)
+          }
         })
         if (hovered) await userEvent.unhover(control)
       }
@@ -367,14 +388,14 @@ export const MultipleDescriptions: Story = {
   },
 }
 
-function indicatorContrast(control: HTMLElement) {
+function indicatorContrast(control: HTMLElement, surface: Element = control) {
   const indicator = control.querySelector("span")
   const context = document.createElement("canvas").getContext("2d")
   if (!indicator || !context) throw new Error("Missing radio contrast target")
   context.fillStyle = "white"
   context.fillRect(0, 0, 1, 1)
   const ancestors: Element[] = []
-  for (let node: Element | null = control; node; node = node.parentElement) {
+  for (let node: Element | null = surface; node; node = node.parentElement) {
     ancestors.unshift(node)
   }
   for (const node of ancestors) {

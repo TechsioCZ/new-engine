@@ -62,7 +62,7 @@ const productStats: ProductStat[] = [
 ]
 
 const formatCurrency = (value: number) =>
-  `${Math.round(value / 1000)}k €`
+  value === 0 ? "0 €" : `${Math.round(value / 1000)}k €`
 
 /* ── Meta ────────────────────────────────────────────────────────────────── */
 
@@ -85,6 +85,7 @@ const meta: Meta<typeof Chart<RevenuePoint>> = {
     layout: "padded",
   },
   tags: ["autodocs", "chart-regression"],
+  decorators: [(Story) => <div className="p-200"><Story /></div>],
   argTypes: {
     type: {
       control: "select",
@@ -395,12 +396,14 @@ export const PolarSelection: Story = {
     data: onlineRevenue,
     series: undefined,
     ariaLabel: "Online revenue by month",
+    legendLabel: "Month",
     onSelect: fn(),
   },
   play: async ({ args, canvasElement }) => {
     const chart = within(canvasElement).getByRole("img", {
       name: "Online revenue by month",
     })
+    await expect(chart.getBoundingClientRect().height).toBeGreaterThanOrEqual(360)
     chart.focus()
     await userEvent.keyboard("[Home][Enter]")
     await expect(args.onSelect).toHaveBeenCalledWith(
@@ -496,13 +499,16 @@ export const PointerSelection: Story = {
               data-testid={`pointer-${type}`}
               key={type}
             >
+              <h3 className="mb-150 font-semibold">
+                {type === "pie" ? "Pie selection" : type === "donut" ? "Donut selection" : "Line selection"}
+              </h3>
               <Chart
                 animate={false}
                 ariaLabel={`Native ${type} pointer selection`}
                 data={rows}
                 height={280}
                 initialWidth={640}
-                legend={false}
+                legend={type !== "line"}
                 onSelect={(selected) => {
                   setSelections((previous) => ({
                     ...previous,
@@ -520,7 +526,7 @@ export const PointerSelection: Story = {
               />
               <output
                 aria-label={`${type} selected source row`}
-                className="text-fg-primary text-sm"
+                hidden
                 data-testid={`pointer-${type}-selection`}
               >
                 {JSON.stringify(selections[type])}
@@ -568,7 +574,7 @@ export const Minimal: Story = {
   parameters: {
     controls: { disable: true }, docs: { description: { story: "A restrained chart removes optional decoration while preserving enough context to understand the values." } } },
   render: () => (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-100">
       <p>Online revenue rose from €42,000 in January to €93,000 in June, with a brief dip in April.</p>
       <Chart
         animate={false}
@@ -576,6 +582,7 @@ export const Minimal: Story = {
         ariaLabel="Monthly online revenue, minimal"
         data={onlineRevenue}
         grid={false}
+        formatValue={formatCurrency}
         height={200}
         smooth
         tooltip={false}
@@ -585,21 +592,35 @@ export const Minimal: Story = {
       />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("0 €")).toBeVisible()
+  },
 }
 
 
 export const DataAvailability: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Empty and invalid datasets show clear feedback instead of empty axes or a misleading pie, while a singleton trend retains a visible point." } } },
   render: () => <div className="flex flex-col gap-400">
-    <Chart x="month" y="revenue" data={[] as { month: string; revenue: number }[]} ariaLabel="Empty revenue" />
-    <Chart x="month" y="revenue" data={[{ month: "Jan", revenue: -10 }]} type="pie" ariaLabel="Invalid composition" />
-    <Chart x="month" y="revenue" data={[{ month: "Jan", revenue: 42 }]} ariaLabel="January revenue" />
+    <section aria-label="Empty dataset" className="flex flex-col gap-150">
+      <h3 className="font-semibold">Empty dataset</h3>
+      <Chart x="month" y="revenue" data={[] as { month: string; revenue: number }[]} ariaLabel="Empty revenue" />
+    </section>
+    <section aria-label="Invalid composition" className="flex flex-col gap-150">
+      <h3 className="font-semibold">Invalid composition</h3>
+      <Chart x="month" y="revenue" data={[{ month: "Jan", revenue: -10 }]} type="pie" ariaLabel="Invalid composition" />
+    </section>
+    <section aria-label="Single valid observation" className="flex flex-col gap-150">
+      <h3 className="font-semibold">Single valid observation</h3>
+      <Chart x="month" y="revenue" data={[{ month: "Jan", revenue: 42 }]} ariaLabel="January revenue" />
+    </section>
   </div>,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByText("No data to display.")).toBeVisible()
     await expect(canvas.getByText(/Pie and donut values/)).toBeVisible()
-    await expect(canvasElement.querySelector("circle")).not.toBeNull()
+    await expect(canvas.getByRole("region", { name: "Empty dataset" }).querySelector("svg")).toBeNull()
+    await expect(canvas.getByRole("region", { name: "Invalid composition" }).querySelector("svg")).toBeNull()
+    await expect(canvas.getByRole("region", { name: "Single valid observation" }).querySelector("circle")).not.toBeNull()
   },
 }
 
@@ -610,7 +631,7 @@ export const StableFilteredSeries: Story = {
     return <div className="flex flex-col gap-200">
       <Button theme="outlined" onClick={() => setShowOnline((current) => !current)}>Toggle Online channel</Button>
       <Chart data={showOnline ? revenueByChannel : revenueByChannel.filter((row) => row.channel !== "Online")}
-        x="month" y="revenue" series="channel" seriesDomain={CHANNELS} ariaLabel="Revenue by channel" height={300} animate={false} />
+        x="month" y="revenue" series="channel" seriesDomain={CHANNELS} formatValue={formatCurrency} yLabel="Revenue" ariaLabel="Revenue by channel" height={300} animate={false} />
     </div>
   },
   play: async ({ canvasElement }) => {
@@ -618,5 +639,6 @@ export const StableFilteredSeries: Story = {
     const retailBefore = canvasElement.querySelector('line[stroke-dasharray="8 4"]')?.getAttribute("stroke")
     await userEvent.click(canvas.getByRole("button", { name: "Toggle Online channel" }))
     await expect(canvasElement.querySelector('line[stroke-dasharray="8 4"]')?.getAttribute("stroke")).toBe(retailBefore)
+    await expect(canvas.getByText("45k €")).toBeVisible()
   },
 }

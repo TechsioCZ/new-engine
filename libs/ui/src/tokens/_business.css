@@ -1,0 +1,430 @@
+/*
+ * Business runtime theme. Keep generated Figma snapshots intact.
+ * These reference and semantic overrides feed the existing component aliases;
+ * validate-token-scopes.js also projects them into nested scheme boundaries.
+ */
+[data-theme="business"] {
+  /* Cool paper, white working surfaces, and the existing restrained blue. */
+  --color-base: oklch(0.981 0.004 250);
+  --color-base-reverse: var(--color-slate-950);
+  --color-fill-surface: var(--color-white);
+  --color-fill-base: oklch(0.971 0.005 250);
+  --color-fill-overlay: oklch(0.955 0.008 250);
+  --color-surface: var(--color-fill-surface);
+  --color-overlay: var(--color-fill-overlay);
+  --color-fill-highlight: var(--color-fill-overlay);
+  --color-fill-hover: oklch(0.957 0.016 250);
+  --color-fill-active: var(--color-primary-100);
+  --color-fill-borderless-base: var(--color-transparent);
+  --color-fill-borderless-hover: var(--color-fill-hover);
+  --color-fill-borderless-active: var(--color-fill-active);
+  --color-border-primary: oklch(0.903 0.009 250);
+  --color-border-secondary: var(--color-border-primary);
+  --color-border-control: oklch(0.63 0.022 250);
+  --color-fg-primary: var(--color-slate-950);
+  --color-fg-secondary: oklch(0.465 0.025 250);
+  --color-fg-placeholder: oklch(0.507 0.022 250);
+  --color-fg-disabled: oklch(0.56 0.012 250);
+  --color-bg-disabled: var(--color-fill-overlay);
+  --color-border-disabled: color-mix(
+    in oklch,
+    var(--color-border-control) 55%,
+    var(--color-fill-surface)
+  );
+
+  /* Text and filled actions have deliberately different contrast roles. */
+  --color-primary: var(--color-primary-500);
+  --color-ring-default: var(--color-primary-600);
+  --default-ring-color: var(--color-ring-default);
+  --color-fg-on-primary-solid: var(--color-white);
+  --color-fg-on-primary-solid-neo: var(--color-white);
+  --color-fg-on-primary-indicator: var(--color-white);
+  --color-fg-on-tint: var(--color-fg-primary);
+  --color-bg-secondary-base: var(--color-secondary-600);
+  --color-bg-secondary-hover: var(--color-secondary-700);
+  --color-bg-secondary-active: var(--color-secondary-800);
+  --color-fg-on-secondary: var(--color-white);
+  --color-bg-danger-base: var(--color-danger-600);
+  --color-bg-danger-hover: var(--color-danger-700);
+  --color-bg-danger-active: var(--color-danger-800);
+  --color-fg-on-danger: var(--color-white);
+  --color-bg-tertiary-base: var(--color-tertiary-600);
+  --color-bg-tertiary-hover: var(--color-tertiary-700);
+  --color-bg-tertiary-active: var(--color-tertiary-800);
+  --color-fg-on-tertiary: var(--color-white);
+  --color-fg-on-warning: var(--color-slate-950);
+  --color-bg-control-checked: var(--color-bg-primary-base);
+  --color-bg-switch-checked-hover: var(--color-bg-primary-hover);
+  --color-success-100: oklch(0.97 0.02 150);
+  --color-success-800: oklch(0.4 0.1 150);
+
+  /* Editable fields stay white; read-only fields retain a quiet tint. */
+  --color-form-control-bg: var(--color-fill-surface);
+  --color-form-control-bg-hover: var(--color-fill-surface);
+  --color-form-control-bg-focus: var(--color-fill-surface);
+  --color-form-control-border: var(--color-border-control);
+  --color-form-control-border-hover: var(--color-fg-secondary);
+  --color-form-control-border-focus: var(--color-primary-500);
+  --color-form-control-ring: var(--color-ring-default);
+  --color-input-readonly: var(--color-fill-base);
+  --color-input-border-readonly-hover: var(--color-input-border-base);
+  --color-input-border-readonly-focus: var(--color-input-border-base);
+  --color-textarea-readonly: var(--color-fill-base);
+  --color-textarea-border-readonly-hover: var(--color-textarea-border);
+  --color-textarea-border-readonly-focus: var(--color-textarea-border);
+  --padding-textarea-sm: var(--dimension-8);
+  --padding-textarea-md: var(--dimension-10);
+  --padding-textarea-lg: var(--dimension-12);
+  --padding-textarea-inline-sm: var(--padding-input-inline-sm);
+  --padding-textarea-inline-md: var(--padding-input-inline-md);
+  --padding-textarea-inline-lg: var(--padding-input-inline-lg);
+
+  /* Status chips are information, not competing calls to action. */
+  --color-badge-bg-primary: var(--color-primary-100);
+  --color-badge-fg-primary: var(--color-primary-700);
+  --color-badge-bg-secondary: var(--color-secondary-100);
+  --color-badge-fg-secondary: var(--color-secondary-800);
+  --color-badge-bg-success: var(--color-success-100);
+  --color-badge-fg-success: var(--color-success-800);
+  --color-badge-bg-warning: var(--color-warning-100);
+  --color-badge-fg-warning: var(--color-warning-800);
+  --color-badge-bg-danger: var(--color-danger-100);
+  --color-badge-fg-danger: var(--color-danger-800);
+  --color-badge-bg-discount: var(--color-danger-100);
+  --color-badge-fg-discount: var(--color-danger-800);
+  --color-badge-bg-info: var(--color-primary-100);
+  --color-badge-fg-info: var(--color-primary-800);
+  --color-badge-bg-tertiary: var(--color-tertiary-100);
+  --color-badge-fg-tertiary: var(--color-tertiary-800);
+
+  /* Quiet navigation and row selection, independent of filled controls. */
+  --color-tree-view-bg: var(--color-transparent);
+  --color-tree-view-node-bg-hover: var(--color-fill-base);
+  --color-tree-view-fg-hover: var(--color-fg-primary);
+  --color-tree-view-icon-hover: var(--color-fg-primary);
+  --color-tree-view-node-bg-selected: var(--color-primary-100);
+  --color-tree-view-node-fg-selected: var(--color-primary-700);
+  --color-table-row-bg-selected: var(--color-primary-100);
+  --color-table-row-fg-selected: var(--color-fg-primary);
+  --color-breadcrumb-bg: transparent;
+  --color-table-header-bg: var(--color-fill-base);
+  --color-table-header-fg: var(--color-fg-secondary);
+  --color-sidebar-base: var(--color-fill-surface);
+  --color-sidebar-surface: var(--color-fill-surface);
+
+  /* A readable work-tool scale, rather than display-sized form controls. */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.75rem;
+  --text-button-sm: var(--text-sm);
+  --text-button-md: var(--text-sm);
+  --text-button-lg: var(--text-md);
+  --text-input-sm: max(16px, var(--text-sm));
+  --text-input-md: var(--text-md);
+  --text-input-lg: var(--text-lg);
+  --text-label-md: var(--text-sm);
+  --text-label-lg: var(--text-md);
+  --text-badge-sm: var(--text-sm);
+  --text-badge-md: var(--text-sm);
+  --font-weight-badge-sm: var(--font-weight-medium);
+  --font-weight-label: var(--font-weight-medium);
+  --font-weight-button: var(--font-weight-medium);
+  --border-width-form-control: var(--border-width-sm);
+  --border-width-button-md: var(--border-width-sm);
+  --border-width-button-lg: var(--border-width-sm);
+  --color-button-border-primary: var(--color-border-control);
+  --color-button-border-secondary: var(--color-border-control);
+  --color-button-border-tertiary: var(--color-border-control);
+  --color-button-fg-secondary-borderless: var(--color-fg-secondary);
+  --color-button-fg-tertiary-borderless: light-dark(
+    var(--color-tertiary-700),
+    var(--color-fg-accent-tertiary)
+  );
+  --padding-input-inline-sm: var(--dimension-12);
+  --padding-input-inline-md: var(--dimension-12);
+  --padding-input-inline-lg: var(--dimension-16);
+  --padding-select-trigger-sm: var(--padding-input-inline-sm);
+  --padding-select-trigger-md: var(--padding-input-inline-md);
+  --padding-select-trigger-lg: var(--padding-input-inline-lg);
+  /* Include the border in the fixed field height, just as growing triggers
+   * include it around their line box and block padding. */
+  --height-form-control-sm: max(
+    2rem,
+    calc(
+      1lh +
+      2 *
+      var(--padding-form-control-block-sm) +
+      2 *
+      var(--border-width-form-control)
+    )
+  );
+  --height-form-control-md: max(2.5rem, calc(1lh + 0.875rem));
+  --height-form-control-lg: max(3rem, calc(1lh + 1rem));
+  --padding-button-x-sm: var(--dimension-12);
+  --padding-button-x-md: var(--dimension-16);
+  --padding-button-x-lg: var(--dimension-24);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-tree-view: var(--radius-sm);
+  --radius-badge: var(--radius-xs);
+  --padding-badge-sm: var(--dimension-2) var(--dimension-6);
+  --padding-badge-md: var(--dimension-4) var(--dimension-8);
+  --spacing-switch-track-sm: var(--dimension-20);
+  --spacing-switch-track-md: var(--dimension-24);
+  --spacing-switch-track-lg: var(--dimension-30);
+  --spacing-switch: var(--dimension-10);
+
+  /* Keep compact glyphs recognizable without enlarging their hit areas. */
+  --color-action-icon-surface: var(--color-fill-overlay);
+  --text-action-icon-glyph-sm: var(--dimension-18);
+  --text-action-icon-glyph-md: var(--dimension-20);
+  --text-action-icon-glyph-lg: var(--dimension-24);
+  --text-button-glyph-sm: var(--dimension-16);
+  --text-button-glyph-md: var(--dimension-18);
+  --text-button-glyph-lg: var(--dimension-20);
+  --spacing-status-text-lg: var(--dimension-8);
+  --text-numeric-input-icon-sm: var(--dimension-20);
+  --text-numeric-input-icon-md: var(--dimension-22);
+  --text-numeric-input-icon-lg: var(--dimension-24);
+  --spacing-numeric-input-sm: var(--dimension-8);
+  --spacing-numeric-input-md: var(--dimension-8);
+  --spacing-numeric-input-lg: var(--dimension-8);
+  --text-rating-sm: var(--dimension-20);
+  --text-rating-md: var(--dimension-24);
+  --text-rating-lg: var(--dimension-28);
+  --spacing-rating-items-sm: var(--dimension-2);
+  --spacing-rating-items-md: var(--dimension-2);
+  --spacing-rating-items-lg: var(--dimension-4);
+  --color-skeleton-bg-primary: var(--color-border-primary);
+  --color-skeleton-bg-secondary: var(--color-skeleton-secondary);
+  --radius-skeleton-rectangle: var(--radius-skeleton-text);
+  --text-hotkeys-sm: calc((var(--text-xs) + var(--text-sm)) / 2);
+  --color-hotkeys-outline: color-mix(
+    in oklab,
+    var(--color-border-control) 45%,
+    var(--color-fill-surface)
+  );
+  --color-switch-bg-invalid: var(--color-bg-danger-subtle);
+  --color-switch-danger-ink: var(--color-switch-thumb-contrast);
+  --border-width-cascade-select-status-outline: 0px;
+
+  /* Embedded calendar icons share the enclosing field's surface. */
+  --color-date-picker-trigger-bg: var(--color-date-picker-transparent);
+  --color-date-picker-trigger-bg-hover: var(--color-date-picker-transparent);
+  --color-date-picker-trigger-bg-active: var(--color-date-picker-transparent);
+  --color-date-picker-trigger-bg-disabled: var(--color-date-picker-transparent);
+  --color-file-upload-outline: var(--color-border-control);
+  --color-steps-title-fg: var(--color-fg-secondary);
+  --color-steps-separator-bg-current: var(--color-primary);
+  --color-steps-separator-bg: var(--color-border-control);
+  --color-steps-indicator-border: var(--color-border-control);
+  --radius-vertical-navigation-group: var(--radius-vertical-navigation-item);
+
+  /* Search results preserve room for titles and subordinate metadata. */
+  --spacing-search-suggestions-result-image: var(--dimension-64);
+  --spacing-search-suggestions-result: var(--dimension-8);
+  --spacing-search-suggestions-result-rows: var(--dimension-4);
+  --padding-search-suggestions-item-y-sm: var(--dimension-6);
+  --padding-search-suggestions-item-y-md: var(--dimension-8);
+  --padding-search-suggestions-group-y-sm: var(--dimension-6);
+  --padding-search-suggestions-group-y-md: var(--dimension-8);
+
+  /* Product names anchor browsing; prices lead the purchase decision. */
+  --font-weight-product-card-name: var(--font-weight-semibold);
+  --font-weight-line-item-title: var(--font-weight-semibold);
+  --font-weight-product-card-price: var(--font-weight-bold);
+  --spacing-product-card-col-layout: var(--dimension-8);
+  --spacing-product-card-padding: var(--dimension-12);
+
+  /* Only the purchase action is filled; supporting actions remain quiet. */
+  --color-product-card-button-detail-bg-base: var(
+    --color-button-bg-borderless-base
+  );
+  --color-product-card-button-detail-bg-hover: var(
+    --color-button-bg-borderless-hover
+  );
+  --color-product-card-button-detail-bg-active: var(
+    --color-button-bg-borderless-active
+  );
+  --color-product-card-button-detail-fg: var(
+    --color-button-fg-secondary-borderless
+  );
+  --color-product-card-button-wishlist-bg-base: var(
+    --color-button-bg-borderless-base
+  );
+  --color-product-card-button-wishlist-bg-hover: var(
+    --color-button-bg-borderless-hover
+  );
+  --color-product-card-button-wishlist-bg-active: var(
+    --color-button-bg-borderless-active
+  );
+  --color-product-card-button-wishlist-fg: var(
+    --color-button-fg-secondary-borderless
+  );
+
+  /* Navigation, table tools and captions keep a consistent reading edge. */
+  --text-header-hamburger-sm: var(--dimension-24);
+  --text-header-hamburger-md: var(--dimension-24);
+  --text-header-hamburger-lg: var(--dimension-24);
+  --text-sidebar-navigation-icon: var(--dimension-24);
+  --text-sidebar-trigger-icon: var(--dimension-24);
+  --text-data-table-expand-icon: var(--dimension-24);
+  --color-data-table-resize-handle-bg: var(--color-transparent);
+  --padding-data-table-detail: var(--dimension-16) 0;
+  --text-footer-title-lg: var(--dimension-24);
+  --padding-table-caption-sm: var(--padding-table-cell-sm-y)
+    var(--padding-table-cell-sm-x);
+  --padding-table-caption-md: var(--padding-table-cell-md-y)
+    var(--padding-table-cell-md-x);
+  --padding-table-caption-lg: var(--dimension-16) var(--padding-table-cell-lg-x);
+
+  /* One restrained elevation treatment, reserved for floating content. */
+  --color-bg-scrim: oklch(0.21 0.025 250 / 0.18);
+  --color-shadow-1: oklch(0.21 0.025 250 / 0.06);
+  --color-shadow-2: oklch(0.21 0.025 250 / 0.04);
+  --color-shadow-3: oklch(0.21 0.025 250 / 0.04);
+  --shadow-dialog-content: var(--shadow-md);
+  --shadow-dialog-elevation: var(--shadow-md);
+  --opacity-chart-area: 0.24;
+  --opacity-chart-grid: 0.08;
+  /*
+ Business-only component refinements; shared themes retain their defaults.
+ */
+  --color-skeleton-secondary: color-mix(
+    in srgb,
+    var(--color-border-primary) 20%,
+    var(--color-fill-overlay)
+  );
+  --spacing-cascade-select-hierarchy-hint: var(--spacing-300);
+  --spacing-cascade-select-status-offset: var(--dimension-4);
+  --color-chart-focus: var(--color-primary-500);
+  --spacing-chart-focus: var(--spacing-50);
+  --text-color-select-sm: calc((var(--text-xs) + var(--text-sm)) / 2);
+  --radius-color-select-lg: var(--radius-lg);
+  --spacing-color-select-lg: var(--dimension-16);
+  --width-color-select-caption-lg: calc(
+    (100% - (var(--cols-num) - 1) * var(--spacing-color-select-lg)) /
+    var(--cols-num)
+  );
+  --color-combobox-clear: var(--color-fg-secondary);
+  --text-combobox-chevron-glyph-sm: var(--dimension-20);
+  --text-combobox-chevron-glyph-md: var(--dimension-24);
+  --text-combobox-chevron-glyph-lg: var(--dimension-24);
+  --spacing-combobox-option-lg: var(--dimension-8);
+  --color-combobox-readonly: var(--color-fill-base);
+  --color-combobox-readonly-hover: var(--color-fill-base);
+  --color-combobox-readonly-focus: var(--color-fill-base);
+  --height-command-dialog-limit: calc(
+    100svh -
+    var(--spacing-dialog-viewport-gutter) *
+    2
+  );
+  --spacing-drawer-grabber-clearance: calc(
+    2 *
+    var(--padding-drawer-grabber) +
+    var(--height-drawer-grabber-thickness)
+  );
+  --spacing-drawer-scroll-inset: var(--dimension-32);
+  --padding-drawer-header: var(--dimension-16);
+  --padding-drawer-footer: var(--dimension-10);
+  --spacing-drawer-body-min-height: calc(
+    var(--dimension-120) +
+    var(--dimension-8)
+  );
+  --spacing-pagination-compact: var(--size-8);
+  --spacing-popover-close-inset: var(--dimension-12);
+  --spacing-popover-close: var(--spacing-popover-close-inset);
+  --spacing-price-block-metadata-inline-base: var(--dimension-4);
+  --spacing-price-block-on-request-base: var(--dimension-8);
+  --spacing-quantity-field-status-offset: var(--dimension-4);
+  --font-weight-quantity-field-status: var(--font-weight-medium);
+  --color-radio-card-hover-fill: var(--color-fill-base);
+  --color-radio-card-hover-border: var(--color-border-control);
+  --color-radio-card-item-bg-hover: var(--color-radio-card-hover-fill);
+  --color-radio-card-item-border-hover: var(--color-radio-card-hover-border);
+  --color-radio-card-readonly-hover: var(--color-border-primary);
+  --color-radio-card-item-border-readonly-hover: var(
+    --color-radio-card-readonly-hover
+  );
+  --color-radio-group-solid-choice: var(--color-fg-accent-primary);
+  --color-radio-group-solid-surface: var(--color-fill-base);
+  --color-radio-group-solid-surface-hover: var(--color-fill-hover);
+  --color-radio-group-fg-solid-selected: var(--color-radio-group-solid-choice);
+  --color-radio-group-border-solid-selected: var(
+    --color-radio-group-solid-choice
+  );
+  --color-radio-group-item-bg-solid-checked: var(
+    --color-radio-group-solid-surface
+  );
+  --color-radio-group-item-bg-solid-checked-hover: var(
+    --color-radio-group-solid-surface-hover
+  );
+  --spacing-select-popup-large: var(--dimension-8);
+  --font-weight-select-group: var(--font-weight-semibold);
+  --text-select-item-group-label-sm: var(--text-xs);
+  --text-select-item-group-label-md: var(--text-sm);
+  --text-select-item-group-label-lg: var(--text-md);
+  --color-select-selection-surface: var(--color-primary-100);
+  --color-select-selection-ink: var(--color-primary-700);
+  --color-select-item-bg-selected: var(--color-select-selection-surface);
+  --color-select-item-fg-selected: var(--color-select-selection-ink);
+  --color-switch-help-disabled: var(--color-fg-secondary);
+  --color-tabs-overflow: var(--color-tabs-list-bg);
+  --color-tabs-overflow-bg-cue: var(--color-tabs-overflow);
+  --color-tabs-unavailable: var(--color-transparent);
+  --color-tabs-trigger-bg-disabled: var(--color-tabs-unavailable);
+  --spacing-toast-header-gap: var(--dimension-12);
+  --size-toast-close-layout: var(--dimension-24);
+  --spacing-vertical-navigation-section-clearance: var(--dimension-12);
+  --color-line-item-muted: var(--color-fg-secondary);
+  --spacing-sidebar-navigation-inset: var(--dimension-4);
+  --spacing-table-cell-block-unit: var(--dimension-4);
+  --padding-table-cell-sm-y: calc(var(--spacing-table-cell-block-unit) * 1.5);
+  --padding-table-cell-md-y: calc(var(--spacing-table-cell-block-unit) * 2.5);
+  --container-cart-presentation-quantity-limit: calc(var(--spacing-950) * 2);
+  --container-cart-presentation-quantity: min(
+    100%,
+    var(--container-cart-presentation-quantity-limit)
+  );
+  --spacing-facet-filter-panel-action-inset: var(--dimension-0);
+  --spacing-gallery-template-overlay-top: var(--spacing-150);
+  --spacing-gallery-template-overlay-right: var(--spacing-150);
+}
+
+@scope ([data-theme="business"]) to ([data-theme]) {
+  /* Keep the validated series strokes; subordinate filled areas to the data. */
+  .chart-base .ts-chart__area > path {
+    fill-opacity: var(--opacity-chart-area);
+  }
+  .chart-base .ts-chart__grid {
+    stroke-opacity: var(--opacity-chart-grid);
+  }
+
+  /* Selected rows retain their inset marker as the non-color state cue. */
+  [data-scope="tree-view"]:is(
+    [data-part="item"],
+    [data-part="branch-control"]
+  ) {
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+  }
+}
+
+/* Touch controls keep generous hit areas without enlarging desktop density. */
+@media (pointer: coarse) {
+  @scope ([data-theme="business"]) to ([data-theme]) {
+    :is(:scope, .light, .dark, .always-light, .always-dark, .reverse) {
+      --height-form-control-sm: max(2.75rem, calc(1lh + 0.875rem));
+      --height-form-control-md: max(2.75rem, calc(1lh + 0.875rem));
+      --size-icon-control-sm: var(--height-form-control-sm);
+      --size-icon-control-md: var(--height-form-control-md);
+      --size-action-icon-target-lg: max(
+        var(--height-form-control-md),
+        var(--height-form-control-lg)
+      );
+    }
+  }
+}

@@ -1,7 +1,7 @@
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
@@ -118,12 +118,19 @@ const recordMenu: MenuItem[] = [
 function CustomerWorkspace() {
   const toaster = useToast()
   const [compactPipeline, setCompactPipeline] = useState(false)
+  const pipelineContainer = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 39.999rem)")
-    const update = () => setCompactPipeline(media.matches)
+    const container = pipelineContainer.current
+    if (!container) return
+    const update = () =>
+      setCompactPipeline(
+        container.clientWidth <
+          40 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
+      )
+    const observer = new ResizeObserver(update)
+    observer.observe(container)
     update()
-    media.addEventListener("change", update)
-    return () => media.removeEventListener("change", update)
+    return () => observer.disconnect()
   }, [])
   const [nav, setNav] = useState("customers")
   const [localActivities, setLocalActivities] = useState(activities)
@@ -277,30 +284,32 @@ function CustomerWorkspace() {
             description="Where this account sits today. Moving a stage is an explicit action, never a side effect of editing a field."
             title="Pipeline"
           >
-            <Steps
-              count={pipeline.length}
-              orientation={compactPipeline ? "vertical" : "horizontal"}
-              size="sm"
-              step={2}
-              variant="solid"
-            >
-              <Steps.List>
-                {pipeline.map((stage, index) => (
-                  <Steps.Item index={index} key={stage.title}>
-                    <Steps.Trigger>
-                      <Steps.Indicator />
-                      <Steps.ItemText>
-                        <Steps.Title>{stage.title}</Steps.Title>
-                        <Steps.Description>
-                          {stage.description}
-                        </Steps.Description>
-                      </Steps.ItemText>
-                    </Steps.Trigger>
-                    <Steps.Separator />
-                  </Steps.Item>
-                ))}
-              </Steps.List>
-            </Steps>
+            <div className="min-w-0" ref={pipelineContainer}>
+              <Steps
+                count={pipeline.length}
+                orientation={compactPipeline ? "vertical" : "horizontal"}
+                size="sm"
+                step={2}
+                variant="solid"
+              >
+                <Steps.List>
+                  {pipeline.map((stage, index) => (
+                    <Steps.Item index={index} key={stage.title}>
+                      <Steps.Trigger>
+                        <Steps.Indicator />
+                        <Steps.ItemText>
+                          <Steps.Title>{stage.title}</Steps.Title>
+                          <Steps.Description>
+                            {stage.description}
+                          </Steps.Description>
+                        </Steps.ItemText>
+                      </Steps.Trigger>
+                      <Steps.Separator />
+                    </Steps.Item>
+                  ))}
+                </Steps.List>
+              </Steps>
+            </div>
           </SectionCard>
 
           <SectionCard flush>
@@ -440,6 +449,25 @@ export const Default: Story = {
     await userEvent.click(heading)
     await userEvent.unhover(row)
     await expect(row).toHaveAttribute("data-selected", "true")
+    await canvasElement.ownerDocument.fonts.ready
+    for (const value of canvasElement.querySelectorAll<HTMLElement>('[data-part="stat-value"]')) {
+      const container = value.parentElement
+      if (!container) throw new Error("Missing metric container")
+      await expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth + 1)
+    }
+    const pipelineRoot = canvasElement.querySelector('[data-scope="steps"][data-part="root"]')
+    if (!pipelineRoot?.parentElement) throw new Error("Missing pipeline")
+    const narrow =
+      pipelineRoot.parentElement.clientWidth <
+      40 * Number.parseFloat(
+        getComputedStyle(canvasElement.ownerDocument.documentElement).fontSize
+      )
+    await waitFor(() =>
+      expect(pipelineRoot).toHaveAttribute(
+        "data-orientation",
+        narrow ? "vertical" : "horizontal"
+      )
+    )
   },
   parameters: {
     docs: {

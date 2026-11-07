@@ -8,7 +8,7 @@ description: >
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
 metadata:
-  component_version: "1.4.6"
+  component_version: "1.4.20"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -143,10 +143,12 @@ overlap). There is no date-picker component yet, so date/time fields use the
 native `Input` types.
 
 The filter row puts the value control first and the operator behind a compact
-icon button (a Menu of conditions), so the input gets the width and the header
-stays on one line. The active condition is in the button's `aria-label`, and for
-`Is empty` / `Is not empty` the input is disabled and shows the condition as its
-placeholder.
+icon button (a Menu of conditions). Wide fixed columns and auto layout keep
+these controls inline. A fixed column too narrow for the complete control uses
+a labelled filter popup without enlarging its explicit width; sortable header
+labels can wrap above their icon. The active condition is in the condition
+button's `aria-label`. For `Is empty` / `Is not empty`, the input is disabled
+and shows the condition as its placeholder.
 
 Row actions use the `Button` atom icon-only at `size="sm"`, `theme="borderless"`,
 with `variant` carrying the semantics (`danger` for destructive actions).
@@ -261,10 +263,10 @@ keystroke, so the submit button is a confirm affordance rather than the trigger.
 
 ## Drag affordances
 
-Reorder handles are always rendered but stay fully transparent until the row or
-header is hovered or receives focus, so the table stays calm while still being
-discoverable. They also reveal while their row/header is being dragged, so the
-handle does not vanish when the pointer leaves the source.
+Reorder handles stay visible at rest with a full-contrast secondary foreground
+and a taller, component-token-sized grip. Hover, focus and drag states retain
+their existing feedback; the handle does not vanish when the pointer leaves the
+source. The handle column and row spacing do not grow with the glyph.
 During a drag the source is dimmed and lifted (`data-dragging`),
 and the drop target shows an insertion edge — a border on the leading or
 trailing side for columns, top or bottom for rows — so it is clear where the
@@ -404,7 +406,7 @@ clicks, so rows never look clickable when they are not.
 
 With enableColumnResizing, focus a Resize <column> edge and press Left/Right to change its width by 10px (Shift: 50px), clamped to column minSize/maxSize. Enter or Home resets its width; pointer double-click also resets. Keep destructive bulk actions behind an alertdialog naming the affected records, or provide a real undo path. Skeleton fill uses a table-specific token so it remains distinct in dark mode. Canonical sizes are sm/md/lg (default md).
 
-The bounded scroll surface is a keyboard-focusable named region. Its caption supplies the name; without a caption, localize `translations.scrollLabel` (default “Scrollable records”). Virtual padding rows are hidden from the accessibility tree while real rows retain absolute `aria-rowindex` and the table reports the full `aria-rowcount`.
+The bounded scroll surface is a keyboard-focusable named region. Its caption supplies the name; without a caption, localize `translations.scrollLabel` (default “Scrollable records”). Focusing an inline filter or editor reveals the complete fitting control within this table, respecting active pinned bands and its native outline. During pointer activation, reveal waits until the click has completed so a pressed popup trigger does not move before pointer-up. This does not scroll ancestors, change column widths or pull back subsequent manual panning; nested tables and portal popups keep their own scrolling. Virtual padding rows are hidden from the accessibility tree while real rows retain absolute `aria-rowindex` and the table reports the full `aria-rowcount`.
 
 Default inline editors render sized StatusText errors with icons, aria-invalid and aria-errormessage on the actual control. Choice editors own their feedback through the widget API; custom editors receive error/errorId and must associate their focus target. Built-in editors reserve a size-dependent minimum value width so numeric values remain readable beside steppers; constrained fixed-layout cells scroll locally instead of covering adjacent fields.
 
@@ -446,6 +448,7 @@ before its promise succeeds. Required date ranges need at least one endpoint
 (open-ended ranges are supported); completely empty optional ranges are valid.
 Populated bounds must be valid dates and the start must not follow the end.
 Both Save and Enter perform these checks. Localize `invalidRangeLabel`.
+Empty, blurred built-in `date` and `dateRange` editors show an inert “No date” hint instead of WebKit's date-like empty preview. Focus restores native date entry; populated values, picker targets and validation associations stay on the same native input. This presentation does not change date filters, datetime/time editors or custom renderers.
 
 ## Server pagination ownership
 
@@ -465,6 +468,13 @@ is suppressed when custom content is supplied.
 
 If the combined frozen bands cannot fit their scroll container, pinning temporarily yields to horizontal scrolling so every column stays reachable; the requested pins resume when there is room.
 
+Pinned boundaries have direction-aware shadows only while the table actually
+overflows its scrollport. Scroll padding reserves the
+measured active pinned bands when keyboard focus reveals an offscreen cell.
+Columns temporarily released by the fit calculation have no frozen-edge shadow.
+Hover tints the whole row, including non-clickable rows, so frozen and scrolling
+cells retain the same treatment.
+
 On narrow screens, pinned columns that fit stay frozen (start-side identity
 columns first); pins that would leave no scrollable room scroll with the data
 and freeze again when space permits. Resized widths are kept under auto table
@@ -481,4 +491,7 @@ the initial measurement still runs.
 
 Omit interactive sort controls from grouped-header alignment placeholders.
 
-Fixed-layout column filters scroll within their cell instead of overlapping neighbouring filters; auto layout keeps the full control width.
+Compact filter popups preserve values, conditions and both range bounds when
+closed or when the column becomes wide enough for inline controls. Without
+`ResizeObserver`, fixed columns retain native scrollable inline filters instead
+of invoking popup positioning; filtering and explicit column widths remain intact.

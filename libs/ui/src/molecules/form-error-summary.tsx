@@ -2,7 +2,7 @@
  * FormErrorSummary — @techsio/ui-kit molecule.
  *
  * @component FormErrorSummary
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill form-error-summary-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -38,7 +38,11 @@ const formErrorSummaryVariants = tv({
       "p-300",
       "focus-visible:form-error-summary-focus-ring",
     ],
-    title: ["text-label-md", "font-medium", "text-form-error-summary-fg"],
+    title: [
+      "text-(length:--text-form-error-summary-title)",
+      "font-form-error-summary-title",
+      "text-form-error-summary-fg",
+    ],
     list: ["m-0", "flex list-none flex-col gap-100 p-0"],
     link: [
       "wrap-anywhere text-form-error-summary-fg",

@@ -66,6 +66,7 @@ function AkrosCardExample({
             data-akros-card-media
             href={detailHref}
             onClick={previewDetail}
+            size="current"
           >
             {imageAvailable ? (
               <ProductCard.Image
@@ -90,8 +91,8 @@ function AkrosCardExample({
             </ProductCard.Badges>
           )}
         </div>
-        <ProductCard.Name className="m-0 text-center uppercase" title={name}>
-          <Link href={detailHref} onClick={previewDetail}>
+        <ProductCard.Name className="m-0 min-h-0 text-start uppercase" title={name}>
+          <Link href={detailHref} onClick={previewDetail} size="current">
             {name}
           </Link>
         </ProductCard.Name>
@@ -104,7 +105,7 @@ function AkrosCardExample({
         </p>
         <PriceBlock
           {...price}
-          className="mt-auto items-center text-center"
+          className="mt-auto items-start text-start"
           data-akros-card-price
         />
         <ProductCard.Actions
@@ -225,8 +226,24 @@ const meta = {
 export default meta
 type Story = StoryObj<AkrosCardExampleProps>
 
+async function expectInheritedLinkTypography(canvasElement: HTMLElement) {
+  const canvas = within(canvasElement)
+  const heading = canvas.getByRole("heading", { level: 3 })
+  const titleLink = within(heading).getByRole("link")
+  const mediaLink = canvas.getByRole("link", { name: /Detail produktu/ })
+  const card = canvas.getByRole("article")
+
+  await expect(window.getComputedStyle(titleLink).fontSize).toBe(
+    window.getComputedStyle(heading).fontSize,
+  )
+  await expect(window.getComputedStyle(mediaLink).fontSize).toBe(
+    window.getComputedStyle(card).fontSize,
+  )
+}
+
 export const Playground: Story = {
   play: async ({ canvasElement }) => {
+    await expectInheritedLinkTypography(canvasElement)
     const canvas = within(canvasElement)
     const link = canvas.getByRole("link", { name: /Detail produktu/ })
     const before = window.location.href
@@ -489,6 +506,9 @@ export const AvailabilityStates: Story = {
 }
 
 export const LongContent: Story = {
+  play: async ({ canvasElement }) => {
+    await expectInheritedLinkTypography(canvasElement)
+  },
   parameters: {
     docs: {
       description: {

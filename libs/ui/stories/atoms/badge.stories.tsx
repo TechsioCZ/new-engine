@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { expect, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Badge, type BadgeProps } from "../../src/atoms/badge"
 
@@ -142,6 +143,27 @@ export const Variants: Story = {
 }
 
 export const Sizes: Story = {
+  play: async ({ canvasElement }) => {
+    const badges = within(canvasElement).getAllByText("Ready to ship")
+    await expect(badges).toHaveLength(3)
+    for (const [index, current] of badges.entries()) {
+      const previous = badges[index - 1]
+      if (!previous) {
+        continue
+      }
+      await expect(
+        Number.parseFloat(getComputedStyle(current).fontSize)
+      ).toBeGreaterThanOrEqual(
+        Number.parseFloat(getComputedStyle(previous).fontSize)
+      )
+      await expect(current.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+        previous.getBoundingClientRect().width
+      )
+      await expect(current.getBoundingClientRect().height).toBeGreaterThanOrEqual(
+        previous.getBoundingClientRect().height
+      )
+    }
+  },
   parameters: {
     controls: { disable: true },
     docs: {

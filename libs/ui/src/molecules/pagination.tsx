@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -33,8 +33,8 @@ import { tv } from "../utils"
 
 export const paginationVariants = tv({
   slots: {
-    base: "max-w-full",
-    list: ["inline-flex max-w-full flex-wrap items-center gap-pagination-list"],
+    base: "pagination-responsive w-full min-w-0 max-w-full",
+    list: "inline-flex max-w-full flex-wrap items-center data-responsive-pages:flex-nowrap",
     item: [
       "grid cursor-pointer",
       'has-[[data-part="ellipsis"]]:bg-pagination-bg-neutral',
@@ -65,6 +65,10 @@ export const paginationVariants = tv({
     },
   ],
   variants: {
+    compact: {
+      true: { list: "gap-pagination-list-compact" },
+      false: { list: "gap-pagination-list" },
+    },
     variant: {
       filled: {
         item: "bg-pagination-bg-base",
@@ -105,6 +109,7 @@ export const paginationVariants = tv({
     },
   },
   defaultVariants: {
+    compact: false,
     variant: "filled",
     size: "md",
   },
@@ -291,6 +296,10 @@ function usePaginationPage({
   }
 }
 
+function canCondensePageLinks(showPrevNext: boolean, pageCount: number) {
+  return showPrevNext && pageCount > 4
+}
+
 export function Pagination<T extends ElementType = "a">({
   page,
   defaultPage = 1,
@@ -354,6 +363,7 @@ export function Pagination<T extends ElementType = "a">({
 
   const api = connectPagination(service, normalizeProps)
   const { base, list, link, item, ellipsis, compactText } = paginationVariants({
+    compact,
     variant,
     size,
   })
@@ -448,7 +458,12 @@ export function Pagination<T extends ElementType = "a">({
           Page unavailable. Choose a page within the current results.
         </span>
       ) : (
-        <ul className={list()}>
+        <ul
+          className={list()}
+          data-responsive-pages={
+            canCondensePageLinks(showPrevNext, api.pages.length) || undefined
+          }
+        >
           {showPrevNext && (
             <li className={item()}>
               <LinkButton
@@ -479,7 +494,14 @@ export function Pagination<T extends ElementType = "a">({
             api.pages.map((paginationPage, index) => {
               if (paginationPage.type === "page") {
                 return (
-                  <li className={item()} key={paginationPage.value}>
+                  <li
+                    className={item()}
+                    data-secondary-page={
+                      Math.abs(paginationPage.value - effectivePage) > 1 ||
+                      undefined
+                    }
+                    key={paginationPage.value}
+                  >
                     <LinkButton
                       {...getTriggerButtonProps(
                         api.getItemProps(paginationPage) as Record<
@@ -504,6 +526,7 @@ export function Pagination<T extends ElementType = "a">({
               return (
                 <li
                   className={item()}
+                  data-pagination-ellipsis=""
                   key={`ellipsis-${previousPageValue}-${nextPageValue}`}
                 >
                   <span

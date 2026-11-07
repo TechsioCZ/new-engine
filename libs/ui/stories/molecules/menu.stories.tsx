@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Menu, type MenuItem } from "../../src/molecules/menu"
 
@@ -88,6 +88,9 @@ export const Playground: Story = {
       args.contextMenu ? "{Shift>}{F10}{/Shift}" : "{ArrowDown}"
     )
     const menu = await body.findByRole("menu")
+    const separator = within(menu).getByRole("separator")
+    await expect(getComputedStyle(separator).borderTopWidth).toBe("0px")
+    await expect(getComputedStyle(separator).height).not.toBe("0px")
     // Zag focuses the menu on the next frame; until then the trigger still
     // has focus and ignores navigation keys such as End.
     await waitFor(() => {
@@ -112,6 +115,7 @@ export const Playground: Story = {
 
 export const Sizes: Story = {
   parameters: {
+    layout: "padded",
     docs: {
       description: {
         story:
@@ -120,18 +124,23 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <div className="grid w-full grid-cols-1 items-start gap-800 md:grid-cols-3">
       {(["sm", "md", "lg"] as const).map((size) => (
-        <VariantGroup
+        <div
           key={size}
-          title={
-            { sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]
-          }
+          // Reserve popup space when examples stack, including an upward flip.
+          style={{ paddingBlockEnd: "var(--container-xs)" }}
         >
-          <Menu items={items} size={size} triggerText="Project actions" />
-        </VariantGroup>
+          <VariantGroup
+            title={
+              { sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]
+            }
+          >
+            <Menu items={items} size={size} triggerText="Project actions" />
+          </VariantGroup>
+        </div>
       ))}
-    </VariantContainer>
+    </div>
   ),
 }
 export const WithDisabledItems: Story = {
@@ -314,18 +323,72 @@ export const WithOptionsMenu: Story = {
     await userEvent.keyboard("{Escape}")
   },
 }
+const checkSubmenuPlacement: Story["play"] = async ({ canvasElement, args }) => {
+  const body = within(canvasElement.ownerDocument.body)
+  const trigger = within(canvasElement).getByRole("button", {
+    name: "Project actions",
+  })
+  trigger.focus()
+  await userEvent.keyboard("{ArrowDown}")
+  const parent = await body.findByRole("menu")
+  await waitFor(() => expect(parent).toHaveFocus())
+  await userEvent.keyboard("{End}")
+  const share = within(parent).getByRole("menuitem", { name: "Share project" })
+  await waitFor(() => expect(share).toHaveAttribute("data-highlighted"))
+  await userEvent.keyboard(args.dir === "rtl" ? "{ArrowLeft}" : "{ArrowRight}")
+  const command = await body.findByRole("menuitem", { name: "Send by email" })
+  const child = command.closest<HTMLElement>('[role="menu"]')
+  if (!child) {
+    throw new Error("Sharing commands must belong to a submenu")
+  }
+  await waitFor(() => {
+    expect(child).toHaveFocus()
+    expect(share).toHaveAttribute("aria-expanded", "true")
+    const bounds = child.getBoundingClientRect()
+    expect(bounds.width).toBeGreaterThan(0)
+    expect(bounds.left).toBeGreaterThanOrEqual(0)
+    expect(bounds.right).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.documentElement.clientWidth
+    )
+    expect(bounds.top).toBeGreaterThanOrEqual(0)
+    expect(bounds.bottom).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.documentElement.clientHeight
+    )
+    // Visibility alone misses a child panel painted over its parent's text.
+    for (const row of within(parent).getAllByRole("menuitem")) {
+      const rect = row.getBoundingClientRect()
+      const disjoint =
+        bounds.left >= rect.right ||
+        bounds.right <= rect.left ||
+        bounds.top >= rect.bottom ||
+        bounds.bottom <= rect.top
+      expect(disjoint).toBe(true)
+    }
+  })
+  await userEvent.keyboard(args.dir === "rtl" ? "{ArrowRight}" : "{ArrowLeft}")
+  await waitFor(() => {
+    expect(child).not.toBeVisible()
+    expect(parent).toHaveFocus()
+    expect(share).toHaveAttribute("data-highlighted")
+  })
+  await userEvent.keyboard("{Escape}")
+  await waitFor(() => expect(trigger).toHaveFocus())
+}
+
 export const NestedMenu: Story = {
+  play: checkSubmenuPlacement,
   parameters: {
     docs: {
       description: {
         story:
-          "Nested sharing commands open next to their parent and share the popup elevation contract.",
+          "Nested sharing commands open next to their parent when space allows, or clear the parent panel vertically on narrow screens, while preserving keyboard return to the parent.",
       },
     },
   },
 }
 export const RTLSupport: Story = {
   args: { dir: "rtl" },
+  play: checkSubmenuPlacement,
   parameters: {
     docs: {
       description: {
@@ -353,16 +416,69 @@ export const ScrollableMenu: Story = {
   },
 }
 
+export const TallScrollableSubmenus: Story = {
+  tags: ["ui-runtime-regression"],
+  parameters: {
+    layout: "fullscreen",
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "A viewport-height scrolling parent has no exterior room on a narrow screen. Both short and scrolling child menus remain contained and their last commands stay reachable; ordinary shorter parents still clear their child panels.",
+      },
+    },
+  },
+  args: {
+    "aria-label": "Tall parent commands",
+    triggerText: "Tall project commands",
+    positioning: { overlap: true, overflowPadding: 8 },
+    items: [
+      ...Array.from({ length: 12 }, (_, i): MenuItem => ({
+        type: "action", value: `before-${i}`, label: `Parent command ${i + 1}`,
+      })),
+      {
+        type: "submenu", value: "sharing", label: "Sharing commands",
+        items: [
+          { type: "action", value: "summary", label: "Send summary" },
+          { type: "action", value: "copy-summary", label: "Copy summary" },
+          { type: "action", value: "last-sharing", label: "Last sharing command" },
+        ],
+      },
+      {
+        type: "submenu", value: "all-projects", label: "All project commands",
+        items: Array.from({ length: 24 }, (_, i): MenuItem => ({
+          type: "action", value: `nested-${i + 1}`, label: `Nested project ${i + 1}`,
+        })),
+      },
+      ...Array.from({ length: 12 }, (_, i): MenuItem => ({
+        type: "action", value: `after-${i}`, label: `Parent command ${i + 13}`,
+      })),
+    ],
+  },
+  render: (args) => {
+    const [selected, setSelected] = useState("No command selected")
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-200 p-200" dir={args.dir}>
+        <p role="status">{selected}</p>
+        <Menu {...args} onSelect={(details) => {
+          setSelected(`Selected ${details.value}`)
+          args.onSelect?.(details)
+        }} />
+      </div>
+    )
+  },
+}
+
 export const NavigationAndDisabledOptions: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Native link items reach the navigation callback while disabled checkable rows remain unchanged and out of keyboard highlighting." } } },
   render: () => {
     const [result, setResult] = useState("No navigation yet")
-    return <div className="space-y-200"><Menu triggerText="Account commands" navigate={(value) => setResult(`Opened ${value} in this preview`)} items={[
+    return <div className="space-y-200"><p role="status">{result}</p><Menu triggerText="Account commands" navigate={(value) => setResult(`Opened ${value} in this preview`)} items={[
       { type: "link", value: "orders", label: "Order history", href: "#orders" },
       { type: "checkbox", value: "locked", label: "Locked preference", checked: false, disabled: true },
       { type: "radio", name: "view", value: "locked-view", label: "Unavailable view", checked: false, disabled: true },
       { type: "action", value: "done", label: "Done" },
-    ]} /><p role="status">{result}</p></div>
+    ]} /></div>
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)

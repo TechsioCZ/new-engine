@@ -7,6 +7,12 @@
   --color-form-error-summary-border: var(--color-bg-danger-base);
   --color-form-error-summary-bg: var(--color-bg-danger-subtle);
   --color-form-error-summary-ring: var(--color-status-text-fg-error);
+  --text-form-error-summary-heading: var(--text-md);
+  --text-form-error-summary-title: var(--text-form-error-summary-heading);
+  --font-weight-form-error-summary-heading: var(--font-weight-semibold);
+  --font-weight-form-error-summary-title: var(
+    --font-weight-form-error-summary-heading
+  );
   --outline-form-error-summary-focus-style: var(--default-ring-style);
   --outline-form-error-summary-focus-width: var(--default-ring-width);
   --outline-form-error-summary-focus-offset: var(--default-ring-offset);

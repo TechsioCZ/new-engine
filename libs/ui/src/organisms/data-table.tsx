@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.6
+ * @componentVersion v1.4.20
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -63,6 +63,7 @@ import {
   createContext,
   type FocusEvent,
   Fragment,
+  type MouseEvent,
   type ReactNode,
   type Ref,
   type RefObject,
@@ -75,6 +76,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { createPortal } from "react-dom"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
 import { Checkbox } from "../atoms/checkbox"
@@ -83,6 +85,7 @@ import { Skeleton } from "../atoms/skeleton"
 import { StatusText } from "../atoms/status-text"
 import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
+import { Popover } from "../molecules/popover"
 import { SearchForm } from "../molecules/search-form"
 import type { SelectItem } from "../molecules/select"
 import { tv } from "../utils"
@@ -112,8 +115,6 @@ import {
   getColumnSizeStyles,
   getPinningStyles,
   type Header,
-  isFirstEndPinned,
-  isLastStartPinned,
   type Row,
   resolveColumnType,
   type TanstackTable,
@@ -158,9 +159,9 @@ export { conditionalFilterFn } from "./data-table.helpers"
  * system's colours and rhythm — the component layer only gives each surface a
  * name that can be retargeted without touching this file.
  *
- * Still on Table tokens deliberately: `--border-table-width` and the
- * `text-table-*` ramp (no DataTable-specific counterpart), and the frozen
- * header cell, which is a table header rather than a DataTable chrome surface.
+ * Still on Table tokens deliberately: `--border-table-width`, the body
+ * `text-table-*` ramp, and the frozen header cell. Fixed header labels use a
+ * compact DataTable alias without changing the body typography.
  */
 const dataTableVariants = tv({
   slots: {
@@ -181,7 +182,9 @@ const dataTableVariants = tv({
       "flex min-w-0 max-w-full flex-wrap items-center justify-end gap-data-table-toolbar",
     ],
     scroll: ["@container/data-table relative w-full overflow-auto"],
+    headerCell: "",
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
+    headerText: ["min-w-0"],
     cellContent: ["min-w-0 max-w-full"],
     columnDropIndicator: [
       // A real cell border changes native auto-table widths, feeding back into
@@ -199,8 +202,8 @@ const dataTableVariants = tv({
       "data-[active=true]:text-data-table-sort-icon-fg-active",
     ],
     dragHandle: [
-      "inline-flex cursor-grab items-center rounded-data-table text-data-table-drag-handle-fg",
-      "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
+      "w-(length:--spacing-data-table-drag-handle) inline-flex cursor-grab items-center justify-center rounded-data-table text-data-table-drag-handle-fg",
+      "opacity-data-table-drag-handle transition-opacity duration-200 motion-reduce:transition-none",
       "hover:bg-data-table-row-bg-hover hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100 group-hover/row:opacity-100",
       "group-focus-within/header:opacity-100 group-focus-within/row:opacity-100",
@@ -208,14 +211,14 @@ const dataTableVariants = tv({
       "active:cursor-grabbing",
     ],
     resizeHandle: [
-      "w-(length:--size-data-table-resize-handle) absolute inset-e-0 top-0 h-full cursor-col-resize touch-none select-none",
+      "w-(length:--size-data-table-resize-handle) focus-visible:data-table-scroll-focus absolute inset-e-0 top-0 h-full cursor-col-resize touch-none select-none",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
       "bg-data-table-resize-handle-bg hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100",
     ],
     filterRow: ["bg-data-table-filter-row-bg"],
     filterCell: [
-      "p-data-table-filter-cell",
+      "data-table-filter-cell p-data-table-filter-cell",
       "border-b-(length:--border-width-data-table) border-data-table-border",
     ],
     filterViewport: ["data-table-filter-viewport"],
@@ -226,7 +229,10 @@ const dataTableVariants = tv({
       "data-table-editor flex min-w-0 max-w-full flex-col gap-data-table-editor",
     ],
     emptyViewport: ["data-table-empty-viewport wrap-anywhere min-w-0"],
-    actionsCell: ["flex items-center justify-end gap-100"],
+    actionsCell: ["flex min-w-0 flex-col items-end gap-data-table-editor"],
+    actionsButtons: ["flex w-max items-center justify-end gap-100"],
+    actionFeedback: ["data-table-action-feedback text-start"],
+    expandButton: ["text-data-table-expand-icon"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
       "p-data-table-empty text-center text-data-table-empty-fg",
@@ -234,14 +240,16 @@ const dataTableVariants = tv({
     /* Same background as the toolbar so the header and footer frame the table
      * as one pair; without it the bar falls through to --color-table-bg. */
     paginationBar: [
-      "flex flex-wrap items-center justify-between gap-data-table-pagination",
+      "@container/data-table-pagination flex flex-wrap items-center justify-between gap-data-table-pagination",
       "bg-data-table-pagination-bg text-data-table-pagination-fg",
       "p-data-table-pagination",
       "border-t-(length:--border-width-data-table) border-data-table-border",
     ],
-    detailBox: ["w-full p-data-table-detail"],
+    detailBox: ["data-table-detail-viewport p-data-table-detail"],
     paginationInfo: ["whitespace-nowrap text-data-table-sm"],
-    paginationControls: ["flex items-center gap-data-table-pagination"],
+    paginationControls: [
+      "data-table-pagination-controls flex min-w-0 items-center gap-data-table-pagination",
+    ],
   },
   variants: {
     /**
@@ -254,9 +262,15 @@ const dataTableVariants = tv({
     },
     fixedLayout: {
       true: {
-        headerLabel: "min-w-0 max-w-full whitespace-normal",
-        sortButton: "wrap-anywhere min-w-0 max-w-full whitespace-normal",
-        sortIcon: "shrink-0",
+        headerCell: "data-table-fixed-header",
+        headerLabel:
+          "data-table-header-label min-w-0 max-w-full gap-data-table-sort-label",
+        // Wrap the label, never the indicator. Short words keep their natural
+        // shape; break-word is only a fallback for an overlong unbroken label.
+        headerText: "wrap-break-word max-w-full whitespace-normal",
+        sortButton:
+          "min-w-0 max-w-full flex-nowrap gap-data-table-sort-label whitespace-normal",
+        sortIcon: "data-table-sort-indicator shrink-0",
         cellContent: "wrap-anywhere",
       },
     },
@@ -492,6 +506,120 @@ function revealTableDragHandle(element: Element) {
   // Physical coordinate deltas also work with the negative scrollLeft used
   // by RTL scrollers, without assuming a logical start is on the left.
   scroller.scrollLeft += delta
+}
+
+// Native caret reveal can leave most of a wide field outside the scrollport.
+// Correct only this table's horizontal scroll, once per focus transition: never
+// scroll ancestors or fight a user's subsequent wheel/touch/scrollbar movement.
+function revealTableField(scroller: HTMLElement, element: HTMLElement) {
+  const cell = element.closest("td, th")
+  if (
+    element.ownerDocument.activeElement !== element ||
+    !scroller.contains(element) ||
+    element.closest("table")?.parentElement !== scroller ||
+    !cell ||
+    !(
+      element.closest(".data-table-filter-control, [data-editor-control]") ||
+      element.matches(
+        "input:not([type=hidden]), textarea, select, [contenteditable=true], [role=combobox]"
+      )
+    ) ||
+    scroller.scrollWidth <= scroller.clientWidth
+  ) {
+    return
+  }
+  const cellStyle = getComputedStyle(cell)
+  if (
+    cellStyle.position === "sticky" &&
+    [cellStyle.insetInlineStart, cellStyle.insetInlineEnd].some(
+      (inset) => inset && inset !== "auto"
+    )
+  ) {
+    // Scrolling cannot move an editor inside an actively pinned cell.
+    return
+  }
+  const viewport = scroller.getBoundingClientRect()
+  const style = getComputedStyle(scroller)
+  const start = Number.parseFloat(style.scrollPaddingInlineStart) || 0
+  const end = Number.parseFloat(style.scrollPaddingInlineEnd) || 0
+  const rtl = style.direction === "rtl"
+  const left = viewport.left + scroller.clientLeft + (rtl ? end : start)
+  const right =
+    viewport.left +
+    scroller.clientLeft +
+    scroller.clientWidth -
+    (rtl ? start : end)
+  const fieldStyle = getComputedStyle(element)
+  const clearance = Math.max(
+    0,
+    (Number.parseFloat(fieldStyle.outlineWidth) || 0) +
+      (Number.parseFloat(fieldStyle.outlineOffset) || 0)
+  )
+  const rect = element.getBoundingClientRect()
+  if (rect.width <= 0 || rect.width + clearance * 2 > right - left) {
+    return
+  }
+  const delta =
+    rect.left - clearance < left
+      ? rect.left - clearance - left
+      : Math.max(0, rect.right + clearance - right)
+  if (delta !== 0) {
+    // Physical deltas also work with native negative RTL scrollLeft.
+    scroller.scrollLeft += delta
+  }
+}
+
+function handleTableFieldFocus(event: FocusEvent<HTMLElement>) {
+  // A widget can focus its input on pointer-down. Moving its pressed trigger
+  // before pointer-up would retarget the click, especially in mobile WebKit.
+  if (!event.currentTarget.matches(":active")) {
+    revealTableField(event.currentTarget, event.target)
+  }
+}
+
+function handleTableFieldActivation(event: MouseEvent<HTMLElement>) {
+  const scroller = event.currentTarget
+  const active = scroller.ownerDocument.activeElement
+  if (
+    scroller.contains(event.target as Node) &&
+    isHTMLElement(active) &&
+    active.parentElement?.contains(event.target as Node)
+  ) {
+    // Only finish reveal for the activated control, not stale focus in another column.
+    revealTableField(scroller, active)
+  }
+}
+
+function revealTablePaginationControl(host: HTMLElement, element: HTMLElement) {
+  const nav = element.closest("nav")
+  if (
+    !isHTMLElement(nav) ||
+    nav.parentElement !== host ||
+    element.ownerDocument.activeElement !== element ||
+    !element.matches(":focus-visible") ||
+    nav.scrollWidth <= nav.clientWidth
+  ) {
+    return
+  }
+  const viewport = nav.getBoundingClientRect()
+  const style = getComputedStyle(nav)
+  const start = Number.parseFloat(style.scrollPaddingInlineStart) || 0
+  const end = Number.parseFloat(style.scrollPaddingInlineEnd) || 0
+  const rtl = style.direction === "rtl"
+  const left = viewport.left + nav.clientLeft + (rtl ? end : start)
+  const right =
+    viewport.left + nav.clientLeft + nav.clientWidth - (rtl ? start : end)
+  const rect = element.getBoundingClientRect()
+  if (rect.width <= 0 || rect.width > right - left) {
+    return
+  }
+  const delta =
+    rect.left < left ? rect.left - left : Math.max(0, rect.right - right)
+  if (delta !== 0) {
+    // Native focus can leave a middle link clipped in a narrow Chromium nav.
+    // Move only this horizontal scrollport, including native negative RTL offsets.
+    nav.scrollLeft += delta
+  }
 }
 
 function handleTableDragFocus(event: FocusEvent<HTMLButtonElement>) {
@@ -1154,11 +1282,12 @@ const BUILTIN_COLUMN_IDS = new Set<string>([
 type DataTableStyles = ReturnType<typeof dataTableVariants>
 
 /** Sticky-edge classes for a pinned cell (opaque bg + edge shadow). */
-function pinClass<T extends RowData>(
-  column: Column<T, unknown>,
-  kind: "header" | "body"
+function pinClass(
+  kind: "header" | "body",
+  active: boolean,
+  edge?: "start" | "end"
 ) {
-  if (!column.getIsPinned()) {
+  if (!active) {
     return
   }
   return [
@@ -1172,11 +1301,11 @@ function pinClass<T extends RowData>(
     // even stripe is fully transparent, so scrolled content bled through the
     // frozen column. See `data-table-frozen-cell`.
     kind === "header" ? "bg-data-table-header-bg" : "data-table-frozen-cell",
-    isLastStartPinned(column)
-      ? "border-e-(length:--border-width-data-table) border-data-table-border"
+    edge === "start"
+      ? "border-e-(length:--border-width-data-table) border-data-table-border data-table-pinned-start"
       : "",
-    isFirstEndPinned(column)
-      ? "border-s-(length:--border-width-data-table) border-data-table-border"
+    edge === "end"
+      ? "border-s-(length:--border-width-data-table) border-data-table-border data-table-pinned-end"
       : "",
   ].join(" ")
 }
@@ -1199,8 +1328,208 @@ function HeaderDragHandle({
       ref={handleRef}
       type="button"
     >
-      <Icon icon="icon-[mdi--drag-vertical]" size="current" />
+      <Icon
+        className="text-(length:--text-data-table-drag-handle)"
+        icon="icon-[mdi--drag-vertical]"
+        size="current"
+      />
     </button>
+  )
+}
+
+/** Keep one filter instance: inline when it fits, in a standard popup otherwise. */
+function ColumnFilter({
+  children,
+  columnName,
+  active,
+  disabled,
+  direction,
+  size,
+  tableLayout,
+  styles,
+}: {
+  children: ReactNode
+  columnName: string
+  active: boolean
+  disabled: boolean
+  direction: "ltr" | "rtl"
+  size: DataTableControlSize
+  tableLayout: "auto" | "fixed"
+  styles: DataTableStyles
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const controlRef = useRef<HTMLDivElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
+  const restoreControlFocus = useRef<{
+    element: HTMLElement
+    start: number | null
+    end: number | null
+    direction: "forward" | "backward" | "none" | null
+  } | null>(null)
+  const [host, setHost] = useState<HTMLDivElement | null>(null)
+  const [compact, setCompact] = useState(false)
+  const [open, setOpen] = useState(false)
+  const hasFilter = children != null
+
+  useIsomorphicLayoutEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) {
+      return
+    }
+    // Own only the portal target, never move React-owned child nodes. Creating
+    // it after hydration also keeps server rendering free of DOM/portal access.
+    const target = viewport.ownerDocument.createElement("div")
+    viewport.append(target)
+    setHost(target)
+    return () => {
+      target.remove()
+      setHost(null)
+    }
+  }, [hasFilter])
+
+  useIsomorphicLayoutEffect(() => {
+    const destination = compact ? popupRef.current : viewportRef.current
+    if (!(host && destination)) {
+      return
+    }
+    if (host.parentNode !== destination) {
+      destination.append(host)
+    }
+    const focus = restoreControlFocus.current
+    restoreControlFocus.current = null
+    if (!focus) {
+      return
+    }
+    // Reparenting can blur even a retained DOM node. Restore that exact
+    // endpoint (and its text selection), not the first input in the filter.
+    const element = host.contains(focus.element)
+      ? focus.element
+      : controlRef.current?.querySelector<HTMLElement>(
+          "input:not(:disabled), button:not(:disabled), [tabindex='0']"
+        )
+    element?.focus({ preventScroll: true })
+    if (
+      element === focus.element &&
+      focus.start !== null &&
+      focus.end !== null &&
+      element.matches("input, textarea")
+    ) {
+      const field = element as HTMLInputElement | HTMLTextAreaElement
+      field.setSelectionRange(
+        focus.start,
+        focus.end,
+        focus.direction ?? undefined
+      )
+    }
+  }, [compact, host])
+
+  useEffect(() => {
+    if (disabled) {
+      setOpen(false)
+    }
+  }, [disabled])
+
+  useIsomorphicLayoutEffect(() => {
+    const viewport = viewportRef.current
+    const control = controlRef.current
+    if (!(viewport && control)) {
+      return
+    }
+    const measure = () => {
+      // Computed min-width resolves the current size/theme tokens even when
+      // the popup is closed. Never infer usable space from TanStack's default
+      // model width: native layout, CSS widths and resizing can all differ.
+      const minimum = Number.parseFloat(getComputedStyle(control).minWidth)
+      if (tableLayout === "fixed" && viewport.clientWidth === 0) {
+        return
+      }
+      // Popup positioning also requires ResizeObserver. Keep the native
+      // scrollable inline controls as the fallback when it is unavailable.
+      const nextCompact =
+        typeof ResizeObserver !== "undefined" &&
+        tableLayout === "fixed" &&
+        viewport.clientWidth > 0 &&
+        viewport.clientWidth < minimum
+      if (nextCompact === compact) {
+        return
+      }
+      const element = viewport.ownerDocument.activeElement as HTMLElement | null
+      const focused =
+        element && (viewport.contains(element) || control.contains(element))
+      const field = element?.matches("input, textarea")
+        ? (element as HTMLInputElement | HTMLTextAreaElement)
+        : null
+      restoreControlFocus.current = focused
+        ? {
+            element,
+            start: field?.selectionStart ?? null,
+            end: field?.selectionEnd ?? null,
+            direction: field?.selectionDirection ?? null,
+          }
+        : null
+      // Keep a focused inline control reachable when it moves into the popup.
+      setOpen(nextCompact && !!focused)
+      setCompact(nextCompact)
+    }
+    measure()
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure)
+    observer?.observe(viewport)
+    observer?.observe(control)
+    return () => observer?.disconnect()
+  }, [tableLayout, size, compact, children, host])
+
+  const control = (
+    <div className={styles.filterControl()} data-size={size} ref={controlRef}>
+      {children}
+    </div>
+  )
+
+  if (children == null) {
+    return null
+  }
+  return (
+    <div
+      className={styles.filterViewport()}
+      data-compact={compact || undefined}
+      data-layout={tableLayout}
+      ref={viewportRef}
+    >
+      {host && createPortal(control, host)}
+      {compact && (
+        <Popover
+          dir={direction}
+          initialFocusEl={() => {
+            const element = controlRef.current?.ownerDocument.activeElement
+            return element && controlRef.current?.contains(element)
+              ? (element as HTMLElement)
+              : null
+          }}
+          onOpenChange={(details) => setOpen(details.open)}
+          open={open && !disabled}
+          placement="bottom-start"
+          size={size}
+        >
+          <Popover.Trigger
+            aria-label={`Filter ${columnName}`}
+            className="data-table-filter-trigger"
+            data-active={active || undefined}
+            data-size={size}
+            disabled={disabled}
+            icon="icon-[mdi--filter-variant]"
+            size={size}
+            theme={active ? "solid" : "outlined"}
+            variant="secondary"
+          />
+          <Popover.Positioner forceMount>
+            <Popover.Content aria-label={`Filter ${columnName}`}>
+              <Popover.Title>{columnName}</Popover.Title>
+              <div ref={popupRef} />
+            </Popover.Content>
+          </Popover.Positioner>
+        </Popover>
+      )}
+    </div>
   )
 }
 
@@ -1225,8 +1554,15 @@ function HeaderSortLabel<T extends RowData>({
 
   // Grouped tables insert empty alignment placeholders above ungrouped leaves.
   // They are not another copy of the leaf's sortable header.
-  if (header.isPlaceholder || !canSort) {
-    return <>{label}</>
+  if (header.isPlaceholder) {
+    return null
+  }
+  if (!canSort) {
+    return (
+      <span className={styles.headerText()} title={columnLabel(column)}>
+        {label}
+      </span>
+    )
   }
 
   let sortIconName: IconType = "icon-[mdi--unfold-more-horizontal]"
@@ -1242,9 +1578,10 @@ function HeaderSortLabel<T extends RowData>({
       data-disabled={locked || undefined}
       disabled={locked}
       onClick={(event) => column.getToggleSortingHandler()?.(event)}
+      title={columnLabel(column)}
       type="button"
     >
-      {label}
+      <span className={styles.headerText()}>{label}</span>
       <Icon
         className={styles.sortIcon()}
         data-active={!!sortDir}
@@ -1269,7 +1606,9 @@ function renderCellContent<T extends RowData>({
   tableLayout,
   isDragCol,
   rowLabel,
+  editing,
 }: {
+  editing: boolean
   cell: Cell<T, unknown>
   column: Column<T, unknown>
   rowLabel: string
@@ -1292,7 +1631,11 @@ function renderCellContent<T extends RowData>({
         type="button"
         {...dnd.dragHandleProps}
       >
-        <Icon icon="icon-[mdi--drag-horizontal]" size="current" />
+        <Icon
+          className="text-(length:--text-data-table-drag-handle)"
+          icon="icon-[mdi--drag-vertical]"
+          size="current"
+        />
       </button>
     )
   }
@@ -1302,6 +1645,7 @@ function renderCellContent<T extends RowData>({
         className={styles.editorControl()}
         data-editor-control=""
         data-layout={tableLayout}
+        data-size={size}
         data-type={resolveColumnType(column.columnDef.meta)}
       >
         <div className="data-table-editor-value" data-size={size}>
@@ -1316,10 +1660,15 @@ function renderCellContent<T extends RowData>({
     )
   }
   const content = flexRender(column.columnDef.cell, cell.getContext())
-  return tableLayout === "fixed" ? (
-    <div className={styles.cellContent()}>{content}</div>
-  ) : (
-    content
+  return (
+    <div
+      className={styles.cellContent({
+        className: editing ? "data-table-readonly-value" : undefined,
+      })}
+      data-size={size}
+    >
+      {content}
+    </div>
   )
 }
 
@@ -1358,8 +1707,16 @@ function DataTableBodyCell<T extends RowData>({
   indentColumnId,
   rowLabel,
   pinningStyle,
+  activePin,
+  pinEdge,
+  headers,
+  editing,
 }: {
+  editing: boolean
+  headers: string
   pinningStyle?: CSSProperties
+  activePin: boolean
+  pinEdge?: "start" | "end"
   cell: Cell<T, unknown>
   span: { colSpan?: number; rowSpan?: number } | undefined
   row: Row<T>
@@ -1381,15 +1738,19 @@ function DataTableBodyCell<T extends RowData>({
   const isDragCol = column.id === DRAG_COLUMN_ID
   const indent =
     row.depth > 0 && column.id === indentColumnId
-      ? { paddingInlineStart: `${row.depth * 1.5}rem` }
+      ? {
+          paddingInlineStart: `calc(var(--padding-table-cell-${size}-x) + ${row.depth} * var(--spacing-data-table-tree-level))`,
+        }
       : undefined
 
   return (
     <Table.Cell
       align={column.columnDef.meta?.align}
-      className={pinClass(column, "body")}
+      className={`data-editing:align-top ${pinClass("body", activePin, pinEdge) ?? ""}`}
       colSpan={span?.colSpan}
+      data-editing={editing || undefined}
       data-pinned={pinned || undefined}
+      headers={headers}
       rowSpan={span?.rowSpan}
       style={{
         ...getPinningStyles(column),
@@ -1411,6 +1772,7 @@ function DataTableBodyCell<T extends RowData>({
         tableLayout,
         isDragCol,
         rowLabel,
+        editing,
       })}
     </Table.Cell>
   )
@@ -1533,6 +1895,7 @@ function rowDragClass(
   const { className, striped, tintNestedRows, rowIndex } = opts
   return [
     "group/row",
+    "hover:bg-data-table-row-bg-hover",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-primary",
     /* Publish the row's current tint as a custom property. Frozen cells
      * composite it over an opaque surface (`data-table-frozen-cell`), which
@@ -1618,6 +1981,22 @@ function sortState<T extends RowData>(
     return "descending" as const
   }
   return "none" as const
+}
+
+/** Only real label cells participate in native header associations. */
+function headerCellAttributes<T extends RowData>(
+  header: Header<T, unknown>,
+  instanceId: string
+) {
+  return {
+    id: header.isPlaceholder
+      ? undefined
+      : `${instanceId}-header-${encodeURIComponent(header.id)}`,
+    scope:
+      !header.isPlaceholder && header.column.columns.length === 0
+        ? ("col" as const)
+        : undefined,
+  }
 }
 
 /** Enter/Space activates a clickable row, ignoring keys bubbling from controls. */
@@ -2642,6 +3021,32 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       table.getVisibleLeafColumns(),
     [headerGroups]
   )
+  // Use the rendered header tree, not column ancestry: reorder and pinning can
+  // split a group into several header cells. Explicit associations also avoid
+  // scope="colgroup", which would describe the fixed-width sizing colgroup
+  // (all leaves), rather than these independently rendered label groups.
+  const columnHeaderIds = useMemo(() => {
+    const ids = new Map<string, string[]>()
+    const visit = (header: Header<T, unknown>, ancestors: string[]) => {
+      const headers = header.isPlaceholder
+        ? ancestors
+        : [
+            ...ancestors,
+            `${instanceId}-header-${encodeURIComponent(header.id)}`,
+          ]
+      if (header.subHeaders.length === 0) {
+        ids.set(header.column.id, headers)
+      } else {
+        for (const child of header.subHeaders) {
+          visit(child, headers)
+        }
+      }
+    }
+    for (const header of headerGroups[0]?.headers ?? []) {
+      visit(header, [])
+    }
+    return ids
+  }, [headerGroups, instanceId])
   const columnCount = leafColumns.length
   const logicalRows = rows.flatMap((row, index) => [
     { row, index, detail: false },
@@ -3006,7 +3411,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    * what the declared columns leave over — usually nothing, so the actions
    * column collapsed to 0 px. It is not in TanStack's column model and its
    * content (expand toggle, row actions, custom render) varies, so measure the
-   * widest rendered actions cell and declare that on the header instead.
+   * widest rendered actions cell or header label and declare that on the header.
    * Children are measured edge to edge rather than via `scrollWidth`, because
    * the cell content is end-aligned and overflows to the start side.
    */
@@ -3037,11 +3442,26 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return
     }
     const cellStyle = getComputedStyle(cell)
-    const width = Math.ceil(
+    let width =
       widest +
-        Number.parseFloat(cellStyle.paddingLeft) +
-        Number.parseFloat(cellStyle.paddingRight)
+      Number.parseFloat(cellStyle.paddingLeft) +
+      Number.parseFloat(cellStyle.paddingRight)
+    const headerLabel = scrollRef.current?.querySelector<HTMLElement>(
+      '[data-part="actions-column-label"]'
     )
+    const header = headerLabel?.parentElement
+    if (headerLabel && header) {
+      const headerStyle = getComputedStyle(header)
+      width = Math.max(
+        width,
+        headerLabel.getBoundingClientRect().width +
+          Number.parseFloat(headerStyle.paddingLeft) +
+          Number.parseFloat(headerStyle.paddingRight) +
+          Number.parseFloat(headerStyle.borderLeftWidth) +
+          Number.parseFloat(headerStyle.borderRightWidth)
+      )
+    }
+    width = Math.ceil(width)
     if (width !== fixedActionsWidth) {
       setFixedActionsWidth(width)
     }
@@ -3052,6 +3472,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   )
   const [renderedActionsWidth, setRenderedActionsWidth] = useState(0)
   const [viewportWidth, setViewportWidth] = useState(0)
+  const [tableOverflows, setTableOverflows] = useState(false)
   useIsomorphicLayoutEffect(() => {
     const host = scrollRef.current
     if (!host) {
@@ -3062,6 +3483,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     )
     const measure = () => {
       setViewportWidth(host.clientWidth)
+      setTableOverflows(host.scrollWidth > host.clientWidth + 1)
       const widths: Record<string, number> = {}
       for (const cell of cells) {
         const width = cell.getBoundingClientRect().width
@@ -3133,6 +3555,54 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     header: stickyHeader ? "sticky" : "relative",
     body: "static",
   } as const
+  const activePinned = (column: Column<T, unknown>) =>
+    Boolean(column.getIsPinned()) &&
+    (column.columns.length ? column.getLeafColumns() : [column]).every((leaf) =>
+      fittingPins.has(leaf.id)
+    )
+  const pinEdge = (column: Column<T, unknown>): "start" | "end" | undefined => {
+    if (!(tableOverflows && activePinned(column))) {
+      return
+    }
+    const side = column.getIsPinned()
+    const siblings = leafColumns.filter(
+      (leaf) => leaf.getIsPinned() === side && fittingPins.has(leaf.id)
+    )
+    const descendants = column.columns.length
+      ? column.getLeafColumns()
+      : [column]
+    const boundary = side === "start" ? siblings.at(-1) : siblings[0]
+    if (side === "start" && boundary && descendants.includes(boundary)) {
+      return "start"
+    }
+    if (side === "end" && boundary && descendants.includes(boundary)) {
+      return "end"
+    }
+    return undefined
+  }
+  const startPinnedWidth = leafColumns.reduce(
+    (sum, leaf) =>
+      sum +
+      (leaf.getIsPinned() === "start" && fittingPins.has(leaf.id)
+        ? (renderedWidths[leaf.id] ?? leaf.getSize())
+        : 0),
+    0
+  )
+  const endPinnedWidth = leafColumns.reduce(
+    (sum, leaf) =>
+      sum +
+      (leaf.getIsPinned() === "end" && fittingPins.has(leaf.id)
+        ? (renderedWidths[leaf.id] ?? leaf.getSize())
+        : 0),
+    renderedActionsWidth
+  )
+  const stickyActionsClass = stickyActions
+    ? `data-table-actions-sticky sticky ${
+        tableOverflows && renderedActionsWidth > 0
+          ? "data-table-pinned-end"
+          : ""
+      }`
+    : undefined
   const pinningStyles = (
     column: Column<T, unknown>,
     kind: "header" | "body" = "body"
@@ -3286,8 +3756,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       ? undefined
       : sortState(column, enableSorting)
     const dropClass = dnd?.dropSide ? styles.columnDropIndicator() : ""
+    // Alignment placeholders are empty grid cells, not unnamed column headers.
+    // Keep their box (including sticky/pinned positioning) without inventing a
+    // second label or hiding the real leaf header below it.
+    const HeaderCell = header.isPlaceholder ? Table.Cell : Table.ColumnHeader
     return (
-      <Table.ColumnHeader
+      <HeaderCell
         align={column.columnDef.meta?.align}
         aria-sort={ariaSort}
         // `relative` gives the absolutely-positioned resize handle a local
@@ -3298,7 +3772,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         // simply stopped sticking, grouped or not. `sticky` is itself a
         // positioned value, so it already gives the resize handle the same
         // context; `relative` is only needed when sticky isn't in play.
-        className={`group/header ${stickyHeader ? "" : "relative"} ${pinClass(column, "header") ?? ""} ${dropClass}`}
+        className={`group/header ${styles.headerCell()} ${stickyHeader ? "sticky top-0 z-10" : "relative"} ${pinClass("header", activePinned(column), pinEdge(column)) ?? ""} ${dropClass}`}
         // The reorderable path keys `SortableHeaderContent` instead, where this
         // key is simply ignored; the non-reorderable path renders this element
         // straight into the header-group map and is the one that needs it.
@@ -3309,6 +3783,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         data-pinned={column.getIsPinned() || undefined}
         key={header.id}
         ref={dnd?.nodeRef as unknown as RefObject<HTMLTableCellElement>}
+        {...headerCellAttributes(header, instanceId)}
         style={{
           ...OPAQUE_HEADER_BG,
           ...stickyRowOffset(stickyHeader, headerOffsets, groupIndex),
@@ -3320,6 +3795,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         }}
       >
         <div className={styles.headerLabel()}>
+          <HeaderSortLabel
+            enableSorting={enableSorting}
+            header={header}
+            locked={locked}
+            styles={styles}
+          />
           {dnd && (
             <HeaderDragHandle
               handleRef={dnd.handleRef}
@@ -3327,12 +3808,6 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               styles={styles}
             />
           )}
-          <HeaderSortLabel
-            enableSorting={enableSorting}
-            header={header}
-            locked={locked}
-            styles={styles}
-          />
         </div>
         {enableColumnResizing &&
         !header.isPlaceholder &&
@@ -3349,7 +3824,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             type="button"
           />
         ) : null}
-      </Table.ColumnHeader>
+      </HeaderCell>
     )
   }
 
@@ -3392,9 +3867,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           })}
           {hasActionsColumn && groupIndex === 0 && (
             <Table.ColumnHeader
-              className={
-                stickyActions ? "data-table-actions-sticky sticky" : undefined
-              }
+              className={stickyActionsClass}
               data-actions-column=""
               numeric
               rowSpan={table.getHeaderGroups().length}
@@ -3408,7 +3881,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                   : undefined),
               }}
             >
-              {translations.actionsLabel}
+              <span
+                className="whitespace-nowrap"
+                data-part="actions-column-label"
+              >
+                {translations.actionsLabel}
+              </span>
             </Table.ColumnHeader>
           )}
         </Table.Row>
@@ -3421,7 +3899,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         >
           {leafColumns.map((column) => (
             <td
-              className={`${styles.filterCell()} ${pinClass(column, "header") ?? ""}`}
+              className={`${styles.filterCell()} ${pinClass("header", activePinned(column), pinEdge(column)) ?? ""}`}
+              data-layout={tableLayout}
               data-pinned={column.getIsPinned() || undefined}
               key={column.id}
               style={{
@@ -3445,14 +3924,17 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               }}
             >
               {column.getCanFilter() ? (
-                <div
-                  className={styles.filterViewport()}
-                  data-layout={tableLayout}
+                <ColumnFilter
+                  active={column.getIsFiltered()}
+                  columnName={columnLabel(column)}
+                  direction={direction}
+                  disabled={locked}
+                  size={size}
+                  styles={styles}
+                  tableLayout={tableLayout}
                 >
-                  <div className={styles.filterControl()} data-size={size}>
-                    {renderColumnFilter(column)}
-                  </div>
-                </div>
+                  {renderColumnFilter(column)}
+                </ColumnFilter>
               ) : null}
             </td>
           ))}
@@ -3460,7 +3942,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <td
               className={
                 stickyActions
-                  ? `${styles.filterCell()} data-table-actions-sticky sticky bg-data-table-filter-row-bg`
+                  ? `${styles.filterCell()} ${stickyActionsClass} bg-data-table-filter-row-bg`
                   : styles.filterCell()
               }
               style={{
@@ -3619,11 +4101,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     <Table.Cell
       // Composites the row tint over an opaque surface, like pinned cells —
       // `bg-inherit` alone was transparent on striped/selected rows.
-      className={
-        stickyActions
-          ? "data-table-frozen-cell data-table-actions-sticky sticky"
-          : undefined
-      }
+      className={`data-editing:align-top ${stickyActions ? `data-table-frozen-cell ${stickyActionsClass}` : ""}`}
+      data-editing={editingRowId === row.id || undefined}
       numeric
       style={
         // Pinned body cells carry `pinnedCell` from `getPinningStyles`;
@@ -3635,62 +4114,72 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       }
     >
       <div className={styles.actionsCell()} data-part="actions-cell-content">
-        {enableExpanding && row.getCanExpand() ? (
-          <Button
-            aria-controls={expandAriaControls(row.id)}
-            aria-expanded={row.getIsExpanded()}
-            aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
-            disabled={locked}
-            // Gated like every other affordance: expanding a row *above* the
-            // one being edited inserts a detail row and shifts the edited row
-            // out from under the user, which is exactly what
-            // `lockInteractionsWhileEditing` promises not to allow.
-            icon={
-              row.getIsExpanded()
-                ? "token-icon-chevron-down"
-                : "token-icon-chevron-right"
-            }
-            onClick={(e) => {
-              e.stopPropagation()
-              if (blocked("expand")) {
-                return
-              }
-              row.getToggleExpandedHandler()()
-            }}
-            size="sm"
-            theme="borderless"
-            variant="secondary"
-          />
-        ) : null}
-        {rowActions?.map((action) =>
-          action.hidden?.(row) ? null : (
+        <div className={styles.actionsButtons()}>
+          {enableExpanding && row.getCanExpand() ? (
             <Button
-              aria-label={action.label}
-              // `locked`, not `isEditing`: with
-              // `lockInteractionsWhileEditing={false}` the caller has opted
-              // out of edit-time locking, so row actions stay live like every
-              // other guarded interaction.
-              disabled={action.disabled?.(row) || locked}
-              icon={action.icon}
-              key={action.id}
+              aria-controls={expandAriaControls(row.id)}
+              aria-expanded={row.getIsExpanded()}
+              aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
+              className={styles.expandButton()}
+              disabled={locked}
+              // Gated like every other affordance: expanding a row *above* the
+              // one being edited inserts a detail row and shifts the edited row
+              // out from under the user, which is exactly what
+              // `lockInteractionsWhileEditing` promises not to allow.
+              icon={
+                row.getIsExpanded()
+                  ? "token-icon-chevron-down"
+                  : "token-icon-chevron-right"
+              }
               onClick={(e) => {
                 e.stopPropagation()
-                action.onAction(row)
+                if (blocked("expand")) {
+                  return
+                }
+                row.getToggleExpandedHandler()()
               }}
               size="sm"
               theme="borderless"
-              variant={action.tone === "danger" ? "danger" : "secondary"}
+              variant="secondary"
             />
-          )
-        )}
-        {rowActionsContent(row)}
+          ) : null}
+          {rowActions?.map((action) =>
+            action.hidden?.(row) ? null : (
+              <Button
+                aria-label={action.label}
+                // `locked`, not `isEditing`: with
+                // `lockInteractionsWhileEditing={false}` the caller has opted
+                // out of edit-time locking, so row actions stay live like every
+                // other guarded interaction.
+                disabled={action.disabled?.(row) || locked}
+                icon={action.icon}
+                key={action.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  action.onAction(row)
+                }}
+                size="sm"
+                theme="borderless"
+                variant={action.tone === "danger" ? "danger" : "secondary"}
+              />
+            )
+          )}
+          {rowActionsContent(row)}
+        </div>
         {editingRowId === row.id && savePending && (
-          <StatusText role="status" size={size}>
+          <StatusText
+            className={styles.actionFeedback()}
+            data-size={size}
+            role="status"
+            size={size}
+          >
             {translations.savePendingLabel}
           </StatusText>
         )}
         {editingRowId === row.id && saveError && (
           <StatusText
+            className={styles.actionFeedback()}
+            data-size={size}
             id={`${instanceId}-save-error`}
             size={size}
             status="error"
@@ -3720,7 +4209,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     dnd?: { dragHandleProps: DataTableDragHandleProps }
   ) => {
     const rowLabel = getRowLabel?.(row) ?? `row ${row.id}`
-    return cells.map((cell) => {
+    return cells.map((cell, cellIndex) => {
       const span = getCellSpan?.(cell, { row, rows, rowIndex })
       if (span?.hidden) {
         return null
@@ -3733,9 +4222,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         (type === "boolean" || type === "enum" || type === "multiEnum")
       return (
         <DataTableBodyCell
+          activePin={activePinned(column)}
           cell={cell}
           columnSizing={columnSizing}
           dnd={dnd}
+          editing={editingRowId === row.id}
           editor={renderCellEditor(row, column)}
           editorError={
             editingRowId === row.id && !ownsFeedback
@@ -3745,8 +4236,18 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           editorErrorId={`${instanceId}-err-${row.id}-${column.id}`}
           enableColumnResizing={enableColumnResizing}
           enableRowReorder={enableRowReorder}
+          headers={[
+            ...new Set(
+              cells
+                .slice(cellIndex, cellIndex + (span?.colSpan ?? 1))
+                .flatMap(
+                  (covered) => columnHeaderIds.get(covered.column.id) ?? []
+                )
+            ),
+          ].join(" ")}
           indentColumnId={indentColumnId}
           key={cell.id}
+          pinEdge={pinEdge(column)}
           pinningStyle={pinningStyles(column)}
           row={row}
           rowLabel={rowLabel}
@@ -3950,7 +4451,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "data-table-frozen-cell data-table-actions-sticky sticky"
+                  ? `data-table-frozen-cell ${stickyActionsClass}`
                   : undefined
               }
               numeric
@@ -4073,7 +4574,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             <Table.Cell
               className={
                 stickyActions
-                  ? "data-table-actions-sticky sticky bg-data-table-footer-bg"
+                  ? `${stickyActionsClass} bg-data-table-footer-bg`
                   : undefined
               }
               numeric
@@ -4224,15 +4725,22 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               </div>
             </DataTable.Toolbar>
           ))}
+        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions lint/a11y/useKeyWithClickEvents: Pointer activation finishes descendant focus reveal; keyboard focus already reveals immediately. */}
         <section
           aria-label={caption ? undefined : translations.scrollLabel}
           aria-labelledby={caption ? `${instanceId}-caption` : undefined}
           className={styles.scroll({
             className: "focus-visible:data-table-scroll-focus",
           })}
+          onClick={handleTableFieldActivation}
+          onFocus={handleTableFieldFocus}
           onScroll={handleScroll}
           ref={scrollRef}
-          style={maxHeight ? { maxHeight } : undefined}
+          style={{
+            maxHeight,
+            scrollPaddingInlineStart: startPinnedWidth,
+            scrollPaddingInlineEnd: endPinnedWidth,
+          }}
           // biome-ignore lint/a11y/noNoninteractiveTabindex: Scroll regions need keyboard focus to reveal offscreen records.
           tabIndex={0}
         >
@@ -4592,6 +5100,7 @@ DataTable.Pagination = function DataTablePagination() {
         }}
         onFocusCapture={(event) => {
           focusedControl.current = event.target
+          revealTablePaginationControl(event.currentTarget, event.target)
         }}
         ref={controlsRef}
       >

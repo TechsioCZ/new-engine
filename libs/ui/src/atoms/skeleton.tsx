@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.0.5
+ * @componentVersion v1.0.6
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,7 +22,7 @@ const skeletonVariants = tv({
   slots: {
     root: ["relative min-w-0 overflow-clip"],
     shape: "relative min-w-0 overflow-clip",
-    rectangle: "w-full",
+    rectangle: "skeleton-rectangle w-full",
     circle: ["rounded-full", "shrink-0"],
     textContainer: ["flex", "flex-col"],
     textLine: ["h-skeleton-text-line", "rounded-skeleton-text", "w-full"],

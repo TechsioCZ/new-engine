@@ -5,6 +5,10 @@
 
   --spacing-price-block-compact: var(--spacing-50);
   --spacing-price-block-related: var(--spacing-100);
+  --spacing-price-block-metadata-inline-base: var(
+    --spacing-price-block-compact
+  );
+  --spacing-price-block-on-request-base: var(--spacing-price-block-related);
   --spacing-price-block-pending-line-base: var(--spacing-350);
   --spacing-price-block-pending-width-base: calc(var(--spacing-950) * 2);
 
@@ -20,6 +24,10 @@
   --gap-price-block: var(--spacing-price-block-related);
   --gap-price-block-primary: var(--spacing-price-block-related);
   --gap-price-block-metadata: var(--spacing-price-block-compact);
+  --gap-price-block-metadata-inline: var(
+    --spacing-price-block-metadata-inline-base
+  );
+  --gap-price-block-on-request: var(--spacing-price-block-on-request-base);
   --gap-price-block-pending: var(--spacing-price-block-compact);
   --spacing-price-block-pending-line: var(
     --spacing-price-block-pending-line-base

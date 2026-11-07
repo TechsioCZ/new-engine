@@ -15,13 +15,53 @@
 import type { RowData } from "@tanstack/react-table"
 import { createContext, type ReactNode, useContext } from "react"
 import { ActionIcon } from "../atoms/action-icon"
-import { Input } from "../atoms/input"
+import { Input, type InputProps } from "../atoms/input"
 import { NumericInput } from "../atoms/numeric-input"
 import { Combobox } from "../molecules/combobox"
 import { Menu } from "../molecules/menu"
 import { Select, type SelectItem } from "../molecules/select"
 import { Switch } from "../molecules/switch"
+import { tv } from "../utils"
 import type { Column, DataTableFilterOperator, Row } from "./data-table.helpers"
+
+const dateRangeEditorStyles = tv({
+  slots: {
+    root: "flex flex-col gap-data-table-date-range",
+    field: "flex min-w-0 flex-col gap-data-table-editor",
+    label:
+      "text-(length:--text-data-table-editor-label) text-data-table-editor-label-fg",
+  },
+})()
+
+const nativeDateEditorStyles = tv({
+  slots: {
+    root: "data-table-date-editor relative block",
+    emptyLabel: "data-table-date-empty-label pointer-events-none absolute",
+  },
+})()
+
+/**
+ * WebKit can paint a date even when the native value is empty. Keep the same
+ * native input mounted and let CSS substitute an inert hint only while blurred.
+ */
+function NativeDateEditorInput({ value, size, ...props }: InputProps) {
+  return (
+    <span
+      className={nativeDateEditorStyles.root()}
+      data-date-editor=""
+      data-empty={isBlank(value) ? "" : undefined}
+      data-size={size}
+    >
+      <Input {...props} size={size} type="date" value={value} />
+      {/* CSS-generated, aria-hidden copy does not join the endpoint label text. */}
+      <span
+        aria-hidden="true"
+        className={nativeDateEditorStyles.emptyLabel()}
+        data-empty-label="No date"
+      />
+    </span>
+  )
+}
 
 export type DataTableColumnType =
   | "string"
@@ -609,6 +649,7 @@ const editorKeyHandlers = (commit: () => void, cancel: () => void) => ({
 function dateLikeEditor(
   inputType: "date" | "datetime-local" | "time"
 ): DataTableEditorRenderer {
+  const EditorInput = inputType === "date" ? NativeDateEditorInput : Input
   return ({
     column,
     value,
@@ -620,7 +661,7 @@ function dateLikeEditor(
     size,
     errorId,
   }) => (
-    <Input
+    <EditorInput
       aria-describedby={error ? errorId : undefined}
       aria-errormessage={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
@@ -630,6 +671,7 @@ function dateLikeEditor(
       size={size}
       type={inputType}
       value={(value as string) ?? ""}
+      variant={error ? "error" : "default"}
       {...editorKeyHandlers(commit, cancel)}
     />
   )
@@ -659,6 +701,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
       onChange={(e) => setValue(e.target.value)}
       size={size}
       value={(value as string) ?? ""}
+      variant={error ? "error" : "default"}
       {...editorKeyHandlers(commit, cancel)}
     />
   ),
@@ -794,33 +837,47 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
   }) => {
     const v = (value ?? {}) as { from?: string; to?: string }
     return (
-      <>
-        <Input
-          aria-describedby={error ? errorId : undefined}
-          aria-errormessage={error ? errorId : undefined}
-          aria-invalid={error ? true : undefined}
-          aria-label={`Edit ${columnLabel(column)} from`}
-          disabled={disabled}
-          onChange={(e) => setValue({ ...v, from: e.target.value })}
-          size={size}
-          type="date"
-          value={v.from ?? ""}
-          {...editorKeyHandlers(commit, cancel)}
-        />
-        <Input
-          aria-describedby={error ? errorId : undefined}
-          aria-errormessage={error ? errorId : undefined}
-          aria-invalid={error ? true : undefined}
-          aria-label={`Edit ${columnLabel(column)} to`}
-          disabled={disabled}
-          min={v.from || undefined}
-          onChange={(e) => setValue({ ...v, to: e.target.value })}
-          size={size}
-          type="date"
-          value={v.to ?? ""}
-          {...editorKeyHandlers(commit, cancel)}
-        />
-      </>
+      <div className={dateRangeEditorStyles.root()} data-date-range-editor="">
+        <label
+          className={dateRangeEditorStyles.field()}
+          htmlFor={errorId ? `${errorId}-from` : undefined}
+        >
+          <span className={dateRangeEditorStyles.label()}>Start</span>
+          <NativeDateEditorInput
+            aria-describedby={error ? errorId : undefined}
+            aria-errormessage={error ? errorId : undefined}
+            aria-invalid={error ? true : undefined}
+            aria-label={`Edit ${columnLabel(column)}: Start`}
+            disabled={disabled}
+            id={errorId ? `${errorId}-from` : undefined}
+            onChange={(e) => setValue({ ...v, from: e.target.value })}
+            size={size}
+            value={v.from ?? ""}
+            variant={error ? "error" : "default"}
+            {...editorKeyHandlers(commit, cancel)}
+          />
+        </label>
+        <label
+          className={dateRangeEditorStyles.field()}
+          htmlFor={errorId ? `${errorId}-to` : undefined}
+        >
+          <span className={dateRangeEditorStyles.label()}>End</span>
+          <NativeDateEditorInput
+            aria-describedby={error ? errorId : undefined}
+            aria-errormessage={error ? errorId : undefined}
+            aria-invalid={error ? true : undefined}
+            aria-label={`Edit ${columnLabel(column)}: End`}
+            disabled={disabled}
+            id={errorId ? `${errorId}-to` : undefined}
+            min={v.from || undefined}
+            onChange={(e) => setValue({ ...v, to: e.target.value })}
+            size={size}
+            value={v.to ?? ""}
+            variant={error ? "error" : "default"}
+            {...editorKeyHandlers(commit, cancel)}
+          />
+        </label>
+      </div>
     )
   },
 

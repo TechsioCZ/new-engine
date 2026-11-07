@@ -20,8 +20,13 @@
   /* SPACING */
   --padding-drawer-header: var(--dimension-24);
   --padding-drawer-body: var(--dimension-24);
+  --spacing-drawer-body-min-height: var(--dimension-120);
   --padding-drawer-footer: var(--dimension-24);
   --padding-drawer-grabber: var(--dimension-8);
+  --spacing-drawer-grabber-clearance: var(--dimension-0);
+  --padding-drawer-grabber-clearance: var(--spacing-drawer-grabber-clearance);
+  --spacing-drawer-scroll-inset: var(--dimension-0);
+  --spacing-drawer-scroll-padding: var(--spacing-drawer-scroll-inset);
   --spacing-drawer-bleed: var(--dimension-48);
   --spacing-drawer-indent-offset: var(--dimension-8);
   --gap-drawer-header: var(--dimension-8);
@@ -368,10 +373,52 @@
   }
 }
 
+/* Reserve the grabber strip outside the scrolling viewport on either vertical
+ * edge. Compensating the adjacent section's inset avoids adding the same space
+ * twice. Direct-child selectors must not pick up a nested drawer's grabber. */
+@utility drawer-grabber-clearance {
+  &:has(
+      > .drawer-visible-viewport
+        > [data-part="grabber"][data-swipe-direction="down"]
+    ) {
+    padding-top: var(--padding-drawer-grabber-clearance);
+
+    & > .drawer-visible-viewport > .drawer-header-clearance {
+      padding-top: max(
+        0px,
+        calc(
+          var(--padding-drawer-header) -
+          var(--padding-drawer-grabber-clearance)
+        )
+      );
+    }
+  }
+
+  &:has(
+      > .drawer-visible-viewport
+        > [data-part="grabber"][data-swipe-direction="up"]
+    ) {
+    padding-bottom: var(--padding-drawer-grabber-clearance);
+
+    & > .drawer-visible-viewport > .drawer-footer-clearance {
+      padding-bottom: max(
+        0px,
+        calc(
+          var(--padding-drawer-footer) -
+          var(--padding-drawer-grabber-clearance)
+        )
+      );
+    }
+  }
+}
+
 /* Keep machine measurements tied to the full panel; only the inner flex
  * viewport shrinks to the visible detent. Header/footer stay reachable while
- * Body owns scrolling, including during a drag between snap points. */
+ * Body owns scrolling, including during a drag between snap points. Body keeps
+ * a minimum height, so a detent shorter than header + footer scrolls this
+ * viewport instead of collapsing Body's own scrollport to its padding. */
 @utility drawer-visible-viewport {
+  scroll-padding-top: var(--spacing-drawer-scroll-padding);
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;

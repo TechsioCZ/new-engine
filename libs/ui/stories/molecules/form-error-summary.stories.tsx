@@ -248,6 +248,10 @@ export const DisclosedTarget: Story = {
     ).toHaveFocus()
     for (const disclosure of canvasElement.querySelectorAll("details"))
       await expect(disclosure).toHaveAttribute("open")
+    const heading = canvas.getByRole("heading", { name: "There is a problem" })
+    const errorLink = canvas.getByRole("link", { name: "Enter a contact email." })
+    await expect(Number.parseFloat(getComputedStyle(heading).fontSize)).toBeGreaterThanOrEqual(Number.parseFloat(getComputedStyle(errorLink).fontSize))
+    await expect(Number.parseFloat(getComputedStyle(heading).fontWeight)).toBeGreaterThanOrEqual(600)
     await userEvent.tab()
     await expect(canvas.getByRole("button", { name: "Continue" })).toHaveFocus()
   },
@@ -262,11 +266,13 @@ function DisclosedSummary() {
         ]}
       />
       <details>
-        <summary>Contact details</summary>
-        <details>
-          <summary>Email details</summary>
-          <FormInput id={id} label="Contact email" />
-          <Button type="button">Continue</Button>
+        <summary className="font-medium text-label-md">Contact details</summary>
+        <details className="mt-200">
+          <summary className="font-medium text-label-md">Email details</summary>
+          <div className="mt-200 flex flex-col gap-200">
+            <FormInput id={id} label="Contact email" />
+            <Button type="button">Continue</Button>
+          </div>
         </details>
       </details>
     </div>

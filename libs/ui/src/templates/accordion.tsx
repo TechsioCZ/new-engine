@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit template.
  *
  * @component Accordion
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.3
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,6 +11,18 @@
  */
 import type { IconType } from "../atoms/icon"
 import { Accordion, type AccordionProps } from "../molecules/accordion"
+import { tv } from "../utils"
+
+const accordionTemplateContentStyles = tv({
+  variants: {
+    size: {
+      sm: "px-(--padding-accordion-title-x-sm)",
+      md: "px-(--padding-accordion-title-x-md)",
+      lg: "px-(--padding-accordion-title-x-lg)",
+    },
+  },
+  defaultVariants: { size: "md" },
+})
 
 export type AccordionItem = {
   value: string
@@ -68,7 +80,11 @@ export function AccordionTemplate({
             <Accordion.Title>{item.title}</Accordion.Title>
             {showIndicator && <Accordion.Indicator icon={indicatorIcon} />}
           </Accordion.Header>
-          <Accordion.Content>{item.content}</Accordion.Content>
+          <Accordion.Content
+            className={accordionTemplateContentStyles({ size })}
+          >
+            {item.content}
+          </Accordion.Content>
         </Accordion.Item>
       ))}
     </Accordion>

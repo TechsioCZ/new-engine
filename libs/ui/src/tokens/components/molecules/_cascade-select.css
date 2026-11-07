@@ -7,6 +7,10 @@
   --color-cascade-select-foreground: var(--color-fg-primary);
   --color-cascade-select-accent: var(--color-popup-item-fg);
   --color-cascade-select-highlight: var(--color-popup-item-bg-hover);
+  --border-width-cascade-select-status-ring: var(--default-ring-width);
+  --spacing-cascade-select-hierarchy-hint: var(--dimension-0);
+  --spacing-cascade-select-status-offset: var(--dimension-0);
+  --spacing-cascade-select-edge: var(--spacing-150);
 
   /* Column derived layer */
   --color-cascade-select-column-bg: var(--color-cascade-select-surface);
@@ -17,11 +21,30 @@
   --color-cascade-select-step-fg: var(--color-cascade-select-foreground);
   --color-cascade-select-path-bg: var(--color-cascade-select-highlight);
   --color-cascade-select-path-border: var(--color-cascade-select-accent);
+  --color-cascade-select-continuation-bg: var(--color-cascade-select-surface);
+  --color-cascade-select-continuation-border: var(
+    --color-cascade-select-divider
+  );
+  --spacing-cascade-select-continuation-width: var(
+    --spacing-cascade-select-edge
+  );
+  --spacing-cascade-select-column-peek: var(
+    --spacing-cascade-select-hierarchy-hint
+  );
+  --spacing-cascade-select-status-margin: var(
+    --spacing-cascade-select-status-offset
+  );
+  --border-width-cascade-select-status-outline: var(
+    --border-width-cascade-select-status-ring
+  );
   --border-width-cascade-select-trigger: var(--border-width-form-control);
   --border-width-cascade-select-column: var(--border-width-sm);
   --border-width-cascade-select-path: var(--border-width-lg);
   --padding-cascade-select-column: var(--spacing-50);
   --padding-cascade-select-header: var(--spacing-150);
+  --padding-cascade-select-header-inline: var(--spacing-100);
+  --spacing-cascade-select-clear-inset: var(--spacing-100);
+  --padding-cascade-select-clear: var(--spacing-cascade-select-clear-inset);
   --gap-cascade-select-header: var(--spacing-100);
   --spacing-cascade-select-step: var(--spacing-250);
   --text-cascade-select-header-size: var(--text-xs);
@@ -78,21 +101,130 @@
 
 /* A wide trigger must not force the hierarchy beyond the overlay boundary. */
 @utility cascade-select-viewport {
+  --cascade-select-column-peek: 0px;
+  --_cascade-select-layout-width: var(--available-width);
   min-inline-size: min(var(--reference-width), var(--available-width));
-  max-inline-size: var(--available-width);
+  max-inline-size: var(--_cascade-select-layout-width);
+
+  /* Modal-owned portals keep their hierarchy within the owning field width. */
+  :where([role="dialog"]) & {
+    --_cascade-select-layout-width: min(
+      var(--reference-width),
+      var(--available-width)
+    );
+  }
+
+  /* A partial preceding column makes deeper overflow discoverable. */
+  &:has(> [data-part="column"][data-depth="2"]) {
+    --cascade-select-column-peek: var(--spacing-cascade-select-column-peek);
+  }
 }
 
-/* Two columns always fit side by side on narrow screens; deeper levels scroll.
-   Each column gives back one border width for the surface edges. */
+/* Measured translation cancels only this surface's native scrolling, keeping
+   inert paint at its edges even when the hierarchy exceeds several viewports.
+   Absolute pseudo-elements leave column sizing, :only-child and snaps intact. */
+@utility cascade-select-continuation {
+  position: relative;
+  --_cascade-select-continuation-start: to right;
+  --_cascade-select-continuation-end: to left;
+
+  &:dir(rtl) {
+    --_cascade-select-continuation-start: to left;
+    --_cascade-select-continuation-end: to right;
+  }
+
+  &::before,
+  &::after {
+    content: none;
+    position: absolute;
+    inset-block: 0;
+    inline-size: var(--spacing-cascade-select-continuation-width);
+    translate: var(--_cascade-select-continuation-offset, 0px) 0;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  &[data-overflow-start]::before {
+    content: "";
+    inset-inline-start: 0;
+    border-inline-start: var(--border-width-cascade-select-column) solid
+      var(--color-cascade-select-continuation-border);
+    background: linear-gradient(
+      var(--_cascade-select-continuation-start),
+      var(--color-cascade-select-continuation-bg),
+      transparent
+    );
+  }
+
+  &[data-overflow-end]::after {
+    content: "";
+    inset-inline-end: 0;
+    border-inline-end: var(--border-width-cascade-select-column) solid
+      var(--color-cascade-select-continuation-border);
+    background: linear-gradient(
+      var(--_cascade-select-continuation-end),
+      var(--color-cascade-select-continuation-bg),
+      transparent
+    );
+  }
+
+  /* Never paint over the tree's keyboard ring or a custom focused control. */
+  &:where(:focus-visible, :has(:focus-visible))::before,
+  &:where(:focus-visible, :has(:focus-visible))::after {
+    opacity: 0;
+  }
+
+  @media (forced-colors: active) {
+    &::before {
+      border-inline-start-color: CanvasText;
+      border-inline-start-style: dashed;
+    }
+    &::after {
+      border-inline-end-color: CanvasText;
+      border-inline-end-style: dashed;
+    }
+  }
+}
+
+/* Short headings retain the two-column measure. An unbreakable heading can
+   claim a wider column instead of becoming a narrow stack of fragments.
+   Each column still fits the viewport (or owning modal field), with a peek of
+   its preceding level when scrolling is needed. */
 @utility cascade-select-column-size {
-  inline-size: min(
+  inline-size: min-content;
+  min-inline-size: min(
     var(--container-cascade-select-column),
     calc(
-      var(--available-width, 100vw) /
+      (
+        var(--_cascade-select-layout-width, var(--available-width, 100vw)) -
+        var(--cascade-select-column-peek, 0px)
+      ) /
       2 -
       var(--border-width-cascade-select-column)
     )
   );
+  max-inline-size: min(
+    var(--container-cascade-select-column),
+    calc(
+      var(--_cascade-select-layout-width, var(--available-width, 100vw)) -
+      var(--cascade-select-column-peek, 0px) -
+      2 *
+      var(--border-width-cascade-select-column)
+    )
+  );
+
+  /* Let the existing flex-grow fill a sole column to the actual popup width.
+     Keep its intrinsic basis and let the popup enforce viewport/modal caps. */
+  &:where(:only-child) {
+    max-inline-size: 100%;
+  }
+}
+
+/* Unlike anywhere, break-word preserves the word's intrinsic contribution to
+   column sizing, then wraps the full label once the column reaches its cap. */
+@utility cascade-select-column-heading {
+  overflow-wrap: break-word;
 }
 
 /* Logical borders also separate columns and mark the path in RTL. */
@@ -110,11 +242,37 @@
     border-inline-start-color: var(--color-cascade-select-path-border);
   }
 
+  /* Indicators use the popup's existing gutter, not a second flex column.
+     A selected parent is the only row that needs both check and branch slots. */
+  &[data-state="checked"]:has(> [data-part="branch-indicator"]) {
+    padding-inline-end: calc(
+      var(--popup-item-x, var(--padding-popup-item-x-md)) +
+      2 *
+      var(--size-popup-indicator) +
+      var(--popup-item-gap, var(--spacing-popup-item-md))
+    );
+  }
+
+  &:has(> [data-part="branch-indicator"]) > [data-part="item-indicator"] {
+    inset-inline-end: calc(
+      var(--popup-item-x, var(--padding-popup-item-x-md)) +
+      var(--size-popup-indicator) +
+      var(--popup-item-gap, var(--spacing-popup-item-md))
+    );
+  }
+
   @media (forced-colors: active) {
     &[data-active-path] {
       border-inline-start-color: Highlight;
     }
   }
+}
+
+@utility cascade-select-row-indicator {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--popup-item-x, var(--padding-popup-item-x-md));
+  margin-block: auto;
 }
 
 /* === ICONS === */
@@ -142,6 +300,16 @@
   }
 }
 
+/* Inset only the paint: coarse-pointer hit areas and focus outlines stay full size.
+   Background clipping also applies to consumer, hover and pressed colors. */
+@utility cascade-select-clear-surface {
+  background-clip: content-box;
+
+  @media (pointer: coarse) {
+    padding: var(--padding-cascade-select-clear);
+  }
+}
+
 /* Clear is a sibling action, not part of the selected path's text box. */
 @utility cascade-select-clear-gutter {
   --cascade-select-clear-size: var(--size-icon-control-md);
@@ -153,7 +321,7 @@
     --cascade-select-chevron-size: var(--text-icon-control-sm);
   }
   &[data-size="lg"] {
-    --cascade-select-clear-size: var(--size-icon-control-lg);
+    --cascade-select-clear-size: var(--size-action-icon-lg);
     --cascade-select-chevron-size: var(--text-icon-control-lg);
   }
   [data-part="clear-trigger"] {

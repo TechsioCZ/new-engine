@@ -22,6 +22,7 @@
   --shadow-tour: var(--shadow-primary);
   --padding-tour: var(--dimension-20);
   --padding-tour-actions: var(--dimension-6);
+  --padding-tour-description: var(--spacing-tour-actions);
   --spacing-tour-content: var(--dimension-10);
   --spacing-tour-actions: var(--dimension-6);
   --spacing-tour-close: var(--dimension-10);
@@ -39,9 +40,29 @@
 }
 
 @utility tour-scroll-focus {
-  outline: var(--default-ring-width) var(--default-ring-style)
+  outline: var(--border-width-tour) var(--default-ring-style)
     var(--color-tour-ring-focus);
-  outline-offset: calc(-1 * var(--default-ring-width));
+  outline-offset: calc(-1 * var(--border-width-tour));
+}
+
+@utility tour-title-safe {
+  /* Reserve the close control's overlap plus a gap, including touch sizing. */
+  padding-inline-end: max(
+    var(--spacing-tour-title),
+    calc(
+      var(--size-icon-control-md) +
+      var(--spacing-tour-close) +
+      var(--spacing-tour-content) -
+      var(--padding-tour)
+    )
+  );
+}
+
+@utility tour-description {
+  /* Keep the padding needed by nested focus rings without indenting the copy. */
+  margin-inline: calc(-1 * var(--padding-tour-description));
+  text-wrap: wrap;
+  scrollbar-width: thin;
 }
 
 @utility tour-layer {
@@ -127,6 +148,12 @@
     /* Size against the inset container, not 100vw (which includes gutters). */
     max-width: 100%;
   }
+}
+
+/* Reserve the default spotlight ring without outranking caller margin rules.
+ * The native scroll action also covers custom offsets and unresolved targets. */
+:where([data-tour-highlighted]) {
+  scroll-margin: 10px;
 }
 
 @utility tour-arrow {

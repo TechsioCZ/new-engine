@@ -2,7 +2,7 @@
  * Textarea — @techsio/ui-kit atom.
  *
  * @component Textarea
- * @componentVersion v1.0.4
+ * @componentVersion v1.0.5
  * @skill textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -77,9 +77,9 @@ const textareaVariants = tv({
       ],
     },
     size: {
-      sm: "rounded-textarea-sm p-textarea-sm text-textarea-sm",
-      md: "rounded-textarea-md p-textarea-md text-textarea-md",
-      lg: "p-textarea-lg text-textarea-lg",
+      sm: "rounded-textarea-sm p-textarea-sm px-textarea-inline-sm text-textarea-sm",
+      md: "rounded-textarea-md p-textarea-md px-textarea-inline-md text-textarea-md",
+      lg: "p-textarea-lg px-textarea-inline-lg text-textarea-lg",
     },
     resize: {
       none: "resize-none",
@@ -88,7 +88,21 @@ const textareaVariants = tv({
       both: "resize",
       auto: "field-sizing-content resize-none",
     },
+    readOnly: {
+      true: "",
+    },
   },
+  compoundVariants: [
+    {
+      // Validation and borderless borders stay authoritative on read-only fields.
+      variant: "default",
+      readOnly: true,
+      class: [
+        "hover:border-textarea-border-readonly-hover",
+        "focus:border-textarea-border-readonly-focus",
+      ],
+    },
+  ],
   defaultVariants: {
     size: "md",
     resize: "y",
@@ -157,6 +171,7 @@ export function Textarea({
         size,
         resize,
         variant,
+        readOnly: Boolean(readOnly),
         className,
       })}
       data-readonly={readOnly ? "" : undefined}

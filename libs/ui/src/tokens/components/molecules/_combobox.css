@@ -9,6 +9,25 @@
  */
 
 @theme static {
+  /* Keep existing themes unchanged; Business refinements use local aliases. */
+  --color-combobox-clear: var(--color-icon-control-fg);
+  --color-combobox-clear-fg: var(--color-combobox-clear);
+  --text-combobox-chevron-glyph-sm: var(--text-icon-control-sm);
+  --text-combobox-chevron-glyph-md: var(--text-icon-control-md);
+  --text-combobox-chevron-glyph-lg: var(--text-icon-control-lg);
+  --text-combobox-chevron-sm: var(--text-combobox-chevron-glyph-sm);
+  --text-combobox-chevron-md: var(--text-combobox-chevron-glyph-md);
+  --text-combobox-chevron-lg: var(--text-combobox-chevron-glyph-lg);
+  --spacing-combobox-option-lg: var(--padding-popup-item-y-lg);
+  --padding-combobox-item-y-lg: var(--spacing-combobox-option-lg);
+
+  --color-combobox-readonly: var(--color-combobox-bg-base);
+  --color-combobox-readonly-hover: var(--color-combobox-bg-hover);
+  --color-combobox-readonly-focus: var(--color-combobox-bg-focus);
+  --color-combobox-bg-readonly: var(--color-combobox-readonly);
+  --color-combobox-bg-readonly-hover: var(--color-combobox-readonly-hover);
+  --color-combobox-bg-readonly-focus: var(--color-combobox-readonly-focus);
+
   --color-combobox-status: var(--color-popup-item-fg);
   --color-combobox-group: var(--color-popup-item-fg);
   --color-combobox-divider: var(--color-popup-border);
@@ -31,6 +50,9 @@
   --padding-combobox-input-lg: var(--spacing-combobox-lg);
 
   --padding-combobox-trigger: 0 var(--spacing-100);
+
+  --spacing-combobox-selected-item: var(--spacing-100);
+  --gap-combobox-selected-item: var(--spacing-combobox-selected-item);
 
   --text-combobox-group-label-size: var(--text-sm);
   --font-weight-combobox-group-label: var(--font-weight-semibold);
@@ -72,6 +94,26 @@
   }
 }
 
+@utility combobox-readonly-control {
+  &[data-readonly]:not([data-disabled]) {
+    background-color: var(--color-combobox-bg-readonly);
+
+    &:hover {
+      background-color: var(--color-combobox-bg-readonly-hover);
+    }
+
+    &[data-focus] {
+      background-color: var(--color-combobox-bg-readonly-focus);
+    }
+  }
+}
+
+@utility combobox-popup-lg {
+  @apply popup-size-lg;
+
+  --popup-item-y: var(--padding-combobox-item-y-lg);
+}
+
 /* Resolve the popup's size scale on each group label, footer, or status. */
 @utility combobox-popup-padding {
   padding: var(--popup-item-y, var(--padding-popup-item-y-md))
@@ -80,6 +122,25 @@
 
 @utility combobox-status-gap {
   gap: var(--popup-item-gap, var(--spacing-popup-item-md));
+}
+
+/* Resolve the shared action size on each chip, where theme/touch overrides
+ * apply, rather than freezing that alias on :root. */
+@utility combobox-selected-item {
+  min-block-size: calc(var(--size-icon-control-md) + var(--border-sm) * 2);
+
+  &[data-size="sm"] {
+    min-block-size: calc(var(--size-icon-control-sm) + var(--border-sm) * 2);
+  }
+
+  &[data-size="lg"] {
+    min-block-size: calc(var(--size-icon-control-lg) + var(--border-sm) * 2);
+  }
+}
+
+/* The ring remains recognizable in static/reduced-motion loading states. */
+@utility token-icon-combobox-spinner {
+  @apply icon-[mdi--progress-helper];
 }
 
 /* Semantic tokens for combobox icons */

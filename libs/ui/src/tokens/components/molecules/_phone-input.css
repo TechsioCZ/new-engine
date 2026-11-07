@@ -32,9 +32,15 @@
   }
 }
 
-/* Scope to the actual Select item state, including custom country compositions. */
+/* Keep metadata aligned with the whole row's selected, highlighted or disabled
+ * foreground, including custom country compositions. */
 @utility phone-input-item-meta {
-  [data-part="item"]:is([data-state="checked"], [data-highlighted]) & {
+  [data-part="item"]:is(
+      [data-state="checked"],
+      [data-highlighted],
+      [data-disabled]
+    )
+    & {
     color: inherit;
   }
 }

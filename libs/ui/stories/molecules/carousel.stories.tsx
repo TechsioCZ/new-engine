@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import {
+  StorySurface,
+  VariantContainer,
+  VariantGroup,
+} from "../../.storybook/decorator"
 import {
   Carousel,
   type CarouselRootProps,
@@ -65,7 +69,7 @@ const meta: Meta<StoryArgs> = {
   component: Carousel,
   tags: ["autodocs"],
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     docs: {
       source: {
         transform: (source: string) =>
@@ -83,9 +87,9 @@ const meta: Meta<StoryArgs> = {
   },
   decorators: [
     (Story) => (
-      <div className="mx-auto w-full max-w-lg">
+      <StorySurface className="max-w-lg">
         <Story />
-      </div>
+      </StorySurface>
     ),
   ],
   argTypes: {
@@ -446,7 +450,10 @@ export const ObjectFitDemo: Story = {
             aspectRatio="square"
             objectFit={fit}
           >
-            <Carousel.Slides slides={sampleImages.slice(0, 1)} />
+            <Carousel.Slides
+              className="bg-fill-highlight"
+              slides={sampleImages.slice(0, 1)}
+            />
           </Carousel>
         </VariantGroup>
       ))}
@@ -460,6 +467,18 @@ export const ObjectFitDemo: Story = {
           "Compare cropping, letterboxing, stretching and natural image size before choosing how media fits its viewport.",
       },
     },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const contain = canvas.getByRole("region", { name: "contain image fit" })
+    const media = contain.querySelector('[data-image-state]')!
+    const surface = getComputedStyle(media).backgroundColor
+    await expect(surface).not.toBe("rgba(0, 0, 0, 0)")
+    for (const fit of ["cover", "contain", "fill", "none"]) {
+      const region = canvas.getByRole("region", { name: `${fit} image fit` })
+      const viewport = region.querySelector('[data-part="item-group"]')!
+      await expect(getComputedStyle(viewport).backgroundColor).toBe(surface)
+    }
   },
 }
 

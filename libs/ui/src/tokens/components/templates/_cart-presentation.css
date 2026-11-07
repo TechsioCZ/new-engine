@@ -1,0 +1,10 @@
+@theme static {
+  /* Reference layer: retain the existing full cart width outside Business. */
+  --container-cart-presentation-quantity-limit: var(--container-xl);
+
+  /* Derived layer */
+  --container-cart-presentation-quantity: min(
+    100%,
+    var(--container-cart-presentation-quantity-limit)
+  );
+}

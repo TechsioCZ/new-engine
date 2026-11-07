@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { type CSSProperties, useEffect, useState } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 import { Button } from "../../src/atoms/button"
 import { StatusText } from "../../src/atoms/status-text"
@@ -8,7 +8,7 @@ import { Dialog } from "../../src/molecules/dialog"
 import { Drawer } from "../../src/molecules/drawer"
 import { Menu } from "../../src/molecules/menu"
 import { Popover } from "../../src/molecules/popover"
-import { ToastProvider, useToast } from "../../src/molecules/toast"
+import { createToaster, Toaster } from "../../src/molecules/toast"
 
 const meta = {
   title: "Molecules/Overlay regressions",
@@ -23,6 +23,20 @@ const meta = {
 
 export default meta
 type Story = StoryObj<typeof meta>
+
+async function assertFocusClearance(control: HTMLElement) {
+  const viewport = control.closest<HTMLElement>(".dialog-scroll-viewport")
+  await expect(viewport).not.toBeNull()
+  const style = getComputedStyle(viewport!)
+  const clearance = Number.parseFloat(style.paddingInlineStart)
+  await expect(clearance).toBeGreaterThan(0)
+  const outer = viewport!.getBoundingClientRect()
+  const inner = control.getBoundingClientRect()
+  await expect(inner.left - outer.left).toBeGreaterThanOrEqual(clearance - 0.5)
+  await expect(outer.right - inner.right).toBeGreaterThanOrEqual(clearance - 0.5)
+  await expect(inner.top - outer.top).toBeGreaterThanOrEqual(clearance - 0.5)
+  await expect(outer.bottom - inner.bottom).toBeGreaterThanOrEqual(clearance - 0.5)
+}
 
 export const Playground: Story = {
   name: "Tooltip Escape priority",
@@ -51,6 +65,7 @@ export const Playground: Story = {
     await expect(await body.findByRole("tooltip")).toBeVisible()
     const menuTrigger = within(modal).getByRole("button", { name: "Newer commands" })
     menuTrigger.focus()
+    await assertFocusClearance(menuTrigger)
     await userEvent.keyboard("{Enter}")
     const menu = await body.findByRole("menu")
     await waitFor(() => expect(menu).toHaveFocus())
@@ -110,14 +125,31 @@ export const ModalPopoverCommands: Story = {
       expect(within(outer).getByRole("button", { name: "Open delivery options" })).toHaveFocus()
     })
     await expect(outer).toBeVisible()
+    await assertFocusClearance(within(outer).getByRole("button", { name: "Open delivery options" }))
   },
 }
 
-function Notify() {
-  const toast = useToast()
+type NotificationStore = ReturnType<typeof createToaster>
+
+function Notify({ toast }: { toast: NotificationStore }) {
   const [message, setMessage] = useState("No catalog changes yet.")
   return (
-    <div className="space-y-200">
+    <div className="space-y-200" ref={(node) => {
+      if (!node) return
+      const content = node.closest<HTMLElement>('[data-scope="drawer"][data-part="content"]')
+      if (!content) return
+      // The toast portal inherits this measured clearance from its modal owner.
+      // Measure relative to the panel so its translated detents do not affect it.
+      const measure = () => content.style.setProperty(
+        "--overlay-regressions-notification-body-end",
+        `${node.getBoundingClientRect().bottom - content.getBoundingClientRect().top}px`,
+      )
+      measure()
+      const observer = new ResizeObserver(measure)
+      observer.observe(node)
+      observer.observe(content)
+      return () => observer.disconnect()
+    }}>
       <Button onClick={() => {
         setMessage("Catalog updated for this preview.")
         toast.create({
@@ -133,18 +165,35 @@ function Notify() {
   )
 }
 
-export const DetentNotifications: Story = {
-  parameters: { docs: { description: { story: "Notification actions and Alt+T stay visible and focusable inside a bottom Drawer at quarter, half and full-height snap points." } } },
-  render: () => (
-    <ToastProvider>
-      <Drawer placement="bottom" size="full" snapPoints={[0.25, 0.5, 1]} defaultSnapPoint={0.5}>
+// Keep the top-edge notification above partial detents, but below the header
+// and notification controls when the Drawer fills the viewport.
+function DetentNotificationsDemo() {
+  const [expanded, setExpanded] = useState(false)
+  const [toast] = useState(() => createToaster({
+    placement: "top-end",
+    offsets: {
+      top: "var(--overlay-regressions-notification-top, 24px)",
+      right: "24px",
+      bottom: "24px",
+      left: "24px",
+    },
+  }))
+  useEffect(() => () => toast.remove(), [toast])
+  return (
+    <>
+      <Drawer placement="bottom" size="full" snapPoints={[0.25, 0.5, 1]} defaultSnapPoint={0.5}
+        onSnapPointChange={({ snapPoint }) => setExpanded(snapPoint === 1)}>
         <Drawer.Trigger>Open notification drawer</Drawer.Trigger>
         <Drawer.Portal>
           <Drawer.Backdrop />
           <Drawer.Positioner>
-            <Drawer.Content>
+            <Drawer.Content style={{
+              "--overlay-regressions-notification-top": expanded
+                ? "calc(var(--overlay-regressions-notification-body-end, 0px) + var(--spacing-200))"
+                : "24px",
+            } as CSSProperties}>
               <Drawer.Header><Drawer.Title>Catalog updates</Drawer.Title></Drawer.Header>
-              <Drawer.Body><Notify /></Drawer.Body>
+              <Drawer.Body><Notify toast={toast} /></Drawer.Body>
               <Drawer.Footer>
                 <Drawer.Context>{(api) => <>{([0.25, 0.5, 1] as const).map((point) => <Button key={point} onClick={() => api.setSnapPoint(point)} variant="secondary">{point * 100}%</Button>)}</>}</Drawer.Context>
                 <Drawer.CloseTrigger>Close drawer</Drawer.CloseTrigger>
@@ -153,8 +202,14 @@ export const DetentNotifications: Story = {
           </Drawer.Positioner>
         </Drawer.Portal>
       </Drawer>
-    </ToastProvider>
-  ),
+      <Toaster store={toast} />
+    </>
+  )
+}
+
+export const DetentNotifications: Story = {
+  parameters: { docs: { description: { story: "Notification actions and Alt+T stay visible and focusable inside a bottom Drawer at quarter, half and full-height snap points, without covering its title, full-height notification controls or footer actions." } } },
+  render: () => <DetentNotificationsDemo />,
   play: async ({ canvasElement }) => {
     const doc = canvasElement.ownerDocument
     const body = within(doc.body)
@@ -162,6 +217,10 @@ export const DetentNotifications: Story = {
     const modal = await body.findByRole("dialog", { name: "Catalog updates" })
     await userEvent.click(within(modal).getByRole("button", { name: "Notify" }))
     const undo = await body.findByRole("button", { name: "Undo" })
+    const updateStatus = within(modal)
+      .getByText("Catalog updated for this preview.", { exact: true })
+      .closest<HTMLElement>('[role="status"]')
+    if (!updateStatus) throw new Error("Missing local update status")
     for (const detent of ["25%", "50%", "100%"]) {
       await userEvent.click(within(modal).getByRole("button", { name: detent }))
       undo.focus()
@@ -170,6 +229,23 @@ export const DetentNotifications: Story = {
         const rect = undo.getBoundingClientRect()
         expect(rect.top).toBeGreaterThanOrEqual(0)
         expect(rect.bottom).toBeLessThanOrEqual(doc.documentElement.clientHeight)
+      })
+      await waitFor(() => {
+        const notification = undo.closest<HTMLElement>('[data-scope="toast"][data-part="root"]')
+        expect(notification).not.toBeNull()
+        const toastRect = notification!.getBoundingClientRect()
+        const protectedElements = [
+          within(modal).getByText("Catalog updates", { exact: true }),
+          ...["25%", "50%", "100%", "Close drawer"].map((name) => within(modal).getByRole("button", { name })),
+          ...(detent === "100%" ? [
+            within(modal).getByRole("button", { name: "Notify" }),
+            updateStatus,
+          ] : []),
+        ]
+        for (const element of protectedElements) {
+          const rect = element.getBoundingClientRect()
+          expect(toastRect.bottom <= rect.top || toastRect.top >= rect.bottom || toastRect.right <= rect.left || toastRect.left >= rect.right).toBe(true)
+        }
       })
       await expect(modal.contains(undo)).toBe(true)
       await expect(undo.closest('[aria-hidden="true"], [inert]')).toBeNull()

@@ -1,0 +1,37 @@
+/* Only the comparison fixture reserves space beneath its absolute overlays.
+ * Three single-line links: line boxes + item padding + gaps + panel framing. */
+.header-size-preview {
+  font-size: var(--header-preview-text);
+
+  &[data-header-preview-size="sm"] {
+    --header-preview-text: var(--text-header-item-sm);
+    --header-preview-item-padding: var(--padding-header-item-sm);
+    --header-preview-nav-gap: var(--spacing-header-mobile-nav-sm);
+  }
+
+  &[data-header-preview-size="md"] {
+    --header-preview-text: var(--text-header-item-md);
+    --header-preview-item-padding: var(--padding-header-item-md);
+    --header-preview-nav-gap: var(--spacing-header-mobile-nav-md);
+  }
+
+  &[data-header-preview-size="lg"] {
+    --header-preview-text: var(--text-header-item-lg);
+    --header-preview-item-padding: var(--padding-header-item-lg);
+    --header-preview-nav-gap: var(--spacing-header-mobile-nav-lg);
+  }
+
+  &:has(.header-mobile[data-open="true"]) {
+    padding-block-end: calc(
+      3lh +
+      6 *
+      var(--header-preview-item-padding) +
+      2 *
+      var(--header-preview-nav-gap) +
+      2 *
+      var(--padding-header-mobile) +
+      2 *
+      var(--border-width-header-mobile)
+    );
+  }
+}

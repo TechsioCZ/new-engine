@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit template.
  *
  * @component Popover
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.3
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

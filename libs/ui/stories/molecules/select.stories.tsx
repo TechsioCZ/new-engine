@@ -48,6 +48,22 @@ function CountrySelect({ helpText, ...props }: DemoProps) {
   )
 }
 
+async function expectPopupAttachedToControl(trigger: HTMLElement, gutter = 8) {
+  const control = trigger.closest<HTMLElement>('[data-scope="select"][data-part="control"]')
+  if (!control) throw new Error("Missing Select control")
+  const popup = within(trigger.ownerDocument.body).getByRole("listbox")
+  await waitFor(() => {
+    const controlRect = control.getBoundingClientRect()
+    const popupRect = popup.getBoundingClientRect()
+    const gap = popupRect.top >= controlRect.bottom
+      ? popupRect.top - controlRect.bottom
+      : controlRect.top - popupRect.bottom
+    // Allow one CSS pixel for floating-point positioning on either browser.
+    expect(gap).toBeGreaterThanOrEqual(-1)
+    expect(gap).toBeLessThanOrEqual(gutter + 1)
+  })
+}
+
 const meta: Meta<typeof Select> = {
   title: "Molecules/Select",
   component: Select,
@@ -69,7 +85,7 @@ const meta: Meta<typeof Select> = {
 | \`Select.Trigger\` | Focusable \`button\` / \`HTMLButtonElement\` ref. Caller \`aria-labelledby\` wins; an explicit \`aria-label\` omits the generated label reference. |
 | \`Select.ValueText\` | \`span\` / \`HTMLSpanElement\` ref inside Trigger; displays selected items or \`placeholder\`, not an editable input. |
 | \`Select.ClearTrigger\` | Optional clear \`button\` / \`HTMLButtonElement\` ref; sibling of Trigger. |
-| \`Select.Positioner\` | Floating layout \`div\` / \`HTMLDivElement\` ref wrapping Content; \`portalled={false}\` keeps it inline. |
+| \`Select.Positioner\` | Floating layout \`div\` / \`HTMLDivElement\` ref wrapping Content; \`portalled={false}\` keeps it inline. The default popup stays attached to Select.Control rather than the label/helper stack; explicit positioning anchors and gutters remain authoritative. |
 | \`Select.Content\` | Listbox \`ul\` / \`HTMLUListElement\` ref containing options. Keep under Positioner. |
 | \`Select.Item\` | Option \`li\` / \`HTMLLIElement\` ref; required \`item\` must belong to the root's \`items\`. Contains ItemText and optional ItemIndicator. |
 | \`Select.ItemText\` / \`Select.ItemIndicator\` | Presentational text/indicator \`span\` parts inside Item. ItemText defaults to its item's label. |
@@ -209,12 +225,26 @@ export const Sizes: Story = {
       const clear = control.querySelector('[data-part="clear-trigger"]')?.getBoundingClientRect()
       if (!value || !clear) throw new Error("Missing value or clear action")
       await expect(value.right).toBeLessThanOrEqual(clear.x)
+      const trigger = within(control as HTMLElement).getByRole("combobox")
+      await userEvent.click(trigger)
+      await expectPopupAttachedToControl(trigger)
+      if (control.getAttribute("data-size") === "lg" && control.closest('[data-theme="business"]')) {
+        const option = within(canvasElement.ownerDocument.body).getAllByRole("option")[0]!
+        await expect(option.getBoundingClientRect().height).toBeLessThanOrEqual(trigger.getBoundingClientRect().height)
+      }
+      await userEvent.keyboard("{Escape}")
     }
   },
 }
 
 export const Disabled: Story = {
   args: { disabled: true, defaultValue: ["de"] },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("combobox", { name: "Country" })
+    const chevron = trigger.querySelector<HTMLElement>(".token-icon-select-indicator")!
+    await expect(chevron).not.toBeNull()
+    await expect(getComputedStyle(chevron).color).toBe(getComputedStyle(trigger).color)
+  },
   render: (args) => (
     <CountrySelect
       {...args}
@@ -290,6 +320,26 @@ export const ValidationStates: Story = {
           "Validation messages include state icons and stable descriptions, with error messages linked directly to the focusable trigger.",
       },
     },
+  },
+  play: async ({ canvasElement }) => {
+    for (const clear of within(canvasElement).getAllByRole("button", {
+      name: "Clear selection",
+    })) {
+      const style = getComputedStyle(clear)
+      const inset = Number.parseFloat(style.paddingTop)
+      await expect(style.backgroundClip).toBe("content-box")
+      await expect(inset).toBeGreaterThan(0)
+      const trigger = within(clear.parentElement!).getByRole("combobox")
+      const border = Number.parseFloat(getComputedStyle(trigger).borderTopWidth)
+      const clearBounds = clear.getBoundingClientRect()
+      const triggerBounds = trigger.getBoundingClientRect()
+      await expect(clearBounds.top + inset).toBeGreaterThanOrEqual(
+        triggerBounds.top + border
+      )
+      await expect(clearBounds.bottom - inset).toBeLessThanOrEqual(
+        triggerBounds.bottom - border
+      )
+    }
   },
 }
 
@@ -378,6 +428,20 @@ export const WithItemGroups: Story = {
       },
     },
   },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("combobox", { name: "Country" })
+    await userEvent.click(trigger)
+    const popup = within(canvasElement.ownerDocument.body).getByRole("listbox")
+    const heading = within(popup).getByText("Europe")
+    const option = within(popup).getByRole("option", { name: "Czech Republic" })
+    if (trigger.closest('[data-theme="business"]')) {
+      const headingStyle = getComputedStyle(heading)
+      const optionStyle = getComputedStyle(option)
+      await expect(Number(headingStyle.fontWeight)).toBeGreaterThan(Number(optionStyle.fontWeight))
+      await expect(Number.parseFloat(headingStyle.fontSize)).toBeLessThan(Number.parseFloat(optionStyle.fontSize))
+    }
+    await userEvent.keyboard("{Escape}")
+  },
 }
 
 const triggerClick = fn()
@@ -442,6 +506,7 @@ export const WithinForm: Story = {
         <div className="flex justify-end gap-150">
           <Button
             variant="secondary"
+            theme="outlined"
             type="button"
             onClick={() => setSaved(false)}
           >
@@ -502,6 +567,7 @@ export const MachineOptions: Story = {
       "aria-controls",
       "delivery-country-popup"
     )
+    await expectPopupAttachedToControl(trigger, 12)
   },
 }
 
@@ -597,7 +663,7 @@ function ChangingCountries() {
     <SelectTemplate label="Multiple countries" items={items} name="multiple" multiple
       defaultValue={["a", "b"]} />
     <Button variant="secondary" onClick={() => setRemoved(true)}>Replace countries</Button>
-    <output aria-label="Collection changes">{changes}</output>
+    <output aria-label="Collection changes" className="text-fg-secondary text-sm">Collection changes: {changes}</output>
   </form>
 }
 
