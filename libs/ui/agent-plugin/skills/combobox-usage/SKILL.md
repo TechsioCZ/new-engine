@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/combobox"
   contributor_sources: "libs/ui/src/molecules/combobox.tsx libs/ui/src/tokens/components/molecules/_combobox.css libs/ui/stories/molecules/combobox.stories.tsx libs/ui/src/molecules/combobox.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -57,6 +57,23 @@ where actions and feedback live). This section applies them to `Combobox`.
 **Copy and states**
 
 - Placeholder is an example or instruction (`Search customers…`), never the label.
+
+**Behaviour (from the UX spec)**
+
+- The typed query is a draft, never the value: browsing commits nothing, choosing an option commits its identity, closing without choosing keeps the previous value.
+- Clear (×) clears the value or query only; it never deletes the record the value represents.
+- Tell loading, no matches and a failed load apart (`loading`, `noResultsMessage`, `error` + `onRetry`); an older async response never replaces a newer query's results.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=error` / `success` / `warning` | `validateStatus` |
+| `state=disabled` | `disabled` |
+| `combobox-content` (`state=options` / `empty`) | no part; the list is driven by `items`/`groups`, `noResultsMessage`, `loading`, `error` |
+| no read-only or multiple | `readOnly`, `multiple` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Combobox → UX guidelines*.
 
 ## Setup
 

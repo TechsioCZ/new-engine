@@ -14,6 +14,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/popover.tsx"
   - "libs/ui/src/tokens/components/molecules/_popover.css"
@@ -59,6 +61,22 @@ where actions and feedback live). This section applies them to `Popover`.
 **Copy and states**
 
 - Trigger text says what opens (`Filters`, `Share`); count active filters in the trigger (`Filters (2)`).
+
+**Behaviour (from the UX spec)**
+
+- Closing (Escape, outside click, close button) never applies a half-made change; an unapplied filter draft is discarded.
+- Without a visible title, give `Popover.Content` an `aria-label`; without a close button, Escape and outside click must still close it.
+- `placement` is a preference: the kit flips on collision (`flip` defaults to `true`).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `showArrow` | `<Popover.Arrow />` |
+| Popover/Content `showTitle`, `showDescription`, `showCloseButton` | the `Title`, `Description`, `CloseTrigger` parts |
+| Popover/Placement set `placement=…` | `placement` on the root (reference set, not a component) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Popover → UX guidelines*.
 
 ## Setup
 

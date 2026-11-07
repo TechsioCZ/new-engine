@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/menu.tsx"
   - "libs/ui/src/tokens/components/molecules/_menu.css"
@@ -46,7 +48,7 @@ where actions and feedback live). This section applies them to `Menu`.
 
 **Do**
 
-- Order items by frequency; group with separators; destructive items last and in danger tone.
+- Order items by frequency; group with separators; destructive items last, with a label that names the consequence (menu items have no danger tone).
 - Label items as verbs (`Duplicate`, `Archive`, `Delete…`); `…` when the item opens a dialog asking for more input.
 - Show shortcuts with Hotkeys when they exist.
 - Disable an unavailable item only if the reason is obvious; otherwise hide it.
@@ -59,6 +61,21 @@ where actions and feedback live). This section applies them to `Menu`.
 **Copy and states**
 
 - Trigger for overflow: ActionIcon with `aria-label="More actions"`.
+
+**Behaviour (from the UX spec)**
+
+- Opening the menu or highlighting an item runs nothing; only activation does. Closing without choosing changes nothing.
+- The app confirms the result on the object or with a toast, never inside the menu.
+- Use `link` items for navigation and `action` items for commands, in separate groups.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm\|md\|lg` | `size` (`xs` is legacy, DataTable only) |
+| menu-trigger / submenu / check glyphs | `triggerIcon`, `submenu` items, `checkbox`/`radio` items |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Menu → UX guidelines*.
 
 ## Setup
 
@@ -78,6 +95,7 @@ Supported item types:
 
 ```text
 action: value, label, icon, disabled
+link: value, label, href, target, rel, icon, disabled
 radio: value, label, name, checked
 checkbox: value, label, checked
 separator: id

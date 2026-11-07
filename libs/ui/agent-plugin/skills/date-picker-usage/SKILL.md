@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/date-input https://zagjs.com/components/react/date-picker https://react-aria.adobe.com/internationalized/date/"
   contributor_sources: "libs/ui/src/molecules/date-picker.tsx libs/ui/src/tokens/components/molecules/_date-picker.css libs/ui/stories/molecules/date-picker.stories.tsx"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -78,6 +78,24 @@ where actions and feedback live). This section applies them to `DatePicker`.
 
 - Label names the date's meaning (`Delivery date`, `Publish at`), not `Date`.
 - Validation says the allowed range in formatted dates: `Choose a date between 4 Sept 2026 and 30 Sept 2026.`
+
+**Behaviour (from the UX spec)**
+
+- Changing the month or year only changes the view; it never confirms a day or completes a range.
+- Today, selected and unavailable days look different, not by colour alone; today is never treated as the selected value.
+- In timed range mode, start and end times are named separately, and an overnight range is validated with its dates, not only the clock order.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=error` | `invalid` + `DatePicker.StatusText` |
+| `state=readonly` | `readOnly` |
+| `datepicker-periodview` (`view=month` / `year`) | the calendar heading's views; not a part |
+| `datepicker-calendarday` states | rendered by `DatePicker.Calendar` from the value, `min`/`max`, `isDateUnavailable` |
+| `datepicker-timecontrol` | `DatePicker.TimeControl` + `Footer` (Cancel, Confirm) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/DatePicker → UX guidelines*.
 
 ## Setup
 

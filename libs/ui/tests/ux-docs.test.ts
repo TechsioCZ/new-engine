@@ -20,6 +20,7 @@ const MD_SUFFIX = /\.md$/
 const ATTACHED_META = /<Meta of=\{\w+\} name="UX guidelines" \/>/
 const STORIES_IMPORT = /from "\.\/([\w-]+)\.stories"/
 const RELATIVE_LINK = /\[[^\]]+\]\(((?!https?:|mailto:|#)[^)\s]+)\)/g
+const STORY_TITLE = /^\s*title:\s*["']([^"']+)["']/m
 
 const uiRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const skillsDir = join(uiRoot, "skills")
@@ -67,7 +68,7 @@ describe("UX guidelines pages", () => {
       join(dirname(pages[0] as string), `${storiesImport}.stories.tsx`),
       "utf8"
     )
-    expect(stories).toContain(`title: "${UX_COMPONENT_TITLES[name]}"`)
+    expect(stories.match(STORY_TITLE)?.[1]).toBe(UX_COMPONENT_TITLES[name])
   })
 
   it("maps exactly the components that have a page", () => {
@@ -115,9 +116,9 @@ describe("Storybook link mapping", () => {
   it("renders links without a Storybook page as plain text", () => {
     expect(
       toStorybookMarkdown(
-        "See [Tabs](../../tabs-usage/references/ux.md) and [skill](../SKILL.md)."
+        "See [Widget](../../widget-usage/references/ux.md) and [skill](../SKILL.md)."
       )
-    ).toBe("See Tabs and skill.")
+    ).toBe("See Widget and skill.")
   })
 
   it("drops the source comment and keeps external links", () => {

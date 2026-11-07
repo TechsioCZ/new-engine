@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/atoms/skeleton.tsx libs/ui/src/tokens/components/atoms/_skeleton.css libs/ui/stories/atoms/skeleton.stories.tsx libs/ui/src/atoms/skeleton-rectangle.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -53,6 +53,22 @@ where actions and feedback live). This section applies them to `Skeleton`.
 **Copy and states**
 
 - Announce loading once for assistive tech (`Loading orders`).
+
+**Behaviour (from the UX spec)**
+
+- `speed` is the pulse tempo only; it never conveys progress or time left.
+- `noOfLines` and `lastLineWidth` hint at structure, not at the real length or a text limit.
+- On retry, only the missing area waits again; confirmed content around it is not reset to placeholders.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| Skeleton/Circle, /Rectangle, /Text sets | `Skeleton.Circle`, `Skeleton.Rectangle`, `Skeleton.Text` inside one `<Skeleton isLoaded>` |
+| Text `noOfLines=1\|3\|5`, `lastLineWidth=60%\|80%\|90%` | any number / any CSS width |
+| Text `size` | gap between lines |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Skeleton → UX guidelines*.
 
 ## Setup
 

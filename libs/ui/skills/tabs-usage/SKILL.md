@@ -15,6 +15,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/tabs.tsx"
   - "libs/ui/src/tokens/components/molecules/_tabs.css"
@@ -60,6 +62,23 @@ where actions and feedback live). This section applies them to `Tabs`.
 **Copy and states**
 
 - Nouns in sentence case; counts in parentheses or a Badge (`Orders 12`).
+
+**Behaviour (from the UX spec)**
+
+- Use one `activationMode` per set; choose `"manual"` when switching a panel is expensive (loads data).
+- Switching tabs never commits or discards data; a form in a panel keeps its draft.
+- The selected tab always matches the panel shown; the indicator moves only when the panel changes, never on hover or focus.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant`, `size`, `orientation` | same prop names and values |
+| `state=selected` | `value` / `defaultValue` |
+| `state=disabled` | `disabled` on `Tabs.Trigger` |
+| — | `activationMode`, `fitted`, `justify` (not in Figma) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Tabs → UX guidelines*.
 
 ## Setup
 

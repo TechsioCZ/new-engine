@@ -14,6 +14,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/drawer.tsx"
   - "libs/ui/src/internal/molecules/drawer.context.tsx"
@@ -62,6 +64,24 @@ where actions and feedback live). This section applies them to `Drawer`.
 **Copy and states**
 
 - Title names the content (`Cart (3)`, `Filters`); filter drawers end with `[Reset] [Show 24 results]`.
+
+**Behaviour (from the UX spec)**
+
+- Moving, snapping or closing the panel never saves. Closing with unsaved changes asks first.
+- Every drag outcome (snap, dismiss) has a non-drag equivalent: close button, footer action or Escape.
+- With `snapPoints`, keep the footer actions and close reachable at the lowest snap point.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `Drawer.Side` set, `placement=start\|end` | `<Drawer placement="start" \| "end">` |
+| `Drawer.Sheet` set, `placement=top\|bottom` | `<Drawer placement="top" \| "bottom">` |
+| `backdrop`, `showHeader`, `showFooter`, `showGrabber` | the `Backdrop`, `Header`, `Footer`, `Grabber` parts |
+| Grabber `orientation` | not a prop; follows `placement` |
+| — | `snapPoints`, `modal={false}`, `Drawer.Stack` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Drawer → UX guidelines*.
 
 ## Setup
 

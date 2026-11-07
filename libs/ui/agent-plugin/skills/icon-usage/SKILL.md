@@ -9,9 +9,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/atoms/icon.tsx libs/ui/src/tokens/components/atoms/_icon.css libs/ui/stories/atoms/icon.stories.tsx libs/ui/src/atoms/icon.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -56,6 +56,23 @@ where actions and feedback live). This section applies them to `Icon`.
 **Copy and states**
 
 - No text inside icons; meaning lives in the adjacent label.
+
+**Behaviour (from the UX spec)**
+
+- Classify every icon first: decorative (`aria-hidden`, the default), informative (`label`, or visible text), or inside a control (the control has the name).
+- `size="current"` is 1em of the surrounding text in code but a fixed 16 px preview in Figma; don't read Figma sizes literally.
+- Pick a `token-icon-*` glyph by its meaning in the host's slot. The glyph → meaning → host table, with what each glyph never means, is on the UX page.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=current` (16 px preview) | `size="current"` (1em) |
+| `size=xs…2xl`, `color=current…warning` | same prop names and values |
+| `token-icon-cog`, `-filter`, `-sort-unfold`, `-drag-horizontal`, `-drag-vertical`, `-row-edit`, `-table-empty` | no token; DataTable uses `icon-[mdi--…]` classes |
+| glyph doc "Vazba" (host) | ignore; the host is whichever component uses the token in code |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Icon → UX guidelines*.
 
 ## Setup
 

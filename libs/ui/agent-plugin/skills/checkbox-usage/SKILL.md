@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/atoms/checkbox.tsx libs/ui/src/molecules/form-checkbox.tsx libs/ui/src/tokens/components/atoms/_checkbox.css libs/ui/stories/atoms/checkbox.stories.tsx libs/ui/src/atoms/checkbox.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -55,6 +55,22 @@ where actions and feedback live). This section applies them to `Checkbox`.
 **Copy and states**
 
 - Positive, parallel statements; no trailing punctuation for short labels.
+
+**Behaviour (from the UX spec)**
+
+- Checking a row only selects it; export, assign or delete is a separate named action. A select-all on a paged list selects the visible page — say so.
+- `indeterminate` is a partial group, never a third answer; in the mixed state, activation selects the whole group.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=checked` / `indeterminate` | `checked` / `indeterminate` |
+| `state=error` | `invalid` (combinable with `checked` in code) |
+| `disabled=true` | `disabled` |
+| — (not in Figma) | `size="sm" \| "md" \| "lg"`, `readOnly` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Checkbox → UX guidelines*.
 
 ## Setup
 

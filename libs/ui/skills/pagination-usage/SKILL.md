@@ -14,6 +14,8 @@ requires:
   - framework-consumer-integration
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/pagination.tsx"
   - "libs/ui/src/tokens/components/molecules/_pagination.css"
@@ -62,6 +64,21 @@ where actions and feedback live). This section applies them to `Pagination`.
 **Copy and states**
 
 - Controls `Previous page`, `Next page`, `Page 3`; current page marked with `aria-current`.
+
+**Behaviour (from the UX spec)**
+
+- The current page always matches the data shown; when a filter shrinks the range, move to an existing page instead of an empty one.
+- Never split one form or linear process into pages (use Steps).
+- Cross-page selection, if any, has its own scoped control outside Pagination.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=filled\|outlined\|minimal`, `size=sm…lg` | same prop names and values |
+| — | `compact`, `siblingCount`, `boundaryCount`, `showPrevNext` (not in Figma) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Pagination → UX guidelines*.
 
 ## Setup
 

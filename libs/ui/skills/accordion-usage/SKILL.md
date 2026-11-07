@@ -14,6 +14,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/accordion.tsx"
   - "libs/ui/src/tokens/components/molecules/_accordion.css"
@@ -65,6 +67,23 @@ where actions and feedback live). This section applies them to `Accordion`.
 
 - Trigger text in sentence case, no trailing colon or punctuation.
 - If a collapsed section contains an error, open it on submit and focus the field (see ux-guidelines/states).
+
+**Behaviour (from the UX spec)**
+
+- Opening or closing a section never saves, submits, confirms consent or navigates; collapsing keeps any draft inside it.
+- `Accordion.Title` alone must identify the section. `Accordion.Subtitle` is one short context line; long explanations go in Content.
+- The indicator mirrors the real open state; the header is the only control.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant`, `shadow`, `size` | same prop names and values |
+| `state=collapsed` / `expanded` | `value` / `defaultValue` (array of item values) |
+| `state=disabled` | `disabled` on the root or on `Accordion.Item` |
+| AccordionIndicator / indicator icon | `Accordion.Indicator` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Accordion → UX guidelines*.
 
 ## Setup
 

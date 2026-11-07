@@ -1,4 +1,4 @@
-# techsio-ui-kit-ai v0.3.0
+# techsio-ui-kit-ai v0.4.0
 
 Agent plugin for the **@techsio/ui-kit** design system, packaged to the
 **[Agent Plugins 1.0.0](https://agent-plugins.org)** standard
@@ -46,11 +46,10 @@ compositions (`Pages/*`) and the kit's components:
 
 Every `<component>-usage` skill applies these rules in its own **UX/UI guidelines** section:
 when to use it, what to use instead, do, don't, copy and states, plus a Figma → code table.
-Components with a full UX page also ship it as `references/ux.md` (anatomy, states,
-behaviour, edge cases). The same Markdown files render in Storybook — the house rules under
+Each one also ships the component's full UX page as `references/ux.md` (anatomy, states,
+behaviour, edge cases); the Icon page carries the glyph → meaning → host table. The same Markdown files render in Storybook — the house rules under
 `UX/`, each component's page as **UX guidelines** next to its stories — so edit them once in
-`libs/ui/skills/`. `scripts/validate-plugin.mjs` fails when a usage skill has no page and isn't
-listed in its temporary `UX_PAGE_PENDING` allowlist.
+`libs/ui/skills/`. `scripts/validate-plugin.mjs` fails when a usage skill has no page.
 
 > **Note on slash commands:** Codex deprecated `~/.codex/prompts` custom prompts in favor of
 > skills. Skills ARE the slash commands now — invoke them explicitly with `$skill-name` (or

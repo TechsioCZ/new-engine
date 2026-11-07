@@ -1,0 +1,8 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+import source from "../../skills/chart-usage/references/ux.md?raw"
+import { UxMarkdown } from "../helpers/ux-markdown"
+import * as ChartStories from "./chart.stories"
+
+<Meta of={ChartStories} name="UX guidelines" />
+
+<UxMarkdown source={source} />

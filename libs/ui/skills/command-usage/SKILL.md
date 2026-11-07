@@ -14,6 +14,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/command.tsx"
   - "libs/ui/src/internal/molecules/command.context.ts"
@@ -69,6 +71,23 @@ where actions and feedback live). This section applies them to `Command`.
 **Copy and states**
 
 - Placeholder `Type a command or search…`; empty state `No results for “exprt”`.
+
+**Behaviour (from the UX spec)**
+
+- An unavailable command (`disabled`) looks and reads different from "no match"; zero matches is not an outage, and remote loading or load errors are not shown as "no results".
+- Closing without choosing changes nothing; the app confirms results where the object lives.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=disabled-item` | item `disabled: true` |
+| `state=disabled` | `disabled` on the root |
+| `state=grouped` | items with `group` + `Command.ItemGroup` / `ItemGroupLabel` |
+| `state=empty` | `Command.Empty` |
+| `state=highlighted` | not a prop (kit highlight state) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Command → UX guidelines*.
 
 ## Setup
 

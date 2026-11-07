@@ -10,7 +10,7 @@ metadata:
   component: "ActionIcon"
   component_version: "1.1.2"
   requires: "ux-guidelines"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -59,6 +59,24 @@ where actions and feedback live). This section applies them to `ActionIcon`.
 
 - The `aria-label` and Tooltip text follow button-label rules from ux-guidelines/ux-writing.
 - Destructive icon actions still confirm or offer Undo (ux-guidelines/feedback-and-actions).
+
+**Behaviour (from the UX spec)**
+
+- The glyph is a prop: any `icon` that matches the action. The design file's fixed ✕ master and `Table.IconButton` are both this component.
+- A close (✕) ActionIcon only closes; the host layer resolves unsaved drafts and returns focus. It never saves or deletes.
+- There is no loading state; show progress on the row or surface the action changes.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| fixed ✕ glyph | `icon` (any `token-icon-*` / `icon-[…]`) |
+| `size=sm…lg`, `tone=neutral\|danger` | same prop names and values |
+| — | `disabled` (removed from tab order) |
+| `state=hover` | not a prop (browser state) |
+| `Table.IconButton` | `ActionIcon` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/ActionIcon → UX guidelines*.
 
 ## Accessibility
 

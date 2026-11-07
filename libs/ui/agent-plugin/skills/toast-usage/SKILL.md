@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/toast"
   contributor_sources: "libs/ui/src/molecules/toast.tsx libs/ui/src/tokens/components/molecules/_toast.css libs/ui/stories/molecules/toast.stories.tsx libs/ui/src/molecules/toast.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -61,6 +61,22 @@ where actions and feedback live). This section applies them to `Toast`.
 
 - Never `Success!`, `Done` or `Saved` alone — name the object (`Settings saved`).
 - Errors: `Product not saved` + reason + `Try again`.
+
+**Behaviour (from the UX spec)**
+
+- Show the toast only after the real result. Closing it or letting it time out never undoes the operation; only an explicit `Undo` does.
+- Set `duration` explicitly to match the house timings: Zag's own default for `success` is only 2 s. Errors with an action and `loading` use `Infinity`.
+- A timed action (`Undo`, `Try again`) must be keyboard-reachable before the toast disappears; never take focus from the user's work.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `type=default` | `type: "message"` (Code Connect); prefer `info` |
+| — | `type: "loading"` (missing in Figma; use it for background work) |
+| close icon | `closable` (default `true`) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Toast → UX guidelines*.
 
 ## Setup
 

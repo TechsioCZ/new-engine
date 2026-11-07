@@ -12,6 +12,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/label.tsx"
   - "libs/ui/src/tokens/components/atoms/_label.css"
@@ -53,6 +55,20 @@ where actions and feedback live). This section applies them to `Label`.
 **Copy and states**
 
 - Sentence case, no punctuation; units in parentheses (`Weight (kg)`).
+
+**Behaviour (from the UX spec)**
+
+- Disabled styling matches a control that is really unavailable; it never makes a saved value hard to read.
+- The label names the value (`Supplier`), not an example of it; two neighbouring fields never share a generic label.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=current` | `size="current"` (code default; inherits text size — the Figma md preview is not its real size) |
+| `size=sm…lg`, `disabled`, `required` | same prop names |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Label → UX guidelines*.
 
 ## Setup
 
