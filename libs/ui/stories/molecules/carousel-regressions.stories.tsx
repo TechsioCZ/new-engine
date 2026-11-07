@@ -36,7 +36,7 @@ function CollectionExample({
         </Button>
         <Input
           aria-label={`Caption ${index + 1}`}
-          defaultValue="Editable caption"
+          defaultValue={slidesPerPage > 1 ? "Caption" : "Editable caption"}
           size="sm"
         />
         <Textarea
@@ -51,7 +51,7 @@ function CollectionExample({
           suppressContentEditableWarning
           aria-label={`Rich caption ${index + 1}`}
         >
-          <span>Editable rich caption</span>
+          <span>{slidesPerPage > 1 ? "Rich caption" : "Editable rich caption"}</span>
         </div>
         <Input
           aria-label={`Rating ${index + 1}`}
@@ -108,7 +108,7 @@ function CollectionExample({
       >
         <Carousel.Slides slides={slides} />
         {showControls && (
-          <Carousel.Control controlPosition="unset">
+          <Carousel.Control className="mt-200" controlPosition="unset">
             <Carousel.Previous />
             <Carousel.Indicators />
             <Carousel.Next />
@@ -219,6 +219,57 @@ export const Playground: Story = {
 
 export const MultipleVisibleSlides: Story = {
   render: () => <CollectionExample slidesPerPage={2} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const expectVisibleSlides = () => {
+      for (const slide of [1, 2]) {
+        const caption = canvas.getByRole("textbox", { name: `Caption ${slide}` })
+        expect(caption).toBeVisible()
+        expect(caption).toHaveValue("Caption")
+        expect(
+          canvas.getByRole("textbox", { name: `Rich caption ${slide}` })
+        ).toHaveTextContent("Rich caption")
+      }
+      const slides = canvasElement.querySelectorAll('[data-part="item"]')
+      expect(slides).toHaveLength(4)
+      for (const [index, slide] of Array.from(slides).entries()) {
+        if (index < 2) {
+          expect(slide).not.toHaveAttribute("aria-hidden", "true")
+          expect(slide).not.toHaveAttribute("inert")
+        } else {
+          expect(slide).toHaveAttribute("aria-hidden", "true")
+          expect(slide).toHaveAttribute("inert")
+          expect(
+            canvas.queryByRole("textbox", { name: `Caption ${index + 1}` })
+          ).not.toBeInTheDocument()
+        }
+      }
+      expect(canvas.getByRole("button", { name: "Previous slide" })).toBeDisabled()
+      expect(canvas.getByRole("button", { name: "Next slide" })).toBeEnabled()
+      expect(
+        canvas.getByRole("button", { name: "Go to slide 1" })
+      ).toHaveAttribute("aria-current", "true")
+    }
+    // Slide accessibility follows asynchronous viewport measurement, not just React's commit.
+    await waitFor(expectVisibleSlides)
+    const originalSlides = Array.from(
+      canvasElement.querySelectorAll('[data-part="item"]')
+    )
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Replace all slide IDs" })
+    )
+    await waitFor(() => {
+      expectVisibleSlides()
+      const replacements = canvasElement.querySelectorAll('[data-part="item"]')
+      for (const [index, slide] of Array.from(replacements).entries()) {
+        expect(slide).not.toBe(originalSlides[index])
+      }
+    })
+    await userEvent.click(canvas.getByRole("button", { name: "Open slide 2" }))
+    await expect(canvas.getByRole("status")).toHaveTextContent(
+      "Opened slide 2 locally."
+    )
+  },
   parameters: {
     docs: {
       description: {
@@ -242,7 +293,7 @@ export const ControlFreeRtl: Story = {
 
 export const IndependentCollections: Story = {
   render: () => (
-    <div className="flex flex-col gap-400">
+    <div className="flex flex-col gap-400 p-200">
       <CollectionExample label="First editable collection" />
       <CollectionExample label="Second editable collection" />
     </div>
@@ -265,5 +316,31 @@ export const IndependentCollections: Story = {
     await userEvent.keyboard("{ArrowRight}")
     await waitFor(() => expect(examples[0]).toHaveAttribute("data-page", "1"))
     await expect(examples[1]).toHaveAttribute("data-page", "0")
+    await waitFor(() => {
+      const focused = canvasElement.ownerDocument.activeElement
+      if (!(focused instanceof HTMLElement)) {
+        throw new Error("The first carousel must retain keyboard focus.")
+      }
+      expect(examples[0]).toContainElement(focused)
+      const style = getComputedStyle(focused)
+      const outline = Number.parseFloat(style.outlineWidth)
+      expect(outline).toBeGreaterThan(0)
+      const reserve = outline + Math.max(0, Number.parseFloat(style.outlineOffset))
+      const bounds = focused.getBoundingClientRect()
+      const root = canvasElement.getBoundingClientRect()
+      expect(bounds.left - reserve).toBeGreaterThanOrEqual(root.left - 1)
+      expect(bounds.right + reserve).toBeLessThanOrEqual(root.right + 1)
+      expect(bounds.top - reserve).toBeGreaterThanOrEqual(root.top - 1)
+      expect(bounds.bottom + reserve).toBeLessThanOrEqual(root.bottom + 1)
+      const viewport = examples[0]!.querySelector('[data-part="item-group"]')!
+      const controls = examples[0]!.querySelector('[data-part="control"]')!
+      const viewportStyle = getComputedStyle(viewport)
+      const viewportReserve =
+        Number.parseFloat(viewportStyle.outlineWidth) +
+        Math.max(0, Number.parseFloat(viewportStyle.outlineOffset))
+      expect(controls.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+        viewport.getBoundingClientRect().bottom + viewportReserve + 4
+      )
+    })
   },
 }

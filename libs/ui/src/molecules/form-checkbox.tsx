@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -98,6 +98,7 @@ const checkboxVariants = tv({
       "data-disabled:text-label-fg-disabled",
     ],
     hiddenInput: "sr-only",
+    description: "data-disabled:text-label-fg-disabled",
     textIndented: "",
   },
   variants: {
@@ -216,6 +217,11 @@ export function FormCheckbox({
   })
 
   const api = connect(service, normalizeProps)
+  const rootProps = api.getRootProps() as ReturnType<
+    typeof api.getRootProps
+  > & {
+    "data-disabled"?: string
+  }
   const inputProps = getControlledChoiceInputProps(
     mergeChoiceInputProps(nativeInputProps, api.getHiddenInputProps()),
     api.checked,
@@ -229,7 +235,7 @@ export function FormCheckbox({
 
   return (
     <div className={className}>
-      <label className={styles.root()} {...api.getRootProps()}>
+      <label className={styles.root()} {...rootProps}>
         <div className={styles.control()} {...api.getControlProps()}>
           <span className={styles.indicator()} {...api.getIndicatorProps()} />
         </div>
@@ -265,6 +271,8 @@ export function FormCheckbox({
       {helpText && (
         <div className={styles.textIndented()} data-icon={showIcon}>
           <StatusText
+            className={styles.description()}
+            data-disabled={rootProps["data-disabled"]}
             id={helpTextId}
             showIcon={showIcon}
             size={size}

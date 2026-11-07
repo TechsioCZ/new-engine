@@ -19,7 +19,7 @@ const meta: Meta<ProductCardTemplateProps> = {
   title: "Templates/ProductCardTemplate",
   component: ProductCardTemplate,
   parameters: {
-    layout: "centered",
+    layout: "padded",
     docs: {
       description: {
         component:
@@ -28,7 +28,12 @@ const meta: Meta<ProductCardTemplateProps> = {
     },
   },
   tags: ["autodocs"],
-  args: { onAddToCart: fn(), onViewDetails: fn(), onAddToWishlist: fn() },
+  args: {
+    className: "w-sm max-w-full",
+    onAddToCart: fn(),
+    onViewDetails: fn(),
+    onAddToWishlist: fn(),
+  },
   argTypes: {
     layout: {
       control: "select",
@@ -139,6 +144,73 @@ const meta: Meta<ProductCardTemplateProps> = {
 export default meta
 type Story = StoryObj<ProductCardTemplateProps>
 
+async function expectAlignedRatingSummary(
+  canvasElement: HTMLElement,
+  value: number,
+  reviewCount: number
+) {
+  const canvas = within(canvasElement)
+  const stars = canvas.getByRole("img", { name: `${value} out of 5` })
+  const score = canvas.getByText(`${value} / 5`)
+  const reviews = canvas.getByText(`(${reviewCount})`)
+  // The score query finds its inline bdi, not the grid item's line box.
+  // items-end aligns that line box with the review line box, not glyph bottoms.
+  const scoreLine = score.closest("span")
+  if (!scoreLine) throw new Error("Missing rating score line box")
+  const scoreBounds = scoreLine.getBoundingClientRect()
+  const reviewBounds = reviews.getBoundingClientRect()
+  const summary = reviews.parentElement!
+  const summaryBounds = summary.getBoundingClientRect()
+  const rtl =
+    canvasElement.ownerDocument.defaultView!.getComputedStyle(summary).direction ===
+    "rtl"
+  await expect(
+    Math.abs(
+      rtl
+        ? reviewBounds.left - summaryBounds.left
+        : reviewBounds.right - summaryBounds.right
+    )
+  ).toBeLessThanOrEqual(1)
+  await expect(reviews).toBeVisible()
+  await expect(
+    Math.abs(reviewBounds.bottom - scoreBounds.bottom)
+  ).toBeLessThanOrEqual(1)
+  await expect(stars.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+    scoreBounds.top
+  )
+}
+
+function textBaseline(element: HTMLElement) {
+  // An empty inline-block's bottom sits on the surrounding text baseline.
+  // Unlike a text bounding box, this is independent of font size/descenders.
+  const probe = element.ownerDocument.createElement("span")
+  probe.setAttribute("aria-hidden", "true")
+  probe.style.cssText =
+    "display:inline-block;vertical-align:baseline;width:0;height:0;margin:0;padding:0;border:0"
+  element.append(probe)
+  try {
+    return probe.getBoundingClientRect().bottom
+  } finally {
+    probe.remove()
+  }
+}
+
+async function expectAlignedSalePrices(canvasElement: HTMLElement) {
+  const original = canvasElement.querySelector("del")
+  const prices = original?.parentElement
+  const current = prices?.querySelector("p")
+  if (!(original && prices && current)) {
+    throw new Error("Missing original/current sale prices")
+  }
+  await expect(original).toBeVisible()
+  await expect(current).toBeVisible()
+  await expect(getComputedStyle(prices).alignItems).toBe("baseline")
+  // Unequal font sizes can have different bottoms on the same baseline.
+  await expect(
+    Math.abs(textBaseline(original) - textBaseline(current))
+  ).toBeLessThanOrEqual(1)
+}
+
 export const Playground: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -146,6 +218,18 @@ export const Playground: Story = {
     await expect(
       canvas.getByRole("img", { name: "4.5 out of 5" })
     ).toBeVisible()
+    await expectAlignedRatingSummary(canvasElement, 4.5, 128)
+    await expectAlignedSalePrices(canvasElement)
+    const view = canvasElement.ownerDocument.defaultView!
+    if (view.matchMedia("(width < 40rem)").matches) {
+      const buttons = canvas.getAllByRole("button")
+      const actions = buttons[0]!.parentElement!.getBoundingClientRect()
+      for (const button of buttons) {
+        const bounds = button.getBoundingClientRect()
+        await expect(Math.abs(bounds.left - actions.left)).toBeLessThanOrEqual(1)
+        await expect(Math.abs(bounds.right - actions.right)).toBeLessThanOrEqual(1)
+      }
+    }
   },
 
   parameters: {
@@ -210,6 +294,10 @@ export const Default: Story = {
 }
 
 export const OnSale: Story = {
+  play: async ({ canvasElement }) => {
+    await expectAlignedRatingSummary(canvasElement, 4.8, 542)
+    await expectAlignedSalePrices(canvasElement)
+  },
   parameters: {
     docs: {
       description: {
@@ -240,6 +328,16 @@ export const OnSale: Story = {
 }
 
 export const OutOfStock: Story = {
+  play: async ({ canvasElement }) => {
+    await expectAlignedRatingSummary(canvasElement, 5, 23)
+    const notify = within(canvasElement).getByRole("button", { name: "Notify Me" })
+    await expect(
+      notify.querySelector(".token-icon-product-card-notify")
+    ).toBeInTheDocument()
+    await expect(
+      notify.querySelector(".token-icon-cart-button")
+    ).not.toBeInTheDocument()
+  },
   parameters: {
     docs: {
       description: {

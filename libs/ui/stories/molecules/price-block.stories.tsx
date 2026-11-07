@@ -43,6 +43,33 @@ type PlaygroundArgs = {
   pendingLabel: string
 }
 
+async function expectBusinessPriceSpacing(canvasElement: HTMLElement) {
+  const prices = canvasElement.querySelectorAll<HTMLElement>(
+    '[data-state="known"], [data-state="from"], [data-state="discounted"], [data-state="on-request"]'
+  )
+  for (const price of prices) {
+    if (price.closest("[data-theme]")?.getAttribute("data-theme") !== "business") {
+      continue
+    }
+    if (price.dataset.state === "on-request" && price.children.length === 2) {
+      await expect(
+        Number.parseFloat(getComputedStyle(price).rowGap)
+      ).toBeGreaterThanOrEqual(8)
+    } else if (price.dataset.state !== "on-request") {
+      const metadata = price.lastElementChild
+      if (
+        metadata &&
+        metadata !== price.firstElementChild &&
+        metadata.children.length === 2
+      ) {
+        await expect(
+          Number.parseFloat(getComputedStyle(metadata).columnGap)
+        ).toBeGreaterThanOrEqual(4)
+      }
+    }
+  }
+}
+
 export const Playground: StoryObj<PlaygroundArgs> = {
   parameters: {
     docs: {
@@ -62,6 +89,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       await expect(
         canvas.getByText(args.amountLabel, { exact: true })
       ).toBeVisible()
+    await expectBusinessPriceSpacing(canvasElement)
   },
 
   args: {
@@ -151,6 +179,9 @@ export const Playground: StoryObj<PlaygroundArgs> = {
 }
 
 export const States: Story = {
+  play: async ({ canvasElement }) => {
+    await expectBusinessPriceSpacing(canvasElement)
+  },
   parameters: {
     docs: {
       description: {
@@ -196,6 +227,16 @@ export const States: Story = {
 }
 
 export const LongContent: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText("10 203 040,41 Kč bez DPH")).toBeVisible()
+    await expect(canvas.getByText("za velkoobchodní balení po dvaceti čtyřech kusech")).toBeVisible()
+    await expect(canvas.queryByText("·", { exact: true })).not.toBeInTheDocument()
+    await expectBusinessPriceSpacing(canvasElement)
+    for (const price of canvasElement.querySelectorAll<HTMLElement>("[data-state]")) {
+      await expect(price.scrollWidth).toBeLessThanOrEqual(price.clientWidth)
+    }
+  },
   parameters: {
     docs: {
       description: {

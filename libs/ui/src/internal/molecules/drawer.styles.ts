@@ -15,7 +15,7 @@ export const drawerVariants = tv({
       "data-[swipe-direction=right]:justify-end",
     ],
     content: [
-      "drawer-content-layer drawer-content-bleed pointer-events-auto relative flex max-h-full max-w-full flex-col",
+      "drawer-content-layer drawer-content-bleed drawer-grabber-clearance pointer-events-auto relative flex max-h-full max-w-full flex-col",
       "bg-drawer-content-bg text-drawer-content-fg shadow-drawer-content",
       "border-(length:--border-width-drawer) border-drawer-content-border",
       "focus-visible:drawer-focus-ring",
@@ -26,10 +26,10 @@ export const drawerVariants = tv({
       "data-[swipe-direction=right]:drawer-content-right data-[swipe-direction=right]:h-full data-[swipe-direction=right]:border-r-0",
     ],
     header: [
-      "flex shrink-0 flex-col gap-drawer-header p-drawer-header",
+      "drawer-header-clearance flex shrink-0 flex-col gap-drawer-header p-drawer-header",
       "border-b-(length:--border-width-drawer) border-drawer-content-border",
     ],
-    body: "flex min-h-0 flex-1 flex-col overflow-y-auto p-drawer-body",
+    body: "flex min-h-drawer-body-min-height flex-1 flex-col overflow-y-auto p-drawer-body",
     footer: [
       "flex shrink-0 items-center justify-end gap-drawer-footer p-drawer-footer",
       "border-t-(length:--border-width-drawer) border-drawer-content-border",

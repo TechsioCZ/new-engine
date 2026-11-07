@@ -8,6 +8,32 @@ import { PriceBlock } from "../../src/molecules/price-block"
 import { QuantityField } from "../../src/molecules/quantity-field"
 import { TotalsSummary } from "../../src/molecules/totals-summary"
 import { LineItem } from "../../src/organisms/line-item"
+import { tv } from "../../src/utils"
+
+const cartPresentationQuantity = tv({
+  base: "max-w-cart-presentation-quantity!",
+})
+
+async function expectCompactBusinessQuantity(canvasElement: HTMLElement) {
+  if (
+    canvasElement.closest<HTMLElement>("[data-theme]")?.dataset.theme !==
+    "business"
+  )
+    return
+
+  const quantity = canvasElement.querySelector<HTMLElement>(
+    '[data-scope="line-item"] [data-part="quantity"]:has(input)'
+  )
+  if (!quantity) throw new Error("The editable cart quantity must be present")
+  const rem = Number.parseFloat(
+    getComputedStyle(canvasElement.ownerDocument.documentElement).fontSize
+  )
+  // A 1–10 quantity must not grow to fill the desktop cart row. The cap still
+  // leaves room for touch-sized steppers, the full unit label and draft errors.
+  await expect(quantity.getBoundingClientRect().width).toBeLessThanOrEqual(
+    15 * rem + 1
+  )
+}
 
 function CartExample({ readOnly = false }: { readOnly?: boolean }) {
   const [quantity, setQuantity] = useState("2")
@@ -35,11 +61,13 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
     : `Ceny platí pro poslední platné množství: ${pricedQuantity} balení. Pro přepočet zadejte platné množství.`
   if (removed)
     return (
-      <div className="flex flex-col gap-200">
+      <div className="mx-auto flex w-xl max-w-full flex-col gap-200">
         <StatusText role="status">Košík je prázdný.</StatusText>
         <Button
+          className="self-start max-w-full"
           ref={restoreRef}
-          variant="secondary"
+          theme="outlined"
+          variant="tertiary"
           onClick={() => {
             focusRequest.current = "quantity"
             setRemoved(false)
@@ -51,7 +79,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
     )
   const title = "Montážní sada M8"
   return (
-    <div className="flex w-xl max-w-full flex-col gap-400">
+    <div className="mx-auto flex w-xl max-w-full flex-col gap-400">
       <LineItem title={title} readOnly={locked}>
         <LineItem.Body>
           <LineItem.Heading>
@@ -65,8 +93,12 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
             </LineItem.Price>
           </LineItem.Heading>
           <LineItem.Options>100 ks · pozink · kód MS-008</LineItem.Options>
+          {/* Keep actions on the field's first line when feedback grows below. */}
           <LineItem.Controls>
-            <LineItem.Quantity readOnlyLabel={`${quantity} balení`}>
+            <LineItem.Quantity
+              className={cartPresentationQuantity()}
+              readOnlyLabel={`${quantity} balení`}
+            >
               <QuantityField
                 ref={quantityRef}
                 helperText={retainedPriceNote}
@@ -87,7 +119,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
                 value={quantity}
               />
             </LineItem.Quantity>
-            <LineItem.Actions>
+            <LineItem.Actions className="min-h-(--height-form-control-sm)">
               <LineItem.Remove
                 label="Odebrat"
                 onClick={() => {
@@ -126,7 +158,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
         }
         actions={
           readOnly ? undefined : reviewing ? (
-            <Button variant="secondary" onClick={() => setReviewing(false)}>
+            <Button theme="outlined" variant="tertiary" onClick={() => setReviewing(false)}>
               Upravit košík
             </Button>
           ) : (
@@ -144,8 +176,16 @@ const meta: Meta<typeof CartExample> = {
   title: "Templates/CartPresentation",
   component: CartExample,
   tags: ["autodocs"],
+  // Keep the inset inside the captured root, not only Storybook's body padding.
+  decorators: [
+    (Story) => (
+      <div className="w-full min-w-0 p-200">
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     docs: {
       description: {
         component:
@@ -169,6 +209,7 @@ export const Playground: Story = {
       await expect(canvas.queryByRole("button")).not.toBeInTheDocument()
       return
     }
+    await expectCompactBusinessQuantity(canvasElement)
     const input = canvas.getByRole("spinbutton")
     await userEvent.click(input)
     // Let Zag finish its focus/selection frame before replacing the draft.
@@ -225,6 +266,9 @@ export const Playground: Story = {
   },
 }
 export const CartAndRecap: Story = {
+  play: async ({ canvasElement }) => {
+    await expectCompactBusinessQuantity(canvasElement)
+  },
   parameters: {
     docs: {
       description: {
@@ -235,7 +279,7 @@ export const CartAndRecap: Story = {
   },
 
   render: () => (
-    <VariantContainer>
+    <VariantContainer className="mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-800 space-y-0 lg:grid-cols-2">
       <VariantGroup
         fullWidth
         title="Košík: úprava množství a nevybraná doprava"
@@ -266,7 +310,7 @@ function MultipleItemCart() {
     destination.current = null
   }, [items])
   return (
-    <div className="flex w-full max-w-lg flex-col gap-400">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-400 px-100">
       {items.map((title, index) => (
         <LineItem title={title} key={title}>
           <LineItem.Body>
@@ -295,8 +339,10 @@ function MultipleItemCart() {
       )}
       {removed.length > 0 && (
         <Button
+          className="self-start max-w-full"
           ref={restoreRef}
-          variant="secondary"
+          theme="outlined"
+          variant="tertiary"
           onClick={() => {
             const title = removed[removed.length - 1]
             if (!title) return

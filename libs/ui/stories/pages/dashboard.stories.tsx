@@ -1,32 +1,26 @@
 import { DemoBoundary } from "./demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { Badge } from "../../src/atoms/badge"
 
 import { Icon } from "../../src/atoms/icon"
 import { Skeleton } from "../../src/atoms/skeleton"
-import { Chart } from "../../src/molecules/chart"
 import { Popover } from "../../src/molecules/popover"
 import { Tabs } from "../../src/molecules/tabs"
 import { Table } from "../../src/organisms/table"
 import {
   adminNav,
   currency,
+  count,
+  metricCurrency,
   orders,
   products,
-  revenueByChannel,
   formatDate,
 } from "./data"
+import { RevenueChart } from "./revenue-chart"
 import {
-  Brand,
-  Frame,
-  GlobalSearch,
-  NavDrawer,
-  NavList,
-  Panel,
-  TopBar,
-} from "./frame"
-import {
+  AdminShell,
   PageHeader,
   SectionCard,
   StatCard,
@@ -95,23 +89,14 @@ function DashboardPage({ loading }: { loading?: boolean }) {
   const [nav, setNav] = useState("dashboard")
 
   return (
-    <Frame
-      left={
-        <Panel label="Main navigation" side="start">
-          <Brand />
-          <NavList nav={adminNav} onSelect={setNav} selected={nav} />
-        </Panel>
-      }
-      top={
-        <TopBar
-          center={<GlobalSearch />}
-          start={<NavDrawer nav={adminNav} onSelect={setNav} selected={nav} />}
-        />
-      }
+    <AdminShell
+      nav={adminNav}
+      onNavChange={setNav}
+      selectedNav={nav}
     >
       <PageHeader
         actions={<></>}
-        description="Saturday, 12 September 2026 · everything below is scoped to the last 30 days."
+        description="Saturday, 12 September 2026"
         meta={
           <Badge size="sm" variant="warning">
             3 alerts
@@ -122,11 +107,11 @@ function DashboardPage({ loading }: { loading?: boolean }) {
 
       <SectionCard
         actions={null}
-        description="Things that will get worse if nobody touches them today."
+        description="Resolve these items to keep orders moving."
         title="Needs attention"
       >
-        <div className="flex flex-col gap-150">
-          <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
+        <div className="flex flex-col divide-y divide-border-primary">
+          <div className="flex items-center gap-150 py-150">
             <Icon
               className="text-fg-accent-danger"
               icon="icon-[mdi--alert-circle-outline]"
@@ -136,7 +121,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
               12 marketplace SKUs rejected by the feed since 9 September
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
+          <div className="flex items-center gap-150 py-150">
             <Icon
               className="text-fg-accent-warning"
               icon="icon-[mdi--clock-alert-outline]"
@@ -146,7 +131,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
               17 paid orders have been awaiting fulfilment for over 24 hours
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-150 rounded-md border border-border-primary p-150">
+          <div className="flex items-center gap-150 py-150">
             <Icon
               className="text-fg-accent-warning"
               icon="icon-[mdi--package-variant-closed-remove]"
@@ -159,14 +144,14 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         </div>
       </SectionCard>
 
-      <StatRow>
+      <StatRow mobileColumns={2}>
         <StatCard
           delta="+12.4%"
           hint="vs. previous 30 days"
           icon="icon-[mdi--cash-multiple]"
           label="Revenue"
           trend="up"
-          value={currency.format(327_400)}
+          value={metricCurrency.format(327_400)}
         />
         <StatCard
           delta="+3.1%"
@@ -174,7 +159,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           icon="icon-[mdi--receipt-text-outline]"
           label="Orders"
           trend="up"
-          value="2 418"
+          value={count.format(2418)}
         />
         <StatCard
           delta="+1.9%"
@@ -182,11 +167,11 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           icon="icon-[mdi--calculator-variant-outline]"
           label="Average order"
           trend="up"
-          value={currency.format(135)}
+          value={metricCurrency.format(135)}
         />
         <StatCard
           delta="−1.8%"
-          hint="Sessions that reached a paid order"
+          hint="Paid sessions"
           icon="icon-[mdi--cart-percent]"
           label="Conversion"
           trend="down"
@@ -194,7 +179,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         />
       </StatRow>
 
-      <div className="grid grid-cols-1 items-start gap-250 xl:grid-cols-3">
+      <div className="grid grid-cols-1 items-stretch gap-250 xl:grid-cols-3">
         <SectionCard
           className="xl:col-span-2"
           actions={
@@ -203,25 +188,15 @@ function DashboardPage({ loading }: { loading?: boolean }) {
               title="How revenue is counted"
             />
           }
-          description="Stacked by channel — one measure, one scale."
+          description="Revenue by sales channel, April to September."
           title="Revenue trend"
         >
           {loading ? (
-            <Skeleton isLoaded={false}>
-              <Skeleton.Rectangle />
+            <Skeleton aria-label="Loading revenue chart" isLoaded={false}>
+              <Skeleton.Rectangle className="h-chart-placeholder" />
             </Skeleton>
           ) : (
-            <Chart
-              ariaLabel="Monthly revenue by sales channel"
-              data={revenueByChannel}
-              formatValue={(value) => `${Number(value) / 1000}k €`}
-              height={260}
-              legendLabel="Channel"
-              series="channel"
-              type="area"
-              x="month"
-              y="revenue"
-            />
+            <RevenueChart />
           )}
         </SectionCard>
 
@@ -231,20 +206,23 @@ function DashboardPage({ loading }: { loading?: boolean }) {
               <Skeleton.Text noOfLines={6} />
             </Skeleton>
           ) : (
-            <ul className="flex flex-col gap-150">
+            <ul aria-label="Latest orders" className="flex flex-col gap-150">
               {orders.slice(0, 5).map((order) => (
                 <li
                   className="flex items-center justify-between gap-150"
                   key={order.id}
                 >
-                  <span className="flex min-w-0 flex-col gap-50">
+                  <span className="flex min-w-0 flex-1 flex-col gap-50">
                     <span className="truncate text-sm">{order.customer}</span>
                     <span className="text-fg-secondary text-xs">
-                      {order.number} · {formatDate(order.placedAt)}
+                      <span className="block">{order.number}</span>
+                      <span className="block whitespace-nowrap">{formatDate(order.placedAt)}</span>
                     </span>
                   </span>
-                  <StatusBadge status={order.status} />
-                  <span className="text-sm">
+                  <span className="w-1/4 shrink-0">
+                    <StatusBadge status={order.status} />
+                  </span>
+                  <span className="w-1/4 shrink-0 whitespace-nowrap text-end text-sm tabular-nums">
                     {currency.format(order.total)}
                   </span>
                 </li>
@@ -255,7 +233,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
       </div>
 
       <SectionCard
-        description="Two questions that share a shape, so they share a widget."
+        description="Low stock and best sellers over the last 30 days."
         title="Catalogue"
       >
         <Tabs defaultValue="low-stock" variant="line">
@@ -265,8 +243,37 @@ function DashboardPage({ loading }: { loading?: boolean }) {
             <Tabs.Indicator />
           </Tabs.List>
 
-          <Tabs.Content className="pt-200" value="low-stock">
-            <Table size="sm" variant="line">
+          <Tabs.Content className="px-0 pt-200" value="low-stock">
+            <ul
+              aria-label="Low-stock products"
+              className="divide-y divide-border-primary sm:hidden"
+            >
+              {lowStock.map((product) => (
+                <li className="flex items-start gap-150 py-150" key={product.id}>
+                  <span className="flex min-w-0 flex-1 flex-col gap-50">
+                    <span className="text-sm">{product.name}</span>
+                    <span className="text-fg-secondary text-xs">
+                      {product.sku}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end gap-100">
+                    {product.stock === 0 ? (
+                      <Badge size="sm" variant="danger">
+                        Out of stock
+                      </Badge>
+                    ) : (
+                      <span className="text-fg-secondary text-xs">
+                        {count.format(product.stock)} in stock
+                      </span>
+                    )}
+                    <span className="whitespace-nowrap text-sm tabular-nums">
+                      {currency.format(product.price)}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Table className="hidden sm:table" size="sm" variant="line">
               <Table.Header>
                 <Table.Row>
                   <Table.ColumnHeader>Product</Table.ColumnHeader>
@@ -298,8 +305,26 @@ function DashboardPage({ loading }: { loading?: boolean }) {
             </Table>
           </Tabs.Content>
 
-          <Tabs.Content className="pt-200" value="best-sellers">
-            <Table size="sm" variant="line">
+          <Tabs.Content className="px-0 pt-200" value="best-sellers">
+            <ul
+              aria-label="Best-selling products"
+              className="divide-y divide-border-primary sm:hidden"
+            >
+              {products.slice(0, 5).map((product, index) => (
+                <li className="flex items-start gap-150 py-150" key={product.id}>
+                  <span className="flex min-w-0 flex-1 flex-col gap-50">
+                    <span className="text-sm">{product.name}</span>
+                    <span className="text-fg-secondary text-xs">
+                      {product.category}
+                    </span>
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap text-sm tabular-nums">
+                    {count.format(420 - index * 57)} sold
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Table className="hidden sm:table" size="sm" variant="line">
               <Table.Header>
                 <Table.Row>
                   <Table.ColumnHeader>Product</Table.ColumnHeader>
@@ -320,8 +345,58 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           </Tabs.Content>
         </Tabs>
       </SectionCard>
-    </Frame>
+    </AdminShell>
   )
+}
+
+const checkCatalogue: NonNullable<Story["play"]> = async ({ canvasElement }) => {
+  const canvas = within(canvasElement)
+  const comparisons = canvasElement.querySelectorAll('[data-part="stat-comparison"]')
+  await expect(comparisons).toHaveLength(4)
+  for (const comparison of comparisons) {
+    const [delta, caption] = comparison.children
+    if (!delta || !caption) throw new Error("A KPI comparison needs its change and caption.")
+    await expect(caption.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      delta.getBoundingClientRect().bottom
+    )
+  }
+  const latest = canvas.queryByRole("list", { name: "Latest orders" })
+  if (latest) {
+    const rows = within(latest).getAllByRole("listitem")
+    const firstStatus = rows[0]?.children[1]?.getBoundingClientRect()
+    for (const row of rows) {
+      const status = row.children[1]?.getBoundingClientRect()
+      if (!firstStatus || !status) throw new Error("Missing order status slot")
+      await expect(Math.abs(status.left - firstStatus.left)).toBeLessThanOrEqual(1)
+      await expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth)
+    }
+  }
+  const compact = canvasElement.ownerDocument.defaultView?.matchMedia(
+    "(width < 40rem)"
+  ).matches
+  const checkPanel = async (name: string, listName: string) => {
+    const panel = within(canvas.getByRole("tabpanel", { name }))
+    const list = panel.getByRole("list", { hidden: true })
+    await expect(list).toHaveAttribute("aria-label", listName)
+    const table = panel.getByRole("table", { hidden: true })
+    if (compact) {
+      await expect(list).toBeVisible()
+      await expect(table).not.toBeVisible()
+      await expect(list.scrollWidth).toBeLessThanOrEqual(list.clientWidth)
+      for (const value of list.querySelectorAll(".tabular-nums")) {
+        await expect(getComputedStyle(value).whiteSpace).toBe("nowrap")
+      }
+    } else {
+      await expect(table).toBeVisible()
+      await expect(list).not.toBeVisible()
+    }
+  }
+  await checkPanel("Low stock", "Low-stock products")
+  await userEvent.click(canvas.getByRole("tab", { name: "Best sellers" }))
+  await checkPanel("Best sellers", "Best-selling products")
+  await userEvent.click(canvas.getByRole("tab", { name: "Low stock" }))
+  await userEvent.click(canvas.getByRole("heading", { name: "Good morning, Nora" }))
+  canvasElement.ownerDocument.defaultView?.scrollTo(0, 0)
 }
 
 export const Default: Story = {
@@ -335,6 +410,7 @@ export const Default: Story = {
   },
 
   render: () => <DashboardPage />,
+  play: checkCatalogue,
 }
 
 export const Loading: Story = {
@@ -348,4 +424,12 @@ export const Loading: Story = {
     },
   },
   render: () => <DashboardPage loading />,
+  play: async (context) => {
+    await checkCatalogue(context)
+    const chart = within(context.canvasElement).getByRole("status", { name: "Loading revenue chart" })
+    await waitFor(() => {
+      expect(chart.getBoundingClientRect().height).toBeGreaterThanOrEqual(200)
+      expect(chart.getBoundingClientRect().width).toBeGreaterThan(0)
+    })
+  },
 }

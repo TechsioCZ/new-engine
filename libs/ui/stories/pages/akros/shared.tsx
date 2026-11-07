@@ -251,16 +251,26 @@ export function Notice({
 }) {
   return (
     <div className="flex flex-wrap items-start gap-150 rounded-md border border-border-primary bg-surface p-150">
-      <Icon className={noticeColors[tone]} icon={noticeIcons[tone]} size="md" />
-      <div className="flex min-w-0 flex-1 flex-col gap-50">
-        <span className="font-medium text-sm">{title}</span>
-        {children && (
-          <div className="flex flex-col gap-100 text-fg-secondary text-sm">
-            {children}
-          </div>
-        )}
+      <div className="flex min-w-0 flex-1 basis-3xs items-start gap-150">
+        <Icon
+          className={noticeColors[tone]}
+          icon={noticeIcons[tone]}
+          size="md"
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-50">
+          <span className="font-medium text-sm">{title}</span>
+          {children && (
+            <div className="flex flex-col gap-100 text-fg-secondary text-sm">
+              {children}
+            </div>
+          )}
+        </div>
       </div>
-      {action && <div className="flex items-center gap-100">{action}</div>}
+      {action && (
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-100">
+          {action}
+        </div>
+      )}
     </div>
   )
 }

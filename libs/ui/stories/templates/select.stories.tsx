@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { expect, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import type { SelectItem } from "../../src/molecules/select"
 import { SelectTemplate } from "../../src/templates/select"
@@ -76,15 +76,17 @@ export const Sizes: Story = {
   render: (args) => (
     <VariantContainer>
       {(["sm", "md", "lg"] as const).map((size, index) => (
-        <VariantGroup
-          key={size}
-          title={
-            ["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? "Medium (md)"
-          }
-          fullWidth
-        >
-          <SelectTemplate {...args} size={size} defaultValue={["de"]} />
-        </VariantGroup>
+        // Reserve room between examples for lists opening above or below a field.
+        <div className="w-full pb-950 last:pb-0" data-size-example={size} key={size}>
+          <VariantGroup
+            title={
+              ["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? "Medium (md)"
+            }
+            fullWidth
+          >
+            <SelectTemplate {...args} size={size} defaultValue={["de"]} />
+          </VariantGroup>
+        </div>
       ))}
     </VariantContainer>
   ),
@@ -92,9 +94,55 @@ export const Sizes: Story = {
     docs: {
       description: {
         story:
-          "The canonical small, medium and large fields use identical copy and selected values.",
+          "The canonical small, medium and large fields use identical copy and selected values. Space between examples leaves room for lists opening in either direction.",
       },
     },
+  },
+  play: async ({ canvasElement }) => {
+    const examples = Array.from(
+      canvasElement.querySelectorAll<HTMLElement>("[data-size-example]")
+    )
+    const page = within(canvasElement.ownerDocument.body)
+    await expect(examples).toHaveLength(3)
+    try {
+      for (const example of examples) {
+        const trigger = within(example).getByRole("combobox", { name: "Country" })
+        trigger.scrollIntoView({ block: "center" })
+        await userEvent.click(trigger)
+        try {
+          const list = await page.findByRole("listbox")
+          await expect(trigger).toHaveAttribute("aria-expanded", "true")
+          await expect(list).toBeVisible()
+          await expect(within(list).getAllByRole("option")).toHaveLength(4)
+          const popup = list.getBoundingClientRect()
+          await expect(popup.width).toBeGreaterThan(0)
+          await expect(popup.height).toBeGreaterThan(0)
+          for (const neighbor of examples.filter((entry) => entry !== example)) {
+            for (const content of neighbor.querySelectorAll(
+              'h3, [data-scope="select"][data-part="root"]'
+            )) {
+              const bounds = content.getBoundingClientRect()
+              await expect(
+                popup.bottom < bounds.top ||
+                  popup.top > bounds.bottom ||
+                  popup.right < bounds.left ||
+                  popup.left > bounds.right,
+                `${example.dataset.sizeExample} popup must not cover the ${neighbor.dataset.sizeExample} heading or field`
+              ).toBe(true)
+            }
+          }
+        } finally {
+          await userEvent.keyboard("{Escape}")
+        }
+        await expect(trigger).toHaveAttribute("aria-expanded", "false")
+        await expect(trigger).toHaveTextContent("Germany")
+      }
+    } finally {
+      canvasElement.scrollIntoView({ block: "start" })
+      await userEvent.click(
+        within(canvasElement).getByRole("heading", { name: "Small (sm)" })
+      )
+    }
   },
 }
 export const Disabled: Story = {
@@ -163,6 +211,61 @@ export const Multiple: Story = {
     ).toHaveTextContent("Czech Republic, Germany, France")
   },
 }
+export const LongLabels: Story = {
+  args: {
+    items: [
+      {
+        value: "central",
+        label: "Central European distribution and customer support",
+      },
+      {
+        value: "international",
+        label: "International delivery coordination and returns",
+      },
+    ],
+    label: "Delivery teams",
+    multiple: true,
+    defaultValue: ["central", "international"],
+    helpText: "Both selected team names remain visible on narrow screens.",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Selected values and popup options wrap instead of clipping long labels. The field grows with the content at every size.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("combobox", {
+      name: "Delivery teams",
+    })
+    const value = trigger.querySelector<HTMLElement>('[data-part="value-text"]')!
+    await expect(trigger).toHaveTextContent(
+      "Central European distribution and customer support, International delivery coordination and returns"
+    )
+    await expect(getComputedStyle(value).whiteSpace).toBe("normal")
+    await expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth + 1)
+    await userEvent.click(trigger)
+    try {
+      const list = await within(canvasElement.ownerDocument.body).findByRole(
+        "listbox"
+      )
+      const labels = list.querySelectorAll<HTMLElement>(
+        '[data-part="item-text"]'
+      )
+      await expect(labels).toHaveLength(2)
+      for (const text of labels) {
+        await expect(getComputedStyle(text).whiteSpace).toBe("normal")
+        await expect(text.scrollWidth).toBeLessThanOrEqual(text.clientWidth + 1)
+      }
+    } finally {
+      await userEvent.keyboard("{Escape}")
+    }
+    await waitFor(() => expect(trigger).toHaveFocus())
+  },
+}
+
 export const StaticValueText: Story = {
   args: {
     multiple: true,

@@ -4,6 +4,7 @@
   --color-line-item-muted: var(--color-fg-primary);
   --spacing-line-item-related: var(--spacing-150);
   --spacing-line-item-separated: var(--spacing-200);
+  --spacing-line-item-feedback: var(--spacing-form-field);
   --spacing-line-item-thumbnail: var(--spacing-850);
   --spacing-line-item-thumbnail-compact: var(--spacing-700);
 
@@ -15,6 +16,7 @@
   --gap-line-item-content: var(--spacing-line-item-related);
   --gap-line-item-heading: var(--spacing-line-item-related);
   --gap-line-item-controls: var(--spacing-line-item-related);
+  --gap-line-item-feedback: var(--spacing-line-item-feedback);
   --spacing-line-item-image: var(--spacing-line-item-thumbnail);
   --spacing-line-item-image-compact: var(--spacing-line-item-thumbnail-compact);
   --spacing-line-item-title-min-width: var(--spacing-950);
@@ -24,6 +26,58 @@
   --text-line-item-title-size: var(--text-md);
   --text-line-item-detail-size: var(--text-sm);
   --font-weight-line-item-title: var(--font-weight-medium);
+}
+
+@utility line-item-heading {
+  & > [data-part="title"] {
+    flex: 1 1 var(--spacing-line-item-title-min-width);
+  }
+  @container line-item (width < 32rem) {
+    & > [data-part="title"] {
+      flex-basis: 100%;
+    }
+  }
+}
+
+/* Match item feedback without recoloring validation or disabled controls. */
+@utility line-item-quantity {
+  & > [data-pending] > [role="status"] {
+    color: var(--color-line-item-content-fg);
+    font-size: var(--text-line-item-detail-size);
+  }
+}
+
+@utility line-item-controls {
+  row-gap: var(--gap-line-item-feedback);
+}
+
+/* Align the default link's ink, not its padded hit area, on narrow rows. */
+@utility line-item-remove {
+  @container line-item (width < 32rem) {
+    [data-part="actions"] > &:first-child {
+      margin-inline-start: calc(-1 * var(--padding-button-x-sm));
+    }
+  }
+}
+
+@utility line-item-pending {
+  grid-column: 1 / -1;
+  margin-block-start: calc(
+    var(--gap-line-item-feedback) -
+    var(--gap-line-item)
+  );
+
+  /* Compensate for the active layout's grid gap, not the default gap. */
+  [data-scope="line-item"][data-layout="compact"] > & {
+    margin-block-start: calc(
+      var(--gap-line-item-feedback) -
+      var(--gap-line-item-compact)
+    );
+  }
+
+  [data-scope="line-item"]:has(> [data-part="image"]) > & {
+    grid-column: 2 / -1;
+  }
 }
 
 @utility grid-cols-line-item {

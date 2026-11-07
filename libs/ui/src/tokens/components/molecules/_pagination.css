@@ -36,6 +36,8 @@
 }
 
 @theme static {
+  --spacing-pagination-compact: var(--spacing-pagination-list);
+  --spacing-pagination-list-compact: var(--spacing-pagination-compact);
   --text-underline-offset-pagination-marker: var(--spacing-50);
   --text-decoration-thickness-pagination-marker: var(--border-width-pagination);
 }
@@ -45,6 +47,20 @@
   --font-weight-pagination: var(--font-weight-medium);
   --border-width-pagination-pressed: var(--border-width-sm);
   --font-weight-pagination-current: var(--font-weight-semibold);
+}
+
+/* Keep usable control sizes in narrow hosts. The current page and its immediate
+ * neighbors stay visible; previous/next still reach every destination. */
+@utility pagination-responsive {
+  container: pagination / inline-size;
+  contain-intrinsic-inline-size: var(--container-sm);
+
+  & [data-responsive-pages] > [data-secondary-page],
+  & [data-responsive-pages] > [data-pagination-ellipsis] {
+    @container pagination (width < 28rem) {
+      display: none;
+    }
+  }
 }
 
 @utility pagination-press {

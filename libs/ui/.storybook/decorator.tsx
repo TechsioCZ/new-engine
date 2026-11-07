@@ -43,8 +43,14 @@ export function VariantGroup({
   )
 }
 
-export function VariantContainer({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-col items-center space-y-800">{children}</div>
-  )
+const variantContainer = tv({ base: "flex flex-col items-center space-y-800" })
+
+export function VariantContainer({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return <div className={variantContainer({ className })}>{children}</div>
 }

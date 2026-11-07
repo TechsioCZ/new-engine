@@ -51,7 +51,7 @@ A ready-to-use location trail driven by an array of ancestor pages. The last ite
   decorators: [
     (Story) => (
       <div
-        className="max-w-container-md bg-surface p-400"
+        className="max-w-container-md bg-surface p-150 sm:p-400"
         onClickCapture={(event) => {
           const link =
             event.target instanceof Element
@@ -174,7 +174,7 @@ export const Variants: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <VariantContainer className="items-start gap-400 space-y-0">
       <VariantGroup title="Variants">
         <div className="flex flex-col gap-300">
           <BreadcrumbTemplate
@@ -202,7 +202,7 @@ export const Sizes: Story = {
     }
   },
   parameters: { controls: { disable: true }, docs: { description: { story: "Compare Small (sm), Medium (md) and Large (lg) using the same location trail." } } },
-  render: () => <VariantContainer>
+  render: () => <VariantContainer className="items-start gap-400 space-y-0">
     {(["sm", "md", "lg"] as const).map((size) => <VariantGroup key={size} title={{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]}>
       <BreadcrumbTemplate aria-label={`Product location ${size}`} items={defaultItems} size={size} />
     </VariantGroup>)}

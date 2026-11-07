@@ -4,6 +4,7 @@
     "rootDir": "."
   },
   "include": [
+    "src/css-imports.d.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx",
     "test/**/*.ts",

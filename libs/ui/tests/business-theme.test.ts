@@ -1,0 +1,260 @@
+import { readFileSync } from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+import postcss from "postcss"
+import { describe, expect, it } from "vitest"
+
+const tokenAlias = /^var\(--/
+const variableReference = /var\(\s*(--[\w-]+)/g
+const relativeImport = /^["'](\.[^"']+)["']/
+const formattedVariable = /var\(\s*(--[\w-]+)\s*\)/g
+const quotedValue = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g
+const openingPadding = /\(\s+/g
+const closingPadding = /\s+\)/g
+const whitespace = /\s+/g
+
+function normalizedValue(value: string | undefined) {
+  return value
+    ?.split(quotedValue)
+    .map((part, index) =>
+      index % 2
+        ? part
+        : part
+            .replace(formattedVariable, "var($1)")
+            .replace(openingPadding, "(")
+            .replace(closingPadding, ")")
+            .replace(whitespace, " ")
+    )
+    .join("")
+    .trim()
+}
+
+const css = postcss.parse(
+  readFileSync(new URL("../src/tokens/_business.css", import.meta.url), "utf8")
+)
+
+function businessTokens() {
+  const tokens = new Map<string, string>()
+  css.walkRules('[data-theme="business"]', (rule) => {
+    if (rule.parent?.type === "root") {
+      rule.walkDecls((decl) => {
+        tokens.set(decl.prop, decl.value)
+      })
+    }
+  })
+  return tokens
+}
+
+describe("business theme", () => {
+  const tokens = businessTokens()
+
+  it("keeps application and component surfaces on the same white role", () => {
+    expect(tokens.get("--color-fill-surface")).toBe("var(--color-white)")
+    expect(tokens.get("--color-surface")).toBe("var(--color-fill-surface)")
+    expect(tokens.get("--color-form-control-bg")).toBe(
+      "var(--color-fill-surface)"
+    )
+    expect(tokens.get("--color-form-control-bg-focus")).toBe(
+      "var(--color-fill-surface)"
+    )
+  })
+
+  it("separates quiet row selection from solid control selection", () => {
+    expect(tokens.get("--color-tree-view-node-bg-selected")).toBe(
+      "var(--color-primary-100)"
+    )
+    expect(tokens.get("--color-table-row-bg-selected")).toBe(
+      "var(--color-primary-100)"
+    )
+    expect(tokens.has("--color-fill-selected")).toBe(false)
+    expect(tokens.get("--color-fg-on-primary-indicator")).toBe(
+      "var(--color-white)"
+    )
+  })
+
+  it("pairs every status chip with semantic tint and readable text aliases", () => {
+    for (const variant of [
+      "primary",
+      "secondary",
+      "success",
+      "warning",
+      "danger",
+      "info",
+      "tertiary",
+      "discount",
+    ]) {
+      expect(tokens.get(`--color-badge-bg-${variant}`)).toMatch(tokenAlias)
+      expect(tokens.get(`--color-badge-fg-${variant}`)).toMatch(tokenAlias)
+    }
+  })
+
+  it("keeps small status labels at body-label size and medium weight", () => {
+    expect(tokens.get("--text-badge-sm")).toBe("var(--text-sm)")
+    expect(tokens.get("--font-weight-badge-sm")).toBe(
+      "var(--font-weight-medium)"
+    )
+  })
+
+  it("preserves the mobile input font floor and grows controls for touch", () => {
+    expect(tokens.get("--text-input-sm")).toBe("max(16px, var(--text-sm))")
+    const coarse = css.nodes.find(
+      (node) => node.type === "atrule" && node.params === "(pointer: coarse)"
+    )
+    expect(coarse?.toString()).toContain("--height-form-control-sm: max(")
+    expect(coarse?.toString()).toContain("2.75rem")
+    if (coarse?.type !== "atrule") {
+      throw new Error("Missing touch overrides")
+    }
+    let largeTarget: string | undefined
+    coarse.walkDecls("--size-action-icon-target-lg", (declaration) => {
+      largeTarget = declaration.value
+    })
+    expect(coarse.toString()).not.toContain("--size-icon-control-lg:")
+    expect(normalizedValue(largeTarget)).toBe(
+      "max(var(--height-form-control-md), var(--height-form-control-lg))"
+    )
+  })
+
+  it("does not target other brands or change the root theme", () => {
+    css.walkRules((rule) => {
+      const inBusinessScope =
+        rule.parent?.type === "atrule" &&
+        rule.parent.name === "scope" &&
+        rule.parent.params.startsWith('([data-theme="business"])')
+      expect(
+        rule.selector === '[data-theme="business"]' || inBusinessScope
+      ).toBe(true)
+    })
+  })
+
+  it("does not introduce color aliases that depend on Tailwind's default theme", () => {
+    const declarations = new Set<string>()
+    const visited = new Set<string>()
+    function collect(file: string) {
+      if (visited.has(file)) {
+        return
+      }
+      visited.add(file)
+      const source = postcss.parse(readFileSync(file, "utf8"))
+      source.walkDecls((decl) => {
+        declarations.add(decl.prop)
+      })
+      source.walkAtRules("import", (rule) => {
+        const relative = rule.params.match(relativeImport)?.[1]
+        if (relative) {
+          collect(path.resolve(path.dirname(file), relative))
+        }
+      })
+    }
+    collect(
+      fileURLToPath(new URL("../src/tokens/_tokens-base.css", import.meta.url))
+    )
+    for (const value of tokens.values()) {
+      for (const [, name] of value.matchAll(variableReference)) {
+        expect(name !== undefined && declarations.has(name), name).toBe(true)
+      }
+    }
+  })
+
+  it("normalizes formatted references without removing calc operator spacing", () => {
+    expect(normalizedValue("var(\n --color-date-picker-transparent\n)")).toBe(
+      "var(--color-date-picker-transparent)"
+    )
+    expect(normalizedValue("calc(1px + 2px)")).not.toBe(
+      normalizedValue("calc(1px+2px)")
+    )
+  })
+
+  it("restores the disabled calendar trigger background at nested brand boundaries", () => {
+    const base = postcss.parse(
+      readFileSync(
+        new URL(
+          "../src/tokens/components/molecules/_date-picker.css",
+          import.meta.url
+        ),
+        "utf8"
+      )
+    )
+    let fallback: string | undefined
+    base.walkAtRules("theme", (theme) => {
+      theme.walkDecls("--color-date-picker-trigger-bg-disabled", (decl) => {
+        fallback = decl.value
+      })
+    })
+    expect(normalizedValue(fallback)).toBe(
+      "var(--color-date-picker-control-bg-disabled)"
+    )
+    const scopes = postcss.parse(
+      readFileSync(
+        new URL("../src/tokens/_scheme-scopes.css", import.meta.url),
+        "utf8"
+      )
+    )
+    let boundaryDefault: string | undefined
+    scopes.walkRules((rule) => {
+      if (rule.selector.includes(":root")) {
+        rule.walkDecls("--color-date-picker-trigger-bg-disabled", (decl) => {
+          boundaryDefault = decl.value
+        })
+      }
+    })
+    expect(normalizedValue(boundaryDefault)).toBe(normalizedValue(fallback))
+    expect(
+      normalizedValue(tokens.get("--color-date-picker-trigger-bg-disabled"))
+    ).toBe("var(--color-date-picker-transparent)")
+  })
+
+  it("ignores function padding without changing operators or quoted content", () => {
+    expect(normalizedValue("calc(\n var( --spacing ) * 1.5 \n)")).toBe(
+      normalizedValue("calc(var(--spacing) * 1.5)")
+    )
+    expect(normalizedValue("calc(1px+2px)")).not.toBe(
+      normalizedValue("calc(1px + 2px)")
+    )
+    expect(normalizedValue('"( keep  spaces )"')).toBe('"( keep  spaces )"')
+  })
+
+  it("projects business overrides into generated local scheme boundaries", () => {
+    const scopes = postcss.parse(
+      readFileSync(
+        new URL("../src/tokens/_scheme-scopes.css", import.meta.url),
+        "utf8"
+      )
+    )
+    const projected = new Map<string, string>()
+    scopes.walkAtRules("scope", (scope) => {
+      if (scope.params === '([data-theme="business"]) to ([data-theme])') {
+        scope.walkDecls((decl) => {
+          projected.set(decl.prop, decl.value)
+        })
+      }
+    })
+    for (const [name, value] of tokens) {
+      // Formatting adds indentation and can wrap long var() references.
+      // Preserve operators and references while ignoring that whitespace.
+      expect(normalizedValue(projected.get(name)), name).toBe(
+        normalizedValue(value)
+      )
+    }
+  })
+
+  it("resets business typography and radius literals at a different brand boundary", () => {
+    const scopes = postcss.parse(
+      readFileSync(
+        new URL("../src/tokens/_scheme-scopes.css", import.meta.url),
+        "utf8"
+      )
+    )
+    const defaults = new Map<string, string>()
+    scopes.walkRules(":where([data-theme])", (rule) => {
+      rule.walkDecls((decl) => {
+        defaults.set(decl.prop, decl.value)
+      })
+    })
+    expect(defaults.get("--text-md")).toBe("1.25rem")
+    expect(defaults.get("--text-xl")).toBe("1.88rem")
+    expect(defaults.get("--radius-sm")).toBe("0.5rem")
+    expect(defaults.get("--radius-md")).toBe("0.75rem")
+    expect(defaults.has("--font-sans")).toBe(false)
+  })
+})

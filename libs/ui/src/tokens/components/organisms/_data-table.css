@@ -13,6 +13,12 @@
  */
 
 @theme static {
+  --color-data-table-pinned-shadow: var(--color-data-table-border);
+  --shadow-data-table-pinned-start: var(--spacing-50) 0 var(--spacing-100)
+    calc(-1 * var(--spacing-50)) var(--color-data-table-pinned-shadow);
+  --shadow-data-table-pinned-end: calc(-1 * var(--spacing-50)) 0
+    var(--spacing-100) calc(-1 * var(--spacing-50))
+    var(--color-data-table-pinned-shadow);
   --padding-data-table-toolbar: var(--padding-data-table-toolbar-y)
     var(--padding-data-table-toolbar-x);
   --padding-data-table-filter-cell: var(--padding-data-table-filter-cell-y)
@@ -21,29 +27,82 @@
     var(--padding-data-table-pagination-x);
 }
 
+@utility data-table-pinned-start {
+  box-shadow: var(--shadow-data-table-pinned-start);
+  /* Keep a visible inner boundary even when collapsed neighbouring cells
+   * paint over an outer box shadow. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: var(--spacing-100);
+    border-inline-end: var(--border-width-data-table) solid
+      var(--color-data-table-border);
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-data-table-pinned-shadow)
+    );
+    pointer-events: none;
+  }
+  &:where([dir="rtl"], [dir="rtl"] *) {
+    box-shadow: var(--shadow-data-table-pinned-end);
+    &::after {
+      background: linear-gradient(
+        to left,
+        transparent,
+        var(--color-data-table-pinned-shadow)
+      );
+    }
+  }
+}
+
+@utility data-table-pinned-end {
+  box-shadow: var(--shadow-data-table-pinned-end);
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--spacing-100);
+    border-inline-start: var(--border-width-data-table) solid
+      var(--color-data-table-border);
+    background: linear-gradient(
+      to left,
+      transparent,
+      var(--color-data-table-pinned-shadow)
+    );
+    pointer-events: none;
+  }
+  &:where([dir="rtl"], [dir="rtl"] *) {
+    box-shadow: var(--shadow-data-table-pinned-start);
+    &::after {
+      background: linear-gradient(
+        to right,
+        transparent,
+        var(--color-data-table-pinned-shadow)
+      );
+    }
+  }
+}
+
 /*
  * DataTable — nested-row tint.
  *
- * `tintNestedRows` shades a row by `row.depth` as an inset box-shadow rather
- * than a background, so it composes with `striped`'s zebra background instead
- * of losing the Tailwind-merge conflict against it (two `bg-*` utilities on
- * one element can't both render; a shadow layers on top of whichever
- * background is already there). Reads `--color-data-table-row-bg-nested`,
- * which aliases `--color-table-row-bg-hover` in Figma — the depth shading can
- * now be retargeted without this file knowing which Table token backs it.
- */
-/*
- * Verified: box-shadow on a `<tr>` *does* paint under `border-collapse` in
- * Blink (Chromium 149) — a differential screenshot of a plain vs tinted row in
- * a collapsed table measures 255,255,255 vs 178,178,178. This has been
- * reported several times as a no-op; it is not one in Chrome. Not verified in
- * WebKit/Safari, so if the tint is ever confirmed missing there, the fix is a
- * `background-image` gradient layer (as `data-table-frozen-cell` uses), which
- * composes with `striped` without the Tailwind-merge conflict a `background`
- * would cause.
+ * Paint the overlay on cells: a collapsed row's inset shadow is not painted
+ * consistently in WebKit. Ordinary cells composite over the row's stripe,
+ * hover or selection background. Frozen cells paint the same nested overlay
+ * over their opaque copy of that background, without tinting it twice.
  */
 @utility data-table-row-nested-tint {
-  box-shadow: inset 0 0 0 9999px var(--color-data-table-row-bg-nested);
+  --dt-row-nested-tint: var(--color-data-table-row-bg-nested);
+  & > :where(td:not(.data-table-frozen-cell)) {
+    background-image: linear-gradient(
+      var(--dt-row-nested-tint),
+      var(--dt-row-nested-tint)
+    );
+  }
 }
 
 /*
@@ -66,11 +125,18 @@
  * without either knowing about the other.
  */
 @utility data-table-frozen-cell {
+  border-block-end: var(--border-width-data-table) solid
+    var(--color-data-table-border);
   background-color: var(--color-data-table-pinned-cell-bg);
-  background-image: linear-gradient(
-    var(--dt-row-tint, transparent),
-    var(--dt-row-tint, transparent)
-  );
+  background-image:
+    linear-gradient(
+      var(--dt-row-nested-tint, transparent),
+      var(--dt-row-nested-tint, transparent)
+    ),
+    linear-gradient(
+      var(--dt-row-tint, transparent),
+      var(--dt-row-tint, transparent)
+    );
 }
 
 @theme static {
@@ -84,6 +150,12 @@
 @theme static {
   --color-data-table-focus: var(--color-ring);
   --color-data-table-scroll-ring: var(--color-data-table-focus);
+  --spacing-data-table-focus-paint: calc(
+    var(--default-ring-offset) +
+    var(--default-ring-width) *
+    2
+  );
+  --padding-data-table-pagination-focus: var(--spacing-data-table-focus-paint);
 }
 @utility data-table-scroll-focus {
   outline-style: var(--default-ring-style);
@@ -93,27 +165,123 @@
 }
 
 @theme static {
+  --text-data-table-action: var(--text-button-sm);
+  --text-data-table-expand-icon: var(--text-data-table-action);
+  --color-data-table-editor-label: var(--color-fg-secondary);
+  --color-data-table-editor-label-fg: var(--color-data-table-editor-label);
+  --text-data-table-editor-label: var(--text-table-caption-sm);
+  --spacing-data-table-date-range: var(--spacing-200);
+  --opacity-data-table-grip: 100%;
+  --opacity-data-table-drag-handle: var(--opacity-data-table-grip);
+  --text-data-table-grip: var(--dimension-20);
+  --text-data-table-drag-handle: var(--text-data-table-grip);
+  --spacing-data-table-grip-inline: 1em;
+  --spacing-data-table-drag-handle: var(--spacing-data-table-grip-inline);
+  --spacing-data-table-tree-step: var(--dimension-16);
+  --spacing-data-table-tree-level: var(--spacing-data-table-tree-step);
   --spacing-data-table-search: var(--container-3xs);
   --spacing-data-table-filter-sm: calc(var(--height-form-control-sm) * 5);
   --spacing-data-table-filter-md: calc(var(--height-form-control-md) * 5);
   --spacing-data-table-filter-lg: calc(var(--height-form-control-lg) * 5);
+  --spacing-data-table-filter-gutter: calc(
+    var(--padding-popover-lg) *
+    2 +
+    var(--spacing-popover-viewport) *
+    2
+  );
+  --spacing-data-table-header-inline: var(--dimension-8);
+  --padding-data-table-header-inline: var(--spacing-data-table-header-inline);
+  --text-data-table-header: var(--text-table-sm);
+  --text-data-table-header-label: var(--text-data-table-header);
+  --spacing-data-table-sort-gap: var(--spacing-50);
+  --gap-data-table-sort-label: var(--spacing-data-table-sort-gap);
+  --spacing-data-table-sort-icon: var(--dimension-12);
+  --size-data-table-sort-indicator: var(--spacing-data-table-sort-icon);
+  --spacing-data-table-filter-touch: var(--dimension-44);
+  --size-data-table-filter-target: var(--spacing-data-table-filter-touch);
+  --spacing-data-table-feedback: var(--container-3xs);
+  --spacing-data-table-feedback-width: var(--spacing-data-table-feedback);
   /* Reserve room for values, padding and steppers, not just control chrome. */
   --spacing-data-table-editor-sm: calc(var(--height-form-control-sm) * 4);
   --spacing-data-table-editor-md: calc(var(--height-form-control-md) * 4);
   --spacing-data-table-editor-lg: calc(var(--height-form-control-lg) * 4);
 }
 
-@utility data-table-filter-viewport {
-  /* Fixed cells cannot grow to the control minimum. Keep the complete filter
-   * reachable by scrolling inside its cell; auto layout still reserves room. */
+@utility data-table-fixed-header {
+  /* Keep full short labels readable in fixed 80px leaves across type scales. */
+  padding-inline: var(--padding-data-table-header-inline);
+}
+
+@utility data-table-header-label {
+  /* Fixed leaves need a compact heading, even when Base's body ramp grows.
+   * Keep smaller inherited type and consumer overrides; do not scale up sm. */
+  font-size: min(1em, var(--text-data-table-header-label));
+}
+
+@utility data-table-sort-indicator {
+  /* All three sort glyphs occupy the same slot, independent of label wrapping
+   * and the table's body size. No clipping or hidden unsorted affordance. */
+  flex-shrink: 0;
+  inline-size: var(--size-data-table-sort-indicator);
+  block-size: var(--size-data-table-sort-indicator);
+  font-size: var(--size-data-table-sort-indicator);
+}
+
+@utility data-table-filter-cell {
+  /* Leave a full-size target in an 80px leaf, including the large size. This
+   * inset is stable across modes so measuring cannot create a resize loop. */
   &[data-layout="fixed"] {
+    padding-inline: var(--spacing-100);
+  }
+}
+
+@utility data-table-filter-trigger {
+  --dt-filter-target: max(
+    var(--height-form-control-md),
+    var(--size-icon-control-md),
+    var(--size-data-table-filter-target)
+  );
+  min-inline-size: var(--dt-filter-target);
+  min-block-size: var(--dt-filter-target);
+  &[data-size="sm"] {
+    --dt-filter-target: max(
+      var(--height-form-control-sm),
+      var(--size-icon-control-sm),
+      var(--size-data-table-filter-target)
+    );
+  }
+  &[data-size="lg"] {
+    --dt-filter-target: max(
+      var(--height-form-control-lg),
+      var(--size-icon-control-lg),
+      var(--size-data-table-filter-target)
+    );
+  }
+}
+
+@utility data-table-filter-viewport {
+  /* The runtime measures this available width without enlarging fixed leaves.
+   * Until measured (or without JS), native scrolling keeps controls reachable. */
+  &[data-layout="fixed"]:not([data-compact]) {
     overflow-x: auto;
   }
 }
 
 @utility data-table-filter-control {
   --data-table-filter-min: var(--spacing-data-table-filter-md);
-  min-width: var(--data-table-filter-min);
+  flex-wrap: wrap;
+  min-width: min(
+    var(--data-table-filter-min),
+    calc(100vw - var(--spacing-data-table-filter-gutter))
+  );
+  /* Two bounds need more room. On small screens let the full-size controls
+   * wrap inside the popup instead of creating another input-sliver viewport. */
+  &:has(> input:nth-of-type(2)) {
+    min-width: min(
+      calc(var(--data-table-filter-min) * 1.5),
+      calc(100vw - var(--spacing-data-table-filter-gutter))
+    );
+  }
   &[data-size="sm"] {
     --data-table-filter-min: var(--spacing-data-table-filter-sm);
   }
@@ -137,18 +305,102 @@
   }
 }
 
-@utility data-table-editor {
-  /* Fixed-width tables scroll a constrained editor rather than hiding values
-   * or painting over the adjacent cell. Auto layout reserves its full width. */
-  &[data-layout="fixed"] {
-    overflow-x: auto;
+@theme static {
+  --spacing-data-table-detail-inset-sm: var(--padding-table-cell-sm-x);
+  --spacing-data-table-detail-inset-md: var(--padding-table-cell-md-x);
+  --spacing-data-table-detail-inset-lg: var(--padding-table-cell-lg-x);
+}
+
+@utility data-table-detail-viewport {
+  --dt-detail-cell-inset: var(--spacing-data-table-detail-inset-md);
+  /* Match Table.Cell's existing padding without changing the detail gutter. */
+  :where(.p-table-cell-sm) > & {
+    --dt-detail-cell-inset: var(--spacing-data-table-detail-inset-sm);
   }
-  /* A switch needs no text-entry minimum. Let its complete associated
-   * feedback wrap, rather than forcing it underneath sticky row actions. */
-  &[data-type="boolean"] > .data-table-editor-value {
-    min-width: 0;
-    max-width: 100%;
-    overflow-wrap: anywhere;
+  :where(.p-table-cell-lg) > & {
+    --dt-detail-cell-inset: var(--spacing-data-table-detail-inset-lg);
+  }
+  /* The named scrollport is the query container, not the overflowing table.
+   * Leave both cell gutters inside it, including after horizontal scrolling. */
+  position: sticky;
+  inset-inline-start: var(--dt-detail-cell-inset);
+  box-sizing: border-box;
+  inline-size: calc(100cqi - 2 * var(--dt-detail-cell-inset));
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  & > * {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+  }
+}
+
+@theme static {
+  --color-data-table-date-placeholder: var(--color-input-fg-placeholder);
+  --color-data-table-date-empty-fg: var(--color-data-table-date-placeholder);
+  --spacing-data-table-date-inset-sm: var(--padding-input-inline-sm);
+  --spacing-data-table-date-inset-md: var(--padding-input-inline-md);
+  --spacing-data-table-date-inset-lg: var(--padding-input-inline-lg);
+  --padding-data-table-date-empty-sm: var(--spacing-data-table-date-inset-sm);
+  --padding-data-table-date-empty-md: var(--spacing-data-table-date-inset-md);
+  --padding-data-table-date-empty-lg: var(--spacing-data-table-date-inset-lg);
+  --text-data-table-date-control-sm: var(--text-input-sm);
+  --text-data-table-date-control-md: var(--text-input-md);
+  --text-data-table-date-control-lg: var(--text-input-lg);
+  --text-data-table-date-empty-sm: var(--text-data-table-date-control-sm);
+  --text-data-table-date-empty-md: var(--text-data-table-date-control-md);
+  --text-data-table-date-empty-lg: var(--text-data-table-date-control-lg);
+  --font-weight-data-table-date-placeholder: var(
+    --font-weight-input-placeholder
+  );
+  --font-weight-data-table-date-empty: var(
+    --font-weight-data-table-date-placeholder
+  );
+  --border-width-data-table-date-control: var(--border-width-input);
+  --border-width-data-table-date-empty: var(
+    --border-width-data-table-date-control
+  );
+}
+
+@utility data-table-date-editor {
+  --dt-date-inset: var(--padding-data-table-date-empty-md);
+  --dt-date-text: var(--text-data-table-date-empty-md);
+  &[data-size="sm"] {
+    --dt-date-inset: var(--padding-data-table-date-empty-sm);
+    --dt-date-text: var(--text-data-table-date-empty-sm);
+  }
+  &[data-size="lg"] {
+    --dt-date-inset: var(--padding-data-table-date-empty-lg);
+    --dt-date-text: var(--text-data-table-date-empty-lg);
+  }
+  /* Hide only the empty, blurred native text, not the control, picker target,
+   * border or validation feedback. Focus restores the native editing display. */
+  &[data-empty]:not(:focus-within) {
+    & > input {
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+    }
+    & > .data-table-date-empty-label {
+      visibility: visible;
+    }
+  }
+}
+
+@utility data-table-date-empty-label {
+  visibility: hidden;
+  inset-block: 0;
+  inset-inline-start: calc(
+    var(--dt-date-inset, var(--padding-data-table-date-empty-md)) +
+    var(--border-width-data-table-date-empty)
+  );
+  display: flex;
+  align-items: center;
+  color: var(--color-data-table-date-empty-fg);
+  font-size: var(--dt-date-text, var(--text-data-table-date-empty-md));
+  font-weight: var(--font-weight-data-table-date-empty);
+  &::after {
+    content: attr(data-empty-label);
   }
 }
 
@@ -162,10 +414,88 @@
   }
 }
 
+/* Keep recovery feedback below its actions at a readable measure. An explicit
+ * inline size also lets fixed-layout action measurement reserve its full width. */
+@utility data-table-action-feedback {
+  inline-size: var(--spacing-data-table-feedback-width);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@utility data-table-readonly-value {
+  /* Align readonly text with the first line inside neighbouring controls,
+   * rather than centering it against the height of a recovery message. */
+  --dt-control-height: var(--height-form-control-md);
+  padding-block-start: max(0px, calc((var(--dt-control-height) - 1lh) / 2));
+  &[data-size="sm"] {
+    --dt-control-height: var(--height-form-control-sm);
+  }
+  &[data-size="lg"] {
+    --dt-control-height: var(--height-form-control-lg);
+  }
+}
+
+@utility data-table-editor {
+  /* Fixed-width tables scroll a constrained editor rather than hiding values
+   * or painting over the adjacent cell. Auto layout reserves its full width. */
+  &[data-layout="fixed"] {
+    overflow-x: auto;
+  }
+  /* A boolean editor needs a readable feedback measure in auto layout, too.
+   * The table can scroll; the message must not collapse to single words. */
+  &[data-layout="auto"][data-type="boolean"]:has([role="alert"]) {
+    min-width: var(--spacing-data-table-editor-md);
+    &[data-size="sm"] {
+      min-width: var(--spacing-data-table-editor-sm);
+    }
+    &[data-size="lg"] {
+      min-width: var(--spacing-data-table-editor-lg);
+    }
+  }
+  /* A switch itself needs no text-entry minimum. */
+  &[data-type="boolean"] > .data-table-editor-value {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@utility data-table-pagination-controls {
+  & > button {
+    white-space: nowrap;
+  }
+  & > nav > ul {
+    flex-wrap: nowrap;
+    max-width: none;
+  }
+  & > nav {
+    box-sizing: content-box;
+    min-width: 0;
+    margin: calc(-1 * var(--padding-data-table-pagination-focus));
+    padding: var(--padding-data-table-pagination-focus);
+    scroll-padding: var(--padding-data-table-pagination-focus);
+    overflow-x: auto;
+  }
+  & > nav :is(a, button) {
+    scroll-margin-inline: var(--padding-data-table-pagination-focus);
+  }
+  @container data-table-pagination (width < 48rem) {
+    width: 100%;
+    flex-wrap: wrap;
+    & > nav {
+      flex-basis: 100%;
+    }
+  }
+}
+
 /* End-pinned columns reserve this actions column's measured width. */
 @utility data-table-actions-sticky {
   inset-inline-end: 0;
   @container data-table (width < 48rem) {
     inset-inline-end: auto;
+    box-shadow: none;
+    &::after {
+      display: none;
+    }
   }
 }

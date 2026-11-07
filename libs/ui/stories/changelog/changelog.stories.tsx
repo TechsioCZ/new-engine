@@ -13,6 +13,348 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v1.4.20
+- Reserve pagination scrollport clearance for full focus outlines and contrast halos while preserving control positions and targets; reveal keyboard-focused links within narrow navigation without moving pointer targets, focus or ancestor scroll.
+
+### DatePicker v1.3.13
+- Keep compact time digits readable and retain complete measured navigation in constrained single-panel calendars, sharing scroll clearance with focused-day reveal while preserving short-height and multi-panel native scrolling.
+
+### DataTable v1.4.19
+- Limit pointer-completion reveal to the activated field container so opening another column's popup cannot scroll a previously focused field back into view.
+
+### DataTable v1.4.18
+- Reveal focused inline filters and editors within their owning table without changing widths or ancestor scroll, distinguish empty blurred native date editors while preserving native entry and validation, and make reorder grips taller and clearer without changing row spacing or drag behavior.
+
+### CascadeSelect v1.1.14
+- Mark measured horizontal overflow with inert logical-edge continuation cues, keeping full hierarchy labels, native scrolling, column sizing, selected checkmarks and keyboard focus unobscured.
+
+### CascadeSelect v1.1.13
+- Let a sole hierarchy column fill its popup while preserving intrinsic heading room, viewport and modal caps, and multicolumn scrolling.
+
+### DataTable v1.4.17
+- Keep fixed-header sort indicators inline with complete labels using compact token typography and spacing, without changing configured column widths, sorting behavior or header associations.
+
+### DataTable v1.4.16
+- Keep non-editable custom cells mounted through row edit, save and cancel transitions in both table layouts, preserving their local state and DOM identity while changing only alignment classes.
+
+### Slider v1.4.7
+- Keep disabled labels quiet while giving readable value outputs component-local secondary-foreground tokens, preserving readonly presentation, fieldset behavior and caller color overrides.
+
+### CascadeSelect v1.1.12
+- Give long hierarchy headings intrinsic column space before wrapping, align quieter step numbers with their first line, and retain short-label two-column sizing and modal viewport caps.
+
+### ColorSelect v1.1.6
+- Distinguish disabled swatches with dashed borders rather than desaturating product colors, and restrict editable hover paint without removing genuine focus or selected indicators.
+
+### DataTable v1.4.15
+- Give fixed headers a compact inset for complete labels, use full-size filter popups without losing drafts or endpoint focus, and top-align editing rows with readable recovery feedback; retain explicit widths, header associations and the native inline fallback without ResizeObserver.
+
+### RadioCard v1.1.7
+- Restrict editable hover paint to enabled, writable cards while retaining readonly token overrides, selected footer colors and genuine keyboard focus.
+
+### DataTable v1.4.14
+- Render grouped-header placeholders as neutral cells and associate each data cell with its actual rendered group and leaf headers, retaining fixed widths, pinning, reordering and spanning cells.
+
+### Breadcrumb v1.0.10
+- Reserve the measured intrinsic separator footprint while preserving wrapped-row alignment and cleanup; expose each destination once through valid direct list-item ownership without changing public li hosts or refs.
+
+### CascadeSelect v1.1.11
+- Keep modal-owned hierarchy columns within their field width and omit unsupported read-only ARIA from the tree, while preserving combobox state, read-only interaction guards and ordinary viewport-based hierarchy sizing.
+
+### Combobox v1.6.10
+- Propagate effective disabled state to the existing label so disabled fields and fieldset-owned controls present consistent label styling without dimming read-only values.
+
+### ProductCard v1.3.5
+- Strengthen Business title and price hierarchy, use consistent row/column spacing, and make commerce examples show muted original prices and real adapter-media recovery.
+
+### Select v1.3.5
+- Propagate effective disabled state to the existing label while preserving native fieldset behavior, read-only presentation and control-based popup anchors.
+
+### Slider v1.4.6
+- Apply existing disabled label colors to the label and output using effective disabled state, while preserving read-only values and fieldset legend exemptions.
+
+### QuantityField v1.0.5
+- Keep trailing spacing with the unit label so a wrapped unit leaves the full compact row width available to the numeric editor and touch steppers.
+
+### CascadeSelect v1.1.10
+- Remove redundant horizontal list insets so short hierarchy labels fit beside their indicators on narrow mobile columns, while retaining vertical spacing and long-label wrapping.
+
+### DataTable v1.4.13
+- Separate date-range endpoints with visible Start/End labels and tokenized spacing, and keep reorder grips quietly visible at rest on pointer and touch layouts.
+
+### Accordion v1.2.3
+- Align template content with the size-specific heading inset through component-local styles.
+
+### Breadcrumb v1.0.9
+- Provide medium-size fallback gaps and separator widths when local breadcrumb sizing variables are absent.
+
+### CascadeSelect v1.1.9
+- Keep path separators with their preceding segment, wrap column headings, and place check and branch indicators in reserved gutters without shrinking clear-action targets.
+
+### Chart v1.2.2
+- Stroke only the upper contour of area fills, lighten overlapping series, and round bar data ends without rounding the baseline.
+
+### ColorSelect v1.1.5
+- Spread sparse palettes across the available row and separate captions from outsetting swatch focus outlines.
+
+### Combobox v1.6.9
+- Wrap long options within the control-width popup, pass RTL direction to the machine, and separate selected labels from their remove actions.
+
+### DataTable v1.4.12
+- Keep row action buttons together and wrap pending or failed save feedback beneath them at a size-specific readable width.
+
+### DatePicker v1.3.12
+- Wrap full localized calendar captions and keep touch-sized calendar triggers inside normal and validation field borders.
+
+### Dialog v1.2.3
+- Reserve close-button clearance only where needed and scroll the whole panel in short viewports without clipping nested popups.
+
+### Drawer v1.0.5
+- Reserve the top drawer grabber strip beside its footer without counting the footer inset twice.
+
+### FacetFilterPanel v1.2.3
+- Avoid an extra gap for empty active filters and align sized accordion headings, option rows and range groups to one inset.
+
+### FormNumericInput v1.2.3
+- Wire labels and machine IDs to the explicit nested numeric input ID, propagate direction, and allow the form wrapper to shrink.
+
+### FormTextarea v1.1.4
+- Propagate direction to the form wrapper and textarea while allowing long labels and constrained field widths to wrap.
+
+### Header v1.2.3
+- Keep hamburger controls at the component touch-target minimum even in small headers.
+
+### Hotkeys v1.1.1
+- Increase spacing between shortcut keys and prevent keycaps and separators from shrinking in constrained rows.
+
+### Image v1.2.1
+- Enlarge the fallback image glyph through the component-local fallback icon token.
+
+### LineItem v1.0.4
+- Calculate compact pending-feedback spacing from the compact grid gap rather than the default layout gap.
+
+### Menu v1.3.7
+- Preserve panel elevation during keyboard focus and give ordinary command rows symmetric logical padding without a selection gutter.
+
+### NumericInput v1.3.7
+- Let the editor shrink without squeezing steppers, enlarge coarse-pointer targets, and keep an explicit input ID on the actual input and machine wiring.
+
+### PhoneInput v1.1.4
+- Make disabled country metadata inherit its row foreground, as selected and highlighted country metadata already does.
+
+### Popover v1.1.3
+- Make the inner content viewport keyboard-focusable for native scrolling without moving pinned close chrome or changing initial control focus, caller refs or ARIA props.
+
+### Popover v1.1.2
+- Preserve caller-provided close labels, keep borderless triggers visibly open, and reserve close clearance only for the current surface.
+
+### ProductCard v1.3.4
+- Remove mandatory short-title height reservation, fit aggregate stars beside review counts, and use the notification glyph for out-of-stock template actions.
+
+### QuantityField v1.0.4
+- Let the quantity field occupy its available row width while retaining a shrinkable control layout.
+
+### RadioCard v1.1.6
+- Expose selected add-on foreground tokens and keep compact descriptions and prices readable.
+
+### RadioGroup v1.1.6
+- Suppress interactive hover paint for disabled and read-only choices, add vertical content spacing, and respect an explicit hidden status icon.
+
+### Rating v1.3.5
+- Preserve sub-percent average-star precision without exposing floating-point noise in ordinary fractional scores.
+
+### SearchSuggestions v1.0.5
+- Provide a component-local preview spacing utility so result popups do not cover adjacent size fixtures, without changing runtime positioning.
+
+### Select v1.3.4
+- Keep popups attached to the actual control, wrap complete values and options, and inset clear-action paint without shrinking its target.
+
+### Slider v1.4.5
+- Use component-local logical start padding for vertical marker labels.
+
+### Steps v1.2.5
+- Align desktop indicators and connectors across mixed descriptions, center mobile labels, and keep wrapped descriptions at their intended weight.
+
+### Table v1.3.3
+- Use cell-owned dividers for frozen-column tables, restrict stripes and hover tint to body records, and preserve the frozen footer surface.
+
+### Tabs v1.2.7
+- Paint non-interactive overflow veils above clipped labels from an outer viewport without changing scroll geometry; keep focused labels and rings above the veils.
+
+### Toast v1.1.4
+- Give descriptions their own secondary foreground token and align the close control with the first title line without shrinking its target.
+
+### Breadcrumb v1.0.8
+- Place real separators in the inter-item gap so wrapped destinations align without a hanging spacer, while preserving custom separator content, refs, focus and RTL.
+
+### Tabs v1.2.6
+- Paint overflow cues from the actual scrollable edges, including negative RTL scrolling in WebKit, without covering labels or focus rings. Give Storybook comparisons consistent insets and fitted widths.
+
+### Tour v1.0.11
+- Reserve logical title clearance from the themed close-control target, panel inset and gap so long mobile headings remain readable without covering the close button. Keep internal action constraints in Docs rather than the visible guidance.
+
+### Breadcrumb v1.0.7
+- Hide only the decorative separator at a wrapped row boundary, preserving its space, every destination and visible focus. Recompute after resizing or font changes without changing the caller's list ref.
+
+### Breadcrumb v1.0.6
+- Keep separators with the next trail item so wrapped mobile rows do not leave an orphaned separator at the end of the previous line.
+
+### ActionIcon v1.1.3
+- Keep Business action surfaces and glyph sizes consistent, with a component-local large touch target.
+
+### Button v0.6.2
+- Keep loading buttons visibly busy in their selected variant while preserving disabled interaction guards.
+
+### Checkbox v1.2.3
+- Align the checked and indeterminate glyphs inside their existing control bounds.
+
+### Input v1.1.4
+- Give read-only fields a distinct surface without removing keyboard focus or caller styling.
+
+### NumericInput v1.3.6
+- Align numeric controls, labels and horizontal compositions through component-local tokens.
+
+### Rating v1.3.4
+- Keep exact fractional scores and keyboard focus while isolating score text in RTL and removing the read-only field fill.
+
+### Skeleton v1.0.6
+- Refine placeholder radii and hierarchy while preserving reduced-motion and loading semantics.
+
+### Textarea v1.0.5
+- Distinguish read-only text surfaces while retaining editable focus and validation behavior.
+
+### Accordion v1.2.2
+- Refine disclosure spacing and component-local presentation without changing the composition API.
+
+### Breadcrumb v1.0.5
+- Keep breadcrumb destinations readable within constrained layouts without dropping navigation semantics.
+
+### Carousel v1.3.5
+- Preserve image proportions inside the carousel viewport.
+
+### CascadeSelect v1.1.8
+- Refine constrained selection controls and popup presentation through component-local tokens.
+
+### Chart v1.2.1
+- Improve legend layout and temporal tick selection without losing intraday or multiyear labels.
+
+### ColorSelect v1.1.4
+- Refine color-choice spacing and component-local presentation while retaining selection semantics.
+
+### Combobox v1.6.8
+- Keep selection popups attached to their modal owner and preserve the single control surface.
+
+### DatePicker v1.3.11
+- Reveal the initially selected calendar day and keep focused days visible in constrained calendars.
+
+### Dialog v1.2.2
+- Keep dialog content scrollable within the viewport with clearer control and body spacing.
+
+### FileUpload v1.1.6
+- Refine upload presentation while retaining the existing file selection contract.
+
+### FormCheckbox v1.3.2
+- Preserve checkbox form typing while refining its labelled composition.
+
+### FormErrorSummary v1.2.1
+- Refine summary spacing and emphasis without changing error destinations.
+
+### Menu v1.3.6
+- Keep tall parent menus and submenus reachable through native scrolling, keyboard return and pointer transit.
+
+### Pagination v1.1.3
+- Preserve every numbered destination in arrowless layouts and wrap lists that cannot be condensed safely.
+
+### PriceBlock v1.0.2
+- Refine price hierarchy and wrapping through component-specific styling.
+
+### QuantityField v1.0.3
+- Retain a usable editable width beside quantity actions in constrained rows.
+
+### RadioCard v1.1.5
+- Keep read-only hover styling behind the public component token and preserve brand-specific overrides.
+
+### RadioGroup v1.1.5
+- Refine radio labels, descriptions and control spacing without changing selection behavior.
+
+### SearchForm v1.1.4
+- Keep the clear control aligned with the field through its component padding tokens.
+
+### Select v1.3.3
+- Refine selection control and popup presentation while retaining form and accessibility behavior.
+
+### Slider v1.4.4
+- Refine range-control spacing and local state styling without changing its value contract.
+
+### Steps v1.2.4
+- Keep step labels and mixed descriptions aligned without overflowing narrow layouts.
+
+### Switch v1.2.2
+- Refine switch control and label presentation without changing state ownership.
+
+### Tabs v1.2.5
+- Refine tab spacing and local state styling while retaining the existing indicator and keyboard model.
+
+### Toast v1.1.3
+- Refine notification hierarchy and action presentation without changing lifecycle ownership.
+
+### TotalsSummary v1.0.2
+- Keep total labels and amounts aligned within the available width.
+
+### Tour v1.0.10
+- Reveal highlighted targets with native nearest scrolling and restore only the margins owned by the tour.
+
+### DataTable v1.4.11
+- Keep expanded details inside the visible scrollport, paint nested tint consistently, and align validation feedback with row actions.
+
+### Footer v1.1.2
+- Refine footer spacing and readable link presentation through component-local tokens.
+
+### Header v1.2.2
+- Align header typography across sizes and keep mobile panel spacing local to the panel.
+
+### LineItem v1.0.3
+- Keep pending feedback typography consistent and tighten control relationships without reducing removal targets.
+
+### Sidebar v1.0.1
+- Refine sidebar presentation and preserve logical edge and tooltip behavior.
+
+### Table v1.3.2
+- Keep sticky-cell separators and row focus paint visible without intercepting interaction.
+
+### FacetFilterPanel v1.2.2
+- Refine filter spacing and drawer composition without changing controlled close ownership.
+
+### Gallery v1.1.3
+- Refine gallery sizing and image presentation while preserving the existing media lifecycle.
+
+### ProductCard v1.3.3
+- Clamp linked titles on the anchor itself so their focus indicator is not clipped by its parent.
+
+### SearchSuggestions v1.0.4
+- Keep suggestion results readable in constrained layouts and attached to their modal owner.
+
+### DataTable v1.4.10
+- Non-clickable rows now receive the same hover tint as their frozen cells, rather than highlighting only the frozen bands.
+
+### DataTable v1.4.9
+- Frozen-edge shadows appear only when the table actually overflows its scrollport, so a fully visible table does not suggest hidden columns.
+
+### DataTable v1.4.8
+- Frozen column boundaries now have direction-aware shadows. Scroll padding follows the measured active pinned bands, and columns released by the fit calculation do not keep a frozen-edge shadow.
+
+### Rating v1.3.3
+- Read-only fractional scores now fill the last star to match the displayed number, including right-to-left layouts. Editable whole- and half-star behavior is unchanged.
+
+### Combobox v1.6.7
+- Long placeholder and selected text use an ellipsis inside the input instead of ending mid-word at the trailing controls.
+
+### Input v1.1.3
+- Inline padding has its own size tokens, so the business theme can give text more room without increasing field height or covering embedded controls. Caller padding classes still override the defaults.
+
+### SearchForm v1.1.3
+- The clear action follows the input's inline padding token, keeping its inset aligned when a theme changes horizontal spacing.
+
 ### SearchForm v1.1.2
 - Error and hint messages are linked to the search field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
 
@@ -54,6 +396,9 @@ const CHANGELOG = `
 
 ### Tabs v1.2.4
 - Keep one indicator geometry owner and respect reduced motion so WebKit cannot retain the previous tab's animated position. Measure in layout coordinates so a scaled ancestor no longer shortens or shifts the indicator.
+
+### DataTable v1.4.7
+- Fixed-layout action columns now reserve room for their heading as well as row controls, so a small expand button cannot make the Actions label clip.
 
 ### DataTable v1.4.6
 - Verify the virtual window moves, then restore the first logical row and scroll origin for a deterministic WebKit example.

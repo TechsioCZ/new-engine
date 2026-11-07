@@ -17,4 +17,20 @@
   --color-footer-border: var(--color-border-primary);
   --color-footer-bottom-border: var(--color-footer-border);
   --footer-cols: repeat(auto-fit, minmax(22%, 1fr));
+  --spacing-footer-separated: var(--dimension-16);
+  --spacing-footer-bottom-gap: var(--spacing-footer-separated);
+}
+
+@utility footer-bottom-layout {
+  margin-block-start: var(--spacing-footer-bottom-gap);
+  padding-inline: 0;
+}
+@utility footer-bottom-sm {
+  padding-block: var(--padding-footer-bottom-sm);
+}
+@utility footer-bottom-md {
+  padding-block: var(--padding-footer-bottom-md);
+}
+@utility footer-bottom-lg {
+  padding-block: var(--padding-footer-bottom-lg);
 }

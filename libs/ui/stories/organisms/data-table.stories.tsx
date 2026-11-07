@@ -199,7 +199,7 @@ export const ColumnFiltersWithConditions: Story = {
 }
 
 export const NarrowColumnFilters: Story = {
-  parameters: { controls: { disable: true }, docs: { description: { story: "Fixed-layout filters scroll within narrow columns without covering their neighbours. Auto layout keeps enough room for the complete controls." } } },
+  parameters: { controls: { disable: true }, docs: { description: { story: "Narrow fixed columns open full-size filters in a popup without widening the column or covering neighbouring controls. Auto layout keeps its complete inline filters." } } },
   args: {
     ...base,
     data: people.slice(0, 3),
@@ -223,42 +223,142 @@ export const NarrowColumnFilters: Story = {
     const canvas = within(canvasElement)
     for (const layout of ["fixed", "auto"] as const) {
       const table = canvas.getByRole("table", { name: `${layout} layout filters` })
+      for (const name of ["Age", "Visits"]) {
+        const sort = within(table).getByRole("button", { name })
+        const label = sort.querySelector("span")!
+        const indicator = sort.querySelector<HTMLElement>('[aria-hidden="true"]')!
+        // Short labels stay whole and their indicator stays on the same row.
+        const text = canvasElement.ownerDocument.createRange()
+        text.selectNodeContents(label)
+        const fragments = Array.from(text.getClientRects())
+        await expect(fragments).toHaveLength(1)
+        const textBounds = fragments[0]!
+        const indicatorBounds = indicator.getBoundingClientRect()
+        const indicatorCenter = (indicatorBounds.top + indicatorBounds.bottom) / 2
+        await expect(indicatorCenter).toBeGreaterThanOrEqual(textBounds.top - 1)
+        await expect(indicatorCenter).toBeLessThanOrEqual(textBounds.bottom + 1)
+        if (getComputedStyle(sort).direction === "rtl") {
+          await expect(indicatorBounds.right).toBeLessThanOrEqual(textBounds.left + 1)
+        } else {
+          await expect(indicatorBounds.left).toBeGreaterThanOrEqual(textBounds.right - 1)
+        }
+        await expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth + 1)
+        if (layout === "fixed") {
+          await expect(sort.closest("th")!.getBoundingClientRect().width).toBeCloseTo(80, 0)
+        }
+      }
       const filterRow = within(table).getByRole("row", { name: "Column filters" })
       const cells = within(filterRow).getAllByRole("cell")
       for (const cell of cells) {
-        const viewport = cell.firstElementChild
-        await expect(viewport).not.toBeNull()
-        if (!viewport) {
-          throw new Error("Missing filter viewport")
-        }
+        const viewport = cell.firstElementChild!
         const cellBounds = cell.getBoundingClientRect()
         const bounds = viewport.getBoundingClientRect()
         await expect(bounds.left).toBeGreaterThanOrEqual(cellBounds.left)
         await expect(bounds.right).toBeLessThanOrEqual(cellBounds.right)
-        if (layout === "fixed") {
-          await expect(getComputedStyle(viewport).overflowX).toBe("auto")
-          if (cell !== cells[2]) {
-            await expect(viewport.scrollWidth).toBeGreaterThan(viewport.clientWidth)
-          }
-        } else {
-          await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
+        await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1)
+      }
+      for (const [name, value] of [["Age", "36"], ["Visits", "812"]] as const) {
+        const trigger = layout === "fixed" ? within(table).getByRole("button", { name: `Filter ${name}` }) : null
+        if (trigger) {
+          const bounds = trigger.getBoundingClientRect()
+          const cell = trigger.closest("td")!.getBoundingClientRect()
+          await expect(bounds.left).toBeGreaterThanOrEqual(cell.left)
+          await expect(bounds.right).toBeLessThanOrEqual(cell.right)
+          await expect(bounds.width).toBeGreaterThanOrEqual(44)
+          await expect(bounds.height).toBeGreaterThanOrEqual(44)
+          await expect(canvasElement.ownerDocument.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2)?.closest("button")).toBe(trigger)
+          trigger.focus()
+          await userEvent.keyboard("{Enter}")
+        }
+        const scope = trigger ? within(await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: `Filter ${name}` })) : within(table)
+        const input = scope.getByLabelText(`Filter value for ${name}`)
+        if (trigger) {
+          await waitFor(() => expect(input).toHaveFocus())
+        }
+        await userEvent.type(input, value)
+        await expect(input).toHaveValue(Number(value))
+        await userEvent.tab()
+        const condition = scope.getByRole("button", { name: new RegExp(`Filter condition for ${name}:`) })
+        await expect(condition).toHaveFocus()
+        await expect(condition).toBeVisible()
+        const viewport = trigger ? input.closest('[role="dialog"]')! : condition.closest("td")!
+        const conditionBounds = condition.getBoundingClientRect()
+        const viewportBounds = viewport.getBoundingClientRect()
+        await expect(conditionBounds.left).toBeGreaterThanOrEqual(viewportBounds.left - 1)
+        await expect(conditionBounds.right).toBeLessThanOrEqual(viewportBounds.right + 1)
+        if (name === "Age") {
+          await userEvent.keyboard("{Enter}")
+          await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole("menuitemradio", { name: "Between" }))
+          const upper = scope.getByLabelText("Filter upper bound for Age")
+          await userEvent.type(upper, "40")
+          await expect(upper).toHaveValue(40)
+          await waitFor(() => {
+            const fieldViewportBounds = viewport.getBoundingClientRect()
+            for (const field of [input, upper]) {
+              const bounds = field.getBoundingClientRect()
+              expect(bounds.left).toBeGreaterThanOrEqual(fieldViewportBounds.left - 1)
+              expect(bounds.right).toBeLessThanOrEqual(fieldViewportBounds.right + 1)
+            }
+          })
+        }
+        await waitFor(() => expect(table.querySelectorAll("tbody tr")).toHaveLength(1))
+        await expect(within(table).getByText("Ada")).toBeVisible()
+        if (trigger) {
+          await userEvent.keyboard("{Escape}")
+          await waitFor(() => expect(trigger).toHaveFocus())
+          await expect(trigger).toHaveAttribute("data-active", "true")
+          // Reopening restores the actual filter, not an empty replacement.
+          await userEvent.keyboard("{Enter}")
+          await waitFor(() => expect(scope.getByLabelText(`Filter value for ${name}`)).toHaveFocus())
+          await expect(scope.getByLabelText(`Filter value for ${name}`)).toHaveValue(Number(value))
+          await userEvent.keyboard("{Escape}")
+          await waitFor(() => expect(trigger).toHaveFocus())
         }
       }
-      const input = within(table).getByLabelText("Filter value for Age")
-      await userEvent.type(input, "36")
-      await expect(input).toHaveValue(36)
-      await userEvent.tab()
-      const condition = within(table).getByRole("button", { name: /Filter condition for Age:/ })
-      await expect(condition).toHaveFocus()
-      await expect(condition).toBeVisible()
-      const viewport = cells[0]?.firstElementChild
-      if (!viewport) {
-        throw new Error("Missing age filter viewport")
+      if (layout === "auto") {
+        // Focus alone only reveals the input and can leave the caption/header clipped.
+        // Keep real focus and filter state while returning to the logical scroll start.
+        const first = within(table).getByLabelText("Filter value for Age")
+        const region = canvas.getByRole("region", { name: "auto layout filters" })
+        first.focus({ preventScroll: true })
+        region.scrollTo({ left: 0, behavior: "instant" })
+        await waitFor(() => {
+          expect(first).toHaveFocus()
+          expect(first).toHaveValue(36)
+          expect(within(table).getByLabelText("Filter upper bound for Age"))
+            .toHaveValue(40)
+          expect(within(table).getByLabelText("Filter value for Visits"))
+            .toHaveValue(812)
+          expect(Math.abs(region.scrollLeft)).toBeLessThanOrEqual(1)
+          const viewport = region.getBoundingClientRect()
+          const left = Math.max(0, viewport.left + region.clientLeft)
+          const right = Math.min(
+            viewport.left + region.clientLeft + region.clientWidth,
+            canvasElement.ownerDocument.documentElement.clientWidth
+          )
+          const sort = within(table).getByRole("button", { name: "Age" })
+          const bounds = [
+            first.getBoundingClientRect(),
+            sort.querySelector('[aria-hidden="true"]')!.getBoundingClientRect(),
+          ]
+          // Measure the actual caption/label ink, not the overflowing table boxes.
+          for (const content of [
+            table.querySelector("caption")!,
+            sort.querySelector("span")!,
+          ]) {
+            const text = canvasElement.ownerDocument.createRange()
+            text.selectNodeContents(content)
+            const fragments = Array.from(text.getClientRects())
+            expect(fragments.length).toBeGreaterThan(0)
+            bounds.push(...fragments)
+          }
+          for (const rect of bounds) {
+            expect(rect.width).toBeGreaterThan(0)
+            expect(rect.left).toBeGreaterThanOrEqual(left - 1)
+            expect(rect.right).toBeLessThanOrEqual(right + 1)
+          }
+        })
       }
-      const conditionBounds = condition.getBoundingClientRect()
-      const viewportBounds = viewport.getBoundingClientRect()
-      await expect(conditionBounds.left).toBeGreaterThanOrEqual(viewportBounds.left - 1)
-      await expect(conditionBounds.right).toBeLessThanOrEqual(viewportBounds.right + 1)
     }
   },
 }
@@ -305,7 +405,7 @@ export const GlobalSearch: Story = {
 /* ── 5b. Toolbar: search fills the row, custom actions trail it ──────────── */
 
 export const ToolbarActions: Story = {
-  parameters: { docs: { description: { story: "Keep the main create action in the toolbar while filters remain associated with the records they affect." } } },
+  parameters: { docs: { description: { story: "Outlined secondary actions sit beside search without competing with its primary submit button; Export is primary in the actions-only example." } } },
   args: {
     ...base,
     enableGlobalFilter: true,
@@ -323,12 +423,14 @@ export const ToolbarActions: Story = {
         id: "export",
         label: "Export",
         icon: "icon-[mdi--tray-arrow-down]",
-        variant: "warning",
+        variant: "secondary",
+        theme: "outlined",
         onClick: fn(),
       },
       {
         id: "filters",
-        label: "Filtry",
+        label: "Filters",
+        theme: "outlined",
         icon: "token-icon-chevron-down",
         iconPosition: "right",
         variant: "secondary",
@@ -353,7 +455,7 @@ export const ToolbarActions: Story = {
         canvas.getByLabelText("Submit search"),
         canvas.getByRole("button", { name: "Refresh" }),
         canvas.getByRole("button", { name: "Export" }),
-        canvas.getByRole("button", { name: "Filtry" }),
+        canvas.getByRole("button", { name: "Filters" }),
       ]
       const rects = controls.map((control) => control.getBoundingClientRect())
       const viewport = canvasElement.ownerDocument.documentElement.clientWidth
@@ -379,7 +481,7 @@ export const ToolbarActions: Story = {
  * other two, so a table configured this way silently dropped its actions.
  */
 export const ToolbarActionsOnly: Story = {
-  parameters: { docs: { description: { story: "A toolbar can hold local actions without showing an unused search field." } } },
+  parameters: { docs: { description: { story: "A toolbar can hold a primary Export action without showing an unused search field; the search-toolbar example uses an outlined secondary Export instead." } } },
   args: {
     ...base,
     toolbarActions: [
@@ -387,7 +489,7 @@ export const ToolbarActionsOnly: Story = {
         id: "export",
         label: "Export",
         icon: "icon-[mdi--tray-arrow-down]",
-        variant: "warning",
+        variant: "primary",
         onClick: fn(),
       },
     ],
@@ -560,6 +662,15 @@ export const FrozenColumnWidths: Story = {
         position: bothFit ? "sticky" : "relative",
       })
       expect(lastName.style.insetInlineStart).toBe(bothFit ? "200px" : "auto")
+      const boundary = bothFit ? lastName : firstName
+      expect(getComputedStyle(boundary).boxShadow).not.toBe("none")
+      expect(getComputedStyle(boundary, "::after").content).toBe('""')
+      expect(Number.parseFloat(getComputedStyle(region).scrollPaddingInlineStart))
+        .toBe(bothFit ? 440 : 200)
+      if (!bothFit) {
+        expect(getComputedStyle(lastName).boxShadow).toBe("none")
+        expect(getComputedStyle(lastName, "::after").content).toBe("none")
+      }
     })
     await expect(Math.round(firstName.getBoundingClientRect().width)).toBe(200)
     const firstLeft = firstName.getBoundingClientRect().left
@@ -905,6 +1016,11 @@ export const ColumnReorder: Story = {
     await expect(
       canvas.getAllByLabelText(/^Drag to reorder /).length
     ).toBeGreaterThan(0)
+    const header = canvas.getByRole("columnheader", { name: /First name/ })
+    const sort = within(header).getByRole("button", { name: "First name" })
+    const body = canvasElement.querySelector("tbody tr td")!
+    const bodyStart = body.getBoundingClientRect().left + Number.parseFloat(getComputedStyle(body).paddingLeft)
+    await expect(sort.getBoundingClientRect().left).toBeCloseTo(bodyStart, 0)
   },
 }
 
@@ -1230,9 +1346,19 @@ export const TreeStructureTinted: Story = {
       (r) => r.getAttribute("data-depth") === "1"
     )
     await expect(childRow).toBeTruthy()
-    await expect(
-      childRow && getComputedStyle(childRow).boxShadow
-    ).not.toBe("none")
+    if (!childRow) throw new Error("Expanded child row must be present")
+    // Tint is cell-painted so ordinary and frozen cells agree in WebKit, too.
+    for (const cell of childRow.children) {
+      const style = getComputedStyle(cell)
+      await expect(style.backgroundImage).not.toBe("none")
+      await expect(style.getPropertyValue("--dt-row-nested-tint").trim()).not.toBe("")
+    }
+    const parentCell = rows[0]!.firstElementChild!
+    const childCell = childRow!.firstElementChild!
+    await expect(Number.parseFloat(getComputedStyle(childCell).paddingInlineStart) - Number.parseFloat(getComputedStyle(parentCell).paddingInlineStart)).toBeGreaterThanOrEqual(16)
+    const actions = childRow!.lastElementChild!
+    await expect(getComputedStyle(actions).getPropertyValue("--dt-row-tint").trim()).toBe(getComputedStyle(childRow!).getPropertyValue("--dt-row-tint").trim())
+    await expect(Number.parseFloat(getComputedStyle(actions).borderBottomWidth)).toBeGreaterThan(0)
   },
 }
 
@@ -1263,8 +1389,26 @@ export const ExpandedRowDetail: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await userEvent.click(canvas.getAllByLabelText("Expand row")[0] as HTMLElement)
-    await expect(canvas.getByText("Contact")).toBeInTheDocument()
+    const toggle = canvas.getAllByLabelText("Expand row")[0] as HTMLElement
+    await userEvent.click(toggle)
+    await expect(toggle).toHaveAttribute("aria-expanded", "true")
+    const detailId = toggle.getAttribute("aria-controls")
+    const detail = detailId ? canvasElement.ownerDocument.getElementById(detailId) : null
+    const scrollport = canvas.getByRole("region", { name: "Scrollable records" })
+    await expect(detail).not.toBeNull()
+    if (!detail) throw new Error("Expanded detail content must be present")
+    const details = within(detail)
+    // Reading the trailing actions must not scroll the expanded content away.
+    toggle.scrollIntoView({ block: "nearest", inline: "end" })
+    await waitFor(() => {
+      const viewport = scrollport.getBoundingClientRect()
+      for (const content of [detail, details.getByText("Contact"), details.getByText("Activity"), details.getByText("ada@calc.io"), details.getByText("812 visits · active")]) {
+        const rect = content.getBoundingClientRect()
+        expect(rect.left).toBeGreaterThanOrEqual(viewport.left - 1)
+        expect(rect.right).toBeLessThanOrEqual(viewport.right + 1)
+        expect(content.scrollWidth).toBeLessThanOrEqual(content.clientWidth + 1)
+      }
+    })
   },
 }
 
@@ -1446,15 +1590,78 @@ export const Pagination: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByText(/of\s+500/i)).toBeInTheDocument()
-    // With 500 rows and a page size of 5, page 2 always exists — hard-assert it
-    // so a broken pager fails the story instead of silently skipping.
-    // Pager items render as <a> without href, so they expose no `link` role;
-    // scope to the pagination widget and match the page number as text.
-    const pager = canvasElement.querySelector(
-      '[data-scope="pagination"]'
-    ) as HTMLElement
-    await userEvent.click(within(pager).getByText("2"))
-    await expect(args.onPaginationChange).toHaveBeenCalled()
+    // With 500 rows and a page size of 5, these destinations must stay usable
+    // in both responsive layouts. Return to page 2 for the captured state.
+    const pager = canvas.getByRole("navigation", { name: "pagination" })
+    const navigation = within(pager)
+    const locationBefore = canvasElement.ownerDocument.defaultView?.location.href
+    await userEvent.click(navigation.getByRole("link", { name: "page 2" }))
+    await expect(args.onPaginationChange).toHaveBeenCalledWith({ pageIndex: 1, pageSize: 5 })
+    await expect(canvas.getByText("6–10 of 500")).toBeVisible()
+    await userEvent.click(navigation.getByRole("link", { name: "next page" }))
+    await expect(canvas.getByText("11–15 of 500")).toBeVisible()
+    await userEvent.click(navigation.getByRole("link", { name: "previous page" }))
+    await expect(canvas.getByText("6–10 of 500")).toBeVisible()
+    await expect(navigation.getByRole("link", { name: "page 2" })).toHaveAttribute("aria-current", "page")
+    await expect(canvasElement.ownerDocument.defaultView?.location.href).toBe(locationBefore)
+
+    const controls = pager.parentElement!
+    const bar = controls.parentElement!
+    const sizeSelect = canvas.getByRole("combobox", { name: "Rows per page" })
+    await canvasElement.ownerDocument.fonts.ready
+    await waitFor(async () => {
+      const barStyle = getComputedStyle(bar)
+      expect(barStyle.containerName.split(" ")).toContain("data-table-pagination")
+      // The CSS query measures this named ancestor's content box in rem, not
+      // the controls' shrink-to-fit width or the browser viewport.
+      const contentWidth = Number.parseFloat(barStyle.width) - (barStyle.boxSizing === "border-box"
+        ? Number.parseFloat(barStyle.paddingLeft) + Number.parseFloat(barStyle.paddingRight)
+          + Number.parseFloat(barStyle.borderLeftWidth) + Number.parseFloat(barStyle.borderRightWidth)
+        : 0)
+      const rem = Number.parseFloat(getComputedStyle(canvasElement.ownerDocument.documentElement).fontSize)
+      const stacked = contentWidth < 48 * rem
+      expect(getComputedStyle(controls).flexWrap).toBe(stacked ? "wrap" : "nowrap")
+      expect(getComputedStyle(pager).flexBasis).toBe(stacked ? "100%" : "auto")
+      const pagerBounds = pager.getBoundingClientRect()
+      const pagerStyle = getComputedStyle(pager)
+      // Internal focus clearance extends the paint box, not the controls' flow.
+      const pagerFlowLeft = pagerBounds.left + Number.parseFloat(pagerStyle.paddingLeft)
+      const pagerFlowRight = pagerBounds.right - Number.parseFloat(pagerStyle.paddingRight)
+      const selectBounds = sizeSelect.getBoundingClientRect()
+      const controlsBounds = controls.getBoundingClientRect()
+      const barBounds = bar.getBoundingClientRect()
+      expect(pagerBounds.left).toBeGreaterThanOrEqual(barBounds.left)
+      expect(pagerBounds.right).toBeLessThanOrEqual(barBounds.right)
+      if (stacked) {
+        expect(selectBounds.top).toBeGreaterThanOrEqual(pagerBounds.bottom)
+        expect(selectBounds.left).toBeCloseTo(pagerFlowLeft, 0)
+      } else {
+        expect(selectBounds.left).toBeGreaterThanOrEqual(pagerBounds.right)
+        expect(selectBounds.top + selectBounds.height / 2).toBeCloseTo(pagerBounds.top + pagerBounds.height / 2, 0)
+      }
+      for (const control of [pager, sizeSelect]) {
+        await expect(control).toBeVisible()
+        const bounds = control.getBoundingClientRect()
+        expect(bounds.width).toBeGreaterThan(0)
+        expect(control === pager ? pagerFlowLeft : bounds.left).toBeGreaterThanOrEqual(controlsBounds.left)
+        expect(control === pager ? pagerFlowRight : bounds.right).toBeLessThanOrEqual(controlsBounds.right)
+      }
+      const items = [...pager.querySelectorAll("li")].filter(
+        (item) => item.getClientRects().length > 0
+      )
+      expect(items.length).toBeGreaterThanOrEqual(3)
+      const first = items[0]!.getBoundingClientRect()
+      for (const item of items) {
+        const bounds = item.getBoundingClientRect()
+        expect(bounds.top + bounds.height / 2).toBeCloseTo(first.top + first.height / 2, 0)
+        expect(bounds.left).toBeGreaterThanOrEqual(pagerBounds.left)
+        expect(bounds.right).toBeLessThanOrEqual(pagerBounds.right)
+      }
+      for (const link of navigation.getAllByRole("link")) {
+        await expect(link).toBeVisible()
+        await expect(link).toHaveAttribute("href", "#")
+      }
+    })
   },
 }
 
@@ -1889,7 +2096,7 @@ export const LoadingSkeletons: Story = {
 /* ── 33. Loading more (infinite scroll footer) ───────────────────────────── */
 
 export const LoadingMore: Story = {
-  parameters: { docs: { description: { story: "An appended skeleton row keeps existing records visible while another page is fetched." } } },
+  parameters: { docs: { description: { story: "Existing records stay visible while another page is pending. Scroll to the end of the bounded list to see its appended skeleton row." } } },
   args: {
     columns,
     data: people,
@@ -1930,14 +2137,13 @@ export const AccessibleSemantics: Story = {
     ...base,
     enableSorting: true,
     enableRowSelection: true,
-    enableExpanding: true,
-    getSubRows: () => undefined,
     getRowLabel: (row) => `${row.original.firstName} ${row.original.lastName}`,
     onRowClick: fn(),
     onSortingChange: fn(),
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
+    await expect(canvas.queryByRole("columnheader", { name: "Actions" })).not.toBeInTheDocument()
     // Sortable headers expose their sort state to assistive tech.
     const ageHeader = canvas.getByRole("columnheader", { name: /Age/i })
     await expect(ageHeader).toHaveAttribute("aria-sort", "none")
@@ -2015,7 +2221,16 @@ export const EditorValidation: EmployeeStory = {
         expect(error?.scrollWidth ?? 0).toBeLessThanOrEqual((error?.clientWidth ?? 0) + 1)
       })
     }
-    await expect(canvas.getByText("Confirm the employee is active before saving.")).toBeVisible()
+    const approvalMessage = canvas.getByText("Confirm the employee is active before saving.")
+    await expect(approvalMessage).toBeVisible()
+    await expect(approvalMessage.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(approvalMessage).lineHeight)).toBeLessThanOrEqual(4)
+    const editors = [...canvasElement.querySelectorAll("[data-editor-control]")]
+    for (const editor of editors) {
+      await expect(editor.getBoundingClientRect().top).toBeCloseTo(editors[0]!.getBoundingClientRect().top, 0)
+    }
+    for (const label of ["Cancel edit", "Save row"]) {
+      await expect(Math.abs(canvas.getByLabelText(label).getBoundingClientRect().top - editors[0]!.getBoundingClientRect().top)).toBeLessThanOrEqual(1)
+    }
   },
 }
 
@@ -2052,12 +2267,39 @@ export const AsyncSaveRecovery: Story = {
     await expect(canvas.getByLabelText("Save row")).toHaveFocus()
     await expect(input).toHaveValue("Augusta")
     await expect(canvas.getByText("Saving row…")).toBeVisible()
+    await waitFor(() => {
+      const save = canvas.getByLabelText("Save row").getBoundingClientRect()
+      const pending = canvas.getByText("Saving row…").getBoundingClientRect()
+      expect(Math.abs(save.top - input.getBoundingClientRect().top)).toBeLessThanOrEqual(1)
+      expect(pending.top).toBeGreaterThanOrEqual(save.bottom - 1)
+    })
     await userEvent.keyboard("{Enter}{Enter}")
     await expect(args.onEditCommit).toHaveBeenCalledTimes(1)
     await userEvent.click(canvas.getByRole("button", { name: "Simulate save failure" }))
-    await expect(canvas.getByRole("alert")).toHaveTextContent("Could not save this row")
+    const error = canvas.getByRole("alert")
+    await expect(error).toHaveTextContent("Could not save this row")
     await expect(input).toHaveValue("Augusta")
-    await userEvent.click(canvas.getByLabelText("Save row"))
+    const save = canvas.getByLabelText("Save row")
+    await waitFor(() => expect(save).toHaveFocus())
+    await expect(save).toHaveAttribute("aria-describedby", error.id)
+    save.scrollIntoView({ block: "nearest", inline: "end" })
+    await waitFor(() => {
+      const saveRect = save.getBoundingClientRect()
+      const cancelRect = canvas.getByLabelText("Cancel edit").getBoundingClientRect()
+      const errorRect = error.getBoundingClientRect()
+      const viewport = canvas.getByRole("region", { name: "Scrollable records" }).getBoundingClientRect()
+      expect(Math.abs(saveRect.top - input.getBoundingClientRect().top)).toBeLessThanOrEqual(1)
+      expect(Math.abs(saveRect.top - cancelRect.top)).toBeLessThanOrEqual(1)
+      expect(errorRect.top).toBeGreaterThanOrEqual(saveRect.bottom - 1)
+      expect(errorRect.width).toBeGreaterThanOrEqual(Math.max(240, saveRect.width + cancelRect.width - 1))
+      const readonly = canvas.getByText("ada@calc.io")
+      expect(getComputedStyle(readonly.closest("td")!).verticalAlign).toBe("top")
+      expect(Math.abs(readonly.getBoundingClientRect().top - input.getBoundingClientRect().top)).toBeLessThanOrEqual(1)
+      expect(errorRect.left).toBeGreaterThanOrEqual(viewport.left - 1)
+      expect(errorRect.right).toBeLessThanOrEqual(viewport.right + 1)
+      expect(error.scrollWidth).toBeLessThanOrEqual(error.clientWidth + 1)
+    })
+    await userEvent.click(save)
     await userEvent.click(canvas.getByRole("button", { name: "Complete save" }))
     await waitFor(() => expect(canvas.queryByLabelText("Edit First name")).toBeNull())
     await expect(args.onEditCommit).toHaveBeenCalledTimes(2)
@@ -2078,8 +2320,8 @@ export const RequiredDateRange: StoryObj<DataTableProps<RangeRow>> = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByLabelText("Edit row booking"))
-    const from = canvas.getByLabelText("Edit Period from")
-    const to = canvas.getByLabelText("Edit Period to")
+    const from = canvas.getByLabelText("Edit Period: Start")
+    const to = canvas.getByLabelText("Edit Period: End")
     await userEvent.clear(from)
     await userEvent.clear(to)
     from.focus()
@@ -2130,7 +2372,7 @@ export const ShrinkingServerTotal: Story = {
       <DataTable {...base} data={records.slice(pagination.pageIndex * pagination.pageSize, (pagination.pageIndex + 1) * pagination.pageSize)}
         enablePagination manualPagination rowCount={count} pagination={pagination} onPaginationChange={setPagination} pageSizeOptions={[2, 5, 10]} loading={loading} />
       <Button theme="outlined" onClick={() => { setLoading(true); setCount(0) }}>Start refetch</Button>
-      <Button theme="outlined" onClick={() => { setCount(4); setLoading(false) }}>Delete last-page record</Button>
+      <Button theme="outlined" variant="danger" onClick={() => { setCount(4); setLoading(false) }}>Delete last-page record</Button>
     </div>
   },
   play: async ({ canvasElement }) => {
@@ -2157,7 +2399,7 @@ export const ShrinkingServerTotal: Story = {
 }
 
 export const GroupedFixedWidths: Story = {
-  parameters: { docs: { description: { story: "A leaf colgroup keeps mixed grouped and ungrouped fixed widths intact; only leaf headers expose resize handles." } } },
+  parameters: { docs: { description: { story: "A leaf colgroup keeps mixed grouped and ungrouped fixed widths intact; only leaf headers expose resize handles. Identity is the grouped header; People and Contact details are intentional footer labels." } } },
   args: {
     ...base, tableLayout: "fixed", enableColumnResizing: true,
     columns: [
@@ -2300,9 +2542,9 @@ export const VariableHeightVirtualRows: Story = {
     ...base, data: bigData, enableVirtualization: true, maxHeight: "26rem",
     enableExpanding: true, expanded: { "row-1": true },
     columns: [{ accessorKey: "firstName", header: "Person" }, {
-      accessorKey: "email", header: "Notes", cell: ({ row }) => <div>{Array.from({ length: row.index % 3 + 1 }, (_, index) => <p key={`note-${index}`}>Contact preferences and delivery instructions for {row.original.firstName}.</p>)}</div>,
+      accessorKey: "email", header: "Notes", meta: { minWidth: "var(--container-3xs)" }, cell: ({ row }) => <div>{Array.from({ length: row.index % 3 + 1 }, (_, index) => <p key={`note-${index}`}>Contact preferences and delivery instructions for {row.original.firstName}.</p>)}</div>,
     }],
-    renderExpandedRow: (row) => <div className="p-400"><p>Delivery details for {row.original.firstName}</p><p>Preferred collection at the workshop reception.</p></div>,
+    renderExpandedRow: (row) => <div><p>Delivery details for {row.original.firstName}</p><p>Preferred collection at the workshop reception.</p></div>,
   },
 }
 

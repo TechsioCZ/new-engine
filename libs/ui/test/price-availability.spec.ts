@@ -29,7 +29,12 @@ test("PriceBlock preserves state semantics and localized pending copy", async ({
   await expect(known).toContainText("249 Kč")
   await expect(known.locator(".text-price-block-amount-size")).toHaveCount(1)
   await expect(known.locator(".text-price-block-metadata-size")).toHaveCount(1)
-  await expect(known.locator('[aria-hidden="true"]')).toHaveText("·")
+  const metadata = known.locator(".text-price-block-metadata-size")
+  await expect(metadata.locator(":scope > span")).toHaveText([
+    "205,79 Kč bez DPH",
+    "za balení",
+  ])
+  await expect(metadata.locator('[aria-hidden="true"]')).toHaveCount(0)
 
   const from = state(root, "from")
   await expect(from).toContainText("Od")

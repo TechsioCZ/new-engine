@@ -2,7 +2,7 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.4
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -49,7 +49,7 @@ const toastVariants = tv({
     ],
     group: "pointer-events-auto relative flex flex-col",
     viewport: "toast-notification-viewport",
-    header: "relative flex items-start gap-toast-content text-toast-title-size",
+    header: "relative flex items-start gap-toast-header text-toast-title-size",
     iconFrame: "flex h-toast-title-line shrink-0 items-center",
     icon: [
       "flex-shrink-0 text-toast-icon",
@@ -67,10 +67,11 @@ const toastVariants = tv({
       "data-[type=warning]:text-toast-fg-readable",
     ],
     description: [
-      "mt-toast-description break-words text-toast-description-size text-toast-fg-readable",
+      "mt-toast-description break-words text-toast-description-size text-toast-fg-description",
     ],
-    // Positioning only — ActionIcon owns size, glyph and neutral hover pill.
-    closeButton: ["ms-auto self-start"],
+    // Match the icon's first-line alignment without shrinking ActionIcon's hit area.
+    closeButtonFrame:
+      "ms-auto flex h-toast-title-line w-toast-close-frame shrink-0 items-center justify-center",
   },
 })
 
@@ -102,8 +103,15 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
     onKeyDown?.(event)
   }
 
-  const { root, header, iconFrame, icon, title, description, closeButton } =
-    toastVariants()
+  const {
+    root,
+    header,
+    iconFrame,
+    icon,
+    title,
+    description,
+    closeButtonFrame,
+  } = toastVariants()
 
   return (
     <div className={root()} {...rootProps}>
@@ -116,14 +124,15 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
           {api.title}
         </div>
         {api.closable && (
-          <ActionIcon
-            className={closeButton()}
-            icon="token-icon-toast-close"
-            size="sm"
-            tone="neutral"
-            {...api.getCloseTriggerProps()}
-            aria-label="Close notification"
-          />
+          <span className={closeButtonFrame()}>
+            <ActionIcon
+              icon="token-icon-toast-close"
+              size="sm"
+              tone="neutral"
+              {...api.getCloseTriggerProps()}
+              aria-label="Close notification"
+            />
+          </span>
         )}
       </div>
       {api.description && (

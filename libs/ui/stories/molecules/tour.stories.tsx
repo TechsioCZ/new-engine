@@ -110,6 +110,7 @@ const meta = {
         "closeOnInteractOutside",
         "preventInteraction",
         "keyboardNavigation",
+        "spotlightOffset",
         "dir",
       ],
     },
@@ -119,6 +120,13 @@ const meta = {
     closeOnInteractOutside: { control: "boolean" },
     preventInteraction: { control: "boolean" },
     keyboardNavigation: { control: "boolean" },
+    spotlightOffset: {
+      control: "object",
+      type: {
+        name: "object",
+        value: { x: { name: "number" }, y: { name: "number" } },
+      },
+    },
     dir: { control: "select", options: ["ltr", "rtl"] },
   },
   args: {
@@ -128,6 +136,7 @@ const meta = {
     closeOnInteractOutside: true,
     preventInteraction: false,
     keyboardNavigation: true,
+    spotlightOffset: { x: 10, y: 10 },
     dir: "ltr",
     onStatusChange: fn(),
     onStepChange: fn(),
@@ -147,7 +156,11 @@ function LateTargetExample(props: Omit<TourRootProps, "children" | "steps">) {
   const [status, setStatus] = useState("idle")
   const [cleanupCount, setCleanupCount] = useState(0)
   return (
-    <div className="flex min-h-svh flex-col items-start gap-200 p-400 text-fg-primary">
+    <div
+      className="flex min-h-svh flex-col items-start gap-200 p-400 text-fg-primary"
+      data-tour-spotlight-offset-x={props.spotlightOffset?.x ?? 10}
+      data-tour-spotlight-offset-y={props.spotlightOffset?.y ?? 10}
+    >
       <h2 className="font-semibold text-xl">A target that appears later</h2>
       <p>
         Click Start tour, then Reveal target within three seconds. The panel
@@ -334,9 +347,8 @@ function ControlsExample(props: Omit<TourRootProps, "children" | "steps">) {
           description: (
             <div className="flex flex-col gap-200">
               <p>
-                Try editing with the arrow keys. Update step changes the last
-                step; Jump to end opens it. Replace steps is available there
-                because the active step id must remain in the new list.
+                Edit your name with the arrow keys. Choose Update step to change
+                the final heading, or Jump to end to preview it.
               </p>
               <Input aria-label="Your name" defaultValue="Ada" />
             </div>
@@ -363,7 +375,7 @@ function ControlsExample(props: Omit<TourRootProps, "children" | "steps">) {
           <Tour.Content>
             <Tour.Title />
             <Tour.Description />
-            <Tour.Actions>
+            <Tour.Actions className="grid grid-cols-2">
               <Tour.ActionTrigger
                 action="next"
                 onClick={(event) => event.preventDefault()}
@@ -390,6 +402,7 @@ function ControlsExample(props: Omit<TourRootProps, "children" | "steps">) {
               <Tour.Context>
                 {(api) => (
                   <Button
+                    className="col-span-2"
                     disabled={!api.isCurrentStep("done")}
                     onClick={() => {
                       api.setSteps([
@@ -417,7 +430,7 @@ function ControlsExample(props: Omit<TourRootProps, "children" | "steps">) {
 }
 
 export const CustomControls: Story = {
-  parameters: { docs: { description: { story: "Custom tour actions preserve clear back, next and dismissal choices." } } },
+  parameters: { docs: { description: { story: "Custom tour actions preserve clear back, next and dismissal choices. Update step changes the final heading; Jump to end opens that step. Replace steps is enabled there because the active step id must remain in the replacement list." } } },
   render: (args) => <ControlsExample {...args} />,
 }
 
@@ -462,18 +475,37 @@ export const LongContent: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Start tour" }))
     const panel = await within(canvasElement.ownerDocument.body).findByRole("alertdialog", { name: "A guide with longer content" })
+    const title = panel.querySelector<HTMLElement>('[data-part="title"]')
+    if (!title) throw new Error("Missing tour title")
+    const close = within(panel).getByRole("button", { name: "close tour" })
+    const closeRect = close.getBoundingClientRect()
+    const titleRange = title.ownerDocument.createRange()
+    titleRange.selectNodeContents(title)
+    for (const line of titleRange.getClientRects()) {
+      const overlapsClose =
+        line.left < closeRect.right && line.right > closeRect.left &&
+        line.top < closeRect.bottom && line.bottom > closeRect.top
+      await expect(overlapsClose).toBe(false)
+    }
     const description = panel.querySelector<HTMLElement>('[data-part="description"]')
     if (!description) throw new Error("Missing tour description")
     await expect(description).toHaveAccessibleName("Tour guidance")
     await expect(description).toHaveAttribute("tabindex", "0")
     description.focus()
     await expect(description).toHaveFocus()
+    const descriptionStyle = getComputedStyle(description)
+    await expect(Number.parseFloat(descriptionStyle.paddingInlineStart)).toBeGreaterThan(0)
+    await expect(Number.parseFloat(descriptionStyle.paddingInlineEnd)).toBeGreaterThan(0)
     description.scrollTop = description.scrollHeight / 2
     for (const control of within(panel).getAllByRole("button")) {
       const rect = control.getBoundingClientRect()
       await expect(rect.top).toBeGreaterThanOrEqual(0)
       await expect(rect.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight)
     }
+    // Leave the authored capture at its initial position after the scroll check.
+    description.scrollTop = 0
+    within(panel).getByRole("button", { name: "close tour" }).focus()
+    await expect(description.scrollTop).toBe(0)
   },
 }
 
@@ -528,7 +560,11 @@ function ScrollTargetExample(props: Omit<TourRootProps, "children" | "steps">) {
         },
       ]}
     >
-      <div className="min-h-svh p-400">
+      <div
+        className="min-h-svh p-400"
+        data-tour-spotlight-offset-x={props.spotlightOffset?.x ?? 10}
+        data-tour-spotlight-offset-y={props.spotlightOffset?.y ?? 10}
+      >
         <Tour.Trigger>Start tour</Tour.Trigger>
       </div>
       <div className="min-h-svh p-400">

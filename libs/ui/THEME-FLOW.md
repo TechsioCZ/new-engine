@@ -11,6 +11,11 @@ the documented local runtime bridge (`_foundation-overrides.css`), and
 scheme-local alias declarations follow it. Do not delete bridge corrections
 until the matching Figma handoff has been verified.
 
+The business theme's runtime corrections live in `_business.css`, after the
+shared bridge and before `_scheme-scopes.css`. Run
+`node libs/ui/scripts/validate-token-scopes.js --write` after changing its
+aliases so nested brand and scheme boundaries keep the same theme.
+
 ## Full pipeline
 
 ```mermaid

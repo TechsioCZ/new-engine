@@ -109,7 +109,7 @@ const defaultItems = [
     value: "tab1",
     label: "Overview",
     content: (
-      <div className="p-400">
+      <div>
         <h3 className="text-lg font-semibold mb-200">Overview</h3>
         <p className="text-fg-muted">
           This is the overview tab content. It contains general information
@@ -122,7 +122,7 @@ const defaultItems = [
     value: "tab2",
     label: "Details",
     content: (
-      <div className="p-400">
+      <div>
         <h3 className="text-lg font-semibold mb-200">Details</h3>
         <p className="text-fg-muted">
           Here you'll find detailed specifications and technical information.
@@ -134,7 +134,7 @@ const defaultItems = [
     value: "tab3",
     label: "Reviews",
     content: (
-      <div className="p-400">
+      <div>
         <h3 className="text-lg font-semibold mb-200">Reviews</h3>
         <p className="text-fg-muted">
           Customer reviews and ratings appear in this section.
@@ -178,7 +178,7 @@ export const Playground: Story = {
       {
         value: "tab4",
         label: "Disabled",
-        content: <div className="p-400">This tab is disabled</div>,
+        content: <div>This tab is disabled</div>,
         disabled: true,
       },
     ],
@@ -220,6 +220,27 @@ export const Variants: Story = {
 }
 
 export const Sizes: Story = {
+  play: async ({ canvasElement }) => {
+    const view = canvasElement.ownerDocument.defaultView!
+    for (const panel of within(canvasElement).getAllByRole("tabpanel")) {
+      const content = panel.firstElementChild!
+      await expect(view.getComputedStyle(content).paddingInlineStart).toBe("0px")
+      await expect(view.getComputedStyle(content).paddingInlineEnd).toBe("0px")
+      const panelStyle = view.getComputedStyle(panel)
+      const panelBox = panel.getBoundingClientRect()
+      const headingBox = within(panel).getByRole("heading").getBoundingClientRect()
+      await expect(headingBox.left - panelBox.left).toBeCloseTo(
+        Number.parseFloat(panelStyle.paddingLeft),
+        1
+      )
+      await expect(panelBox.right - headingBox.right).toBeCloseTo(
+        Number.parseFloat(panelStyle.paddingRight),
+        1
+      )
+      await expect(headingBox.left - panelBox.left).toBeLessThanOrEqual(32)
+      await expect(panelBox.right - headingBox.right).toBeLessThanOrEqual(32)
+    }
+  },
   parameters: {
     controls: { disable: true },
     docs: {

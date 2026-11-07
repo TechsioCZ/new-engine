@@ -55,24 +55,48 @@ export const Variants: Story = {
     docs: {
       description: {
         story:
-          "Neutral supporting actions and destructive removal actions share a consistent interaction surface.",
+          "The same close glyph isolates neutral and destructive tone on a consistent interaction surface.",
       },
     },
   },
   render: () => (
-    <VariantContainer>
+    <VariantContainer className="items-stretch space-y-0 gap-250">
       <VariantGroup title="Neutral">
         <ActionIcon aria-label="Close details" icon="token-icon-close" />
       </VariantGroup>
       <VariantGroup title="Danger">
         <ActionIcon
-          aria-label="Remove attachment"
-          icon="token-icon-trash"
+          aria-label="Discard draft"
+          icon="token-icon-close"
           tone="danger"
         />
       </VariantGroup>
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const neutral = canvas.getByRole("button", { name: "Close details" })
+    const danger = canvas.getByRole("button", { name: "Discard draft" })
+    const neutralGroup = canvas.getByRole("heading", {
+      name: "Neutral",
+    }).parentElement
+    const dangerGroup = canvas.getByRole("heading", {
+      name: "Danger",
+    }).parentElement
+    if (!(neutralGroup && dangerGroup)) {
+      throw new Error("Missing ActionIcon variant groups")
+    }
+    // Compact examples should not inherit the shared matrix's 800 section gap.
+    const gap =
+      dangerGroup.getBoundingClientRect().top -
+      neutralGroup.getBoundingClientRect().bottom
+    await expect(gap).toBeGreaterThan(0)
+    await expect(gap).toBeLessThanOrEqual(neutral.getBoundingClientRect().height)
+    // Destructive intent is visible at rest, not only on hover.
+    await expect(getComputedStyle(danger).color).not.toBe(
+      getComputedStyle(neutral).color
+    )
+  },
 }
 export const Sizes: Story = {
   parameters: {
@@ -85,7 +109,7 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <VariantContainer className="items-stretch space-y-0 gap-250">
       {(["sm", "md", "lg"] as const).map((size) => (
         <VariantGroup
           key={size}
@@ -102,6 +126,28 @@ export const Sizes: Story = {
       ))}
     </VariantContainer>
   ),
+  play: async ({ canvasElement }) => {
+    const buttons = within(canvasElement).getAllByRole("button")
+    let previousGlyph = 0
+    let previousWidth = 0
+    let previousHeight = 0
+    for (const button of buttons) {
+      const glyph = button.firstElementChild
+      if (!glyph) throw new Error("Missing ActionIcon size glyph")
+      const glyphSize = Number.parseFloat(getComputedStyle(glyph).fontSize)
+      const target = button.getBoundingClientRect()
+      const glyphBounds = glyph.getBoundingClientRect()
+      await expect(glyphSize).toBeGreaterThan(previousGlyph)
+      await expect(target.width).toBeGreaterThanOrEqual(previousWidth)
+      await expect(target.height).toBeGreaterThanOrEqual(previousHeight)
+      await expect(target.width).toBeCloseTo(target.height)
+      await expect(glyphBounds.width).toBeLessThan(target.width)
+      await expect(glyphBounds.height).toBeLessThan(target.height)
+      previousGlyph = glyphSize
+      previousWidth = target.width
+      previousHeight = target.height
+    }
+  },
 }
 export const States: Story = {
   parameters: {
@@ -113,10 +159,23 @@ export const States: Story = {
     },
   },
   args: { disabled: true },
+  render: (args) => (
+    <div className="flex gap-300">
+      <VariantGroup title="Available">
+        <ActionIcon aria-label="Close preview" icon="token-icon-close" />
+      </VariantGroup>
+      <VariantGroup title="Disabled">
+        <ActionIcon {...args} />
+      </VariantGroup>
+    </div>
+  ),
   play: async ({ args, canvasElement }) => {
     const button = within(canvasElement).getByRole("button", {
       name: "Close details",
     })
+    await expect(
+      within(canvasElement).getByRole("button", { name: "Close preview" })
+    ).toBeEnabled()
     await expect(button).toBeDisabled()
     await userEvent.click(button)
     await expect(args.onClick).not.toHaveBeenCalled()

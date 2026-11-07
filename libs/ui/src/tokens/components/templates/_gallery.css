@@ -1,0 +1,24 @@
+@theme static {
+  /* Reference layer: preserve the composed Carousel's inset by default. */
+  --spacing-gallery-template-overlay-top: var(--spacing-carousel-trigger-top);
+  --spacing-gallery-template-overlay-right: var(
+    --spacing-carousel-trigger-right
+  );
+
+  /* Derived layer */
+  --spacing-gallery-template-autoplay-top: var(
+    --spacing-gallery-template-overlay-top
+  );
+  --spacing-gallery-template-autoplay-right: var(
+    --spacing-gallery-template-overlay-right
+  );
+}
+
+/* Feed the composed control's existing positioning utilities without adding
+ * competing top/right classes or changing its focus treatment. */
+@utility gallery-template-autoplay-inset {
+  --spacing-carousel-trigger-top: var(--spacing-gallery-template-autoplay-top);
+  --spacing-carousel-trigger-right: var(
+    --spacing-gallery-template-autoplay-right
+  );
+}

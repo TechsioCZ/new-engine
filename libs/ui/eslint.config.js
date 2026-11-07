@@ -52,6 +52,8 @@ export default [
             "^data-\\[position=start\\]:justify-items-start-safe$",
             "^duration-header$",
             "^force-reduced-motion$",
+            "^menu-content-surface$",
+            "^popover-chrome$",
           ],
         },
       ],
@@ -75,6 +77,16 @@ export default [
     ],
     rules: {
       "tailwindcss/no-unnecessary-arbitrary-value": "off",
+    },
+  },
+  {
+    // Consumer-owned CSS markers test className forwarding, not kit utilities.
+    files: ["tests/**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      "tailwindcss/no-custom-classname": [
+        "error",
+        { whitelist: ["^(caller|consumer)-[a-z-]+$", "^custom-slider$"] },
+      ],
     },
   },
   {

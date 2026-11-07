@@ -9,9 +9,27 @@ import { openContractStory } from "./visual-shared-contracts.mjs"
 
 for (const [brand, mode] of [
   ["akros", "light"],
+  ["business", "light"],
   ["base", "light"],
   ["base", "dark"],
 ]) {
+  test(`${brand}/${mode}: dialog scroll content is not a separate popup`, async ({
+    page,
+  }) => {
+    await openContractStory(
+      page,
+      "pages-akros-admin-customer-emails--edit-unpaid-reminder",
+      { brand, mode }
+    )
+    await expect(
+      page.getByRole("dialog", { name: "Payment not completed" })
+    ).toBeVisible()
+    await expect(page.getByRole("tabpanel", { name: "Edit" })).toBeVisible()
+    const surfaces = await visibleFloatingSurfaces(page)
+    expect(surfaces.some((surface) => surface.scope === "dialog")).toBe(true)
+    expect(surfaces.some((surface) => surface.scope === "tabs")).toBe(false)
+    await captureFloatingPage(page)
+  })
   test(`${brand}/${mode}: hierarchy captures reject clipped descendants inside intact panels`, async ({
     page,
   }) => {

@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.5
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -34,7 +34,7 @@ const productCardVariants = tv({
     ],
     imageSlot: "w-full rounded-product-card-image object-cover",
     nameSlot:
-      "product-card-name line-clamp-product-card-name min-h-product-card-name font-product-card-name text-product-card-name-fg text-product-card-name-size",
+      "product-card-name line-clamp-product-card-name font-product-card-name text-product-card-name-fg text-product-card-name-size",
     priceSlot:
       "mt-auto font-product-card-price text-product-card-price-fg text-product-card-price-size",
     stockStatusSlot: [
@@ -44,7 +44,7 @@ const productCardVariants = tv({
       "data-[stock=out-of-stock]:text-product-card-stock-fg-out-of-stock",
     ],
     badgesSlot: "flex flex-wrap gap-product-card-badges",
-    ratingSlot: "flex min-w-0 max-w-full items-center",
+    ratingSlot: "product-card-rating flex min-w-0 max-w-full items-center",
     actionsSlot: "flex flex-wrap gap-product-card-actions",
     button: "",
   },
@@ -70,7 +70,7 @@ const productCardVariants = tv({
         imageSlot: "aspect-product-card-image",
       },
       row: {
-        root: "product-card-row grid w-full grid-cols-(--product-card-layout-row-grid) gap-x-product-card-row-layout",
+        root: "product-card-row grid w-full grid-cols-(--product-card-layout-row-grid) gap-x-product-card-row-layout gap-y-product-card-col-layout",
         imageSlot: "row-span-6 aspect-product-card-image h-full",
       },
     },

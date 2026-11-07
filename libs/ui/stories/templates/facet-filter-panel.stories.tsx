@@ -97,7 +97,11 @@ function ActiveFiltersDemo({
           onReset?.()
         }}
       />
-      <h2 tabIndex={-1} ref={results}>
+      <h2
+        className="rounded-md p-150 focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style) focus-visible:outline-ring-default focus-visible:outline-offset-(length:--default-ring-offset)"
+        tabIndex={-1}
+        ref={results}
+      >
         Filtered results
       </h2>
     </div>
@@ -300,6 +304,10 @@ const meta: Meta<typeof FacetFilterPanel> = {
       description: "Keeps selections inspectable without changes.",
       control: "boolean",
     },
+    readOnlyLabel: {
+      description: "Visible, localizable cue for read-only filter values.",
+      control: "text",
+    },
     size: {
       description: "Canonical size shared by filter controls.",
       control: "select",
@@ -480,15 +488,21 @@ export const ActiveFilters: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const first = canvas.getByRole("button", { name: "Remove Linen" })
+    await expect(first).toBeVisible()
+    await expect(
+      canvas.getByRole("button", { name: "Remove In stock" })
+    ).toBeVisible()
     first.focus()
     await userEvent.keyboard("{Enter}")
     await expect(
       canvas.getByRole("button", { name: "Remove In stock" })
     ).toHaveFocus()
     await userEvent.keyboard("{Enter}")
+    const results = canvas.getByRole("heading", { name: "Filtered results" })
+    await expect(results).toHaveFocus()
     await expect(
-      canvas.getByRole("heading", { name: "Filtered results" })
-    ).toHaveFocus()
+      Number.parseFloat(getComputedStyle(results).paddingLeft)
+    ).toBeGreaterThan(0)
   },
   args: {
     activeFilters: [
@@ -586,14 +600,23 @@ export const ReadOnly: Story = {
   args: { ...Selected.args, readOnly: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    await expect(canvas.getByText("Read-only", { exact: true })).toBeVisible()
     const minimum = canvas.getByRole("slider", { name: "Minimum price" })
+    await expect(minimum).toHaveAttribute("aria-readonly", "true")
     const value = minimum.getAttribute("aria-valuenow")
     minimum.focus()
     await userEvent.keyboard("{End}{ArrowRight}")
+    await expect(minimum).toHaveFocus()
     await expect(minimum).toHaveAttribute("aria-valuenow", value ?? "0")
     await expect(
       canvas.queryByRole("button", { name: "Clear filters" })
     ).not.toBeInTheDocument()
+    const active = canvas.getByRole("group", { name: "Active filters" })
+    await expect(within(active).getByText("Linen,")).toBeVisible()
+    await expect(within(active).getByText("In stock")).toBeVisible()
+    await expect(within(active).queryByRole("button")).not.toBeInTheDocument()
+    const range = minimum.closest("section")!
+    await expect(getComputedStyle(range).borderBottomWidth).toBe("0px")
   },
   render: (args) => (
     <div className="w-full max-w-sm">
@@ -674,7 +697,20 @@ function AsyncGroupsExample(args: FacetFilterPanelProps) {
       <Button onClick={() => setGroups(baseGroups)} type="button">
         Load groups
       </Button>
-      <FacetFilterPanel {...args} groups={groups} />
+      <FacetFilterPanel
+        {...args}
+        groups={groups}
+        title={
+          <span className="flex flex-col gap-100">
+            <span>{args.title}</span>
+            {groups.length === 0 ? (
+              <span className="font-normal text-fg-secondary text-sm">
+                Load groups to see filters.
+              </span>
+            ) : null}
+          </span>
+        }
+      />
     </div>
   )
 }
@@ -689,6 +725,11 @@ export const AsyncGroups: Story = {
     },
   },
   render: (args) => <AsyncGroupsExample {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText("Load groups to see filters.")).toBeVisible()
+    await expect(canvas.queryByRole("checkbox")).not.toBeInTheDocument()
+  },
 }
 
 function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
@@ -696,7 +737,7 @@ function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
   const [closeRequests, setCloseRequests] = useState(0)
 
   return (
-    <>
+    <div className="flex flex-col gap-200">
       <p className="text-fg-secondary text-sm">
         Close requests: {closeRequests}
       </p>
@@ -704,9 +745,9 @@ function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
         {...args}
         drawerOpen={drawerOpen}
         title={
-          <span>
-            {args.title}
-            <span className="block font-normal text-sm" role="status">
+          <span className="flex flex-col gap-100">
+            <span>{args.title}</span>
+            <span className="font-normal text-sm" role="status">
               {closeRequests
                 ? "Close was declined once. Press Escape or Close again to leave."
                 : "The first close request is declined for this demo; a second request will close it."}
@@ -723,7 +764,7 @@ function RejectedDrawerCloseExample(args: FacetFilterPanelProps) {
           args.onDrawerOpenChange?.(open)
         }}
       />
-    </>
+    </div>
   )
 }
 
@@ -743,10 +784,22 @@ export const RejectedDrawerClose: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const trigger = canvas.getByRole("button", { name: "Filters" })
+    const requestSummary = canvas.getByText("Close requests: 0")
+    await expect(
+      Number.parseFloat(getComputedStyle(requestSummary.parentElement!).rowGap)
+    ).toBeGreaterThan(0)
     await userEvent.click(trigger)
     const document = canvasElement.ownerDocument
     const body = within(document.body)
     const dialog = await body.findByRole("dialog")
+    const helper = within(dialog).getByText(
+      "The first close request is declined for this demo; a second request will close it.",
+      { exact: true }
+    )
+    await expect(helper).toHaveAttribute("role", "status")
+    await expect(
+      Number.parseFloat(getComputedStyle(helper.parentElement!).rowGap)
+    ).toBeGreaterThan(0)
     // Mounting content and activating its focus trap happen on separate tasks.
     await waitFor(() => {
       expect(dialog).toBeVisible()

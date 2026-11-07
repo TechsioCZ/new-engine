@@ -2,7 +2,7 @@
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.6
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,6 +11,7 @@
  */
 import {
   type ComponentPropsWithoutRef,
+  type CSSProperties,
   type KeyboardEvent,
   useId,
   useMemo,
@@ -28,17 +29,17 @@ const colorSelectVariants = tv({
   slots: {
     root: "grid w-full min-w-0 gap-color-select-md",
     group: [
-      "form-control-readonly grid min-w-0 items-start justify-items-stretch",
+      "grid min-w-0 items-start justify-items-stretch p-color-select-group",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-offset-(length:--default-ring-offset) focus-visible:outline-color-select-ring",
     ],
-    cell: "grid w-full min-w-0 justify-items-center",
+    cell: "grid w-full min-w-0 justify-items-center gap-color-select-label",
     atom: [
       "form-control-readonly form-control-disabled relative cursor-pointer p-color-select-atom",
-      "disabled:cursor-not-allowed",
+      "color-select-disabled disabled:cursor-not-allowed disabled:shadow-none",
       "aspect-square min-w-0 overflow-clip",
       "border-2 transition duration-200 motion-reduce:transition-none",
-      "border-color-select-border shadow-color-select hover:border-color-select-border-hover",
+      "border-color-select-border shadow-color-select not-disabled:not-data-readonly:not-data-[selected=true]:hover:border-color-select-border-hover",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-color-select-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -104,14 +105,11 @@ const colorSelectVariants = tv({
     layout: {
       list: {
         group: "grid-cols-1",
+        cell: "justify-items-start",
+        labelContainer: "text-start",
       },
       grid: {
         group: "color-select-grid",
-      },
-    },
-    disabled: {
-      true: {
-        atom: "select-disabled hover:border-color-select-border",
       },
     },
   },
@@ -229,7 +227,7 @@ export const ColorSelect = ({
     labelContainer,
     labelText,
     countText,
-  } = colorSelectVariants({ layout, size, radius, disabled })
+  } = colorSelectVariants({ layout, size, radius })
   const checkboxReadOnly =
     (selectionMode === "multiple" && immutable) || undefined
   const invalid = validateStatus === "error"
@@ -292,6 +290,12 @@ export const ColorSelect = ({
         data-size={size}
         ref={groupRef}
         role={selectionMode === "single" ? "radiogroup" : "group"}
+        style={
+          {
+            "--color-select-option-count": Math.max(1, colors.length),
+            ...props.style,
+          } as CSSProperties
+        }
         tabIndex={-1}
       >
         {colors.map((colorItem) => (
@@ -304,7 +308,7 @@ export const ColorSelect = ({
               aria-invalid={invalid || undefined}
               aria-label={`Select color ${colorItem.label ?? colorItem.color}`}
               aria-readonly={checkboxReadOnly}
-              className={`${atom()} ${colorItem.disabled ? "select-disabled" : ""}`}
+              className={atom()}
               data-readonly={readOnly ? "" : undefined}
               data-selected={colorItem.selected}
               disabled={colorItem.disabled || disabled}

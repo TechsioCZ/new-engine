@@ -24,7 +24,7 @@ const meta: Meta<typeof Breadcrumb> = {
   decorators: [
     (Story) => (
       <div
-        className="max-w-container-md bg-surface p-400"
+        className="max-w-container-md bg-surface p-150 sm:p-400"
         onClickCapture={(event) => {
           const link =
             event.target instanceof Element
@@ -75,10 +75,12 @@ function DemoBreadcrumb(props: BreadcrumbRootProps) {
   return (
     <Breadcrumb {...props}>
       <Breadcrumb.List>
-        <Breadcrumb.Item>
-          <Breadcrumb.Link href="/docs">Docs</Breadcrumb.Link>
-        </Breadcrumb.Item>
-        <Breadcrumb.Separator />
+        <>
+          <Breadcrumb.Item>
+            <Breadcrumb.Link href="/docs">Docs</Breadcrumb.Link>
+          </Breadcrumb.Item>
+          <Breadcrumb.Separator />
+        </>
         <Breadcrumb.Item>
           <Breadcrumb.Link href="/docs/components">Components</Breadcrumb.Link>
         </Breadcrumb.Item>
@@ -105,6 +107,22 @@ export const Playground: Story = {
     const canvas = within(canvasElement)
     const link = canvas.getByRole("link", { name: "Docs" })
     const initialUrl = window.location.href
+    await expect(canvas.getAllByRole("list")).toHaveLength(1)
+    await expect(canvas.getAllByRole("listitem")).toHaveLength(3)
+    const segments = canvasElement.querySelectorAll(".breadcrumb-segment")
+    await expect(segments).toHaveLength(2)
+    for (const segment of segments) {
+      const [separator, item] = segment.querySelectorAll("li")
+      if (!(separator && item)) throw new Error("Missing breadcrumb segment")
+      await expect(canvas.getAllByRole("listitem")).toContain(segment)
+      await expect(item).toHaveAttribute("role", "presentation")
+      await expect(separator).toHaveAttribute("aria-hidden", "true")
+      const a = separator.getBoundingClientRect()
+      const b = item.getBoundingClientRect()
+      await expect(
+        Math.abs(a.top + a.height / 2 - b.top - b.height / 2)
+      ).toBeLessThan(1)
+    }
     await expect(link).toHaveAttribute("href", "/docs")
     await userEvent.click(link)
     await expect(onDemoNavigate).toHaveBeenCalledWith("/docs")
@@ -131,7 +149,7 @@ export const Variants: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <VariantContainer className="items-start gap-400 space-y-0">
       <VariantGroup title="Link treatment" fullWidth>
         <DemoBreadcrumb aria-label="Plain breadcrumb" variant="plain" />
         <DemoBreadcrumb
@@ -154,7 +172,7 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <VariantContainer>
+    <VariantContainer className="items-start gap-400 space-y-0">
       <VariantGroup title="Small" fullWidth>
         <DemoBreadcrumb aria-label="Small breadcrumb" size="sm" />
       </VariantGroup>

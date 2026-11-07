@@ -203,7 +203,7 @@ function DescriptionLifecycleDemo() {
   const id = useId()
   const [showError, setShowError] = useState(true)
   const { describedById, registerDescription } = useDescribedBy()
-  return <div className="grid w-xs max-w-full gap-100"><Label htmlFor={id}>Email address</Label><Input id={id} aria-describedby={joinDescribedBy(`${id}-external`, describedById)} aria-invalid={showError || undefined} aria-errormessage={showError ? `${id}-error` : undefined} defaultValue="mara@" /><span className="sr-only" id={`${id}-external`}>Billing contact.</span><RegisteredFeedback id={`${id}-hint`} register={registerDescription} />{showError && <RegisteredFeedback error id={`${id}-error`} register={registerDescription} />}<Button variant="secondary" size="sm" onClick={() => setShowError(!showError)}>{showError ? "Clear validation" : "Show validation"}</Button></div>
+  return <div className="grid w-xs max-w-full gap-100"><Label htmlFor={id}>Email address</Label><Input id={id} aria-describedby={joinDescribedBy(`${id}-external`, describedById)} aria-invalid={showError || undefined} aria-errormessage={showError ? `${id}-error` : undefined} defaultValue="mara@" variant={showError ? "error" : undefined} /><span className="sr-only" id={`${id}-external`}>Billing contact.</span><RegisteredFeedback id={`${id}-hint`} register={registerDescription} />{showError && <RegisteredFeedback error id={`${id}-error`} register={registerDescription} />}<Button variant="secondary" size="sm" onClick={() => setShowError(!showError)}>{showError ? "Clear validation" : "Show validation"}</Button></div>
 }
 
 export const DescriptionLifecycle: Story = {
@@ -213,10 +213,13 @@ export const DescriptionLifecycle: Story = {
     const canvas = within(canvasElement)
     const field = canvas.getByRole("textbox", { name: "Email address" })
     await waitFor(() => expect(field).toHaveAccessibleDescription("Billing contact. We only send order updates. Enter a valid email address."))
+    await expect(field.classList.contains("border-input-border-danger-base")).toBe(true)
     await userEvent.click(canvas.getByRole("button", { name: "Clear validation" }))
     await waitFor(() => expect(field).toHaveAccessibleDescription("Billing contact. We only send order updates."))
     await expect(field).not.toHaveAttribute("aria-errormessage")
+    await expect(field.classList.contains("border-input-border-danger-base")).toBe(false)
     await userEvent.click(canvas.getByRole("button", { name: "Show validation" }))
     await waitFor(() => expect(field).toHaveAccessibleDescription("Billing contact. We only send order updates. Enter a valid email address."))
+    await expect(field.classList.contains("border-input-border-danger-base")).toBe(true)
   },
 }

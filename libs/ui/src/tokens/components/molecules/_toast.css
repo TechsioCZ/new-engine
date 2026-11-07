@@ -33,6 +33,10 @@
  * Semantic borders and decorative glyphs distinguish status without tinting copy. */
 @theme static {
   --height-toast-title-line: 1lh;
+  --spacing-toast-header-gap: var(--spacing-toast-content);
+  --gap-toast-header: var(--spacing-toast-header-gap);
+  --size-toast-close-layout: var(--size-icon-control-sm);
+  --spacing-toast-close-frame: var(--size-toast-close-layout);
   --text-toast-title-size: var(--text-toast-title);
   --text-toast-description-size: var(--text-toast-description);
   --color-toast-error: var(--color-danger-fg);
@@ -41,8 +45,10 @@
   --color-toast-warning: var(--color-warning-fg);
   --color-toast-surface: var(--color-fill-surface);
   --color-toast-text: var(--color-fg-primary);
+  --color-toast-description: var(--color-fg-secondary);
   --color-toast-bg-surface: var(--color-toast-surface);
   --color-toast-fg-readable: var(--color-toast-text);
+  --color-toast-fg-description: var(--color-toast-description);
   --color-toast-fg-error: var(--color-toast-error);
   --color-toast-fg-success: var(--color-toast-success);
   --color-toast-fg-info: var(--color-toast-info);

@@ -56,8 +56,11 @@
   @apply icon-[mdi--chevron-up];
 }
 
+/* The mdi--loading arc over a faint full track, so a paused or
+ * reduced-motion spinner still reads as a progress ring. */
 @utility token-icon-spinner {
   @apply icon-[mdi--loading];
+  --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' fill-opacity='.25' fill-rule='evenodd' d='M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20m0 2a8 8 0 1 1 0 16a8 8 0 1 1 0-16'/%3E%3Cpath fill='black' d='M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8'/%3E%3C/svg%3E");
   @media (prefers-reduced-motion: no-preference) {
     @apply animate-spin;
   }
@@ -93,7 +96,7 @@
   @apply icon-[mdi--shopping];
 }
 @utility token-icon-cpu {
-  @apply icon-[mdi--cpu-64-bit];
+  @apply icon-[mdi--memory];
 }
 @utility token-icon-smartphone {
   @apply icon-[mdi--smartphone];
@@ -143,8 +146,9 @@
 @utility token-icon-star {
   @apply icon-[mdi--star];
 }
+/* Outlined half star: the bare left half reads as a clipped sliver. */
 @utility token-icon-star-half {
-  @apply icon-[mdi--star-half];
+  @apply icon-[mdi--star-half-full];
 }
 
 @utility token-icon-cart {

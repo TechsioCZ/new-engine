@@ -26,6 +26,11 @@
 
   --spacing-product-card-max: 100%;
 
+  --color-product-card-original-price: var(--color-fg-secondary);
+  --color-product-card-original-price-fg: var(--color-product-card-original-price);
+  --text-product-card-original-price: var(--text-sm);
+  --text-product-card-original-price-size: var(--text-product-card-original-price);
+
   /* Fixed media geometry keeps catalog rows comparable regardless of source image. */
   --aspect-product-card-media: 4 / 3;
   --aspect-product-card-image: var(--aspect-product-card-media);
@@ -53,6 +58,18 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+
+  /* A linked name clamps its own text, not an ancestor of its focus outline. */
+  &:has(> a) {
+    overflow: visible;
+    display: block;
+    & > a {
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+  }
 }
 
 @utility token-icon-cart-button {
@@ -67,12 +84,29 @@
   @apply token-icon-heart;
 }
 
+@utility token-icon-product-card-notify {
+  @apply icon-[mdi--bell-outline];
+}
+
 /* Linked names retain the card's typography rather than Link's larger defaults. */
 @utility product-card-name {
   & :where(a) {
     font-size: inherit;
     line-height: inherit;
     font-weight: inherit;
+  }
+}
+
+/* Aggregate stars have no hit targets: fit their glyphs to the text column.
+ * Editable and focusable read-only ratings keep the Rating atom's target sizes. */
+@utility product-card-rating {
+  &
+    :where([role="img"][aria-description="Average rating"])
+    > [data-part="item"] {
+    flex: 0 0 auto;
+    inline-size: 1em;
+    min-inline-size: 1em;
+    max-inline-size: none;
   }
 }
 
@@ -89,11 +123,6 @@
       grid-row: auto;
       justify-self: stretch;
       height: auto;
-    }
-  }
-  &[data-layout="row"] > * + * {
-    @container product-card (width < 28rem) {
-      margin-block-start: var(--spacing-product-card-col-layout);
     }
   }
 }

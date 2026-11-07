@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.2.4
+ * @componentVersion v1.2.7
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -37,16 +37,17 @@ const tabsVariants = tv({
       "bg-tabs-bg",
       "rounded-tabs",
     ],
+    listViewport: "tabs-list-viewport min-w-0 max-w-full",
     list: [
       "relative flex min-w-0 max-w-full",
-      "bg-tabs-list-bg",
+      "tabs-list-overflow bg-tabs-list-bg",
       "data-[orientation=horizontal]:flex-row data-[orientation=horizontal]:overflow-x-auto",
       "data-[orientation=vertical]:w-max data-[orientation=vertical]:shrink-0 data-[orientation=vertical]:flex-col",
     ],
     trigger: [
-      "relative flex shrink-0 items-center justify-center",
+      "relative flex shrink-0 items-center justify-center data-[orientation=vertical]:justify-start data-[orientation=vertical]:text-start",
       "font-tabs-trigger text-tabs-trigger-fg-base data-selected:font-tabs-trigger-selected",
-      "tabs-trigger-press",
+      "tabs-trigger-press tabs-trigger-disabled",
       "rounded-tabs-trigger",
       "cursor-pointer",
       "not-data-disabled:hover:bg-tabs-trigger-bg-hover",
@@ -444,6 +445,97 @@ export function Tabs({
   )
 }
 
+function useTabOverflowEdges(ref: RefObject<HTMLDivElement | null>) {
+  useLayoutEffect(() => {
+    const list = ref.current
+    if (!list) {
+      return
+    }
+    let frame = 0
+    const measure = () => {
+      const range = Math.max(0, list.scrollWidth - list.clientWidth)
+      // Native scrollLeft is negative in RTL. Layout lengths avoid scaling
+      // viewport rectangles twice under transformed ancestors.
+      const left = Math.min(
+        range,
+        Math.max(
+          0,
+          getComputedStyle(list).direction === "rtl"
+            ? range + list.scrollLeft
+            : list.scrollLeft
+        )
+      )
+      const horizontal = list.dataset.orientation === "horizontal"
+      // Allow the same one-CSS-pixel rounding budget at either physical edge.
+      const edges = {
+        "data-overflow-left": horizontal && left > 1,
+        "data-overflow-right": horizontal && range - left > 1,
+      }
+      for (const [attribute, visible] of Object.entries(edges)) {
+        const value = String(visible)
+        if (list.getAttribute(attribute) !== value) {
+          list.setAttribute(attribute, value)
+        }
+      }
+    }
+    const schedule = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    }
+    const isIndicator = (node: Node) =>
+      (node instanceof Element ? node : node.parentElement)?.closest(
+        '[data-scope="tabs"][data-part="indicator"]'
+      )
+    const resize = new ResizeObserver(schedule)
+    const observeSizes = () => {
+      resize.disconnect()
+      resize.observe(list)
+      for (const child of list.children) {
+        if (!isIndicator(child)) {
+          resize.observe(child)
+        }
+      }
+    }
+    const mutation = new MutationObserver((records) => {
+      // Indicator geometry and our private edge attributes cannot feed back.
+      const changes = records.filter((record) => !isIndicator(record.target))
+      if (changes.some((record) => record.type === "childList")) {
+        observeSizes()
+      }
+      if (changes.length) {
+        schedule()
+      }
+    })
+    const attributeFilter = ["class", "style", "dir", "data-orientation"]
+    mutation.observe(list, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter,
+    })
+    // Direction can come from caller CSS or an ancestor, not just Zag's dir.
+    for (
+      let parent = list.parentElement;
+      parent;
+      parent = parent.parentElement
+    ) {
+      mutation.observe(parent, { attributes: true, attributeFilter })
+    }
+    observeSizes()
+    list.addEventListener("scroll", schedule, { passive: true })
+    window.addEventListener("resize", schedule)
+    measure()
+    return () => {
+      cancelAnimationFrame(frame)
+      resize.disconnect()
+      mutation.disconnect()
+      list.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
+    }
+  }, [ref])
+}
+
 // List component
 type TabsListProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
@@ -456,15 +548,27 @@ Tabs.List = function TabsList({
   ...props
 }: TabsListProps) {
   const { api, styles } = useTabsContext()
+  const listElement = useRef<HTMLDivElement | null>(null)
+  useTabOverflowEdges(listElement)
 
   return (
-    <div
-      className={styles.list({ className })}
-      ref={ref}
-      {...mergeProps(api.getListProps(), props)}
-      role="tablist"
-    >
-      {children}
+    <div className={styles.listViewport()}>
+      <div
+        className={styles.list({ className })}
+        {...mergeProps(api.getListProps(), props)}
+        ref={(node) => {
+          listElement.current = node
+          if (typeof ref === "function") {
+            return ref(node)
+          }
+          if (ref) {
+            ref.current = node
+          }
+        }}
+        role="tablist"
+      >
+        {children}
+      </div>
     </div>
   )
 }

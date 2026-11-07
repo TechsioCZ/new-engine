@@ -59,4 +59,7 @@
 @import "./organisms/_line-item.css";
 @import "./organisms/_sidebar.css";
 
+@import "./templates/_cart-presentation.css";
 @import "./templates/_facet-filter-panel.css";
+@import "./templates/_gallery.css";
+@import "./templates/_search-suggestions.css";

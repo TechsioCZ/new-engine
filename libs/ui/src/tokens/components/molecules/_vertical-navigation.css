@@ -49,6 +49,12 @@
   --spacing-vertical-navigation-list: var(--dimension-2);
   --spacing-vertical-navigation-row: var(--spacing-50);
   --spacing-vertical-navigation-group: var(--spacing-100);
+  --spacing-vertical-navigation-section-clearance: var(
+    --spacing-vertical-navigation-group
+  );
+  --spacing-vertical-navigation-section: var(
+    --spacing-vertical-navigation-section-clearance
+  );
   --spacing-vertical-navigation-indent: var(--dimension-12);
   --spacing-vertical-navigation-label: var(--dimension-8);
   --spacing-vertical-navigation-item-sm: var(--height-form-control-sm);
@@ -88,7 +94,7 @@
   outline-style: var(--default-ring-style);
   outline-width: var(--default-ring-width);
   outline-color: var(--color-vertical-navigation-focus-border);
-  outline-offset: var(--default-ring-offset);
+  outline-offset: calc(-1 * var(--default-ring-width));
 }
 
 @utility vertical-navigation-guide {

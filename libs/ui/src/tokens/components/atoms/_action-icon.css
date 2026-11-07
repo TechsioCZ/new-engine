@@ -2,6 +2,25 @@
  * Opposite danger endpoints stay distinct in every brand and color scheme.
  * Use explicit foreground paint so simultaneous hover cannot leak its tone. */
 @theme static {
+  /* Default to the shared scale; theme refinements stay local to ActionIcon. */
+  --text-action-icon-glyph-sm: var(--text-icon-control-sm);
+  --text-action-icon-glyph-md: var(--text-icon-control-md);
+  --text-action-icon-glyph-lg: var(--text-icon-control-lg);
+  --text-action-icon-sm: var(--text-action-icon-glyph-sm);
+  --text-action-icon-md: var(--text-action-icon-glyph-md);
+  --text-action-icon-lg: var(--text-action-icon-glyph-lg);
+
+  /* Opt-in resting fill; keep existing brands and consumer overrides intact. */
+  --color-action-icon-surface: var(--color-transparent);
+  --color-action-icon-bg: var(--color-action-icon-surface);
+
+  --size-action-icon-target-lg: var(--size-icon-control-lg);
+  --size-action-icon-lg: var(--size-action-icon-target-lg);
+
+  /* Resting danger ink: a destructive action must not read as neutral. */
+  --color-action-icon-danger: var(--color-icon-control-fg-danger-hover);
+  --color-action-icon-fg-danger: var(--color-action-icon-danger);
+
   --color-action-icon-danger-active: light-dark(
     var(--color-danger-100),
     var(--color-danger-900)

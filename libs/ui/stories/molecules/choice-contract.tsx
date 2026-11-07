@@ -81,6 +81,7 @@ export function ChoiceContract({ kind }: { kind: ChoiceKind }) {
     <div className="flex w-full max-w-md flex-col gap-250">
       <form
         aria-label="Controlled choice"
+        className="flex flex-col gap-200"
         onSubmit={(event) => event.preventDefault()}
       >
         {radio ? (
@@ -120,6 +121,7 @@ export function ChoiceContract({ kind }: { kind: ChoiceKind }) {
       </form>
       <form
         aria-label="Reset choice"
+        className="flex flex-col gap-200"
         id={owner}
         onSubmit={(event) => event.preventDefault()}
       >
@@ -191,6 +193,17 @@ export async function checkChoiceContract(canvasElement: HTMLElement) {
   const resetForm = canvas.getByRole("form", {
     name: "Reset choice",
   }) as HTMLFormElement
+  const rows = Array.from(resetForm.children)
+  for (let index = 1; index < rows.length; index += 1) {
+    const previousElement = rows[index - 1]
+    const currentElement = rows[index]
+    if (!(previousElement && currentElement)) {
+      throw new Error("Missing choice row")
+    }
+    const previous = previousElement.getBoundingClientRect()
+    const current = currentElement.getBoundingClientRect()
+    await expect(current.top - previous.bottom).toBeGreaterThanOrEqual(8)
+  }
   const resetInputs = Array.from(resetForm.elements).filter(
     (el): el is HTMLInputElement => el instanceof HTMLInputElement
   )

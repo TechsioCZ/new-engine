@@ -28,6 +28,10 @@
   --padding-command-item-y: var(--padding-popup-item-y-md);
   --padding-command-empty: var(--spacing-300);
 
+  /* Dialog composition: preserve the host limit unless a theme opts in. */
+  --height-command-dialog-limit: var(--height-dialog-center-h-max);
+  --height-command-dialog-viewport: var(--height-command-dialog-limit);
+
   /* TYPOGRAPHY */
   --text-command-md: var(--text-sm);
   --font-weight-command-group-label: var(--font-weight-medium);
@@ -41,4 +45,15 @@
 
 @utility command-border-width {
   border-width: var(--border-width-command);
+}
+
+@utility command-dialog-viewport {
+  /* Dialog's stock class merger cannot replace its custom max-height alias. */
+  &[data-scope="dialog"][data-part="content"] {
+    max-height: var(--height-command-dialog-viewport);
+
+    @variant sm {
+      max-height: var(--height-dialog-center-h-max);
+    }
+  }
 }

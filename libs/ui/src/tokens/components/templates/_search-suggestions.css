@@ -1,0 +1,102 @@
+@theme static {
+  /* Reference layer */
+  --color-search-suggestions-muted: var(--color-popup-item-fg-muted);
+
+  /* Derived layer */
+  --color-search-suggestions-subtitle-fg: var(--color-search-suggestions-muted);
+  --spacing-search-suggestions-result-image: var(--size-image-sm);
+  --spacing-search-suggestions-result: var(--spacing-150);
+  --spacing-search-suggestions-result-rows: 0;
+  --spacing-search-suggestions-preview-results: var(--container-sm);
+  --padding-search-suggestions-item-y-sm: var(--padding-popup-item-y-sm);
+  --padding-search-suggestions-item-y-md: var(--padding-popup-item-y-md);
+  --padding-search-suggestions-item-y-lg: var(--padding-popup-item-y-lg);
+  --padding-search-suggestions-group-y-sm: var(--padding-popup-item-y-sm);
+  --padding-search-suggestions-group-y-md: var(--padding-popup-item-y-md);
+  --padding-search-suggestions-group-y-lg: var(--padding-popup-item-y-lg);
+  --text-search-suggestions-subtitle-sm: var(--text-xs);
+  --text-search-suggestions-subtitle-md: var(--text-sm);
+  --text-search-suggestions-subtitle-lg: var(--text-md);
+  --leading-search-suggestions-subtitle: 1.5;
+  --font-weight-search-suggestions-title: var(--font-weight-medium);
+}
+
+@utility search-suggestions-result-scope {
+  --search-suggestions-subtitle-size: var(
+    --text-search-suggestions-subtitle-md
+  );
+
+  &[data-size="sm"] {
+    --search-suggestions-subtitle-size: var(
+      --text-search-suggestions-subtitle-sm
+    );
+  }
+
+  &[data-size="lg"] {
+    --search-suggestions-subtitle-size: var(
+      --text-search-suggestions-subtitle-lg
+    );
+  }
+}
+
+/* Story compositions reserve a stable results area. Keeping that room between
+ * every size fixture also protects sibling labels when a popup flips upward.
+ * Runtime positioning, portal ownership and template layout stay unchanged. */
+@utility search-suggestions-preview-room {
+  padding-block-end: var(--spacing-search-suggestions-preview-results);
+}
+
+@utility search-suggestions-result-subtitle {
+  color: var(--color-search-suggestions-subtitle-fg);
+  font-size: var(
+    --search-suggestions-subtitle-size,
+    var(--text-search-suggestions-subtitle-md)
+  );
+  line-height: var(--leading-search-suggestions-subtitle);
+}
+
+/* The marker travels with each result, including inside a modal portal. Scope
+ * spacing to this template without changing other Combobox navigation rows. */
+[data-scope="combobox"][data-part="item-group"]:has(
+  > [data-part="item"] > .search-suggestions-result-scope
+) {
+  --search-suggestions-item-y: var(--padding-search-suggestions-item-y-md);
+  --search-suggestions-group-y: var(--padding-search-suggestions-group-y-md);
+
+  &:has(> [data-part="item"] > [data-size="sm"]) {
+    --search-suggestions-item-y: var(--padding-search-suggestions-item-y-sm);
+    --search-suggestions-group-y: var(--padding-search-suggestions-group-y-sm);
+  }
+
+  &:has(> [data-part="item"] > [data-size="lg"]) {
+    --search-suggestions-item-y: var(--padding-search-suggestions-item-y-lg);
+    --search-suggestions-group-y: var(--padding-search-suggestions-group-y-lg);
+  }
+
+  > [data-part="item-group-label"] {
+    padding-block: var(--search-suggestions-group-y);
+  }
+
+  > [data-part="item"] {
+    padding-block: var(--search-suggestions-item-y);
+    /* Navigation has no selection indicator; reclaim its reserved end gutter. */
+    padding-inline-end: var(--popup-item-x, var(--padding-popup-item-x-md));
+  }
+
+  > [data-part="item"] + [data-part="item"] {
+    margin-block-start: var(--spacing-search-suggestions-result-rows);
+  }
+}
+
+/* Match the foreground to highlighted, selected and disabled surfaces. Size
+ * and weight still distinguish the subtitle when both lines share a colour. */
+[data-scope="combobox"][data-part="item"]:is(
+  :hover,
+  [data-highlighted],
+  [data-state="checked"],
+  [data-disabled]
+) > .search-suggestions-result-scope {
+  --color-search-suggestions-subtitle-fg: var(
+    --color-combobox-item-fg-secondary
+  );
+}

@@ -14,6 +14,13 @@ const meta: Meta<typeof QuantityField> = {
   title: "Molecules/QuantityField",
   component: QuantityField,
   tags: ["autodocs"],
+  decorators: [
+    (Story) => (
+      <div className="w-full max-w-md p-200">
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
     layout: "padded",
     docs: {
@@ -139,6 +146,24 @@ function ControlledField(args: QuantityFieldProps) {
 }
 
 export const Playground: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const unit = canvas.getByText("pieces")
+    const bounds = canvasElement.getBoundingClientRect()
+    const row = unit.parentElement
+    if (!row) throw new Error("Missing quantity control row")
+    const text = canvasElement.ownerDocument.createRange()
+    text.selectNodeContents(unit)
+    const unitText = text.getBoundingClientRect()
+    const rowBounds = row.getBoundingClientRect()
+    const endGap = getComputedStyle(row).direction === "rtl"
+      ? unitText.left - rowBounds.left
+      : rowBounds.right - unitText.right
+    await expect(endGap).toBeGreaterThanOrEqual(8)
+    await expect(unitText.right).toBeLessThan(bounds.right)
+    await expect(unit.getBoundingClientRect().right).toBeLessThanOrEqual(bounds.right + 1)
+    await expect(canvasElement.scrollWidth).toBeLessThanOrEqual(canvasElement.clientWidth)
+  },
   parameters: {
     docs: {
       description: {
@@ -201,7 +226,7 @@ export const ReadOnly: Story = {
     },
   },
   name: "Read-only",
-  args: { readOnly: true },
+  args: { readOnly: true, helperText: "Quantity is read only." },
   render: (args) => <ControlledField {...args} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -210,6 +235,10 @@ export const ReadOnly: Story = {
     await userEvent.keyboard("{ArrowUp}9{Backspace}")
     await expect(input).toHaveValue("2")
     await expect(input).toHaveFocus()
+    await expect(input).toHaveAttribute("readonly")
+    await expect(input).toHaveAccessibleDescription(
+      "pieces Quantity is read only."
+    )
     await expect(getComputedStyle(input).cursor).toBe("text")
     await expect(
       canvas.queryByRole("button", { name: "Increment value" })
@@ -218,6 +247,41 @@ export const ReadOnly: Story = {
 }
 
 export const States: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const readOnly = canvas.getByRole("spinbutton", {
+      name: "Read only quantity",
+    })
+    await expect(readOnly).toHaveAttribute("readonly")
+    await expect(readOnly).toHaveAccessibleDescription(
+      "pieces Quantity is read only."
+    )
+
+    const pending = canvas.getByRole("spinbutton", { name: "Pending quantity" })
+    const readOnlyControl = readOnly.closest('[data-part="control"]')
+    const pendingControl = pending.closest('[data-part="control"]')
+    if (!(readOnlyControl && pendingControl)) {
+      throw new Error("Missing quantity state controls")
+    }
+    await expect(
+      Math.abs(
+        readOnlyControl.getBoundingClientRect().width -
+          pendingControl.getBoundingClientRect().width
+      )
+    ).toBeLessThanOrEqual(1)
+    const status = canvas.getByRole("status")
+    await expect(pending).toBeDisabled()
+    await expect(pending).toHaveAccessibleDescription(
+      "pieces Choose the quantity to order. Updating quantity"
+    )
+    await expect(status).toHaveTextContent("Updating quantity")
+    await expect(status).toHaveAttribute("aria-live", "polite")
+    if (status.closest("[data-theme]")?.getAttribute("data-theme") === "business") {
+      const style = getComputedStyle(status)
+      await expect(Number.parseFloat(style.marginTop)).toBeGreaterThanOrEqual(4)
+      await expect(Number.parseFloat(style.fontWeight)).toBeGreaterThanOrEqual(500)
+    }
+  },
   parameters: {
     docs: {
       description: {
@@ -248,7 +312,12 @@ export const States: Story = {
           pendingLabel="Updating quantity"
         />
         <ControlledField {...args} label="Disabled quantity" disabled />
-        <ControlledField {...args} label="Read only quantity" readOnly />
+        <ControlledField
+          {...args}
+          label="Read only quantity"
+          readOnly
+          helperText="Quantity is read only."
+        />
       </VariantGroup>
     </VariantContainer>
   ),
@@ -365,6 +434,30 @@ export const Bounds: Story = {
   ),
 }
 
+export const CompactShortUnit: Story = {
+  parameters: {
+    docs: { description: { story: "A short unit wraps before a narrow host can collapse the editable quantity." } },
+  },
+  args: { label: "Compact quantity", unitLabel: "pieces", size: "md", value: "2" },
+  render: (args) => (
+    <div data-testid="compact-short-unit" style={{ width: 140, maxWidth: "100%" }}>
+      <ControlledField {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("spinbutton", { name: "Compact quantity" })
+    const host = canvas.getByTestId("compact-short-unit")
+    const unit = canvas.getByText("pieces")
+    const style = getComputedStyle(input)
+    const contentWidth = input.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight)
+    await expect(input).toHaveValue("2")
+    await expect(contentWidth).toBeGreaterThanOrEqual(Number.parseFloat(style.fontSize))
+    await expect(unit.getBoundingClientRect().top).toBeGreaterThanOrEqual(input.getBoundingClientRect().bottom)
+    await expect(host.scrollWidth).toBeLessThanOrEqual(host.clientWidth)
+  },
+}
+
 export const CompactLongUnit: Story = {
   parameters: {
     docs: {
@@ -409,7 +502,7 @@ export const PendingAndReadOnly: Story = {
     const [readOnly, setReadOnly] = useState(false)
     const [commitCount, setCommitCount] = useState(0)
     return (
-      <div className="w-full max-w-md flex flex-col gap-100">
+      <div className="w-full max-w-md flex flex-col gap-200">
         <p>
           Change the quantity, then toggle pending or read only. Both block
           editing; pending also shows an update message. Your draft is retained.
@@ -421,6 +514,7 @@ export const PendingAndReadOnly: Story = {
           pending={pending}
           pendingLabel="Updating quantity"
           readOnly={readOnly}
+          helperText={readOnly ? "Quantity is read only." : args.helperText}
           onValueCommit={(details) => {
             setCommitCount((count) => count + 1)
             committed(details)
@@ -430,15 +524,17 @@ export const PendingAndReadOnly: Story = {
             changed(details)
           }}
         />
-        <p data-testid="draft-value">
-          Draft: {value === "" ? "(empty)" : value}
-        </p>
-        <p>
-          Commits count value confirmations when you press Enter or leave the
-          editable input. The demo does not save data.
-        </p>
-        <p data-testid="commit-count">Commits: {commitCount}</p>
-        <div className="flex flex-wrap gap-100">
+        <div className="flex flex-col gap-100" data-testid="quantity-status">
+          <p data-testid="draft-value">
+            Draft: {value === "" ? "(empty)" : value}
+          </p>
+          <p>
+            Commits count value confirmations when you press Enter or leave the
+            editable input. The demo does not save data.
+          </p>
+          <p data-testid="commit-count">Commits: {commitCount}</p>
+        </div>
+        <div className="flex flex-wrap gap-150">
           <Button
             aria-pressed={pending}
             onMouseDown={(event) => event.preventDefault()}
@@ -448,6 +544,7 @@ export const PendingAndReadOnly: Story = {
           </Button>
           <Button
             aria-pressed={readOnly}
+            theme="outlined"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => setReadOnly(!readOnly)}
           >
@@ -496,6 +593,36 @@ export const InputAttributes: Story = {
 }
 
 export const FormIdentity: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const description = canvas.getByText(
+      "Your saved quantity is unchanged until submitted."
+    )
+    const label = canvas.getByText("Form quantity")
+    const helper = canvas.getByText("Choose the quantity to order.")
+    const submit = canvas.getByRole("button", { name: "Submit quantity" })
+    const focus = canvas.getByRole("button", { name: "Focus quantity" })
+    const result = canvas.getByTestId("submitted-value")
+    const actions = submit.parentElement
+    if (!actions) throw new Error("Missing quantity form actions")
+
+    await expect(
+      label.getBoundingClientRect().top - description.getBoundingClientRect().bottom
+    ).toBeGreaterThanOrEqual(12)
+    await expect(
+      actions.getBoundingClientRect().top - helper.getBoundingClientRect().bottom
+    ).toBeGreaterThanOrEqual(12)
+    await expect(
+      result.getBoundingClientRect().top - actions.getBoundingClientRect().bottom
+    ).toBeGreaterThanOrEqual(12)
+    await expect(focus.parentElement).toBe(actions)
+    await expect(getComputedStyle(actions).display).toBe("flex")
+    await expect(Number.parseFloat(getComputedStyle(actions).gap)).toBeGreaterThanOrEqual(8)
+    await expect(focus).toHaveAttribute("type", "button")
+    await expect(submit).toHaveAttribute("type", "submit")
+    await expect(result).toHaveTextContent("Not submitted yet.")
+    await expect(canvasElement.scrollWidth).toBeLessThanOrEqual(canvasElement.clientWidth)
+  },
   parameters: {
     docs: {
       description: {
@@ -506,10 +633,10 @@ export const FormIdentity: Story = {
   },
   render: function Render(args) {
     const [value, setValue] = useState("2")
-    const [submitted, setSubmitted] = useState("")
+    const [submitted, setSubmitted] = useState<string>()
     const inputRef = useRef<HTMLInputElement>(null)
     return (
-      <div className="w-full max-w-md flex flex-col gap-100">
+      <div className="w-full max-w-md flex flex-col gap-200">
         <p id="quantity-external-description">
           Quantity requested for this order.
         </p>
@@ -517,6 +644,7 @@ export const FormIdentity: Story = {
           Your saved quantity is unchanged until submitted.
         </p>
         <form
+          className="flex flex-col gap-200"
           id="quantity-order-form"
           onSubmit={(event) => {
             event.preventDefault()
@@ -540,14 +668,20 @@ export const FormIdentity: Story = {
               changed(details)
             }}
           />
-          <Button type="submit" className="mt-100">
-            Submit quantity
-          </Button>
+          <div className="flex flex-wrap gap-150">
+            <Button type="submit">Submit quantity</Button>
+            <Button
+              type="button"
+              theme="outlined"
+              onClick={() => inputRef.current?.focus()}
+            >
+              Focus quantity
+            </Button>
+          </div>
         </form>
-        <Button theme="outlined" onClick={() => inputRef.current?.focus()}>
-          Focus quantity
-        </Button>
-        <p data-testid="submitted-value">Submitted: {submitted}</p>
+        <p data-testid="submitted-value">
+          {submitted === undefined ? "Not submitted yet." : `Submitted: ${submitted}`}
+        </p>
       </div>
     )
   },

@@ -13,6 +13,8 @@
   --color-switch-thumb-bg-invalid: var(--color-switch-danger-ink);
   --color-switch-unavailable: var(--color-fg-disabled);
   --color-switch-readonly: var(--color-form-control-fg-readonly);
+  --color-switch-help-disabled: var(--color-fg-secondary);
+  --color-switch-help-fg-disabled: var(--color-switch-help-disabled);
   --color-switch-thumb-bg-unavailable: var(--color-switch-unavailable);
   --color-switch-thumb-bg-readonly: var(--color-switch-readonly);
 }

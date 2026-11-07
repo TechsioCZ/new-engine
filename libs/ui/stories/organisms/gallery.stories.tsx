@@ -6,10 +6,14 @@ import { expect, userEvent, waitFor, within } from "storybook/test"
 import { Gallery, type GalleryItem } from "../../src/organisms/gallery"
 import { Carousel } from "../../src/molecules/carousel"
 
+const localPhotoSrc = new URL(
+  "../../assets/gallery/shoes-1.avif",
+  import.meta.url
+).href
 const items: GalleryItem[] = [
   {
     id: "front",
-    src: new URL("../../assets/gallery/shoes-1.avif", import.meta.url).href,
+    src: localPhotoSrc,
     alt: "Pastel sneaker, front view",
   },
   {
@@ -200,16 +204,31 @@ export const OverflowingRail: Story = {
   },
 }
 
-// The test adapter deliberately waits for explicit load/error events: no network race.
+// Hold the initial request for inspection; recovery must load actual local bytes.
 function LifecycleMedia({ src, ...props }: ComponentPropsWithRef<"img">) {
-  return <img {...props} data-requested-src={src} data-adapter="shared" />
+  return (
+    <img
+      {...props}
+      data-requested-src={src}
+      data-adapter="shared"
+      src={src?.startsWith("controlled-") ? undefined : src}
+    />
+  )
 }
 function ThumbnailMedia({ src, ...props }: ComponentPropsWithRef<"img">) {
-  return <img {...props} data-requested-src={src} data-adapter="thumbnail" />
+  return (
+    <img
+      {...props}
+      data-requested-src={src}
+      data-adapter="thumbnail"
+      src={src?.startsWith("controlled-") ? undefined : src}
+    />
+  )
 }
 function MediaLifecycleExample() {
   const [mounted, setMounted] = useState(true)
   const [source, setSource] = useState("controlled-pending")
+  const [mediaState, setMediaState] = useState("loading")
   const [objectScrollRef, setObjectScrollRef] = useState(false)
   const scroll = useRef<HTMLDivElement>(null)
   const [report, setReport] = useState(
@@ -223,7 +242,7 @@ function MediaLifecycleExample() {
   const media = useRef<HTMLImageElement>(null)
   const calls = useRef({ attached: 0, cleaned: 0, loaded: 0, failed: 0 })
   return (
-    <div className="flex flex-col gap-200">
+    <div className="flex flex-col gap-300 pb-300">
       {mounted && (
         <Gallery
           ref={root}
@@ -238,9 +257,15 @@ function MediaLifecycleExample() {
                 ref: media,
                 onLoad: () => {
                   calls.current.loaded++
+                  setMediaState("loaded")
+                  setReport("Local sneaker photo loaded.")
                 },
                 onError: () => {
                   calls.current.failed++
+                  setMediaState("error")
+                  setReport(
+                    "Image unavailable. Change source, then load the local photo."
+                  )
                 },
                 "data-media-prop": "preserved",
               },
@@ -254,8 +279,16 @@ function MediaLifecycleExample() {
             width: "100%",
           }}
         >
-          <Gallery.Main ref={main}>
+          <Gallery.Main aria-busy={mediaState === "loading"} ref={main}>
             <Gallery.Carousel />
+            {mediaState === "loading" && (
+              <span
+                className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-fg-secondary"
+                data-gallery-loading=""
+              >
+                Loading image…
+              </span>
+            )}
           </Gallery.Main>
           <Gallery.Thumbnails
             ref={rail}
@@ -284,7 +317,11 @@ function MediaLifecycleExample() {
           </Gallery.Thumbnails>
         </Gallery>
       )}
-      <div className="flex flex-wrap gap-200">
+      <div
+        aria-label="Gallery lifecycle controls"
+        className="grid grid-cols-2 gap-200"
+        role="group"
+      >
         <Button
           onClick={() => {
             const valid =
@@ -307,7 +344,16 @@ function MediaLifecycleExample() {
         <Button onClick={() => setObjectScrollRef(true)}>
           Use object scroll ref
         </Button>
-        <Button onClick={() => setSource("controlled-recovery")}>
+        <Button
+          disabled={!mounted}
+          onClick={() => {
+            setSource("controlled-recovery")
+            setMediaState("loading")
+            setReport(
+              "Recovery source selected; waiting for the local photo request."
+            )
+          }}
+        >
           Change source
         </Button>
         <Button
@@ -321,6 +367,35 @@ function MediaLifecycleExample() {
         </Button>
         <Button onClick={() => setMounted(false)}>Unmount gallery</Button>
         <Button
+          disabled={mounted}
+          onClick={() => {
+            setSource("controlled-pending")
+            setMediaState("loading")
+            setMounted(true)
+            setReport("Gallery remounted for media-state inspection.")
+          }}
+        >
+          Remount gallery
+        </Button>
+        <Button
+          disabled={!mounted}
+          onClick={() => media.current?.dispatchEvent(new Event("error"))}
+        >
+          Simulate image error
+        </Button>
+        <Button
+          disabled={!mounted}
+          onClick={() => {
+            if (source !== localPhotoSrc) {
+              setSource(localPhotoSrc)
+              setMediaState("loading")
+            }
+          }}
+        >
+          Simulate image load
+        </Button>
+        <Button
+          className="col-span-2"
           onClick={() =>
             setReport(
               !root.current &&
@@ -349,7 +424,7 @@ export const MediaLifecycleAndRefs: Story = {
     docs: {
       description: {
         story:
-          "Deterministic adapter loading, failure and source recovery with full-image alternatives, decorative thumbnails, and React 19 ref cleanup. Native adapters use the same fallback composition.",
+          "Held adapter loading, an explicit error event, and recovery from a bundled local photo with full-image alternatives, decorative thumbnails, and React 19 ref cleanup. Simulate image load requests real bytes; only the native load/error callbacks settle the media state.",
       },
     },
   },
@@ -395,12 +470,35 @@ export const MediaLifecycleAndRefs: Story = {
     image = canvasElement.querySelector<HTMLImageElement>(
       '[data-media-prop="preserved"]'
     )!
-    const recovered = image.closest<HTMLElement>("[data-image-state]")!
-    await expect(recovered).toHaveAttribute("data-image-state", "loading")
-    image.dispatchEvent(new Event("load"))
-    await waitFor(() =>
-      expect(recovered).toHaveAttribute("data-image-state", "loaded")
+    await expect(image.closest("[data-image-state]")).toHaveAttribute(
+      "data-image-state",
+      "loading"
     )
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Simulate image load" })
+    )
+    image = canvasElement.querySelector<HTMLImageElement>(
+      '[data-media-prop="preserved"]'
+    )!
+    const recovered = image.closest<HTMLElement>("[data-image-state]")!
+    await waitFor(() => {
+      expect(recovered).toHaveAttribute("data-image-state", "loaded")
+      expect(image.complete).toBe(true)
+      expect(image.naturalWidth).toBeGreaterThan(0)
+      expect(image.naturalHeight).toBeGreaterThan(0)
+    })
+    await image.decode()
+    const thumbnailImage = buttons[0]!.querySelector("img")!
+    await waitFor(() => {
+      expect(thumbnailImage.complete).toBe(true)
+      expect(thumbnailImage.naturalWidth).toBeGreaterThan(0)
+      expect(thumbnailImage.closest("[data-image-state]")).toHaveAttribute(
+        "data-image-state",
+        "loaded"
+      )
+    })
+    await thumbnailImage.decode()
+    await expect(canvasElement.querySelector("[data-gallery-loading]")).toBeNull()
     await expect(recovered.getBoundingClientRect().height).toBe(bounds.height)
     await expect(recovered.getBoundingClientRect().width).toBe(bounds.width)
     await userEvent.click(canvas.getByRole("button", { name: "Check events" }))

@@ -1,13 +1,24 @@
 /*
  * Select — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
- * Kept here:
- *   - `--color-select-danger` — helper-text color seed (Figma has only
- *     border validation colors).
+ * Runtime-only aliases preserve the shared popup defaults outside Business.
  */
 
 @theme static {
   --color-select-danger: var(--color-danger);
+  --spacing-select-popup-large: var(--padding-popup-item-y-lg);
+  --spacing-select-clear: var(--dimension-4);
+  --font-weight-select-group: var(--font-weight-medium);
+
+  /* Clip only the fill; the clear action keeps its full themed hit target. */
+  --padding-select-clear-inset: var(--spacing-select-clear);
+  --padding-select-item-block-lg: var(--spacing-select-popup-large);
+  --font-weight-select-item-group-label: var(--font-weight-select-group);
+}
+
+@utility select-popup-lg {
+  @apply popup-size-lg;
+  --popup-item-y: var(--padding-select-item-block-lg);
 }
 
 /* === ICONS === */
@@ -26,14 +37,6 @@
   @apply token-icon-close;
 }
 
-/* A reduced-motion preference must also override transition-discrete. */
-@media (prefers-reduced-motion: reduce) {
-  [data-scope="select"][data-part="content"] {
-    transition: none;
-    animation: none;
-  }
-}
-
 /* The clear action is a sibling button; reserve its hit target before the chevron. */
 @utility select-clear-gutter {
   --select-clear-size: var(--size-icon-control-md);
@@ -45,7 +48,7 @@
     --select-chevron-size: var(--text-icon-control-sm);
   }
   &[data-size="lg"] {
-    --select-clear-size: var(--size-icon-control-lg);
+    --select-clear-size: var(--size-action-icon-lg);
     --select-chevron-size: var(--text-icon-control-lg);
   }
   [data-part="clear-trigger"] {

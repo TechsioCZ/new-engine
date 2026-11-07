@@ -1,7 +1,7 @@
 /**
  * TotalsSummary — @techsio/ui-kit molecule.
  * @component TotalsSummary
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill totals-summary-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -14,7 +14,7 @@ const totalsSummaryVariants = tv({
     list: "flex min-w-0 flex-col gap-totals-summary-rows",
     row: "flex min-w-0 items-baseline justify-between gap-totals-summary-columns",
     label: "min-w-0 flex-1 break-words",
-    value: "min-w-0 flex-1 break-words text-end",
+    value: "min-w-0 max-w-1/2 break-words text-end",
     note: "block text-totals-summary-note-fg text-totals-summary-note-size",
     total:
       "border-t-(length:--border-width-totals-summary-divider) flex min-w-0 items-baseline justify-between gap-totals-summary-columns border-totals-summary-divider-border pt-totals-summary-total font-totals-summary-total text-totals-summary-total-size",

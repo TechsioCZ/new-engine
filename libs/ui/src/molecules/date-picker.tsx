@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.10
+ * @componentVersion v1.3.13
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -245,7 +245,7 @@ const datePickerVariants = tv({
       "focus-visible:outline-date-picker-trigger-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-disabled:cursor-not-allowed data-disabled:text-date-picker-trigger-fg-disabled",
-      "disabled:cursor-not-allowed disabled:bg-date-picker-control-bg-disabled disabled:text-date-picker-trigger-fg-disabled",
+      "date-picker-trigger-disabled disabled:cursor-not-allowed disabled:text-date-picker-trigger-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     clearTrigger: [
@@ -270,7 +270,7 @@ const datePickerVariants = tv({
       "starting:-translate-y-date-picker-enter-offset starting:opacity-0",
     ],
     calendar: [
-      "grid min-h-0 grid-cols-1 gap-date-picker-calendar overflow-y-auto p-date-picker-content",
+      "date-picker-calendar-scroll grid min-h-0 grid-cols-1 gap-date-picker-calendar overflow-y-auto p-date-picker-content",
       "sm:data-[selection-mode=range]:grid-cols-2",
     ],
     monthPanel: [
@@ -289,14 +289,14 @@ const datePickerVariants = tv({
       "disabled:cursor-not-allowed disabled:text-date-picker-navigation-fg-disabled",
     ],
     viewTrigger: [
-      "min-w-0 flex-1 truncate rounded-date-picker-day px-date-picker-calendar-cell",
+      "date-picker-calendar-caption min-w-0 flex-1 rounded-date-picker-day px-date-picker-calendar-cell",
       "font-date-picker-view text-date-picker-navigation-fg hover:bg-date-picker-navigation-bg-hover",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-date-picker-navigation-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
     viewHeading:
-      "min-w-0 flex-1 truncate px-date-picker-calendar-cell text-center font-date-picker-view text-date-picker-navigation-fg",
+      "date-picker-calendar-caption min-w-0 flex-1 px-date-picker-calendar-cell text-center font-date-picker-view text-date-picker-navigation-fg",
     table: "w-full table-fixed border-separate border-spacing-0",
     tableHeader: [
       "text-center align-middle",
@@ -351,8 +351,7 @@ const datePickerVariants = tv({
     timeField: "w-date-picker-time-field shrink-0",
     timeLabel: "sr-only",
     timeSeparator: "shrink-0 text-date-picker-time-label-fg tabular-nums",
-    timeInput:
-      "token-date-picker-time-input px-date-picker-time-input text-center tabular-nums",
+    timeInput: "token-date-picker-time-input text-center tabular-nums",
     dayPeriod: [
       "border-(length:--border-width-date-picker-time) h-date-picker-time-field rounded-date-picker-time text-date-picker-sm",
       "border-date-picker-time-border bg-date-picker-time-bg px-date-picker-calendar-cell text-date-picker-time-fg",
@@ -516,6 +515,56 @@ function isDatePickerSegmentTarget(
     '[data-scope="date-input"][data-part="segment-group"]'
   )
   return Boolean(group && control?.contains(group))
+}
+
+/** Zag uses preventScroll for day focus; pointer opening need not focus a day.
+ * Reveal selection only during initial placement. Only the calendar scrolls,
+ * never the page or a containing modal. */
+function revealDatePickerFocusedDay(
+  calendar: HTMLElement,
+  revealSelected = false
+) {
+  const root = calendar.getRootNode() as Document | ShadowRoot
+  const active = root.activeElement
+  const focusedDay =
+    active &&
+    calendar.contains(active) &&
+    active.matches('[data-part="table-cell-trigger"]')
+      ? active
+      : null
+  const selectedDay =
+    revealSelected &&
+    !calendar.contains(active) &&
+    calendar.dataset.view === "day"
+      ? calendar.querySelector(
+          '[data-part="table-cell-trigger"][data-selected]:not([data-outside-range])'
+        )
+      : null
+  const day = focusedDay ?? selectedDay
+  const view = calendar.ownerDocument.defaultView
+  if (!(day && view)) {
+    return
+  }
+  const style = view.getComputedStyle(calendar)
+  const surface = calendar.getBoundingClientRect()
+  const target = day.getBoundingClientRect()
+  const top =
+    surface.top +
+    calendar.clientTop +
+    Math.max(
+      Number.parseFloat(style.paddingTop) || 0,
+      Number.parseFloat(style.scrollPaddingTop) || 0
+    )
+  const bottom =
+    surface.top +
+    calendar.clientTop +
+    calendar.clientHeight -
+    Number.parseFloat(style.paddingBottom)
+  const delta =
+    target.top < top ? target.top - top : Math.max(0, target.bottom - bottom)
+  if (delta) {
+    calendar.scrollBy({ top: delta, behavior: "instant" })
+  }
 }
 
 function resolveDatePickerHourCycle(locale: string, hourCycle?: 12 | 24) {
@@ -1867,6 +1916,147 @@ DatePicker.Calendar = function DatePickerCalendar({
   const previousView = useRef(pickerApi.view)
   const focusedMonthKey = `${pickerApi.focusedValue.year}-${pickerApi.focusedValue.month}`
   const visibleRangeStartKey = pickerApi.visibleRange.start.toString()
+  const calendarRef = useRef<HTMLDivElement>(null)
+  const composedRef = useMemo(
+    () => composeDatePickerRefs(calendarRef, ref),
+    [ref]
+  )
+
+  // Keep a single panel's navigation in context only when a complete calendar
+  // row still fits below it. Measure wrapped/coarse-pointer headers rather than
+  // guessing their height; CSS and keyboard reveal share the same clearance.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: panel/view changes replace the measured nodes even when their dimensions stay equal.
+  useLayoutEffect(() => {
+    const calendar = calendarRef.current
+    const view = calendar?.ownerDocument.defaultView
+    if (!(calendar && view && pickerApi.open && numOfMonths === 1)) {
+      return
+    }
+    const navigation = calendar.querySelector<HTMLElement>(
+      '[data-part="view-control"]'
+    )
+    const day = calendar.querySelector<HTMLElement>(
+      '[data-part="table-cell-trigger"]'
+    )
+    if (!(navigation && day)) {
+      return
+    }
+    const updateNavigation = () => {
+      const height = navigation.getBoundingClientRect().height
+      const style = view.getComputedStyle(calendar)
+      const inset = Number.parseFloat(style.paddingTop) || 0
+      const minimum =
+        inset +
+        height +
+        (Number.parseFloat(style.rowGap) || 0) +
+        day.getBoundingClientRect().height +
+        (Number.parseFloat(style.paddingBottom) || 0)
+      calendar.style.setProperty(
+        "--date-picker-calendar-navigation-inset",
+        `${inset}px`
+      )
+      calendar.style.setProperty(
+        "--date-picker-calendar-navigation-height",
+        `${height}px`
+      )
+      calendar.toggleAttribute(
+        "data-navigation-pinned",
+        height > 0 && calendar.clientHeight >= minimum
+      )
+      revealDatePickerFocusedDay(calendar)
+    }
+    updateNavigation()
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(updateNavigation)
+    observer?.observe(calendar)
+    observer?.observe(navigation)
+    observer?.observe(day)
+    return () => {
+      observer?.disconnect()
+      calendar.removeAttribute("data-navigation-pinned")
+      calendar.style.removeProperty("--date-picker-calendar-navigation-inset")
+      calendar.style.removeProperty("--date-picker-calendar-navigation-height")
+    }
+  }, [
+    numOfMonths,
+    pickerApi.open,
+    panelMonths,
+    activePanelIndex,
+    pickerApi.view,
+  ])
+
+  // Placement can shrink the calendar after opening, with or without day focus.
+  // Wait for Zag's available height before consuming the one-shot selection
+  // reveal; subsequent focus/resize events must not snap back to selection.
+  useEffect(() => {
+    const calendar = calendarRef.current
+    const view = calendar?.ownerDocument.defaultView
+    if (!(calendar && view && pickerApi.open)) {
+      return
+    }
+    const positioner = calendar.closest<HTMLElement>(
+      '[data-scope="date-picker"][data-part="positioner"]'
+    )
+    const content =
+      calendar.closest<HTMLElement>(
+        '[data-scope="date-picker"][data-part="content"]'
+      ) ?? calendar
+    let initialReveal = true
+    let frame = 0
+    const scheduleReveal = () => {
+      view.cancelAnimationFrame(frame)
+      frame = view.requestAnimationFrame(() => {
+        const revealSelected =
+          initialReveal &&
+          (!positioner ||
+            !!positioner.style.getPropertyValue("--available-height"))
+        if (revealSelected) {
+          initialReveal = false
+          placementObserver?.disconnect()
+        }
+        revealDatePickerFocusedDay(calendar, revealSelected)
+      })
+    }
+    // Style readiness also covers placement that does not change calendar size.
+    const placementObserver = positioner
+      ? new view.MutationObserver(scheduleReveal)
+      : undefined
+    if (positioner) {
+      placementObserver?.observe(positioner, {
+        attributes: true,
+        attributeFilter: ["style"],
+      })
+    }
+    const stopInitialReveal = () => {
+      initialReveal = false
+      placementObserver?.disconnect()
+    }
+    const interactions = ["pointerdown", "keydown", "wheel", "touchstart"]
+    for (const type of interactions) {
+      content.addEventListener(type, stopInitialReveal, { passive: true })
+    }
+    calendar.addEventListener("scroll", stopInitialReveal)
+    // Test DOMs may lack ResizeObserver; focus changes still reveal the day.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(scheduleReveal)
+    observer?.observe(calendar)
+    calendar.addEventListener("focusin", scheduleReveal)
+    scheduleReveal()
+    return () => {
+      view.cancelAnimationFrame(frame)
+      observer?.disconnect()
+      placementObserver?.disconnect()
+      calendar.removeEventListener("focusin", scheduleReveal)
+      calendar.removeEventListener("scroll", stopInitialReveal)
+      for (const type of interactions) {
+        content.removeEventListener(type, stopInitialReveal)
+      }
+    }
+  }, [pickerApi.open])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: the month signature and count are the complete reset key; the Zag facade and helper are recreated on every render.
   useEffect(() => {
@@ -2295,7 +2485,9 @@ DatePicker.Calendar = function DatePickerCalendar({
           <>
             <div
               {...pickerApi.getViewControlProps({ view: "day" })}
-              className={styles.viewControl()}
+              className={styles.viewControl({
+                className: "date-picker-day-navigation",
+              })}
             >
               {renderPanelNavigationTrigger(index, -12, "month")}
               {renderPanelNavigationTrigger(index, -1, "day")}
@@ -2329,8 +2521,9 @@ DatePicker.Calendar = function DatePickerCalendar({
       data-part="calendar"
       data-scope="date-picker"
       data-selection-mode={selectionMode}
+      data-single-panel={numOfMonths === 1 || undefined}
       data-view={activePanelIndex === null ? "day" : pickerApi.view}
-      ref={ref}
+      ref={composedRef}
     >
       {panelMonths.map(renderDayPanel)}
     </div>

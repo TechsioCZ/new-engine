@@ -2,7 +2,7 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.2
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,6 +26,7 @@ import {
   barX,
   barY,
   type ChartAxisOptions,
+  type ChartColorLegend,
   type ChartColorOptions,
   type ChartPoint,
   type ChartScene,
@@ -113,9 +114,9 @@ export type ChartProps<TDatum> = {
   yLabel?: string
   /** Formats value-axis tick labels (e.g. currency). */
   formatValue?: (value: number) => string
-  /** Fixed pixel height. When omitted, `aspectRatio` controls sizing. */
+  /** Fixed pixel height. Polar charts default to 360px unless an aspectRatio is supplied. */
   height?: number
-  /** Width/height ratio used when `height` is omitted. Defaults to 16/9. */
+  /** Width/height ratio used when `height` is omitted. Cartesian charts default to 16/9. */
   aspectRatio?: number
   /** Deterministic first-frame width for SSR and hidden containers. */
   initialWidth?: number
@@ -169,6 +170,47 @@ const DONUT_INNER_RADIUS_RATIO = 0.6
 
 /** Padding the polar layout insets by; mirrors the `inset` passed to polar(). */
 const POLAR_INSET = 8
+
+function readableColorLegend(label?: string): ChartColorLegend {
+  const legend = colorLegend({
+    itemWidth: 0,
+    items: colorLegendItems({
+      justify: "start",
+      label: { fontSize: 14, fillOpacity: 1 },
+    }),
+  })
+  if (!label) {
+    return legend
+  }
+  // Upstream measures its title at 11px; enlarging it only at SVG render time
+  // leaves too little space above the first row. Reserve the readable line here.
+  const titleHeight = 28
+  return {
+    height: (count, context) => legend.height(count, context) + titleHeight,
+    render: (context) => ({
+      kind: "group",
+      key: "legend-title-group",
+      ariaHidden: true,
+      children: [
+        {
+          kind: "label",
+          key: "legend-label",
+          text: label,
+          x: context.bounds.x,
+          y: context.bounds.y + READABLE_TICK_LABELS.fontSize,
+          anchor: context.direction === "rtl" ? "end" : "start",
+          fontSize: READABLE_TICK_LABELS.fontSize,
+          fontWeight: 600,
+          style: { fill: context.theme.foreground },
+        },
+        legend.render({
+          ...context,
+          bounds: { ...context.bounds, y: context.bounds.y + titleHeight },
+        }),
+      ],
+    }),
+  }
+}
 
 function toAccessor<TDatum, TValue>(
   accessor: ChartAccessor<TDatum, TValue>
@@ -240,6 +282,7 @@ type ResolvedBuild<TDatum> = {
 const READABLE_TICK_LABELS = { fontSize: 14, opacity: 1 }
 const MAX_SERIES = 6
 const LINE_DASHES = ["", "8 4", "2 4", "8 4 2 4", "12 4", "4 4"]
+const MONOTONE_CURVE = d3Curve(curveMonotoneX)
 
 type TooltipPoint = {
   xValue: unknown
@@ -269,7 +312,10 @@ function resolveXAxis<TDatum>(
     return {
       scale: () => scaleUtc(),
       nice: true,
-      axis: { label: xLabel, tickLabels: READABLE_TICK_LABELS },
+      axis: {
+        label: xLabel,
+        tickLabels: READABLE_TICK_LABELS,
+      },
     }
   }
   if (values.length > 0 && values.every((value) => typeof value === "number")) {
@@ -409,7 +455,7 @@ function resolveBuild<TDatum>(
     seriesDomain: config.seriesDomain,
     stacked: config.stacked,
     points: config.points,
-    curve: config.smooth ? d3Curve(curveMonotoneX) : undefined,
+    curve: config.smooth ? MONOTONE_CURVE : undefined,
     grid: config.grid,
     xLabel: config.xLabel,
     yLabel: config.yLabel,
@@ -430,12 +476,7 @@ function resolveBuild<TDatum>(
         domain: config.seriesDomain,
         legend:
           showLegend && config.type !== "line"
-            ? colorLegend({
-                label: config.legendLabel,
-                items: colorLegendItems({
-                  label: { fontSize: 14, fillOpacity: 1 },
-                }),
-              })
+            ? readableColorLegend(config.legendLabel)
             : undefined,
       },
       svgAnimation: config.animate,
@@ -510,6 +551,9 @@ function buildArea<TDatum>(
 ): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
   const isStacked = build.stacked ?? true
+  // Multiple translucent fills accumulate; keep overlaps lighter than a single
+  // area so the series contours, rather than the blended baseline, carry detail.
+  const unstackedOpacity = getSeries == null ? 0.25 : 0.12
   return {
     marks: [
       areaY(data, {
@@ -521,13 +565,14 @@ function buildArea<TDatum>(
         color: getSeries,
         curve: build.curve,
         fill: getSeries == null ? SERIES_1_PAINT : undefined,
-        fillOpacity: getSeries != null && isStacked ? 0.85 : 0.25,
+        fillOpacity: getSeries != null && isStacked ? 0.85 : unstackedOpacity,
         // areaY skips stroke entirely when the option is `undefined`, so
         // multi-series areas would otherwise render with no outline at all —
         // worst in the overlapping layout, where the boundary is the only thing
         // separating two 25%-opacity bands. `null` clears that short-circuit and
         // then resolves to the series' own palette color, the same fallback
-        // `fill` rides on.
+        // `fill` rides on. The Cartesian renderer paints this stroke only on
+        // the upper contour, not around the closed fill.
         stroke: getSeries == null ? SERIES_1_PAINT : SERIES_STROKE_FROM_COLOR,
         strokeWidth: 2,
       }),
@@ -551,13 +596,15 @@ function buildBars<TDatum>(
 ): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
   const isStacked = build.stacked ?? false
+  const endRadius = getSeries == null ? 4 : 2
   const barOptions = {
     z: getSeries,
     color: getSeries,
     fill: getSeries == null ? SERIES_1_PAINT : undefined,
     layout: barLayout(getSeries != null, isStacked),
-    // 4px rounded data ends; stacked segments stay square
-    radius: getSeries != null && isStacked ? 0 : 4,
+    // Round only the data end, never the baseline. A smaller grouped-bar
+    // radius keeps narrow mobile columns from reading as pill capsules.
+    radius: getSeries != null && isStacked ? 0 : { end: endRadius },
   }
   if (horizontal) {
     return {
@@ -701,12 +748,44 @@ function cartesianGuidePaintOrder(key: string, order: readonly string[]) {
   return index < 0 ? order.length : index
 }
 
+/**
+ * TanStack areaY stores the upper contour followed by the reversed lower one.
+ * Keep its closed fill and original interaction node, but paint the stroke as
+ * a separate open contour so side walls and the baseline never become data
+ * lines. Using resolved coordinates also preserves stacked/negative extents
+ * without recalculating values or adding synthetic tooltip/selectable rows.
+ */
+function areaContourNodes(node: SceneNode): SceneNode[] {
+  if (node.kind === "group") {
+    return [{ ...node, children: node.children.flatMap(areaContourNodes) }]
+  }
+  if (
+    node.kind !== "area" ||
+    !node.key.startsWith("area-y-") ||
+    !node.style?.stroke
+  ) {
+    return [node]
+  }
+  const points = node.points.slice(0, node.points.length / 2)
+  return [
+    { ...node, style: { ...node.style, stroke: "none" } },
+    {
+      kind: "polyline",
+      key: `${node.key}:upper-contour`,
+      ariaHidden: true,
+      points,
+      path: node.path == null ? undefined : MONOTONE_CURVE.line(points),
+      style: { ...node.style, fill: "none" },
+    },
+  ]
+}
+
 /** Preserve the previous Cartesian rasterization at overlapping translucent guides. */
 function renderCartesianChartSvg(
   scene: ChartScene,
   options: RenderChartSvgOptions
 ) {
-  const nodes = scene.nodes.map((node) => {
+  const nodes = scene.nodes.flatMap(areaContourNodes).map((node) => {
     if (node.kind !== "group" || (node.key !== "grid" && node.key !== "axes")) {
       return node
     }
@@ -895,6 +974,21 @@ function ChartLineLegend({
   )
 }
 
+function chartDimensions(
+  isPolar: boolean,
+  height: number | undefined,
+  aspectRatio: number | undefined
+) {
+  if (height != null) {
+    return { height }
+  }
+  if (aspectRatio != null) {
+    return { aspectRatio }
+  }
+  // Leave enough room for a wrapped legend and a readable mobile disk.
+  return isPolar ? { height: 360 } : { aspectRatio: 16 / 9 }
+}
+
 export function Chart<TDatum>({
   type = "line",
   data,
@@ -1038,9 +1132,8 @@ export function Chart<TDatum>({
         <TanstackChart
           ariaDescription={ariaDescription}
           ariaLabel={ariaLabel}
-          aspectRatio={height == null ? (aspectRatio ?? 16 / 9) : undefined}
+          {...chartDimensions(isPolar, height, aspectRatio)}
           definition={definition}
-          height={height}
           initialWidth={initialWidth}
           onSelect={handleSelect}
           renderSvg={isPolar ? renderReadableChartSvg : renderCartesianChartSvg}

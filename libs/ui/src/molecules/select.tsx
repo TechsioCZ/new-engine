@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.5
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -128,45 +128,37 @@ const selectVariants = tv({
       "data-[validation=success]:border-select-border-success",
       "data-[validation=warning]:border-(length:--border-width-validation)",
       "data-[validation=warning]:border-select-border-warning",
-      "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
-    // its own size, glyph and neutral hover pill.
-    clearTrigger: ["absolute end-select-right top-1/2 -translate-y-1/2"],
-    content: [
-      "popup-surface-base popup-layer",
-      "w-full",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale] motion-reduce:transition-none motion-reduce:duration-0",
-      "transition-discrete",
-      "starting:scale-98 starting:opacity-0",
-      "data-[state=open]:starting:scale-98 data-[state=open]:starting:opacity-0",
-      "data-[state=open]:scale-100 data-[state=open]:opacity-100",
-      "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
+    // Clear (an ActionIcon) sits before the chevron in either direction. Its
+    // fill is inset without shrinking the themed hit target or focus outline.
+    clearTrigger: [
+      "absolute end-select-right top-1/2 -translate-y-1/2",
+      "bg-clip-content p-(--padding-select-clear-inset)",
     ],
+    content: ["popup-surface-base popup-layer", "w-full"],
     item: [
       "popup-item-base",
       "hover:bg-popup-item-bg-hover",
       "data-[highlighted]:bg-popup-item-bg-hover",
-      "data-[state=checked]:bg-popup-item-bg-selected",
-      "data-[state=checked]:text-popup-item-fg-selected",
+      "data-[state=checked]:bg-select-item-bg-selected",
+      "data-[state=checked]:text-select-item-fg-selected",
       "data-[disabled]:cursor-not-allowed data-[disabled]:text-popup-item-fg-disabled",
-      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     // Absolutely positioned inside the reserved end gutter so the label never
     // shifts when the selection changes.
     itemIndicator: [
       "absolute end-(--popup-item-x) top-1/2 -translate-y-1/2",
       "flex items-center justify-center",
-      "size-(--size-popup-indicator) text-popup-item-fg-selected",
+      "size-(--size-popup-indicator) text-select-item-fg-selected",
     ],
-    itemText: ["min-w-0 flex-grow truncate"],
+    itemText: ["wrap-anywhere min-w-0 flex-grow whitespace-normal"],
     itemGroup: [""],
     itemGroupLabel: [
       "px-(--popup-item-x) py-(--popup-item-y)",
-      "font-medium text-popup-item-fg-muted",
+      "font-select-item-group-label text-popup-item-fg-muted",
     ],
     valueText: [
-      "min-w-0 flex-1 truncate font-normal",
+      "wrap-anywhere min-w-0 flex-1 whitespace-normal font-normal",
       "data-[placeholder]:font-normal data-[placeholder]:text-select-placeholder",
     ],
   },
@@ -196,7 +188,7 @@ const selectVariants = tv({
       lg: {
         trigger:
           "form-control-size-lg rounded-select-lg px-select-trigger-md text-select-trigger-lg",
-        content: "popup-size-lg text-select-item-lg",
+        content: "select-popup-lg text-select-item-lg",
         valueText: "text-select-value-lg",
         itemGroupLabel: "text-select-item-group-label-lg",
       },
@@ -274,6 +266,7 @@ export function Select({
   onValueChange,
   onOpenChange,
   onHighlightChange,
+  positioning,
 
   className,
   children,
@@ -285,6 +278,7 @@ export function Select({
     useState<HTMLInputElement | null>(null)
   const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
   const hiddenSelectRef = useRef<HTMLSelectElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   const initialValue = useRef(defaultValue ?? [])
   const id = providedId || generatedId
 
@@ -316,6 +310,17 @@ export function Select({
   const service = useMachine(nativeSelectMachine, {
     ...machineProps,
     id,
+    // Attach to the control, not the label/helper stack. Explicit caller
+    // anchors and gutters retain their positioning contract.
+    positioning: {
+      getAnchorElement: positioning?.getAnchorRect
+        ? undefined
+        : () =>
+            rootRef.current?.querySelector<HTMLElement>(
+              '[data-scope="select"][data-part="control"]'
+            ) ?? null,
+      ...positioning,
+    },
     open: readOnly || disabled ? false : machineProps.open,
     defaultOpen: readOnly || disabled ? false : machineProps.defaultOpen,
     collection,
@@ -486,7 +491,15 @@ export function Select({
 
       <div
         className={styles.root({ className })}
-        ref={ref}
+        ref={(element) => {
+          rootRef.current = element
+          if (typeof ref === "function") {
+            return ref(element)
+          }
+          if (ref) {
+            ref.current = element
+          }
+        }}
         {...api.getRootProps()}
       >
         {children}
@@ -505,10 +518,11 @@ type SelectLabelProps = ComponentPropsWithoutRef<"label"> & {
 }
 
 Select.Label = function SelectLabel({ children, ...props }: SelectLabelProps) {
-  const { api, size } = useSelectContext()
+  const { api, size, disabled } = useSelectContext()
 
   return (
     <Label
+      disabled={disabled}
       size={toControlSize(size)}
       {...mergeProps(api.getLabelProps(), props)}
     >
@@ -605,7 +619,7 @@ Select.Trigger = function SelectTrigger({
       {children}
       {!readOnly && (
         <Icon
-          className={`shrink-0 ${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+          className={`shrink-0 ${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover group-data-disabled:text-select-fg-disabled group-data-disabled:group-hover:text-select-fg-disabled ${
             api.open ? "rotate-180" : "rotate-none"
           }`}
           icon="token-icon-select-indicator"
@@ -870,7 +884,7 @@ Select.ItemText = function SelectItemText({
       ref={ref}
       {...mergeProps(api.getItemTextProps({ item }), props)}
     >
-      {children || item.label}
+      {children ?? item.label}
     </span>
   )
 }
@@ -940,6 +954,7 @@ Select.StatusText = function SelectStatusText({
       size={effectiveSize === "xs" ? "sm" : effectiveSize}
       status={effectiveStatus}
       {...props}
+      data-select-description=""
       id={id}
     >
       {children}

@@ -26,6 +26,9 @@
   --container-6xl: 72rem;
   --container-max-w: 80rem;
   --container-prose: 65ch;
+  /* Literal query thresholds must not resolve through runtime Figma aliases. */
+  --container-metrics-pair: 32rem;
+  --container-metrics-row: 56rem;
 
   /* === ASPECT RATIOS === */
   --aspect-square: 1;

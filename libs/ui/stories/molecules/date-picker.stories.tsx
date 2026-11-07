@@ -456,6 +456,35 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+export const CalendarHeader: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <DateOnlyField
+      defaultOpen
+      defaultValue={new CalendarDate(2026, 8, 31)}
+      label="Calendar heading regression"
+      locale="cs-CZ"
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    const caption = await body.findByRole("button", { name: /srpen 2026/ })
+    await waitFor(() => {
+      expect(caption).toBeVisible()
+      const text = canvasElement.ownerDocument.createRange()
+      text.selectNodeContents(caption)
+      const textBounds = text.getBoundingClientRect()
+      const bounds = caption.getBoundingClientRect()
+      expect(textBounds.left).toBeGreaterThanOrEqual(bounds.left)
+      expect(textBounds.right).toBeLessThanOrEqual(bounds.right)
+      expect(textBounds.top).toBeGreaterThanOrEqual(bounds.top)
+      expect(textBounds.bottom).toBeLessThanOrEqual(bounds.bottom)
+    })
+    const header = caption.parentElement!
+    await expect(within(header).getAllByRole("button")).toHaveLength(5)
+  },
+}
+
 export const Playground: StoryObj<DatePickerPlaygroundArgs> = {
   args: {
     defaultOpen: false,
@@ -1176,7 +1205,7 @@ function ControlledTimedResyncExample() {
   )
 
   return (
-    <div className="w-full max-w-md space-y-200">
+    <div className="flex w-full max-w-md flex-col items-start gap-200">
       <TimedField
         granularity="minute"
         hourCycle={24}

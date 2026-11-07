@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.7
+ * @componentVersion v1.1.14
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -116,22 +116,22 @@ export const cascadeSelectVariants = tv({
       "data-disabled:text-cascade-select-fg-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
       "data-[validation=error]:border-cascade-select-border-error data-[validation=error]:outline-cascade-select-border-error",
-      "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
+      "data-[validation=error]:outline-(style:--default-ring-style) not-focus-visible:data-[validation=error]:outline-(length:--border-width-cascade-select-status-outline)",
       "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=success]:border-(length:--border-width-validation)",
       "data-[validation=success]:border-cascade-select-border-success data-[validation=success]:outline-cascade-select-border-success",
-      "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
+      "data-[validation=success]:outline-(style:--default-ring-style) not-focus-visible:data-[validation=success]:outline-(length:--border-width-cascade-select-status-outline)",
       "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=warning]:border-(length:--border-width-validation)",
       "data-[validation=warning]:border-cascade-select-border-warning data-[validation=warning]:outline-cascade-select-border-warning",
-      "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
+      "data-[validation=warning]:outline-(style:--default-ring-style) not-focus-visible:data-[validation=warning]:outline-(length:--border-width-cascade-select-status-outline)",
       "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     clearTrigger:
-      "absolute end-cascade-select-right top-1/2 -translate-y-1/2 data-readonly:hidden",
+      "cascade-select-clear-surface absolute end-cascade-select-right top-1/2 -translate-y-1/2 data-readonly:hidden",
     content: [
-      "popup-surface-base cascade-select-viewport flex w-max snap-x snap-proximity overflow-x-auto p-0",
+      "popup-surface-base cascade-select-viewport cascade-select-continuation flex w-max snap-x snap-proximity overflow-x-auto p-0",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
@@ -140,14 +140,15 @@ export const cascadeSelectVariants = tv({
       "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
     column: [
-      "cascade-select-column-size flex min-w-0 shrink-0 grow snap-start flex-col",
+      "cascade-select-column-size flex shrink-0 grow snap-start flex-col",
       "cascade-select-column-divider bg-cascade-select-column-bg",
     ],
     columnHeader:
-      "flex items-center gap-cascade-select-header border-cascade-select-column-border border-b bg-cascade-select-header-bg p-cascade-select-header font-cascade-select-header text-cascade-select-header-fg text-cascade-select-header-size",
+      "flex items-start gap-cascade-select-header border-cascade-select-column-border border-b bg-cascade-select-header-bg px-cascade-select-header-inline py-cascade-select-header font-cascade-select-header text-cascade-select-header-fg text-cascade-select-header-size",
+    columnHeading: "cascade-select-column-heading min-w-0",
     columnStep:
-      "flex size-cascade-select-step shrink-0 items-center justify-center rounded-full bg-cascade-select-step-bg text-cascade-select-step-fg",
-    list: "p-cascade-select-column",
+      "flex size-cascade-select-step shrink-0 items-center justify-center rounded-full bg-cascade-select-step-bg font-normal text-cascade-select-step-fg",
+    list: "py-cascade-select-column",
     item: [
       "popup-item-base cascade-select-item-path",
       "data-active-path:font-cascade-select-path",
@@ -159,19 +160,20 @@ export const cascadeSelectVariants = tv({
       "data-disabled:cursor-not-allowed data-disabled:text-popup-item-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    itemText: "min-w-0 flex-grow truncate",
+    itemText: "wrap-anywhere min-w-0 flex-grow whitespace-normal",
     branchIndicator: [
-      "flex size-(--size-popup-indicator) shrink-0 items-center justify-center last:-me-(--size-popup-indicator)",
+      "cascade-select-row-indicator flex size-(--size-popup-indicator) shrink-0 items-center justify-center",
       "rtl:rotate-180",
     ],
     itemIndicator: [
-      "flex size-(--size-popup-indicator) shrink-0 items-center justify-center last:-me-(--size-popup-indicator)",
+      "cascade-select-row-indicator flex size-(--size-popup-indicator) shrink-0 items-center justify-center",
       "text-popup-item-fg-selected",
     ],
     valueText: [
-      "min-w-0 flex-grow truncate font-normal",
+      "wrap-anywhere min-w-0 flex-grow whitespace-normal font-normal",
       "data-placeholder:text-cascade-select-placeholder",
     ],
+    statusText: "mt-cascade-select-status-margin",
     indicator: [
       "shrink-0 text-cascade-select-trigger-fg-base group-hover:text-cascade-select-trigger-fg-hover",
       "data-[state=open]:rotate-180",
@@ -261,7 +263,8 @@ const formatSelectedItems = (
       .join(", ")
   }
 
-  return selectedItems.map((path) => path.map(stringify).join(" / ")).join(", ")
+  // Keep each separator with its preceding segment, never orphaned at line start.
+  return selectedItems.map((path) => path.map(stringify).join(" / ")).join(", ")
 }
 
 type CascadeSelectContextValue = {
@@ -811,6 +814,45 @@ CascadeSelect.Content = function CascadeSelectContent({
     const view = content.ownerDocument.defaultView ?? window
     let frame = 0
     let columnToReveal: HTMLElement | null = null
+    const updateOverflow = () => {
+      const columns = content.querySelectorAll<HTMLElement>(
+        '[data-scope="cascade-select"][data-part="column"]'
+      )
+      const first = columns.item(0)
+      const last = columns.item(columns.length - 1)
+      const surface = content.getBoundingClientRect()
+      const left = surface.left + content.clientLeft
+      const right = left + content.clientWidth
+      const firstBounds = first?.getBoundingClientRect()
+      const lastBounds = last?.getBoundingClientRect()
+      // Compare physical edges rather than scrollLeft, whose RTL conventions
+      // vary. Ignore subpixel rounding at an otherwise fully revealed edge.
+      const hiddenLeft = Boolean(
+        firstBounds &&
+          lastBounds &&
+          Math.min(firstBounds.left, lastBounds.left) < left - 1
+      )
+      const hiddenRight = Boolean(
+        firstBounds &&
+          lastBounds &&
+          Math.max(firstBounds.right, lastBounds.right) > right + 1
+      )
+      const rtl = first?.dir === "rtl"
+      // No scrollLeft normalization is needed to cancel the scroll translation:
+      // a negative RTL offset moves the paint back by the same physical amount.
+      content.style.setProperty(
+        "--_cascade-select-continuation-offset",
+        `${content.scrollLeft}px`
+      )
+      content.toggleAttribute(
+        "data-overflow-start",
+        rtl ? hiddenRight : hiddenLeft
+      )
+      content.toggleAttribute(
+        "data-overflow-end",
+        rtl ? hiddenLeft : hiddenRight
+      )
+    }
     const revealColumn = () => {
       const columns = content.querySelectorAll<HTMLElement>(
         '[data-scope="cascade-select"][data-part="column"]'
@@ -838,6 +880,7 @@ CascadeSelect.Content = function CascadeSelectContent({
           ? target.left - left
           : Math.max(0, target.right - right)
       content.scrollBy({ left: delta, behavior: "instant" })
+      updateOverflow()
     }
     const scheduleReveal = () => {
       view.cancelAnimationFrame(frame)
@@ -847,15 +890,27 @@ CascadeSelect.Content = function CascadeSelectContent({
       })
     }
     scheduleReveal()
+    // Native scrolling updates only the cues; never pull the user back to the
+    // highlighted column while they inspect an ancestor with pointer/touch input.
+    content.addEventListener("scroll", updateOverflow, { passive: true })
     // Test DOMs may lack ResizeObserver; the initial reveal still runs.
     const observer =
       typeof ResizeObserver === "undefined"
         ? undefined
         : new ResizeObserver(scheduleReveal)
     observer?.observe(content)
+    for (const column of content.querySelectorAll<HTMLElement>(
+      '[data-scope="cascade-select"][data-part="column"]'
+    )) {
+      observer?.observe(column)
+    }
     return () => {
       view.cancelAnimationFrame(frame)
       observer?.disconnect()
+      content.removeEventListener("scroll", updateOverflow)
+      content.removeAttribute("data-overflow-start")
+      content.removeAttribute("data-overflow-end")
+      content.style.removeProperty("--_cascade-select-continuation-offset")
     }
   }, [api.open, contentId, getRootNode, highlightedId, keyboardNavigation])
 
@@ -865,6 +920,9 @@ CascadeSelect.Content = function CascadeSelectContent({
         {
           ...contentProps,
           role: "tree",
+          // Zag supplies listbox ARIA; tree does not support aria-readonly.
+          // Keep readonly on the combobox and in the machine's interaction guards.
+          "aria-readonly": undefined,
           "aria-activedescendant": highlightedId,
         },
         props
@@ -1014,6 +1072,8 @@ CascadeSelect.BranchIndicator = function CascadeSelectBranchIndicator({
     <span
       aria-hidden="true"
       className={styles.branchIndicator({ className })}
+      data-part="branch-indicator"
+      data-scope="cascade-select"
       ref={ref}
       {...props}
     >
@@ -1092,7 +1152,7 @@ function CascadeSelectTreeNode({
           <span aria-hidden="true" className={styles.columnStep()}>
             {indexPath.length + 1}
           </span>
-          <span id={headingId}>
+          <span className={styles.columnHeading()} id={headingId}>
             {indexPath.length === 0 ? rootLabel : node.label}
           </span>
         </div>
@@ -1160,6 +1220,7 @@ type CascadeSelectStatusTextProps = Omit<StatusTextProps, "size" | "status"> & {
 }
 
 CascadeSelect.StatusText = function CascadeSelectStatusText({
+  className,
   id: providedId,
   size: sizeProp,
   status: statusProp,
@@ -1170,6 +1231,7 @@ CascadeSelect.StatusText = function CascadeSelectStatusText({
   const generatedId = useId()
   const id = providedId || generatedId
   const effectiveSize = sizeProp ?? size
+  const styles = cascadeSelectVariants({ size: effectiveSize })
   const effectiveStatus = statusProp ?? validateStatus
   useRegisterDescription(
     id,
@@ -1183,6 +1245,7 @@ CascadeSelect.StatusText = function CascadeSelectStatusText({
     <StatusText
       align="start"
       {...props}
+      className={styles.statusText({ className })}
       id={id}
       size={effectiveSize === "xs" ? "sm" : effectiveSize}
       status={effectiveStatus}

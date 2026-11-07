@@ -108,6 +108,25 @@ describe("bounded navigation state", () => {
     expect(html).not.toContain("href=")
     expect(html).not.toContain('aria-current="page"')
   })
+  it.each([false, true])(
+    "preserves numbered destinations when showPrevNext is %s",
+    (showPrevNext) => {
+      const html = renderToStaticMarkup(
+        h(Pagination, {
+          count: 100,
+          pageSize: 10,
+          defaultPage: 5,
+          siblingCount: 0,
+          showPrevNext,
+          getPageUrl: href,
+        })
+      )
+      expect(html).toContain('href="#page-1"')
+      expect(html).toContain('href="#page-10"')
+      expect(html.includes(' data-responsive-pages="')).toBe(showPrevNext)
+    }
+  )
+
   it("gives minimal current pages a persistent non-color cue", () => {
     expect(paginationVariants({ variant: "minimal" }).link()).toContain(
       "data-selected:underline"
@@ -375,9 +394,34 @@ describe("tree selection eligibility", () => {
   )
 })
 
-const copiedSourcePattern =
-  /const playgroundSource = `([\s\S]*?)`\n\nconst meta/
-const sourceEscapePattern = /\\([`$])/g
+function copiedSource(story: string | undefined): string | null {
+  if (!story) {
+    return null
+  }
+  const file = ts.createSourceFile(
+    "story.tsx",
+    story,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  )
+  for (const statement of file.statements) {
+    if (!ts.isVariableStatement(statement)) {
+      continue
+    }
+    for (const declaration of statement.declarationList.declarations) {
+      if (
+        ts.isIdentifier(declaration.name) &&
+        declaration.name.text === "playgroundSource" &&
+        declaration.initializer &&
+        ts.isNoSubstitutionTemplateLiteral(declaration.initializer)
+      ) {
+        return declaration.initializer.text
+      }
+    }
+  }
+  return null
+}
 
 describe("navigation Docs sources", () => {
   const components = ["tabs", "pagination", "vertical-navigation"]
@@ -388,10 +432,22 @@ describe("navigation Docs sources", () => {
     )
   )
 
+  it("extracts the exact template value even when fixture helpers follow it", () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: Copied Docs examples contain literal interpolation syntax.
+    const example = "export const title = `Total ${count}`"
+    const escaped = example.replaceAll("`", "\\`").replaceAll("${", "\\${")
+    const story =
+      "const before = 1\nconst playgroundSource = `" +
+      escaped +
+      "`\nconst withInset = () => null\nconst meta = {}"
+    expect(copiedSource(story)).toBe(example)
+    expect(copiedSource("const meta = {}")).toBeNull()
+  })
+
   it("provides complete primary examples without private story wrappers", () => {
     for (let index = 0; index < components.length; index++) {
       const story = stories[index]
-      const source = story?.match(copiedSourcePattern)?.[1]
+      const source = copiedSource(story)
       expect(source).toContain(`@techsio/ui-kit/molecules/${components[index]}`)
       expect(source).not.toContain("StoryPagination")
       expect(source).not.toContain("NavigationStory")
@@ -423,14 +479,11 @@ describe("navigation Docs sources", () => {
     }
     const files = new Map(
       components.map((component, index) => {
-        const source = stories[index]?.match(copiedSourcePattern)?.[1]
+        const source = copiedSource(stories[index])
         if (!source) {
           throw new Error(`Missing primary source for ${component}`)
         }
-        return [
-          `${root}tests/copied-${component}.tsx`,
-          source.replace(sourceEscapePattern, "$1"),
-        ]
+        return [`${root}tests/copied-${component}.tsx`, source]
       })
     )
     const host = ts.createCompilerHost(options)

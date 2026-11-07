@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.5
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,6 +12,7 @@
 import { connect, type IntlTranslations, machine } from "@zag-js/rating-group"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import {
+  type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
   useId,
@@ -158,17 +159,21 @@ const rating = tv({
   slots: {
     root: "grid min-w-0 max-w-full items-center",
     control:
-      "form-control-readonly focus-visible:rating-focus-outline inline-flex w-fit max-w-full flex-wrap items-center",
+      "rating-readonly form-control-readonly focus-visible:rating-focus-outline inline-flex w-fit max-w-full flex-wrap items-center",
     item: [
-      "inline-grid min-h-rating-target min-w-rating-target shrink-0 place-items-center",
+      "rating-item-fluid inline-grid min-h-rating-target place-items-center",
       "cursor-pointer data-disabled:cursor-not-allowed",
       "focus-visible:rating-focus-outline",
     ],
     glyph: [
-      "token-icon-rating pointer-events-none text-rating-fg-empty",
+      "token-icon-rating pointer-events-none col-start-1 row-start-1 text-rating-fg-empty",
       "transition-colors duration-200 motion-reduce:transition-none",
       "data-highlighted:not-data-half:token-icon-rating-selected data-highlighted:not-data-disabled:text-rating-fg-selected",
       "data-half:token-icon-rating-half rtl:data-half:-scale-x-100",
+      "data-disabled:text-rating-fg-disabled",
+    ],
+    fractionalGlyph: [
+      "token-icon-rating-selected rating-fractional-fill pointer-events-none col-start-1 row-start-1 text-rating-fg-selected",
       "data-disabled:text-rating-fg-disabled",
     ],
     valueText:
@@ -178,18 +183,24 @@ const rating = tv({
     size: {
       sm: {
         root: "gap-rating-sm",
-        control: "gap-rating-sm",
+        control: "gap-rating-control-sm",
+        item: "text-rating-sm",
         glyph: "text-rating-sm",
+        fractionalGlyph: "text-rating-sm",
       },
       md: {
         root: "gap-rating-md",
-        control: "gap-rating-md",
+        control: "gap-rating-control-md",
+        item: "text-rating-md",
         glyph: "text-rating-md",
+        fractionalGlyph: "text-rating-md",
       },
       lg: {
         root: "gap-rating-lg",
-        control: "gap-rating-lg",
+        control: "gap-rating-control-lg",
+        item: "text-rating-lg",
         glyph: "text-rating-lg",
+        fractionalGlyph: "text-rating-lg",
       },
     },
     isDisplay: { true: { item: "cursor-default" }, false: {} },
@@ -337,15 +348,17 @@ export function Rating({
         aria-errormessage={errorMessageId}
         aria-invalid={invalid || undefined}
         data-disabled={disabled ? "" : undefined}
-        data-readonly={readOnly && !disabled ? "" : undefined}
+        data-readonly={readOnly && !(disabled || isDisplay) ? "" : undefined}
         ref={controlRef}
       >
         <RatingItems
           api={api}
           describedBy={describedBy}
+          dir={dir}
           errorMessageId={errorMessageId}
           invalid={invalid}
           isDisplay={isDisplay}
+          showExactValue={readOnly}
           styles={styles}
           translations={translations}
         />
@@ -355,7 +368,9 @@ export function Rating({
         data-disabled={disabled ? "" : undefined}
         id={scoreId}
       >
-        {Math.max(0, api.value)} / {normalizedCount}
+        <bdi dir="ltr">
+          {Math.max(0, api.value)} / {normalizedCount}
+        </bdi>
       </span>
       {helpText && (
         <StatusText id={helpTextId} size={size} status={validateStatus}>
@@ -423,16 +438,20 @@ function getRatingControlProps(
 
 function RatingItems({
   api,
+  dir,
   styles,
   isDisplay,
+  showExactValue,
   describedBy,
   errorMessageId,
   invalid,
   translations,
 }: {
   api: ReturnType<typeof connect>
+  dir: NonNullable<RatingProps["dir"]>
   styles: ReturnType<typeof rating>
   isDisplay: boolean
+  showExactValue: boolean
   describedBy?: string
   errorMessageId?: string
   invalid: boolean
@@ -442,6 +461,8 @@ function RatingItems({
     <>
       {api.items.map((index) => {
         const itemProps = api.getItemProps({ index })
+        const fill = Math.max(0, Math.min(1, api.value - index + 1))
+        const glyphProps = getRatingGlyphProps(itemProps, fill, showExactValue)
         const checked = api.value > 0 && Math.ceil(api.value) === index
         const tabIndex = index === Math.max(1, Math.ceil(api.value)) ? 0 : -1
         const focusableProps = {
@@ -465,8 +486,24 @@ function RatingItems({
             <span
               aria-hidden="true"
               className={styles.glyph()}
-              {...pickDataAttributes(itemProps)}
+              {...glyphProps}
             />
+            {showExactValue && fill > 0 && fill < 1 && (
+              <span
+                aria-hidden="true"
+                className={styles.fractionalGlyph()}
+                data-disabled={itemProps["data-disabled"]}
+                data-part="fractional-glyph"
+                dir={dir}
+                style={
+                  {
+                    // Keep sub-percent averages precise without exposing
+                    // floating-point noise for ordinary scores such as 4.6.
+                    "--rating-item-clip": `${Number(((1 - fill) * 100).toFixed(10))}%`,
+                  } as CSSProperties
+                }
+              />
+            )}
           </span>
         )
       })}
@@ -478,4 +515,20 @@ function pickDataAttributes(props: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(props).filter(([key]) => key.startsWith("data-"))
   )
+}
+
+function getRatingGlyphProps(
+  itemProps: Record<string, unknown>,
+  fill: number,
+  showExactValue: boolean
+) {
+  return {
+    ...pickDataAttributes(itemProps),
+    ...(showExactValue
+      ? {
+          "data-highlighted": fill === 1 ? "" : undefined,
+          "data-half": undefined,
+        }
+      : {}),
+  }
 }

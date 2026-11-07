@@ -10,7 +10,10 @@ import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
   assertFloatingContainment,
   assertSubmenuCaptureReady,
+  type CheckpointAppearance,
+  captureCheckpointImage,
   checkStoryPopupCheckpoints,
+  documentedStateCheckpointStories,
   visibleFloatingSurfaces,
 } from "./visual-popup-capture.mjs"
 import { resolveVisualTheme } from "./visual-projects.mjs"
@@ -65,6 +68,35 @@ type StorybookWindow = Window & {
 const channelTolerance = 8
 const edgePixelAllowance = (width: number, height: number) =>
   Math.max(16, Math.round(width * height * 0.0002))
+
+async function attachVisualFailure(page: Page, testInfo: TestInfo) {
+  if (page.isClosed()) {
+    return
+  }
+  try {
+    await testInfo.attach("visual-failure-state", {
+      body: await page.screenshot({
+        animations: "disabled",
+        caret: "hide",
+        scale: "css",
+        fullPage: true,
+        timeout: 5000,
+      }),
+      contentType: "image/png",
+    })
+    await testInfo.attach("visual-failure-surfaces", {
+      body: Buffer.from(
+        JSON.stringify(await visibleFloatingSurfaces(page), null, 2)
+      ),
+      contentType: "application/json",
+    })
+  } catch (error) {
+    testInfo.annotations.push({
+      type: "visual-diagnostic-unavailable",
+      description: String(error),
+    })
+  }
+}
 
 function pixelChanged(a: Buffer, e: Buffer, offset: number) {
   for (let channel = 0; channel < 4; channel += 1) {
@@ -798,11 +830,18 @@ test.describe
             waitForTimedToasts: completion.visualTimedToasts !== "capture",
           })
           const root = page.locator("#storybook-root")
-          const capture = async (suffix = "", fullPage = false) => {
+          const capture = async (
+            suffix = "",
+            fullPage = false,
+            checkpoint?: () => Promise<void>,
+            appearance?: CheckpointAppearance
+          ) => {
+            const captureFullPage = fullPage || appearance?.fullPage
             const beforeCapture =
-              suffix === "--popup-submenu"
+              checkpoint ??
+              (suffix === "--popup-submenu"
                 ? () => assertSubmenuCaptureReady(page)
-                : undefined
+                : undefined)
             await expect
               .poll(
                 () =>
@@ -882,7 +921,7 @@ test.describe
               caret: "hide" as const,
               scale: "css" as const,
             }
-            const framing = fullPage
+            const framing = captureFullPage
               ? null
               : await root.evaluate((element) => {
                   const rootBox = element.getBoundingClientRect()
@@ -941,27 +980,14 @@ test.describe
             // No truncation or coverage exemption: compare every tile, retaining
             // the primary name for the first and unique suffixes for the rest.
             for (const tile of tiles.length ? tiles : [null]) {
-              let actual: Buffer
-              await beforeCapture?.()
-              if (tile) {
-                actual = await page.screenshot({
-                  ...options,
-                  fullPage: true,
-                  clip: tile.clip,
-                })
-              } else if (fullPage) {
-                actual = await page.screenshot({ ...options, fullPage: true })
-              } else if (framing?.includesMarkers) {
-                actual = await page.screenshot({
-                  ...options,
-                  fullPage: true,
-                  clip: framing.bounds,
-                })
-              } else {
-                actual = await root.screenshot(options)
-              }
-              await beforeCapture?.()
-              if (fullPage) {
+              const actual = await captureCheckpointImage(page, root, options, {
+                fullPage,
+                framing,
+                tile,
+                ready: beforeCapture,
+                appearance,
+              })
+              if (fullPage && suffix) {
                 const surfaces = await visibleFloatingSurfaces(page)
                 assertFloatingContainment(surfaces, PNG.sync.read(actual))
               }
@@ -974,15 +1000,30 @@ test.describe
               expect(snapshot.passed, snapshot.message).toBe(true)
             }
           }
-          await capture()
+          // Locator screenshots scroll oversized roots into view and move sticky
+          // page chrome into the middle of the PNG. Capture pages from the origin.
+          const captureDocument = story.title.startsWith("Pages/")
+          if (captureDocument) {
+            await page.evaluate(() =>
+              window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+            )
+          }
+          await capture("", captureDocument)
           const hasVisiblePortal = (await visibleFloatingSurfaces(page)).some(
             (surface) => surface.external
           )
           if (hasVisiblePortal) {
             await capture("--portal-open", true)
           }
-          await checkStoryPopupCheckpoints(page, story.id, (suffix) =>
-            capture(suffix, true)
+          await checkStoryPopupCheckpoints(
+            page,
+            story.id,
+            async (suffix, beforeCapture, appearance) => {
+              const floating =
+                !documentedStateCheckpointStories.includes(story.id) ||
+                (await visibleFloatingSurfaces(page)).length > 0
+              await capture(suffix, floating, beforeCapture, appearance)
+            }
           )
           const portalCase = interactivePortals[story.id]
           if (portalCase) {
@@ -1019,6 +1060,7 @@ test.describe
           }
         } catch (error) {
           failures.push(error)
+          await attachVisualFailure(page, testInfo)
         } finally {
           try {
             await disposeAssets?.()

@@ -181,6 +181,13 @@ export const Playground: Story = {
     await waitFor(() => expect(input).toHaveAccessibleDescription(
       "Choose how you would like to receive your order. Arrives in 3–5 business days. Free"
     ))
+    for (const item of canvasElement.querySelectorAll('[data-part="item"]')) {
+      const title = item.querySelector('[data-part="item-text"]')
+      const addon = item.querySelector('[data-part="item-addon"]')
+      if (!(title && addon)) throw new Error("Missing radio card text")
+      const footerStart = addon.getBoundingClientRect().left + Number.parseFloat(getComputedStyle(addon).paddingInlineStart)
+      await expect(Math.abs(title.getBoundingClientRect().left - footerStart)).toBeLessThan(1)
+    }
   },
 }
 export const Variants: Story = {
@@ -210,6 +217,23 @@ export const Variants: Story = {
           }
         })
         if (hovered) await userEvent.unhover(card)
+      }
+      if (card.closest('[data-theme="business"]')) {
+        const unchecked = card.closest('[role="radiogroup"]')?.querySelector<HTMLElement>(
+          '[data-part="item"][data-state="unchecked"]'
+        )
+        if (!unchecked) throw new Error("Missing unchecked radio card")
+        await userEvent.hover(unchecked)
+        await waitFor(() => {
+          const paint = getComputedStyle(unchecked)
+          expect(colorSample(paint.backgroundColor)).toEqual(
+            colorSample(paint.getPropertyValue("--color-fill-base"))
+          )
+          expect(colorSample(paint.borderColor)).toEqual(
+            colorSample(paint.getPropertyValue("--color-border-control"))
+          )
+        })
+        await userEvent.unhover(unchecked)
       }
     }
   },
@@ -324,6 +348,15 @@ export const ReadOnly: Story = {
     })) {
       await userEvent.click(input)
       await expect(input).not.toBeChecked()
+      const item = input.closest<HTMLElement>('[data-part="item"]')
+      if (item?.closest('[data-theme="business"]')) {
+        await waitFor(() => {
+          const paint = getComputedStyle(item)
+          expect(colorSample(paint.borderColor)).toEqual(
+            colorSample(paint.getPropertyValue("--color-radio-card-item-border"))
+          )
+        })
+      }
     }
   },
 }
@@ -394,6 +427,14 @@ export const MultipleDescriptions: Story = {
 }
 
 // Resolve theme colors (including color-mix/oklch) in the browser's sRGB canvas.
+function colorSample(color: string) {
+  const context = document.createElement("canvas").getContext("2d")
+  if (!context) throw new Error("Canvas color resolution is unavailable")
+  context.fillStyle = color.trim()
+  context.fillRect(0, 0, 1, 1)
+  return Array.from(context.getImageData(0, 0, 1, 1).data)
+}
+
 function textContrast(element: HTMLElement) {
   const context = document.createElement("canvas").getContext("2d")
   if (!context) throw new Error("Canvas color resolution is unavailable")

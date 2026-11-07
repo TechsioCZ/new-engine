@@ -725,8 +725,29 @@ export const DropzoneStates: Story = {
     </div>
   ),
   play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const disabledPreview = within(
+      canvas.getByRole("region", { name: "Disabled static preview" })
+    )
+    await expect(
+      getComputedStyle(
+        disabledPreview.getByText("Image selection unavailable")
+      ).color
+    ).toBe(
+      getComputedStyle(
+        disabledPreview.getByText("You need editor access to add product images")
+      ).color
+    )
+    const idlePreview = within(
+      canvas.getByRole("region", { name: "Idle static preview" })
+    )
+    await expect(
+      getComputedStyle(idlePreview.getByText("Drag images here or browse")).color
+    ).not.toBe(
+      getComputedStyle(idlePreview.getByText("PNG or JPG, up to 5 MB each")).color
+    )
     const interactive = within(
-      within(canvasElement).getByRole("region", {
+      canvas.getByRole("region", {
         name: "Interactive file selection",
       })
     )
@@ -1425,6 +1446,12 @@ export const BatchRegressions: Story = {
       name: "Batch form",
     }) as HTMLFormElement
     const picker = canvas.getByLabelText<HTMLInputElement>(/Batch attachments/)
+    const submit = canvas.getByRole("button", { name: "Submit attachments" })
+    const reset = canvas.getByRole("button", { name: "Reset attachments" })
+    const actions = submit.parentElement
+    if (!actions) throw new Error("Missing upload form actions")
+    await expect(Number.parseFloat(getComputedStyle(actions).columnGap)).toBeGreaterThan(0)
+    await expect(reset.parentElement).toBe(actions)
     const files = (names: string[]) =>
       names.map((name) => new File(["small"], name, { type: "text/plain" }))
     const names = () =>
@@ -1549,8 +1576,10 @@ function BatchRegressionExample({ maxFiles = 3 }: { maxFiles?: number } = {}) {
             <FileItems type="rejected" />
           </FileUpload>
         </fieldset>
-        <Button type="submit">Submit attachments</Button>
-        <Button type="reset" theme="outlined">Reset attachments</Button>
+        <div className="mt-200 flex flex-wrap gap-150">
+          <Button type="submit">Submit attachments</Button>
+          <Button type="reset" theme="outlined">Reset attachments</Button>
+        </div>
       </form>
       <Button
         type="button"

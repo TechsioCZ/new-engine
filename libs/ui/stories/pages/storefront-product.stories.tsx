@@ -153,8 +153,8 @@ function ProductDetailPage() {
             </div>
 
             <div className="flex flex-col gap-100">
-              <span className="font-medium text-sm">Colour</span>
               <ColorSelect
+                label="Colour"
                 colors={colorFacets
                   .slice(0, 4)
                   .map((item) => ({ ...item, selected: item.color === color }))}
@@ -553,6 +553,14 @@ export const Default: Story = {
         )
       ).toBeVisible()
     )
+    const body = within(canvasElement.ownerDocument.body)
+    for (const close of body.getAllByRole("button", { name: "Close notification" })) {
+      await userEvent.click(close)
+    }
+    await waitFor(() =>
+      expect(body.queryByText("Product details opened locally in this demo.")).toBeNull()
+    )
+    await userEvent.click(canvas.getByRole("heading", { level: 1 }))
     await expect(
       canvasElement.ownerDocument.documentElement.scrollWidth
     ).toBeLessThanOrEqual(

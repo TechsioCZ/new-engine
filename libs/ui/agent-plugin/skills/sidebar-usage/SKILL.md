@@ -6,7 +6,7 @@ description: >-
 metadata:
   type: "core"
   component: "Sidebar"
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux drawer-usage app-token-overrides ux-guidelines"

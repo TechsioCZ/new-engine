@@ -23,13 +23,23 @@ import { checkChartPointerSelection } from "./chart-pointer-regression.mjs"
  * }} StorybookWindow
  */
 
-// The reporter reads its documented A11Y_REPORT_* environment variables itself
-// (A11Y_REPORT_JUNIT, A11Y_REPORT_WAIT_MS, A11Y_REPORT_OUTPUT_DIR). It records
-// every violation; this runner decides which ones block (see advisoryRules).
-// Only "false" disables enforcement.
-const enforceViolations = process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS !== "false"
-process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS = "false"
-const reporter = createA11yReporter({ waitForResultsMs: 30_000 })
+// Record every violation; this runner decides which ones block (see advisoryRules).
+// The reporter captures its environment options synchronously during construction.
+// Restore enforcement before Storybook forks workers or loads another test suite.
+const enforcementSetting = process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS
+const enforceViolations = enforcementSetting !== "false"
+const reporter = (() => {
+  try {
+    process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS = "false"
+    return createA11yReporter({ waitForResultsMs: 30_000 })
+  } finally {
+    if (enforcementSetting === undefined) {
+      delete process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS
+    } else {
+      process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS = enforcementSetting
+    }
+  }
+})()
 
 const mode = process.env.A11Y_STORYBOOK_MODE ?? "light"
 const brand = process.env.A11Y_STORYBOOK_BRAND ?? "base"

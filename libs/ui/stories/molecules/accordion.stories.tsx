@@ -374,14 +374,16 @@ export const CustomContent: Story = {
         <Accordion multiple defaultValue={["order"]}>
           <Accordion.Item value="order">
             <Accordion.Header>
-              <Accordion.Title>
+              <Accordion.Title className="min-w-0">
                 Order TS-2048
                 <Accordion.Subtitle>
                   Alpine daypack · shipped today
                 </Accordion.Subtitle>
               </Accordion.Title>
-              <span className="inline-flex items-center gap-150">
-                <Badge variant="primary">Shipped</Badge>
+              <span className="inline-flex shrink-0 items-center gap-150">
+                <Badge className="shrink-0 whitespace-nowrap" variant="primary">
+                  Shipped
+                </Badge>
                 <Accordion.Indicator />
               </span>
             </Accordion.Header>
@@ -423,6 +425,21 @@ export const CustomContent: Story = {
         </Accordion>
       </div>
     )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText("Shipped", { exact: true })
+    const range = badge.ownerDocument.createRange()
+    range.selectNodeContents(badge)
+    const lines = new Set(
+      Array.from(range.getClientRects(), (rect) => Math.round(rect.top))
+    )
+    await expect(lines.size).toBe(1)
+    const trigger = canvas.getByRole("button", { name: /Order TS-2048/ })
+    const bounds = trigger.getBoundingClientRect()
+    const status = badge.getBoundingClientRect()
+    await expect(status.left).toBeGreaterThanOrEqual(bounds.left - 1)
+    await expect(status.right).toBeLessThanOrEqual(bounds.right + 1)
   },
 }
 
@@ -602,5 +619,13 @@ export const HeadingSemantics: Story = {
       expect(headingRefCleanup).toHaveBeenCalledTimes(1)
       expect(headingObjectRef.current).toBeNull()
     })
+    // Keep the cleanup assertions above, then leave the actual headings visible
+    // for the visual checkpoint instead of capturing only the show button.
+    await userEvent.click(canvas.getByRole("button", { name: "Show accordion" }))
+    const restoredHeading = canvas.getByRole("heading", { name: "Default heading", level: 3 })
+    const restoredTrigger = within(restoredHeading).getByRole("button")
+    await userEvent.click(restoredTrigger)
+    await expect(canvas.getByRole("region", { name: "Default heading" })).toBeVisible()
+    await expect(getComputedStyle(restoredTrigger).textWrap).toBe("wrap")
   },
 }
