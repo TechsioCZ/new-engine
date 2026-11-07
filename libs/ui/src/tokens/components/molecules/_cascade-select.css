@@ -138,6 +138,12 @@
       var(--border-width-cascade-select-column)
     )
   );
+
+  /* Let the existing flex-grow fill a sole column to the actual popup width.
+     Keep its intrinsic basis and let the popup enforce viewport/modal caps. */
+  &:where(:only-child) {
+    max-inline-size: 100%;
+  }
 }
 
 /* Unlike anywhere, break-word preserves the word's intrinsic contribution to

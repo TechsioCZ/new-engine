@@ -60,7 +60,7 @@ describe("fixed-layout table header containment", () => {
     { enableSorting: false, columnSorting: true },
     { enableSorting: true, columnSorting: false },
   ])(
-    "truncates unsortable headers with %j",
+    "wraps complete unsortable headers with %j",
     ({ enableSorting, columnSorting }) => {
       const html = renderTable({
         tableLayout: "fixed",
@@ -75,8 +75,9 @@ describe("fixed-layout table header containment", () => {
         ],
       })
       expect(html).toMatch(
-        /<span[^>]*class="[^"]*\btruncate\b[^"]*"[^>]*>A very long unsortable header<\/span>/
+        /<span[^>]*class="[^"]*\bwhitespace-normal\b[^"]*"[^>]*>A very long unsortable header<\/span>/
       )
+      expect(html).not.toContain("truncate")
     }
   )
 })

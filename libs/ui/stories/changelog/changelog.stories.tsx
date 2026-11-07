@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### CascadeSelect v1.1.13
+- Let a sole hierarchy column fill its popup while preserving intrinsic heading room, viewport and modal caps, and multicolumn scrolling.
+
+### DataTable v1.4.17
+- Keep fixed-header sort indicators inline with complete labels using compact token typography and spacing, without changing configured column widths, sorting behavior or header associations.
+
 ### DataTable v1.4.16
 - Keep non-editable custom cells mounted through row edit, save and cancel transitions in both table layouts, preserving their local state and DOM identity while changing only alignment classes.
 

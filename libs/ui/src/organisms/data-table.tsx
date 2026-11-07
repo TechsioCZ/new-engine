@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.16
+ * @componentVersion v1.4.17
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -158,9 +158,9 @@ export { conditionalFilterFn } from "./data-table.helpers"
  * system's colours and rhythm — the component layer only gives each surface a
  * name that can be retargeted without touching this file.
  *
- * Still on Table tokens deliberately: `--border-table-width` and the
- * `text-table-*` ramp (no DataTable-specific counterpart), and the frozen
- * header cell, which is a table header rather than a DataTable chrome surface.
+ * Still on Table tokens deliberately: `--border-table-width`, the body
+ * `text-table-*` ramp, and the frozen header cell. Fixed header labels use a
+ * compact DataTable alias without changing the body typography.
  */
 const dataTableVariants = tv({
   slots: {
@@ -262,10 +262,14 @@ const dataTableVariants = tv({
     fixedLayout: {
       true: {
         headerCell: "data-table-fixed-header",
-        headerLabel: "min-w-0 max-w-full",
-        headerText: "max-w-full shrink-0 truncate",
-        sortButton: "data-table-sort-label min-w-0 max-w-full flex-wrap",
-        sortIcon: "shrink-0",
+        headerLabel:
+          "data-table-header-label min-w-0 max-w-full gap-data-table-sort-label",
+        // Wrap the label, never the indicator. Short words keep their natural
+        // shape; break-word is only a fallback for an overlong unbroken label.
+        headerText: "wrap-break-word max-w-full whitespace-normal",
+        sortButton:
+          "min-w-0 max-w-full flex-nowrap gap-data-table-sort-label whitespace-normal",
+        sortIcon: "data-table-sort-indicator shrink-0",
         cellContent: "wrap-anywhere",
       },
     },

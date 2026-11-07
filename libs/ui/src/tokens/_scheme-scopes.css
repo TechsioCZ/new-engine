@@ -1511,6 +1511,12 @@
   );
     --spacing-data-table-header-inline: var(--dimension-8);
     --padding-data-table-header-inline: var(--spacing-data-table-header-inline);
+    --text-data-table-header: var(--text-table-sm);
+    --text-data-table-header-label: var(--text-data-table-header);
+    --spacing-data-table-sort-gap: var(--spacing-50);
+    --gap-data-table-sort-label: var(--spacing-data-table-sort-gap);
+    --spacing-data-table-sort-icon: var(--dimension-12);
+    --size-data-table-sort-indicator: var(--spacing-data-table-sort-icon);
     --spacing-data-table-filter-touch: var(--dimension-44);
     --size-data-table-filter-target: var(--spacing-data-table-filter-touch);
     --spacing-data-table-feedback: var(--container-3xs);

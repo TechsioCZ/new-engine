@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import postcss, { type AtRule } from "postcss"
+import postcss, { type AtRule, type Rule } from "postcss"
 import type { ComponentProps } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
@@ -50,10 +50,16 @@ function utility(name: string) {
   return result
 }
 
-function declaration(rule: AtRule, property: string) {
+function declaration(
+  rule: AtRule | Rule,
+  property: string,
+  scope: "nested" | "direct" = "nested"
+) {
   let result: string | undefined
   rule.walkDecls(property, (decl) => {
-    result = decl.value
+    if (scope === "nested" || decl.parent === rule) {
+      result = decl.value
+    }
   })
   return result
 }
@@ -260,6 +266,47 @@ describe("CascadeSelect clear and hierarchy presentation", () => {
     expect(classes).not.toContain("p-cascade-select-column")
   })
 
+  it("lets only a sole column grow across the actual popup without changing its intrinsic basis", () => {
+    const sizing = utility("cascade-select-column-size")
+    let soleColumn: Rule | undefined
+    sizing.walkRules("&:where(:only-child)", (rule) => {
+      soleColumn = rule
+    })
+    if (!soleColumn) {
+      throw new Error("Missing sole-column sizing override")
+    }
+    expect(declaration(soleColumn, "max-inline-size")).toBe("100%")
+    expect(soleColumn.nodes).toHaveLength(1)
+    expect(declaration(sizing, "inline-size", "direct")).toBe("min-content")
+    expect(cascadeSelectVariants().column().split(" ")).toEqual(
+      expect.arrayContaining(["grow", "shrink-0", "snap-start"])
+    )
+  })
+
+  it.each(["ltr", "rtl"] as const)(
+    "matches the fill rule only while one hierarchy column is present in %s",
+    (dir) => {
+      const selector = ".cascade-select-column-size:where(:only-child)"
+      const single = field({
+        dir,
+        defaultOpen: true,
+        defaultHighlightedValue: [],
+        defaultValue: [],
+      })
+      const content = part(single, "content")
+      const column = part(single, "column")
+      expect(content.children).toHaveLength(1)
+      expect(column.parentElement).toBe(content)
+      expect(column.matches(selector)).toBe(true)
+      expect(column.getAttribute("dir")).toBe(dir)
+
+      const expanded = field({ dir, defaultOpen: true })
+      const columns = expanded.querySelectorAll('[data-part="column"]')
+      expect(columns).toHaveLength(3)
+      expect([...columns].every((node) => !node.matches(selector))).toBe(true)
+    }
+  )
+
   it("lets intrinsic headings widen columns within the viewport and modal field caps", () => {
     const sizing = utility("cascade-select-column-size")
     expect(declaration(sizing, "inline-size")).toBe("min-content")
@@ -269,7 +316,10 @@ describe("CascadeSelect clear and hierarchy presentation", () => {
       "min(var(--container-cascade-select-column),calc((var(--_cascade-select-layout-width,var(--available-width,100vw))-var(--cascade-select-column-peek,0px))/2-var(--border-width-cascade-select-column)))"
     )
     expect(
-      declaration(sizing, "max-inline-size")?.replaceAll(CSS_WHITESPACE, "")
+      declaration(sizing, "max-inline-size", "direct")?.replaceAll(
+        CSS_WHITESPACE,
+        ""
+      )
     ).toBe(
       "min(var(--container-cascade-select-column),calc(var(--_cascade-select-layout-width,var(--available-width,100vw))-var(--cascade-select-column-peek,0px)-2*var(--border-width-cascade-select-column)))"
     )

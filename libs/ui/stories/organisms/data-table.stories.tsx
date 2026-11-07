@@ -226,8 +226,22 @@ export const NarrowColumnFilters: Story = {
       for (const name of ["Age", "Visits"]) {
         const sort = within(table).getByRole("button", { name })
         const label = sort.querySelector("span")!
-        await expect(getComputedStyle(sort).whiteSpace).toBe("nowrap")
-        // The sort icon may wrap; the meaningful label must not become A…/V….
+        const indicator = sort.querySelector<HTMLElement>('[aria-hidden="true"]')!
+        // Short labels stay whole and their indicator stays on the same row.
+        const text = canvasElement.ownerDocument.createRange()
+        text.selectNodeContents(label)
+        const fragments = Array.from(text.getClientRects())
+        await expect(fragments).toHaveLength(1)
+        const textBounds = fragments[0]!
+        const indicatorBounds = indicator.getBoundingClientRect()
+        const indicatorCenter = (indicatorBounds.top + indicatorBounds.bottom) / 2
+        await expect(indicatorCenter).toBeGreaterThanOrEqual(textBounds.top - 1)
+        await expect(indicatorCenter).toBeLessThanOrEqual(textBounds.bottom + 1)
+        if (getComputedStyle(sort).direction === "rtl") {
+          await expect(indicatorBounds.right).toBeLessThanOrEqual(textBounds.left + 1)
+        } else {
+          await expect(indicatorBounds.left).toBeGreaterThanOrEqual(textBounds.right - 1)
+        }
         await expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth + 1)
         if (layout === "fixed") {
           await expect(sort.closest("th")!.getBoundingClientRect().width).toBeCloseTo(80, 0)
