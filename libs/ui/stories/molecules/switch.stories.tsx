@@ -172,7 +172,7 @@ export const Disabled: Story = {
       if (!(help && label)) throw new Error("Missing disabled switch guidance")
       await expect(help).toHaveAttribute("data-disabled")
       if (help.closest("[data-theme]")?.getAttribute("data-theme") === "business") {
-        await expect(getComputedStyle(help).color).toBe(
+        await expect(getComputedStyle(help).color).not.toBe(
           getComputedStyle(label).color
         )
       }

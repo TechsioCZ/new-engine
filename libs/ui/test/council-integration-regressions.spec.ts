@@ -292,6 +292,7 @@ const accessibilityStories = [
   "molecules-formcheckbox--disabled",
   "molecules-formcheckbox--indeterminate",
   "molecules-switch--disabled",
+  "molecules-popover--long-content",
   "templates-comprehensive-form--disabled",
   "templates-facetfilterpanel--disabled",
   "templates-facetfilterpanel--pending",
@@ -305,6 +306,55 @@ for (const [brand, mode] of [
   ["business", "light"],
   ["akros", "light"],
 ]) {
+  test(`${brand} ${mode} Popover supports keyboard scrolling without stealing initial focus`, async ({
+    page,
+  }) => {
+    await openContractStory(page, "molecules-popover--long-content", {
+      brand,
+      mode,
+    })
+    const trigger = page.getByRole("button", {
+      name: "Review attachment",
+      exact: true,
+    })
+    await trigger.focus()
+    await trigger.press("Enter")
+    const panel = page.getByRole("dialog", { name: "Attachment details" })
+    const close = panel.getByRole("button", {
+      name: "Dismiss attachment details",
+    })
+    const viewport = panel.locator(".popover-scroll-viewport")
+    await expect(close).toBeFocused()
+    await page.keyboard.press("Shift+Tab")
+    await expect(viewport).toBeFocused()
+    await expect(
+      panel.getByRole("region", { name: "Attachment details" })
+    ).toHaveCount(1)
+    const focusPaint = await viewport.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return element.matches(":focus-visible") && style.boxShadow !== "none"
+    })
+    expect(focusPaint).toBe(true)
+    await viewport.press("ArrowDown")
+    await expect
+      .poll(() => viewport.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0)
+    await viewport.press("End")
+    await expect
+      .poll(() =>
+        viewport.evaluate(
+          (element) =>
+            element.scrollHeight - element.clientHeight - element.scrollTop
+        )
+      )
+      .toBeLessThanOrEqual(1)
+    await expect(close).toBeVisible()
+    await assertWithinViewport(close)
+    await page.keyboard.press("Escape")
+    await expect(panel).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+  })
+
   for (const storyId of accessibilityStories) {
     test(`${brand} ${mode} ${storyId} passes the required accessibility policy`, async ({
       page,

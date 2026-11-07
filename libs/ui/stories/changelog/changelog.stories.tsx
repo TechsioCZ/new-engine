@@ -127,6 +127,9 @@ const CHANGELOG = `
 ### PhoneInput v1.1.4
 - Make disabled country metadata inherit its row foreground, as selected and highlighted country metadata already does.
 
+### Popover v1.1.3
+- Make the inner content viewport keyboard-focusable for native scrolling without moving pinned close chrome or changing initial control focus, caller refs or ARIA props.
+
 ### Popover v1.1.2
 - Preserve caller-provided close labels, keep borderless triggers visibly open, and reserve close clearance only for the current surface.
 

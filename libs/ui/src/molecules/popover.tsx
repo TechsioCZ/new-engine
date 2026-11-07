@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -392,7 +392,17 @@ Popover.Content = function PopoverContent({
         }
       >
         <PopoverChromeContext.Provider value={chromeContainer}>
-          <div className={styles.scrollViewport()}>{children}</div>
+          {/* Zag skips this tab stop for initial focus; native keys scroll it. */}
+          <section
+            aria-label={contentProps["aria-label"]}
+            aria-labelledby={contentProps["aria-labelledby"]}
+            className={styles.scrollViewport()}
+            data-no-autofocus=""
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: Scroll regions need keyboard focus to reveal read-only content.
+            tabIndex={0}
+          >
+            {children}
+          </section>
         </PopoverChromeContext.Provider>
       </OverlayContainerProvider>
       <div className={styles.chrome()} ref={setChromeContainer} />

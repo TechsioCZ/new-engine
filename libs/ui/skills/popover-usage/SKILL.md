@@ -5,7 +5,7 @@ description: >
   anchored non-blocking content using Zag.js compound parts, placement,
   portalling, close behavior, arrow, title, description, and close trigger.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -184,6 +184,10 @@ supply it. A plain-text trigger is the fallback name, otherwise the fallback is
 `aria-label` and `sm`/`md`/`lg` size. Long panels scroll their inner content
 viewport, not the whole surface. The close action and arrow stay outside that
 scroller; close remains visible at every scroll position, with inline clearance
-for its hit area. Content refs and ARIA props still target the dialog surface.
+for its hit area. The inner viewport has its own tab stop so keyboard users can
+scroll read-only content with native scrolling keys; it is skipped for initial
+focus so existing controls and caller focus policies retain priority. This tab
+stop remains available on short content as well, without layout observers or
+custom key handling. Content refs and ARIA props still target the dialog surface.
 A modal Popover owns descendant popup portals, including when nested inside
 Dialog or Drawer, so menus remain in its accessible tree and focus scope.
