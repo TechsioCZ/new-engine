@@ -83,6 +83,7 @@
   --color-date-picker-content-bg: var(--color-popup-bg);
   --color-date-picker-content-fg: var(--color-date-picker-text);
   --color-date-picker-content-border: var(--color-popup-border);
+  --color-date-picker-navigation-bg: var(--color-date-picker-surface);
   --color-date-picker-navigation-bg-hover: var(--color-date-picker-fill-hover);
   --color-date-picker-navigation-fg: var(--color-date-picker-text);
   --color-date-picker-navigation-fg-disabled: var(--color-date-picker-disabled);
@@ -275,6 +276,38 @@
   }
 }
 
+/* Pin only when a complete row fits below the navigation. Preserve the
+ * calendar's existing padding (including caller overrides) as the focus-ring
+ * inset; measured scroll padding keeps focused days below the full header. */
+@utility date-picker-calendar-scroll {
+  &[data-single-panel][data-navigation-pinned] {
+    scroll-padding-block-start: calc(
+      var(--date-picker-calendar-navigation-inset, 0px) +
+      var(--date-picker-calendar-navigation-height, 0px) +
+      var(--gap-date-picker-calendar)
+    );
+
+    > [data-index] > [data-part="view-control"] {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 1;
+      background-color: var(--color-date-picker-navigation-bg);
+
+      /* Cover scrolling text in the existing inset without adding layout
+       * height or intercepting the navigation buttons' native interactions. */
+      &::before {
+        position: absolute;
+        inset-inline: 0;
+        inset-block-end: 100%;
+        block-size: var(--date-picker-calendar-navigation-inset, 0px);
+        background-color: inherit;
+        pointer-events: none;
+        content: "";
+      }
+    }
+  }
+}
+
 /* Fine-pointer calendars also need the full localized caption. Let long month
  * names and year ranges wrap instead of silently truncating their text. */
 @utility date-picker-calendar-caption {
@@ -327,6 +360,9 @@
 }
 
 @utility token-date-picker-time-input {
+  /* Input owns the padding utility; bind its alias locally so theme-level
+   * field padding cannot consume the compact time field's digit space. */
+  --padding-input-inline-sm: var(--padding-date-picker-time-input);
   appearance: textfield;
 
   &::-webkit-inner-spin-button,

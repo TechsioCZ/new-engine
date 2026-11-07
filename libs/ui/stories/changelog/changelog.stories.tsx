@@ -16,6 +16,9 @@ const CHANGELOG = `
 ### DataTable v1.4.20
 - Reserve pagination scrollport clearance for full focus outlines and contrast halos while preserving control positions and targets; reveal keyboard-focused links within narrow navigation without moving pointer targets, focus or ancestor scroll.
 
+### DatePicker v1.3.13
+- Keep compact time digits readable and retain complete measured navigation in constrained single-panel calendars, sharing scroll clearance with focused-day reveal while preserving short-height and multi-panel native scrolling.
+
 ### DataTable v1.4.19
 - Limit pointer-completion reveal to the activated field container so opening another column's popup cannot scroll a previously focused field back into view.
 

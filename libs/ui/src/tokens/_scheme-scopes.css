@@ -825,6 +825,7 @@
     --color-date-picker-content-bg: var(--color-popup-bg);
     --color-date-picker-content-fg: var(--color-date-picker-text);
     --color-date-picker-content-border: var(--color-popup-border);
+    --color-date-picker-navigation-bg: var(--color-date-picker-surface);
     --color-date-picker-navigation-bg-hover: var(--color-date-picker-fill-hover);
     --color-date-picker-navigation-fg: var(--color-date-picker-text);
     --color-date-picker-navigation-fg-disabled: var(--color-date-picker-disabled);
