@@ -1623,11 +1623,18 @@ export const Pagination: Story = {
       expect(getComputedStyle(controls).flexWrap).toBe(stacked ? "wrap" : "nowrap")
       expect(getComputedStyle(pager).flexBasis).toBe(stacked ? "100%" : "auto")
       const pagerBounds = pager.getBoundingClientRect()
+      const pagerStyle = getComputedStyle(pager)
+      // Internal focus clearance extends the paint box, not the controls' flow.
+      const pagerFlowLeft = pagerBounds.left + Number.parseFloat(pagerStyle.paddingLeft)
+      const pagerFlowRight = pagerBounds.right - Number.parseFloat(pagerStyle.paddingRight)
       const selectBounds = sizeSelect.getBoundingClientRect()
       const controlsBounds = controls.getBoundingClientRect()
+      const barBounds = bar.getBoundingClientRect()
+      expect(pagerBounds.left).toBeGreaterThanOrEqual(barBounds.left)
+      expect(pagerBounds.right).toBeLessThanOrEqual(barBounds.right)
       if (stacked) {
         expect(selectBounds.top).toBeGreaterThanOrEqual(pagerBounds.bottom)
-        expect(selectBounds.left).toBeCloseTo(pagerBounds.left, 0)
+        expect(selectBounds.left).toBeCloseTo(pagerFlowLeft, 0)
       } else {
         expect(selectBounds.left).toBeGreaterThanOrEqual(pagerBounds.right)
         expect(selectBounds.top + selectBounds.height / 2).toBeCloseTo(pagerBounds.top + pagerBounds.height / 2, 0)
@@ -1636,8 +1643,8 @@ export const Pagination: Story = {
         await expect(control).toBeVisible()
         const bounds = control.getBoundingClientRect()
         expect(bounds.width).toBeGreaterThan(0)
-        expect(bounds.left).toBeGreaterThanOrEqual(controlsBounds.left)
-        expect(bounds.right).toBeLessThanOrEqual(controlsBounds.right)
+        expect(control === pager ? pagerFlowLeft : bounds.left).toBeGreaterThanOrEqual(controlsBounds.left)
+        expect(control === pager ? pagerFlowRight : bounds.right).toBeLessThanOrEqual(controlsBounds.right)
       }
       const items = [...pager.querySelectorAll("li")].filter(
         (item) => item.getClientRects().length > 0
