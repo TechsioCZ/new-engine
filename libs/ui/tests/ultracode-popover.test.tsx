@@ -148,7 +148,9 @@ describe("Popover constrained layout regressions", () => {
     const molecule = read("../stories/molecules/popover.stories.tsx")
     const template = read("../stories/templates/popover.stories.tsx")
     expect(molecule.match(constrainedContentClass)).toHaveLength(2)
-    expect(molecule.match(/h-56 w-full min-w-0 max-w-sm/g)).toHaveLength(2)
+    expect(
+      molecule.match(/h-story-popover-bounds w-full min-w-0 max-w-sm/g)
+    ).toHaveLength(2)
     expect(molecule).toContain("slide={false}")
     expect(molecule).toContain("rect.left - focusPaint + 1")
     expect(template).toContain("space-y-200 pb-950 last:pb-0 sm:pb-0")

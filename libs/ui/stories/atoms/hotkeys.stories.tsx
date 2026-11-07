@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { StrictMode, useEffect, useRef, useState } from "react"
-import { VariantGroup } from "../../.storybook/decorator"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Checkbox } from "../../src/atoms/checkbox"
 import { Hotkeys, type HotkeysProps } from "../../src/atoms/hotkeys"
@@ -378,7 +378,7 @@ function PlatformsExample() {
       </p>
       {/* Short previews keep one even rhythm; the shared matrix spacing is
           sized for full component variants. */}
-      <div className="flex flex-col gap-300">
+      <VariantContainer className="items-stretch space-y-0 gap-300">
         <VariantGroup title="macOS">
           <Hotkeys hotkey="mod+S" formatOptions={{ platform: "mac" }} />
         </VariantGroup>
@@ -388,7 +388,7 @@ function PlatformsExample() {
         <VariantGroup title="Linux">
           <Hotkeys hotkey="mod+S" formatOptions={{ platform: "linux" }} />
         </VariantGroup>
-      </div>
+      </VariantContainer>
     </div>
   )
 }

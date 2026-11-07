@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, within } from "storybook/test"
-import { VariantGroup } from "../../.storybook/decorator"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { iconLabels, iconOptions } from "../helpers/icon-options"
 
@@ -60,7 +60,7 @@ export const Variants: Story = {
     },
   },
   render: () => (
-    <div className="flex flex-col gap-250">
+    <VariantContainer className="items-stretch space-y-0 gap-250">
       <VariantGroup title="Neutral">
         <ActionIcon aria-label="Close details" icon="token-icon-close" />
       </VariantGroup>
@@ -71,7 +71,7 @@ export const Variants: Story = {
           tone="danger"
         />
       </VariantGroup>
-    </div>
+    </VariantContainer>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -109,7 +109,7 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <div className="flex flex-col gap-250">
+    <VariantContainer className="items-stretch space-y-0 gap-250">
       {(["sm", "md", "lg"] as const).map((size) => (
         <VariantGroup
           key={size}
@@ -124,7 +124,7 @@ export const Sizes: Story = {
           />
         </VariantGroup>
       ))}
-    </div>
+    </VariantContainer>
   ),
   play: async ({ canvasElement }) => {
     const buttons = within(canvasElement).getAllByRole("button")

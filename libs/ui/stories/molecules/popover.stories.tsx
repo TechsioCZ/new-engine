@@ -364,7 +364,7 @@ export const PositioningBehaviors: Story = {
           Bounded containers simulate narrow viewport. Compare slide behavior:
         </p>
         <div className="flex flex-wrap gap-200">
-          <div className="relative flex justify-center h-56 w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
+          <div className="relative flex justify-center h-story-popover-bounds w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
             <div>
               <PopoverTemplate
                 contentClassName="w-xs max-w-full"
@@ -380,7 +380,7 @@ export const PositioningBehaviors: Story = {
             </div>
           </div>
 
-          <div className="relative flex justify-center h-56 w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
+          <div className="relative flex justify-center h-story-popover-bounds w-full min-w-0 max-w-sm border border-border border-dashed" data-popover-bounds>
             <div>
               <PopoverTemplate
                 contentClassName="w-xs max-w-full"

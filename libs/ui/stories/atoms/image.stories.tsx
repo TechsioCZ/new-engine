@@ -7,7 +7,7 @@ import {
   useState,
 } from "react"
 import { expect, userEvent, waitFor, within } from "storybook/test"
-import { VariantGroup } from "../../.storybook/decorator"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Image, ImageWithFallback } from "../../src/atoms/image"
 import { Button } from "../../src/atoms/button"
 import { Badge } from "../../src/atoms/badge"
@@ -90,7 +90,7 @@ export const Sizes: Story = {
     },
   },
   render: () => (
-    <div className="flex w-full flex-col gap-400">
+    <VariantContainer className="w-full items-stretch space-y-0 gap-400">
       <VariantGroup title="Square thumbnails" fullWidth>
         {(["sm", "md", "lg"] as const).map((size) => (
           <figure className="flex items-center gap-200" key={size}>
@@ -126,7 +126,7 @@ export const Sizes: Story = {
           className="w-full aspect-video rounded-lg"
         />
       </VariantGroup>
-    </div>
+    </VariantContainer>
   ),
   play: async ({ canvasElement }) => {
     const thumbnails = within(canvasElement).getByRole("heading", {
@@ -162,7 +162,7 @@ export const AspectAndFit: Story = {
     },
   },
   render: () => (
-    <div className="flex w-full flex-col gap-400">
+    <VariantContainer className="w-full items-stretch space-y-0 gap-400">
       <VariantGroup title="Cover: fills the slot, crops edges" fullWidth>
         <Image
           src={landscape}
@@ -179,7 +179,7 @@ export const AspectAndFit: Story = {
           className="aspect-wide w-full rounded-lg border border-border-primary bg-fill-secondary object-contain"
         />
       </VariantGroup>
-    </div>
+    </VariantContainer>
   ),
 }
 

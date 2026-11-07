@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs"
+import postcss from "postcss"
 import { describe, expect, it } from "vitest"
 
 const source = readFileSync(
@@ -21,11 +22,38 @@ const boundedOptions =
   /placement="bottom"\s+portalled=\{false\}\s+slide=\{(true|false)\}/g
 
 describe("Popover story fixture containment", () => {
+  it("loads the named fixture height through the shared Storybook stylesheet", () => {
+    const preview = readFileSync(
+      new URL("../.storybook/preview.ts", import.meta.url),
+      "utf8"
+    )
+    const stylesheet = readFileSync(
+      new URL("../.storybook/preview.css", import.meta.url),
+      "utf8"
+    )
+    expect(preview).toContain('import "./preview.css"')
+    expect(stylesheet).toContain('@import "../src/tokens/index.css"')
+    const values = new Map<string, string>()
+    postcss.parse(stylesheet).walkAtRules("theme", (rule) => {
+      rule.walkDecls((declaration) => {
+        values.set(declaration.prop, declaration.value)
+      })
+    })
+    expect(values.get("--height-story-popover-bounds")).toBe(
+      "var(--spacing-story-popover-bounds)"
+    )
+    expect(values.get("--spacing-story-popover-bounds")).toBe(
+      "calc(var(--dimension-56) * 4)"
+    )
+  })
+
   it("centers both bounded triggers without clipping away disabled-slide content", () => {
     const fixture = story("PositioningBehaviors")
     const bounds = [...fixture.matchAll(boundedFixture)]
     expect(bounds).toHaveLength(2)
     for (const [markup] of bounds) {
+      expect(markup).toContain("h-story-popover-bounds")
+      expect(markup).not.toContain("h-56")
       expect(markup).toContain("flex justify-center")
       expect(markup).not.toMatch(clippingOverflow)
     }
