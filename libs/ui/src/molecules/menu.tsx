@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.3.6
+ * @componentVersion v1.3.7
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -94,7 +94,7 @@ const menuVariants = tv({
     // Commands size independently of an icon trigger, within the viewport.
     positioner: ["popup-layer menu-viewport isolate"],
     content: [
-      "popup-surface-base popup-layer",
+      "popup-surface-base popup-layer menu-content-surface",
       "w-full min-w-0",
       // Without transition-none, duration-200 alone animates every property
       // (transition-property defaults to all) from the starting styles.
@@ -106,7 +106,7 @@ const menuVariants = tv({
       "data-[state=closed]:scale-98 data-[state=closed]:opacity-0",
     ],
     item: [
-      "popup-item-base",
+      "popup-item-base menu-item",
       "not-data-disabled:hover:bg-popup-item-bg-hover",
       "not-data-disabled:focus:bg-popup-item-bg-hover",
       "data-[highlighted]:bg-popup-item-bg-hover",

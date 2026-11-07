@@ -1297,8 +1297,26 @@ export const ExpandedRowDetail: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await userEvent.click(canvas.getAllByLabelText("Expand row")[0] as HTMLElement)
-    await expect(canvas.getByText("Contact")).toBeInTheDocument()
+    const toggle = canvas.getAllByLabelText("Expand row")[0] as HTMLElement
+    await userEvent.click(toggle)
+    await expect(toggle).toHaveAttribute("aria-expanded", "true")
+    const detailId = toggle.getAttribute("aria-controls")
+    const detail = detailId ? canvasElement.ownerDocument.getElementById(detailId) : null
+    const scrollport = canvas.getByRole("region", { name: "Scrollable records" })
+    await expect(detail).not.toBeNull()
+    if (!detail) throw new Error("Expanded detail content must be present")
+    const details = within(detail)
+    // Reading the trailing actions must not scroll the expanded content away.
+    toggle.scrollIntoView({ block: "nearest", inline: "end" })
+    await waitFor(() => {
+      const viewport = scrollport.getBoundingClientRect()
+      for (const content of [detail, details.getByText("Contact"), details.getByText("Activity"), details.getByText("ada@calc.io"), details.getByText("812 visits · active")]) {
+        const rect = content.getBoundingClientRect()
+        expect(rect.left).toBeGreaterThanOrEqual(viewport.left - 1)
+        expect(rect.right).toBeLessThanOrEqual(viewport.right + 1)
+        expect(content.scrollWidth).toBeLessThanOrEqual(content.clientWidth + 1)
+      }
+    })
   },
 }
 
@@ -2111,6 +2129,9 @@ export const EditorValidation: EmployeeStory = {
     for (const editor of editors) {
       await expect(editor.getBoundingClientRect().top).toBeCloseTo(editors[0]!.getBoundingClientRect().top, 0)
     }
+    for (const label of ["Cancel edit", "Save row"]) {
+      await expect(Math.abs(canvas.getByLabelText(label).getBoundingClientRect().top - editors[0]!.getBoundingClientRect().top)).toBeLessThanOrEqual(1)
+    }
   },
 }
 
@@ -2147,12 +2168,36 @@ export const AsyncSaveRecovery: Story = {
     await expect(canvas.getByLabelText("Save row")).toHaveFocus()
     await expect(input).toHaveValue("Augusta")
     await expect(canvas.getByText("Saving row…")).toBeVisible()
+    await waitFor(() => {
+      const save = canvas.getByLabelText("Save row").getBoundingClientRect()
+      const pending = canvas.getByText("Saving row…").getBoundingClientRect()
+      expect(Math.abs(save.top - input.getBoundingClientRect().top)).toBeLessThanOrEqual(1)
+      expect(pending.top).toBeGreaterThanOrEqual(save.bottom - 1)
+    })
     await userEvent.keyboard("{Enter}{Enter}")
     await expect(args.onEditCommit).toHaveBeenCalledTimes(1)
     await userEvent.click(canvas.getByRole("button", { name: "Simulate save failure" }))
-    await expect(canvas.getByRole("alert")).toHaveTextContent("Could not save this row")
+    const error = canvas.getByRole("alert")
+    await expect(error).toHaveTextContent("Could not save this row")
     await expect(input).toHaveValue("Augusta")
-    await userEvent.click(canvas.getByLabelText("Save row"))
+    const save = canvas.getByLabelText("Save row")
+    await waitFor(() => expect(save).toHaveFocus())
+    await expect(save).toHaveAttribute("aria-describedby", error.id)
+    save.scrollIntoView({ block: "nearest", inline: "end" })
+    await waitFor(() => {
+      const saveRect = save.getBoundingClientRect()
+      const cancelRect = canvas.getByLabelText("Cancel edit").getBoundingClientRect()
+      const errorRect = error.getBoundingClientRect()
+      const viewport = canvas.getByRole("region", { name: "Scrollable records" }).getBoundingClientRect()
+      expect(Math.abs(saveRect.top - input.getBoundingClientRect().top)).toBeLessThanOrEqual(1)
+      expect(Math.abs(saveRect.top - cancelRect.top)).toBeLessThanOrEqual(1)
+      expect(errorRect.top).toBeGreaterThanOrEqual(saveRect.bottom - 1)
+      expect(errorRect.width).toBeGreaterThanOrEqual(saveRect.width + cancelRect.width - 1)
+      expect(errorRect.left).toBeGreaterThanOrEqual(viewport.left - 1)
+      expect(errorRect.right).toBeLessThanOrEqual(viewport.right + 1)
+      expect(error.scrollWidth).toBeLessThanOrEqual(error.clientWidth + 1)
+    })
+    await userEvent.click(save)
     await userEvent.click(canvas.getByRole("button", { name: "Complete save" }))
     await waitFor(() => expect(canvas.queryByLabelText("Edit First name")).toBeNull())
     await expect(args.onEditCommit).toHaveBeenCalledTimes(2)

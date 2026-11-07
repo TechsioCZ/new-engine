@@ -302,6 +302,9 @@ export const States: Story = {
     const id = useId()
     return (
       <div className="flex w-full max-w-md flex-col gap-300">
+        <StatusText id={`${id}-limits`}>
+          Order 1–10 pieces; only the outward stepper stops at a limit.
+        </StatusText>
         {(
           [
             { label: "Editable quantity", value: 3 },
@@ -323,20 +326,17 @@ export const States: Story = {
                 disabled={"disabled" in item && item.disabled}
                 readOnly={"readOnly" in item && item.readOnly}
                 invalid={invalid}
-                describedBy={`${inputId}-help`}
+                describedBy={invalid ? `${inputId}-help` : `${id}-limits`}
                 aria-errormessage={invalid ? `${inputId}-help` : undefined}
                 min={1}
                 max={10}
                 clampValueOnBlur={false}
               />
-              <StatusText
-                id={`${inputId}-help`}
-                status={invalid ? "error" : "default"}
-              >
-                {invalid
-                  ? "Enter a quantity between 1 and 10 before ordering."
-                  : "Order 1–10 pieces; only the outward stepper stops at a limit."}
-              </StatusText>
+              {invalid && (
+                <StatusText id={`${inputId}-help`} status="error">
+                  Enter a quantity between 1 and 10 before ordering.
+                </StatusText>
+              )}
             </div>
           )
         })}

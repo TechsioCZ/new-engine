@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.2.6
+ * @componentVersion v1.2.7
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -37,6 +37,7 @@ const tabsVariants = tv({
       "bg-tabs-bg",
       "rounded-tabs",
     ],
+    listViewport: "tabs-list-viewport min-w-0 max-w-full",
     list: [
       "relative flex min-w-0 max-w-full",
       "tabs-list-overflow bg-tabs-list-bg",
@@ -551,21 +552,23 @@ Tabs.List = function TabsList({
   useTabOverflowEdges(listElement)
 
   return (
-    <div
-      className={styles.list({ className })}
-      {...mergeProps(api.getListProps(), props)}
-      ref={(node) => {
-        listElement.current = node
-        if (typeof ref === "function") {
-          return ref(node)
-        }
-        if (ref) {
-          ref.current = node
-        }
-      }}
-      role="tablist"
-    >
-      {children}
+    <div className={styles.listViewport()}>
+      <div
+        className={styles.list({ className })}
+        {...mergeProps(api.getListProps(), props)}
+        ref={(node) => {
+          listElement.current = node
+          if (typeof ref === "function") {
+            return ref(node)
+          }
+          if (ref) {
+            ref.current = node
+          }
+        }}
+        role="tablist"
+      >
+        {children}
+      </div>
     </div>
   )
 }

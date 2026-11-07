@@ -91,7 +91,7 @@ function AkrosCardExample({
             </ProductCard.Badges>
           )}
         </div>
-        <ProductCard.Name className="m-0 text-center uppercase" title={name}>
+        <ProductCard.Name className="m-0 min-h-0 text-start uppercase" title={name}>
           <Link href={detailHref} onClick={previewDetail} size="current">
             {name}
           </Link>
@@ -105,7 +105,7 @@ function AkrosCardExample({
         </p>
         <PriceBlock
           {...price}
-          className="mt-auto items-center text-center"
+          className="mt-auto items-start text-start"
           data-akros-card-price
         />
         <ProductCard.Actions

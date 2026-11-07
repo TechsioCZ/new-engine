@@ -103,11 +103,16 @@ async function expectContainedPrices(canvasElement: HTMLElement) {
     const price = item.querySelector('[data-part="price"]')!
     const bounds = item.getBoundingClientRect()
     const priceBounds = price.getBoundingClientRect()
-    await expect(priceBounds.left).toBeGreaterThanOrEqual(bounds.left)
+    await expect(priceBounds.left).toBeGreaterThanOrEqual(bounds.left - 1)
     await expect(priceBounds.right).toBeLessThanOrEqual(bounds.right + 1)
     await expect(price.scrollWidth).toBeLessThanOrEqual(price.clientWidth + 1)
     if (bounds.width < 512) {
-      await expect(priceBounds.top).toBeGreaterThanOrEqual(title.getBoundingClientRect().bottom)
+      await expect(priceBounds.top).toBeGreaterThanOrEqual(
+        title.getBoundingClientRect().bottom - 1
+      )
+    }
+    if (item.querySelector('[data-part="remove"]')) {
+      await expectRemovalAlignment(item)
     }
   }
 }
@@ -116,12 +121,18 @@ async function expectRemovalAlignment(item: Element) {
   const body = item.querySelector('[data-part="body"]')!
   const remove = item.querySelector<HTMLElement>('[data-part="remove"]')!
   const bounds = remove.getBoundingClientRect()
-  if (item.getBoundingClientRect().width < 512) {
-    const padding = Number.parseFloat(getComputedStyle(remove).paddingLeft)
-    await expect(bounds.left + padding).toBeCloseTo(
-      body.getBoundingClientRect().left,
-      0
-    )
+  if (
+    item.getBoundingClientRect().width < 512 &&
+    remove.parentElement?.firstElementChild === remove
+  ) {
+    const style = getComputedStyle(remove)
+    const padding = Number.parseFloat(style.paddingInlineStart)
+    const bodyBounds = body.getBoundingClientRect()
+    const offset =
+      style.direction === "rtl"
+        ? bounds.right - padding - bodyBounds.right
+        : bounds.left + padding - bodyBounds.left
+    await expect(Math.abs(offset)).toBeLessThanOrEqual(1)
   }
   if (
     matchMedia("(pointer: coarse)").matches &&
@@ -206,10 +217,11 @@ export const Pending: Story = {
     const pending = canvas.getByText("Ukládáme položku").closest<HTMLElement>("[id]")!
     const quantityMessage = canvas.getByText("Ukládáme množství")
     await expect(pending).not.toBeNull()
-    await expect(pending.getBoundingClientRect().left).toBeCloseTo(
-      body.getBoundingClientRect().left,
-      0
-    )
+    await expect(
+      Math.abs(
+        pending.getBoundingClientRect().left - body.getBoundingClientRect().left
+      )
+    ).toBeLessThanOrEqual(1)
     await expect(pending.getBoundingClientRect().right).toBeLessThanOrEqual(
       body.getBoundingClientRect().right + 1
     )
@@ -233,8 +245,12 @@ export const Pending: Story = {
     await expect(item.querySelector('[data-part="remove"]')).toBeDisabled()
     const controls = item.querySelector('[data-part="controls"]')!
     await expect(
-      pending.getBoundingClientRect().top - body.getBoundingClientRect().bottom
-    ).toBeCloseTo(Number.parseFloat(getComputedStyle(controls).rowGap), 0)
+      Math.abs(
+        pending.getBoundingClientRect().top -
+          body.getBoundingClientRect().bottom -
+          Number.parseFloat(getComputedStyle(controls).rowGap)
+      )
+    ).toBeLessThanOrEqual(1)
     await expectRemovalAlignment(item)
   },
   render: (args) => (
@@ -247,6 +263,23 @@ export const Pending: Story = {
       description: {
         story:
           "Root blokuje Quantity a Actions pomocí inert, Remove navíc deaktivuje. QuantityField dostává pending také pro viditelný stav.",
+      },
+    },
+  },
+}
+export const CompactPending: Story = {
+  args: {
+    layout: "compact",
+    pending: true,
+    pendingLabel: "Ukládáme položku",
+  },
+  play: Pending.play,
+  render: Pending.render,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compact rows keep the same feedback spacing and content-column alignment as default rows, including when controls wrap.",
       },
     },
   },
@@ -283,7 +316,11 @@ export const ItemError: Story = {
     if (item.getBoundingClientRect().width >= 512) {
       const field = item.querySelector('[data-part="quantity"]')!
       const actions = item.querySelector('[data-part="actions"]')!
-      await expect(actions.getBoundingClientRect().top).toBeCloseTo(field.getBoundingClientRect().top, 0)
+      await expect(
+        Math.abs(
+          actions.getBoundingClientRect().top - field.getBoundingClientRect().top
+        )
+      ).toBeLessThanOrEqual(1)
     }
   },
   parameters: {

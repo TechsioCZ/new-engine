@@ -86,9 +86,17 @@ const topics = [
   { label: "Custom order", value: "custom" },
 ]
 
-function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
+function EnquiryForm({
+  size,
+  validateStatus,
+  disabled,
+  readOnly,
+  headingLevel = "h2",
+}: FormArgs & { headingLevel?: "h2" | "h4" }) {
+  const Heading = headingLevel
   const prefix = useId()
   const summaryRef = useRef<HTMLDivElement>(null)
+  const teamControlRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState(
     readOnly || disabled
       ? {
@@ -164,13 +172,13 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
       }}
     >
       <div>
-        <h2 className="font-semibold text-xl">Plan your next project</h2>
+        <Heading className="font-semibold text-xl">Plan your next project</Heading>
         <p className="text-fg-secondary">
           Tell our team what you need. Required fields are marked.
         </p>
       </div>
       <FormErrorSummary className="w-full min-w-0" errors={errors} ref={summaryRef} />
-      <div className="grid grid-cols-1 gap-300 md:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-300 md:grid-cols-2">
         <FormInput
           {...shared}
           id={fieldId("name")}
@@ -203,12 +211,14 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
         <Select
           {...shared}
           items={departments}
+          // The popup belongs to the control, not its helper or stretched grid row.
+          positioning={{ getAnchorElement: () => teamControlRef.current }}
           value={data.department ? [data.department] : []}
           onValueChange={({ value }) => update("department", value[0] ?? "")}
           validateStatus={validateStatus}
         >
           <Select.Label>Team</Select.Label>
-          <Select.Control>
+          <Select.Control ref={teamControlRef}>
             <Select.Trigger>
               <Select.ValueText placeholder="Choose a team" />
             </Select.Trigger>
@@ -230,6 +240,7 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
         </Select>
         <Combobox
           {...shared}
+          className="gap-select"
           label="Project category"
           placeholder="Search categories"
           items={topics}
@@ -442,7 +453,7 @@ export const Sizes: Story = {
           key={size}
           title={["Small (sm)", "Medium (md)", "Large (lg)"][index] ?? size}
         >
-          <EnquiryForm {...args} size={size} />
+          <EnquiryForm {...args} headingLevel="h4" size={size} />
         </VariantGroup>
       ))}
     </VariantContainer>
@@ -477,7 +488,7 @@ export const ReadOnly: Story = {
 }
 export const AllFormInputs: Story = {
   ...Playground,
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     const input = canvas.getByRole("textbox", { name: /Full name/ })
     const select = canvas.getByRole("combobox", { name: "Team" })
@@ -491,6 +502,50 @@ export const AllFormInputs: Story = {
       await expect(Math.abs(control.getBoundingClientRect().height - height))
         .toBeLessThanOrEqual(1)
     }
+    if (!combobox) throw new Error("Missing category control")
+    // The fields stack on mobile; compare their row baselines only side by side.
+    const selectRect = select.getBoundingClientRect()
+    const categoryRect = combobox.getBoundingClientRect()
+    if (
+      categoryRect.left > selectRect.right ||
+      selectRect.left > categoryRect.right
+    ) {
+      await expect(
+        Math.abs(selectRect.top - categoryRect.top)
+      ).toBeLessThanOrEqual(1)
+      const teamHelp = select
+        .closest('[data-part="root"]')
+        ?.querySelector<HTMLElement>("[data-select-description]")
+      const categoryHelp = combobox.parentElement?.querySelector<HTMLElement>(
+        '[id$="-help"]'
+      )
+      if (!teamHelp || !categoryHelp) {
+        throw new Error("Missing paired field guidance")
+      }
+      await expect(
+        Math.abs(
+          teamHelp.getBoundingClientRect().top -
+            categoryHelp.getBoundingClientRect().top
+        )
+      ).toBeLessThanOrEqual(1)
+    }
+    if (args.disabled || args.readOnly) return
+    await userEvent.click(select)
+    const listbox = await within(canvasElement.ownerDocument.body).findByRole(
+      "listbox"
+    )
+    await waitFor(() => {
+      const triggerRect = select.getBoundingClientRect()
+      const popupRect = listbox.getBoundingClientRect()
+      const gap = popupRect.top >= triggerRect.bottom
+        ? popupRect.top - triggerRect.bottom
+        : triggerRect.top - popupRect.bottom
+      expect(gap).toBeGreaterThanOrEqual(-1)
+      expect(gap).toBeLessThanOrEqual(8)
+    })
+    await userEvent.keyboard("{Escape}")
+    await expect(select).toHaveFocus()
+    select.blur()
   },
   parameters: {
     docs: {
@@ -567,16 +622,18 @@ function PopupLifecycleFixture() {
           }}
         />
       ))}
-      <fieldset disabled={disabled}>
-        <legend>
+      <fieldset className="min-w-0" disabled={disabled}>
+        <legend className="w-full min-w-0">
           <Slider
             label="Legend exemption"
             defaultValue={[10]}
             aria-label={["Legend exemption"]}
           />
         </legend>
-        <fieldset className="flex min-w-0 flex-col gap-200">
-          <legend>Popup lifecycle fields</legend>
+        <fieldset className="mt-300 flex min-w-0 flex-col gap-200">
+          <legend className="pb-200 font-semibold text-lg">
+            Popup lifecycle fields
+          </legend>
           <SelectTemplate
             label="Lifecycle select"
             name="select"

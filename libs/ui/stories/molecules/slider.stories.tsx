@@ -612,7 +612,7 @@ export const SingleVsMultiThumb: Story = {
   },
   render: () => (
     <VariantContainer>
-      <div className="grid w-full min-w-xs gap-600">
+      <div className="grid w-full min-w-0 gap-600">
         <Slider
           {...baseSliderProps}
           id="single-thumb"
@@ -659,7 +659,7 @@ export const Origin: Story = {
   },
   render: () => (
     <VariantContainer>
-      <div className="grid w-full min-w-xs gap-600">
+      <div className="grid w-full min-w-0 gap-600">
         <Slider
           {...baseSliderProps}
           id="origin-start"
@@ -700,7 +700,7 @@ export const ThumbAlignment: Story = {
   },
   render: () => (
     <VariantContainer>
-      <div className="grid w-full min-w-xs gap-600">
+      <div className="grid w-full min-w-0 gap-600">
         <Slider
           {...baseSliderProps}
           id="alignment-center"
@@ -749,7 +749,7 @@ export const MinStepsBetweenThumbs: Story = {
 
     return (
       <VariantContainer>
-        <div className="grid w-full min-w-xs gap-600">
+        <div className="grid w-full min-w-0 gap-600">
           <Slider
             {...baseSliderProps}
             id="no-min-steps"
@@ -820,7 +820,7 @@ export const RTLSupport: Story = {
   },
   render: () => (
     <VariantContainer>
-      <div className="grid w-full min-w-xs gap-600">
+      <div className="grid w-full min-w-0 gap-600">
         <Slider
           {...baseSliderProps}
           id="ltr-slider"
@@ -861,7 +861,7 @@ export const CustomFormatting: Story = {
   },
   render: () => (
     <VariantContainer>
-      <div className="grid w-full min-w-xs gap-600">
+      <div className="grid w-full min-w-0 gap-600">
         <Slider
           {...baseSliderProps}
           id="currency-slider"

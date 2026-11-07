@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.3.3
+ * @componentVersion v1.3.4
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -129,9 +129,12 @@ const selectVariants = tv({
       "data-[validation=warning]:border-(length:--border-width-validation)",
       "data-[validation=warning]:border-select-border-warning",
     ],
-    // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
-    // its own size, glyph and neutral hover pill.
-    clearTrigger: ["absolute end-select-right top-1/2 -translate-y-1/2"],
+    // Clear (an ActionIcon) sits before the chevron in either direction. Its
+    // fill is inset without shrinking the themed hit target or focus outline.
+    clearTrigger: [
+      "absolute end-select-right top-1/2 -translate-y-1/2",
+      "bg-clip-content p-(--padding-select-clear-inset)",
+    ],
     content: ["popup-surface-base popup-layer", "w-full"],
     item: [
       "popup-item-base",
@@ -148,14 +151,14 @@ const selectVariants = tv({
       "flex items-center justify-center",
       "size-(--size-popup-indicator) text-select-item-fg-selected",
     ],
-    itemText: ["min-w-0 flex-grow truncate"],
+    itemText: ["wrap-anywhere min-w-0 flex-grow whitespace-normal"],
     itemGroup: [""],
     itemGroupLabel: [
       "px-(--popup-item-x) py-(--popup-item-y)",
       "font-select-item-group-label text-popup-item-fg-muted",
     ],
     valueText: [
-      "min-w-0 flex-1 truncate font-normal",
+      "wrap-anywhere min-w-0 flex-1 whitespace-normal font-normal",
       "data-[placeholder]:font-normal data-[placeholder]:text-select-placeholder",
     ],
   },
@@ -307,15 +310,15 @@ export function Select({
   const service = useMachine(nativeSelectMachine, {
     ...machineProps,
     id,
-    // Keep mounted helper/error text outside the popup's anchor boundary.
-    // Explicit caller anchors and gutters retain their positioning contract.
+    // Attach to the control, not the label/helper stack. Explicit caller
+    // anchors and gutters retain their positioning contract.
     positioning: {
       getAnchorElement: positioning?.getAnchorRect
         ? undefined
         : () =>
-            rootRef.current?.querySelector("[data-select-description]")
-              ? rootRef.current
-              : null,
+            rootRef.current?.querySelector<HTMLElement>(
+              '[data-scope="select"][data-part="control"]'
+            ) ?? null,
       ...positioning,
     },
     open: readOnly || disabled ? false : machineProps.open,
@@ -880,7 +883,7 @@ Select.ItemText = function SelectItemText({
       ref={ref}
       {...mergeProps(api.getItemTextProps({ item }), props)}
     >
-      {children || item.label}
+      {children ?? item.label}
     </span>
   )
 }

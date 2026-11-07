@@ -211,6 +211,61 @@ export const Multiple: Story = {
     ).toHaveTextContent("Czech Republic, Germany, France")
   },
 }
+export const LongLabels: Story = {
+  args: {
+    items: [
+      {
+        value: "central",
+        label: "Central European distribution and customer support",
+      },
+      {
+        value: "international",
+        label: "International delivery coordination and returns",
+      },
+    ],
+    label: "Delivery teams",
+    multiple: true,
+    defaultValue: ["central", "international"],
+    helpText: "Both selected team names remain visible on narrow screens.",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Selected values and popup options wrap instead of clipping long labels. The field grows with the content at every size.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("combobox", {
+      name: "Delivery teams",
+    })
+    const value = trigger.querySelector<HTMLElement>('[data-part="value-text"]')!
+    await expect(trigger).toHaveTextContent(
+      "Central European distribution and customer support, International delivery coordination and returns"
+    )
+    await expect(getComputedStyle(value).whiteSpace).toBe("normal")
+    await expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth + 1)
+    await userEvent.click(trigger)
+    try {
+      const list = await within(canvasElement.ownerDocument.body).findByRole(
+        "listbox"
+      )
+      const labels = list.querySelectorAll<HTMLElement>(
+        '[data-part="item-text"]'
+      )
+      await expect(labels).toHaveLength(2)
+      for (const text of labels) {
+        await expect(getComputedStyle(text).whiteSpace).toBe("normal")
+        await expect(text.scrollWidth).toBeLessThanOrEqual(text.clientWidth + 1)
+      }
+    } finally {
+      await userEvent.keyboard("{Escape}")
+    }
+    await expect(trigger).toHaveFocus()
+  },
+}
+
 export const StaticValueText: Story = {
   args: {
     multiple: true,

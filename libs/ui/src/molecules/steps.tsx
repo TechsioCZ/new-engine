@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.2.4
+ * @componentVersion v1.2.5
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -44,7 +44,7 @@ const stepsVariants = tv({
       "sm:data-[orientation=vertical]:flex-row sm:data-[orientation=vertical]:items-start",
     ],
     list: [
-      "steps-description-connectors flex w-full min-w-0 max-w-full gap-steps-list",
+      "steps-description-connectors steps-label-alignment flex w-full min-w-0 max-w-full gap-steps-list",
       "data-[orientation=horizontal]:items-start",
       "data-[orientation=vertical]:flex-col sm:data-[orientation=vertical]:w-auto sm:data-[orientation=vertical]:min-w-steps-list-vertical",
     ],
@@ -70,6 +70,8 @@ const stepsVariants = tv({
     ],
     itemText: [
       "inline-flex min-w-0 max-w-full flex-col gap-steps-text",
+      "data-[orientation=horizontal]:items-center data-[orientation=horizontal]:text-center",
+      "sm:data-[orientation=horizontal]:items-start sm:data-[orientation=horizontal]:text-start",
       "data-[orientation=vertical]:items-start",
     ],
     indicator: [
@@ -84,13 +86,13 @@ const stepsVariants = tv({
     indicatorIcon: "text-steps-icon",
     number: ["font-steps-number leading-none"],
     title: [
-      "break-words font-steps-title text-steps-title text-steps-title-fg",
+      "min-w-0 max-w-full break-words font-steps-title text-steps-title text-steps-title-fg",
       "data-current:text-steps-title-fg-current",
       "data-complete:text-steps-title-fg-complete",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     description: [
-      "break-words text-steps-description text-steps-description-fg",
+      "min-w-0 max-w-full break-words font-steps-description text-steps-description text-steps-description-fg",
       "data-current:text-steps-description-fg-current",
       "data-complete:text-steps-description-fg-complete",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -722,6 +724,8 @@ Steps.ItemText = function StepsItemText({
   return (
     <span
       className={styles.itemText({ className })}
+      data-part="item-text"
+      data-scope="steps"
       ref={ref}
       {...props}
       data-orientation={orientation}
@@ -826,6 +830,8 @@ Steps.Title = function StepsTitle({
   return (
     <span
       className={styles.title({ className })}
+      data-part="title"
+      data-scope="steps"
       ref={ref}
       {...props}
       {...getStepStatusDataProps(state)}

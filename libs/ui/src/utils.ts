@@ -27,7 +27,37 @@ export const tv: TV = createTV({
       "outline-style": [
         { outline: [(value: string) => value.startsWith("(style:")] },
       ],
-      p: [{ p: ["input-sm", "input-md", "input-lg"] }],
+      gap: [{ gap: ["hotkeys"] }],
+      "min-w": [
+        {
+          "min-w": [
+            "numeric-input-trigger-min",
+            "numeric-input-trigger-touch-min",
+          ],
+        },
+      ],
+      p: [
+        {
+          p: [
+            "input-sm",
+            "input-md",
+            "input-lg",
+            "radio-card-item-control-sm",
+            "radio-card-item-control-md",
+            "radio-card-item-control-lg",
+          ],
+        },
+      ],
+      rounded: [{ rounded: ["radio-card-item"] }],
+      size: [
+        {
+          size: [
+            "radio-card-indicator-mark-sm",
+            "radio-card-indicator-mark-md",
+            "radio-card-indicator-mark-lg",
+          ],
+        },
+      ],
       px: [{ px: ["input-inline-sm", "input-inline-md", "input-inline-lg"] }],
     },
   },

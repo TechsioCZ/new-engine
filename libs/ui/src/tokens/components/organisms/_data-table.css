@@ -248,6 +248,20 @@
   }
 }
 
+/* Keep recovery feedback below its actions at a readable measure. An explicit
+ * inline size also lets fixed-layout action measurement reserve its full width. */
+@utility data-table-action-feedback {
+  inline-size: var(--spacing-data-table-editor-md);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  &[data-size="sm"] {
+    inline-size: var(--spacing-data-table-editor-sm);
+  }
+  &[data-size="lg"] {
+    inline-size: var(--spacing-data-table-editor-lg);
+  }
+}
+
 @utility data-table-editor {
   /* Fixed-width tables scroll a constrained editor rather than hiding values
    * or painting over the adjacent cell. Auto layout reserves its full width. */

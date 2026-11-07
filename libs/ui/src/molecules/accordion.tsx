@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

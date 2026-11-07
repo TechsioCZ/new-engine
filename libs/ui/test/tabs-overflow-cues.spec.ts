@@ -5,32 +5,48 @@ import { assertWithinViewport } from "./visual-viewport.mjs"
 
 async function cueEnergy(list: Locator) {
   const actual = await list.screenshot({ animations: "disabled", scale: "css" })
-  const saved = await list.evaluate((element) => ({
-    value: element.style.getPropertyValue("--color-tabs-overflow-bg-cue"),
-    priority: element.style.getPropertyPriority("--color-tabs-overflow-bg-cue"),
+  const host = list.locator("..")
+  const before = await list.evaluate((element) => ({
+    left: element.scrollLeft,
+    width: element.clientWidth,
+    scrollWidth: element.scrollWidth,
   }))
-  let clear: Buffer
+  const saved = await host.evaluate((element) => ({
+    value: element.style.getPropertyValue("--color-tabs-overflow-bg-veil"),
+    priority: element.style.getPropertyPriority(
+      "--color-tabs-overflow-bg-veil"
+    ),
+  }))
+  let contrast: Buffer
   try {
-    // Diagnostic calibration only; this frame is never a review candidate.
-    await list.evaluate((element) =>
-      element.style.setProperty("--color-tabs-overflow-bg-cue", "transparent")
+    // Contrast calibration measures white veils even over blank white padding.
+    // Only the unmodified frame above is review evidence; geometry must not move.
+    await host.evaluate((element) =>
+      element.style.setProperty("--color-tabs-overflow-bg-veil", "rgb(0 0 0)")
     )
-    clear = await list.screenshot({ animations: "disabled", scale: "css" })
+    contrast = await list.screenshot({ animations: "disabled", scale: "css" })
   } finally {
-    await list.evaluate((element, previous) => {
+    await host.evaluate((element, previous) => {
       if (previous.value) {
         element.style.setProperty(
-          "--color-tabs-overflow-bg-cue",
+          "--color-tabs-overflow-bg-veil",
           previous.value,
           previous.priority
         )
       } else {
-        element.style.removeProperty("--color-tabs-overflow-bg-cue")
+        element.style.removeProperty("--color-tabs-overflow-bg-veil")
       }
     }, saved)
   }
+  expect(
+    await list.evaluate((element) => ({
+      left: element.scrollLeft,
+      width: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }))
+  ).toEqual(before)
   const a = PNG.sync.read(actual)
-  const b = PNG.sync.read(clear)
+  const b = PNG.sync.read(contrast)
   expect([a.width, a.height]).toEqual([b.width, b.height])
   const strip = Math.min(12, Math.floor(a.width / 4))
   const energy = { left: 0, right: 0 }
@@ -131,7 +147,79 @@ for (const round of [1, 2, 3, 4, 5]) {
         }
         await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true")
         await assertWithinViewport(tabs.nth(1))
+        await expect(tabs.nth(1)).toHaveCSS("z-index", "2")
+        await expect(tabs.nth(1)).toHaveCSS("outline-style", "solid")
+        await testInfo.attach("keyboard-focus", {
+          body: await tabs
+            .nth(1)
+            .screenshot({ animations: "disabled", scale: "css" }),
+          contentType: "image/png",
+        })
       })
     }
   }
+  test(`Business disabled Tabs round ${round}: veils preserve full labels and keyboard focus`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 393, height: 659 })
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    await openContractStory(page, "molecules-tabs--disabled-tabs", {
+      brand: "business",
+    })
+    await page.evaluate(async () => {
+      await document.fonts.ready
+    })
+    const list = page.getByRole("tablist")
+    const tabs = list.getByRole("tab")
+    await expect(tabs).toHaveCount(3)
+    await expect(tabs.nth(1)).toBeDisabled()
+    await expect(tabs.nth(2)).toHaveText("Another Active Tab")
+    await assertWithinViewport(list)
+    const range = await list.evaluate(
+      (element) => element.scrollWidth - element.clientWidth
+    )
+    expect(range).toBeGreaterThan(20)
+    for (const fraction of [0, 0.5, 1]) {
+      const offset = Math.round(range * fraction)
+      await list.evaluate(
+        (element, left) => element.scrollTo({ left, behavior: "instant" }),
+        offset
+      )
+      await expect
+        .poll(async () =>
+          Math.abs(
+            (await list.evaluate((element) => element.scrollLeft)) - offset
+          )
+        )
+        .toBeLessThanOrEqual(1)
+      const { actual, energy } = await cueEnergy(list)
+      await testInfo.attach(`disabled-${fraction}`, {
+        body: actual,
+        contentType: "image/png",
+      })
+      if (fraction === 0) {
+        expect.soft(energy.right).toBeGreaterThan(30)
+        expect.soft(energy.left).toBeLessThan(energy.right / 5)
+      } else if (fraction === 1) {
+        expect.soft(energy.left).toBeGreaterThan(30)
+        expect.soft(energy.right).toBeLessThan(energy.left / 5)
+      } else {
+        expect.soft(energy.left).toBeGreaterThan(30)
+        expect.soft(energy.right).toBeGreaterThan(30)
+      }
+    }
+    await tabs.nth(0).focus()
+    await tabs.nth(0).press("ArrowRight")
+    await expect(tabs.nth(2)).toBeFocused()
+    await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true")
+    await assertWithinViewport(tabs.nth(2))
+    await expect(tabs.nth(2)).toHaveCSS("z-index", "2")
+    await expect(tabs.nth(2)).toHaveCSS("outline-style", "solid")
+    await testInfo.attach("disabled-keyboard-focus", {
+      body: await tabs
+        .nth(2)
+        .screenshot({ animations: "disabled", scale: "css" }),
+      contentType: "image/png",
+    })
+  })
 }

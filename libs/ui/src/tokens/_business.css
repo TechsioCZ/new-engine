@@ -365,11 +365,7 @@
   --color-select-item-bg-selected: var(--color-select-selection-surface);
   --color-select-item-fg-selected: var(--color-select-selection-ink);
   --color-switch-help-disabled: var(--color-fg-disabled);
-  --color-tabs-overflow: color-mix(
-    in srgb,
-    var(--color-fg-secondary) 24%,
-    transparent
-  );
+  --color-tabs-overflow: var(--color-tabs-list-bg);
   --color-tabs-overflow-bg-cue: var(--color-tabs-overflow);
   --color-tabs-unavailable: var(--color-transparent);
   --color-tabs-trigger-bg-disabled: var(--color-tabs-unavailable);

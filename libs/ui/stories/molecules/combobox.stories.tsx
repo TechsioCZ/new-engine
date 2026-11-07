@@ -635,8 +635,8 @@ export const RichItem: Story = {
           <div className="flex min-w-0 flex-1 items-center gap-150">
             <Icon icon="icon-[mdi--earth]" size="md" />
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate">{item.label}</span>
-              <span className="text-combobox-item-fg-secondary text-sm">{item.data?.subtitle}</span>
+              <span className="whitespace-normal wrap-anywhere">{item.label}</span>
+              <span className="whitespace-normal wrap-anywhere text-combobox-item-fg-secondary text-sm">{item.data?.subtitle}</span>
             </div>
           </div>
         )}
@@ -672,6 +672,9 @@ export const NativeFormValues: Story = {
     await expect(new FormData(canvas.getByRole("form", { name: "Disabled selection" }) as HTMLFormElement).getAll("country")).toEqual([])
     const editable = within(canvas.getByRole("form", { name: "Multiple selection" })).getAllByRole("listitem")
     const saved = within(canvas.getByRole("form", { name: "Read-only selection" })).getAllByRole("listitem")
+    for (const chip of editable) {
+      await expect(Number.parseFloat(getComputedStyle(chip).columnGap)).toBeGreaterThan(0)
+    }
     for (const [index, chip] of saved.entries()) {
       const style = getComputedStyle(chip)
       await expect(Number.parseFloat(style.paddingInlineStart)).toBeGreaterThan(0)

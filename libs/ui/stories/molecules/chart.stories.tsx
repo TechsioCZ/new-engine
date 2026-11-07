@@ -574,7 +574,7 @@ export const Minimal: Story = {
   parameters: {
     controls: { disable: true }, docs: { description: { story: "A restrained chart removes optional decoration while preserving enough context to understand the values." } } },
   render: () => (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-100">
       <p>Online revenue rose from €42,000 in January to €93,000 in June, with a brief dip in April.</p>
       <Chart
         animate={false}

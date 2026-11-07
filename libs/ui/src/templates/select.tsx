@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit template.
  *
  * @component Select
- * @componentVersion v1.3.3
+ * @componentVersion v1.3.4
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -64,7 +64,9 @@ export function SelectTemplate({
 }: SelectTemplateProps) {
   return (
     <Select items={items} ref={ref} {...selectProps}>
-      {label ? <Select.Label {...labelProps}>{label}</Select.Label> : null}
+      {label || label === 0 ? (
+        <Select.Label {...labelProps}>{label}</Select.Label>
+      ) : null}
       <Select.Control>
         <Select.Trigger {...triggerProps}>
           <Select.ValueText placeholder={placeholder} {...valueTextProps}>
@@ -89,7 +91,9 @@ export function SelectTemplate({
           ))}
         </Select.Content>
       </Select.Positioner>
-      {helpText && <Select.StatusText>{helpText}</Select.StatusText>}
+      {helpText || helpText === 0 ? (
+        <Select.StatusText>{helpText}</Select.StatusText>
+      ) : null}
     </Select>
   )
 }

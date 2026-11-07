@@ -16,12 +16,18 @@ const css = postcss.parse(
   read("../src/tokens/components/organisms/_line-item.css")
 )
 
-function utility(name: string) {
+function utility(name: string, selector?: string) {
   const declarations: Record<string, string> = {}
   css.walkAtRules("utility", (rule) => {
     if (rule.params === name) {
       rule.walkDecls((declaration) => {
-        declarations[declaration.prop] = declaration.value
+        const parent = declaration.parent
+        const matchesScope = selector
+          ? parent?.type === "rule" && parent.selector === selector
+          : parent === rule
+        if (matchesScope) {
+          declarations[declaration.prop] = declaration.value
+        }
       })
     }
   })
@@ -90,6 +96,40 @@ describe("LineItem control relationships", () => {
     ).toBe(true)
   })
 
+  it.each(["default", "compact"] as const)(
+    "compensates the active %s grid gap before item feedback",
+    (layout) => {
+      const element = render(
+        <LineItem
+          layout={layout}
+          pending
+          pendingLabel="Ukládáme položku"
+          title="Montážní sada M8"
+        >
+          <LineItem.Body />
+        </LineItem>
+      )
+      const item = query(element, '[data-scope="line-item"]')
+      const status = query(item, '[data-part="pending"]')
+      const gap =
+        layout === "compact" ? "gap-line-item-compact" : "gap-line-item"
+      expect(item.getAttribute("data-layout")).toBe(layout)
+      expect(item.classList.contains(gap)).toBe(true)
+      expect(status.parentElement).toBe(item)
+      expect(status.classList.contains("line-item-pending")).toBe(true)
+      const selector =
+        layout === "compact"
+          ? '[data-scope="line-item"][data-layout="compact"] > &'
+          : undefined
+      expect(
+        utility("line-item-pending", selector)["margin-block-start"]?.replace(
+          /\s+/g,
+          ""
+        )
+      ).toBe(`calc(var(--gap-line-item-feedback)-var(--${gap}))`)
+    }
+  )
+
   it("offsets only the first narrow-row action without overriding its hitbox", () => {
     const selectors: string[] = []
     const containers: string[] = []
@@ -106,7 +146,9 @@ describe("LineItem control relationships", () => {
     })
     expect(containers).toEqual(["line-item (width < 32rem)"])
     expect(selectors).toEqual(['[data-part="actions"] > &:first-child'])
-    expect(utility("line-item-remove")).toEqual({
+    expect(
+      utility("line-item-remove", '[data-part="actions"] > &:first-child')
+    ).toEqual({
       "margin-inline-start": "calc(-1 * var(--padding-button-x-sm))",
     })
     const button = remove({ className: "consumer-class" })

@@ -249,15 +249,15 @@ function PaletteExample({
           <Command.Empty>
             No matching actions. Try “save” or “documentation”.
           </Command.Empty>
-          <p className="flex flex-wrap items-center gap-150 border-border-primary border-t pt-150 text-fg-secondary text-xs">
-            <span>
+          <p className="grid grid-cols-2 items-center gap-x-150 gap-y-100 border-border-primary border-t pt-150 text-fg-secondary text-xs sm:flex sm:flex-wrap sm:gap-150">
+            <span className="col-span-2 inline-flex items-center gap-50">
               <Hotkeys hotkey="ArrowUp" /> <Hotkeys hotkey="ArrowDown" /> to
               navigate
             </span>
-            <span>
+            <span className="inline-flex items-center gap-50">
               <Hotkeys hotkey="Enter" /> to run
             </span>
-            <span>
+            <span className="inline-flex items-center gap-50">
               <Hotkeys hotkey="Escape" /> to close
             </span>
           </p>
@@ -322,6 +322,67 @@ export const OpenPalette: Story = {
   },
   tags: ["!dev", "!autodocs"],
   args: { initiallyOpen: true },
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument
+    const body = within(document.body)
+    const opener = within(canvasElement).getByRole("button", {
+      name: "Open command palette",
+    })
+    const dialog = await body.findByRole("dialog", {
+      name: "Command palette",
+    })
+    const palette = within(dialog)
+    const input = palette.getByRole("combobox", { name: "Actions" })
+    await waitFor(() => expect(input).toHaveFocus())
+    await expect(input).not.toHaveAttribute("aria-activedescendant")
+
+    // Do not pace typing with per-character waits: the native query must keep up.
+    await userEvent.type(input, "documentation", { delay: null })
+    await waitFor(() => expect(input).toHaveValue("documentation"))
+    await waitFor(() =>
+      expect(palette.getByRole("option", { name: "Help" })).toHaveAttribute(
+        "data-highlighted",
+        ""
+      )
+    )
+    await expect(
+      palette.queryByRole("option", { name: "Save document" })
+    ).toBeNull()
+
+    const footer = palette.getByText("to navigate").closest("p")
+    if (!footer) {
+      throw new Error("Command keyboard guidance must remain visible")
+    }
+    const hints = Array.from(footer.children)
+    await expect(hints).toHaveLength(3)
+    const [navigation, run, close] = hints.map((hint) =>
+      hint.getBoundingClientRect()
+    )
+    if (!(navigation && run && close)) {
+      throw new Error("All three command keyboard hints must remain present")
+    }
+    const footerBounds = footer.getBoundingClientRect()
+    for (const hint of [navigation, run, close]) {
+      await expect(hint.left).toBeGreaterThanOrEqual(footerBounds.left - 1)
+      await expect(hint.right).toBeLessThanOrEqual(footerBounds.right + 1)
+    }
+    if (document.defaultView?.innerWidth === 393) {
+      await expect(navigation.bottom).toBeLessThanOrEqual(run.top + 1)
+      await expect(Math.abs(run.top - close.top)).toBeLessThanOrEqual(1)
+    }
+
+    // Remount the palette so screenshots retain its original, unfiltered state.
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(opener).toHaveFocus())
+    await userEvent.click(opener)
+    const reopened = await body.findByRole("dialog", {
+      name: "Command palette",
+    })
+    await waitFor(() =>
+      expect(within(reopened).getByRole("combobox")).toHaveFocus()
+    )
+    await expect(within(reopened).getByRole("combobox")).toHaveValue("")
+  },
 }
 
 export const Availability: Story = {

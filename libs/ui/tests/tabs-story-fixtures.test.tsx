@@ -78,9 +78,12 @@ describe("Tabs comparison fixtures", () => {
         .map((list) => list.getAttribute("dir"))
     ).toEqual(["ltr", "ltr", "rtl", "rtl"])
     for (const list of Array.from(lists).slice(0, 4)) {
-      expect(list.parentElement?.parentElement?.className).toBe(
-        "w-xs max-w-full"
-      )
+      const viewport = list.parentElement
+      const root = list.closest('[data-scope="tabs"][data-part="root"]')
+      expect(viewport?.classList.contains("tabs-list-viewport")).toBe(true)
+      expect(root).not.toBeNull()
+      expect(viewport?.parentElement).toBe(root)
+      expect(root?.parentElement?.className).toBe("w-xs max-w-full")
       expect(
         list.classList.contains("data-[orientation=horizontal]:overflow-x-auto")
       ).toBe(true)

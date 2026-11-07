@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -57,12 +57,12 @@ const tableVariants = tv({
         root: "border-(length:--border-table-width) rounded-table border-table-border shadow-table-outline",
       },
       striped: {
-        row: "table-row-striped odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary",
+        row: "table-row-striped",
       },
     },
     interactive: {
       true: {
-        row: "table-row-interactive cursor-pointer hover:bg-table-row-bg-hover",
+        row: "table-row-interactive cursor-pointer",
         columnHeader: "relative",
         cell: "relative",
       },
@@ -91,6 +91,7 @@ const tableVariants = tv({
     },
     stickyFirstColumn: {
       true: {
+        root: "table-frozen-grid",
         columnHeader: [
           "first:sticky first:inset-s-0 first:z-20",
           "bg-table-header-bg",

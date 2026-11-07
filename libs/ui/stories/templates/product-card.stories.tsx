@@ -150,6 +150,18 @@ async function expectAlignedRatingSummary(
   const reviews = canvas.getByText(`(${reviewCount})`)
   const scoreBounds = score.getBoundingClientRect()
   const reviewBounds = reviews.getBoundingClientRect()
+  const summary = reviews.parentElement!
+  const summaryBounds = summary.getBoundingClientRect()
+  const rtl =
+    canvasElement.ownerDocument.defaultView!.getComputedStyle(summary).direction ===
+    "rtl"
+  await expect(
+    Math.abs(
+      rtl
+        ? reviewBounds.left - summaryBounds.left
+        : reviewBounds.right - summaryBounds.right
+    )
+  ).toBeLessThanOrEqual(1)
   await expect(reviews).toBeVisible()
   await expect(
     Math.abs(reviewBounds.bottom - scoreBounds.bottom)
@@ -276,6 +288,13 @@ export const OnSale: Story = {
 export const OutOfStock: Story = {
   play: async ({ canvasElement }) => {
     await expectAlignedRatingSummary(canvasElement, 5, 23)
+    const notify = within(canvasElement).getByRole("button", { name: "Notify Me" })
+    await expect(
+      notify.querySelector(".token-icon-product-card-notify")
+    ).toBeInTheDocument()
+    await expect(
+      notify.querySelector(".token-icon-cart-button")
+    ).not.toBeInTheDocument()
   },
   parameters: {
     docs: {

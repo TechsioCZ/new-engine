@@ -2,7 +2,7 @@
  * Hotkeys — @techsio/ui-kit atom.
  *
  * @component Hotkeys
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill hotkeys-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -13,8 +13,8 @@ import { tv } from "../utils"
 const hotkeysStyles = tv({
   slots: {
     root: "inline-flex items-center gap-hotkeys whitespace-nowrap font-hotkeys",
-    key: "hotkeys-key-border-width inline-flex items-center justify-center rounded-hotkeys-key border-hotkeys-key-border bg-hotkeys-key-bg px-hotkeys-key-x py-hotkeys-key-y text-hotkeys-key-fg",
-    separator: "text-hotkeys-separator-fg",
+    key: "hotkeys-key-border-width inline-flex shrink-0 items-center justify-center rounded-hotkeys-key border-hotkeys-key-border bg-hotkeys-key-bg px-hotkeys-key-x py-hotkeys-key-y text-hotkeys-key-fg",
+    separator: "shrink-0 text-hotkeys-separator-fg",
   },
   variants: {
     size: {

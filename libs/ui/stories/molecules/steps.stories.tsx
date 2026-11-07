@@ -57,8 +57,11 @@ const completedText =
 
 async function expectResponsiveSteps(canvasElement: HTMLElement) {
   const document = canvasElement.ownerDocument
+  await document.fonts.ready
   const viewportWidth = document.documentElement.clientWidth
-  await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(viewportWidth)
+  await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+    viewportWidth
+  )
   for (const element of canvasElement.querySelectorAll<HTMLElement>(
     '[data-scope="steps"][data-part="trigger"], [data-scope="steps"][role="group"]:not([hidden]), [data-part="navigation"] button'
   )) {
@@ -66,28 +69,72 @@ async function expectResponsiveSteps(canvasElement: HTMLElement) {
     await expect(box.left).toBeGreaterThanOrEqual(0)
     await expect(box.right).toBeLessThanOrEqual(viewportWidth + 1)
   }
-  if (document.defaultView?.matchMedia("(max-width: 39.999rem)").matches) {
-    for (const item of canvasElement.querySelectorAll('[data-part="item"][data-orientation="horizontal"]')) {
-      const indicator = item.querySelector('[data-part="indicator"]')?.getBoundingClientRect()
-      if (!indicator) continue
-      if (item.parentElement?.querySelector('[data-part="description"]')) {
-        const column = item.getBoundingClientRect()
-        await expect(Math.abs(indicator.x + indicator.width / 2 - column.x - column.width / 2)).toBeLessThan(1)
+  const mobile = document.defaultView?.matchMedia(
+    "(max-width: 39.999rem)"
+  ).matches
+  for (const item of canvasElement.querySelectorAll(
+    '[data-part="item"][data-orientation="horizontal"]'
+  )) {
+    const indicator = item
+      .querySelector('[data-part="indicator"]')
+      ?.getBoundingClientRect()
+    if (!indicator) continue
+    const hasDescriptions = Boolean(
+      item.parentElement?.querySelector('[data-part="description"]')
+    )
+    if (mobile) {
+      for (const label of item.querySelectorAll(
+        '[data-part="title"], [data-part="description"]'
+      )) {
+        const text = label.getBoundingClientRect()
+        await expect(
+          Math.abs(indicator.x + indicator.width / 2 - text.x - text.width / 2)
+        ).toBeLessThan(1)
       }
-      const separatorElement = item.querySelector('[data-part="separator"]')
-      if (!separatorElement || separatorElement.hasAttribute("data-last")) continue
-      await expect(separatorElement).toBeVisible()
-      const separator = separatorElement.getBoundingClientRect()
-      await expect(separator.width).toBeGreaterThan(0)
-      await expect(separator.height).toBeGreaterThan(0)
-      await expect(Math.abs(indicator.y + indicator.height / 2 - separator.y - separator.height / 2)).toBeLessThan(1)
-      const nextIndicator = item.nextElementSibling?.querySelector('[data-part="indicator"]')?.getBoundingClientRect()
-      if (!nextIndicator) throw new Error("A connecting separator must have a next indicator")
-      const [first, second] = [indicator, nextIndicator].sort((a, b) => a.left - b.left)
-      if (!(first && second)) throw new Error("Both adjacent step indicators must be rendered")
-      await expect(separator.left).toBeGreaterThanOrEqual(first.right)
-      await expect(separator.right).toBeLessThanOrEqual(second.left)
+      if (hasDescriptions) {
+        const column = item.getBoundingClientRect()
+        await expect(
+          Math.abs(
+            indicator.x + indicator.width / 2 - column.x - column.width / 2
+          )
+        ).toBeLessThan(1)
+      }
+    } else if (hasDescriptions) {
+      const firstIndicator = item.parentElement
+        ?.querySelector('[data-part="indicator"]')
+        ?.getBoundingClientRect()
+      if (!firstIndicator) throw new Error("A described list needs indicators")
+      await expect(Math.abs(indicator.top - firstIndicator.top)).toBeLessThan(1)
     }
+    const separatorElement = item.querySelector('[data-part="separator"]')
+    if (!separatorElement || separatorElement.hasAttribute("data-last")) continue
+    if (mobile || hasDescriptions) {
+      const separator = separatorElement.getBoundingClientRect()
+      await expect(
+        Math.abs(
+          indicator.y + indicator.height / 2 - separator.y - separator.height / 2
+        )
+      ).toBeLessThan(1)
+    }
+    if (!mobile) continue
+    await expect(separatorElement).toBeVisible()
+    const separator = separatorElement.getBoundingClientRect()
+    await expect(separator.width).toBeGreaterThan(0)
+    await expect(separator.height).toBeGreaterThan(0)
+    const nextIndicator = item.nextElementSibling
+      ?.querySelector('[data-part="indicator"]')
+      ?.getBoundingClientRect()
+    if (!nextIndicator) {
+      throw new Error("A connecting separator must have a next indicator")
+    }
+    const [first, second] = [indicator, nextIndicator].sort(
+      (a, b) => a.left - b.left
+    )
+    if (!(first && second)) {
+      throw new Error("Both adjacent step indicators must be rendered")
+    }
+    await expect(separator.left).toBeGreaterThanOrEqual(first.right)
+    await expect(separator.right).toBeLessThanOrEqual(second.left)
   }
 }
 

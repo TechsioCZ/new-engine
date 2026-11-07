@@ -404,7 +404,7 @@ export const SelectionBehaviors: Story = {
 export const Controlled: Story = {
   render: () => {
     const ControlledExample = () => {
-      const [expanded, setExpanded] = useState<string[]>(['src', 'components'])
+      const [expanded, setExpanded] = useState<string[]>(['src', 'components', 'atoms'])
       const [selected, setSelected] = useState<string[]>(['button.tsx'])
 
       return (

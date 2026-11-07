@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.11
+ * @componentVersion v1.4.12
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -225,7 +225,9 @@ const dataTableVariants = tv({
       "data-table-editor flex min-w-0 max-w-full flex-col gap-data-table-editor",
     ],
     emptyViewport: ["data-table-empty-viewport wrap-anywhere min-w-0"],
-    actionsCell: ["flex items-center justify-end gap-100"],
+    actionsCell: ["flex min-w-0 flex-col items-end gap-data-table-editor"],
+    actionsButtons: ["flex w-max items-center justify-end gap-100"],
+    actionFeedback: ["data-table-action-feedback text-start"],
     expandButton: ["text-data-table-expand-icon"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
@@ -3716,63 +3718,72 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       }
     >
       <div className={styles.actionsCell()} data-part="actions-cell-content">
-        {enableExpanding && row.getCanExpand() ? (
-          <Button
-            aria-controls={expandAriaControls(row.id)}
-            aria-expanded={row.getIsExpanded()}
-            aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
-            className={styles.expandButton()}
-            disabled={locked}
-            // Gated like every other affordance: expanding a row *above* the
-            // one being edited inserts a detail row and shifts the edited row
-            // out from under the user, which is exactly what
-            // `lockInteractionsWhileEditing` promises not to allow.
-            icon={
-              row.getIsExpanded()
-                ? "token-icon-chevron-down"
-                : "token-icon-chevron-right"
-            }
-            onClick={(e) => {
-              e.stopPropagation()
-              if (blocked("expand")) {
-                return
-              }
-              row.getToggleExpandedHandler()()
-            }}
-            size="sm"
-            theme="borderless"
-            variant="secondary"
-          />
-        ) : null}
-        {rowActions?.map((action) =>
-          action.hidden?.(row) ? null : (
+        <div className={styles.actionsButtons()}>
+          {enableExpanding && row.getCanExpand() ? (
             <Button
-              aria-label={action.label}
-              // `locked`, not `isEditing`: with
-              // `lockInteractionsWhileEditing={false}` the caller has opted
-              // out of edit-time locking, so row actions stay live like every
-              // other guarded interaction.
-              disabled={action.disabled?.(row) || locked}
-              icon={action.icon}
-              key={action.id}
+              aria-controls={expandAriaControls(row.id)}
+              aria-expanded={row.getIsExpanded()}
+              aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
+              className={styles.expandButton()}
+              disabled={locked}
+              // Gated like every other affordance: expanding a row *above* the
+              // one being edited inserts a detail row and shifts the edited row
+              // out from under the user, which is exactly what
+              // `lockInteractionsWhileEditing` promises not to allow.
+              icon={
+                row.getIsExpanded()
+                  ? "token-icon-chevron-down"
+                  : "token-icon-chevron-right"
+              }
               onClick={(e) => {
                 e.stopPropagation()
-                action.onAction(row)
+                if (blocked("expand")) {
+                  return
+                }
+                row.getToggleExpandedHandler()()
               }}
               size="sm"
               theme="borderless"
-              variant={action.tone === "danger" ? "danger" : "secondary"}
+              variant="secondary"
             />
-          )
-        )}
-        {rowActionsContent(row)}
+          ) : null}
+          {rowActions?.map((action) =>
+            action.hidden?.(row) ? null : (
+              <Button
+                aria-label={action.label}
+                // `locked`, not `isEditing`: with
+                // `lockInteractionsWhileEditing={false}` the caller has opted
+                // out of edit-time locking, so row actions stay live like every
+                // other guarded interaction.
+                disabled={action.disabled?.(row) || locked}
+                icon={action.icon}
+                key={action.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  action.onAction(row)
+                }}
+                size="sm"
+                theme="borderless"
+                variant={action.tone === "danger" ? "danger" : "secondary"}
+              />
+            )
+          )}
+          {rowActionsContent(row)}
+        </div>
         {editingRowId === row.id && savePending && (
-          <StatusText role="status" size={size}>
+          <StatusText
+            className={styles.actionFeedback()}
+            data-size={size}
+            role="status"
+            size={size}
+          >
             {translations.savePendingLabel}
           </StatusText>
         )}
         {editingRowId === row.id && saveError && (
           <StatusText
+            className={styles.actionFeedback()}
+            data-size={size}
             id={`${instanceId}-save-error`}
             size={size}
             status="error"

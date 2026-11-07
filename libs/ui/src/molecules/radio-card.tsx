@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.1.5
+ * @componentVersion v1.1.6
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -167,7 +167,7 @@ const radioCardVariants = tv({
         ],
         itemAddon: [
           "data-[state=checked]:border-radio-card-addon-border-subtle-checked",
-          "data-[state=checked]:text-radio-card-fg-choice-selected",
+          "data-[state=checked]:text-radio-card-addon-fg-subtle-checked",
         ],
       },
       solid: {
@@ -192,7 +192,7 @@ const radioCardVariants = tv({
         ],
         itemAddon: [
           "data-[state=checked]:border-radio-card-addon-border-solid-checked",
-          "data-[state=checked]:text-radio-card-item-fg-solid-checked",
+          "data-[state=checked]:text-radio-card-addon-fg-solid-checked",
         ],
       },
     },

@@ -2,18 +2,23 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the form-numeric-input-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { type ReactNode, useId } from "react"
+import { Children, isValidElement, type ReactNode, useId } from "react"
 import { Label } from "../atoms/label"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 import { StatusText } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
+import { tv } from "../utils"
+
+const formNumericInputVariants = tv({
+  base: "flex min-w-0 flex-col gap-form-field-gap",
+})
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
@@ -26,9 +31,26 @@ type FormNumericInputProps = Omit<NumericInputProps, "children"> & {
   children: ReactNode
 }
 
+function findInputId(children: ReactNode): string | undefined {
+  for (const child of Children.toArray(children)) {
+    if (!isValidElement<{ id?: string; children?: ReactNode }>(child)) {
+      continue
+    }
+    if (child.type === NumericInput.Input) {
+      return child.props.id
+    }
+    const nestedId = findInputId(child.props.children)
+    if (nestedId !== undefined) {
+      return nestedId
+    }
+  }
+  return undefined
+}
+
 export function FormNumericInput({
   id,
   ids,
+  dir,
   label,
   validateStatus = "default",
   helpText,
@@ -47,7 +69,7 @@ export function FormNumericInput({
   // input when one is given, otherwise it generates `number-input:<id>:input`
   // and the label's htmlFor dangles — so always pass a concrete id.
   const fieldId = id || generatedId
-  const inputId = ids?.input ?? fieldId
+  const inputId = findInputId(children) ?? ids?.input ?? fieldId
   const helpTextId = useId()
   const hasHelpText =
     helpText !== undefined &&
@@ -61,7 +83,7 @@ export function FormNumericInput({
   )
 
   return (
-    <div className="flex flex-col gap-form-field-gap">
+    <div className={formNumericInputVariants()} dir={dir}>
       <Label
         disabled={disabled}
         htmlFor={inputId}
@@ -78,9 +100,10 @@ export function FormNumericInput({
           validateStatus === "error" && hasHelpText ? helpTextId : undefined
         )}
         describedBy={mergedDescribedBy}
+        dir={dir}
         disabled={disabled}
         id={fieldId}
-        ids={ids}
+        ids={{ ...ids, input: inputId }}
         invalid={validateStatus === "error" || numericInputProps.invalid}
         required={required}
         size={size}

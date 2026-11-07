@@ -268,6 +268,11 @@ export const MediaSizes: Story = {
 }
 
 export const AutoplayOnly: Story = {
+  render: (args) => (
+    <StoryFrame>
+      <GalleryTemplate {...args} />
+    </StoryFrame>
+  ),
   args: {
     items: baseItems,
     orientation: "horizontal",
@@ -288,8 +293,15 @@ export const AutoplayOnly: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const toggle = canvas.getByRole("button")
+    const carousel = canvas.getByRole("region", { name: "Product images" })
+    const view = canvasElement.ownerDocument.defaultView!
+    await waitFor(() => {
+      const bounds = carousel.getBoundingClientRect()
+      expect(bounds.left).toBeGreaterThanOrEqual(0)
+      expect(bounds.right).toBeLessThanOrEqual(view.innerWidth)
+      expect(bounds.bottom).toBeLessThanOrEqual(view.innerHeight)
+    })
     if (toggle.closest('[data-theme="business"]')) {
-      const carousel = canvas.getByRole("region", { name: "Product images" })
       await waitFor(() => {
         const frame = carousel.getBoundingClientRect()
         const control = toggle.getBoundingClientRect()

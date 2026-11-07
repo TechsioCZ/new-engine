@@ -3,7 +3,7 @@
 /**
  * LineItem — @techsio/ui-kit organism.
  * @component LineItem
- * @componentVersion v1.0.3
+ * @componentVersion v1.0.4
  * @skill line-item-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */

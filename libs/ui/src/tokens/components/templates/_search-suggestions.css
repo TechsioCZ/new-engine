@@ -7,6 +7,7 @@
   --spacing-search-suggestions-result-image: var(--size-image-sm);
   --spacing-search-suggestions-result: var(--spacing-150);
   --spacing-search-suggestions-result-rows: 0;
+  --spacing-search-suggestions-preview-results: var(--container-sm);
   --padding-search-suggestions-item-y-sm: var(--padding-popup-item-y-sm);
   --padding-search-suggestions-item-y-md: var(--padding-popup-item-y-md);
   --padding-search-suggestions-item-y-lg: var(--padding-popup-item-y-lg);
@@ -36,6 +37,13 @@
       --text-search-suggestions-subtitle-lg
     );
   }
+}
+
+/* Story compositions reserve a stable results area. Keeping that room between
+ * every size fixture also protects sibling labels when a popup flips upward.
+ * Runtime positioning, portal ownership and template layout stay unchanged. */
+@utility search-suggestions-preview-room {
+  padding-block-end: var(--spacing-search-suggestions-preview-results);
 }
 
 @utility search-suggestions-result-subtitle {

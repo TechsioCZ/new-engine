@@ -191,7 +191,7 @@ export const WithForm: Story = {
     return <div className="space-y-200"><PopoverTemplate trigger="Edit delivery contact" title="Delivery contact" description="Update the contact name for this order." open={open} onOpenChange={(details) => setOpen(details.open)}>
       <form className="mt-200 space-y-200" onSubmit={(event) => { event.preventDefault(); setSaved(true); setOpen(false) }}>
         <div className="space-y-100"><Label htmlFor={`${id}-name`} size="sm" required>Full name</Label><Input id={`${id}-name`} size="sm" defaultValue="Mara Nováková" required aria-describedby={`${id}-hint`} /><StatusText size="sm" id={`${id}-hint`}>Use the name shown on your delivery address.</StatusText></div>
-        <div className="flex justify-end gap-100"><Button onClick={() => setOpen(false)} size="sm" variant="secondary">Cancel</Button><Button size="sm" type="submit">Save contact</Button></div>
+        <div className="flex justify-end gap-100"><Button onClick={() => setOpen(false)} size="sm" theme="outlined" variant="tertiary">Cancel</Button><Button size="sm" type="submit">Save contact</Button></div>
       </form>
     </PopoverTemplate>{saved && <StatusText status="success">Delivery contact saved for this preview.</StatusText>}</div>
   },
@@ -734,6 +734,12 @@ export const LongContent: Story = {
         const rect = close.getBoundingClientRect()
         expect(rect.top).toBeGreaterThanOrEqual(0)
         expect(rect.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight)
+        if (!scrollViewport) throw new Error("Missing popover scroll viewport")
+        const viewport = scrollViewport.getBoundingClientRect()
+        // Include focus paint, not just the close button's border box.
+        const computed = canvasElement.ownerDocument.defaultView?.getComputedStyle(close)
+        const focusPaint = Number.parseFloat(computed?.outlineWidth ?? "0") * 2 + Number.parseFloat(computed?.outlineOffset ?? "0")
+        expect(viewport.right).toBeLessThanOrEqual(rect.left - focusPaint + 1)
       })
       await expect(close).toBeVisible()
     }

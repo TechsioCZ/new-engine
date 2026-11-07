@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit template.
  *
  * @component ProductCard
- * @componentVersion v1.3.3
+ * @componentVersion v1.3.4
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,8 +17,10 @@ import { tv } from "../utils"
 
 const styles = tv({
   slots: {
+    name: "min-h-0",
     prices: "flex flex-wrap items-baseline gap-product-card-badges",
-    rating: "flex items-end gap-product-card-badges",
+    rating: "flex min-w-0 items-end justify-between gap-product-card-badges",
+    reviews: "shrink-0 text-sm",
     actions: "grid grid-cols-1 sm:flex sm:flex-wrap",
     action: "w-full sm:w-max",
   },
@@ -104,7 +106,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
       )}
 
       {name !== undefined && name !== null && name !== false && (
-        <ProductCard.Name as={nameAs}>
+        <ProductCard.Name as={nameAs} className={slots.name()}>
           {href ? (
             <NameLink {...linkProps} as={linkAs} href={href} size="current">
               {name}
@@ -139,10 +141,11 @@ export function ProductCardTemplate<T extends ElementType = "a">({
               value: rating.value,
               count: rating.count,
               displayOnly: true,
+              size: "sm",
             }}
           />
           {rating.reviewCount !== undefined && (
-            <span className="text-sm">({rating.reviewCount})</span>
+            <span className={slots.reviews()}>({rating.reviewCount})</span>
           )}
         </div>
       )}
@@ -159,7 +162,11 @@ export function ProductCardTemplate<T extends ElementType = "a">({
             <ProductCard.Button
               buttonVariant="cart"
               className={slots.action()}
-              icon="token-icon-cart-button"
+              icon={
+                stock?.status === "out-of-stock"
+                  ? "token-icon-product-card-notify"
+                  : "token-icon-cart-button"
+              }
               onClick={onAddToCart}
             >
               {cartButtonText}

@@ -414,10 +414,23 @@ export const Sizes: Story = {
       const value = control.querySelector<HTMLElement>('[data-part="value-text"]')
       const clear = control.querySelector<HTMLElement>('[data-part="clear-trigger"]')
       const indicator = control.querySelector<HTMLElement>('[data-part="indicator"]')
+      const trigger = control.querySelector<HTMLElement>('[data-part="trigger"]')
       await expect(value).not.toBeNull()
       await expect(clear).not.toBeNull()
       await expect(indicator).not.toBeNull()
-      if (!(value && clear && indicator)) continue
+      await expect(trigger).not.toBeNull()
+      if (!(value && clear && indicator && trigger)) continue
+      const clearStyle = getComputedStyle(clear)
+      const triggerStyle = getComputedStyle(trigger)
+      const clearRect = clear.getBoundingClientRect()
+      const triggerRect = trigger.getBoundingClientRect()
+      await expect(clearStyle.backgroundClip).toBe("content-box")
+      await expect(clearRect.top + Number.parseFloat(clearStyle.paddingTop)).toBeGreaterThan(
+        triggerRect.top + Number.parseFloat(triggerStyle.borderTopWidth)
+      )
+      await expect(clearRect.bottom - Number.parseFloat(clearStyle.paddingBottom)).toBeLessThan(
+        triggerRect.bottom - Number.parseFloat(triggerStyle.borderBottomWidth)
+      )
       await expect(getComputedStyle(value).whiteSpace).toBe("normal")
       await expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth + 1)
       await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(
@@ -530,6 +543,25 @@ export const States: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    const statusTriggers = canvasElement.querySelectorAll<HTMLElement>(
+      '[data-part="trigger"]:is([data-validation="success"], [data-validation="warning"])'
+    )
+    await expect(statusTriggers).toHaveLength(2)
+    for (const trigger of statusTriggers) {
+      const clear = trigger.parentElement?.querySelector<HTMLElement>('[data-part="clear-trigger"]')
+      await expect(clear).toBeVisible()
+      if (!clear) continue
+      const clearRect = clear.getBoundingClientRect()
+      const triggerRect = trigger.getBoundingClientRect()
+      const clearStyle = getComputedStyle(clear)
+      const triggerStyle = getComputedStyle(trigger)
+      await expect(clearRect.top + Number.parseFloat(clearStyle.paddingTop)).toBeGreaterThan(
+        triggerRect.top + Number.parseFloat(triggerStyle.borderTopWidth)
+      )
+      await expect(clearRect.bottom - Number.parseFloat(clearStyle.paddingBottom)).toBeLessThan(
+        triggerRect.bottom - Number.parseFloat(triggerStyle.borderBottomWidth)
+      )
+    }
     const locked = canvas.getAllByRole("combobox").find((node) => node.getAttribute("aria-readonly") === "true")
     if (!locked) throw new Error("Missing read-only category")
     await userEvent.click(locked)
@@ -617,6 +649,58 @@ export const DeepHierarchy: Story = {
   ),
 }
 
+const longCategoryLabels: CascadeSelectItem[] = [
+  {
+    label: "InternationalKitchenAndGardenEquipment",
+    value: "equipment",
+    children: [
+      {
+        label: "Outdoor furniture and accessories",
+        value: "outdoor",
+        children: [
+          { label: "Weather-resistant dining sets", value: "dining" },
+        ],
+      },
+    ],
+  },
+]
+
+export const LongLabels: Story = {
+  args: { defaultOpen: true },
+  parameters: {
+    controls: { include: ["defaultOpen", "size", "dir"] },
+    docs: {
+      description: {
+        story:
+          "Full selected paths and long column headings wrap without hiding labels. Compare direction and size controls, or close the hierarchy to inspect the selected path and clear action.",
+      },
+    },
+  },
+  render: (args) => (
+    <CascadeSelectField
+      {...args}
+      defaultHighlightedValue={["equipment", "outdoor"]}
+      defaultValue={[["equipment", "outdoor", "dining"]]}
+      items={longCategoryLabels}
+      label="Product category"
+    />
+  ),
+  play: async ({ args, canvasElement }) => {
+    const value = canvasElement.querySelector<HTMLElement>('[data-part="value-text"]')
+    await expect(value).toHaveTextContent(
+      "InternationalKitchenAndGardenEquipment / Outdoor furniture and accessories / Weather-resistant dining sets"
+    )
+    if (!args.defaultOpen) return
+    const tree = await within(canvasElement.ownerDocument.body).findByRole("tree")
+    const headings = tree.querySelectorAll<HTMLElement>('[data-part="column-header"] > span:last-child')
+    await expect(headings).toHaveLength(3)
+    for (const heading of headings) {
+      await expect(getComputedStyle(heading).overflowWrap).toBe("anywhere")
+      await expect(heading.scrollWidth).toBeLessThanOrEqual(heading.clientWidth + 1)
+    }
+  },
+}
+
 export const NavigationModes: Story = {
   parameters: {
     controls: { disable: true },
@@ -650,6 +734,18 @@ export const NavigationModes: Story = {
 }
 
 export const MultipleSelection: Story = {
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("combobox"))
+    const branch = await within(canvasElement.ownerDocument.body).findByRole("treeitem", { name: "Home & garden" })
+    await userEvent.click(branch)
+    const text = branch.querySelector<HTMLElement>('[data-part="item-text"]')
+    await expect(text).not.toBeNull()
+    if (!text) return
+    const range = canvasElement.ownerDocument.createRange()
+    range.selectNodeContents(text)
+    await expect(range.getClientRects()).toHaveLength(1)
+    await userEvent.keyboard("{Escape}")
+  },
   parameters: {
     controls: { disable: true },
     docs: {
@@ -676,6 +772,21 @@ export const MultipleSelection: Story = {
 }
 
 export const ParentSelection: Story = {
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("combobox"))
+    const branch = await within(canvasElement.ownerDocument.body).findByRole("treeitem", { name: "Electronics" })
+    const check = branch.querySelector<HTMLElement>('[data-part="item-indicator"]')
+    const arrow = branch.querySelector<HTMLElement>('[data-part="branch-indicator"]')
+    await expect(check).toBeVisible()
+    await expect(arrow).toBeVisible()
+    if (!(check && arrow)) return
+    const checkRect = check.getBoundingClientRect()
+    const arrowRect = arrow.getBoundingClientRect()
+    await expect(Math.max(checkRect.left, arrowRect.left)).toBeGreaterThanOrEqual(
+      Math.min(checkRect.right, arrowRect.right)
+    )
+    await userEvent.keyboard("{Escape}")
+  },
   parameters: {
     controls: { disable: true },
     docs: {
@@ -827,7 +938,7 @@ function CascadeErrorRegistry() {
     <CascadeSelect items={productCategories}>
       <CascadeSelect.Label>Category with feedback</CascadeSelect.Label>
       <CascadeSelect.Control><CascadeSelect.Trigger aria-errormessage={`${id}-caller`}>
-        <CascadeSelect.ValueText />
+        <CascadeSelect.ValueText placeholder="Choose an option" />
       </CascadeSelect.Trigger></CascadeSelect.Control>
       <CascadeSelect.StatusText id={`${id}-hint`} status="default">Choose the most specific category.</CascadeSelect.StatusText>
       {phase > 0 && <CascadeSelect.StatusText id={`${id}-first`} status={phase === 3 ? "default" : "error"}>Choose a category before saving.</CascadeSelect.StatusText>}

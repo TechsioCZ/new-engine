@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -43,7 +43,7 @@ import { tv } from "../utils"
 
 const popoverVariants = tv({
   slots: {
-    trigger: ["p-popover-trigger"],
+    trigger: ["p-popover-trigger", "popover-trigger-state"],
     indicator: ["data-[state=open]:rotate-180"],
     positioner: ["absolute", "popup-layer"],
     content: [
@@ -56,7 +56,7 @@ const popoverVariants = tv({
       "relative flex flex-col",
     ],
     scrollViewport: "popover-scroll-viewport",
-    chrome: "contents",
+    chrome: "popover-chrome contents",
     arrow: "",
     arrowTip: "",
     title: ["font-popover-title", "leading-none", "mb-popover-title"],
@@ -256,6 +256,7 @@ Popover.Trigger = function PopoverTrigger({
     <Button
       {...buttonProps}
       className={styles.trigger({ className })}
+      data-popover-trigger-theme={theme}
       data-state={api.open ? "open" : "closed"}
       disabled={isDisabled}
       onClick={(event) => {
@@ -512,6 +513,9 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   const { onClick: onMachineClick, ...machineCloseTriggerProps } =
     api.getCloseTriggerProps() as ComponentPropsWithoutRef<"button">
   const buttonProps = mergeProps(props, machineCloseTriggerProps)
+  // Keep Zag's close wiring without replacing a caller's localized name.
+  buttonProps["aria-label"] =
+    props["aria-label"] ?? machineCloseTriggerProps["aria-label"]
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     onClick?.(event)
     if (!event.defaultPrevented) {

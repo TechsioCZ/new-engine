@@ -373,9 +373,9 @@
   }
 }
 
-/* Reserve the grabber strip outside the scrolling viewport. Compensating the
- * header inset avoids adding the same space twice in the unscrolled state.
- * Direct-child selectors must not pick up a nested drawer's grabber. */
+/* Reserve the grabber strip outside the scrolling viewport on either vertical
+ * edge. Compensating the adjacent section's inset avoids adding the same space
+ * twice. Direct-child selectors must not pick up a nested drawer's grabber. */
 @utility drawer-grabber-clearance {
   &:has(
       > .drawer-visible-viewport
@@ -388,6 +388,23 @@
         0px,
         calc(
           var(--padding-drawer-header) -
+          var(--padding-drawer-grabber-clearance)
+        )
+      );
+    }
+  }
+
+  &:has(
+      > .drawer-visible-viewport
+        > [data-part="grabber"][data-swipe-direction="up"]
+    ) {
+    padding-bottom: var(--padding-drawer-grabber-clearance);
+
+    & > .drawer-visible-viewport > .drawer-footer-clearance {
+      padding-bottom: max(
+        0px,
+        calc(
+          var(--padding-drawer-footer) -
           var(--padding-drawer-grabber-clearance)
         )
       );

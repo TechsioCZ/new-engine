@@ -250,6 +250,17 @@ export const States: Story = {
     )
 
     const pending = canvas.getByRole("spinbutton", { name: "Pending quantity" })
+    const readOnlyControl = readOnly.closest('[data-part="control"]')
+    const pendingControl = pending.closest('[data-part="control"]')
+    if (!(readOnlyControl && pendingControl)) {
+      throw new Error("Missing quantity state controls")
+    }
+    await expect(
+      Math.abs(
+        readOnlyControl.getBoundingClientRect().width -
+          pendingControl.getBoundingClientRect().width
+      )
+    ).toBeLessThanOrEqual(1)
     const status = canvas.getByRole("status")
     await expect(pending).toBeDisabled()
     await expect(pending).toHaveAccessibleDescription(
@@ -483,7 +494,7 @@ export const PendingAndReadOnly: Story = {
     const [readOnly, setReadOnly] = useState(false)
     const [commitCount, setCommitCount] = useState(0)
     return (
-      <div className="w-full max-w-md flex flex-col gap-100">
+      <div className="w-full max-w-md flex flex-col gap-200">
         <p>
           Change the quantity, then toggle pending or read only. Both block
           editing; pending also shows an update message. Your draft is retained.
@@ -505,15 +516,17 @@ export const PendingAndReadOnly: Story = {
             changed(details)
           }}
         />
-        <p data-testid="draft-value">
-          Draft: {value === "" ? "(empty)" : value}
-        </p>
-        <p>
-          Commits count value confirmations when you press Enter or leave the
-          editable input. The demo does not save data.
-        </p>
-        <p data-testid="commit-count">Commits: {commitCount}</p>
-        <div className="flex flex-wrap gap-100">
+        <div className="flex flex-col gap-100" data-testid="quantity-status">
+          <p data-testid="draft-value">
+            Draft: {value === "" ? "(empty)" : value}
+          </p>
+          <p>
+            Commits count value confirmations when you press Enter or leave the
+            editable input. The demo does not save data.
+          </p>
+          <p data-testid="commit-count">Commits: {commitCount}</p>
+        </div>
+        <div className="flex flex-wrap gap-150">
           <Button
             aria-pressed={pending}
             onMouseDown={(event) => event.preventDefault()}
@@ -523,6 +536,7 @@ export const PendingAndReadOnly: Story = {
           </Button>
           <Button
             aria-pressed={readOnly}
+            theme="outlined"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => setReadOnly(!readOnly)}
           >

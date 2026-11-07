@@ -570,7 +570,7 @@ function OverlayControls() {
     <StatusText role="status">{notificationStatus}</StatusText>
     <div className="flex flex-wrap items-center gap-200">
       <Dialog title="Nested confirmation" triggerText="Open nested dialog" description="The child backdrop sits above its parent panel."><p>Press Escape to return to the host.</p></Dialog>
-      <Drawer size="sm"><Drawer.Trigger size="sm">Open nested drawer</Drawer.Trigger><Drawer.Portal><Drawer.Backdrop /><Drawer.Positioner><Drawer.Content><Drawer.Header><Drawer.Title>Nested drawer</Drawer.Title></Drawer.Header><Drawer.Body>Press Escape to return to the host.</Drawer.Body><Drawer.Footer><Drawer.CloseTrigger>Close nested drawer</Drawer.CloseTrigger></Drawer.Footer></Drawer.Content></Drawer.Positioner></Drawer.Portal></Drawer>
+      <Drawer size="sm"><Drawer.Trigger size="sm">Open nested drawer</Drawer.Trigger><Drawer.Portal><Drawer.Backdrop /><Drawer.Positioner><Drawer.Content><Drawer.Header><Drawer.Title>Nested drawer</Drawer.Title></Drawer.Header><Drawer.Body>Press Escape to return to the host.</Drawer.Body><Drawer.Footer><Drawer.CloseTrigger size="md" theme="outlined" variant="tertiary">Close nested drawer</Drawer.CloseTrigger></Drawer.Footer></Drawer.Content></Drawer.Positioner></Drawer.Portal></Drawer>
     </div>
   </div>
 }
@@ -590,7 +590,7 @@ export const NestedOverlays: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Nested popup commands, hints and notifications preserve a modal's accessible tree and focus scope without cascading Escape dismissal." } } },
   render: () => <ToastProvider><div className="flex flex-wrap gap-200">
     <Dialog title="Dialog overlay host" triggerText="Open dialog host"><OverlayControls /></Dialog>
-    <Drawer><Drawer.Trigger>Open drawer host</Drawer.Trigger><Drawer.Portal><Drawer.Backdrop /><Drawer.Positioner><Drawer.Content><Drawer.Header><Drawer.Title>Drawer overlay host</Drawer.Title></Drawer.Header><Drawer.Body><OverlayControls /></Drawer.Body><Drawer.Footer><Drawer.CloseTrigger>Close host</Drawer.CloseTrigger></Drawer.Footer></Drawer.Content></Drawer.Positioner></Drawer.Portal></Drawer>
+    <Drawer><Drawer.Trigger>Open drawer host</Drawer.Trigger><Drawer.Portal><Drawer.Backdrop /><Drawer.Positioner><Drawer.Content><Drawer.Header><Drawer.Title>Drawer overlay host</Drawer.Title></Drawer.Header><Drawer.Body><OverlayControls /></Drawer.Body><Drawer.Footer><Drawer.CloseTrigger size="md" theme="outlined" variant="tertiary">Close host</Drawer.CloseTrigger></Drawer.Footer></Drawer.Content></Drawer.Positioner></Drawer.Portal></Drawer>
   </div></ToastProvider>,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -610,6 +610,11 @@ export const NestedOverlays: Story = {
       )
       await userEvent.keyboard("{Tab}")
       hintTrigger.focus()
+      if (host === "dialog") {
+        const viewport = modal.querySelector<HTMLElement>(".dialog-scroll-viewport")
+        if (!viewport) throw new Error("Missing host dialog scroll viewport")
+        await waitFor(() => expectWithinScrollport(hintTrigger, viewport))
+      }
       await expect(await body.findByRole("tooltip")).toHaveAttribute("id", "overlay-hint")
       await userEvent.keyboard("{Escape}")
       await waitFor(() => expect(body.queryByRole("tooltip")).toBeNull())
@@ -641,10 +646,32 @@ export const NestedOverlays: Story = {
   },
 }
 
+function expectWithinScrollport(element: HTMLElement, scrollport: HTMLElement) {
+  const bounds = element.getBoundingClientRect()
+  const port = scrollport.getBoundingClientRect()
+  const document = element.ownerDocument
+  const top = Math.max(0, port.top + scrollport.clientTop)
+  const left = Math.max(0, port.left + scrollport.clientLeft)
+  const bottom = Math.min(
+    document.documentElement.clientHeight,
+    port.top + scrollport.clientTop + scrollport.clientHeight
+  )
+  const right = Math.min(
+    document.documentElement.clientWidth,
+    port.left + scrollport.clientLeft + scrollport.clientWidth
+  )
+  expect(bounds.height).toBeGreaterThan(0)
+  expect(bounds.width).toBeGreaterThan(0)
+  expect(bounds.top).toBeGreaterThanOrEqual(top - 1)
+  expect(bounds.bottom).toBeLessThanOrEqual(bottom + 1)
+  expect(bounds.left).toBeGreaterThanOrEqual(left - 1)
+  expect(bounds.right).toBeLessThanOrEqual(right + 1)
+}
+
 export const LongContent: Story = {
   tags: ["ui-runtime-regression"],
-  parameters: { controls: { disable: true }, docs: { description: { story: "A long review scrolls inside a viewport-bounded panel while its heading, dismissal and publishing actions remain reachable. A footer divider marks the scroll boundary." } } },
-  render: () => {
+  parameters: { controls: { disable: true }, docs: { description: { story: "A long review scrolls inside a viewport-bounded panel while its heading, dismissal and publishing actions remain reachable. Short viewports scroll the whole panel instead of collapsing the body. A footer divider marks the scroll boundary." } } },
+  render: (args) => {
     const [open, setOpen] = useState(false)
     const [published, setPublished] = useState(false)
     return (
@@ -652,6 +679,8 @@ export const LongContent: Story = {
         <Dialog
           title="Review catalog"
           triggerText="Review long catalog"
+          placement={args.placement}
+          size={args.size}
           open={open}
           onOpenChange={({ open }) => setOpen(open)}
           actions={
@@ -687,24 +716,61 @@ export const LongContent: Story = {
     const footer = publish.parentElement
     if (!footer) throw new Error("Missing review footer")
     await expect(Number.parseFloat(getComputedStyle(footer).borderTopWidth)).toBeGreaterThan(0)
-    viewport.scrollTop = viewport.scrollHeight
+    const positioner = dialog.parentElement
+    if (!positioner) throw new Error("Missing dialog positioner")
+    heading.scrollIntoView({ block: "nearest" })
+    await waitFor(() => expectWithinScrollport(heading, positioner))
+    const headingTop = heading.getBoundingClientRect().top
+    const scrollport =
+      viewport.scrollHeight > viewport.clientHeight + 1 ? viewport : positioner
+    expect(scrollport.clientHeight).toBeGreaterThan(0)
+    scrollport.scrollTop = scrollport.scrollHeight
+    const lastProduct = within(dialog).getByText(/^Review product 24:/)
+    lastProduct.scrollIntoView({ block: "nearest" })
     await waitFor(() => {
-      expect(viewport.scrollTop).toBeGreaterThan(0)
-      const panelBounds = dialog.getBoundingClientRect()
-      const viewportBounds = viewport.getBoundingClientRect()
-      const headingBounds = heading.getBoundingClientRect()
-      const lastProduct = within(dialog).getByText(/^Review product 24:/).getBoundingClientRect()
-      expect(headingBounds.top).toBeGreaterThanOrEqual(panelBounds.top)
-      expect(headingBounds.bottom).toBeLessThanOrEqual(viewportBounds.top)
-      expect(lastProduct.top).toBeGreaterThanOrEqual(viewportBounds.top)
-      expect(lastProduct.bottom).toBeLessThanOrEqual(viewportBounds.bottom + 1)
-      expect(publish.getBoundingClientRect().bottom).toBeLessThanOrEqual(panelBounds.bottom)
+      expect(scrollport.scrollTop).toBeGreaterThan(0)
+      expectWithinScrollport(lastProduct, scrollport)
+      expect(viewport.scrollWidth - viewport.clientWidth).toBeLessThanOrEqual(1)
+      if (scrollport === viewport) {
+        expect(Math.abs(heading.getBoundingClientRect().top - headingTop)).toBeLessThanOrEqual(1)
+        expectWithinScrollport(publish, positioner)
+      }
     })
-    await userEvent.click(within(dialog).getByRole("button", { name: "Close dialog" }))
+    publish.scrollIntoView({ block: "nearest" })
+    await waitFor(() => expectWithinScrollport(publish, positioner))
+    const close = within(dialog).getByRole("button", { name: "Close dialog" })
+    close.scrollIntoView({ block: "nearest" })
+    await waitFor(() => {
+      expectWithinScrollport(close, positioner)
+      expectWithinScrollport(heading, positioner)
+    })
+    await userEvent.click(close)
     await waitFor(() => expect(dialog).not.toBeInTheDocument())
+    await waitFor(() =>
+      expect(canvas.getByRole("button", { name: "Review long catalog" })).toHaveFocus()
+    )
   },
 }
 
+export const ConstrainedViewport: Story = {
+  ...LongContent,
+  args: { placement: "bottom", size: "lg" },
+  argTypes: {
+    placement: {
+      control: "select",
+      options: ["center", "left", "right", "top", "bottom"],
+    },
+  },
+  parameters: {
+    controls: { disable: false, include: ["placement", "size"] },
+    docs: {
+      description: {
+        story:
+          "Resize to a short viewport such as 320 × 256 and check each placement, including RTL. The native outer scrollport must expose the heading, all 24 review rows, publishing action and dismissal without clipping nested popup portals to the panel.",
+      },
+    },
+  },
+}
 
 type NestedFieldKind = "select" | "combobox" | "date-picker"
 
@@ -822,7 +888,7 @@ function NestedFieldHosts({ kind }: { kind: NestedFieldKind }) {
                       <NestedField kind={kind} portalled={portalled} />
                     </Drawer.Body>
                     <Drawer.Footer>
-                      <Drawer.CloseTrigger>Close host</Drawer.CloseTrigger>
+                      <Drawer.CloseTrigger size="md" theme="outlined" variant="tertiary">Close host</Drawer.CloseTrigger>
                     </Drawer.Footer>
                   </Drawer.Content>
                 </Drawer.Positioner>

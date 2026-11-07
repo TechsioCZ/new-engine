@@ -510,10 +510,8 @@ export const InDialog: Story = {
       palette.getByRole("option", { name: "Overview" })
     ).toHaveAttribute("data-highlighted", "")
     const query = "invoice"
-    for (const [index, character] of Array.from(query).entries()) {
-      await userEvent.type(input, character)
-      await waitFor(() => expect(input).toHaveValue(query.slice(0, index + 1)))
-    }
+    await userEvent.type(input, query, { delay: null })
+    await waitFor(() => expect(input).toHaveValue(query))
     await waitFor(() =>
       expect(palette.getByRole("option", { name: "Orders" })).toHaveAttribute(
         "data-highlighted",

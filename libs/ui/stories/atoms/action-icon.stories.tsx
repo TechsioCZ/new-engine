@@ -129,16 +129,23 @@ export const Sizes: Story = {
   play: async ({ canvasElement }) => {
     const buttons = within(canvasElement).getAllByRole("button")
     let previousGlyph = 0
-    let previousTarget = 0
+    let previousWidth = 0
+    let previousHeight = 0
     for (const button of buttons) {
       const glyph = button.firstElementChild
       if (!glyph) throw new Error("Missing ActionIcon size glyph")
       const glyphSize = Number.parseFloat(getComputedStyle(glyph).fontSize)
-      const targetSize = button.getBoundingClientRect().width
+      const target = button.getBoundingClientRect()
+      const glyphBounds = glyph.getBoundingClientRect()
       await expect(glyphSize).toBeGreaterThan(previousGlyph)
-      await expect(targetSize).toBeGreaterThanOrEqual(previousTarget)
+      await expect(target.width).toBeGreaterThanOrEqual(previousWidth)
+      await expect(target.height).toBeGreaterThanOrEqual(previousHeight)
+      await expect(target.width).toBeCloseTo(target.height)
+      await expect(glyphBounds.width).toBeLessThan(target.width)
+      await expect(glyphBounds.height).toBeLessThan(target.height)
       previousGlyph = glyphSize
-      previousTarget = targetSize
+      previousWidth = target.width
+      previousHeight = target.height
     }
   },
 }

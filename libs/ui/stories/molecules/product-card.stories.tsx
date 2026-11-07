@@ -40,6 +40,14 @@ async function expectCoherentCards(canvasElement: HTMLElement) {
     if (!first) continue
     for (const star of stars) {
       await expect(star.getBoundingClientRect().top).toBe(first.top)
+      if (control.getAttribute("role") === "img") {
+        const fontSize = Number.parseFloat(
+          window.getComputedStyle(star).fontSize
+        )
+        await expect(star.getBoundingClientRect().width).toBeLessThanOrEqual(
+          fontSize + 1
+        )
+      }
     }
     await expect(control.scrollWidth).toBeLessThanOrEqual(control.clientWidth + 1)
   }
@@ -660,7 +668,7 @@ export const CustomComposition: Story = {
       <ProductCard.Name>Professional DSLR Camera</ProductCard.Name>
 
       <div className="flex flex-wrap items-baseline gap-100">
-        <del className="text-100 text-fg-primary">
+        <del className="text-100 text-fg-muted">
           <span className="sr-only">Original price </span>$1,899
         </del>
         <ProductCard.Price>
@@ -710,7 +718,7 @@ export const WithQuantityInput: Story = {
 
   render: () => (
     <ProductCard className="max-w-sm">
-      <div>
+      <div className="flex min-w-0 flex-col gap-200">
         <ProductCard.Image
           src={productImages.watch}
           alt="Luxury Watch"
@@ -768,6 +776,16 @@ export const WithQuantityInput: Story = {
 }
 
 export const MinimalCard: Story = {
+  play: async ({ canvasElement }) => {
+    await expectCoherentCards(canvasElement)
+    const name = within(canvasElement).getByRole("heading", {
+      name: "Travel Backpack",
+    })
+    const lineHeight = Number.parseFloat(window.getComputedStyle(name).lineHeight)
+    await expect(name.getBoundingClientRect().height).toBeLessThanOrEqual(
+      lineHeight + 1
+    )
+  },
   parameters: {
     docs: {
       description: {
@@ -1019,7 +1037,7 @@ export const CustomRowSpan: Story = {
   render: () => (
     <div className="w-lg max-w-full">
       <ProductCard layout="row" className="w-full auto-rows-auto">
-        <div className="row-span-3">
+        <div className="row-span-3 flex min-w-0 flex-col gap-200">
           <ProductCard.Name>Professional Camera</ProductCard.Name>
           <ProductCard.Image
             src={productImages.camera}
@@ -1027,7 +1045,7 @@ export const CustomRowSpan: Story = {
             className="h-fit row-span-2"
           />
         </div>
-        <div className="col-2 row-span-3 self-start">
+        <div className="col-2 row-span-3 flex min-w-0 flex-col gap-200 self-start">
           <ProductCard.Price>$1,299.99</ProductCard.Price>
           <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true, size: "sm" }} />
           <ProductCard.Actions>
@@ -1061,7 +1079,7 @@ export const CustomGridLayout: Story = {
         <ProductCard.Image
           src={productImages.headphones}
           alt="Headphones"
-          className="aspect-video row-span-1"
+          className="row-span-1 aspect-video h-auto"
         />
       </div>
       <div className="flex flex-col gap-200">

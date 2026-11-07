@@ -67,6 +67,14 @@
     var(--gap-line-item)
   );
 
+  /* Compensate for the active layout's grid gap, not the default gap. */
+  [data-scope="line-item"][data-layout="compact"] > & {
+    margin-block-start: calc(
+      var(--gap-line-item-feedback) -
+      var(--gap-line-item-compact)
+    );
+  }
+
   [data-scope="line-item"]:has(> [data-part="image"]) > & {
     grid-column: 2 / -1;
   }

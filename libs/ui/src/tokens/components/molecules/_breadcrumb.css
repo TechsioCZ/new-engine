@@ -25,10 +25,11 @@
   /* Preserve the existing two gaps plus default icon between destinations. */
   --breadcrumb-column-gap: calc(
     2 *
-    var(--breadcrumb-item-gap) +
-    var(--breadcrumb-separator-size)
+    var(--breadcrumb-item-gap, var(--spacing-breadcrumb-md)) +
+    var(--breadcrumb-separator-size, var(--text-breadcrumb-separator-icon-md))
   );
-  gap: var(--breadcrumb-item-gap) var(--breadcrumb-column-gap);
+  gap: var(--breadcrumb-item-gap, var(--spacing-breadcrumb-md))
+    var(--breadcrumb-column-gap);
 }
 
 @utility breadcrumb-segment {
@@ -39,7 +40,14 @@
     position: absolute;
     inset-block: 0;
     inset-inline-end: 100%;
-    inline-size: var(--breadcrumb-column-gap);
+    inline-size: var(
+      --breadcrumb-column-gap,
+      calc(
+        2 *
+        var(--spacing-breadcrumb-md) +
+        var(--text-breadcrumb-separator-icon-md)
+      )
+    );
   }
 
   &[data-wrap-start] > ol > li:first-child {

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { StorySurface } from "../../.storybook/decorator"
 import { CarouselTemplate } from "../../src/templates/carousel"
 
 const travelSlides = [
@@ -26,7 +27,7 @@ const meta: Meta<typeof CarouselTemplate> = {
   tags: ["autodocs"],
   parameters: {
     controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
-    layout: "padded",
+    layout: "fullscreen",
     docs: {
       description: {
         component:
@@ -36,9 +37,9 @@ const meta: Meta<typeof CarouselTemplate> = {
   },
   decorators: [
     (Story) => (
-      <div className="mx-auto w-full max-w-lg">
+      <StorySurface className="max-w-lg">
         <Story />
-      </div>
+      </StorySurface>
     ),
   ],
   argTypes: {

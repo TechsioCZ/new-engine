@@ -78,6 +78,20 @@ function utility(name: string) {
   return required(result)
 }
 
+function declarations(container: postcss.Container, selector?: string) {
+  const result: Record<string, string> = {}
+  container.walkDecls((declaration) => {
+    const parent = declaration.parent
+    const matchesScope = selector
+      ? parent?.type === "rule" && parent.selector === selector
+      : parent === container
+    if (matchesScope) {
+      result[declaration.prop] = declaration.value.replace(/\s+/g, " ").trim()
+    }
+  })
+  return result
+}
+
 describe("Table review repairs", () => {
   it("insets the measured overflow hint without changing native scrolling", async () => {
     const decorators = meta.decorators
@@ -231,27 +245,74 @@ describe("Table review repairs", () => {
       expect(canvas.querySelector("tfoot")?.className).toContain(
         "bg-table-footer-bg"
       )
-      expect(canvas.querySelector("table")?.className).toContain(
-        "border-collapse"
-      )
+      expect(
+        canvas.querySelector("table")?.classList.contains("table-frozen-grid")
+      ).toBe(true)
+      for (const row of canvas.querySelectorAll("tr")) {
+        expect(
+          row.classList.contains("border-b-(length:--border-table-width)")
+        ).toBe(true)
+        expect(row.classList.contains("border-table-border")).toBe(true)
+      }
     }
   )
 
-  it("paints the frozen divider inside its opaque cell without losing state tints", () => {
-    const frozen = utility("table-frozen-cell")
-    const declarations = new Map<string, string>()
-    frozen.walkDecls((declaration) => {
-      declarations.set(declaration.prop, declaration.value)
+  it("uses cell-inherited frozen dividers without double paint or lost state tints", async () => {
+    const grid = utility("table-frozen-grid")
+    expect(declarations(grid, "&:is(table)")).toMatchObject({
+      "border-collapse": "separate",
+      "border-spacing": "0",
     })
-    expect(declarations.get("box-shadow")).toBe(
-      "inset 0 calc(-1 * var(--border-table-width)) 0\n    var(--color-table-border)"
+    expect(
+      declarations(grid, "& > :is(thead, tbody, tfoot) > tr > :is(td, th)")
+    ).toMatchObject({ "border-block-end": "inherit" })
+
+    const frozen = utility("table-frozen-cell")
+    const base = declarations(frozen)
+    expect(base["background-color"]).toBe("var(--color-table-bg)")
+    expect(base["background-image"]).toBe(
+      "linear-gradient( var(--table-row-tint, transparent), var(--table-row-tint, transparent) )"
     )
-    expect(declarations.get("border-block-end")).toContain(
-      "var(--border-table-width)"
-    )
-    expect(declarations.get("background-color")).toBe("var(--color-table-bg)")
-    expect(frozen.toString()).toContain('tr[data-selected="true"] > &')
-    expect(frozen.toString()).toContain("var(--table-row-tint, transparent)")
+    frozen.walkDecls((declaration) => {
+      expect(declaration.prop).not.toBe("box-shadow")
+      expect(declaration.prop.startsWith("border")).toBe(false)
+    })
+    expect(declarations(frozen, 'tr[data-selected="true"] > &')).toMatchObject({
+      "background-image":
+        "linear-gradient( var(--color-table-row-bg-selected), var(--color-table-row-bg-selected) )",
+      color: "var(--color-table-row-fg-selected)",
+    })
+    expect(declarations(frozen, "tfoot > tr > &")).toMatchObject({
+      "background-color": "var(--color-table-footer-bg)",
+      "background-image": "none",
+    })
+    expect(
+      declarations(
+        utility("table-row-striped"),
+        ":where(tbody > &:nth-child(odd))"
+      )
+    ).toMatchObject({
+      "--table-row-tint": "var(--color-table-row-striped-primary)",
+    })
+    expect(
+      declarations(
+        utility("table-row-striped"),
+        ":where(tbody > &:nth-child(even))"
+      )
+    ).toMatchObject({
+      "--table-row-tint": "var(--color-table-row-striped-secondary)",
+    })
+    expect(
+      declarations(
+        utility("table-row-interactive"),
+        '&:where(tbody > tr:hover:not([data-selected="true"]))'
+      )
+    ).toMatchObject({ "--table-row-tint": "var(--color-table-row-bg-hover)" })
+
+    const ordinary = await mount(<Table />)
+    const table = required(ordinary.querySelector("table"))
+    expect(table.classList.contains("table-frozen-grid")).toBe(false)
+    expect(table.classList.contains("border-collapse")).toBe(true)
   })
 
   it("paints focus on cells with RTL edges and a forced-colors fallback, not row geometry", () => {

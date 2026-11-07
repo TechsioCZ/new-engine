@@ -6,7 +6,7 @@ description: >
   triggers, content, indicator, orientation, activation mode, variants, fitted,
   and justify props.
 metadata:
-  component_version: "1.2.6"
+  component_version: "1.2.7"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -184,6 +184,14 @@ containers keep min-width zero; callers should constrain fixed demonstration
 widths with max-w-full. Center/end justification falls back to start when tabs
 overflow, keeping the first tab reachable. Line indicators stay inside the
 scrollport; default tabs underline the selected label even without an Indicator.
+
+`Tabs.List` renders a presentational viewport around the actual tablist. Its
+props, event handlers and ref still belong to the tablist; avoid selectors that
+assume it is a direct child of the root. Business overflow veils follow measured
+physical scroll edges, including RTL, and focused triggers paint above them.
+For a custom list surface, set the matching `--color-tabs-overflow-bg-veil` on
+`Tabs` or an ancestor. List-local colors do not inherit upward to the viewport.
+
 Vertical strips retain their intrinsic label width rather than being squeezed by
 panel content. Panels take the remaining space and wrap long unbroken text;
 keep vertical tab labels short so both columns remain useful on narrow screens.

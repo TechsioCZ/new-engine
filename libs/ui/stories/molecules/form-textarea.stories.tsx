@@ -227,6 +227,57 @@ export const AutoSizing: Story = {
   ),
 }
 
+export const ConstrainedLayout: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Fields shrink inside flex layouts without clipping long labels. Direction applies to the complete field, including validation feedback.",
+      },
+    },
+  },
+  render: () => (
+    <div className="flex w-full min-w-0 flex-col gap-300">
+      <div className="flex w-full min-w-0">
+        <FormTextarea
+          helpText="Keep the complete delivery reference visible."
+          label="Delivery-reference-for-the-courier-and-reception-team"
+          rows={3}
+        />
+      </div>
+      <div className="flex w-full min-w-0">
+        <FormTextarea
+          dir="rtl"
+          helpText="أضف تعليمات تساعد المندوب في الوصول إلى المدخل الصحيح."
+          label="تعليمات التسليم"
+          rows={3}
+          validateStatus="warning"
+        />
+      </div>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const fields = within(canvasElement).getAllByRole("textbox")
+    for (const field of fields) {
+      const root = field.parentElement
+      const frame = root?.parentElement
+      if (!(root && frame)) {
+        throw new Error("The field must retain its constrained flex fixture")
+      }
+      await expect(root.scrollWidth).toBeLessThanOrEqual(frame.clientWidth + 1)
+      await expect(field.getBoundingClientRect().width).toBeLessThanOrEqual(
+        frame.clientWidth + 1
+      )
+    }
+    const rtlField = fields[1]
+    if (!rtlField) {
+      throw new Error("Missing the RTL delivery-instructions field")
+    }
+    await expect(rtlField.parentElement).toHaveAttribute("dir", "rtl")
+  },
+}
+
 export const FeedbackLifecycle: Story = {
   parameters: {
     controls: { disable: true },

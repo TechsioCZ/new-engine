@@ -27,6 +27,23 @@ describe("native text wrapping utilities", () => {
   })
 })
 
+describe("native background clipping utilities", () => {
+  for (const value of ["border", "padding", "content", "text"]) {
+    it(`accepts token-free bg-clip-${value} supported by Tailwind`, async () => {
+      const compiler = await compile("@tailwind utilities;")
+      const css = compiler.build([`bg-clip-${value}`])
+      const expected = value === "text" ? "text" : `${value}-box`
+      assert.ok(
+        css.replace(WHITESPACE, "").includes(`background-clip:${expected};`)
+      )
+      assert.deepEqual(findMissingTokens(`bg-clip-${value}`, new Set()), [])
+    })
+  }
+  it("still rejects unknown background clipping names", () => {
+    assert.ok(findMissingTokens("bg-clip-missing", new Set()).length > 0)
+  })
+})
+
 describe("fractional dimension utilities", () => {
   for (const [prefix, property] of [
     ["w", "width"],

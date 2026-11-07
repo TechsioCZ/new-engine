@@ -3,8 +3,10 @@
   /* Reference layer */
   --color-header-mobile-outline: var(--color-border-primary);
   --spacing-header-mobile-inset: var(--dimension-12);
+  --spacing-header-touch-target: var(--dimension-44);
 
   /* Derived layer */
+  --size-header-hamburger-min: var(--spacing-header-touch-target);
   --color-header-mobile-border: var(--color-header-mobile-outline);
   --border-width-header-mobile: var(--dimension-1);
   --padding-header-mobile: var(--spacing-header-mobile-inset);
@@ -23,6 +25,9 @@
 }
 @utility header-hamburger {
   display: inline-flex;
+  /* Small headers still need a complete pointer target, not just icon padding. */
+  min-inline-size: var(--size-header-hamburger-min);
+  min-block-size: var(--size-header-hamburger-min);
   @container (width >= 48rem) {
     &[aria-controls] {
       display: none;

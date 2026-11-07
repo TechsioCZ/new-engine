@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest"
 import { Tabs } from "../src/molecules/tabs"
 
 const TABLIST_TAG = /<div\b[^>]*role="tablist"[^>]*>/
+const VIEWPORT_AND_TABLIST =
+  /<div class="[^"]*tabs-list-viewport[^"]*"><div[^>]*role="tablist"/
 const DISABLED_TAB_TAG = /<button\b[^>]*data-value="details"[^>]*>/
 const DISABLED_ATTRIBUTE = /\sdisabled=""/
 const TAB_ROLE = /role="tab"/g
@@ -129,7 +131,63 @@ describe("Tabs overflow and unavailable presentation", () => {
     expect(renderTabs("vertical")).toContain('data-orientation="vertical"')
   })
 
-  it("leaves other themes' cue invisible and their unavailable surface unchanged", () => {
+  it("hosts physical-edge surface veils outside list geometry and below keyboard focus", () => {
+    const html = renderTabs()
+    expect(html).toMatch(VIEWPORT_AND_TABLIST)
+    const viewport = utility("tabs-list-viewport")
+    expect(declarations(viewport)).toEqual({ display: "contents" })
+    const rules = viewport.nodes?.filter(
+      (node): node is Rule => node.type === "rule"
+    )
+    const horizontal = rules?.[0] as Rule
+    expect(horizontal.selector).toBe(
+      '&:has(> [data-part="list"][data-orientation="horizontal"])'
+    )
+    expect(declarations(horizontal)).toEqual({
+      position: "relative",
+      display: "block",
+      isolation: "isolate",
+    })
+    const paint = new Map<string, Record<string, string>>()
+    horizontal.walkRules((rule) => {
+      paint.set(rule.selector, declarations(rule))
+    })
+    expect(paint.get('> [data-part="list"][data-overflow-left]')).toEqual({
+      "background-image": "none",
+    })
+    const shared = paint.get("&::before,\n    &::after")
+    expect(shared?.position).toBe("absolute")
+    expect(shared?.width).toBe("var(--spacing-tabs-overflow-cue)")
+    expect(shared?.["pointer-events"]).toBe("none")
+    for (const [side, pseudo, gradient] of [
+      ["left", "before", RIGHT_COVER],
+      ["right", "after", LEFT_COVER],
+    ] as const) {
+      const edge = paint.get(
+        `&:has(> [data-overflow-${side}="true"])::${pseudo}`
+      )
+      expect(edge?.[side]).toBe("0")
+      expect(edge?.["background-image"]).toMatch(gradient)
+      expect(edge?.["background-image"]).toContain(
+        "--color-tabs-overflow-bg-veil"
+      )
+    }
+    expect(tokens()["--color-tabs-overflow-bg-veil"]).toBe(
+      "var(--color-tabs-overflow)"
+    )
+    const focus = utility("tabs-trigger-focus").nodes?.find(
+      (node): node is Rule => node.type === "rule"
+    ) as Rule
+    expect(focus.selector).toBe("&:focus-visible")
+    expect(Number(declarations(focus)["z-index"])).toBeGreaterThan(
+      Number(shared?.["z-index"])
+    )
+    viewport.walkDecls((declaration) => {
+      expect(declaration.prop).not.toMatch(CLIPPING_OR_MOTION)
+    })
+  })
+
+  it("leaves other themes' fallback cue invisible and their unavailable surface unchanged", () => {
     const values = tokens()
     expect(values["--color-tabs-overflow"]).toBe("var(--color-transparent)")
     expect(values["--color-tabs-overflow-bg-cue"]).toBe(

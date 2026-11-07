@@ -81,6 +81,7 @@ const IGNORE_PATTERNS = [
   // Standard colors including transparent
   /^(bg|text|border)-(transparent|current|black|white|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-\d{1,3})?(?:\/\d{1,3})?$/,
   /^(bg|text|border|decoration)-(transparent|current|black|white|inherit)$/,
+  /^bg-clip-(border|padding|content|text)$/,
 
   // Standard typography
   /^text-(wrap|nowrap|balance|pretty)$/,

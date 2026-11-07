@@ -41,6 +41,10 @@
   --size-color-select-check: 1.5em;
 
   --padding-color-select-atom: 0 0;
+  /* Keep focus-recovery outlines clear of the swatches without layout shifts. */
+  --padding-color-select-group: var(--spacing-color-select-sm);
+  --spacing-color-select-label: var(--spacing-100);
+  --gap-color-select-label: var(--spacing-color-select-label);
   --size-color-select-icon: 50%;
 }
 
@@ -53,7 +57,12 @@
 }
 
 @utility color-select-grid {
-  grid-template-columns: repeat(var(--cols-num), minmax(0, 1fr));
+  /* Sparse palettes share the full row instead of leaving empty caption tracks.
+   * --cols-num remains the responsive maximum and a public override. */
+  grid-template-columns: repeat(
+      min(var(--cols-num), var(--color-select-option-count, var(--cols-num))),
+      minmax(0, 1fr)
+    );
 
   /* Large captions need wider tracks than the compact caption scale. Drop
    * columns before splitting ordinary names; unbroken long names still wrap. */

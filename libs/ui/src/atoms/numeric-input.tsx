@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.6
+ * @componentVersion v1.3.7
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -125,7 +125,7 @@ const readOnlySafeMachine: typeof numberInput.machine = {
 
 const numericInputVariants = tv({
   slots: {
-    root: ["relative flex flex-col"],
+    root: ["relative flex min-w-0 flex-col"],
     container: [
       "group form-control-base numeric-input-validation numeric-input-readonly relative flex",
       "border-numeric-input-border",
@@ -144,7 +144,7 @@ const numericInputVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     input: [
-      "h-full rounded-none border-none",
+      "h-full min-w-0 flex-1 rounded-none border-none",
       "bg-numeric-input-input-bg",
       "focus:bg-numeric-input-input-bg-focus",
       "hover:bg-numeric-input-input-bg-hover",
@@ -153,10 +153,9 @@ const numericInputVariants = tv({
       "focus-visible:outline-hidden",
       "duration-0 data-invalid:focus:border-input-border-danger-focus",
     ],
-    // Subtle divider from the input instead of a gray fill block; the gap-px
-    // shows the field behind it as a hairline between the two arrows.
+    // Reserve the stepper width; only the editor shrinks in a narrow field.
     triggerContainer: [
-      "flex flex-row self-stretch",
+      "flex shrink-0 flex-row self-stretch",
       "border-numeric-input-border border-s group-data-disabled:border-numeric-input-border-disabled",
     ],
     // Unified neutral icon-control treatment: transparent base (matches the
@@ -164,6 +163,7 @@ const numericInputVariants = tv({
     // no blue arrow-on-gray. Glyph size is kept per NumericInput's own scale.
     trigger: [
       "flex min-h-numeric-input-trigger-min min-w-numeric-input-trigger-min flex-1 place-items-center",
+      "pointer-coarse:min-w-numeric-input-trigger-touch-min",
       "px-numeric-input-trigger-x py-numeric-input-trigger-y",
       "bg-transparent hover:bg-numeric-input-trigger-bg-hover active:bg-numeric-input-trigger-bg-active",
       "text-numeric-input-trigger-fg",
@@ -602,6 +602,7 @@ type NumericInputInputProps = Omit<
 
 NumericInput.Input = function NumericInputInput({
   ref,
+  id,
   className,
   ...props
 }: NumericInputInputProps) {
@@ -626,9 +627,9 @@ NumericInput.Input = function NumericInputInput({
   // A native id override must also reach Zag's labels, focus actions and
   // stepper aria-controls. Unregister it when the input is replaced/unmounted.
   useLayoutEffect(() => {
-    setInputId(props.id)
+    setInputId(id)
     return () => setInputId(undefined)
-  }, [props.id, setInputId])
+  }, [id, setInputId])
   const inputRef = useRef<HTMLInputElement>(null)
   const mergedRef = useMemo(
     () => (node: HTMLInputElement | null) => {
@@ -725,6 +726,7 @@ NumericInput.Input = function NumericInputInput({
       aria-invalid={isInvalid || undefined}
       className={styles.input({ className })}
       disabled={disabled || props.disabled}
+      id={id ?? machineInputProps.id}
       readOnly={readOnly || props.readOnly}
       size={size}
     />

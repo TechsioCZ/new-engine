@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.3.4
+ * @componentVersion v1.3.5
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -497,7 +497,9 @@ function RatingItems({
                 dir={dir}
                 style={
                   {
-                    "--rating-item-clip": `${Math.round((1 - fill) * 100)}%`,
+                    // Keep sub-percent averages precise without exposing
+                    // floating-point noise for ordinary scores such as 4.6.
+                    "--rating-item-clip": `${Number(((1 - fill) * 100).toFixed(10))}%`,
                   } as CSSProperties
                 }
               />

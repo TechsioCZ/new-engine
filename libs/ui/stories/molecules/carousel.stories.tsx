@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
-import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import {
+  StorySurface,
+  VariantContainer,
+  VariantGroup,
+} from "../../.storybook/decorator"
 import {
   Carousel,
   type CarouselRootProps,
@@ -65,7 +69,7 @@ const meta: Meta<StoryArgs> = {
   component: Carousel,
   tags: ["autodocs"],
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     docs: {
       source: {
         transform: (source: string) =>
@@ -83,9 +87,9 @@ const meta: Meta<StoryArgs> = {
   },
   decorators: [
     (Story) => (
-      <div className="mx-auto w-full max-w-lg">
+      <StorySurface className="max-w-lg">
         <Story />
-      </div>
+      </StorySurface>
     ),
   ],
   argTypes: {

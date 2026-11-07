@@ -104,7 +104,7 @@ function DelayedControlledQuery({
       >
         Replace query externally
       </Button>
-      <p className="text-fg-secondary text-sm">
+      <p className="min-w-0 wrap-anywhere text-fg-secondary text-sm">
         Parent query: <output aria-label="Parent query">{query}</output>
       </p>
     </div>

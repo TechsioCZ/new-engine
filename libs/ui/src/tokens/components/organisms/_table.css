@@ -18,18 +18,23 @@
     var(--padding-table-cell-lg-x);
 }
 
-/* Publish the row tint; only the frozen cell composites it over the surface. */
+/* Stripe records, not headings or totals. Keep these selectors weak so hover
+ * and selection win, and publish the same tint to the opaque frozen cell. */
 @utility table-row-striped {
-  &:nth-child(odd) {
+  &:where(tbody > tr) {
+    background-color: var(--table-row-tint, transparent);
+  }
+  :where(tbody > &:nth-child(odd)) {
     --table-row-tint: var(--color-table-row-striped-primary);
   }
-  &:nth-child(even) {
+  :where(tbody > &:nth-child(even)) {
     --table-row-tint: var(--color-table-row-striped-secondary);
   }
 }
 @utility table-row-interactive {
-  &:hover {
+  &:where(tbody > tr:hover:not([data-selected="true"])) {
     --table-row-tint: var(--color-table-row-bg-hover);
+    background-color: var(--color-table-row-bg-hover);
   }
 
   /* Cell-local borders avoid collapsed-row outline paint without replacing
@@ -60,16 +65,31 @@
     }
   }
 }
+/* A frozen column needs cell-owned dividers. Collapsed borders belong to the
+ * table grid and can scroll behind sticky cells; adding an inset shadow then
+ * double-paints just the frozen column. Keep this border model opt-in so
+ * ordinary Table and DataTable layouts retain their existing row borders. */
+@utility table-frozen-grid {
+  &:is(table) {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  & > :is(thead, tbody, tfoot) > tr > :is(td, th) {
+    /* Preserve the row's token border and consumer row-border overrides. */
+    border-block-end: inherit;
+  }
+}
 @utility table-frozen-cell {
-  border-block-end: var(--border-table-width) solid var(--color-table-border);
-  /* Collapsed borders can paint behind an opaque sticky cell. */
-  box-shadow: inset 0 calc(-1 * var(--border-table-width)) 0
-    var(--color-table-border);
   background-color: var(--color-table-bg);
   background-image: linear-gradient(
     var(--table-row-tint, transparent),
     var(--table-row-tint, transparent)
   );
+  tfoot > tr > & {
+    background-color: var(--color-table-footer-bg);
+    background-image: none;
+  }
   tr[data-selected="true"] > & {
     background-image: linear-gradient(
       var(--color-table-row-bg-selected),

@@ -627,6 +627,7 @@ export const WithStickyColumn: Story = {
     <TablePreview
       label="Products, sticky first column"
       className="max-w-lg"
+      scrollClassName="rounded-table border-(length:--border-table-width) border-table-border"
     >
       <Table {...args} stickyFirstColumn>
         <Table.Caption>

@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.8
+ * @componentVersion v1.6.9
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -64,6 +64,7 @@ const comboboxVariants = tv({
     label: ["block font-label"],
     control: [
       "form-control-base relative flex w-full min-w-0 items-center overflow-clip",
+      // eslint-disable-next-line tailwindcss/no-contradicting-classname -- The utility changes only readonly states; the base surface applies otherwise.
       "combobox-readonly-control bg-combobox-bg-base",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
@@ -93,9 +94,8 @@ const comboboxVariants = tv({
       "font-normal",
       "p-combobox-trigger",
     ],
-    // Zag sets `min-width: max-content` inline, so this resolves to
-    // max(trigger width, content width) — the panel is never narrower than
-    // the control that opened it.
+    // sameWidth removes Zag's max-content minimum so long options wrap
+    // within the field width instead of widening the popup beyond it.
     positioner: ["popup-layer isolate w-(--reference-width)"],
     content: [
       "popup-surface-base popup-layer",
@@ -118,7 +118,7 @@ const comboboxVariants = tv({
     footer: [
       "combobox-popup-padding shrink-0 border-combobox-footer-border border-t",
     ],
-    itemText: ["min-w-0 flex-grow truncate"],
+    itemText: ["wrap-anywhere min-w-0 flex-grow whitespace-normal"],
     item: [
       "combobox-item-base",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -152,7 +152,7 @@ const comboboxVariants = tv({
     ],
     selectedList: ["m-0 flex min-w-0 list-none flex-wrap gap-combobox-sm p-0"],
     selectedItem: [
-      "flex min-w-0 max-w-full items-center rounded-combobox-sm border border-combobox-footer-border bg-combobox-bg-base ps-combobox-input-sm",
+      "flex min-w-0 max-w-full items-center gap-combobox-selected-item rounded-combobox-sm border border-combobox-footer-border bg-combobox-bg-base ps-combobox-input-sm",
       "combobox-selected-item data-readonly:pe-combobox-input-sm",
     ],
     selectedLabel: ["wrap-anywhere min-w-0 text-combobox-status-fg"],
@@ -804,6 +804,7 @@ export function Combobox<T = unknown>({
 
   const service = useMachine(coordinatedMachine, {
     id: uniqueId,
+    dir: rootProps.dir === "rtl" ? "rtl" : "ltr",
     name: navigation ? undefined : name,
     collection,
     disabled,
@@ -818,7 +819,10 @@ export function Combobox<T = unknown>({
     loopFocus,
     navigate,
     composite: false,
-    positioning: { strategy: popupPortalled ? "absolute" : "fixed" },
+    positioning: {
+      strategy: popupPortalled ? "absolute" : "fixed",
+      sameWidth: true,
+    },
     // The listbox scrolls; content remains Zag's dismissal boundary.
     scrollToIndexFn: ({ getElement }) => {
       getElement()?.scrollIntoView({ block: "nearest", inline: "nearest" })

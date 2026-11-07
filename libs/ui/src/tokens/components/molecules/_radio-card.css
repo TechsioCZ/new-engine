@@ -19,6 +19,17 @@
   --color-radio-card-indicator-bg-selected: var(--color-radio-card-selected);
   --color-radio-card-indicator-border-selected: var(--color-radio-card-choice);
   --color-radio-card-item-bg-outline-checked: var(--color-radio-card-item-bg);
+  /* Keep the readable selected defaults while exposing the footer's own hooks. */
+  --color-radio-card-addon-fg-subtle-checked: var(
+    --color-radio-card-fg-choice-selected
+  );
+  --color-radio-card-addon-fg-solid-checked: var(
+    --color-radio-card-item-fg-solid-checked
+  );
+  /* Compact cards reduce spacing, not the legibility of descriptions/prices. */
+  --text-radio-card-supporting-sm: var(--text-sm);
+  --text-radio-card-item-description-sm: var(--text-radio-card-supporting-sm);
+  --text-radio-card-addon-sm: var(--text-radio-card-supporting-sm);
   --color-radio-card-readonly-hover: var(--color-radio-card-item-border-hover);
   --color-radio-card-item-border-readonly-hover: var(
     --color-radio-card-readonly-hover

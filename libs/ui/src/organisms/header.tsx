@@ -2,7 +2,7 @@
  * Header — @techsio/ui-kit organism.
  *
  * @component Header
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill header-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

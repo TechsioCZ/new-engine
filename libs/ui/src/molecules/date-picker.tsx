@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.11
+ * @componentVersion v1.3.12
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -289,14 +289,14 @@ const datePickerVariants = tv({
       "disabled:cursor-not-allowed disabled:text-date-picker-navigation-fg-disabled",
     ],
     viewTrigger: [
-      "min-w-0 flex-1 truncate rounded-date-picker-day px-date-picker-calendar-cell",
+      "date-picker-calendar-caption min-w-0 flex-1 rounded-date-picker-day px-date-picker-calendar-cell",
       "font-date-picker-view text-date-picker-navigation-fg hover:bg-date-picker-navigation-bg-hover",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-date-picker-navigation-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
     viewHeading:
-      "min-w-0 flex-1 truncate px-date-picker-calendar-cell text-center font-date-picker-view text-date-picker-navigation-fg",
+      "date-picker-calendar-caption min-w-0 flex-1 px-date-picker-calendar-cell text-center font-date-picker-view text-date-picker-navigation-fg",
     table: "w-full table-fixed border-separate border-spacing-0",
     tableHeader: [
       "text-center align-middle",

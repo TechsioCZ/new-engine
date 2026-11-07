@@ -357,7 +357,7 @@
     --color-hotkeys-key-fg: var(--color-fg-secondary);
     --color-hotkeys-key-border: var(--color-border-primary);
     --color-hotkeys-separator-fg: var(--color-fg-secondary);
-    --gap-hotkeys: var(--spacing-50);
+    --gap-hotkeys: var(--spacing-100);
     --padding-hotkeys-key-x: var(--spacing-100);
     --padding-hotkeys-key-y: var(--spacing-50);
     --text-hotkeys-sm: var(--text-xs);
@@ -380,7 +380,7 @@
     --color-image-placeholder-text: var(--color-fg-secondary);
     --color-image-bg-fallback: var(--color-image-placeholder);
     --color-image-fg-fallback: var(--color-image-placeholder-text);
-    --text-image-fallback-icon: var(--text-icon-lg);
+    --text-image-fallback-icon: var(--text-icon-2xl);
     --color-input-readonly: var(--color-form-control-readonly);
     --color-input-text-readonly: var(--color-form-control-text);
     --color-input-bg-readonly: var(--color-input-readonly);
@@ -415,6 +415,10 @@
     --text-numeric-input-trigger-icon-md: var(--text-numeric-input-icon-md);
     --text-numeric-input-trigger-icon-lg: var(--text-numeric-input-icon-lg);
     --spacing-numeric-input-trigger-min: var(--spacing-350);
+    --spacing-numeric-input-touch-target: var(--height-form-control-md);
+    --spacing-numeric-input-trigger-touch-min: var(
+      --spacing-numeric-input-touch-target
+    );
     --color-numeric-input-trigger-hover: var(--color-icon-control-bg-hover);
     --color-numeric-input-trigger-active: var(--color-icon-control-bg-active);
     --color-numeric-input-trigger-text: var(--color-icon-control-fg);
@@ -631,6 +635,8 @@
     --border-width-cascade-select-path: var(--border-width-lg);
     --padding-cascade-select-column: var(--spacing-50);
     --padding-cascade-select-header: var(--spacing-150);
+    --spacing-cascade-select-clear-inset: var(--spacing-100);
+    --padding-cascade-select-clear: var(--spacing-cascade-select-clear-inset);
     --gap-cascade-select-header: var(--spacing-100);
     --spacing-cascade-select-step: var(--spacing-250);
     --text-cascade-select-header-size: var(--text-xs);
@@ -717,6 +723,9 @@
     --color-color-select-check: var(--color-fg-primary);
     --color-color-select-check-bg: var(--color-color-select-check);
     --color-color-select-check-fg: var(--color-fill-surface);
+    --padding-color-select-group: var(--spacing-color-select-sm);
+    --spacing-color-select-label: var(--spacing-100);
+    --gap-color-select-label: var(--spacing-color-select-label);
     --color-combobox-clear: var(--color-icon-control-fg);
     --color-combobox-clear-fg: var(--color-combobox-clear);
     --text-combobox-chevron-glyph-sm: var(--text-icon-control-sm);
@@ -753,6 +762,8 @@
     --padding-combobox-input-md: var(--spacing-combobox-md);
     --padding-combobox-input-lg: var(--spacing-combobox-lg);
     --padding-combobox-trigger: 0 var(--spacing-100);
+    --spacing-combobox-selected-item: var(--spacing-100);
+    --gap-combobox-selected-item: var(--spacing-combobox-selected-item);
     --text-combobox-group-label-size: var(--text-sm);
     --font-weight-combobox-group-label: var(--font-weight-semibold);
     --color-command-surface: var(--color-popup-bg);
@@ -959,8 +970,26 @@
     );
     --container-dialog-center-w-max: var(--container-dialog-center-max-w);
     --spacing-dialog-viewport-gutter: var(--spacing-200);
-    --spacing-dialog-close-clearance: var(--spacing-500);
+    --spacing-dialog-close-gap: var(--spacing-100);
+    --size-dialog-close-target: var(--size-icon-control-md);
     --shadow-dialog-elevation: var(--shadow-xl);
+    --spacing-dialog-close-clearance: max(
+      0px,
+      calc(
+        var(--spacing-dialog-close-trigger-offset) +
+        var(--size-dialog-close-target) +
+        var(--spacing-dialog-close-gap) -
+        var(--padding-dialog-content)
+      )
+    );
+    --padding-dialog-content-close-safe: max(
+      var(--padding-dialog-content),
+      calc(
+        var(--spacing-dialog-close-trigger-offset) +
+        var(--size-dialog-close-target) +
+        var(--spacing-dialog-close-gap)
+      )
+    );
     --shadow-dialog-panel: var(--shadow-dialog-elevation);
     --text-dialog-heading-size: var(--text-md);
     --text-dialog-copy-size: var(--text-base);
@@ -1135,6 +1164,9 @@
     --spacing-popover-close: var(--spacing-100);
     --spacing-popover-viewport: var(--spacing-200);
     --spacing-popover-close-clearance: var(--spacing-600);
+    --color-popover-trigger-open: var(--color-button-bg-borderless-hover);
+    --color-popover-trigger-bg-open: var(--color-popover-trigger-open);
+    --color-popover-trigger-fg-open: var(--color-button-fg-interacting);
     --font-weight-popover-title: var(--font-weight-semibold);
     --color-price-block-content: var(--color-fg-primary);
     --color-price-block-muted: var(--color-fg-secondary);
@@ -1235,6 +1267,11 @@
       --color-radio-card-choice
     );
     --color-radio-card-item-bg-outline-checked: var(--color-radio-card-item-bg);
+    --color-radio-card-addon-fg-subtle-checked: var(--color-fg-light);
+    --color-radio-card-addon-fg-solid-checked: var(--color-fg-on-primary-solid);
+    --text-radio-card-supporting-sm: var(--text-sm);
+    --text-radio-card-item-description-sm: var(--text-xs);
+    --text-radio-card-addon-sm: var(--text-xs);
     --color-radio-card-readonly-hover: var(
       --color-radio-card-item-border-hover
     );
@@ -1264,6 +1301,7 @@
     --color-tabs-unavailable: var(--color-button-bg-disabled);
     --color-tabs-overflow-bg-cue: var(--color-tabs-overflow);
     --color-tabs-overflow-bg-cover: var(--color-tabs-list-bg);
+    --color-tabs-overflow-bg-veil: var(--color-tabs-overflow);
     --color-tabs-trigger-bg-disabled: var(--color-tabs-unavailable);
     --spacing-tabs-overflow-cover: var(--dimension-32);
     --spacing-tabs-overflow-cue: var(--dimension-12);
@@ -1312,7 +1350,9 @@
     --padding-marker-text: 0 0 0 var(--spacing-slider-marker-text);
     --color-select-danger: var(--color-danger);
     --spacing-select-popup-large: var(--padding-popup-item-y-lg);
+    --spacing-select-clear: var(--dimension-4);
     --font-weight-select-group: var(--font-weight-medium);
+    --padding-select-clear-inset: var(--spacing-select-clear);
     --padding-select-item-block-lg: var(--spacing-select-popup-large);
     --font-weight-select-item-group-label: var(--font-weight-select-group);
     --color-phone-input-interaction-surface: var(--color-form-control-bg);
@@ -1327,6 +1367,7 @@
     --color-steps-fg: var(--color-steps-content-fg);
     --font-weight-steps-number: var(--font-weight-medium);
     --font-weight-steps-title: var(--font-weight-medium);
+    --font-weight-steps-description: var(--font-weight-normal);
     --height-steps-progress: var(--size-steps-progress-height);
     --width-steps-progress: var(--size-steps-progress-width);
     --height-steps-separator: var(--size-steps-separator-height);
@@ -1361,8 +1402,10 @@
     --color-toast-warning: var(--color-warning-fg);
     --color-toast-surface: var(--color-fill-surface);
     --color-toast-text: var(--color-fg-primary);
+    --color-toast-description: var(--color-fg-secondary);
     --color-toast-bg-surface: var(--color-toast-surface);
     --color-toast-fg-readable: var(--color-toast-text);
+    --color-toast-fg-description: var(--color-toast-description);
     --color-toast-fg-error: var(--color-toast-error);
     --color-toast-fg-success: var(--color-toast-success);
     --color-toast-fg-info: var(--color-toast-info);
@@ -1527,6 +1570,8 @@
     --spacing-footer-bottom-gap: var(--spacing-footer-separated);
     --color-header-mobile-outline: var(--color-border-primary);
     --spacing-header-mobile-inset: var(--dimension-12);
+    --spacing-header-touch-target: var(--dimension-44);
+    --size-header-hamburger-min: var(--spacing-header-touch-target);
     --color-header-mobile-border: var(--color-header-mobile-outline);
     --border-width-header-mobile: var(--dimension-1);
     --padding-header-mobile: var(--spacing-header-mobile-inset);
@@ -1653,7 +1698,6 @@
     --padding-facet-filter-panel-group: var(--spacing-200);
     --padding-facet-filter-panel-active: var(--spacing-150);
     --padding-facet-filter-panel-count: var(--spacing-100);
-    --spacing-facet-filter-panel-action-inset: var(--padding-button-x-sm);
     --padding-facet-filter-panel-overflow-inline: var(
       --spacing-facet-filter-panel-action-inset
     );
@@ -1679,6 +1723,7 @@
     );
     --spacing-search-suggestions-result-image: var(--size-image-sm);
     --spacing-search-suggestions-result: var(--spacing-150);
+    --spacing-search-suggestions-preview-results: var(--container-sm);
     --padding-search-suggestions-item-y-sm: var(--padding-popup-item-y-sm);
     --padding-search-suggestions-item-y-md: var(--padding-popup-item-y-md);
     --padding-search-suggestions-item-y-lg: var(--padding-popup-item-y-lg);
@@ -2507,8 +2552,6 @@
     );
     --color-radio-card-addon-fg: var(--color-fg-secondary);
     --color-radio-card-addon-fg-disabled: var(--color-fg-disabled);
-    --color-radio-card-addon-fg-solid-checked: var(--color-fg-on-primary-solid);
-    --color-radio-card-addon-fg-subtle-checked: var(--color-fg-light);
     --color-radio-card-item-bg: var(--color-fill-surface);
     --color-radio-card-item-bg-disabled: var(--color-bg-disabled);
     --color-radio-card-item-bg-hover: var(--color-fill-hover);
@@ -3641,10 +3684,8 @@
     --text-quantity-field-sm: var(--text-sm);
     --text-radio-card-addon-lg: var(--text-md);
     --text-radio-card-addon-md: var(--text-sm);
-    --text-radio-card-addon-sm: var(--text-xs);
     --text-radio-card-item-description-lg: var(--text-md);
     --text-radio-card-item-description-md: var(--text-sm);
-    --text-radio-card-item-description-sm: var(--text-xs);
     --text-radio-card-item-lg: var(--text-lg);
     --text-radio-card-item-md: var(--text-md);
     --text-radio-card-item-sm: var(--text-sm);
@@ -3773,6 +3814,7 @@
     --radius-md: 0.75rem;
     --radius-lg: 1rem;
     --spacing-search-suggestions-result-rows: 0;
+    --spacing-facet-filter-panel-action-inset: 0;
   }
   @scope ([data-theme="neo"]) to ([data-theme]) {
     :where(:scope, .light, .dark, .always-light, .always-dark, .reverse) {
@@ -4310,11 +4352,7 @@
       --color-select-item-bg-selected: var(--color-select-selection-surface);
       --color-select-item-fg-selected: var(--color-select-selection-ink);
       --color-switch-help-disabled: var(--color-fg-disabled);
-      --color-tabs-overflow: color-mix(
-        in srgb,
-        var(--color-fg-secondary) 24%,
-        transparent
-      );
+      --color-tabs-overflow: var(--color-tabs-list-bg);
       --color-tabs-overflow-bg-cue: var(--color-tabs-overflow);
       --color-tabs-unavailable: var(--color-transparent);
       --color-tabs-trigger-bg-disabled: var(--color-tabs-unavailable);

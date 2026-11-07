@@ -34,7 +34,7 @@
   --padding-facet-filter-panel-group: var(--spacing-200);
   --padding-facet-filter-panel-active: var(--spacing-150);
   --padding-facet-filter-panel-count: var(--spacing-100);
-  --spacing-facet-filter-panel-action-inset: var(--padding-button-x-sm);
+  --spacing-facet-filter-panel-action-inset: 0;
   --padding-facet-filter-panel-overflow-inline: var(
     --spacing-facet-filter-panel-action-inset
   );
@@ -44,6 +44,24 @@
   --text-facet-filter-panel-count: var(--text-xs);
   --font-weight-facet-filter-panel-title: var(--font-weight-semibold);
   --font-weight-facet-filter-panel-active-title: var(--font-weight-medium);
+}
+
+/* Keep the empty active-filter focus target mounted without adding a second
+ * content gap between the heading and the first group. */
+@utility facet-filter-panel-content-flow {
+  & > :not([data-empty]) ~ :not([data-empty]) {
+    margin-block-start: var(--spacing-facet-filter-panel);
+  }
+}
+
+/* Embedded accordion headings, option rows and ranges share one inset. */
+@utility facet-filter-panel-groups {
+  --padding-accordion-title-sm: var(--padding-accordion-title-y-sm)
+    var(--padding-facet-filter-panel-group);
+  --padding-accordion-title-md: var(--padding-accordion-title-y-md)
+    var(--padding-facet-filter-panel-group);
+  --padding-accordion-title-lg: var(--padding-accordion-title-y-lg)
+    var(--padding-facet-filter-panel-group);
 }
 
 @utility token-icon-facet-filter-panel-filter {

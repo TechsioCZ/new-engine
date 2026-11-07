@@ -23,14 +23,14 @@
   --color-tabs-unavailable: var(--color-button-bg-disabled);
   --color-tabs-overflow-bg-cue: var(--color-tabs-overflow);
   --color-tabs-overflow-bg-cover: var(--color-tabs-list-bg);
+  --color-tabs-overflow-bg-veil: var(--color-tabs-overflow);
   --color-tabs-trigger-bg-disabled: var(--color-tabs-unavailable);
   --spacing-tabs-overflow-cover: var(--dimension-32);
   --spacing-tabs-overflow-cue: var(--dimension-12);
 }
 
-/* Local covers are the no-measurement fallback. Measured physical edges replace
- * them because local backgrounds do not reliably track negative RTL scrolling.
- * Backgrounds stay behind labels and focus rings; no mask or overlay clips them. */
+/* Local covers remain the no-measurement / no-:has fallback. Measured physical
+ * edges replace them with a surface veil above clipped labels, not a shadow. */
 @utility tabs-list-overflow {
   &[data-orientation="horizontal"] {
     background-image:
@@ -66,25 +66,51 @@
       var(--spacing-tabs-overflow-cue) 100%;
     background-repeat: no-repeat;
     background-attachment: local, local, scroll, scroll;
+  }
+}
 
-    &[data-overflow-left] {
-      --tabs-overflow-left-cue: var(--spacing-tabs-overflow-cue);
-      --tabs-overflow-right-cue: var(--spacing-tabs-overflow-cue);
+/* An outer host keeps veils out of the flex/scroll geometry. Sticky flex
+ * pseudo-elements would add column gaps even with zero net inline size.
+ * Vertical lists retain their original flex participation via display: contents. */
+@utility tabs-list-viewport {
+  display: contents;
 
-      background-attachment: scroll;
-      background-size:
-        0 100%,
-        0 100%,
-        var(--tabs-overflow-left-cue) 100%,
-        var(--tabs-overflow-right-cue) 100%;
+  &:has(> [data-part="list"][data-orientation="horizontal"]) {
+    position: relative;
+    display: block;
+    isolation: isolate;
+
+    > [data-part="list"][data-overflow-left] {
+      background-image: none;
     }
 
-    &[data-overflow-left="false"] {
-      --tabs-overflow-left-cue: 0px;
+    &::before,
+    &::after {
+      position: absolute;
+      z-index: 1;
+      inset-block: 0;
+      width: var(--spacing-tabs-overflow-cue);
+      pointer-events: none;
     }
 
-    &[data-overflow-right="false"] {
-      --tabs-overflow-right-cue: 0px;
+    &:has(> [data-overflow-left="true"])::before {
+      content: "";
+      left: 0;
+      background-image: linear-gradient(
+        to right,
+        var(--color-tabs-overflow-bg-veil),
+        transparent
+      );
+    }
+
+    &:has(> [data-overflow-right="true"])::after {
+      content: "";
+      right: 0;
+      background-image: linear-gradient(
+        to left,
+        var(--color-tabs-overflow-bg-veil),
+        transparent
+      );
     }
   }
 }
@@ -129,9 +155,10 @@
   }
 }
 
-/* A scrollable tab list must not clip the focused trigger's ring. */
+/* Focused labels and inset rings paint above the veil, never through a mask. */
 @utility tabs-trigger-focus {
   &:focus-visible {
+    z-index: 2;
     outline-offset: calc(-1 * var(--default-ring-width));
   }
 }

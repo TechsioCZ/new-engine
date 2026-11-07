@@ -108,7 +108,7 @@ function CollectionExample({
       >
         <Carousel.Slides slides={slides} />
         {showControls && (
-          <Carousel.Control controlPosition="unset">
+          <Carousel.Control className="mt-200" controlPosition="unset">
             <Carousel.Previous />
             <Carousel.Indicators />
             <Carousel.Next />
@@ -332,6 +332,15 @@ export const IndependentCollections: Story = {
       expect(bounds.right + reserve).toBeLessThanOrEqual(root.right + 1)
       expect(bounds.top - reserve).toBeGreaterThanOrEqual(root.top - 1)
       expect(bounds.bottom + reserve).toBeLessThanOrEqual(root.bottom + 1)
+      const viewport = examples[0]!.querySelector('[data-part="item-group"]')!
+      const controls = examples[0]!.querySelector('[data-part="control"]')!
+      const viewportStyle = getComputedStyle(viewport)
+      const viewportReserve =
+        Number.parseFloat(viewportStyle.outlineWidth) +
+        Math.max(0, Number.parseFloat(viewportStyle.outlineOffset))
+      expect(controls.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+        viewport.getBoundingClientRect().bottom + viewportReserve + 4
+      )
     })
   },
 }

@@ -34,6 +34,8 @@
   --border-width-cascade-select-path: var(--border-width-lg);
   --padding-cascade-select-column: var(--spacing-50);
   --padding-cascade-select-header: var(--spacing-150);
+  --spacing-cascade-select-clear-inset: var(--spacing-100);
+  --padding-cascade-select-clear: var(--spacing-cascade-select-clear-inset);
   --gap-cascade-select-header: var(--spacing-100);
   --spacing-cascade-select-step: var(--spacing-250);
   --text-cascade-select-header-size: var(--text-xs);
@@ -128,11 +130,37 @@
     border-inline-start-color: var(--color-cascade-select-path-border);
   }
 
+  /* Indicators use the popup's existing gutter, not a second flex column.
+     A selected parent is the only row that needs both check and branch slots. */
+  &[data-state="checked"]:has(> [data-part="branch-indicator"]) {
+    padding-inline-end: calc(
+      var(--popup-item-x, var(--padding-popup-item-x-md)) +
+      2 *
+      var(--size-popup-indicator) +
+      var(--popup-item-gap, var(--spacing-popup-item-md))
+    );
+  }
+
+  &:has(> [data-part="branch-indicator"]) > [data-part="item-indicator"] {
+    inset-inline-end: calc(
+      var(--popup-item-x, var(--padding-popup-item-x-md)) +
+      var(--size-popup-indicator) +
+      var(--popup-item-gap, var(--spacing-popup-item-md))
+    );
+  }
+
   @media (forced-colors: active) {
     &[data-active-path] {
       border-inline-start-color: Highlight;
     }
   }
+}
+
+@utility cascade-select-row-indicator {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--popup-item-x, var(--padding-popup-item-x-md));
+  margin-block: auto;
 }
 
 /* === ICONS === */
@@ -160,6 +188,16 @@
   }
 }
 
+/* Inset only the paint: coarse-pointer hit areas and focus outlines stay full size.
+   Background clipping also applies to consumer, hover and pressed colors. */
+@utility cascade-select-clear-surface {
+  background-clip: content-box;
+
+  @media (pointer: coarse) {
+    padding: var(--padding-cascade-select-clear);
+  }
+}
+
 /* Clear is a sibling action, not part of the selected path's text box. */
 @utility cascade-select-clear-gutter {
   --cascade-select-clear-size: var(--size-icon-control-md);
@@ -171,7 +209,7 @@
     --cascade-select-chevron-size: var(--text-icon-control-sm);
   }
   &[data-size="lg"] {
-    --cascade-select-clear-size: var(--size-icon-control-lg);
+    --cascade-select-clear-size: var(--size-action-icon-lg);
     --cascade-select-chevron-size: var(--text-icon-control-lg);
   }
   [data-part="clear-trigger"] {

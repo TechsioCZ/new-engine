@@ -2,7 +2,7 @@
 name: search-suggestions-usage
 description: Use for grouped storefront search navigation with rich results and an all-results link, composed from the UI-kit Combobox.
 metadata:
-  component_version: "1.0.4"
+  component_version: "1.0.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

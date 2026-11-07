@@ -13,6 +13,105 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Accordion v1.2.3
+- Align template content with the size-specific heading inset through component-local styles.
+
+### Breadcrumb v1.0.9
+- Provide medium-size fallback gaps and separator widths when local breadcrumb sizing variables are absent.
+
+### CascadeSelect v1.1.9
+- Keep path separators with their preceding segment, wrap column headings, and place check and branch indicators in reserved gutters without shrinking clear-action targets.
+
+### Chart v1.2.2
+- Stroke only the upper contour of area fills, lighten overlapping series, and round bar data ends without rounding the baseline.
+
+### ColorSelect v1.1.5
+- Spread sparse palettes across the available row and separate captions from outsetting swatch focus outlines.
+
+### Combobox v1.6.9
+- Wrap long options within the control-width popup, pass RTL direction to the machine, and separate selected labels from their remove actions.
+
+### DataTable v1.4.12
+- Keep row action buttons together and wrap pending or failed save feedback beneath them at a size-specific readable width.
+
+### DatePicker v1.3.12
+- Wrap full localized calendar captions and keep touch-sized calendar triggers inside normal and validation field borders.
+
+### Dialog v1.2.3
+- Reserve close-button clearance only where needed and scroll the whole panel in short viewports without clipping nested popups.
+
+### Drawer v1.0.5
+- Reserve the top drawer grabber strip beside its footer without counting the footer inset twice.
+
+### FacetFilterPanel v1.2.3
+- Avoid an extra gap for empty active filters and align sized accordion headings, option rows and range groups to one inset.
+
+### FormNumericInput v1.2.3
+- Wire labels and machine IDs to the explicit nested numeric input ID, propagate direction, and allow the form wrapper to shrink.
+
+### FormTextarea v1.1.4
+- Propagate direction to the form wrapper and textarea while allowing long labels and constrained field widths to wrap.
+
+### Header v1.2.3
+- Keep hamburger controls at the component touch-target minimum even in small headers.
+
+### Hotkeys v1.1.1
+- Increase spacing between shortcut keys and prevent keycaps and separators from shrinking in constrained rows.
+
+### Image v1.2.1
+- Enlarge the fallback image glyph through the component-local fallback icon token.
+
+### LineItem v1.0.4
+- Calculate compact pending-feedback spacing from the compact grid gap rather than the default layout gap.
+
+### Menu v1.3.7
+- Preserve panel elevation during keyboard focus and give ordinary command rows symmetric logical padding without a selection gutter.
+
+### NumericInput v1.3.7
+- Let the editor shrink without squeezing steppers, enlarge coarse-pointer targets, and keep an explicit input ID on the actual input and machine wiring.
+
+### PhoneInput v1.1.4
+- Make disabled country metadata inherit its row foreground, as selected and highlighted country metadata already does.
+
+### Popover v1.1.2
+- Preserve caller-provided close labels, keep borderless triggers visibly open, and reserve close clearance only for the current surface.
+
+### ProductCard v1.3.4
+- Remove mandatory short-title height reservation, fit aggregate stars beside review counts, and use the notification glyph for out-of-stock template actions.
+
+### QuantityField v1.0.4
+- Let the quantity field occupy its available row width while retaining a shrinkable control layout.
+
+### RadioCard v1.1.6
+- Expose selected add-on foreground tokens and keep compact descriptions and prices readable.
+
+### RadioGroup v1.1.6
+- Suppress interactive hover paint for disabled and read-only choices, add vertical content spacing, and respect an explicit hidden status icon.
+
+### Rating v1.3.5
+- Preserve sub-percent average-star precision without exposing floating-point noise in ordinary fractional scores.
+
+### SearchSuggestions v1.0.5
+- Provide a component-local preview spacing utility so result popups do not cover adjacent size fixtures, without changing runtime positioning.
+
+### Select v1.3.4
+- Keep popups attached to the actual control, wrap complete values and options, and inset clear-action paint without shrinking its target.
+
+### Slider v1.4.5
+- Use component-local logical start padding for vertical marker labels.
+
+### Steps v1.2.5
+- Align desktop indicators and connectors across mixed descriptions, center mobile labels, and keep wrapped descriptions at their intended weight.
+
+### Table v1.3.3
+- Use cell-owned dividers for frozen-column tables, restrict stripes and hover tint to body records, and preserve the frozen footer surface.
+
+### Tabs v1.2.7
+- Paint non-interactive overflow veils above clipped labels from an outer viewport without changing scroll geometry; keep focused labels and rings above the veils.
+
+### Toast v1.1.4
+- Give descriptions their own secondary foreground token and align the close control with the first title line without shrinking its target.
+
 ### Breadcrumb v1.0.8
 - Place real separators in the inter-item gap so wrapped destinations align without a hanging spacer, while preserving custom separator content, refs, focus and RTL.
 

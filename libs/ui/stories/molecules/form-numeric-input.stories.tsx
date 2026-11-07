@@ -866,15 +866,20 @@ export const CallerOwnedError: Story = {
         <FormNumericInput
           aria-describedby={callerError ? id : undefined}
           aria-errormessage={callerError ? id : undefined}
+          defaultValue={42}
           helpText={
-            localError ? "Check the delivery details before saving." : undefined
+            localError ? "Check the quantity before saving." : undefined
           }
           invalid={callerError || undefined}
-          label="Delivery details"
+          label="Order quantity"
           validateStatus={localError ? "error" : "default"}
         >
           <NumericInput.Control>
             <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
           </NumericInput.Control>
         </FormNumericInput>
         <Button onClick={() => setLocalError(false)} variant="secondary">
@@ -895,14 +900,12 @@ export const CallerOwnedError: Story = {
     await expect(input.getAttribute("aria-errormessage")?.split(" ")).toContain(
       callerId
     )
-    await userEvent.click(
-      canvas.getByRole("button", { name: "Clear field validation" })
-    )
+    // Keep the initial error visible in frozen captures. The clearing lifecycle
+    // is covered by the component regression tests, not the final visual frame.
+    await expect(input).toHaveValue("42")
     await expect(input).toHaveAttribute("aria-invalid", "true")
-    await expect(input).toHaveAttribute("aria-errormessage", callerId)
-    await userEvent.click(
-      canvas.getByRole("button", { name: "Clear caller error" })
+    await expect(input).toHaveAccessibleDescription(
+      "Choose a quantity available in stock. Check the quantity before saving."
     )
-    await expect(input).not.toHaveAttribute("aria-errormessage")
   },
 }

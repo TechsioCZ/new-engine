@@ -18,6 +18,7 @@
   --color-steps-fg: var(--color-steps-content-fg);
   --font-weight-steps-number: var(--font-weight-medium);
   --font-weight-steps-title: var(--font-weight-medium);
+  --font-weight-steps-description: var(--font-weight-normal);
 
   --height-steps-progress: var(--size-steps-progress-height);
   --width-steps-progress: var(--size-steps-progress-width);
@@ -76,6 +77,37 @@
           ) /
           2
         );
+      }
+    }
+  }
+}
+
+/* At desktop widths, a wrapped description must not push its indicator and
+ * connector below neighbouring title-only steps. Mobile uses the existing
+ * stacked, centred layout; vertical and indicator-free compositions are untouched. */
+@utility steps-label-alignment {
+  @variant sm {
+    &[data-orientation="horizontal"]:has(
+        > [data-part="item"] [data-part="description"]
+      ) {
+      & > [data-part="item"]:has([data-part="indicator"]) {
+        align-items: flex-start;
+        & > [data-part="trigger"] {
+          align-items: flex-start;
+        }
+        & > [data-part="separator"] {
+          margin-block-start: calc(
+            var(--steps-connector-inset, 0px) +
+            (
+              var(
+                --steps-connector-indicator-size,
+                var(--size-steps-indicator-md)
+              ) -
+              var(--height-steps-separator)
+            ) /
+            2
+          );
+        }
       }
     }
   }

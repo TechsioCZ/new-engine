@@ -194,6 +194,26 @@
 }
 
 @utility date-picker-range-control {
+  /* A coarse-pointer icon target can be as tall as the field itself. Keep its
+   * background inside both normal and validation borders without clipping the
+   * button, shrinking its target, or changing the segment scroll container. */
+  --date-picker-control-indicator-size: var(--size-icon-control-md);
+  min-height: calc(
+    var(--date-picker-control-indicator-size) +
+    max(
+      var(--border-width-date-picker-control),
+      var(--border-width-validation)
+    ) *
+    2
+  );
+
+  &[data-size="sm"] {
+    --date-picker-control-indicator-size: var(--size-icon-control-sm);
+  }
+  &[data-size="lg"] {
+    --date-picker-control-indicator-size: var(--size-icon-control-lg);
+  }
+
   &[data-selection-mode="range"] {
     @apply form-control-size-md;
     &[data-size="sm"] {
@@ -253,6 +273,13 @@
       var(--color-date-picker-control-bg-disabled)
     );
   }
+}
+
+/* Fine-pointer calendars also need the full localized caption. Let long month
+ * names and year ranges wrap instead of silently truncating their text. */
+@utility date-picker-calendar-caption {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* Four touch-sized navigation buttons and a localized caption cannot share

@@ -94,7 +94,7 @@ export const Sizes: Story = {
       <VariantGroup title="Square thumbnails" fullWidth>
         {(["sm", "md", "lg"] as const).map((size) => (
           <figure className="flex items-center gap-200" key={size}>
-            <figcaption className="w-400 shrink-0 text-base text-fg-primary">
+            <figcaption className="w-400 shrink-0 text-fg-primary text-md">
               {size}
             </figcaption>
             <Image
@@ -273,6 +273,7 @@ function ResilientImagesExample() {
           src={src}
           alt="Mountain landscape"
           fallbackLabel="Mountain landscape — photo unavailable"
+          className="rounded-lg"
           size="md"
           width={960}
           height={640}
@@ -284,13 +285,21 @@ function ResilientImagesExample() {
           src={src}
           alt="Mountain landscape from adapter"
           fallbackLabel="Mountain landscape from adapter — photo unavailable"
+          className="rounded-lg"
           size="md"
           width={960}
           height={640}
           onError={() => setErrors((value) => value + 1)}
           onLoad={() => setLoads((value) => value + 1)}
         />
-        <ImageWithFallback src="" alt="" size="md" width={80} height={80} />
+        <ImageWithFallback
+          src=""
+          alt=""
+          className="rounded-lg"
+          size="md"
+          width={80}
+          height={80}
+        />
       </div>
       <Button
         onClick={() => setSrc(src === brokenPhoto ? localPhoto : brokenPhoto)}

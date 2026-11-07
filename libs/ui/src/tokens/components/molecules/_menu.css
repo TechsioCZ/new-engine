@@ -30,6 +30,27 @@
   @apply token-icon-check;
 }
 
+/* Zag keeps DOM focus on the panel and paints keyboard focus on its highlighted
+ * row. The shared control-focus shadow otherwise replaces the panel's elevation
+ * with a white outer frame. Limit this correction to Menu content: triggers,
+ * highlighted rows and forced-color outlines keep their existing focus paint.
+ * This unlayered selector must outrank the shared unlayered focus rule. */
+.menu-content-surface[data-scope="menu"][data-part="content"]:is(
+  :focus-visible,
+  [data-focus-visible]
+) {
+  box-shadow: var(--shadow-menu-content);
+}
+
+@utility menu-item {
+  /* Only checkbox/radio rows need the shared permanent selection gutter.
+   * Submenu chevrons are in normal flex flow, so command rows need symmetric
+   * padding even when their labels wrap. Logical padding also covers RTL. */
+  &[role="menuitem"] {
+    padding-inline-end: var(--popup-item-x, var(--padding-menu-item-x));
+  }
+}
+
 @utility menu-viewport {
   /* Replace Popper's max-content minimum so the viewport cap always wins.
    * Reference width is a preference, never the width of an icon-only menu. */

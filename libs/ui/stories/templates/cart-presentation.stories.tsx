@@ -91,6 +91,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
             </LineItem.Price>
           </LineItem.Heading>
           <LineItem.Options>100 ks · pozink · kód MS-008</LineItem.Options>
+          {/* Keep actions on the field's first line when feedback grows below. */}
           <LineItem.Controls>
             <LineItem.Quantity
               className={cartPresentationQuantity()}
@@ -116,7 +117,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
                 value={quantity}
               />
             </LineItem.Quantity>
-            <LineItem.Actions>
+            <LineItem.Actions className="min-h-(--height-form-control-sm)">
               <LineItem.Remove
                 label="Odebrat"
                 onClick={() => {
@@ -173,8 +174,16 @@ const meta: Meta<typeof CartExample> = {
   title: "Templates/CartPresentation",
   component: CartExample,
   tags: ["autodocs"],
+  // Keep the inset inside the captured root, not only Storybook's body padding.
+  decorators: [
+    (Story) => (
+      <div className="w-full min-w-0 p-200">
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     docs: {
       description: {
         component:

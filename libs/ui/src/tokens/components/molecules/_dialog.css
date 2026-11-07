@@ -18,10 +18,29 @@
 
   /* Reference layer: space around the panel and reserved for its close action. */
   --spacing-dialog-viewport-gutter: var(--spacing-200);
-  --spacing-dialog-close-clearance: var(--spacing-500);
+  --spacing-dialog-close-gap: var(--spacing-100);
+  --size-dialog-close-target: var(--size-icon-control-md);
   --shadow-dialog-elevation: var(--shadow-xl);
 
-  /* Derived layer */
+  /* Derived layer: reserve only the portion of the close action that overlaps
+   * the content inset, including a small gap before the heading. */
+  --spacing-dialog-close-clearance: max(
+    0px,
+    calc(
+      var(--spacing-dialog-close-trigger-offset) +
+      var(--size-dialog-close-target) +
+      var(--spacing-dialog-close-gap) -
+      var(--padding-dialog-content)
+    )
+  );
+  --padding-dialog-content-close-safe: max(
+    var(--padding-dialog-content),
+    calc(
+      var(--spacing-dialog-close-trigger-offset) +
+      var(--size-dialog-close-target) +
+      var(--spacing-dialog-close-gap)
+    )
+  );
   --shadow-dialog-panel: var(--shadow-dialog-elevation);
   --text-dialog-heading-size: var(--text-md);
   --text-dialog-copy-size: var(--text-base);
@@ -42,6 +61,12 @@
   );
   margin: calc(var(--dialog-focus-clearance) * -1);
   padding: var(--dialog-focus-clearance);
+
+  /* At short/zoomed viewports, the viewport-bounded positioner scrolls the
+   * entire panel. Do not collapse the body beneath its heading and actions. */
+  @media (max-height: 30rem) {
+    flex-shrink: 0;
+  }
 }
 
 /* Semantic tokens for dialog icons */
@@ -64,4 +89,16 @@
 
 @utility dialog-positioner-layer {
   z-index: calc(var(--z-dialog-positioner) + var(--layer-index, 0) * 2);
+  overflow-y: auto;
+}
+
+@utility dialog-content-layout {
+  /* Leave the panel overflow visible: it is also the portal container for
+   * nested popups, which must not be clipped to the panel's rounded edges. */
+  @media (max-height: 30rem) {
+    &[data-scope="dialog"][data-part="content"] {
+      height: max-content;
+      max-height: none;
+    }
+  }
 }

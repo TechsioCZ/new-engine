@@ -2,7 +2,7 @@
  * FormTextarea — @techsio/ui-kit molecule.
  *
  * @component FormTextarea
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill form-textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -14,6 +14,14 @@ import { Label } from "../atoms/label"
 import { StatusText, type StatusTextProps } from "../atoms/status-text"
 import { Textarea, type TextareaProps } from "../atoms/textarea"
 import { joinDescribedBy } from "../internal/described-by"
+import { tv } from "../utils"
+
+const formTextareaStyles = tv({
+  slots: {
+    root: "flex min-w-0 flex-col gap-form-field-gap",
+    label: "break-words",
+  },
+})
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
@@ -38,6 +46,7 @@ export function FormTextareaRaw({
   size = "md",
   required,
   disabled,
+  dir,
   "aria-describedby": ariaDescribedBy,
   "aria-invalid": ariaInvalid,
   "aria-errormessage": ariaErrorMessage,
@@ -68,9 +77,12 @@ export function FormTextareaRaw({
     showIcon: status !== "default" || showHelpTextIcon,
   }
 
+  const styles = formTextareaStyles()
+
   return (
-    <div className="flex flex-col gap-form-field-gap">
+    <div className={styles.root()} dir={dir}>
       <Label
+        className={styles.label()}
         disabled={disabled}
         htmlFor={controlId}
         required={required}
@@ -89,6 +101,7 @@ export function FormTextareaRaw({
           invalid && hasHelpText ? messageId : undefined
         )}
         aria-invalid={invalid ? true : ariaInvalid}
+        dir={dir}
         disabled={disabled}
         id={controlId}
         required={required}

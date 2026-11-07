@@ -375,7 +375,7 @@ export const AccessibleCountryNames: Story = {
           />
         </VariantGroup>
         <VariantGroup fullWidth title="External country label">
-          <div className="grid gap-100">
+          <div className="grid w-full min-w-0 max-w-sm gap-100">
             <span className="font-medium text-label-md" id={billingCountryLabelId}>
               Country for billing phone
             </span>
@@ -407,6 +407,15 @@ export const AccessibleCountryNames: Story = {
       name: "Country for billing phone",
     })
     await expect(externallyLabelledTrigger).not.toHaveAttribute("aria-label")
+
+    const deliveryInput = canvas.getByRole("textbox", { name: "Delivery phone" })
+    const billingInput = canvas.getByRole("textbox", { name: "Billing phone" })
+    await expect(
+      Math.abs(
+        deliveryInput.getBoundingClientRect().width -
+          billingInput.getBoundingClientRect().width
+      )
+    ).toBeLessThan(1)
 
     await userEvent.click(defaultTrigger)
     await userEvent.click(await body.findByRole("option", { name: /Czechia/ }))

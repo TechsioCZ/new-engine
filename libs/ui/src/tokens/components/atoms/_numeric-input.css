@@ -34,6 +34,11 @@
 
   /* Side-by-side controls preserve the field height while meeting 24px targets. */
   --spacing-numeric-input-trigger-min: var(--spacing-350);
+  /* Match the theme's touch field size without changing desktop density. */
+  --spacing-numeric-input-touch-target: var(--height-form-control-md);
+  --spacing-numeric-input-trigger-touch-min: var(
+    --spacing-numeric-input-touch-target
+  );
   --color-numeric-input-trigger-hover: var(--color-icon-control-bg-hover);
   --color-numeric-input-trigger-active: var(--color-icon-control-bg-active);
   --color-numeric-input-trigger-text: var(--color-icon-control-fg);

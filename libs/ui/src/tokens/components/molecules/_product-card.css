@@ -92,6 +92,19 @@
   }
 }
 
+/* Aggregate stars have no hit targets: fit their glyphs to the text column.
+ * Editable and focusable read-only ratings keep the Rating atom's target sizes. */
+@utility product-card-rating {
+  &
+    :where([role="img"][aria-description="Average rating"])
+    > [data-part="item"] {
+    flex: 0 0 auto;
+    inline-size: 1em;
+    min-inline-size: 1em;
+    max-inline-size: none;
+  }
+}
+
 /* Query the card, not the viewport: row cards also appear in narrow sidebars.
  * Spanning both tracks keeps custom media/details wrappers in source order. */
 @utility product-card-row {

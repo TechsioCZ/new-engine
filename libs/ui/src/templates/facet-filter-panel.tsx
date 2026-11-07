@@ -2,7 +2,7 @@
  * FacetFilterPanel - @techsio/ui-kit template.
  *
  * @component FacetFilterPanel
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill facet-filter-panel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -26,14 +26,16 @@ const facetFilterPanelStyles = tv({
       "p-facet-filter-panel",
       "focus-visible:facet-filter-panel-scroll-focus",
     ],
-    content: "flex min-h-0 flex-col gap-facet-filter-panel",
+    content: "facet-filter-panel-content-flow flex min-h-0 flex-col",
     header:
       "flex flex-wrap items-baseline justify-between gap-facet-filter-panel-active",
     title:
       "font-facet-filter-panel-title text-facet-filter-panel-title text-facet-filter-panel-title-fg",
     pending:
       "text-(length:--text-facet-filter-panel-status) text-facet-filter-panel-muted-fg",
-    groups: "min-h-0 gap-facet-filter-panel-group bg-facet-filter-panel-bg",
+    groups:
+      "facet-filter-panel-groups min-h-0 gap-facet-filter-panel-group bg-facet-filter-panel-bg",
+    optionContent: "p-facet-filter-panel-group",
     rangeGroup:
       "border-b-(length:--border-width-facet-filter-panel) border-facet-filter-panel-border p-facet-filter-panel-group last:border-b-0",
     optionList: "flex flex-col gap-facet-filter-panel-item",
@@ -344,6 +346,7 @@ function FacetFilterPanelContent({
           }
           onExpandedGroupsChange?.(groupIds)
         }}
+        size={size}
         value={expandedGroups ?? localExpandedGroups}
         variant="child"
       >
@@ -399,7 +402,10 @@ function FacetFilterPanelContent({
                 <Accordion.Title>{group.label}</Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
-              <Accordion.Content role="group">
+              <Accordion.Content
+                className={styles.optionContent()}
+                role="group"
+              >
                 <FacetFilterOptions
                   disabled={interactionDisabled || Boolean(group.disabled)}
                   group={group}

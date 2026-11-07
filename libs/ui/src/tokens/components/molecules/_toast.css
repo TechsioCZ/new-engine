@@ -45,8 +45,10 @@
   --color-toast-warning: var(--color-warning-fg);
   --color-toast-surface: var(--color-fill-surface);
   --color-toast-text: var(--color-fg-primary);
+  --color-toast-description: var(--color-fg-secondary);
   --color-toast-bg-surface: var(--color-toast-surface);
   --color-toast-fg-readable: var(--color-toast-text);
+  --color-toast-fg-description: var(--color-toast-description);
   --color-toast-fg-error: var(--color-toast-error);
   --color-toast-fg-success: var(--color-toast-success);
   --color-toast-fg-info: var(--color-toast-info);

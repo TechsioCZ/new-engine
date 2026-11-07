@@ -270,6 +270,53 @@ export const Sizes: Story = {
         await expect(size).toBeGreaterThanOrEqual(20)
       }
       previousSize = size
+
+      if (!(control instanceof HTMLElement)) {
+        throw new Error("Missing numeric field control")
+      }
+      const root = control.closest<HTMLElement>('[data-part="root"]')
+      if (!root) throw new Error("Missing numeric field root")
+      const assertGeometry = async () => {
+        const fieldBounds = control.getBoundingClientRect()
+        const editorBounds = input.getBoundingClientRect()
+        await expect(editorBounds.width).toBeGreaterThan(0)
+        await expect(control.scrollWidth).toBeLessThanOrEqual(
+          control.clientWidth
+        )
+        for (const button of control.querySelectorAll("button")) {
+          const bounds = button.getBoundingClientRect()
+          await expect(bounds.left).toBeGreaterThanOrEqual(fieldBounds.left)
+          await expect(bounds.right).toBeLessThanOrEqual(fieldBounds.right)
+          const buttonCenter = bounds.top + bounds.height / 2
+          const editorCenter = editorBounds.top + editorBounds.height / 2
+          await expect(Math.abs(buttonCenter - editorCenter)).toBeLessThanOrEqual(1)
+          const separated =
+            bounds.left >= editorBounds.right - 1 ||
+            bounds.right <= editorBounds.left + 1
+          await expect(separated).toBe(true)
+          if (window.matchMedia("(pointer: coarse)").matches) {
+            const mediumControl = inputs[1]?.closest('[data-part="control"]')
+            if (!mediumControl) throw new Error("Missing medium touch field")
+            await expect(bounds.width).toBeGreaterThanOrEqual(
+              mediumControl.getBoundingClientRect().height - 1
+            )
+          }
+        }
+      }
+      await assertGeometry()
+      const previousWidth = root.style.inlineSize
+      const previousDirection = root.getAttribute("dir")
+      try {
+        root.style.inlineSize = "min(100%, 12rem)"
+        for (const direction of ["ltr", "rtl"]) {
+          root.setAttribute("dir", direction)
+          await assertGeometry()
+        }
+      } finally {
+        root.style.inlineSize = previousWidth
+        if (previousDirection === null) root.removeAttribute("dir")
+        else root.setAttribute("dir", previousDirection)
+      }
     }
   },
 }

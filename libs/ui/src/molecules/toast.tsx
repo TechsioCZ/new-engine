@@ -2,7 +2,7 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -67,11 +67,11 @@ const toastVariants = tv({
       "data-[type=warning]:text-toast-fg-readable",
     ],
     description: [
-      "mt-toast-description break-words text-toast-description-size text-toast-fg-readable",
+      "mt-toast-description break-words text-toast-description-size text-toast-fg-description",
     ],
-    // Separate layout size from ActionIcon's touch hit area; never shrink the button.
+    // Match the icon's first-line alignment without shrinking ActionIcon's hit area.
     closeButtonFrame:
-      "ms-auto flex size-toast-close-frame shrink-0 items-center justify-center",
+      "ms-auto flex h-toast-title-line w-toast-close-frame shrink-0 items-center justify-center",
   },
 })
 

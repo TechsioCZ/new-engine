@@ -51,6 +51,9 @@
 
   --padding-combobox-trigger: 0 var(--spacing-100);
 
+  --spacing-combobox-selected-item: var(--spacing-100);
+  --gap-combobox-selected-item: var(--spacing-combobox-selected-item);
+
   --text-combobox-group-label-size: var(--text-sm);
   --font-weight-combobox-group-label: var(--font-weight-semibold);
 }

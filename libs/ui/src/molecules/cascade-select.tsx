@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.8
+ * @componentVersion v1.1.9
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -129,7 +129,7 @@ export const cascadeSelectVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     clearTrigger:
-      "absolute end-cascade-select-right top-1/2 -translate-y-1/2 data-readonly:hidden",
+      "cascade-select-clear-surface absolute end-cascade-select-right top-1/2 -translate-y-1/2 data-readonly:hidden",
     content: [
       "popup-surface-base cascade-select-viewport flex w-max snap-x snap-proximity overflow-x-auto p-0",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
@@ -161,11 +161,11 @@ export const cascadeSelectVariants = tv({
     ],
     itemText: "wrap-anywhere min-w-0 flex-grow whitespace-normal",
     branchIndicator: [
-      "flex size-(--size-popup-indicator) shrink-0 items-center justify-center last:-me-(--size-popup-indicator)",
+      "cascade-select-row-indicator flex size-(--size-popup-indicator) shrink-0 items-center justify-center",
       "rtl:rotate-180",
     ],
     itemIndicator: [
-      "flex size-(--size-popup-indicator) shrink-0 items-center justify-center last:-me-(--size-popup-indicator)",
+      "cascade-select-row-indicator flex size-(--size-popup-indicator) shrink-0 items-center justify-center",
       "text-popup-item-fg-selected",
     ],
     valueText: [
@@ -262,7 +262,8 @@ const formatSelectedItems = (
       .join(", ")
   }
 
-  return selectedItems.map((path) => path.map(stringify).join(" / ")).join(", ")
+  // Keep each separator with its preceding segment, never orphaned at line start.
+  return selectedItems.map((path) => path.map(stringify).join(" / ")).join(", ")
 }
 
 type CascadeSelectContextValue = {
@@ -1015,6 +1016,8 @@ CascadeSelect.BranchIndicator = function CascadeSelectBranchIndicator({
     <span
       aria-hidden="true"
       className={styles.branchIndicator({ className })}
+      data-part="branch-indicator"
+      data-scope="cascade-select"
       ref={ref}
       {...props}
     >
@@ -1093,7 +1096,7 @@ function CascadeSelectTreeNode({
           <span aria-hidden="true" className={styles.columnStep()}>
             {indexPath.length + 1}
           </span>
-          <span id={headingId}>
+          <span className="wrap-anywhere min-w-0" id={headingId}>
             {indexPath.length === 0 ? rootLabel : node.label}
           </span>
         </div>

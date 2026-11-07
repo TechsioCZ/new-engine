@@ -77,7 +77,11 @@ const resultSlot: SearchSuggestionsProps<ProductDetails>["resultSlot"] = (
 // Keep JSX out of initial args: shared Controls curation hides inferred JSX rows.
 // The decorator supplies the rich default without erasing the public API row.
 const allResultsLink = (
-  <Link href="#all-results" onClick={(event) => event.preventDefault()}>
+  <Link
+    href="#all-results"
+    onClick={(event) => event.preventDefault()}
+    size="current"
+  >
     View all results
   </Link>
 )
@@ -330,7 +334,7 @@ export const Sizes: Story = {
     docs: {
       description: {
         story:
-          "Small, medium and large use identical catalog copy and rich results to show the canonical scale.",
+          "Small, medium and large use identical catalog copy and rich results to show the canonical scale. Each fixture reserves room for its open suggestions.",
       },
     },
   },
@@ -344,7 +348,9 @@ export const Sizes: Story = {
           }
           fullWidth
         >
-          <SearchSuggestions {...args} label="Search catalog" size={size} />
+          <div className="search-suggestions-preview-room">
+            <SearchSuggestions {...args} label="Search catalog" size={size} />
+          </div>
         </VariantGroup>
       ))}
     </VariantContainer>
@@ -516,7 +522,9 @@ export const InDialog: Story = {
       title="Search catalog"
       triggerText="Open search"
     >
-      <SearchSuggestions {...args} />
+      <div className="search-suggestions-preview-room">
+        <SearchSuggestions {...args} />
+      </div>
     </Dialog>
   ),
 }

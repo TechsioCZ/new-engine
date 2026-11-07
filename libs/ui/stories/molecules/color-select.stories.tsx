@@ -257,7 +257,9 @@ export const Layouts: Story = {
     const canvas = within(canvasElement)
     const list = canvas.getAllByRole("radiogroup")[1]
     if (!list) throw new Error("Missing list color selection")
-    const edge = list.getBoundingClientRect().left
+    const edge =
+      list.getBoundingClientRect().left +
+      Number.parseFloat(getComputedStyle(list).paddingLeft)
     for (const swatch of within(list).getAllByRole("radio")) {
       await expect(
         Math.abs(swatch.getBoundingClientRect().left - edge)
@@ -399,6 +401,16 @@ export const LongCaptions: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const radios = canvas.getAllByRole("radio")
+    const group = canvas.getByRole("radiogroup")
+    const columns = getComputedStyle(group)
+      .gridTemplateColumns.split(" ")
+      .filter((column) => Number.parseFloat(column) > 0)
+    await expect(columns).toHaveLength(2)
+    const contentWidth =
+      group.clientWidth -
+      Number.parseFloat(getComputedStyle(group).paddingLeft) -
+      Number.parseFloat(getComputedStyle(group).paddingRight)
+    const gap = Number.parseFloat(getComputedStyle(group).columnGap)
     for (const radio of radios) {
       await userEvent.click(radio)
       const fill = radio.querySelector("span")
@@ -407,6 +419,9 @@ export const LongCaptions: Story = {
       await expect(getComputedStyle(fill).opacity).toBe("1")
       const cell = radio.parentElement
       if (!cell) throw new Error("Missing swatch cell")
+      await expect(cell.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+        (contentWidth - gap) / 2 - 1
+      )
       await expect(cell.scrollWidth).toBeLessThanOrEqual(cell.clientWidth + 1)
     }
   },
@@ -489,6 +504,11 @@ export const FocusRecovery: Story = {
     ).toHaveLength(0)
     const group = canvas.getByRole("radiogroup", { name: "Available colors" })
     const style = getComputedStyle(group)
+    const padding = Number.parseFloat(style.paddingTop)
+    await expect(padding).toBeGreaterThan(0)
+    for (const side of [style.paddingRight, style.paddingBottom, style.paddingLeft]) {
+      await expect(Number.parseFloat(side)).toBe(padding)
+    }
     await expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThan(0)
     const outline =
       Number.parseFloat(style.outlineWidth) +

@@ -316,6 +316,26 @@ export const ValidationStates: Story = {
       },
     },
   },
+  play: async ({ canvasElement }) => {
+    for (const clear of within(canvasElement).getAllByRole("button", {
+      name: "Clear selection",
+    })) {
+      const style = getComputedStyle(clear)
+      const inset = Number.parseFloat(style.paddingTop)
+      await expect(style.backgroundClip).toBe("content-box")
+      await expect(inset).toBeGreaterThan(0)
+      const trigger = within(clear.parentElement!).getByRole("combobox")
+      const border = Number.parseFloat(getComputedStyle(trigger).borderTopWidth)
+      const clearBounds = clear.getBoundingClientRect()
+      const triggerBounds = trigger.getBoundingClientRect()
+      await expect(clearBounds.top + inset).toBeGreaterThanOrEqual(
+        triggerBounds.top + border
+      )
+      await expect(clearBounds.bottom - inset).toBeLessThanOrEqual(
+        triggerBounds.bottom - border
+      )
+    }
+  },
 }
 
 export const Multiple: Story = {

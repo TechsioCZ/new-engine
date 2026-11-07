@@ -20,6 +20,9 @@
   --spacing-popover-close: var(--spacing-100);
   --spacing-popover-viewport: var(--spacing-200);
   --spacing-popover-close-clearance: var(--spacing-600);
+  --color-popover-trigger-open: var(--color-button-bg-borderless-hover);
+  --color-popover-trigger-bg-open: var(--color-popover-trigger-open);
+  --color-popover-trigger-fg-open: var(--color-button-fg-interacting);
   --font-weight-popover-title: var(--font-weight-semibold);
 }
 
@@ -36,9 +39,44 @@
   min-height: 0;
   overflow-wrap: anywhere;
 
-  &:has([data-scope="popover"][data-part="close-trigger"]) {
-    padding-inline-end: var(--spacing-popover-close-clearance);
+  /* Only this surface's pinned close owns clearance, not a nested popover. */
+  &:has(> .popover-chrome > [data-scope="popover"][data-part="close-trigger"]) {
+    /* Resolve here so scoped touch targets/insets and focus rings are current.
+     * The scroller's negative focus margin also needs room beside the close. */
+    padding-inline-end: max(
+      var(--spacing-popover-close-clearance),
+      calc(
+        var(--spacing-popover-close) +
+        max(
+          var(--size-icon-control-sm),
+          var(--size-icon-control-md),
+          var(--size-action-icon-lg)
+        ) +
+        max(
+          var(--spacing-100),
+          calc(var(--default-ring-width) * 4 + var(--default-ring-offset) * 2)
+        )
+      )
+    );
   }
+}
+
+/* Open state must survive pointer exit and touch input. Custom Button themes
+ * retain their own surface treatment. */
+@utility popover-trigger-state {
+  &[data-popover-trigger-theme="borderless"] {
+    border-radius: var(--radius-popover);
+
+    &[data-state="open"]:not(:disabled) {
+      background-color: var(--color-popover-trigger-bg-open);
+      color: var(--color-popover-trigger-fg-open);
+    }
+  }
+}
+
+/* Reserve the open form's footprint before its persistent save confirmation. */
+@utility popover-form-preview {
+  min-block-size: calc(var(--spacing-950) * 3);
 }
 
 /* Only task content scrolls; close and arrow chrome remain on the surface.

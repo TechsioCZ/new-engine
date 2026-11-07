@@ -6,7 +6,7 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.4.4"
+  component_version: "1.4.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
