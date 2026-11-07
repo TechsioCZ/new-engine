@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux carousel-usage framework-consumer-integration app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/organisms/gallery.tsx libs/ui/src/tokens/components/organisms/_gallery.css libs/ui/stories/organisms/gallery.stories.tsx"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -56,6 +56,21 @@ where actions and feedback live). This section applies them to `Gallery`.
 **Copy and states**
 
 - Alt text: `Linen shirt in navy, front`; controls `Previous image`, `Next image`.
+
+**Behaviour (from the UX spec)**
+
+- The selected thumbnail and the main image always show the same view; never link one variant's thumbnail to another variant's image.
+- Every thumbnail stays reachable however many there are. A missing image is a neutral placeholder, never another variant's photo.
+- The default thumbnail name is English `Show slide N`; pass a localized `getThumbnailAriaLabel` that names the view and position.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `orientation=vertical` / `horizontal` | `orientation` (default `vertical`) |
+| — | `showThumbnails`, `hideThumbnailsWhenSingle`, `thumbnailSize`, `emptyState` (code only) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/Gallery → UX guidelines*.
 
 ## Setup
 

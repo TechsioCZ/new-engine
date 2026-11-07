@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/totals-summary.tsx"
   - "libs/ui/src/tokens/components/molecules/_totals-summary.css"
@@ -25,6 +27,22 @@ sources:
 Use TotalsSummary for a cart or checkout breakdown of already prepared labels
 and values. Applications own calculations, currency formatting, tax rules,
 transport/payment selection, requests and order submission.
+
+**Behaviour (from the UX spec)**
+
+- The component never calculates. Success updates every row and the total at once; pending never presents old amounts as the new total.
+- A failed recalculation ends `pending` with an explanation and `Retry` outside the summary; never leave it pending indefinitely.
+- An undetermined fee is named (`Choose shipping`), never an empty value or `0` that reads as "free".
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `pending=true` | `pending` + `pendingLabel` |
+| Row instances (`label`, `value`, `emphasis`, `showNote`) | `rows: { id, label, value, emphasis?, note? }[]` (data, not JSX) |
+| `showFooter` / `showActions` | `footer` / `actions` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/TotalsSummary → UX guidelines*.
 
 ## Setup
 

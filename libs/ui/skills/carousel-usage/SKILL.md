@@ -15,6 +15,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/carousel.tsx"
   - "libs/ui/src/tokens/components/molecules/_carousel.css"
@@ -42,7 +44,7 @@ where actions and feedback live). This section applies them to `Carousel`.
 
 | Need | Use instead |
 | --- | --- |
-| Product images with thumbnails and zoom | Gallery |
+| Product images with thumbnails (no zoom or fullscreen) | Gallery |
 | Content every user must see (key offer, required info) | a static layout — most users never swipe |
 | Navigating between steps | Steps |
 | A long list of results | a grid with Pagination |
@@ -71,6 +73,24 @@ where actions and feedback live). This section applies them to `Carousel`.
 - Give every carousel an `aria-label` ("Product photos") — several unnamed carousels on one page are indistinguishable regions.
 - Off-screen slides are `inert`; never rely on focusing content inside a hidden slide.
 - `Carousel.Indicator` is a 24 px target with an 8 px dot inside (`--size-carousel-indicator`, `--size-carousel-indicator-dot`). Passing `children` replaces the dot (e.g. numbered indicators); keep the button at least 24 px.
+
+**Behaviour (from the UX spec)**
+
+- Indicator labels name the target and the real total (`Go to slide 2 of 5`); Zag's default `Go to slide 2` has none, so pass `translations.indicator`. Activating an indicator keeps focus on it.
+- Space indicators by their 24 px target, never by the 8 px dot. Choose `objectFit` so cropping never hides decisive content.
+- `loop` defaults to `true` in code; use `loop={false}` when the ends of the sequence must be visible (edge arrows then disable). Never put a key price or purchase condition only on one slide.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…full` | `size` (CarouselControl `size` follows it; no prop on `Carousel.Control`) |
+| `Alignment=Left` / `Center` | no Carousel prop (Figma reference layout only) |
+| CarouselSlide `objectFit=…` | root `objectFit` |
+| CarouselIndicator `state=active` | `aria-current="true"` on the current page's indicator |
+| — | `controlPosition`, `controls="minimal"`, `aspectRatio`, `loop`, `autoplay` (code only) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Carousel → UX guidelines*.
 
 ## Setup
 

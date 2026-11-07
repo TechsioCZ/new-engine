@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/cascade-select"
   contributor_sources: "libs/ui/src/molecules/cascade-select.tsx libs/ui/src/tokens/components/molecules/_cascade-select.css libs/ui/stories/molecules/cascade-select.stories.tsx"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -45,7 +45,7 @@ where actions and feedback live). This section applies them to `CascadeSelect`.
 
 **Do**
 
-- Show the full path of the selected value in the trigger (`Clothing › Shirts › Linen`).
+- Show the full path of the selected value in the trigger (`Clothing / Shirts / Linen`).
 - Let users select parent levels only when a parent is a valid value; otherwise only leaves are selectable.
 - Keep level labels short; order siblings meaningfully (alphabetical or by popularity), consistently.
 
@@ -58,6 +58,24 @@ where actions and feedback live). This section applies them to `CascadeSelect`.
 
 - Label is the noun of the final value (`Category`), placeholder `Select a category`.
 - Path separator comes from the component; don't type `>` or `/`.
+
+**Behaviour (from the UX spec)**
+
+- Opening a branch is browsing, not choosing; closing without choosing keeps the previous value.
+- Build the hierarchy from real parent/child data, never from sorted label prefixes. In `multiple` mode, same-named leaves stay distinguishable by their full paths.
+- In RTL, set `dir` and let the kit order columns and indicators; don't mirror an LTR mock by hand.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=xs` | legacy alias; use `sm` / `md` / `lg` |
+| `state=readonly` | `readOnly` |
+| item `type=branch` / `leaf` | item with / without `children` |
+| content `depth=1…3` | not a prop; open columns rendered by `CascadeSelect.Node` |
+| `cascadeselect-examples`, `cascadeselect-rtl` | reference frames (stories), not states |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/CascadeSelect → UX guidelines*.
 
 ## Setup
 

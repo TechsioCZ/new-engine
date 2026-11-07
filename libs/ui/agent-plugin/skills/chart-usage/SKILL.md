@@ -13,9 +13,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://tanstack.com/charts/v0/docs/overview"
   contributor_sources: "libs/ui/src/molecules/chart.tsx libs/ui/src/tokens/components/molecules/_chart.css libs/ui/stories/molecules/chart.stories.tsx"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -63,6 +63,20 @@ where actions and feedback live). This section applies them to `Chart`.
 **Copy and states**
 
 - Title says the insight or metric and period: `Revenue, last 30 days`; axis labels include the unit.
+
+**Behaviour (from the UX spec)**
+
+- Chart has no loading or error prop: show a Skeleton while loading and the app's own error with `Try again`; empty and invalid data get the built-in status (`emptyLabel`, `invalidLabel`).
+- `onSelect` reports a chosen mark; the app decides what follows. The chart itself never changes data.
+- Never tell series apart by colour alone; keep the legend, the dash patterns and the data table.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| no Figma component | code is the only source; series colours come from `--color-chart-series-1…6` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Chart → UX guidelines*.
 
 ## Setup
 

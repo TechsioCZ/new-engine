@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/link.tsx libs/ui/src/atoms/button.tsx libs/ui/src/tokens/components/atoms/_button.css libs/ui/src/atoms/link-button.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -53,6 +53,22 @@ where actions and feedback live). This section applies them to `LinkButton`.
 **Copy and states**
 
 - No `Click here` / `Learn more` without context; `Read the returns policy` instead.
+
+**Behaviour (from the UX spec)**
+
+- A LinkButton to a "New …" page only navigates; the record is created by the form's submit Button.
+- `primary` marks the likely next page, not an approved or required step. Never label it `Confirm` or `Save`.
+- Disabled must block the real navigation, not just look grey; the kit does this (no `href`, `aria-disabled`, out of the tab order).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant`, `theme`, `size` | same prop names and values (no `ghost`) |
+| `state=disabled` | `disabled` |
+| `state=hover` | not a prop (browser state) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/LinkButton → UX guidelines*.
 
 ## Setup
 

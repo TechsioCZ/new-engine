@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - framework-consumer-integration
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/link.tsx"
   - "libs/ui/src/atoms/link-button.tsx"
@@ -54,6 +56,23 @@ where actions and feedback live). This section applies them to `Link`.
 **Copy and states**
 
 - Destination-first, sentence case; no `here`.
+
+**Behaviour (from the UX spec)**
+
+- A Link only navigates; it never changes data or silently drops an unsaved draft.
+- Link has no disabled or visited state in code. For an unavailable destination render text (or a disabled `LinkButton`); visited styling, if an app adds it, never means done or approved.
+- Only the page that actually loads is current; opening a panel or a navigation branch is not navigation.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=disabled` | no prop; plain text or `LinkButton disabled` |
+| `state=visited` | no style in the kit |
+| `state=hover` / `active` | not props (browser states) |
+| — | `size="sm" \| "md" \| "lg" \| "current"`, `external` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Link → UX guidelines*.
 
 ## Setup
 

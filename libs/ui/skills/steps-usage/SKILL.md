@@ -15,6 +15,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/steps.tsx"
   - "libs/ui/src/tokens/components/molecules/_steps.css"
@@ -65,6 +67,23 @@ where actions and feedback live). This section applies them to `Steps`.
 **Copy and states**
 
 - Step titles are short nouns (see Do); progress text `Step 2 of 4` for assistive tech.
+
+**Behaviour (from the UX spec)**
+
+- Visited is not complete: a stage becomes complete only after its conditions passed; gate list jumps too (`isStepValid` or a gated controlled `onStepChange`).
+- Going back keeps data but re-validates later stages the change may invalidate.
+- Opening the summary is not submitting; the final step has its own named action and confirmation.
+- Tasks that can be done in any order are a task list, not a linear Steps.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=subtle\|solid`, `size=sm…lg` | same prop names and values |
+| current / complete / default | `step` / `defaultStep`; complete = steps before the current one |
+| — | `linear`, `orientation` (not in Figma) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Steps → UX guidelines*.
 
 ## Setup
 

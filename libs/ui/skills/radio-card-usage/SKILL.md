@@ -14,6 +14,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/radio-card.tsx"
   - "libs/ui/src/tokens/components/molecules/_radio-card.css"
@@ -57,6 +59,23 @@ where actions and feedback live). This section applies them to `RadioCard`.
 **Copy and states**
 
 - Title is the option name; description one line; price formatted with the app locale (`Free` for zero).
+
+**Behaviour (from the UX spec)**
+
+- Choosing a card only changes the choice; the purchase or commit is a separate button outside the cards.
+- A missing required choice is reported at submit (`validateStatus="error"` on the group), not on page load; a disabled card explains why and can't be chosen via its text.
+- Use `readOnly` for a choice the user may see but not change.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `RadioCard.Item` | `RadioCard.Item` with `ItemHiddenInput`, `ItemControl`, `ItemIndicator` |
+| `state=invalid` | `validateStatus="error"` on the group |
+| no read-only state | `readOnly` |
+| no layout axes | `itemOrientation`, `align`, `justify` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/RadioCard → UX guidelines*.
 
 ## Setup
 

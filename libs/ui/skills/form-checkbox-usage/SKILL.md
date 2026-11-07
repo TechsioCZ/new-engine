@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/form-checkbox.tsx"
   - "libs/ui/src/tokens/components/atoms/_checkbox.css"
@@ -59,6 +61,24 @@ where actions and feedback live). This section applies them to `FormCheckbox`.
 **Copy and states**
 
 - Sentence case, no trailing period for single-line labels; full sentences in help text end with a period.
+
+**Behaviour (from the UX spec)**
+
+- `required` only marks the field; validation runs on submit and reports on this checkbox.
+- `validateStatus="success" | "warning"` shows only through the `helpText` message.
+- States combine freely in code (checked + error, read-only + checked); the Figma masters don't cover every combination.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=checked` / `indeterminate` | `checked` / `indeterminate` |
+| `state=error` / `success` / `warning` | `validateStatus` + `helpText` |
+| `state=disabled` | `disabled` |
+| `state=disabledChecked` | `disabled` + `checked` |
+| — (not in Figma) | `readOnly` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormCheckbox → UX guidelines*.
 
 ## Setup
 

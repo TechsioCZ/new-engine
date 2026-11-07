@@ -1,0 +1,8 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+import source from "../../skills/gallery-usage/references/ux.md?raw"
+import { UxMarkdown } from "../helpers/ux-markdown"
+import * as GalleryStories from "./gallery.stories"
+
+<Meta of={GalleryStories} name="UX guidelines" />
+
+<UxMarkdown source={source} />

@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/hotkeys.ts"
   - "libs/ui/src/atoms/hotkeys.tsx"
@@ -56,6 +58,23 @@ where actions and feedback live). This section applies them to `Hotkeys`.
 **Copy and states**
 
 - Order modifiers consistently (`⌘ Shift K`); the command name next to it follows button-label rules.
+
+**Behaviour (from the UX spec)**
+
+- Never show a shortcut that isn't registered; the hint itself registers nothing, and the same callback backs the button and the shortcut.
+- Inside a labelled button, mark the hint `aria-hidden="true"`; a standalone compound hint needs `role="group"` + `aria-label`.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `type=single` | `<Hotkeys hotkey="mod+K" />` (automatic, platform-formatted) |
+| `type=compound` | `Hotkeys.Root` + `Hotkeys.Key` + `Hotkeys.Separator` |
+| `platform=auto` | no `formatOptions` |
+| `platform=mac\|windows\|linux` | `formatOptions={{ platform }}` |
+| — (no size axis) | `size="sm" \| "md" \| "lg"` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Hotkeys → UX guidelines*.
 
 ## Shortcut presentation
 

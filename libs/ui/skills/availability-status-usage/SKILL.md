@@ -14,6 +14,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/availability-status.tsx"
   - "libs/ui/src/tokens/components/molecules/_availability-status.css"
@@ -40,6 +42,23 @@ Apply the house `ux-guidelines` rules for status copy and loading states.
   readers and hides the decorative skeleton; it adds no implicit live region.
 - Announce a dynamic change through root attributes only when needed; avoid
   live regions on every card in a static catalog.
+
+**Behaviour (from the UX spec)**
+
+- Never render `pending` as `available`, and never treat the pending skeleton as `unknown` or `unavailable`; it is only a wait.
+- When data refreshes, update `status`, `label` and `detail` together. A failed lookup becomes `unknown` with an explanation, never a stale `In stock`.
+- The status alone neither allows a purchase nor promises a delivery date; the buy action is a separate Button.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `status=available…pending` | same `status` values |
+| `status=pending` (no text in Figma) | `pendingLabel` is required (screen-reader text) |
+| `showDetail` + `detail` | `detail` (omit to hide) |
+| `showIcon` | `showIcon` (defaults to `true`) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/AvailabilityStatus → UX guidelines*.
 
 ## Setup
 

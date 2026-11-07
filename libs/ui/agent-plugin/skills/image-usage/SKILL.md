@@ -9,9 +9,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/atoms/image.tsx libs/ui/src/tokens/components/atoms/_image.css libs/ui/stories/atoms/image.stories.tsx libs/ui/src/atoms/image.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -54,6 +54,21 @@ where actions and feedback live). This section applies them to `Image`.
 **Copy and states**
 
 - Alt text describes content and purpose (`Linen shirt in navy`), not `image` or file names.
+
+**Behaviour (from the UX spec)**
+
+- Never replace a missing image with a different object's picture; use `ImageWithFallback` (neutral placeholder) and keep the object identifiable by its alt or nearby text.
+- Image adds no zoom, navigation or upload; a clickable image needs its own named, keyboard-reachable host.
+- The crop never removes what identifies the object.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…full` | `size` (default `full`) |
+| — | `size="custom"`, `ImageWithFallback` failed / reserved states (code only) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Image → UX guidelines*.
 
 ## Setup
 

@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/molecules/product-card.tsx libs/ui/src/tokens/components/molecules/_product-card.css libs/ui/stories/molecules/product-card.stories.tsx libs/ui/src/molecules/product-card.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -54,6 +54,24 @@ where actions and feedback live). This section applies them to `ProductCard`.
 **Copy and states**
 
 - Price via `Intl.NumberFormat` currency; discounts as `−20 %` badge plus struck-through old price.
+
+**Behaviour (from the UX spec)**
+
+- Image, name, price, stock and actions describe the same variant. A nested cart or wishlist action never also triggers the card's link, and stays its own tab stop.
+- `ProductCard.Stock` has three states; don't map the six `AvailabilityStatus` states onto it automatically — compose `AvailabilityStatus` for unknown, preorder or pending.
+- `cart` adds this offer (glyph `token-icon-cart-button`), `detail` opens the same product, `wishlist` (`token-icon-wishlist-button` / heart) changes interest and never shows "saved" before the app confirms. `token-icon-cart` alone means "open the cart", not "add".
+- A purely informational card shows no action button; an out-of-stock card never offers a purchase that can't succeed.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `layout=column` / `row` | `layout` |
+| ProductCardButton `buttonVariant=cart…wishlist` | `ProductCard.Button buttonVariant` (+ code-only `custom`) |
+| ProductCardStock `status=in-stock…out-of-stock` | `ProductCard.Stock status` |
+| ProductCardImage, Name, Price, Badges, Rating, Actions | `ProductCard.Image`, `.Name`, `.Price`, `.Badges`, `.Rating`, `.Actions` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/ProductCard → UX guidelines*.
 
 ## Setup
 

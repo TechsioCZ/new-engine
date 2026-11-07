@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/atoms/badge.tsx libs/ui/src/tokens/components/atoms/_badge.css libs/ui/stories/atoms/badge.stories.tsx libs/ui/src/atoms/badge.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -61,6 +61,22 @@ where actions and feedback live). This section applies them to `Badge`.
 
 - Sentence case, no punctuation; counts formatted with `Intl.NumberFormat` (`1,204`), capped (`99+`) in navigation.
 - Give count badges context for screen readers (`3 unread messages`).
+
+**Behaviour (from the UX spec)**
+
+- When the data changes, update the text and the `variant` together; show a result badge (`Approved`) only after the data confirms it.
+- Never let colour alone imply a discount, approval or permission; `discount` needs a documented price comparison.
+- A compact `Out of stock` card flag is a `danger` Badge; availability with detail or a delivery estimate is `AvailabilityStatus`.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=primary…outline`, `size=sm…xl` | same prop names and values |
+| — | `variant="dynamic"` + `bgColor` / `fgColor` / `borderColor` (code only) |
+| `Label` text layer | `children` (string) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Badge → UX guidelines*.
 
 ## Setup
 
