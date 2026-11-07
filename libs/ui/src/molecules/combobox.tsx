@@ -64,8 +64,8 @@ const comboboxVariants = tv({
     label: ["block font-label"],
     control: [
       "form-control-base relative flex w-full min-w-0 items-center overflow-clip",
-      // eslint-disable-next-line tailwindcss/no-contradicting-classname -- The utility changes only readonly states; the base surface applies otherwise.
-      "combobox-readonly-control bg-combobox-bg-base",
+      "combobox-readonly-control",
+      "bg-combobox-bg-base",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
       "data-focus:border-combobox-border-focus data-focus:bg-combobox-bg-focus",
