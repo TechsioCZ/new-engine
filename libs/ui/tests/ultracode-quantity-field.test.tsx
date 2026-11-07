@@ -68,6 +68,25 @@ describe("QuantityField review compositions", () => {
     }
   )
 
+  it("keeps trailing unit spacing off a wrapped numeric control", () => {
+    const canvas = markup(
+      <QuantityField
+        label="Order quantity"
+        onValueChange={vi.fn()}
+        unitLabel="pieces"
+        value="2"
+      />
+    )
+    const input = required(canvas.querySelector("input"))
+    const numericRoot = required(input.closest('[data-part="root"]'))
+    const control = required(numericRoot.parentElement)
+    const unit = required(canvas.querySelector(`[id="${input.id}-unit"]`))
+    expect(control.classList.contains("pe-quantity-field-control-end")).toBe(
+      false
+    )
+    expect(unit.classList.contains("pe-quantity-field-control-end")).toBe(true)
+  })
+
   it("retains caller width overrides instead of forcing a fixed width", () => {
     const canvas = markup(
       <QuantityField

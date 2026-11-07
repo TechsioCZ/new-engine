@@ -29,9 +29,11 @@ class TestResizeObserver {
 function flushFrames() {
   const pending = [...frames.values()]
   frames.clear()
-  for (const callback of pending) {
-    callback(0)
-  }
+  act(() => {
+    for (const callback of pending) {
+      callback(0)
+    }
+  })
 }
 
 function overflowEdges(list: HTMLElement) {

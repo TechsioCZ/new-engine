@@ -443,8 +443,8 @@ async function rangeStates(page, capture) {
   await page
     .getByRole("button", { name: "Edit row booking", exact: true })
     .click()
-  const from = page.getByLabel("Edit Period from", { exact: true })
-  const to = page.getByLabel("Edit Period to", { exact: true })
+  const from = page.getByLabel("Edit Period: Start", { exact: true })
+  const to = page.getByLabel("Edit Period: End", { exact: true })
   const save = page.getByRole("button", { name: "Save row", exact: true })
   await from.fill("")
   await to.fill("")

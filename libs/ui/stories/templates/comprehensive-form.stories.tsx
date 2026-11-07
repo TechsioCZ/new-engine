@@ -37,7 +37,7 @@ const meta: Meta<FormArgs> = {
   title: "Templates/Comprehensive Form",
   tags: ["autodocs"],
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     docs: {
       description: {
         component:
@@ -45,7 +45,14 @@ const meta: Meta<FormArgs> = {
       },
     },
   },
-  decorators: [(Story) => <div className="mx-auto w-full min-w-0 max-w-3xl"><Story /></div>],
+  // Keep the mobile inset inside the captured root, not Storybook's body padding.
+  decorators: [
+    (Story) => (
+      <div className="w-full min-w-0 p-200">
+        <div className="mx-auto w-full min-w-0 max-w-3xl"><Story /></div>
+      </div>
+    ),
+  ],
   argTypes: {
     size: { control: "select", options: ["sm", "md", "lg"] },
     validateStatus: {
@@ -75,6 +82,27 @@ const initialData = {
   consent: false,
   budget: [25],
 }
+const representativeData = {
+  ...initialData,
+  name: "Alex Morgan",
+  email: "alex@example.com",
+  message:
+    "Office supplies for a new team of 25 people, delivered in September.",
+  department: "sales",
+  topic: "office",
+  quantity: "25",
+  consent: true,
+}
+const initialErrorMessages = {
+  name: "Enter your full name.",
+  email: "Enter a valid email address, such as alex@example.com.",
+  department: "Choose the team best placed to handle your enquiry.",
+  topic: "Choose a project category, or clear it if you are unsure.",
+  quantity: "Enter a whole-number estimate between 1 and 1,000.",
+  budget: "Choose a budget estimate between 0 and 100 thousand euros.",
+  message: "Tell us about your project in at least 10 characters.",
+  consent: "Allow us to contact you about this enquiry.",
+}
 const departments = [
   { label: "Sales", value: "sales" },
   { label: "Technical support", value: "support" },
@@ -98,18 +126,8 @@ function EnquiryForm({
   const summaryRef = useRef<HTMLDivElement>(null)
   const teamControlRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState(
-    readOnly || disabled
-      ? {
-          ...initialData,
-          name: "Alex Morgan",
-          email: "alex@example.com",
-          message:
-            "Office supplies for a new team of 25 people, delivered in September.",
-          department: "sales",
-          topic: "office",
-          quantity: "25",
-          consent: true,
-        }
+    readOnly || disabled || validateStatus === "success"
+      ? representativeData
       : initialData
   )
   const [errors, setErrors] = useState<FormErrorSummaryError[]>([])
@@ -132,10 +150,10 @@ function EnquiryForm({
     errors.find((error) => error.id === field)?.label
   const statusFor = (field: string) =>
     errorFor(field) ? ("error" as const) : validateStatus
-  const messageFor = (field: string, hint: string) =>
+  const messageFor = (field: keyof typeof initialErrorMessages, hint: string) =>
     errorFor(field) ??
     (validateStatus === "error"
-      ? "Check this value before sending your enquiry."
+      ? initialErrorMessages[field]
       : validateStatus === "warning"
         ? "Please confirm these details before sending."
         : validateStatus === "success"
@@ -541,7 +559,8 @@ export const AllFormInputs: Story = {
         ? popupRect.top - triggerRect.bottom
         : triggerRect.top - popupRect.bottom
       expect(gap).toBeGreaterThanOrEqual(-1)
-      expect(gap).toBeLessThanOrEqual(8)
+      // Floating coordinates may round across one CSS pixel in WebKit.
+      expect(gap).toBeLessThanOrEqual(9)
     })
     await userEvent.keyboard("{Escape}")
     await expect(select).toHaveFocus()

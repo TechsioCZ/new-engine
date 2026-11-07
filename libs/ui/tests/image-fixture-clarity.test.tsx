@@ -63,12 +63,7 @@ describe("Image fixture clarity", () => {
       const figure = figures[index]
       const caption = figure?.querySelector("figcaption")
       expect(caption?.textContent?.trim()).toBe(size)
-      for (const token of [
-        "w-400",
-        "shrink-0",
-        "text-base",
-        "text-fg-primary",
-      ]) {
+      for (const token of ["w-400", "shrink-0", "text-md", "text-fg-primary"]) {
         expect(caption?.classList.contains(token)).toBe(true)
       }
       expect(figure?.classList.contains("items-center")).toBe(true)

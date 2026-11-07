@@ -5,7 +5,7 @@ description: >
   for controlled quantity drafts with a visible unit, helper/error feedback,
   bounded stepping, accessible pending state and compact cart presentation.
 metadata:
-  component_version: "1.0.4"
+  component_version: "1.0.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

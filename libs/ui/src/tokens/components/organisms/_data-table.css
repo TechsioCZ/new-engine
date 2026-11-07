@@ -161,6 +161,11 @@
 @theme static {
   --text-data-table-action: var(--text-button-sm);
   --text-data-table-expand-icon: var(--text-data-table-action);
+  --color-data-table-editor-label: var(--color-fg-secondary);
+  --color-data-table-editor-label-fg: var(--color-data-table-editor-label);
+  --text-data-table-editor-label: var(--text-table-caption-sm);
+  --spacing-data-table-date-range: var(--spacing-200);
+  --opacity-data-table-drag-handle: var(--opacity-text-secondary);
   --spacing-data-table-tree-step: var(--dimension-16);
   --spacing-data-table-tree-level: var(--spacing-data-table-tree-step);
   --spacing-data-table-search: var(--container-3xs);

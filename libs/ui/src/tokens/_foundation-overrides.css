@@ -117,6 +117,14 @@
   --color-fg-on-primary-hover: var(--color-fg-on-primary-solid-neo);
   --color-footer-interactive: var(--color-fg-primary);
 
+  /* Selected footers follow the card's readable text, not Figma's light alias. */
+  --color-radio-card-addon-fg-subtle-checked: var(
+    --color-radio-card-fg-choice-selected
+  );
+  --color-radio-card-addon-fg-solid-checked: var(
+    --color-radio-card-item-fg-solid-checked
+  );
+
   /* Focus is not a decorative brand fill. */
   --color-steps-ring: var(--color-ring-default);
   --color-focus-contrast: light-dark(var(--color-white), var(--color-black));

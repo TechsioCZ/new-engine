@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.9
+ * @componentVersion v1.1.10
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -147,7 +147,7 @@ export const cascadeSelectVariants = tv({
       "flex items-center gap-cascade-select-header border-cascade-select-column-border border-b bg-cascade-select-header-bg p-cascade-select-header font-cascade-select-header text-cascade-select-header-fg text-cascade-select-header-size",
     columnStep:
       "flex size-cascade-select-step shrink-0 items-center justify-center rounded-full bg-cascade-select-step-bg text-cascade-select-step-fg",
-    list: "p-cascade-select-column",
+    list: "py-cascade-select-column",
     item: [
       "popup-item-base cascade-select-item-path",
       "data-active-path:font-cascade-select-path",

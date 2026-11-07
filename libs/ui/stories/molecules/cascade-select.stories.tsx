@@ -743,7 +743,13 @@ export const MultipleSelection: Story = {
     if (!text) return
     const range = canvasElement.ownerDocument.createRange()
     range.selectNodeContents(text)
-    await expect(range.getClientRects()).toHaveLength(1)
+    const fragments = Array.from(range.getClientRects())
+    await expect(fragments.length).toBeGreaterThan(0)
+    // WebKit can split one text line into several inline fragments.
+    await expect(
+      Math.max(...fragments.map((rect) => rect.top)) -
+        Math.min(...fragments.map((rect) => rect.top))
+    ).toBeLessThanOrEqual(1)
     await userEvent.keyboard("{Escape}")
   },
   parameters: {

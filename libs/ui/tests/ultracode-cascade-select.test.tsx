@@ -254,6 +254,12 @@ describe("CascadeSelect clear and hierarchy presentation", () => {
     )
   })
 
+  it("uses the full column width without a second horizontal item inset", () => {
+    const classes = cascadeSelectVariants().list().split(" ")
+    expect(classes).toContain("py-cascade-select-column")
+    expect(classes).not.toContain("p-cascade-select-column")
+  })
+
   it("keeps long column headings fully visible and allows wrapping in RTL", () => {
     const canvas = field({ dir: "rtl", defaultOpen: true })
     const headings = canvas.querySelectorAll<HTMLElement>(

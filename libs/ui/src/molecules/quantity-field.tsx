@@ -2,7 +2,7 @@
  * QuantityField — @techsio/ui-kit molecule.
  *
  * @component QuantityField
- * @componentVersion v1.0.4
+ * @componentVersion v1.0.5
  * @skill quantity-field-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -17,12 +17,11 @@ const descriptionSeparator = /\s+/
 const quantityFieldVariants = tv({
   slots: {
     root: "flex w-full min-w-0 flex-col gap-quantity-field",
-    control:
-      "flex min-w-0 flex-wrap items-center gap-quantity-field-control pe-quantity-field-control-end",
+    control: "flex min-w-0 flex-wrap items-center gap-quantity-field-control",
     numeric: "min-w-quantity-field-numeric-min-width flex-1",
     numericControl: "min-w-0 flex-1",
     input: "min-w-0 flex-1 read-only:enabled:cursor-text!",
-    unit: "min-w-0 max-w-full shrink-0 break-words text-quantity-field-unit-fg",
+    unit: "min-w-0 max-w-full shrink-0 break-words pe-quantity-field-control-end text-quantity-field-unit-fg",
     message: "text-quantity-field-message-fg",
     pendingMessage:
       "mt-quantity-field-pending font-quantity-field-pending text-quantity-field-message-fg",

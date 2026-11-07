@@ -13,6 +13,15 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### QuantityField v1.0.5
+- Keep trailing spacing with the unit label so a wrapped unit leaves the full compact row width available to the numeric editor and touch steppers.
+
+### CascadeSelect v1.1.10
+- Remove redundant horizontal list insets so short hierarchy labels fit beside their indicators on narrow mobile columns, while retaining vertical spacing and long-label wrapping.
+
+### DataTable v1.4.13
+- Separate date-range endpoints with visible Start/End labels and tokenized spacing, and keep reorder grips quietly visible at rest on pointer and touch layouts.
+
 ### Accordion v1.2.3
 - Align template content with the size-specific heading inset through component-local styles.
 

@@ -92,10 +92,7 @@ describe("filter panel spacing", () => {
       expect(trigger?.classList.contains(`p-accordion-title-${size}`)).toBe(
         true
       )
-      expect(options?.classList.contains("px-facet-filter-panel-group")).toBe(
-        true
-      )
-      expect(options?.classList.contains("py-facet-filter-panel-group")).toBe(
+      expect(options?.classList.contains("p-facet-filter-panel-group")).toBe(
         true
       )
       expect(range?.classList.contains("p-facet-filter-panel-group")).toBe(true)

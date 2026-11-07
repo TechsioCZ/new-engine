@@ -2218,8 +2218,8 @@ export const RequiredDateRange: StoryObj<DataTableProps<RangeRow>> = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByLabelText("Edit row booking"))
-    const from = canvas.getByLabelText("Edit Period from")
-    const to = canvas.getByLabelText("Edit Period to")
+    const from = canvas.getByLabelText("Edit Period: Start")
+    const to = canvas.getByLabelText("Edit Period: End")
     await userEvent.clear(from)
     await userEvent.clear(to)
     from.focus()

@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.12
+ * @componentVersion v1.4.13
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -199,7 +199,7 @@ const dataTableVariants = tv({
     ],
     dragHandle: [
       "inline-flex cursor-grab items-center rounded-data-table text-data-table-drag-handle-fg",
-      "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
+      "opacity-data-table-drag-handle transition-opacity duration-200 motion-reduce:transition-none",
       "hover:bg-data-table-row-bg-hover hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100 group-hover/row:opacity-100",
       "group-focus-within/header:opacity-100 group-focus-within/row:opacity-100",

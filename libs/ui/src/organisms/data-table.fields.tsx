@@ -21,7 +21,17 @@ import { Combobox } from "../molecules/combobox"
 import { Menu } from "../molecules/menu"
 import { Select, type SelectItem } from "../molecules/select"
 import { Switch } from "../molecules/switch"
+import { tv } from "../utils"
 import type { Column, DataTableFilterOperator, Row } from "./data-table.helpers"
+
+const dateRangeEditorStyles = tv({
+  slots: {
+    root: "flex flex-col gap-data-table-date-range",
+    field: "flex min-w-0 flex-col gap-data-table-editor",
+    label:
+      "text-(length:--text-data-table-editor-label) text-data-table-editor-label-fg",
+  },
+})()
 
 export type DataTableColumnType =
   | "string"
@@ -796,35 +806,49 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
   }) => {
     const v = (value ?? {}) as { from?: string; to?: string }
     return (
-      <>
-        <Input
-          aria-describedby={error ? errorId : undefined}
-          aria-errormessage={error ? errorId : undefined}
-          aria-invalid={error ? true : undefined}
-          aria-label={`Edit ${columnLabel(column)} from`}
-          disabled={disabled}
-          onChange={(e) => setValue({ ...v, from: e.target.value })}
-          size={size}
-          type="date"
-          value={v.from ?? ""}
-          variant={error ? "error" : "default"}
-          {...editorKeyHandlers(commit, cancel)}
-        />
-        <Input
-          aria-describedby={error ? errorId : undefined}
-          aria-errormessage={error ? errorId : undefined}
-          aria-invalid={error ? true : undefined}
-          aria-label={`Edit ${columnLabel(column)} to`}
-          disabled={disabled}
-          min={v.from || undefined}
-          onChange={(e) => setValue({ ...v, to: e.target.value })}
-          size={size}
-          type="date"
-          value={v.to ?? ""}
-          variant={error ? "error" : "default"}
-          {...editorKeyHandlers(commit, cancel)}
-        />
-      </>
+      <div className={dateRangeEditorStyles.root()} data-date-range-editor="">
+        <label
+          className={dateRangeEditorStyles.field()}
+          htmlFor={errorId ? `${errorId}-from` : undefined}
+        >
+          <span className={dateRangeEditorStyles.label()}>Start</span>
+          <Input
+            aria-describedby={error ? errorId : undefined}
+            aria-errormessage={error ? errorId : undefined}
+            aria-invalid={error ? true : undefined}
+            aria-label={`Edit ${columnLabel(column)}: Start`}
+            disabled={disabled}
+            id={errorId ? `${errorId}-from` : undefined}
+            onChange={(e) => setValue({ ...v, from: e.target.value })}
+            size={size}
+            type="date"
+            value={v.from ?? ""}
+            variant={error ? "error" : "default"}
+            {...editorKeyHandlers(commit, cancel)}
+          />
+        </label>
+        <label
+          className={dateRangeEditorStyles.field()}
+          htmlFor={errorId ? `${errorId}-to` : undefined}
+        >
+          <span className={dateRangeEditorStyles.label()}>End</span>
+          <Input
+            aria-describedby={error ? errorId : undefined}
+            aria-errormessage={error ? errorId : undefined}
+            aria-invalid={error ? true : undefined}
+            aria-label={`Edit ${columnLabel(column)}: End`}
+            disabled={disabled}
+            id={errorId ? `${errorId}-to` : undefined}
+            min={v.from || undefined}
+            onChange={(e) => setValue({ ...v, to: e.target.value })}
+            size={size}
+            type="date"
+            value={v.to ?? ""}
+            variant={error ? "error" : "default"}
+            {...editorKeyHandlers(commit, cancel)}
+          />
+        </label>
+      </div>
     )
   },
 

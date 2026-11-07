@@ -48,14 +48,19 @@ function CountrySelect({ helpText, ...props }: DemoProps) {
   )
 }
 
-async function expectPopupOutsideField(trigger: HTMLElement) {
-  const field = trigger.closest<HTMLElement>('[data-scope="select"][data-part="root"]')
-  if (!field) throw new Error("Missing Select root")
+async function expectPopupAttachedToControl(trigger: HTMLElement, gutter = 8) {
+  const control = trigger.closest<HTMLElement>('[data-scope="select"][data-part="control"]')
+  if (!control) throw new Error("Missing Select control")
   const popup = within(trigger.ownerDocument.body).getByRole("listbox")
   await waitFor(() => {
-    const fieldRect = field.getBoundingClientRect()
+    const controlRect = control.getBoundingClientRect()
     const popupRect = popup.getBoundingClientRect()
-    expect(popupRect.top >= fieldRect.bottom || popupRect.bottom <= fieldRect.top).toBe(true)
+    const gap = popupRect.top >= controlRect.bottom
+      ? popupRect.top - controlRect.bottom
+      : controlRect.top - popupRect.bottom
+    // Allow one CSS pixel for floating-point positioning on either browser.
+    expect(gap).toBeGreaterThanOrEqual(-1)
+    expect(gap).toBeLessThanOrEqual(gutter + 1)
   })
 }
 
@@ -80,7 +85,7 @@ const meta: Meta<typeof Select> = {
 | \`Select.Trigger\` | Focusable \`button\` / \`HTMLButtonElement\` ref. Caller \`aria-labelledby\` wins; an explicit \`aria-label\` omits the generated label reference. |
 | \`Select.ValueText\` | \`span\` / \`HTMLSpanElement\` ref inside Trigger; displays selected items or \`placeholder\`, not an editable input. |
 | \`Select.ClearTrigger\` | Optional clear \`button\` / \`HTMLButtonElement\` ref; sibling of Trigger. |
-| \`Select.Positioner\` | Floating layout \`div\` / \`HTMLDivElement\` ref wrapping Content; \`portalled={false}\` keeps it inline. Mounted StatusText expands the default anchor to the field boundary so the popup clears helper/error text; explicit positioning anchors remain authoritative. |
+| \`Select.Positioner\` | Floating layout \`div\` / \`HTMLDivElement\` ref wrapping Content; \`portalled={false}\` keeps it inline. The default popup stays attached to Select.Control rather than the label/helper stack; explicit positioning anchors and gutters remain authoritative. |
 | \`Select.Content\` | Listbox \`ul\` / \`HTMLUListElement\` ref containing options. Keep under Positioner. |
 | \`Select.Item\` | Option \`li\` / \`HTMLLIElement\` ref; required \`item\` must belong to the root's \`items\`. Contains ItemText and optional ItemIndicator. |
 | \`Select.ItemText\` / \`Select.ItemIndicator\` | Presentational text/indicator \`span\` parts inside Item. ItemText defaults to its item's label. |
@@ -222,7 +227,7 @@ export const Sizes: Story = {
       await expect(value.right).toBeLessThanOrEqual(clear.x)
       const trigger = within(control as HTMLElement).getByRole("combobox")
       await userEvent.click(trigger)
-      await expectPopupOutsideField(trigger)
+      await expectPopupAttachedToControl(trigger)
       if (control.getAttribute("data-size") === "lg" && control.closest('[data-theme="business"]')) {
         const option = within(canvasElement.ownerDocument.body).getAllByRole("option")[0]!
         await expect(option.getBoundingClientRect().height).toBeLessThanOrEqual(trigger.getBoundingClientRect().height)
@@ -562,7 +567,7 @@ export const MachineOptions: Story = {
       "aria-controls",
       "delivery-country-popup"
     )
-    await expectPopupOutsideField(trigger)
+    await expectPopupAttachedToControl(trigger, 12)
   },
 }
 
