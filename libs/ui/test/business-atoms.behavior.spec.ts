@@ -14,6 +14,7 @@ const repairedStories = [
   "atoms-skeleton--variants",
   "atoms-rating--ten-point-scale",
   "atoms-rating--changing-scale",
+  "atoms-numericinput--read-only",
   "templates-comprehensive-form--all-form-inputs",
 ]
 

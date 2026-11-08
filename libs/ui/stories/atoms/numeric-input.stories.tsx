@@ -396,7 +396,7 @@ export const ReadOnly: Story = {
   render() {
     const instanceId = useId()
     return (
-      <div className="w-full max-w-md">
+      <div className="flex w-full max-w-md flex-col gap-form-field-gap">
         <Label htmlFor={`${instanceId}-numeric-readonly`}>
           Confirmed quantity
         </Label>
@@ -440,6 +440,10 @@ export const ReadOnly: Story = {
       const focusExtent =
         Number.parseFloat(style.outlineWidth) +
         Number.parseFloat(style.outlineOffset)
+      const label = canvas.getByText("Confirmed quantity")
+      await expect(
+        control.getBoundingClientRect().top - label.getBoundingClientRect().bottom
+      ).toBeGreaterThanOrEqual(focusExtent)
       await expect(
         helper.getBoundingClientRect().top -
           control.getBoundingClientRect().bottom

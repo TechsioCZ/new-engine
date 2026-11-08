@@ -9,6 +9,7 @@ import {
   NativeEventComposition,
   NativeResetTracker,
   PrecisionZero,
+  ReadOnly,
 } from "../stories/atoms/numeric-input.stories"
 
 function markup(story: typeof NativeResetTracker) {
@@ -39,6 +40,21 @@ function namedReadout(canvas: HTMLElement, name: string) {
 }
 
 describe("NumericInput technical fixture clarity", () => {
+  it("gives the external read-only label the standard field clearance", () => {
+    const canvas = markup(ReadOnly)
+    const input = canvas.querySelector("input")
+    if (!input) {
+      throw new Error("Missing read-only numeric editor")
+    }
+    expect(
+      canvas.firstElementChild?.classList.contains("gap-form-field-gap")
+    ).toBe(true)
+    expect(visibleLabel(canvas, input)).toBe("Confirmed quantity")
+    expect(input.readOnly).toBe(true)
+    expect(input.value).toBe("42")
+    expect(canvas.querySelectorAll("button")).toHaveLength(0)
+  })
+
   it("labels all six reset authority cases without adding inputs or changing form owners", () => {
     const canvas = markup(NativeResetTracker)
     const forms = Array.from(canvas.querySelectorAll("form"))
