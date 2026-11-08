@@ -3830,8 +3830,6 @@
       --padding-textarea-inline-md: var(--padding-input-inline-md);
       --padding-textarea-inline-lg: var(--padding-input-inline-lg);
       --text-button-sm: var(--text-sm);
-      --text-button-md: var(--text-sm);
-      --text-button-lg: var(--text-md);
       --font-weight-button: var(--font-weight-medium);
       --border-width-button-md: var(--border-width-sm);
       --border-width-button-lg: var(--border-width-sm);
@@ -3865,13 +3863,9 @@
       --spacing-rating-items-sm: var(--dimension-2);
       --spacing-rating-items-md: var(--dimension-2);
       --spacing-rating-items-lg: var(--dimension-4);
-      --color-skeleton-bg-primary: var(--color-border-primary);
+      --color-skeleton-bg-primary: var(--color-fill-highlight);
       --color-skeleton-bg-secondary: var(--color-skeleton-secondary);
-      --color-skeleton-secondary: color-mix(
-        in srgb,
-        var(--color-border-primary) 20%,
-        var(--color-fill-overlay)
-      );
+      --color-skeleton-secondary: var(--color-fill-overlay);
       --radius-skeleton-rectangle: var(--radius-skeleton-text);
       --text-hotkeys-sm: calc((var(--text-xs) + var(--text-sm)) / 2);
       --color-hotkeys-outline: color-mix(

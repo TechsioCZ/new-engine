@@ -343,24 +343,29 @@ export const InteractiveHalfScore: Story = {
   },
 }
 export const TenPointScale: Story = {
-  parameters: describe(
-    "A ten-point scale keeps every choice on one row with full interaction targets. On narrow viewports, the named, keyboard-focusable region scrolls horizontally rather than shrinking targets or clipping later scores."
-  ),
+  parameters: {
+    ...describe(
+      "A ten-point scale keeps every choice on one row with full interaction targets. On narrow viewports, the named, keyboard-focusable region scrolls horizontally rather than widening the page, shrinking targets or clipping later scores."
+    ),
+    layout: "fullscreen",
+  },
   render: () => (
-    <div
-      aria-label="Ten-point rating scale"
-      className="w-md max-w-full overflow-x-auto"
-      role="region"
-      tabIndex={0}
-    >
-      <div className="w-md">
-        <Rating
-          labelText="Rate your delivery"
-          defaultValue={7}
-          count={10}
-          size="lg"
-          allowHalf={false}
-        />
+    <div className="w-full min-w-0 p-200">
+      <div
+        aria-label="Ten-point rating scale"
+        className="mx-auto w-full min-w-0 max-w-md overflow-x-auto"
+        role="region"
+        tabIndex={0}
+      >
+        <div className="w-md">
+          <Rating
+            labelText="Rate your delivery"
+            defaultValue={7}
+            count={10}
+            size="lg"
+            allowHalf={false}
+          />
+        </div>
       </div>
     </div>
   ),
@@ -378,6 +383,8 @@ export const TenPointScale: Story = {
       name: "Ten-point rating scale",
     })
     await expect(region.clientWidth).toBeLessThanOrEqual(canvasElement.clientWidth)
+    const documentRoot = canvasElement.ownerDocument.documentElement
+    await expect(documentRoot.scrollWidth).toBeLessThanOrEqual(documentRoot.clientWidth)
     await expect(getComputedStyle(region).overflowX).toBe("auto")
     await expect(region).toHaveAttribute("tabindex", "0")
     region.focus()
@@ -495,26 +502,37 @@ export const ChangingScale: Story = {
     await userEvent.click(
       canvas.getByRole("button", { name: "Use whole stars" })
     )
-    const selected = canvas.getByRole("radio", { checked: true })
-    selected.focus()
+    const thirdStar = canvas.getByRole("radio", { name: "3 stars" })
+    const secondStar = canvas.getByRole("radio", { name: "2 stars" })
+    await waitFor(() => expect(thirdStar).toHaveAttribute("aria-checked", "true"))
+    thirdStar.focus()
     await userEvent.keyboard("{ArrowLeft}")
-    await expect(new FormData(form).get("score")).toBe("2")
+    // Finish value, ARIA and deferred focus before starting the next transaction.
+    await waitFor(() => {
+      expect(new FormData(form).get("score")).toBe("2")
+      expect(secondStar).toHaveAttribute("aria-checked", "true")
+      expect(secondStar).toHaveFocus()
+    })
     await userEvent.click(
       canvas.getByRole("button", { name: "Restore original score" })
     )
-    await waitFor(() => expect(new FormData(form).get("score")).toBe("3"))
-    canvas.getByRole("radio", { checked: true }).focus()
+    await waitFor(() => {
+      expect(new FormData(form).get("score")).toBe("3")
+      expect(thirdStar).toHaveAttribute("aria-checked", "true")
+    })
+    thirdStar.focus()
     await userEvent.keyboard("{ArrowLeft}")
-    const secondStar = canvas.getByRole("radio", { checked: true })
-    // Navigation updates the value before its RAF moves focus. Finish that
-    // interaction before reset; native reset preserves focus on star two.
-    await waitFor(() => expect(secondStar).toHaveFocus())
+    await waitFor(() => {
+      expect(new FormData(form).get("score")).toBe("2")
+      expect(secondStar).toHaveAttribute("aria-checked", "true")
+      expect(secondStar).toHaveFocus()
+    })
     form.reset()
-    await waitFor(() => expect(new FormData(form).get("score")).toBe("3"))
-    await expect(canvas.getByRole("radio", { checked: true })).toHaveAttribute(
-      "tabindex",
-      "0"
-    )
+    await waitFor(() => {
+      expect(new FormData(form).get("score")).toBe("3")
+      expect(thirdStar).toHaveAttribute("aria-checked", "true")
+      expect(thirdStar).toHaveAttribute("tabindex", "0")
+    })
     // Scale normalization and two real arrow edits notify; both resets are silent.
     await expect(canvas.getByText("Score changes: 3")).toBeVisible()
     // End on a neutral resting view: where focus lands after reset is timing-

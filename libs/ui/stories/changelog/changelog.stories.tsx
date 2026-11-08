@@ -25,6 +25,9 @@ const CHANGELOG = `
 ### Hotkeys v1.1.1
 - Preserve keycap and separator shapes in narrow layouts and clarify the spacing between keys.
 
+### Icon v1.2.1
+- Keep a faint full track behind the loading arc so the spinner remains recognizable when reduced motion stops rotation.
+
 ### Image v1.2.1
 - Make fallback glyphs more recognizable without changing the image adapter or recovery behavior.
 
