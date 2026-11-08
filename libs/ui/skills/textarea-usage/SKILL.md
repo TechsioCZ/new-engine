@@ -5,7 +5,7 @@ description: >
   multi-line text entry with valid variant, size, resize, readonly styling, and
   token-first validation.
 metadata:
-  component_version: "1.0.5"
+  component_version: "1.0.6"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -24,6 +24,8 @@ sources:
 
 Use Textarea for multi-line text entry. Use form molecules when a complete
 label/help/error field abstraction exists for the current app context.
+Business keeps error prompts neutral; validation stays on the border and associated
+message. `--color-textarea-placeholder-danger` remains the error-prompt override.
 
 ## UX/UI guidelines
 

@@ -49,6 +49,12 @@ const CHANGELOG = `
 ### Rating v1.3.5
 - Match read-only fractional stars to the exact score, preserve explicit fill direction and isolate numeric values in RTL; fit long scales without shrinking below their glyphs.
 
+### StatusText v1.1.3
+- Distinguish compact feedback with existing solid error-circle, bold-check and warning-triangle glyphs, preserving size, wrapping, live roles and caller icon overrides.
+
+### Textarea v1.0.6
+- Keep Business error placeholders on the normal prompt color while the validation border and associated message retain the error signal.
+
 ### StatusText v1.1.2
 - Tighten the large Business icon-to-message gap using the existing spacing scale; preserve glyph sizing, wrapping and other brands.
 

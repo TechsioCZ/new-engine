@@ -21,6 +21,11 @@ const repairedStories = [
   "atoms-rating--ten-point-scale",
   "atoms-rating--changing-scale",
   "atoms-numericinput--read-only",
+  "atoms-numericinput--invalid-state",
+  "atoms-input--variants",
+  "atoms-textarea--variants",
+  "atoms-textarea--read-only",
+  "atoms-textarea--auto-sizing",
   "templates-comprehensive-form--all-form-inputs",
 ]
 
@@ -116,6 +121,48 @@ for (const [brand, mode] of themes) {
     })
     await expect(shapes.first()).toHaveCSS("opacity", "0.4")
     await expect(shapes.first()).toHaveCSS("animation-name", "none")
+  })
+
+  test(`${brand}/${mode}: Textarea preserves validation and caller placeholder paint`, async ({
+    page,
+  }) => {
+    await openStory(page, "atoms-textarea--variants", brand, mode)
+    const error = page.getByRole("textbox", {
+      name: "Delivery instructions — error",
+    })
+    const normal = page.getByRole("textbox", {
+      name: "Delivery instructions — default",
+    })
+    await normal.evaluate((node) => {
+      ;(node as HTMLTextAreaElement).placeholder = "Reference prompt"
+    })
+    await normal.fill("")
+    const color = (node: Element) =>
+      getComputedStyle(node, "::placeholder").color
+    const errorColor = await error.evaluate(color)
+    const normalColor = await normal.evaluate(color)
+    if (brand === "business") {
+      expect(errorColor).toBe(normalColor)
+    } else {
+      expect(errorColor).not.toBe(normalColor)
+    }
+    await expect(error).toHaveAttribute("aria-invalid", "true")
+    const messageId = await error.getAttribute("aria-errormessage")
+    if (!messageId) {
+      throw new Error("Missing Textarea error-message association")
+    }
+    await expect(error).toHaveAttribute("aria-describedby", messageId)
+    await expect(page.getByRole("alert")).toHaveAttribute("id", messageId)
+    await error.evaluate((node) => {
+      ;(node as HTMLElement).style.setProperty(
+        "--color-textarea-placeholder-danger",
+        "rgb(17 35 53)"
+      )
+    })
+    expect(await error.evaluate(color)).toBe("rgb(17, 35, 53)")
+    await error.fill("Leave the parcel at reception.")
+    await expect(error).toHaveValue("Leave the parcel at reception.")
+    await expect(error).toBeFocused()
   })
 
   test(`${brand}/${mode}: NumericInput uses one focus paint owner`, async ({

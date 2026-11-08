@@ -17,13 +17,13 @@
 }
 
 @utility token-icon-status-text-success {
-  @apply token-icon-success;
+  @apply token-icon-check-bold;
 }
 @utility token-icon-status-text-warning {
-  @apply token-icon-warning;
+  @apply token-icon-alert;
 }
 @utility token-icon-status-text-error {
-  @apply token-icon-error;
+  @apply token-icon-alert-circle;
 }
 
 /* Read the public aliases on the message itself, so scoped application

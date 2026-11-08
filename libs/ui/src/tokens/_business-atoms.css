@@ -14,6 +14,7 @@
   --color-textarea-readonly: var(--color-fill-base);
   --color-textarea-border-readonly-hover: var(--color-textarea-border);
   --color-textarea-border-readonly-focus: var(--color-textarea-border);
+  --color-textarea-placeholder-danger: var(--color-textarea-fg-placeholder);
   --padding-textarea-sm: var(--dimension-8);
   --padding-textarea-md: var(--dimension-10);
   --padding-textarea-lg: var(--dimension-12);
