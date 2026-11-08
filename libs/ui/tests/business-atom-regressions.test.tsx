@@ -40,13 +40,15 @@ describe("Business atom regressions", () => {
     expect(aliases.has("--spacing-status-text-md")).toBe(false)
   })
 
-  it("uses opaque neutral surfaces for both skeleton treatments", () => {
+  it("derives the Skeleton hierarchy from existing opaque neutral anchors", () => {
     const aliases = businessAliases()
-    expect(aliases.get("--color-skeleton-bg-primary")).toBe(
-      "var(--color-fill-highlight)"
+    expect(
+      aliases.get("--color-skeleton-bg-primary")?.replace(/\s+/g, "")
+    ).toBe(
+      "color-mix(inoklab,var(--color-fill-highlight)80%,var(--color-border-control))"
     )
     expect(aliases.get("--color-skeleton-secondary")).toBe(
-      "var(--color-fill-overlay)"
+      "var(--color-fill-highlight)"
     )
   })
 

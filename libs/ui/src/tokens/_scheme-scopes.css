@@ -3873,9 +3873,13 @@
       --spacing-rating-items-sm: var(--dimension-2);
       --spacing-rating-items-md: var(--dimension-2);
       --spacing-rating-items-lg: var(--dimension-4);
-      --color-skeleton-bg-primary: var(--color-fill-highlight);
+      --color-skeleton-bg-primary: color-mix(
+        in oklab,
+        var(--color-fill-highlight) 80%,
+        var(--color-border-control)
+      );
       --color-skeleton-bg-secondary: var(--color-skeleton-secondary);
-      --color-skeleton-secondary: var(--color-fill-overlay);
+      --color-skeleton-secondary: var(--color-fill-highlight);
       --radius-skeleton-rectangle: var(--radius-skeleton-text);
       --text-hotkeys-sm: calc((var(--text-xs) + var(--text-sm)) / 2);
       --color-hotkeys-outline: color-mix(

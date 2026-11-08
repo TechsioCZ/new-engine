@@ -244,13 +244,16 @@ export const Sizes: Story = {
     docs: {
       description: {
         story:
-          "Compare sizes in skeleton to choose a suitable presentation for real product content.",
+          "Compare avatar sizes and text spacing in equal-width columns, stacked on narrow screens. Text-line height stays content-owned rather than scaling with avatar size.",
       },
     },
   },
 
   render: () => (
-    <div className="flex flex-wrap items-start gap-250">
+    <div
+      className="grid w-full max-w-xl grid-cols-1 items-start gap-250 sm:grid-cols-3"
+      data-testid="skeleton-size-comparison"
+    >
       {(
         [
           ["sm", "Small (sm)"],
@@ -258,7 +261,7 @@ export const Sizes: Story = {
           ["lg", "Large (lg)"],
         ] as const
       ).map(([size, label]) => (
-        <div className="flex flex-col gap-150" key={size}>
+        <div className="flex min-w-0 flex-col gap-150" key={size}>
           <p>{label}</p>
           <Skeleton
             aria-label="Loading profile"
@@ -272,8 +275,9 @@ export const Sizes: Story = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const columns = canvasElement.querySelector(".flex-wrap")
+    const columns = canvasElement.querySelector('[data-testid="skeleton-size-comparison"]')
     if (!columns) throw new Error("Missing Skeleton size columns")
+    await expect(getComputedStyle(columns).display).toBe("grid")
     await expect(getComputedStyle(columns).alignItems).toBe("flex-start")
   },
 }

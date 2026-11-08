@@ -52,6 +52,9 @@ const CHANGELOG = `
 ### StatusText v1.1.2
 - Tighten the large Business icon-to-message gap using the existing spacing scale; preserve glyph sizing, wrapping and other brands.
 
+### Skeleton v1.0.8
+- Strengthen both Business loading tones using existing neutral anchors, retaining a distinct primary/secondary hierarchy; compare sizes in equal responsive columns without changing placeholder behavior.
+
 ### Skeleton v1.0.7
 - Stop pulsing without dimming static reduced-motion shapes or overriding caller opacity, preserving loading semantics and normal animation.
 

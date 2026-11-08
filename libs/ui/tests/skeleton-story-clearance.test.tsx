@@ -7,6 +7,7 @@ import meta, {
   AnimationSpeed,
   InteractionIsolation,
   RectangleFixedDimensions,
+  Sizes,
   TextBasic,
   Variants,
 } from "../stories/atoms/skeleton.stories"
@@ -56,6 +57,23 @@ describe("Skeleton story clearance", () => {
     expect(fixed.querySelector(".h-64")).not.toBeNull()
     expect(fixed.querySelector(".w-xs.h-16")).not.toBeNull()
     expect(canvasFor(Variants).querySelectorAll(".w-xs.h-20")).toHaveLength(2)
+  })
+
+  it("compares sizes in equal responsive columns without intrinsic text widths", () => {
+    const comparison = canvasFor(Sizes).firstElementChild
+    for (const name of [
+      "grid",
+      "w-full",
+      "max-w-xl",
+      "grid-cols-1",
+      "sm:grid-cols-3",
+    ]) {
+      expect(comparison?.classList.contains(name)).toBe(true)
+    }
+    expect(comparison?.children).toHaveLength(3)
+    for (const column of Array.from(comparison?.children ?? [])) {
+      expect(column.classList.contains("min-w-0")).toBe(true)
+    }
   })
 
   it("bounds the loading stack while retaining the fixed placeholder dimensions", () => {
