@@ -51,11 +51,21 @@
       [aria-disabled="true"]:not([data-loading])
     ):is(:hover, :active) {
     color: var(--color-button-fg-disabled);
-    background-color: var(--color-button-bg-disabled);
+    background-color: var(
+      --color-button-bg-disabled-treatment,
+      var(--color-button-bg-disabled)
+    );
     border-color: var(--color-button-border-disabled);
     cursor: not-allowed;
     transform: none;
   }
+}
+
+@utility button-disabled-borderless {
+  --color-button-bg-disabled-treatment: var(--color-button-bg-borderless-base);
+}
+@utility button-disabled-outlined {
+  --color-button-bg-disabled-treatment: var(--color-button-bg-outlined);
 }
 
 /* Compatibility sizing inherits typography, not text colour. */

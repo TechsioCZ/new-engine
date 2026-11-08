@@ -8,7 +8,7 @@ metadata:
   type: "core"
   library: "@techsio/ui-kit"
   component: "ActionIcon"
-  component_version: "1.1.3"
+  component_version: "1.1.4"
   requires: "ux-guidelines"
   resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"

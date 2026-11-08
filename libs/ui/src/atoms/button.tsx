@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.6.2
+ * @componentVersion v0.6.3
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -53,9 +53,8 @@ export const buttonVariants = tv({
       solid: "disabled:bg-button-bg-disabled",
       light: "disabled:bg-button-bg-disabled",
       borderless:
-        "bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover hover:text-button-fg-interacting active:bg-button-bg-borderless-active active:text-button-fg-interacting disabled:hover:bg-button-bg-borderless-base",
-      outlined:
-        "border bg-button-bg-outlined disabled:border-0 disabled:bg-button-bg-disabled disabled:hover:bg-button-bg-disabled",
+        "button-disabled-borderless bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover hover:text-button-fg-interacting active:bg-button-bg-borderless-active active:text-button-fg-interacting",
+      outlined: "button-disabled-outlined border bg-button-bg-outlined",
       unstyled: "",
     },
     uppercase: {

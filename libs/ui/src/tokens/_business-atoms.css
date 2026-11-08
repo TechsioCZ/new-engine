@@ -42,6 +42,7 @@
   --text-button-glyph-lg: var(--dimension-20);
 
   --color-action-icon-surface: var(--color-fill-overlay);
+  --color-action-icon-surface-disabled: var(--color-fill-disabled);
   --text-action-icon-glyph-sm: var(--dimension-18);
   --text-action-icon-glyph-md: var(--dimension-20);
   --text-action-icon-glyph-lg: var(--dimension-24);

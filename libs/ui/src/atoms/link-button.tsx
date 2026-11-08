@@ -2,7 +2,7 @@
  * LinkButton — @techsio/ui-kit atom.
  *
  * @component LinkButton
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill link-button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

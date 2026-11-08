@@ -13,11 +13,20 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### ActionIcon v1.1.4
+- Quiet Business disabled tiles through a dedicated existing-palette surface while preserving glyph contrast, native disabled behavior and explicit caller state classes.
+
 ### ActionIcon v1.1.3
 - Give destructive actions a visible resting tone and keep glyph sizing separate from hit areas, with component-local Business refinements.
 
 ### Badge v1.1.1
 - Use the existing light secondary roles for Business discount badges, separating promotions from danger statuses without changing the danger palette or Badge API.
+
+### Button v0.6.3
+- Preserve outlined and borderless silhouettes when unavailable, without changing busy-state paint, native activation guards or shared control geometry.
+
+### LinkButton v1.2.2
+- Inherit Button's unavailable outlined/borderless treatments while retaining inert disabled navigation, caller adapters and native focus behavior.
 
 ### Button v0.6.2
 - Size leading, trailing and loading glyphs independently of labels; keep busy buttons distinct from disabled buttons.

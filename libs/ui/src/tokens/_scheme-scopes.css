@@ -277,6 +277,8 @@
     --text-action-icon-lg: var(--text-action-icon-glyph-lg);
     --color-action-icon-surface: var(--color-transparent);
     --color-action-icon-bg: var(--color-action-icon-surface);
+    --color-action-icon-surface-disabled: var(--color-action-icon-surface);
+    --color-action-icon-bg-disabled: var(--color-action-icon-surface-disabled);
     --size-action-icon-target-lg: var(--size-icon-control-lg);
     --size-action-icon-lg: var(--size-action-icon-target-lg);
     --color-action-icon-danger: var(--color-icon-control-fg-danger-hover);
@@ -3855,6 +3857,7 @@
       --text-button-glyph-md: var(--dimension-18);
       --text-button-glyph-lg: var(--dimension-20);
       --color-action-icon-surface: var(--color-fill-overlay);
+      --color-action-icon-surface-disabled: var(--color-fill-disabled);
       --text-action-icon-glyph-sm: var(--dimension-18);
       --text-action-icon-glyph-md: var(--dimension-20);
       --text-action-icon-glyph-lg: var(--dimension-24);

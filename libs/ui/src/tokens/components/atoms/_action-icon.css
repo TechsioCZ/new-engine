@@ -13,6 +13,8 @@
   /* Opt-in resting fill; keep existing brands and consumer overrides intact. */
   --color-action-icon-surface: var(--color-transparent);
   --color-action-icon-bg: var(--color-action-icon-surface);
+  --color-action-icon-surface-disabled: var(--color-action-icon-surface);
+  --color-action-icon-bg-disabled: var(--color-action-icon-surface-disabled);
 
   --size-action-icon-target-lg: var(--size-icon-control-lg);
   --size-action-icon-lg: var(--size-action-icon-target-lg);
