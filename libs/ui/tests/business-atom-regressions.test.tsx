@@ -77,4 +77,34 @@ describe("Business atom regressions", () => {
     expect(region?.getAttribute("tabindex")).toBe("0")
     expect(canvas.querySelectorAll('[role="radio"]')).toHaveLength(10)
   })
+
+  it("aligns numeric value insets with the sibling Input scale", () => {
+    const aliases = businessAliases()
+    for (const size of ["sm", "md", "lg"]) {
+      expect(aliases.get(`--padding-numeric-input-input-${size}`)).toBe(
+        `var(--padding-input-inline-${size})`
+      )
+    }
+  })
+
+  it("moves the contrast halo to the numeric group without discarding caller shadows", () => {
+    const css = postcss.parse(
+      source("../src/tokens/components/atoms/_numeric-input.css")
+    )
+    const shadows = new Map<string, string>()
+    css.walkRules((rule) => {
+      rule.walkDecls("box-shadow", (decl) => {
+        shadows.set(rule.selector, decl.value)
+      })
+    })
+    const groupShadow = shadows.get(
+      '.numeric-input-focus-owner[data-part="control"]:has(:focus-visible)'
+    )
+    expect(groupShadow).toContain("var(--shadow-numeric-input-focus)")
+    expect(groupShadow).toContain("var(--tw-shadow, 0 0 #0000)")
+    const childRule = [...shadows].find(([selector]) =>
+      selector.includes('[data-part="input"]')
+    )
+    expect(childRule?.[1]).toBe("var(--tw-shadow, 0 0 #0000)")
+  })
 })

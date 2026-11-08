@@ -34,6 +34,9 @@ const CHANGELOG = `
 ### Input v1.1.4
 - Separate inline padding from field height and keep read-only border treatment independent from editable and validation states.
 
+### NumericInput v1.3.8
+- Align Business value insets with Input and paint focus once at the compound field, keeping its two-tone outer indicator and native text selection.
+
 ### NumericInput v1.3.7
 - Preserve space for steppers in narrow fields, size their glyphs independently, retain coarse-pointer targets, and keep explicit input ids synchronized.
 

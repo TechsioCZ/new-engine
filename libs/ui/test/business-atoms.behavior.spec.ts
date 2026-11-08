@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test"
+import { expect, type Locator, type Page, test } from "@playwright/test"
 
 const themes = [
   ["base", "light"],
@@ -37,7 +37,56 @@ async function openStory(page: Page, id: string, brand: string, mode: string) {
   }
 }
 
+async function expectTransparent(input: Locator) {
+  await expect
+    .poll(() =>
+      input.evaluate((node) => {
+        const swatch = node.ownerDocument.createElement("canvas")
+        swatch.width = 1
+        swatch.height = 1
+        const context = swatch.getContext("2d")
+        if (!context) {
+          throw new Error("Missing color-check context")
+        }
+        context.fillStyle = getComputedStyle(node).backgroundColor
+        context.fillRect(0, 0, 1, 1)
+        return context.getImageData(0, 0, 1, 1).data[3]
+      })
+    )
+    .toBe(0)
+}
+
 for (const [brand, mode] of themes) {
+  test(`${brand}/${mode}: NumericInput uses one focus paint owner`, async ({
+    page,
+  }) => {
+    await openStory(page, "atoms-numericinput--sizes", brand, mode)
+    const control = page
+      .locator('[data-scope="number-input"][data-part="control"]')
+      .first()
+    const input = control.getByRole("spinbutton")
+    await input.hover()
+    await expectTransparent(input)
+    for (const child of [
+      input,
+      control.getByRole("button").first(),
+      control.getByRole("button").last(),
+    ]) {
+      await child.focus()
+      await expect(child).toBeFocused()
+      await expect(control).toHaveCSS("outline-style", "solid")
+      await expect(control).not.toHaveCSS("box-shadow", "none")
+      const shadow = await child.evaluate(
+        (node) => getComputedStyle(node).boxShadow
+      )
+      expect(shadow === "none" || shadow.startsWith("rgba(0, 0, 0, 0)")).toBe(
+        true
+      )
+    }
+    await input.focus()
+    await expectTransparent(input)
+  })
+
   for (const story of repairedStories) {
     test(`${brand}/${mode}: ${story} completes its assertions`, async ({
       page,
@@ -46,6 +95,25 @@ for (const [brand, mode] of themes) {
     })
   }
 }
+
+test("Business numeric value insets match the sibling Input scale", async ({
+  page,
+}) => {
+  await openStory(page, "atoms-input--sizes", "business", "light")
+  const insets = await page
+    .locator("#storybook-root input")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => getComputedStyle(node).paddingInlineStart)
+    )
+  await openStory(page, "atoms-numericinput--sizes", "business", "light")
+  const numericInsets = await page
+    .getByRole("spinbutton")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => getComputedStyle(node).paddingInlineStart)
+    )
+  expect(insets).toEqual(["12px", "12px", "16px"])
+  expect(numericInsets).toEqual(insets)
+})
 
 test("Business action sizes preserve the existing field rhythm", async ({
   page,
