@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import postcss from "postcss"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
+import { NumericInput } from "../src/atoms/numeric-input"
 import { TenPointScale } from "../stories/atoms/rating.stories"
 
 const animatedSvg = /<animate(?:Transform)?\b/
@@ -96,6 +97,24 @@ describe("Business atom regressions", () => {
       expect(aliases.get(`--padding-numeric-input-input-${size}`)).toBe(
         `var(--padding-input-inline-${size})`
       )
+    }
+  })
+
+  it("keeps numeric editor resets on its existing component surface alias", () => {
+    const canvas = document.createElement("div")
+    canvas.innerHTML = renderToStaticMarkup(
+      <NumericInput defaultValue={2}>
+        <NumericInput.Control>
+          <NumericInput.Input aria-label="Quantity" />
+        </NumericInput.Control>
+      </NumericInput>
+    )
+    const input = canvas.querySelector('[role="spinbutton"]')
+    for (const state of ["focus", "hover"]) {
+      expect(
+        input?.classList.contains(`${state}:bg-numeric-input-input-bg`)
+      ).toBe(true)
+      expect(input?.classList.contains(`${state}:bg-transparent`)).toBe(false)
     }
   })
 

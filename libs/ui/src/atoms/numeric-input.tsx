@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.8
+ * @componentVersion v1.3.9
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -146,8 +146,8 @@ const numericInputVariants = tv({
     input: [
       "h-full min-w-0 flex-1 rounded-none border-none",
       "bg-numeric-input-input-bg",
-      "focus:bg-transparent",
-      "hover:bg-transparent",
+      "focus:bg-numeric-input-input-bg",
+      "hover:bg-numeric-input-input-bg",
       "disabled:hover:bg-numeric-input-input-bg",
       "disabled:cursor-not-allowed",
       "focus-visible:outline-hidden",
