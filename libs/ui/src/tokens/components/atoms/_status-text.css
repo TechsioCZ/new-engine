@@ -1,6 +1,6 @@
 /*
- * StatusText — runtime tokens fully come from libs/ui/src/tokens/figma/variables.css.
- * Only the semantic glyph aliases remain here.
+ * StatusText — Figma owns the core runtime tokens; local utilities keep
+ * semantic glyphs, line frames and optional neutral text columns aligned.
  *
  * Note: Figma's `--color-status-text-fg` resolves to `--color-fg-secondary`
  * (single value, same across modes), while the atom previously hand-picked
@@ -14,6 +14,15 @@
  * frame. No pixel offsets: sm/md/lg and custom line heights stay aligned. */
 @theme static {
   --height-status-text-icon-line: 1lh;
+  --padding-status-text-neutral-sm: var(--dimension-0);
+  --padding-status-text-neutral-md: var(--dimension-0);
+  --padding-status-text-neutral-lg: var(--dimension-0);
+}
+
+@layer components {
+  .status-text-neutral-prefix:not(:has(> [aria-hidden="true"])) {
+    padding-inline-start: var(--padding-status-text-neutral, var(--dimension-0));
+  }
 }
 
 @utility token-icon-status-text-success {
@@ -29,11 +38,14 @@
 /* Read the public aliases on the message itself, so scoped application
  * overrides do not freeze through an inherited intermediate alias. */
 @utility status-text-leading-sm {
+  --padding-status-text-neutral: var(--padding-status-text-neutral-sm);
   line-height: var(--line-height-status-text-sm);
 }
 @utility status-text-leading-md {
+  --padding-status-text-neutral: var(--padding-status-text-neutral-md);
   line-height: var(--line-height-status-text-md);
 }
 @utility status-text-leading-lg {
+  --padding-status-text-neutral: var(--padding-status-text-neutral-lg);
   line-height: var(--line-height-status-text-lg);
 }

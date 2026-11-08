@@ -126,7 +126,7 @@ export const Variants: Story = {
         ] as const
       ).map(([state, message]) => (
         <Field
-          defaultValue="Alex Morgan"
+          defaultValue={state === "error" ? "Alex" : "Alex Morgan"}
           helpText={message}
           key={state}
           label={`Contact name — ${state}`}
@@ -139,6 +139,7 @@ export const Variants: Story = {
     const canvas = within(canvasElement)
     const input = canvas.getByRole("textbox", { name: "Contact name — error" })
     await expect(input).toHaveAttribute("aria-invalid", "true")
+    await expect(input).toHaveValue("Alex")
     const messageId = input.getAttribute("aria-errormessage")
     await expect(messageId).toBeTruthy()
     await expect(input.getAttribute("aria-describedby")).toContain(messageId)

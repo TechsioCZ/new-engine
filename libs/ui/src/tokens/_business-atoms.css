@@ -4,7 +4,7 @@
   --color-badge-bg-discount: var(--color-bg-light-secondary-base);
   --color-badge-fg-discount: var(--color-fg-accent-secondary);
 
-  --color-input-readonly: var(--color-fill-base);
+  --color-input-readonly: var(--color-form-control-readonly);
   --color-input-border-readonly-hover: var(--color-input-border-base);
   --color-input-border-readonly-focus: var(--color-input-border-base);
   --padding-input-inline-sm: var(--dimension-12);
@@ -57,6 +57,9 @@
   --spacing-numeric-input-lg: var(--dimension-8);
 
   --spacing-status-text-lg: var(--dimension-8);
+  --padding-status-text-neutral-sm: calc(1em + var(--spacing-status-text-sm));
+  --padding-status-text-neutral-md: calc(1em + var(--spacing-status-text-md));
+  --padding-status-text-neutral-lg: calc(1em + var(--spacing-status-text-lg));
 
   --text-rating-sm: var(--dimension-20);
   --text-rating-md: var(--dimension-24);

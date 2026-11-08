@@ -43,6 +43,9 @@ const CHANGELOG = `
 ### Image v1.2.1
 - Make fallback glyphs more recognizable without changing the image adapter or recovery behavior.
 
+### Input v1.1.5
+- Restore the Business read-only surface from the existing shared read-only alias while preserving focus, selection and non-editable borders; show an actually incomplete name in the error example.
+
 ### Input v1.1.4
 - Separate inline padding from field height and keep read-only border treatment independent from editable and validation states.
 
@@ -57,6 +60,9 @@ const CHANGELOG = `
 
 ### Rating v1.3.5
 - Match read-only fractional stars to the exact score, preserve explicit fill direction and isolate numeric values in RTL; fit long scales without shrinking below their glyphs.
+
+### StatusText v1.1.4
+- Align Business neutral guidance with validation message text through size-local aliases, retaining silent icon-free hints, explicit icon overrides and caller padding utilities; other brands keep zero offset.
 
 ### StatusText v1.1.3
 - Distinguish compact feedback with existing solid error-circle, bold-check and warning-triangle glyphs, preserving size, wrapping, live roles and caller icon overrides.

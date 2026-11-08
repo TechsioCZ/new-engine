@@ -422,7 +422,9 @@ export const ReadOnly: Story = {
               setChecked(event.currentTarget.checked)
             }}
           />
-          {refreshed ? "Saved product selection" : "Product selection"}
+          {refreshed
+            ? "Saved product selection (read-only)"
+            : "Product selection (read-only)"}
         </Label>
         <Label className="flex items-center gap-150">
           <Checkbox checked readOnly />
@@ -436,7 +438,9 @@ export const ReadOnly: Story = {
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
-    const input = canvas.getByRole("checkbox", { name: "Product selection" })
+    const input = canvas.getByRole("checkbox", {
+      name: "Product selection (read-only)",
+    })
     const confirmed = canvas.getByRole("checkbox", {
       name: "Confirmed selection (read-only)",
     })
@@ -451,7 +455,7 @@ export const ReadOnly: Story = {
     await userEvent.click(
       canvas.getByRole("button", { name: "Refresh selection label" })
     )
-    await expect(input).toHaveAccessibleName("Saved product selection")
+    await expect(input).toHaveAccessibleName("Saved product selection (read-only)")
     await expect(input).not.toBeChecked()
   },
 }
