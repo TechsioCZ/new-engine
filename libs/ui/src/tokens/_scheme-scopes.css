@@ -3866,6 +3866,7 @@
       --spacing-numeric-input-sm: var(--dimension-8);
       --spacing-numeric-input-md: var(--dimension-8);
       --spacing-numeric-input-lg: var(--dimension-8);
+      --spacing-status-text-lg: var(--dimension-8);
       --text-rating-sm: var(--dimension-20);
       --text-rating-md: var(--dimension-24);
       --text-rating-lg: var(--dimension-28);

@@ -5,7 +5,7 @@ description: >
   loading placeholders using Root, Circle, Text, and Rectangle compound parts
   with token-backed variants, sizes, and animation speeds.
 metadata:
-  component_version: "1.0.6"
+  component_version: "1.0.7"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -200,5 +200,5 @@ loading, children render without residual loading/hidden/inert wrappers.
 
 The grouping root is fully opaque and never pulses. Each visible shape (or Text
 line) owns exactly one animation; group speed is a context default and a local
-speed overrides it independently. Reduced-motion static opacity applies only
-to those visible shapes, never to the group as well.
+speed overrides it independently. Reduced motion stops each shape's animation
+without dimming its fill or overriding consumer-authored opacity.

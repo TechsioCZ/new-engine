@@ -33,6 +33,13 @@ describe("Business atom regressions", () => {
     }
   })
 
+  it("tightens only the large Business status-message gap", () => {
+    const aliases = businessAliases()
+    expect(aliases.get("--spacing-status-text-lg")).toBe("var(--dimension-8)")
+    expect(aliases.has("--spacing-status-text-sm")).toBe(false)
+    expect(aliases.has("--spacing-status-text-md")).toBe(false)
+  })
+
   it("uses opaque neutral surfaces for both skeleton treatments", () => {
     const aliases = businessAliases()
     expect(aliases.get("--color-skeleton-bg-primary")).toBe(

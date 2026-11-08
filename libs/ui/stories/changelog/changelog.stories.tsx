@@ -49,6 +49,12 @@ const CHANGELOG = `
 ### Rating v1.3.5
 - Match read-only fractional stars to the exact score, preserve explicit fill direction and isolate numeric values in RTL; fit long scales without shrinking below their glyphs.
 
+### StatusText v1.1.2
+- Tighten the large Business icon-to-message gap using the existing spacing scale; preserve glyph sizing, wrapping and other brands.
+
+### Skeleton v1.0.7
+- Stop pulsing without dimming static reduced-motion shapes or overriding caller opacity, preserving loading semantics and normal animation.
+
 ### Skeleton v1.0.6
 - Allow theme-owned rectangle rounding while preserving caller radius overrides and square defaults elsewhere.
 

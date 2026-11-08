@@ -168,7 +168,7 @@ export const Variants: Story = {
     docs: {
       description: {
         story:
-          "Compare equal-size placeholders at the same static reduced-motion opacity. Primary carries the main loading shape; Secondary is a quieter supporting surface. Animation speed is demonstrated separately.",
+          "Compare equal-size placeholders in an undimmed static reduced-motion state. Primary carries the main loading shape; Secondary is a quieter supporting surface. Animation speed is demonstrated separately.",
       },
     },
   },
@@ -204,7 +204,7 @@ export const Variants: Story = {
     for (const placeholder of [primary, secondary]) {
       const style = getComputedStyle(placeholder)
       await expect(style.animationName).toBe("none")
-      await expect(style.opacity).toBe("0.7")
+      await expect(style.opacity).toBe("1")
     }
 
     if (!canvasElement.closest('[data-theme="business"]')) return
@@ -229,11 +229,11 @@ export const Variants: Story = {
       await expect(green).toBeGreaterThanOrEqual(red!)
       await expect(blue).toBeGreaterThanOrEqual(red!)
     }
-    // The shared 0.7 opacity preserves at least eight levels of separation
+    // Static shapes keep full opacity and at least eight levels of separation
     // per channel on the same surface. Unequal pulse phases cannot pass this.
     for (const channel of [0, 1, 2]) {
       await expect(
-        (samples[1]![channel]! - samples[0]![channel]!) * 0.7
+        samples[1]![channel]! - samples[0]![channel]!
       ).toBeGreaterThanOrEqual(8)
     }
   },
@@ -694,7 +694,7 @@ export const ReducedMotion: Story = {
     docs: {
       description: {
         story:
-          "Both variants use the same static 0.7 opacity as the OS reduced-motion preference, across rectangle, text, and circle placeholders (without changing your OS setting).",
+          "Both variants stop pulsing without dimming rectangle, text, and circle placeholders. This forced static demonstration does not change or emulate your OS preference; the real reduced-motion media rule uses the same undimmed state.",
       },
     },
   },
@@ -744,7 +744,7 @@ export const ReducedMotion: Story = {
       for (const shape of shapes) {
         const style = getComputedStyle(shape)
         await expect(style.animationName).toBe("none")
-        await expect(style.opacity).toBe("0.7")
+        await expect(style.opacity).toBe("1")
         await expect(style.backgroundColor).toBe(fill)
       }
     }

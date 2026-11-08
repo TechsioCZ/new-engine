@@ -91,7 +91,7 @@ for (const [brand, mode] of schemes) {
     await expect(group).toHaveCSS("opacity", "1")
     await page.emulateMedia({ reducedMotion: "reduce" })
     for (const id of ["group-rectangle", "standalone-rectangle"]) {
-      await expect(page.getByTestId(id)).toHaveCSS("opacity", "0.7")
+      await expect(page.getByTestId(id)).toHaveCSS("opacity", "1")
       await expect(page.getByTestId(id)).toHaveCSS("animation-name", "none")
     }
     await toggle.click()

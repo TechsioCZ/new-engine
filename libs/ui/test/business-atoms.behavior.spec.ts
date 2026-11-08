@@ -13,6 +13,11 @@ const repairedStories = [
   "atoms-badge--variants",
   "atoms-icon--loading-motion",
   "atoms-skeleton--variants",
+  "atoms-skeleton--reduced-motion",
+  "atoms-statustext--all-statuses",
+  "atoms-statustext--long-text",
+  "atoms-statustext--form-validation-context",
+  "atoms-statustext--description-lifecycle",
   "atoms-rating--ten-point-scale",
   "atoms-rating--changing-scale",
   "atoms-numericinput--read-only",
@@ -59,6 +64,60 @@ async function expectTransparent(input: Locator) {
 }
 
 for (const [brand, mode] of themes) {
+  test(`${brand}/${mode}: StatusText preserves glyph scaling and brand-local gaps`, async ({
+    page,
+  }) => {
+    await openStory(page, "atoms-statustext--sizes", brand, mode)
+    const sizes = await page
+      .locator('#storybook-root [data-status="success"]')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const glyph = node.firstElementChild?.firstElementChild
+          if (!glyph) {
+            throw new Error("Missing StatusText glyph")
+          }
+          const style = getComputedStyle(node)
+          const bounds = glyph.getBoundingClientRect()
+          return {
+            font: style.fontSize,
+            gap: style.columnGap,
+            glyph: [bounds.width, bounds.height],
+          }
+        })
+      )
+    expect(sizes).toEqual([
+      { font: "12px", gap: "4px", glyph: [12, 12] },
+      { font: "14px", gap: "6px", glyph: [14, 14] },
+      {
+        font: "16px",
+        gap: brand === "business" ? "8px" : "16px",
+        glyph: [16, 16],
+      },
+    ])
+  })
+
+  test(`${brand}/${mode}: Skeleton stops motion without dimming caller surfaces`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" })
+    await openStory(page, "atoms-skeleton--sizes", brand, mode)
+    const shapes = page.locator(
+      '#storybook-root [class*="animate-skeleton-pulse-"]'
+    )
+    await expect(shapes).toHaveCount(12)
+    await expect(shapes.first()).toHaveCSS("animation-name", "skeleton-pulse")
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    for (const shape of await shapes.all()) {
+      await expect(shape).toHaveCSS("animation-name", "none")
+      await expect(shape).toHaveCSS("opacity", "1")
+    }
+    await shapes.first().evaluate((node) => {
+      ;(node as HTMLElement).style.opacity = "0.4"
+    })
+    await expect(shapes.first()).toHaveCSS("opacity", "0.4")
+    await expect(shapes.first()).toHaveCSS("animation-name", "none")
+  })
+
   test(`${brand}/${mode}: NumericInput uses one focus paint owner`, async ({
     page,
   }) => {

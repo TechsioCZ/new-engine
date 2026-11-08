@@ -79,6 +79,19 @@ describe("rating layout", () => {
   })
 })
 
+describe("skeleton reduced motion", () => {
+  it("stops the pulse without overriding default or caller opacity", () => {
+    const file = "../src/tokens/components/atoms/_skeleton.css"
+    for (const values of [
+      atRuleDeclarations(file, "media", "(prefers-reduced-motion: reduce)"),
+      declarations(file, ".force-reduced-motion"),
+    ]) {
+      expect(values.get("animation")).toBe("none")
+      expect(values.has("opacity")).toBe(false)
+    }
+  })
+})
+
 describe("skeleton rectangle", () => {
   it("rounds through an overridable component-layer token", () => {
     const html = renderToStaticMarkup(
