@@ -16,6 +16,9 @@ const CHANGELOG = `
 ### ActionIcon v1.1.3
 - Give destructive actions a visible resting tone and keep glyph sizing separate from hit areas, with component-local Business refinements.
 
+### Badge v1.1.1
+- Use the existing light secondary roles for Business discount badges, separating promotions from danger statuses without changing the danger palette or Badge API.
+
 ### Button v0.6.2
 - Size leading, trailing and loading glyphs independently of labels; keep busy buttons distinct from disabled buttons.
 

@@ -1,6 +1,9 @@
 /* Business atom refinements. Shared palette, typography and control geometry
  * remain owned by the existing theme; only atom-specific aliases change here. */
 [data-theme="business"] {
+  --color-badge-bg-discount: var(--color-bg-light-secondary-base);
+  --color-badge-fg-discount: var(--color-fg-accent-secondary);
+
   --color-input-readonly: var(--color-fill-base);
   --color-input-border-readonly-hover: var(--color-input-border-base);
   --color-input-border-readonly-focus: var(--color-input-border-base);

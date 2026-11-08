@@ -8,7 +8,7 @@ const source = readFileSync(
 )
 const css = postcss.parse(source)
 const atomToken =
-  /^--(?:color|text|font-weight|border-width|padding|spacing|radius)-(?:action-icon|button|checkbox|hotkeys|image|input|numeric-input|rating|skeleton|textarea)(?:-|$)/
+  /^--(?:color|text|font-weight|border-width|padding|spacing|radius)-(?:action-icon|badge|button|checkbox|hotkeys|image|input|numeric-input|rating|skeleton|textarea)(?:-|$)/
 
 const newPaletteValue = /#[\da-f]+|oklch\(/i
 

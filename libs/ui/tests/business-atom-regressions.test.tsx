@@ -78,6 +78,18 @@ describe("Business atom regressions", () => {
     expect(canvas.querySelectorAll('[role="radio"]')).toHaveLength(10)
   })
 
+  it("separates promotional badges without muting the danger role", () => {
+    const aliases = businessAliases()
+    expect(aliases.get("--color-badge-bg-discount")).toBe(
+      "var(--color-bg-light-secondary-base)"
+    )
+    expect(aliases.get("--color-badge-fg-discount")).toBe(
+      "var(--color-fg-accent-secondary)"
+    )
+    expect(aliases.has("--color-badge-bg-danger")).toBe(false)
+    expect(aliases.has("--color-badge-fg-danger")).toBe(false)
+  })
+
   it("aligns numeric value insets with the sibling Input scale", () => {
     const aliases = businessAliases()
     for (const size of ["sm", "md", "lg"]) {

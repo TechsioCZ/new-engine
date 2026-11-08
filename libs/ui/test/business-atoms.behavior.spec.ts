@@ -10,6 +10,7 @@ const themes = [
 ] as const
 
 const repairedStories = [
+  "atoms-badge--variants",
   "atoms-icon--loading-motion",
   "atoms-skeleton--variants",
   "atoms-rating--ten-point-scale",

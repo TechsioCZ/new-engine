@@ -123,6 +123,18 @@ export const Variants: Story = {
     },
   },
   args: {},
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const discount = canvas.getByText("Discount 30%")
+    const danger = canvas.getByText("Unavailable")
+    await expect(discount).toBeVisible()
+    await expect(danger).toBeVisible()
+    if (canvasElement.closest('[data-theme="business"]')) {
+      await expect(getComputedStyle(discount).backgroundColor).not.toBe(
+        getComputedStyle(danger).backgroundColor
+      )
+    }
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Solid themes">

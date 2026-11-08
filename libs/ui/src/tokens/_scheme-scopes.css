@@ -3818,6 +3818,8 @@
       --color-shadow-3: oklch(0 0 none / 0.1);
       --color-success: var(--color-success-500);
       --default-ring-color: oklch(0 0 none);
+      --color-badge-bg-discount: var(--color-bg-light-secondary-base);
+      --color-badge-fg-discount: var(--color-fg-accent-secondary);
       --color-input-readonly: var(--color-fill-base);
       --color-input-border-readonly-hover: var(--color-input-border-base);
       --color-input-border-readonly-focus: var(--color-input-border-base);
