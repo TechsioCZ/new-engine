@@ -36,3 +36,14 @@
     --color-action-icon-on-danger-active
   );
 }
+
+/* Parent controls may own an opaque surface, including when unavailable. */
+@layer components {
+  .action-icon-surface {
+    background-color: var(--color-action-icon-bg);
+  }
+
+  .action-icon-surface:disabled {
+    background-color: var(--color-action-icon-bg-disabled);
+  }
+}

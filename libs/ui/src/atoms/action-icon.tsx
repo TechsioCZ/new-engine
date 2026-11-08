@@ -2,7 +2,7 @@
  * ActionIcon — @techsio/ui-kit atom.
  *
  * @component ActionIcon
- * @componentVersion v1.1.4
+ * @componentVersion v1.1.5
  * @skill action-icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,11 +27,11 @@ import { Icon, type IconType } from "./icon"
 const actionIconVariants = tv({
   base: [
     "inline-flex shrink-0 cursor-pointer items-center justify-center",
-    "rounded-icon-control bg-action-icon-bg text-icon-control-fg",
+    "action-icon-surface rounded-icon-control text-icon-control-fg",
     "transition-colors duration-200 motion-reduce:transition-none",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
     "focus-visible:outline-offset-(length:--default-ring-offset) focus-visible:outline-icon-control-ring",
-    "disabled:cursor-not-allowed disabled:bg-action-icon-bg-disabled disabled:text-icon-control-fg-disabled",
+    "disabled:cursor-not-allowed disabled:text-icon-control-fg-disabled",
   ],
   variants: {
     size: {

@@ -40,7 +40,7 @@ describe("ActionIcon resting affordance", () => {
         expect.arrayContaining([
           size === "lg" ? "size-action-icon-lg" : `size-icon-control-${size}`,
           `text-action-icon-${size}`,
-          "bg-action-icon-bg",
+          "action-icon-surface",
           "focus-visible:outline-(style:--default-ring-style)",
           "focus-visible:outline-(length:--default-ring-width)",
           "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -94,7 +94,7 @@ describe("ActionIcon resting affordance", () => {
       expect(html).toContain('disabled=""')
       expect(classes(html)).toEqual(
         expect.arrayContaining([
-          "bg-action-icon-bg",
+          "action-icon-surface",
           "disabled:cursor-not-allowed",
           "disabled:text-icon-control-fg-disabled",
         ])
@@ -129,6 +129,7 @@ describe("ActionIcon resting affordance", () => {
         "size-icon-control-lg",
       ])
     )
+    expect(classes(html)).toContain("action-icon-surface")
     expect(classes(html)).not.toContain("bg-action-icon-bg")
     expect(html).toContain('type="submit"')
     expect(html).toContain('aria-labelledby="close-label"')
@@ -146,6 +147,7 @@ describe("ActionIcon resting affordance", () => {
     expect(buttons).toHaveLength(2)
     for (const button of buttons) {
       expect(classes(button)).toContain("bg-carousel-navigation-bg")
+      expect(classes(button)).toContain("action-icon-surface")
       expect(classes(button)).not.toContain("bg-action-icon-bg")
       expect(button).toContain('disabled=""')
       expect(button).toContain('aria-disabled="true"')
@@ -159,8 +161,8 @@ describe("ActionIcon resting affordance", () => {
     const html = renderToStaticMarkup(Variants.render({} as never, {} as never))
     const buttons = html.match(buttonTags) ?? []
     expect(buttons).toHaveLength(2)
-    expect(classes(buttons[0])).toContain("bg-action-icon-bg")
-    expect(classes(buttons[1])).toContain("bg-action-icon-bg")
+    expect(classes(buttons[0])).toContain("action-icon-surface")
+    expect(classes(buttons[1])).toContain("action-icon-surface")
     expect(classes(buttons[1])).toContain("text-action-icon-fg-danger")
     expect(html.match(closeGlyph)).toHaveLength(2)
     expect(html).not.toContain("token-icon-trash")

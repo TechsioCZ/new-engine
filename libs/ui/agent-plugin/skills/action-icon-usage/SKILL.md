@@ -8,7 +8,7 @@ metadata:
   type: "core"
   library: "@techsio/ui-kit"
   component: "ActionIcon"
-  component_version: "1.1.4"
+  component_version: "1.1.5"
   requires: "ux-guidelines"
   resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
@@ -74,6 +74,9 @@ name explicitly: `aria-label={triggerProps["aria-label"] ?? "Next slide"}`.
 
 Use the component's own token classes; do not reach for semantic tokens or arbitrary Tailwind
 values in app code. Size and tone are props, not ad-hoc classes.
+Resting and disabled defaults sit below caller background utilities, so a parent
+control can retain its own photo-overlay surface. Explicit disabled background
+classes remain available for deliberate state overrides.
 
 ## Interaction and sizing contract
 

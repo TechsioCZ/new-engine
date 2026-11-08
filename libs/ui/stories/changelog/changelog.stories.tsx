@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### ActionIcon v1.1.5
+- Keep caller-owned surfaces above resting and disabled defaults, preserving opaque Carousel photo-overlay arrows without changing the default Business unavailable treatment or native guards.
+
 ### ActionIcon v1.1.4
 - Quiet Business disabled tiles through a dedicated existing-palette surface while preserving glyph contrast, native disabled behavior and explicit caller state classes.
 

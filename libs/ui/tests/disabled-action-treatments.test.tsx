@@ -68,7 +68,7 @@ describe("disabled action treatments", () => {
           tone={tone}
         />
       )
-      expect(html).toContain("disabled:bg-action-icon-bg-disabled")
+      expect(html).toContain("action-icon-surface")
       expect(html).toContain('aria-label="Remove item"')
       expect(html).toContain('disabled=""')
       expect(html).not.toContain("opacity-")
