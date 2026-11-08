@@ -150,7 +150,7 @@ test("Business action sizes preserve the existing field rhythm", async ({
   }
 })
 
-test("At 320px, ten-point scrolling stays local and focus reveals the last score", async ({
+test("At 320px, ten-point scrolling preserves focus and rating context", async ({
   page,
 }) => {
   const viewport = page.viewportSize()
@@ -167,8 +167,16 @@ test("At 320px, ten-point scrolling stays local and focus reveals the last score
   expect(width.scroll).toBeLessThanOrEqual(width.client)
   const last = page.getByRole("radio").last()
   await last.focus()
+  await page.keyboard.press("End")
   await expect(last).toBeFocused()
+  await expect(last).toHaveAttribute("aria-checked", "true")
   await expect(last).toBeInViewport()
+  await expect(
+    region.getByText("Rate your delivery", { exact: true })
+  ).toBeInViewport({ ratio: 1 })
+  await expect(region.getByText("10 / 10", { exact: true })).toBeInViewport({
+    ratio: 1,
+  })
   const geometry = await region.evaluate((node) => ({
     client: node.clientWidth,
     scroll: node.scrollWidth,

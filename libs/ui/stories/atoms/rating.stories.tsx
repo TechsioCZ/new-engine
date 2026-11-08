@@ -345,7 +345,7 @@ export const InteractiveHalfScore: Story = {
 export const TenPointScale: Story = {
   parameters: {
     ...describe(
-      "A ten-point scale keeps every choice on one row with full interaction targets. On narrow viewports, the named, keyboard-focusable region scrolls horizontally rather than widening the page, shrinking targets or clipping later scores."
+      "A ten-point scale keeps every choice on one row with full interaction targets. On narrow viewports, the named, keyboard-focusable region scrolls horizontally while the question and value stay anchored, without widening the page, shrinking targets or clipping later scores."
     ),
     layout: "fullscreen",
   },
@@ -359,6 +359,7 @@ export const TenPointScale: Story = {
       >
         <div className="w-md">
           <Rating
+            className="[&>:is(label,span)]:sticky [&>:is(label,span)]:start-0 [&>:is(label,span)]:w-fit"
             labelText="Rate your delivery"
             defaultValue={7}
             count={10}
