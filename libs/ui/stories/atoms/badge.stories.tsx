@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { expect, within } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Badge, type BadgeProps } from "../../src/atoms/badge"
 
@@ -122,6 +123,18 @@ export const Variants: Story = {
     },
   },
   args: {},
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const discount = canvas.getByText("Discount 30%")
+    const danger = canvas.getByText("Unavailable")
+    await expect(discount).toBeVisible()
+    await expect(danger).toBeVisible()
+    if (canvasElement.closest('[data-theme="business"]')) {
+      await expect(getComputedStyle(discount).backgroundColor).not.toBe(
+        getComputedStyle(danger).backgroundColor
+      )
+    }
+  },
   render: () => (
     <VariantContainer>
       <VariantGroup title="Solid themes">
@@ -142,6 +155,27 @@ export const Variants: Story = {
 }
 
 export const Sizes: Story = {
+  play: async ({ canvasElement }) => {
+    const badges = within(canvasElement).getAllByText("Ready to ship")
+    await expect(badges).toHaveLength(3)
+    for (const [index, current] of badges.entries()) {
+      const previous = badges[index - 1]
+      if (!previous) {
+        continue
+      }
+      await expect(
+        Number.parseFloat(getComputedStyle(current).fontSize)
+      ).toBeGreaterThanOrEqual(
+        Number.parseFloat(getComputedStyle(previous).fontSize)
+      )
+      await expect(current.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+        previous.getBoundingClientRect().width
+      )
+      await expect(current.getBoundingClientRect().height).toBeGreaterThanOrEqual(
+        previous.getBoundingClientRect().height
+      )
+    }
+  },
   parameters: {
     controls: { disable: true },
     docs: {

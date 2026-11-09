@@ -8,6 +8,13 @@ import { Button } from "../../src/atoms/button"
 const meta: Meta<typeof Skeleton> = {
   title: "Atoms/Skeleton",
   component: Skeleton,
+  decorators: [
+    (Story) => (
+      <div className="p-200">
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
     docs: {
       description: {
@@ -111,7 +118,10 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     } = args
 
     return (
-      <Skeleton {...skeletonArgs} className="space-y-250 w-full max-w-md">
+      <Skeleton
+        {...skeletonArgs}
+        className="flex w-full max-w-md flex-col gap-250"
+      >
         {showRectangle && (
           <Skeleton.Rectangle {...skeletonArgs} className="h-20 w-xs" />
         )}
@@ -144,6 +154,12 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       [args.showRectangle, args.showText, args.showCircle].filter(Boolean)
         .length
     )
+    const shapes = Array.from(placeholders?.children ?? [])
+    for (let index = 1; index < shapes.length; index += 1) {
+      const previous = shapes[index - 1]!.getBoundingClientRect()
+      const current = shapes[index]!.getBoundingClientRect()
+      await expect(current.top).toBeGreaterThan(previous.bottom)
+    }
   },
 }
 
@@ -152,7 +168,7 @@ export const Variants: Story = {
     docs: {
       description: {
         story:
-          "Compare variants in skeleton to choose a suitable presentation for real product content.",
+          "Compare equal-size placeholders in an undimmed static reduced-motion state. Primary carries the main loading shape; Secondary is a quieter supporting surface. Animation speed is demonstrated separately.",
       },
     },
   },
@@ -161,14 +177,66 @@ export const Variants: Story = {
     <div className="space-y-250">
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Primary (default)</p>
-        <Skeleton.Rectangle variant="primary" className="h-20 w-xs" />
+        <Skeleton.Rectangle
+          variant="primary"
+          className="h-20 w-xs force-reduced-motion"
+          data-testid="skeleton-primary"
+        />
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Secondary</p>
-        <Skeleton.Rectangle variant="secondary" className="h-20 w-xs" />
+        <Skeleton.Rectangle
+          variant="secondary"
+          className="h-20 w-xs force-reduced-motion"
+          data-testid="skeleton-secondary"
+        />
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const primary = canvas.getByTestId("skeleton-primary")
+    const secondary = canvas.getByTestId("skeleton-secondary")
+    const primaryBounds = primary.getBoundingClientRect()
+    const secondaryBounds = secondary.getBoundingClientRect()
+    await expect(primaryBounds.width).toBe(secondaryBounds.width)
+    await expect(primaryBounds.height).toBe(secondaryBounds.height)
+    for (const placeholder of [primary, secondary]) {
+      const style = getComputedStyle(placeholder)
+      await expect(style.animationName).toBe("none")
+      await expect(style.opacity).toBe("1")
+    }
+
+    if (!canvasElement.closest('[data-theme="business"]')) return
+
+    const samples: Uint8ClampedArray[] = []
+    const swatch = canvasElement.ownerDocument.createElement("canvas")
+    swatch.width = 1
+    swatch.height = 1
+    const context = swatch.getContext("2d")
+    if (!context) throw new Error("Missing Skeleton color-check context")
+
+    for (const variant of ["primary", "secondary"]) {
+      const placeholder = canvas.getByTestId(`skeleton-${variant}`)
+      context.clearRect(0, 0, 1, 1)
+      context.fillStyle = getComputedStyle(placeholder).backgroundColor
+      context.fillRect(0, 0, 1, 1)
+      const sample = context.getImageData(0, 0, 1, 1).data
+      samples.push(sample)
+      const [red, green, blue, alpha] = sample
+      // Keep both fills in the same cool neutral family, not a status hue.
+      await expect(alpha).toBe(255)
+      await expect(green).toBeGreaterThanOrEqual(red!)
+      await expect(blue).toBeGreaterThanOrEqual(red!)
+    }
+    // Static shapes keep full opacity and at least eight levels of separation
+    // per channel on the same surface. Unequal pulse phases cannot pass this.
+    for (const channel of [0, 1, 2]) {
+      await expect(
+        samples[1]![channel]! - samples[0]![channel]!
+      ).toBeGreaterThanOrEqual(8)
+    }
+  },
 }
 
 export const Sizes: Story = {
@@ -176,13 +244,16 @@ export const Sizes: Story = {
     docs: {
       description: {
         story:
-          "Compare sizes in skeleton to choose a suitable presentation for real product content.",
+          "Compare avatar sizes and text spacing in equal-width columns, stacked on narrow screens. Text-line height stays content-owned rather than scaling with avatar size.",
       },
     },
   },
 
   render: () => (
-    <div className="flex flex-wrap gap-250 items-end">
+    <div
+      className="grid w-full max-w-xl grid-cols-1 items-start gap-250 sm:grid-cols-3"
+      data-testid="skeleton-size-comparison"
+    >
       {(
         [
           ["sm", "Small (sm)"],
@@ -190,7 +261,7 @@ export const Sizes: Story = {
           ["lg", "Large (lg)"],
         ] as const
       ).map(([size, label]) => (
-        <div className="flex flex-col gap-150" key={size}>
+        <div className="flex min-w-0 flex-col gap-150" key={size}>
           <p>{label}</p>
           <Skeleton
             aria-label="Loading profile"
@@ -203,6 +274,12 @@ export const Sizes: Story = {
       ))}
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const columns = canvasElement.querySelector('[data-testid="skeleton-size-comparison"]')
+    if (!columns) throw new Error("Missing Skeleton size columns")
+    await expect(getComputedStyle(columns).display).toBe("grid")
+    await expect(getComputedStyle(columns).alignItems).toBe("flex-start")
+  },
 }
 
 export const WithContent: Story = {
@@ -302,7 +379,7 @@ export const SpeedInheritance: Story = {
           Parent speed="fast" - children inherit
         </p>
         <Skeleton speed="fast">
-          <div className="flex gap-250 p-250 border rounded-lg">
+          <div className="flex gap-250 p-250 border border-border-primary rounded-lg">
             <Skeleton.Circle size="lg" />
             <div className="flex-1 space-y-150">
               <Skeleton.Text noOfLines={2} />
@@ -316,7 +393,7 @@ export const SpeedInheritance: Story = {
           Parent speed="slow" - one child overrides to fast
         </p>
         <Skeleton speed="slow">
-          <div className="flex gap-250 p-250 border rounded-lg">
+          <div className="flex gap-250 p-250 border border-border-primary rounded-lg">
             <Skeleton.Circle size="lg" speed="fast" />
             <div className="flex-1 space-y-150">
               <Skeleton.Text noOfLines={2} />
@@ -526,7 +603,7 @@ export const ProductCardSkeleton: Story = {
   render: () => (
     <Skeleton
       aria-label="Loading product"
-      className="w-full max-w-md border p-250 rounded-lg"
+      className="w-full max-w-md border border-border-primary p-250 rounded-lg"
     >
       <Skeleton.Rectangle className="mb-250 h-64" />
       <Skeleton.Text noOfLines={2} size="sm" />
@@ -552,7 +629,7 @@ export const UserProfileSkeleton: Story = {
   render: () => (
     <Skeleton
       aria-label="Loading profile"
-      className="flex gap-250 p-250 border rounded-lg max-w-md"
+      className="flex gap-250 p-250 border border-border-primary rounded-lg max-w-md"
     >
       <Skeleton.Circle size="lg" />
       <div className="flex-1">
@@ -578,9 +655,15 @@ export const FeedSkeleton: Story = {
 
   name: "Feed loading region",
   render: () => (
-    <Skeleton aria-label="Loading feed" className="space-y-250 max-w-xs">
+    <Skeleton
+      aria-label="Loading feed"
+      className="flex max-w-xs flex-col gap-250"
+    >
       {[1, 2, 3].map((item) => (
-        <div key={item} className="border p-250 rounded-lg">
+        <div
+          key={item}
+          className="border border-border-primary p-250 rounded-lg"
+        >
           <div className="flex gap-200 mb-250">
             <Skeleton.Circle size="md" />
             <div className="flex-1">
@@ -593,6 +676,20 @@ export const FeedSkeleton: Story = {
       ))}
     </Skeleton>
   ),
+  play: async ({ canvasElement }) => {
+    const feed = within(canvasElement).getByRole("status", {
+      name: "Loading feed",
+    })
+    const cards = feed.querySelectorAll("[inert] > div")
+    await expect(cards).toHaveLength(3)
+    for (const card of cards) {
+      const style = getComputedStyle(card)
+      await expect(style.borderTopColor).not.toBe(style.color)
+    }
+    const first = cards[0]!.getBoundingClientRect()
+    const second = cards[1]!.getBoundingClientRect()
+    await expect(second.top).toBeGreaterThan(first.bottom)
+  },
 }
 
 export const ReducedMotion: Story = {
@@ -601,7 +698,7 @@ export const ReducedMotion: Story = {
     docs: {
       description: {
         story:
-          "This story shows what the skeleton would look like with reduced motion enabled (without having to enable it)",
+          "Both variants stop pulsing without dimming rectangle, text, and circle placeholders. This forced static demonstration does not change or emulate your OS preference; the real reduced-motion media rule uses the same undimmed state.",
       },
     },
   },
@@ -614,18 +711,55 @@ export const ReducedMotion: Story = {
           below.
         </p>
       </div>
-      <Skeleton.Rectangle className="h-20 w-xs force-reduced-motion" />
-      <Skeleton.Text noOfLines={3} className="force-reduced-motion" />
-      <Skeleton.Circle size="lg" className="force-reduced-motion" />
+      {(["primary", "secondary"] as const).map((variant) => (
+        <div className="w-full max-w-xs space-y-150" key={variant}>
+          <p className="text-sm text-fg-secondary">
+            {variant === "primary" ? "Primary (default)" : "Secondary"}
+          </p>
+          <Skeleton
+            variant={variant}
+            aria-label={`Loading ${variant} preview`}
+            className="flex flex-col gap-150"
+            data-testid={`reduced-motion-${variant}`}
+          >
+            <Skeleton.Rectangle className="h-20 force-reduced-motion" />
+            <div className="flex items-start gap-200">
+              <Skeleton.Circle size="lg" className="force-reduced-motion" />
+              <Skeleton.Text
+                noOfLines={3}
+                className="force-reduced-motion"
+                containerClassName="min-w-0 flex-1"
+              />
+            </div>
+          </Skeleton>
+        </div>
+      ))}
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const variant of ["primary", "secondary"]) {
+      const group = canvas.getByTestId(`reduced-motion-${variant}`)
+      const shapes = group.querySelectorAll(
+        '[class*="animate-skeleton-pulse-"]'
+      )
+      await expect(shapes).toHaveLength(5)
+      const fill = getComputedStyle(shapes[0]!).backgroundColor
+      for (const shape of shapes) {
+        const style = getComputedStyle(shape)
+        await expect(style.animationName).toBe("none")
+        await expect(style.opacity).toBe("1")
+        await expect(style.backgroundColor).toBe(fill)
+      }
+    }
+  },
 }
 
 function InteractionIsolationExample() {
   const [loaded, setLoaded] = useState(false)
   const [activations, setActivations] = useState(0)
   return (
-    <div className="flex flex-col gap-200">
+    <div className="flex w-full max-w-md flex-col gap-250">
       <Button onClick={() => setLoaded((value) => !value)}>
         Toggle loading
       </Button>

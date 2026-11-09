@@ -2,7 +2,7 @@
  * StatusText — @techsio/ui-kit atom.
  *
  * @component StatusText
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.4
  * @skill status-text-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,7 +25,7 @@ const statusTextVariants = tv({
       error: "text-status-text-fg-error",
       success: "text-status-text-fg-success",
       warning: "text-status-text-fg-warning",
-      default: "text-status-text-fg",
+      default: "status-text-neutral-prefix text-status-text-fg",
     },
     align: {
       start: { base: "items-start" },

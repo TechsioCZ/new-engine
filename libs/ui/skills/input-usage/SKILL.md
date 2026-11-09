@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Input atom, including valid size, variant, embedded button
   spacing, and token-first validation styling.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.6"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -241,6 +241,13 @@ Override `--color-input-bg-readonly` and `--color-input-fg-readonly`
 to tune only this field's read-only surface and value. The default reference
 aliases follow `--color-form-control-readonly` and `--color-form-control-text`.
 These overrides also apply on hover/focus; disabled styling still wins.
+
+### Focus fill
+
+In the Business brand, focus keeps the field's own resting fill
+(`--color-input-bg-base`) instead of darkening the surface again, so the
+existing focus outline, border and native text selection carry the signal.
+Override `--color-input-bg-focus` to retarget that surface per consumer.
 
 ## Silent native form reset
 

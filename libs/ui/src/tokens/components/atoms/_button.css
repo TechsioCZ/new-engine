@@ -11,6 +11,7 @@
  *   - The `token-icon-button-spinner` semantic icon alias.
  *   - `--font-weight-button` (also used by LinkButton). Code-owned until
  *     the shared Figma library exports the same alias.
+ *   - `--text-button-icon-{sm,md,lg}` glyph sizes, defaulting to the label.
  */
 
 @theme static {
@@ -19,6 +20,13 @@
   --color-button-warning-readable: var(--color-warning-fg);
   --color-button-fg-warning-readable: var(--color-button-warning-readable);
   --font-weight-button: var(--font-weight-medium);
+  /* Leading/trailing glyphs default to the label size; themes may refine them. */
+  --text-button-glyph-sm: var(--text-button-sm);
+  --text-button-glyph-md: var(--text-button-md);
+  --text-button-glyph-lg: var(--text-button-lg);
+  --text-button-icon-sm: var(--text-button-glyph-sm);
+  --text-button-icon-md: var(--text-button-glyph-md);
+  --text-button-icon-lg: var(--text-button-glyph-lg);
   --padding-button-sm: var(--padding-button-y-sm) var(--padding-button-x-sm);
   --padding-button-md: var(--padding-button-y-md) var(--padding-button-x-md);
   --padding-button-lg: var(--padding-button-y-lg) var(--padding-button-x-lg);
@@ -29,19 +37,35 @@
 }
 
 /* Anchors and native buttons share the same unavailable presentation. Hover
- * and pressed selectors must never restore an interactive colour. */
+ * and pressed selectors must never restore an interactive colour. Loading is
+ * busy, not unavailable: its aria-disabled guard keeps the variant paint. */
 @utility button-disabled {
-  &:is(:disabled, [data-disabled=""], [aria-disabled="true"]),
-  &:is(:disabled, [data-disabled=""], [aria-disabled="true"]):is(
-      :hover,
-      :active
-    ) {
+  &:is(
+      :disabled,
+      [data-disabled=""],
+      [aria-disabled="true"]:not([data-loading])
+    ),
+  &:is(
+      :disabled,
+      [data-disabled=""],
+      [aria-disabled="true"]:not([data-loading])
+    ):is(:hover, :active) {
     color: var(--color-button-fg-disabled);
-    background-color: var(--color-button-bg-disabled);
+    background-color: var(
+      --color-button-bg-disabled-treatment,
+      var(--color-button-bg-disabled)
+    );
     border-color: var(--color-button-border-disabled);
     cursor: not-allowed;
     transform: none;
   }
+}
+
+@utility button-disabled-borderless {
+  --color-button-bg-disabled-treatment: var(--color-button-bg-borderless-base);
+}
+@utility button-disabled-outlined {
+  --color-button-bg-disabled-treatment: var(--color-button-bg-outlined);
 }
 
 /* Compatibility sizing inherits typography, not text colour. */

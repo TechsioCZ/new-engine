@@ -14,6 +14,10 @@ function Field({
 }: InputProps & { label?: string; helpText?: string }) {
   const id = useId()
   const messageId = `${id}-message`
+  const helperClassName =
+    props.disabled && variant === "default"
+      ? "in-data-[theme=business]:text-fg-disabled"
+      : undefined
   return (
     <div className="flex flex-col gap-form-field-gap">
       <Label disabled={props.disabled} htmlFor={id} size={size}>
@@ -31,7 +35,12 @@ function Field({
         variant={variant}
       />
       {helpText && (
-        <StatusText id={messageId} size={size} status={variant}>
+        <StatusText
+          className={helperClassName}
+          id={messageId}
+          size={size}
+          status={variant}
+        >
           {helpText}
         </StatusText>
       )}
@@ -126,7 +135,7 @@ export const Variants: Story = {
         ] as const
       ).map(([state, message]) => (
         <Field
-          defaultValue="Alex Morgan"
+          defaultValue={state === "error" ? "Alex" : "Alex Morgan"}
           helpText={message}
           key={state}
           label={`Contact name — ${state}`}
@@ -139,6 +148,7 @@ export const Variants: Story = {
     const canvas = within(canvasElement)
     const input = canvas.getByRole("textbox", { name: "Contact name — error" })
     await expect(input).toHaveAttribute("aria-invalid", "true")
+    await expect(input).toHaveValue("Alex")
     const messageId = input.getAttribute("aria-errormessage")
     await expect(messageId).toBeTruthy()
     await expect(input.getAttribute("aria-describedby")).toContain(messageId)
@@ -183,6 +193,15 @@ export const Sizes: Story = {
     await expect(new Set(fields.map((field) => field.id)).size).toBe(3)
     await userEvent.click(canvas.getByText("Small (sm)"))
     await expect(fields[0]).toHaveFocus()
+    await userEvent.tab()
+    await expect(fields[1]).toHaveFocus()
+    await userEvent.tab()
+    await expect(fields[2]).toHaveFocus()
+    // Finish the comparison at rest without suppressing any focus outline.
+    await userEvent.tab()
+    for (const field of fields) {
+      await expect(field).not.toHaveFocus()
+    }
   },
 }
 
@@ -236,5 +255,9 @@ export const ReadOnly: Story = {
     await userEvent.keyboard("Changed{Backspace}{Delete}")
     await expect(input).toHaveValue("Alex Morgan")
     await expect(input).not.toBeDisabled()
+    // Read-only remains keyboard focusable; show its resting surface afterward.
+    await userEvent.tab()
+    await expect(input).not.toHaveFocus()
+    await expect(input).toHaveValue("Alex Morgan")
   },
 }

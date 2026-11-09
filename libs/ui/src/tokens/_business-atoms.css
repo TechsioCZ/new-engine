@@ -1,0 +1,103 @@
+/* Business atom refinements. Shared palette, typography and control geometry
+ * remain owned by the existing theme; only atom-specific aliases change here. */
+[data-theme="business"] {
+  --color-badge-bg-discount: var(--color-bg-light-secondary-base);
+  --color-badge-fg-discount: var(--color-fg-accent-secondary);
+
+  --color-input-readonly: var(--color-form-control-readonly);
+  --color-input-border-readonly-hover: var(--color-input-border-base);
+  --color-input-border-readonly-focus: var(--color-input-border-base);
+  /* Focus keeps the field's own resting fill, so the existing outline,
+   * border and native text selection carry the focus signal instead of a
+   * second darkened surface. */
+  --color-input-bg-focus: var(--color-input-bg-base);
+  --padding-input-inline-sm: var(--dimension-12);
+  --padding-input-inline-md: var(--dimension-12);
+  --padding-input-inline-lg: var(--dimension-16);
+
+  /* Same shared read-only role Business Input already reads; the editable
+   * resting fill is not a read-only surface. */
+  --radius-textarea-surface-lg: var(--radius-input-lg);
+  --color-textarea-readonly: var(--color-form-control-readonly);
+  --color-textarea-border-readonly-hover: var(--color-textarea-border);
+  --color-textarea-border-readonly-focus: var(--color-textarea-border);
+  --color-textarea-placeholder-danger: var(--color-textarea-fg-placeholder);
+  /* Focus keeps the field's own resting fill; see the Input alias above. */
+  --color-textarea-bg-focus: var(--color-textarea-bg);
+  --padding-textarea-sm: var(--dimension-8);
+  --padding-textarea-md: var(--dimension-10);
+  --padding-textarea-lg: var(--dimension-12);
+  --padding-textarea-inline-sm: var(--padding-input-inline-sm);
+  --padding-textarea-inline-md: var(--padding-input-inline-md);
+  --padding-textarea-inline-lg: var(--padding-input-inline-lg);
+
+  --font-weight-label: var(--font-weight-semibold);
+
+  --text-button-sm: var(--text-sm);
+  --font-weight-button: var(--font-weight-medium);
+  --border-width-button-md: var(--border-width-sm);
+  --border-width-button-lg: var(--border-width-sm);
+  --color-button-border-primary: var(--color-border-control);
+  --color-button-border-secondary: var(--color-border-control);
+  --color-button-border-tertiary: var(--color-border-control);
+  --color-button-fg-secondary-borderless: var(--color-fg-secondary);
+  --color-button-fg-tertiary-borderless: light-dark(
+    var(--color-tertiary-700),
+    var(--color-fg-accent-tertiary)
+  );
+  --padding-button-x-sm: var(--dimension-12);
+  --padding-button-x-md: var(--dimension-16);
+  --padding-button-x-lg: var(--dimension-24);
+  --text-button-glyph-sm: var(--dimension-16);
+  --text-button-glyph-md: var(--dimension-18);
+  --text-button-glyph-lg: var(--dimension-20);
+
+  --color-action-icon-surface: var(--color-fill-overlay);
+  --color-action-icon-surface-disabled: var(--color-fill-disabled);
+  --text-action-icon-glyph-sm: var(--dimension-18);
+  --text-action-icon-glyph-md: var(--dimension-20);
+  --text-action-icon-glyph-lg: var(--dimension-24);
+  --color-numeric-input-bg-invalid: var(--color-numeric-input-bg);
+  /* The compound control paints one fill: focus keeps the same neutral
+   * resting surface the invalid state already reuses. */
+  --color-numeric-input-input-bg-focus: var(--color-numeric-input-bg);
+  --padding-numeric-input-input-sm: var(--padding-input-inline-sm);
+  --padding-numeric-input-input-md: var(--padding-input-inline-md);
+  --padding-numeric-input-input-lg: var(--padding-input-inline-lg);
+  --text-numeric-input-icon-sm: var(--dimension-20);
+  --text-numeric-input-icon-md: var(--dimension-22);
+  --text-numeric-input-icon-lg: var(--dimension-24);
+  --spacing-numeric-input-sm: var(--dimension-8);
+  --spacing-numeric-input-md: var(--dimension-8);
+  --spacing-numeric-input-lg: var(--dimension-8);
+
+  --spacing-status-text-lg: var(--dimension-8);
+  --padding-status-text-neutral-sm: calc(1em + var(--spacing-status-text-sm));
+  --padding-status-text-neutral-md: calc(1em + var(--spacing-status-text-md));
+  --padding-status-text-neutral-lg: calc(1em + var(--spacing-status-text-lg));
+
+  --text-rating-sm: var(--dimension-20);
+  --text-rating-md: var(--dimension-24);
+  --text-rating-lg: var(--dimension-28);
+  --spacing-rating-items-sm: var(--dimension-2);
+  --spacing-rating-items-md: var(--dimension-2);
+  --spacing-rating-items-lg: var(--dimension-4);
+  --color-skeleton-bg-primary: color-mix(
+    in oklab,
+    var(--color-fill-highlight) 80%,
+    var(--color-border-control)
+  );
+  --color-skeleton-bg-secondary: var(--color-skeleton-secondary);
+  --color-skeleton-secondary: var(--color-fill-highlight);
+  --radius-skeleton-rectangle: var(--radius-skeleton-text);
+  --text-hotkeys-sm: calc((var(--text-xs) + var(--text-sm)) / 2);
+  --text-hotkeys-md: var(--text-base);
+  --gap-hotkeys: var(--spacing-100);
+  --color-hotkeys-outline: color-mix(
+    in oklab,
+    var(--color-border-control) 45%,
+    var(--color-fill-surface)
+  );
+  --shadow-tooltip: var(--shadow-lg);
+  --text-image-fallback-icon: var(--text-icon-2xl);
+}

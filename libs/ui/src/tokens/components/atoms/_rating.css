@@ -3,12 +3,23 @@
   --color-rating-ink: var(--color-fg-primary);
   --color-rating-paper: var(--color-fill-surface);
   --color-rating-fg-selected: var(--color-rating-ink);
+  /* Stars are not a box field; keep the saved score on its surrounding surface. */
+  --color-rating-readonly: var(--color-transparent);
+  --color-rating-bg-readonly: var(--color-rating-readonly);
   --color-rating-fg-empty: color-mix(
     in oklab,
     var(--color-rating-ink) 50%,
     var(--color-rating-paper)
   );
   --spacing-rating-target: var(--dimension-32);
+  --spacing-rating-target-min: var(--dimension-24);
+  /* Keep label/value spacing independent from the space between targets. */
+  --spacing-rating-items-sm: var(--spacing-rating-sm);
+  --spacing-rating-items-md: var(--spacing-rating-md);
+  --spacing-rating-items-lg: var(--spacing-rating-lg);
+  --spacing-rating-control-sm: var(--spacing-rating-items-sm);
+  --spacing-rating-control-md: var(--spacing-rating-items-md);
+  --spacing-rating-control-lg: var(--spacing-rating-items-lg);
   --text-rating-value: var(--text-label-sm);
 }
 @utility token-icon-rating {
@@ -19,6 +30,27 @@
 }
 @utility token-icon-rating-half {
   @apply icon-[mdi--star-half-full];
+}
+
+/* Full-size targets when space allows; long scales compress toward the
+ * minimum target (never below the glyph) before wrapping, so ten-point
+ * scales stay on one row in narrow containers. */
+@utility rating-item-fluid {
+  flex: 1 1 max(var(--spacing-rating-target-min), 1em);
+  width: var(--spacing-rating-target);
+  min-width: max(var(--spacing-rating-target-min), 1em);
+  max-width: var(--spacing-rating-target);
+}
+
+@utility rating-fractional-fill {
+  clip-path: inset(0 var(--rating-item-clip, 0%) 0 0);
+  &[dir="rtl"] {
+    clip-path: inset(0 0 0 var(--rating-item-clip, 0%));
+  }
+}
+
+@utility rating-readonly {
+  --color-form-control-bg-readonly: var(--color-rating-bg-readonly);
 }
 
 @utility rating-focus-outline {

@@ -2,7 +2,7 @@
  * Textarea — @techsio/ui-kit atom.
  *
  * @component Textarea
- * @componentVersion v1.0.4
+ * @componentVersion v1.0.10
  * @skill textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -24,77 +24,103 @@ import {
 } from "../internal/form-control-lifecycle"
 import { tv } from "../utils"
 
-const textareaVariants = tv({
-  base: [
-    "form-control-readonly textarea-readonly form-control-disabled block w-full",
-    "font-normal",
-    "bg-textarea-bg",
-    "text-textarea-fg",
-    "placeholder:font-normal",
-    "placeholder:text-textarea-fg-placeholder",
-    "border-(length:--border-width-textarea) border-textarea-border",
-    "rounded-textarea",
-    "transition duration-200 motion-reduce:transition-none",
-    "hover:border-textarea-border-hover hover:bg-textarea-bg-hover",
-    "focus:border-textarea-border-focus focus:bg-textarea-bg-focus",
-    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-    "focus-visible:outline-textarea-ring",
-    "focus-visible:outline-offset-(length:--default-ring-offset)",
-    "disabled:cursor-not-allowed disabled:border-textarea-border-disabled disabled:bg-textarea-bg-disabled disabled:text-textarea-fg-disabled",
-    // Native constraint validation once the user has interacted with the field.
-    "user-invalid:border-(length:--border-width-validation)",
-    "user-invalid:border-textarea-border-danger-base",
-    "user-invalid:hover:border-textarea-border-danger-hover",
-    "user-invalid:focus:border-textarea-border-danger-focus",
-  ],
-  variants: {
-    variant: {
-      default: "",
-      error: [
-        "border-(length:--border-width-validation)",
-        "border-textarea-border-danger-base",
-        "hover:border-textarea-border-danger-hover",
-        "focus:border-textarea-border-danger-focus",
-        "placeholder:text-textarea-placeholder-danger",
-      ],
-      success: [
-        "border-(length:--border-width-validation)",
-        "border-textarea-border-success-base",
-        "hover:border-textarea-border-success-hover",
-        "focus:border-textarea-border-success-focus",
-      ],
-      warning: [
-        "border-(length:--border-width-validation)",
-        "border-textarea-border-warning-base",
-        "hover:border-textarea-border-warning-hover",
-        "focus:border-textarea-border-warning-focus",
-      ],
-      borderless: [
-        "border-transparent",
-        "bg-textarea-bg-borderless",
-        "hover:bg-textarea-bg-borderless-hover",
-        "focus:bg-textarea-bg-borderless-focus",
-      ],
+const textareaVariants = tv(
+  {
+    base: [
+      "form-control-readonly textarea-readonly form-control-disabled block w-full",
+      "font-normal",
+      "bg-textarea-bg",
+      "text-textarea-fg",
+      "placeholder:font-normal",
+      "placeholder:text-textarea-fg-placeholder",
+      "border-(length:--border-width-textarea) border-textarea-border",
+      "rounded-textarea",
+      "transition duration-200 motion-reduce:transition-none",
+      "hover:border-textarea-border-hover hover:bg-textarea-bg-hover",
+      "focus:border-textarea-border-focus focus:bg-textarea-bg-focus",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-textarea-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "disabled:cursor-not-allowed disabled:border-textarea-border-disabled disabled:bg-textarea-bg-disabled disabled:text-textarea-fg-disabled",
+      // A disabled field is inert, so it must not advertise the native resize
+      // grip; editable and read-only fields keep their configured resize mode.
+      "disabled:resize-none",
+      // Native constraint validation once the user has interacted with the field.
+      "user-invalid:border-(length:--border-width-validation)",
+      "user-invalid:border-textarea-border-danger-base",
+      "user-invalid:hover:border-textarea-border-danger-hover",
+      "user-invalid:focus:border-textarea-border-danger-focus",
+    ],
+    variants: {
+      variant: {
+        default: "",
+        error: [
+          "border-(length:--border-width-validation)",
+          "border-textarea-border-danger-base",
+          "hover:border-textarea-border-danger-hover",
+          "focus:border-textarea-border-danger-focus",
+          "placeholder:text-textarea-placeholder-danger",
+        ],
+        success: [
+          "border-(length:--border-width-validation)",
+          "border-textarea-border-success-base",
+          "hover:border-textarea-border-success-hover",
+          "focus:border-textarea-border-success-focus",
+        ],
+        warning: [
+          "border-(length:--border-width-validation)",
+          "border-textarea-border-warning-base",
+          "hover:border-textarea-border-warning-hover",
+          "focus:border-textarea-border-warning-focus",
+        ],
+        borderless: [
+          "border-transparent",
+          "bg-textarea-bg-borderless",
+          "hover:bg-textarea-bg-borderless-hover",
+          "focus:bg-textarea-bg-borderless-focus",
+        ],
+      },
+      size: {
+        sm: "rounded-textarea-sm p-textarea-sm px-textarea-inline-sm text-textarea-sm",
+        md: "rounded-textarea-md p-textarea-md px-textarea-inline-md text-textarea-md",
+        lg: "rounded-(--radius-textarea-surface-lg) p-textarea-lg px-textarea-inline-lg text-textarea-lg",
+      },
+      resize: {
+        none: "resize-none",
+        y: "resize-y",
+        x: "resize-x",
+        both: "resize",
+        auto: "field-sizing-content resize-none",
+      },
+      readOnly: {
+        true: "",
+      },
     },
-    size: {
-      sm: "rounded-textarea-sm p-textarea-sm text-textarea-sm",
-      md: "rounded-textarea-md p-textarea-md text-textarea-md",
-      lg: "p-textarea-lg text-textarea-lg",
-    },
-    resize: {
-      none: "resize-none",
-      y: "resize-y",
-      x: "resize-x",
-      both: "resize",
-      auto: "field-sizing-content resize-none",
+    compoundVariants: [
+      {
+        // Validation and borderless borders stay authoritative on read-only fields.
+        variant: "default",
+        readOnly: true,
+        class: [
+          "hover:border-textarea-border-readonly-hover",
+          "focus:border-textarea-border-readonly-focus",
+        ],
+      },
+    ],
+    defaultVariants: {
+      size: "md",
+      resize: "y",
+      variant: "default",
     },
   },
-  defaultVariants: {
-    size: "md",
-    resize: "y",
-    variant: "default",
-  },
-})
+  {
+    twMergeConfig: {
+      theme: {
+        radius: ["textarea", "textarea-sm", "textarea-md"],
+      },
+    },
+  }
+)
 
 export type TextareaProps = Omit<
   TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -157,6 +183,7 @@ export function Textarea({
         size,
         resize,
         variant,
+        readOnly: Boolean(readOnly),
         className,
       })}
       data-readonly={readOnly ? "" : undefined}

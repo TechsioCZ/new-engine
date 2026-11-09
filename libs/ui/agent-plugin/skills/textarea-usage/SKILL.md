@@ -5,7 +5,7 @@ description: >
   multi-line text entry with valid variant, size, resize, readonly styling, and
   token-first validation.
 metadata:
-  component_version: "1.0.4"
+  component_version: "1.0.10"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -22,6 +22,8 @@ metadata:
 
 Use Textarea for multi-line text entry. Use form molecules when a complete
 label/help/error field abstraction exists for the current app context.
+Business keeps error prompts neutral; validation stays on the border and associated
+message. `--color-textarea-placeholder-danger` remains the error-prompt override.
 
 ## UX/UI guidelines
 
@@ -205,6 +207,13 @@ Override `--color-textarea-bg-readonly` and `--color-textarea-fg-readonly`
 to tune only this field's read-only surface and value. The default reference
 aliases follow `--color-form-control-readonly` and `--color-form-control-text`.
 These overrides also apply on hover/focus; disabled styling still wins.
+
+### Focus fill
+
+In the Business brand, focus keeps the field's own resting fill
+(`--color-textarea-bg`) instead of darkening the surface again, so the existing
+focus outline, border and native text selection carry the signal. Override
+`--color-textarea-bg-focus` to retarget that surface per consumer.
 
 ## Silent native form reset
 

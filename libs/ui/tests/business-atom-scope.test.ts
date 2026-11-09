@@ -1,0 +1,56 @@
+import { readFileSync } from "node:fs"
+import postcss from "postcss"
+import { describe, expect, it } from "vitest"
+
+const source = readFileSync(
+  new URL("../src/tokens/_business-atoms.css", import.meta.url),
+  "utf8"
+)
+const css = postcss.parse(source)
+// Keep the existing component families and allow only the named Tooltip shadow
+// and Label weight aliases, not whole new token families.
+const atomToken =
+  /^--(?:color|text|font-weight|border-width|padding|spacing|gap|radius)-(?:action-icon|badge|button|checkbox|hotkeys|image|input|numeric-input|rating|skeleton|status-text|textarea)(?:-|$)|^--shadow-tooltip$|^--font-weight-label$/
+
+const newPaletteValue = /#[\da-f]+|oklch\(/i
+
+describe("Business atom scope", () => {
+  it("changes component aliases without redesigning shared theme tokens", () => {
+    const properties: string[] = []
+    css.walkDecls((declaration) => {
+      properties.push(declaration.prop)
+      expect(declaration.prop).toMatch(atomToken)
+    })
+    expect(properties.length).toBeGreaterThan(0)
+    expect(new Set(properties).size).toBe(properties.length)
+  })
+
+  it("keeps overrides confined to the Business brand", () => {
+    const selectors: string[] = []
+    css.walkRules((rule) => {
+      selectors.push(rule.selector)
+    })
+    expect(selectors).toEqual(['[data-theme="business"]'])
+  })
+
+  it("leaves shared defaults that Business overrides untouched for other brands", () => {
+    const shared = (file: string) =>
+      readFileSync(
+        new URL(`../src/tokens/components/atoms/${file}`, import.meta.url),
+        "utf8"
+      )
+    expect(shared("_hotkeys.css")).toContain(
+      "--gap-hotkeys: var(--spacing-50);"
+    )
+    expect(shared("_image.css")).toContain(
+      "--text-image-fallback-icon: var(--text-icon-lg);"
+    )
+  })
+
+  it("uses existing theme values rather than introducing a new palette or scale", () => {
+    css.walkDecls((declaration) => {
+      expect(declaration.value).toContain("var(--")
+      expect(declaration.value).not.toMatch(newPaletteValue)
+    })
+  })
+})

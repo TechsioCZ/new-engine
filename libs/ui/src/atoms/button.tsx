@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.6.1
+ * @componentVersion v0.6.3
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,6 +30,7 @@ export const buttonVariants = tv({
     "focus-visible:outline-button-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:text-button-fg-disabled",
+    "not-disabled:data-loading:cursor-progress",
   ],
   variants: {
     // Internal composition escape hatch: navigation owns its typography/press treatment.
@@ -52,9 +53,8 @@ export const buttonVariants = tv({
       solid: "disabled:bg-button-bg-disabled",
       light: "disabled:bg-button-bg-disabled",
       borderless:
-        "bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover hover:text-button-fg-interacting active:bg-button-bg-borderless-active active:text-button-fg-interacting disabled:hover:bg-button-bg-borderless-base",
-      outlined:
-        "border bg-button-bg-outlined disabled:border-0 disabled:bg-button-bg-disabled disabled:hover:bg-button-bg-disabled",
+        "button-disabled-borderless bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover hover:text-button-fg-interacting active:bg-button-bg-borderless-active active:text-button-fg-interacting",
+      outlined: "button-disabled-outlined border bg-button-bg-outlined",
       unstyled: "",
     },
     uppercase: {
@@ -271,6 +271,19 @@ export const buttonVariants = tv({
   },
 })
 
+// Glyphs follow the button size; `current` keeps inheriting the label.
+const buttonIconVariants = tv({
+  variants: {
+    size: {
+      sm: "text-button-icon-sm",
+      md: "text-button-icon-md",
+      lg: "text-button-icon-lg",
+      current: "",
+    },
+  },
+  defaultVariants: { size: "md" },
+})
+
 export type ButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "children"
@@ -329,6 +342,8 @@ export function Button({
     return () => form.removeEventListener("submit", preventPendingSubmit, true)
   }, [isLoading, type, props.form])
 
+  const iconClassName = buttonIconVariants({ size })
+
   return (
     <button
       {...props}
@@ -360,17 +375,29 @@ export function Button({
     >
       {isLoading ? (
         <>
-          <Icon icon="token-icon-button-spinner" size="current" />
+          <Icon
+            className={iconClassName}
+            icon="token-icon-button-spinner"
+            size="current"
+          />
           {loadingText || children}
         </>
       ) : (
         <>
           {icon && iconPosition === "left" && (
-            <Icon icon={icon} size={iconSize ?? "current"} />
+            <Icon
+              className={iconSize ? undefined : iconClassName}
+              icon={icon}
+              size={iconSize ?? "current"}
+            />
           )}
           {children}
           {icon && iconPosition === "right" && (
-            <Icon icon={icon} size={iconSize ?? "current"} />
+            <Icon
+              className={iconSize ? undefined : iconClassName}
+              icon={icon}
+              size={iconSize ?? "current"}
+            />
           )}
         </>
       )}

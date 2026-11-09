@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Label for
   form-control labels with valid size, disabled, required, and htmlFor usage.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.0.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -196,7 +196,9 @@ rg -U -n "<Label[\\s\\S]{0,240}<Input" apps
 ## Runtime typography and required fields
 
 `font-label` resolves through `--font-weight-label` (700), not a font-family
-alias. The required asterisk has a spoken “required” alternative and a
-readable error foreground; also set `required` on the actual control.
-Canonical sizes are sm/md/lg; `current` is an inherited-size compatibility
-escape hatch. Pair field feedback with the same size of StatusText.
+alias. Business quiets the label to the existing semibold step (600) so field
+names read less emphatically; every other brand keeps bold. The required
+asterisk has a spoken “required” alternative and a readable error foreground;
+also set `required` on the actual control. Canonical sizes are sm/md/lg;
+`current` is an inherited-size compatibility escape hatch. Pair field feedback
+with the same size of StatusText.

@@ -2,7 +2,7 @@
  * Icon — @techsio/ui-kit atom.
  *
  * @component Icon
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

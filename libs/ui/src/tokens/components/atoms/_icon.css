@@ -56,8 +56,10 @@
   @apply icon-[mdi--chevron-up];
 }
 
+/* Keep a complete progress ring recognizable when reduced motion stops rotation. */
 @utility token-icon-spinner {
   @apply icon-[mdi--loading];
+  --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' fill-opacity='.25' fill-rule='evenodd' d='M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20m0 2a8 8 0 1 1 0 16a8 8 0 1 1 0-16'/%3E%3Cpath fill='black' d='M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8'/%3E%3C/svg%3E");
   @media (prefers-reduced-motion: no-preference) {
     @apply animate-spin;
   }

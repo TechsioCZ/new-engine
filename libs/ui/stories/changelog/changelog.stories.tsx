@@ -13,6 +13,126 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Rating v1.3.6
+- Commit uncontrolled Rating focus with its accepted keyboard or pointer value instead of depending on Zag's animation frame; preserve the existing controlled focus path for parent-scheduled transitions, without replaying uncontrolled requests after silent resets or external changes.
+
+### NumericInput v1.3.10
+- Keep Business invalid fields on the same neutral surface Business Input and Textarea paint, so the error border, glyph and message carry the signal while other brands keep the shared danger fill.
+
+### NumericInput v1.3.11
+- Keep the Business compound control on its own resting fill while focused, so the existing focus outline, border and native selection identify the field instead of a second darkened surface; the single group paint, stepper hover/active paints, read-only and disabled precedence and other brands are unchanged.
+
+### Textarea v1.0.7
+- Remove the resize grip from disabled fields while editable and read-only fields keep their configured resize mode, auto-sizing and native semantics.
+
+### Textarea v1.0.8
+- Paint the Business read-only surface from the shared read-only role Input and NumericInput already read, so the field no longer wears the editable resting fill while text, focus, selection, every configured resize mode and disabled precedence stay unchanged; only Business dims the disabled example's neutral helper with its label, while other brands and validation messages keep their existing foregrounds.
+
+### Textarea v1.0.10
+- Align the Business large field's corner radius with large Input through a component alias; other themes retain the existing base radius and native resize, focus and selection behavior are unchanged.
+
+### Textarea v1.0.9
+- Keep the Business field on its resting fill while focused so the existing focus outline, border and native text selection carry the signal; every other brand, the read-only surface, disabled precedence and the configured resize modes are unchanged.
+
+### Link v1.2.4
+- Redraw keyboard focus as one continuous solid rule through the existing Link focus aliases — dropped clear of descenders with no skip-ink gaps — instead of a double underline that stacked a second rail under the resting hairline and broke into short blocks at descenders; wrapping, glyph positions, caller focus styles, the Footer hover contract and the system-colour fallback are unchanged.
+
+### Link v1.2.3
+- Replace the filled focus box with a double underline using live Link colour and border-width aliases, preserving inline layout, caller focus styles, native navigation and the system-colour fallback.
+
+### Link v1.2.2
+- Keep the inverse focus foreground when a consumer also supplies hover colours, using the standard focus-variant order while retaining caller focus overrides and the system-colour fallback.
+
+### Link v1.2.1
+- Focus inline links by highlighting the linked text itself with the reverse foreground on the link's own colour, keeping the underline and the shared radius scale, so no focus paint reaches the punctuation beside the link while glyph positions, line breaking and the shared ring defaults stay unchanged; high-contrast systems get the system highlight and an inset system ring instead.
+
+### Hotkeys v1.1.2
+- Separate the Business medium keycap from the small step through the existing base typography alias, keeping the raised small midpoint and the shared large step so the three display sizes stay ordered.
+
+### Tooltip v1.1.2
+- Lift the Business popup to the existing large elevation through the tooltip's own shadow alias, leaving the shared popup shadow and every other floating layer untouched.
+
+### Label v1.0.2
+- Quiet Business field labels to the existing semibold step, leaving label size, colour, required and disabled states and every other brand unchanged.
+
+### ActionIcon v1.1.5
+- Keep caller-owned surfaces above resting and disabled defaults, preserving opaque Carousel photo-overlay arrows without changing the default Business unavailable treatment or native guards.
+
+### ActionIcon v1.1.4
+- Quiet Business disabled tiles through a dedicated existing-palette surface while preserving glyph contrast, native disabled behavior and explicit caller state classes.
+
+### ActionIcon v1.1.3
+- Give destructive actions a visible resting tone and keep glyph sizing separate from hit areas, with component-local Business refinements.
+
+### Badge v1.1.1
+- Use the existing light secondary roles for Business discount badges, separating promotions from danger statuses without changing the danger palette or Badge API.
+
+### Button v0.6.3
+- Preserve outlined and borderless silhouettes when unavailable, without changing busy-state paint, native activation guards or shared control geometry.
+
+### LinkButton v1.2.2
+- Inherit Button's unavailable outlined/borderless treatments while retaining inert disabled navigation, caller adapters and native focus behavior.
+
+### Button v0.6.2
+- Size leading, trailing and loading glyphs independently of labels; keep busy buttons distinct from disabled buttons.
+
+### Checkbox v1.2.3
+- Scale the check glyph with its control size instead of inheriting row typography.
+
+### Hotkeys v1.1.1
+- Preserve keycap and separator shapes in narrow layouts and clarify the spacing between keys.
+
+### Icon v1.2.1
+- Keep a faint full track behind the loading arc so the spinner remains recognizable when reduced motion stops rotation.
+
+### Image v1.2.1
+- Make fallback glyphs more recognizable without changing the image adapter or recovery behavior.
+
+### Input v1.1.5
+- Restore the Business read-only surface from the existing shared read-only alias while preserving focus, selection and non-editable borders; show an actually incomplete name in the error example.
+
+### Input v1.1.6
+- Keep the Business field on its resting fill while focused so the existing focus outline, border and native text selection carry the signal; read-only, disabled and validation precedence, the search-clear treatment and every other brand are unchanged.
+
+### Input v1.1.4
+- Separate inline padding from field height and keep read-only border treatment independent from editable and validation states.
+
+### NumericInput v1.3.9
+- Reuse the editor's component-owned clear-surface alias on hover and focus, preserving the existing single group paint without adding new tokens or changing the default appearance.
+
+### NumericInput v1.3.8
+- Align Business value insets with Input and paint focus once at the compound field, keeping its two-tone outer indicator and native text selection.
+
+### NumericInput v1.3.7
+- Preserve space for steppers in narrow fields, size their glyphs independently, retain coarse-pointer targets, and keep explicit input ids synchronized.
+
+### Rating v1.3.5
+- Match read-only fractional stars to the exact score, preserve explicit fill direction and isolate numeric values in RTL; fit long scales without shrinking below their glyphs.
+
+### StatusText v1.1.4
+- Align Business neutral guidance with validation message text through size-local aliases, retaining silent icon-free hints, explicit icon overrides and caller padding utilities; other brands keep zero offset.
+
+### StatusText v1.1.3
+- Distinguish compact feedback with existing solid error-circle, bold-check and warning-triangle glyphs, preserving size, wrapping, live roles and caller icon overrides.
+
+### Textarea v1.0.6
+- Keep Business error placeholders on the normal prompt color while the validation border and associated message retain the error signal.
+
+### StatusText v1.1.2
+- Tighten the large Business icon-to-message gap using the existing spacing scale; preserve glyph sizing, wrapping and other brands.
+
+### Skeleton v1.0.8
+- Strengthen both Business loading tones using existing neutral anchors, retaining a distinct primary/secondary hierarchy; compare sizes in equal responsive columns without changing placeholder behavior.
+
+### Skeleton v1.0.7
+- Stop pulsing without dimming static reduced-motion shapes or overriding caller opacity, preserving loading semantics and normal animation.
+
+### Skeleton v1.0.6
+- Allow theme-owned rectangle rounding while preserving caller radius overrides and square defaults elsewhere.
+
+### Textarea v1.0.5
+- Separate inline padding from block padding and preserve validation borders and visible focus on read-only fields.
+
 ### UX guidelines (docs only)
 - New \`UX/\` section in Storybook: Introduction, Writing, Formatting, States, Feedback and actions, Component selection, and the new Value lifecycle and Accessibility pages.
 - Button, Input, Dialog, Select and DataTable have a **UX guidelines** page next to their stories, edited from the Figma UX descriptions in TechsioCZ/UX_docs. Each page maps Figma variants to code props.

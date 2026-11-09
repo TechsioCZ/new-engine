@@ -2,7 +2,7 @@
  * Label — @techsio/ui-kit atom.
  *
  * @component Label
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill label-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

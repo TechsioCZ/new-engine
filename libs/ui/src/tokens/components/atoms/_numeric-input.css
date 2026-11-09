@@ -1,6 +1,6 @@
 /*
- * NumericInput — runtime tokens fully come from libs/ui/src/tokens/figma/variables.css.
- * Only the semantic glyph aliases remain here.
+ * NumericInput — Figma supplies the base field tokens. Runtime state and
+ * independent stepper-glyph aliases remain code-owned here.
  */
 
 @utility token-icon-numeric-input-increment {
@@ -24,8 +24,26 @@
   --color-numeric-input-bg-readonly: var(--color-numeric-input-readonly);
   --color-numeric-input-fg-readonly: var(--color-numeric-input-text-readonly);
 
+  --shadow-numeric-input-focus-contrast: 0 0 0
+    calc(var(--default-ring-offset) + var(--default-ring-width) * 2)
+    var(--color-focus-contrast);
+  --shadow-numeric-input-focus: var(--shadow-numeric-input-focus-contrast);
+
+  /* Preserve the existing theme scale while allowing independent chevron sizing. */
+  --text-numeric-input-icon-sm: var(--text-icon-xs);
+  --text-numeric-input-icon-md: var(--text-icon-sm);
+  --text-numeric-input-icon-lg: var(--text-icon-md);
+  --text-numeric-input-trigger-icon-sm: var(--text-numeric-input-icon-sm);
+  --text-numeric-input-trigger-icon-md: var(--text-numeric-input-icon-md);
+  --text-numeric-input-trigger-icon-lg: var(--text-numeric-input-icon-lg);
+
   /* Side-by-side controls preserve the field height while meeting 24px targets. */
   --spacing-numeric-input-trigger-min: var(--spacing-350);
+  /* Match the theme's touch field size without changing desktop density. */
+  --spacing-numeric-input-touch-target: var(--height-form-control-md);
+  --spacing-numeric-input-trigger-touch-min: var(
+    --spacing-numeric-input-touch-target
+  );
   --color-numeric-input-trigger-hover: var(--color-icon-control-bg-hover);
   --color-numeric-input-trigger-active: var(--color-icon-control-bg-active);
   --color-numeric-input-trigger-text: var(--color-icon-control-fg);
@@ -40,6 +58,40 @@
   --color-numeric-input-trigger-fg-disabled: var(
     --color-numeric-input-trigger-disabled
   );
+}
+
+/* Match the unlayered foundation focus rule, but paint its contrast halo once
+ * around the compound control instead of clipping it inside each child. */
+.numeric-input-focus-owner[data-part="control"]:has(:focus-visible) {
+  box-shadow: var(--shadow-numeric-input-focus), var(--tw-shadow, 0 0 #0000);
+}
+
+.numeric-input-focus-owner
+  :is(
+    [data-scope="number-input"][data-part="input"],
+    [data-scope="number-input"][data-part="increment-trigger"],
+    [data-scope="number-input"][data-part="decrement-trigger"]
+  ):focus-visible {
+  box-shadow: var(--tw-shadow, 0 0 #0000);
+}
+
+/* Only automatic glyph sizing uses these aliases; explicit iconSize still wins. */
+@utility numeric-input-trigger-icon-sm {
+  & > span[aria-hidden="true"] {
+    font-size: var(--text-numeric-input-trigger-icon-sm);
+  }
+}
+
+@utility numeric-input-trigger-icon-md {
+  & > span[aria-hidden="true"] {
+    font-size: var(--text-numeric-input-trigger-icon-md);
+  }
+}
+
+@utility numeric-input-trigger-icon-lg {
+  & > span[aria-hidden="true"] {
+    font-size: var(--text-numeric-input-trigger-icon-lg);
+  }
 }
 
 /* Feed component overrides into the shared state utility on this surface. */

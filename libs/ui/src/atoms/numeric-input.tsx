@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.5
+ * @componentVersion v1.3.11
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -125,9 +125,9 @@ const readOnlySafeMachine: typeof numberInput.machine = {
 
 const numericInputVariants = tv({
   slots: {
-    root: ["relative flex flex-col"],
+    root: ["relative flex min-w-0 flex-col"],
     container: [
-      "group form-control-base numeric-input-validation numeric-input-readonly relative flex",
+      "group numeric-input-focus-owner form-control-base numeric-input-validation numeric-input-readonly relative flex",
       "border-numeric-input-border",
       "min-w-0 items-center overflow-clip",
       "hover:border-numeric-input-border-hover",
@@ -144,26 +144,26 @@ const numericInputVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     input: [
-      "h-full rounded-none border-none",
+      "h-full min-w-0 flex-1 rounded-none border-none",
       "bg-numeric-input-input-bg",
-      "focus:bg-numeric-input-input-bg-focus",
-      "hover:bg-numeric-input-input-bg-hover",
+      "focus:bg-numeric-input-input-bg",
+      "hover:bg-numeric-input-input-bg",
       "disabled:hover:bg-numeric-input-input-bg",
       "disabled:cursor-not-allowed",
       "focus-visible:outline-hidden",
       "duration-0 data-invalid:focus:border-input-border-danger-focus",
     ],
-    // Subtle divider from the input instead of a gray fill block; the gap-px
-    // shows the field behind it as a hairline between the two arrows.
+    // Reserve the stepper width; only the editor shrinks in a narrow field.
     triggerContainer: [
-      "flex flex-row self-stretch",
-      "border-numeric-input-border border-s",
+      "flex shrink-0 flex-row self-stretch",
+      "border-numeric-input-border border-s group-data-disabled:border-numeric-input-border-disabled",
     ],
     // Unified neutral icon-control treatment: transparent base (matches the
     // field, no "disabled" gray), neutral arrows, subtle neutral hover pill —
     // no blue arrow-on-gray. Glyph size is kept per NumericInput's own scale.
     trigger: [
       "flex min-h-numeric-input-trigger-min min-w-numeric-input-trigger-min flex-1 place-items-center",
+      "pointer-coarse:min-w-numeric-input-trigger-touch-min",
       "px-numeric-input-trigger-x py-numeric-input-trigger-y",
       "bg-transparent hover:bg-numeric-input-trigger-bg-hover active:bg-numeric-input-trigger-bg-active",
       "text-numeric-input-trigger-fg",
@@ -171,6 +171,7 @@ const numericInputVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
       "disabled:cursor-not-allowed disabled:text-numeric-input-trigger-fg-disabled",
     ],
+    triggerIcon: "",
     scrubber: "absolute inset-0 cursor-ew-resize",
   },
   variants: {
@@ -179,18 +180,21 @@ const numericInputVariants = tv({
         root: "gap-numeric-input-sm text-numeric-input-sm",
         container: "h-form-control-sm rounded-numeric-input-sm",
         trigger: "text-numeric-input-sm",
+        triggerIcon: "numeric-input-trigger-icon-sm",
         input: "ps-numeric-input-input-sm text-numeric-input-sm",
       },
       md: {
         root: "gap-numeric-input-md text-numeric-input-md",
         container: "h-form-control-md rounded-numeric-input-md",
         trigger: "text-numeric-input-md",
+        triggerIcon: "numeric-input-trigger-icon-md",
         input: "ps-numeric-input-input-md text-numeric-input-md",
       },
       lg: {
         root: "gap-numeric-input-lg text-numeric-input-lg",
         container: "h-form-control-lg rounded-numeric-input-lg",
         trigger: "text-numeric-input-lg",
+        triggerIcon: "numeric-input-trigger-icon-lg",
         input: "ps-numeric-input-input-lg text-numeric-input-lg",
       },
     },
@@ -222,8 +226,6 @@ type NumericInputContextValue = {
   errors: DescribedBy
   errorMessageId?: string
 }
-
-const triggerIconSizes = { sm: "xs", md: "sm", lg: "md" } as const
 
 const NumericInputContext = createContext<NumericInputContextValue | null>(null)
 
@@ -600,6 +602,7 @@ type NumericInputInputProps = Omit<
 
 NumericInput.Input = function NumericInputInput({
   ref,
+  id,
   className,
   ...props
 }: NumericInputInputProps) {
@@ -624,9 +627,9 @@ NumericInput.Input = function NumericInputInput({
   // A native id override must also reach Zag's labels, focus actions and
   // stepper aria-controls. Unregister it when the input is replaced/unmounted.
   useLayoutEffect(() => {
-    setInputId(props.id)
+    setInputId(id)
     return () => setInputId(undefined)
-  }, [props.id, setInputId])
+  }, [id, setInputId])
   const inputRef = useRef<HTMLInputElement>(null)
   const mergedRef = useMemo(
     () => (node: HTMLInputElement | null) => {
@@ -723,6 +726,7 @@ NumericInput.Input = function NumericInputInput({
       aria-invalid={isInvalid || undefined}
       className={styles.input({ className })}
       disabled={disabled || props.disabled}
+      id={id ?? machineInputProps.id}
       readOnly={readOnly || props.readOnly}
       size={size}
     />
@@ -772,8 +776,7 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   children,
   ...props
 }: NumericInputIncrementTriggerProps) {
-  const { api, styles, size, readOnly, disabled } = useNumericInputContext()
-  const resolvedIconSize = iconSize ?? triggerIconSizes[size ?? "md"]
+  const { api, styles, readOnly, disabled } = useNumericInputContext()
   if (readOnly) {
     return null
   }
@@ -781,10 +784,12 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   return (
     <Button
       block={block}
-      className={styles.trigger({ className })}
+      className={styles.trigger({
+        className: [iconSize === undefined && styles.triggerIcon(), className],
+      })}
       icon={icon}
       iconPosition={iconPosition}
-      iconSize={resolvedIconSize}
+      iconSize={iconSize ?? "current"}
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}
@@ -847,8 +852,7 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   children,
   ...props
 }: NumericInputDecrementTriggerProps) {
-  const { api, styles, size, readOnly, disabled } = useNumericInputContext()
-  const resolvedIconSize = iconSize ?? triggerIconSizes[size ?? "md"]
+  const { api, styles, readOnly, disabled } = useNumericInputContext()
   if (readOnly) {
     return null
   }
@@ -856,10 +860,12 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   return (
     <Button
       block={block}
-      className={styles.trigger({ className })}
+      className={styles.trigger({
+        className: [iconSize === undefined && styles.triggerIcon(), className],
+      })}
       icon={icon}
       iconPosition={iconPosition}
-      iconSize={resolvedIconSize}
+      iconSize={iconSize ?? "current"}
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}

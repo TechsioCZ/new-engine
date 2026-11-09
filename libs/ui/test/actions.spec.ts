@@ -91,7 +91,7 @@ for (const [brand, mode] of schemes) {
     await expect(group).toHaveCSS("opacity", "1")
     await page.emulateMedia({ reducedMotion: "reduce" })
     for (const id of ["group-rectangle", "standalone-rectangle"]) {
-      await expect(page.getByTestId(id)).toHaveCSS("opacity", "0.7")
+      await expect(page.getByTestId(id)).toHaveCSS("opacity", "1")
       await expect(page.getByTestId(id)).toHaveCSS("animation-name", "none")
     }
     await toggle.click()
@@ -197,7 +197,7 @@ for (const [brand, mode] of schemes) {
     await page.goto(
       `/iframe.html?id=atoms-actionicon--variants&viewMode=story&globals=mode:${mode};brand:${brand}`
     )
-    const button = page.getByRole("button", { name: "Remove attachment" })
+    const button = page.getByRole("button", { name: "Discard draft" })
     const ratio = () =>
       button.evaluate((node) => {
         const canvas = document.createElement("canvas")
