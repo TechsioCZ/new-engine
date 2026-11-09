@@ -5,7 +5,7 @@ description: >
   compact status, category, discount, or metadata labels without duplicating
   token-backed color and spacing classes in JSX.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.1.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

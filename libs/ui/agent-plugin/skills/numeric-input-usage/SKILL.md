@@ -6,7 +6,7 @@ description: >
   numeric compatibility or controlled string drafts, locale formatting, min/max/step, and token-first
   styling.
 metadata:
-  component_version: "1.3.11"
+  component_version: "1.3.12"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -2,7 +2,7 @@
  * Badge — @techsio/ui-kit atom.
  *
  * @component Badge
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill badge-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

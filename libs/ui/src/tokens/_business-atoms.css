@@ -11,7 +11,6 @@
    * border and native text selection carry the focus signal instead of a
    * second darkened surface. */
   --color-input-bg-focus: var(--color-input-bg-base);
-  --padding-input-inline-sm: var(--dimension-12);
   --padding-input-inline-md: var(--dimension-12);
   --padding-input-inline-lg: var(--dimension-16);
 
@@ -35,12 +34,6 @@
 
   --text-button-sm: var(--text-sm);
   --font-weight-button: var(--font-weight-medium);
-  --border-width-button-md: var(--border-width-sm);
-  --border-width-button-lg: var(--border-width-sm);
-  --color-button-border-primary: var(--color-border-control);
-  --color-button-border-secondary: var(--color-border-control);
-  --color-button-border-tertiary: var(--color-border-control);
-  --color-button-fg-secondary-borderless: var(--color-fg-secondary);
   --color-button-fg-tertiary-borderless: light-dark(
     var(--color-tertiary-700),
     var(--color-fg-accent-tertiary)
