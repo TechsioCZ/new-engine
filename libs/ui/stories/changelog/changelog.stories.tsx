@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Rating v1.3.6
+- Commit uncontrolled Rating focus with its accepted keyboard or pointer value instead of depending on Zag's animation frame; preserve the existing controlled focus path for parent-scheduled transitions, without replaying uncontrolled requests after silent resets or external changes.
+
 ### Hotkeys v1.1.2
 - Separate the Business medium keycap from the small step through the existing base typography alias, keeping the raised small midpoint and the shared large step so the three display sizes stay ordered.
 

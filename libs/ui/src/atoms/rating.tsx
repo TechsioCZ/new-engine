@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.3.5
+ * @componentVersion v1.3.6
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,7 +16,9 @@ import {
   type HTMLAttributes,
   type ReactNode,
   useId,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -74,6 +76,11 @@ const guardRatingAction =
 // synchronous callback guard. Remember the reset projection until that commit.
 const ratingResetValues = new WeakMap<object, number>()
 
+// Uncontrolled values and their focus requests commit together, avoiding Zag's frame racing
+// ahead of the value. Controlled values keep Zag's existing focus path: their parent may accept
+// a proposal in a separate React transition, outside this component's commit.
+const ratingFocusRequests = new WeakMap<object, () => void>()
+
 const ratingChoiceMachine: typeof machine = {
   ...machine,
   watch({ track, action, prop, context, scope }) {
@@ -122,6 +129,13 @@ const ratingChoiceMachine: typeof machine = {
       setValue: guardRatingAction(ratingValueActions.setValue),
       clearValue: guardRatingAction(ratingValueActions.clearValue),
       setHoveredValue: guardRatingAction(ratingValueActions.setHoveredValue),
+      focusActiveRadio(params) {
+        if (params.prop("value") !== undefined) {
+          ratingValueActions.focusActiveRadio?.(params)
+          return
+        }
+        ratingFocusRequests.get(params.context)?.()
+      },
     },
     effects: {
       ...machine.implementations?.effects,
@@ -273,6 +287,8 @@ export function Rating({
     ? Math.max(1, Math.floor(count))
     : 5
   const focusRef = useChoiceFocusRecovery('[role="radio"]')
+  // Bumped only by an accepted interaction, so its commit is the only one that may claim focus.
+  const [focusRequest, setFocusRequest] = useState(0)
   const controlRef = useMemo(
     () => (node: HTMLDivElement | null) => {
       focusRef.current = node
@@ -311,6 +327,34 @@ export function Rating({
     },
   })
   const api = connect(service, normalizeProps)
+  // The machine requests commit-owned focus only for uncontrolled interactions.
+  useLayoutEffect(() => {
+    const machineContext = service.context
+    ratingFocusRequests.set(machineContext, () => {
+      setFocusRequest((request) => request + 1)
+    })
+    return () => {
+      ratingFocusRequests.delete(machineContext)
+    }
+  }, [service.context])
+  const handledFocusRequest = useRef(focusRequest)
+  // Own the focus move inside the commit: only the request an interaction just made may move focus,
+  // so a later external value, read-only or scale change can never replay it.
+  useLayoutEffect(() => {
+    if (focusRequest === handledFocusRequest.current) {
+      return
+    }
+    handledFocusRequest.current = focusRequest
+    if (value !== undefined || !interactive) {
+      return
+    }
+    const checked = controlElement?.querySelector<HTMLElement>(
+      '[role="radio"][aria-checked="true"]'
+    )
+    if (checked && checked !== checked.ownerDocument.activeElement) {
+      checked.focus()
+    }
+  }, [controlElement, focusRequest, interactive, value])
   const isDisplay = displayOnly
   const styles = rating({ size, isDisplay })
 
