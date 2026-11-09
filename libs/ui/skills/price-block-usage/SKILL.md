@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/price-block.tsx"
   - "libs/ui/src/tokens/components/molecules/_price-block.css"
@@ -41,6 +43,23 @@ Apply the house `ux-guidelines` rules for numbers, writing and loading states.
   readers and hides the decorative skeleton; it adds no implicit live region.
 - Add root `aria-live` only when this particular dynamic update needs an
   announcement, so repeated prices do not create duplicate notifications.
+
+**Behaviour (from the UX spec)**
+
+- When the offer changes, update amount, currency, unit and discount together; while loading, show `pending`, never `0` or the previous offer's price.
+- `from` is the lowest price of a range, not the price of every configuration; `discounted` needs a documented original price of the same offer.
+- Never derive a price from availability; a price on its own starts no purchase.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=known…pending` | same `state` values |
+| `showTaxLabel` / `showUnitLabel` / `showDetail` | `taxLabel` / `unitLabel` / `detail` (omit to hide) |
+| `showDiscountLabel` + nested Badge | `discountLabel` |
+| — (not in Figma) | `originalSrLabel` (required for `discounted`), `pendingLabel` (required for `pending`) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/PriceBlock → UX guidelines*.
 
 ## Setup
 

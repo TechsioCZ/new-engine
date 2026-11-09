@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/pagination"
   contributor_sources: "libs/ui/src/molecules/pagination.tsx libs/ui/src/tokens/components/molecules/_pagination.css libs/ui/stories/molecules/pagination.stories.tsx libs/ui/src/molecules/pagination.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -58,6 +58,21 @@ where actions and feedback live). This section applies them to `Pagination`.
 **Copy and states**
 
 - Controls `Previous page`, `Next page`, `Page 3`; current page marked with `aria-current`.
+
+**Behaviour (from the UX spec)**
+
+- The current page always matches the data shown; when a filter shrinks the range, move to an existing page instead of an empty one.
+- Never split one form or linear process into pages (use Steps).
+- Cross-page selection, if any, has its own scoped control outside Pagination.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=filled\|outlined\|minimal`, `size=sm…lg` | same prop names and values |
+| — | `compact`, `siblingCount`, `boundaryCount`, `showPrevNext` (not in Figma) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Pagination → UX guidelines*.
 
 ## Setup
 

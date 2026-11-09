@@ -10,6 +10,8 @@ requires:
   - component-usage-ux
   - combobox-usage
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/templates/search-suggestions.tsx"
   - "libs/ui/src/molecules/combobox.tsx"
@@ -66,6 +68,20 @@ where actions and feedback live). This section applies them to `SearchSuggestion
 **Copy and states**
 
 - `See all 124 results for “linen”` as the last item.
+
+**Behaviour (from the UX spec)**
+
+- Navigate only when the user picks a result (Enter on a highlighted item or a click); never on highlight, never auto-pick the first result.
+- Enter on the typed query with nothing highlighted is wired by the app to the full results page; the template doesn't submit.
+- Replace groups as results arrive without touching the typed query; discard responses for older queries in the app.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| no Figma component | code is the only source (see Figma Handoff below) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Templates/SearchSuggestions → UX guidelines*.
 
 ## Contract
 

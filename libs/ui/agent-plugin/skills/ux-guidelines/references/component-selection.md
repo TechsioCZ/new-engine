@@ -1,3 +1,5 @@
+<!-- Source: house rules authored in libs/ui (no UX_docs counterpart). Storybook: UX/Component selection. -->
+
 # Component selection
 
 Pick by the user's intent, not by how the component looks. Every row links a
@@ -77,7 +79,7 @@ Each `<component>-usage` skill repeats its own rows in its UX/UI section.
 | Static tabular data | `Table` | div grids |
 | Data the user sorts, filters, selects, edits, pages | `DataTable` | `Table` + hand-written sorting |
 | Trends and comparisons | `Chart` (with a table alternative) | a table of 200 numbers |
-| Product image with thumbnails / zoom | `Gallery` | `Carousel` |
+| Product images with thumbnails (no zoom or fullscreen) | `Gallery` | `Carousel` |
 | Horizontally browsable slides (banners, related products) | `Carousel` | `Gallery` |
 | Product in a listing | `ProductCard` | custom card divs |
 | Product row in cart or order recap | `LineItem` | `ProductCard`, app-owned repeated row markup |

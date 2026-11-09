@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/file-upload"
   contributor_sources: "libs/ui/src/molecules/file-upload.tsx libs/ui/src/tokens/components/molecules/_file-upload.css libs/ui/stories/molecules/file-upload.stories.tsx"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -74,6 +74,25 @@ where actions and feedback live). This section applies them to `FileUpload`.
 **Copy and states**
 
 - Dropzone text: `Drag files here or browse`; button label `Choose files`.
+
+**Behaviour (from the UX spec)**
+
+- Removing a newly added local file never deletes an already stored document; deleting a stored file is a separate, confirmed action.
+- A field-level `invalid` never replaces the per-file reason; each rejected file says what's wrong and how to fix it.
+- `readOnly` keeps files inspectable and submitted but hides add, clear and remove.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=invalid` | `invalid` + `FileUpload.StatusText` |
+| `state=readonly` | `readOnly` |
+| dropzone `state=dragging` | automatic `data-dragging`, not a prop |
+| item `type=accepted` / `rejected` | `FileUpload.ItemGroup type` |
+| item `preview=document` / `image` | `ItemPreview` / `ItemPreviewImage` |
+| no size axis | `size="sm" \| "md" \| "lg"` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FileUpload → UX guidelines*.
 
 ## Setup
 
@@ -146,6 +165,7 @@ FileUpload.ItemName
 FileUpload.ItemSizeText
 FileUpload.ItemDeleteTrigger
 FileUpload.ClearTrigger
+FileUpload.StatusText
 ```
 
 `FileUpload.Context` passes the connected Zag API unchanged. `ItemGroup`

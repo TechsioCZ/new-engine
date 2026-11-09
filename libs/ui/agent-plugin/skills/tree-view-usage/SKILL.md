@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/tree-view"
   contributor_sources: "libs/ui/src/molecules/tree-view.tsx libs/ui/src/tokens/components/molecules/_tree-view.css libs/ui/stories/molecules/tree-view.stories.tsx libs/ui/src/molecules/tree-view.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -55,6 +55,25 @@ where actions and feedback live). This section applies them to `TreeView`.
 **Copy and states**
 
 - Node labels are names; actions on nodes follow Menu rules.
+
+**Behaviour (from the UX spec)**
+
+- Expansion, focus and selection are separate: opening a branch never selects, navigates or changes data.
+- Same-named nodes in different branches need path context in the label or a description.
+- Loading children that fails or returns empty must not create or keep a selection of a phantom node.
+- `TreeView.IndentGuide` and `TreeView.NodeIcon` are supplements; hierarchy must read from names and indentation.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | same prop |
+| `state=selected` | `selectedValue` / `defaultSelectedValue` |
+| `state=disabled` | `disabled` on the node data (inherited by the subtree) |
+| branch indicator `open` / `closed` | `expandedValue` / `defaultExpandedValue` |
+| nodeicon / indentguide | `TreeView.NodeIcon` / `TreeView.IndentGuide` (`showNodeIcons`, `showIndentGuides` on `TreeView.Node`) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/TreeView → UX guidelines*.
 
 ## Setup
 

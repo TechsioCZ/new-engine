@@ -14,6 +14,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/switch.tsx"
   - "libs/ui/src/tokens/components/molecules/_switch.css"
@@ -58,6 +60,23 @@ where actions and feedback live). This section applies them to `Switch`.
 **Copy and states**
 
 - Confirmation toast: `Email notifications turned on`.
+
+**Behaviour (from the UX spec)**
+
+- The label names the feature and never changes with the state; on/off stays readable without colour.
+- On is not saved: the switch shows the value, the app confirms the write. A failed save reverts the switch (toast with `Try again`), never leaves it looking saved.
+- Use `readOnly` (focusable, submitted, can't toggle) for settings the user may see but not change; `disabled` only for a findable reason.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=checked` / `disabled-checked` | `checked` (+ `disabled`) |
+| `state=invalid` | `validateStatus="error"` |
+| `state=focus` | not a prop (browser focus) |
+| no size axis, no read-only state | `size="sm" \| "md" \| "lg"`, `readOnly` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Switch → UX guidelines*.
 
 ## Setup
 

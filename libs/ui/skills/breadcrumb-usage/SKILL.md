@@ -14,6 +14,8 @@ requires:
   - framework-consumer-integration
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/breadcrumb.tsx"
   - "libs/ui/src/tokens/components/molecules/_breadcrumb.css"
@@ -61,6 +63,22 @@ where actions and feedback live). This section applies them to `Breadcrumb`.
 **Copy and states**
 
 - Labels are page names in sentence case; separators come from the component, never typed characters.
+
+**Behaviour (from the UX spec)**
+
+- The trail follows the hierarchy, not the click history: the same record shows the same ancestors however the user reached it.
+- Collapsed levels must stay reachable. `Breadcrumb.Ellipsis` is currently decorative (`aria-hidden`), so keep `maxItems` generous enough that nothing the user needs is hidden.
+- Pass a localised `aria-label` on the root (the default is `breadcrumb`).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | same prop |
+| — | `variant="plain" \| "underline"` (not in Figma) |
+| ellipsis glyph / hidden levels | `Breadcrumb.Ellipsis`, `maxItems` on `BreadcrumbTemplate` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Breadcrumb → UX guidelines*.
 
 ## Setup
 

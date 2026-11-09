@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/molecules/search-form.tsx libs/ui/src/tokens/components/molecules/_search-form.css libs/ui/stories/molecules/search-form.stories.tsx libs/ui/src/molecules/search-form.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -55,6 +55,24 @@ where actions and feedback live). This section applies them to `SearchForm`.
 **Copy and states**
 
 - Placeholder `Search products…`; button label `Search`.
+
+**Behaviour (from the UX spec)**
+
+- The input is a draft; submitting is not choosing a result. Never auto-open the first result, and keep the query after a failure so the user can retry.
+- With async search, discard out-of-order responses: only the latest query's results render. No results and a service failure are different messages.
+- Clearing empties the input; it doesn't by itself cancel or reset results already shown, and never deletes records. Decide what results do after a clear.
+- Default accessible names are English (`Search`, `Clear search: <query>`); pass localized `aria-label`s when there is no visible label or for the clear button.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg`, `gapped` | same prop names |
+| `state=disabled` | `disabled` |
+| `state=input-focus` / `button-focus` | not props (browser focus) |
+| — | `readOnly`, `validateStatus` + `SearchForm.StatusText` (code only) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/SearchForm → UX guidelines*.
 
 ## Setup
 

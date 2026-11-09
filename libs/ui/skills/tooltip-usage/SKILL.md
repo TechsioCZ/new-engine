@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/tooltip.tsx"
   - "libs/ui/src/tokens/components/atoms/_tooltip.css"
@@ -59,14 +61,29 @@ where actions and feedback live). This section applies them to `Tooltip`.
 
 - No trailing period for fragments; sentence case.
 
+**Behaviour (from the UX spec)**
+
+- The task must make sense without the hint, including on touch screens where there is no hover.
+- The bubble stays open while the pointer moves onto it (`interactive`, default) and Escape closes it without moving focus.
+- Never the only place for a format or instruction a field needs; show that as help text.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `placement=…` (8 values) | `placement` (any Zag placement; flips on collision) |
+| `Tooltip/md/default/right-start` frame | `size="md" variant="default" placement="right-start"` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Tooltip → UX guidelines*.
+
 ## Setup
 
 ```tsx
-import { Button } from "@techsio/ui-kit/atoms/button"
+import { ActionIcon } from "@techsio/ui-kit/atoms/action-icon"
 import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"
 
 <Tooltip content="Search products" placement="top">
-  <Button aria-label="Search" icon="icon-[mdi--magnify]" />
+  <ActionIcon aria-label="Search" icon="icon-[mdi--magnify]" />
 </Tooltip>
 ```
 
@@ -87,7 +104,7 @@ placement, gutter, offset, flip, sameWidth, boundary, listeners, strategy
 
 ```tsx
 <Tooltip content="The SKU is visible to warehouse staff.">
-  <Button theme="unstyled" aria-label="SKU help" icon="icon-[mdi--help-circle-outline]" />
+  <ActionIcon aria-label="SKU help" icon="icon-[mdi--help-circle-outline]" />
 </Tooltip>
 ```
 
@@ -97,11 +114,11 @@ If the text is required to complete the task, render visible help text instead.
 
 ```tsx
 <Tooltip content="Delete product">
-  <Button variant="danger" aria-label="Delete product" icon="icon-[mdi--trash-can-outline]" />
+  <ActionIcon tone="danger" aria-label="Delete product" icon="icon-[mdi--trash-can-outline]" />
 </Tooltip>
 ```
 
-Use UI-kit Button/Icon props for triggers instead of native buttons.
+Use UI-kit triggers (ActionIcon for icon-only, Button for text) instead of native buttons.
 
 ### Use Zag positioning props through the wrapper
 

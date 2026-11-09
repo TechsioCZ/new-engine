@@ -12,6 +12,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/vertical-navigation.tsx"
   - "libs/ui/src/tokens/components/molecules/_vertical-navigation.css"
@@ -56,6 +58,24 @@ where actions and feedback live). This section applies them to `VerticalNavigati
 **Copy and states**
 
 - Nouns in sentence case; counts as Badges only for actionable queues (`Orders 3`).
+
+**Behaviour (from the UX spec)**
+
+- Keep three states apart: `current` (this page, `aria-current="page"`), `containsCurrent` (its ancestors) and an open branch (disclosure only). Opening a branch never changes the page.
+- `tone`, `variant`, `indent` and `showGuide` are visual only; never use them to mark the current page.
+- Render a Separator only between groups that are present.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm\|md` | `size` (`lg` exists in code only) |
+| Link `state=current` | `current` on `VerticalNavigation.Link` |
+| Branch `state=currentPath` | `containsCurrent` on `VerticalNavigation.Branch` |
+| Branch `open` | `open` / `defaultOpen` + `onOpenChange` |
+| `state=disabled` | `disabled` on Link or Branch (Branch blocks only the disclosure) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/VerticalNavigation → UX guidelines*.
 
 ## Anatomy
 
@@ -159,8 +179,8 @@ items.
 
 Storybook includes Playground, Variants, Sizes, States, SevenLevels,
 Controlled, WithinDrawer, WithinSidebar, RTL and AkrosCatalog.
-Figma component creation and Code Connect are deferred until anatomy/tokens
-are approved; there are no invented Figma node mappings.
+Figma components exist for the root, group, group label, link, branch, branch
+content and separator, each with a Code Connect file (`src/molecules/vertical-navigation*.figma.ts`).
 
 ## Wave 2 contracts
 

@@ -15,6 +15,8 @@ requires:
   - zag-compound-components
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/numeric-input.tsx"
   - "libs/ui/src/tokens/components/atoms/_numeric-input.css"
@@ -62,6 +64,24 @@ where actions and feedback live). This section applies them to `NumericInput`.
 **Copy and states**
 
 - Trigger labels `Increase quantity` / `Decrease quantity`.
+
+**Behaviour (from the UX spec)**
+
+- Empty, zero and invalid are different; never turn an empty draft into `0` or the minimum.
+- Default `clampValueOnBlur` clamps out-of-range values on blur; pass `false` and explain the range when the user must fix the value.
+- Decrementing to zero never removes a line item; removal is its own action.
+- The steppers' default accessible names are Zag's English `increment value` / `decrease value`; pass localized `aria-label`s.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=error` | `validateStatus="error"` or `invalid` |
+| `state=disabled` | `disabled` |
+| `state=readonly` | `readOnly` (steppers hidden) |
+| — (not in Figma) | `validateStatus="success" \| "warning"` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/NumericInput → UX guidelines*.
 
 ## Setup
 

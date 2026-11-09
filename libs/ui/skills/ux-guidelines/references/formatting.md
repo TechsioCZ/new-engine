@@ -1,3 +1,5 @@
+<!-- Source: house rules authored in libs/ui (no UX_docs counterpart). Storybook: UX/Formatting. -->
+
 # Dates, numbers and alignment
 
 Format every value through `Intl` with **one app locale** (from the i18n layer

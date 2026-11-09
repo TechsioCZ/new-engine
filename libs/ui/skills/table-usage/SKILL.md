@@ -14,6 +14,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/organisms/table.tsx"
   - "libs/ui/src/tokens/components/organisms/_table.css"
@@ -57,6 +59,22 @@ where actions and feedback live). This section applies them to `Table`.
 **Copy and states**
 
 - Column headers short nouns with units (`Qty`, `Unit price (€)`).
+
+**Behaviour (from the UX spec)**
+
+- Links or buttons in cells don't make a Table a grid; keep normal tab order and no `role="grid"`.
+- If the data isn't comparable by column, use cards or a list, not Table.
+- One click never both selects a row and opens its detail; no data, no matches and a failed load get different messages.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=line\|outline\|striped`, `size=sm…lg` | same prop names and values |
+| — | `interactive`, `stickyHeader`, `stickyFirstColumn`, `showColumnBorder`, `captionPlacement`, `Row selected` (code only) |
+| Toolbar, FilterRow, PaginationBar in the Table doc | `DataTable`, not Table |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/Table → UX guidelines*.
 
 ## Setup
 

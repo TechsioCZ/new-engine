@@ -1,6 +1,6 @@
 {
   "name": "@techsio/ui-kit-ai",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Techsio UI Kit AI — Agent Plugins 1.0.0 package (skills + MCP) for developing and consuming the @techsio/ui-kit design system.",
   "author": {
     "name": "Lukáš Chylík",
