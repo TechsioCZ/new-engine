@@ -129,6 +129,9 @@ export const Sizes: Story = {
   ),
   play: async ({ canvasElement }) => {
     const buttons = within(canvasElement).getAllByRole("button")
+    // Brand scales may share a glyph step (N1 sm and md are both 16px), so
+    // glyphs never shrink and the largest size still beats the smallest.
+    const glyphSizes: number[] = []
     let previousGlyph = 0
     let previousWidth = 0
     let previousHeight = 0
@@ -138,16 +141,18 @@ export const Sizes: Story = {
       const glyphSize = Number.parseFloat(getComputedStyle(glyph).fontSize)
       const target = button.getBoundingClientRect()
       const glyphBounds = glyph.getBoundingClientRect()
-      await expect(glyphSize).toBeGreaterThan(previousGlyph)
+      await expect(glyphSize).toBeGreaterThanOrEqual(previousGlyph)
       await expect(target.width).toBeGreaterThanOrEqual(previousWidth)
       await expect(target.height).toBeGreaterThanOrEqual(previousHeight)
       await expect(target.width).toBeCloseTo(target.height)
       await expect(glyphBounds.width).toBeLessThan(target.width)
       await expect(glyphBounds.height).toBeLessThan(target.height)
+      glyphSizes.push(glyphSize)
       previousGlyph = glyphSize
       previousWidth = target.width
       previousHeight = target.height
     }
+    await expect(glyphSizes.at(-1)).toBeGreaterThan(glyphSizes[0] ?? 0)
   },
 }
 export const States: Story = {
