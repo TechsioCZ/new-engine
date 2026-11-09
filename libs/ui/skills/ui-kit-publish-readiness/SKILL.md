@@ -163,7 +163,7 @@ not an Akros project baseline. A focused test run is not release-readiness
 evidence. Review missing/changed baselines independently; never generate or
 accept them in the release gate.
 
-`storybook:a11y` is enforcing by default across all six supported brand/mode
+`storybook:a11y` is enforcing by default across all three supported brand/mode
 pairs. Reporter calibration stories have exact expected rule/node assertions and
 separate results, not blanket contrast waivers. Missing results fail validation.
 `storybook:a11y:report` is explicitly non-blocking collection for reviewed debt;
