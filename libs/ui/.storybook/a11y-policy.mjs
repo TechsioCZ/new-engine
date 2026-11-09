@@ -41,14 +41,11 @@ export function blockingViolations(violations) {
 /** @param {string} brand @param {string} mode */
 export function assertSupportedTheme(brand, mode) {
   assert.ok(
-    ["base", "neo", "business", "akros"].includes(brand),
+    ["business", "akros", "n1"].includes(brand),
     `Unknown brand: ${brand}`
   )
   assert.ok(mode === "light" || mode === "dark", `Unknown mode: ${mode}`)
-  assert.ok(
-    mode !== "dark" || brand === "base" || brand === "neo",
-    `${brand} has no dark mode`
-  )
+  assert.ok(mode !== "dark", `${brand} has no dark mode`)
 }
 
 /** Exact calibration contracts, never a blanket contrast-rule exclusion.

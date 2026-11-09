@@ -43,19 +43,20 @@ test("keeps parent navigation separate from disclosure and supports keyboard tog
   await expect(navigation.getByRole("menu")).toHaveCount(0)
 })
 
-for (const mode of ["light", "dark"]) {
-  test(`shares split-row hover and current background with independent focus in ${mode} mode`, async ({
+for (const brand of ["business", "akros", "n1"]) {
+  test(`shares split-row hover and current background with independent focus in ${brand}`, async ({
     page,
   }) => {
     await page.goto(
-      `/iframe.html?id=molecules-verticalnavigation--playground&viewMode=story&embed=true&globals=mode:${mode}`
+      `/iframe.html?id=molecules-verticalnavigation--playground&viewMode=story&embed=true&globals=brand:${brand};mode:light`
     )
     const link = page.getByRole("link", { name: "Fasteners", exact: true })
     const toggle = page.getByRole("button", { name: "Toggle Fasteners" })
     const row = page.locator('[data-part="row"]').filter({ has: link })
     const indicator = toggle.locator('[data-part="branch-indicator"]')
     await expect(link).toBeVisible()
-    await expect(page.locator("html")).toHaveClass(new RegExp(mode))
+    await expect(page.locator("html")).toHaveAttribute("data-theme", brand)
+    await expect(page.locator("html")).toHaveClass(/\blight\b/)
     const idleBackground = await row.evaluate(
       (element) => getComputedStyle(element).backgroundColor
     )

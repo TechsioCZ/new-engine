@@ -128,7 +128,7 @@ export const nativeResetCancellations = [
 
 /** @param {Page} page @param {string} control @param {Record<string, string>} [options] */
 export async function openNativeFormFixture(page, control, options = {}) {
-  const { brand = "base", mode = "light", baseURL, ...args } = options
+  const { brand = "business", mode = "light", baseURL, ...args } = options
   await openContractStory(page, "testing-native-form-contracts--playground", {
     brand,
     mode,

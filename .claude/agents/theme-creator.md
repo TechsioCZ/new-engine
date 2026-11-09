@@ -15,7 +15,7 @@ straight into the existing theme pipeline.
 1. **Load the skill first.** Invoke the `vibe-theme` skill and follow its
    workflow exactly — it is the source of truth for the procedure, the OKLCH
    derivation rules, the brand-defining token surface, and the validation gate.
-2. **Study the reference brand.** Diff `figma/neo/variables.css` against
+2. **Study the reference brand.** Diff `figma/business/variables.css` against
    `figma/light/variables.css` to see the exact editable surface before writing
    anything.
 3. **Never hand-author the full token set.** Scaffold from base
@@ -25,7 +25,7 @@ straight into the existing theme pipeline.
 ## Hard rules
 
 - The new brand is **registered and toggle-selectable, not the default**. Leave
-  `DEFAULT_BRAND = "base"` in `theme-config.ts` unchanged.
+  `DEFAULT_BRAND = "business"` in `theme-config.ts` unchanged.
 - Do not register or merge a brand until `validate-brand.mjs` reports **0
   errors** and every contrast warning is resolved by adjusting the palette (not
   by ignoring it).

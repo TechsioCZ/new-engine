@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url"
 import postcss from "postcss"
 import { findUndefinedReferences } from "./validate-token-definitions.js"
 
-const LIGHT_DARK = /light-dark/
 const NONZERO_TOKEN_COUNT = /Found [1-9]\d+ total tokens/
 
 test("undefined references include shared, primitive and brand declarations", () => {
@@ -82,8 +81,6 @@ test("brand-local corrections resolve inside nested scheme scopes without replac
     business.get("--color-fg-on-primary-solid-neo"),
     "var(--color-white)"
   )
-  const neo = foregrounds.get('([data-theme="neo"]) to ([data-theme])')
-  assert.match(neo.get("--color-fg-on-primary-solid"), LIGHT_DARK)
 })
 
 test("cycles fail in the effective scope, including unused self cycles", () => {
@@ -121,7 +118,7 @@ test("inactive raw snapshots and another brand cannot satisfy a dependency", () 
   assert.ok(missing.some((error) => error.token === "--inactive"))
   assert.ok(
     missing.some(
-      (error) => error.token === "--only-brand" && error.brand === "base"
+      (error) => error.token === "--only-brand" && error.brand === "business"
     )
   )
   assert.ok(
@@ -172,8 +169,8 @@ test("CSS substitution sees BOTH light-dark branches before resolving color", ()
     const errors = findUndefinedReferences([["entry.css", css]])
     for (const [brand, mode] of [
       ["akros", "light"],
-      ["base", "light"],
-      ["base", "dark"],
+      ["business", "light"],
+      ["n1", "light"],
     ]) {
       assert.ok(
         errors.some(

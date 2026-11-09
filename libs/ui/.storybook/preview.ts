@@ -1,6 +1,6 @@
 import type { Decorator, Preview } from "@storybook/react"
 import { createElement, useEffect } from "react"
-import { brandKeys, getBrand } from "../src/theme/theme-config"
+import { brandKeys, DEFAULT_BRAND, getBrand } from "../src/theme/theme-config"
 import "../src/tokens/index.css"
 import { curateControls } from "./controls"
 import { DocsTheme } from "./docs-theme"
@@ -14,7 +14,7 @@ const brandItems = brandKeys().map((key) => ({
 /*
  * Applies the two theme axes to <html>, mirroring the app:
  *   - mode  → `.light` / `.dark` class (drives color-scheme; "system" = no class)
- *   - brand → `data-theme="<attr>"` (base brand sets no attribute)
+ *   - brand → `data-theme="<attr>"`
  * Light-only brands are forced to light regardless of the Mode toolbar.
  */
 const withTheme: Decorator = (Story, context) => {
@@ -97,7 +97,7 @@ const preview: Preview = {
     },
   },
   initialGlobals: {
-    brand: "base",
+    brand: DEFAULT_BRAND,
     mode: "light",
   },
   argTypesEnhancers: [curateControls],

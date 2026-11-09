@@ -649,8 +649,8 @@ test.describe("DatePicker browser behavior", () => {
 
   for (const globals of [
     "brand:akros",
-    "brand:base;mode:light",
-    "brand:base;mode:dark",
+    "brand:business;mode:light",
+    "brand:n1;mode:light",
   ]) {
     test(`provides an opaque elevated popup in ${globals}`, async ({
       page,

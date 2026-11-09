@@ -41,11 +41,11 @@ const BRAND_RE = /^[a-z][a-z0-9-]*$/
  * Names that must never be scaffolded over, even with --force: the base modes
  * and the canonical Figma-exported brands. Their token files are the
  * source of truth and are NOT regenerable from base, so a stray
- * `scaffold-brand neo --force` must not clobber them. Add future
+ * `scaffold-brand akros --force` must not clobber them. Add future
  * Figma-exported brands here; code-authored ("vibed") brands are safe to
  * overwrite while iterating and are deliberately absent.
  */
-const RESERVED = new Set(["light", "dark", "base", "neo", "neo-dark"])
+const RESERVED = new Set(["light", "dark", "base", "business", "akros", "n1"])
 
 function die(msg) {
   console.error(`✗ ${msg}`)

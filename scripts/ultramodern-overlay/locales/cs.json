@@ -21,9 +21,8 @@
       "brand": "Téma",
       "brands": {
         "akros": "Akros",
-        "base": "Výchozí",
         "business": "Business",
-        "neo": "Neo"
+        "n1": "N1"
       },
       "lightOnly": "Toto téma nemá tmavý režim",
       "useDark": "Přepnout na tmavý režim",

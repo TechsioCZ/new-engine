@@ -153,8 +153,8 @@ Docker suite, and enforced accessibility. `force_release` bypasses only affected
 detection, never quality checks. Local semantic-release --dry-run is unsupported;
 do not set GITHUB_ACTIONS manually to defeat the publishing guard.
 
-The required visual matrix has 12 projects: base/neo light+dark and
-business/Akros light, desktop+mobile. `test:components:release` rejects filters,
+The required visual matrix has 6 projects: business/Akros/N1 light,
+desktop+mobile. `test:components:release` rejects filters,
 brand overrides and snapshot updates and verifies unique successful story/project
 identities. Before starting Docker, release readiness also checks the exact Linux
 primary baseline filename for every indexed story/project, failing with a missing
@@ -163,7 +163,7 @@ not an Akros project baseline. A focused test run is not release-readiness
 evidence. Review missing/changed baselines independently; never generate or
 accept them in the release gate.
 
-`storybook:a11y` is enforcing by default across all six supported brand/mode
+`storybook:a11y` is enforcing by default across all three supported brand/mode
 pairs. Reporter calibration stories have exact expected rule/node assertions and
 separate results, not blanket contrast waivers. Missing results fail validation.
 `storybook:a11y:report` is explicitly non-blocking collection for reviewed debt;
