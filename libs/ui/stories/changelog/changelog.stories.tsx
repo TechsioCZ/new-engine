@@ -19,6 +19,9 @@ const CHANGELOG = `
 ### Tooltip v1.1.2
 - Lift the Business popup to the existing large elevation through the tooltip's own shadow alias, leaving the shared popup shadow and every other floating layer untouched.
 
+### Label v1.0.2
+- Quiet Business field labels to the existing semibold step, leaving label size, colour, required and disabled states and every other brand unchanged.
+
 ### ActionIcon v1.1.5
 - Keep caller-owned surfaces above resting and disabled defaults, preserving opaque Carousel photo-overlay arrows without changing the default Business unavailable treatment or native guards.
 

@@ -47,7 +47,7 @@ export const Sizes: Story = {
     controls: { disable: true },
     docs: {
       description: {
-        story: "Small (sm), Medium (md) and Large (lg) pair labels with matching field and helper sizes. Business keeps Small and Medium labels at the same readable size; Large uses a larger label.",
+        story: "Small (sm), Medium (md) and Large (lg) pair labels with matching field and helper sizes, using the active brand's existing typography aliases.",
       },
     },
   },

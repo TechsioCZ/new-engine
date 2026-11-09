@@ -7,12 +7,10 @@ const source = readFileSync(
   "utf8"
 )
 const css = postcss.parse(source)
-// Component aliases are the only thing the Business scope may own. The single
-// exception is Tooltip's floating-layer elevation, which is a shadow-family
-// alias; it is named exactly so the guard still rejects any other shadow token
-// (and any new prefix family) instead of widening to `--shadow-*`.
+// Keep the existing component families and allow only the named Tooltip shadow
+// and Label weight aliases, not whole new token families.
 const atomToken =
-  /^--(?:color|text|font-weight|border-width|padding|spacing|radius)-(?:action-icon|badge|button|checkbox|hotkeys|image|input|numeric-input|rating|skeleton|status-text|textarea)(?:-|$)|^--shadow-tooltip$/
+  /^--(?:color|text|font-weight|border-width|padding|spacing|radius)-(?:action-icon|badge|button|checkbox|hotkeys|image|input|numeric-input|rating|skeleton|status-text|textarea)(?:-|$)|^--shadow-tooltip$|^--font-weight-label$/
 
 const newPaletteValue = /#[\da-f]+|oklch\(/i
 

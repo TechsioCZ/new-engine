@@ -22,6 +22,8 @@
   --padding-textarea-inline-md: var(--padding-input-inline-md);
   --padding-textarea-inline-lg: var(--padding-input-inline-lg);
 
+  --font-weight-label: var(--font-weight-semibold);
+
   --text-button-sm: var(--text-sm);
   --font-weight-button: var(--font-weight-medium);
   --border-width-button-md: var(--border-width-sm);
