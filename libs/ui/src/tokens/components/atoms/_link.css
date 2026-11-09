@@ -3,6 +3,9 @@
   --color-link-text: var(--color-fg-primary);
   --color-link-fg-readable: var(--color-link-text);
   --color-link-ring: var(--color-ring-default);
+  --color-link-focus-bg: var(--color-fg-primary);
+  --color-link-focus-fg: var(--color-fg-reverse);
+  --radius-link: var(--radius-xs);
   --text-link-sm: var(--text-sm);
   --text-link-md: var(--text-md);
   --text-link-lg: var(--text-lg);
@@ -11,4 +14,26 @@
 @utility link-current-size {
   font-size: inherit;
   line-height: inherit;
+}
+
+/* Focus outranks resting text; ordinary caller focus utilities can still win.
+ * Keep the shared shadow compositor, but make its default halo transparent. */
+@utility link-focus-inline {
+  &:is(:focus-visible, [data-focus-visible]):where(
+      :not(:disabled, [data-disabled])
+    ) {
+    --color-focus-contrast: transparent;
+    background-color: var(--color-link-focus-bg);
+    color: var(--color-link-focus-fg);
+    outline-style: none;
+    outline-width: 0;
+    outline-color: var(--color-link-ring);
+
+    @media (forced-colors: active) {
+      background-color: Highlight;
+      color: HighlightText;
+      outline: var(--default-ring-width) solid CanvasText;
+      outline-offset: calc(-1 * var(--default-ring-width));
+    }
+  }
 }

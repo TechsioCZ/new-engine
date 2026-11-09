@@ -1,0 +1,281 @@
+// Default Link focus highlights text without changing inline geometry.
+// Caller focus paint and the forced-colours fallback remain independently usable.
+import { readFileSync } from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+import tailwindcss from "@tailwindcss/postcss"
+import postcss from "postcss"
+import { renderToStaticMarkup } from "react-dom/server"
+import { describe, expect, it } from "vitest"
+import { Link } from "../src/atoms/link"
+
+const tokensDir = fileURLToPath(new URL("../src/tokens/", import.meta.url))
+const linkCssPath = path.join(tokensDir, "components/atoms/_link.css")
+const linkCss = readFileSync(linkCssPath, "utf8")
+const semanticCss = readFileSync(path.join(tokensDir, "_semantic.css"), "utf8")
+const figmaCss = readFileSync(
+  path.join(tokensDir, "figma/variables.css"),
+  "utf8"
+)
+const foundationCss = readFileSync(
+  path.join(tokensDir, "_foundation-overrides.css"),
+  "utf8"
+)
+
+const ANCHOR_CLASSES = /<a\b[^>]*class="([^"]*)"/
+const ARBITRARY_LITERAL = /\[[^\]]*\]/
+const VAR_REFERENCE = /var\(\s*(--[\w-]+)\s*\)/g
+/** The shared two-tone focus rule paints exactly these states. */
+const SHARED_FOCUS_EXCLUSION = /:not\(\s*:disabled,\s*\[data-disabled\]\s*\)/
+/** Layout-affecting utilities would move glyphs or change the inline box. */
+const LAYOUT_UTILITY =
+  /(?:^|\s)(?:-?(?:m[trblxyse]?|p[trblxyse]?)|w|h|size|inline-block|inline-flex|block|transform|translate-x|translate-y|scale)-/
+
+function declarations(css: string) {
+  const values = new Map<string, string>()
+  postcss.parse(css).walkDecls((decl) => {
+    if (decl.prop.startsWith("--")) {
+      values.set(decl.prop, decl.value)
+    }
+  })
+  return values
+}
+
+const linkTokens = declarations(linkCss)
+const themeTokens = new Map([
+  ...declarations(semanticCss),
+  ...declarations(figmaCss),
+])
+
+/** Follow `var()` aliases so an alias can be compared with what it really means. */
+function resolveAlias(
+  value: string,
+  tokens: Map<string, string>,
+  depth = 0
+): string {
+  if (depth > 12) {
+    throw new Error(`Alias chain did not terminate: ${value}`)
+  }
+  const replaced = value.replace(VAR_REFERENCE, (match, name: string) =>
+    tokens.has(name)
+      ? resolveAlias(tokens.get(name) ?? "", tokens, depth + 1)
+      : match
+  )
+  return replaced === value ? value : resolveAlias(replaced, tokens, depth + 1)
+}
+
+/** Top-level halves of a resolved `light-dark()`, so inverse pairs can be compared. */
+function lightDarkBranches(value: string) {
+  if (!(value.startsWith("light-dark(") && value.endsWith(")"))) {
+    return
+  }
+  const body = value.slice("light-dark(".length, -1)
+  let depth = 0
+  for (let index = 0; index < body.length; index++) {
+    const character = body[index]
+    if (character === "(") {
+      depth += 1
+    } else if (character === ")") {
+      depth -= 1
+    } else if (character === "," && depth === 0) {
+      return [body.slice(0, index).trim(), body.slice(index + 1).trim()]
+    }
+  }
+  throw new Error("Expected two top-level light-dark() branches")
+}
+
+function classes(html: string) {
+  return html.match(ANCHOR_CLASSES)?.[1] ?? ""
+}
+
+async function compileFocusCss() {
+  const source = [
+    '@import "tailwindcss" source(none);',
+    `@import "${linkCssPath}";`,
+    '@source inline("link-focus-inline focus-visible:rounded-(--radius-link)");',
+  ].join("\n")
+  const { css } = await postcss([tailwindcss()]).process(source, {
+    from: path.join(path.dirname(linkCssPath), "link-focus-probe.css"),
+  })
+  return css
+}
+
+describe("Link inline focus", () => {
+  it("highlights the linked text with the inverse of its own resting colour", () => {
+    // The highlight background is exactly the colour the link rests in, and the highlight text is
+    // its reverse: the pair is the shared foreground/reverse pair, not a new colour.
+    expect(linkTokens.get("--color-link-focus-bg")).toBe(
+      "var(--color-fg-primary)"
+    )
+    expect(linkTokens.get("--color-link-focus-fg")).toBe(
+      "var(--color-fg-reverse)"
+    )
+    expect(linkTokens.get("--color-link-fg-readable")).toBe(
+      "var(--color-link-text)"
+    )
+
+    const all = new Map([...linkTokens, ...themeTokens])
+    const resting = resolveAlias("var(--color-link-fg-readable)", all)
+    const focusBackground = resolveAlias("var(--color-link-focus-bg)", all)
+    const focusText = resolveAlias("var(--color-link-focus-fg)", all)
+    expect(focusBackground).toBe(resting)
+
+    // Both roles are live semantic tokens, and their light/dark halves are swapped, so the
+    // highlight inverts in every scheme instead of freezing one scheme's colour.
+    expect(themeTokens.has("--color-fg-primary")).toBe(true)
+    expect(themeTokens.has("--color-fg-reverse")).toBe(true)
+    const background = lightDarkBranches(focusBackground)
+    const text = lightDarkBranches(focusText)
+    if (background === undefined || text === undefined) {
+      throw new Error("Focus colours must resolve to a light-dark() pair")
+    }
+    expect(text).toEqual([background[1], background[0]])
+    expect(background[0]).not.toBe(background[1])
+
+    // The radius alias has to terminate in a real radius token, not in a dangling reference.
+    expect(linkTokens.get("--radius-link")).toBe("var(--radius-xs)")
+    expect(themeTokens.has("--radius-xs")).toBe(true)
+  })
+
+  it("keeps shared ring geometry unchanged and adds no layout space", () => {
+    // Link only reads shared tokens; it never redeclares the shared ring offset.
+    expect(linkCss).not.toContain("--default-ring-offset:")
+    expect(linkCss).not.toContain("!important")
+    expect(linkCss).not.toContain("forced-color-adjust")
+    expect(linkCss).not.toContain("padding-inline")
+    expect(linkCss).not.toContain("margin-inline")
+    expect(linkCss).not.toContain("transform")
+    // The local halo colour covers the same states as the shared compositor.
+    expect(linkCss).not.toContain("box-shadow:")
+    expect(linkCss).not.toContain("outline: none")
+    expect(SHARED_FOCUS_EXCLUSION.test(foundationCss)).toBe(true)
+    expect(SHARED_FOCUS_EXCLUSION.test(linkCss)).toBe(true)
+
+    const html = renderToStaticMarkup(
+      <p className="max-w-md text-fg-primary">
+        Orders ship within two working days.{" "}
+        <Link href="#delivery" size="current">
+          Read delivery information
+        </Link>
+        {"."}
+      </p>
+    )
+    const classNames = classes(html)
+    expect(classNames).toContain("link-focus-inline")
+    expect(classNames).toContain("focus-visible:rounded-(--radius-link)")
+    expect(classNames).toContain("underline")
+    expect(classNames).not.toContain("outline-link-ring")
+    expect(classNames).not.toContain("focus-visible:outline")
+    expect(classNames).not.toContain("link-focus-clearance")
+    expect(classNames).not.toMatch(LAYOUT_UTILITY)
+    expect(classNames).not.toMatch(ARBITRARY_LITERAL)
+    // The trailing period stays a sibling text node, so nothing may paint over it.
+    expect(html).toContain("</a>.</p>")
+  })
+
+  it("emits the focus highlight, the reset and the forced-colours fallback", async () => {
+    const css = await compileFocusCss()
+    const root = postcss.parse(css)
+    const focusRules: {
+      selector: string
+      layered: boolean
+      declarations: Record<string, string>
+    }[] = []
+    root.walkRules((rule) => {
+      if (!rule.selector.includes("link-focus-inline")) {
+        return
+      }
+      const found: Record<string, string> = {}
+      rule.each((declaration) => {
+        if (declaration.type === "decl") {
+          expect(declaration.important).toBeUndefined()
+          found[declaration.prop] = declaration.value
+        }
+      })
+      focusRules.push({
+        selector: rule.selector,
+        layered: rule.parent?.type === "atrule",
+        declarations: found,
+      })
+    })
+
+    const highlight = focusRules.find(
+      (rule) =>
+        rule.declarations["background-color"] === "var(--color-link-focus-bg)"
+    )
+    expect(highlight?.declarations).toEqual({
+      "--color-focus-contrast": "transparent",
+      "background-color": "var(--color-link-focus-bg)",
+      color: "var(--color-link-focus-fg)",
+      "outline-style": "none",
+      "outline-width": "0",
+      "outline-color": "var(--color-link-ring)",
+    })
+    expect(highlight?.selector).toContain(":focus-visible")
+    expect(highlight?.layered).toBe(true)
+
+    // A transparent local halo leaves the shared --tw-shadow compositor intact;
+    // caller focus utilities share state specificity and follow its defaults.
+    expect(highlight?.selector).toContain(":is(:focus-visible")
+    expect(highlight?.selector).toContain("[data-disabled]")
+    expect(focusRules.every((rule) => rule.layered)).toBe(true)
+    expect(focusRules.some((rule) => "box-shadow" in rule.declarations)).toBe(
+      false
+    )
+    expect(foundationCss).toContain("var(--tw-shadow, 0 0 #0000)")
+
+    const emitted = new Map<string, string>()
+    const radii: string[] = []
+    const forcedColors: Record<string, string> = {}
+    root.walkDecls((declaration) => {
+      if (declaration.prop.startsWith("--color-link-focus")) {
+        emitted.set(declaration.prop, declaration.value)
+      }
+    })
+    root.walkRules((rule) => {
+      if (rule.selector.includes("--radius-link")) {
+        rule.walkDecls("border-radius", (declaration) => {
+          radii.push(declaration.value)
+        })
+      }
+    })
+    root.walkAtRules("media", (atRule) => {
+      if (!atRule.params.includes("forced-colors")) {
+        return
+      }
+      atRule.walkDecls((declaration) => {
+        forcedColors[declaration.prop] = declaration.value
+      })
+    })
+    expect(emitted.get("--color-link-focus-bg")).toBe("var(--color-fg-primary)")
+    expect(emitted.get("--color-link-focus-fg")).toBe("var(--color-fg-reverse)")
+    expect(radii).toEqual(["var(--radius-link)"])
+    expect(forcedColors).toEqual({
+      "background-color": "Highlight",
+      color: "HighlightText",
+      outline: "var(--default-ring-width) solid CanvasText",
+      "outline-offset": "calc(-1 * var(--default-ring-width))",
+    })
+  })
+
+  it("keeps caller classes and the external navigation contract", () => {
+    const html = renderToStaticMarkup(
+      <Link
+        className="underline-offset-4 focus-visible:rounded-none"
+        external
+        href="https://example.com"
+      >
+        Read the delivery guide
+      </Link>
+    )
+    expect(html.startsWith("<a ")).toBe(true)
+    const classNames = classes(html)
+    expect(classNames).toContain("underline-offset-4")
+    expect(classNames).toContain("focus-visible:rounded-none")
+    expect(classNames).toContain("link-focus-inline")
+    expect(classNames).not.toContain("focus-visible:rounded-(--radius-link)")
+    expect(html).toContain('href="https://example.com"')
+    expect(html).toContain('target="_blank"')
+    expect(html).toContain('rel="noopener noreferrer"')
+  })
+})

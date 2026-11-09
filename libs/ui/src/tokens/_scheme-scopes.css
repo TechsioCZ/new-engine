@@ -402,6 +402,9 @@
     --color-link-text: var(--color-fg-primary);
     --color-link-fg-readable: var(--color-link-text);
     --color-link-ring: var(--color-ring-default);
+    --color-link-focus-bg: var(--color-fg-primary);
+    --color-link-focus-fg: var(--color-fg-reverse);
+    --radius-link: var(--radius-xs);
     --text-link-sm: var(--text-sm);
     --text-link-md: var(--text-md);
     --text-link-lg: var(--text-lg);

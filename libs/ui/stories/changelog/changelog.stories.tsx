@@ -22,6 +22,9 @@ const CHANGELOG = `
 ### Textarea v1.0.7
 - Remove the resize grip from disabled fields while editable and read-only fields keep their configured resize mode, auto-sizing and native semantics.
 
+### Link v1.2.1
+- Focus inline links by highlighting the linked text itself with the reverse foreground on the link's own colour, keeping the underline and the shared radius scale, so no focus paint reaches the punctuation beside the link while glyph positions, line breaking and the shared ring defaults stay unchanged; high-contrast systems get the system highlight and an inset system ring instead.
+
 ### Hotkeys v1.1.2
 - Separate the Business medium keycap from the small step through the existing base typography alias, keeping the raised small midpoint and the shared large step so the three display sizes stay ordered.
 

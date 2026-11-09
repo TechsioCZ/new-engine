@@ -13,7 +13,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "An underlined navigation link with readable foreground and a visible keyboard focus ring. Use Link within content; choose LinkButton for prominent navigation or Button for an action that changes local state. External links support safe new-tab defaults. Inline composition may use size=current to inherit surrounding typography.",
+          "An underlined navigation link with readable foreground and a visible keyboard focus highlight. Use Link within content; choose LinkButton for prominent navigation or Button for an action that changes local state. External links support safe new-tab defaults. Inline composition may use size=current to inherit surrounding typography.",
       },
     },
   },
@@ -83,6 +83,22 @@ export const InContent: Story = {
     </p>
   ),
 }
+export const CallerFocus: Story = {
+  args: {
+    className:
+      "focus-visible:outline-solid focus-visible:outline-(length:--default-ring-width) focus-visible:outline-offset-(length:--default-ring-offset) focus-visible:shadow-lg",
+  },
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Caller focus utilities can add an outline and shadow without replacing the inline navigation component.",
+      },
+    },
+  },
+}
+
 export const External: Story = {
   args: {
     external: true,
