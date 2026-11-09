@@ -21,9 +21,8 @@
       "brand": "Theme",
       "brands": {
         "akros": "Akros",
-        "base": "Default",
         "business": "Business",
-        "neo": "Neo"
+        "n1": "N1"
       },
       "lightOnly": "This theme has no dark mode",
       "useDark": "Switch to dark mode",

@@ -14,7 +14,7 @@ import {
 import { tv } from "../src/utils"
 
 function executeBrand(stored: string | null, unavailable = false) {
-  const attrs = new Map([["data-theme", "neo"]])
+  const attrs = new Map([["data-theme", "stale"]])
   const classes = new Set<string>()
   const element = BrandThemeScript({ defaultBrand: "akros" })
   runInNewContext(element.props.dangerouslySetInnerHTML.__html, {
@@ -47,18 +47,15 @@ function executeBrand(stored: string | null, unavailable = false) {
 }
 
 describe("pre-hydration brand script", () => {
-  it("preserves stored base when the application defaults to Akros", () => {
-    expect(executeBrand("base")).toBeUndefined()
+  it("preserves a stored brand when the application defaults to Akros", () => {
+    expect(executeBrand("n1")).toBe("n1")
   })
-  it.each([null, "unknown", "__proto__", "constructor"])(
+  it.each([null, "unknown", "base", "neo", "__proto__", "constructor"])(
     "rejects invalid stored brand %s",
     (stored) => {
       expect(executeBrand(stored)).toBe("akros")
     }
   )
-  it("applies a registered non-base brand", () => {
-    expect(executeBrand("neo")).toBe("neo")
-  })
   it("does not throw when storage is unavailable", () => {
     expect(executeBrand(null, true)).toBe("akros")
   })
@@ -82,13 +79,11 @@ describe("foundation token class merging", () => {
 })
 
 describe("requested and effective appearance", () => {
-  it.each(["akros", "business"] as const)(
+  it.each(["akros", "business", "n1"] as const)(
     "constrains %s without changing the request",
     (brand) => {
       expect(resolveAppearance(brand, "dark", "dark")).toBe("light")
       expect(resolveAppearance(brand, "system", "dark")).toBe("light")
-      expect(resolveAppearance("base", "dark", "light")).toBe("dark")
-      expect(resolveAppearance("neo", "system", "dark")).toBe("dark")
     }
   )
   it("attaches a CSP nonce to the synchronous bootstrap", () => {

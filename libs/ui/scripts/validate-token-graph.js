@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import postcss from "postcss"
+import { THEMES } from "../src/theme/theme-config.ts"
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url))
 const IMPORT = /^(?:url\()?['"]([^'"]+)['"]/
@@ -15,7 +16,7 @@ const LIGHT = /(?:^|[\s,(])\.(?:light|always-light)(?:[\s,:).]|$)/
 const BOUNDARY =
   /:root|:scope|\.(?:light|dark|always-light|always-dark|reverse)(?![\w-])|\[data-theme(?:\s*=\s*["']?[\w-]+["']?)?\s*\]/g
 const NEGATION = /:not\([^)]*\)/g
-const RAW_EXPORT = /figma\/(?:light|dark|akros|neo|business)\//
+const RAW_EXPORT = /figma\/(?:light|dark|akros|business|n1)\//
 const WORDS = /\s+/
 const SELECTOR_ALTERNATIVE = /:(?:where|is)\(/
 const SCREEN_MEDIA = /^(?:all|screen)$/
@@ -23,7 +24,6 @@ const TARGET_SPLIT = /\s+(?![^[]*\])/
 const COMBINATOR = /[>+~]/
 const IMPORT_CLOSE = /^\)/
 const IMPORT_LAYER = /^layer(?:\([^)]*\))?\s*/
-const BRANDS = ["base", "neo", "business", "akros"]
 
 function skipQuoted(value, start) {
   const quote = value[start]
@@ -370,11 +370,10 @@ export function loadRuntimeInventory() {
   return tokenInventory(files, ["src/tokens/_tokens-base.css"])
 }
 
-export const supportedScopes = BRANDS.flatMap((brand) =>
-  (brand === "akros" || brand === "business"
-    ? ["light"]
-    : ["light", "dark"]
-  ).map((mode) => ({ brand, mode }))
+// Every registered brand sets data-theme; the attribute-less foundation is not
+// a supported scope on its own.
+export const supportedScopes = Object.values(THEMES).flatMap(
+  ({ attr, modes }) => modes.map((mode) => ({ brand: attr, mode }))
 )
 
 export function entryApplies(entry, { brand, mode, conditions = [] }) {

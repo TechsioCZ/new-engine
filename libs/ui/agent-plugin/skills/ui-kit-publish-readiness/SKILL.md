@@ -150,8 +150,8 @@ Docker suite, and enforced accessibility. `force_release` bypasses only affected
 detection, never quality checks. Local semantic-release --dry-run is unsupported;
 do not set GITHUB_ACTIONS manually to defeat the publishing guard.
 
-The required visual matrix has 12 projects: base/neo light+dark and
-business/Akros light, desktop+mobile. `test:components:release` rejects filters,
+The required visual matrix has 6 projects: business/Akros/N1 light,
+desktop+mobile. `test:components:release` rejects filters,
 brand overrides and snapshot updates and verifies unique successful story/project
 identities. Before starting Docker, release readiness also checks the exact Linux
 primary baseline filename for every indexed story/project, failing with a missing

@@ -93,7 +93,7 @@ test("regeneration accepts the real Figma exports and emits valid primitives", (
   assert.equal(variables.get("--dimension-70"), "4.375rem")
   assert.equal(variables.get("--dimension-700"), "4.375rem")
   assert.equal(variables.get("--dimension-100-min"), "var(--dimension-4)")
-  for (const brand of ["neo", "business", "akros"]) {
+  for (const brand of ["business", "akros", "n1"]) {
     const body = overridesCss.match(
       new RegExp(`\\[data-theme="${brand}"\\] \\{([^}]*)\\}`)
     )?.[1]

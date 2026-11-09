@@ -32,7 +32,7 @@ process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS = "false"
 const reporter = createA11yReporter({ waitForResultsMs: 30_000 })
 
 const mode = process.env.A11Y_STORYBOOK_MODE ?? "light"
-const brand = process.env.A11Y_STORYBOOK_BRAND ?? "base"
+const brand = process.env.A11Y_STORYBOOK_BRAND ?? "business"
 assertSupportedTheme(brand, mode)
 
 /** @type {TestRunnerConfig} */
@@ -100,8 +100,7 @@ const testRunnerConfig = {
       ({ brand: expectedBrand, mode: expectedMode }) => {
         const root = document.documentElement
         return (
-          root.getAttribute("data-theme") ===
-            (expectedBrand === "base" ? null : expectedBrand) &&
+          root.getAttribute("data-theme") === expectedBrand &&
           root.classList.contains(expectedMode)
         )
       },

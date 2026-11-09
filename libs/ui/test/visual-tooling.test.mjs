@@ -51,29 +51,27 @@ test("visual and accessibility defaults cover every registry pair, including bot
   const pairs = createThemeMatrix()
   assert.deepEqual(
     pairs.map(({ brand, mode }) => `${brand}/${mode}`),
-    [
-      "base/light",
-      "base/dark",
-      "neo/light",
-      "neo/dark",
-      "business/light",
-      "akros/light",
-    ]
+    ["business/light", "akros/light", "n1/light"]
   )
   for (const { brand, mode } of pairs) {
     assertSupportedTheme(brand, mode)
   }
   const matrix = createVisualMatrix()
-  assert.equal(matrix.length, 12)
-  assert.equal(new Set(matrix.map((project) => project.name)).size, 12)
+  assert.equal(matrix.length, 6)
+  assert.equal(new Set(matrix.map((project) => project.name)).size, 6)
   assert.deepEqual(
     createVisualMatrix("akros").map((project) => project.name),
     ["akros-desktop-light", "akros-mobile-light"]
   )
   assert.throws(() => createVisualMatrix("invalid"))
+  assert.throws(() => createVisualMatrix("base"))
+  assert.throws(() => createVisualMatrix("neo"))
   assert.throws(() => createVisualMatrix(""))
   assert.throws(() => assertSupportedTheme("akros", "dark"))
   assert.throws(() => assertSupportedTheme("business", "dark"))
+  assert.throws(() => assertSupportedTheme("n1", "dark"))
+  assert.throws(() => assertSupportedTheme("base", "light"))
+  assert.throws(() => assertSupportedTheme("neo", "light"))
 })
 
 test("release readiness rejects all narrowed selections and snapshot updates", () => {
@@ -87,7 +85,7 @@ test("release readiness rejects all narrowed selections and snapshot updates", (
     assert.throws(() => assertReleaseSelection(args, {}))
   }
   assert.throws(() =>
-    assertReleaseSelection([], { VISUAL_BRANDS: "base,neo,business" })
+    assertReleaseSelection([], { VISUAL_BRANDS: "business,akros" })
   )
   assert.throws(() =>
     assertReleaseSelection([], { TEST_STORIES: "atoms-button--playground" })
@@ -566,7 +564,7 @@ function themeRoot() {
 test("standalone Docs replay initial globals, follow live changes and clean up listeners", () => {
   const { root, classes, attributes } = themeRoot()
   const listeners = new Map()
-  let history = { setGlobals: [{ globals: { brand: "base", mode: "dark" } }] }
+  let history = { setGlobals: [{ globals: { brand: "n1", mode: "dark" } }] }
   const channel = {
     last: (name) => history[name],
     on: (name, listener) => listeners.set(name, listener),
@@ -575,33 +573,37 @@ test("standalone Docs replay initial globals, follow live changes and clean up l
       listeners.delete(name)
     },
   }
-  const cleanup = bindDocsTheme(channel, root, { brand: "base", mode: "light" })
-  assert.deepEqual([...classes], ["app-shell", "dark"])
+  const cleanup = bindDocsTheme(channel, root, {
+    brand: "business",
+    mode: "light",
+  })
+  // Every registered brand is light-only, so dark and system lock to light.
+  assert.equal(attributes.get("data-theme"), "n1")
+  assert.deepEqual([...classes], ["app-shell", "light"])
   const update = listeners.get("globalsUpdated")
   update({ globals: { brand: "akros", mode: "dark" } })
   assert.equal(attributes.get("data-theme"), "akros")
   assert.deepEqual([...classes], ["app-shell", "light"])
-  update({ globals: { brand: "base", mode: "light" } })
-  assert.equal(attributes.has("data-theme"), false)
-  update({ globals: { brand: "base", mode: "system" } })
-  assert.deepEqual([...classes], ["app-shell"])
+  update({ globals: { brand: "business", mode: "system" } })
+  assert.equal(attributes.get("data-theme"), "business")
+  assert.deepEqual([...classes], ["app-shell", "light"])
   cleanup()
   assert.equal(listeners.size, 0)
 
   // A manager update before mounting wins over the older setGlobals event.
   history = {
     ...history,
-    globalsUpdated: [{ globals: { brand: "neo", mode: "dark" } }],
+    globalsUpdated: [{ globals: { brand: "akros", mode: "light" } }],
   }
   bindDocsTheme(channel, root)()
-  assert.equal(attributes.get("data-theme"), "neo")
-  assert.deepEqual([...classes], ["app-shell", "dark"])
+  assert.equal(attributes.get("data-theme"), "akros")
+  assert.deepEqual([...classes], ["app-shell", "light"])
   history = {}
   bindDocsTheme(channel, root, { brand: "business", mode: "dark" })()
   assert.equal(attributes.get("data-theme"), "business")
   assert.deepEqual([...classes], ["app-shell", "light"])
   applyPreviewTheme(root, { brand: "__proto__", mode: "invalid" })
-  assert.equal(attributes.has("data-theme"), false)
+  assert.equal(attributes.get("data-theme"), "business")
   assert.deepEqual([...classes], ["app-shell", "light"])
   applyPreviewTheme(root, { brand: "base", mode: "dark" }, "akros")
   assert.equal(attributes.get("data-theme"), "akros")
@@ -612,11 +614,11 @@ test("visual capture honors brand locks consistently without exempting any proje
   const matrix = createVisualMatrix()
   for (const project of matrix) {
     const globals = { brand: project.brand, mode: project.colorScheme }
-    for (const lock of [undefined, "akros", "neo"]) {
+    for (const lock of [undefined, "akros", "n1"]) {
       const actual = resolveVisualTheme(globals, lock)
       const { root, classes, attributes } = themeRoot()
       applyPreviewTheme(root, globals, lock)
-      assert.equal(attributes.get("data-theme") ?? "base", actual.brand)
+      assert.equal(attributes.get("data-theme"), actual.brand)
       assert.ok(classes.has(actual.mode))
       if (lock === "akros") {
         assert.deepEqual(actual, { brand: "akros", mode: "light" })
@@ -624,16 +626,17 @@ test("visual capture honors brand locks consistently without exempting any proje
     }
   }
   assert.throws(() =>
-    resolveVisualTheme({ brand: "base", mode: "light" }, "unknown")
+    resolveVisualTheme({ brand: "business", mode: "light" }, "unknown")
   )
   assert.throws(() => resolveVisualTheme({ brand: "unknown", mode: "light" }))
+  assert.throws(() => resolveVisualTheme({ brand: "base", mode: "light" }))
   assert.throws(() => resolveVisualTheme({ brand: "akros", mode: "system" }))
   const story = { id: "pages-akros-admin-home-statistics--default" }
   const names = matrix.map(({ name }) => name)
   const executions = names.map((name) => successful(name, story.id))
   assertVisualCompletion([report(executions)], [story], names)
   for (const name of [
-    "desktop-light",
+    "business-desktop-light",
     "akros-desktop-light",
     "akros-mobile-light",
   ]) {
@@ -967,14 +970,7 @@ test("release preflight requires exact reviewed baselines for each story and dev
   const stories = [{ id: "atoms-button--playground" }]
   const projects = createVisualMatrix()
   const files = new Set(
-    projects.map((project) => {
-      const device = project.isMobile ? "mobile" : "desktop"
-      const suffix =
-        project.brand === "base"
-          ? `${device}${project.colorScheme === "dark" ? "-dark" : ""}`
-          : project.name
-      return `${stories[0].id}-${suffix}-linux.png`
-    })
+    projects.map((project) => `${stories[0].id}-${project.name}-linux.png`)
   )
   assertPrimaryBaselines(stories, projects, files)
   files.delete("atoms-button--playground-akros-mobile-light-linux.png")
@@ -990,7 +986,7 @@ test("release preflight requires exact reviewed baselines for each story and dev
         projects,
         files
       ),
-    /Missing 12/
+    /Missing 6/
   )
 })
 
@@ -1183,7 +1179,7 @@ test("native-form lifecycle matrix uses all maintained adapters without disablin
   // its default theme. Retain both controlled authority modes on every surface.
   assert.match(
     spec,
-    /for \(const theme of \[\s*\{ brand: "akros", mode: "light" \},\s*\{ brand: "base", mode: "light" \},\s*\{ brand: "base", mode: "dark" \},?\s*\]\)/
+    /for \(const theme of \[\s*\{ brand: "akros", mode: "light" \},\s*\{ brand: "business", mode: "light" \},\s*\{ brand: "n1", mode: "light" \},?\s*\]\)/
   )
   assert.match(spec, /for \(const authority of \["accept", "refuse"\]\)/)
   assert.match(

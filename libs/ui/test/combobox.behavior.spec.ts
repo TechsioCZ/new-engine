@@ -225,12 +225,9 @@ async function expectRichItemContrast(option: Locator) {
 }
 
 for (const [brand, mode] of [
-  ["base", "light"],
-  ["base", "dark"],
-  ["neo", "light"],
-  ["neo", "dark"],
   ["business", "light"],
   ["akros", "light"],
+  ["n1", "light"],
 ] as const) {
   test(`rich item foregrounds remain readable in ${brand} ${mode}`, async ({
     page,

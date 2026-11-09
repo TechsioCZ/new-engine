@@ -52,15 +52,16 @@ export function CheckoutAction() {
 ## Brands and modes
 
 Brand selection uses `data-theme` on `html`; mode uses one `.light` or `.dark`
-class. Base has **no** `data-theme` attribute. The source registry is
+class. Every brand sets `data-theme`; Business is the default. The
+attribute-less `:root` / `@theme` layer is the shared token foundation the
+brands override, not a brand. The source registry is
 [src/theme/theme-config.ts](src/theme/theme-config.ts).
 
 | Brand | Root attribute | Modes |
 | --- | --- | --- |
-| base | none | light, dark |
-| neo | `data-theme="neo"` | light, dark |
-| business | `data-theme="business"` | light only |
+| business (default) | `data-theme="business"` | light only |
 | akros | `data-theme="akros"` | light only |
+| n1 | `data-theme="n1"` | light only |
 
 For a fixed Akros app, use `<html lang="en" class="light" data-theme="akros">`.
 No provider is needed for a fixed theme. Do not create an Akros dark scheme.
@@ -196,7 +197,7 @@ Optional environment overrides:
 - `TEST_BASE_URL` (default: `http://127.0.0.1:6006` inside the container)
 - `PLAYWRIGHT_STORYBOOK_REBUILD` (default: `1`, rebuilds `storybook-static`; set to `0` to reuse an existing build)
 - `VISUAL_STORYBOOK_STATIC_DIR` (absolute path to another Storybook build, e.g. one built from `master`, to test against the committed baselines; skips the rebuild)
-- `VISUAL_BRANDS` (default: `base,neo,business,akros`; focused development only)
+- `VISUAL_BRANDS` (default: `business,akros,n1`; focused development only)
 - `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
 - `PLAYWRIGHT_WORKERS` (override worker count for parallel runs)
 - `VISUAL_ASSET_HAR_PATH` (absolute path to an alternative HAR; its directory and attachments mount read-only)
@@ -205,7 +206,7 @@ Optional environment overrides:
 - `PLAYWRIGHT_DOCKER_IPC` (default: `host`, improves Playwright stability in Docker)
 - `PLAYWRIGHT_DOCKER_SEQUENTIAL` (default: `0`, runs projects in parallel; set to `1` to run one project at a time and reduce memory spikes)
 
-Extra arguments are passed to `playwright test`, e.g. `pnpm -C libs/ui test:components -- --project=neo-mobile-dark`.
+Extra arguments are passed to `playwright test`, e.g. `pnpm -C libs/ui test:components -- --project=n1-mobile-light`.
 Tests always run as `linux/amd64`, matching the committed baselines. A full run must cover every story in every visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
 
 ### Recommendation for `PLAYWRIGHT_WORKERS` and parallelism
@@ -225,8 +226,8 @@ TEST_BASE_URL=http://127.0.0.1:6006 PLAYWRIGHT_WORKERS=6 pnpm -C libs/ui test:co
 
 ### Release coverage versus focused development
 
-`pnpm -C libs/ui test:components:release` requires all stories across all 12
-visual projects: base/neo light+dark and business/Akros light, desktop+mobile.
+`pnpm -C libs/ui test:components:release` requires all stories across all 6
+visual projects: business/Akros/N1 light, desktop+mobile.
 It rejects brand overrides, story/project filters and snapshot updates, then
 checks unique successful story/project identities. Focused `test:components`
 runs remain available but are not release-readiness evidence. Review new or

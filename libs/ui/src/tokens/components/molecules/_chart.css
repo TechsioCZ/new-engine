@@ -76,7 +76,7 @@
  * directly onto `element.style`, then only *appends* this class. Inline styles
  * beat class rules, so without `!important` every declaration below is dead and
  * the tooltip renders in the system `Canvas`/`CanvasText` colors — visible as an
- * unthemed tooltip under the neo/cyber brands and in dark mode. The `font`
+ * unthemed tooltip under some brands and in dark mode. The `font`
  * shorthand also resets font-size, so that too must win.
  */
 @utility chart-tooltip {

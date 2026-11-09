@@ -48,24 +48,17 @@ export default defineConfig({
           name === "mobile" ? ("webkit" as const) : ("chromium" as const),
       },
     })),
-    ...matrix.map((project) => {
-      const device = project.isMobile ? "mobile" : "desktop"
-      const snapshotName =
-        project.brand === "base"
-          ? `${device}${project.colorScheme === "dark" ? "-dark" : ""}`
-          : project.name
-      return {
-        name: project.name,
-        metadata: { brand: project.brand },
-        testMatch: "visual.spec.ts",
-        snapshotPathTemplate: `{testDir}/{testFilePath}-snapshots/{arg}-${snapshotName}-{platform}{ext}`,
-        use: {
-          ...devices[project.isMobile ? "iPhone 15" : "Desktop Chrome"],
-          browserName: project.isMobile ? "webkit" : "chromium",
-          colorScheme: project.colorScheme,
-        },
-      }
-    }),
+    ...matrix.map((project) => ({
+      name: project.name,
+      metadata: { brand: project.brand },
+      testMatch: "visual.spec.ts",
+      snapshotPathTemplate: `{testDir}/{testFilePath}-snapshots/{arg}-${project.name}-{platform}{ext}`,
+      use: {
+        ...devices[project.isMobile ? "iPhone 15" : "Desktop Chrome"],
+        browserName: project.isMobile ? "webkit" : "chromium",
+        colorScheme: project.colorScheme,
+      },
+    })),
   ],
   webServer: {
     command: "node test/visual-static-server.mjs",

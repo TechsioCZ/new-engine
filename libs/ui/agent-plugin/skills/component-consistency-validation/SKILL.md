@@ -180,7 +180,7 @@ Check `../../references/component-contracts.md` alongside API/token matching:
 - All components have autodocs plus a useful component description; every story
   has a what/why description and working controls, realistic content and action
   hierarchy, no navigation away or foreign-component demo.
-- Review base/light, base/dark and Akros/light. During the shared overhaul do not
+- Review Business/light, Akros/light and N1/light. During the shared overhaul do not
   run Storybook builds/servers or launch browsers. Use the supplied ds-page
   runner; Playwright suites require Docker and its serial lock. Ignore the
   generic Storybook-build recommendation above when this restriction applies.

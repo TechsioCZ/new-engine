@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test"
 async function openStory(
   page: Page,
   id: string,
-  brand = "base",
+  brand = "business",
   mode = "light"
 ) {
   await page.goto(
@@ -111,8 +111,8 @@ test("phone canonical submission, canceled external reset and ref cleanup plays 
 
 for (const [brand, mode] of [
   ["akros", "light"],
-  ["base", "light"],
-  ["base", "dark"],
+  ["business", "light"],
+  ["n1", "light"],
 ]) {
   test(`${brand}/${mode}: phone validation rings only identify keyboard focus`, async ({
     page,

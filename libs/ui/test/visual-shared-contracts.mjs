@@ -4,7 +4,7 @@ import { expect } from "@playwright/test"
 
 /** @param {Page} page @param {string} id @param {{brand?: string, mode?: string, args?: string, docs?: boolean, baseURL?: string}} [options] */
 export async function openContractStory(page, id, options = {}) {
-  const { brand = "base", mode = "light", args, docs = false } = options
+  const { brand = "business", mode = "light", args, docs = false } = options
   const url = new URL(
     "/iframe.html",
     options.baseURL ?? process.env.TEST_BASE_URL ?? "http://127.0.0.1:6006"
@@ -35,11 +35,7 @@ export async function checkStandaloneDocs(page, options) {
   })
   const root = page.locator("html")
   await expect(root).toHaveClass(new RegExp(`\\b${options.mode}\\b`))
-  if (options.brand === "base") {
-    await expect(root).not.toHaveAttribute("data-theme")
-  } else {
-    await expect(root).toHaveAttribute("data-theme", options.brand)
-  }
+  await expect(root).toHaveAttribute("data-theme", options.brand)
   await expect
     .poll(() => root.evaluate((node) => getComputedStyle(node).colorScheme))
     .toBe(options.mode)
@@ -61,8 +57,8 @@ export async function checkStandaloneDocs(page, options) {
   // Updates must work without navigating or mounting any Canvas story.
   for (const [brand, mode, resolved] of [
     ["akros", "dark", "light"],
-    ["base", "dark", "dark"],
-    ["base", "light", "light"],
+    ["n1", "light", "light"],
+    ["business", "dark", "light"],
   ]) {
     await page.evaluate(
       (globals) =>
@@ -72,11 +68,7 @@ export async function checkStandaloneDocs(page, options) {
       { brand, mode }
     )
     await expect(root).toHaveClass(new RegExp(`\\b${resolved}\\b`))
-    if (brand === "base") {
-      await expect(root).not.toHaveAttribute("data-theme")
-    } else {
-      await expect(root).toHaveAttribute("data-theme", brand)
-    }
+    await expect(root).toHaveAttribute("data-theme", brand)
   }
 }
 

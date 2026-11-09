@@ -68,9 +68,9 @@ for (const story of stories) {
   }
 
   for (const theme of [
-    { brand: "base", mode: "light" },
-    { brand: "base", mode: "dark" },
+    { brand: "business", mode: "light" },
     { brand: "akros", mode: "light" },
+    { brand: "n1", mode: "light" },
   ]) {
     test(`${story}: vertical indicator keys and stable focus in ${theme.brand}/${theme.mode}`, async ({
       page,

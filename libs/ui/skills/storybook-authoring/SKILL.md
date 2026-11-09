@@ -251,7 +251,7 @@ See `libs/ui/docs/component-contracts.md` for the source of truth.
 - Test fixed behavior through story play assertions/existing behavior harness.
   During the shared overhaul never start another Storybook server/build or local
   browser; use the assigned shared-browser runner for visual review in
-  base/light, base/dark and Akros/light.
+  Business/light, Akros/light and N1/light.
 
 ## Compound member API and copyable source
 
@@ -282,7 +282,7 @@ per-story args and named composition examples.
 Standalone MDX has no Canvas decorator. Keep Docs registered through `DocsTheme`
 so first-load and live Storybook globals reach the same root theme resolver as
 Canvas. Do not parse URL globals or rely on an embedded story to initialize the
-page. Verify Akros/light and base/light/dark directly, then switch globals
+page. Verify Business, Akros and N1 (light) directly, then switch globals
 without navigation. Light-only brands must remain light. API tables that overflow
 at 390px need a named focusable scroll region and working arrow-key scrolling.
 

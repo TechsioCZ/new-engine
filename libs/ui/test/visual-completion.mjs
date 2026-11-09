@@ -68,13 +68,8 @@ export function visualStories(entries) {
 export function assertPrimaryBaselines(stories, projects, files) {
   const missing = []
   for (const project of projects) {
-    const device = project.isMobile ? "mobile" : "desktop"
-    const suffix =
-      project.brand === "base"
-        ? `${device}${project.colorScheme === "dark" ? "-dark" : ""}`
-        : project.name
     for (const { id } of stories) {
-      const expected = `${id}-${suffix}-linux.png`
+      const expected = `${id}-${project.name}-linux.png`
       if (!files.has(expected)) {
         missing.push(expected)
       }

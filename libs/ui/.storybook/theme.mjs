@@ -2,6 +2,7 @@
 import {
   brandAttr,
   brandSupportsDark,
+  DEFAULT_BRAND,
   isBrandKey,
 } from "../src/theme/theme-config.ts"
 
@@ -17,7 +18,7 @@ export function applyPreviewTheme(root, globals, brandLock) {
   const brand =
     typeof requestedBrand === "string" && isBrandKey(requestedBrand)
       ? requestedBrand
-      : "base"
+      : DEFAULT_BRAND
   const requestedMode = globals.mode
   const mode =
     brandSupportsDark(brand) &&
@@ -28,12 +29,7 @@ export function applyPreviewTheme(root, globals, brandLock) {
   if (mode !== "system") {
     root.classList.add(mode)
   }
-  const attr = brandAttr(brand)
-  if (attr) {
-    root.setAttribute("data-theme", attr)
-  } else {
-    root.removeAttribute("data-theme")
-  }
+  root.setAttribute("data-theme", brandAttr(brand))
 }
 
 /** Docs-only entries have no story decorator, including on their first visit.
