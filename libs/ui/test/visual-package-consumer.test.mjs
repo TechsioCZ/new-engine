@@ -5,6 +5,7 @@ import { rmSync } from "node:fs"
 import {
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   realpath,
   rm,
@@ -46,18 +47,26 @@ test("packed CSS exports generate utilities and preserve public callback contrac
   })
   const packageDir = path.join(root, "node_modules/@techsio/ui-kit")
   await mkdir(packageDir, { recursive: true })
-  const output = JSON.parse(
-    commands(
-      "npm",
-      ["pack", "--ignore-scripts", "--json", "--pack-destination", root],
-      uiRoot
-    )
+  // CI installs npm@latest (npm 12). In npm 12, `npm pack --json` prints an
+  // object keyed by package name, not the array npm 11 printed, so output[0]
+  // was undefined. The tarball is therefore located in the pack destination
+  // instead of parsed from stdout; raw stdout is included on failure.
+  const packStdout = commands(
+    "npm",
+    ["pack", "--ignore-scripts", "--pack-destination", root],
+    uiRoot
+  )
+  const tarballs = (await readdir(root)).filter((name) => name.endsWith(".tgz"))
+  assert.equal(
+    tarballs.length,
+    1,
+    `npm pack must write exactly one tarball to ${root}; stdout was: ${packStdout}`
   )
   commands(
     "tar",
     [
       "-xzf",
-      path.join(root, output[0].filename),
+      path.join(root, tarballs[0]),
       "--strip-components=1",
       "-C",
       packageDir,
