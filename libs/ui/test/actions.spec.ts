@@ -202,7 +202,7 @@ for (const [brand, mode] of [
     await page.goto(
       `/iframe.html?id=atoms-actionicon--variants&viewMode=story&globals=mode:${mode};brand:${brand}`
     )
-    const button = page.getByRole("button", { name: "Remove attachment" })
+    const button = page.getByRole("button", { name: "Discard draft" })
     const ratio = () =>
       button.evaluate((node) => {
         const canvas = document.createElement("canvas")
