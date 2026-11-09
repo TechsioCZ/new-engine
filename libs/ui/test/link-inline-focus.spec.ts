@@ -220,6 +220,48 @@ for (const [brand, mode] of themes) {
       await page.keyboard.press("Enter")
       expect(page.url()).toBe(beforeActivation)
     }
+
+    // Footer adds its own hover foreground. Focus must retain the inverse pair
+    // in this real consumer, including when both states match simultaneously.
+    await openStory(page, "organisms-footer--playground", brand, mode)
+    const footerLink = page.locator("#storybook-root footer a").first()
+    await page.mouse.move(0, 0)
+    await page.keyboard.press("Tab")
+    await expect(footerLink).toBeFocused()
+    expect(
+      await footerLink.evaluate((node) => node.matches(":focus-visible"))
+    ).toBe(true)
+    const footerFocusText = await resolveToken(
+      page,
+      "--color-link-focus-fg",
+      "color"
+    )
+    const footerFocusBackground = await resolveToken(
+      page,
+      "--color-link-focus-bg",
+      "background-color"
+    )
+    expect(footerFocusText).not.toBe(footerFocusBackground)
+    await expect(footerLink).toHaveCSS("color", footerFocusText)
+    await expect(footerLink).toHaveCSS(
+      "background-color",
+      footerFocusBackground
+    )
+    await footerLink.hover()
+    expect(
+      await footerLink.evaluate(
+        (node) => node.matches(":focus-visible") && node.matches(":hover")
+      )
+    ).toBe(true)
+    await expect(footerLink).toBeFocused()
+    await expect(footerLink).toHaveCSS("color", footerFocusText)
+    await expect(footerLink).toHaveCSS(
+      "background-color",
+      footerFocusBackground
+    )
+    await page.mouse.move(0, 0)
+    await expect(footerLink).toBeFocused()
+    await expect(footerLink).toHaveCSS("color", footerFocusText)
   })
 
   test(`${brand}/${mode}: size navigation and the live radius override keep native link semantics`, async ({

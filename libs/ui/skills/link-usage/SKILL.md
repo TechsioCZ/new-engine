@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Link atom for inline or unstyled navigation, including
   external links and framework adapter usage.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.2.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

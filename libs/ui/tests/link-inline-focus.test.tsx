@@ -92,7 +92,7 @@ async function compileFocusCss() {
   const source = [
     '@import "tailwindcss" source(none);',
     `@import "${linkCssPath}";`,
-    '@source inline("link-focus-inline focus-visible:rounded-(--radius-link)");',
+    '@source inline("hover:text-link-text focus-visible:link-focus-inline data-focus-visible:link-focus-inline focus-visible:rounded-(--radius-link)");',
   ].join("\n")
   const { css } = await postcss([tailwindcss()]).process(source, {
     from: path.join(path.dirname(linkCssPath), "link-focus-probe.css"),
@@ -161,7 +161,9 @@ describe("Link inline focus", () => {
       </p>
     )
     const classNames = classes(html)
-    expect(classNames).toContain("link-focus-inline")
+    expect(classNames).toContain("focus-visible:link-focus-inline")
+    expect(classNames).toContain("data-focus-visible:link-focus-inline")
+    expect(classNames.split(" ")).not.toContain("link-focus-inline")
     expect(classNames).toContain("focus-visible:rounded-(--radius-link)")
     expect(classNames).toContain("underline")
     expect(classNames).not.toContain("outline-link-ring")
@@ -201,7 +203,9 @@ describe("Link inline focus", () => {
 
     const highlight = focusRules.find(
       (rule) =>
-        rule.declarations["background-color"] === "var(--color-link-focus-bg)"
+        rule.declarations["background-color"] ===
+          "var(--color-link-focus-bg)" &&
+        rule.selector.includes(":focus-visible")
     )
     expect(highlight?.declarations).toEqual({
       "--color-focus-contrast": "transparent",
@@ -216,7 +220,21 @@ describe("Link inline focus", () => {
 
     // A transparent local halo leaves the shared --tw-shadow compositor intact;
     // caller focus utilities share state specificity and follow its defaults.
-    expect(highlight?.selector).toContain(":is(:focus-visible")
+    expect(
+      focusRules.some((rule) => rule.selector.includes("[data-focus-visible]"))
+    ).toBe(true)
+    const selectors: string[] = []
+    root.walkRules((rule) => {
+      selectors.push(rule.selector)
+    })
+    const hoverIndex = selectors.findIndex((selector) =>
+      selector.includes("hover\\:text-link-text")
+    )
+    const focusIndex = selectors.findIndex((selector) =>
+      selector.includes("focus-visible\\:link-focus-inline")
+    )
+    expect(hoverIndex).toBeGreaterThanOrEqual(0)
+    expect(focusIndex).toBeGreaterThan(hoverIndex)
     expect(highlight?.selector).toContain("[data-disabled]")
     expect(focusRules.every((rule) => rule.layered)).toBe(true)
     expect(focusRules.some((rule) => "box-shadow" in rule.declarations)).toBe(

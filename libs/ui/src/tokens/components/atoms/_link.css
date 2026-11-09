@@ -16,12 +16,10 @@
   line-height: inherit;
 }
 
-/* Focus outranks resting text; ordinary caller focus utilities can still win.
+/* Use standard focus variants so their paint follows hover utilities.
  * Keep the shared shadow compositor, but make its default halo transparent. */
 @utility link-focus-inline {
-  &:is(:focus-visible, [data-focus-visible]):where(
-      :not(:disabled, [data-disabled])
-    ) {
+  &:where(:not(:disabled, [data-disabled])) {
     --color-focus-contrast: transparent;
     background-color: var(--color-link-focus-bg);
     color: var(--color-link-focus-fg);
