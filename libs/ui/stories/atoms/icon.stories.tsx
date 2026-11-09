@@ -95,7 +95,7 @@ export const Sizes: Story = {
                 className="flex min-w-0 flex-col items-center gap-150"
                 key={size}
               >
-                <div className="flex h-600 items-center justify-center">
+                <div className="flex h-400 items-center justify-center">
                   <Icon icon="token-icon-home" size={size} />
                 </div>
                 <span className="text-center font-medium text-fg-primary text-sm">
