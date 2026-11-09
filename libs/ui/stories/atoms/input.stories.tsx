@@ -14,6 +14,10 @@ function Field({
 }: InputProps & { label?: string; helpText?: string }) {
   const id = useId()
   const messageId = `${id}-message`
+  const helperClassName =
+    props.disabled && variant === "default"
+      ? "in-data-[theme=business]:text-fg-disabled"
+      : undefined
   return (
     <div className="flex flex-col gap-form-field-gap">
       <Label disabled={props.disabled} htmlFor={id} size={size}>
@@ -31,7 +35,12 @@ function Field({
         variant={variant}
       />
       {helpText && (
-        <StatusText id={messageId} size={size} status={variant}>
+        <StatusText
+          className={helperClassName}
+          id={messageId}
+          size={size}
+          status={variant}
+        >
           {helpText}
         </StatusText>
       )}

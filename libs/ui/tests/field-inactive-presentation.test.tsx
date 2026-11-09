@@ -13,6 +13,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { NumericInput } from "../src/atoms/numeric-input"
 import { Textarea } from "../src/atoms/textarea"
+import { Disabled as InputDisabled } from "../stories/atoms/input.stories"
 import { Disabled as NumericInputDisabled } from "../stories/atoms/numeric-input.stories"
 import { Disabled as TextareaDisabled } from "../stories/atoms/textarea.stories"
 
@@ -477,6 +478,82 @@ describe("Disabled field label and helper hierarchy", () => {
     // other brand inherits the disabled-label foreground.
     expect(scoped?.selector).toContain(':where([data-theme="business"])')
     expect(scoped?.selector).toContain("text-fg-disabled")
+  })
+})
+
+describe("Verified field presentation consistency", () => {
+  it("scopes the disabled Input helper dimming to Business", () => {
+    const canvas = renderStory(InputDisabled)
+    const field = canvas.querySelector("input")
+    const helper = canvas.querySelector('[data-status="default"]')
+    if (!(field && helper)) {
+      throw new Error("Disabled Input must retain its field and helper")
+    }
+    expect(field.disabled).toBe(true)
+    expect(field.getAttribute("aria-describedby")).toBe(helper.id)
+    expect(Array.from(helper.classList)).toContain(
+      "in-data-[theme=business]:text-fg-disabled"
+    )
+    expect(Array.from(helper.classList)).toContain("text-status-text-fg")
+    expect(Array.from(helper.classList)).not.toContain("text-fg-disabled")
+  })
+
+  it("aligns only the Business large radius with Input and preserves other themes", () => {
+    const alias = "--radius-textarea-surface-lg"
+    const shared = declarationsOf(
+      tokensSource("components/atoms/_textarea.css"),
+      alias
+    )
+    expect(shared.map((declaration) => declaration.value)).toEqual([
+      "var(--radius-textarea)",
+    ])
+    const business = declarationsOf(tokensSource("_business-atoms.css"), alias)
+    expect(business.map((declaration) => declaration.value)).toEqual([
+      "var(--radius-input-lg)",
+    ])
+    const generated = declarationsOf(tokensSource("_scheme-scopes.css"), alias)
+    expect(
+      generated.map((declaration) => ({
+        brand: brandOf(declaration.parent),
+        value: declaration.value,
+      }))
+    ).toEqual([
+      { brand: null, value: "var(--radius-textarea)" },
+      { brand: "business", value: "var(--radius-input-lg)" },
+    ])
+  })
+
+  it("consumes the live large radius and preserves caller radius utilities", async () => {
+    const classes = classesOf(
+      renderToStaticMarkup(<Textarea aria-label="Notes" size="lg" />)
+    )
+    expect(classes).toContain("rounded-(--radius-textarea-surface-lg)")
+    expect(classes).not.toContain("rounded-textarea")
+    for (const size of ["sm", "md", "lg", undefined] as const) {
+      const radiusClasses = classesOf(
+        renderToStaticMarkup(
+          <Textarea aria-label="Notes" className="rounded-none" size={size} />
+        )
+      ).filter((name) => name.startsWith("rounded-"))
+      expect(radiusClasses).toEqual(["rounded-none"])
+    }
+    const overridden = classesOf(
+      renderToStaticMarkup(
+        <Textarea aria-label="Notes" className="rounded-none" size="lg" />
+      )
+    )
+    expect(overridden).toContain("rounded-none")
+    expect(overridden).not.toContain("rounded-(--radius-textarea-surface-lg)")
+    const css = await compileProbe("rounded-(--radius-textarea-surface-lg)")
+    const radii: string[] = []
+    postcss.parse(css).walkRules((rule) => {
+      if (rule.selector.includes("radius-textarea-surface-lg")) {
+        rule.walkDecls("border-radius", (declaration) => {
+          radii.push(declaration.value)
+        })
+      }
+    })
+    expect(radii).toEqual(["var(--radius-textarea-surface-lg)"])
   })
 })
 

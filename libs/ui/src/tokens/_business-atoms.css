@@ -17,6 +17,7 @@
 
   /* Same shared read-only role Business Input already reads; the editable
    * resting fill is not a read-only surface. */
+  --radius-textarea-surface-lg: var(--radius-input-lg);
   --color-textarea-readonly: var(--color-form-control-readonly);
   --color-textarea-border-readonly-hover: var(--color-textarea-border);
   --color-textarea-border-readonly-focus: var(--color-textarea-border);

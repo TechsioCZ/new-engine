@@ -28,6 +28,9 @@ const CHANGELOG = `
 ### Textarea v1.0.8
 - Paint the Business read-only surface from the shared read-only role Input and NumericInput already read, so the field no longer wears the editable resting fill while text, focus, selection, every configured resize mode and disabled precedence stay unchanged; only Business dims the disabled example's neutral helper with its label, while other brands and validation messages keep their existing foregrounds.
 
+### Textarea v1.0.10
+- Align the Business large field's corner radius with large Input through a component alias; other themes retain the existing base radius and native resize, focus and selection behavior are unchanged.
+
 ### Textarea v1.0.9
 - Keep the Business field on its resting fill while focused so the existing focus outline, border and native text selection carry the signal; every other brand, the read-only surface, disabled precedence and the configured resize modes are unchanged.
 
