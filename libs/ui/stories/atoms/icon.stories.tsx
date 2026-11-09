@@ -213,7 +213,7 @@ function IconGallery({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search home, navigation, token-icon…"
+            placeholder="Search icons…"
             aria-describedby={resultsId}
           />
           {query && (
