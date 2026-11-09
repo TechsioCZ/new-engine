@@ -3866,6 +3866,7 @@
       --text-action-icon-glyph-sm: var(--dimension-18);
       --text-action-icon-glyph-md: var(--dimension-20);
       --text-action-icon-glyph-lg: var(--dimension-24);
+      --color-numeric-input-bg-invalid: var(--color-numeric-input-bg);
       --padding-numeric-input-input-sm: var(--padding-input-inline-sm);
       --padding-numeric-input-input-md: var(--padding-input-inline-md);
       --padding-numeric-input-input-lg: var(--padding-input-inline-lg);

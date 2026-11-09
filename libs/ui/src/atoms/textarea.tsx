@@ -2,7 +2,7 @@
  * Textarea — @techsio/ui-kit atom.
  *
  * @component Textarea
- * @componentVersion v1.0.6
+ * @componentVersion v1.0.7
  * @skill textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -41,6 +41,9 @@ const textareaVariants = tv({
     "focus-visible:outline-textarea-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:border-textarea-border-disabled disabled:bg-textarea-bg-disabled disabled:text-textarea-fg-disabled",
+    // A disabled field is inert, so it must not advertise the native resize
+    // grip; editable and read-only fields keep their configured resize mode.
+    "disabled:resize-none",
     // Native constraint validation once the user has interacted with the field.
     "user-invalid:border-(length:--border-width-validation)",
     "user-invalid:border-textarea-border-danger-base",

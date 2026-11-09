@@ -16,6 +16,12 @@ const CHANGELOG = `
 ### Rating v1.3.6
 - Commit uncontrolled Rating focus with its accepted keyboard or pointer value instead of depending on Zag's animation frame; preserve the existing controlled focus path for parent-scheduled transitions, without replaying uncontrolled requests after silent resets or external changes.
 
+### NumericInput v1.3.10
+- Keep Business invalid fields on the same neutral surface Business Input and Textarea paint, so the error border, glyph and message carry the signal while other brands keep the shared danger fill.
+
+### Textarea v1.0.7
+- Remove the resize grip from disabled fields while editable and read-only fields keep their configured resize mode, auto-sizing and native semantics.
+
 ### Hotkeys v1.1.2
 - Separate the Business medium keycap from the small step through the existing base typography alias, keeping the raised small midpoint and the shared large step so the three display sizes stay ordered.
 
