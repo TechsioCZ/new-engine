@@ -100,7 +100,7 @@ describe("Business label weight hierarchy", () => {
       { brand: null, value: SHARED_WEIGHT },
       { brand: "business", value: BUSINESS_WEIGHT },
     ])
-    for (const other of ["neo", "akros"]) {
+    for (const other of ["n1", "akros"]) {
       const scope = brandScope(generated, other)
       if (!scope) {
         throw new Error(`${other} brand scope must exist`)

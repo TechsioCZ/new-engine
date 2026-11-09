@@ -167,7 +167,7 @@ describe("Business NumericInput invalid fill", () => {
       { brand: null, value: SHARED_INVALID_FILL },
       { brand: "business", value: BUSINESS_INVALID_FILL },
     ])
-    for (const other of ["neo", "akros"]) {
+    for (const other of ["n1", "akros"]) {
       const scope = brandScope(generated, other)
       if (!scope) {
         throw new Error(`${other} brand scope must exist`)
@@ -350,7 +350,7 @@ describe("Business Textarea read-only surface", () => {
       { brand: null, value: SHARED_READONLY_FILL },
       { brand: "business", value: SHARED_READONLY_FILL },
     ])
-    for (const other of ["neo", "akros"]) {
+    for (const other of ["n1", "akros"]) {
       const scope = brandScope(generated, other)
       if (!scope) {
         throw new Error(`${other} brand scope must exist`)
