@@ -269,6 +269,8 @@ export const ReadOnly: Story = {
     await userEvent.keyboard("Changed{Backspace}{Delete}")
     await expect(input).toHaveValue("Leave the parcel at reception.")
     await expect(input).not.toBeDisabled()
+    await userEvent.tab()
+    await expect(input).not.toHaveFocus()
   },
 }
 

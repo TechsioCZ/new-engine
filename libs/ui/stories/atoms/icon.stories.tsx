@@ -211,6 +211,7 @@ function IconGallery({
             ref={searchRef}
             id={searchId}
             type="search"
+            size="sm"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search icons…"
@@ -300,6 +301,9 @@ export const Gallery: Story = {
       clear.getBoundingClientRect().right - search.getBoundingClientRect().right
     await expect(clear).toBeDisabled()
     await userEvent.click(search)
+    await expect(search.getBoundingClientRect().height).toBe(
+      clear.getBoundingClientRect().height
+    )
     const reservedClearSpace = clearSpace()
     await userEvent.type(search, "token-icon-home")
     await expect(clearSpace()).toBe(reservedClearSpace)
