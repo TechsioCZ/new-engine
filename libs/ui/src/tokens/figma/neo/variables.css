@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-10-27T19:02:56.038Z
+ * Exported at: 2026-11-09T14:11:31.663Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -9,9 +9,13 @@
   --color-base-dark: var(--color-gray-950);
   --color-base-light: var(--color-white);
   --color-base-reverse: var(--color-gray-950);
+  --color-bg-badge-danger: var(--color-bg-badge-danger-solid);
   --color-bg-badge-danger-solid: var(--color-bg-danger-base);
+  --color-bg-badge-info: var(--color-bg-info);
   --color-bg-badge-primary-solid: var(--color-bg-primary-base);
   --color-bg-badge-secondary-solid: var(--color-bg-secondary-base);
+  --color-bg-badge-success: var(--color-bg-success);
+  --color-bg-badge-warning: var(--color-bg-warning-base);
   --color-bg-control-checked: var(--color-success-700);
   --color-bg-danger-active: var(--color-danger-500);
   --color-bg-danger-base: var(--color-danger-400);
@@ -104,7 +108,11 @@
   --color-fg-accent-success: var(--color-success-700);
   --color-fg-accent-tertiary: var(--color-tertiary-600);
   --color-fg-accent-warning: var(--color-warning-700);
+  --color-fg-badge-danger: var(--color-fg-light);
+  --color-fg-badge-info: var(--color-fg-light);
   --color-fg-badge-on-solid: var(--color-fg-light);
+  --color-fg-badge-success: var(--color-base-dark);
+  --color-fg-badge-warning: var(--color-base-dark);
   --color-fg-dark: var(--color-white);
   --color-fg-disabled: var(--color-neutral-500);
   --color-fg-icon-tree: var(--color-fg-primary);
@@ -119,6 +127,7 @@
   --color-fg-on-tertiary: var(--color-fg-on-accent-solid);
   --color-fg-on-tint: var(--color-fg-light);
   --color-fg-on-warning: var(--color-fg-on-accent-solid);
+  --color-fg-outlined-secondary: var(--color-fg-primary);
   --color-fg-placeholder: var(--color-neutral-600);
   --color-fg-primary: var(--color-slate-950);
   --color-fg-reverse: var(--color-white);
