@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/organisms/header.tsx libs/ui/src/tokens/components/organisms/_header.css libs/ui/stories/organisms/header.stories.tsx"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -54,6 +54,21 @@ where actions and feedback live). This section applies them to `Header`.
 **Copy and states**
 
 - Navigation labels are short nouns; icon buttons have labels (`Cart, 3 items`, `Account`).
+
+**Behaviour (from the UX spec)**
+
+- `size` is density, not a breakpoint; the app decides where navigation collapses behind `Header.Hamburger`, and it is never just cut off.
+- `Header.NavItem active` is visual only; also set `aria-current="page"` on the link. Pass a localised `aria-label` to `Header.Hamburger` (default `Toggle mobile menu`).
+- The header is not a list of every feature; switching section never pretends to save an open draft.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | same prop |
+| — | `direction`, `Header.NavItem active`, `Header.Mobile position` (not in Figma) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/Header → UX guidelines*.
 
 ## Setup
 

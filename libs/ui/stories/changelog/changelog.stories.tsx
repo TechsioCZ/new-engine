@@ -133,6 +133,16 @@ const CHANGELOG = `
 ### Textarea v1.0.5
 - Separate inline padding from block padding and preserve validation borders and visible focus on read-only fields.
 
+### UX guidelines (docs only)
+- New \`UX/\` section in Storybook: Introduction, Writing, Formatting, States, Feedback and actions, Component selection, and the new Value lifecycle and Accessibility pages.
+- Button, Input, Dialog, Select and DataTable have a **UX guidelines** page next to their stories, edited from the Figma UX descriptions in TechsioCZ/UX_docs. Each page maps Figma variants to code props.
+- The same Markdown ships in the techsio-ui-kit-ai plugin (v0.3.0): \`ux-guidelines\` references and \`<component>-usage/references/ux.md\`.
+- Gallery guidance no longer promises zoom or fullscreen; Steps guidance names steps with short nouns consistently.
+- Every other component now has a **UX guidelines** page too (59 more). Chart, FacetFilterPanel, FormErrorSummary and SearchSuggestions are written from code, as UX_docs has no page for them. The Icon page holds one glyph → meaning → host table; glyph-specific rules live on the host component pages. Plugin v0.4.0.
+- Skill text fixes found during the import: Carousel no longer promises zoom for Gallery; CascadeSelect shows the real \` / \` path separator; FileUpload lists \`StatusText\`; Menu lists the \`link\` item type and no longer asks for a danger tone it doesn't have; Tooltip examples use ActionIcon for icon-only triggers; Tour examples use \`Done\` and \`Skip tour\`; VerticalNavigation acknowledges its Figma components.
+- Review fixes: Tabs guidance distinguishes manual and automatic activation, and a selected tab uses \`aria-selected\`; FormErrorSummary gets a procedure for forms inside a Dialog; Badge allows names from the shared status vocabulary (\`Out of stock\`); \`Skip tour\` and \`Try again\` are used consistently; Steps and Tour links in Storybook resolve; inline code examples no longer render as Copy blocks.
+- Plugin tooling: the skill bundle check ignores CRLF checkouts (and \`.gitattributes\` keeps skill markdown on LF), and a reverse-domain extension directory no longer needs a manifest entry (spec §8.2).
+
 ### SearchForm v1.1.2
 - Error and hint messages are linked to the search field in the same update that shows them. Before, aria-describedby, aria-errormessage and aria-invalid followed one render later, so assistive tech could briefly read an error while the field still reported itself as valid.
 

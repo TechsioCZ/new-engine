@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/textarea.tsx"
   - "libs/ui/src/tokens/components/atoms/_textarea.css"
@@ -55,6 +57,21 @@ where actions and feedback live). This section applies them to `Textarea`.
 **Copy and states**
 
 - Placeholder as an example (`Add a note for the courier…`).
+
+**Behaviour (from the UX spec)**
+
+- Enter inserts a newline and never submits; `rows` sets the initial height, not a length limit.
+- `variant="error" | "success" | "warning"` is presentation only; the rule lives in the form or app.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=default…borderless` | same prop names and values |
+| `state=disabled` | `disabled` |
+| `state=readonly` | `readOnly` (not the legacy `readonly`) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Textarea → UX guidelines*.
 
 ## Setup
 

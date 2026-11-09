@@ -11,9 +11,9 @@ metadata:
   component: "Button"
   component_version: "0.6.3"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/atoms/button.tsx libs/ui/src/tokens/components/atoms/_button.css libs/ui/stories/atoms/button.stories.tsx libs/ui/src/atoms/button.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -65,6 +65,23 @@ where actions and feedback live). This section applies them to `Button`.
 
 - Verb + object in sentence case: `New product`, `Create product`, `Save changes`, `Delete product`, `Discard changes` (full table in ux-guidelines/ux-writing#button-labels).
 - `Cancel` leaves a form without saving; `Close` closes something with no pending changes.
+
+**Behaviour (from the UX spec)**
+
+- Set `isLoading` only for real async work that starts after local validation passed; a synchronous action never shows loading.
+- A failed action keeps the user's draft and reports the problem on the form or object. There is no error Button.
+- Hover and focus never change data; a Button is never a hidden navigation.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=primary…danger`, `theme=solid…borderless`, `size=sm…lg` | same prop names and values |
+| `state=disabled` | `disabled` |
+| `state=loading` | `isLoading` + `loadingText` |
+| `state=hover` / `focus` / `active` | not props (browser states) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Button → UX guidelines*.
 
 ## Setup
 

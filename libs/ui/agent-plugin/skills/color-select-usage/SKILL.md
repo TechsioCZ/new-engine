@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/molecules/color-select.tsx libs/ui/src/tokens/components/molecules/_color-select.css libs/ui/stories/molecules/color-select.stories.tsx"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -53,6 +53,23 @@ where actions and feedback live). This section applies them to `ColorSelect`.
 **Copy and states**
 
 - Label `Colour` (or `Color`, per locale); selected value shown as `Colour: Navy`.
+
+**Behaviour (from the UX spec)**
+
+- Hover and focus only highlight; activation proposes a colour and the app updates `selected` together with the variant's photo and price.
+- If loading the chosen variant fails, never present the old photo or price as the new variant.
+- Light and near-identical swatches keep a visible boundary and distinct names (two greys can't share a name).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `ColorSwatch` (one swatch) | one entry in `ColorSelect` `colors`; there is no ColorSwatch component |
+| `state=selected` / `disabled` | `colors[].selected` / `colors[].disabled` |
+| `state=hover` / `focus` | not props |
+| no group, mode or read-only axes | `layout`, `selectionMode`, `readOnly`, `label` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/ColorSelect → UX guidelines*.
 
 ## Setup
 

@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/atoms/status-text.tsx libs/ui/src/tokens/components/atoms/_status-text.css libs/ui/stories/atoms/status-text.stories.tsx libs/ui/src/atoms/status-text.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -59,6 +59,21 @@ where actions and feedback live). This section applies them to `StatusText`.
 **Copy and states**
 
 - One sentence: what + how to fix for errors (ux-guidelines/ux-writing#messages).
+
+**Behaviour (from the UX spec)**
+
+- A service failure is never phrased as a user input error (`Couldn't check the SKU. Try again.`, not `Invalid SKU`).
+- `status` doesn't validate: the app decides when and links the message to its field (`aria-describedby`, `aria-errormessage`). The kit only sets the live role.
+- `success` confirms the checked value, not a saved form or transaction. Product availability is `AvailabilityStatus`, not StatusText.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `status=default\|error\|success\|warning`, `size=sm\|md\|lg` | same prop names and values |
+| — | `align="start" \| "center"`, `showIcon`, `icon` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/StatusText → UX guidelines*.
 
 ## Setup
 

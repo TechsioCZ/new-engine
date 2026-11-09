@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/select"
   contributor_sources: "libs/ui/src/molecules/select.tsx libs/ui/src/tokens/components/molecules/_select.css libs/ui/stories/molecules/select.stories.tsx libs/ui/src/molecules/select.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -57,6 +57,26 @@ where actions and feedback live). This section applies them to `Select`.
 **Copy and states**
 
 - Options in sentence case, parallel grammar; the same option names as the status vocabulary.
+
+**Behaviour (from the UX spec)**
+
+- Opening the list and moving through options never commits; closing without choosing keeps the previous value.
+- Clearing a required Select leaves a missing value that validation reports, never an "empty" option that looks chosen.
+- Select prunes values missing from `items`. To show a saved value as unavailable, keep that item in `items` as `disabled`, say why in the helper text and block submitting until it is resolved — don't silently drop or replace it.
+- With remote options, show waiting, no matches and error separately, and discard responses older than the latest query.
+- Don't use `size="xs"` for app form fields; sm/md/lg are canonical.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=xs…lg` | `size` |
+| `state=error` / `success` / `warning` | `validateStatus` |
+| `state=disabled` | `disabled` |
+| `state=readonly` | `readOnly` |
+| `required=true` | `required` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Select → UX guidelines*.
 
 ## Setup
 

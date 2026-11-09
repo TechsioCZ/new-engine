@@ -15,6 +15,8 @@ requires:
   - select-usage
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/phone-input.tsx"
   - "libs/ui/src/tokens/components/molecules/_phone-input.css"
@@ -70,6 +72,22 @@ where actions and feedback live). This section applies them to `PhoneInput`.
 **Copy and states**
 
 - Label `Phone`; help text says why you need it (`For delivery updates only.`).
+
+**Behaviour (from the UX spec)**
+
+- A valid format (`isValid`) is not a verified number; never label it "verified".
+- Changing the country keeps the typed digits; pasting `+420 …` switches the country to match.
+- Default placeholder and country names are English; pass localized `placeholder` and `countries`.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=error` / `success` / `warning` | `validateStatus` |
+| `state=disabled` | `disabled` |
+| `state=readonly` | `readOnly` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/PhoneInput → UX guidelines*.
 
 ## Setup
 

@@ -1,0 +1,3 @@
+# Skill markdown is bundled byte-for-byte into the agent plugin; keep LF on every platform.
+libs/ui/skills/** text eol=lf
+libs/ui/agent-plugin/skills/** text eol=lf

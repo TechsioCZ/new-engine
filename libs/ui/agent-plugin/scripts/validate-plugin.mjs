@@ -25,6 +25,7 @@ import {
 import { dirname, join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
+  AUTHORED_SKILLS,
   validatePortableSkill,
   validateSkillPrerequisites,
 } from "./lib/skill-frontmatter.mjs"
@@ -200,6 +201,22 @@ if (existsSync(skillsDir)) {
   }
 }
 
+// UX guidelines: every component usage skill ships the component's UX page as
+// references/ux.md (the same file Storybook renders as "<Component> → UX guidelines").
+if (existsSync(skillsDir)) {
+  for (const name of readdirSync(skillsDir)) {
+    if (!name.endsWith("-usage") || AUTHORED_SKILLS.has(name)) {
+      continue
+    }
+    if (!existsSync(join(skillsDir, name, "references", "ux.md"))) {
+      fail(
+        `skills/${name}`,
+        "missing references/ux.md (the component's UX guidelines page)"
+      )
+    }
+  }
+}
+
 // §7.2 — MCP configuration.
 if (existsSync(join(pluginDir, "mcp.json"))) {
   const mcp = readJson("mcp.json")
@@ -313,14 +330,11 @@ for (const name of readdirSync(pluginDir)) {
   ) {
     continue
   }
+  // §8.2: a reverse-domain directory is a valid file-only extension; no manifest entry required.
   if (NAMESPACE_RE.test(name)) {
-    if (!(name in (manifest?.extensions ?? {}))) {
-      fail(
-        name,
-        "extension directory has no matching extensions entry in plugin.json"
-      )
-    }
-  } else if (!SUPPORT_DIRS.has(name)) {
+    continue
+  }
+  if (!SUPPORT_DIRS.has(name)) {
     fail(
       name,
       "unexpected top-level directory (client files belong in a reverse-domain extension directory)"

@@ -14,6 +14,8 @@ requires:
   - input-usage
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/form-input.tsx"
   - "libs/ui/src/atoms/input.tsx"
@@ -64,6 +66,24 @@ where actions and feedback live). This section applies them to `FormInput`.
 
 - Error messages: what's wrong + how to fix (`Enter an email like name@example.com.`), never `Invalid input`.
 - Mark required fields with the component's `required`, not a typed asterisk.
+
+**Behaviour (from the UX spec)**
+
+- `success` means this value was checked, never that the form was saved; confirm saves on the form or with a toast.
+- On a validation or server error keep the whole text in the field; never truncate it silently.
+- Never mark an untouched empty field as an error (or an empty initial value as success) on load.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | `size` |
+| `state=error` / `success` / `warning` | `validateStatus` |
+| `state=disabled` | `disabled` |
+| `state=readonly` | `readOnly` |
+| `required=true` | `required` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormInput → UX guidelines*.
 
 ## Setup
 

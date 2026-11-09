@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux textarea-usage app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/molecules/form-textarea.tsx libs/ui/src/atoms/textarea.tsx libs/ui/stories/molecules/form-textarea.stories.tsx libs/ui/src/molecules/form-textarea.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -53,6 +53,23 @@ where actions and feedback live). This section applies them to `FormTextarea`.
 **Copy and states**
 
 - Counter format `120 / 500`; over-limit error `Shorten the note to 500 characters.`
+
+**Behaviour (from the UX spec)**
+
+- Enter inserts a newline and never submits the form.
+- `rows` sets the initial height, not a limit; a grown (resized) field must not cover the Save action or neighbouring fields.
+- A rejection keeps the full text; never truncate silently.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=error` / `success` / `warning` | `validateStatus` |
+| `state=disabled` | `disabled` |
+| — (not in Figma) | `readOnly` |
+| `required=true` | `required` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormTextarea → UX guidelines*.
 
 ## Setup
 

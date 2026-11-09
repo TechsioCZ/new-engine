@@ -77,7 +77,7 @@ const meta: Meta<StoryArgs> = {
       },
       description: {
         component:
-          "Carousel lets people browse optional images or related content one page at a time, with buttons, keyboard navigation and swipe. Use Gallery for product media with thumbnails and zoom; keep essential information in a static layout. Vertical orientation automatically places up/down controls and indicators on the side.",
+          "Carousel lets people browse optional images or related content one page at a time, with buttons, keyboard navigation and swipe. Use Gallery for product media with thumbnails (it has no zoom); keep essential information in a static layout. Vertical orientation automatically places up/down controls and indicators on the side.",
       },
     },
   },

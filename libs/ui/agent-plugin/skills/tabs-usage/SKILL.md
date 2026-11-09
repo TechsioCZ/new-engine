@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/tabs"
   contributor_sources: "libs/ui/src/molecules/tabs.tsx libs/ui/src/tokens/components/molecules/_tabs.css libs/ui/stories/molecules/tabs.stories.tsx libs/ui/src/molecules/tabs.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -56,6 +56,23 @@ where actions and feedback live). This section applies them to `Tabs`.
 **Copy and states**
 
 - Nouns in sentence case; counts in parentheses or a Badge (`Orders 12`).
+
+**Behaviour (from the UX spec)**
+
+- Use one `activationMode` per set; choose `"manual"` when switching a panel is expensive (loads data).
+- Switching tabs never commits or discards data; a form in a panel keeps its draft.
+- The selected tab always matches the panel shown; the indicator moves only when the panel changes, never on hover. Focus alone never selects in `activationMode="manual"`; in `"automatic"` (the default) arrow keys move focus and select the tab.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant`, `size`, `orientation` | same prop names and values |
+| `state=selected` | `value` / `defaultValue` |
+| `state=disabled` | `disabled` on `Tabs.Trigger` |
+| — | `activationMode`, `fitted`, `justify` (not in Figma) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Tabs → UX guidelines*.
 
 ## Setup
 

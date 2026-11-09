@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/badge.tsx"
   - "libs/ui/src/tokens/components/atoms/_badge.css"
@@ -47,7 +49,7 @@ where actions and feedback live). This section applies them to `Badge`.
 
 **Do**
 
-- Use one word, two at most; map each state to one variant app-wide (see the status table in ux-guidelines/ux-writing).
+- Use one word, two at most; map each state to one variant app-wide (see the status table in ux-guidelines/ux-writing). Exception: names from that shared status vocabulary may be longer (`Out of stock`).
 - Pair colour with the word — the text carries the meaning, colour only supports it.
 - Place status badges next to the title they describe (page header meta, first table column or a Status column).
 - Use `discount` only for price reductions, `danger` only for failed/blocked states.
@@ -63,6 +65,22 @@ where actions and feedback live). This section applies them to `Badge`.
 
 - Sentence case, no punctuation; counts formatted with `Intl.NumberFormat` (`1,204`), capped (`99+`) in navigation.
 - Give count badges context for screen readers (`3 unread messages`).
+
+**Behaviour (from the UX spec)**
+
+- When the data changes, update the text and the `variant` together; show a result badge (`Approved`) only after the data confirms it.
+- Never let colour alone imply a discount, approval or permission; `discount` needs a documented price comparison.
+- A compact `Out of stock` card flag is a `danger` Badge; availability with detail or a delivery estimate is `AvailabilityStatus`.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=primary…outline`, `size=sm…xl` | same prop names and values |
+| — | `variant="dynamic"` + `bgColor` / `fgColor` / `borderColor` (code only) |
+| `Label` text layer | `children` (string) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Badge → UX guidelines*.
 
 ## Setup
 

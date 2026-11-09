@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/popover"
   contributor_sources: "libs/ui/src/molecules/popover.tsx libs/ui/src/tokens/components/molecules/_popover.css libs/ui/stories/molecules/popover.stories.tsx libs/ui/src/molecules/popover.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -55,6 +55,22 @@ where actions and feedback live). This section applies them to `Popover`.
 **Copy and states**
 
 - Trigger text says what opens (`Filters`, `Share`); count active filters in the trigger (`Filters (2)`).
+
+**Behaviour (from the UX spec)**
+
+- Closing (Escape, outside click, close button) never applies a half-made change; an unapplied filter draft is discarded.
+- Without a visible title, give `Popover.Content` an `aria-label`; without a close button, Escape and outside click must still close it.
+- `placement` is a preference: the kit flips on collision (`flip` defaults to `true`).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `showArrow` | `<Popover.Arrow />` |
+| Popover/Content `showTitle`, `showDescription`, `showCloseButton` | the `Title`, `Description`, `CloseTrigger` parts |
+| Popover/Placement set `placement=…` | `placement` on the root (reference set, not a component) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Popover → UX guidelines*.
 
 ## Setup
 
