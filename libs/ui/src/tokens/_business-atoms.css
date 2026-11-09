@@ -76,9 +76,11 @@
   --color-skeleton-secondary: var(--color-fill-highlight);
   --radius-skeleton-rectangle: var(--radius-skeleton-text);
   --text-hotkeys-sm: calc((var(--text-xs) + var(--text-sm)) / 2);
+  --text-hotkeys-md: var(--text-base);
   --color-hotkeys-outline: color-mix(
     in oklab,
     var(--color-border-control) 45%,
     var(--color-fill-surface)
   );
+  --shadow-tooltip: var(--shadow-lg);
 }

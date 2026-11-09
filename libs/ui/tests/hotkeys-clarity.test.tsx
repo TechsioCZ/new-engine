@@ -164,7 +164,7 @@ describe("Hotkeys clarity", () => {
     }
   )
 
-  it("raises only the Business small caption while retaining the shared scale", () => {
+  it("raises the Business small and medium captions while retaining the shared scale", () => {
     const tokens = readFileSync(
       resolve(
         dirname(fileURLToPath(import.meta.url)),
@@ -183,6 +183,8 @@ describe("Hotkeys clarity", () => {
     expect(business).toContain(
       "--text-hotkeys-sm: calc((var(--text-xs) + var(--text-sm)) / 2);"
     )
+    expect(business).toContain("--text-hotkeys-md: var(--text-base);")
+    expect(business).not.toContain("--text-hotkeys-lg:")
     expect(tokens).toContain("--text-hotkeys-md: var(--text-sm);")
     expect(tokens).toContain("--text-hotkeys-lg: var(--text-md);")
     expect(tokens).toContain("outline-width: var(--default-ring-width);")

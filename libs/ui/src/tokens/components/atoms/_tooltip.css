@@ -21,6 +21,14 @@
   --width-tooltip-max: 22rem;
   --spacing-tooltip-viewport: var(--spacing-200);
   --shadow-tooltip: var(--shadow-popup);
+  /*
+   * Derived from the public alias, not an override of it. `--shadow-tooltip`
+   * stays a runtime alias (Business raises it, a caller may replace it), so the
+   * popup has to read a utility whose value is the alias. A `shadow-tooltip`
+   * utility would instead copy the alias value into `--tw-shadow` at build time
+   * and freeze the elevation.
+   */
+  --shadow-tooltip-surface: var(--shadow-tooltip);
 }
 
 @utility tooltip-surface {

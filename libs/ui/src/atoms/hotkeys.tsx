@@ -2,7 +2,7 @@
  * Hotkeys — @techsio/ui-kit atom.
  *
  * @component Hotkeys
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill hotkeys-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */

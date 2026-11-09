@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Hotkeys v1.1.2
+- Separate the Business medium keycap from the small step through the existing base typography alias, keeping the raised small midpoint and the shared large step so the three display sizes stay ordered.
+
+### Tooltip v1.1.2
+- Lift the Business popup to the existing large elevation through the tooltip's own shadow alias, leaving the shared popup shadow and every other floating layer untouched.
+
 ### ActionIcon v1.1.5
 - Keep caller-owned surfaces above resting and disabled defaults, preserving opaque Carousel photo-overlay arrows without changing the default Business unavailable treatment or native guards.
 

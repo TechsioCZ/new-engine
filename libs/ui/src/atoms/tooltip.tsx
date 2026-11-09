@@ -2,7 +2,7 @@
  * Tooltip — @techsio/ui-kit atom.
  *
  * @component Tooltip
- * @componentVersion v1.1.1
+ * @componentVersion v1.1.2
  * @skill tooltip-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -40,7 +40,7 @@ const tooltipVariants = tv({
       "tooltip-surface",
       "popup-layer",
       "text-tooltip-fg",
-      "shadow-tooltip",
+      "shadow-tooltip-surface",
       "bg-tooltip-bg",
       "rounded-tooltip",
     ],
