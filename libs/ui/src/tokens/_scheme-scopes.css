@@ -362,7 +362,7 @@
     --color-hotkeys-key-fg: var(--color-fg-secondary);
     --color-hotkeys-key-border: var(--color-border-primary);
     --color-hotkeys-separator-fg: var(--color-fg-secondary);
-    --gap-hotkeys: var(--spacing-100);
+    --gap-hotkeys: var(--spacing-50);
     --padding-hotkeys-key-x: var(--spacing-100);
     --padding-hotkeys-key-y: var(--spacing-50);
     --text-hotkeys-sm: var(--text-xs);
@@ -385,7 +385,7 @@
     --color-image-placeholder-text: var(--color-fg-secondary);
     --color-image-bg-fallback: var(--color-image-placeholder);
     --color-image-fg-fallback: var(--color-image-placeholder-text);
-    --text-image-fallback-icon: var(--text-icon-2xl);
+    --text-image-fallback-icon: var(--text-icon-lg);
     --color-input-readonly: var(--color-form-control-readonly);
     --color-input-text-readonly: var(--color-form-control-text);
     --color-input-bg-readonly: var(--color-input-readonly);
@@ -3913,12 +3913,14 @@
       --radius-skeleton-rectangle: var(--radius-skeleton-text);
       --text-hotkeys-sm: calc((var(--text-xs) + var(--text-sm)) / 2);
       --text-hotkeys-md: var(--text-base);
+      --gap-hotkeys: var(--spacing-100);
       --color-hotkeys-outline: color-mix(
         in oklab,
         var(--color-border-control) 45%,
         var(--color-fill-surface)
       );
       --shadow-tooltip: var(--shadow-lg);
+      --text-image-fallback-icon: var(--text-icon-2xl);
     }
   }
   @scope ([data-theme="akros"]) to ([data-theme]) {

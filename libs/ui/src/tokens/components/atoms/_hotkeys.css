@@ -11,7 +11,7 @@
   --color-hotkeys-separator-fg: var(--color-hotkeys-text);
 
   /* SPACING */
-  --gap-hotkeys: var(--spacing-100);
+  --gap-hotkeys: var(--spacing-50);
   --padding-hotkeys-key-x: var(--spacing-100);
   --padding-hotkeys-key-y: var(--spacing-50);
 
