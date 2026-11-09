@@ -27,7 +27,7 @@ the panel on screen.
   order.
 - **Trigger** (`Tabs.Trigger`): names and selects its own panel.
 - **Indicator** (`Tabs.Indicator`): marks the selected tab (`line` variant).
-  It moves only when the panel changes, never on hover or focus.
+  It moves only when the panel changes, never on hover.
 - **Content** (`Tabs.Content`): the panel for exactly one trigger.
 
 ## Variants and states
@@ -37,7 +37,7 @@ the panel on screen.
 | `variant=default` / `line` / `solid` / `outline` | `variant="default" \| "line" \| "solid" \| "outline"` | Visual only; doesn't change which panels exist. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only. |
 | `orientation=horizontal` / `vertical` | `orientation` | Vertical for settings groups or long names; order and meaning stay the same. |
-| `state=selected` | `value` / `defaultValue` | The panel actually shown. Hover or focus never selects. |
+| `state=selected` | `value` / `defaultValue` | The panel actually shown. Hover never selects. Focus never selects in `manual`; in `automatic` (default) arrow keys select as they move focus. |
 | `state=disabled` | `disabled` on `Tabs.Trigger` | The panel can't be opened now, for a reason the user can find. |
 | — | `activationMode="automatic" \| "manual"` | Whether arrow-key focus also switches the panel. Not in Figma. |
 | — | `fitted`, `justify="start" \| "center" \| "end"` | List layout. Not in Figma. |

@@ -20,7 +20,11 @@ const MD_SUFFIX = /\.md$/
 const ATTACHED_META = /<Meta of=\{\w+\} name="UX guidelines" \/>/
 const STORIES_IMPORT = /from "\.\/([\w-]+)\.stories"/
 const RELATIVE_LINK = /\[[^\]]+\]\(((?!https?:|mailto:|#)[^)\s]+)\)/g
-const STORY_TITLE = /^\s*title:\s*["']([^"']+)["']/m
+const FENCED_BLOCK = /```[\s\S]*?```/g
+const PARAGRAPH_BREAK = /\n\s*\n/
+const INLINE_CODE = /(?<!`)`(?!`)[^`]+?`(?!`)/g
+const STORY_TITLE =
+  /^\s*title:\s*["']((?:Atoms|Molecules|Organisms|Templates)\/[^"']+)["']/m
 
 const uiRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const skillsDir = join(uiRoot, "skills")
@@ -96,6 +100,21 @@ describe("UX guidelines pages", () => {
         const target = resolve(dirname(file), path)
         expect(existsSync(target), `${href} in ${file}`).toBe(true)
       }
+    }
+  )
+})
+
+describe("UX markdown", () => {
+  it.each(uxFiles.map((file) => [file.slice(uiRoot.length + 1), file]))(
+    "%s has no inline code span that wraps across lines",
+    (_label, file) => {
+      // A wrapped span renders as a block with a Copy button in Storybook.
+      const prose = readFileSync(file, "utf8").replace(FENCED_BLOCK, "")
+      const wrapped = prose
+        .split(PARAGRAPH_BREAK)
+        .flatMap((paragraph) => paragraph.match(INLINE_CODE) ?? [])
+        .filter((span) => span.includes("\n"))
+      expect(wrapped).toEqual([])
     }
   )
 })

@@ -61,8 +61,7 @@ replace the label.
 ## Content and copy
 
 - Error = what is wrong + how to fix it, in the field's words:
-  `Enter an SKU with at least 4 characters.` — cs: `Zadejte SKU s alespoň 4
-  znaky.`
+  `Enter an SKU with at least 4 characters.` — cs: `Zadejte SKU s alespoň 4 znaky.`
 - Help explains format or consequence: `Uppercase, dash-separated.` — cs:
   `Velká písmena, oddělená pomlčkou.`
 - A service failure says so: `Couldn't check the SKU. Try again.` — cs:

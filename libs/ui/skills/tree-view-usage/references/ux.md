@@ -70,8 +70,7 @@ branch.
 
 ## Content and copy
 
-- Node labels are the real names of the objects, kept short: `Brno
-  warehouse`, `Invoices 2024` — cs: `Sklad Brno`, `Faktury 2024`.
+- Node labels are the real names of the objects, kept short: `Brno warehouse`, `Invoices 2024` — cs: `Sklad Brno`, `Faktury 2024`.
 - Same-named nodes in different branches need path context in the label or a
   description (`Brno warehouse — Alfa s.r.o.`).
 - Actions on nodes follow [Menu](../../menu-usage/references/ux.md) rules.

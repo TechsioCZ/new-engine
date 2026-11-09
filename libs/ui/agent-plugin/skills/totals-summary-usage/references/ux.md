@@ -54,7 +54,7 @@ present old amounts as the new total.
   shown amounts stay recognisable as the previous values and the checkout
   action is blocked.
 - Success updates every row and the total at once.
-- A failure ends the pending state with an explanation and `Retry`, outside
+- A failure ends the pending state with an explanation and `Try again`, outside
   the busy summary. Never leave the summary pending indefinitely.
 - Add `disabled` to the action buttons if they should also look blocked;
   `inert` alone blocks interaction.
@@ -67,8 +67,7 @@ present old amounts as the new total.
 - Row labels say exactly what each amount is: `Goods`, `Shipping`,
   `Payment fee`, `Discount` — cs: `Zboží`, `Doprava`, `Poplatek za platbu`,
   `Sleva`.
-- An unselected fee is named, not zero: `Choose shipping` — cs: `Vyberte
-  dopravu`. While fees are missing, call the total a subtotal.
+- An unselected fee is named, not zero: `Choose shipping` — cs: `Vyberte dopravu`. While fees are missing, call the total a subtotal.
 - State the tax convention in the total label or footer: `Total incl. VAT` —
   cs: `Celkem vč. DPH`.
 - A discount is a separate negative value (`−€5.00`).
@@ -88,7 +87,7 @@ present old amounts as the new total.
 - **Shipping not chosen yet**: `Choose shipping`, never `Free shipping` or
   `0 Kč`.
 - **Recalculation failed**: keep the last confirmed values, explain the
-  problem, offer `Retry`, keep checkout blocked until the totals are valid.
+  problem, offer `Try again`, keep checkout blocked until the totals are valid.
 - **Invalid quantity draft in a line**: the summary keeps the last valid
   amounts and says which quantity they belong to.
 

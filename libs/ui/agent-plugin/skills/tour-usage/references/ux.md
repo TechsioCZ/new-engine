@@ -66,8 +66,8 @@ checkout.
 
 - One idea per step: a short title and one sentence. Don't explain what the
   label already says.
-- Progress `2 of 4` — cs: `2 z 4`. Buttons `Skip guide`, `Back`, `Next`,
-  last step `Done` — cs: `Přeskočit průvodce`, `Zpět`, `Další`, `Hotovo`.
+- Progress `2 of 4` — cs: `2 z 4`. Buttons `Skip tour`, `Back`, `Next`,
+  last step `Done` — cs: `Přeskočit prohlídku`, `Zpět`, `Další`, `Hotovo`.
 - Translate the visible action labels; the kit only translates its own
   machine labels.
 

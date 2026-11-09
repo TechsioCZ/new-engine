@@ -52,8 +52,7 @@ without the app's leave-page handling.
 - Destination-first, sentence case: `Order detail`, `Returns policy` — cs:
   `Detail objednávky`, `Reklamační řád`.
 - Never `here`, `click here` or `more` on their own — cs: never `Zde`.
-- Mark new tabs and downloads: `Price list (PDF, 2 MB)`, `Help centre (opens in
-  a new tab)`.
+- Mark new tabs and downloads: `Price list (PDF, 2 MB)`, `Help centre (opens in a new tab)`.
 
 ## Accessibility
 

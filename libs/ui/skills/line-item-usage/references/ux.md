@@ -85,8 +85,7 @@ because the product is no longer available; recalculate prices.
 ## Accessibility
 
 - Every action works by keyboard and its name includes the product.
-- The quantity field's label includes the product (`Quantity: Mounting kit
-  M8`).
+- The quantity field's label includes the product (`Quantity: Mounting kit M8`).
 - `pendingLabel` is associated automatically; LineItem adds no live region.
   Announce the result once through the app's chosen feedback surface.
 - Availability and errors never rely on colour alone.

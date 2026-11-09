@@ -63,8 +63,7 @@ whenever the screen shows more than one kind of thing.
   `Edit product`, or the record name for a read-only drawer.
 - **Destructive confirmation title** = a question naming the action:
   `Delete this product?`, `Discard unsaved changes?`. The description names the
-  record and the consequence: `“Linen shirt” (TS-0042) will be removed from the
-  catalogue and from every collection that references it.`
+  record and the consequence: `“Linen shirt” (TS-0042) will be removed from the catalogue and from every collection that references it.`
 - Descriptions say what the user gains or risks, in one or two sentences — not
   instructions on how to click.
 

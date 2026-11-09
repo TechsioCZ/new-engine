@@ -93,7 +93,8 @@ state instead of empty axes.
 ## Selected, active, current
 
 - The current location is marked in navigation (`aria-current="page"` via
-  VerticalNavigation/Breadcrumb/Tabs) — never only by colour.
+  VerticalNavigation and Breadcrumb) — never only by colour. A selected tab uses
+  `aria-selected="true"`, not `aria-current`.
 - Selected rows show a count and the bulk actions that apply; bulk actions
   appear only while a selection exists so the toolbar doesn't reflow.
 

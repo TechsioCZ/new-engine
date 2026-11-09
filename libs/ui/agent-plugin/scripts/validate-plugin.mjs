@@ -330,14 +330,11 @@ for (const name of readdirSync(pluginDir)) {
   ) {
     continue
   }
+  // §8.2: a reverse-domain directory is a valid file-only extension; no manifest entry required.
   if (NAMESPACE_RE.test(name)) {
-    if (!(name in (manifest?.extensions ?? {}))) {
-      fail(
-        name,
-        "extension directory has no matching extensions entry in plugin.json"
-      )
-    }
-  } else if (!SUPPORT_DIRS.has(name)) {
+    continue
+  }
+  if (!SUPPORT_DIRS.has(name)) {
     fail(
       name,
       "unexpected top-level directory (client files belong in a reverse-domain extension directory)"

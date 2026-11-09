@@ -63,7 +63,9 @@ alone imply a discount, approval or permission.
 ## Content and copy
 
 - One word, two at most, sentence case, no punctuation: `New`, `Paid` — cs:
-  `Novinka`, `Zaplaceno`.
+  `Novinka`, `Zaplaceno`. Exception: a name from the shared status vocabulary
+  in [UX writing](../../ux-guidelines/references/ux-writing.md) may be longer
+  (`Out of stock` — cs: `Není skladem`); don't invent other long labels.
 - One word and one variant per state across the app; follow the status
   vocabulary in [UX writing](../../ux-guidelines/references/ux-writing.md).
 - Counts use `Intl.NumberFormat`, cap at `99+` in navigation, and are hidden

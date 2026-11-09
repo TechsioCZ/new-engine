@@ -69,9 +69,7 @@ only way to reach a feature.
 - Commands are verb + object: `Create product`, `Go to orders` — cs:
   `Vytvořit produkt`, `Přejít na objednávky`.
 - Group headings name the area: `Navigation`, `Actions`, `Recent`.
-- Placeholder `Type a command or search…` — cs: `Zadejte příkaz nebo
-  hledejte…`. Empty: `No results for “exprt”` — cs: `Žádné výsledky pro
-  „exprt“`.
+- Placeholder `Type a command or search…` — cs: `Zadejte příkaz nebo hledejte…`. Empty: `No results for “exprt”` — cs: `Žádné výsledky pro „exprt“`.
 
 ## Accessibility
 

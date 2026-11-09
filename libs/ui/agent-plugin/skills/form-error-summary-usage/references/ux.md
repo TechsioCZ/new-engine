@@ -37,8 +37,8 @@ empty `errors` list renders nothing) and shown.
 **May:** move focus to a field, opening what hides it first (closed `details`
 automatically; accordions, tabs or lazy fields through `revealField`).
 
-**Must not:** appear before the user tries to submit; live in a toast or a
-dialog; replace the inline errors.
+**Must not:** appear before the user tries to submit; live in a toast or in a
+separate alert dialog; replace the inline errors.
 
 - After a failed submit, the app focuses the summary once it has rendered. The
   screen reader reads the title and the list.
@@ -67,6 +67,14 @@ dialog; replace the inline errors.
   colour-only field states.
 
 ## Edge cases
+
+- **Form inside a Dialog**: the same two-or-more rule applies. Render the
+  summary inside the dialog body, directly above the form fields, never in a
+  second dialog or a toast. After a failed submit scroll the body to the top
+  and focus the summary; it is inside the dialog's focus trap, so focus stays
+  in the dialog. Each link focuses its field in the same dialog. Closing the
+  dialog discards the summary with the draft; reopening starts clean. With a
+  single error show only the inline message and keep focus on that field.
 
 - **Field inside a closed accordion or a tab**: `revealField` opens it and
   resolves after the field mounts; if revealing fails, focus stays on the link.

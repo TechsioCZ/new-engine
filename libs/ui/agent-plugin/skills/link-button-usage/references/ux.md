@@ -51,8 +51,7 @@ There is no loading state: navigation shows progress on the page that loads.
 
 ## Content and copy
 
-- Name the destination or intent: `Go to cart`, `View order`, `Continue
-  shopping` — cs: `Přejít do košíku`, `Otevřít objednávku`.
+- Name the destination or intent: `Go to cart`, `View order`, `Continue shopping` — cs: `Přejít do košíku`, `Otevřít objednávku`.
 - Never an action verb that promises a result navigation can't deliver:
   `Confirm`, `Save`, `Place order` belong on a `Button`.
 - Say when it opens a new tab.

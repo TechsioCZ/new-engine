@@ -70,11 +70,9 @@ action; change the product, order or another control's selection.
 
 - Name the carousel by its content: `Product photos`, `Related products` —
   cs: `Fotografie produktu`, `Související produkty`.
-- Arrows by direction: `Previous slide`, `Next slide` — cs: `Předchozí
-  snímek`, `Další snímek`. Localize through Zag `translations`.
+- Arrows by direction: `Previous slide`, `Next slide` — cs: `Předchozí snímek`, `Další snímek`. Localize through Zag `translations`.
 - Indicators name the target and the real total, plus the slide's meaning
-  when useful: `Go to slide 2 of 5: label detail` — cs: `Zobrazit snímek 2 z
-  5: detail štítku`. The default `Go to slide 2` has no total; pass
+  when useful: `Go to slide 2 of 5: label detail` — cs: `Zobrazit snímek 2 z 5: detail štítku`. The default `Go to slide 2` has no total; pass
   `translations.indicator`.
 
 ## Accessibility

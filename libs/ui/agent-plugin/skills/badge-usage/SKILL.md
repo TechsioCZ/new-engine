@@ -45,7 +45,7 @@ where actions and feedback live). This section applies them to `Badge`.
 
 **Do**
 
-- Use one word, two at most; map each state to one variant app-wide (see the status table in ux-guidelines/ux-writing).
+- Use one word, two at most; map each state to one variant app-wide (see the status table in ux-guidelines/ux-writing). Exception: names from that shared status vocabulary may be longer (`Out of stock`).
 - Pair colour with the word — the text carries the meaning, colour only supports it.
 - Place status badges next to the title they describe (page header meta, first table column or a Status column).
 - Use `discount` only for price reductions, `danger` only for failed/blocked states.

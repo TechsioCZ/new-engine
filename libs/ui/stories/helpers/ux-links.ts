@@ -74,7 +74,7 @@ export const UX_COMPONENT_TITLES: Record<string, string> = {
   skeleton: "Atoms/Skeleton",
   slider: "Molecules/Slider",
   "status-text": "Atoms/StatusText",
-  steps: "Brief",
+  steps: "Molecules/Steps",
   switch: "Molecules/Switch",
   table: "Organisms/Table",
   tabs: "Molecules/Tabs",
@@ -82,7 +82,7 @@ export const UX_COMPONENT_TITLES: Record<string, string> = {
   toast: "Molecules/Toast",
   tooltip: "Atoms/Tooltip",
   "totals-summary": "Molecules/TotalsSummary",
-  tour: "Make yourself at home",
+  tour: "Molecules/Tour",
   "tree-view": "Molecules/TreeView",
   "vertical-navigation": "Molecules/VerticalNavigation",
 }

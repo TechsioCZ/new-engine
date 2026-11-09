@@ -69,8 +69,7 @@ result; suggest or filter on every keystroke unless the product decided so.
   accessible name.
 - The results page repeats the query and count: `24 results for “linen”` —
   cs: `24 výsledků pro „len“`.
-- No results ≠ failure: `No products match “linen”` vs `Search isn't
-  available right now. Try again.`
+- No results ≠ failure: `No products match “linen”` vs `Search isn't available right now. Try again.`
 
 ## Accessibility
 
@@ -88,7 +87,7 @@ result; suggest or filter on every keystroke unless the product decided so.
 - **Clearing after a search**: the input empties; the old results stay until
   the product's rule says otherwise, and the UI doesn't pretend the search
   was cancelled.
-- **Service down**: an error with `Retry`, never an empty-result message.
+- **Service down**: an error with `Try again`, never an empty-result message.
 
 ## Related
 

@@ -61,7 +61,7 @@ where actions and feedback live). This section applies them to `Tabs`.
 
 - Use one `activationMode` per set; choose `"manual"` when switching a panel is expensive (loads data).
 - Switching tabs never commits or discards data; a form in a panel keeps its draft.
-- The selected tab always matches the panel shown; the indicator moves only when the panel changes, never on hover or focus.
+- The selected tab always matches the panel shown; the indicator moves only when the panel changes, never on hover. Focus alone never selects in `activationMode="manual"`; in `"automatic"` (the default) arrow keys move focus and select the tab.
 
 **Figma → code**
 

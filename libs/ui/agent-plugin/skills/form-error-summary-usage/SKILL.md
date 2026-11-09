@@ -62,7 +62,9 @@ where actions and feedback live). This section applies them to `FormErrorSummary
 **Don't**
 
 - Show the summary before the user tries to submit.
-- Put it in a toast or a dialog.
+- Put it in a toast or in a second alert dialog. For a form inside a Dialog, render it
+  inside the dialog body above the fields, scroll the body to the top and focus the summary
+  after a failed submit (it sits inside the focus trap).
 
 **Copy and states**
 

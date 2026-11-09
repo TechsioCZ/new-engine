@@ -61,8 +61,7 @@ image with a picture of a different object without saying so.
   `Linen shirt in navy` — cs: `Lněná košile v námořnické modré`.
 - Decorative images use `alt=""` and don't repeat a long description next to
   them.
-- `fallbackLabel` says what the image was meant to show: `Ceramic bowl —
-  photo unavailable` — cs: `Keramická miska — fotografie není k dispozici`.
+- `fallbackLabel` says what the image was meant to show: `Ceramic bowl — photo unavailable` — cs: `Keramická miska — fotografie není k dispozici`.
 - Text that matters is never only inside the image.
 
 ## Accessibility
