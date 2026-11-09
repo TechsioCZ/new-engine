@@ -153,6 +153,8 @@ for (const [brand, mode] of themes) {
           decorationLine: style.textDecorationLine,
           decorationStyle: style.textDecorationStyle,
           decorationThickness: style.textDecorationThickness,
+          decorationOffset: style.textUnderlineOffset,
+          decorationSkipInk: style.textDecorationSkipInk,
         }
       })
       // The new treatment adds nothing while the link is at rest.
@@ -160,6 +162,7 @@ for (const [brand, mode] of themes) {
       expect(resting.boxShadow).toBe("none")
       expect(resting.background).toBe("rgba(0, 0, 0, 0)")
       expect(resting.decorationStyle).toBe("solid")
+      expect(resting.decorationSkipInk).toBe("auto")
       await expectNoPageOverflow(page)
 
       await expect(page.locator("body")).toBeFocused()
@@ -190,6 +193,8 @@ for (const [brand, mode] of themes) {
           decorationStyle: style.textDecorationStyle,
           decorationColor: style.textDecorationColor,
           decorationThickness: style.textDecorationThickness,
+          decorationOffset: style.textUnderlineOffset,
+          decorationSkipInk: style.textDecorationSkipInk,
         }
       })
       expect(focus.outlineStyle).toBe("none")
@@ -202,13 +207,20 @@ for (const [brand, mode] of themes) {
         true
       )
 
-      // Focus is the link's own underline made unmistakable: a heavier double
-      // rule that leaves the label colour and the inline box alone.
+      // Focus is the link's own underline made unmistakable: one continuous
+      // solid rule, one border step heavier and dropped clear of the glyphs,
+      // that leaves the label colour and the inline box alone.
       expect(focus.decorationLine).toContain("underline")
-      expect(focus.decorationStyle).toBe("double")
-      expect(resting.decorationStyle).not.toBe(focus.decorationStyle)
+      expect(focus.decorationStyle).toBe("solid")
       expect(focus.decorationThickness).not.toBe(resting.decorationThickness)
       expect(Number.parseFloat(focus.decorationThickness)).toBeGreaterThan(1)
+      // The single rule is painted without skip-ink gaps and sits lower than
+      // the resting hairline, so descenders no longer split it into blocks.
+      expect(focus.decorationSkipInk).toBe("none")
+      expect(focus.decorationOffset).not.toBe(resting.decorationOffset)
+      expect(Number.parseFloat(focus.decorationOffset)).toBeGreaterThan(
+        Number.parseFloat(resting.decorationOffset)
+      )
       expect(focus.color).toBe(resting.color)
 
       // The strengthened underline is a live consumer of the Link aliases.
@@ -288,7 +300,7 @@ for (const [brand, mode] of themes) {
     expect(footerThickness).not.toBe(footerRestingThickness)
     expect(Number.parseFloat(footerThickness)).toBeGreaterThan(1)
     await expect(footerLink).toHaveCSS("color", footerRestingColor)
-    await expect(footerLink).toHaveCSS("text-decoration-style", "double")
+    await expect(footerLink).toHaveCSS("text-decoration-style", "solid")
     await expect(footerLink).toHaveCSS(
       "text-decoration-color",
       footerDecoration
@@ -306,7 +318,7 @@ for (const [brand, mode] of themes) {
       "color",
       hoverPaintEnabled ? footerHoverColor : footerRestingColor
     )
-    await expect(footerLink).toHaveCSS("text-decoration-style", "double")
+    await expect(footerLink).toHaveCSS("text-decoration-style", "solid")
     await expect(footerLink).toHaveCSS(
       "text-decoration-color",
       footerDecoration

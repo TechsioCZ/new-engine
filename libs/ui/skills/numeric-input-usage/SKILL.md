@@ -6,7 +6,7 @@ description: >
   numeric compatibility or controlled string drafts, locale formatting, min/max/step, and token-first
   styling.
 metadata:
-  component_version: "1.3.10"
+  component_version: "1.3.11"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -367,7 +367,10 @@ reaches the focusable input, alongside the legacy `invalid` machine prop.
 The editor keeps `--color-numeric-input-input-bg` (transparent by default)
 through hover and focus. Set `--color-numeric-input-input-bg-hover` and
 `--color-numeric-input-input-bg-focus` on the compound control to change state
-fills without painting the same translucent surface twice.
+fills without painting the same translucent surface twice. In the Business
+brand, focus keeps the compound control on its own resting fill
+(`--color-numeric-input-bg`), so the focus outline, border and native selection
+carry the signal instead of a second darkened surface.
 
 ### Validation presentation
 

@@ -2,7 +2,7 @@
  * Input — @techsio/ui-kit atom.
  *
  * @component Input
- * @componentVersion v1.1.5
+ * @componentVersion v1.1.6
  * @skill input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

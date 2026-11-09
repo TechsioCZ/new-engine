@@ -103,9 +103,10 @@ async function compileFocusCss() {
 
 describe("Link inline focus", () => {
   it("strengthens the link's own underline with live scheme tokens", () => {
-    // Focus is the link's own underline made unmistakable: a double rule in the
-    // shared ring colour, one border step heavier than the hover hairline. No
-    // focus-only colour pair and no focus fill are introduced.
+    // Focus is the link's own underline made unmistakable: one continuous rule
+    // in the shared ring colour, one border step heavier than the hover
+    // hairline and dropped clear of the glyphs. No focus-only colour pair and
+    // no focus fill are introduced.
     expect(linkTokens.get("--color-link-focus-decoration")).toBe(
       "var(--color-link-ring)"
     )
@@ -115,6 +116,9 @@ describe("Link inline focus", () => {
     expect(linkTokens.get("--border-width-link-focus")).toBe(
       "var(--border-width-lg)"
     )
+    expect(linkTokens.get("--spacing-link-focus-underline-offset")).toBe(
+      "var(--dimension-4)"
+    )
     expect(linkTokens.get("--color-link-fg-readable")).toBe(
       "var(--color-link-text)"
     )
@@ -122,6 +126,10 @@ describe("Link inline focus", () => {
     const all = new Map([...linkTokens, ...themeTokens])
     const decoration = resolveAlias("var(--color-link-focus-decoration)", all)
     const thickness = resolveAlias("var(--border-width-link-focus)", all)
+    const offset = resolveAlias(
+      "var(--spacing-link-focus-underline-offset)",
+      all
+    )
 
     // The underline colour is a live scheme token, so it follows light/dark
     // instead of freezing one scheme's colour.
@@ -137,6 +145,12 @@ describe("Link inline focus", () => {
     expect(themeTokens.has("--border-width-lg")).toBe(true)
     expect(thickness).toBe(themeTokens.get("--border-width-lg"))
     expect(Number.parseFloat(thickness)).toBeGreaterThan(1)
+
+    // The extra clearance is a real length too, so the rule can drop clear of
+    // descenders instead of relying on skip-ink gaps.
+    expect(themeTokens.has("--dimension-4")).toBe(true)
+    expect(offset).toBe(themeTokens.get("--dimension-4"))
+    expect(Number.parseFloat(offset)).toBeGreaterThan(0)
   })
 
   it("keeps shared ring geometry unchanged and adds no layout space", () => {
@@ -208,15 +222,17 @@ describe("Link inline focus", () => {
 
     const highlight = focusRules.find(
       (rule) =>
-        rule.declarations["text-decoration-style"] === "double" &&
+        rule.declarations["text-decoration-style"] === "solid" &&
         rule.selector.includes(":focus-visible")
     )
     expect(highlight?.declarations).toEqual({
       "--color-focus-contrast": "transparent",
       "text-decoration-line": "underline",
-      "text-decoration-style": "double",
+      "text-decoration-style": "solid",
       "text-decoration-color": "var(--color-link-focus-decoration)",
       "text-decoration-thickness": "var(--border-width-link-focus)",
+      "text-decoration-skip-ink": "none",
+      "text-underline-offset": "var(--spacing-link-focus-underline-offset)",
       "outline-style": "none",
       "outline-width": "0",
       "outline-color": "var(--color-link-ring)",
@@ -254,7 +270,8 @@ describe("Link inline focus", () => {
     root.walkDecls((declaration) => {
       if (
         declaration.prop.startsWith("--color-link-focus") ||
-        declaration.prop === "--border-width-link-focus"
+        declaration.prop === "--border-width-link-focus" ||
+        declaration.prop === "--spacing-link-focus-underline-offset"
       ) {
         emitted.set(declaration.prop, declaration.value)
       }
@@ -288,7 +305,14 @@ describe("Link inline focus", () => {
     expect(emitted.get("--border-width-link-focus")).toBe(
       "var(--border-width-lg)"
     )
+    expect(emitted.get("--spacing-link-focus-underline-offset")).toBe(
+      "var(--dimension-4)"
+    )
     expect(focusBoxPaint).toEqual([])
+    // One rule, not a stack: the focus paint never asks for the double style
+    // that used to add a second rail under the resting hairline.
+    expect(css).not.toContain("text-decoration-style: double")
+    expect(css).not.toContain("decoration-double")
     expect(forcedColors).toEqual({
       "text-decoration-color": "Highlight",
       outline: "var(--default-ring-width) solid CanvasText",

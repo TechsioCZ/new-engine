@@ -404,6 +404,7 @@
     --color-link-ring: var(--color-ring-default);
     --color-link-focus-decoration: var(--color-link-ring);
     --border-width-link-focus: var(--border-width-lg);
+    --spacing-link-focus-underline-offset: var(--dimension-4);
     --text-link-sm: var(--text-sm);
     --text-link-md: var(--text-md);
     --text-link-lg: var(--text-lg);
@@ -3831,6 +3832,7 @@
       --color-input-readonly: var(--color-form-control-readonly);
       --color-input-border-readonly-hover: var(--color-input-border-base);
       --color-input-border-readonly-focus: var(--color-input-border-base);
+      --color-input-bg-focus: var(--color-input-bg-base);
       --padding-input-inline-sm: var(--dimension-12);
       --padding-input-inline-md: var(--dimension-12);
       --padding-input-inline-lg: var(--dimension-16);
@@ -3838,6 +3840,7 @@
       --color-textarea-border-readonly-hover: var(--color-textarea-border);
       --color-textarea-border-readonly-focus: var(--color-textarea-border);
       --color-textarea-placeholder-danger: var(--color-textarea-fg-placeholder);
+      --color-textarea-bg-focus: var(--color-textarea-bg);
       --padding-textarea-sm: var(--dimension-8);
       --padding-textarea-md: var(--dimension-10);
       --padding-textarea-lg: var(--dimension-12);
@@ -3869,6 +3872,7 @@
       --text-action-icon-glyph-md: var(--dimension-20);
       --text-action-icon-glyph-lg: var(--dimension-24);
       --color-numeric-input-bg-invalid: var(--color-numeric-input-bg);
+      --color-numeric-input-input-bg-focus: var(--color-numeric-input-bg);
       --padding-numeric-input-input-sm: var(--padding-input-inline-sm);
       --padding-numeric-input-input-md: var(--padding-input-inline-md);
       --padding-numeric-input-input-lg: var(--padding-input-inline-lg);

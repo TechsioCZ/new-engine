@@ -19,11 +19,20 @@ const CHANGELOG = `
 ### NumericInput v1.3.10
 - Keep Business invalid fields on the same neutral surface Business Input and Textarea paint, so the error border, glyph and message carry the signal while other brands keep the shared danger fill.
 
+### NumericInput v1.3.11
+- Keep the Business compound control on its own resting fill while focused, so the existing focus outline, border and native selection identify the field instead of a second darkened surface; the single group paint, stepper hover/active paints, read-only and disabled precedence and other brands are unchanged.
+
 ### Textarea v1.0.7
 - Remove the resize grip from disabled fields while editable and read-only fields keep their configured resize mode, auto-sizing and native semantics.
 
 ### Textarea v1.0.8
 - Paint the Business read-only surface from the shared read-only role Input and NumericInput already read, so the field no longer wears the editable resting fill while text, focus, selection, every configured resize mode and disabled precedence stay unchanged; only Business dims the disabled example's neutral helper with its label, while other brands and validation messages keep their existing foregrounds.
+
+### Textarea v1.0.9
+- Keep the Business field on its resting fill while focused so the existing focus outline, border and native text selection carry the signal; every other brand, the read-only surface, disabled precedence and the configured resize modes are unchanged.
+
+### Link v1.2.4
+- Redraw keyboard focus as one continuous solid rule through the existing Link focus aliases — dropped clear of descenders with no skip-ink gaps — instead of a double underline that stacked a second rail under the resting hairline and broke into short blocks at descenders; wrapping, glyph positions, caller focus styles, the Footer hover contract and the system-colour fallback are unchanged.
 
 ### Link v1.2.3
 - Replace the filled focus box with a double underline using live Link colour and border-width aliases, preserving inline layout, caller focus styles, native navigation and the system-colour fallback.
@@ -78,6 +87,9 @@ const CHANGELOG = `
 
 ### Input v1.1.5
 - Restore the Business read-only surface from the existing shared read-only alias while preserving focus, selection and non-editable borders; show an actually incomplete name in the error example.
+
+### Input v1.1.6
+- Keep the Business field on its resting fill while focused so the existing focus outline, border and native text selection carry the signal; read-only, disabled and validation precedence, the search-clear treatment and every other brand are unchanged.
 
 ### Input v1.1.4
 - Separate inline padding from field height and keep read-only border treatment independent from editable and validation states.
