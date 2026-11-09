@@ -1,4 +1,5 @@
-// Default Link focus highlights text without changing inline geometry.
+// Default Link focus strengthens the link's own underline without changing
+// inline geometry and without painting any focus box.
 // Caller focus paint and the forced-colours fallback remain independently usable.
 import { readFileSync } from "node:fs"
 import path from "node:path"
@@ -92,7 +93,7 @@ async function compileFocusCss() {
   const source = [
     '@import "tailwindcss" source(none);',
     `@import "${linkCssPath}";`,
-    '@source inline("hover:text-link-text focus-visible:link-focus-inline data-focus-visible:link-focus-inline focus-visible:rounded-(--radius-link)");',
+    '@source inline("hover:decoration-2 focus-visible:link-focus-inline data-focus-visible:link-focus-inline");',
   ].join("\n")
   const { css } = await postcss([tailwindcss()]).process(source, {
     from: path.join(path.dirname(linkCssPath), "link-focus-probe.css"),
@@ -101,40 +102,41 @@ async function compileFocusCss() {
 }
 
 describe("Link inline focus", () => {
-  it("highlights the linked text with the inverse of its own resting colour", () => {
-    // The highlight background is exactly the colour the link rests in, and the highlight text is
-    // its reverse: the pair is the shared foreground/reverse pair, not a new colour.
-    expect(linkTokens.get("--color-link-focus-bg")).toBe(
-      "var(--color-fg-primary)"
+  it("strengthens the link's own underline with live scheme tokens", () => {
+    // Focus is the link's own underline made unmistakable: a double rule in the
+    // shared ring colour, one border step heavier than the hover hairline. No
+    // focus-only colour pair and no focus fill are introduced.
+    expect(linkTokens.get("--color-link-focus-decoration")).toBe(
+      "var(--color-link-ring)"
     )
-    expect(linkTokens.get("--color-link-focus-fg")).toBe(
-      "var(--color-fg-reverse)"
+    expect(linkTokens.get("--color-link-ring")).toBe(
+      "var(--color-ring-default)"
+    )
+    expect(linkTokens.get("--border-width-link-focus")).toBe(
+      "var(--border-width-lg)"
     )
     expect(linkTokens.get("--color-link-fg-readable")).toBe(
       "var(--color-link-text)"
     )
 
     const all = new Map([...linkTokens, ...themeTokens])
-    const resting = resolveAlias("var(--color-link-fg-readable)", all)
-    const focusBackground = resolveAlias("var(--color-link-focus-bg)", all)
-    const focusText = resolveAlias("var(--color-link-focus-fg)", all)
-    expect(focusBackground).toBe(resting)
+    const decoration = resolveAlias("var(--color-link-focus-decoration)", all)
+    const thickness = resolveAlias("var(--border-width-link-focus)", all)
 
-    // Both roles are live semantic tokens, and their light/dark halves are swapped, so the
-    // highlight inverts in every scheme instead of freezing one scheme's colour.
-    expect(themeTokens.has("--color-fg-primary")).toBe(true)
-    expect(themeTokens.has("--color-fg-reverse")).toBe(true)
-    const background = lightDarkBranches(focusBackground)
-    const text = lightDarkBranches(focusText)
-    if (background === undefined || text === undefined) {
-      throw new Error("Focus colours must resolve to a light-dark() pair")
+    // The underline colour is a live scheme token, so it follows light/dark
+    // instead of freezing one scheme's colour.
+    expect(themeTokens.has("--color-ring-default")).toBe(true)
+    const branches = lightDarkBranches(decoration)
+    if (branches === undefined) {
+      throw new Error("Focus decoration must resolve to a light-dark() pair")
     }
-    expect(text).toEqual([background[1], background[0]])
-    expect(background[0]).not.toBe(background[1])
+    expect(branches[0]).not.toBe(branches[1])
 
-    // The radius alias has to terminate in a real radius token, not in a dangling reference.
-    expect(linkTokens.get("--radius-link")).toBe("var(--radius-xs)")
-    expect(themeTokens.has("--radius-xs")).toBe(true)
+    // The weight has to terminate in a real length token, not in a dangling
+    // reference, and it is heavier than the resting hairline.
+    expect(themeTokens.has("--border-width-lg")).toBe(true)
+    expect(thickness).toBe(themeTokens.get("--border-width-lg"))
+    expect(Number.parseFloat(thickness)).toBeGreaterThan(1)
   })
 
   it("keeps shared ring geometry unchanged and adds no layout space", () => {
@@ -145,6 +147,9 @@ describe("Link inline focus", () => {
     expect(linkCss).not.toContain("padding-inline")
     expect(linkCss).not.toContain("margin-inline")
     expect(linkCss).not.toContain("transform")
+    // The focus paint is decoration only: no fill and no box geometry to inset.
+    expect(linkCss).not.toContain("background-color")
+    expect(linkCss).not.toContain("border-radius")
     // The local halo colour covers the same states as the shared compositor.
     expect(linkCss).not.toContain("box-shadow:")
     expect(linkCss).not.toContain("outline: none")
@@ -164,7 +169,7 @@ describe("Link inline focus", () => {
     expect(classNames).toContain("focus-visible:link-focus-inline")
     expect(classNames).toContain("data-focus-visible:link-focus-inline")
     expect(classNames.split(" ")).not.toContain("link-focus-inline")
-    expect(classNames).toContain("focus-visible:rounded-(--radius-link)")
+    expect(classNames).not.toContain("focus-visible:rounded")
     expect(classNames).toContain("underline")
     expect(classNames).not.toContain("outline-link-ring")
     expect(classNames).not.toContain("focus-visible:outline")
@@ -203,14 +208,15 @@ describe("Link inline focus", () => {
 
     const highlight = focusRules.find(
       (rule) =>
-        rule.declarations["background-color"] ===
-          "var(--color-link-focus-bg)" &&
+        rule.declarations["text-decoration-style"] === "double" &&
         rule.selector.includes(":focus-visible")
     )
     expect(highlight?.declarations).toEqual({
       "--color-focus-contrast": "transparent",
-      "background-color": "var(--color-link-focus-bg)",
-      color: "var(--color-link-focus-fg)",
+      "text-decoration-line": "underline",
+      "text-decoration-style": "double",
+      "text-decoration-color": "var(--color-link-focus-decoration)",
+      "text-decoration-thickness": "var(--border-width-link-focus)",
       "outline-style": "none",
       "outline-width": "0",
       "outline-color": "var(--color-link-ring)",
@@ -228,7 +234,7 @@ describe("Link inline focus", () => {
       selectors.push(rule.selector)
     })
     const hoverIndex = selectors.findIndex((selector) =>
-      selector.includes("hover\\:text-link-text")
+      selector.includes("hover\\:decoration-2")
     )
     const focusIndex = selectors.findIndex((selector) =>
       selector.includes("focus-visible\\:link-focus-inline")
@@ -243,19 +249,30 @@ describe("Link inline focus", () => {
     expect(foundationCss).toContain("var(--tw-shadow, 0 0 #0000)")
 
     const emitted = new Map<string, string>()
-    const radii: string[] = []
+    const focusBoxPaint: string[] = []
     const forcedColors: Record<string, string> = {}
     root.walkDecls((declaration) => {
-      if (declaration.prop.startsWith("--color-link-focus")) {
+      if (
+        declaration.prop.startsWith("--color-link-focus") ||
+        declaration.prop === "--border-width-link-focus"
+      ) {
         emitted.set(declaration.prop, declaration.value)
       }
     })
+    // The focus utility paints decoration only: no fill and no box radius, so
+    // there is no box edge that could reach the prose beside the link.
     root.walkRules((rule) => {
-      if (rule.selector.includes("--radius-link")) {
-        rule.walkDecls("border-radius", (declaration) => {
-          radii.push(declaration.value)
-        })
+      if (!rule.selector.includes("link-focus-inline")) {
+        return
       }
+      rule.walkDecls((declaration) => {
+        if (
+          declaration.prop === "background-color" ||
+          declaration.prop === "border-radius"
+        ) {
+          focusBoxPaint.push(`${declaration.prop}: ${declaration.value}`)
+        }
+      })
     })
     root.walkAtRules("media", (atRule) => {
       if (!atRule.params.includes("forced-colors")) {
@@ -265,12 +282,15 @@ describe("Link inline focus", () => {
         forcedColors[declaration.prop] = declaration.value
       })
     })
-    expect(emitted.get("--color-link-focus-bg")).toBe("var(--color-fg-primary)")
-    expect(emitted.get("--color-link-focus-fg")).toBe("var(--color-fg-reverse)")
-    expect(radii).toEqual(["var(--radius-link)"])
+    expect(emitted.get("--color-link-focus-decoration")).toBe(
+      "var(--color-link-ring)"
+    )
+    expect(emitted.get("--border-width-link-focus")).toBe(
+      "var(--border-width-lg)"
+    )
+    expect(focusBoxPaint).toEqual([])
     expect(forcedColors).toEqual({
-      "background-color": "Highlight",
-      color: "HighlightText",
+      "text-decoration-color": "Highlight",
       outline: "var(--default-ring-width) solid CanvasText",
       "outline-offset": "calc(-1 * var(--default-ring-width))",
     })
@@ -279,7 +299,7 @@ describe("Link inline focus", () => {
   it("keeps caller classes and the external navigation contract", () => {
     const html = renderToStaticMarkup(
       <Link
-        className="underline-offset-4 focus-visible:rounded-none"
+        className="underline-offset-4 focus-visible:decoration-4"
         external
         href="https://example.com"
       >
@@ -289,9 +309,11 @@ describe("Link inline focus", () => {
     expect(html.startsWith("<a ")).toBe(true)
     const classNames = classes(html)
     expect(classNames).toContain("underline-offset-4")
-    expect(classNames).toContain("focus-visible:rounded-none")
+    expect(classNames).toContain("focus-visible:decoration-4")
     expect(classNames).toContain("link-focus-inline")
-    expect(classNames).not.toContain("focus-visible:rounded-(--radius-link)")
+    // The component adds no decoration utility of its own, so the focus paint
+    // stays retargetable through the Link-owned tokens.
+    expect(classNames).not.toContain("focus-visible:decoration-double")
     expect(html).toContain('href="https://example.com"')
     expect(html).toContain('target="_blank"')
     expect(html).toContain('rel="noopener noreferrer"')

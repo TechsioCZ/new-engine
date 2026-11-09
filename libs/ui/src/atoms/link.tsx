@@ -2,7 +2,7 @@
  * Link — @techsio/ui-kit atom.
  *
  * @component Link
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill link-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,11 +16,11 @@ import { tv } from "../utils"
 const linkVariants = tv({
   base: [
     "text-link-fg-readable underline underline-offset-2",
-    // Focus highlights the linked text itself instead of drawing a control-like
-    // outer ring, so no focus paint can reach the punctuation next to the link.
+    // Focus strengthens the link's own underline instead of drawing a
+    // control-like pill or outer ring, so focus paint stays inside the text box
+    // on every line fragment and cannot reach the prose beside the link.
     "hover:decoration-2",
     "focus-visible:link-focus-inline data-focus-visible:link-focus-inline",
-    "focus-visible:rounded-(--radius-link)",
   ],
   variants: {
     size: {

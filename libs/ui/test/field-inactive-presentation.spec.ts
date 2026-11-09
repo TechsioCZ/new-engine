@@ -56,6 +56,13 @@ type FieldTokens = {
   invalidBorder: string
 }
 
+type PresentationTokens = {
+  readOnlyRole: string
+  editableFill: string
+  disabledForeground: string
+  neutralHelperForeground: string
+}
+
 function resolveFieldTokens(page: Page): Promise<FieldTokens> {
   return page.evaluate(() => {
     const host = document.createElement("div")
@@ -95,6 +102,40 @@ function resolveFieldTokens(page: Page): Promise<FieldTokens> {
       invalidBorder: read(
         "border: 1px solid var(--color-numeric-input-border-invalid)",
         "borderTopColor"
+      ),
+    }
+    host.remove()
+    return tokens
+  })
+}
+
+// Resolve the shared roles the inactive field states must read, so the
+// assertions compare live cascade values instead of raw var() text.
+function resolvePresentationTokens(page: Page): Promise<PresentationTokens> {
+  return page.evaluate(() => {
+    const host = document.createElement("div")
+    host.style.cssText =
+      "position:absolute;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none"
+    document.body.append(host)
+    const read = (style: string, property: "backgroundColor" | "color") => {
+      const node = document.createElement("span")
+      node.style.cssText = style
+      host.append(node)
+      return getComputedStyle(node)[property]
+    }
+    const tokens = {
+      readOnlyRole: read(
+        "background-color: var(--color-form-control-readonly)",
+        "backgroundColor"
+      ),
+      editableFill: read(
+        "background-color: var(--color-form-control-bg)",
+        "backgroundColor"
+      ),
+      disabledForeground: read("color: var(--color-fg-disabled)", "color"),
+      neutralHelperForeground: read(
+        "color: var(--color-status-text-fg)",
+        "color"
       ),
     }
     host.remove()
@@ -266,4 +307,78 @@ for (const [brand, mode] of themes) {
     await expect(caller).toHaveCSS("resize", "horizontal")
     await expect(caller).toBeEditable()
   })
+
+  test(`${brand}/${mode}: read-only fields read the shared read-only surface`, async ({
+    page,
+  }) => {
+    await openStory(page, "atoms-textarea--read-only", brand, mode)
+    const tokens = await resolvePresentationTokens(page)
+    const readOnly = page.locator(textareaSelector)
+    await expect(readOnly).toHaveAttribute("readonly", "")
+    await expect(readOnly).not.toBeDisabled()
+    // The read-only surface is the shared role, not the editable resting fill.
+    await expect(readOnly).toHaveCSS("background-color", tokens.readOnlyRole)
+    if (brand === "business") {
+      expect(tokens.readOnlyRole).not.toBe(tokens.editableFill)
+      await expect(readOnly).not.toHaveCSS(
+        "background-color",
+        tokens.editableFill
+      )
+    }
+
+    // The sibling read-only Input already paints that same shared role.
+    await openStory(page, "atoms-input--read-only", brand, mode)
+    const readOnlyInput = page.getByRole("textbox", { name: "Contact name" })
+    await expect(readOnlyInput).toHaveAttribute("readonly", "")
+    await expect(readOnlyInput).toHaveCSS(
+      "background-color",
+      tokens.readOnlyRole
+    )
+  })
+
+  test(`${brand}/${mode}: disabled examples keep their label and helper foregrounds`, async ({
+    page,
+  }) => {
+    await openStory(page, "atoms-textarea--disabled", brand, mode)
+    const tokens = await resolvePresentationTokens(page)
+    const field = page.locator(textareaSelector)
+    await expect(field).toBeDisabled()
+    const label = page.getByText("Delivery instructions")
+    const helper = page.locator('#storybook-root [data-status="default"]')
+    await expect(label).toHaveCSS("color", tokens.disabledForeground)
+    if (brand === "business") {
+      // Business dims the neutral helper with the label's disabled foreground.
+      await expect(helper).toHaveCSS("color", tokens.disabledForeground)
+    } else {
+      // Every other brand keeps StatusText's own neutral helper foreground.
+      await expect(helper).toHaveCSS("color", tokens.neutralHelperForeground)
+    }
+    await expect(helper).toContainText(
+      "Available after the order is confirmed."
+    )
+
+    await openStory(page, "atoms-numericinput--disabled", brand, mode)
+    const numericLabel = page.getByText("Disabled Input")
+    await expect(page.getByRole("spinbutton")).toBeDisabled()
+    // The caller dims the external label; the atom keeps its own disabled value.
+    await expect(numericLabel).toHaveCSS("color", tokens.disabledForeground)
+    await expect(page.locator(numericControl)).toHaveAttribute(
+      "data-disabled",
+      ""
+    )
+  })
 }
+
+// The helper dim is Business-only. Akros must not inherit the disabled label
+// foreground, which is lighter than the neutral role its helper keeps.
+test("akros/light: the disabled helper keeps the neutral StatusText foreground", async ({
+  page,
+}) => {
+  await openStory(page, "atoms-textarea--disabled", "akros", "light")
+  const tokens = await resolvePresentationTokens(page)
+  const helper = page.locator('#storybook-root [data-status="default"]')
+  await expect(helper).toContainText("Available after the order is confirmed.")
+  expect(tokens.neutralHelperForeground).not.toBe(tokens.disabledForeground)
+  await expect(helper).toHaveCSS("color", tokens.neutralHelperForeground)
+  await expect(helper).not.toHaveCSS("color", tokens.disabledForeground)
+})

@@ -22,6 +22,12 @@ const CHANGELOG = `
 ### Textarea v1.0.7
 - Remove the resize grip from disabled fields while editable and read-only fields keep their configured resize mode, auto-sizing and native semantics.
 
+### Textarea v1.0.8
+- Paint the Business read-only surface from the shared read-only role Input and NumericInput already read, so the field no longer wears the editable resting fill while text, focus, selection, every configured resize mode and disabled precedence stay unchanged; only Business dims the disabled example's neutral helper with its label, while other brands and validation messages keep their existing foregrounds.
+
+### Link v1.2.3
+- Replace the filled focus box with a double underline using live Link colour and border-width aliases, preserving inline layout, caller focus styles, native navigation and the system-colour fallback.
+
 ### Link v1.2.2
 - Keep the inverse focus foreground when a consumer also supplies hover colours, using the standard focus-variant order while retaining caller focus overrides and the system-colour fallback.
 

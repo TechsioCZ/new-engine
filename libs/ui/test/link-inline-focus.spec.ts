@@ -79,8 +79,26 @@ function resolveToken(page: Page, name: string, property: string) {
   return page.evaluate(
     ({ name: token, property: cssProperty }) => {
       const probe = document.createElement("span")
-      probe.style.cssText = `position:absolute;visibility:hidden;${cssProperty}:var(${token})`
+      // The probe carries a decoration line so decoration properties read back
+      // their computed value rather than a resting keyword.
+      probe.style.cssText = `position:absolute;visibility:hidden;text-decoration-line:underline;${cssProperty}:var(${token})`
       document.body.append(probe)
+      const value = getComputedStyle(probe).getPropertyValue(cssProperty)
+      probe.remove()
+      return value
+    },
+    { name, property }
+  )
+}
+
+/** Same read, but inside a real consumer element, so scoped overrides (the
+ * Footer's own foreground roles) are honoured instead of the page root's. */
+function resolveTokenIn(scope: Locator, name: string, property: string) {
+  return scope.evaluate(
+    (node, { name: token, property: cssProperty }) => {
+      const probe = document.createElement("span")
+      probe.style.cssText = `position:absolute;visibility:hidden;text-decoration-line:underline;${cssProperty}:var(${token})`
+      node.append(probe)
       const value = getComputedStyle(probe).getPropertyValue(cssProperty)
       probe.remove()
       return value
@@ -112,7 +130,7 @@ function inlineBox(link: Locator) {
 }
 
 for (const [brand, mode] of themes) {
-  test(`${brand}/${mode}: inline focus highlights the linked text without painting outside it`, async ({
+  test(`${brand}/${mode}: inline focus strengthens the link underline without painting outside it`, async ({
     page,
   }) => {
     for (const direction of ["ltr", "rtl"]) {
@@ -132,11 +150,16 @@ for (const [brand, mode] of themes) {
           color: style.color,
           outlineStyle: style.outlineStyle,
           boxShadow: style.boxShadow,
+          decorationLine: style.textDecorationLine,
+          decorationStyle: style.textDecorationStyle,
+          decorationThickness: style.textDecorationThickness,
         }
       })
       // The new treatment adds nothing while the link is at rest.
       expect(resting.outlineStyle).toBe("none")
       expect(resting.boxShadow).toBe("none")
+      expect(resting.background).toBe("rgba(0, 0, 0, 0)")
+      expect(resting.decorationStyle).toBe("solid")
       await expectNoPageOverflow(page)
 
       await expect(page.locator("body")).toBeFocused()
@@ -152,8 +175,8 @@ for (const [brand, mode] of themes) {
       expect(await glyphPositions(paragraph)).toEqual(before)
       await expectNoPageOverflow(page)
 
-      // No outer paint at all — no ring and no halo — so no focus edge can reach
-      // the punctuation that follows the link.
+      // No outer paint and no fill at all — no ring, no halo and no box — so no
+      // focus edge can reach the punctuation that follows the link.
       const focus = await link.evaluate((node) => {
         const style = getComputedStyle(node)
         return {
@@ -163,89 +186,112 @@ for (const [brand, mode] of themes) {
           outlineWidth: style.outlineWidth,
           boxShadow: style.boxShadow,
           halo: style.getPropertyValue("--color-focus-contrast").trim(),
-          radius: style.borderTopLeftRadius,
-          decoration: style.textDecorationLine,
+          decorationLine: style.textDecorationLine,
+          decorationStyle: style.textDecorationStyle,
+          decorationColor: style.textDecorationColor,
+          decorationThickness: style.textDecorationThickness,
         }
       })
       expect(focus.outlineStyle).toBe("none")
       expect(Number.parseFloat(focus.outlineWidth)).toBe(0)
       expect(focus.halo).toBe("transparent")
+      expect(focus.background).toBe("rgba(0, 0, 0, 0)")
       const shadowColors = focus.boxShadow.match(/rgba?\([^)]*\)/g) ?? []
       expect(shadowColors.length).toBeGreaterThan(0)
       expect(shadowColors.every((color) => color === "rgba(0, 0, 0, 0)")).toBe(
         true
       )
-      expect(focus.decoration).toContain("underline")
 
-      // The highlight is a live consumer of the Link aliases: its background is the
-      // colour the link rests in, and its text is that colour's reverse.
+      // Focus is the link's own underline made unmistakable: a heavier double
+      // rule that leaves the label colour and the inline box alone.
+      expect(focus.decorationLine).toContain("underline")
+      expect(focus.decorationStyle).toBe("double")
+      expect(resting.decorationStyle).not.toBe(focus.decorationStyle)
+      expect(focus.decorationThickness).not.toBe(resting.decorationThickness)
+      expect(Number.parseFloat(focus.decorationThickness)).toBeGreaterThan(1)
+      expect(focus.color).toBe(resting.color)
+
+      // The strengthened underline is a live consumer of the Link aliases.
       const restingInk = await resolveToken(
         page,
         "--color-link-fg-readable",
         "color"
       )
-      const reverseInk = await resolveToken(page, "--color-fg-reverse", "color")
-      const ownedRadius = await resolveToken(
+      const decorationInk = await resolveToken(
         page,
-        "--radius-link",
-        "border-top-left-radius"
+        "--color-link-focus-decoration",
+        "text-decoration-color"
       )
       expect(resting.color).toBe(restingInk)
-      expect(resting.background).not.toBe(restingInk)
-      expect(focus.background).toBe(restingInk)
-      expect(focus.color).toBe(reverseInk)
-      expect(focus.color).not.toBe(focus.background)
-      expect(focus.radius).toBe(ownedRadius)
-      expect(Number.parseFloat(focus.radius)).toBeGreaterThan(0)
+      expect(focus.decorationColor).toBe(decorationInk)
 
-      // A caller may retarget the highlight through the Link-owned alias.
+      // A caller may retarget the focus underline through the Link-owned alias.
       await link.evaluate((node) => {
         ;(node as HTMLElement).style.setProperty(
-          "--color-link-focus-bg",
+          "--color-link-focus-decoration",
           "var(--color-fg-secondary)"
         )
       })
       const secondary = await resolveToken(
         page,
         "--color-fg-secondary",
-        "background-color"
+        "text-decoration-color"
       )
-      await expect(link).toHaveCSS("background-color", secondary)
+      await expect(link).toHaveCSS("text-decoration-color", secondary)
       await link.evaluate((node) =>
-        (node as HTMLElement).style.removeProperty("--color-link-focus-bg")
+        (node as HTMLElement).style.removeProperty(
+          "--color-link-focus-decoration"
+        )
       )
-      await expect(link).toHaveCSS("background-color", restingInk)
+      await expect(link).toHaveCSS("text-decoration-color", decorationInk)
 
       const beforeActivation = page.url()
       await page.keyboard.press("Enter")
       expect(page.url()).toBe(beforeActivation)
     }
 
-    // Footer adds its own hover foreground. Focus must retain the inverse pair
-    // in this real consumer, including when both states match simultaneously.
+    // Footer adds its own hover foreground. Focus must keep the strengthened
+    // underline in this real consumer, including when both states match
+    // simultaneously, and must not repaint the label the caller colours.
     await openStory(page, "organisms-footer--playground", brand, mode)
     const footerLink = page.locator("#storybook-root footer a").first()
     await page.mouse.move(0, 0)
+    const footerRestingColor = await footerLink.evaluate(
+      (node) => getComputedStyle(node).color
+    )
+    const footerRestingThickness = await footerLink.evaluate(
+      (node) => getComputedStyle(node).textDecorationThickness
+    )
+    const footerHoverColor = await resolveTokenIn(
+      footerLink,
+      "--color-footer-link-fg-hover",
+      "color"
+    )
+    const hoverPaintEnabled = await page.evaluate(
+      () => matchMedia("(hover: hover) and (pointer: fine)").matches
+    )
+    const footerDecoration = await resolveTokenIn(
+      footerLink,
+      "--color-link-focus-decoration",
+      "text-decoration-color"
+    )
     await page.keyboard.press("Tab")
     await expect(footerLink).toBeFocused()
     expect(
       await footerLink.evaluate((node) => node.matches(":focus-visible"))
     ).toBe(true)
-    const footerFocusText = await resolveToken(
-      page,
-      "--color-link-focus-fg",
-      "color"
+    // The underline is painted in a real, non-transparent colour.
+    expect(footerDecoration).not.toBe("rgba(0, 0, 0, 0)")
+    const footerThickness = await footerLink.evaluate(
+      (node) => getComputedStyle(node).textDecorationThickness
     )
-    const footerFocusBackground = await resolveToken(
-      page,
-      "--color-link-focus-bg",
-      "background-color"
-    )
-    expect(footerFocusText).not.toBe(footerFocusBackground)
-    await expect(footerLink).toHaveCSS("color", footerFocusText)
+    expect(footerThickness).not.toBe(footerRestingThickness)
+    expect(Number.parseFloat(footerThickness)).toBeGreaterThan(1)
+    await expect(footerLink).toHaveCSS("color", footerRestingColor)
+    await expect(footerLink).toHaveCSS("text-decoration-style", "double")
     await expect(footerLink).toHaveCSS(
-      "background-color",
-      footerFocusBackground
+      "text-decoration-color",
+      footerDecoration
     )
     await footerLink.hover()
     expect(
@@ -254,17 +300,27 @@ for (const [brand, mode] of themes) {
       )
     ).toBe(true)
     await expect(footerLink).toBeFocused()
-    await expect(footerLink).toHaveCSS("color", footerFocusText)
+    // The shared hover variant requires a hover-capable fine pointer. Touch
+    // WebKit may match :hover without enabling that media-gated colour rule.
     await expect(footerLink).toHaveCSS(
-      "background-color",
-      footerFocusBackground
+      "color",
+      hoverPaintEnabled ? footerHoverColor : footerRestingColor
+    )
+    await expect(footerLink).toHaveCSS("text-decoration-style", "double")
+    await expect(footerLink).toHaveCSS(
+      "text-decoration-color",
+      footerDecoration
+    )
+    await expect(footerLink).toHaveCSS(
+      "text-decoration-thickness",
+      footerThickness
     )
     await page.mouse.move(0, 0)
     await expect(footerLink).toBeFocused()
-    await expect(footerLink).toHaveCSS("color", footerFocusText)
+    await expect(footerLink).toHaveCSS("color", footerRestingColor)
   })
 
-  test(`${brand}/${mode}: size navigation and the live radius override keep native link semantics`, async ({
+  test(`${brand}/${mode}: size navigation and the live focus-underline override keep native link semantics`, async ({
     page,
     browserName,
   }) => {
@@ -285,30 +341,29 @@ for (const [brand, mode] of themes) {
       await expect(links.nth(index)).toBeFocused()
     }
 
-    // The focused radius is the Link-owned alias, and a caller can retarget it.
+    // The focused underline weight is the Link-owned alias, and a caller can
+    // retarget it through the same alias the component consumes.
     const link = links.last()
-    const ownedRadius = await resolveToken(
-      page,
-      "--radius-link",
-      "border-top-left-radius"
+    const ownedThickness = await link.evaluate(
+      (node) => getComputedStyle(node).textDecorationThickness
     )
-    await expect(link).toHaveCSS("border-top-left-radius", ownedRadius)
-    const callerRadius = await resolveToken(
+    expect(Number.parseFloat(ownedThickness)).toBeGreaterThan(1)
+    const callerThickness = await resolveToken(
       page,
-      "--radius-lg",
-      "border-top-left-radius"
+      "--border-width-sm",
+      "text-decoration-thickness"
     )
     await link.evaluate((node) =>
       (node as HTMLElement).style.setProperty(
-        "--radius-link",
-        "var(--radius-lg)"
+        "--border-width-link-focus",
+        "var(--border-width-sm)"
       )
     )
-    await expect(link).toHaveCSS("border-top-left-radius", callerRadius)
+    await expect(link).toHaveCSS("text-decoration-thickness", callerThickness)
     await link.evaluate((node) =>
-      (node as HTMLElement).style.removeProperty("--radius-link")
+      (node as HTMLElement).style.removeProperty("--border-width-link-focus")
     )
-    await expect(link).toHaveCSS("border-top-left-radius", ownedRadius)
+    await expect(link).toHaveCSS("text-decoration-thickness", ownedThickness)
     await expectNoPageOverflow(page)
 
     await openStory(page, "atoms-link--external", brand, mode)

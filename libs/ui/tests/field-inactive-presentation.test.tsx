@@ -8,16 +8,22 @@ import postcss, {
   type Node,
   type Rule,
 } from "postcss"
+import type { ReactNode } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { NumericInput } from "../src/atoms/numeric-input"
 import { Textarea } from "../src/atoms/textarea"
+import { Disabled as NumericInputDisabled } from "../stories/atoms/numeric-input.stories"
+import { Disabled as TextareaDisabled } from "../stories/atoms/textarea.stories"
 
-// Focused regression for the inactive field presentation batch. Two pictured
+// Focused regression for the inactive field presentation batch. The pictured
 // inconsistencies are pinned here: the Business NumericInput invalid fill must
-// stay on the same neutral surface Business Input and Textarea paint, and a
+// stay on the same neutral surface Business Input and Textarea paint, a
 // disabled Textarea must stop offering the native resize grip without changing
-// editable or read-only resize modes.
+// editable or read-only resize modes, the Business read-only surface must read
+// the shared read-only role instead of the editable resting fill, and the
+// disabled helper dim must stay inside the Business brand without the atom
+// claiming ownership of an external label.
 
 // happy-dom replaces the module URL, so resolve the package root from the
 // vitest working directory instead.
@@ -34,6 +40,10 @@ const INVALID_FILL = "--color-numeric-input-bg-invalid"
 const SHARED_INVALID_FILL = "var(--color-bg-danger-subtle)"
 const BUSINESS_INVALID_FILL = "var(--color-numeric-input-bg)"
 const SHARED_FIELD_FILL = "var(--color-form-control-bg)"
+const READONLY_FILL = "--color-textarea-readonly"
+const SHARED_READONLY_FILL = "var(--color-form-control-readonly)"
+const DISABLED_FOREGROUND = "--color-fg-disabled"
+const HELPER_FOREGROUND_SELECTOR = /(fg-disabled|status-text-fg)/
 const THEME_SCOPE = /\[data-theme="([^"]+)"\]/
 const CLASS_ATTRIBUTE = /class="([^"]+)"/
 
@@ -302,3 +312,184 @@ describe("Disabled Textarea resize mode", () => {
     expect(resizeDeclarations(css, ".resize-none")[0]?.value).toBe("none")
   })
 })
+
+describe("Business Textarea read-only surface", () => {
+  it("repoints the Business read-only alias to the shared read-only role", () => {
+    const authored = declarationsOf(
+      tokensSource("_business-atoms.css"),
+      READONLY_FILL
+    )
+    expect(authored).toHaveLength(1)
+    const [declaration] = authored
+    if (!declaration) {
+      throw new Error("Business atoms must own the textarea read-only alias")
+    }
+    expect((declaration.parent as Rule).selector).toBe(
+      '[data-theme="business"]'
+    )
+    // The editable resting fill is not a read-only surface; Business reads the
+    // same shared read-only role Business Input already reads.
+    expect(declaration.value).toBe(SHARED_READONLY_FILL)
+    expect(declaration.value).not.toBe("var(--color-fill-base)")
+    // The shared default is unchanged, so every other brand keeps its fill.
+    expect(tokensSource("components/atoms/_textarea.css")).toContain(
+      `${READONLY_FILL}: ${SHARED_READONLY_FILL}`
+    )
+  })
+
+  it("regenerates the Business read-only alias without touching other brands", () => {
+    const generated = tokensSource("_scheme-scopes.css")
+    const resolved = declarationsOf(generated, READONLY_FILL).map(
+      (declaration) => ({
+        brand: brandOf(declaration.parent),
+        value: declaration.value,
+      })
+    )
+    expect(resolved).toEqual([
+      { brand: null, value: SHARED_READONLY_FILL },
+      { brand: "business", value: SHARED_READONLY_FILL },
+    ])
+    for (const other of ["neo", "akros"]) {
+      const scope = brandScope(generated, other)
+      if (!scope) {
+        throw new Error(`${other} brand scope must exist`)
+      }
+      const overrides: string[] = []
+      scope.walkDecls(READONLY_FILL, (declaration) => {
+        overrides.push(declaration.value)
+      })
+      expect(overrides).toEqual([])
+    }
+  })
+
+  it("paints read-only through the shared alias and keeps every resize mode", async () => {
+    const css = await compileProbe("form-control-readonly textarea-readonly")
+    const readonlyBackgrounds: string[] = []
+    const textareaAliases: string[] = []
+    postcss.parse(css).walkRules((rule) => {
+      if (rule.selector.includes("form-control-readonly")) {
+        rule.walkDecls("background-color", (declaration) => {
+          readonlyBackgrounds.push(declaration.value)
+        })
+      }
+      if (rule.selector.includes("textarea-readonly")) {
+        rule.walkDecls((declaration) => {
+          if (declaration.prop === "--color-form-control-bg-readonly") {
+            textareaAliases.push(declaration.value)
+          }
+        })
+      }
+    })
+    // The read-only paint reads the shared alias, and the component feeds that
+    // alias from its own read-only surface instead of a frozen value.
+    expect(readonlyBackgrounds).toEqual([
+      "var(--color-form-control-bg-readonly)",
+    ])
+    expect(textareaAliases).toEqual(["var(--color-textarea-bg-readonly)"])
+
+    const readOnly = classesOf(
+      renderToStaticMarkup(<Textarea aria-label="Notes" readOnly />)
+    )
+    expect(readOnly).toContain("form-control-readonly")
+    expect(readOnly).toContain("textarea-readonly")
+    // Read-only keeps the configured resize mode: view resizing is not editing.
+    expect(readOnly).toContain("resize-y")
+    expect(readOnly).not.toContain("resize-none")
+  })
+})
+
+describe("Disabled field label and helper hierarchy", () => {
+  it("keeps the NumericInput disabled example's external label caller-owned", () => {
+    const canvas = renderStory(NumericInputDisabled)
+    const input = canvas.querySelector("input")
+    const label = canvas.querySelector("label")
+    if (!(input && label)) {
+      throw new Error("The disabled numeric example must keep its label")
+    }
+    expect(input.disabled).toBe(true)
+    expect(label.getAttribute("for")).toBe(input.id)
+    // The caller dims the label through Label's own disabled treatment; the
+    // atom never owns an external label's state.
+    expect(Array.from(label.classList)).toContain("text-label-fg-disabled")
+    const control = canvas.querySelector('[data-part="control"]')
+    expect(control?.hasAttribute("data-disabled")).toBe(true)
+  })
+
+  it("scopes the disabled Textarea helper dimming to the Business brand", () => {
+    const canvas = renderStory(TextareaDisabled)
+    const field = canvas.querySelector("textarea")
+    const label = canvas.querySelector("label")
+    const helper = canvas.querySelector('[data-status="default"]')
+    if (!(field && label && helper)) {
+      throw new Error(
+        "The disabled textarea example must keep its label, field and helper"
+      )
+    }
+    expect(field.disabled).toBe(true)
+    expect(Array.from(label.classList)).toContain("text-label-fg-disabled")
+    // Only Business dims the helper, and it reaches the dim through the brand's
+    // own ancestor scope instead of a bare disabled foreground.
+    expect(Array.from(helper.classList)).toContain(
+      "in-data-[theme=business]:text-fg-disabled"
+    )
+    expect(Array.from(helper.classList)).not.toContain("text-fg-disabled")
+    // Every other brand keeps the neutral StatusText foreground it had before.
+    expect(Array.from(helper.classList)).toContain("text-status-text-fg")
+    // The helper still explains why the field is unavailable.
+    expect(helper.textContent).toContain(
+      "Available after the order is confirmed."
+    )
+    expect(field.getAttribute("aria-describedby")).toBe(helper.id)
+  })
+
+  it("resolves the label's disabled foreground from the shared disabled role", () => {
+    const generated = tokensSource("_scheme-scopes.css")
+    expect(
+      declarationsOf(generated, "--color-label-fg-disabled").map(
+        (declaration) => declaration.value
+      )
+    ).toEqual([`var(${DISABLED_FOREGROUND})`])
+  })
+
+  it("emits the Business-scoped helper dim beside the neutral role", async () => {
+    const css = await compileProbe(
+      "text-status-text-fg in-data-[theme=business]:text-fg-disabled"
+    )
+    const emitted: { selector: string; colours: string[] }[] = []
+    postcss.parse(css).walkRules((rule) => {
+      if (!HELPER_FOREGROUND_SELECTOR.test(rule.selector)) {
+        return
+      }
+      const colours: string[] = []
+      rule.walkDecls("color", (declaration) => {
+        colours.push(declaration.value)
+      })
+      emitted.push({ selector: rule.selector, colours })
+    })
+    // The neutral role Akros and the other brands keep is emitted untouched...
+    expect(emitted.map((rule) => rule.colours)).toEqual([
+      ["var(--color-status-text-fg)"],
+      [`var(${DISABLED_FOREGROUND})`],
+    ])
+    const [neutral, scoped] = emitted
+    expect(neutral?.selector).toBe(".text-status-text-fg")
+    // ...and the dim is reachable only under the Business ancestor, so no
+    // other brand inherits the disabled-label foreground.
+    expect(scoped?.selector).toContain(':where([data-theme="business"])')
+    expect(scoped?.selector).toContain("text-fg-disabled")
+  })
+})
+
+// Render a story composition the way the storybook canvas does, so these
+// assertions read the same markup the pictured examples ship.
+function renderStory(story: { render?: unknown }) {
+  function Fixture() {
+    if (typeof story.render !== "function") {
+      throw new Error("Story must retain its composition")
+    }
+    return (story.render as () => ReactNode)()
+  }
+  const canvas = document.createElement("div")
+  canvas.innerHTML = renderToStaticMarkup(<Fixture />)
+  return canvas
+}

@@ -14,6 +14,13 @@ function Field({
 }: TextareaProps & { label?: string; helpText?: string }) {
   const id = useId()
   const messageId = `${id}-message`
+  // Only Business dims neutral disabled help; other brands and validation
+  // messages retain their existing StatusText foreground.
+  const helperStatus = variant === "borderless" ? "default" : variant
+  const helperClassName =
+    props.disabled && helperStatus === "default"
+      ? "in-data-[theme=business]:text-fg-disabled"
+      : undefined
   return (
     <div className="flex flex-col gap-form-field-gap">
       <Label disabled={props.disabled} htmlFor={id} size={size}>
@@ -32,9 +39,10 @@ function Field({
       />
       {helpText && (
         <StatusText
+          className={helperClassName}
           id={messageId}
           size={size}
-          status={variant === "borderless" ? "default" : variant}
+          status={helperStatus}
         >
           {helpText}
         </StatusText>

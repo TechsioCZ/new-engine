@@ -11,7 +11,9 @@
   --padding-input-inline-md: var(--dimension-12);
   --padding-input-inline-lg: var(--dimension-16);
 
-  --color-textarea-readonly: var(--color-fill-base);
+  /* Same shared read-only role Business Input already reads; the editable
+   * resting fill is not a read-only surface. */
+  --color-textarea-readonly: var(--color-form-control-readonly);
   --color-textarea-border-readonly-hover: var(--color-textarea-border);
   --color-textarea-border-readonly-focus: var(--color-textarea-border);
   --color-textarea-placeholder-danger: var(--color-textarea-fg-placeholder);

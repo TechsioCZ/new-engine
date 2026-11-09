@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Link atom for inline or unstyled navigation, including
   external links and framework adapter usage.
 metadata:
-  component_version: "1.2.2"
+  component_version: "1.2.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -185,16 +185,16 @@ rg -n "<LinkButton|<Link\\b" apps
 
 Links are underlined in every theme, so navigation never relies on colour alone.
 They use a readable foreground and visible keyboard focus. By default, focus
-highlights the linked text itself — the reverse foreground on the link's own
-colour — keeps the underline and rounds the highlight through the shared radius
-scale, so an inline link stays inside its own text box: wrapping, glyph
-positions and the punctuation beside the link are untouched. High-contrast
-systems get the system highlight and an inset system ring instead. Caller focus
-utilities, shadows and Link-owned colour/radius overrides remain usable. Canonical
-text sizes are sm/md/lg, default md; `size="current"` inherits paragraph
-typography for inline composition. Link is not a boxed control and does not set
-field height. Use LinkButton for prominent navigation, not manual button classes
-on Link.
+strengthens the link's own underline — a double rule in the shared ring colour,
+heavier than the hover hairline — instead of painting a highlight box, so focus
+paint stays inside the link's own text box: wrapping, glyph positions and the
+punctuation beside the link are untouched. High-contrast systems get the system
+highlight colour and an inset system ring instead. Caller focus utilities,
+shadows and the Link-owned focus tokens (`--color-link-focus-decoration`,
+`--border-width-link-focus`) remain usable. Canonical text sizes are
+sm/md/lg, default md; `size="current"` inherits paragraph typography for inline
+composition. Link is not a boxed control and does not set field height. Use
+LinkButton for prominent navigation, not manual button classes on Link.
 
 ## React 19 refs
 

@@ -3,9 +3,8 @@
   --color-link-text: var(--color-fg-primary);
   --color-link-fg-readable: var(--color-link-text);
   --color-link-ring: var(--color-ring-default);
-  --color-link-focus-bg: var(--color-fg-primary);
-  --color-link-focus-fg: var(--color-fg-reverse);
-  --radius-link: var(--radius-xs);
+  --color-link-focus-decoration: var(--color-link-ring);
+  --border-width-link-focus: var(--border-width-lg);
   --text-link-sm: var(--text-sm);
   --text-link-md: var(--text-md);
   --text-link-lg: var(--text-lg);
@@ -16,20 +15,22 @@
   line-height: inherit;
 }
 
-/* Use standard focus variants so their paint follows hover utilities.
- * Keep the shared shadow compositor, but make its default halo transparent. */
+/* A double underline changes focus paint without expanding the inline box.
+ * Standard focus variants follow hover utilities; the transparent halo keeps
+ * the shared shadow compositor and caller shadows usable. */
 @utility link-focus-inline {
   &:where(:not(:disabled, [data-disabled])) {
     --color-focus-contrast: transparent;
-    background-color: var(--color-link-focus-bg);
-    color: var(--color-link-focus-fg);
+    text-decoration-line: underline;
+    text-decoration-style: double;
+    text-decoration-color: var(--color-link-focus-decoration);
+    text-decoration-thickness: var(--border-width-link-focus);
     outline-style: none;
     outline-width: 0;
     outline-color: var(--color-link-ring);
 
     @media (forced-colors: active) {
-      background-color: Highlight;
-      color: HighlightText;
+      text-decoration-color: Highlight;
       outline: var(--default-ring-width) solid CanvasText;
       outline-offset: calc(-1 * var(--default-ring-width));
     }

@@ -351,7 +351,11 @@ export const Disabled: Story = {
     const instanceId = useId()
     return (
       <div className="flex w-full max-w-md flex-col gap-50">
-        <Label htmlFor={`${instanceId}-numeric-disabled`}>Disabled Input</Label>
+        {/* NumericInput does not own external labels, so the caller dims the
+         * label itself while the disabled field dims its own value. */}
+        <Label disabled htmlFor={`${instanceId}-numeric-disabled`}>
+          Disabled Input
+        </Label>
         <NumericInput
           defaultValue={42}
           disabled
