@@ -216,18 +216,19 @@ function IconGallery({
             placeholder="Search icons…"
             aria-describedby={resultsId}
           />
-          {query && (
-            <Button
-              className="shrink-0 whitespace-nowrap"
-              theme="outlined"
-              onClick={() => {
-                setQuery("")
-                searchRef.current?.focus()
-              }}
-            >
-              Clear search
-            </Button>
-          )}
+          <Button
+            aria-label="Clear search"
+            className="shrink-0 whitespace-nowrap"
+            disabled={!query}
+            size="sm"
+            theme="outlined"
+            onClick={() => {
+              setQuery("")
+              searchRef.current?.focus()
+            }}
+          >
+            Clear
+          </Button>
         </div>
         <output
           id={resultsId}
@@ -294,7 +295,15 @@ export const Gallery: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const search = canvas.getByRole("searchbox", { name: "Find an icon" })
+    const clear = canvas.getByRole("button", { name: "Clear search" })
+    const clearSpace = () =>
+      clear.getBoundingClientRect().right - search.getBoundingClientRect().right
+    await expect(clear).toBeDisabled()
+    await userEvent.click(search)
+    const reservedClearSpace = clearSpace()
     await userEvent.type(search, "token-icon-home")
+    await expect(clearSpace()).toBe(reservedClearSpace)
+    await expect(clear).toBeEnabled()
     await expect(canvas.getAllByRole("listitem")).toHaveLength(1)
     await expect(canvas.getByText("Home", { exact: true })).toBeVisible()
     await userEvent.clear(search)
@@ -308,6 +317,8 @@ export const Gallery: Story = {
       iconCatalog.length
     )
     await expect(search).toHaveFocus()
+    await expect(clearSpace()).toBe(reservedClearSpace)
+    await expect(clear).toBeDisabled()
   },
 }
 
