@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/input.tsx"
   - "libs/ui/src/molecules/form-input.tsx"
@@ -57,6 +59,23 @@ where actions and feedback live). This section applies them to `Input`.
 **Copy and states**
 
 - Placeholders are examples or `Search <objects>…` in filters.
+
+**Behaviour (from the UX spec)**
+
+- `variant="error" | "success" | "warning"` is presentation only; the rule that checks the value lives in the form or app.
+- Never mark an untouched empty field as an error on load; validate on blur or submit, and keep rejected text for correction.
+- Use `readOnly`, not `disabled`, for values the user may see and copy but not change.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | `size` |
+| `state=error` / `success` / `warning` | `variant` (bare Input); `validateStatus` on FormInput |
+| `state=disabled` | `disabled` |
+| — (not in Figma) | `readOnly`, `withButtonInside` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Input → UX guidelines*.
 
 ## Setup
 

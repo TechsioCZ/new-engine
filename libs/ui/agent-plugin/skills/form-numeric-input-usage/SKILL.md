@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux numeric-input-usage app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/number-input"
   contributor_sources: "libs/ui/src/molecules/form-numeric-input.tsx libs/ui/src/atoms/numeric-input.tsx libs/ui/stories/molecules/form-numeric-input.stories.tsx libs/ui/src/molecules/form-numeric-input.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -55,6 +55,23 @@ where actions and feedback live). This section applies them to `FormNumericInput
 **Copy and states**
 
 - Validation: `Enter a quantity between 1 and 99.` with formatted numbers.
+
+**Behaviour (from the UX spec)**
+
+- Never replace an empty draft with `0` or the minimum; clearing to retype must not snap back to the old number.
+- Over a bound, keep the typed number and state the range; pass `clampValueOnBlur={false}` when the out-of-range draft must stay visible.
+- A stepper blocked at a bound is not a disabled field.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=error` / `success` / `warning` | `validateStatus` |
+| `state=disabled` | `disabled` |
+| `state=readonly` | `readOnly` (steppers hidden) |
+| `required=true` | `required` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormNumericInput → UX guidelines*.
 
 ## Setup
 

@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/rating.tsx"
   - "libs/ui/src/tokens/components/atoms/_rating.css"
@@ -55,6 +57,23 @@ where actions and feedback live). This section applies them to `Rating`.
 **Copy and states**
 
 - Numbers formatted with the app locale (`4,6` in cs-CZ).
+
+**Behaviour (from the UX spec)**
+
+- Keep the average and the user's own vote apart: aggregates use `displayOnly`, a locked form score uses `readOnly`, never `disabled`.
+- Hover only previews; a vote is set by click or keyboard and submitted by the form, never by hover or by showing the result.
+- A missing score is not 0, and the review count is not the score.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `disabled=true` | `disabled` (input only) |
+| `direction=vertical` / `horizontal` | not in code |
+| no mode axis | interactive (default), `readOnly`, `displayOnly` |
+| `allowHalf` | `allowHalf` (code default `true`) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Rating → UX guidelines*.
 
 ## Setup
 

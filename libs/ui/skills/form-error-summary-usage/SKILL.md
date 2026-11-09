@@ -13,6 +13,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/form-error-summary.tsx"
   - "libs/ui/src/tokens/components/molecules/_form-error-summary.css"
@@ -63,11 +65,27 @@ where actions and feedback live). This section applies them to `FormErrorSummary
 **Don't**
 
 - Show the summary before the user tries to submit.
-- Put it in a toast or a dialog.
+- Put it in a toast or in a second alert dialog. For a form inside a Dialog, render it
+  inside the dialog body above the fields, scroll the body to the top and focus the summary
+  after a failed submit (it sits inside the focus trap).
 
 **Copy and states**
 
 - Title: `There are 3 problems with this form` (pluralised); items: `Enter an SKU with at least 4 characters`.
+
+**Behaviour (from the UX spec)**
+
+- Show it only after a submit attempt, and remove it when the errors are fixed or the next submit succeeds; stale items never linger.
+- Order items as the fields appear; an error for a field that isn't on screen goes to StatusText above the actions, not a dead link.
+- If `revealField` rejects, focus stays on the link and the app reports why.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| no Figma component | code is the only source |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormErrorSummary → UX guidelines*.
 
 ## Setup
 

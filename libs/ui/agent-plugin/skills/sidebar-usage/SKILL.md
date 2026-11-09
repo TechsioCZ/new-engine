@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux drawer-usage app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
   contributor_sources: "libs/ui/src/organisms/sidebar.tsx libs/ui/src/internal/organisms/sidebar.context.tsx libs/ui/src/internal/organisms/sidebar.focus.ts libs/ui/src/internal/organisms/sidebar.styles.ts libs/ui/src/tokens/components/organisms/_sidebar.css libs/ui/stories/organisms/sidebar.stories.tsx"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -56,6 +56,26 @@ where actions and feedback live). This section applies them to `Sidebar`.
 **Copy and states**
 
 - Destinations are nouns (`Orders`, `Products`), not verbs.
+
+**Behaviour (from the UX spec)**
+
+- Collapsing, expanding or opening the frame never navigates, saves or signs out; only the page actually shown is current.
+- With `collapsible="none"` there is no rail and no collapse control; never show one that does nothing.
+- A disabled destination (`LinkButton disabled`) must really block navigation and not rely on colour.
+- Expanding or collapsing must not cover Inset controls; with a sticky header the panel keeps its footer within the remaining height.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `Sidebar.Desktop` / `Sidebar.Mobile` | one `Sidebar`; desktop vs Drawer is decided by `--breakpoint-sidebar-desktop` |
+| `collapsible=icon\|offcanvas\|none` | `collapsible={{ start: "…" }}` on the root |
+| `expanded` (Desktop) / `open` (Mobile) | `expanded` / `defaultExpanded` (sides) and `mobileOpen` / `defaultMobileOpen` |
+| `Sidebar.NavigationItem` | `Sidebar.Item` + `LinkButton` + `Sidebar.Label` (`aria-current="page"` for `active=true`) |
+| `Sidebar.Tooltip` | `tooltip` on `Sidebar.Trigger`, `Tooltip` around icon links |
+| `sidebarglyph-*` | `icon-[mdi--…]` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/Sidebar → UX guidelines*.
 
 ## Import
 

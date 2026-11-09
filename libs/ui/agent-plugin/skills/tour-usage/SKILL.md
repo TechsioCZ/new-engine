@@ -10,9 +10,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/tour"
   contributor_sources: "libs/ui/src/molecules/tour.tsx libs/ui/src/tokens/components/molecules/_tour.css libs/ui/stories/molecules/tour.stories.tsx libs/ui/test/tour.spec.ts libs/ui/src/molecules/tour.figma.ts libs/ui/docs/tour-figma-handoff.md"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -57,6 +57,22 @@ where actions and feedback live). This section applies them to `Tour`.
 
 - Progress `2 of 4`; final button `Done`.
 
+**Behaviour (from the UX spec)**
+
+- Skip and close are always reachable, independent of the step target; a missing target never traps the user (the app skips with an explanation or ends the tour).
+- `Next` and `Back` never change data. Completing a tour is not consent and not completion of the real task.
+- Pick the step `type` by what it points at: `tooltip` for a real visible element, `dialog` for intro or summary, `floating` when the target may be absent.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `type=dialog\|tooltip\|floating` | per-step `type` in `steps` (plus code-only `wait`) |
+| `showSkip`, `showBack`, `showNext` | `Tour.ActionTrigger action="skip" \| "prev" \| "next"` (`dismiss` on the last step) |
+| `showClose`, `showProgress`, `showArrow` | `Tour.CloseTrigger`, `Tour.ProgressText`, `Tour.Arrow` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Tour → UX guidelines*.
+
 ## Setup
 
 ```tsx
@@ -97,7 +113,7 @@ function WorkspaceGuide() {
             <Tour.ProgressText />
             <Tour.Actions>
               <Tour.ActionTrigger action="skip" theme="borderless">
-                Skip guide
+                Skip tour
               </Tour.ActionTrigger>
               <Tour.ActionTrigger action="prev" theme="outlined">
                 Back
@@ -105,7 +121,7 @@ function WorkspaceGuide() {
               <Tour.Context>
                 {(api) => (
                   <Tour.ActionTrigger action={api.lastStep ? "dismiss" : "next"}>
-                    {api.lastStep ? "Finish" : "Next"}
+                    {api.lastStep ? "Done" : "Next"}
                   </Tour.ActionTrigger>
                 )}
               </Tour.Context>

@@ -13,6 +13,8 @@ requires:
   - form-checkbox-usage
   - slider-usage
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/templates/facet-filter-panel.tsx"
   - "libs/ui/src/tokens/components/templates/_facet-filter-panel.css"
@@ -108,6 +110,20 @@ where actions and feedback live). This section applies them to `FacetFilterPanel
 **Copy and states**
 
 - Facet titles are nouns (`Brand`, `Price`); counts formatted with the app locale.
+
+**Behaviour (from the UX spec)**
+
+- Fetch on `onRangeChangeEnd`, not on every slider move; changing one facet never resets scroll or other facets.
+- A zero `count` is information, not disabled; disable options only through `disabled`, consistently.
+- The template has no Apply step: a drawer `[Reset] [Show 24 results]` flow is the app's to build. Closing the drawer keeps selections.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| no Figma component | code is the only source (see Figma Handoff below) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Templates/FacetFilterPanel → UX guidelines*.
 
 ## Contract
 

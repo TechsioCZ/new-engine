@@ -14,6 +14,8 @@ requires:
   - numeric-input-usage
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/quantity-field.tsx"
   - "libs/ui/src/atoms/numeric-input.tsx"
@@ -56,6 +58,24 @@ Load ux-guidelines and numeric-input-usage for number conventions and interactio
 - hideLabel is only a visual treatment for a compact row; the accessible name stays.
 - A service failure and an invalid quantity have different application meaning.
   The app decides which feedback belongs on the field or surrounding section.
+
+**Behaviour (from the UX spec)**
+
+- Tie each update response to its item and request; an older response must never overwrite a newer quantity.
+- Cancelling before the commit restores the last confirmed quantity.
+- Long units must not overlap the value or steppers; test compact rows with long units.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=error` | `error` (message content) |
+| `state=pending` | `pending` + `pendingLabel` |
+| `state=disabled` / `readonly` | `disabled` / `readOnly` |
+| `hideLabel=true` | `hideLabel` (accessible name stays) |
+| Reference frames *Compact long unit*, *Akros control height override* | examples only, not variants |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/QuantityField → UX guidelines*.
 
 ## Setup
 

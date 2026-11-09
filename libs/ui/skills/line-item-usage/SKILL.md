@@ -14,6 +14,8 @@ requires:
   - price-block-usage
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/organisms/line-item.tsx"
   - "libs/ui/src/tokens/components/organisms/_line-item.css"
@@ -30,6 +32,24 @@ LineItem uses React context and is a client module. In Next.js, compose the root
 and its compound parts inside a wrapper with `"use client"`, including read-only
 order recaps. A Server Component can render that wrapper with serializable data;
 do not access `LineItem.Body` or other compound properties in a Server Component.
+
+**Behaviour (from the UX spec)**
+
+- A row change never confirms the order. Unavailability alone never blocks `Remove`.
+- Pending keeps the previously shown amounts with `pendingLabel`; a failure keeps the draft and the error stays on this row only, never touching neighbouring rows.
+- A quantity error goes on the composed `QuantityField`; any other row error is a `StatusText` placed directly after `LineItem.Controls`.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `layout=default` / `compact` | `layout` (composition, not a control size) |
+| `readOnly=true` | `readOnly` + `readOnlyLabel` on `LineItem.Quantity` |
+| `pending=true` | `pending` + `pendingLabel` |
+| "Feedback" slot, `__LineItem/ItemError` | app-composed `StatusText` / `AvailabilityStatus` (no such parts) |
+| `__LineItem/CustomComposition` | reference frame only; compose the public parts |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/LineItem → UX guidelines*.
 
 ## Setup
 

@@ -15,6 +15,8 @@ requires:
   - framework-consumer-integration
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/organisms/footer.tsx"
   - "libs/ui/src/tokens/components/organisms/_footer.css"
@@ -56,6 +58,23 @@ where actions and feedback live). This section applies them to `Footer`.
 **Copy and states**
 
 - Headings are nouns (`Customer care`, `Company`); `© 2026 Company name` generated from the current year.
+
+**Behaviour (from the UX spec)**
+
+- `Footer.Title` is a heading, not a link; give each `Footer.Section` `aria-labelledby` pointing at its title.
+- Render `Footer.Divider` only between groups that are present; an empty group leaves no heading or lone line.
+- Contact, legal and version data come from the product owner; never ship sample values.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | same prop |
+| — | `direction`, `layout`, `sectionFlow` (not in Figma) |
+| FooterTitle / FooterLink / FooterText / FooterDivider | `Footer.Title` / `Footer.Link` / `Footer.Text` / `Footer.Divider` |
+| — | `Footer.Container`, `Footer.Section`, `Footer.List`, `Footer.Bottom` (no Figma part) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/Footer → UX guidelines*.
 
 ## Setup
 

@@ -17,6 +17,8 @@ requires:
   - app-token-overrides
   - table-usage
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/organisms/data-table.tsx"
   - "libs/ui/src/organisms/data-table.helpers.ts"
@@ -57,20 +59,33 @@ where actions and feedback live). This section applies them to `DataTable`.
 - Row click = read (detail drawer); edit and delete live in `rowActions`, delete last with `tone: "danger"`.
 - Show bulk actions only while rows are selected; confirm destructive bulk actions with the count.
 - Design all three empty states (first use, no results, load error). `translations.emptyTitle` / `emptyDescription` hold one message, so pick it from the app's state on each render, or use `renderEmpty` to render a different state (with `Clear filters` / `Try again`) per case — never let a failed load read as `No records`.
-- Choose `size` per page: `sm` for scanning, `md` when rows are edited inline.
 
 **Don't**
 
 - Build a separate filter bar when column filters (`enableColumnFilters` + `meta.type`) fit.
 - Blank the table while refreshing — keep rows and show progress in the toolbar.
-- Center numbers or right-align text.
-- Put more than one primary action in the toolbar; the page's primary lives in the page header.
+- Put more than one primary action in the toolbar (the page's primary lives in the page header) or more than three own actions (the rest go into a `Menu`).
 
 **Copy and states**
 
 - Column headers are short nouns in sentence case, with units when shared (`Price (€)`).
-- Inline edit success → toast `<Object> saved`; errors stay on the cell editor.
-- Search placeholder `Search <objects>…`.
+- Inline edit success → toast `<Object> saved`; errors stay on the cell editor. Search placeholder `Search <objects>…`.
+
+**Behaviour (from the UX spec)**
+
+- Inline edit: Cancel restores the last saved value, and moving focus never silently commits another row's edit.
+- If a sort, filter or page request fails, revert the indicator and keep the previous rows; `sort=none` means sortable but unsorted.
+- Expand toggles use a chevron (never ×) and expanding never selects the row. The page-size select needs an accessible name; cell links and buttons don't make it an ARIA grid (no `role="grid"`).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| toolbar / filter row / pagination `size=md` | `size="sm" \| "md" \| "lg"` (shared by nested controls; `sm` for scanning, `md` when rows are edited inline) |
+| `Table.IconButton` | `ActionIcon` with `aria-label` (no Table.IconButton exists) |
+| `state=loading` | `loading` / `loadingMore` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/DataTable → UX guidelines*.
 
 ## Setup
 

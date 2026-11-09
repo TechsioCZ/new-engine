@@ -11,9 +11,9 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: "https://zagjs.com/components/react/radio-group"
   contributor_sources: "libs/ui/src/molecules/radio-group.tsx libs/ui/src/tokens/components/molecules/_radio-group.css libs/ui/stories/molecules/radio-group.stories.tsx libs/ui/src/molecules/radio-group.figma.ts"
-  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
 ---
 
@@ -56,6 +56,23 @@ where actions and feedback live). This section applies them to `RadioGroup`.
 **Copy and states**
 
 - Option labels parallel in grammar and short; no trailing punctuation.
+
+**Behaviour (from the UX spec)**
+
+- One named question, one shared value. Changing the answer never runs an irreversible operation; it is a draft until submit (view switches excepted).
+- An unavailable option is a disabled item with its reason; a missing required answer is `validateStatus="error"` on the group. Keep them distinct.
+- Use `readOnly` for an answer the user may see but not change.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `RadioGroup.Item` only (no group root) | `RadioGroup` root owns `Label`, `orientation`, `StatusText` |
+| `state=checked` | the item whose `value` matches |
+| `state=invalid` | `validateStatus="error"` on the group |
+| no read-only state | `readOnly` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/RadioGroup → UX guidelines*.
 
 ## Setup
 

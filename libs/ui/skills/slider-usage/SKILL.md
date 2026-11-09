@@ -14,6 +14,8 @@ requires:
   - component-usage-ux
   - app-token-overrides
   - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/slider.tsx"
   - "libs/ui/src/tokens/components/molecules/_slider.css"
@@ -68,6 +70,23 @@ where actions and feedback live). This section applies them to `Slider`.
 **Copy and states**
 
 - Thumb labels `Minimum price`, `Maximum price`.
+
+**Behaviour (from the UX spec)**
+
+- Every value is reachable by keyboard, not only by precise dragging; values and units are readable as text.
+- Dragging is a draft: apply on `onChangeEnd`. In a drafted filter panel, Cancel restores the last applied range.
+- An invalid range is `validateStatus="error"`; a valid range with 0 results is a normal empty result, not an error.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| two-thumb range only | `value` array: one thumb, two (range) or more |
+| `state=invalid` | `validateStatus="error"` |
+| `state=disabled` | `disabled` |
+| no read-only state | `readOnly` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Slider → UX guidelines*.
 
 ## Setup
 

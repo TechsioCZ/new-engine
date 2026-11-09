@@ -55,10 +55,16 @@ const listFiles = (dir) =>
     return statSync(path).isDirectory() ? listFiles(path) : [path]
   })
 
+const PATH_SEPARATOR = /[\\/]/
+
+// A Windows checkout with core.autocrlf turns LF into CRLF; that is not drift.
+const LF = (text) => text.replace(/\r\n/g, "\n")
+const sameText = (a, b) => LF(a.toString("utf8")) === LF(b.toString("utf8"))
+
 const expectedContent = (file) => {
   const raw = readFileSync(file)
   // Only a skill's top-level SKILL.md is rewritten; nested files ship verbatim.
-  return relative(srcDir, file).split(/[\\/]/).length === 2 &&
+  return relative(srcDir, file).split(PATH_SEPARATOR).length === 2 &&
     file.endsWith("SKILL.md")
     ? Buffer.from(toPortableSkill(raw.toString("utf8")))
     : raw
@@ -77,7 +83,7 @@ for (const resource of BUNDLED_RESOURCES) {
     toPortableResource(readFileSync(from, "utf8"), resource.path)
   )
   if (check) {
-    if (!(existsSync(to) && expected.equals(readFileSync(to)))) {
+    if (!(existsSync(to) && sameText(expected, readFileSync(to)))) {
       stale.push(resource.path)
     }
   } else {
@@ -91,7 +97,7 @@ for (const name of AUTHORED_SKILLS) {
   const current = readFileSync(file, "utf8")
   const expected = toAuthoredPortableSkill(current, name)
   if (check) {
-    if (current !== expected) {
+    if (LF(current) !== LF(expected)) {
       stale.push(`${name} (authored prerequisites)`)
     }
   } else if (current !== expected) {
@@ -122,7 +128,8 @@ for (const name of entries) {
     }
     if (
       want.some(
-        (f) => !expectedContent(join(from, f)).equals(readFileSync(join(to, f)))
+        (f) =>
+          !sameText(expectedContent(join(from, f)), readFileSync(join(to, f)))
       )
     ) {
       stale.push(name)
