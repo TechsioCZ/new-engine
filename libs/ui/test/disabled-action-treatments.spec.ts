@@ -1,10 +1,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test"
 
 const themes = [
-  ["base", "light"],
-  ["base", "dark"],
-  ["neo", "light"],
-  ["neo", "dark"],
+  ["n1", "light"],
   ["business", "light"],
   ["akros", "light"],
 ] as const
@@ -32,9 +29,7 @@ async function openStory(
     )
     .toBe("finished")
   await expect(page.locator("html")).toHaveClass(new RegExp(`\\b${mode}\\b`))
-  if (brand !== "base") {
-    await expect(page.locator("html")).toHaveAttribute("data-theme", brand)
-  }
+  await expect(page.locator("html")).toHaveAttribute("data-theme", brand)
 }
 
 function paint(locator: Locator) {

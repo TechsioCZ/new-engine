@@ -7,10 +7,7 @@ import { expect, type Page, test } from "@playwright/test"
 // real control. No raw var() text is compared to computed CSS.
 
 const themes = [
-  ["base", "light"],
-  ["base", "dark"],
-  ["neo", "light"],
-  ["neo", "dark"],
+  ["n1", "light"],
   ["business", "light"],
   ["akros", "light"],
 ] as const
@@ -42,9 +39,7 @@ async function openStory(
     )
     .toBe("finished")
   await expect(page.locator("html")).toHaveClass(new RegExp(`\\b${mode}\\b`))
-  if (brand !== "base") {
-    await expect(page.locator("html")).toHaveAttribute("data-theme", brand)
-  }
+  await expect(page.locator("html")).toHaveAttribute("data-theme", brand)
 }
 
 type FieldTokens = {

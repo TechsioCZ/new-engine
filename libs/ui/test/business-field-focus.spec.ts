@@ -7,10 +7,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test"
 // instead of raw var() text.
 
 const themes = [
-  ["base", "light"],
-  ["base", "dark"],
-  ["neo", "light"],
-  ["neo", "dark"],
+  ["n1", "light"],
   ["business", "light"],
   ["akros", "light"],
 ] as const
@@ -79,9 +76,7 @@ async function openStory(
     .toBe("finished")
   await page.evaluate(() => document.fonts.ready.then(() => undefined))
   await expect(page.locator("html")).toHaveClass(new RegExp(`\\b${mode}\\b`))
-  if (brand !== "base") {
-    await expect(page.locator("html")).toHaveAttribute("data-theme", brand)
-  }
+  await expect(page.locator("html")).toHaveAttribute("data-theme", brand)
 }
 
 /** Resolve a live token through a real element, so the value follows the theme. */
