@@ -226,7 +226,7 @@ explained explicitly.
   Checked Menu items on an unfilled row use `text-popup-item-fg-checked`, not
   the selected-on-solid foreground. In Akros hover uses primary-100, selected
   uses primary-500, and checked foregrounds use readable semantic text, not a yellow palette step.
-- Verify base/light, base/dark and Akros/light. Akros is intentionally light-only.
+- Verify Business/light, Akros/light and N1/light. Every shipped brand is intentionally light-only.
 
 ## 5. Stories and Docs are product documentation
 
