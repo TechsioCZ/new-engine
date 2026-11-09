@@ -18,8 +18,9 @@ layout and which component it picks.
 ## Focus, selection and hover are different things
 
 - Focus is where the keyboard is. Selected is the chosen value. Hover is where
-  the pointer is. Each needs its own visual state, and none of them commits a
-  value ([Value lifecycle](value-lifecycle.md)).
+  the pointer is. Each needs its own visual state. Focus and hover never commit
+  a value; only an explicit action does, such as choosing an option or
+  pressing Enter ([Value lifecycle](value-lifecycle.md)).
 - Opening a dialog or drawer moves focus into it; closing returns focus to the
   trigger, or to the next logical element if the trigger is gone (for example
   after deleting the row that opened it).
@@ -53,8 +54,10 @@ layout and which component it picks.
 
 ## Announcing changes
 
-- Pending work is announced: Button `isLoading` sets `aria-busy`; toasts
-  announce results.
+- Pending work is announced: Button `isLoading` sets `aria-busy`, which does
+  not guarantee a spoken update. Pair it with a status message outside the
+  busy button (`StatusText` or a `role="status"` region). Toasts announce
+  results.
 - Errors are linked to their field (`aria-describedby`, `aria-invalid`), which
   the kit's form fields do for you when you pass `validateStatus` and
   `helpText`.

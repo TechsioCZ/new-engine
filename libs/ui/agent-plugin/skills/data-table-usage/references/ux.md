@@ -42,7 +42,7 @@ indicators consistent with it.
 | toolbar / filter row / pagination `size=md` | `size="sm" \| "md" \| "lg"` | One size for every nested control. `sm` for scanning, `md` when rows are edited inline. |
 | column header `sort=none` | sortable, unsorted | The column can be sorted but isn't yet. |
 | column header `sort=asc` / `desc` | the current sort | Shown only once the data is actually sorted that way. |
-| `state=loading` | `loading`, `loadingMore` | First load shows skeleton rows; a refresh keeps the rows. |
+| `state=loading` | `loading`, `loadingMore` | `loading` replaces the body with skeleton rows, even when rows exist, so set it only for the first load. `loadingMore` appends one skeleton row for infinite scroll. For a refresh leave `loading` off, keep the rows and show progress outside the body (toolbar indicator). |
 | `Table.IconButton` | `ActionIcon` | There is no Table.IconButton component; icon actions are ActionIcon with an `aria-label`. |
 
 ## Behaviour
@@ -59,8 +59,8 @@ mix up an empty database, a filter with no matches and a load error.
 - A failed sort, filter or page load reverts the indicator and keeps the
   previous rows recognisable, with a way to retry. Don't show the new sort
   arrow as applied.
-- Refreshing never blanks the table: keep the rows and show progress in the
-  toolbar.
+- Refreshing never blanks the table: don't set `loading` for a refresh (it
+  swaps the rows for skeletons); keep the rows and show progress in the toolbar.
 - Inline edit follows the [value lifecycle](../../ux-guidelines/references/value-lifecycle.md):
   the draft, the confirmed value and any error belong to the right row and
   column. Cancel restores the last saved value; moving focus never silently

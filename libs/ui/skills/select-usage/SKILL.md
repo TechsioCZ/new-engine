@@ -68,7 +68,7 @@ where actions and feedback live). This section applies them to `Select`.
 
 - Opening the list and moving through options never commits; closing without choosing keeps the previous value.
 - Clearing a required Select leaves a missing value that validation reports, never an "empty" option that looks chosen.
-- A saved value that is no longer in `items` is shown as unavailable with the fix — don't silently drop or replace it.
+- Select prunes values missing from `items`. To show a saved value as unavailable, keep that item in `items` as `disabled`, say why in the helper text and block submitting until it is resolved — don't silently drop or replace it.
 - With remote options, show waiting, no matches and error separately, and discard responses older than the latest query.
 - Don't use `size="xs"` for app form fields; sm/md/lg are canonical.
 

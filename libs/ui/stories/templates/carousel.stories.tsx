@@ -30,7 +30,7 @@ const meta: Meta<typeof CarouselTemplate> = {
     docs: {
       description: {
         component:
-          "CarouselTemplate is the ready-made, props-based version of Carousel for optional images or related content. Use it for a standard navigation layout; use the compound Carousel when you need custom controls, and Gallery for product thumbnails and zoom.",
+          "CarouselTemplate is the ready-made, props-based version of Carousel for optional images or related content. Use it for a standard navigation layout; use the compound Carousel when you need custom controls, and Gallery for product thumbnails (it has no zoom).",
       },
     },
   },

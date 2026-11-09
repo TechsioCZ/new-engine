@@ -128,8 +128,11 @@ describe("Storybook link mapping", () => {
       "?path=/docs/ux-states--docs"
     )
     expect(toStorybookHref("ux-writing.md#button-labels")).toBe(
-      "?path=/docs/ux-writing--docs"
+      "?path=/docs/ux-writing--docs#button-labels"
     )
+    expect(
+      toStorybookHref("../../dialog-usage/references/ux.md#edge-cases")
+    ).toBe("?path=/docs/molecules-dialog--ux-guidelines#edge-cases")
   })
 
   it("renders links without a Storybook page as plain text", () => {

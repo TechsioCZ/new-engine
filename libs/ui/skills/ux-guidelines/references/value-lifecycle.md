@@ -82,8 +82,8 @@ that changes data, or an old server response that overwrites a newer choice.
 | Need | Kit support |
 | --- | --- |
 | Pending button | Button `isLoading` + `loadingText` |
-| Pending quantity | QuantityField `pendingLabel` |
-| Pending table | DataTable `loading` (first load) and `loadingMore`; rows stay while refreshing |
+| Pending quantity | QuantityField `pending` + `pendingLabel` |
+| Pending table | DataTable `loading` (first load only: it replaces the rows) and `loadingMore`; for a refresh keep the rows and show progress in the toolbar |
 | Field errors | Form fields `validateStatus` + `helpText` |
 | Dirty forms | Badge `Unsaved changes` + `alertdialog` on leave |
 

@@ -39,7 +39,7 @@ continue and whether their changes were kept.
 | Figma | Code | Meaning |
 | --- | --- | --- |
 | `behavior=modal` | `behavior="modal"` (default) | Focus is trapped inside and the page behind can't be used. |
-| — | `behavior="modeless"` (or `modal={false}`) | The page stays usable; focus isn't trapped. Use it only when working beside the dialog is the point (for example comparing values). |
+| — | `behavior="modeless"` (or `modal={false}`) | The page stays usable; focus isn't trapped. Use it only when working beside the dialog is the point (for example comparing values), and pass `closeOnInteractOutside={false}`: it defaults to `true`, so a click on the page behind would close the dialog. |
 | — | `placement="center"` (default) | A task or decision. |
 | — | `placement="right"` / `"left"` / `"top"` / `"bottom"` | An edge panel. `right` is the standard drawer for record create, read and edit. |
 | — | `size="xs" … "full"` | Fit the content: `sm` for confirmations, `md` for forms. |
@@ -64,9 +64,11 @@ steps inside one dialog instead).
 - Cancel or close never confirms changes. A dirty form asks first
   (`Discard unsaved changes?`), see
   [States → Dirty](../../ux-guidelines/references/states.md).
-- On close, focus returns to the trigger. If the trigger no longer exists (the
-  record was deleted), send focus to the next logical element with
-  `finalFocusEl`.
+- On close, a modal dialog returns focus to the trigger. If the trigger no
+  longer exists (the record was deleted), send focus to the next logical
+  element with `finalFocusEl`. Both depend on the focus trap, so a modeless
+  dialog (`trapFocus` defaults to `false`) restores nothing: move focus back
+  yourself in `onOpenChange` when it closes.
 - Modal behaviour limits work behind the dialog; modeless must not block it
   without a reason.
 
@@ -81,7 +83,7 @@ steps inside one dialog instead).
 
 ## Accessibility
 
-- The kit traps focus in modal behaviour, closes on Escape and restores focus.
+- The kit traps focus in modal behaviour, closes on Escape and, in modal behaviour, restores focus.
   Don't override this.
 - The close button and `Cancel` stay visible; never put the only way out
   inside scrolled content.

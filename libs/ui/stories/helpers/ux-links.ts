@@ -94,8 +94,8 @@ const PASS_THROUGH_LINK = /^(?:https?:|mailto:|#|\?)/
 export const toStoryId = (title: string) =>
   title.toLowerCase().replace(NON_ID_CHARACTERS, "-").replace(EDGE_DASHES, "")
 
-const COMPONENT_LINK = /(?:^|\/)([a-z0-9-]+)-usage\/references\/ux\.md(?:#.*)?$/
-const TOPIC_LINK = /(?:^|\/)([a-z0-9-]+)\.md(?:#.*)?$/
+const COMPONENT_LINK = /(?:^|\/)([a-z0-9-]+)-usage\/references\/ux\.md(#.*)?$/
+const TOPIC_LINK = /(?:^|\/)([a-z0-9-]+)\.md(#.*)?$/
 const MARKDOWN_LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g
 const HTML_COMMENT = /<!--[\s\S]*?-->\n?/g
 
@@ -104,14 +104,18 @@ export function toStorybookHref(href: string): string | null {
   if (PASS_THROUGH_LINK.test(href)) {
     return href
   }
-  const component = COMPONENT_LINK.exec(href)?.[1]
+  const componentMatch = COMPONENT_LINK.exec(href)
+  const component = componentMatch?.[1]
   if (component) {
     const title = UX_COMPONENT_TITLES[component]
-    return title ? `?path=/docs/${toStoryId(title)}--ux-guidelines` : null
+    return title
+      ? `?path=/docs/${toStoryId(title)}--ux-guidelines${componentMatch?.[2] ?? ""}`
+      : null
   }
-  const topic = TOPIC_LINK.exec(href)?.[1]
+  const topicMatch = TOPIC_LINK.exec(href)
+  const topic = topicMatch?.[1]
   if (topic && topic !== "ux" && UX_TOPIC_TITLES[topic]) {
-    return `?path=/docs/${toStoryId(UX_TOPIC_TITLES[topic])}--docs`
+    return `?path=/docs/${toStoryId(UX_TOPIC_TITLES[topic])}--docs${topicMatch?.[2] ?? ""}`
   }
   return null
 }

@@ -60,10 +60,12 @@ value on hover or by opening the list; navigate on change.
   identity; closing the list without choosing keeps the previous value
   ([Value lifecycle](../../ux-guidelines/references/value-lifecycle.md)).
 - `items` is authoritative: a removed option clears its value instead of
-  being replaced by another one.
+  being replaced by another one. To keep showing a saved value that is no
+  longer offered, the app keeps that item in `items` as `disabled`, explains
+  it in the helper text and blocks submitting until the user resolves it.
 - Clearing is its own step. On a required field it leaves a missing value that
   validation reports, not a valid "empty" option.
-- A previously saved value that is no longer available is shown as such, with
+- A previously saved value that is no longer available is shown as such (the item stays in `items` as `disabled`; see above), with
   the fix, before the user confirms anything. Don't silently drop or replace it.
 - With remote options, tell waiting, no matches and a load error apart, and
   never let an older response replace a newer list.
