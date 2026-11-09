@@ -110,12 +110,7 @@ function BrandProvider({
 
   useLayoutEffect(() => {
     const root = document.documentElement
-    const attr = brandAttr(brand)
-    if (attr) {
-      root.setAttribute("data-theme", attr)
-    } else {
-      root.removeAttribute("data-theme")
-    }
+    root.setAttribute("data-theme", brandAttr(brand))
     root.classList.remove("light", "dark")
     root.classList.add(resolvedMode)
     root.style.colorScheme = resolvedMode
@@ -209,10 +204,10 @@ export function BrandThemeScript({
   const brands = Object.fromEntries(
     brandKeys().map((key) => [
       key,
-      { attr: brandAttr(key) ?? null, dark: brandSupportsDark(key) },
+      { attr: brandAttr(key), dark: brandSupportsDark(key) },
     ])
   )
-  const script = `(function(){var b=${JSON.stringify(defaultBrand)},m=${JSON.stringify(defaultMode)},r=${JSON.stringify(brands)};try{var s=localStorage.getItem(${JSON.stringify(BRAND_STORAGE_KEY)});if(s&&Object.prototype.hasOwnProperty.call(r,s)){b=s;}var t=localStorage.getItem(${JSON.stringify(MODE_STORAGE_KEY)});if(t==='light'||t==='dark'||t==='system'){m=t;}}catch(e){}var e=document.documentElement,a=r[b].attr;if(a){e.setAttribute('data-theme',a);}else{e.removeAttribute('data-theme');}var c=r[b].dark?(m==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):m):'light';e.classList.remove('light','dark');e.classList.add(c);e.style.colorScheme=c;})();`
+  const script = `(function(){var b=${JSON.stringify(defaultBrand)},m=${JSON.stringify(defaultMode)},r=${JSON.stringify(brands)};try{var s=localStorage.getItem(${JSON.stringify(BRAND_STORAGE_KEY)});if(s&&Object.prototype.hasOwnProperty.call(r,s)){b=s;}var t=localStorage.getItem(${JSON.stringify(MODE_STORAGE_KEY)});if(t==='light'||t==='dark'||t==='system'){m=t;}}catch(e){}var e=document.documentElement;e.setAttribute('data-theme',r[b].attr);var c=r[b].dark?(m==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):m):'light';e.classList.remove('light','dark');e.classList.add(c);e.style.colorScheme=c;})();`
   return (
     <script
       // biome-ignore lint/security/noDangerouslySetInnerHtml: synchronous pre-paint brand/capability bootstrap

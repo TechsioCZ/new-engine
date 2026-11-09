@@ -9,8 +9,8 @@ import { openContractStory } from "./visual-shared-contracts.mjs"
 
 for (const [brand, mode] of [
   ["akros", "light"],
-  ["base", "light"],
-  ["base", "dark"],
+  ["business", "light"],
+  ["n1", "light"],
 ]) {
   test(`${brand}/${mode}: hierarchy captures reject clipped descendants inside intact panels`, async ({
     page,

@@ -14,8 +14,8 @@ import { openContractStory } from "./visual-shared-contracts.mjs"
 // Keep all lifecycle channels identical in the supported brand/color surfaces.
 for (const theme of [
   { brand: "akros", mode: "light" },
-  { brand: "base", mode: "light" },
-  { brand: "base", mode: "dark" },
+  { brand: "business", mode: "light" },
+  { brand: "n1", mode: "light" },
 ]) {
   test.describe(`${theme.brand}/${theme.mode}`, () => {
     test("rating: ProductCard aggregate is named, nonfocusable and not submitted", async ({

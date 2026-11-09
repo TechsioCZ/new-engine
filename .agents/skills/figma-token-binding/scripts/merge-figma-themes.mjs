@@ -14,10 +14,10 @@ const REPO_ROOT = resolve(
 const FIGMA_DIR = join(REPO_ROOT, "libs/ui/src/tokens/figma")
 const BASE = { light: "light", dark: "dark" }
 const BRANDS = [
-  { attr: "neo", light: "neo", dark: "neo-dark" },
   // Light-only brands reuse their light export for both modes.
   { attr: "business", light: "business", dark: "business" },
   { attr: "akros", light: "akros", dark: "akros" },
+  { attr: "n1", light: "n1", dark: "n1" },
 ]
 
 // Keep strings and CSS escapes intact. In particular, whitespace terminating a

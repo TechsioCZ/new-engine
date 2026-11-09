@@ -7,8 +7,8 @@ import {
 
 for (const [brand, mode] of [
   ["akros", "light"],
-  ["base", "light"],
-  ["base", "dark"],
+  ["business", "light"],
+  ["n1", "light"],
 ]) {
   test(`${brand}/${mode}: standalone guide initial and live themes`, async ({
     page,

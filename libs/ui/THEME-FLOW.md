@@ -250,8 +250,9 @@ the resolved root scheme, not a separate hardcoded light theme.
 
 `useAppTheme().mode` is the persisted **request** (`light`, `dark` or `system`).
 `resolvedMode` is reactive to OS appearance and constrained by the active brand;
-Akros and Business always resolve to light without overwriting that request.
-Switching back to base/Neo restores the saved dark/system preference. Brand
+Business, Akros and N1 are light-only, so they always resolve to light without
+overwriting that request. A future brand that ships dark restores the saved
+dark/system preference. Brand
 storage events update other tabs without echo writes.
 
 `AppThemeProvider` owns the root class and color-scheme. Its better-themes layer

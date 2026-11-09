@@ -17,8 +17,9 @@ metadata:
 # ui-kit brand theming
 
 Architecture: brands × color-scheme runtime switching via `better-themes`, `data-theme`
-attribute + `.light`/`.dark`/`.reverse` classes. Existing brands: base (default), `neo`,
-`cyber` — each with a light/dark pair. Full picture: `libs/ui/THEME-FLOW.md`.
+attribute + `.light`/`.dark`/`.reverse` classes. Registered brands: `business` (default),
+`akros`, `n1` — all light-only; the attribute-less base layer is the shared foundation,
+not a brand. Full picture: `libs/ui/THEME-FLOW.md`.
 
 ## Two ways to create a brand
 

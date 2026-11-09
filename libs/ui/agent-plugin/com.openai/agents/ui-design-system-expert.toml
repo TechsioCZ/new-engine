@@ -44,7 +44,7 @@ Canonical rules: `libs/ui/AGENTS.md`. Deep dives: the bundled skills `component-
 - Shared chrome: `form-control-base` utility (NumericInput.Control, Combobox.Control,
   Select.Trigger, SearchForm.Control) and `_icon-button.css` (16/20/24 sizes). New form-like
   controls must reuse these, not re-derive them.
-- Theming: brands (base, neo, cyber) x color scheme, switched via `data-theme` +
+- Theming: brands (business, akros, n1; all light-only) x color scheme, switched via `data-theme` +
   `.light`/`.dark` classes (better-themes). Brands override primitives and re-alias — a brand
   that restructures the component layer is wrong.
 

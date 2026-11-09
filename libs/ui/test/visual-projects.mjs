@@ -1,6 +1,6 @@
 import { THEMES } from "../src/theme/theme-config.ts"
 
-/** @typedef {"base" | "neo" | "business" | "akros"} VisualBrand */
+/** @typedef {"business" | "akros" | "n1"} VisualBrand */
 /** @typedef {"light" | "dark"} VisualColorScheme */
 
 /** Resolve the canvas theme exactly like the Storybook brand-lock decorator.
@@ -55,14 +55,14 @@ export function createVisualMatrix(
   return brands.flatMap((brand) => {
     if (!Object.hasOwn(THEMES, brand)) {
       throw new Error(
-        `Unsupported visual brand: ${brand}. Choose base, neo, business or akros.`
+        `Unsupported visual brand: ${brand}. Choose business, akros or n1.`
       )
     }
     const typedBrand = /** @type {VisualBrand} */ (brand)
     return [false, true].flatMap((isMobile) =>
       THEMES[typedBrand].modes.map((colorScheme) => ({
         brand: typedBrand,
-        name: `${brand === "base" ? "" : `${brand}-`}${isMobile ? "mobile" : "desktop"}-${colorScheme}`,
+        name: `${brand}-${isMobile ? "mobile" : "desktop"}-${colorScheme}`,
         colorScheme,
         isMobile,
       }))

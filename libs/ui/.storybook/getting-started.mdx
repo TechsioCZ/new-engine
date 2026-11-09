@@ -49,13 +49,13 @@ export function CheckoutAction() {
 
 ## Select a brand and mode
 
-Brand and mode are separate axes on the document root. Base uses no `data-theme`
-attribute. Use one concrete `light` or `dark` class, not both.
+Brand and mode are separate axes on the document root. Every brand sets a
+`data-theme` attribute; Business is the default. Use one concrete `light` or
+`dark` class, not both.
 
-- **Base:** no `data-theme` attribute; light and dark.
-- **Neo:** `data-theme="neo"`; light and dark.
 - **Business:** `data-theme="business"`; light only.
 - **Akros:** `data-theme="akros"`; light only.
+- **N1:** `data-theme="n1"`; light only.
 
 For a fixed Akros application, static document attributes are sufficient:
 

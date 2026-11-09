@@ -27,7 +27,7 @@
 
   /* Checked Menu rows have no filled selection background. Use the readable
    * semantic foreground: an accent palette step can be yellow on yellow, and
-   * even the text accent falls below 4.5:1 on base/neo hover tints. The checkmark
+   * even the text accent falls below 4.5:1 on brand hover tints. The checkmark
    * carries selection meaning; retain high-contrast white in dark mode. */
   --color-popup-checked: light-dark(
     var(--color-fg-primary),

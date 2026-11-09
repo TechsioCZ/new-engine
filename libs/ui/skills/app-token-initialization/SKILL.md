@@ -39,8 +39,8 @@ Process CSS with Tailwind v4's PostCSS plugin. If the app does not already impor
 Tailwind, use only `@techsio/ui-kit/tokens-with-tailwind` instead of the two
 imports below. Both public CSS entries register shipped package JavaScript via
 package-relative `@source`; no app-side copying of component classes is needed.
-Select built-in brands with data-theme (base has no attribute) and .light/.dark.
-Akros and Business are light-only; start fixed Akros with
+Select built-in brands with data-theme (business, akros, n1) and .light/.dark.
+All built-in brands are light-only; Business is the default; start fixed Akros with
 `<html class="light" data-theme="akros">`. AppThemeProvider defaults do not
 force a brand over persisted preferences. Import app-owned overrides after kit
 CSS with a matching theme selector or descendant scope; do not edit generated

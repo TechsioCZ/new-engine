@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test"
 
 const schemes = [
   ["akros", "light"],
-  ["base", "light"],
-  ["base", "dark"],
+  ["business", "light"],
+  ["n1", "light"],
 ] as const
 
 for (const [brand, mode] of schemes) {
@@ -189,12 +189,7 @@ test("grouped skeletons have one pulse owner and independent local timing", asyn
   await expect(group).toHaveCSS("opacity", "1")
 })
 
-for (const [brand, mode] of [
-  ...schemes,
-  ["neo", "light"],
-  ["neo", "dark"],
-  ["business", "light"],
-]) {
+for (const [brand, mode] of schemes) {
   test(`${brand}/${mode}: destructive glyph contrast survives overlapping hover and active`, async ({
     page,
   }) => {

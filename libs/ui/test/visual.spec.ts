@@ -23,7 +23,7 @@ type StorybookEntry = {
   type: string
   tags?: string[]
 }
-type VisualBrand = "base" | "neo" | "business" | "akros"
+type VisualBrand = "business" | "akros" | "n1"
 type StorybookIndex = { entries: Record<string, StorybookEntry> }
 type StoryReporter = { type?: string; status?: string }
 type StoryCompletion = {
@@ -694,9 +694,6 @@ function assertThemeTokens(
           `Theme CSS is missing for ${expectedBrand} ${expectedMode}`
         )
       }
-      if (expectedBrand === "base") {
-        return
-      }
       const names = Array.from(style).filter((name) => name.startsWith("--"))
       const selected = names.map((name) => style.getPropertyValue(name).trim())
       let overridden = false
@@ -813,8 +810,7 @@ test.describe
                     }) => {
                       const html = document.documentElement
                       return (
-                        html.getAttribute("data-theme") ===
-                          (themeBrand === "base" ? null : themeBrand) &&
+                        html.getAttribute("data-theme") === themeBrand &&
                         html.classList.contains(themeMode) &&
                         !html.classList.contains(
                           themeMode === "dark" ? "light" : "dark"
